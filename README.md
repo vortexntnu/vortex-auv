@@ -44,8 +44,18 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	$ echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
 	$ source ~/.bashrc
 
+## 2. Install the protobuf library, which is used as interface to Gazebo. ##
+-------------------------
 
-## 2. Now that you have ROS Kinetic installed. Create ROS workspace ##
+1. Install the protobuf library, which is used as interface to Gazebo.:
+	```bash
+	$ sudo apt-get install protobuf-compiler
+  
+2. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
+	```bash
+	$ sudo apt-get install ros-kinetic-message-to-tf
+  
+## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
 -------------------------
 
@@ -72,7 +82,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
 
 
-## 3. How to run the simulation ##
+## 4. How to run the simulation ##
 -------------------------
 1. Enter the folder where you want to clone the repostory:
 	```bash
@@ -105,7 +115,7 @@ inside the src-folder of you workspace
 	```bash
 	$ roslaunch manta_thruster_manager thruster_manager.launch
 	```
-## 4. Start the controller ##
+## 5. Start the controller ##
 -------------------------
 1. Open a fourth and final window, and run the following line to start the simulation:
 	```bash
