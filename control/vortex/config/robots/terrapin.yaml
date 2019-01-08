@@ -1,0 +1,90 @@
+# This file defines parameters specific to the Terrapin ROV
+#
+# When looking at the ROV from above, the thruster placement is:
+#     ____
+# ↗8 /    \ 1↖
+# ⨯7|      |2⨯
+# ⨯6|      |3⨯
+# ↘5 \____/ 4↙
+
+physical:
+  mass_kg: 0
+  displacement_m3: 0
+  center_of_mass: [0, 0, 0]
+  center_of_buoyancy: [0, 0, 0]
+
+propulsion:
+  dofs:
+    num: 6
+    which:
+      surge: true
+      sway:  true
+      heave: true
+      roll:  true
+      pitch: true
+      yaw:   true
+  thrusters:
+    num: 8
+    configuration_matrix:
+      [[ 0.70711,  0.00000,  0.00000, -0.70711, -0.70711,  0.00000,  0.00000, 0.70711], # Surge
+       [-0.70711,  0.00000,  0.00000, -0.70711,  0.70711,  0.00000,  0.00000, 0.70711], # Sway
+       [ 0.00000,  1.00000,  1.00000,  0.00000,  0.00000,  1.00000,  1.00000, 0.00000], # Heave
+       [ 0.00000,  0.15800,  0.15800,  0.00000,  0.00000, -0.15800, -0.15800, 0.00000], # Roll
+       [ 0.00000, -0.06600,  0.06600,  0.00000,  0.00000,  0.06600, -0.06600, 0.00000], # Pitch
+       [-0.20577, -0.00000, -0.00000,  0.20577, -0.20577,  0.00000,  0.00000, 0.20577]] # Yaw
+  command:
+    wrench:
+      max:     [33.9, 33.9, 48.0, 7.6, 3.2, 9.9]
+      scaling: [ 0.4,  0.4,  0.6, 0.3, 0.7, 0.2]
+    pose:
+      rate: [0.20, 0.20, 0.20, 0.35, 0.35, 0.35] # Euler angle pose!
+
+controller:
+  frequency: 10
+  position_gain: 30.0
+  attitude_gain: 2.5
+  velocity_gain: 0.4
+
+servo:
+  angle_range_deg: 35
+  lookup:
+    position: [-1, 1]
+    pulse_width: [950, 500]
+
+stepper:
+  default_speed_rpm: 30
+  steps_per_rev: 200
+  pins:
+    valve: ['P8_28', 'P8_30', 'P8_27', 'P8_29']
+    agar:  ['P8_32', 'P8_34', 'P8_31', 'P8_33']
+    valve_enable: 'P8_46'
+    agar_enable:  'P8_44'
+
+computer: 'beaglebone'
+
+pwm:
+  pins:
+    # Map from thruster number (list index) to pwm pin (list value)
+    thrusters: [0, 1, 2, 3, 4, 5, 6, 7]
+    headlights: 8
+    claw_servo: 9
+  frequency:
+    set: 50.0
+    measured: 51.6
+  counter:
+    max: 4095
+
+camera:
+  pin_map_feed0: ["P8_9", "P8_8", "P8_7"]
+  pin_map_feed1: ["P8_12", "P8_11", "P8_10"]
+  pin_map_feed2: ["P8_15", "P8_14", "P8_13"]
+
+light:
+  gpio_pins: {"bluetooth":"P8_16", "raman":"P8_17"}
+  pwm_pins: {"front":8}
+
+sensors:
+  bno055:
+    # https://github.com/adafruit/Adafruit_Python_BNO055
+    mode: 'IMU'
+    # mode: 'NDOF'

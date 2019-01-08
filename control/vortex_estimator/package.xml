@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <name>vortex_estimator</name>
+  <version>0.0.0</version>
+  <description>The vortex_estimator package</description>
+  <maintainer email="morten.fyhn.amundsen@gmail.com">Morten Fyhn Amundsen</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>roslint</build_depend>
+
+  <run_depend>eigen_conversions</run_depend>
+  <run_depend>roscpp</run_depend>
+</package>

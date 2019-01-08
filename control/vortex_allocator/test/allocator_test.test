@@ -1,0 +1,24 @@
+<launch>
+  <rosparam
+    command="load"
+    file="$(find vortex)/config/robots/maelstrom.yaml"
+  />
+
+  <rosparam
+    command="load"
+    file="$(find thruster_interface)/config/thruster_T100.yaml"
+  />
+
+  <node
+    pkg="vortex_allocator"
+    type="node"
+    name="allocator"
+    output="screen"
+  />
+
+  <test
+    pkg="vortex_allocator"
+    type="vortex_allocator-test"
+    test-name="allocator_test"
+  />
+</launch>

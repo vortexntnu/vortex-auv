@@ -1,0 +1,28 @@
+<launch>
+  <rosparam
+    command="load"
+    file="$(find vortex)/config/robots/maelstrom.yaml"
+  />
+
+  <rosparam
+    command="load"
+    file="$(find vortex)/config/environments/trondheim_freshwater.yaml"
+  />
+
+  <param name="controller/velocity_gain" value="1" />
+  <param name="controller/position_gain" value="2" />
+  <param name="controller/attitude_gain" value="3" />
+
+  <node
+    pkg="vortex_controller"
+    type="node"
+    name="controller"
+    output="screen"
+  />
+
+  <test
+    pkg="vortex_controller"
+    type="vortex_controller-test"
+    test-name="controller_test"
+  />
+</launch>

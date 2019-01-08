@@ -1,0 +1,99 @@
+material Aruco/Tag1
+{
+  technique
+  {
+    pass
+    {
+      ambient 1 1 1 1
+      diffuse 1 1 1 1
+      specular 0 0 0 0
+
+      texture_unit
+      {
+        texture ../textures/fiducials/aruco_1.png
+        filtering bilinear
+        max_anisotropy 16
+      }
+    }
+  }
+}
+
+material Aruco/Tag2
+{
+  technique
+  {
+    pass
+    {
+      ambient 1 1 1 1
+      diffuse 1 1 1 1
+      specular 0 0 0 0
+
+      texture_unit
+      {
+        texture ../textures/fiducials/aruco_2.png
+        filtering bilinear
+        max_anisotropy 16
+      }
+    }
+  }
+}
+
+material Aruco/Tag3
+{
+  technique
+  {
+    pass
+    {
+      ambient 1 1 1 1
+      diffuse 1 1 1 1
+      specular 0 0 0 0
+
+      texture_unit
+      {
+        texture ../textures/fiducials/aruco_3.png
+        filtering bilinear
+        max_anisotropy 16
+      }
+    }
+  }
+}
+
+material Aruco/Tag4
+{
+  technique
+  {
+    pass
+    {
+      ambient 1 1 1 1
+      diffuse 1 1 1 1
+      specular 0 0 0 0
+
+      texture_unit
+      {
+        texture ../textures/fiducials/aruco_4.png
+        filtering bilinear
+        max_anisotropy 16
+      }
+    }
+  }
+}
+
+material Aruco/Tag5
+{
+  technique
+  {
+    pass
+    {
+      ambient 1 1 1 1
+      diffuse 1 1 1 1
+      specular 0 0 0 0
+
+      texture_unit
+      {
+        texture ../textures/fiducials/aruco_5.png
+        filtering bilinear
+        max_anisotropy 16
+      }
+    }
+  }
+}

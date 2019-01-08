@@ -1,0 +1,14 @@
+# Environmental parameters for saltwater in Trondheim, Norway
+#
+# Pressure value from 10 year average via wolframalpha.com
+# Density from wolgframalpha.com query "ocean density" (default parameters)
+# Gravity value from EGM2008 12th order via wolframalpha.com
+
+atmosphere:
+  pressure: 101000
+
+water:
+  density: 1026
+
+gravity:
+  acceleration: 9.82841

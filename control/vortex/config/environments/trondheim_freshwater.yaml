@@ -1,0 +1,13 @@
+# Environmental parameters for freshwater in Trondheim, Norway
+#
+# Pressure value from 10 year average via wolframalpha.com
+# Gravity value from EGM2008 12th order via wolframalpha.com
+
+atmosphere:
+  pressure: 101000
+
+water:
+  density: 1000
+
+gravity:
+  acceleration: 9.82841

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package>
+  <name>vortex_controller</name>
+  <version>0.0.0</version>
+  <description>The vortex_controller package</description>
+  <maintainer email="morten.fyhn.amundsen@gmail.com">Morten Fyhn Amundsen</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>vortex</build_depend>
+  <build_depend>vortex_msgs</build_depend>
+  <build_depend>roslint</build_depend>
+
+  <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>eigen_conversions</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>vortex</run_depend>
+  <run_depend>vortex_msgs</run_depend>
+</package>

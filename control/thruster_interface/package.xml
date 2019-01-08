@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package>
+
+  <name>thruster_interface</name>
+  <version>0.0.0</version>
+  <description>This package provides an interface between the commanded forces for each thruster and the thruster controllers.</description>
+  <maintainer email="morten.fyhn.amundsen@gmail.com">Morten Fyhn Amundsen</maintainer>
+  <license>MIT</license>
+  <url type="website">http://vortexntnu.no/</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>rospy</build_depend>
+  <build_depend>vortex_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>roslint</build_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>vortex_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>
+
+</package>

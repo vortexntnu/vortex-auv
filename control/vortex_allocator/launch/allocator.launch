@@ -1,0 +1,9 @@
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+
+  <rosparam command="load" file="$(find vortex)/config/robots/terrapin.yaml"/>
+  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+
+  <node pkg="vortex_allocator"  type="node" name="allocator"  output="screen"/>
+</launch>
+

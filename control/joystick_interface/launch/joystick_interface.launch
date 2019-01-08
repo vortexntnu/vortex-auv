@@ -1,0 +1,10 @@
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}"/>
+
+  <param name="joy/deadzone"        value="0.2"/>
+  <param name="joy/autorepeat_rate" value="100"/>
+
+  <node pkg="joy"                name="joy"                type="joy_node"              output="screen"/>
+  <node pkg="topic_tools"        name="joy_throttler"      type="throttle"              output="screen" args="messages /joy 20"/>
+  <node pkg="joystick_interface" name="joystick_interface" type="joystick_interface.py" output="screen"/>
+</launch>

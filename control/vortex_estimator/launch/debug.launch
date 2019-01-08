@@ -1,0 +1,4 @@
+<launch>
+  <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml" />
+  <node pkg="vortex_estimator" type="node" name="estimator" output="screen" />
+</launch>

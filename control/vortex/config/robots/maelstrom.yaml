@@ -1,0 +1,57 @@
+# This file defines parameters specific to the Maelstrom ROV
+#
+# When looking at the ROV from above, the thruster placement is:
+#  ___    ___
+# |   |__|   |
+# | ↗1    2↖ |   N
+# |    5⨯    |   ↑
+# |          | W← →E
+# |    6⨯    |   ↓
+# | ↘4    3↙ |   S
+# |__________|
+#   REAR END
+#
+# Using the compass shown:
+# Thruster 1 is positive (↗) NE
+# Thruster 2 is positive (↖) NW
+# Thruster 3 is positive (↙) SW
+# Thruster 4 is positive (↘) SE
+# Thruster 5 is positive (⨯) down
+# Thruster 6 is positive (⨯) down
+
+physical:
+  mass_kg: 15
+  displacement_m3: 0.015
+  center_of_mass: [0, 0, -0.15]
+  center_of_buoyancy: [0, 0,  0.10]
+
+propulsion:
+  dofs:
+    num: 5
+    which:
+      surge: true
+      sway:  true
+      heave: true
+      roll:  false
+      pitch: true
+      yaw:   true
+  thrusters:
+    num: 6
+    configuration_matrix:
+      [[ 0.7071,  0.7071, -0.7071, -0.7071,     0.0,    0.0], # Surge
+       [ 0.7071, -0.7071, -0.7071,  0.7071,     0.0,    0.0], # Sway
+       [    0.0,     0.0,     0.0,     0.0,     1.0,    1.0], # Heave
+       [-0.0467, -0.0467,  0.0467,  0.0467, -0.1600, 0.1600], # Pitch
+       [ 0.2143, -0.2143,  0.2143, -0.2143,     0.0,    0.0]] # Yaw
+  command:
+    wrench:
+      max: [69.85, 69.85, 49.39, 0, 5, 7] # 5 & 7 are rough estimates
+      scaling: [0.7, 0.5, 1, 1, 1, 1]
+    pose:
+      rate: [0.20, 0.20, 0.20, 0.35, 0.35, 0.35] # Euler angle pose!
+
+controller:
+  frequency: 10
+  velocity_gain: 0.5
+  position_gain: 0.0
+  attitude_gain: 20.0
