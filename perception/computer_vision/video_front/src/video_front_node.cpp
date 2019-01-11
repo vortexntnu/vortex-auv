@@ -112,7 +112,7 @@ int main() {
 	
 	//Video
 	Mat frame; 
-  const char* gst = "/home/hellum/Videos/GOPR1142.avi";
+  const char* gst = 0;//"/home/hellum/Videos/GOPR1142.avi";
 	VideoCapture video(gst); //capture the video from video, change to "1" for cam
     
 	// if not success, exit program
@@ -151,14 +151,14 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "image_publisher");
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
-  image_transport::Publisher pub = it.advertise("camera/image", 1);
+  image_transport::Publisher pub = it.advertise("/camera/image_raw", 1);
 
   // Convert the passed as command line parameter index for the video device to an integer
-  const char* src = "/home/hellum/Videos/GOPR1142.avi";
+  const char* src = "GOPR1142.avi";//"udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload=96 ! rtph264depay ! avdec_h264 ! autovideosink";
 
   cv::VideoCapture cap(src);
   // Check if video device can be opened with the given index
-  if(!cap.isOpened()) return 1;
+  if(!cap.isOpened()) return 0;
   cv::Mat frame;
   sensor_msgs::ImagePtr msg;
 

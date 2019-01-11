@@ -111,7 +111,7 @@ int main() {
 	
 	//Video
 	Mat frame; 
-  const char* gst = "/home/hellum/Videos/GOPR1142.avi";
+  const char* gst = "udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload=96 ! rtph264depay ! avdec_h264 ! autovideosink ! videoconvert ! appsink";
 	VideoCapture video(gst); //capture the video from video, change to "1" for cam
     
 	// if not success, exit program
