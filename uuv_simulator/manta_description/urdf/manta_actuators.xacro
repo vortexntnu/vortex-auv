@@ -46,7 +46,7 @@
     <origin xyz="0.12070 -0.12070 0" rpy="${0*d2r} ${-105.47*d2r} ${-53.21*d2r}"/>
   </xacro:thruster_macro>
   <xacro:thruster_macro namespace="${namespace}" thruster_id="4"> <!-- lat back left-->
-    <origin xyz="-0.12070 0.12070 0" rpy="${0*d2r} ${0*d2r} ${45*d2r}"/>
+    <origin xyz="-0.20506 0.20506 0" rpy="${0*d2r} ${0*d2r} ${45*d2r}"/>
   </xacro:thruster_macro>
   <xacro:thruster_macro namespace="${namespace}" thruster_id="5"> <!-- lat back right -->
     <origin xyz="-0.20506 -0.20506 0" rpy="${0*d2r} ${0*d2r} ${-45*d2r}"/>
