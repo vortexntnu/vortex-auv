@@ -30,61 +30,85 @@
   <xacro:include filename="$(find uuv_sensor_ros_plugins)/urdf/sensor_snippets.xacro"/>
   <xacro:include filename="$(find uuv_gazebo_ros_plugins)/urdf/snippets.xacro"/>  
 
+<!--
+    Vehicle's parameters (remember to enter the model parameters below)
+  -->
+  <!-- Mass -->
+  <xacro:property name="mass" value="18"/>
+  <!-- Describing the dimensions of the vehicle's bounding box: width, length, height -->
+  <xacro:property name="x_size" value="0.448"/>
+  <xacro:property name="y_size" value="0.444"/>
+  <xacro:property name="z_size" value="0.28066"/>
+  <!-- minion_usv_height is not really! It's just for run... We need first calculate the Fossen parameters -->
+  <!-- Volume -->
+  <xacro:property name="volume" value="0.01754"/>
+  <!-- Center of gravity -->
+  <xacro:property name="cog" value="0 0 0"/>
+  <!--
+  Center of buoyancy according to eq. (3.1) p. 28 in Berg2012.
+  The original values, [0.0822, -0.00773, 0.3872] however, seem to
+  assume NWU (otherwise cob is below cog?). 0.155
+  -->
+  <xacro:property name="cob" value="0 0 0"/>
+  <!-- Fluid density -->
+  <xacro:property name="rho" value="1028"/>
+  <!--
+    Visual mesh file for the vehicle, usually in DAE (Collada) format. Be sure to store the
+    mesh with the origin of the mesh on the same position of the center of mass, otherwise
+    the mesh pose will have to be corrected below in the <visual> block.
+    Open the meshes for the RexROV vehicle in Blender to see an example on the mesh placement.
+  -->
+
   <!-- Parameters -->
   <xacro:property name="namespace" value="manta"/>
   <xacro:property name="visual_mesh_file" value="file://$(find manta_description)/mesh/manta_shell.dae"/>
-  <xacro:property name="prop_mesh_file" value="file://$(find manta_description)/mesh/prop.dae"/>
 
-  <!-- Mass, see p.28 in Berg2012 -->
-  <xacro:property name="mass" value="1600.0"/>
 
   <xacro:macro name="manta_base" params="namespace *gazebo inertial_reference_frame">
-    <!-- base_link according to ROS conventions: x forward, z up -->
-    <link name="${namespace}/base_link">
-      <inertial>
-        <mass value="${mass}"/>
-        <origin xyz="0 0 0"/>
-        <inertia ixx="525.39" ixy="1.44" ixz="33.41" iyy="794.20" iyz="2.6" izz="691.23"/>
-      </inertial>
-      <visual>
-        <origin xyz="0 0 0" rpy="0 0 0"/>
-        <geometry>
-          <mesh filename="${visual_mesh_file}" scale="1 1 1"/>
-        </geometry>
-      </visual>
-      <!-- bottom plate -->
-      <collision>
-        <origin xyz="0 0 -0.75" rpy="0 0 0"/>
-        <geometry>
-          <box size="2.56 1.50 0.10"/>
-        </geometry>
-      </collision>
-      <!-- top plate -->
-      <collision>
-        <origin xyz="0 0 0.60" rpy="0 0 0"/>
-        <geometry><box size="2.56 1.50 0.40"/></geometry>
-      </collision>
-      <!-- left / right sides -->
-      <collision>
-        <origin xyz="-0.20 0.70 -0.15" rpy="0 0 0"/>
-        <geometry><box size="2.20 0.10 1.10"/></geometry>
-      </collision>
-      <collision>
-        <origin xyz="-0.20 -0.70 -0.15" rpy="0 0 0"/>
-        <geometry><box size="2.20 0.10 1.10"/></geometry>
-      </collision>
+   <!-- Rigid body description of the base link -->
+      <link name="${namespace}/base_link">
+        <!--
+          Be careful to setup the coefficients for the inertial tensor,
+          otherwise your model will become unstable on Gazebo
+        -->
+        <inertial>
+          <mass value="${mass}" />
+          <origin xyz="${cog}" rpy="0 0 0"/>
+          <!-- <inertia ixx="525.39" ixy="1.44" ixz="33.41" iyy="794.20" iyz="2.6" izz="691.23"/> -->
+          <inertia
+            ixx="${0.6*mass*y_size*y_size + 0.6*mass*z_size*z_size}" ixy="0.0" ixz="0.0"
+            iyy="${0.6*mass*x_size*x_size + 0.6*mass*z_size*z_size}" iyz="0.0"
+            izz="${0.001*mass*x_size*x_size + 0.001*mass*y_size*y_size}" />
+        </inertial>
 
-    </link>
+        <!-- This visual geometry representation can be used when running
+             tasks in which you need Gazebo to start quickly
+        -->
+        <!-- <xacro:if value="${use_simplified_mesh}"> -->
+        <!-- Code in rexrov2_base.xacro if use the flag use_simplified_mesh -->
+
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <geometry>
+            <mesh filename="${visual_mesh_file}" scale="1 1 1" />
+          </geometry>
+        </visual>
+
+        <!-- In rexrov2_base they made collision planes to minize the GPU load -->
+        <!-- <collision>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <geometry>
+            <mesh filename="${collision_mesh_file}" scale="1 1 1" />
+          </geometry>
+        </collision> -->
+      </link>
+
+    <gazebo reference="${namespace}/base_link">
+      <selfCollide>false</selfCollide>
+    </gazebo>
 
     <!-- Set up hydrodynamic plugin given as input parameter -->
     <xacro:insert_block name="gazebo"/>
-
-    <!-- optional: plugin to test compare Gazebo's returned accelerations
-    <gazebo>
-      <plugin name="${namespace}_test_plugin" filename="libaccelerations_test_plugin.so">
-        <link_name>${namespace}/base_link</link_name>
-      </plugin>
-    </gazebo> -->
 
    <!-- Publishes -->
    <!-- ONLY NEED FOR SIMULATIONS (GAZEBO SPECIFIC) 
