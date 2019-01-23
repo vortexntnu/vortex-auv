@@ -118,10 +118,8 @@ inside the src-folder of you workspace
 ## 5. Open Camera view ##
 -------------------------
 
-	```bash
 	$ rqt
-	```
-
+	
 ## 6. Start the controller ##
 -------------------------
 1. Open a fourth and final window, and run the following line to start the simulation:
