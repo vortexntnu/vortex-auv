@@ -27,17 +27,17 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 3. Update:
 	```bash
 	$ sudo apt-get update
-  
+
 4. Installation:
 	```bash
 	$ sudo apt-get install ros-kinetic-desktop-full
 	```
 
-5. Before you can use ROS, you will need to initialize rosdep: 
+5. Before you can use ROS, you will need to initialize rosdep:
 	```bash
 	$ sudo rosdep init
 	$ rosdep update
-  
+
 
 6. Environment setup:
 	```bash
@@ -50,11 +50,11 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 1. Install the protobuf library, which is used as interface to Gazebo.:
 	```bash
 	$ sudo apt-get install protobuf-compiler
-  
+
 2. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
 	$ sudo apt-get install ros-kinetic-message-to-tf
-  
+
 ## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
 -------------------------
@@ -64,22 +64,22 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	$ mkdir -p ~/manta_ws/src
 	$ cd ~/manta_ws/src
 	$ catkin_init_workspace
-  
+
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
 	$ catkin build
-  
+
 3. source the current workspace:
 	```bash
 	$ echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
-	
+
 3. close the current window.
 
 4. Open a new window. To make sure the workspace is properly overlayed:
 	```bash
 	$ echo $ROS_PACKAGE_PATH
-	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
+	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share
 
 
 ## 4. How to run the simulation ##
@@ -89,7 +89,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	$ cd manta_ws/src
 	```
 
-2. Clone the repository: 
+2. Clone the repository:
 	```bash
 	$  git clone https://github.com/vortexntnu/Manta-AUV.git
 	```
@@ -100,28 +100,32 @@ inside the src-folder of you workspace
 	```bash
 	$ cd ~/manta_ws/
 	$ catkin build
-  
-4. Open a window and run Gazebo world: 
+
+4. Open a window and run Gazebo world:
 	```bash
-	$ roslaunch uuv_descriptions empty_underwater_world.launch 
+	$ roslaunch uuv_descriptions robosub_world.launch
 	```
 
 5. Open a second window and and spawn the model:
 	```bash
 	$ roslaunch manta_description upload_manta.launch
 	```
-  
+
 6. Open a third window and and launch the thruster_manager.
 	```bash
 	$ roslaunch manta_thruster_manager thruster_manager.launch
 	```
-## 5. Start the controller ##
+## 5. Open Camera view ##
+
+	```bash
+	$ rqt
+	```
+
+## 6. Start the controller ##
 -------------------------
 1. Open a fourth and final window, and run the following line to start the simulation:
 	```bash
 	$ roslaunch vortex pc.launch
 	```
+
 2. Use Xbox controller
-
-
-
