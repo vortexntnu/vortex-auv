@@ -3,7 +3,7 @@
   <arg name="debug" default="0"/>
 
   <arg name="x" default="15"/>
-  <arg name="y" default="15"/>
+  <arg name="y" default="-20"/>
   <arg name="z" default="-0.3"/>
   <arg name="roll" default="0.0"/>
   <arg name="pitch" default="0.0"/>
