@@ -32,7 +32,7 @@
       suffix="${suffix}"
       parent_link="${parent_link}"
       topic="camera"
-      mass="0.1"
+      mass="0.001"
       update_rate="30"
       hfov="1.5125"
       width="768"
