@@ -1,5 +1,7 @@
 ## Vortex NTNU, Manta AUV repository
 
+![MANTA](manta_underwater_robosub.png)
+
 ## Prerequisites
 
 Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
