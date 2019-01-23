@@ -1,29 +1,20 @@
 <?xml version="1.0" ?>
-<!-- Copyright (c) 2016 The UUV Simulator Authors.
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved.
-
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
 -->
+
 <sdf version="1.5">
   <model name="ocean_box">
     <static>true</static>
     <link name="link">
       <visual name="ground">
         <cast_shadows>false</cast_shadows>
-        <pose>0 0 -100 0 0 0</pose>
+        <pose>0 0 -20 0 0 0</pose>
         <geometry>
           <box>
-            <size>2000 2000 .1</size>
+            <size>100 100 .1</size>
           </box>
         </geometry>
         <material>
@@ -35,36 +26,37 @@
       </visual>
 
       <collision name="ground">
-        <pose>0 0 -100 0 0 0</pose>
+        <pose>0 0 -20 0 0 0</pose>
         <geometry>
           <box>
-            <size>2000 2000 .1</size>
+            <size>100 100 .1</size>
           </box>
         </geometry>
       </collision>
 
       <visual name="surface">
+	<pose>0 0 0 0 0 0</pose>
         <cast_shadows>false</cast_shadows>
-        <pose>0 0 0 0 0 0</pose>
         <geometry>
-          <box>
-            <size>2000 2000 .1</size>
-          </box>
+          <mesh>
+            <uri>file://Media/models/sea_surface_1000m_x_1000m.dae</uri>
+            <scale>0.1 0.1 0.05</scale>
+          </mesh>
         </geometry>
         <material>
           <script>
-            <uri>file://Media/materials/scripts/water.material</uri>
-            <name>UUVSimulator/StaticDeepWater</name>
+            <uri>file://Media/materials/scripts/waves.material</uri>
+            <name>UUVSimulator/SimpleWaves</name>
           </script>
         </material>
       </visual>
 
       <visual name="north">
         <cast_shadows>false</cast_shadows>
-        <pose>1000 0 -50 0 0 0</pose>
+        <pose>50 0 -10 0 0 0</pose>
         <geometry>
           <box>
-            <size>.1 2000 100</size>
+            <size>.1 100 20</size>
           </box>
         </geometry>
         <material>
@@ -77,10 +69,10 @@
 
       <visual name="south">
         <cast_shadows>false</cast_shadows>
-        <pose>-1000 0 -50 0 0 0</pose>
+        <pose>-50 0 -10 0 0 0</pose>
         <geometry>
           <box>
-            <size>.1 2000 100</size>
+            <size>.1 100 20</size>
           </box>
         </geometry>
         <material>
@@ -93,10 +85,10 @@
 
       <visual name="east">
         <cast_shadows>false</cast_shadows>
-        <pose>0 -1000 -50 0 0 0</pose>
+        <pose>0 -50 -10 0 0 0</pose>
         <geometry>
           <box>
-            <size>2000 .1 100</size>
+            <size>100 .1 20</size>
           </box>
         </geometry>
         <material>
@@ -109,10 +101,10 @@
 
       <visual name="west">
         <cast_shadows>false</cast_shadows>
-        <pose>0 1000 -50 0 0 0</pose>
+        <pose>0 50 -10 0 0 0</pose>
         <geometry>
           <box>
-            <size>2000 .1 100</size>
+            <size>100 .1 20</size>
           </box>
         </geometry>
         <material>
