@@ -116,6 +116,7 @@ inside the src-folder of you workspace
 	$ roslaunch manta_thruster_manager thruster_manager.launch
 	```
 ## 5. Open Camera view ##
+-------------------------
 
 	```bash
 	$ rqt
