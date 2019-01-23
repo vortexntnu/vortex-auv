@@ -41,15 +41,15 @@
   <xacro:property name="z_size" value="0.28066"/>
   <!-- minion_usv_height is not really! It's just for run... We need first calculate the Fossen parameters -->
   <!-- Volume -->
-  <xacro:property name="volume" value="0.01754"/>
+  <xacro:property name="volume" value="0.01854"/>
   <!-- Center of gravity -->
-  <xacro:property name="cog" value="0 0 0"/>
+  <xacro:property name="cog" value="0 0 -0.03"/>
   <!--
   Center of buoyancy according to eq. (3.1) p. 28 in Berg2012.
   The original values, [0.0822, -0.00773, 0.3872] however, seem to
   assume NWU (otherwise cob is below cog?). 0.155
   -->
-  <xacro:property name="cob" value="0 0 0"/>
+  <xacro:property name="cob" value="0 0 0.05"/>
   <!-- Fluid density -->
   <xacro:property name="rho" value="1028"/>
   <!--
@@ -94,13 +94,12 @@
           </geometry>
         </visual>
 
-        <!-- In rexrov2_base they made collision planes to minize the GPU load -->
-        <!-- <collision>
-          <origin xyz="0 0 0" rpy="0 0 0"/>
-          <geometry>
-            <mesh filename="${collision_mesh_file}" scale="1 1 1" />
-          </geometry>
-        </collision> -->
+        <!-- In manta_base i've made collision planes to minize the GPU load -->
+    <collision>
+      <geometry>
+        <box size="0.3 03 0.15"/>
+      </geometry>
+    </collision>
       </link>
 
     <gazebo reference="${namespace}/base_link">
