@@ -27,6 +27,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 3. Update:
 	```bash
 	$ sudo apt-get update
+	```
 
 4. Installation:
 	```bash
@@ -37,42 +38,47 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	```bash
 	$ sudo rosdep init
 	$ rosdep update
+	```
 
 
 6. Environment setup:
 	```bash
 	$ echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
 	$ source ~/.bashrc
+	```
 
 ## 2. Install the protobuf library, which is used as interface to Gazebo. ##
--------------------------
 
-1. Install the protobuf library, which is used as interface to Gazebo.:
+1. Install the protobuf library, which is used as interface to Gazebo:
 	```bash
 	$ sudo apt-get install protobuf-compiler
+	```
 
 2. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
 	$ sudo apt-get install ros-kinetic-message-to-tf
+	```
 
 ## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
--------------------------
 
 1. creating a catkin workspace:
 	```bash
 	$ mkdir -p ~/manta_ws/src
 	$ cd ~/manta_ws/src
 	$ catkin_init_workspace
+	```
 
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
 	$ catkin build
+	```
 
 3. source the current workspace:
 	```bash
 	$ echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
+	```
 
 3. close the current window.
 
@@ -80,10 +86,11 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	```bash
 	$ echo $ROS_PACKAGE_PATH
 	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share
+	```
 
 
 ## 4. How to run the simulation ##
--------------------------
+
 1. Enter the folder where you want to clone the repostory:
 	```bash
 	$ cd manta_ws/src
@@ -100,6 +107,7 @@ inside the src-folder of you workspace
 	```bash
 	$ cd ~/manta_ws/
 	$ catkin build
+	```
 
 4. Open a window and run Gazebo world:
 	```bash
@@ -116,12 +124,12 @@ inside the src-folder of you workspace
 	$ roslaunch manta_thruster_manager thruster_manager.launch
 	```
 ## 5. Open Camera view ##
--------------------------
 
-	$ rqt
-	
+```bash
+$ rqt
+```
 ## 6. Start the controller ##
--------------------------
+
 1. Open a fourth and final window, and run the following line to start the simulation:
 	```bash
 	$ roslaunch vortex pc.launch
