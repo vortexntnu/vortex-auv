@@ -66,6 +66,36 @@
       <uri>model://pool</uri>
     </include>
 
+    <include>
+      <name>gate_side_a</name>
+      <pose>12.4 -23.6 -0.9 0 0 -0.9</pose>
+      <uri>model://2018/gate</uri>
+    </include>
+
+    <include>
+      <name>dice_side_a</name>
+      <pose>19.0 -20.2 -5.0 0 0 -0.6</pose>
+      <uri>model://2018/dice</uri>
+    </include>
+
+    <include>
+      <name>path_marker1_side_a</name>
+      <pose>14.2 -22.6 -5.0 0 0 -1.13</pose>
+      <uri>model://2018/path_markers</uri>
+    </include>
+
+    <include>
+      <name>path_marker2_side_a</name>
+      <pose>21.5 -18.4 -5.0 0 0 -0.85</pose>
+      <uri>model://2018/path_markers</uri>
+    </include>
+<!--
+    <include>
+      <name>roulette</name>
+      <pose>27.0 -4.1 -5.0 0 0 0</pose>
+      <uri>model://2018/roulette</uri>
+    </include> -->
+
 
    <!-- Lightning -->
 
