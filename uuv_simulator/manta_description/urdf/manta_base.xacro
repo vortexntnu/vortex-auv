@@ -30,6 +30,9 @@
   <xacro:include filename="$(find uuv_sensor_ros_plugins)/urdf/sensor_snippets.xacro"/>
   <xacro:include filename="$(find uuv_gazebo_ros_plugins)/urdf/snippets.xacro"/>  
 
+
+  <!-- color and material -->
+
 <!--
     Vehicle's parameters (remember to enter the model parameters below)
   -->
@@ -76,9 +79,8 @@
           <origin xyz="${cog}" rpy="0 0 0"/>
           <!-- <inertia ixx="525.39" ixy="1.44" ixz="33.41" iyy="794.20" iyz="2.6" izz="691.23"/> -->
           <inertia
-            ixx="${0.6*mass*y_size*y_size + 0.6*mass*z_size*z_size}" ixy="0.0" ixz="0.0"
-            iyy="${0.6*mass*x_size*x_size + 0.6*mass*z_size*z_size}" iyz="0.0"
-            izz="${0.001*mass*x_size*x_size + 0.001*mass*y_size*y_size}" />
+            ixx="${0.80947}" ixy="-0.00308" ixz="-0.01546"
+            iyy="${0.87794}" iyz="0.06283" izz="${1.57147}" /> 
         </inertial>
 
         <!-- This visual geometry representation can be used when running
