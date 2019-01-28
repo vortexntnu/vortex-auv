@@ -3,14 +3,27 @@
 #include <vortex_msgs/CameraObjectInfo>
 #include <camera_centering/camerapid.h>
 
+void cameraobjectcallback(vortex_msgs::CameraObjectInfo)
+{
+  //Objects to the left of center has negative error
+  pidx.updateError(info.pos_x - info.frame_width/2);
+  //Objects over center has negative error
+  pidy.updateError(info.pos_y - info.frame_height/2);
+}
+
+
 int main(int argc, char* argv[])
 {
+//Initialize pid in x and y
+PID::PID pidx = PID(0.1, 1, -1, 0.005, 0.01, 0.5);
+PID::PID pidy = PID(0.1, 1, -1, 0.005, 0.01, 0.5);
+
 ros::init(argc, argv, "camera_centering");
 ros::NodeHandle nh;
 ros::Publisher pub;
 ros::Subscriber sub;
 pub = nh.advertise<vortex_msgs::PropulsionCommand>("/propulsion_command",1);
-sub = nh.subscribe("/camera_object_info", 1 /*callback, this */);
+sub = nh.subscribe("/camera_object_info", 1, cameraobjectcallback);
 //sub.pos_x            (int16) object pos
 //sub.pos_y            (int16) object pos
 //sub.frame_width      (int16) camera feed width
@@ -18,9 +31,6 @@ sub = nh.subscribe("/camera_object_info", 1 /*callback, this */);
 //sub.confidence       (float64) between 0.0 and 1.0)
 
 
-//Initialize pid in x and y
-PID::PID pidx = PID(0.1, 1, -1, 0.1, 0.01, 0.5);
-PID::PID pidy = PID(0.1, 1, -1, 0.1, 0.01, 0.5);
 
 
 //Initialize depth hold mode
@@ -34,12 +44,6 @@ pub.publish(propulsion);
 ros::Rate rate(10);
 while(true){
   if (sub.confidence > 0.5){
-
-    //Objects to the left of center has negative error
-    pidx.updateError(sub.pos_x - sub.frame_width/2);
-    //Objects over center has negative error
-    pidy.updateError(sub.pos_y - sub.frame_height/2);
-
     //Turn right/left
     propulsion.motion[5] = pidx.calculate();
 
