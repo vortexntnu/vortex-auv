@@ -69,8 +69,8 @@ propulsion:
       scaling: [ 0.4,  0.4,  0.6, 0.3, 0.7, 0.4]
 
 controller:
-  frequency: 10
-  position_gain: 30.0
+  frequency: 40
+  position_gain: 5.0
   attitude_gain: 2.5
   velocity_gain: 0.4
 

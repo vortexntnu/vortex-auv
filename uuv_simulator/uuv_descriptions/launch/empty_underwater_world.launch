@@ -1,3 +1,4 @@
+<?xml version="1.0" ?>
 <launch>
     <arg name="gui" default="true"/>
     <arg name="paused" default="false"/>
@@ -24,25 +25,25 @@
         <rosparam subst_value="true">
             meshes:
                 seafloor:
-                    plane: [2000, 2000, 0.1]
+                    plane: [200, 200, 0.1]
                     pose:
                         position: [0, 0, -100]
                 north:
-                    plane: [0.1, 2000, 100]
+                    plane: [0.1, 200, 100]
                     pose:
-                        position: [1000, 0, -50]
+                        position: [100, 0, -50]
                 south:
-                    plane: [0.1, 2000, 100]
+                    plane: [0.1, 200, 100]
                     pose:
-                        position: [-1000, 0, -50]
+                        position: [-100, 0, -50]
                 west:
-                    plane: [2000, 0.1, 100]
+                    plane: [200, 0.1, 100]
                     pose:
-                        position: [0, -1000, -50]
+                        position: [0, -100, -50]
                 east:
-                    plane: [2000, 0.1, 100]
+                    plane: [200, 0.1, 100]
                     pose:
-                        position: [0, 1000, -50]
+                        position: [0, 100, -50]
         </rosparam>
     </node>
 

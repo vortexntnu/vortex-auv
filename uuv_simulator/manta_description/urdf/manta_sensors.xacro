@@ -15,23 +15,23 @@
      limitations under the License.
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <!-- DVL  ->
+  <!-- DVL -->
   <xacro:default_dvl_macro
     namespace="${namespace}"
     parent_link="${namespace}/base_link"
     inertial_reference_frame="${inertial_reference_frame}">
-    <origin xyz="-1.4 0 -0.312" rpy="0 ${0.5*pi} 0"/>
+    <origin xyz="0 0 0" rpy="0 ${0.5*pi} 0"/>
   </xacro:default_dvl_macro> 
-
+<!--
   <!- Magnetometer  ->
   <xacro:default_magnetometer namespace="${namespace}" parent_link="${namespace}/base_link"/>
 
   <!- RPT   ->
   <xacro:default_rpt namespace="${namespace}" parent_link="${namespace}/base_link">
     <origin xyz="-1.32 0 0.8" rpy="0 0 0"/>
-  </xacro:default_rpt> 
+  </xacro:default_rpt> -->
 
-  <!- Pressure  -->
+  <!-- Pressure  -->
   <xacro:default_pressure_macro namespace="${namespace}" parent_link="${namespace}/base_link">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:default_pressure_macro>
@@ -44,11 +44,11 @@
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:default_imu_macro>
 
-  <!-- Mount a camera 
+  <!-- Mount a camera -->
   <xacro:default_camera namespace="${namespace}" parent_link="${namespace}/base_link" suffix="">
-    <origin xyz="1.15 0 0.4" rpy="0 0.6 0"/>
+    <origin xyz="0.30 0.0 0." rpy="0 0 0"/>
   </xacro:default_camera>
-
+  <!--
   <xacro:default_camera namespace="${namespace}" parent_link="${namespace}/base_link" suffix="right">
     <origin xyz="1.15 -0.63 0.4" rpy="0 0.6 0.4"/>
   </xacro:default_camera>
@@ -60,7 +60,7 @@
   <!-- Mount a GPS.  
   <xacro:default_gps namespace="${namespace}" parent_link="${namespace}/base_link" /> -->
 
-  <!-- Mount a Pose 3D sensor. NEED THIS TO RUN CONTROLLER -->   
+  <!-- Mount a Pose 3D sensor. NEED THIS TO RUN CONTROLLER -->
   <xacro:default_pose_3d_macro
     namespace="${namespace}"
     parent_link="${namespace}/base_link"

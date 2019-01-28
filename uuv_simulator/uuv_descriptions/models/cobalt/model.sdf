@@ -1,0 +1,754 @@
+<?xml version='1.0'?>
+<sdf version='1.5'>
+
+  <model name='robosub_cobalt'>
+    <pose>0 0 0.0 0 0 0</pose>
+    <self_collide> 0 </self_collide>
+
+    <joint name="hull_frame" type="fixed">
+        <parent>frame</parent>
+        <child>hull</child>
+    </joint>
+
+    <joint name='dive_front_left_frame' type="fixed">
+        <parent>frame</parent>
+        <child>dive_front_left</child>
+    </joint>
+
+    <joint name='dive_front_right_frame' type="fixed">
+        <parent>frame</parent>
+        <child>dive_front_right</child>
+    </joint>
+
+    <joint name='dive_back_left_frame' type="fixed">
+        <parent>frame</parent>
+        <child>dive_back_left</child>
+    </joint>
+
+    <joint name='dive_back_right_frame' type="fixed">
+        <parent>frame</parent>
+        <child>dive_back_right</child>
+    </joint>
+
+    <joint name='strafe_front_frame' type="fixed">
+        <parent>frame</parent>
+        <child>strafe_front</child>
+    </joint>
+
+    <joint name='strafe_back_frame' type="fixed">
+        <parent>frame</parent>
+        <child>strafe_back</child>
+    </joint>
+
+    <joint name='forward_left_frame' type="fixed">
+        <parent>frame</parent>
+        <child>forward_left</child>
+    </joint>
+
+    <joint name='forward_right_frame' type="fixed">
+        <parent>frame</parent>
+        <child>forward_right</child>
+    </joint>
+
+    <joint name='left_camera_frame' type="fixed">
+        <parent>frame</parent>
+        <child>left_camera</child>
+    </joint>
+
+    <joint name='right_camera_frame' type="fixed">
+        <parent>frame</parent>
+        <child>right_camera</child>
+    </joint>
+
+    <joint name='bottom_camera_frame' type="fixed">
+        <parent>frame</parent>
+        <child>bottom_camera</child>
+    </joint>
+
+    <joint name='hydrophone_h0_frame' type="fixed">
+        <parent>frame</parent>
+        <child>hydrophone_h0</child>
+    </joint>
+
+    <joint name='hydrophone_hx_frame' type="fixed">
+        <parent>frame</parent>
+        <child>hydrophone_hx</child>
+    </joint>
+
+    <joint name='hydrophone_hy_frame' type="fixed">
+        <parent>frame</parent>
+        <child>hydrophone_hy</child>
+    </joint>
+
+    <joint name='hydrophone_hz_frame' type="fixed">
+        <parent>frame</parent>
+        <child>hydrophone_hz</child>
+    </joint>
+
+    <link name='hull'>
+      <pose>0 0 .082 1.57079632679 0 1.57079632679 </pose>
+      <inertial>
+        <mass>10</mass>
+      <!--
+        <inertia>
+          <ixx>86.28907821859966</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>86.28907821859966</iyy>
+          <iyz>0</iyz>
+          <izz>5.026548245743671</izz>
+        </inertia>
+    -->
+      </inertial>
+
+      <visual name='bulkhead_visual'>
+        <geometry>
+              <cylinder>
+                <radius>0.1</radius>
+                <length>.13</length>
+              </cylinder>
+        </geometry>
+        <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Black</name>
+            </script>
+          </material>
+      </visual>
+
+      <visual name='front_ring_visual'>
+      <pose>0 0 .075 0 0 0</pose>
+        <geometry>
+              <cylinder>
+                <radius>0.102</radius>
+                <length>.05</length>
+              </cylinder>
+        </geometry>
+        <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Blue</name>
+            </script>
+          </material>
+      </visual>
+      <visual name='rear_ring_visual'>
+      <pose>0 0 -.075 0 0 0</pose>
+        <geometry>
+              <cylinder>
+                <radius>0.102</radius>
+                <length>.05</length>
+              </cylinder>
+        </geometry>
+        <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/Blue</name>
+            </script>
+          </material>
+      </visual>
+      <visual name='front_tube_visual'>
+      <pose>0 0 .235 0 0 0</pose>
+        <geometry>
+              <cylinder>
+                <radius>0.1</radius>
+                <length>.32</length>
+              </cylinder>
+        </geometry>
+        <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/GreyTransparent</name>
+            </script>
+            <diffuse>0.6 0.6 0.6 0.6</diffuse>
+          </material>
+      </visual>
+
+      <visual name='rear_tube_visual'>
+      <pose>0 0 -.235 0 0 0</pose>
+        <geometry>
+              <cylinder>
+                <radius>0.1</radius>
+                <length>.32</length>
+              </cylinder>
+        </geometry>
+        <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/GreyTransparent</name>
+            </script>
+            <diffuse>0.6 0.6 0.6 0.6</diffuse>
+          </material>
+      </visual>
+      <collision name='hull_collision'>
+        <geometry>
+              <cylinder>
+                <radius>0.1</radius>
+                <length>.77</length>
+              </cylinder>
+            </geometry>
+      </collision>
+      <velocity_decay>
+          <linear>0.002</linear>
+          <angular>0.002</angular>
+      </velocity_decay>
+    </link>
+
+    <link name='hydrophone_h0'>
+      <pose> 0 0 0 0 0 0 </pose>
+      <inertial>
+        <mass> 0.001 </mass>
+      </inertial>
+    </link>
+
+    <link name='hydrophone_hx'>
+      <pose> 0.015 0 0 0 0 0 </pose>
+      <inertial>
+        <mass> 0.001 </mass>
+      </inertial>
+    </link>
+
+    <link name='hydrophone_hy'>
+      <pose> 0 0.015 0 0 0 0 </pose>
+      <inertial>
+        <mass> 0.001 </mass>
+      </inertial>
+    </link>
+
+    <link name='hydrophone_hz'>
+      <pose> 0 0 0.015 0 0 0 </pose>
+      <inertial>
+        <mass> 0.001 </mass>
+      </inertial>
+    </link>
+
+    <link name='frame'>
+      <pose>0 0 -0.088 0 0 0</pose>
+      <inertial>
+        <mass>16.5</mass>
+        <!--
+        <inertia>
+          <ixx>86.28907821859966</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>86.28907821859966</iyy>
+          <iyz>0</iyz>
+          <izz>5.026548245743671</izz>
+        </inertia>
+        -->
+      </inertial>
+
+      <visual name='frame_visual'>
+        <geometry>
+              <box>
+                <size>.85 .3 .13</size>
+              </box>
+            </geometry>
+          <material>
+            <script>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+              <name>Gazebo/FlatBlack</name>
+            </script>
+          </material>
+      </visual>
+
+      <collision name='frame_collision'>
+        <geometry>
+              <box>
+                <size>.85 .3 .13</size>
+              </box>
+            </geometry>
+      </collision>
+      <velocity_decay>
+          <linear>0.002</linear>
+          <angular>0.002</angular>
+      </velocity_decay>
+    </link>
+
+    <link name='dive_front_left'>
+      <pose>0.235 0.23 -0.1 0 3.14159 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='dive_front_left_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='dive_front_left_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='dive_front_right'>
+      <pose>0.235 -0.23 -0.1 0 3.14159 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='dive_front_right_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='dive_front_right_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='dive_back_left'>
+      <pose>-0.235 0.23 -0.1 0 3.14159 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='dive_back_left_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='dive_back_left_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='dive_back_right'>
+      <pose>-0.235 -0.23 -0.1 0 3.14159 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='dive_back_right_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='dive_back_right_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='strafe_front'>
+      <pose>0.49 0 -0.01 -1.57079632679 0 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='strafe_front_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='strafe_front_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='strafe_back'>
+      <pose>-0.49 0 -0.01 -1.57079632679 0 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='strafe_back_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='strafe_back_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='forward_left'>
+      <pose>0 0.2075 -0.01 0 -1.57079632679 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='forward_left_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='forward_left_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='forward_right'>
+      <pose>0 -0.2075 -0.01 0 -1.57079632679 0</pose>
+      <inertial>
+        <mass>0.344</mass>
+      </inertial>
+      <visual name='forward_right_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Blue</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='forward_right_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0485</radius>
+            <length>0.101</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name='left_camera'>
+      <pose>0.37 0.20 0.04 0 1.57079632679 0</pose>
+      <inertial>
+        <mass>0.73</mass>
+      </inertial>
+      <visual name='left_camera_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0405</radius>
+            <length>0.15</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Black</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='left_camera_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0405</radius>
+            <length>0.15</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <sensor name="left" type="wideanglecamera">
+          <pose>0 0 0.14 0 -1.570796 0</pose>
+          <camera>
+              <horizontal_fov>3.1415</horizontal_fov>
+              <image>
+                  <width>1384</width>
+                  <height>1032</height>
+              </image>
+              <clip>
+                  <near>0.001</near>
+                  <far>100</far>
+              </clip>
+              <lens>
+                  <type>custom</type>
+                  <custom_function>
+                      <c1>685.4</c1>
+                      <c2>525.2</c2>
+                      <f>307.53251966606937</f>
+                      <fun>tan</fun>
+                  </custom_function>
+                  <scale_to_hfov>true</scale_to_hfov>
+                  <cutoff_angle>1.57075</cutoff_angle>
+                  <env_texture_size>512</env_texture_size>
+              </lens>
+              <distortion>
+                <k1>-.16492342967649815</k1>
+                <k2>0.016187172468110342</k2>
+                <k3>-0.00038951913220274415</k3>
+                <p1>0</p1>
+                <p2>0</p2>
+                <center>0 0</center>
+              </distortion>
+          </camera>
+          <plugin name="left_camera_controller" filename="libgazebo_ros_camera.so">
+              <cameraName>left</cameraName>
+              <imageTopicName>/camera/left/image_raw</imageTopicName>
+          </plugin>
+          <always_on>1</always_on>
+          <update_rate>5</update_rate>
+      </sensor>
+    </link>
+
+    <link name='right_camera'>
+      <pose>0.37 -0.20 0.04 0 1.57079632679 0</pose>
+      <inertial>
+        <mass>0.73</mass>
+      </inertial>
+      <visual name='right_camera_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0405</radius>
+            <length>0.15</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Black</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='right_camera_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0405</radius>
+            <length>0.15</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <sensor name="right" type="wideanglecamera">
+          <pose>0 0 0.14 0 -1.570796 0</pose>
+          <camera>
+              <horizontal_fov>3.1415</horizontal_fov>
+              <image>
+                  <width>1384</width>
+                  <height>1032</height>
+              </image>
+              <clip>
+                  <near>0.1</near>
+                  <far>100</far>
+              </clip>
+              <lens>
+                  <type>custom</type>
+                  <custom_function>
+                      <c1>667.1</c1>
+                      <c2>536.7</c2>
+                      <f>317.86251966606937</f>
+                      <fun>tan</fun>
+                  </custom_function>
+                  <scale_to_hfov>true</scale_to_hfov>
+                  <cutoff_angle>1.57075</cutoff_angle>
+                  <env_texture_size>512</env_texture_size>
+              </lens>
+              <distortion>
+                <k1>-.16492342967649815</k1>
+                <k2>0.016187172468110342</k2>
+                <k3>-0.00038951913220274415</k3>
+                <p1>0</p1>
+                <p2>0</p2>
+                <center>0 0</center>
+              </distortion>
+          </camera>
+          <plugin name="right_camera_controller" filename="libgazebo_ros_camera.so">
+              <cameraName>right</cameraName>
+              <imageTopicName>/camera/right/image_raw</imageTopicName>
+          </plugin>
+          <always_on>1</always_on>
+          <update_rate>5</update_rate>
+      </sensor>
+    </link>
+
+    <link name='bottom_camera'>
+      <pose>0 0 -0.1 0 3.14159265358 0</pose>
+      <inertial>
+        <mass>0.73</mass>
+      </inertial>
+      <visual name='bottom_camera_visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.0405</radius>
+            <length>0.15</length>
+          </cylinder>
+        </geometry>
+      <material>
+        <script>
+          <uri>file://media/materials/scripts/gazebo.material</uri>
+          <name>Gazebo/Black</name>
+        </script>
+      </material>
+      </visual>
+      <collision name='bottom_camera_collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.0405</radius>
+            <length>0.15</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <sensor name="bottom" type="wideanglecamera">
+          <pose>0 0 0.14 0 -1.570796 0</pose>
+          <camera>
+              <horizontal_fov>3.1415</horizontal_fov>
+              <image>
+                  <width>1384</width>
+                  <height>1032</height>
+              </image>
+              <clip>
+                  <near>0.1</near>
+                  <far>100</far>
+              </clip>
+              <lens>
+                  <type>custom</type>
+                  <custom_function>
+                      <c1>691.5</c1>
+                      <c2>515.5</c2>
+                      <f>341.43251966606937</f>
+                      <fun>tan</fun>
+                  </custom_function>
+                  <scale_to_hfov>true</scale_to_hfov>
+                  <cutoff_angle>1.57075</cutoff_angle>
+                  <env_texture_size>512</env_texture_size>
+              </lens>
+              <distortion>
+                <k1>-.16492342967649815</k1>
+                <k2>0.016187172468110342</k2>
+                <k3>-0.00038951913220274415</k3>
+                <p1>0</p1>
+                <p2>0</p2>
+                <center>0 0</center>
+              </distortion>
+          </camera>
+          <plugin name="bottom_camera_controller" filename="libgazebo_ros_camera.so">
+              <cameraName>bottom</cameraName>
+              <imageTopicName>/camera/bottom/image_raw</imageTopicName>
+          </plugin>
+          <always_on>1</always_on>
+          <update_rate>5</update_rate>
+      </sensor>
+    </link>
+
+    <allow_auto_disable>0</allow_auto_disable>
+
+    <plugin name="thruster" filename="libthruster.so"/>
+
+    <plugin name="buoyancy_improved" filename="libbuoyancy_improved.so">
+      <fluid_density>1000</fluid_density>
+      <link name="frame">
+        <volume>0.0026</volume>
+      </link>
+
+      <!-- thrusters -->
+      <link name="dive_back_right">
+        <volume>0.000334</volume>
+      </link>
+      <link name="dive_back_left">
+        <volume>0.000334</volume>
+      </link>
+      <link name="dive_front_right">
+        <volume>0.000334</volume>
+      </link>
+      <link name="dive_front_left">
+        <volume>0.000334</volume>
+      </link>
+      <link name="strafe_front">
+        <volume>0.000334</volume>
+      </link>
+      <link name="strafe_back">
+        <volume>0.000334</volume>
+      </link>
+      <link name="forward_right">
+        <volume>0.000334</volume>
+      </link>
+      <link name="forward_left">
+        <volume>0.000334</volume>
+      </link>
+
+    </plugin>
+    <plugin name="imu" filename="libgazebo_ros_imu.so">
+      <alwaysOn>true</alwaysOn>
+      <bodyName>frame</bodyName>
+      <topicName>gazebo/rs_imu</topicName>
+      <serviceName>gazebo/rs_imu_service</serviceName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <updateRate>20.0</updateRate>
+    </plugin>
+   <plugin name="marker_dropper" filename="libmarkerdrop.so"/>
+   <plugin name="torpedo_shooter" filename="libtorpedoshoot.so"/>
+  </model>
+</sdf>

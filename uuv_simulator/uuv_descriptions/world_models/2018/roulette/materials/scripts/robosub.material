@@ -1,0 +1,15 @@
+material Roulette/Face
+{
+    technique
+    {
+        pass
+        {
+            texture_unit
+            {
+                texture roulette.jpg
+                filtering anistropic
+                max_anistropy 16
+            }
+        }
+    }
+}

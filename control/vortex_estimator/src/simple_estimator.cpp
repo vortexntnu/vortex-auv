@@ -55,7 +55,8 @@ void SimpleEstimator::imuCallback(const sensor_msgs::Imu &msg)
 
 void SimpleEstimator::pressureCallback(const sensor_msgs::FluidPressure &msg)
 {
-  const float gauge_pressure = msg.fluid_pressure - m_atmospheric_pressure;
+	//Converting from Kpa to Pa by multiplying by 1000
+  const float gauge_pressure = 1000*msg.fluid_pressure - m_atmospheric_pressure;
   const float depth_meters = gauge_pressure / (m_water_density * m_gravitational_acceleration);
   m_state.pose.position.z = depth_meters;
   m_state_pub.publish(m_state);
