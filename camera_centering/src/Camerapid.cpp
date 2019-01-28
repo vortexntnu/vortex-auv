@@ -1,17 +1,19 @@
-#include <camera_centering/camerapid.h>
+#include <camera_centering/Camerapid.h>
 
 
-PID::PID(double dt, double max, double min, double K_p, double K_d, double K_i)
+Camerapid::Camerapid(double dt, double max, double min, double K_p, double K_d, double K_i)
 : dt(dt), max(max),min(min),K_p(K_p),K_d(K_d), K_i(K_i), error(0), pre_error(0)
   ,integral(0)
 {
 }
 
-PID::~PID()
+
+Camerapid::~Camerapid()
 {
 }
 
-PID::calculate()
+
+double Camerapid::calculate()
 {
     //Propotional
     double Pout = K_p * error;
@@ -29,13 +31,12 @@ PID::calculate()
     if (tot > max){tot = max;}
     else if (tot< min){tot = min;}
 
-    //Update pre_error
-    pre_error = error;
-
-return output;
+return tot;
 }
 
-PID::updateError(double err)
+void Camerapid::updateError(double err)
 {
-    error = err;
+    this->pre_error = this->error;
+    this->error = err;
+
 }
