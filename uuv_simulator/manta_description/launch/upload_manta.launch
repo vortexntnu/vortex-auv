@@ -1,4 +1,9 @@
 <?xml version="1.0"?>
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. -->
+
 <launch>
   <arg name="debug" default="0"/>
 
@@ -42,6 +47,17 @@
       <param name="publish_frequency" value="5" />
     </node>
   </group>
+
+<!-- Launching a camera window -->
+
+  <arg name="camera" default="1"/>
+  <group if="$(arg camera)">
+    <node name="image_view" pkg="image_view" type="image_view">
+    <remap from="image" to="/manta/manta/camera/camera_image" />
+    </node>
+  </group>
+
+<!-- Launching assistants -->
 
   <include file="$(find uuv_assistants)/launch/message_to_tf.launch">
     <arg name="namespace" value="$(arg namespace)"/>
