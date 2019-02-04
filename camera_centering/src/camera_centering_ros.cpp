@@ -3,6 +3,7 @@
 #include <vortex_msgs/CameraObjectInfo.h>
 #include <camera_centering/Camerapid.h>
 #include <camera_centering/camera_centering_ros.h>
+#include <iostream>
 
 CameraCentering::CameraCentering(ros::NodeHandle nh) : m_nh(nh)
 {
@@ -49,6 +50,7 @@ while(true){
 
   pub.publish(propulsion);
   rate.sleep();
+std::cout<< "HEIEHI" <<std::endl;
 }
 }
 
