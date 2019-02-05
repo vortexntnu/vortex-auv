@@ -1,5 +1,5 @@
-#ifndef CAMERA_CENTERING_H
-#define CAMERA_CENTERING_H
+#ifndef CAMERA_CENTERING_ROS_H
+#define CAMERA_CENTERING_ROS_H
 
 #include <camera_centering/Camerapid.h>
 #include <ros/ros.h>
@@ -20,7 +20,7 @@ ros::Subscriber sub;
 //sub.confidence       (float64) between 0.0 and 1.0)
 
 //Camerapid pidx = Camerapid(0.1,1,-1,0.01,0.1,0.5);
-//Camerapid pidy = Camerapid(0.1,1,-1,0.01,0.1,0.5); 
+//Camerapid pidy = Camerapid(0.1,1,-1,0.01,0.1,0.5);
 std::unique_ptr<Camerapid> pidx;
 std::unique_ptr<Camerapid> pidy;
 

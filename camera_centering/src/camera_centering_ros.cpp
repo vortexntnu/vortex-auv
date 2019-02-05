@@ -49,8 +49,9 @@ while(true){
   //}
 
   pub.publish(propulsion);
+  ros::spinOnce();
+  std::cout<< "HEIEHI" <<std::endl;
   rate.sleep();
-std::cout<< "HEIEHI" <<std::endl;
 }
 }
 
@@ -61,9 +62,3 @@ void CameraCentering::cameraobjectcallback(const vortex_msgs::CameraObjectInfo &
   //Objects over center has negative error
   this->pidy->updateError(info.pos_y - info.frame_height/2);
 }
-
-
-
-
-
-
