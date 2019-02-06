@@ -36,9 +36,6 @@ return tot;
 
 void Camerapid::updateError(double err)
 {
-
-std::cout<< "Ja jeg oppdaterer" <<std::endl;
     this->pre_error = this->error;
     this->error = err;
-
 }

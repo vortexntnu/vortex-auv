@@ -9,11 +9,8 @@ CameraCentering::CameraCentering(ros::NodeHandle nh) : m_nh(nh)
 {
 pub = m_nh.advertise<vortex_msgs::PropulsionCommand>("/propulsion_command",1);
 sub = m_nh.subscribe("/camera_object_info", 1, &CameraCentering::cameraobjectcallback, this);
-
-//pidx* = new PID(0.1,1,-1,0.01,0.1,0.5);
-//pidy* = new PID(0.1,1,-1,0.01,0.1,0.5);
-pidx.reset(new Camerapid(0.1,1,-1,0.01,0.1,0.5));
-pidy.reset(new Camerapid(0.1,1,-1,0.01,0.1,0.5));
+pidx.reset(new Camerapid(0.1,1,-1,0.0015,0.0013,0.0001));
+pidy.reset(new Camerapid(0.1,1,-1,0.005,0,0));
 }
 
 
@@ -35,22 +32,21 @@ pub.publish(propulsion);
 // 10 Hz
 ros::Rate rate(10);
 while(true){
-  //if (sub.confidence > 0.5){
+  if (sub.confidence > 0.5){
     //Turn right/left
     propulsion.motion[5] = this->pidx->calculate();
 
     //Ascend/Descend
     propulsion.motion[2] = this->pidy->calculate();
-  //}
-  //else{
+  }
+  else{
     //Stop propulsion
-    //propulsion.motion[5] = 0;
-    //propulsion.motion[2] = 0;
-  //}
+    propulsion.motion[5] = 0;
+    propulsion.motion[2] = 0;
+  }
 
   pub.publish(propulsion);
   ros::spinOnce();
-  std::cout<< "HEIEHI" <<std::endl;
   rate.sleep();
 }
 }
