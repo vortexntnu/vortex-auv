@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<launch>
+  <include file="$(find uuv_descriptions)/launch/robosub_world.launch"/>
+  <include file="$(find manta_description)/launch/upload_manta.launch"/>
+  <include file="$(find manta_thruster_manager)/launch/thruster_manager.launch"/>
+  <include file="$(find vortex)/launch/pc.launch"/>
+  <!--<include file="$(find stolpe)/launch/pc.launch"/> -->
+</launch>
