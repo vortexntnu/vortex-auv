@@ -111,30 +111,16 @@ inside the src-folder of you workspace
 	$ catkin build
 	```
 
-4. Open a window and run Gazebo world:
+4. Open a terminal and run Robosub environment and Manta:
 	```bash
-	$ roslaunch uuv_descriptions robosub_world.launch
+	$ roslaunch simulator_launch robosub.launch
 	```
 
-5. Open a second window and and spawn the model:
-	```bash
-	$ roslaunch manta_description upload_manta.launch
-	```
 
-6. Open a third window and and launch the thruster_manager.
-	```bash
-	$ roslaunch manta_thruster_manager thruster_manager.launch
-	```
+7. Use Xbox controller
+
 ## 5. Open Camera view ##
 
 ```bash
 $ rqt
 ```
-## 6. Start the controller ##
-
-1. Open a fourth and final window, and run the following line to start the simulation:
-	```bash
-	$ roslaunch vortex pc.launch
-	```
-
-2. Use Xbox controller
