@@ -23,6 +23,7 @@ ros::Subscriber sub;
 //Camerapid pidy = Camerapid(0.1,1,-1,0.01,0.1,0.5);
 std::unique_ptr<Camerapid> pidx;
 std::unique_ptr<Camerapid> pidy;
+double confidence;
 
 public:
 CameraCentering(ros::NodeHandle nh);

@@ -3,18 +3,15 @@
 
 Camerapid::Camerapid(double dt, double max, double min, double K_p, double K_d, double K_i)
 : dt(dt), max(max),min(min),K_p(K_p),K_d(K_d), K_i(K_i), error(0), pre_error(0)
-  ,integral(0)
-{
+  ,integral(0){
 }
 
 
-Camerapid::~Camerapid()
-{
+Camerapid::~Camerapid(){
 }
 
 
-double Camerapid::calculate()
-{
+double Camerapid::calculate(){
     //Propotional
     double Pout = K_p * error;
 
@@ -34,8 +31,7 @@ double Camerapid::calculate()
 return tot;
 }
 
-void Camerapid::updateError(double err)
-{
+void Camerapid::updateError(double err){
     this->pre_error = this->error;
     this->error = err;
 }
