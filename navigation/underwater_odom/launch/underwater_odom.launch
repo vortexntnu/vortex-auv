@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+
+<launch>
+	<rosparam command="load" file="$(find underwater_odom)/param/environment_config.yaml" />
+	<node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
+</launch>
+
