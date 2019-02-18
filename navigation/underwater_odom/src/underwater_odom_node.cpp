@@ -3,7 +3,12 @@
 /* Constructor */
 UnderwaterOdom::UnderwaterOdom(){
 
+  // Subscribers	
   fluid_pressure_sub_ = nh_.subscribe("/manta/pressure", 1, &UnderwaterOdom::pressureCallback, this);
+  dvl_twist_sub_ = nh_.subscribe("/manta/dvl_twist", 1, &UnderwaterOdom::dvlCallback, this);
+
+  // Publishers
+  odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/manta/odom",1);
   depth_odom_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/manta/depth_odom", 1);
 
 
@@ -16,6 +21,12 @@ UnderwaterOdom::UnderwaterOdom(){
 
   if (!nh_.getParam("/gravity/acceleration", earth_gravitation))
     ROS_ERROR("Could not read parameter gravititional acceleration.");
+	
+  // headers
+	depth_odom.header.frame_id = "manta/pressure_link";
+	odom.header.frame_id = "manta/odom";
+	odom.child_frame_id = "manta/base_link";
+
 }
 
 
@@ -23,14 +34,32 @@ UnderwaterOdom::UnderwaterOdom(){
 void UnderwaterOdom::pressureCallback(const sensor_msgs::FluidPressure &msg){
 
 	// compute depth
-	base.frame_id = "dvl_link_NED";
 	const float gauge_pressure = 1000*msg.fluid_pressure - atmospheric_pressure;
 	const float depth_meters = gauge_pressure / (water_density * earth_gravitation);
 
-	// publish
-	depth_msg.header = base;
-	depth_msg.pose.pose.position.z = depth_meters;
-	depth_odom_pub_.publish(depth_msg);
+	// header timestamp
+	depth_odom.header.stamp = ros::Time::now();
+	
+	// update odom pose, ENU
+	depth_odom.pose.pose.position.z = -depth_meters;
+	odom.pose.pose.position.z = -depth_meters;
+	
+	// publish odom depth
+	depth_odom_pub_.publish(depth_odom);
+}
+
+void UnderwaterOdom::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped &msg){
+
+	// header timestam
+	odom.header.stamp = ros::Time::now();
+
+	// update odom twist
+	odom.twist.twist.linear.x = msg.twist.twist.linear.x;
+	odom.twist.twist.linear.y = msg.twist.twist.linear.y;	
+	odom.twist.twist.linear.z = msg.twist.twist.linear.z;
+
+	// publish odom
+	odom_pub_.publish(odom);
 }
 
 
