@@ -1,5 +1,5 @@
 /* 
-	 Written by Kristoffer Rakstad Solberg, Student
+	 Written by Kristoffer Rakstad Solberg & Øyvind Denvik, Students
 	 Copyright (c) 2019 Manta AUV, Vortex NTNU.
 	 All rights reserved. */
 
