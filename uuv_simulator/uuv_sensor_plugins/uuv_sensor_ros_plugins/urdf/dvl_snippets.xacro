@@ -188,7 +188,7 @@
         <noise_sigma>${noise_sigma}</noise_sigma> <!-- std dev of position estimates in x, y, z [m/s] -->
         <noise_amplitude>${noise_amplitude}</noise_amplitude>
         <enable_gazebo_messages>false</enable_gazebo_messages>
-        <enable_local_ned_frame>true</enable_local_ned_frame>
+        <enable_local_ned_frame>false</enable_local_ned_frame>
         <static_reference_frame>${reference_frame}</static_reference_frame>
         <!-- Declaring the beams -->
         <beam_link_name_0>${namespace}/dvl_sonar0_link</beam_link_name_0>

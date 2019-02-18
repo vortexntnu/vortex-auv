@@ -16,6 +16,6 @@
     </node>
   </group>
 
-  <node pkg="tf" type="static_transform_publisher" name="dvl_twist_enu" args="0 0 0 0 -1.5707 0 manta/dvl_link manta/dvl_link_ENU 100" />
+ <!-- <node pkg="tf" type="static_transform_publisher" name="dvl_twist_enu" args="0 0 0 0 -1.5707 0 manta/dvl_link manta/dvl_link_ENU 100" /> -->
 
 </launch>
