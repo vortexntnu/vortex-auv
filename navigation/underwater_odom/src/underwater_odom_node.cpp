@@ -1,3 +1,8 @@
+/* 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. */
+
 #include "underwater_odom_node.h"
 
 /* Constructor */
@@ -9,7 +14,6 @@ UnderwaterOdom::UnderwaterOdom(){
 
   // Publishers
   odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/manta/odom",1);
-  depth_odom_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/manta/depth_odom", 1);
 
 
   // values picked from /params/environment_config.yaml
@@ -23,7 +27,6 @@ UnderwaterOdom::UnderwaterOdom(){
     ROS_ERROR("Could not read parameter gravititional acceleration.");
 	
   // headers
-	depth_odom.header.frame_id = "manta/pressure_link";
 	odom.header.frame_id = "manta/odom";
 	odom.child_frame_id = "manta/base_link";
 
@@ -36,16 +39,10 @@ void UnderwaterOdom::pressureCallback(const sensor_msgs::FluidPressure &msg){
 	// compute depth
 	const float gauge_pressure = 1000*msg.fluid_pressure - atmospheric_pressure;
 	const float depth_meters = gauge_pressure / (water_density * earth_gravitation);
-
-	// header timestamp
-	depth_odom.header.stamp = ros::Time::now();
 	
 	// update odom pose, ENU
-	depth_odom.pose.pose.position.z = -depth_meters;
 	odom.pose.pose.position.z = -depth_meters;
-	
-	// publish odom depth
-	depth_odom_pub_.publish(depth_odom);
+
 }
 
 void UnderwaterOdom::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped &msg){

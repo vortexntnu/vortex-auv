@@ -1,3 +1,8 @@
+/* 
+	 Written by Kristoffer Rakstad Solberg, Student
+	 Copyright (c) 2019 Manta AUV, Vortex NTNU.
+	 All rights reserved. */
+
 #include <ros/ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Header.h>
@@ -12,6 +17,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/AccelWithCovariance.h>
 
+
 /* Include guard to prevent double declaration of identifiers
    such as types, enums and static variacles */
 
@@ -24,6 +30,9 @@ class UnderwaterOdom {
 
 	// Constructor
 	UnderwaterOdom();
+
+	// Destructor
+	~UnderwaterOdom(){};
 
 	// Functions
 	void pressureCallback(const sensor_msgs::FluidPressure &msg);
@@ -42,7 +51,7 @@ class UnderwaterOdom {
 
 	// Publishers
 
-	ros::Publisher depth_odom_pub_;
+	//ros::Publisher depth_odom_pub_;
 	ros::Publisher odom_pub_;
 
 	// Variables
@@ -52,7 +61,6 @@ class UnderwaterOdom {
 	double earth_gravitation; //[m/s2]
 
 	// Messages
-	geometry_msgs::PoseWithCovarianceStamped depth_odom;
 	nav_msgs::Odometry odom;
 
 };
