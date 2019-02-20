@@ -50,9 +50,9 @@
   <!-- Mount a GPS.  
   <xacro:default_gps namespace="${namespace}" parent_link="${namespace}/base_link" /> -->
 
-  <!-- Mount a Pose 3D sensor. NEED THIS TO RUN CONTROLLER -->
+  <!-- Mount a Pose 3D sensor. This will give 3D pose -->
   <xacro:default_pose_3d_macro
     namespace="${namespace}"
     parent_link="${namespace}/base_link"
-    inertial_reference_frame="${inertial_reference_frame}" /> 
+    inertial_reference_frame="${inertial_reference_frame}" />  
 </robot>
