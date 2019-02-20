@@ -12,6 +12,7 @@
 #include "std_msgs/Bool.h"
 #include "stolpe/CameraObjectInfo.h"
 #include <sstream>
+
 // Quality of life
 using namespace cv;
 using namespace std;
@@ -61,13 +62,14 @@ class ImageConverter
     Mat cameraFrame, cameraFrameGrey, detected_edges, blury, red1, red2, red3;
     double x1, x2, y1, y2,x11,x22,y11,y22;
     Rect2d bbox;
+    Rect2d bbox_big;
     vector<Rect2d> act_bbox;
     stolpe::CameraObjectInfo detected_2;
     detected_2.frame_height = cv_ptr->image.rows;//bbox.height;
     detected_2.frame_width = cv_ptr->image.cols;//bbox.width;
-    detected_2.confidence = 1;
-    detected_2.pos_x = 0;
-    detected_2.pos_y = 0;	
+    detected_2.confidence = 0;
+    detected_2.pos_x = -1;
+    detected_2.pos_y = -1;	
     //std_msgs::Bool detected;
     //detected.data = false;		
 
@@ -82,7 +84,8 @@ class ImageConverter
     Canny(blury, detected_edges, 10, 50, 3);
     vector<vector<Point> > contours;
 		vector<Rect2d> heights;
-    findContours(detected_edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		vector<Rect2d> heights2;
+    		findContours(detected_edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 		int height = 0;
 		
 		for (int i = 0; i < contours.size(); i++) {
@@ -91,96 +94,62 @@ class ImageConverter
 				height = bbox.height;
 				heights.push_back(bbox);
 			}
-		}		
-
-		if (heights.size() == 1) {
-			bbox = heights.end()[-1];
-			rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
-      x1 = bbox.tl().x;
-      y1 = bbox.tl().y;
-      x2 = bbox.br().x;
-      y2 = bbox.br().y;
-      detected_2.pos_x = (x1+x2)/2;
-      detected_2.pos_y = (y1+y2)/2;
+		
 		}
-		if (heights.size() > 1) {
-			int x_position = 0;
-			for (int j = 0; j < heights.size(); j++) {
-				if ( j == 0 ) {
-					bbox = heights.end()[-1];
-					rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
-					x1 = bbox.tl().x;
-      		y1 = bbox.tl().y;
-      		x2 = bbox.br().x;
-      		y2 = bbox.br().y;
-				}
-				if ( j > 0 ) {
-					bbox = heights.end()[-1-j];
-					if (x_position + 100 < bbox.x || x_position - 100 > bbox.x) {
-						rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
-						x11 = bbox.tl().x;
+		
+		if (heights.size() > 0) {
+			bbox_big = heights.end()[-1];
+			int center = (bbox_big.tl().x + bbox_big.br().x)/2;
+			height = 0;
+		
+			for (int i = 0; i < contours.size(); i++) {
+				bbox = boundingRect(contours[i]);
+				int center2 = (bbox.tl().x + bbox.br().x)/2;
+				if ((center2 > center + 25 || center2 < center - 25) && !bbox_big.contains(bbox.tl()) && !bbox_big.contains(bbox.br())) {
+					if (bbox.height > height) {
+						heights2.push_back(bbox);
+					}
+				} 
+			}
+		}
+
+	
+		if (heights.size() > 0 && heights2.size() > 0) {
+			bbox = heights.end()[-1];
+			rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(255,0,0),5);
+			x1 = bbox.tl().x;
+      			y1 = bbox.tl().y;
+      			x2 = bbox.br().x;
+      			y2 = bbox.br().y;
+			std::cout << "x1: " << x1 << std::endl;
+			bbox = heights2.end()[-1];
+			x11 = bbox.tl().x;
       			y11 = bbox.tl().y;
       			x22 = bbox.br().x;
       			y22 = bbox.br().y;
-						detected_2.pos_x = abs(((x1+x2)/2 - (x11+x22)/2)/2);
-      			detected_2.pos_y = abs(((y1+y2)/2 - (y11-y22)/2)/2);
-						break;
-					}
-				}
-			}
+			std::cout << "x11: " << x11 << std::endl;
+			rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
+    			detected_2.confidence = 1;
+  	 		detected_2.pos_x = (x11+x22)/2 + (((x1+x2)/2 - (x11+x22)/2)/2);
+    			detected_2.pos_y = ((y11+y22)/2 + (((y1+y2)/2 - (y11-y22)/2)/2))+50;	
+			detected_2.confidence = 1;
 		}
 		cv::imshow(OPENCV_WINDOW, red3);
-    cv::imshow(WINDOW2, cv_ptr->image);
-    cv::waitKey(3);
+    		cv::imshow(WINDOW2, cv_ptr->image);
+   		cv::waitKey(3);
 		detect_pub_.publish(detected_2);
-}
+	}
+
+	
 };
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "image_converter");
+  ros::init(argc, argv, "gate_detect");
   ImageConverter ic;
   ros::spin();
   return 0;
 }
-
-
-
-/*
-    if (contours.size() > 0) {
-    for(int i = 0; i < contours.size(); i++) {
-      bbox = boundingRect(contours[i]);
-      if (bbox.height > height) {
-        height = bbox.height;
-        act_bbox.push_back(bbox);  
-      }
-    }
-    bbox = act_bbox.back();
-    rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
-       
-    // Update GUI
-    cv::imshow(OPENCV_WINDOW, red3);
-    cv::imshow(WINDOW2, cv_ptr->image);
-    cv::waitKey(3);
-    // Output Bool value if detected or not
-   
-    if (bbox.area() > 500) {
-      detected_2.frame_height = cameraFrame.rows;//bbox.height;
-      detected_2.frame_width = cameraFrame.cols;//bbox.width;
-      detected_2.confidence = 1;
-      x1 = bbox.tl().x;
-      y1 = bbox.tl().y;
-      x2 = bbox.br().x;
-      y2 = bbox.br().y;
-      detected_2.pos_x = (x1+x2)/2;
-      detected_2.pos_y = (y1+y2)/2;
-    }
-    }
-    ROS_INFO("%d", detected_2.pos_x);
-    detect_pub_.publish(detected_2);
-    */
-      
-
 
 
 
