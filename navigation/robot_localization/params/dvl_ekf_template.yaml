@@ -144,6 +144,14 @@ imu0_queue_size: 10
 # this to true, and *make sure* your data conforms to REP-103, specifically, that the data is in ENU frame.
 imu0_remove_gravitational_acceleration: true
 
+# state initial pose
+initial_state: [15.0,  -20.0,  0.0,
+                 0.0,  0.0,  0.0,
+                 0.0,  0.0,  0.0,
+                 0.0,  0.0,  0.0,
+                 0.0,  0.0,  0.0]
+
+
 # [ADVANCED]  The EKF and UKF models follow a standard predict/correct cycle. During prediction, if there is no
 # acceleration reference, the velocity at time t+1 is simply predicted to be the same as the velocity at time t. During
 # correction, this predicted value is fused with the measured value to produce the new velocity estimate. This can be
