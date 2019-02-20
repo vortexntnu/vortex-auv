@@ -9,7 +9,7 @@ CameraCentering::CameraCentering(ros::NodeHandle nh) : m_nh(nh){
 pub = m_nh.advertise<vortex_msgs::PropulsionCommand>("/propulsion_command",1);
 sub = m_nh.subscribe("/camera_object_info", 1, &CameraCentering::cameraobjectcallback, this);
 pidx.reset(new Camerapid(0.1,1,-1,0.0015,0.0013,0.0001));
-pidy.reset(new Camerapid(0.1,1,-1,0.005,0,0));
+pidy.reset(new Camerapid(0.1,1,-1,0.005,0.05,0.0));
 }
 
 
