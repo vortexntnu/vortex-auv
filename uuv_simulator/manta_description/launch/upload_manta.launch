@@ -48,14 +48,22 @@
     </node>
   </group>
 
-<!-- Launching a camera window -->
+<!-- Launching a window for camera in front-->
 
-  <arg name="camera" default="1"/>
-  <group if="$(arg camera)">
-    <node name="image_view" pkg="image_view" type="image_view">
-    <remap from="image" to="/manta/manta/camera/camera_image" />
+  <arg name="camerafront" default="1"/>
+  <group if="$(arg camerafront)">
+    <node ns="front" pkg="image_view" type="image_view" name="image_view" args="image:=/manta/manta/camerafront/camera_image">
     </node>
   </group>
+
+  <!-- Launching a window for camera under -->
+
+  <arg name="cameraunder" default="1"/> 
+  <group if="$(arg cameraunder)">
+    <node ns="under" pkg="image_view" type="image_view" name="image_view" args="image:=/manta/manta/cameraunder/camera_image">
+    </node>
+  </group>  
+
 
 <!-- Launching assistants -->
 
