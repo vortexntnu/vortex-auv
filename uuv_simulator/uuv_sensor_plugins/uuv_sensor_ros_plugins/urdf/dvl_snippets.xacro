@@ -36,7 +36,7 @@
       topic="dvl"
       noise_sigma="0"
       noise_amplitude="0"
-      scale="1">
+      scale="0.5">
       <xacro:insert_block name="origin" />
     </xacro:dvl_plugin_macro>
   </xacro:macro>
@@ -70,7 +70,7 @@
       topic="dvl"
       noise_sigma="0"
       noise_amplitude="0"
-      scale="1">
+      scale="0.5">
       <xacro:insert_block name="origin" />
     </xacro:dvl_plugin_macro>
   </xacro:macro>
@@ -181,7 +181,8 @@
     <gazebo>
       <plugin filename="libuuv_gazebo_ros_dvl_plugin.so" name="libuuv_gazebo_dvl${suffix}_plugin">
         <robot_namespace>${namespace}</robot_namespace> <!-- (string, required): ros namespace in which the messages are published -->
-        <link_name>${namespace}/dvl${suffix}_link</link_name> <!-- (string, required): name of the body which holds the IMU sensor -->
+	<!-- Changed from dvl_link to base_link to get ENU coordinate frame -->
+        <link_name>${namespace}/base_link</link_name> <!-- (string, required): name of the body which holds the IMU sensor -->
         <sensor_topic>${topic}</sensor_topic> <!-- (string): name of the sensor output topic and prefix of service names -->
         <update_rate>${update_rate}</update_rate> <!-- Update period [s] -->
         <noise_sigma>${noise_sigma}</noise_sigma> <!-- std dev of position estimates in x, y, z [m/s] -->
