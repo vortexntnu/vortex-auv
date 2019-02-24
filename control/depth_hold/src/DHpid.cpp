@@ -1,4 +1,5 @@
 #include <depth_hold/DHpid.h>
+#include <iostream>
 
 DHpid::DHpid(double dt, double max, double min, double K_p, double K_d, double K_i):
  dt(dt), max(max),min(min),K_p(K_p),K_d(K_d), K_i(K_i), error(0), pre_error(0), 
@@ -17,7 +18,7 @@ double DHpid::calculate(){
 
     double derivative = (error - pre_error)/dt;
     double D = K_d*derivative;
-
+    std::cout << " P " << P << "I " << I << "D " << D << std::endl;
     double sum = P + I + D;
     if (sum > max){
         sum = max;

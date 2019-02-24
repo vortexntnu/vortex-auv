@@ -33,7 +33,7 @@ class ImageConverter
       : it_(nh_)
     {
       // Subscribe to input video feed and publish output video feed
-      image_sub_ = it_.subscribe("/manta/manta/camera/camera_image",1,&ImageConverter::imageCb, this);
+      image_sub_ = it_.subscribe("/manta/manta/camerafront/camera_image",1,&ImageConverter::imageCb, this);
       detect_pub_ = n_.advertise<stolpe::CameraObjectInfo>("/camera_object_info",1000);
       //detect_pub_ = nh_.advertise<std_msgs::Bool>("stolpe_detected",1000);
       // Image for publishing

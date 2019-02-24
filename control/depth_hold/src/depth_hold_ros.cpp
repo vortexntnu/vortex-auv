@@ -13,9 +13,9 @@ DepthHold::DepthHold(ros::NodeHandle nh) : m_nh(nh){
     double dt = 0.1;
     double max = 1.0;
     double min = -1.0;
-    double K_p = 0.0015;
-    double K_d = 0.0013;
-    double K_i = 0.0;
+    double K_p = 0.015;
+    double K_d = 0.013;
+    double K_i = 0.01;
 
     height.reset(new DHpid(dt, max, min, K_p, K_d, K_i));
 }
@@ -24,19 +24,25 @@ DepthHold::DepthHold(ros::NodeHandle nh) : m_nh(nh){
 DepthHold::~DepthHold(){}
 
 
-void DepthHold::spin(){
+void DepthHold::spin()
+{
     vortex_msgs::PropulsionCommand dh_command;
+    dh_command.control_mode.resize(6);
+    dh_command.control_mode[1]=1;
+    pub.publish(dh_command);
 
     ros::Rate rate(10);
     while(true){
-        dh_command.motion[2] = this->height->calculate();
-    }
+        dh_command.motion[2] = -this->height->calculate();
+        std::cout << "Heave command" << dh_command.motion[2] << std::endl;
     pub.publish(dh_command);
     ros::spinOnce();
     rate.sleep();
+    }
 }
 
 void DepthHold::stateEstimateCallback(const vortex_msgs::RovState &estimated_height){
     double error = static_cast<double>(estimated_height.pose.position.z) - this->default_height;
+    std::cout <<"Error: "<<  error << std::endl;
     this->height->updateError(error);
 }
