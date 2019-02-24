@@ -12,24 +12,28 @@ class LOS:
         self.y = 0.0
         
         #Previous waypoint
-        self.x_k = -10
-        self.y_k = -10 
+        self.x_k = -5
+        self.y_k = -5 
         
         #Next waypoint
-        self.x_kp1 = 10.0
-        self.y_kp1 = 10.0
+        self.x_kp1 = 3.0
+        self.y_kp1 = 3.0
         
         #LOS target
         self.x_los = 0
         self.y_los = 0
         
-        self.R = 2
+        self.R = 200
 
     def updatePosition(self, x, y, heading):
         #Position
+
         self.x = x
         self.y = y
         self.heading = heading
+        print(x)
+        print(y)
+        print(heading)
     
     def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
         #Previous waypoint
@@ -55,13 +59,13 @@ class LOS:
             self.a = 1+self.d**2
             self.c = self.x**2+self.y**2+self.g**2-2*self.g*self.y-self.R**2
             
-            self.y_los = self.d*(self.x_los-self.x_k)+self.y_k
-            
+
             if self.x_delta > 0:
                 self.x_los = (-self.b + math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
             elif self.x_delta < 0:
                 self.x_los = (-self.b - math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
-                
+
+            self.y_los = self.d*(self.x_los-self.x_k)+self.y_k    
             
         elif self.x_delta == 0:
             self.x_los = self.x_k
@@ -91,18 +95,23 @@ class LosGuidanceNode(object):
     def callback(self, msg):
         print('Message recieved LOS LOS')
 
-        self.los.updatePosition(0, 0, 0)
+        self.heading = msg.pose.pose.orientation.z
+        self.los.updatePosition(msg.pose.pose.position.x, msg.pose.pose.position.y, self.heading)
 
-        self.los.LOSG()
+        self.heading_d = self.los.LOSG()
+        print(self.heading_d)
+
+        self.error = self.heading-self.heading_d
+        self.norm_error = self.error/(abs(self.error)+1)
 
         motion_msg = PropulsionCommand()
         motion_msg.motion = [
-            0,     # Surge
+            0.1,     # Surge
             0,  # Sway
             0,          # Heave
             0,      # Roll
             0,   # Pitch
-            0.5  # Yaw
+            0.1*self.norm_error  # Yaw
         ]
 	
         motion_msg.control_mode = [
