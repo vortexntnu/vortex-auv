@@ -1,4 +1,8 @@
 <?xml version="1.0"?>
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. -->
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 

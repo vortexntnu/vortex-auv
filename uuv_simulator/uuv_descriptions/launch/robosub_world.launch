@@ -1,4 +1,10 @@
 <?xml version="1.0" ?>
+
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. -->
+
 <launch>
     <arg name="gui" default="true"/>
     <arg name="paused" default="false"/>

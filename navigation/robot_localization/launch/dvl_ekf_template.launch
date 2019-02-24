@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!-- 
+     Written by Kristoffer Rakstad Solberg & Øyvind Denvik, Students
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. -->
+
+<launch>
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+    <rosparam command="load" file="$(find robot_localization)/params/dvl_ekf_template.yaml" />
+
+
+   <!--  Placeholder for output topic remapping
+    <remap from="odometry/filtered" to=""/>
+    <remap from="accel/filtered" to=""/>
+    -->
+
+  </node>
+</launch>

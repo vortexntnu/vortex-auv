@@ -1,10 +1,15 @@
 <?xml version="1.0"?>
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. -->
+
 <launch>
   <arg name="debug" default="0"/>
 
-  <arg name="x" default="15"/>
-  <arg name="y" default="-20"/>
-  <arg name="z" default="-0.3"/>
+  <arg name="x" default="15.0"/>
+  <arg name="y" default="-20.0"/>
+  <arg name="z" default="0.0"/>
   <arg name="roll" default="0.0"/>
   <arg name="pitch" default="0.0"/>
   <arg name="yaw" default="0.0"/>
@@ -43,10 +48,32 @@
     </node>
   </group>
 
+<!-- Launching a window for camera in front-->
+
+  <arg name="camerafront" default="1"/>
+  <group if="$(arg camerafront)">
+    <node ns="front" pkg="image_view" type="image_view" name="image_view" args="image:=/manta/manta/camerafront/camera_image">
+    </node>
+  </group>
+
+  <!-- Launching a window for camera under -->
+
+  <arg name="cameraunder" default="1"/> 
+  <group if="$(arg cameraunder)">
+    <node ns="under" pkg="image_view" type="image_view" name="image_view" args="image:=/manta/manta/cameraunder/camera_image">
+    </node>
+  </group>  
+
+
+<!-- Launching assistants -->
+
   <include file="$(find uuv_assistants)/launch/message_to_tf.launch">
     <arg name="namespace" value="$(arg namespace)"/>
     <arg name="world_frame" value="world"/>
     <arg name="child_frame_id" value="/$(arg namespace)/base_link"/>
   </include>
+
+<!-- Transform DVL coordinate frame -->
+	
 
 </launch>

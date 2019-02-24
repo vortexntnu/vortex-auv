@@ -1,0 +1,14 @@
+
+#     Written by Kristoffer Rakstad Solberg and Øyvind Denvik, Students
+#     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+#     All rights reserved.
+
+atmosphere:
+  pressure: 101325
+
+water:
+  # density: 1000 # Freshwater
+  density: 1025 # Saltwater
+
+gravity:
+  acceleration: 9.80638
