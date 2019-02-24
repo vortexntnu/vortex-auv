@@ -1,11 +1,12 @@
-#ifndef DEPHT_HOLD_ROS_H
-#define DEPHT_HOLD_ROS_H
+#ifndef DEPTH_HOLD_ROS_H
+#define DEPTH_HOLD_ROS_H
 
+#include "depth_hold/DHpid.h"
 #include <ros/ros.h>
-#include <depth_hold/DHpid.h>
 #include <vortex_msgs/PropulsionCommand.h>
-#include <vortex_estimator/simple_estimator.h>
-#include <DHpid.h>
+#include <vortex_msgs/RovState.h>
+
+
 
 class DepthHold
 {
@@ -21,7 +22,7 @@ class DepthHold
     DepthHold(ros::NodeHandle m_nh);
     ~DepthHold();
 
-    void callback();
+    void stateEstimateCallback(const vortex_msgs::RovState &estimated_height);
     void spin();
 };
 

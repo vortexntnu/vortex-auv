@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+
 <package format="2">
   <name>depth_hold</name>
   <version>0.0.0</version>
@@ -7,7 +7,7 @@
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="vortex@todo.todo">vortex</maintainer>
+  <maintainer email="knutx@todo.todo">knut</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -49,22 +49,21 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>depends1</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>vortex</build_depend>
   <build_depend>vortex_msgs</build_depend>
-  <build_export_depend>depends1</build_export_depend>
+  <build_depend>vortex_estimator</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>vortex</build_export_depend>
   <build_export_depend>vortex_msgs</build_export_depend>
-  <exec_depend>depends1</exec_depend>
+  <build_export_depend>vortex_estimator</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>vortex</exec_depend>
   <exec_depend>vortex_msgs</exec_depend>
-
+  <exec_depend>vortex_estimator</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

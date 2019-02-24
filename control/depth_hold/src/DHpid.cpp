@@ -13,7 +13,7 @@ double DHpid::calculate(){
 
     integral += error*dt;
 
-    double I = K_i*integral
+    double I = K_i*integral;
 
     double derivative = (error - pre_error)/dt;
     double D = K_d*derivative;
@@ -30,7 +30,7 @@ double DHpid::calculate(){
     return sum;
 }
 
-void DHpid::calculate(double error){
+void DHpid::updateError(double err){
     this->pre_error = this->error;
-    this->error = error;
+    this->error = err;
 }

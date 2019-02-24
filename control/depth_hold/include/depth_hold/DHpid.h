@@ -20,7 +20,7 @@ class DHpid{
     DHpid();
     ~DHpid();
     double calculate();
-    void uddateError(double error);
+    void updateError(double err);
 };
 
 #endif
