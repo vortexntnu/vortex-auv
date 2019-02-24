@@ -11,10 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
-<<<<<<< 8579a537d89d3f346e488d975d25890b231f9495
   nav_msgs
-=======
->>>>>>> add los package
 )
 
 ## System dependencies are found with CMake's conventions
