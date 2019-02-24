@@ -2,6 +2,79 @@
 import rospy
 from vortex_msgs.msg import PropulsionCommand
 from nav_msgs.msg import Odometry
+import numpy as np
+import math
+
+class LOS:
+    def __init__(self):
+        #Position
+        self.x = 0.0
+        self.y = 0.0
+        
+        #Previous waypoint
+        self.x_k = -10
+        self.y_k = -10 
+        
+        #Next waypoint
+        self.x_kp1 = 10.0
+        self.y_kp1 = 10.0
+        
+        #LOS target
+        self.x_los = 0
+        self.y_los = 0
+        
+        self.R = 2
+
+    def updatePosition(self, x, y, heading):
+        #Position
+        self.x = x
+        self.y = y
+        self.heading = heading
+    
+    def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
+        #Previous waypoint
+        self.x_k = x_k
+        self.y_k = y_k
+        
+        #Next waypoint
+        self.x_kp1 = x_kp1
+        self.y_kp1 = y_kp1
+
+        
+    def LOSG(self): #current values = x,xk,xkp1,y,yk,ykp1
+        self.y_delta = self.y_kp1 - self.y_k
+        self.x_delta = self.x_kp1 - self.x_k
+
+        if self.x_delta != 0:
+            self.d = self.y_delta/self.x_delta
+            self.e = self.x_k
+            self.f = self.y_k
+            self.g = self.f -self.d*self.e
+            
+            self.b = 2*(self.d*self.g-self.d*self.y-self.x)
+            self.a = 1+self.d**2
+            self.c = self.x**2+self.y**2+self.g**2-2*self.g*self.y-self.R**2
+            
+            self.y_los = self.d*(self.x_los-self.x_k)+self.y_k
+            
+            if self.x_delta > 0:
+                self.x_los = (-self.b + math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
+            elif self.x_delta < 0:
+                self.x_los = (-self.b - math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
+                
+            
+        elif self.x_delta == 0:
+            self.x_los = self.x_k
+            if self.y_delta > 0:
+                self.y_los = self.y+math.sqrt(self.R**2-(self.x_los-self.x)**2)
+            elif self.y_delta < 0:
+                self.y_los = self.y-math.sqrt(self.R**2-(self.x_los-self.x)**2)
+            else:
+                self.y_los = self.y_k
+
+        self.heading_d = math.atan2(self.y_los-self.y, self.x_los-self.x)
+        
+        return self.heading_d
 
 class LosGuidanceNode(object):
     def __init__(self):
@@ -13,9 +86,15 @@ class LosGuidanceNode(object):
                                           PropulsionCommand,
                                           queue_size=1)
 
+        self.los = LOS()
 
     def callback(self, msg):
         print('Message recieved LOS LOS')
+
+        self.los.updatePosition(0, 0, 0)
+
+        self.los.LOSG()
+
         motion_msg = PropulsionCommand()
         motion_msg.motion = [
             0,     # Surge
