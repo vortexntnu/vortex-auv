@@ -84,7 +84,8 @@
 
         <intensity>${mag_intensity}</intensity> <!-- magnitude of magnetic field [muT] -->
         <reference_heading>${pi}</reference_heading> <!-- reference heading [rad] -->
-        <declination>0.0</declination> <!-- reference declination [rad] -->
+	<!-- Kristoffer changed magnetic declination from being 0.0 -->
+        <declination>${-pi}</declination> <!-- reference declination [rad] -->
         <inclination>${pi*60/180}</inclination> <!-- refernce inclination [rad] -->
         <noise_xy>${noise_xy}</noise_xy> <!-- Discrete-time std. dev. of output noise in xy-axis [muT] -->
         <noise_z>${noise_z}</noise_z> <!-- Discrete-time std. dev. of output noise in z-axis [muT] -->
