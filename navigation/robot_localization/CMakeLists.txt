@@ -69,12 +69,12 @@ catkin_package(
     ekf
     filter_base
     filter_utilities
-    #navsat_transform
+#    navsat_transform
     ros_filter
     ros_filter_utilities
     robot_localization_estimator
     ros_robot_localization_listener
-    #ukf
+    ukf
   CATKIN_DEPENDS
     cmake_modules
     diagnostic_msgs
@@ -114,7 +114,7 @@ link_directories(${YAML_CPP_LIBRARY_DIRS})
 add_library(filter_utilities src/filter_utilities.cpp)
 add_library(filter_base src/filter_base.cpp)
 add_library(ekf src/ekf.cpp)
-#add_library(ukf src/ukf.cpp)
+add_library(ukf src/ukf.cpp)
 add_library(robot_localization_estimator src/robot_localization_estimator.cpp)
 add_library(ros_robot_localization_listener src/ros_robot_localization_listener.cpp)
 add_library(ros_filter_utilities src/ros_filter_utilities.cpp)
@@ -123,7 +123,7 @@ add_library(ros_filter src/ros_filter.cpp)
 
 # Executables
 add_executable(ekf_localization_node src/ekf_localization_node.cpp)
-#add_executable(ukf_localization_node src/ukf_localization_node.cpp)
+add_executable(ukf_localization_node src/ukf_localization_node.cpp)
 #add_executable(navsat_transform_node src/navsat_transform_node.cpp)
 add_executable(robot_localization_listener_node src/robot_localization_listener_node.cpp)
 
@@ -137,14 +137,14 @@ target_link_libraries(ros_filter_utilities ${catkin_LIBRARIES} ${EIGEN3_LIBRARIE
 target_link_libraries(filter_utilities ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 target_link_libraries(filter_base filter_utilities ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 target_link_libraries(ekf filter_base ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-#target_link_libraries(ukf filter_base ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-target_link_libraries(ros_filter ekf ros_filter_utilities ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
-target_link_libraries(robot_localization_estimator filter_utilities filter_base ekf ${EIGEN3_LIBRARIES})
+target_link_libraries(ukf filter_base ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(ros_filter ekf ukf ros_filter_utilities ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
+target_link_libraries(robot_localization_estimator filter_utilities filter_base ekf ukf ${EIGEN3_LIBRARIES})
 target_link_libraries(ros_robot_localization_listener robot_localization_estimator ros_filter_utilities
   ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES} ${YAML_CPP_LIBRARIES})
 target_link_libraries(robot_localization_listener_node ros_robot_localization_listener ${catkin_LIBRARIES})
 target_link_libraries(ekf_localization_node ros_filter ${catkin_LIBRARIES})
-#target_link_libraries(ukf_localization_node ros_filter ${catkin_LIBRARIES})
+target_link_libraries(ukf_localization_node ros_filter ${catkin_LIBRARIES})
 #target_link_libraries(navsat_transform filter_utilities ros_filter_utilities ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 #target_link_libraries(navsat_transform_node navsat_transform ${catkin_LIBRARIES})
 
@@ -158,15 +158,15 @@ install(TARGETS
   ekf_localization_node
   filter_base
   filter_utilities
-  #navsat_transform
-  #navsat_transform_node
+#  navsat_transform
+#  navsat_transform_node
   ros_filter
   ros_filter_utilities
   robot_localization_estimator
   ros_robot_localization_listener
   robot_localization_listener_node
-  #ukf
-  #ukf_localization_node
+  ukf
+  ukf_localization_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
@@ -210,5 +210,79 @@ if (CATKIN_ENABLE_TESTING)
                     test/test_filter_base_diagnostics_timestamps.cpp)
   target_link_libraries(test_filter_base_diagnostics_timestamps ${catkin_LIBRARIES} ${rostest_LIBRARIES})
   add_dependencies(test_filter_base_diagnostics_timestamps ekf_localization_node)
+
+  #### EKF TESTS #####
+  add_rostest_gtest(test_ekf
+                    test/test_ekf.test
+                    test/test_ekf.cpp)
+  target_link_libraries(test_ekf ros_filter ekf ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+
+  add_rostest_gtest(test_ekf_localization_node_interfaces
+                    test/test_ekf_localization_node_interfaces.test
+                    test/test_ekf_localization_node_interfaces.cpp)
+  target_link_libraries(test_ekf_localization_node_interfaces ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ekf_localization_node_bag1
+                    test/test_ekf_localization_node_bag1.test
+                    test/test_localization_node_bag_pose_tester.cpp)
+  target_link_libraries(test_ekf_localization_node_bag1 ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ekf_localization_node_bag2
+                    test/test_ekf_localization_node_bag2.test
+                    test/test_localization_node_bag_pose_tester.cpp)
+  target_link_libraries(test_ekf_localization_node_bag2 ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ekf_localization_node_bag3
+                    test/test_ekf_localization_node_bag3.test
+                    test/test_localization_node_bag_pose_tester.cpp)
+  target_link_libraries(test_ekf_localization_node_bag3 ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  #### UKF TESTS #####
+  add_rostest_gtest(test_ukf
+                    test/test_ukf.test
+                    test/test_ukf.cpp)
+  target_link_libraries(test_ukf ros_filter ukf ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ukf_localization_node_interfaces
+                    test/test_ukf_localization_node_interfaces.test
+                    test/test_ukf_localization_node_interfaces.cpp)
+  target_link_libraries(test_ukf_localization_node_interfaces ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ukf_localization_node_bag1
+                    test/test_ukf_localization_node_bag1.test
+                    test/test_localization_node_bag_pose_tester.cpp)
+  target_link_libraries(test_ukf_localization_node_bag1 ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ukf_localization_node_bag2
+                    test/test_ukf_localization_node_bag2.test
+                    test/test_localization_node_bag_pose_tester.cpp)
+  target_link_libraries(test_ukf_localization_node_bag2 ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  add_rostest_gtest(test_ukf_localization_node_bag3
+                    test/test_ukf_localization_node_bag3.test
+                    test/test_localization_node_bag_pose_tester.cpp)
+  target_link_libraries(test_ukf_localization_node_bag3 ${catkin_LIBRARIES} ${rostest_LIBRARIES})
+
+  #### RLE/RLL TESTS #####
+  add_rostest_gtest(test_robot_localization_estimator
+                    test/test_robot_localization_estimator.test
+                    test/test_robot_localization_estimator.cpp)
+  target_link_libraries(test_robot_localization_estimator
+                        robot_localization_estimator
+                        ${catkin_LIBRARIES}
+                        ${rostest_LIBRARIES})
+
+  add_executable(test_ros_robot_localization_listener_publisher test/test_ros_robot_localization_listener_publisher.cpp)
+  target_link_libraries(test_ros_robot_localization_listener_publisher
+                        ${catkin_LIBRARIES})
+
+  add_rostest_gtest(test_ros_robot_localization_listener
+                    test/test_ros_robot_localization_listener.test
+                    test/test_ros_robot_localization_listener.cpp)
+  target_link_libraries(test_ros_robot_localization_listener
+                        ros_robot_localization_listener
+                        ${catkin_LIBRARIES}
+                        ${rostest_LIBRARIES})
 
 endif()
