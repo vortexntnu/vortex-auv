@@ -9,7 +9,7 @@
 //Constructor
 DepthHold::DepthHold(ros::NodeHandle nh) : m_nh(nh){
     sub = m_nh.subscribe("state_estimate", 1, &DepthHold::stateEstimateCallback, this);
-    pub = m_nh.advertise<vortex_msgs::PropulsionCommand>("/propulsion_command", 1);
+    pub = m_nh.advertise<vortex_msgs::PropulsionCommand>("heave_input", 1);
     double dt = 0.1;
     double max = 1.0;
     double min = -1.0;
