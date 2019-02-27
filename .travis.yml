@@ -113,6 +113,7 @@ before_script:
 script:
   - source /opt/ros/$ROS_DISTRO/setup.bash
   - cd ~/catkin_ws
+  - catkin build vortex_msgs
   - catkin build
   # Run the tests, ensuring the path is set correctly.
   #- source devel/setup.bash
