@@ -7,6 +7,7 @@ Controls heave by a simple PID controller by currently publishing
 directly to /propulsion_command.
 
 #Run
+
 Run the depth hold node by using the command:
 
   rosrun depth_hold depth_hold_node
