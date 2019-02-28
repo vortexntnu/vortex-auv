@@ -18,4 +18,4 @@ Publishes  on topic:
 Run the depth hold node by using the command:
 ```bash
  $ rosrun control_input_merger control_input_merger_node
-```
+

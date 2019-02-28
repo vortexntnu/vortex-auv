@@ -5,17 +5,18 @@
 #include <vortex_msgs/PropulsionCommand.h>
 #include <vortex_msgs/RovState.h>
 #include <iostream>
+#include <geometry_msgs/Wrench.h>
 
 //Constructor
 DepthHold::DepthHold(ros::NodeHandle nh) : m_nh(nh){
     sub = m_nh.subscribe("state_estimate", 1, &DepthHold::stateEstimateCallback, this);
-    pub = m_nh.advertise<vortex_msgs::PropulsionCommand>("heave_input", 1);
+    pub = m_nh.advertise<geometry_msgs::Wrench>("heave_input", 1);
     double dt = 0.1;
-    double max = 1.0;
-    double min = -1.0;
-    double K_p = 0.015;
-    double K_d = 0.013;
-    double K_i = 0.01;
+    double max = 40.0;
+    double min = -40.0;
+    double K_p = 1.5;
+    double K_d = 0.13;
+    double K_i = 0.05;
 
     height.reset(new DHpid(dt, max, min, K_p, K_d, K_i));
 }
@@ -26,15 +27,19 @@ DepthHold::~DepthHold(){}
 
 void DepthHold::spin()
 {
-    vortex_msgs::PropulsionCommand dh_command;
-    dh_command.control_mode.resize(6);
-    dh_command.control_mode[1]=1;
-    pub.publish(dh_command);
-
+    geometry_msgs::Wrench dh_command;
     ros::Rate rate(10);
+    dh_command.force.x = 0;
+    dh_command.force.y = 0;
+    dh_command.force.z = 0;
+    
+    dh_command.torque.x = 0;
+    dh_command.torque.y = 0;
+    dh_command.torque.z = 0;
+    
     while(ros::ok()){
-        dh_command.motion[2] = -this->height->calculate();
-        std::cout << "Heave command" << dh_command.motion[2] << std::endl;
+        dh_command.force.z = -this->height->calculate();
+        std::cout << "Heave command" << dh_command.force.z << std::endl;
     pub.publish(dh_command);
     ros::spinOnce();
     rate.sleep();

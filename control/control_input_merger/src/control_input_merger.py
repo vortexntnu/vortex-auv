@@ -20,49 +20,32 @@ class ControlInputMerger(object):
 
 
         #Initialize thrust publisher message
-        self.motion_msg = PropulsionCommand()
-
-        self.motion_msg.control_mode = [
-            (False),
-            (False),
-            (False),
-            (False),
-            (False),
-            (False)
-        ]
-        self.motion_msg.motion = [
-            0,  # Surge
-            0,  # Sway
-            0,  # Heave
-            0,  # Roll
-            0,  # Pitch
-            0   # Yaw
-        ]
+        self.motion_msg = Wrench()
 
     #Callback
     def surge_callback(self, msg):
-        self.motion_msg.force[0] = msg.force[0]
+        self.motion_msg.force.x = msg.force.x
         self.pub_thrust.publish(self.motion_msg)
 
 
     def sway_callback(self, msg):
-        self.motion_msg.force[1] = msg.force[1]
+        self.motion_msg.force.y = msg.force.y
         self.pub_thrust.publish(self.motion_msg)
 
     def heave_callback(self, msg):
-        self.motion_msg.force[2] = msg.force[2]
+        self.motion_msg.force.z = msg.force.z
         self.pub_thrust.publish(self.motion_msg)
 
     def roll_callback(self, msg):
-        self.motion_msg.torque[0] = msg.torque[0]
+        self.motion_msg.torque.x = msg.torque.x
         self.pub_thrust.publish(self.motion_msg)
 
     def pitch_callback(self, msg):
-        self.motion_msg.torque[1] = msg.torque[1]
+        self.motion_msg.torque.y = msg.torque.y
         self.pub_thrust.publish(self.motion_msg)
 
     def yaw_callback(self, msg):
-        self.motion_msg.torque[0] = msg.torque[2]
+        self.motion_msg.torque.z = msg.torque.z
         self.pub_thrust.publish(self.motion_msg)
 
 

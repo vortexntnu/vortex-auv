@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   vortex
   vortex_msgs
   vortex_estimator
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
