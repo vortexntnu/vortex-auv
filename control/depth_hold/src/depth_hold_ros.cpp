@@ -32,7 +32,7 @@ void DepthHold::spin()
     pub.publish(dh_command);
 
     ros::Rate rate(10);
-    while(true){
+    while(ros::ok()){
         dh_command.motion[2] = -this->height->calculate();
         std::cout << "Heave command" << dh_command.motion[2] << std::endl;
     pub.publish(dh_command);

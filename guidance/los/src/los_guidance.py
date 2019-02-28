@@ -59,7 +59,6 @@ class LOS:
             self.a = 1+self.d**2
             self.c = self.x**2+self.y**2+self.g**2-2*self.g*self.y-self.R**2
             
-
             if self.x_delta > 0:
                 self.x_los = (-self.b + math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
             elif self.x_delta < 0:
