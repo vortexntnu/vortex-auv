@@ -10,19 +10,19 @@ class LOS:
         #Position
         self.x = 0.0
         self.y = 0.0
-        
+
         #Previous waypoint
         self.x_k = -5
         self.y_k = -5 
-        
+
         #Next waypoint
         self.x_kp1 = 3.0
         self.y_kp1 = 3.0
-        
+
         #LOS target
         self.x_los = 0
         self.y_los = 0
-        
+
         self.R = 200
 
     def updatePosition(self, x, y, heading):
@@ -34,17 +34,17 @@ class LOS:
         print(x)
         print(y)
         print(heading)
-    
+
     def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
         #Previous waypoint
         self.x_k = x_k
         self.y_k = y_k
-        
+
         #Next waypoint
         self.x_kp1 = x_kp1
         self.y_kp1 = y_kp1
 
-        
+
     def LOSG(self): #current values = x,xk,xkp1,y,yk,ykp1
         self.y_delta = self.y_kp1 - self.y_k
         self.x_delta = self.x_kp1 - self.x_k
@@ -54,18 +54,18 @@ class LOS:
             self.e = self.x_k
             self.f = self.y_k
             self.g = self.f -self.d*self.e
-            
+
             self.b = 2*(self.d*self.g-self.d*self.y-self.x)
             self.a = 1+self.d**2
             self.c = self.x**2+self.y**2+self.g**2-2*self.g*self.y-self.R**2
-            
+
             if self.x_delta > 0:
                 self.x_los = (-self.b + math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
             elif self.x_delta < 0:
                 self.x_los = (-self.b - math.sqrt(self.b**2 -4*self.a*self.c))/(2*self.a)
 
-            self.y_los = self.d*(self.x_los-self.x_k)+self.y_k    
-            
+            self.y_los = self.d*(self.x_los-self.x_k)+self.y_k
+
         elif self.x_delta == 0:
             self.x_los = self.x_k
             if self.y_delta > 0:
@@ -76,7 +76,7 @@ class LOS:
                 self.y_los = self.y_k
 
         self.heading_d = math.atan2(self.y_los-self.y, self.x_los-self.x)
-        
+
         return self.heading_d
 
 class LosGuidanceNode(object):
@@ -112,7 +112,7 @@ class LosGuidanceNode(object):
             0,   # Pitch
             0.1*self.norm_error  # Yaw
         ]
-	
+
         motion_msg.control_mode = [
             (False),
             (False),
