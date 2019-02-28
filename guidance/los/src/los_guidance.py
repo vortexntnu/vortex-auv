@@ -2,6 +2,7 @@
 import rospy
 from vortex_msgs.msg import PropulsionCommand
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Wrench
 import numpy as np
 import math
 
@@ -31,9 +32,6 @@ class LOS:
         self.x = x
         self.y = y
         self.heading = heading
-        print(x)
-        print(y)
-        print(heading)
 
     def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
         #Previous waypoint
@@ -86,31 +84,36 @@ class LosGuidanceNode(object):
         self.sub = rospy.Subscriber(
             '/odometry/filtered', Odometry, self.callback, queue_size=1)
         self.pub_motion = rospy.Publisher('yaw_input',
-                                          PropulsionCommand,
+                                          Wrench,
                                           queue_size=1)
 
         self.los = LOS()
 
     def callback(self, msg):
-        print('Message recieved LOS LOS')
+        #print('Message recieved LOS LOS')
 
         self.heading = msg.pose.pose.orientation.z
         self.los.updatePosition(msg.pose.pose.position.x, msg.pose.pose.position.y, self.heading)
 
         self.heading_d = self.los.LOSG()
-        print(self.heading_d)
+        #print(self.heading_d)
 
         self.error = self.heading-self.heading_d
         self.norm_error = self.error/(abs(self.error)+1)
 
-        motion_msg = PropulsionCommand()
+        motion_msg = Wrench()
+        motion_msg.torque.z = self.norm_error
+        print(motion_msg)
+        self.pub_motion.publish(motion_msg)
+        #motion_msg.force
+        '''
         motion_msg.motion = [
             0,     # Surge
             0,  # Sway
             0,          # Heave
             0,      # Roll
             0,   # Pitch
-            0.1*self.norm_error  # Yaw
+            10*self.norm_error  # Yaw
         ]
 
         motion_msg.control_mode = [
@@ -124,7 +127,7 @@ class LosGuidanceNode(object):
 
         motion_msg.header.stamp = rospy.get_rostime()
         self.pub_motion.publish(motion_msg)
-
+        '''
 
 
 if __name__ == '__main__':
