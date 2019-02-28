@@ -85,7 +85,7 @@ class LosGuidanceNode(object):
 
         self.sub = rospy.Subscriber(
             '/odometry/filtered', Odometry, self.callback, queue_size=1)
-        self.pub_motion = rospy.Publisher('propulsion_command',
+        self.pub_motion = rospy.Publisher('yaw_input',
                                           PropulsionCommand,
                                           queue_size=1)
 
@@ -105,7 +105,7 @@ class LosGuidanceNode(object):
 
         motion_msg = PropulsionCommand()
         motion_msg.motion = [
-            0.1,     # Surge
+            0,     # Surge
             0,  # Sway
             0,          # Heave
             0,      # Roll
