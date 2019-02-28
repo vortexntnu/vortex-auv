@@ -1,0 +1,13 @@
+manta_description
+manta_thruster_manager
+uuv_assistants
+uuv_descriptions
+uuv_gazebo_plugins
+uuv_gazebo_ros_plugins_msgs
+uuv_gazebo_ros_plugins
+uuv_sensor_plugins_ros_msgs
+uuv_sensor_ros_plugins
+uuv_world_plugins
+uuv_world_ros_plugins_msgs
+uuv_world_ros_plugins
+simulator_launch

@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/vortexntnu/manta-auv.svg?branch=master)](https://travis-ci.com/vortexntnu/manta-auv)
 ## Vortex NTNU, Manta AUV repository
 
 ![MANTA](manta_underwater_robosub.png)
