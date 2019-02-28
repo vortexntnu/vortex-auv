@@ -10,19 +10,12 @@ Subscribes on topics:
 All of message type "Wrench" which consist of forces and tourqe in x,y,z
 
 
-Publishes A
+Publishes  on topic:
+ -/manta/thruster_manager/input , -> Wrench message
 
 **#Run**
 
 Run the depth hold node by using the command:
 ```bash
- $ rosrun depth_hold depth_hold_node
-```
-You can observe how Manta performs by listening to the topic /state_estimate
-```bash
-  $ rostopic echo /state_estimate
-```
-and look at 
-```
-  position.z
+ $ rosrun control_input_merger control_input_merger_node
 ```
