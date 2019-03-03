@@ -25,7 +25,7 @@ pub.publish(propulsion);
 
 // 10 Hz
 ros::Rate rate(10);
-while(true){
+while(ros::ok()){
   if (confidence > 0.8){
     //Turn right/left
     propulsion.motion[5] = this->pidx->calculate();
