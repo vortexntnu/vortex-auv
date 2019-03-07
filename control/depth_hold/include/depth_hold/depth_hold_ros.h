@@ -5,6 +5,9 @@
 #include <ros/ros.h>
 #include <vortex_msgs/PropulsionCommand.h>
 #include <vortex_msgs/RovState.h>
+#include <geometry_msgs/Wrench.h>
+#include <nav_msgs/Odometry.h>
+
 
 
 
@@ -22,7 +25,7 @@ class DepthHold
     DepthHold(ros::NodeHandle m_nh);
     ~DepthHold();
 
-    void stateEstimateCallback(const vortex_msgs::RovState &estimated_height);
+    void stateEstimateCallback(const nav_msgs::Odometry &odometry_msgs);
     void spin();
 };
 

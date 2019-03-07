@@ -2,14 +2,15 @@
 #include <depth_hold/depth_hold_ros.h>
 #include <ros/ros.h>
 #include <vortex_estimator/simple_estimator.h>
-#include <vortex_msgs/PropulsionCommand.h>
-#include <vortex_msgs/RovState.h>
+//#include <vortex_msgs/PropulsionCommand.h>
+//#include <vortex_msgs/RovState.h>
 #include <iostream>
 #include <geometry_msgs/Wrench.h>
+#include <nav_msgs/Odometry.h>
 
 //Constructor
 DepthHold::DepthHold(ros::NodeHandle nh) : m_nh(nh){
-    sub = m_nh.subscribe("state_estimate", 1, &DepthHold::stateEstimateCallback, this);
+    sub = m_nh.subscribe("/odometry/filtered", 1, &DepthHold::stateEstimateCallback, this);
     pub = m_nh.advertise<geometry_msgs::Wrench>("heave_input", 1);
     double dt = 0.1;
     double max = 40.0;
@@ -46,8 +47,8 @@ void DepthHold::spin()
     }
 }
 
-void DepthHold::stateEstimateCallback(const vortex_msgs::RovState &estimated_height){
-    double error = static_cast<double>(estimated_height.pose.position.z) - this->default_height;
+void DepthHold::stateEstimateCallback(const nav_msgs::Odometry &odometry_msgs){
+    double error = static_cast<double>(odometry_msgs.pose.pose.position.z)*(-1) - this->default_height;
     std::cout <<"Error: "<<  error << std::endl;
     this->height->updateError(error);
 }
