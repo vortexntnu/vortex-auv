@@ -15,7 +15,7 @@
             thesis. Institutt for marin teknikk, 2012.
   -->
   <!-- includes -->
-  <xacro:include filename="$(find uuv_descriptions)/models/common/urdf/common.urdf.xacro"/>
+  <xacro:include filename="$(find manta_description)/urdf/common.urdf.xacro"/>
   <xacro:include filename="$(find uuv_sensor_ros_plugins)/urdf/sensor_snippets.xacro"/>
   <xacro:include filename="$(find uuv_gazebo_ros_plugins)/urdf/snippets.xacro"/>  
 
