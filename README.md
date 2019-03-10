@@ -136,4 +136,6 @@ $ rqt
 2. Install dependencies
 	```bash
 	$ rosdep install -y --from-paths src --ignore-src --rosdistro kinetic
+	$ pip install rospkg --user
+	$ pip install empy --user
 	```
