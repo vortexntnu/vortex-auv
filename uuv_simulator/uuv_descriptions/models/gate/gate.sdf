@@ -33,12 +33,12 @@
     </link>
 
     <link name='gate_right'>
-      <pose>1.525 0 -0.762 0 0 0</pose>
+      <pose>2.525 0 -0.762 0 0 0</pose>
       <visual name='gate_right_vis'>
         <geometry>
           <cylinder>
             <radius>0.0381</radius>
-            <length>1.21</length>
+            <length>5.21</length>
           </cylinder>
         </geometry>
         <material>
