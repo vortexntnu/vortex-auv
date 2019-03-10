@@ -15,7 +15,7 @@ Publishes  on topic:
 
 **#Run**
 
-Run the depth hold node by using the command:
+Run the control input merge node by using the command:
 ```bash
- $ rosrun control_input_merger control_input_merger_node
+ $ rosrun control_input_merger control_input_merger.py
 
