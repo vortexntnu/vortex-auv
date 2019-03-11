@@ -70,6 +70,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
+	$ catkin build vortex_msgs
 	$ catkin build
   
 3. source the current workspace:
