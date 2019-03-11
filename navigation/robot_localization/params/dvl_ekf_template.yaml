@@ -145,7 +145,7 @@ imu0_queue_size: 10
 imu0_remove_gravitational_acceleration: true
 
 # state initial pose
-initial_state: [15.0,  -20.0,  0.0,
+initial_state: [5.0,  -10.0,  0.0,
                  0.0,  0.0,  0.0,
                  0.0,  0.0,  0.0,
                  0.0,  0.0,  0.0,
