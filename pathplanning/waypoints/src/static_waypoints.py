@@ -12,9 +12,9 @@ class Waypoints:
 
 		# Set Position
 		wp = Pose()
-		wp.position.x = 30
-		wp.position.y = 10
-		wp.position.z = 0
+		wp.position.x = 14
+		wp.position.y = 1
+		wp.position.z = -5
 
 		# Set mode
 		mode = PropulsionCommand()
