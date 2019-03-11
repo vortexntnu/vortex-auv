@@ -26,7 +26,7 @@
     Vehicle's parameters (remember to enter the model parameters below)
   -->
   <!-- Mass -->
-  <xacro:property name="mass" value="18"/>
+  <xacro:property name="mass" value="19.0"/>
   <!-- Describing the dimensions of the vehicle's bounding box: width, length, height -->
   <xacro:property name="x_size" value="0.448"/>
   <xacro:property name="y_size" value="0.444"/>
@@ -58,7 +58,7 @@
 
   <xacro:macro name="manta_base" params="namespace *gazebo inertial_reference_frame">
    <!-- Rigid body description of the base link -->
-      <link name="${namespace}/base_link">
+    <link name="${namespace}/base_link">
         <!--
           Be careful to setup the coefficients for the inertial tensor,
           otherwise your model will become unstable on Gazebo
@@ -87,11 +87,14 @@
 
         <!-- In manta_base i've made collision planes to minize the GPU load -->
     <collision>
+      <origin xyz="0 0 ${0}" rpy="0 0 0"/>
       <geometry>
-        <box size="0.3 03 0.15"/>
+        <sphere radius="${0.25}"/>
       </geometry>
     </collision>
-      </link>
+	
+
+  </link>
 
     <gazebo reference="${namespace}/base_link">
       <selfCollide>false</selfCollide>
@@ -115,4 +118,11 @@
   <xacro:include filename="$(find manta_description)/urdf/manta_sensors.xacro"/>
 
   </xacro:macro>
+
+
+  <gazebo reference="${namespace}/base_link">
+    <material>Gazebo/FlatBlack</material>
+  </gazebo>
+
+
 </robot>

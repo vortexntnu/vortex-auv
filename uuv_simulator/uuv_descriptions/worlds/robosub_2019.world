@@ -167,7 +167,7 @@
     </light>
 
 
-<!-- Underwater plugin specifics -->
+<!-- Underwater plugin specifics 
 
     <plugin name="underwater_current_plugin" filename="libuuv_underwater_current_ros_plugin.so">
       <namespace>hydrodynamics</namespace>
@@ -197,7 +197,7 @@
           <noiseAmp>0.0</noiseAmp>
         </vertical_angle>
       </constant_current>
-    </plugin>
+    </plugin> -->
 
     <plugin name="sc_interface" filename="libuuv_sc_ros_interface_plugin.so"/>
 
