@@ -8,6 +8,7 @@
 Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
 C++ 11 compiler or newer
 
+
 ## 1. Install ROS kinetic for Ubuntu (If you do not have it already) ##
 
 ###### This should take no more than 3 minutes. If you have another version of linux but Ubuntu, follow this guide: http://wiki.ros.org/kinetic/Installation. It is very important that you follow the installation guide and instructions on how to run the guide EXACTLY as stated or you will get running errors. Simply copy and paste the commands to your terminal command window ######
@@ -125,3 +126,16 @@ inside the src-folder of you workspace
 ```bash
 $ rqt
 ```
+
+## Build dependencies
+
+1. Navigate to manta_ws
+	```bash
+	$ cd ~/manta_ws/
+	```
+2. Install dependencies
+	```bash
+	$ rosdep install -y --from-paths src --ignore-src --rosdistro kinetic
+	$ pip install rospkg --user
+	$ pip install empy --user
+	```
