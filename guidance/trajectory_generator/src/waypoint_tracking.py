@@ -90,7 +90,6 @@ class WaypointTracking(object):
 		# Start tracking by reading waypoints from file
 		self.guidance = PrepareWaypoints()
 		self.guidance.read_from_file(filename)
-		self.positionCallback()
 
 
 	def distance(self, pos, wp):
@@ -110,46 +109,42 @@ class WaypointTracking(object):
 		return np.arctan2(dy,dx)
 
 
-	def positionCallback(self):
+	def positionCallback(self,msg):
 
 		# get current position
-		pos = [20, -12, -3]
+		x = msg.pose.pose.position.x
+		y = msg.pose.pose.position.y			
+		z = msg.pose.pose.position.z
+		pos = [x, y, z]
 
 		# get current setpoint
 		wps = self.guidance.waypoints
 		wp = wps[0]
 		R = wp[3]
 		distance = self.distance(pos,wp)
-
+		print('wp:', wp)
 		# if auv is within circle of acceptance
 		# get new waypoint
-		if (self.circle_of_acceptance(distance, R)):
+		if (self.circle_of_acceptance(distance, R) and len(wps)>1):
 			self.guidance.delete_waypoint(wps)
-			wp = self.wps[0]
+			wp = wps[0]
 
 
 		# calc heading in euler and transform to quaternions
 		heading = self.target_heading(pos,wp)
 		quat = quaternion_from_euler(0.0,0.0,heading)
 
-		while not rospy.is_shutdown():
-			# setpoint
-			self.wp_msg.position.x = wp[0]
-			self.wp_msg.position.y = wp[1]
-			self.wp_msg.position.z = wp[2]
-			self.wp_msg.orientation.x = quat[0]
-			self.wp_msg.orientation.y = quat[1]
-			self.wp_msg.orientation.z = quat[2]
-			self.wp_msg.orientation.w = quat[3]
-			self.pub_waypoint.publish(self.wp_msg)
-			self.rate.sleep()		
-		#for wp in wps:
-		#	print('Point: ', wp)
+		# setpoint
+		self.wp_msg.position.x = wp[0]
+		self.wp_msg.position.y = wp[1]
+		self.wp_msg.position.z = wp[2]
+		self.wp_msg.orientation.x = quat[0]
+		self.wp_msg.orientation.y = quat[1]
+		self.wp_msg.orientation.z = quat[2]
+		self.wp_msg.orientation.w = quat[3]
 
-		#self.guidance.delete_waypoint(wps)
-		#print 'delete'
-		#for wp in wps:
-		#	print('Point', wp)
+		# publish
+		self.pub_waypoint.publish(self.wp_msg)	
 
 		
 

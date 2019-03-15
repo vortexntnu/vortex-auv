@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Written by Kristoffer Rakstad Solberg, Student
+# Copyright (c) 2019 Manta AUV, Vortex NTNU.
+# All rights reserved.
 
 import rospy
 import numpy as np
