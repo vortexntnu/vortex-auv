@@ -87,7 +87,7 @@ private:
                             const Eigen::Vector3d &position_state,
                             const Eigen::Quaterniond &orientation_state,
                             const Eigen::Vector6d &velocity_state,
-                            const Eigen::Vector3d &position_setpoint);  
+                            const Eigen::Vector3d &position_setpoint);
 };
 
 #endif  // VORTEX_CONTROLLER_CONTROLLER_ROS_H

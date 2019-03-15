@@ -13,15 +13,22 @@ namespace ControlModes
 enum ControlMode
 {
   OPEN_LOOP           = 0,
-  DEPTH_HOLD          = 1,
+  POSE_HOLD           = 1,
   HEADING_HOLD        = 2,
   DEPTH_HEADING_HOLD  = 3,
-  OPEN_LOOP_RESTORING = 4,
+  POSE_HEADING_HOLD   = 4,
   STAY_LEVEL          = 5,
   CONTROL_MODE_END    = 6
 };
 }  // namespace ControlModes
 typedef ControlModes::ControlMode ControlMode;
+
+/*
+Control mode
+Set all elements false to keep current mode.
+Set one element true to switch mode. Its index determines the mode,
+as defined in the control_modes.h.
+bool[] control_mode */
 
 inline std::string controlModeString(ControlMode control_mode)
 {
@@ -32,8 +39,8 @@ inline std::string controlModeString(ControlMode control_mode)
     s = "OPEN LOOP";
     break;
 
-    case ControlModes::DEPTH_HOLD:
-    s = "DEPTH HOLD";
+    case ControlModes::POSE_HOLD:
+    s = "POSE HOLD";
     break;
 
     case ControlModes::HEADING_HOLD:
@@ -44,8 +51,8 @@ inline std::string controlModeString(ControlMode control_mode)
     s = "DEPTH HEADING HOLD";
     break;
 
-    case ControlModes::OPEN_LOOP_RESTORING:
-    s = "OPEN LOOP RESTORING";
+    case ControlModes::POSE_HEADING_HOLD:
+    s = "POSE HEADING HOLD";
     break;
 
     case ControlModes::STAY_LEVEL:

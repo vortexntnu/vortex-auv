@@ -18,18 +18,20 @@
 
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
-  m_command_sub = m_nh.subscribe("/manta/waypoints", 1, &Controller::waypointCallback, this);
+  // Subscribers
+  m_command_sub = m_nh.subscribe("/manta/waypoints", 300, &Controller::waypointCallback, this);
   m_state_sub = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
   m_mode_sub = m_nh.subscribe("/manta/mode", 1, &Controller::controlModeCallback, this);
 
-  //m_command_sub = m_nh.subscribe("propulsion_command", 1, &Controller::commandCallback, this);
-  //m_state_sub   = m_nh.subscribe("state_estimate", 1, &Controller::stateCallback, this);
+  // Publishers
   m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
   m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
+  // Initial control mode
   m_control_mode = ControlModes::OPEN_LOOP;
 
+  // Launch file specifies manta.yaml as directory
   if (!m_nh.getParam("/controller/frequency", m_frequency))
     ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
   std::string s;
@@ -138,6 +140,7 @@ void Controller::configCallback(const dp_controller::VortexControllerConfig &con
 
 void Controller::spin()
 {
+  // Declaration of general forces
   Eigen::Vector6d    tau_command          = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_openloop         = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_restoring        = Eigen::VectorXd::Zero(6);
@@ -155,6 +158,7 @@ void Controller::spin()
   Eigen::Vector3d    position_setpoint    = Eigen::Vector3d::Zero();
   Eigen::Quaterniond orientation_setpoint = Eigen::Quaterniond::Identity();
 
+  // Message declaration
   geometry_msgs::Wrench msg;
   vortex_msgs::Debug    dbg_msg;
 
@@ -175,7 +179,14 @@ void Controller::spin()
 
     switch (m_control_mode)
     {
+
+      // idle
       case ControlModes::OPEN_LOOP:
+      tau_command = tau_openloop;
+      break;
+
+      // 3D coordinates
+      case ControlModes::POSE_HOLD:
       // NEW BY KRISTOFFER
       tau_posehold = poseHold(tau_openloop,
                                 position_state,
@@ -185,30 +196,28 @@ void Controller::spin()
       tau_command = tau_posehold;
       break;
 
-      //case ControlModes::OPEN_LOOP:
-      //tau_command = tau_openloop;
-      //break;
-
-
-      case ControlModes::OPEN_LOOP_RESTORING:
-      tau_restoring = m_controller->getRestoring(orientation_state);
-      tau_command = tau_openloop + tau_restoring;
+      // 3D coordinates with heading
+      case ControlModes::POSE_HEADING_HOLD:
+      tau_depthhold = poseHold(tau_openloop,
+                                position_state,
+                                orientation_state,
+                                velocity_state,
+                                position_setpoint);
+      tau_headinghold = headingHold(tau_openloop,
+                                    position_state,
+                                    orientation_state,
+                                    velocity_state,
+                                    orientation_setpoint);
+      tau_command = tau_posehold + tau_headinghold;
       break;
 
+      // adjust roll and pitch
       case ControlModes::STAY_LEVEL:
       tau_staylevel = stayLevel(orientation_state, velocity_state);
       tau_command = tau_openloop + tau_staylevel;
       break;
 
-      case ControlModes::DEPTH_HOLD:
-      tau_depthhold = depthHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
-                                position_setpoint);
-      tau_command = tau_openloop + tau_depthhold;
-      break;
-
+      // only heading
       case ControlModes::HEADING_HOLD:
       tau_headinghold = headingHold(tau_openloop,
                                     position_state,
@@ -218,6 +227,7 @@ void Controller::spin()
       tau_command = tau_openloop + tau_headinghold;
       break;
 
+      // only depth and heading
       case ControlModes::DEPTH_HEADING_HOLD:
       tau_depthhold = depthHold(tau_openloop,
                                 position_state,
@@ -317,6 +327,7 @@ void Controller::initPositionHoldController()
     ROS_ERROR("Failed to read parameter attitude_gain.");
 
   // Read center of gravity and buoyancy vectors
+  // from manta.yaml
   std::vector<double> r_G_vec, r_B_vec;
   if (!m_nh.getParam("/physical/center_of_mass", r_G_vec))
     ROS_FATAL("Failed to read robot center of mass parameter.");
@@ -326,6 +337,7 @@ void Controller::initPositionHoldController()
   Eigen::Vector3d r_B(r_B_vec.data());
 
   // Read and calculate ROV weight and buoyancy
+  // from manta.yaml
   double mass, displacement, acceleration_of_gravity, density_of_water;
   if (!m_nh.getParam("/physical/mass_kg", mass))
     ROS_FATAL("Failed to read parameter mass.");
@@ -411,16 +423,18 @@ void Controller::publishDebugMsg(const Eigen::Vector3d    &position_state,
   dbg_msg.setpoint_position.y = position_setpoint[1];
   dbg_msg.setpoint_position.z = position_setpoint[2];
 
-
+  // Debub state euler orientation
   Eigen::Vector3d dbg_state_orientation =
       orientation_state.toRotationMatrix().eulerAngles(2, 1, 0);
   Eigen::Vector3d dbg_setpoint_orientation =
       orientation_setpoint.toRotationMatrix().eulerAngles(2, 1, 0);
 
+  // Debug state orientation  
   dbg_msg.state_yaw = dbg_state_orientation[0];
   dbg_msg.state_pitch = dbg_state_orientation[1];
   dbg_msg.state_roll = dbg_state_orientation[2];
 
+  // Debug setpoint euler orientation
   dbg_msg.setpoint_yaw = dbg_setpoint_orientation[0];
   dbg_msg.setpoint_pitch = dbg_setpoint_orientation[1];
   dbg_msg.setpoint_roll = dbg_setpoint_orientation[2];
