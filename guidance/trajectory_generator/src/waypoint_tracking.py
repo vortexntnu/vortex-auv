@@ -9,6 +9,15 @@ import numpy as np
 import yaml
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose
+from tf.transformations import quaternion_from_euler
+
+		#  	"atan2"
+		#            y 90
+		#	  180	 |     0         ^
+		# 		 <---*----> x   rot+ |
+		#	 -180	 |     0
+		#           -90
+		#
 
 class PrepareWaypoints:
 
@@ -33,8 +42,8 @@ class PrepareWaypoints:
 						x = wp['point'][0]
 						y = wp['point'][1]
 						z = wp['point'][2]
-						heading = wp['heading']
-						self.waypoints.append((x,y,z,heading))
+						circleOfAcceptance = wp['R']
+						self.waypoints.append((x,y,z,circleOfAcceptance))
 					#print(self.waypoints)
 
 		except Exception, e:
@@ -55,7 +64,7 @@ class WaypointTracking(object):
 	def __init__(self):
 		# initialize node name
 		rospy.init_node('waypoint_tracking_node')
-
+		self.rate = rospy.Rate(20) #20hz 
 		# get file
 		if rospy.is_shutdown():
 		    rospy.logerr('ROS master not running!')
@@ -78,24 +87,69 @@ class WaypointTracking(object):
 
 
 
-
 		# Start tracking by reading waypoints from file
 		self.guidance = PrepareWaypoints()
 		self.guidance.read_from_file(filename)
 		self.positionCallback()
 
-		
+
+	def distance(self, pos, wp):
+		return 	np.sqrt((wp[0]-pos[0])**2 +
+					    (wp[1]-pos[1])**2 +
+					    (wp[2]-pos[2])**2)
+
+	def circle_of_acceptance(self, distance, R):
+		return distance < R
+
+
+
+	def target_heading(self, pos, wp):
+
+		dx = wp[0] - pos[0]
+		dy = wp[1] - pos[1]
+		return np.arctan2(dy,dx)
+
+
 	def positionCallback(self):
 
+		# get current position
+		pos = [20, -12, -3]
+
+		# get current setpoint
 		wps = self.guidance.waypoints
+		wp = wps[0]
+		R = wp[3]
+		distance = self.distance(pos,wp)
 
-		for wp in wps:
-			print('Point: ', wp)
+		# if auv is within circle of acceptance
+		# get new waypoint
+		if (self.circle_of_acceptance(distance, R)):
+			self.guidance.delete_waypoint(wps)
+			wp = self.wps[0]
 
-		self.guidance.delete_waypoint(wps)
-		print 'delete'
-		for wp in wps:
-			print('Point', wp)
+
+		# calc heading in euler and transform to quaternions
+		heading = self.target_heading(pos,wp)
+		quat = quaternion_from_euler(0.0,0.0,heading)
+
+		while not rospy.is_shutdown():
+			# setpoint
+			self.wp_msg.position.x = wp[0]
+			self.wp_msg.position.y = wp[1]
+			self.wp_msg.position.z = wp[2]
+			self.wp_msg.orientation.x = quat[0]
+			self.wp_msg.orientation.y = quat[1]
+			self.wp_msg.orientation.z = quat[2]
+			self.wp_msg.orientation.w = quat[3]
+			self.pub_waypoint.publish(self.wp_msg)
+			self.rate.sleep()		
+		#for wp in wps:
+		#	print('Point: ', wp)
+
+		#self.guidance.delete_waypoint(wps)
+		#print 'delete'
+		#for wp in wps:
+		#	print('Point', wp)
 
 		
 

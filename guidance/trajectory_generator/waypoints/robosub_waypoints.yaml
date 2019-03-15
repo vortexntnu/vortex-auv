@@ -3,17 +3,17 @@
 waypoints:
   -
     point: [0, 2, -22]
-    heading: 0
+    R: 1.0
   -
     point: [16, 12, -24]
-    heading: 0
+    R: 1.0
   -
     point: [20, 12, -27]
-    heading: 0  
+    R: 1.0  
   -
     point: [25, 16, -25]
-    heading: 0
+    R: 1.0
   -
     point: [25, 20, -25]
-    heading: 0
+    R: 1.0
 ...
