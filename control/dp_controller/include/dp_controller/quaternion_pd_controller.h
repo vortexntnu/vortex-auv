@@ -13,6 +13,7 @@
 
 #include <Eigen/Dense>
 #include "vortex/eigen_typedefs.h"
+#include <iostream>
 using namespace Eigen;
 
 class QuaternionPdController
@@ -32,12 +33,6 @@ public:
                               const Eigen::Vector3d    &x_d,
                               const Eigen::Quaterniond &q_d);
 
-  // Return control vector with restoring forces
-  Eigen::Vector6d compute(const Eigen::Vector3d    &x,
-                          const Eigen::Quaterniond &q,
-                          const Eigen::Vector6d    &nu,
-                          const Eigen::Vector3d    &x_d,
-                          const Eigen::Quaterniond &q_d);
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
   Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d &R);
@@ -45,6 +40,7 @@ private:
                               const Eigen::Vector3d    &p_d,
                               const Eigen::Quaterniond &q,
                               const Eigen::Quaterniond &q_d);
+
   Eigen::Vector6d restoringForceVector(const Eigen::Matrix3d &R);
   int             sgn(double x);
 

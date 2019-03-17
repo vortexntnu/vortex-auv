@@ -22,6 +22,7 @@ void QuaternionPdController::setGains(double a, double b, double c)
 
 Eigen::Vector6d QuaternionPdController::getRestoring(const Eigen::Quaterniond &q)
 {
+  // Rotate from inertial/world to body
   Eigen::Matrix3d R = q.toRotationMatrix();
   return restoringForceVector(R);
 }
@@ -32,24 +33,14 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
                                                     const Eigen::Vector3d    &x_d,
                                                     const Eigen::Quaterniond &q_d)
 {
-  Eigen::Matrix3d R   = q.toRotationMatrix();
-  Eigen::Matrix6d K_p = proportionalGainMatrix(R);
-  Eigen::Vector6d z   = errorVector(x, x_d, q, q_d);
-  return (Eigen::Vector6d() << -m_K_d*nu - K_p*z).finished();
-}
-
-Eigen::Vector6d QuaternionPdController::compute(const Eigen::Vector3d    &x,
-                                                const Eigen::Quaterniond &q,
-                                                const Eigen::Vector6d    &nu,
-                                                const Eigen::Vector3d    &x_d,
-                                                const Eigen::Quaterniond &q_d)
-{
+  // Rotate from inertial/world to body
   Eigen::Matrix3d R   = q.toRotationMatrix();
   Eigen::Matrix6d K_p = proportionalGainMatrix(R);
   Eigen::Vector6d z   = errorVector(x, x_d, q, q_d);
   Eigen::Vector6d g   = restoringForceVector(R);
   return (Eigen::Vector6d() << -m_K_d*nu - K_p*z + g).finished();
 }
+
 
 Eigen::Matrix6d QuaternionPdController::proportionalGainMatrix(const Eigen::Matrix3d &R)
 {
@@ -64,7 +55,10 @@ Eigen::Vector6d QuaternionPdController::errorVector(const Eigen::Vector3d    &x,
 {
   Eigen::Quaterniond q_tilde = q_d.conjugate()*q;
   q_tilde.normalize();
-  return (Eigen::Vector6d() << x - x_d, sgn(q_tilde.w())*q_tilde.vec()).finished();
+
+  Eigen::Vector3d error_body = x - x_d;
+
+  return (Eigen::Vector6d() << error_body, sgn(q_tilde.w())*q_tilde.vec()).finished();
 }
 
 Eigen::Vector6d QuaternionPdController::restoringForceVector(const Eigen::Matrix3d &R)
@@ -80,3 +74,4 @@ int QuaternionPdController::sgn(double x)
     return -1;
   return 1;
 }
+                                         

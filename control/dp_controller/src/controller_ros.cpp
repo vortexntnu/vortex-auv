@@ -147,6 +147,7 @@ void Controller::spin()
   Eigen::Vector6d    tau_staylevel        = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_depthhold        = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_headinghold      = Eigen::VectorXd::Zero(6);
+  Eigen::Vector6d    tau_surgehold        = Eigen::VectorXd::Zero(6);
 
   //NEW BY KRISTOFFER
   Eigen::Vector6d    tau_posehold         = Eigen::VectorXd::Zero(6);  
@@ -192,13 +193,14 @@ void Controller::spin()
                                 position_state,
                                 orientation_state,
                                 velocity_state,
-                                position_setpoint);
+                                position_setpoint,
+                                orientation_setpoint);
       tau_command = tau_posehold;
       break;
 
       // 3D coordinates with heading
       case ControlModes::POSE_HEADING_HOLD:
-      tau_depthhold = poseHold(tau_openloop,
+      tau_surgehold = surgeHold(tau_openloop,
                                 position_state,
                                 orientation_state,
                                 velocity_state,
@@ -208,7 +210,7 @@ void Controller::spin()
                                     orientation_state,
                                     velocity_state,
                                     orientation_setpoint);
-      tau_command = tau_posehold + tau_headinghold;
+      tau_command = tau_surgehold + tau_headinghold;
       break;
 
       // adjust roll and pitch
@@ -224,7 +226,7 @@ void Controller::spin()
                                     orientation_state,
                                     velocity_state,
                                     orientation_setpoint);
-      tau_command = tau_openloop + tau_headinghold;
+      tau_command = tau_headinghold;
       break;
 
       // only depth and heading
@@ -439,6 +441,17 @@ void Controller::publishDebugMsg(const Eigen::Vector3d    &position_state,
   dbg_msg.setpoint_pitch = dbg_setpoint_orientation[1];
   dbg_msg.setpoint_roll = dbg_setpoint_orientation[2];
 
+  /*
+  // tau body
+  Eigen::Vector6d tau_body = m_controller->getFeedback(position_state, Eigen::Quaterniond::Identity(), velocity_state,
+                                    position_setpoint, Eigen::Quaterniond::Identity());  
+
+  dbg_msg.tau_xb = tau_body[0];
+  dbg_msg.tau_yb = tau_body[1];
+  dbg_msg.tau_zb = tau_body[2]; */
+
+
+  // publish
   m_debug_pub.publish(dbg_msg);
 }
 
@@ -532,6 +545,37 @@ Eigen::Vector6d Controller::headingHold(const Eigen::Vector6d &tau_openloop,
 // NEW BY KRISTOFFER
 
 Eigen::Vector6d Controller::poseHold(const Eigen::Vector6d &tau_openloop,
+                                      const Eigen::Vector3d &position_state,
+                                      const Eigen::Quaterniond &orientation_state,
+                                      const Eigen::Vector6d &velocity_state,
+                                      const Eigen::Vector3d &position_setpoint,
+                                      const Eigen::Quaterniond &orientation_setpoint)
+{
+  Eigen::Vector6d tau;
+
+  bool activate_depthhold = fabs(tau_openloop(PoseIndex::HEAVE)) < c_normalized_force_deadzone;
+  if (activate_depthhold)
+  {
+    tau = m_controller->getFeedback(position_state, orientation_state, velocity_state,
+                                    position_setpoint, orientation_setpoint);
+
+    // Allow only surge,sway,heave feedback command
+    tau(ROLL)  = 0;
+    tau(PITCH) = 0;
+    tau(YAW)   = 0;
+  }
+  else
+  {
+    updateSetpoint(SURGE);
+    updateSetpoint(SWAY);
+    updateSetpoint(HEAVE);
+    tau.setZero();
+  }
+
+  return tau;
+}
+
+Eigen::Vector6d Controller::surgeHold(const Eigen::Vector6d &tau_openloop,
                                       const Eigen::Vector3d &position_state,
                                       const Eigen::Quaterniond &orientation_state,
                                       const Eigen::Vector6d &velocity_state,
