@@ -7,37 +7,24 @@ import roslaunch
 import actionlib
 from vortex_msgs.msg import PropulsionCommand, Manipulator
 from sensor_msgs.msg import Joy
+import Vortex_start_node.msg
 
+from __future__ import print_function
+import actionlib
+
+def action_client(message)
+    client = actionlib.SimpleActionClient('action', Vortex_start_node.msg)
+    client.wait_for_server()
+    goal = actionlib_start_node.msg(message)
+    client.send_goal(goal)
+    client.wait_for_result()
+    return client.get_resutl
 
 class Dive(smach.State):
     def __init__(self):
-        rospy.init_node('en_Mapping', anonymous=True)
-        uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        roslaunch.configure_logging(uuid)
-        launch = roslaunch.parent.ROSLaunchParent(uuid, ["/home/espen/manta_ws/src/manta_ros/manta-auv/control/control_input_merger/launch"])
-        launch.start()
-        rospy.loginfo("started")
-
-        '''
-        smach.State.__init__(self, outcomes=['submerged'])
-        package = 'package'
-        executable = 'control_input_merger'
-        package2 = 'package'
-        executable2 = 'depth_hold'
-        node = roslaunch.core.Node(package, executable)
-        node2 = roslaunch.core.Node(package2, executable2)
-
-        launch = roslaunch.scriptapi.ROSLaunch()
-        launch.start()
-
-        process = launch.launch(node)
-        process = launch.launch(node2)
-       # print process.is_alive()
-        #process.stop()
-        #roslaunch control_input_merger.launch
-'''
+        result = action_client('start_Dive')
+        
     def execute(self):
-        #roslaunch depth_hold.launch
         if depth == 1:
             return 'submerged'
 
@@ -45,15 +32,7 @@ class Dive(smach.State):
 class Heading(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['correct_heading'])
-        package = 'package'
-        executable = 'heading_hold'
-        node = roslaunch.core.Node(package, executable)
-
-        launch = roslaunch.scriptapi.ROSLaunch()
-        launch.start()
-
-        process = launch.launch(node)
-        ref = 1
+        result = action_client('start_heading')
 
         def execute(self):
             if heading == ref:
@@ -68,18 +47,10 @@ class Center(smach.State):
                                           PropulsionCommand,queue_size=1)
         self.sub_gate = rospy.Subscriber('camera_object_info',
                                           bool,queue_size=1000)
-        package = 'package'
-        executable = 'Camera_centering'
-        node = roslaunch.core.Node(package, executable)
-
-        launch = roslaunch.scriptapi.ROSLaunch()
-        launch.start()
-
-        process = launch.launch(node)
+        result = action_client('start_center')
 
     def execute(self):
         rospy.loginfo('Centering')
-        #roslaunch.Camera_centering() #Centers object in camera frame
         if sub_gate == 1:
             return 'Centered'
   #      if sub_gate == 0:   #if we loose the gate
@@ -159,6 +130,7 @@ class Search_Bouy(smach.State):
 
 '''
 def main():
+    rospy.init_node('action_client_py')
     rospy.init_node("Mini_basseng_test")
     sm = smach.StateMachine(outcomes = {'Done'})
 
