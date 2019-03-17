@@ -4,8 +4,8 @@
   <include file="$(find manta_description)/launch/upload_manta.launch"/>
   <include file="$(find manta_thruster_manager)/launch/thruster_manager.launch"/>
   <include file="$(find navigation_launch)/launch/navigation.launch"/>
-  <!--  <include file="$(find vortex)/launch/pc.launch"/> -->
-  <include file="$(find vortex)/launch/dp_control.launch"/>
+  <!--  <include file="$(find vortex)/launch/pc.launch"/> 
+  <include file="$(find vortex)/launch/dp_control.launch"/> -->
 <!--	
    <arg name="record_pose" default="true" />
 
