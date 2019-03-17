@@ -118,6 +118,7 @@ catkin_package(
  vortex
  vortex_msgs
  vortex_estimator
+ dynamic_reconfigure
 #  DEPENDS system_lib
 )
 
@@ -130,6 +131,7 @@ catkin_package(
 include_directories(
 include
   ${catkin_INCLUDE_DIRS}
+  ${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake
 )
 
 ## Declare a C++ library
@@ -153,7 +155,7 @@ include
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
-add_executable(depth_hold_node
+add_executable(${PROJECT_NAME}_node
 src/depth_hold_node.cpp
 src/depth_hold_ros.cpp
 src/DHpid.cpp
@@ -163,10 +165,10 @@ src/DHpid.cpp
 add_dependencies(${PROJECT_NAME}_node
   ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(depth_hold_node ${PROJECT_NAME}_gencfg)
+add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(depth_hold_node
+target_link_libraries(${PROJECT_NAME}_node
 ${catkin_LIBRARIES}
 )
 

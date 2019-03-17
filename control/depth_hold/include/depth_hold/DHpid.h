@@ -5,22 +5,23 @@
 
 class DHpid{
     private:
-    double dt;
-    double max;
-    double min;
-    double K_p;
-    double K_d;
-    double K_i;
-    double integral;
-    double error;
-    double pre_error;
+        double dt;
+        double max;
+        double min;
+        double K_p;
+        double K_d;
+        double K_i;
+        double integral;
+        double error;
+        double pre_error;
 
     public:
-    DHpid(double dt, double max, double min, double K_p, double K_d, double K_i);
-    DHpid();
-    ~DHpid();
-    double calculate();
-    void updateError(double err);
+        DHpid(double dt, double max, double min, double K_p, double K_d, double K_i);
+        DHpid();
+        ~DHpid();
+        double calculate();
+        void updateError(double err);
+        void setVariables(double p, double i, double d);
 };
 
 #endif

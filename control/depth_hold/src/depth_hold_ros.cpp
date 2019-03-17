@@ -18,8 +18,10 @@ DepthHold::DepthHold(ros::NodeHandle nh) : m_nh(nh){
     double K_p = 1.5;
     double K_d = 0.13;
     double K_i = 0.05;
-
     height.reset(new DHpid(dt, max, min, K_p, K_d, K_i));
+    dynamic_reconfigure::Server<depth_hold::DepthParamsConfig>::CallbackType f;
+    f = boost::bind(&DepthHold::configCallback, this, _1, _2);
+    server.setCallback(f);
 }
 
 //Destructor
@@ -33,11 +35,11 @@ void DepthHold::spin()
     dh_command.force.x = 0;
     dh_command.force.y = 0;
     dh_command.force.z = 0;
-    
+
     dh_command.torque.x = 0;
     dh_command.torque.y = 0;
     dh_command.torque.z = 0;
-    
+
     while(ros::ok()){
         dh_command.force.z = -this->height->calculate();
         std::cout << "Heave command" << dh_command.force.z << std::endl;
@@ -51,4 +53,11 @@ void DepthHold::stateEstimateCallback(const nav_msgs::Odometry &odometry_msgs){
     double error = static_cast<double>(odometry_msgs.pose.pose.position.z)*(-1) - this->default_height;
     std::cout <<"Error: "<<  error << std::endl;
     this->height->updateError(error);
+}
+
+void DepthHold::configCallback(const depth_hold::DepthParamsConfig &config, uint32_t level){
+    ROS_INFO_STREAM("Setting gains: [P = " << config.k_p << ", I = " << config.k_i
+      << ", D = " << config.k_d << "]");
+
+    height->setVariables(config.k_p, config.k_i, config.k_d);
 }
