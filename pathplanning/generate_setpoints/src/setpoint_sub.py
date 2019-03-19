@@ -9,12 +9,11 @@ class WaypointSubNode(object):
     def __init__(self):
         rospy.init_node('waypoint_sub_node')
         self.subscriber = rospy.Subscriber('/generated_path', Path, self.callback, queue_size = 1)
-        self.spin = rospy.spin()
-
 
     def callback(self, msg):
          x_plt = []
          y_plt = []
+         print msg.poses
          
          for i in range(msg.poses.__len__()):
              print "no of waypoints: ", msg.poses.__len__()
@@ -31,7 +30,8 @@ class WaypointSubNode(object):
 if __name__ == '__main__':
     try:
         WP_sub_node = WaypointSubNode()
-        
+        while not rospy.is_shutdown():
+            rospy.spin()
 
     except rospy.ROSInterruptException:
         pass
