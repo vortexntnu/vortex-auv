@@ -67,7 +67,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## Generate actions in the 'action' folder
 add_action_files(
   FILES
-  Fibonacci.action
+  DepthHold.action
 #   Action2.action
 )
 
