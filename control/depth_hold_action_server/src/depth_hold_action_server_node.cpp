@@ -1,44 +1,44 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
-#include <actionlib_tutorials/FibonacciAction.h>
+#include "depth_hold_action_server/DepthHoldAction.h"
 
-class FibonacciAction
+class DepthHoldAction
 {
 protected:
 
   ros::NodeHandle nh_;
-  actionlib::SimpleActionServer<actionlib_tutorials::FibonacciAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
+  actionlib::SimpleActionServer<depth_hold_action_server::DepthHoldAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
   std::string action_name_;
   // create messages that are used to published feedback/result
-  actionlib_tutorials::FibonacciFeedback feedback_;
-  actionlib_tutorials::FibonacciResult result_;
+  depth_hold_action_server::DepthHoldFeedback feedback_;
+  depth_hold_action_server::DepthHoldResult result_;
 
 public:
 
-  FibonacciAction(std::string name) :
-    as_(nh_, name, boost::bind(&FibonacciAction::executeCB, this, _1), false),
+  DepthHoldAction(std::string name) :
+    as_(nh_, name, boost::bind(&DepthHoldAction::executeCB, this, _1), false),
     action_name_(name)
   {
     as_.start();
   }
 
-  ~FibonacciAction(void)
+  ~DepthHoldAction(void)
   {
   }
 
-  void executeCB(const actionlib_tutorials::FibonacciGoalConstPtr &goal)
+  void executeCB(const depth_hold_action_server::DepthHoldGoalConstPtr &goal)
   {
     // helper variables
     ros::Rate r(1);
     bool success = true;
 
-    // push_back the seeds for the fibonacci sequence
+    // push_back the seeds for the DepthHold sequence
     feedback_.sequence.clear();
     feedback_.sequence.push_back(0);
     feedback_.sequence.push_back(1);
 
     // publish info to the console for the user
-    ROS_INFO("%s: Executing, creating fibonacci sequence of order %i with seeds %i, %i", action_name_.c_str(), goal->order, feedback_.sequence[0], feedback_.sequence[1]);
+    ROS_INFO("%s: Executing, creating DepthHold sequence of order %i with seeds %i, %i", action_name_.c_str(), goal->order, feedback_.sequence[0], feedback_.sequence[1]);
 
     // start executing the action
     for(int i=1; i<=goal->order; i++)
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "depth_hold_action_server");
 
-  FibonacciAction fibonacci("depth_hold_action_server");
+  DepthHoldAction depthhold("depth_hold_action_server");
   ros::spin();
 
   return 0;
