@@ -14,6 +14,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  vortex
+  vortex_msgs
+  vortex_estimator
+  geometry_msgs
+  nav_msgs
 )
 find_package(Boost REQUIRED COMPONENTS system)
 
@@ -107,9 +112,9 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES depth_hold_action_server
-#  CATKIN_DEPENDS actionlib_msgs roscpp sensor_msgs std_msgs
+  INCLUDE_DIRS include
+  LIBRARIES depth_hold_action_server
+  CATKIN_DEPENDS actionlib_msgs roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
@@ -138,7 +143,11 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node src/depth_hold_action_server_node.cpp)
+add_executable(${PROJECT_NAME}_node
+  src/depth_hold_action_server_node.cpp
+  src/depth_hold_action_server_ros.cpp
+  src/DHpid.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
