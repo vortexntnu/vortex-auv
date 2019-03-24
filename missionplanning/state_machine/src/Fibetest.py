@@ -16,9 +16,9 @@ import actionlib
 
 
 def action_client():
-    client = actionlib.SimpleActionClient('fibernacci', actionlib_tutorials.msg.FibonacciAction)
+    client = actionlib.SimpleActionClient('detpth_hold_action_server', actionlib_tutorials.msg.FibonacciAction)
     client.wait_for_server()
-    goal = actionlib_tutorials.msg.FibonacciGoal(order = 20)
+    goal = actionlib_tutorials.msg.FibonacciGoal(order = 10)
     client.send_goal(goal)
     client.wait_for_result()
     return client.get_result()
