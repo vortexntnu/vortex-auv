@@ -20,20 +20,22 @@ def action_client():
     client.wait_for_server()
     goal = actionlib_tutorials.msg.FibonacciGoal(order = 10)
     client.send_goal(goal)
-    client.wait_for_result()
-    return client.get_result()
+
+    #client.wait_for_result()
+    return client
 
 class Dive(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['submerged'])
-        
+        smach.State.__init__(self, outcomes=['submerged','going'])
+        self.client = action_client()
     def execute(self, userdata):
         print('diving')
-        result = action_client()
-        print(result)
-        if result == True:
+
+        if self.client.get_state() == 3:
             print('Done')
             return 'submerged'
+        else:
+            return 'going'
 
 
 class Heading(smach.State):
@@ -49,7 +51,7 @@ class Heading(smach.State):
 class Center(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['Centered','Lost'])
-        
+
         self.pub_motion = rospy.Publisher('propulsion_command',
                                           PropulsionCommand,queue_size=1)
         self.sub_gate = rospy.Subscriber('camera_object_info',
@@ -68,7 +70,7 @@ def main():
 
     with sm:
         smach.StateMachine.add('Dive', Dive(),
-                                transitions={'submerged':'Done'})
+                                transitions={'submerged':'Done', 'going':'Dive'})
         #smach.StateMachine.add('Heading', Heading(),
         #                        transitions={'correct_heading':'Center'})
         #smach.StateMachine.add('Center', Center(),
@@ -78,6 +80,8 @@ def main():
     sis.start()
 
     outcome = sm.execute()
+
+    sis.stop()
 
 if __name__ == '__main__':
     main()
