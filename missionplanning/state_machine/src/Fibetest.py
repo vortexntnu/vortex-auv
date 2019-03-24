@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import roslib; roslib.load_manifest('smach_tutorials')
+#import roslib; roslib.load_manifest('smach_tutorials')
 import rospy
 import smach
 import smach_ros
@@ -16,7 +16,7 @@ import actionlib
 
 
 def action_client():
-    client = actionlib.SimpleActionClient('detpth_hold_action_server', actionlib_tutorials.msg.FibonacciAction)
+    client = actionlib.SimpleActionClient('depth_hold_action_server', actionlib_tutorials.msg.FibonacciAction)
     client.wait_for_server()
     goal = actionlib_tutorials.msg.FibonacciGoal(order = 10)
     client.send_goal(goal)
