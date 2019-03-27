@@ -14,9 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
-  vortex
-  vortex_msgs
-  vortex_estimator
   geometry_msgs
   nav_msgs
 )
@@ -119,9 +116,6 @@ catkin_package(
   roscpp
   sensor_msgs
   std_msgs
-  vortex
-  vortex_msgs
-  vortex_estimator
 #  DEPENDS system_lib
 )
 
