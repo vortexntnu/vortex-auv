@@ -1,8 +1,8 @@
 #goal definition
-int32 order
+int32 depth
 ---
 #result definition
-int32[] sequence
+bool success
 ---
 #feedback
-int32[] sequence
+int32 current_depth
