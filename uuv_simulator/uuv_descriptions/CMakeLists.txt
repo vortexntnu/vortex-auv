@@ -6,6 +6,7 @@ project(uuv_descriptions)
 ## is used, also find other catkin packages
 
 find_package(catkin REQUIRED)
+find_package(vortex REQUIRED)
 find_package(gazebo REQUIRED) # this is only required to get gazebo's directories
 
 catkin_package(
