@@ -114,7 +114,14 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES depth_hold_action_server
-  CATKIN_DEPENDS actionlib_msgs roscpp sensor_msgs std_msgs
+  CATKIN_DEPENDS
+  actionlib_msgs
+  roscpp
+  sensor_msgs
+  std_msgs
+  vortex
+  vortex_msgs
+  vortex_estimator
 #  DEPENDS system_lib
 )
 
