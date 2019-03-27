@@ -72,6 +72,14 @@ void DepthHoldAction::stateEstimateCallback(const nav_msgs::Odometry &odometry_m
     feedback_.current_depth = odometry_msgs.pose.pose.position.z*(-1);
 
     double error = static_cast<double>(odometry_msgs.pose.pose.position.z)*(-1) - this->goal_depth;
-    //std::cout <<"Error: "<<  error << std::endl;
+    double limit = 0.3;
+    if( (error < limit) && (error > -1*limit) ){
+        std::cout <<"Error true: "<<  error << std::endl;
+        feedback_.ready = true;
+    }else{
+        std::cout <<"Error false: "<<  error << std::endl;
+        feedback_.ready = false;
+    }
+
     this->height->updateError(error);
 }
