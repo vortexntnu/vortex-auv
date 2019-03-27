@@ -23,7 +23,7 @@ class DepthHoldAction
     ros::Publisher pub_;
     ros::Subscriber sub_;
 
-    double default_height = 1.0;
+    double goal_depth = 1.0;
     std::unique_ptr<DHpid> height;
 
     public:
