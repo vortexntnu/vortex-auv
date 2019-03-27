@@ -6,5 +6,4 @@
 
   <include file="$(find navigation_launch)/launch/navigation.launch"/>		
   <include file="$(find vortex)/launch/pc.launch"/>
-  <include file="$(find underwater_odom)/launch/underwater_odom.launch"/>
-  <include file="$(find robot_localization)/launch/dvl_ekf_template.launch"/>
+
