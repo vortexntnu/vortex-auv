@@ -6,7 +6,7 @@
 ## Prerequisites
 
 Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
-C++ 11 compiler or newer
+C++ 11 compiler or newer.
 
 
 ## 1. Install ROS kinetic for Ubuntu (If you do not have it already) ##
@@ -76,6 +76,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
+	$ catkin build vortex_msgs
 	$ catkin build
 	```
 
@@ -110,22 +111,41 @@ inside the src-folder of you workspace
 3. Compile the code by running "catkin build" inside the workspace:
 	```bash
 	$ cd ~/manta_ws/
+	$ catkin build vortex_msgs
 	$ catkin build
 	```
 
-4. Open a terminal and run Robosub environment and Manta:
-	```bash
-	$ roslaunch simulator_launch robosub.launch
-	```
 
-
-7. Use Xbox controller
-
-## 5. Open Camera view ##
+4. Open a terminal and run Robosub environment:
 
 ```bash
-$ rqt
+	$ roslaunch simulator_launch autonomy.launch
 ```
+Or:
+```bash
+	$ roslaunch simulator_launch robosub.launch
+```
+to launch enable xbox-controller
+
+
+5. Open a second window and run the guidance node:
+	```bash
+	$ roslaunch trajectory_generator send_waypoints_file.launch
+	```
+
+## 5. Start the DP controller ##
+-------------------------
+1. Open a fourth and final window, and run the following line to start the simulation:
+	```bash
+	$ roslaunch vortex dp_control.launch
+	```
+
+2. Change the mode of the controller:
+	```bash
+	$ rostopic pub -r 20 /manta/mode
+	```
+	and set mode to [false, true, false, false, false, false]
+
 
 ## Build dependencies
 

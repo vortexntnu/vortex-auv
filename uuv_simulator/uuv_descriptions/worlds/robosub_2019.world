@@ -30,11 +30,11 @@
       </sky>
       <shadows>1</shadows>
       <fog>
-        <color>0.1 0.2 0.3 1.0</color>
+        <color>0.0039 0.26 0.415 1.0</color>
         <type>linear</type>
-        <density>0.001</density>
+        <density>0.2</density>
         <start>10</start>
-        <end>200</end>
+        <end>40</end>
       </fog>
     </scene>
 
@@ -97,7 +97,7 @@
     </include> -->
 
 
-   <!-- Lightning -->
+   <!-- Lightning 
 
     <light type="directional" name="sun0">
       <cast_shadows>1</cast_shadows>
@@ -111,7 +111,7 @@
         <quadratic>0.001</quadratic>
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
-    </light>
+    </light> 
     <light type="directional" name="sun1">
       <cast_shadows>1</cast_shadows>
       <pose>8 -20 10 0 0.8 0</pose>
@@ -124,7 +124,7 @@
         <quadratic>0.001</quadratic>
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
-    </light>
+    </light> 
     <light type="directional" name="sun2">
       <cast_shadows>1</cast_shadows>
       <pose>8 -19 10 0 0 0</pose>
@@ -137,8 +137,8 @@
         <quadratic>0.001</quadratic>
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
-    </light>
-
+    </light> -->
+<!--
     <light type="directional" name="sun3">
       <cast_shadows>1</cast_shadows>
       <pose>8 -19 10 1.75 0 0</pose>
@@ -151,7 +151,7 @@
         <quadratic>0.001</quadratic>
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
-    </light>
+    </light> -->
     <light type="directional" name="sun4">
       <cast_shadows>1</cast_shadows>
       <pose>8 -19 10 1.75 0 2.9</pose>
@@ -164,10 +164,10 @@
         <quadratic>0.001</quadratic>
       </attenuation>
       <direction>-0.5 0.1 -0.9</direction>
-    </light>
+    </light> 
 
 
-<!-- Underwater plugin specifics -->
+<!-- Underwater plugin specifics 
 
     <plugin name="underwater_current_plugin" filename="libuuv_underwater_current_ros_plugin.so">
       <namespace>hydrodynamics</namespace>
@@ -197,7 +197,7 @@
           <noiseAmp>0.0</noiseAmp>
         </vertical_angle>
       </constant_current>
-    </plugin>
+    </plugin> -->
 
     <plugin name="sc_interface" filename="libuuv_sc_ros_interface_plugin.so"/>
 

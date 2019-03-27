@@ -129,8 +129,8 @@ class ThrusterAllocatorNode(ThrusterManager):
             return
 
 	# NOTE: Kristoffer changed the force / torque configuration by adding negative term
-        force = numpy.array((msg.force.x, -msg.force.y, -msg.force.z))
-        torque = numpy.array((msg.torque.x, -msg.torque.y, -msg.torque.z))
+        force = numpy.array((msg.force.x, msg.force.y, msg.force.z))
+        torque = numpy.array((msg.torque.x, msg.torque.y, msg.torque.z))
 
         # This mode assumes that the wrench is given wrt thruster manager
         # configured base_link reference
@@ -149,9 +149,9 @@ class ThrusterAllocatorNode(ThrusterManager):
 	
 	# NOTE: Kristoffer changed the force / torque configuration by adding negative term
         force = numpy.array(
-            (msg.wrench.force.x, -msg.wrench.force.y, -msg.wrench.force.z))
+            (msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z))
         torque = numpy.array(
-            (msg.wrench.torque.x, -msg.wrench.torque.y, -msg.wrench.torque.z))
+            (msg.wrench.torque.x, msg.wrench.torque.y, msg.wrench.torque.z))
 
         # Send the frame ID for the requested wrench
         self.publish_thrust_forces(force, torque, msg.header.frame_id.split('/')[-1])

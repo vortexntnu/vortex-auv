@@ -120,9 +120,11 @@
         <xacro:insert_block name="conversion"/>
       </plugin>
     </gazebo>
-
+	
+   <!-- Choose thruster color -->
     <gazebo reference="${namespace}/thruster_${thruster_id}">
       <selfCollide>false</selfCollide>
+    <material>Gazebo/Red</material>
     </gazebo>
   </xacro:macro>
 

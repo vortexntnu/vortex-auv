@@ -52,6 +52,11 @@
   <build_depend>vortex</build_depend>
   <build_export_depend>vortex</build_export_depend>
   <exec_depend>vortex</exec_depend>
+  <build_depend>navigation_launch</build_depend>
+  <build_export_depend>navigation_launch</build_export_depend>
+  <exec_depend>navigation_launch</exec_depend>
+
+
 
 
   <!-- The export tag contains other, unspecified, tags -->
