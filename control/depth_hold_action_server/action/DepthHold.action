@@ -1,8 +1,8 @@
 #goal definition
-int32 depth
+float64 depth
 ---
 #result definition
 bool success
 ---
 #feedback
-int32 current_depth
+float64 current_depth
