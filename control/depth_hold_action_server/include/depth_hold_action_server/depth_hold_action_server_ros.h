@@ -5,7 +5,9 @@
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include "depth_hold_action_server/DepthHoldAction.h"
-
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Wrench.h>
+#include <iostream>
 
 class DepthHoldAction
 {
@@ -17,10 +19,18 @@ class DepthHoldAction
     depth_hold_action_server::DepthHoldFeedback feedback_;
     depth_hold_action_server::DepthHoldResult result_;
 
+    private:
+    ros::Publisher pub_;
+    ros::Subscriber sub_;
+
+    double default_height = 1.0;
+    std::unique_ptr<DHpid> height;
+
     public:
     DepthHoldAction(std::string name);
     ~DepthHoldAction();
 
+    void stateEstimateCallback(const nav_msgs::Odometry &odometry_msgs);
     void executeCB(const depth_hold_action_server::DepthHoldGoalConstPtr &goal);
 };
 
