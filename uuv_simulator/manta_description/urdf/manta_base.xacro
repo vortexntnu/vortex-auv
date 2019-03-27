@@ -66,10 +66,11 @@
         <inertial>
           <mass value="${mass}" />
           <origin xyz="${cog}" rpy="0 0 0"/>
-          <!-- <inertia ixx="525.39" ixy="1.44" ixz="33.41" iyy="794.20" iyz="2.6" izz="691.23"/> -->
+           <!-- ixx="${0.80947}" ixy="-0.00308" ixz="-0.01546"
+            iyy="${0.87794}" iyz="0.06283" izz="${1.57147}" />  -->
           <inertia
-            ixx="${0.80947}" ixy="-0.00308" ixz="-0.01546"
-            iyy="${0.87794}" iyz="0.06283" izz="${1.57147}" /> 
+            ixx="${0.503217}" ixy="${0.000204}" ixz="${-0.000526}"
+            iyy="${0.493449}" iyz="${0.000038}" izz="${0.919819}" /> 
         </inertial>
 
         <!-- This visual geometry representation can be used when running
