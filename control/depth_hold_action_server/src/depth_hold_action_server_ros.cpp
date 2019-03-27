@@ -38,7 +38,7 @@ void DepthHoldAction::executeCB(const depth_hold_action_server::DepthHoldGoalCon
     bool success = true;
 
     this->goal_depth = goal->depth;
-    ROS_INFO("%s: Executing Depth hold with goal depth %i", action_name_.c_str(), goal->depth);
+    ROS_INFO("%s: Executing Depth hold with goal depth %f m", action_name_.c_str(), goal->depth);
 
     while(ros::ok()){
         // check that preempt has not been requested by the client
@@ -51,7 +51,7 @@ void DepthHoldAction::executeCB(const depth_hold_action_server::DepthHoldGoalCon
             break;
         }
         dh_command.force.z = -this->height->calculate();
-        feedback_.current_depth = 50;
+
         as_.publishFeedback(feedback_);
         //std::cout << "Heave command" << dh_command.force.z << std::endl;
         pub_.publish(dh_command);
@@ -69,6 +69,8 @@ void DepthHoldAction::executeCB(const depth_hold_action_server::DepthHoldGoalCon
 }
 
 void DepthHoldAction::stateEstimateCallback(const nav_msgs::Odometry &odometry_msgs){
+    feedback_.current_depth = odometry_msgs.pose.pose.position.z*(-1);
+
     double error = static_cast<double>(odometry_msgs.pose.pose.position.z)*(-1) - this->goal_depth;
     //std::cout <<"Error: "<<  error << std::endl;
     this->height->updateError(error);
