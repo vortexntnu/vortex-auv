@@ -31,7 +31,7 @@ class Dive(smach.State):
 
     def execute(self, userdata):
         print('diving')
-        if self.client.get_state:
+        if self.client.get_state[1]:
             print('Done')
             return 'submerged'
         else:
