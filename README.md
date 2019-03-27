@@ -102,29 +102,29 @@ inside the src-folder of you workspace
 3. Compile the code by running "catkin build" inside the workspace:
 	```bash
 	$ cd ~/manta_ws/
+	$ catkin build vortex_msgs
 	$ catkin build
-  
-4. Open a window and run Gazebo world: 
+	```
+4. Open a window and run Gazebo Robosub world: 
 	```bash
-	$ roslaunch uuv_descriptions empty_underwater_world.launch 
+	$ roslaunch simulator_launch robosub.launch
 	```
 
-5. Open a second window and and spawn the model:
+5. Open a second window and run the guidance node:
 	```bash
-	$ roslaunch manta_description upload_manta.launch
+	$ roslaunch trajectory_generator send_waypoints_file.launch
 	```
-  
-6. Open a third window and and launch the thruster_manager.
-	```bash
-	$ roslaunch manta_thruster_manager thruster_manager.launch
-	```
-## 5. Start the controller ##
+
+## 5. Start the DP controller ##
 -------------------------
 1. Open a fourth and final window, and run the following line to start the simulation:
 	```bash
-	$ roslaunch vortex pc.launch
+	$ roslaunch vortex dp_control.launch
 	```
-2. Use Xbox controller
 
-
+2. Change the mode of the controller:
+	```bash
+	$ rostopic pub -r 20 /manta/mode
+	```
+	and set mode to [false, true, false, false, false, false]
 
