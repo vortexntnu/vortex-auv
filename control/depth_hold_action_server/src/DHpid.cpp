@@ -18,7 +18,7 @@ double DHpid::calculate(){
 
     double derivative = (error - pre_error)/dt;
     double D = K_d*derivative;
-    std::cout << " P " << P << "I " << I << "D " << D << std::endl;
+    //std::cout << " P " << P << "I " << I << "D " << D << std::endl;
     double sum = P + I + D;
     if (sum > max){
         sum = max;
