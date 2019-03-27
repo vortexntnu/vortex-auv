@@ -6,3 +6,4 @@ bool success
 ---
 #feedback
 float64 current_depth
+bool ready
