@@ -19,6 +19,7 @@ def action_client():
     client.wait_for_server()
     goal = DepthHoldGoal(depth = 2)
     client.send_goal(goal)
+    ready = client.get_state()
 
     #client.wait_for_result()
     return client
@@ -27,10 +28,10 @@ class Dive(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['submerged','going'])
         self.client = action_client()
+
     def execute(self, userdata):
         print('diving')
-
-        if self.client.get_state() == 3:
+        if self.client.get_state:
             print('Done')
             return 'submerged'
         else:
