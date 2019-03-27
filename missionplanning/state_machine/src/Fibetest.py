@@ -11,14 +11,13 @@ from vortex_msgs.msg import PropulsionCommand, Manipulator
 from sensor_msgs.msg import Joy
 import actionlib_tutorials.msg
 
-
 import actionlib
-
+from depth_hold_action_server.msg import DepthHoldAction, DepthHoldGoal
 
 def action_client():
-    client = actionlib.SimpleActionClient('depth_hold_action_server', actionlib_tutorials.msg.FibonacciAction)
+    client = actionlib.SimpleActionClient('depth_hold_action_server', DepthHoldAction)
     client.wait_for_server()
-    goal = actionlib_tutorials.msg.FibonacciGoal(order = 10)
+    goal = DepthHoldGoal(depth = 2)
     client.send_goal(goal)
 
     #client.wait_for_result()
