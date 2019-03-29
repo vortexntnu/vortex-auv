@@ -5,7 +5,7 @@
 # The frequency, in Hz, at which the filter will output a position estimate. Note that the filter will not begin
 # computation until it receives at least one message from one of the inputs. It will then run continuously at the
 # frequency specified here, regardless of whether it receives more measurements. Defaults to 30 if unspecified.
-frequency: 25
+frequency: 20
 
 # The period, in seconds, after which we consider a sensor to have timed out. In this event, we carry out a predict
 # cycle on the EKF without correcting it. This parameter can be thought of as the minimum frequency with which the
@@ -88,7 +88,7 @@ odom0: /manta/odom
 odom0_config: [false,  false,  true, # x, y, z
                false, false, false,  # roll, pitch, yaw
                true, true, true,     # vx, vy, vz
-               false, false, true,   # vroll, vpitch, vyaw
+               false, false, false,   # vroll, vpitch, vyaw
                false, false, false]  # ax, ay, az
 
 # If you have high-frequency data or are running with a low frequency parameter value, then you may want to increase
@@ -126,7 +126,7 @@ odom0_relative: false
 #odom0_pose_rejection_threshold: 5
 #odom0_twist_rejection_threshold: 1
 
-imu0: /manta/imu
+imu0: /manta/ahrs
 imu0_config: [false, false, false, # x, y, z
               true,  true,  true,  # roll, pitch, yaw
               false, false, false, # vx, vy, vz
@@ -145,7 +145,7 @@ imu0_queue_size: 10
 imu0_remove_gravitational_acceleration: true
 
 # state initial pose
-initial_state: [15.0,  -20.0,  0.0,
+initial_state: [5.0,  -10.0,  0.0,
                  0.0,  0.0,  0.0,
                  0.0,  0.0,  0.0,
                  0.0,  0.0,  0.0,
