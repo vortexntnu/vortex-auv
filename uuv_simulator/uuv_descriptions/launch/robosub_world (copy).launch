@@ -1,0 +1,61 @@
+<?xml version="1.0" ?>
+
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. -->
+
+<launch>
+    <arg name="gui" default="true"/>
+    <arg name="paused" default="false"/>
+    <arg name="set_timeout" default="false"/>
+    <arg name="timeout" default="0.0"/>
+
+    <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="worlds/Vortex_pool.world"/>
+        <arg name="paused" value="$(arg paused)"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="headless" value="false"/>
+        <arg name="debug" value="false"/>
+        <arg name="verbose" value="true"/>
+    </include>
+
+   <include file="$(find uuv_assistants)/launch/publish_world_ned_frame.launch"/>
+   <!--  -->
+    <node name="publish_world_models"
+        pkg="uuv_assistants"
+        type="publish_world_models.py"
+        output="screen">
+        <rosparam subst_value="true">
+            meshes:
+                seafloor:
+                    plane: [100, 100, 0.1]
+                    pose:
+                        position: [0, 0, -20]
+                north:
+                    plane: [0.1, 100, 20]
+                    pose:
+                        position: [1000, 0, -10]
+                south:
+                    plane: [0.1, 100, 20]
+                    pose:
+                        position: [-50, 0, -10]
+                west:
+                    plane: [100, 0.1, 20]
+                    pose:
+                        position: [0, -50, -10]
+                east:
+                    plane: [100, 0.1, 20]
+                    pose:
+                        position: [0, 50, -10]
+        </rosparam>
+    </node>
+
+    <group if="$(arg set_timeout)">
+        <include file="$(find uuv_assistants)/launch/set_simulation_timer.launch">
+            <arg name="timeout" value="$(arg timeout)"/>
+        </include>
+    </group>
+</launch>

@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<!-- 
+     Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved.
+-->
+
+<sdf version="1.5">
+  <model name="ocean_box">
+    <static>true</static>
+    <link name="link">
+      <visual name="ground">
+        <cast_shadows>false</cast_shadows>
+        <pose>0 0 -20 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>100 100 .1</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://Media/materials/scripts/sand.material</uri>
+            <name>UUVSimulator/SandAndStones</name>
+          </script>
+        </material>
+      </visual>
+
+      <collision name="ground">
+        <pose>0 0 -20 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>100 100 .1</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="surface">
+	<pose>0 0 0 0 0 0</pose>
+        <cast_shadows>false</cast_shadows>
+        <geometry>
+          <mesh>
+            <uri>file://Media/models/sea_surface_1000m_x_1000m.dae</uri>
+            <scale>0.1 0.1 0.05</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://Media/materials/scripts/waves.material</uri>
+            <name>UUVSimulator/SimpleWaves</name>
+          </script>
+        </material>
+      </visual>
+
+      <visual name="north">
+        <cast_shadows>false</cast_shadows>
+        <pose>50 0 -10 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>.1 100 20</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://Media/materials/scripts/water.material</uri>
+            <name>UUVSimulator/SeaWall</name>
+          </script>
+        </material>
+      </visual>
+
+      <visual name="south">
+        <cast_shadows>false</cast_shadows>
+        <pose>-50 0 -10 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>.1 100 20</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://Media/materials/scripts/water.material</uri>
+            <name>UUVSimulator/SeaWall</name>
+          </script>
+        </material>
+      </visual>
+
+      <visual name="east">
+        <cast_shadows>false</cast_shadows>
+        <pose>0 -50 -10 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>100 .1 20</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://Media/materials/scripts/water.material</uri>
+            <name>UUVSimulator/SeaWall</name>
+          </script>
+        </material>
+      </visual>
+
+      <visual name="west">
+        <cast_shadows>false</cast_shadows>
+        <pose>0 50 -10 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>100 .1 20</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://Media/materials/scripts/water.material</uri>
+            <name>UUVSimulator/SeaWall</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
