@@ -10,3 +10,7 @@ geometry_msgs/Point setpoint_position
 float64 setpoint_roll
 float64 setpoint_pitch
 float64 setpoint_yaw
+
+float64 tau_xb
+float64 tau_yb
+float64 tau_zb

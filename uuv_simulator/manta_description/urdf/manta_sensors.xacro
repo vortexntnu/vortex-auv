@@ -12,10 +12,10 @@
     inertial_reference_frame="${inertial_reference_frame}">
     <origin xyz="0 0 0" rpy="0 ${0.5*pi} 0"/>
   </xacro:default_dvl_macro> 
-<!--
-  <!- Magnetometer  ->
-  <xacro:default_magnetometer namespace="${namespace}" parent_link="${namespace}/base_link"/>
 
+  <!-- Magnetometer  -->
+  <xacro:default_magnetometer namespace="${namespace}" parent_link="${namespace}/base_link"/>
+<!--
   <!- RPT   ->
   <xacro:default_rpt namespace="${namespace}" parent_link="${namespace}/base_link">
     <origin xyz="-1.32 0 0.8" rpy="0 0 0"/>

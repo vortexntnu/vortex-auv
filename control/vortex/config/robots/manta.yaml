@@ -70,8 +70,8 @@ propulsion:
 
 controller:
   frequency: 40
-  position_gain: 5.0
-  attitude_gain: 2.5
-  velocity_gain: 0.4
+  position_gain: 0.3 #5.0
+  attitude_gain: 0.4 #2.5
+  velocity_gain: 0.7 #0.4
 
 computer: 'odroid'
