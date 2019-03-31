@@ -1,0 +1,47 @@
+<launch>
+
+	<!-- Stim300 driver -->
+
+	<node 
+	pkg = "drivers-imu_stim300"
+	type = "stim300"
+	name = "stim300_driver"
+	
+	args="/dev/ttyUSB0"
+	/>
+
+	
+	<!-- complementary filter -->
+	
+	<include
+	file = "$(find imu_complementary_filter)/launch/complementary_filter.launch" 
+	/>
+
+	<!-- Kalman filter -->
+
+	<include
+	file = "$(find robot_localization)/launch/ekf_template.launch"
+	/>
+	
+	<!--Static transform from base_link to imu_frame --> 
+
+	<node pkg="tf" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 0 0 0 base_link imu_0 100" />
+
+
+	<!--EM7180 (IMU - magnetometer) -->
+
+	<include
+	file="$(find ros_em7180)/launch/em7180.launch"
+	/>
+
+	<!--Static transform from base_link to EM7180_frame -->
+
+	<node pkg="tf" type="static_transform_publisher" name="base_link_to_em7180" args="0 0 0 0 0 0 base_link magnetometer_link 100" />
+
+
+
+	
+
+
+
+</launch>
