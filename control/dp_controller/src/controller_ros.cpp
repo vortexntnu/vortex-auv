@@ -3,6 +3,7 @@
      Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved. */
 
+
 #include "dp_controller/controller_ros.h"
 
 #include "vortex/eigen_helper.h"
@@ -19,7 +20,7 @@
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
   // Subscribers
-  m_command_sub = m_nh.subscribe("/manta/waypoints", 300, &Controller::waypointCallback, this);
+  //m_command_sub = m_nh.subscribe("/manta/waypoints", 300, &Controller::waypointCallback, this);
   m_state_sub = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
   m_mode_sub = m_nh.subscribe("/manta/mode", 1, &Controller::controlModeCallback, this);
 
@@ -53,6 +54,19 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   m_dr_srv.setCallback(dr_cb);
 
   ROS_INFO("Initialized at %i Hz.", m_frequency);
+
+  /* Action server */
+    //ros::NodeHandle nodeHandle("move_base");
+    mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
+
+    //register the goal and feeback callbacks
+    mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
+    //mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
+
+    mActionServer->start();
+
+    std::cout << "mActionServer: " << mActionServer << std::endl;
+    ROS_INFO("Started action server.");
 }
 
 /* NEW BY KRISTOFFER */
@@ -71,7 +85,51 @@ void Controller::controlModeCallback(const vortex_msgs::PropulsionCommand& msg){
   publishControlMode();
 }
 
-/* NEW BY KRISTOFFER */
+/* ACTION SERVER */
+
+// This action is event driven, the action code only runs when the callbacks occur therefore
+// a preempt callback is created to ensure that the action responds promptly to a cancel request.
+// The callback function takes no arguments and sets preempted on the action server.
+// I wonder whether this needs to be mutexed.
+void Controller::preemptCallBack()
+{
+    ROS_ERROR("Controller::preemptCallBack(): preempted.");
+
+
+    // set the action state to preempted
+    mActionServer->setPreempted();
+}
+
+void Controller::actionGoalCallBack()
+{
+
+  preemptCallBack();
+  // accept the new goal - do I have to cancel a pre-existing one first?
+
+  mGoal = mActionServer->acceptNewGoal()->target_pose;
+  ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
+  // Add circle of acceptance here
+  /* 
+
+
+
+   */
+
+  // Initialize
+  Eigen::Vector3d    setpoint_position;
+  Eigen::Quaterniond setpoint_orientation;
+
+  // Transform from Msg to Eigen
+  tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
+  tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
+
+  m_setpoints->set(setpoint_position, setpoint_orientation);
+
+}
+
+
+
+/* NEW BY KRISTOFFER 
 void Controller::waypointCallback(const geometry_msgs::Pose& msg)
 { 
   // Initialize
@@ -82,16 +140,8 @@ void Controller::waypointCallback(const geometry_msgs::Pose& msg)
   tf::pointMsgToEigen(msg.position, setpoint_position);
   tf::quaternionMsgToEigen(msg.orientation, setpoint_orientation);
 
-  /*
-  bool orientation_invalid = (abs(setpoint_orientation.norm() - 1) > c_max_quat_norm_deviation);
-  if (isFucked(setpoint_position) || orientation_invalid)
-  {
-    ROS_WARN_THROTTLE(1, "Invalid setpoint received, ignoring...");
-    return;
-  } */
-
   m_setpoints->set(setpoint_position, setpoint_orientation);
-}
+} */
 
 
 ControlMode Controller::getControlMode(const vortex_msgs::PropulsionCommand& msg) const
@@ -111,11 +161,31 @@ ControlMode Controller::getControlMode(const vortex_msgs::PropulsionCommand& msg
 //void Controller::stateCallback(const vortex_msgs::RovState &msg)
 void Controller::stateCallback(const nav_msgs::Odometry &msg)
 {
+
+  // ACTION SERVER
+
+  // save current state to private variable
+  // geometry_msgs/PoseStamped Pose
+  feedback_.base_position.header.stamp = ros::Time::now();
+  feedback_.base_position.pose = msg.pose.pose;
+  mActionServer->publishFeedback(feedback_);
+
+  /*
+  move_base_msgs::MoveBaseActionGoal actionGoal;
+  actionGoal.header.stamp = ros::Time::now();
+  actionGoal.goal.target_pose = *goal;
+  mActionGoalPublisher.publish(actionGoal); */
+
+
+
+
+  // EIGEN CONVERSION
+
   Eigen::Vector3d    position;
   Eigen::Quaterniond orientation;
   Eigen::Vector6d    velocity;
 
-
+  // Convert to eigen for computation
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
   tf::twistMsgToEigen(msg.twist.twist, velocity);

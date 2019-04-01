@@ -19,13 +19,19 @@
 #include "dp_controller/setpoints.h"
 #include "dp_controller/quaternion_pd_controller.h"
 
+// Action server
+#include <actionlib/server/simple_action_server.h>
+#include <move_base_msgs/MoveBaseAction.h>
+
+typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
 
 class Controller
 {
+
 public:
   explicit Controller(ros::NodeHandle nh);
 
-  void waypointCallback(const geometry_msgs::Pose &msg);
+  //void waypointCallback(const geometry_msgs::Pose &msg);
   void stateCallback(const nav_msgs::Odometry &msg);
   void controlModeCallback(const vortex_msgs::PropulsionCommand& msg);
   //void commandCallback(const vortex_msgs::PropulsionCommand &msg); 
@@ -34,7 +40,11 @@ public:
   //void stateCallback(const vortex_msgs::RovState &msg);
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
   void spin();
+
 private:
+
+  //ros::NodeHandle* mRosNodeHandle;
+  // Ros topics
   ros::NodeHandle m_nh;
   ros::Subscriber m_command_sub;
   ros::Subscriber m_state_sub;
@@ -97,6 +107,31 @@ private:
                             const Eigen::Quaterniond &orientation_state,
                             const Eigen::Vector6d &velocity_state,
                             const Eigen::Vector3d &position_setpoint);
+
+protected:
+
+  MoveBaseActionServer* mActionServer;
+  ros::Publisher mActionGoalPublisher;
+  ros::Subscriber mRosSubSimplePose;
+
+  // msg
+  move_base_msgs::MoveBaseResult   result_;
+  move_base_msgs::MoveBaseFeedback feedback_;
+  //move_base_msgs::MoveBaseGoal     as_goal_;
+  
+
+
+  ros::Subscriber m_simpleGoalSub;
+
+  geometry_msgs::PoseStamped mGoal;
+  geometry_msgs::PoseStamped state_pose_;
+public:
+  // Action server
+  // Called when a new goal is set, simply accepts the goal
+  void actionGoalCallBack();
+
+  void preemptCallBack();
+
 };
 
 #endif  // VORTEX_CONTROLLER_CONTROLLER_ROS_H
