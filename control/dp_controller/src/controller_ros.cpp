@@ -93,7 +93,7 @@ void Controller::controlModeCallback(const vortex_msgs::PropulsionCommand& msg){
 // I wonder whether this needs to be mutexed.
 void Controller::preemptCallBack()
 {
-    ROS_ERROR("Controller::preemptCallBack(): preempted.");
+    ROS_INFO("Controller::preemptCallBack(): preempted.");
 
 
     // set the action state to preempted
@@ -103,10 +103,10 @@ void Controller::preemptCallBack()
 void Controller::actionGoalCallBack()
 {
 
-  preemptCallBack();
   // accept the new goal - do I have to cancel a pre-existing one first?
 
   mGoal = mActionServer->acceptNewGoal()->target_pose;
+  //preemptCallBack();
   ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
   // Add circle of acceptance here
   /* 
@@ -166,9 +166,13 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
   // save current state to private variable
   // geometry_msgs/PoseStamped Pose
+  if (!mActionServer->isActive())
+      return;
+
   feedback_.base_position.header.stamp = ros::Time::now();
   feedback_.base_position.pose = msg.pose.pose;
   mActionServer->publishFeedback(feedback_);
+
 
   /*
   move_base_msgs::MoveBaseActionGoal actionGoal;

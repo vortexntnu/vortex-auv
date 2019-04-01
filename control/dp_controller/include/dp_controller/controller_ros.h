@@ -130,6 +130,8 @@ public:
   // Called when a new goal is set, simply accepts the goal
   void actionGoalCallBack();
 
+  // Called when e.g. rviz sends us a simple goal.
+
   void preemptCallBack();
 
 };
