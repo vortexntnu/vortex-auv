@@ -6,7 +6,6 @@ import copy
 from nav_msgs.msg import Odometry, Path
 from nav_msgs.srv import GetPlan
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Pose
-from waypoint_msgs.msg import Waypoint
 import math
 import tf
 import time

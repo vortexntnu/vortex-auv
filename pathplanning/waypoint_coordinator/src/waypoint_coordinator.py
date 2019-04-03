@@ -6,13 +6,13 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Pose
 from waypoint_action_msgs.msg import WaypointAction, WaypointGoal
 import rospy
 import actionlib
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 class PathManager(object):
     def __init__(self):
         self.global_path = Path()
         self.start = PoseStamped()
         self.goal = PoseStamped()
-        self.waypoint_counter = 0
     def path_generator_pole_client(self):
         start = PoseStamped()
         
@@ -42,31 +42,28 @@ class WaypointCoordinator(object):
         
 
     def waypoint_action_client(self):
-        waypoint_client =  actionlib.SimpleActionClient('waypoint_coordination', WaypointAction)
+        waypoint_client =  actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        print "Waiting"
         waypoint_client.wait_for_server()
-        goal = WaypointGoal()
-        goal
-        goal.is_last_wp = False
-        goal.is_first_wp = False
+        goal = MoveBaseGoal()
         no_of_wp = self.path_manager.global_path.poses.__len__()
         print no_of_wp
 
         while self.path_manager.global_path.poses.__len__() != 0:
-            print self.path_manager.global_path.poses.__len__() != 0
             print self.path_manager.global_path.poses.__len__()
-            if no_of_wp == self.path_manager.global_path.poses.__len__():
-                goal.is_first_wp = True
-            else:
-                goal.is_first_wp = False
+            #if no_of_wp == self.path_manager.global_path.poses.__len__():
+            #    goal.is_first_wp = True
+            #else:
+            #    goal.is_first_wp = False
 
-            goal.pose = self.path_manager.global_path.poses.pop(0)
+            goal.target_pose = self.path_manager.global_path.poses.pop(0)
 
-            if self.path_manager.global_path.poses.__len__() == 0:
-                goal.is_last_wp = True
-            print(goal)
+            #if self.path_manager.global_path.poses.__len__() == 0:
+            # goal.is_last_wp = True
+            print goal 
             waypoint_client.send_goal(goal)
             print "goal sent"
-            waypoint_client.wait_for_result(rospy.Duration.from_sec(5.0))
+            waypoint_client.wait_for_result() #rospy.Duration.from_sec(10.0)
         print "ferri"
             
     def publish(self):
