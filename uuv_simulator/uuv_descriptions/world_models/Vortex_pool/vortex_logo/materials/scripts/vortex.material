@@ -1,0 +1,16 @@
+material VortexLogo
+{
+    technique
+    {
+        pass
+        {
+            texture_unit
+            {
+                texture Vortex_Logo.png
+                filtering anistropic
+                max_anistropy 16
+            }
+        }
+    }
+}
+
