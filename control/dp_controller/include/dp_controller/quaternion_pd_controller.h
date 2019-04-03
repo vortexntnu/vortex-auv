@@ -12,6 +12,7 @@
 #define VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H
 
 #include <Eigen/Dense>
+#include <cmath>
 #include "vortex/eigen_typedefs.h"
 #include <iostream>
 using namespace Eigen;
@@ -32,6 +33,9 @@ public:
                               const Eigen::Vector6d    &nu,
                               const Eigen::Vector3d    &x_d,
                               const Eigen::Quaterniond &q_d);
+
+  bool circleOfAcceptance(const Eigen::Vector3d   &x,
+                          const Eigen::Vector3d   &x_d);
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:

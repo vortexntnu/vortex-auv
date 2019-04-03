@@ -79,7 +79,7 @@ void Controller::controlModeCallback(const vortex_msgs::PropulsionCommand& msg){
   if (new_control_mode != m_control_mode)
   {
     m_control_mode = new_control_mode;
-    resetSetpoints();
+    //resetSetpoints();
     ROS_INFO_STREAM("Changing mode to " << controlModeString(m_control_mode) << ".");
   }
   publishControlMode();
@@ -109,15 +109,15 @@ void Controller::actionGoalCallBack()
   //preemptCallBack();
   ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
   // Add circle of acceptance here
+ 
   /* 
-
 
 
    */
 
-  // Initialize
-  Eigen::Vector3d    setpoint_position;
-  Eigen::Quaterniond setpoint_orientation;
+    // Initialize
+  //Eigen::Vector3d    setpoint_position;
+  //Eigen::Quaterniond setpoint_orientation;
 
   // Transform from Msg to Eigen
   tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
@@ -126,22 +126,6 @@ void Controller::actionGoalCallBack()
   m_setpoints->set(setpoint_position, setpoint_orientation);
 
 }
-
-
-
-/* NEW BY KRISTOFFER 
-void Controller::waypointCallback(const geometry_msgs::Pose& msg)
-{ 
-  // Initialize
-  Eigen::Vector3d    setpoint_position;
-  Eigen::Quaterniond setpoint_orientation;
-
-  // Transform from Msg to Eigen
-  tf::pointMsgToEigen(msg.position, setpoint_position);
-  tf::quaternionMsgToEigen(msg.orientation, setpoint_orientation);
-
-  m_setpoints->set(setpoint_position, setpoint_orientation);
-} */
 
 
 ControlMode Controller::getControlMode(const vortex_msgs::PropulsionCommand& msg) const
@@ -162,32 +146,12 @@ ControlMode Controller::getControlMode(const vortex_msgs::PropulsionCommand& msg
 void Controller::stateCallback(const nav_msgs::Odometry &msg)
 {
 
-  // ACTION SERVER
-
-  // save current state to private variable
-  // geometry_msgs/PoseStamped Pose
-  if (!mActionServer->isActive())
-      return;
-
-  feedback_.base_position.header.stamp = ros::Time::now();
-  feedback_.base_position.pose = msg.pose.pose;
-  mActionServer->publishFeedback(feedback_);
-
-
-  /*
-  move_base_msgs::MoveBaseActionGoal actionGoal;
-  actionGoal.header.stamp = ros::Time::now();
-  actionGoal.goal.target_pose = *goal;
-  mActionGoalPublisher.publish(actionGoal); */
-
-
-
 
   // EIGEN CONVERSION
 
-  Eigen::Vector3d    position;
-  Eigen::Quaterniond orientation;
-  Eigen::Vector6d    velocity;
+  //Eigen::Vector3d    position;
+  //Eigen::Quaterniond orientation;
+  //Eigen::Vector6d    velocity;
 
   // Convert to eigen for computation
   tf::pointMsgToEigen(msg.pose.pose.position, position);
@@ -203,6 +167,31 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
   // takes a odometry message and transforms to Eigen message
   m_state->set(position, orientation, velocity);
+
+
+    // ACTION SERVER
+
+  // save current state to private variable
+  // geometry_msgs/PoseStamped Pose
+  if (!mActionServer->isActive())
+      return;
+
+  feedback_.base_position.header.stamp = ros::Time::now();
+  feedback_.base_position.pose = msg.pose.pose;
+  mActionServer->publishFeedback(feedback_);
+
+  /*
+  move_base_msgs::MoveBaseActionGoal actionGoal;
+  actionGoal.header.stamp = ros::Time::now();
+  actionGoal.goal.target_pose = *goal;
+  mActionGoalPublisher.publish(actionGoal); */
+
+  bool R = m_controller->circleOfAcceptance(position,setpoint_position);
+
+  if (R){
+  	mActionServer->setSucceeded(move_base_msgs::MoveBaseResult(), "Goal reached.");
+  }
+  
 }
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)

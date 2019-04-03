@@ -67,6 +67,13 @@ private:
   std::unique_ptr<Setpoints>              m_setpoints;
   std::unique_ptr<QuaternionPdController> m_controller;
 
+  // EIGEN CONVERSION INITIALIZE
+  Eigen::Vector3d    position;
+  Eigen::Quaterniond orientation;
+  Eigen::Vector6d    velocity;
+  Eigen::Vector3d    setpoint_position;
+  Eigen::Quaterniond setpoint_orientation;
+
   ControlMode getControlMode(const vortex_msgs::PropulsionCommand &msg) const;
   void initSetpoints();
   void resetSetpoints();
