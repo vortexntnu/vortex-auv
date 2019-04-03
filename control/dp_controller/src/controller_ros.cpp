@@ -44,6 +44,10 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   if (s == "pc-debug")
     m_debug_mode = true;
 
+  if(!m_nh.getParam("/controller/circleOfAcceptance", R)){
+    ROS_WARN("Failed to read parameter circleOfAcceptance");
+  }  
+
   m_state.reset(new State());
   initSetpoints();
   initPositionHoldController();
@@ -56,20 +60,16 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   ROS_INFO("Initialized at %i Hz.", m_frequency);
 
   /* Action server */
-    //ros::NodeHandle nodeHandle("move_base");
-    mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
+  //ros::NodeHandle nodeHandle("move_base");
+  mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
 
-    //register the goal and feeback callbacks
-    mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
-    //mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
-
-    mActionServer->start();
-
-    std::cout << "mActionServer: " << mActionServer << std::endl;
-    ROS_INFO("Started action server.");
+  //register the goal and feeback callbacks
+  mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
+  mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
+  mActionServer->start();
+  ROS_INFO("Started action server.");
 }
 
-/* NEW BY KRISTOFFER */
 void Controller::controlModeCallback(const vortex_msgs::PropulsionCommand& msg){
   
   if (!healthyMessage(msg))
@@ -91,10 +91,12 @@ void Controller::controlModeCallback(const vortex_msgs::PropulsionCommand& msg){
 // a preempt callback is created to ensure that the action responds promptly to a cancel request.
 // The callback function takes no arguments and sets preempted on the action server.
 // I wonder whether this needs to be mutexed.
+
 void Controller::preemptCallBack()
 {
-    ROS_INFO("Controller::preemptCallBack(): preempted.");
 
+ 	//notify the ActionServer that we've successfully preempted
+    ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
 
     // set the action state to preempted
     mActionServer->setPreempted();
@@ -104,25 +106,16 @@ void Controller::actionGoalCallBack()
 {
 
   // accept the new goal - do I have to cancel a pre-existing one first?
-
   mGoal = mActionServer->acceptNewGoal()->target_pose;
-  //preemptCallBack();
+
+  // print the current goal
   ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
-  // Add circle of acceptance here
- 
-  /* 
-
-
-   */
-
-    // Initialize
-  //Eigen::Vector3d    setpoint_position;
-  //Eigen::Quaterniond setpoint_orientation;
 
   // Transform from Msg to Eigen
   tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
   tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
 
+  // setpoint declared as private variable
   m_setpoints->set(setpoint_position, setpoint_orientation);
 
 }
@@ -146,13 +139,6 @@ ControlMode Controller::getControlMode(const vortex_msgs::PropulsionCommand& msg
 void Controller::stateCallback(const nav_msgs::Odometry &msg)
 {
 
-
-  // EIGEN CONVERSION
-
-  //Eigen::Vector3d    position;
-  //Eigen::Quaterniond orientation;
-  //Eigen::Vector6d    velocity;
-
   // Convert to eigen for computation
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
@@ -169,29 +155,24 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
   m_state->set(position, orientation, velocity);
 
 
-    // ACTION SERVER
+  // ACTION SERVER
 
   // save current state to private variable
   // geometry_msgs/PoseStamped Pose
   if (!mActionServer->isActive())
       return;
 
+  // return a feedback message to the client
   feedback_.base_position.header.stamp = ros::Time::now();
   feedback_.base_position.pose = msg.pose.pose;
   mActionServer->publishFeedback(feedback_);
 
-  /*
-  move_base_msgs::MoveBaseActionGoal actionGoal;
-  actionGoal.header.stamp = ros::Time::now();
-  actionGoal.goal.target_pose = *goal;
-  mActionGoalPublisher.publish(actionGoal); */
 
-  bool R = m_controller->circleOfAcceptance(position,setpoint_position);
-
-  if (R){
+  // if within circle of acceptance, return result succeeded
+  if (m_controller->circleOfAcceptance(position,setpoint_position,R)){
   	mActionServer->setSucceeded(move_base_msgs::MoveBaseResult(), "Goal reached.");
   }
-  
+
 }
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
@@ -211,8 +192,6 @@ void Controller::spin()
   Eigen::Vector6d    tau_depthhold        = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_headinghold      = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_surgehold        = Eigen::VectorXd::Zero(6);
-
-  //NEW BY KRISTOFFER
   Eigen::Vector6d    tau_posehold         = Eigen::VectorXd::Zero(6);  
 
   Eigen::Vector3d    position_state       = Eigen::Vector3d::Zero();
@@ -251,7 +230,7 @@ void Controller::spin()
 
       // 3D coordinates
       case ControlModes::POSE_HOLD:
-      // NEW BY KRISTOFFER
+  
       tau_posehold = poseHold(tau_openloop,
                                 position_state,
                                 orientation_state,
@@ -604,8 +583,6 @@ Eigen::Vector6d Controller::headingHold(const Eigen::Vector6d &tau_openloop,
 
   return tau;
 }
-
-// NEW BY KRISTOFFER
 
 Eigen::Vector6d Controller::poseHold(const Eigen::Vector6d &tau_openloop,
                                       const Eigen::Vector3d &position_state,

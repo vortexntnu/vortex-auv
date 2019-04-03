@@ -35,7 +35,8 @@ public:
                               const Eigen::Quaterniond &q_d);
 
   bool circleOfAcceptance(const Eigen::Vector3d   &x,
-                          const Eigen::Vector3d   &x_d);
+                          const Eigen::Vector3d   &x_d,
+                                float             R);
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:

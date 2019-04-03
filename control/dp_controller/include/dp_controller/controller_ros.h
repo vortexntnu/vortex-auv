@@ -23,6 +23,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <move_base_msgs/MoveBaseAction.h>
 
+// typedef so you dont have to write out definition every time
 typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
 
 class Controller
@@ -117,21 +118,18 @@ private:
 
 protected:
 
+  // Action object
   MoveBaseActionServer* mActionServer;
-  ros::Publisher mActionGoalPublisher;
-  ros::Subscriber mRosSubSimplePose;
 
-  // msg
-  move_base_msgs::MoveBaseResult   result_;
+  // feedback variable
   move_base_msgs::MoveBaseFeedback feedback_;
-  //move_base_msgs::MoveBaseGoal     as_goal_;
   
+  // circle of acceptance
+  float R;
 
-
-  ros::Subscriber m_simpleGoalSub;
-
+  // goal variable
   geometry_msgs::PoseStamped mGoal;
-  geometry_msgs::PoseStamped state_pose_;
+
 public:
   // Action server
   // Called when a new goal is set, simply accepts the goal
