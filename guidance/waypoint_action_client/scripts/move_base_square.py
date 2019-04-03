@@ -34,10 +34,10 @@ class WaypointClient():
 
 		# Append each of the four waypoints to the list. Each waypoint
 		# is a pose consisting of a position and orientation in the map frame
-		waypoints.append(Pose(Point(square_size, 0.0, 0.0), quaternions[0]))
-		waypoints.append(Pose(Point(square_size, square_size, 0.0), quaternions[1]))
-		waypoints.append(Pose(Point(0.0, square_size, 0.0), quaternions[2]))
-		waypoints.append(Pose(Point(0.0, 0.0, 0.0), quaternions[3]))
+		waypoints.append(Pose(Point(5.0, 2.0, -3.0), quaternions[0]))
+		waypoints.append(Pose(Point(15.0, 2.0, -3.0), quaternions[1]))
+		waypoints.append(Pose(Point(15.0, -10.0, 0.0), quaternions[2]))
+		waypoints.append(Pose(Point(5.0, -10.0, 0.0), quaternions[3]))
 
 		# Initialize the visualization markers for Rviz
 		#self.init_markers()
@@ -51,14 +51,14 @@ class WaypointClient():
 
 
 		# Subscrive to the move_base action server
-		self.move_base_client = actionlib.SimpleActionClient("move_base_client", MoveBaseAction)
+		self.move_base = actionlib.SimpleActionClient("move_base", MoveBaseAction)
 
 		rospy.on_shutdown(self.shutdown)
 
 		rospy.loginfo("Waiting for move_base action server")
 
 		# Wait 60 seconds for the ation server to become available
-		self.move_base_client.wait_for_server(rospy.Duration(60))
+		self.move_base.wait_for_server(rospy.Duration(60))
 
 		rospy.loginfo("Connected to move base server")
 		rospy.loginfo("Starting navigation test")
@@ -76,7 +76,7 @@ class WaypointClient():
 			goal = MoveBaseGoal()
 
 			# us the map frame to define goals poses
-			goal.target_pose.header.frame_id = 'map'
+			goal.target_pose.header.frame_id = 'base_link'
 
 			# Set the time stamp to "now"
 			goal.target_pose.header.stamp = rospy.Time.now()
@@ -91,18 +91,18 @@ class WaypointClient():
 
 	def move(self, goal):
 		# Send the goal pose to the MoveBaseAction server
-		self.move_base_client.send_goal(goal)
+		self.move_base.send_goal(goal)
 
 		# Allow 1 minute to get there
-		finished_within_time = self.move_base_client.wait_for_result(rospy.Duration(60))
+		finished_within_time = self.move_base.wait_for_result(rospy.Duration(60))
 
 		# if we don't get there in time, abort goal
 		if not finished_within_time:
-			self.move_base_client.cancel_goal()
+			self.move_base.cancel_goal()
 			rospy.loginfo("Timed out achieving goal")
 		else:
 			# We made it
-			state = self.move_base_client.get_state()
+			state = self.move_base.get_state()
 			if state == GoalStatus.SUCCEEDED:
 				rospy.loginfo("goal succeeded!")
 
@@ -111,10 +111,8 @@ class WaypointClient():
 		rospy.loginfo("Stopping the robot...")
 
 		# Cancel any active goals
-		self.move_base_client.cancel_goal()
+		self.move_base.cancel_goal()
 		rospy.sleep(2)
-
-
 
 
 if __name__ == '__main__':
