@@ -1,0 +1,8 @@
+#goal definition
+string goal
+---
+#result definition
+bool isCentered
+---
+#feedback
+float32 error
