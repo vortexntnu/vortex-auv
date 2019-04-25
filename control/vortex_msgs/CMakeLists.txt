@@ -5,6 +5,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   geometry_msgs
   std_msgs
+  actionlib
+  actionlib_msgs
 )
 
 add_message_files(
@@ -23,10 +25,17 @@ add_message_files(
   CameraObjectInfo.msg
 )
 
+add_action_files(
+  DIRECTORY
+  FILES
+  MoveRelative.action
+)
+
 generate_messages(
   DEPENDENCIES
   geometry_msgs
   std_msgs
+  actionlib_msgs
 )
 
 catkin_package(
