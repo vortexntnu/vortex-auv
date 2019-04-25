@@ -34,6 +34,7 @@ public:
         goal_.y = as_.acceptNewGoal()->y;
         goal_.z = as_.acceptNewGoal()->z;
         goal_.angle = as_.acceptNewGoal()->angle;
+        sendCoordinate();
     }
 
     void preemtCB()
@@ -42,10 +43,19 @@ public:
         as_.setPreempted();
     }
 
-    // void cameraInfoCB(const vortex_msgs::CameraObjectInfo& msg)
-    // {
-    //     //send wanted relative movements
-    // }
+    void stateEstimateCB(){
+        //Subscribe to state estimate
+        //Update our position estimate
+    }
+
+    void sendCoordinate(){
+        //Use this as a client for the controller
+
+        //Add goal to estimated global postition
+
+
+        //Send this global goal position to controller
+    }
 };
 
 int main(int argc, char** argv)
