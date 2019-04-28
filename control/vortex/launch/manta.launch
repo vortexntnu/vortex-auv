@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+
+  <rosparam command="load" file="$(find vortex)/config/robots/manta.yaml"/>
+  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+  <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>
+
+  <param name="thruster_interface/thrusters_connected" type="bool" value="false" />
+  <param name="thruster_interface/rate_limiting_enabled" type="bool" value="false" />
+  <param name="computer" value="pc-debug" />
+  <param name="stepper/default_speed_rpm" value="1"/>
+
+  <node name="thruster_interface" pkg="thruster_interface" type="thruster_interface_node.py" output="screen" />
+  <node pkg="vortex_controller" type="node" name="controller" output="screen"/>
+  <node pkg="vortex_allocator"  type="node" name="allocator"  output="screen"/>
+  <node pkg="vortex_estimator"  type="node" name="estimator"  output="screen"/>
+  <node pkg="mcu_interface"      type="mcu_interface_node"         name="mcu_interface"      output="screen"/>
+
+  <include file="$(find underwater_odom)/launch/underwater_odom.launch"/>
+  <include file="$(find robot_localization)/launch/ekf_all_sensors.launch"/>
+  <include file="$(find depth_hold)/launch/depth_hold.launch"/>
+  <include file="$(find control_input_merger)/launch/control_input_merger.launch"/>
+</launch>
