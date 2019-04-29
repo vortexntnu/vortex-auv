@@ -114,23 +114,25 @@ class Search(smach.State):
         if request_preempt():
             return 'preempted'
         #Do findGateStuff here
+        '''
         if gate_found:
             return 'found'
-
+        '''
 class Move(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['move_finised','gate_lost','preempted'])
+        smach.State.__init__(self, outcomes=['move_finished','gate_lost','preempted'])
 
 
     def execute(self):
         if request_preempt():
             return 'preempted'
         #Do driving motion here
+        '''
         if gate_passed:
             return 'move_finished'
         elif gate_lost:
             return 'gate_lost'
-
+        '''
 
 def main():
     #rospy.init_node('action_client_py')
