@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from __future__ import print_function
-#import roslib; roslib.load_manifest('smach_tutorials')
 import rospy
 import smach
 import smach_ros
@@ -20,32 +19,60 @@ def action_client():
     goal = DepthHoldGoal(depth = 2)
     client.send_goal(goal)
     ready = client.get_state()
-
     #client.wait_for_result()
     return client
 
+
+class Idle(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['doing','waiting'])
+        # subscribe to signal 
+
+    def execute(self):
+        if waitsignal == False:
+            return 'waiting'
+
+        else:
+            return 'doing'
+
+    
+
 class Dive(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['submerged','going'])
+        smach.State.__init__(self, outcomes=['submerged','going','Stop'])
         self.client = action_client()
+    
+    def checksignal(self):
+        if waitsignal == True:
+            return 'stop'
 
-    def execute(self, userdata):
+    def execute(self):
         print('diving')
+        # turn on diving stuff and do that shit
+        checksignal() #check if the ship has recieved a stop signal
         if self.client.get_state[1]:
-            print('Done')
             return 'submerged'
         else:
             return 'going'
 
 
-class Heading(smach.State):
+class Cancel(smach.State)
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['canceld'])
+
+    def execute(self):
+        #Kill all nodes
+        return 'cancled'
+
+
+class Search(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['correct_heading'])
         result = action_client(order = 20)
 
-    def execute(self, userdata):
-        if heading == ref:
-            return 'correct_heading'
+    def execute(self):
+        if gate_found:
+            return 'found'
 
 
 class Center(smach.State):
@@ -58,7 +85,7 @@ class Center(smach.State):
                                           bool,queue_size=1000)
         result = action_client(order = 20)
 
-    def execute(self, userdata):
+    def execute(self):
         rospy.loginfo('Centering')
         if sub_gate == 1:
             return 'Centered'
@@ -69,12 +96,13 @@ def main():
     sm = smach.StateMachine(outcomes = ['Done'])
 
     with sm:
+        smach.StateMachine.add('Idle', idle(),
+                                transitions={'doing':'Dive', 'wating':'Idle'})
         smach.StateMachine.add('Dive', Dive(),
-                                transitions={'submerged':'Done', 'going':'Dive'})
-        #smach.StateMachine.add('Heading', Heading(),
-        #                        transitions={'correct_heading':'Center'})
-        #smach.StateMachine.add('Center', Center(),
-        #                        transitions={'Centered':'Done'})
+                                transitions={'submerged':'Done', 'going':'Dive', 'stop':'Cancel'})
+        smach.StateMachine.add('Cancel', Cancel(),
+                                transitions={'canceld':'Idle'})
+
 
     sis = smach_ros.IntrospectionServer('Fibtest_test_server', sm, '/SM_ROOT')
     sis.start()
