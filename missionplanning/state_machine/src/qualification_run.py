@@ -74,18 +74,17 @@ class Cancel(smach.State):
 
 class Dive(smach.State):
     def __init__(self, ac_handler):
-        smach.State.__init__(self, outcomes=['submerged','going','preempted'])
+        smach.State.__init__(self, outcomes=['submerged','continue','preempted'])
         print('Diving')
         self.ac_handler = ac_handler
         self.rate = rospy.Rate(10)
+        self.counter = 0
 
 
     def execute(self, userdata):
-        print('diving')
         # turn on diving stuff and do that shit
         if request_preempt():
             return 'preempted'
-
 
         if self.ac_handler.depth_hold_ac.get_state() != 1:
             goal = DepthHoldGoal(depth = 2)
@@ -93,13 +92,15 @@ class Dive(smach.State):
             while(self.ac_handler.depth_hold_ac.get_state()!=1):
                 self.rate.sleep()
 
+        submerged = False
+        self.counter += 1
+        if(self.counter > 100):
+            submerged = True
 
-        if False:#self.client.get_state[1]:
-            self.rate.sleep()
+        if submerged:#self.client.get_state[1]:
             return 'submerged'
         else:
-            self.rate.sleep()
-            return 'going'
+            return 'continue'
 
 
 
@@ -107,32 +108,46 @@ class Dive(smach.State):
 
 class Search(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['found','preempted'])
+        smach.State.__init__(self, outcomes=['found', 'continue','preempted'])
         #initialize stuff here
+        self.counter = 0
 
-    def execute(self):
+    def execute(self, userdata):
         if request_preempt():
             return 'preempted'
         #Do findGateStuff here
-        '''
+        gate_found = False
+        self.counter += 1
+        if(self.counter > 100):
+            gate_found = True
+
         if gate_found:
             return 'found'
-        '''
+        else:
+            return 'continue'
+
+
 class Move(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['move_finished','gate_lost','preempted'])
+        smach.State.__init__(self, outcomes=['stop_state_machine' ,'move_finished','gate_lost', 'continue','preempted'])
+        self.counter = 0
 
-
-    def execute(self):
+    def execute(self, userdata):
         if request_preempt():
             return 'preempted'
         #Do driving motion here
-        '''
+        gate_passed = False
+        gate_lost = False
+        self.counter += 1
+        if(self.counter > 100):
+            gate_passed = True
+
         if gate_passed:
             return 'move_finished'
         elif gate_lost:
             return 'gate_lost'
-        '''
+        else:
+            return 'continue'
 
 def main():
     #rospy.init_node('action_client_py')
@@ -157,11 +172,11 @@ def main():
         smach.StateMachine.add('Cancel', Cancel(ac_handler),
                                 transitions={'canceld':'Idle'})
         smach.StateMachine.add('Dive', Dive(ac_handler),
-                                transitions={'submerged':'Search', 'going':'Dive','preempted':'Cancel'})
+                                transitions={'submerged':'Search', 'continue':'Dive','preempted':'Cancel'})
         smach.StateMachine.add('Search', Search(),
-                                transitions={'found':'Move', 'preempted':'Cancel'})
+                                transitions={'found':'Move', 'continue':'Search', 'preempted':'Cancel'})
         smach.StateMachine.add('Move', Move(),
-                                transitions={'move_finished':'Done', 'gate_lost':'Search','preempted':'Cancel'})
+                                transitions={'stop_state_machine':'Done', 'move_finished':'Cancel', 'gate_lost':'Search', 'continue':'Move','preempted':'Cancel'})
 
 
     outcome = sm.execute()
