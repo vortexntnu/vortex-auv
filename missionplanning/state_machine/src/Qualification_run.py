@@ -14,14 +14,21 @@ from std_msgs.msg import Bool
 import actionlib
 from depth_hold_action_server.msg import DepthHoldAction, DepthHoldGoal
 
-def action_client():
-    client = actionlib.SimpleActionClient('depth_hold_action_server', DepthHoldAction)
-    client.wait_for_server()
-    goal = DepthHoldGoal(depth = 2)
-    client.send_goal(goal)
-    ready = client.get_state()
-    #client.wait_for_result()
-    return client
+class AC_handler():
+    def __init__(self):
+        self.depth_hold_ac = self.action_client('depth_hold_action_server', DepthHoldAction)
+
+    def action_client(self, name, message_type):
+        client = actionlib.SimpleActionClient(name, message_type)
+        client.wait_for_server()
+        #goal = DepthHoldGoal(depth = 2)
+        #client.send_goal(goal)
+        #ready = client.get_state()
+        #client.wait_for_result()
+        return client
+
+    def cancel_all_goals(self):
+        self.depth_hold_ac.cancel_all_goals()
 
 def mission_trigger_callback(trigger_signal):
     print('Received signal')
@@ -55,10 +62,11 @@ class Idle(smach.State):
             return 'doing'
 
 class Dive(smach.State):
-    def __init__(self):
+    def __init__(self, ac_handler):
         smach.State.__init__(self, outcomes=['submerged','going','preempted'])
         print('Diving')
-        self.client = action_client()
+        self.ac_handler = ac_handler
+        self.rate = rospy.Rate(10)
 
 
     def execute(self, userdata):
@@ -67,46 +75,33 @@ class Dive(smach.State):
         if request_preempt():
             return 'preempted'
 
+
+        if self.ac_handler.depth_hold_ac.get_state() != 1:
+            goal = DepthHoldGoal(depth = 2)
+            self.ac_handler.depth_hold_ac.send_goal(goal)
+            while(self.ac_handler.depth_hold_ac.get_state()!=1):
+                self.rate.sleep()
+
+
         if False:#self.client.get_state[1]:
+            self.rate.sleep()
             return 'submerged'
         else:
+            self.rate.sleep()
             return 'going'
 
 
 class Cancel(smach.State):
-    def __init__(self):
+    def __init__(self, ac_handler):
         smach.State.__init__(self, outcomes=['canceld'])
+        self.ac_handler = ac_handler
 
     def execute(self, userdata):
         #Kill all nodes
+        self.ac_handler.cancel_all_goals()
         return 'canceld'
 
-'''
-class Search(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['correct_heading'])
-        result = action_client(order = 20)
 
-    def execute(self):
-        if gate_found:
-            return 'found'
-'''
-'''
-class Center(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['Centered','Lost'])
-
-        self.pub_motion = rospy.Publisher('propulsion_command',
-                                          PropulsionCommand,queue_size=1)
-        self.sub_gate = rospy.Subscriber('camera_object_info',
-                                          bool,queue_size=1000)
-        result = action_client(order = 20)
-
-    def execute(self):
-        rospy.loginfo('Centering')
-        if sub_gate == 1:
-            return 'Centered'
-'''
 def main():
     #rospy.init_node('action_client_py')
     rospy.init_node('Qualification_run')
@@ -115,6 +110,8 @@ def main():
     mission_in_progress = False
 
     rospy.Subscriber("mission_trigger", Bool, mission_trigger_callback)
+
+    ac_handler = AC_handler()
 
     sm = smach.StateMachine(outcomes = ['Done'])
 
@@ -125,9 +122,9 @@ def main():
     with sm:
         smach.StateMachine.add('Idle', Idle(),
                                 transitions={'doing':'Dive', 'waiting':'Idle'})
-        smach.StateMachine.add('Dive', Dive(),
-                                transitions={'submerged':'Done', 'going':'Dive','preempted':'Cancel'})
-        smach.StateMachine.add('Cancel', Cancel(),
+        smach.StateMachine.add('Dive', Dive(ac_handler),
+                                transitions={'submerged':'Done', 'going':'Dive', 'preempted':'Cancel'})
+        smach.StateMachine.add('Cancel', Cancel(ac_handler),
                                 transitions={'canceld':'Idle'})
 
     outcome = sm.execute()
