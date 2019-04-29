@@ -61,6 +61,17 @@ class Idle(smach.State):
             print('Jumping')
             return 'doing'
 
+class Cancel(smach.State):
+    def __init__(self, ac_handler):
+        smach.State.__init__(self, outcomes=['canceld'])
+        self.ac_handler = ac_handler
+
+    def execute(self, userdata):
+        #Kill all nodes
+        self.ac_handler.cancel_all_goals()
+        return 'canceld'
+
+
 class Dive(smach.State):
     def __init__(self, ac_handler):
         smach.State.__init__(self, outcomes=['submerged','going','preempted'])
@@ -91,15 +102,34 @@ class Dive(smach.State):
             return 'going'
 
 
-class Cancel(smach.State):
-    def __init__(self, ac_handler):
-        smach.State.__init__(self, outcomes=['canceld'])
-        self.ac_handler = ac_handler
 
-    def execute(self, userdata):
-        #Kill all nodes
-        self.ac_handler.cancel_all_goals()
-        return 'canceld'
+
+
+class Search(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['found','preempted'])
+        #initialize stuff here
+
+    def execute(self):
+        if request_preempt():
+            return 'preempted'
+        #Do findGateStuff here
+        if gate_found:
+            return 'found'
+
+class Move(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['move_finised','gate_lost','preempted'])
+
+
+    def execute(self):
+        if request_preempt():
+            return 'preempted'
+        #Do driving motion here
+        if gate_passed:
+            return 'move_finished'
+        elif gate_lost:
+            return 'gate_lost'
 
 
 def main():
@@ -122,10 +152,15 @@ def main():
     with sm:
         smach.StateMachine.add('Idle', Idle(),
                                 transitions={'doing':'Dive', 'waiting':'Idle'})
-        smach.StateMachine.add('Dive', Dive(ac_handler),
-                                transitions={'submerged':'Done', 'going':'Dive', 'preempted':'Cancel'})
         smach.StateMachine.add('Cancel', Cancel(ac_handler),
                                 transitions={'canceld':'Idle'})
+        smach.StateMachine.add('Dive', Dive(ac_handler),
+                                transitions={'submerged':'Search', 'going':'Dive','preempted':'Cancel'})
+        smach.StateMachine.add('Search', Search(),
+                                transitions={'found':'Move', 'preempted':'Cancel'})
+        smach.StateMachine.add('Move', Move(),
+                                transitions={'move_finished':'Done', 'gate_lost':'Search','preempted':'Cancel'})
+
 
     outcome = sm.execute()
     rospy.spin()
