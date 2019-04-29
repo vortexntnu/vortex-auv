@@ -11,11 +11,11 @@
   <param name="computer" value="pc-debug" />
   <param name="stepper/default_speed_rpm" value="1"/>
 
-  <node name="thruster_interface" pkg="thruster_interface" type="thruster_interface_node.py" output="screen" />
-  <node pkg="vortex_controller" type="node" name="controller" output="screen"/>
-  <node pkg="vortex_allocator"  type="node" name="allocator"  output="screen"/>
-  <node pkg="vortex_estimator"  type="node" name="estimator"  output="screen"/>
+  <node pkg="vortex_controller"  type="node"                       name="controller"         output="screen"/>
+  <node pkg="vortex_allocator"   type="node"                       name="allocator"          output="screen"/>
+  <node pkg="vortex_estimator"   type="node"                       name="estimator"          output="screen"/>
   <node pkg="mcu_interface"      type="mcu_interface_node"         name="mcu_interface"      output="screen"/>
+  <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
 
   <include file="$(find underwater_odom)/launch/underwater_odom.launch"/>
   <include file="$(find robot_localization)/launch/ekf_all_sensors.launch"/>
