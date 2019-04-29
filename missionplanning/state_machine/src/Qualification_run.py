@@ -81,32 +81,34 @@ class Cancel(smach.State):
         #Kill all nodes
         return 'canceld'
 
-'''
+
 class Search(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['correct_heading'])
-        result = action_client(order = 20)
+        smach.State.__init__(self, outcomes=['found','preempted'])
+        #initialize stuff here
 
     def execute(self):
+        if request_preempt():
+            return 'preempted'
+        #Do findGateStuff here
         if gate_found:
             return 'found'
-'''
-'''
-class Center(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=['Centered','Lost'])
 
-        self.pub_motion = rospy.Publisher('propulsion_command',
-                                          PropulsionCommand,queue_size=1)
-        self.sub_gate = rospy.Subscriber('camera_object_info',
-                                          bool,queue_size=1000)
-        result = action_client(order = 20)
+class Move(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['move_finised','gate_lost','preempted'])
+
 
     def execute(self):
-        rospy.loginfo('Centering')
-        if sub_gate == 1:
-            return 'Centered'
-'''
+        if request_preempt():
+            return 'preempted'
+        #Do driving motion here
+        if gate_passed:
+            return 'move_finished'
+        elif gate_lost:
+            return 'gate_lost'
+
+
 def main():
     #rospy.init_node('action_client_py')
     rospy.init_node('Qualification_run')
@@ -125,10 +127,15 @@ def main():
     with sm:
         smach.StateMachine.add('Idle', Idle(),
                                 transitions={'doing':'Dive', 'waiting':'Idle'})
-        smach.StateMachine.add('Dive', Dive(),
-                                transitions={'submerged':'Done', 'going':'Dive','preempted':'Cancel'})
         smach.StateMachine.add('Cancel', Cancel(),
                                 transitions={'canceld':'Idle'})
+        smach.StateMachine.add('Dive', Dive(),
+                                transitions={'submerged':'Search', 'going':'Dive','preempted':'Cancel'})
+        smach.StateMachine.add('Search', Search(),
+                                transitions={'found':'Move', 'preempted':'Cancel'})
+        smach.StateMachine.add('Move', Move(),
+                                transitions={'move_finished':'Done', 'gate_lost':'Search','preempted':'Cancel'})
+
 
     outcome = sm.execute()
     rospy.spin()
