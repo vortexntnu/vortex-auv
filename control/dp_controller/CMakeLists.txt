@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   vortex
   vortex_msgs
   roslint
+  tf
 )
 
 find_package(Eigen3 REQUIRED)
@@ -39,6 +40,7 @@ catkin_package(
   std_msgs
   vortex
   vortex_msgs
+  tf
 )
 
 include_directories(

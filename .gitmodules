@@ -1,0 +1,3 @@
+[submodule "missionplanning/executive_smach_visualization"]
+	path = missionplanning/executive_smach_visualization
+	url = https://github.com/ros-visualization/executive_smach_visualization.git

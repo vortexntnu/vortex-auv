@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/vortexntnu/manta-auv.svg?branch=master)](https://travis-ci.com/vortexntnu/manta-auv)
 ## Vortex NTNU, Manta AUV repository
 
 ![MANTA](manta_underwater_robosub.png)
@@ -6,6 +7,7 @@
 
 Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
 C++ 11 compiler or newer.
+
 
 ## 1. Install ROS kinetic for Ubuntu (If you do not have it already) ##
 
@@ -29,70 +31,77 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 3. Update:
 	```bash
 	$ sudo apt-get update
-  
+	```
+
 4. Installation:
 	```bash
 	$ sudo apt-get install ros-kinetic-desktop-full
 	```
 
-5. Before you can use ROS, you will need to initialize rosdep: 
+5. Before you can use ROS, you will need to initialize rosdep:
 	```bash
 	$ sudo rosdep init
 	$ rosdep update
-  
+	```
+
 
 6. Environment setup:
 	```bash
 	$ echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
 	$ source ~/.bashrc
+	```
 
 ## 2. Install the protobuf library, which is used as interface to Gazebo. ##
--------------------------
 
-1. Install the protobuf library, which is used as interface to Gazebo.:
+1. Install the protobuf library, which is used as interface to Gazebo:
 	```bash
 	$ sudo apt-get install protobuf-compiler
-  
+	```
+
 2. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
 	$ sudo apt-get install ros-kinetic-message-to-tf
-  
+	```
+
 ## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
--------------------------
 
 1. creating a catkin workspace:
 	```bash
 	$ mkdir -p ~/manta_ws/src
 	$ cd ~/manta_ws/src
 	$ catkin_init_workspace
-  
+	```
+
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
 	$ catkin build vortex_msgs
 	$ catkin build
-  
+	```
+
 3. source the current workspace:
 	```bash
 	$ echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
-	
+	```
+
 3. close the current window.
 
 4. Open a new window. To make sure the workspace is properly overlayed:
 	```bash
 	$ echo $ROS_PACKAGE_PATH
-	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
+	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share
+	```
 
 
 ## 4. How to run the simulation ##
--------------------------
+
 1. Enter the folder where you want to clone the repostory:
 	```bash
 	$ cd manta_ws/src
 	```
 
-2. Clone the repository: 
+2. Clone the repository:
 	```bash
 	$  git clone https://github.com/vortexntnu/Manta-AUV.git
 	```
@@ -102,29 +111,51 @@ inside the src-folder of you workspace
 3. Compile the code by running "catkin build" inside the workspace:
 	```bash
 	$ cd ~/manta_ws/
+	$ catkin build vortex_msgs
 	$ catkin build
-  
-4. Open a window and run Gazebo world: 
-	```bash
-	$ roslaunch uuv_descriptions empty_underwater_world.launch 
 	```
 
-5. Open a second window and and spawn the model:
+
+4. Open a terminal and run Robosub environment:
+
+```bash
+	$ roslaunch simulator_launch autonomy.launch
+```
+Or:
+```bash
+	$ roslaunch simulator_launch robosub.launch
+```
+to launch enable xbox-controller
+
+
+5. Open a second window and run the guidance node:
 	```bash
-	$ roslaunch manta_description upload_manta.launch
+	$ roslaunch trajectory_generator send_waypoints_file.launch
 	```
-  
-6. Open a third window and and launch the thruster_manager.
-	```bash
-	$ roslaunch manta_thruster_manager thruster_manager.launch
-	```
-## 5. Start the controller ##
+
+## 5. Start the DP controller ##
 -------------------------
 1. Open a fourth and final window, and run the following line to start the simulation:
 	```bash
-	$ roslaunch vortex pc.launch
+	$ roslaunch vortex dp_control.launch
 	```
-2. Use Xbox controller
+
+2. Change the mode of the controller:
+	```bash
+	$ rostopic pub -r 20 /manta/mode
+	```
+	and set mode to [false, true, false, false, false, false]
 
 
+## Build dependencies
 
+1. Navigate to manta_ws
+	```bash
+	$ cd ~/manta_ws/
+	```
+2. Install dependencies
+	```bash
+	$ rosdep install -y --from-paths src --ignore-src --rosdistro kinetic
+	$ pip install rospkg --user
+	$ pip install empy --user
+	```

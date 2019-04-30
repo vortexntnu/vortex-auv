@@ -20,6 +20,7 @@ add_message_files(
   ContainerID.msg
   Manipulator.msg
   CameraFeedSelection.msg
+  CameraObjectInfo.msg
 )
 
 generate_messages(
