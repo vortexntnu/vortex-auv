@@ -87,13 +87,13 @@ class Dive(smach.State):
             return 'preempted'
 
         if self.ac_handler.depth_hold_ac.get_state() != 1:
-            goal = DepthHoldGoal(depth = 2)
+            goal = DepthHoldGoal(depth = 1)
             self.ac_handler.depth_hold_ac.send_goal(goal)
             while(self.ac_handler.depth_hold_ac.get_state()!=1):
                 self.rate.sleep()
 
         submerged = False
-        self.counter += 1
+        #self.counter += 1
         if(self.counter > 100):
             submerged = True
 
