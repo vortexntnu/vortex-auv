@@ -2,7 +2,7 @@
 
 <launch>
     <node
-    name="qualification_run.py"
+    name="qualification_run"
     pkg="state_machine"
     type="qualification_run.py"
     args=""
