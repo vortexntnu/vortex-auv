@@ -104,7 +104,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- 
+
  LIBRARIES camera_centering
  CATKIN_DEPENDS
  roscpp
@@ -146,7 +146,7 @@ include_directories(
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
 
-add_executable(${PROJECT_NAME}_node 
+add_executable(${PROJECT_NAME}_node
 src/camera_centering_node.cpp
 src/camera_centering_ros.cpp
 src/Camerapid.cpp
@@ -155,6 +155,7 @@ src/Camerapid.cpp
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(vortex_msgs ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
