@@ -13,7 +13,7 @@ DepthHoldAction::DepthHoldAction(std::string name) :
     {
         as_.start();
 
-        sub_ = nh_.subscribe("/odometry/filtered", 1, &DepthHoldAction::stateEstimateCallback, this);
+        sub_ = nh_.subscribe("/manta/pose_gt", 1, &DepthHoldAction::stateEstimateCallback, this);
 
         pub_ = nh_.advertise<geometry_msgs::Wrench>("heave_input", 1);
         double dt = 0.1;
@@ -50,7 +50,7 @@ void DepthHoldAction::executeCB(const depth_hold_action_server::DepthHoldGoalCon
             success = false;
             break;
         }
-        dh_command.force.z = -this->height->calculate();
+        dh_command.force.z = this->height->calculate();
 
         as_.publishFeedback(feedback_);
         //std::cout << "Heave command" << dh_command.force.z << std::endl;
@@ -69,7 +69,7 @@ void DepthHoldAction::executeCB(const depth_hold_action_server::DepthHoldGoalCon
 }
 
 void DepthHoldAction::stateEstimateCallback(const nav_msgs::Odometry &odometry_msgs){
-    feedback_.current_depth = odometry_msgs.pose.pose.position.z*(-1);
+    feedback_.current_depth = odometry_msgs.pose.pose.position.z;
 
     double error = static_cast<double>(odometry_msgs.pose.pose.position.z)*(-1) - this->goal_depth;
     double limit = 0.3;
