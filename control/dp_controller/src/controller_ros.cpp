@@ -24,7 +24,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   m_mode_sub = m_nh.subscribe("/manta/mode", 1, &Controller::controlModeCallback, this);
 
   // Publishers
-  m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
+  m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("dp_input", 1);
   m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 

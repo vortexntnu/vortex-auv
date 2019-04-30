@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>state_machine</name>
+  <name>waypoint_coordinator</name>
   <version>0.0.0</version>
-  <description>The state_machine package</description>
+  <description>The waypoint_coordinator package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="espen@todo.todo">espen</maintainer>
+  <maintainer email="erlend@todo.todo">erlend</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/state_machine</url> -->
+  <!-- <url type="website">http://wiki.ros.org/waypoint_coordinator</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -49,32 +49,20 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>geometry_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
-  <build_depend>roslib</build_depend>
   <build_depend>rospy</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>smach</build_depend>
-  <build_depend>smach_ros</build_depend>
-  <build_depend>vortex_msgs</build_depend>
-  <build_depend>actionlib</build_depend>
-  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>nav_msgs</build_export_depend>
-  <build_export_depend>roslib</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>sensor_msgs</build_export_depend>
-  <build_export_depend>smach</build_export_depend>
-  <build_export_depend>smach_ros</build_export_depend>
-  <build_export_depend>vortex_msgs</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>roslib</exec_depend>
   <exec_depend>rospy</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>smach</exec_depend>
-  <exec_depend>smach_ros</exec_depend>
-  <exec_depend>vortex_msgs</exec_depend>
-  <exec_depend>actionlib</exec_depend>
-  <exec_depend>actionlib_msgs</exec_depend>
-  <exec_depend>depth_hold_action_server</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

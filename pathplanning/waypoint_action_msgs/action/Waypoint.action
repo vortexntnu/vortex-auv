@@ -1,0 +1,10 @@
+#goal definition 
+geometry_msgs/PoseStamped pose
+bool is_first_wp
+bool is_last_wp
+---
+#result definition
+bool reached_goal
+---
+#feedback definition
+geometry_msgs/PoseStamped pose
