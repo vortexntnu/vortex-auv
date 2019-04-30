@@ -76,7 +76,6 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
-	$ catkin build vortex_msgs
 	$ catkin build
 	```
 
@@ -101,22 +100,27 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	$ cd manta_ws/src
 	```
 
-2. Clone the repository:
+2. Clone vortex_msgs:
+	```bash
+	$  git clone https://github.com/vortexntnu/vortex_msgs.git
+	```
+
+3. Clone the repository:
 	```bash
 	$  git clone https://github.com/vortexntnu/Manta-AUV.git
 	```
 Ps. You can also manually download the zip-folder in the up-right corner and extract the file <br />
 inside the src-folder of you workspace
 
-3. Compile the code by running "catkin build" inside the workspace:
+4. Compile the code by running "catkin build" inside the workspace:
 	```bash
 	$ cd ~/manta_ws/
-	$ catkin build vortex_msgs
 	$ catkin build
 	```
 
 
-4. Open a terminal and run Robosub environment:
+5. Open a terminal and run Robosub environment:
+REQUIRES THIS REPO https://github.com/vortexntnu/uuv-simulator.git
 
 ```bash
 	$ roslaunch simulator_launch autonomy.launch
@@ -128,7 +132,7 @@ Or:
 to launch enable xbox-controller
 
 
-5. Open a second window and run the guidance node:
+6. Open a second window and run the guidance node:
 	```bash
 	$ roslaunch trajectory_generator send_waypoints_file.launch
 	```
