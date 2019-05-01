@@ -104,7 +104,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
- 
+
  LIBRARIES camera_centering
  CATKIN_DEPENDS
  roscpp
@@ -146,7 +146,7 @@ include_directories(
 # set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
 
 
-add_executable(${PROJECT_NAME}_node 
+add_executable(${PROJECT_NAME}_node
 src/camera_centering_node.cpp
 src/camera_centering_ros.cpp
 src/Camerapid.cpp

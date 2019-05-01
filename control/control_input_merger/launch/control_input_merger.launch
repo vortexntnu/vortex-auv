@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+    <node
+    name="control_input_merger_node"
+    pkg="control_input_merger"
+    type="control_input_merger.py"
+    args=""
+    output="screen">
+
+    </node>
+</launch>

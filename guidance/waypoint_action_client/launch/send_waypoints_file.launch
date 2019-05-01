@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="filename" default="$(find waypoint_action_client)/waypoints/robosub_waypoints.yaml"/>
+  <node pkg="waypoint_action_client"
+        type="static_waypoint_client.py"
+        name="static_waypoint_client"
+        output="screen">
+          <rosparam subst_value="true">
+            filename: $(arg filename)
+          </rosparam>
+   </node>
+</launch>

@@ -74,4 +74,19 @@ int QuaternionPdController::sgn(double x)
     return -1;
   return 1;
 }
-                                         
+                                
+
+bool QuaternionPdController::circleOfAcceptance(const Eigen::Vector3d   &x,
+                                                const Eigen::Vector3d   &x_d,
+                                                      float             R)
+{
+  //float R = 1.0;
+  float distance, e_squared;
+
+  Eigen::Vector3d e = x_d-x;
+  e_squared = pow(e[0],2.0) + pow(e[1], 2.0) + pow(e[2],2.0);
+  distance = sqrt(e_squared);
+  std::cout << "Distance to goal: " << distance << std::endl;
+
+  return (distance < R);
+}

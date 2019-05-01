@@ -4,6 +4,8 @@ project(dp_controller)
 add_definitions(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  move_base_msgs
   dynamic_reconfigure
   eigen_conversions
   nav_msgs
@@ -13,9 +15,11 @@ find_package(catkin REQUIRED COMPONENTS
   vortex
   vortex_msgs
   roslint
+  tf
 )
 
 find_package(Eigen3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS signals)
 
 set(ROSLINT_CPP_OPTS "--filter=-legal/copyright")
 roslint_cpp()
@@ -27,6 +31,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS
+  move_base_msgs
   dynamic_reconfigure
   eigen_conversions
   nav_msgs
@@ -35,11 +40,13 @@ catkin_package(
   std_msgs
   vortex
   vortex_msgs
+  tf
 )
 
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
   ${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake
 )

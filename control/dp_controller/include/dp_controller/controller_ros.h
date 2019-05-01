@@ -19,13 +19,20 @@
 #include "dp_controller/setpoints.h"
 #include "dp_controller/quaternion_pd_controller.h"
 
+// Action server
+#include <actionlib/server/simple_action_server.h>
+#include <move_base_msgs/MoveBaseAction.h>
+
+// typedef so you dont have to write out definition every time
+typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
 
 class Controller
 {
+
 public:
   explicit Controller(ros::NodeHandle nh);
 
-  void waypointCallback(const geometry_msgs::Pose &msg);
+  //void waypointCallback(const geometry_msgs::Pose &msg);
   void stateCallback(const nav_msgs::Odometry &msg);
   void controlModeCallback(const vortex_msgs::PropulsionCommand& msg);
   //void commandCallback(const vortex_msgs::PropulsionCommand &msg); 
@@ -34,7 +41,11 @@ public:
   //void stateCallback(const vortex_msgs::RovState &msg);
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
   void spin();
+
 private:
+
+  //ros::NodeHandle* mRosNodeHandle;
+  // Ros topics
   ros::NodeHandle m_nh;
   ros::Subscriber m_command_sub;
   ros::Subscriber m_state_sub;
@@ -56,6 +67,13 @@ private:
   std::unique_ptr<State>                  m_state;
   std::unique_ptr<Setpoints>              m_setpoints;
   std::unique_ptr<QuaternionPdController> m_controller;
+
+  // EIGEN CONVERSION INITIALIZE
+  Eigen::Vector3d    position;
+  Eigen::Quaterniond orientation;
+  Eigen::Vector6d    velocity;
+  Eigen::Vector3d    setpoint_position;
+  Eigen::Quaterniond setpoint_orientation;
 
   ControlMode getControlMode(const vortex_msgs::PropulsionCommand &msg) const;
   void initSetpoints();
@@ -97,6 +115,30 @@ private:
                             const Eigen::Quaterniond &orientation_state,
                             const Eigen::Vector6d &velocity_state,
                             const Eigen::Vector3d &position_setpoint);
+
+protected:
+
+  // Action object
+  MoveBaseActionServer* mActionServer;
+
+  // feedback variable
+  move_base_msgs::MoveBaseFeedback feedback_;
+  
+  // circle of acceptance
+  float R;
+
+  // goal variable
+  geometry_msgs::PoseStamped mGoal;
+
+public:
+  // Action server
+  // Called when a new goal is set, simply accepts the goal
+  void actionGoalCallBack();
+
+  // Called when e.g. rviz sends us a simple goal.
+
+  void preemptCallBack();
+
 };
 
 #endif  // VORTEX_CONTROLLER_CONTROLLER_ROS_H

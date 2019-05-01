@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+    <node
+    name="depth_hold_action_server"
+    pkg="depth_hold_action_server"
+    type="depth_hold_action_server_node"
+    args=""
+    output="screen">
+
+    </node>
+</launch>
