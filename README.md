@@ -104,27 +104,27 @@ inside the src-folder of you workspace
 	$ cd ~/manta_ws/
 	$ catkin build
   
-4. Open a window and run Gazebo world: 
+4. Open a window and run Gazebo world, spawn Manta, thruster manager and navigation by executing: 
 	```bash
-	$ roslaunch uuv_descriptions empty_underwater_world.launch 
+	$ roslaunch roslaunch simulator_launch robosub.launch 
 	```
 
-5. Open a second window and and spawn the model:
+5. Open a second window and run dp-controller:
 	```bash
-	$ roslaunch manta_description upload_manta.launch
+	$ roslaunch vortex dp_control.launch 
 	```
   
-6. Open a third window and and launch the thruster_manager.
+6. Open a third window and launch the path generator client.
 	```bash
-	$ roslaunch manta_thruster_manager thruster_manager.launch
+	$ roslaunch waypoint_action_client send_waypoints_file.launch
 	```
-## 5. Start the controller ##
+## 5. Change controller mode ##
 -------------------------
-1. Open a fourth and final window, and run the following line to start the simulation:
+1. Open a fourth and final window, and run the following line to change mode of controller:
 	```bash
-	$ roslaunch vortex pc.launch
+	$ rostopic pub -r 20 /manta/mode 
 	```
-2. Use Xbox controller
+2. Tab-complete the above action and fill in the array. ex [false, true, false, false, false, false]
 
 
 
