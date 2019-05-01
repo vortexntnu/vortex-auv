@@ -56,7 +56,12 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 2. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
 	$ sudo apt-get install ros-kinetic-message-to-tf
-  
+
+2. Install move-base-msgs. This is necessary to perform some actions:
+	```bash
+	$ sudo apt-get install ros-kinetic-move-base
+	$ sudo apt-get install ros-kinetic-move-base-msgs 
+
 ## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
 -------------------------
