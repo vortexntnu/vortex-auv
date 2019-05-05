@@ -177,6 +177,7 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
 {
+  ROS_INFO_STREAM("Entering dynamic_reconfigure callback \n ");
   ROS_INFO_STREAM("Setting gains: [vel = " << config.velocity_gain << ", pos = " << config.position_gain
     << ", rot = " << config.attitude_gain << "]");
   m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain);

@@ -18,6 +18,11 @@ void QuaternionPdController::setGains(double a, double b, double c)
   m_c   = c;
   m_K_d = a * Eigen::MatrixXd::Identity(6, 6);
   m_K_x = b * Eigen::MatrixXd::Identity(3, 3);
+
+  //std::cout << "velocity gain= " << m_K_d << std::endl;
+  //std::cout << "position gain= " << m_K_x << std::endl;
+  //std::cout << "attitude gain= " << m_c << std::endl;
+
 }
 
 Eigen::Vector6d QuaternionPdController::getRestoring(const Eigen::Quaterniond &q)
@@ -86,7 +91,7 @@ bool QuaternionPdController::circleOfAcceptance(const Eigen::Vector3d   &x,
   Eigen::Vector3d e = x_d-x;
   e_squared = pow(e[0],2.0) + pow(e[1], 2.0) + pow(e[2],2.0);
   distance = sqrt(e_squared);
-  std::cout << "Distance to goal: " << distance << std::endl;
+  //std::cout << "Distance to goal: " << distance << std::endl;
 
   return (distance < R);
 }
