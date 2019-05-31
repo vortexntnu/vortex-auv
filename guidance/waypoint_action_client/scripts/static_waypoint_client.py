@@ -41,9 +41,9 @@ class WaypointClient():
 
         # Append each of the four waypoints to the list. Each waypoint
         # is a pose consisting of a position and orientation in the map frame
-        self.waypoints.append(Pose(Point(5.0, 2.0, -3.0), quaternions[0]))
-        self.waypoints.append(Pose(Point(15.0, 2.0, -3.0), quaternions[1]))
-        self.waypoints.append(Pose(Point(15.0, -10.0, -3.0), quaternions[2]))
+        self.waypoints.append(Pose(Point(5.0, -3.0, -3.0), quaternions[0]))
+        self.waypoints.append(Pose(Point(8.0, -3.0, -3.0), quaternions[1]))
+        self.waypoints.append(Pose(Point(8.0, -10.0, -3.0), quaternions[2]))
         self.waypoints.append(Pose(Point(5.0, -10.0, 0.0), quaternions[3]))
 
         #Create action client
