@@ -1,6 +1,8 @@
 #ifndef VORTEX_CONTROLLER_CONTROLLER_ROS_H
 #define VORTEX_CONTROLLER_CONTROLLER_ROS_H
 
+//#include <math.h>
+//#include <cstdlib>
 #include <Eigen/Dense>
 
 #include "ros/ros.h"
@@ -40,6 +42,7 @@ public:
   //void commandCallback(const vortex_msgs::PropulsionCommand &msg);
   //void stateCallback(const vortex_msgs::RovState &msg);
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
+  //Eigen::Vector6d tauToRpm(Eigen::Vector6d tau);
   void spin();
 
 private:
@@ -51,6 +54,7 @@ private:
   ros::Subscriber m_state_sub;
   ros::Subscriber m_mode_sub;
   ros::Publisher  m_wrench_pub;
+  ros::Publisher  m_rpm_pub;
   ros::Publisher  m_mode_pub;
   ros::Publisher  m_debug_pub;
   dynamic_reconfigure::Server<dp_controller::VortexControllerConfig> m_dr_srv;

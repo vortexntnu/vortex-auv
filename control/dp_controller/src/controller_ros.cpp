@@ -26,6 +26,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 
   // Publishers
   m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
+  //m_rpm_pub     = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
   m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
@@ -183,9 +184,30 @@ void Controller::configCallback(const dp_controller::VortexControllerConfig &con
   m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain);
 }
 
+/*
+Eigen::Vector6d Controller::tauToRpm(Eigen::Vector6d tau)
+{
+
+
+Eigen::Vector6d rpm = Eigen::VectorXd::Zero(6);
+
+	//rotor constant
+	double k = 0.00001;
+
+    rpm(SURGE) = copysign(sqrt(abs(tau(SURGE)) / (k)),tau(SURGE));
+    rpm(SWAY)  = copysign(sqrt(abs(tau(SWAY)) / (k)),tau(SWAY));
+    rpm(HEAVE) = copysign(sqrt(abs(tau(HEAVE)) / (k)),tau(HEAVE));
+    rpm(ROLL)  = copysign(sqrt(abs(tau(ROLL)) / (k)),tau(ROLL));
+    rpm(PITCH) = copysign(sqrt(abs(tau(PITCH)) / (k)),tau(PITCH));
+    rpm(YAW)   = copysign(sqrt(abs(tau(YAW)) / (k)),tau(YAW));   
+
+	return rpm;
+} */
+
 void Controller::spin()
 {
   // Declaration of general forces
+  Eigen::Vector6d    rpm_command          = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_command          = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_openloop         = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_restoring        = Eigen::VectorXd::Zero(6);
@@ -204,6 +226,7 @@ void Controller::spin()
 
   // Message declaration
   geometry_msgs::Wrench msg;
+
   vortex_msgs::Debug    dbg_msg;
 
   ros::Rate rate(m_frequency);
@@ -294,6 +317,15 @@ void Controller::spin()
 
     tf::wrenchEigenToMsg(tau_command, msg);
     m_wrench_pub.publish(msg);
+
+    /*
+    // convert to rpm
+    rpm_command = tauToRpm(tau_command);
+    geometry_msgs::Wrench rpm_msg;
+    tf::wrenchEigenToMsg(rpm_command, rpm_msg);
+    m_rpm_pub.publish(rpm_msg);
+
+	*/
 
     ros::spinOnce();
     rate.sleep();
