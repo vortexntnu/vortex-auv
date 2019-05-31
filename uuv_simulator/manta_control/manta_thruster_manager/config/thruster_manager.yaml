@@ -4,9 +4,37 @@ thruster_manager:
   thruster_topic_prefix: thrusters/
   thruster_topic_suffix: /input
   thruster_frame_base: thruster_
-  max_thrust: 60.0
+  max_thrust: 40.0
   timeout: -1
-  update_rate: 50
+  update_rate: 50 
+  conversion_fcn: 
+#    - custom
+#    - custom
+#    - custom
+#    - custom	
+#    - custom
+#    - custom
+#    - custom
+#    - custom
+#  conversion_fcn_params:
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]       
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]       
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]       
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]       
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]  
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]       
+#    - input: [0, 1, 2, 3]       
+#      output: [0, 1, 2, 3]        
+
+
   ##################################################
   # Options to set the thruster models below
   ##################################################
@@ -21,7 +49,7 @@ thruster_manager:
   # You can set the conversion function to be:
   conversion_fcn: proportional
   conversion_fcn_params:
-    gain: 0.18546960744430276 # <rotorConstant> 0.026546960744430276 
+    gain: 0.000004 # <rotorConstant> T200, 12V for a 2nd order curve fit: tau = gain * abs(x)*x
 
   # 1.2)  If the conversion function set for the thruster plugins is the following:
   # <conversion>

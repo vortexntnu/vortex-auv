@@ -26,7 +26,7 @@
     Vehicle's parameters (remember to enter the model parameters below)
   -->
   <!-- Mass -->
-  <xacro:property name="mass" value="19.0"/>
+  <xacro:property name="mass" value="16.6"/>
   <!-- Describing the dimensions of the vehicle's bounding box: width, length, height -->
   <xacro:property name="x_size" value="0.448"/>
   <xacro:property name="y_size" value="0.444"/>
@@ -35,7 +35,7 @@
   <!-- Volume -->
   <xacro:property name="volume" value="0.01854"/>
   <!-- Center of gravity -->
-  <xacro:property name="cog" value="0 0 -0.03"/>
+  <xacro:property name="cog" value="0 0 -0.08"/>
   <!--
   Center of buoyancy according to eq. (3.1) p. 28 in Berg2012.
   The original values, [0.0822, -0.00773, 0.3872] however, seem to
@@ -62,12 +62,11 @@
         <!--
           Be careful to setup the coefficients for the inertial tensor,
           otherwise your model will become unstable on Gazebo
+
         -->
         <inertial>
           <mass value="${mass}" />
           <origin xyz="${cog}" rpy="0 0 0"/>
-           <!-- ixx="${0.80947}" ixy="-0.00308" ixz="-0.01546"
-            iyy="${0.87794}" iyz="0.06283" izz="${1.57147}" />  -->
           <inertia
             ixx="${0.503217}" ixy="${0.000204}" ixz="${-0.000526}"
             iyy="${0.493449}" iyz="${0.000038}" izz="${0.919819}" /> 
