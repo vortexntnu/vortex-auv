@@ -92,7 +92,7 @@
     </joint>
 
     <link name="${namespace}/thruster_${thruster_id}">
-      <xacro:box_inertial x="0.3" y="0.3" z="0.3" mass="0.3">
+      <xacro:box_inertial x="0.1" y="0.1" z="0.1" mass="0.3">
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </xacro:box_inertial>
       <visual>

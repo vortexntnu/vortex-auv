@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
-<!-- 
-     Written by Kristoffer Rakstad Solberg, Student
-     Copyright (c) 2019 Manta AUV, Vortex NTNU.
-     All rights reserved. -->
+<!-- Copyright (c) 2016 The UUV Simulator Authors.
+     All rights reserved.
+
+     Contributed by Kristoffer Rakstad Solberg, 
+     Student2019 Manta AUV, Vortex NTNU. -->
 
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
@@ -13,25 +14,29 @@
   <xacro:property name="prop_mesh_file_ccw" value="file://$(find manta_description)/mesh/t200_propcw.dae"/>
   <!-- <xacro:property name="prop_mesh_file" value="file://$(find manta_description)/mesh/manipulator_claw.dae"/> -->
   <!-- Thruster joint and link snippet -->
+<!-- Time constant for thruster dynamics: rpm = K / (Ts + 1)
+    <rotorConstant> T200, 12V for a 2nd order curve fit: tau = gain * abs(x)*x -->
   <xacro:macro name="thruster_macro" 
     params="namespace thruster_id *origin">
     <xacro:thruster_module_first_order_basic_fcn_macro
       namespace="${namespace}"
       thruster_id="${thruster_id}"
       mesh_filename="${prop_mesh_file_cw}"
-      dyn_time_constant="0.4"
-      rotor_constant="0.000004">
+      dyn_time_constant="0.2"     
+      rotor_constant="0.000004">  
       <xacro:insert_block name="origin"/>
     </xacro:thruster_module_first_order_basic_fcn_macro>
   </xacro:macro>
 
+<!-- Time constant for thruster dynamics: rpm = K / (Ts + 1)
+    <rotorConstant> T200, 12V for a 2nd order curve fit: tau = gain * abs(x)*x -->
   <xacro:macro name="thruster_macro_ccw" 
     params="namespace thruster_id *origin">
     <xacro:thruster_module_first_order_basic_fcn_macro
       namespace="${namespace}"
       thruster_id="${thruster_id}"
       mesh_filename="${prop_mesh_file_ccw}"
-      dyn_time_constant="0.4"
+      dyn_time_constant="0.2"
       rotor_constant="0.000004">
       <xacro:insert_block name="origin"/>
     </xacro:thruster_module_first_order_basic_fcn_macro>

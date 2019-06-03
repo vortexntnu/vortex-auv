@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<!-- 
-     Written by Kristoffer Rakstad Solberg, Student
-     Copyright (c) 2019 Manta AUV, Vortex NTNU.
-     All rights reserved. -->
+<!-- Copyright (c) 2016 The UUV Simulator Authors.
+     All rights reserved.
 
+     Contributed by Kristoffer Rakstad Solberg, 
+     Student2019 Manta AUV, Vortex NTNU. -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <!--
       The RexROV meshes and hydrodynamic parameters are based on the parameters and dimensions

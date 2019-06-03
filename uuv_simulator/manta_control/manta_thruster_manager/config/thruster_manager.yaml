@@ -7,33 +7,6 @@ thruster_manager:
   max_thrust: 40.0
   timeout: -1
   update_rate: 50 
-  conversion_fcn: 
-#    - custom
-#    - custom
-#    - custom
-#    - custom	
-#    - custom
-#    - custom
-#    - custom
-#    - custom
-#  conversion_fcn_params:
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]       
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]       
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]       
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]       
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]  
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]       
-#    - input: [0, 1, 2, 3]       
-#      output: [0, 1, 2, 3]        
-
 
   ##################################################
   # Options to set the thruster models below

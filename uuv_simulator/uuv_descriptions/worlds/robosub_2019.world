@@ -21,6 +21,7 @@
         </solver>
       </ode>
     </physics>
+
     <scene>
       <ambient>0.01 0.01 0.01 1.0</ambient>
       <sky>
@@ -36,7 +37,7 @@
         <start>10</start>
         <end>40</end>
       </fog>
-    </scene>
+    </scene> 
 
     <!-- Origin placed somewhere in the middle of the North Sea  -->
     <spherical_coordinates>

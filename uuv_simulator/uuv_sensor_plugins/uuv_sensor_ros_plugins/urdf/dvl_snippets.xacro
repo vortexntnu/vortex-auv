@@ -34,8 +34,8 @@
       reference_frame="${inertial_reference_frame}"
       update_rate="7"
       topic="dvl"
-      noise_sigma="1.0"
-      noise_amplitude="0.1"
+      noise_sigma="0.0"
+      noise_amplitude="0.0"
       scale="0.5">
       <xacro:insert_block name="origin" />
     </xacro:dvl_plugin_macro>
@@ -60,6 +60,8 @@
   </xacro:macro>
 
   <!-- DEPRECATED MACRO: See default_dvl_sensor_enu -->
+<!--  noise_sigma="1.0"
+      noise_amplitude="1.0" -->
   <xacro:macro name="default_dvl" params="namespace parent_link *origin">
     <xacro:dvl_plugin_macro
       namespace="${namespace}"
@@ -68,8 +70,8 @@
       reference_frame="world"
       update_rate="7"
       topic="dvl"
-      noise_sigma="1.0"
-      noise_amplitude="1.0"
+      noise_sigma="0.0"
+      noise_amplitude="0.0"
       scale="0.5">
       <xacro:insert_block name="origin" />
     </xacro:dvl_plugin_macro>
