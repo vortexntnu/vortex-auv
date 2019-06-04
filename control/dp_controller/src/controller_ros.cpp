@@ -30,8 +30,10 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
-  // Initial control mode
+  // Initial control mode and
   m_control_mode = ControlModes::OPEN_LOOP;
+  Eigen::Vector3d startPoint(5,-10,0);
+  position = startPoint;
 
   // Launch file specifies manta.yaml as directory
   if (!m_nh.getParam("/controller/frequency", m_frequency))
@@ -106,6 +108,12 @@ void Controller::preemptCallBack()
 void Controller::actionGoalCallBack()
 {
 
+  // set current target position to previous position
+  m_controller->x_d_prev = position;
+  m_controller->x_d_prev_prev = position;
+  m_controller->x_ref_prev = position;
+  m_controller->x_ref_prev_prev = position;
+
   // accept the new goal - do I have to cancel a pre-existing one first?
   mGoal = mActionServer->acceptNewGoal()->target_pose;
 
@@ -118,6 +126,11 @@ void Controller::actionGoalCallBack()
 
   // setpoint declared as private variable
   m_setpoints->set(setpoint_position, setpoint_orientation);
+
+  // Integral action reset
+  m_controller->integral = Eigen::Vector6d::Zero(); 
+
+  std::cout << "new setpoint, integral gain: " << m_controller->integral << std::endl;
 
 }
 
@@ -180,29 +193,10 @@ void Controller::configCallback(const dp_controller::VortexControllerConfig &con
 {
   ROS_INFO_STREAM("Entering dynamic_reconfigure callback \n ");
   ROS_INFO_STREAM("Setting gains: [vel = " << config.velocity_gain << ", pos = " << config.position_gain
-    << ", rot = " << config.attitude_gain << "]");
-  m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain);
+    << ", rot = " << config.attitude_gain << ", int = " << config.integral_gain << "]");
+  m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain, config.integral_gain);
 }
 
-/*
-Eigen::Vector6d Controller::tauToRpm(Eigen::Vector6d tau)
-{
-
-
-Eigen::Vector6d rpm = Eigen::VectorXd::Zero(6);
-
-	//rotor constant
-	double k = 0.00001;
-
-    rpm(SURGE) = copysign(sqrt(abs(tau(SURGE)) / (k)),tau(SURGE));
-    rpm(SWAY)  = copysign(sqrt(abs(tau(SWAY)) / (k)),tau(SWAY));
-    rpm(HEAVE) = copysign(sqrt(abs(tau(HEAVE)) / (k)),tau(HEAVE));
-    rpm(ROLL)  = copysign(sqrt(abs(tau(ROLL)) / (k)),tau(ROLL));
-    rpm(PITCH) = copysign(sqrt(abs(tau(PITCH)) / (k)),tau(PITCH));
-    rpm(YAW)   = copysign(sqrt(abs(tau(YAW)) / (k)),tau(YAW));   
-
-	return rpm;
-} */
 
 void Controller::spin()
 {
@@ -318,15 +312,6 @@ void Controller::spin()
     tf::wrenchEigenToMsg(tau_command, msg);
     m_wrench_pub.publish(msg);
 
-    /*
-    // convert to rpm
-    rpm_command = tauToRpm(tau_command);
-    geometry_msgs::Wrench rpm_msg;
-    tf::wrenchEigenToMsg(rpm_command, rpm_msg);
-    m_rpm_pub.publish(rpm_msg);
-
-	*/
-
     ros::spinOnce();
     rate.sleep();
   }
@@ -395,13 +380,15 @@ void Controller::updateSetpoint(PoseIndex axis)
 void Controller::initPositionHoldController()
 {
   // Read controller gains from parameter server
-  double a, b, c;
+  double a, b, c, i;
   if (!m_nh.getParam("/controller/velocity_gain", a))
     ROS_ERROR("Failed to read parameter velocity_gain.");
   if (!m_nh.getParam("/controller/position_gain", b))
     ROS_ERROR("Failed to read parameter position_gain.");
   if (!m_nh.getParam("/controller/attitude_gain", c))
     ROS_ERROR("Failed to read parameter attitude_gain.");
+  if (!m_nh.getParam("/controller/integral_gain", i))
+    ROS_ERROR("Failed to read parameter integral_gain.");
 
   // Read center of gravity and buoyancy vectors
   // from manta.yaml
@@ -427,7 +414,7 @@ void Controller::initPositionHoldController()
   double W = mass * acceleration_of_gravity;
   double B = density_of_water * displacement * acceleration_of_gravity;
 
-  m_controller.reset(new QuaternionPdController(a, b, c, W, B, r_G, r_B));
+  m_controller.reset(new QuaternionPdController(a, b, c, i, W, B, r_G, r_B));
 }
 
 bool Controller::healthyMessage(const vortex_msgs::PropulsionCommand& msg)

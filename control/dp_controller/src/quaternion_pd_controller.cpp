@@ -6,22 +6,25 @@
 
 #include "dp_controller/quaternion_pd_controller.h"
 
-QuaternionPdController::QuaternionPdController(double a, double b, double c, double W, double B,
+QuaternionPdController::QuaternionPdController(double a, double b, double c, double i, double W, double B,
                                                const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B)
 : m_r_G(r_G), m_r_B(r_B), m_W(W), m_B(B)
 {
-  setGains(a, b, c);
+  setGains(a, b, c, i);
 }
 
-void QuaternionPdController::setGains(double a, double b, double c)
+void QuaternionPdController::setGains(double a, double b, double c, double i)
 {
   m_c   = c;
   m_K_d = a * Eigen::MatrixXd::Identity(6, 6);
   m_K_x = b * Eigen::MatrixXd::Identity(3, 3);
+  m_K_i = integralGainMatrix(i);
 
   //std::cout << "velocity gain= " << m_K_d << std::endl;
   //std::cout << "position gain= " << m_K_x << std::endl;
   //std::cout << "attitude gain= " << m_c << std::endl;
+  std::cout << "integral matrix= " << std::endl;
+  std::cout << m_K_i << std::endl;
 
 }
 
@@ -41,9 +44,37 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
   // Rotate from inertial/world to body
   Eigen::Matrix3d R   = q.toRotationMatrix();
   Eigen::Matrix6d K_p = proportionalGainMatrix(R);
-  Eigen::Vector6d z   = errorVector(x, x_d, q, q_d);
+
+  // Reference model
+  std::cout << "ref before " << std::endl;
+  std::cout << x_d << std::endl;
+
+  Eigen::Vector3d x_d_smooth = referenceModel(x,x_d);
+
+  std::cout << "ref after " << std::endl;
+  std::cout << x_d_smooth << std::endl;
+
+  // Error Vector
+  Eigen::Vector6d z   = errorVector(x, x_d_smooth, q, q_d);
   Eigen::Vector6d g   = restoringForceVector(R);
-  return (Eigen::Vector6d() << -m_K_d*nu - K_p*z + g).finished();
+
+
+  // Integral
+  double maxGain = 1.5;
+  integral += m_K_i*z;
+  integralWindUp(integral,maxGain);
+  
+  //gain
+  Eigen::Vector6d gain = -m_K_d*nu - K_p*z - integral + g;
+
+  /*
+  std::cout << "-m_K_d*nu: " << std::endl;
+  std::cout << -m_K_d*nu << std::endl;
+
+  std::cout << "gain: " << std::endl;
+  std::cout << gain << std::endl; */
+
+  return (Eigen::Vector6d() << gain).finished();
 }
 
 
@@ -52,6 +83,29 @@ Eigen::Matrix6d QuaternionPdController::proportionalGainMatrix(const Eigen::Matr
   return (Eigen::Matrix6d() << R.transpose() * m_K_x,       Eigen::MatrixXd::Zero(3, 3),
                                Eigen::MatrixXd::Zero(3, 3), m_c*Eigen::MatrixXd::Identity(3, 3)).finished();
 }
+
+Eigen::Matrix6d QuaternionPdController::integralGainMatrix(double I)
+{
+  return (Eigen::Matrix6d() << I * Eigen::MatrixXd::Identity(3, 3),       Eigen::MatrixXd::Zero(3, 3),
+                               Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd::Zero(3, 3)).finished();
+}
+
+void QuaternionPdController::integralWindUp(Eigen::Vector6d &vec, double lim)
+{
+
+  for (int i = 0; i < 6; i++){
+    if (vec(i) < -lim || vec(i) > lim){
+     double k = copysign(lim,vec(i));
+     vec[i] = k; 
+    }
+  }
+  /*
+  Eigen::Vector6d printVec = vec;
+  std::cout << "vec: " << std::endl;
+  std::cout << -printVec << std::endl;
+ */
+}
+
 
 Eigen::Vector6d QuaternionPdController::errorVector(const Eigen::Vector3d    &x,
                                                     const Eigen::Vector3d    &x_d,
@@ -94,4 +148,34 @@ bool QuaternionPdController::circleOfAcceptance(const Eigen::Vector3d   &x,
   //std::cout << "Distance to goal: " << distance << std::endl;
 
   return (distance < R);
+}
+
+
+Eigen::Vector3d QuaternionPdController::referenceModel(const Eigen::Vector3d   &x,
+                                                       const Eigen::Vector3d   &x_ref)
+{
+
+  // else
+Eigen::Vector3d x_d;
+x_d = x_d_prev - (x - x_ref)*0.001;
+
+
+Eigen::Vector3d a_x(1,-1.990024937655860,0.990049813123053);
+Eigen::Vector3d b_x(6.218866798092052e-06,1.243773359618410e-05,6.218866798092052e-06);
+x_d = b_x(0) * x_ref + b_x(1) * x_ref_prev + b_x(2) * x_ref_prev_prev - a_x(1) * x_d_prev - a_x(2) * x_d_prev_prev;
+
+
+/*
+if (circleOfAcceptance(x_d, x_ref, 0.5)){
+  return x_ref;
+}else if(circleOfAcceptance(x,x_ref,0.5)){
+  return x_ref;
+} */
+
+// x_d[k] = x_d[k-1]
+x_ref_prev_prev = x_ref_prev;
+x_ref_prev = x_ref;
+x_d_prev_prev = x_d_prev;
+x_d_prev = x_d;
+return x_d;
 }

@@ -78,6 +78,8 @@ private:
   Eigen::Vector6d    velocity;
   Eigen::Vector3d    setpoint_position;
   Eigen::Quaterniond setpoint_orientation;
+    // Initial position - hardcoded
+  Eigen::Vector3d prev_setpoint_position;;
 
   ControlMode getControlMode(const vortex_msgs::PropulsionCommand &msg) const;
   void initSetpoints();
