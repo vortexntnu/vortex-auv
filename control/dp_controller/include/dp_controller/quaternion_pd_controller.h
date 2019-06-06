@@ -52,8 +52,8 @@ public:
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
-  Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d &R);
-  Eigen::Matrix6d integralGainMatrix(double I);
+  Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d R);
+  Eigen::Matrix6d integralGainMatrix(const Eigen::Matrix3d R);
   void integralWindUp(Eigen::Vector6d &vec, double lim);
 
   Eigen::Vector6d errorVector(const Eigen::Vector3d    &p,
@@ -61,13 +61,14 @@ private:
                               const Eigen::Quaterniond &q,
                               const Eigen::Quaterniond &q_d);
 
-  Eigen::Vector6d restoringForceVector(const Eigen::Matrix3d &R);
+  Eigen::Vector6d restoringForceVector(const Eigen::Matrix3d R);
   int             sgn(double x);
 
   double m_c;             // Orientation gain
+  double m_c_i;           // Orientation integral gain
   Eigen::Matrix6d m_K_d;  // Derivative gain matrix
   Eigen::Matrix3d m_K_x;  // Position error gain matrix
-  Eigen::Matrix6d m_K_i;  // Integral gain matrix
+  Eigen::Matrix3d m_K_i;  // Integral gain matrix
 
   Eigen::Vector3d m_r_G;  // Center of gravity, expressed in body frame
   Eigen::Vector3d m_r_B;  // Center of buoyancy, expressed in body frame

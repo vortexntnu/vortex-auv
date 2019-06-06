@@ -363,6 +363,8 @@ void Controller::updateSetpoint(PoseIndex axis)
     case PITCH:
     case YAW:
 
+    // calculate heading setpoint based on current position
+    // and location of position setpoint
       m_state->getEuler(&state);
       m_setpoints->getEuler(&setpoint);
 
