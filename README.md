@@ -78,9 +78,12 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	$ catkin build vortex_msgs
 	$ catkin build
   
-3. source the current workspace:
+3. source the current workspace and Gazebo model:
 	```bash
 	$ echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
+	$ echo "export GAZEBO_MODEL_PATH=/home/youruser/manta_ws/src/manta_gazebo:$GAZEBO_MODEL_PATH" >> ~/.bashrc 
+	$ echo "export ROS_PACKAGE_PATH=/home/youruser/manta_ws:$ROS_PACKAGE_PATH" >> ~/.bashrc
+
 	
 3. close the current window.
 
