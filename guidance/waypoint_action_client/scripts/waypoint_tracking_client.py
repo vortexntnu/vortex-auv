@@ -47,10 +47,13 @@ class WaypointClient():
         for tup in range(0,len(load.waypoints)):
             xyzRPY = load.waypoints[tup]
             xyz = xyzRPY[0:3]
-            #RPY = xyzRPY[3:6]
-            yaw = xyzRPY[3:4][0]
-            q_angle = quaternion_from_euler(0, 0, yaw, axes = 'sxyz')
+            RPY = xyzRPY[3:6]
+            
+            #Convert attitude from euler to quaternion
+            q_angle = quaternion_from_euler(RPY[0], RPY[1], RPY[2], axes = 'sxyz')
             q = Quaternion(*q_angle)
+
+            # append waypoints
             self.waypoints.append(Pose(Point(xyz[0], xyz[1], xyz[2]),q))
 
         """        

@@ -44,8 +44,12 @@ class PrepareWaypoints:
                         x = wp['point'][0]
                         y = wp['point'][1]
                         z = wp['point'][2]
-                        yaw = wp['R']
-                        self.waypoints.append((x,y,z,yaw))
+                        #yaw = wp['R']
+                        #self.waypoints.append((x,y,z,yaw))
+                        R = wp['RPY'][0]
+                        P = wp['RPY'][1]
+                        Y = wp['RPY'][2]
+			self.waypoints.append((x,y,z,R,P,Y))			
                     #print(self.waypoints)
 
         except Exception, e:
