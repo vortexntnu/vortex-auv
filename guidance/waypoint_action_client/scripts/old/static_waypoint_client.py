@@ -7,6 +7,7 @@ import rospy
 import math
 
 import actionlib
+from load_waypoints import PrepareWaypoints
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, Point, Quaternion

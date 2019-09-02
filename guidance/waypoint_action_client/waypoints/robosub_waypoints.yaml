@@ -1,17 +1,17 @@
 ---
 # a list of waypoints
-# R is circle of acceptance
+# R is sphere of acceptance
 waypoints:
   -
-    point: [5, 2, -3]
-    R: 1.0
+    point: [5, -3, -3]
+    R: 1.57
   -
-    point: [15, 2, -3]
-    R: 1.0
+    point: [8, -3, -3]
+    R: 1.57
   -
-    point: [15, -10, -3]
-    R: 1.0  
+    point: [8, -10, -3]
+    R: 1.57
   -
     point: [5, -10, 0]
-    R: 1.0
+    R: 1.57
 ...
