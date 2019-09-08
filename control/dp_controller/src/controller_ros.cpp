@@ -20,8 +20,8 @@
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
   // Subscribers
-  m_state_sub = m_nh.subscribe("/manta/pose_gt", 1, &Controller::stateCallback, this);
-  //m_state_sub = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
+  //m_state_sub = m_nh.subscribe("/manta/pose_gt", 1, &Controller::stateCallback, this);
+  m_state_sub = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
   m_mode_sub = m_nh.subscribe("/manta/mode", 1, &Controller::controlModeCallback, this);
 
   // Publishers

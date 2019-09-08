@@ -34,21 +34,13 @@ class Controller
 public:
   explicit Controller(ros::NodeHandle nh);
 
-  //void waypointCallback(const geometry_msgs::Pose &msg);
   void stateCallback(const nav_msgs::Odometry &msg);
   void controlModeCallback(const vortex_msgs::PropulsionCommand& msg);
-  //void commandCallback(const vortex_msgs::PropulsionCommand &msg); 
-  
-  //void commandCallback(const vortex_msgs::PropulsionCommand &msg);
-  //void stateCallback(const vortex_msgs::RovState &msg);
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
-  //Eigen::Vector6d tauToRpm(Eigen::Vector6d tau);
   void spin();
 
 private:
 
-  //ros::NodeHandle* mRosNodeHandle;
-  // Ros topics
   ros::NodeHandle m_nh;
   ros::Subscriber m_command_sub;
   ros::Subscriber m_state_sub;
