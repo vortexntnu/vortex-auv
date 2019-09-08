@@ -16,6 +16,7 @@
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Pose.h"
 #include "vortex_msgs/Debug.h"
+#include "vortex_msgs/ControlMode.h" //service
 
 #include "dp_controller/state.h"
 #include "dp_controller/setpoints.h"
@@ -35,12 +36,19 @@ public:
   explicit Controller(ros::NodeHandle nh);
 
   void stateCallback(const nav_msgs::Odometry &msg);
-  void controlModeCallback(const vortex_msgs::PropulsionCommand& msg);
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
-  void spin();
+  void spin();  
+  
+  // service
+  ros::ServiceServer control_mode_service_;
 
 private:
 
+  // service
+  bool controlModeCallback(vortex_msgs::ControlMode::Request  &req,
+                           vortex_msgs::ControlMode::Response &res);
+
+  // topics
   ros::NodeHandle m_nh;
   ros::Subscriber m_command_sub;
   ros::Subscriber m_state_sub;
@@ -73,7 +81,7 @@ private:
     // Initial position - hardcoded
   Eigen::Vector3d prev_setpoint_position;;
 
-  ControlMode getControlMode(const vortex_msgs::PropulsionCommand &msg) const;
+  ControlMode getControlMode(int mode);
   void initSetpoints();
   void resetSetpoints();
   void updateSetpoint(PoseIndex axis);
@@ -134,7 +142,6 @@ public:
   void actionGoalCallBack();
 
   // Called when e.g. rviz sends us a simple goal.
-
   void preemptCallBack();
 
 };

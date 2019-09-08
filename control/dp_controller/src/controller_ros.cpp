@@ -22,7 +22,9 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   // Subscribers
   //m_state_sub = m_nh.subscribe("/manta/pose_gt", 1, &Controller::stateCallback, this);
   m_state_sub = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
-  m_mode_sub = m_nh.subscribe("/manta/mode", 1, &Controller::controlModeCallback, this);
+
+  // Service callback
+  control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
 
   // Publishers
   m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
@@ -73,20 +75,42 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   ROS_INFO("Started action server.");
 }
 
-void Controller::controlModeCallback(const vortex_msgs::PropulsionCommand& msg){
-  
-  if (!healthyMessage(msg))
-    return;
+/* SERVICE SERVER */
 
-  ControlMode new_control_mode = getControlMode(msg);
+  bool Controller::controlModeCallback(vortex_msgs::ControlMode::Request  &req,
+                                       vortex_msgs::ControlMode::Response &res)
+  {
+
+    ControlMode new_control_mode = m_control_mode;
+    int mode = req.controlmode;
+
+    try {
+      new_control_mode = getControlMode(mode);
+      res.result = "success";
+      ROS_INFO("successfull callback");
+    } catch (const std::exception& e)
+    {
+      res.result = "failed";
+      ROS_INFO("failed callback");
+    }
+
+    
   if (new_control_mode != m_control_mode)
   {
     m_control_mode = new_control_mode;
     //resetSetpoints();
     ROS_INFO_STREAM("Changing mode to " << controlModeString(m_control_mode) << ".");
   }
-  publishControlMode();
+  publishControlMode(); 
+    return true;
 }
+
+ControlMode Controller::getControlMode(int mode)
+{
+  ControlMode new_control_mode = m_control_mode;
+  return static_cast<ControlMode>(mode);
+}
+
 
 /* ACTION SERVER */
 
@@ -134,20 +158,6 @@ void Controller::actionGoalCallBack()
 
 }
 
-
-ControlMode Controller::getControlMode(const vortex_msgs::PropulsionCommand& msg) const
-{
-  ControlMode new_control_mode = m_control_mode;
-  for (unsigned i = 0; i < msg.control_mode.size(); ++i)
-  {
-    if (msg.control_mode[i])
-    {
-      new_control_mode = static_cast<ControlMode>(i);
-      break;
-    }
-  }
-  return new_control_mode;
-}
 
 //void Controller::stateCallback(const vortex_msgs::RovState &msg)
 void Controller::stateCallback(const nav_msgs::Odometry &msg)
