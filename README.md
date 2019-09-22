@@ -57,7 +57,11 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	```bash
 	$ sudo apt-get install ros-kinetic-message-to-tf
 
-2. Install move-base-msgs. This is necessary to perform some actions:
+3. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
+	```bash
+	$ sudo apt-get install ros-kinetic-geographic-msgs
+
+4. Install move-base-msgs. This is necessary to perform some actions:
 	```bash
 	$ sudo apt-get install ros-kinetic-move-base
 	$ sudo apt-get install ros-kinetic-move-base-msgs 
@@ -130,9 +134,8 @@ inside the src-folder of you workspace
 -------------------------
 1. Open a fourth and final window, and run the following line to change mode of controller:
 	```bash
-	$ rostopic pub -r 20 /manta/mode 
+	$ rosrun finite_state_machine service_client.py
 	```
-2. Tab-complete the above action and fill in the array. ex [false, true, false, false, false, false]
 
 
 
