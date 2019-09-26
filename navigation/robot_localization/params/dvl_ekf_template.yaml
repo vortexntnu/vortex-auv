@@ -88,7 +88,7 @@ odom0: /manta/odom
 odom0_config: [false,  false,  true, # x, y, z
                false, false, false,  # roll, pitch, yaw
                true, true, true,     # vx, vy, vz
-               false, false, false,   # vroll, vpitch, vyaw
+               false, false, false,  # vroll, vpitch, vyaw
                false, false, false]  # ax, ay, az
 
 # If you have high-frequency data or are running with a low frequency parameter value, then you may want to increase
@@ -126,9 +126,9 @@ odom0_relative: false
 #odom0_pose_rejection_threshold: 5
 #odom0_twist_rejection_threshold: 1
 
-imu0: /manta/ahrs
+imu0: /manta/imu
 imu0_config: [false, false, false, # x, y, z
-              true,  true,  true,  # roll, pitch, yaw
+              false, false, false, # roll, pitch, yaw
               false, false, false, # vx, vy, vz
               true,  true,  true,  # vroll, vpitch, vyaw
               true,  true,  true]  # ax, ay, az
