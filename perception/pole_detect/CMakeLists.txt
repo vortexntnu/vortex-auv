@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   vortex_msgs
   dynamic_reconfigure
-  message_generation
+  #message_generation
 )
 find_package(OpenCV REQUIRED)
 ## System dependencies are found with CMake's conventions
@@ -52,10 +52,10 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-   FILES
-   CameraObjectInfo.msg
-)
+#add_message_files(
+#   FILES
+#   CameraObjectInfo.msg
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -72,11 +72,11 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-   DEPENDENCIES
-   sensor_msgs
-   std_msgs
- )
+#generate_messages(
+#   DEPENDENCIES
+#   sensor_msgs
+#   std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -109,7 +109,7 @@ generate_dynamic_reconfigure_options(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-CATKIN_DEPENDS message_runtime
+CATKIN_DEPENDS #message_runtime
 
 #  INCLUDE_DIRS include
 #  LIBRARIES stolpe
