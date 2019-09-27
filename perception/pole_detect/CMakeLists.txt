@@ -94,9 +94,7 @@ find_package(OpenCV REQUIRED)
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
- cfg/tuning.cfg
- cfg/tuning2.cfg
-#   cfg/DynReconf2.cfg
+cfg/red_pole_tuning.cfg
 )
 
 ###################################

@@ -25,7 +25,7 @@
 using namespace cv;
 using namespace std;
 using namespace cv_bridge;
-using namespace image_transport;
+using namespace image_transport; 	
 static const std::string OPENCV_WINDOW = "Binary image";
 static const std::string WINDOW2 = "Bounding boxes";
 static const std::string CAMERA_FRAME = "manta/camerafront_link";
