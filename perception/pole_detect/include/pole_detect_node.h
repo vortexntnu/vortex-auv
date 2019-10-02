@@ -106,10 +106,13 @@ public:
     // Image data
     void init_msg(cv_bridge::CvImagePtr cv_ptr);
 
+    // red filtering and edge detection in image
     void redFilterAndEgde(cv_bridge::CvImagePtr cv_ptr);
 
+    // finds contours in a binary image
     void Contours(cv_bridge::CvImagePtr cv_ptr);
 
+    
     void findDistance(cv_bridge::CvImagePtr cv_ptr);
 
     void drawOnImage(cv_bridge::CvImagePtr cv_ptr);

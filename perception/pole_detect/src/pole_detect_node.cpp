@@ -82,12 +82,23 @@ void poleFinder::Contours(cv_bridge::CvImagePtr cv_ptr)
 {
   
   // Declaring necesarry variables  
+  // Each contour is stored as a vector of points.
   vector<vector<Point> > contours;
-  findContours(detected_edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-  int height = 0; 
 
-   // Filtering countours based on height into two vectors heights and heights2
-  for (int i = 0; i < contours.size(); i++) {
+  /* Finds contours in a binary image.
+	 mode=CV_RETR_LIST:
+	 	- retrieves all of the contours without establishing any hierarchical relationships
+	 method=CV_CHAIN_APPROX_SIMPLE:
+	 	- compresses horizontal, vertical, and diagonal segments and leaves only their 
+	 	  end points. For example, an up-right rectangular contour is encoded with 4 points.
+  */
+
+  findContours(detected_edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+  // Filtering countours based on height into two vectors heights and heights2
+  int height = 0; 
+  for (int i = 0; i < contours.size(); i++)
+  {
     bbox = boundingRect(contours[i]);
     
     if ( bbox.height > height ) {
@@ -106,6 +117,7 @@ void poleFinder::findDistance(cv_bridge::CvImagePtr cv_ptr)
     detected.pos_y = (bbox.tl().y + bbox.br().y) / 2;
     rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
 
+    /*
     if (detected.pos_x > (detected.frame_width/2 - 200) && detected.pos_x < (detected.frame_width/2 + 200)) {
         if  (detected.pos_y > (detected.frame_height/2 - 200) && detected.pos_y < (detected.frame_height/2 + 200)) {
             bbox = bbox_big;
@@ -119,7 +131,7 @@ void poleFinder::findDistance(cv_bridge::CvImagePtr cv_ptr)
             cv::Point point(10,60);
             cv::putText(cv_ptr->image, str, point, 3, 2,(0,255,255),1,1);
         }  
-    }
+    } */
 }
 
 
