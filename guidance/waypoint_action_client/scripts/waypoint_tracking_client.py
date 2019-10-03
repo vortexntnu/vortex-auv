@@ -56,30 +56,6 @@ class WaypointClient():
             # append waypoints
             self.waypoints.append(Pose(Point(xyz[0], xyz[1], xyz[2]),q))
 
-        """        
-        # Create a list to hold the target quaternions (orientations)
-        quaternions = list()
-
-        # First define the corner orientations as Euler angles
-        euler_angles = (pi/2, pi, 3*pi/2, 0)
-
-        # Then convert the angles to quaterions
-        for angle in euler_angles:
-            q_angle = quaternion_from_euler(0, 0, angle, axes = 'sxyz')
-            q = Quaternion(*q_angle)
-            quaternions.append(q)
-
-        # Create a list to hold the waypoint poses
-        self.waypoints = list()
-
-        # Append each of the four waypoints to the list. Each waypoint
-        # is a pose consisting of a position and orientation in the map frame
-        self.waypoints.append(Pose(Point(5.0, -3.0, -3.0), quaternions[0]))
-        self.waypoints.append(Pose(Point(8.0, -3.0, -3.0), quaternions[1]))
-        self.waypoints.append(Pose(Point(8.0, -10.0, -3.0), quaternions[2]))
-        self.waypoints.append(Pose(Point(5.0, -10.0, 0.0), quaternions[3]))
-        """
-
 
         #Create action client
         self.client = actionlib.SimpleActionClient('move_base',MoveBaseAction)
@@ -160,7 +136,10 @@ class WaypointClient():
             rospy.loginfo("Goal pose "+str(self.goal_cnt)+" received a cancel request before it started executing, successfully cancelled!")
 
     def movebase_client(self):
+
+        # creates a goal to send to the action server
         goal = MoveBaseGoal()
+        
         goal.target_pose.header.frame_id = "map"
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose = self.waypoints[self.goal_cnt]
