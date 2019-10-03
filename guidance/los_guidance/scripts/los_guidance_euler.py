@@ -26,24 +26,17 @@ class LOS:
 
 	def __init__(self):
 
-		self.waypoint_k = PoseStamped()
-		self.waypoint_kp1 = PoseStamped()
-
 		# current position
 		self.x = 0.0
 		self.y = 0.0
 
 		# previous waypoint
-		self.x_k = -5.0
-		self.y_k = 5.0
+		self.x_k = 0.0
+		self.y_k = 0.0
 
 		# next waypoint
-		self.x_kp1 = 10.0
-		self.y_kp1 = -2.0
-
-		# los target
-		self.x_los = 0
-		self.y_los = 0
+		self.x_kp1 = 0.0
+		self.y_kp1 = 0.0
 
 		# sphere of acceptance
 		self.R = 0.5
@@ -164,15 +157,14 @@ class LosPathFollowing(object):
 		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
 
 		"""
-			action server
+			action server guide
 			https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
 		"""
-
+		self.flag = False
 		self.action_server = actionlib.SimpleActionServer(name='los_path', ActionSpec=LosPathFollowingAction, auto_start=False)
-		#self.action_server.register_goal_callback(self.goalCB)
-		#self.action_server.register_preempt_callback(self.preemptCB)
-		#self.action_server.start()
-		#self.goalAccepted = False
+		self.action_server.register_goal_callback(self.goalCB)
+		self.action_server.register_preempt_callback(self.preemptCB)
+		self.action_server.start()
 
 	def callback(self, msg): 
 
@@ -195,23 +187,23 @@ class LosPathFollowing(object):
 		thrust_msg.force.x = 1.0
 		thrust_msg.torque.z = tau_d_heading # 2.0*self.error_ENU
 
-		#print(thrust_msg)
-		self.pub_thrust.publish(thrust_msg)
+		if self.flag is True:
+			# write to thrusters
+			self.pub_thrust.publish(thrust_msg)
 
-		# check if action goal succeeded
-		#if self.goalAccepted:
-		#	self.statusActionGoal()
+			# check if action goal succeeded
+			self.statusActionGoal()
 
 	def statusActionGoal(self):
 
 		# feedback
-		self._feedback.distanceToGoal = 2.0 #self.los.distance()
+		self._feedback.distanceToGoal = self.los.distance()
 		self.action_server.publish_feedback(self._feedback)
 
 		# succeeded
 		if self.los.sphereOfAcceptance():
-			_result = True
-			self.action_server.set_succeeded(_result)
+			self._result.terminalSector = True
+			self.action_server.set_succeeded(self._result)
 
 	def preemptCB(self):
 		# check that preempt has not been requested by the client
@@ -221,14 +213,14 @@ class LosPathFollowing(object):
 
 	def goalCB(self):
 
-		self.goalAccepted = True
+		self.flag = True
 		_goal = self.action_server.accept_new_goal()
 
 		# set goal
 		self.los.x_k = _goal.prev_waypoint.x
 		self.los.y_k = _goal.prev_waypoint.y
-		self.los.x_kp1 = _goal.prev_waypoint.x
-		self.los.y_kp1 = _goal.prev_waypoint.y
+		self.los.x_kp1 = _goal.next_waypoint.x
+		self.los.y_kp1 = _goal.next_waypoint.y
 
 		# forward speed
 		self.speed = _goal.forward_speed.linear.x
