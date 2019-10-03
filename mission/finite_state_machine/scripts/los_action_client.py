@@ -34,31 +34,73 @@ class PathFollowingClient():
 
     def path_client(self):
 
+        """
+            action client guide
+            https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_client.py
+        """
+
         # creates a goal to send to the action server
-        goal = LosPathFollowingGoal()
+        _goal = LosPathFollowingGoal()
 
         # create line segment
-        goal.next_waypoint.x = 10.0
-        goal.next_waypoint.y = -2.0
-        goal.prev_waypoint.x = -5.0
-        goal.prev_waypoint.y = 5.0
+        _goal.next_waypoint.x = 10.0
+        _goal.next_waypoint.y = -2.0
+        _goal.prev_waypoint.x = -5.0
+        _goal.prev_waypoint.y = 5.0
 
         # set speed goal
-        goal.forward_speed.linear.x = 2.0
+        _goal.forward_speed.linear.x = 2.0
 
         # sphere of acceptance
-        goal.sphereOfAcceptance = 1.0
+        _goal.sphereOfAcceptance = 1.0
 
         rospy.loginfo("sending goal pose to Action Server")
 
         # Send goal
-        self.client.send_goal(goal)
+        self.client.send_goal(_goal, self.done_cb, self.active_cb, self.feedback_cb)
 
-        # waits for the server to finish performing the action
-        self.client.wait_for_result()
+    def done_cb(self, status, result):
+        # Gets called on transition state
+        if status == 1:
+            rospy.loginfo("active tracking")
+        if status == 2:
+            rospy.loginfo("preempted")
+        if status == 3:
+            rospy.loginfo("Goal pose reached")
+        if status == 4:
+            rospy.loginfo("Goal aborted")
+        if status == 5:
+            rospy.loginfo("Goal rejected")
 
-        # Prints out the result of executing the action
-        return self.client.get_result()
+        # creates a goal to send to the action server
+        _goal = LosPathFollowingGoal()
+
+        # create line segment
+        _goal.next_waypoint.x = 20.0
+        _goal.next_waypoint.y = 2.0
+        _goal.prev_waypoint.x = 5.0
+        _goal.prev_waypoint.y = 2.0
+
+        # set speed goal
+        _goal.forward_speed.linear.x = 2.0
+
+        # sphere of acceptance
+        _goal.sphereOfAcceptance = 1.0
+
+        rospy.loginfo("sending goal pose to Action Server")
+
+        self.client.send_goal(_goal, self.done_cb, self.active_cb, self.feedback_cb)
+
+    def active_cb(self):
+        #gets called on transitions to Active.
+        # status SUCCEDED=1
+        rospy.loginfo("active tracking")
+
+    def feedback_cb(self, feedback):
+        # gets called whenever feedback
+        # for this goal is received.
+        rospy.loginfo(feedback)
+
 
 
 if __name__ == '__main__':
