@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# Written by Kristoffer Rakstad Solberg, Student
+# Copyright (c) 2020 Manta AUV, Vortex NTNU.
+# All rights reserved.
+
 import rospy
 import numpy as np
 import math
@@ -10,6 +14,10 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 # dynamic reconfigure
 from dynamic_reconfigure.server import Server
 from los_guidance.cfg import AutopilotConfig
+
+# action message
+import actionlib
+from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
 from autopilot.autopilot import Autopilot
@@ -66,6 +74,13 @@ class LOS:
 		# next waypoint
 		self.x_kp1 = x_kp1
 		self.y_kp1 = y_kp1
+
+	def distance(self):
+		return np.sqrt((self.x_kp1 - self.x)**2 + 
+					   (self.y_kp1 - self.y)**2 )
+
+	def sphereOfAcceptance(self):
+		return self.distance() < self.R
 
 	def getEpsilonVector(self):
 
@@ -131,6 +146,10 @@ class LOS:
 
 class LosPathFollowing(object):
 
+	# create messages that are used to send feedback/result
+	_feedback = LosPathFollowingFeedback()
+	_result = LosPathFollowingResult()
+
 	def __init__(self):
 		rospy.init_node('los_path_following')
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
@@ -143,6 +162,17 @@ class LosPathFollowing(object):
 		# dynamic reconfigure
 		self.config = {}
 		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
+
+		"""
+			action server
+			https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
+		"""
+
+		self.action_server = actionlib.SimpleActionServer(name='los_path', ActionSpec=LosPathFollowingAction, auto_start=False)
+		#self.action_server.register_goal_callback(self.goalCB)
+		#self.action_server.register_preempt_callback(self.preemptCB)
+		#self.action_server.start()
+		#self.goalAccepted = False
 
 	def callback(self, msg): 
 
@@ -167,6 +197,45 @@ class LosPathFollowing(object):
 
 		#print(thrust_msg)
 		self.pub_thrust.publish(thrust_msg)
+
+		# check if action goal succeeded
+		#if self.goalAccepted:
+		#	self.statusActionGoal()
+
+	def statusActionGoal(self):
+
+		# feedback
+		self._feedback.distanceToGoal = 2.0 #self.los.distance()
+		self.action_server.publish_feedback(self._feedback)
+
+		# succeeded
+		if self.los.sphereOfAcceptance():
+			_result = True
+			self.action_server.set_succeeded(_result)
+
+	def preemptCB(self):
+		# check that preempt has not been requested by the client
+		if self.action_server.is_preempt_requested():
+			rospy.loginfo("Preempted requested by los path client")
+			self.action_server.set_preempted()
+
+	def goalCB(self):
+
+		self.goalAccepted = True
+		_goal = self.action_server.accept_new_goal()
+
+		# set goal
+		self.los.x_k = _goal.prev_waypoint.x
+		self.los.y_k = _goal.prev_waypoint.y
+		self.los.x_kp1 = _goal.prev_waypoint.x
+		self.los.y_kp1 = _goal.prev_waypoint.y
+
+		# forward speed
+		self.speed = _goal.forward_speed.linear.x
+
+		# sphere of acceptance
+		self.los.R = _goal.sphereOfAcceptance
+
 
 	def config_callback(self, config, level):
 		"""Handle updated configuration values."""
