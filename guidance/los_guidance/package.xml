@@ -54,18 +54,23 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>vortex_msgs</build_depend>
   <build_depend>tf</build_depend>
+  <build_depend>autopilot</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
 
   <build_export_depend>nav_msgs</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>sensor_msgs</build_export_depend>
   <build_export_depend>vortex_msgs</build_export_depend>
   <build_export_depend>tf</build_export_depend>
+  <build_export_depend>autopilot</build_export_depend>
 
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>vortex_msgs</exec_depend>
   <exec_depend>tf</exec_depend>
+  <exec_depend>autopilot</exec_depend>
+  <exec_depend>dynamic_reconfigure</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

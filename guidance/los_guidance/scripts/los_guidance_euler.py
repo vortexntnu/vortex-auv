@@ -7,8 +7,12 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Wrench, PoseStamped, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+# dynamic reconfigure
+from dynamic_reconfigure.server import Server
+from los_guidance.cfg import AutopilotConfig
+
 # modules included in this package
-from PID import PIDRegulator
+from autopilot.autopilot import Autopilot
 
 class LOS:
 
@@ -22,7 +26,7 @@ class LOS:
 		self.y = 0.0
 
 		# previous waypoint
-		self.x_k = 5.0
+		self.x_k = -5.0
 		self.y_k = 5.0
 
 		# next waypoint
@@ -36,15 +40,22 @@ class LOS:
 		# sphere of acceptance
 		self.R = 0.5
 
+		# look-ahead distance
+		Lpp = 0.7
+		self.delta = 1.0*Lpp
 
-	def updatePosition(self, x, y, z, u, psi, r):
+
+	def updateState(self, x, y, z, u, v, w, psi, r, time):
 
 		self.x = x
 		self.y = y
 		self.z = z
 		self.u = u
+		self.v = v
+		self.w = w
 		self.psi = psi
 		self.r = r
+		self.t = time
 
 	def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
 
@@ -86,10 +97,6 @@ class LOS:
 
 	def lookaheadBasedSteering(self):
 
-		# look-ahead distance
-		Lpp = 0.7
-		delta = 2.0*Lpp
-
 		# straight-line path segment
 		self.y_delta = self.y_kp1 - self.y_k
 		self.x_delta = self.x_kp1 - self.x_k
@@ -108,14 +115,14 @@ class LOS:
 
 		# cross-track error
 		self.e = epsilon[1]
-		print('\n cross-track error: ')
-		print(self.e)
+		#print('\n cross-track error: ')
+		#print(self.e)
 
 		# path-tangential angle (eq 10.73 Fossen)
 		self.chi_p = self.alpha
 
 		# velocity-path relative angle (eq 10.74 Fossen)
-		self.chi_r = np.arctan(-self.e / delta)
+		self.chi_r = np.arctan(-self.e / self.delta)
 
 		# desired heading angle
 		self.chi_d = self.chi_p + self.chi_r
@@ -131,46 +138,52 @@ class LosPathFollowing(object):
 
 		# constructor object
 		self.los = LOS()
+		self.autopilot = Autopilot()
 
+		# dynamic reconfigure
+		self.config = {}
+		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
 
-	def headingController(self, psi, psi_d, r, r_d):
-		# PIDRegulator(p, i, d, sat)
-		self.pid_heading = PIDRegulator(1, 0, 0, 1)
-		
-
-
-	def callback(self, msg):
-
-		# time
-		self.t = msg.header.stamp.to_sec()
+	def callback(self, msg): 
 
 		# update current position
-
 		self.psi = self.los.quat2euler(msg)
-		self.los.updatePosition(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z,
-								msg.twist.twist.linear.x, self.psi, msg.twist.twist.angular.z)
+
+		# update position and velocities
+		self.los.updateState(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z,
+							 msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z,
+							 self.psi, msg.twist.twist.angular.z, msg.header.stamp.to_sec())
 
 		# update current goal
 		self.psi_d = self.los.lookaheadBasedSteering()
-		#print('\n self heading_d: ')
-		#print(self.heading_d)
-
-		self.error_NED = (self.psi - self.psi_d)
-		self.error_ENU = -self.error_NED
-		print('\n error heading: ')
-		print(self.error_ENU)
-		self.norm_error = self.error_ENU/(abs(self.error_ENU)+1)
-		print('\n error norm: ')
-		print(self.norm_error)
-
-
-		thrust_msg = Wrench()
+		
+		# control force
+		tau_d_heading = self.autopilot.headingController(self.psi_d, self.psi, self.los.t)
 
 		# add speed controllers here
+		thrust_msg = Wrench()
 		thrust_msg.force.x = 1.0
-		thrust_msg.torque.z = 2.0*self.error_ENU
+		thrust_msg.torque.z = tau_d_heading # 2.0*self.error_ENU
+
 		#print(thrust_msg)
 		self.pub_thrust.publish(thrust_msg)
+
+	def config_callback(self, config, level):
+		"""Handle updated configuration values."""
+		# Config has changed, reset PID controllers
+
+		rospy.loginfo("""Reconfigure Request: {delta}, {p_rot}, {i_rot}, {d_rot}, {sat_rot} """.format(**config))
+        
+		# update look-ahead distance
+		self.los.delta = config['delta']
+
+		# self.pid_lin = PIDRegulator(config['pos_p'], config['pos_i'], config['pos_d'], config['pos_sat'])
+		self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
+
+		# update config
+		self.config = config
+
+		return config
 
 
 if __name__ == '__main__':

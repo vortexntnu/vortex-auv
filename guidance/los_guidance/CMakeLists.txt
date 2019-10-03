@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   vortex_msgs
   tf
+  autopilot
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -90,10 +92,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+   cfg/Autopilot.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -106,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES LOS_guidance
+#  LIBRARIES los_guidance
 #  CATKIN_DEPENDS nav_msgs rospy sensor_msgs vortex_msgs
 #  DEPENDS system_lib
 )
@@ -119,12 +120,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
+  
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/LOS_guidance.cpp
+#   src/${PROJECT_NAME}/los_guidance.cpp
 # )
 
 ## Add cmake target dependencies of the library
