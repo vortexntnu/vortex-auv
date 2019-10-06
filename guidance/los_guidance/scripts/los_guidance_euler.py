@@ -21,6 +21,7 @@ from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPat
 
 # modules included in this package
 from autopilot.autopilot import Autopilot
+from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
 
