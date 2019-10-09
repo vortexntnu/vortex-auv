@@ -1,0 +1,27 @@
+---
+# a list of waypoints
+# R is sphere of acceptance
+waypoints:
+  -
+    point: [0, 0, -0.5]
+    RPY: [0, 0, 1.57]
+  -
+    point: [2, -1, -0.5]
+    RPY: [0, 0,1.57]
+  -
+    point: [2, -2, -0.5]
+    RPY: [0, 0, 1.57]
+  -
+    point: [0, -3, -0.5]
+    RPY: [0, 0, 1.57]
+  -
+    point: [-2, -2, -0.5]
+    RPY: [0, 0, 1.57]
+  -
+    point: [-2, -1, -0.5]
+    RPY: [0, 0, 1.57]
+  -
+    point: [0, 0, -0.5]
+    RPY: [0, 0, 1.57]
+...
+

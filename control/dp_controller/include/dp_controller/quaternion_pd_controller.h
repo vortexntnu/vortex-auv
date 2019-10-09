@@ -44,7 +44,7 @@ public:
                                 float             R);
 
   // Integral error vector
-  Eigen::Vector6d integral = Eigen::Vector6d::Zero(); 
+  Eigen::Vector6d integral          = Eigen::Vector6d::Zero(); 
   Eigen::Vector3d x_d_prev          = Eigen::Vector3d::Zero();
   Eigen::Vector3d x_d_prev_prev     = Eigen::Vector3d::Zero();
   Eigen::Vector3d x_ref_prev        = Eigen::Vector3d::Zero();  
@@ -54,7 +54,7 @@ public:
 private:
   Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d R);
   Eigen::Matrix6d integralGainMatrix(const Eigen::Matrix3d R);
-  void integralWindUp(Eigen::Vector6d &vec, double lim);
+  void integralWindUp(Eigen::Vector6d &vec, double pose_lim, double att_lim);
 
   Eigen::Vector6d errorVector(const Eigen::Vector3d    &p,
                               const Eigen::Vector3d    &p_d,

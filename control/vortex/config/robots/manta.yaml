@@ -69,7 +69,7 @@ propulsion:
       scaling: [ 0.4,  0.4,  0.6, 0.3, 0.7, 0.4]
 
 controller:
-  circleOfAcceptance: 0.20
+  circleOfAcceptance: 0.10
   frequency: 40
   position_gain: 0.3 #5.0
   attitude_gain: 0.4 #2.5

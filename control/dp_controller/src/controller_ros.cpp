@@ -88,6 +88,17 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
       new_control_mode = getControlMode(mode);
       res.result = "success";
       ROS_INFO("successfull callback");
+
+      // TO AVOID AGGRESSIVE SWITCHING
+      // set current target position to previous position
+      m_controller->x_d_prev = position;
+      m_controller->x_d_prev_prev = position;
+      m_controller->x_ref_prev = position;
+      m_controller->x_ref_prev_prev = position;
+
+      // Integral action reset
+      m_controller->integral = Eigen::Vector6d::Zero(); 
+
     } catch (const std::exception& e)
     {
       res.result = "failed";
@@ -269,18 +280,13 @@ void Controller::spin()
       break;
 
       // 3D coordinates with heading
-      case ControlModes::POSE_HEADING_HOLD:
-      tau_surgehold = surgeHold(tau_openloop,
+      case ControlModes::DEPTH_HOLD:
+      tau_depthhold = depthHold(tau_openloop,
                                 position_state,
                                 orientation_state,
                                 velocity_state,
                                 position_setpoint);
-      tau_headinghold = headingHold(tau_openloop,
-                                    position_state,
-                                    orientation_state,
-                                    velocity_state,
-                                    orientation_setpoint);
-      tau_command = tau_surgehold + tau_headinghold;
+      tau_command = tau_openloop + tau_depthhold;
       break;
 
       // adjust roll and pitch

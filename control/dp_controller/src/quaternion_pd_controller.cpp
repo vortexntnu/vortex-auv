@@ -16,16 +16,10 @@ QuaternionPdController::QuaternionPdController(double a, double b, double c, dou
 void QuaternionPdController::setGains(double a, double b, double c, double i)
 {
   m_c   = c;
-  m_c_i = i; // this should be chosen otherwise
+  m_c_i = i*0.1; // this should be chosen otherwise
   m_K_d = a * Eigen::MatrixXd::Identity(6, 6);
   m_K_x = b * Eigen::MatrixXd::Identity(3, 3);
   m_K_i = i * Eigen::MatrixXd::Identity(3, 3);
-
-  //std::cout << "velocity gain= " << m_K_d << std::endl;
-  //std::cout << "position gain= " << m_K_x << std::endl;
-  //std::cout << "attitude gain= " << m_c << std::endl;
-  std::cout << "integral matrix= " << std::endl;
-  std::cout << m_K_i << std::endl;
 
 }
 
@@ -48,13 +42,7 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
   Eigen::Matrix6d K_i = integralGainMatrix(R);
 
   // Reference model
-  std::cout << "ref before " << std::endl;
-  std::cout << x_d << std::endl;
-
   Eigen::Vector3d x_d_smooth = referenceModel(x,x_d);
-
-  std::cout << "ref after " << std::endl;
-  std::cout << x_d_smooth << std::endl;
 
   // Error Vector
   Eigen::Vector6d z   = errorVector(x, x_d_smooth, q, q_d);
@@ -62,12 +50,15 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
 
 
   // Integral
-  double maxGain = 0.75;
+  double maxPoseGain = 0.75;
+  double maxAttGain = 0.05;
   integral += K_i*z;
-  integralWindUp(integral,maxGain);
+  integralWindUp(integral,maxPoseGain, maxAttGain);
   
   //gain
   Eigen::Vector6d gain = -m_K_d*nu - K_p*z - integral + g;
+  std::cout << "Kd gain: " << std::endl;
+  std::cout << -m_K_d*nu << std::endl;
 
   return (Eigen::Vector6d() << gain).finished();
 }
@@ -85,12 +76,19 @@ Eigen::Matrix6d QuaternionPdController::integralGainMatrix(const Eigen::Matrix3d
                                Eigen::MatrixXd::Zero(3, 3), m_c_i*Eigen::MatrixXd::Identity(3, 3)).finished();
 }
 
-void QuaternionPdController::integralWindUp(Eigen::Vector6d &vec, double lim)
+void QuaternionPdController::integralWindUp(Eigen::Vector6d &vec, double pose_lim, double att_lim)
 {
 
-  for (int i = 0; i < 6; i++){
-    if (vec(i) < -lim || vec(i) > lim){
-     double k = copysign(lim,vec(i));
+  for (int i = 0; i < 3; i++){
+    if (vec(i) < -pose_lim || vec(i) > pose_lim){
+     double k = copysign(pose_lim,vec(i));
+     vec[i] = k; 
+    }
+  }
+
+  for (int i = 3; i < 6; i++){
+    if (vec(i) < -att_lim || vec(i) > att_lim){
+     double k = copysign(att_lim,vec(i));
      vec[i] = k; 
     }
   }
@@ -111,6 +109,9 @@ Eigen::Vector6d QuaternionPdController::errorVector(const Eigen::Vector3d    &x,
   q_tilde.normalize();
 
   Eigen::Vector3d error_body = x - x_d;
+
+  std::cout << "error_attitude: " << std::endl;
+  std::cout << sgn(q_tilde.w())*q_tilde.vec() << std::endl;
 
   return (Eigen::Vector6d() << error_body, sgn(q_tilde.w())*q_tilde.vec()).finished();
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="filename" default="$(find waypoint_action_client)/waypoints/robosub_waypoints.yaml"/>
+  <arg name="filename" default="$(find waypoint_action_client)/waypoints/square_waypoints.yaml"/>
   <node pkg="waypoint_action_client"
         type="waypoint_tracking_client.py"
         name="load_waypoints"
