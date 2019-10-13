@@ -1,6 +1,7 @@
 from PID import PIDRegulator
+from backstepping import BacksteppingDesign, BacksteppingControl
 
-class Autopilot:
+class AutopilotPID:
 
 	def __init__(self):
 		# PIDRegulator(p, i, d, sat)
@@ -22,3 +23,9 @@ class Autopilot:
 		tau = self.pid_heading.regulate(e_rot, t)
 
 		return tau
+
+
+class AutopilotBackstepping:
+
+	def __init__(self):
+		pass

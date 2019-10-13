@@ -20,7 +20,7 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from autopilot.autopilot import AutopilotPID
+from autopilot.autopilot import AutopilotPID, AutopilotBackstepping
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
@@ -155,6 +155,7 @@ class LosPathFollowing(object):
 		# constructor object
 		self.los = LOS()
 		self.autopilot = AutopilotPID()
+		self.autopilotback = AutopilotBackstepping()
 		self.reference_model = ReferenceModel(np.array((0, 0)), 0.05)
 
 		# dynamic reconfigure

@@ -17,13 +17,13 @@ class ReferenceModel:
 		self.h = h
 		# determines position of poles
 		self.a0 = 1.0
-		self.a1 = -1.990024937655860
-		self.a2 = 0.990049813123053
+		self.a1 = -1.9312
+		self.a2 = 0.9324
 
 		# determine zeros
-		self.b0 = 6.218866798092052e-06
-		self.b1 = 1.243773359618410e-05
-		self.b2 = 6.218866798092052e-06
+		self.b0 = 2.9581e-04
+		self.b1 = 5.9161e-04
+		self.b2 = 2.9581e-04
 
 		# set intial values
 		self.x_ref_prev_prev = x	# 2nd-to-last raw input value

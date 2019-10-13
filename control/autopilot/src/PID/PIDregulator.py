@@ -13,11 +13,11 @@ class PIDRegulator:
 		self.prev_t = -1
 
 	def __str__(self):
-        msg = 'PID controller:'
-        msg += '\n\tp=%f' % self.p
-        msg += '\n\ti=%f' % self.i
-        msg += '\n\td=%f' % self.d
-        msg += '\n\tsat=%f' % self.sat
+		msg = 'PID controller:'
+		msg += '\n\tp=%f' % self.p
+		msg += '\n\ti=%f' % self.i
+		msg += '\n\td=%f' % self.d
+		msg += '\n\tsat=%f' % self.sat
 		return msg
 
 	def regulate(self, err, t):
