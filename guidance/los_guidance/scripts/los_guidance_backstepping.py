@@ -20,12 +20,16 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from autopilot.autopilot import AutopilotPID, AutopilotBackstepping
+from autopilot.autopilot import AutopilotBackstepping
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
 
 	def __init__(self):
+
+		# update rate
+		self.h = 0.05
+		self.u = 0.0
 
 		# current position
 		self.x = 0.0
@@ -52,9 +56,12 @@ class LOS:
 		self.x = x
 		self.y = y
 		self.z = z
+
+		self.u_dot = (u - self.u) / self.h
 		self.u = u
 		self.v = v
 		self.w = w
+		
 		self.psi = psi
 		self.r = r
 		self.t = time
@@ -124,8 +131,8 @@ class LOS:
 
 		# cross-track error
 		self.e = epsilon[1]
-		#print('\n cross-track error: ')
-		#print(self.e)
+		print('\n cross-track error: ')
+		print(self.e)
 
 		# path-tangential angle (eq 10.73 Fossen)
 		self.chi_p = self.alpha
@@ -154,9 +161,8 @@ class LosPathFollowing(object):
 
 		# constructor object
 		self.los = LOS()
-		self.autopilot = AutopilotPID()
-		self.autopilotback = AutopilotBackstepping()
-		self.reference_model = ReferenceModel(np.array((0, 0)), 0.05)
+		self.autopilot = AutopilotBackstepping()
+		self.reference_model = ReferenceModel(np.array((0, 0)), self.los.h)
 
 		# dynamic reconfigure
 		self.config = {}
@@ -184,19 +190,30 @@ class LosPathFollowing(object):
 		# update current goal
 		self.psi_d = self.los.lookaheadBasedSteering()
 
-		# reference model
-		x_smooth = self.reference_model.discreteTustinMSD(np.array((2.0, self.psi_d)))
-		print(x_smooth)
-		
-		# control force
-		tau_d_heading = self.autopilot.headingController(self.psi_d, self.psi, self.los.t)
-
-		# add speed controllers here
-		thrust_msg = Wrench()
-		thrust_msg.force.x = 1.0
-		thrust_msg.torque.z = tau_d_heading # 2.0*self.error_ENU
-
 		if self.flag is True:
+
+			# reference model
+			x_smooth = self.reference_model.discreteTustinMSD(np.array((0.2, self.psi_d)))
+			
+			u_d = x_smooth[0]
+			u_d_dot = x_smooth[1]
+			psi_d = x_smooth[2]
+			r_d = x_smooth[3]
+			r_d_dot = x_smooth[4]
+
+			print(x_smooth)
+
+			# control force
+			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)
+
+			# add speed controllers here
+			thrust_msg = Wrench()
+			if tau_d[0] > 0.0:
+				thrust_msg.force.x = tau_d[0]
+
+			#thrust_msg.force.y = tau_d[1]
+			thrust_msg.torque.z = tau_d[2] # 2.0*self.error_ENU
+
 			# write to thrusters
 			self.pub_thrust.publish(thrust_msg)
 
