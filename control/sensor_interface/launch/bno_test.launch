@@ -1,0 +1,5 @@
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  <param name="sensors/bno055/mode" value="NDOF" />
+  <node name="bno055_interface" pkg="sensor_interface" type="bno055_interface.py" output="screen" required="true" />
+</launch>
