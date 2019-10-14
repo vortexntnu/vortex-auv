@@ -59,6 +59,7 @@ class ThrusterInterface(object):
         if not healthy_message(msg):
             return
         thrust = list(msg.thrust)
+	print(thrust)
 
         microsecs = [None] * NUM_THRUSTERS
         pwm_msg = Pwm()
