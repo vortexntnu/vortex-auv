@@ -163,9 +163,7 @@ void Controller::actionGoalCallBack()
   m_setpoints->set(setpoint_position, setpoint_orientation);
 
   // Integral action reset
-  m_controller->integral = Eigen::Vector6d::Zero(); 
-
-  std::cout << "new setpoint, integral gain: " << m_controller->integral << std::endl;
+  m_controller->integral = Eigen::Vector6d::Zero();
 
 }
 

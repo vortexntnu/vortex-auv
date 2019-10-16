@@ -12,9 +12,9 @@
   <param name="computer" value="pc-debug" />
   <param name="stepper/default_speed_rpm" value="1"/>
 
-  <node name="thruster_interface" pkg="thruster_interface" type="thruster_interface_node.py" output="screen" />
+  <node name="thruster_interface" pkg="thruster_interface" type="thruster_interface_node.py" />
   <node pkg="dp_controller" type="node" name="controller" output="screen"/>
-  <node pkg="vortex_allocator"  type="node" name="allocator"  output="screen"/>
+  <node pkg="vortex_allocator"  type="node" name="allocator"  />
 <!--
  <node pkg="rosbag" type="record" name="rosbag_record_pose"
        args="record /odometry/filtered /manta/pose_gt /manta/waypoints "/>	-->

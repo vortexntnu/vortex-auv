@@ -4,7 +4,7 @@
   <node pkg="waypoint_action_client"
         type="waypoint_tracking_client.py"
         name="load_waypoints"
-        output="screen">
+        >
           <rosparam subst_value="true">
             filename: $(arg filename)
           </rosparam>

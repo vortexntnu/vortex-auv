@@ -95,15 +95,15 @@ Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench &msg)
   if (m_active_degrees_of_freedom.at("surge"))
     rov_forces(i++) = msg.force.x;
   if (m_active_degrees_of_freedom.at("sway"))
-    rov_forces(i++) = msg.force.y;
+    rov_forces(i++) = -msg.force.y;
   if (m_active_degrees_of_freedom.at("heave"))
-    rov_forces(i++) = msg.force.z;
+    rov_forces(i++) = -msg.force.z;
   if (m_active_degrees_of_freedom.at("roll"))
     rov_forces(i++) = msg.torque.x;
   if (m_active_degrees_of_freedom.at("pitch"))
-    rov_forces(i++) = msg.torque.y;
+    rov_forces(i++) = -msg.torque.y;
   if (m_active_degrees_of_freedom.at("yaw"))
-    rov_forces(i++) = msg.torque.z;
+    rov_forces(i++) = -msg.torque.z;
 
   if (i != m_num_degrees_of_freedom)
   {
