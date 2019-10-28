@@ -49,7 +49,7 @@ class PathFollowingClient():
         _goal.prev_waypoint.y = 5.0
 
         # set speed goal
-        _goal.forward_speed.linear.x = 2.0
+        _goal.forward_speed.linear.x = 0.20
 
         # sphere of acceptance
         _goal.sphereOfAcceptance = 1.0
@@ -82,7 +82,7 @@ class PathFollowingClient():
         _goal.prev_waypoint.y = 2.0
 
         # set speed goal
-        _goal.forward_speed.linear.x = 2.0
+        _goal.forward_speed.linear.x = 0.20
 
         # sphere of acceptance
         _goal.sphereOfAcceptance = 1.0

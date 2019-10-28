@@ -22,10 +22,10 @@ class Mission():
         self.rate = rospy.Rate(100) #Hz
 
         # Subscriber
-        #self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
+        # self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
 
     #def positionCallback(self, msg):
-        #pass
+        # pass
 
     # Checks the status message from the server
     def status_cb(self, status, result):
@@ -65,7 +65,9 @@ if __name__ == '__main__':
                                             goal=goal_pose),
                              transitions={'succeeded':waypoints[(i + 1) % len(waypoints)][0]})
 
-
+            sis = IntrospectionServer(str(rospy.get_name()), patrol, '/SM_ROOT' + str(rospy.get_name()))
+            sis.start()
 
     patrol.execute()
     rospy.spin()
+    sis.stop()
