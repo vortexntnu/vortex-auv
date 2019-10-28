@@ -193,7 +193,7 @@ class LosPathFollowing(object):
 		if self.flag is True:
 
 			# reference model
-			x_smooth = self.reference_model.discreteTustinMSD(np.array((0.2, self.psi_d)))
+			x_smooth = self.reference_model.discreteTustinMSD(np.array((self.speed, self.psi_d)))
 			
 			u_d = x_smooth[0]
 			u_d_dot = x_smooth[1]
@@ -211,7 +211,7 @@ class LosPathFollowing(object):
 			if tau_d[0] > 0.0:
 				thrust_msg.force.x = tau_d[0]
 
-			#thrust_msg.force.y = tau_d[1]
+			thrust_msg.force.y = tau_d[1]
 			thrust_msg.torque.z = tau_d[2] # 2.0*self.error_ENU
 
 			# write to thrusters

@@ -12,7 +12,7 @@ class BacksteppingDesign:
         # numerical values
         
         # acceleration proportional
-        self.m      =  18.000
+        self.m      =  30.000
         self.I_z    =  0.9198
         self.x_g    =  0.0000
         self.Xu_dot = -10.7727
@@ -31,8 +31,8 @@ class BacksteppingDesign:
         # static matrices
         
         self.M = np.array(( (self.m - self.Xu_dot, 0.0, 0.0),
-                            (0.0, self.m - self.Yv_dot, self.m*self.x_g*self.Yr_dot),
-                            (0.0, self.m*self.x_g*self.Nv_dot, self.I_z - self.Nr_dot) ))
+                            (0.0, self.m - self.Yv_dot, self.m*self.x_g - self.Yr_dot),
+                            (0.0, self.m*self.x_g - self.Nv_dot, self.I_z - self.Nr_dot) ))
         print(self.M)
         # nonlinear dynamics vector
         self.n = np.identity(3)
@@ -46,7 +46,7 @@ class BacksteppingDesign:
     def nonlinVector(self, u):
 
         self.n = np.array(( (-self.Xu, 0.0,          0.0),
-                            (0.0, -self.Yv,       self.m*u*self.Yr),
+                            (0.0, -self.Yv,       self.m*u - self.Yr),
                             (0.0, -self.Nv, self.m*self.x_g*u - self.Nr) ))
 
 
@@ -57,11 +57,11 @@ class BacksteppingControl:
         # backstepping init
         self.bs = BacksteppingDesign()
         
-        self.c = c
+        self.c = c #heading gain
         
-        self.K = np.array(( (k1, 0, 0),
-                            (0, k2, 0), 
-                            (0, 0, k3) ))
+        self.K = np.array(( (k1, 0, 0), # surge speed gain
+                            (0, k2, 0), # sway speed gain  
+                            (0, 0, k3) )) # 
         
         self.nu = np.transpose(np.array((0,0,0)))
         self.h = np.transpose(np.array((0,0,1)))
