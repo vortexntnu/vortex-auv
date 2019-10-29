@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <include file="$(find vortex)/launch/manta_auv.launch"/>
+  <include file="$(find vortex)/launch/manta_enu.launch"/>
 
   <arg name="filename" default="$(find waypoint_action_client)/waypoints/square_waypoints.yaml"/>
   <node pkg="waypoint_action_client"
