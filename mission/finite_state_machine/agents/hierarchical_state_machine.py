@@ -2,11 +2,13 @@
 import	rospy
 from    time import sleep
 from	smach	import	State, StateMachine		
-from	smach_ros	import	SimpleActionState, IntrospectionServer	
-from    nav_msgs.msg import Odometry	
-from    tf.transformations import quaternion_from_euler
-from	move_base_msgs.msg	import	MoveBaseAction,	MoveBaseGoal
-from    finite_state_machine import ControllerMode
+from    nav_msgs.msg import Odometry    
+from	smach_ros	 import	SimpleActionState, IntrospectionServer	
+from    move_base_msgs.msg  import  MoveBaseAction, MoveBaseGoal
+from    vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
+
+# Imported help functions from src/finite_state_machine
+from    finite_state_machine import ControllerMode, WaypointClient, PathFollowingClient
 
 #ENUM
 OPEN_LOOP           = 0
@@ -52,36 +54,6 @@ class ControlMode(State):
         self.control_mode.change_control_mode_client(self.mode)
         return 'success'
 
-
-class WaypointClient():
-
-    def __init__(self):
-
-        pass
-
-    def trackNewWaypoint(self, w):
-
-        # object constructor
-        goal_pose = MoveBaseGoal()
-        goal_pose.target_pose.header.frame_id = "map"
-        goal_pose.target_pose.header.stamp = rospy.Time.now()
-
-        # adding coordiantes
-        goal_pose.target_pose.pose.position.x = w[1][0]
-        goal_pose.target_pose.pose.position.y = w[1][1]
-        goal_pose.target_pose.pose.position.z = w[1][2]
-
-        #Convert attitude from euler to quaternion
-        quat = quaternion_from_euler(w[2][0], w[2][1], w[2][2], axes = 'sxyz')
-
-        # adding attitude
-        goal_pose.target_pose.pose.orientation.x = quat[0]
-        goal_pose.target_pose.pose.orientation.y = quat[1]
-        goal_pose.target_pose.pose.orientation.z = quat[2]
-        goal_pose.target_pose.pose.orientation.w = quat[3]
-
-        return goal_pose
-
 class Drive(State):
     def __init__(self, distance):
         State.__init__(self,outcomes=['succeeded','aborted','preempted'])
@@ -109,6 +81,7 @@ if __name__ == '__main__':
         mission = Mission()
         vehicle = Vehicle()
         wpc     = WaypointClient()
+        los     = PathFollowingClient()
 
     except rospy.ROSInterruptException:
         rospy.loginfo("Unable to run constructor")
@@ -140,14 +113,26 @@ if __name__ == '__main__':
         StateMachine.add('SIDE3', Drive(1), transitions={'succeeded':'TURN3'})
         StateMachine.add('TURN3', Turn(90), transitions={'succeeded':'SIDE4'})
         StateMachine.add('SIDE4', Drive(1), transitions={'succeeded':'succeeded'})
+
+
+    # Define transit state
+    transit = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
+    _goal = los.path_client(-2, -2, 15, 3, 0.2, 0.5)
+
+    # State machine 
+    with transit:
+        StateMachine.add('OPEN_LOOP',     ControlMode(OPEN_LOOP), transitions={'success':'transit'})
+        StateMachine.add('transit', SimpleActionState('los_path',LosPathFollowingAction, goal=_goal), transitions={'succeeded':'succeeded'})
+
     
     # Define outcomes
     shapes = StateMachine(outcomes=['succeeded', 'preempted', 'aborted', 'completed'])
     
     # Creating a hierarchical state machine nesting several sm's
     with shapes:
-        StateMachine.add('terminal', patrol, transitions={'succeeded':'transit'})
-        StateMachine.add('transit', square, transitions={'succeeded':'completed'})
+        StateMachine.add('terminal', patrol, transitions={'succeeded':'square'})
+        StateMachine.add('square', square, transitions={'succeeded':'transit'})
+        StateMachine.add('transit', transit, transitions={'succeeded':'completed'})
 
     
     sis = IntrospectionServer(str(rospy.get_name()), shapes, '/SM_ROOT' + str(rospy.get_name()))
