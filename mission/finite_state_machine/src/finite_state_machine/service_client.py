@@ -8,16 +8,16 @@ OPEN_LOOP           = 0
 POSE_HOLD           = 1
 HEADING_HOLD        = 2
 DEPTH_HEADING_HOLD  = 3
-DEPTH_HOLD  	    = 4
+DEPTH_HOLD          = 4
 STAY_LEVEL          = 5
 CONTROL_MODE_END    = 6
 
 
-class Mode:
+class ControllerMode:
 
 
     def __init__(self):
-    	rospy.init_node('change_control_mode')
+        print('init')
 
 
     def change_control_mode_client(self,requested_mode):
@@ -35,8 +35,7 @@ class Mode:
 if __name__ == '__main__':
     
     try:
-        control_mode = Mode()
-        #control_mode.change_control_mode_client([False, True, False, False, False, False])
+        control_mode = ControlMode()
         control_mode.change_control_mode_client(POSE_HOLD)
         rospy.spin()
 
