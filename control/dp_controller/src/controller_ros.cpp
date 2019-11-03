@@ -275,6 +275,10 @@ void Controller::spin()
                                 position_setpoint,
                                 orientation_setpoint);
       tau_command = tau_posehold;
+
+      tf::wrenchEigenToMsg(tau_command, msg);
+      m_wrench_pub.publish(msg);
+      
       break;
 
       // 3D coordinates with heading
@@ -285,12 +289,20 @@ void Controller::spin()
                                 velocity_state,
                                 position_setpoint);
       tau_command = tau_openloop + tau_depthhold;
+
+      tf::wrenchEigenToMsg(tau_command, msg);
+      m_wrench_pub.publish(msg);
+
       break;
 
       // adjust roll and pitch
       case ControlModes::STAY_LEVEL:
       tau_staylevel = stayLevel(orientation_state, velocity_state);
       tau_command = tau_openloop + tau_staylevel;
+
+      tf::wrenchEigenToMsg(tau_command, msg);
+      m_wrench_pub.publish(msg);
+
       break;
 
       // only heading
@@ -301,6 +313,10 @@ void Controller::spin()
                                     velocity_state,
                                     orientation_setpoint);
       tau_command = tau_headinghold;
+
+      tf::wrenchEigenToMsg(tau_command, msg);
+      m_wrench_pub.publish(msg);
+
       break;
 
       // only depth and heading
@@ -316,15 +332,16 @@ void Controller::spin()
                                     velocity_state,
                                     orientation_setpoint);
       tau_command = tau_openloop + tau_depthhold + tau_headinghold;
+      
+      tf::wrenchEigenToMsg(tau_command, msg);
+      m_wrench_pub.publish(msg);
+      
       break;
 
       default:
       ROS_ERROR("Default control mode reached.");
       break;
     }
-
-    tf::wrenchEigenToMsg(tau_command, msg);
-    m_wrench_pub.publish(msg);
 
     ros::spinOnce();
     rate.sleep();
