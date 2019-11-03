@@ -18,7 +18,7 @@
 
 	<!--Static transform from base_link to imu_frame --> 
 
-	<node pkg="tf" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 0 0 0 base_link imu_0 100" />
+	<node pkg="tf" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 3.14159 0 0 base_link imu_0 100" />
 
 
 	<!-- DVL -->
@@ -28,6 +28,10 @@
 	<!--Static transform from base_link to DVL_frame --> 
 
 	<node pkg="tf" type="static_transform_publisher" name="base_link_to_DVL" args="-0.035 -0.017 -0.211 0 3.14159 0 base_link dvl_link 100" />
+        
+	<!--Static transform from base_link to PressureZ_frame -->
+
+	<node pkg="tf" type=static_transform_publisher" name="base_link_to_PressureZ" args="0 0 -0.211 0 0 0 base_link pressure_link 100" />
 
 
 </launch>
