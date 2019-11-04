@@ -22,7 +22,7 @@ world_frame: odom           # Defaults to the value of odom_frame if unspecified
 
 
 # Imu
-imu0: imu/ahrs
+imu0: /imu/data_raw
 imu0_config: [false, false, false, # x, y, z
               false, false, false,  # roll, pitch, yaw
               false, false, false, # vx, vy, vz
