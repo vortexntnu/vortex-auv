@@ -1,5 +1,4 @@
 /*   Written by Kristoffer Rakstad Solberg, Student
-     and Morten Fyhn Amundsen, Student
      Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved. */
 
@@ -28,7 +27,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 
   // Publishers
   m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
-  //m_rpm_pub     = m_nh.advertise<geometry_msgs::Wrench>("manta/thruster_manager/input", 1);
   m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 

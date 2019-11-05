@@ -1,3 +1,8 @@
+
+/*   Written by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+     All rights reserved. */
+
 #ifndef VORTEX_CONTROLLER_CONTROLLER_ROS_H
 #define VORTEX_CONTROLLER_CONTROLLER_ROS_H
 
