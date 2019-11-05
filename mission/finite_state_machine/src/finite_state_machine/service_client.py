@@ -17,7 +17,9 @@ class ControllerMode:
 
 
     def __init__(self):
-        print('init')
+    	pass
+        #print('init')
+        #rospy.init_node('change_control_mode')
 
 
     def change_control_mode_client(self,requested_mode):
@@ -35,7 +37,7 @@ class ControllerMode:
 if __name__ == '__main__':
     
     try:
-        control_mode = ControlMode()
+        control_mode = ControllerMode()
         control_mode.change_control_mode_client(POSE_HOLD)
         rospy.spin()
 

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+  <include file="$(find vortex)/launch/manta_enu.launch"/>
+
+   <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance"     output="screen"/>
+   <node name="los_action_client" pkg="finite_state_machine" type="los_action_client.py" output="screen"/>
+   <node name="hierarchical_state_machine" pkg="finite_state_machine" type="hierarchical_state_machine.py" output="screen"/> 
+
+</launch>
