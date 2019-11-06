@@ -11,6 +11,7 @@ class BacksteppingDesign:
         
         # numerical values
         
+        # model parameters
         # acceleration proportional
         self.m      =  30.000
         self.I_z    =  0.9198
