@@ -2,7 +2,7 @@
 <launch>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
 
-  <rosparam command="load" file="$(find vortex)/config/robots/manta.yaml"/>
+  <rosparam command="load" file="$(find vortex)/config/robots/manta_enu.yaml"/>
   <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
   <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>
 
@@ -14,8 +14,7 @@
   <node name="thruster_interface" pkg="thruster_interface" type="thruster_interface_node.py" output="screen" />
   <node pkg="vortex_controller" type="node" name="controller" output="screen"/>
   <node pkg="vortex_allocator"  type="node" name="allocator"  output="screen"/>
- <!-- <node pkg="vortex_estimator"  type="node" name="estimator"  output="screen"/>
 
-  <include file="$(find joystick_interface)/launch/joystick_interface.launch" /> -->
+  <include file="$(find joystick_interface)/launch/joystick_interface.launch" /> 
 </launch>
 
