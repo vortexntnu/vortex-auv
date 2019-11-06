@@ -42,7 +42,7 @@ imu0_remove_gravitational_acceleration: true
 odom0: /manta/dvl
 odom0_config: [false,  false, false, # x, y, z
                false, false, false,  # roll, pitch, yaw
-               true, true, false,     # vx, vy, vz
+               true, true, true,     # vx, vy, vz
                false, false, false,   # vroll, vpitch, vyaw
                false, false, false]  # ax, ay, az
 odom0_queue_size: 10
