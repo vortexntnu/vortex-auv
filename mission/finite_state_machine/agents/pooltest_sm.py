@@ -91,15 +91,16 @@ if __name__ == '__main__':
 
     with patrol:
 
-        waypoints   =   [['one',    (5.0,   0.0, -0.75),    (0.0,   0.0,    0.0)],
-                         ['two',    (10.0,  0.0, -0.75),    (0.0,   0.0,    1.57)]]
+        waypoints   =   [['one',    (20.0,   -2.0, -0.75),    (0.0,   0.0,    0.0)],
+                         ['two',    (24.0,  -2.0, -0.75),    (0.0,   0.0,    1.57)]]
 
         # Adding the states and transitions
         StateMachine.add('POSE_HOLD',     ControlMode(POSE_HOLD), transitions={'success':'POSE_HOLD - ' + waypoints[0][0]})
         StateMachine.add('POSE_HOLD - ' + waypoints[0][0], SimpleActionState('move_base',MoveBaseAction,goal=wpc.trackNewWaypoint(waypoints[0])),transitions={'succeeded':'POSE_HOLD - ' + waypoints[1][0]})
         StateMachine.add('POSE_HOLD - ' + waypoints[1][0], SimpleActionState('move_base',MoveBaseAction,goal=wpc.trackNewWaypoint(waypoints[1])),transitions={'succeeded':'DEPTH_HOLD'})
         StateMachine.add('DEPTH_HOLD',    ControlMode(DEPTH_HEADING_HOLD), transitions={'success':'DEPTH_HOLD - ' + waypoints[1][0]})
-        StateMachine.add('DEPTH_HOLD - ' + waypoints[1][0], SimpleActionState('move_base',MoveBaseAction,goal=wpc.trackNewWaypoint(waypoints[1])),transitions={'succeeded':'succeeded'})
+        StateMachine.add('DEPTH_HOLD - ' + waypoints[1][0], SimpleActionState('move_base',MoveBaseAction,goal=wpc.trackNewWaypoint(waypoints[1])),transitions={'succeeded':'OPEN_LOOP'})
+        StateMachine.add('OPEN_LOOP',     ControlMode(OPEN_LOOP), transitions={'success':'succeeded'})
 
     # Define outcomes
     square = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
@@ -117,24 +118,20 @@ if __name__ == '__main__':
 
     # Define transit state
     transit = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
-    _goal1 = los.path_client(-2, -2, 15, 3, 0.2, 0.5)
-    _goal2 = los.path_client(15, 3, 20, -2, 0.2, 0.5)
+    _goal = los.path_client(0, 0, 16, -2, 0.2, 0.5)
 
     # State machine 
     with transit:
-        StateMachine.add('OPEN_LOOP',     ControlMode(OPEN_LOOP), transitions={'success':'transit'})
-        StateMachine.add('transit', SimpleActionState('los_path',LosPathFollowingAction, goal=_goal1), transitions={'succeeded':'goal2'})
-        StateMachine.add('goal2', SimpleActionState('los_path',LosPathFollowingAction, goal=_goal2), transitions={'succeeded':'succeeded'})
+        StateMachine.add('transit', SimpleActionState('los_path',LosPathFollowingAction, goal=_goal), transitions={'succeeded':'succeeded'})
     
     # Define outcomes
     shapes = StateMachine(outcomes=['succeeded', 'preempted', 'aborted', 'completed'])
     
     # Creating a hierarchical state machine nesting several sm's
     with shapes:
-        StateMachine.add('terminal', patrol, transitions={'succeeded':'square'})
-        StateMachine.add('square', square, transitions={'succeeded':'transit'})
-        StateMachine.add('transit', transit, transitions={'succeeded':'completed'})
-
+        StateMachine.add('transit', transit, transitions={'succeeded':'square'})
+        StateMachine.add('square', square, transitions={'succeeded':'terminal'})
+        StateMachine.add('terminal', patrol, transitions={'succeeded':'completed'})
     
     sis = IntrospectionServer(str(rospy.get_name()), shapes, '/SM_ROOT' + str(rospy.get_name()))
     sis.start()
