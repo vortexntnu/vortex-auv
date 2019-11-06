@@ -158,6 +158,7 @@ class LosPathFollowing(object):
 		rospy.init_node('los_path_following')
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
@@ -201,7 +202,19 @@ class LosPathFollowing(object):
 			r_d = x_smooth[3]
 			r_d_dot = x_smooth[4]
 
-			print(x_smooth)
+			los_msg = Odometry()
+			los_msg.header.stamp = rospy.Time.now()
+			quat_d = quaternion_from_euler(0, 0, psi_d)
+			los_msg.pose.pose.position.z = msg.pose.pose.position.z
+			los_msg.pose.pose.orientation.x = quat_d[0]
+			los_msg.pose.pose.orientation.y = quat_d[1]
+			los_msg.pose.pose.orientation.z = quat_d[2]
+			los_msg.pose.pose.orientation.w = quat_d[3]
+			los_msg.twist.twist.linear.x = u_d
+			los_msg.twist.twist.angular.z = r_d
+			self.pub_desired.publish(los_msg)
+
+			#print(x_smooth)
 
 			# control force
 			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)
@@ -216,6 +229,7 @@ class LosPathFollowing(object):
 
 			# write to thrusters
 			self.pub_thrust.publish(thrust_msg)
+
 
 			# check if action goal succeeded
 			self.statusActionGoal()
