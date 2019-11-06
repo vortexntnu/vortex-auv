@@ -140,7 +140,7 @@ void poleFinder::drawOnImage(cv_bridge::CvImagePtr cv_ptr)
 {
     cv::imshow(OPENCV_WINDOW, red_image);
     cv::imshow(WINDOW2, cv_ptr->image);
-	    cv::waitKey(3);
+	  cv::waitKey(3);
 }
     
 // opencb callback
@@ -148,7 +148,6 @@ void poleFinder::run(const sensor_msgs::ImageConstPtr& msg)
 // Reading the image to cv_ptr
 {
   cv_bridge::CvImagePtr cv_ptr;  
-  
   try
   {
    	cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
@@ -171,6 +170,9 @@ void poleFinder::run(const sensor_msgs::ImageConstPtr& msg)
   findDistance(cv_ptr);
   drawOnImage(cv_ptr);
   detect_pub_.publish(detected);
+  image_pub_.publish(cv_ptr->toImageMsg());
+  sensor_msgs::ImagePtr image_to_publish = cv_bridge::CvImage(std_msgs::Header(), "mono8", red_image).toImageMsg();
+  red_image_pub_.publish(image_to_publish);
 }
 
 

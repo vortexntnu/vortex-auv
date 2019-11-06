@@ -43,6 +43,8 @@ private:
 
 	 // ros topics
 	 Subscriber image_sub_;
+	 Publisher image_pub_;
+	 Publisher red_image_pub_;
 	 ros::Publisher detect_pub_;
 	  
 	 // Dynamic reconfigure
@@ -86,7 +88,9 @@ public:
       : it_(nh_)
     {
       // Subscribe to input video feed and publish output video feed
-      image_sub_ = it_.subscribe("/image", 1, &poleFinder::run, this);
+      image_sub_ = it_.subscribe("/camera/front", 1, &poleFinder::run, this);
+	  image_pub_ = it_.advertise("/camera/pole_detect",1);
+	  red_image_pub_ = it_.advertise("/camera/pole_tuning",1);
       detect_pub_ = n_.advertise<vortex_msgs::CameraObjectInfo>("pole_midpoint",1000);
       cv::namedWindow(OPENCV_WINDOW);
     }

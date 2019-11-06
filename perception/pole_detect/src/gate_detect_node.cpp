@@ -14,7 +14,7 @@
 #include <sstream>
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
-//#include <pole_detect/ColorParamsConfig.h>
+#include <pole_detect/GateParamsConfig.h>
 
 // Quality of life
 using namespace cv;
@@ -31,29 +31,27 @@ class gateFinder
   ros::NodeHandle n_;
   ImageTransport it_;
   Subscriber image_sub_;
+  Publisher image_pub_;
+  Publisher gate_pub_;
   ros::Publisher detect_pub_;
   //Dynamic reconfigure
-  //dynamic_reconfigure::Server<pole_detect::ColorParamsConfig> server;
-  //dynamic_reconfigure::Server<pole_detect::ColorParamsConfig>::CallbackType f;
+  
+  dynamic_reconfigure::Server<pole_detect::GateParamsConfig> server;
+  dynamic_reconfigure::Server<pole_detect::GateParamsConfig>::CallbackType f;
   // Declaring variables
   Mat cameraFrame, detected_edges, blury, red_temp1, red_temp2, red; //frames
   double x1, x2, y1, y2,x11,x22,y11,y22; //cordinates
   Rect2d bbox, bbox_big; //Bounding boxes
   vector<Rect2d> act_bbox; //Vector with bounding boxes
   vortex_msgs::CameraObjectInfo detected; //Message to be published
-  //int minhue1,maxhue1,minval1,maxval1,minsat1,maxsat1,minhue2,maxhue2,minval2,maxval2,minsat2,maxsat2;
-          int minhue1 = 0;//config.minhue1;
-          int maxhue1 = 40;//config.maxhue1;
-          int minval1 = 10;//config.minval1;
-          int minsat1 = 20;//config.minsat1;
-          int maxval1 = 200;//config.maxval1;
-          int maxsat1 = 255;//config.maxsat1;
-          int minhue2 = 170;//config.minhue2;
-          int maxhue2 = 180;//config.maxhue2;
-          int minval2 = 10;//config.minval2;
-          int maxval2 = 200;//config.maxval2;
-          int minsat2 = 20;//config.minsat2;
-          int maxsat2 = 255;//config.maxsat2;
+  int minhue,maxhue,minval,maxval,minsat,maxsat;
+  //int minhue = config.minhue;
+  //int maxhue = config.maxhue;
+  //int minval = config.minval;
+  //int minsat = config.minsat;
+  //int maxval = config.maxval;
+  //int maxsat = config.maxsat;
+
 
 
   public:
@@ -63,7 +61,9 @@ class gateFinder
       : it_(nh_)
     {
       // Subscribe to input video feed and publish output video feed
-      image_sub_ = it_.subscribe("/image", 1, &gateFinder::run, this);
+      image_sub_ = it_.subscribe("/camera/front", 1, &gateFinder::run, this);
+      image_pub_ =it_.advertise("/camera/gate_detect",1);
+      gate_pub_ = it_.advertise("/camera/gate_tuning",1);
       detect_pub_ = n_.advertise<vortex_msgs::CameraObjectInfo>("gate_midpoint",1000);
       //cv::namedWindow(OPENCV_WINDOW);
     }
@@ -73,21 +73,16 @@ class gateFinder
     }
     
     // Dynamic tuning of color filter
- /*   void configCallback(const pole_detect::ColorParamsConfig &config, uint32_t level){
+  void configCallback(const pole_detect::GateParamsConfig &config, uint32_t level){
        
-          minhue1 = 0;//config.minhue1;
-          maxhue1 = 7;//config.maxhue1;
-          minval1 = 60;//config.minval1;
-          minsat1 = 70;//config.minsat1;
-          maxval1 = 255;//config.maxval1;
-          maxsat1 = 255;//config.maxsat1;
-          minhue2 = 175;//config.minhue2;
-          maxhue2 = 180;//config.maxhue2;
-          minval2 = 60;//config.minval2;
-          maxval2 = 255;//config.maxval2;
-          minsat2 = 70;//config.minsat2;
-          maxsat2 = 255;//config.maxsat2;
-    }*/
+          minhue = config.minhue;
+          maxhue = config.maxhue;
+          minval = config.minval;
+          minsat = config.minsat;
+          maxval = config.maxval;
+          maxsat = config.maxsat;
+
+    }
     // Setting message values to a default
     void init_msg(cv_bridge::CvImagePtr cv_ptr) {
       detected.frame_height = cv_ptr->image.rows;//bbox.height;
@@ -100,17 +95,7 @@ class gateFinder
     // Red filter, blur and egde detection
     void redFilterAndEgde(cv_bridge::CvImagePtr cv_ptr) {
       cvtColor(cv_ptr->image, cameraFrame, CV_BGR2HSV);
-      inRange(cameraFrame, Scalar(minhue1,minsat1,minval1), Scalar(maxhue1,maxsat1,maxval1), red_temp1);
-      inRange(cameraFrame, Scalar(minhue2,minsat2,minval2), Scalar(maxhue2,maxsat2,maxval2), red_temp2);
-      int an = 5;
-      int element_shape = MORPH_RECT;
-      Mat element = getStructuringElement(element_shape, Size(an*2+1, an*2+1), Point(an, an) );
-      dilate(red_temp1, red_temp1, element );
-      dilate(red_temp2, red_temp2, element );
-      //erode(red_temp1, red_temp1, element );
-      //erode(red_temp2, red_temp2, element );
-      //erode(blury, blury, element );
-      addWeighted(red_temp1, 1.0, red_temp2, 1.0, 0.0, red);
+      inRange(cameraFrame, Scalar(minhue,minsat,minval), Scalar(maxhue,maxsat,maxval), red);
       GaussianBlur(red, blury, Size(9,9),0,0);
       Canny(blury, detected_edges, 10, 50, 3);
     }
@@ -193,14 +178,21 @@ class gateFinder
         return;
       }
       
+      // Dynamic reconfigure
+      f = boost::bind(&gateFinder::configCallback, this, _1, _2);
+      server.setCallback(f);
+
+
+
       //cv_ptr is the current image
       init_msg(cv_ptr);
       redFilterAndEgde(cv_ptr);
       Contours(cv_ptr);
       drawOnImage(cv_ptr);
-      //f = boost::bind(&gateFinder::configCallback, this, _1, _2);
-      //server.setCallback(f);
       detect_pub_.publish(detected);
+      image_pub_.publish(cv_ptr->toImageMsg());
+      sensor_msgs::ImagePtr image = cv_bridge::CvImage(std_msgs::Header(), "mono8", red).toImageMsg();
+      gate_pub_.publish(image);
      
     }
 };
