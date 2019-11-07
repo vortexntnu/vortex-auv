@@ -65,7 +65,11 @@ odom1_nodelay: false
 odom1_differential: false
 odom1_relative: false
 
-
+initial_state: [-1.0, 0.0, 0.0,
+                 0.0, 0.0, 0.0,
+                 0.0, 0.0, 0.0,
+                 0.0, 0.0, 0.0,
+                 0.0, 0.0, 0.0]
 
 
 
