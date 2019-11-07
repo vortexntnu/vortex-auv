@@ -90,6 +90,7 @@ class gateFinder
       detected.confidence = 0;
       detected.pos_x = -1;
       detected.pos_y = -1;
+      detected.poles_leaving_image = 0;
     }
 
     // Red filter, blur and egde detection
@@ -150,6 +151,14 @@ class gateFinder
         if (x1 < detected.frame_width * 0.1 || x2 > detected.frame_width - detected.frame_width * 0.1 || x11 < detected.frame_width * 0.1 || x22 > detected.frame_width - detected.frame_width * 0.1) {
           detected.confidence = 0.5;
         }
+        if (detected.confidence == 1){
+          if ( ((x1+x2)/2 < detected.frame_width*0.1 || (x1+x2)/2 > detected.frame_width*0.9) && ((x11+x22)/2 < detected.frame_width*0.1 || (x11+x22)/2 > detected.frame_width*0.9)) {
+            detected.poles_leaving_image = 1;
+          }
+
+
+        }
+        
        
       }
     }

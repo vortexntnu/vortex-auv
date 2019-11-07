@@ -30,6 +30,7 @@ void poleFinder::init_msg(cv_bridge::CvImagePtr cv_ptr)
   detected.confidence = 0;
   detected.pos_x = -1;
   detected.pos_y = -1;
+  detected.poles_leaving_image = 0;
 }
 
  // Red filter, blur and egde detection
