@@ -13,18 +13,18 @@ class BacksteppingDesign:
         
         # model parameters
         # acceleration proportional
-        self.m      =  40.000
+        self.m      =  50.000
         self.I_z    =  0.9198
         self.x_g    =  0.0000
-        self.Xu_dot = -10.7727
-        self.Yv_dot = -10.7727
+        self.Xu_dot = -20.7727
+        self.Yv_dot = -20.7727
         self.Nv_dot =  0.0000
         self.Yr_dot =  0.0000
         self.Nr_dot =  0.0000
         
         # velocity proportional
-        self.Xu = -9.5909
-        self.Yv = -9.5909
+        self.Xu = -19.5909
+        self.Yv = -19.5909
         self.Nv =  0.0000
         self.Yr =  0.0000
         self.Nr = -1.1559

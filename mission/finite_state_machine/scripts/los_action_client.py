@@ -43,10 +43,10 @@ class PathFollowingClient():
         _goal = LosPathFollowingGoal()
 
         # create line segment
-        _goal.next_waypoint.x = 4.0
-        _goal.next_waypoint.y = 0.0
-        _goal.prev_waypoint.x = 0.0
-        _goal.prev_waypoint.y = 0.0
+        _goal.next_waypoint.x = 10.0
+        _goal.next_waypoint.y =-2.0
+        _goal.prev_waypoint.x =-5.0
+        _goal.prev_waypoint.y = 5.0
 
         # set speed goal
         _goal.forward_speed.linear.x = 0.20
@@ -76,10 +76,10 @@ class PathFollowingClient():
         _goal = LosPathFollowingGoal()
 
         # create line segment
-        _goal.next_waypoint.x = 0.0
-        _goal.next_waypoint.y = 0.0
-        _goal.prev_waypoint.x = 4.0
-        _goal.prev_waypoint.y = 0.0
+        _goal.next_waypoint.x = 20.0
+        _goal.next_waypoint.y = 2.0
+        _goal.prev_waypoint.x = 5.0
+        _goal.prev_waypoint.y = 2.0
 
         # set speed goal
         _goal.forward_speed.linear.x = 0.20
