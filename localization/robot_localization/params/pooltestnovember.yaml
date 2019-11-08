@@ -21,12 +21,26 @@ base_link_frame: base_link  # Defaults to "base_link" if unspecified
 world_frame: odom           # Defaults to the value of odom_frame if unspecified
 
 
-# Imu
+
+# Imu orientation data
+
+imu1: /imu/orientation
+imu1_config: [false, false, false,
+             false, false, false,
+             false, false, false,
+             false, false, false,
+             false,false, false]
+imu1_nodelay: false
+imu1_differential: false
+imu1_relative: false
+imu1_queue_size: 10
+
+# Imu angular vel
 imu0: /imu/data_raw
 imu0_config: [false, false, false, # x, y, z
               false, false, false,  # roll, pitch, yaw
               false, false, false, # vx, vy, vz
-              true,  true,  true,  # vroll, vpitch, vyaw
+              true, true, true,  # vroll, vpitch, vyaw
               false,  false,  false]  # ax, ay, az
 imu0_nodelay: false
 imu0_differential: false
@@ -65,7 +79,7 @@ odom1_nodelay: false
 odom1_differential: false
 odom1_relative: false
 
-initial_state: [-1.0, 0.0, 0.0,
+initial_state: [-1.0, 1.0, 0.0,
                  0.0, 0.0, 0.0,
                  0.0, 0.0, 0.0,
                  0.0, 0.0, 0.0,
