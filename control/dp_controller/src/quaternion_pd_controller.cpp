@@ -56,8 +56,7 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
   
   //gain
   Eigen::Vector6d gain = -m_K_d*nu - K_p*z - integral + g;
-  //std::cout << "Kd gain: " << std::endl;
-  //std::cout << -m_K_d*nu << std::endl;
+
 
   return (Eigen::Vector6d() << gain).finished();
 }
@@ -92,8 +91,6 @@ void QuaternionPdController::integralWindUp(Eigen::Vector6d &vec, double pose_li
     }
   }
 
-  std::cout << "integral: " << std::endl;
-  std::cout << vec << std::endl;
 }
 
 
@@ -135,7 +132,6 @@ bool QuaternionPdController::circleOfAcceptance(const Eigen::Vector3d   &x,
   Eigen::Vector3d e = x_d-x;
   e_squared = pow(e[0],2.0) + pow(e[1], 2.0) + pow(e[2],2.0);
   distance = sqrt(e_squared);
-  //std::cout << "Distance to goal: " << distance << std::endl;
 
   return (distance < R);
 }
