@@ -34,7 +34,7 @@ class BacksteppingDesign:
         self.M = np.array(( (self.m - self.Xu_dot, 0.0, 0.0),
                             (0.0, self.m - self.Yv_dot, self.m*self.x_g - self.Yr_dot),
                             (0.0, self.m*self.x_g - self.Nv_dot, self.I_z - self.Nr_dot) ))
-        print(self.M)
+        #print(self.M)
         # nonlinear dynamics vector
         self.n = np.identity(3)
         

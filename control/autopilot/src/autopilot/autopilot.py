@@ -28,8 +28,8 @@ class AutopilotPID:
 class AutopilotBackstepping:
 
 	def __init__(self):
-		
-		self.backstepping = BacksteppingControl(0.75, 30.0, 12.0, 2.5)
+												# 0.75, 30, 12, 2.5
+		self.backstepping = BacksteppingControl(0.75, 10.0, 10.0, 2.5)
 
 	def updateGains(self, c, k1, k2, k3):
 

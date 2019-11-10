@@ -43,16 +43,16 @@ class PathFollowingClient():
         _goal = LosPathFollowingGoal()
 
         # create line segment
-        _goal.next_waypoint.x = 3.0
-        _goal.next_waypoint.y =-2.0
-        _goal.prev_waypoint.x = 0.0
-        _goal.prev_waypoint.y = 0.0
+        _goal.next_waypoint.x = 3.0 # 3.0
+        _goal.next_waypoint.y = 1.0 # -2.0
+        _goal.prev_waypoint.x = 1.0 # 0.0
+        _goal.prev_waypoint.y = 1.0 # 0.0
 
         # set speed goal
         _goal.forward_speed.linear.x = 0.30
 
         # sphere of acceptance
-        _goal.sphereOfAcceptance = 0.4
+        _goal.sphereOfAcceptance = 0.3
 
         rospy.loginfo("sending goal pose to Action Server")
 
@@ -76,16 +76,16 @@ class PathFollowingClient():
         _goal = LosPathFollowingGoal()
 
         # create line segment
-        _goal.next_waypoint.x = 6.0
-        _goal.next_waypoint.y = 2.0
-        _goal.prev_waypoint.x = 3.0
-        _goal.prev_waypoint.y =-2.0
+        _goal.next_waypoint.x = 7.0 # 6.0
+        _goal.next_waypoint.y =-2.0 # 2.0
+        _goal.prev_waypoint.x = 3.0 # 3.0
+        _goal.prev_waypoint.y =-2.0 #-2.0
 
         # set speed goal
         _goal.forward_speed.linear.x = 0.30
 
         # sphere of acceptance
-        _goal.sphereOfAcceptance = 0.4
+        _goal.sphereOfAcceptance = 0.3
 
         rospy.loginfo("sending goal pose to Action Server")
 
