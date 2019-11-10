@@ -195,6 +195,7 @@ class LosPathFollowing(object):
 
 			# reference model
 			x_smooth = self.reference_model.discreteTustinMSD(np.array((self.speed, self.psi_d)))
+
 			
 			u_d = x_smooth[0]
 			u_d_dot = x_smooth[1]
@@ -213,8 +214,6 @@ class LosPathFollowing(object):
 			los_msg.twist.twist.linear.x = u_d
 			los_msg.twist.twist.angular.z = r_d
 			self.pub_desired.publish(los_msg)
-
-			#print(x_smooth)
 
 			# control force
 			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)

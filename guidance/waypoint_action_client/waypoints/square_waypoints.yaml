@@ -3,22 +3,21 @@
 # R is sphere of acceptance
 waypoints:
   -
-    point: [-1, 0, 0.0]
+    point: [0, 0, -0.5]
     RPY: [0, 0, 1.57]
   -
-    point: [-1, 1, 0.0]
+    point: [-2, 0, -0.5]
     RPY: [0, 0, 1.57]
   -
-    point: [1, 1, 0.0]
+    point: [2, 2, -0.5]
     RPY: [0, 0, 1.57]
   -
-    point: [1, -1, 0.0]
+    point: [2, -2, -0.5]
     RPY: [0, 0, 1.57]
   -
-    point: [-1, -1, 0.0]
+    point: [-2, -2, -0.5]
     RPY: [0, 0, 1.57]
   -
-    point: [-1, 0, 0.0]
+    point: [0, 0, -0.5]
     RPY: [0, 0, 1.57]
 ...
-
