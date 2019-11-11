@@ -49,10 +49,10 @@ class PathFollowingClient():
         _goal.prev_waypoint.y = 1.0 # 0.0
 
         # set speed goal
-        _goal.forward_speed.linear.x = 0.30
+        _goal.forward_speed.linear.x = 0.20
 
         # sphere of acceptance
-        _goal.sphereOfAcceptance = 0.2
+        _goal.sphereOfAcceptance = 0.3
 
         rospy.loginfo("sending goal pose to Action Server")
 
@@ -82,10 +82,10 @@ class PathFollowingClient():
         _goal.prev_waypoint.y =-2.0 #-2.0
 
         # set speed goal
-        _goal.forward_speed.linear.x = 0.30
+        _goal.forward_speed.linear.x = 0.20
 
         # sphere of acceptance
-        _goal.sphereOfAcceptance = 0.2
+        _goal.sphereOfAcceptance = 0.3
 
         rospy.loginfo("sending goal pose to Action Server")
 
