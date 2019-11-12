@@ -46,22 +46,26 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	$ echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
 	$ source ~/.bashrc
 
-## 2. Install the protobuf library, which is used as interface to Gazebo. ##
+## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
 -------------------------
 
 1. Install the protobuf library, which is used as interface to Gazebo.:
 	```bash
 	$ sudo apt-get install protobuf-compiler
+
+2. Install rosbridge-server to interface with sensor and actuator drivers on the physical Manta.
+	```bash
+	$ sudo apt-get install ros-kinetic-rosbridge-server
   
-2. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
+3. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
 	$ sudo apt-get install ros-kinetic-message-to-tf
 
-3. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
+4. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
 	$ sudo apt-get install ros-kinetic-geographic-msgs
 
-4. Install move-base-msgs. This is necessary to perform some actions:
+5. Install move-base-msgs. This is necessary to perform some actions:
 	```bash
 	$ sudo apt-get install ros-kinetic-move-base
 	$ sudo apt-get install ros-kinetic-move-base-msgs 
