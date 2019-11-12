@@ -106,6 +106,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 2. Clone the repository: 
 	```bash
 	$  git clone https://github.com/vortexntnu/Manta-AUV.git
+	$  git clone https://github.com/vortexntnu/vortex_msgs.git
 	```
 Ps. You can also manually download the zip-folder in the up-right corner and extract the file <br />
 inside the src-folder of you workspace
