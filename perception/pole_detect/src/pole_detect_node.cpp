@@ -5,18 +5,12 @@
 void poleFinder::configCallback(const pole_detect::PoleParamsConfig &config, uint32_t level)
 {
       //ROS_INFO_STREAM("config");
-      minhue1 = config.minhue1;
-      maxhue1 = config.maxhue1;
-      minval1 = config.minval1;
-      maxval1 = config.maxval1;
-      minsat1 = config.minsat1;
-      maxsat1 = config.maxsat1;
-      minhue2 = config.minhue2;
-      maxhue2 = config.maxhue2;
-      minval2 = config.minval2;
-      maxval2 = config.maxval2;
-      minsat2 = config.minsat2;
-      maxsat2 = config.maxsat2;
+      minhue = config.minhue;
+      maxhue = config.maxhue;
+      minval = config.minval;
+      maxval = config.maxval;
+      minsat = config.minsat;
+      maxsat = config.maxsat;
 }
 
 // Setting message values to a default
@@ -39,26 +33,28 @@ void poleFinder::redFilterAndEgde(cv_bridge::CvImagePtr cv_ptr)
   // Converts an image from one color space to another.
   cvtColor(cv_ptr->image, hsv_image, CV_BGR2HSV);
 
+  // Threshold the HSV image, keep only the red pixels
+  cv::inRange(hsv_image, Scalar(minhue,minsat,minval), Scalar(maxhue,maxsat,maxval), red_image);
+/*
   // hsv thresholds
   cv::Scalar lower_hsv_threshold_image1 = cv::Scalar(minhue1,minsat1,minval1);
   cv::Scalar upper_hsv_threshold_image1 = cv::Scalar(maxhue1,maxsat1,maxval1);
   cv::Scalar lower_hsv_threshold_image2 = cv::Scalar(minhue2,minsat2,minval2); 
   cv::Scalar upper_hsv_threshold_image2 = cv::Scalar(maxhue2,maxsat2,maxval2);
-
-  // Threshold the HSV image, keep only the red pixels
   cv::inRange(hsv_image, lower_hsv_threshold_image1, upper_hsv_threshold_image1, lower_red_temp_image);
   cv::inRange(hsv_image, lower_hsv_threshold_image2, upper_hsv_threshold_image2, upper_red_temp_image);
 
-  /* addWeighted calculates the weighted sum of two image arrays
+   addWeighted calculates the weighted sum of two image arrays
      output array 'red' has the same size and number of channels as the input arrays 
 	 site: https://docs.opencv.org/2.4/modules/core/doc/operations_on_arrays.html
-  */
+
   
   alpha = 1.0;				// weight of the first array elements.
   beta = 1.0;				// weight of the second array elements.
   gamma = 0.0;				// scalar added to each sum
 
-  cv::addWeighted(lower_red_temp_image, alpha, upper_red_temp_image, beta, gamma, red_image);
+  cv::addWeighted(lower_red_temp_image, alpha, upper_red_temp_image, beta, gamma, red_image); 
+  */
 
   // Image processing by applying Gaussian smoothing on the input source image
   // any sharp edges in images are smoothed while minimizing too much blurring.

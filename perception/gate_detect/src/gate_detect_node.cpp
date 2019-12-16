@@ -14,7 +14,7 @@
 #include <sstream>
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
-#include <pole_detect/GateParamsConfig.h>
+#include <gate_detect/GateParamsConfig.h>
 
 // Quality of life
 using namespace cv;
@@ -36,8 +36,8 @@ class gateFinder
   ros::Publisher detect_pub_;
   //Dynamic reconfigure
   
-  dynamic_reconfigure::Server<pole_detect::GateParamsConfig> server;
-  dynamic_reconfigure::Server<pole_detect::GateParamsConfig>::CallbackType f;
+  dynamic_reconfigure::Server<gate_detect::GateParamsConfig> server;
+  dynamic_reconfigure::Server<gate_detect::GateParamsConfig>::CallbackType f;
   // Declaring variables
   Mat cameraFrame, detected_edges, blury, red_temp1, red_temp2, red; //frames
   double x1, x2, y1, y2,x11,x22,y11,y22; //cordinates
@@ -73,7 +73,7 @@ class gateFinder
     }
     
     // Dynamic tuning of color filter
-  void configCallback(const pole_detect::GateParamsConfig &config, uint32_t level){
+  void configCallback(const gate_detect::GateParamsConfig &config, uint32_t level){
        
           minhue = config.minhue;
           maxhue = config.maxhue;

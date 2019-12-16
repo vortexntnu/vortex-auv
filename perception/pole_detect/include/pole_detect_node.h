@@ -52,7 +52,7 @@ private:
 	 dynamic_reconfigure::Server<pole_detect::PoleParamsConfig>::CallbackType f;
 	  
 	 // hsv variables
-	 int minhue1,maxhue1,minval1,maxval1,minsat1,maxsat1,minhue2,maxhue2,minval2,maxval2,minsat2,maxsat2;
+	 int minhue,maxhue,minval,maxval,minsat,maxsat;
 
 	 // image weights
 	 double alpha, beta, gamma;

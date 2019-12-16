@@ -4,8 +4,8 @@
     <arg name="topic" default="/manta/manta/camerafront/camera_image"/>
 
     <node
-    name="pole_detect"
-    pkg="pole_detect"
+    name="gate_detect"
+    pkg="gate_detect"
     type="gate_detect_node"
     args="$(arg topic)"
     output="screen">
