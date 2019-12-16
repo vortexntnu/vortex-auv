@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+
+  <include file="$(find los_guidance)/launch/los_backstepping_simulator.launch"/>
+
+   <node
+    name="los_action_client"
+    pkg="finite_state_machine"
+    type="los_action_client.py"
+    output="screen">
+   </node> 
+
+</launch>
