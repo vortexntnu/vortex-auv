@@ -3,6 +3,11 @@
 #ifndef POLE_DETECT_NODE_H
 #define POLE_DETECT_NODE_H
 
+/*   Written by Ambjørn Grimsrud Waldum, Student
+     Edited by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2020 Manta AUV, Vortex NTNU.
+     All rights reserved. */
+
 // Dependencies
 #include <opencv2/opencv.hpp>
 #include <iostream>
@@ -27,8 +32,8 @@ using namespace cv;
 using namespace std;
 using namespace cv_bridge;
 using namespace image_transport; 	
-static const std::string OPENCV_WINDOW = "Binary image";
-static const std::string WINDOW2 = "Bounding boxes";
+static const std::string OPENCV_WINDOW = "Binary image, pole";
+static const std::string WINDOW2 = "Bounding boxes, pole";
 static const std::string CAMERA_FRAME = "manta/camerafront_link";
 
 
@@ -53,6 +58,9 @@ private:
 	  
 	 // hsv variables
 	 int minhue,maxhue,minval,maxval,minsat,maxsat;
+
+	 // Pole height treshold for detection
+	 double height;
 
 	 // image weights
 	 double alpha, beta, gamma;

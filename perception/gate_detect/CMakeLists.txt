@@ -143,7 +143,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(gate_detect_node src/gate_detect_node.cpp)
+add_executable(${PROJECT_NAME}_node src/gate_detect_node.cpp)
 ##add_executable(${PROJECT_NAME}_node src/stolpe_finn_node.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -160,7 +160,6 @@ add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencfg)
    ${OpenCV_LIBRARIES}
    ${catkin_LIBRARIES}
  )
-
 
 #############
 ## Install ##

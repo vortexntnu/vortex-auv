@@ -1,5 +1,10 @@
 #include "pole_detect_node.h"
 
+/*   Written by Ambjørn Grimsrud Waldum, Student
+     Edited by Kristoffer Rakstad Solberg, Student
+     Copyright (c) 2020 Manta AUV, Vortex NTNU.
+     All rights reserved. */
+
 
 // Dynamic tuning of color filter
 void poleFinder::configCallback(const pole_detect::PoleParamsConfig &config, uint32_t level)
@@ -11,6 +16,7 @@ void poleFinder::configCallback(const pole_detect::PoleParamsConfig &config, uin
       maxval = config.maxval;
       minsat = config.minsat;
       maxsat = config.maxsat;
+      height = config.pole_height_treshold;
 }
 
 // Setting message values to a default
@@ -35,26 +41,6 @@ void poleFinder::redFilterAndEgde(cv_bridge::CvImagePtr cv_ptr)
 
   // Threshold the HSV image, keep only the red pixels
   cv::inRange(hsv_image, Scalar(minhue,minsat,minval), Scalar(maxhue,maxsat,maxval), red_image);
-/*
-  // hsv thresholds
-  cv::Scalar lower_hsv_threshold_image1 = cv::Scalar(minhue1,minsat1,minval1);
-  cv::Scalar upper_hsv_threshold_image1 = cv::Scalar(maxhue1,maxsat1,maxval1);
-  cv::Scalar lower_hsv_threshold_image2 = cv::Scalar(minhue2,minsat2,minval2); 
-  cv::Scalar upper_hsv_threshold_image2 = cv::Scalar(maxhue2,maxsat2,maxval2);
-  cv::inRange(hsv_image, lower_hsv_threshold_image1, upper_hsv_threshold_image1, lower_red_temp_image);
-  cv::inRange(hsv_image, lower_hsv_threshold_image2, upper_hsv_threshold_image2, upper_red_temp_image);
-
-   addWeighted calculates the weighted sum of two image arrays
-     output array 'red' has the same size and number of channels as the input arrays 
-	 site: https://docs.opencv.org/2.4/modules/core/doc/operations_on_arrays.html
-
-  
-  alpha = 1.0;				// weight of the first array elements.
-  beta = 1.0;				// weight of the second array elements.
-  gamma = 0.0;				// scalar added to each sum
-
-  cv::addWeighted(lower_red_temp_image, alpha, upper_red_temp_image, beta, gamma, red_image); 
-  */
 
   // Image processing by applying Gaussian smoothing on the input source image
   // any sharp edges in images are smoothed while minimizing too much blurring.
@@ -93,28 +79,28 @@ void poleFinder::Contours(cv_bridge::CvImagePtr cv_ptr)
   findContours(detected_edges, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
   // Filtering countours based on height into two vectors heights and heights2
-  int height = 0; 
   for (int i = 0; i < contours.size(); i++)
   {
     bbox = boundingRect(contours[i]);
-    
-    if ( bbox.height > height ) {
-      height = bbox.height;
+    //std::cout << "bbhox height: " << bbox.height << std::endl;
+    if ( bbox.height > height && bbox.width < 0.8*height) {
+      //height = bbox.height;
       bbox_big = bbox;
+      detected.confidence = 0.5;
+      detected.pos_x = (bbox.tl().x + bbox.br().x) / 2;
+      detected.pos_y = (bbox.tl().y + bbox.br().y) / 2;
+
+	  bbox = bbox_big;
+	  rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
     }
   }
+
 }
 
 
 void poleFinder::findDistance(cv_bridge::CvImagePtr cv_ptr) 
 {
-    detected.confidence = 0.5;
-    bbox = bbox_big;
-    detected.pos_x = (bbox.tl().x + bbox.br().x) / 2;
-    detected.pos_y = (bbox.tl().y + bbox.br().y) / 2;
-    rectangle(cv_ptr->image, bbox.tl(), bbox.br(), Scalar(0,255,0),5);
 
-    /*
     if (detected.pos_x > (detected.frame_width/2 - 200) && detected.pos_x < (detected.frame_width/2 + 200)) {
         if  (detected.pos_y > (detected.frame_height/2 - 200) && detected.pos_y < (detected.frame_height/2 + 200)) {
             bbox = bbox_big;
@@ -128,7 +114,7 @@ void poleFinder::findDistance(cv_bridge::CvImagePtr cv_ptr)
             cv::Point point(10,60);
             cv::putText(cv_ptr->image, str, point, 3, 2,(0,255,255),1,1);
         }  
-    } */
+    } 
 }
 
 
@@ -137,7 +123,7 @@ void poleFinder::drawOnImage(cv_bridge::CvImagePtr cv_ptr)
 {
     cv::imshow(OPENCV_WINDOW, red_image);
     cv::imshow(WINDOW2, cv_ptr->image);
-	  cv::waitKey(3);
+	cv::waitKey(3);
 }
     
 // opencb callback
@@ -164,7 +150,7 @@ void poleFinder::run(const sensor_msgs::ImageConstPtr& msg)
   init_msg(cv_ptr);
   redFilterAndEgde(cv_ptr);
   Contours(cv_ptr);
-  findDistance(cv_ptr);
+  //findDistance(cv_ptr);
   drawOnImage(cv_ptr);
   detect_pub_.publish(detected);
   image_pub_.publish(cv_ptr->toImageMsg());
