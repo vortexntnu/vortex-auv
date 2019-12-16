@@ -1,6 +1,6 @@
 ## Vortex NTNU, Manta AUV repository
 
-![MANTA](manta_underwater_robosub.png)
+![MANTA](docs/manta_v1.png)
 
 ## Prerequisites
 
