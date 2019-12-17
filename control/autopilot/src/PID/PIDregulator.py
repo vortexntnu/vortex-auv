@@ -1,5 +1,10 @@
 import numpy as np
 
+#!/usr/bin/env python
+# Written by Kristoffer Rakstad Solberg, Student
+# Copyright (c) 2020 Manta AUV, Vortex NTNU.
+# All rights reserved.
+
 class PIDRegulator:
 	""" A very basic 1D PID regulator """
 	def __init__(self, p, i, d, sat):

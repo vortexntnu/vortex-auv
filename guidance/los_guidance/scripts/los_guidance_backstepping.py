@@ -20,7 +20,7 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from autopilot.autopilot import AutopilotBackstepping
+from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
@@ -34,6 +34,7 @@ class LOS:
 		# current position
 		self.x = 0.0
 		self.y = 0.0
+		self.z = 0.0
 
 		# previous waypoint
 		self.x_k = 0.0
@@ -42,6 +43,9 @@ class LOS:
 		# next waypoint
 		self.x_kp1 = 0.0
 		self.y_kp1 = 0.0
+
+		# depth hold depth
+		self.z_d = 0.0
 
 		# sphere of acceptance
 		self.R = 0.5
@@ -162,6 +166,7 @@ class LosPathFollowing(object):
 
 		# constructor object
 		self.los = LOS()
+		self.PID = AutopilotPID()
 		self.autopilot = AutopilotBackstepping()
 		self.reference_model = ReferenceModel(np.array((0, 0)), self.los.h)
 
@@ -217,6 +222,7 @@ class LosPathFollowing(object):
 
 			# control force
 			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)
+			tau_depth_hold = self.PID.depthController(self.los.z_d, self.los.z, self.los.t)
 
 			# add speed controllers here
 			thrust_msg = Wrench()
@@ -224,6 +230,7 @@ class LosPathFollowing(object):
 				thrust_msg.force.x = tau_d[0]
 
 			thrust_msg.force.y = tau_d[1]
+			thrust_msg.force.z = tau_depth_hold
 			thrust_msg.torque.z = tau_d[2] # 2.0*self.error_ENU
 
 			# write to thrusters
@@ -263,6 +270,9 @@ class LosPathFollowing(object):
 
 		# forward speed
 		self.speed = _goal.forward_speed.linear.x
+
+		# depth hold
+		self.los.z_d = _goal.desired_depth.z
 
 		# sphere of acceptance
 		self.los.R = _goal.sphereOfAcceptance

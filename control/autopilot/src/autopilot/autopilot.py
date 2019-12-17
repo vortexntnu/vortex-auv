@@ -5,7 +5,7 @@ class AutopilotPID:
 
 	def __init__(self):
 		# PIDRegulator(p, i, d, sat)
-		self.pid = PIDRegulator(5, 1.0, 0.0, 1.0)
+		self.pid = PIDRegulator(25, 0.024, 3.5, 5.0)
 
 	def updateGains(self, p, i, d, sat):
 
@@ -21,6 +21,14 @@ class AutopilotPID:
 
 		# regulate(err, t)
 		tau = self.pid.regulate(e_rot, t)
+
+		return tau
+
+	def depthController(self, z_d, z, t):
+
+		e = z_d - z;
+
+		tau = self.pid.regulate(e, t)
 
 		return tau
 
