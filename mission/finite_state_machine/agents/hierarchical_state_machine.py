@@ -7,7 +7,10 @@ from	smach_ros	 import	SimpleActionState, IntrospectionServer
 from    move_base_msgs.msg  import  MoveBaseAction, MoveBaseGoal
 from    vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 
-# Imported help functions from src/finite_state_machine
+# import object detection
+from	vortex_msgs.msg import CameraObjectInfo
+
+# Imported help functions from src/finite_state_machine/
 from    finite_state_machine import ControllerMode, WaypointClient, PathFollowingClient
 
 #ENUM
@@ -30,17 +33,71 @@ class Mission():
         # rate
         self.rate = rospy.Rate(100) #Hz
 
-class Vehicle():
+class Navigation():
 
     def __init__(self):
 
-        # Subscriber
-        self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
+    	# vehicle states
+    	self.x  = 0
+    	self.y  = 0
+    	self.z  = 0
+    	self.qx = 0
+    	self.qy = 0
+    	self.qz = 0
+    	self.qw = 0
+
+    	# pole detection states
+    	self.pole_px = -1
+    	self.pole_py = -1
+    	self.pole_fx = 0
+    	self.pole_fy = 0
+    	self.pole_confidence = 0
+    	self.distance_to_pole = 0
+
+    	# gate detection states
+    	self.gate_px = -1
+    	self.gate_py = -1
+    	self.gate_fx = 0
+    	self.gate_fy = 0
+    	self.gate_confidence = 0
+    	self.distance_to_gate = 0
+
+        # subscriber
+        self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
+        self.sub_pole = rospy.Subscriber('/pole_midpoint', CameraObjectInfo, self.poleDetectionCallback, queue_size=1)
+        self.sub_gate = rospy.Subscriber('/gate_midpoint', CameraObjectInfo, self.gateDetectionCallback, queue_size=1)
 
     def positionCallback(self, msg):
         
-        self.vehicle = msg
-        
+    	self.x  = msg.pose.pose.position.x
+    	self.y  = msg.pose.pose.position.y
+    	self.z  = msg.pose.pose.position.z
+    	self.qx = msg.pose.pose.orientation.x
+    	self.qy = msg.pose.pose.orientation.y
+    	self.qz = msg.pose.pose.orientation.z
+    	self.qw = msg.pose.pose.orientation.w
+    
+    def poleDetectionCallback(self, msg):
+
+    	self.pole_px = msg.pos_x
+    	self.pole_py = msg.pos_y
+    	self.pole_fx = msg.frame_width
+    	self.pole_fy = msg.frame_height
+    	self.pole_confidence = msg.confidence
+    	self.pole_distance = msg.distance_to_pole
+
+    def gateDetectionCallback(self, msg):
+
+    	self.gate_px = msg.pos_x
+    	self.gate_py = msg.pos_y
+    	self.gate_fx = msg.frame_width
+    	self.gate_fy = msg.frame_height
+    	self.gate_confidence = msg.confidence
+    	self.gate_distance = msg.distance_to_pole
+
+    	print(self.gate_confidence)
+
+
 class ControlMode(State):
 
     def __init__(self, mode):
@@ -78,10 +135,10 @@ class Turn(State):
 if __name__ == '__main__':
 
     try:
-        mission = Mission()
-        vehicle = Vehicle()
-        wpc     = WaypointClient()
-        los     = PathFollowingClient()
+        mission    = Mission()
+        navigation = Navigation()
+        wpc        = WaypointClient()
+        los        = PathFollowingClient()
 
     except rospy.ROSInterruptException:
         rospy.loginfo("Unable to run constructor")
@@ -91,8 +148,8 @@ if __name__ == '__main__':
 
     with patrol:
 
-        waypoints   =   [['one',    (5.0,   0.0, -0.75),    (0.0,   0.0,    0.0)],
-                         ['two',    (10.0,  0.0, -0.75),    (0.0,   0.0,    1.57)]]
+        waypoints   =   [['one',    (4.0,  -2.0, -0.75),    (0.0,   0.0,    0.0)],
+                         ['two',    (7.0,  2.0, -0.75),    (0.0,   0.0,     0.0)]]
 
         # Adding the states and transitions
         StateMachine.add('POSE_HOLD',     ControlMode(POSE_HOLD), transitions={'success':'POSE_HOLD - ' + waypoints[0][0]})
@@ -117,15 +174,16 @@ if __name__ == '__main__':
 
     # Define transit state
     transit = StateMachine(outcomes=['succeeded', 'preempted', 'aborted'])
-    _goal1 = los.path_client(-2, -2, 15, 3, 0.2, 0.5)
-    _goal2 = los.path_client(15, 3, 20, -2, 0.2, 0.5)
+    # path_client(self, x_0, y_0, x_1, y_1, u_d, R):
+    _goal1 = los.path_client(-2, -2, 15, 3, 0.2, -0.5, 0.5)
+    _goal2 = los.path_client(15, 3, 20, -2, 0.2, -0.5, 0.5)
 
     # State machine 
     with transit:
         StateMachine.add('OPEN_LOOP',     ControlMode(OPEN_LOOP), transitions={'success':'transit'})
         StateMachine.add('transit', SimpleActionState('los_path',LosPathFollowingAction, goal=_goal1), transitions={'succeeded':'goal2'})
         StateMachine.add('goal2', SimpleActionState('los_path',LosPathFollowingAction, goal=_goal2), transitions={'succeeded':'succeeded'})
-    
+
     # Define outcomes
     shapes = StateMachine(outcomes=['succeeded', 'preempted', 'aborted', 'completed'])
     
@@ -133,7 +191,7 @@ if __name__ == '__main__':
     with shapes:
         StateMachine.add('terminal', patrol, transitions={'succeeded':'square'})
         StateMachine.add('square', square, transitions={'succeeded':'transit'})
-        StateMachine.add('transit', transit, transitions={'succeeded':'completed'})
+        StateMachine.add('transit', transit, transitions={'succeeded':'aborted'})
 
     
     sis = IntrospectionServer(str(rospy.get_name()), shapes, '/SM_ROOT' + str(rospy.get_name()))

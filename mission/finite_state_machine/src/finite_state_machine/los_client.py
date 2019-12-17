@@ -34,7 +34,7 @@ class PathFollowingClient():
         #self.path_client()
         """
 
-    def path_client(self, x_0, y_0, x_1, y_1, u_d, R):
+    def path_client(self, x_0, y_0, x_1, y_1, u_d, z_d, R):
 
         """
             action client guide
@@ -52,6 +52,9 @@ class PathFollowingClient():
 
         # set speed goal
         _goal.forward_speed.linear.x = u_d
+
+	# set depth hold goal
+	_goal.desired_depth.z = z_d
 
         # sphere of acceptance
         _goal.sphereOfAcceptance = R

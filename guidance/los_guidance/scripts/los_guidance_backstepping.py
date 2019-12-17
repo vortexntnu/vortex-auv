@@ -249,13 +249,15 @@ class LosPathFollowing(object):
 		# succeeded
 		if self.los.sphereOfAcceptance():
 			self._result.terminalSector = True
-			self.action_server.set_succeeded(self._result)
+			self.action_server.set_succeeded(self._result, text="goal completed")
+			self.flag = False
 
 	def preemptCB(self):
 		# check that preempt has not been requested by the client
 		if self.action_server.is_preempt_requested():
 			rospy.loginfo("Preempted requested by los path client")
 			self.action_server.set_preempted()
+			self.flag = False
 
 	def goalCB(self):
 

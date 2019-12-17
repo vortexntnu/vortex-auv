@@ -17,10 +17,7 @@ class ControllerMode:
 
 
     def __init__(self):
-    	#pass
-        #print('init')
-        rospy.init_node('change_control_mode')
-
+        pass
 
     def change_control_mode_client(self,requested_mode):
 
