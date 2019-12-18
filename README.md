@@ -49,6 +49,13 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 ## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
 -------------------------
 
+Run the shell script for install dependencies:
+
+	```bash
+	$ sh install-prereq.sh
+
+or install manually the remaining dependencies
+
 1. Install the protobuf library, which is used as interface to Gazebo.:
 	```bash
 	$ sudo apt-get install protobuf-compiler
@@ -100,7 +107,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
 
 
-## 4. How to run the simulation ##
+## 4. Download and build Manta V1 ##
 -------------------------
 1. Enter the folder where you want to clone the repostory:
 	```bash
@@ -121,26 +128,56 @@ inside the src-folder of you workspace
 	$ catkin build vortex_msgs
 	$ catkin build
   
-4. Open a window and run Gazebo world, spawn Manta, thruster manager and navigation by executing: 
-	```bash
-	$ roslaunch roslaunch simulator_launch robosub.launch 
-	```
-
-5. Open a second window and run dp-controller:
-	```bash
-	$ roslaunch vortex dp_control.launch 
-	```
-  
-6. Open a third window and launch the path generator client.
-	```bash
-	$ roslaunch waypoint_action_client send_waypoints_file.launch
-	```
-## 5. Change controller mode ##
+## 5. Download and build the customized UUV simulator for Manta AUV ##
 -------------------------
-1. Open a fourth and final window, and run the following line to change mode of controller:
+
+1. Enter the folder where you want to clone the repostory:
 	```bash
-	$ rosrun finite_state_machine service_client.py
+	$ cd manta_ws/src
 	```
 
+2. Clone the repository: 
+	```bash
+	$ git clone https://github.com/vortexntnu/uuv-simulator.git
+	```
 
+3. Clone the repository. WARNING: HIGH CPU LOAD, you might want to build packages separately the first time: 
+	```bash
+	$ catkin build
+	```
+## 6. Run Manta V1 in Simulation with Gazebo, Smach viewer, Camera pop-up windows etc ##
+-------------------------
+
+1. Run your simulation world. This will upload Manta (w/ sensor, camera, thrusters etc) and launch robot localization as well. i.e :
+	```bash
+	$ roslaunch simulator_launch cybernetics_pool.launch
+	```
+
+2. Execute your state machine of choice. This will activate all modules in Manta V1 architecture. i.e: 
+	```bash
+	$ roslaunch finite_state_machine gazebo_sm.launch
+	```
+
+## 7. Alternative: Run Manta V1 in Linux minimal on your drone without Gazebo, Smach viewer, Camera pop-up windows etc ##
+
+1. The main computer for Manta AUV is a ODROID. Find the IP-address of the ODROID:
+	```bash
+	$ nmap 10.42.0.1/24
+	```
+2. SSH into the ODROID:
+	```bash
+	$ ssh root@10.42.*INSERT*
+	```
+3. ARM the thrusters (system specific). For the Manta AUV it will be:
+	```bash
+	$ rostopic pub /mcu_arm std_msgs/String "data: 'arm'"
+	```
+4. Run your state machine of choice. This will activate all modules in Manta V1 architecture. i.e:
+	```bash
+	$ roslaunch finite_state_machine odroid_sm
+	```
+5. DISARM the thrusters (system specific). For the Manta AUV it will be:
+	```bash
+	$ rostopic pub /mcu_arm std_msgs/String "data: 'ben'"
+	```
 
