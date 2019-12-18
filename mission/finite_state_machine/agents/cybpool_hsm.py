@@ -12,7 +12,7 @@ from	smach_ros	 import	SimpleActionState, IntrospectionServer
 from    move_base_msgs.msg  import  MoveBaseAction, MoveBaseGoal
 from    vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 from 	vortex_msgs.msg import PropulsionCommand
-from 	geometry_msgs.msg import Wrench
+from 	geometry_msgs.msg import Wrench, Pose
 
 # import mission plan
 from finite_state_machine.mission_plan import *
@@ -41,8 +41,22 @@ class ControlMode(State):
 
         # change control mode
         self.control_mode.change_control_mode_client(self.mode)
+        rospy.loginfo('changed DP control mode to: ' + str(self.mode) + '!')
         return 'succeeded'
 
+class Navigation():
+
+	def __init__(self):
+
+		# my current pose
+		self.vehicle_pose = Pose()
+
+		# subscriber
+		self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
+
+	def positionCallback(self, msg):
+
+		self.vehicle_pose = msg.pose.pose
 
 # A list of tasks to be done
 task_list = {'startup':['transit'],
@@ -50,8 +64,6 @@ task_list = {'startup':['transit'],
 			 'pole':['orient_to_pole','detect_pole','centering_pole','plan_path','execute_path'],
 			 'hexagon':['surface']
 			}
-
-
 
 class OrientToTarget(State):
 
@@ -68,8 +80,7 @@ class OrientToTarget(State):
 
 		sleep(5)
 
-		message = 'Done orienting towards' + str(self.target) + '!'
-		rospy.loginfo(message)
+		rospy.loginfo('Done orienting towards ' + str(self.target) + '!')
 
 		return 'succeeded'
 
@@ -84,6 +95,7 @@ class TaskManager():
 
 	def __init__(self):
 
+		# init node
 		rospy.init_node('pool_patrol', anonymous=False)
 
 		# Set the shutdown fuction (stop the robot)
@@ -92,9 +104,14 @@ class TaskManager():
 		# Initilalize the mission parameters and variables
 		setup_task_environment(self)
 
+		# get vehicle pose
+		navigation = Navigation()
+
 		# Turn the target locations into SMACH MoveBase and LosPathFollowing action states
 		nav_terminal_states = {}
+		nav_transit_states = {}
 
+		# DP controller
 		for target in self.pool_locations.iterkeys():
 			nav_goal = MoveBaseGoal()
 			nav_goal.target_pose.header.frame_id = 'odom'
@@ -106,6 +123,22 @@ class TaskManager():
 												server_wait_timeout=rospy.Duration(10.0))
 
 			nav_terminal_states[target] = move_base_state
+
+		# Path following
+		for target in self.pool_locations.iterkeys():
+			nav_goal = LosPathFollowingGoal()
+			nav_goal.prev_waypoint = navigation.vehicle_pose.position
+			nav_goal.next_waypoint = self.pool_locations[target].position
+			nav_goal.forward_speed.linear.x = 0.2
+			nav_goal.desired_depth.z = -0.5
+			nav_goal.sphereOfAcceptance = 0.5
+			los_path_state = SimpleActionState('los_path', LosPathFollowingAction,
+												goal=nav_goal, 
+												result_cb=self.nav_result_cb,
+												exec_timeout=self.nav_timeout,
+												server_wait_timeout=rospy.Duration(10.0))
+
+			nav_transit_states[target] = los_path_state
 
 		""" Create individual state machines for assigning tasks to each target zone """
 
@@ -126,17 +159,23 @@ class TaskManager():
 
 		with hsm_pool_patrol:
 
-			""" Change controlmode from OPEN_LOOP to POSE_HOLD """
-			StateMachine.add('START', ControlMode(POSE_HOLD), transitions={'succeeded':'TRANSIT_TO_GATE','aborted':'DOCKING','preempted':'DOCKING'})
-
 			""" Navigate to GATE in TERMINAL mode """
-			StateMachine.add('TRANSIT_TO_GATE', nav_terminal_states['gate'], transitions={'succeeded':'GATE_TASKS','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_ZONE','aborted':'DOCKING','preempted':'DOCKING'})
+
+			""" Perform goto gate """
+			StateMachine.add('GATE_ZONE', ControlMode(POSE_HOLD), transitions={'succeeded':'GATE_TRACK','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('GATE_TRACK', nav_terminal_states['pole'], transitions={'succeeded':'GATE_TASKS','aborted':'DOCKING','preempted':'DOCKING'})
 
 			""" Execute task(s) at GATE """
 			StateMachine.add('GATE_TASKS', sm_gate_task, transitions={'succeeded':'DOCKING','aborted':'','preempted':''})
 
+			""" Navigate to POLE in TRANSIT mode """
+			#StateMachine.add('POLE_ZONE', ControlMode(OPEN_LOOP), transitions={'succeeded':'POLE_TRACK','aborted':'DOCKING','preempted':'DOCKING'})
+			#StateMachine.add('POLE_TRACK', nav_transit_states['gate'], transitions={'succeeded':'DOCKING','aborted':'DOCKING','preempted':'DOCKING'})
+
 			""" Navigate to DOCKING in TERMINAL mode """
-			StateMachine.add('DOCKING', nav_terminal_states['docking'], transitions={'succeeded':'','aborted':'','preempted':''})
+			StateMachine.add('DOCKING', ControlMode(OPEN_LOOP), transitions={'succeeded':'GOTO_DOCK','aborted':'','preempted':''})
+			StateMachine.add('GOTO_DOCK', nav_transit_states['docking'], transitions={'succeeded':'','aborted':'','preempted':''})
 
 		# Create and start the SMACH Introspection server
 

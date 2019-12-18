@@ -25,7 +25,6 @@ class ControllerMode:
         try:
             control_mode = rospy.ServiceProxy('controlmode_service', ControlMode)
             response = control_mode(requested_mode)
-            print(response.result)
             return response.result
         except rospy.ServiceException, e:
             print "Service call failed"
