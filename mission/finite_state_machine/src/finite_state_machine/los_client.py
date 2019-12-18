@@ -53,8 +53,8 @@ class PathFollowingClient():
         # set speed goal
         _goal.forward_speed.linear.x = u_d
 
-	# set depth hold goal
-	_goal.desired_depth.z = z_d
+        # set depth hold goal
+        _goal.desired_depth.z = z_d
 
         # sphere of acceptance
         _goal.sphereOfAcceptance = R
