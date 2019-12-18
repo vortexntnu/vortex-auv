@@ -133,6 +133,8 @@ inside the src-folder of you workspace
 
 ![MANTA](docs/manta_underwater_robosub.png)
 
+Figure by: Kristoffer Rakstad Solberg
+
 1. Enter the folder where you want to clone the repostory:
 	```bash
 	$ cd manta_ws/src
@@ -164,6 +166,8 @@ inside the src-folder of you workspace
 
 ![MANTA](docs/hardware.png)
 
+Figure by: Kristoffer Rakstad Solberg
+
 1. The main computer for Manta AUV is a ODROID. Find the IP-address of the ODROID:
 	```bash
 	$ nmap 10.42.0.1/24
@@ -173,6 +177,11 @@ inside the src-folder of you workspace
 	$ ssh root@10.42.*INSERT*
 	```
 3. Run the robot localization for Aided Inertial Navigation:
+
+![MANTA](docs/coordinate_frame.png)
+
+Figure by: Kristoffer Rakstad Solberg
+
 	```bash
 	$ roslaunch robot_localization ekf_novembertest.launch
 	```
