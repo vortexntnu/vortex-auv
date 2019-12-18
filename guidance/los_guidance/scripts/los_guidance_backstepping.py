@@ -265,8 +265,8 @@ class LosPathFollowing(object):
 		_goal = self.action_server.accept_new_goal()
 
 		# set goal
-		self.los.x_k = _goal.prev_waypoint.x
-		self.los.y_k = _goal.prev_waypoint.y
+		self.los.x_k = self.los.x
+		self.los.y_k = self.los.y
 		self.los.x_kp1 = _goal.next_waypoint.x
 		self.los.y_kp1 = _goal.next_waypoint.y
 

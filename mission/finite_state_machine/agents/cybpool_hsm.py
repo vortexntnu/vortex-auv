@@ -127,7 +127,7 @@ class TaskManager():
 		# Path following
 		for target in self.pool_locations.iterkeys():
 			nav_goal = LosPathFollowingGoal()
-			nav_goal.prev_waypoint = navigation.vehicle_pose.position
+			#nav_goal.prev_waypoint = navigation.vehicle_pose.position
 			nav_goal.next_waypoint = self.pool_locations[target].position
 			nav_goal.forward_speed.linear.x = 0.2
 			nav_goal.desired_depth.z = -0.5
