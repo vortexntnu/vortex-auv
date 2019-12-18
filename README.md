@@ -176,24 +176,25 @@ Figure by: Kristoffer Rakstad Solberg
 	```bash
 	$ ssh root@10.42.*INSERT*
 	```
-3. Run the robot localization for Aided Inertial Navigation:
+3. Specify your static transforms and initial states in robot_localization/launch and robot_localization/params
 
 ![MANTA](docs/coordinate_frame.png)
 
 Figure by: Kristoffer Rakstad Solberg
 
-	```bash
-	$ roslaunch robot_localization ekf_novembertest.launch
-	```
-4. ARM the thrusters (system specific). For the Manta AUV it will be:
+4. Run the robot localization for Aided Inertial Navigation:
 	```bash
 	$ rostopic pub /mcu_arm std_msgs/String "data: 'arm'"
 	```
-5. Run your state machine of choice. This will activate all modules in Manta V1 architecture. i.e:
+5. ARM the thrusters (system specific). For the Manta AUV it will be:
+	```bash
+	$ rostopic pub /mcu_arm std_msgs/String "data: 'arm'"
+	```
+6. Run your state machine of choice. This will activate all modules in Manta V1 architecture. i.e:
 	```bash
 	$ roslaunch finite_state_machine odroid_sm
 	```
-6. DISARM the thrusters (system specific). For the Manta AUV it will be:
+7. DISARM the thrusters (system specific). For the Manta AUV it will be:
 	```bash
 	$ rostopic pub /mcu_arm std_msgs/String "data: 'ben'"
 	```
