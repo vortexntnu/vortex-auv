@@ -182,9 +182,9 @@ Figure by: Kristoffer Rakstad Solberg
 
 Figure by: Kristoffer Rakstad Solberg
 
-4. Run the robot localization for Aided Inertial Navigation:
+4. Run the robot localization for extended Kalman Filter for Aided Inertial Navigation:
 	```bash
-	$ rostopic pub /mcu_arm std_msgs/String "data: 'arm'"
+	$ roslaunch robot_localization ekf_novembertest.launch
 	```
 5. ARM the thrusters (system specific). For the Manta AUV it will be:
 	```bash
