@@ -131,6 +131,8 @@ inside the src-folder of you workspace
 ## 5. Download and build the customized UUV simulator for Manta AUV ##
 -------------------------
 
+![MANTA](docs/manta_underwater_robosub.png)
+
 1. Enter the folder where you want to clone the repostory:
 	```bash
 	$ cd manta_ws/src
@@ -160,6 +162,8 @@ inside the src-folder of you workspace
 
 ## 7. Alternative: Run Manta V1 in Linux minimal on your drone without Gazebo, Smach viewer, Camera pop-up windows etc ##
 
+![MANTA](docs/hardware.png)
+
 1. The main computer for Manta AUV is a ODROID. Find the IP-address of the ODROID:
 	```bash
 	$ nmap 10.42.0.1/24
@@ -168,15 +172,19 @@ inside the src-folder of you workspace
 	```bash
 	$ ssh root@10.42.*INSERT*
 	```
-3. ARM the thrusters (system specific). For the Manta AUV it will be:
+3. Run the robot localization for Aided Inertial Navigation:
+	```bash
+	$ roslaunch robot_localization ekf_novembertest.launch
+	```
+4. ARM the thrusters (system specific). For the Manta AUV it will be:
 	```bash
 	$ rostopic pub /mcu_arm std_msgs/String "data: 'arm'"
 	```
-4. Run your state machine of choice. This will activate all modules in Manta V1 architecture. i.e:
+5. Run your state machine of choice. This will activate all modules in Manta V1 architecture. i.e:
 	```bash
 	$ roslaunch finite_state_machine odroid_sm
 	```
-5. DISARM the thrusters (system specific). For the Manta AUV it will be:
+6. DISARM the thrusters (system specific). For the Manta AUV it will be:
 	```bash
 	$ rostopic pub /mcu_arm std_msgs/String "data: 'ben'"
 	```
