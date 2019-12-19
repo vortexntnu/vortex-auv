@@ -17,7 +17,7 @@ enum ControlMode
   HEADING_HOLD        = 2,
   DEPTH_HEADING_HOLD  = 3,
   DEPTH_HOLD          = 4,
-  STAY_LEVEL          = 5,
+  POSE_HEADING_HOLD   = 5,
   CONTROL_MODE_END    = 6
 };
 }  // namespace ControlModes
@@ -55,8 +55,8 @@ inline std::string controlModeString(ControlMode control_mode)
     s = "DEPTH HOLD";
     break;
 
-    case ControlModes::STAY_LEVEL:
-    s = "STAY LEVEL";
+    case ControlModes::POSE_HEADING_HOLD:
+    s = "POSE HEADING HOLD";
     break;
 
     default:

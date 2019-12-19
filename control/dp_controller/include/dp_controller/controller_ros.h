@@ -121,11 +121,12 @@ private:
                             const Eigen::Vector3d &position_setpoint,
                             const Eigen::Quaterniond &orientation_setpoint);
 
-  Eigen::Vector6d surgeHold(const Eigen::Vector6d &tau_openloop,
-                            const Eigen::Vector3d &position_state,
-                            const Eigen::Quaterniond &orientation_state,
-                            const Eigen::Vector6d &velocity_state,
-                            const Eigen::Vector3d &position_setpoint);
+  Eigen::Vector6d poseHeadingHold(const Eigen::Vector6d &tau_openloop,
+                                  const Eigen::Vector3d &position_state,
+                                  const Eigen::Quaterniond &orientation_state,
+                                  const Eigen::Vector6d &velocity_state,
+                                  const Eigen::Vector3d &position_setpoint,
+                                  const Eigen::Quaterniond &orientation_setpoint);
 
 protected:
 
