@@ -27,7 +27,7 @@ POSE_HOLD           = 1
 HEADING_HOLD        = 2
 DEPTH_HEADING_HOLD  = 3 
 DEPTH_HOLD          = 4
-STAY_LEVEL          = 5
+POSE_HEADING_HOLD   = 5
 CONTROL_MODE_END    = 6
 
 class ControlMode(State):
@@ -163,9 +163,10 @@ class TaskManager():
 			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_ZONE','aborted':'DOCKING','preempted':'DOCKING'})
 
 			""" Perform goto gate """
-			StateMachine.add('GATE_ZONE', ControlMode(POSE_HOLD), transitions={'succeeded':'GATE_TRACK','aborted':'DOCKING','preempted':'DOCKING'})
-			StateMachine.add('GATE_TRACK', nav_terminal_states['pole'], transitions={'succeeded':'GATE_TASKS','aborted':'DOCKING','preempted':'DOCKING'})
-
+			StateMachine.add('GATE_ZONE', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'GATE_TRACK','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('GATE_TRACK', nav_terminal_states['docking'], transitions={'succeeded':'GATE_TASKS_1','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('GATE_TASKS_1', nav_terminal_states['gate'], transitions={'succeeded':'GATE_TASKS_2','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('GATE_TASKS_2', nav_terminal_states['pole'], transitions={'succeeded':'GATE_TASKS','aborted':'DOCKING','preempted':'DOCKING'})
 			""" Execute task(s) at GATE """
 			StateMachine.add('GATE_TASKS', sm_gate_task, transitions={'succeeded':'DOCKING','aborted':'','preempted':''})
 

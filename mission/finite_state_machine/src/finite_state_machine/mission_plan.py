@@ -38,7 +38,7 @@ def setup_task_environment(self):
 	# Then convert angles to quaternions
 
 	for angle in euler_angles:
-		q_angle = quaternion_from_euler(0, 0, angle, 'szyx')
+		q_angle = quaternion_from_euler(0, 0, angle, 'sxyz')
 		q = Quaternion(*q_angle)
 		quaternions.append(q)
 
@@ -48,9 +48,9 @@ def setup_task_environment(self):
 	self.waypoints = list()
 
 	# Append each of the waypoints to the list.
-	self.waypoints.append(Pose(Point( 0.0, 0.0, 0.7*self.pool_depth), quaternions[0]))
-	self.waypoints.append(Pose(Point( 3.0,-2.0, 0.7*self.pool_depth), quaternions[1]))
-	self.waypoints.append(Pose(Point( 5.0,-1.0, 0.7*self.pool_depth), quaternions[2]))
+	self.waypoints.append(Pose(Point( 0.0, 0.0, 0.5*self.pool_depth), quaternions[0]))
+	self.waypoints.append(Pose(Point( 3.0,-2.0, 0.5*self.pool_depth), quaternions[1]))
+	self.waypoints.append(Pose(Point( 5.0,-1.0, 0.5*self.pool_depth), quaternions[2]))
 	self.waypoints.append(Pose(Point( 2.0, 2.0, 0.0*self.pool_depth), quaternions[3]))
 
 	# Create a mapping of points of interest to waypoint locations
