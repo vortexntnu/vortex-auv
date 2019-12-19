@@ -55,7 +55,7 @@ class LOS:
 
 		# look-ahead distance
 		Lpp = 0.7
-		self.delta = 2.0*Lpp
+		self.delta = 1.0*Lpp
 
 
 	def updateState(self, x, y, z, u, v, w, psi, r, time):
@@ -125,10 +125,7 @@ class LOS:
 		self.x_delta = self.x_kp1 - self.x_k
 
 		# angle
-		self.alpha = np.arctan2(self.y_delta, self.x_delta)
-
-		#if self.alpha < 0:
-		#	self.alpha = self.alpha + 2*math.pi
+		self.alpha = np.arctan2(self.y_delta, self.x_delta) 
 
 		# rotation matrix
 		epsilon = self.getEpsilonVector()
@@ -186,6 +183,33 @@ class LosPathFollowing(object):
 		self.action_server.register_preempt_callback(self.preemptCB)
 		self.action_server.start()
 
+	def fixHeadingWrapping(self):
+
+
+		e = self.psi - self.psi_ref
+		if e < -math.pi:
+			self.psi_ref = self.psi_ref - 2*math.pi
+		if e > math.pi:
+			self.psi_ref = self.psi_ref + 2*math.pi
+
+
+		# reference model
+		x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, self.psi_ref)))
+		psi_d = x_d[2]
+
+		e = self.psi - psi_d
+		if e > math.pi:
+			psi_d = psi_d - 2*math.pi
+			self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+			x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
+		if e < -math.pi:
+			psi_d = psi_d + 2*math.pi
+			self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+			x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
+
+		return x_d
+
+
 	def callback(self, msg): 
 
 		# update current position
@@ -197,25 +221,24 @@ class LosPathFollowing(object):
 							 self.psi, msg.twist.twist.angular.z, msg.header.stamp.to_sec())
 
 		# update current goal
-		self.psi_d = self.los.lookaheadBasedSteering()
+		self.psi_ref = self.los.lookaheadBasedSteering()
+
 
 		if self.flag is True:
 
-			# reference model
-			x_smooth = self.reference_model.discreteTustinMSD(np.array((self.los.speed, self.psi_d)))
+			"""
+				Wrapping would have been avoided by using quaternions instead of Euler angles
+				if you don't care about wrapping, use this instead:
 
-			print("\n raw psi_d: ")
-			print(self.psi_d)
-			print(" vs psi_d_smooth: ")
-			print(x_smooth[2])
-			print(" vs psi")
-			print(self.psi)
+				x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed,psi_d)))
+			"""
+			x_d = self.fixHeadingWrapping()
 
-			u_d = x_smooth[0]
-			u_d_dot = x_smooth[1]
-			psi_d = x_smooth[2]
-			r_d = x_smooth[3]
-			r_d_dot = x_smooth[4]
+			u_d = x_d[0]
+			u_d_dot = x_d[1]
+			psi_d = x_d[2]
+			r_d = x_d[3]
+			r_d_dot = x_d[4]
 
 			los_msg = Odometry()
 			los_msg.header.stamp = rospy.Time.now()
