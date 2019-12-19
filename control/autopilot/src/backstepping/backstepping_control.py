@@ -4,6 +4,7 @@
 # All rights reserved.
 
 import numpy as np
+from math import pi
 
 class BacksteppingDesign:
 
@@ -81,8 +82,17 @@ class BacksteppingControl:
     
     def updateSetpoint(self, u_d, u_d_dot, psi_d, r_d, r_d_dot):
     
-        # in ENU
-        self.z1 = (self.psi - psi_d)
+        # wrapping to take the shortest turn. Just in case
+        # I believe the angles are in atan2, so shouldnt be necessary
+
+        e = self.psi-psi_d
+        if e < -pi: 
+            self.z1 = e + 2*pi
+        elif e > pi:
+            self.z1 = e - 2*pi
+        else:
+            self.z1 = e
+
         self.z2 = self.nu - self.alpha
     
         alpha_1 = u_d #stabilizing function

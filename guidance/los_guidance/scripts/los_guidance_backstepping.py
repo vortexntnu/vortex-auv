@@ -47,12 +47,15 @@ class LOS:
 		# depth hold depth
 		self.z_d = 0.0
 
+		# desired speed
+		self.speed = 0
+
 		# sphere of acceptance
 		self.R = 0.5
 
 		# look-ahead distance
 		Lpp = 0.7
-		self.delta = 1.0*Lpp
+		self.delta = 2.0*Lpp
 
 
 	def updateState(self, x, y, z, u, v, w, psi, r, time):
@@ -135,8 +138,8 @@ class LOS:
 
 		# cross-track error
 		self.e = epsilon[1]
-		print('\n cross-track error: ')
-		print(self.e)
+		#print('\n cross-track error: ')
+		#print(self.e)
 
 		# path-tangential angle (eq 10.73 Fossen)
 		self.chi_p = self.alpha
@@ -199,9 +202,15 @@ class LosPathFollowing(object):
 		if self.flag is True:
 
 			# reference model
-			x_smooth = self.reference_model.discreteTustinMSD(np.array((self.speed, self.psi_d)))
+			x_smooth = self.reference_model.discreteTustinMSD(np.array((self.los.speed, self.psi_d)))
 
-			
+			print("\n raw psi_d: ")
+			print(self.psi_d)
+			print(" vs psi_d_smooth: ")
+			print(x_smooth[2])
+			print(" vs psi")
+			print(self.psi)
+
 			u_d = x_smooth[0]
 			u_d_dot = x_smooth[1]
 			psi_d = x_smooth[2]
@@ -271,13 +280,15 @@ class LosPathFollowing(object):
 		self.los.y_kp1 = _goal.next_waypoint.y
 
 		# forward speed
-		self.speed = _goal.forward_speed.linear.x
+		self.los.speed = _goal.forward_speed.linear.x
 
 		# depth hold
 		self.los.z_d = _goal.desired_depth.z
 
 		# sphere of acceptance
 		self.los.R = _goal.sphereOfAcceptance
+
+		self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
 
 
 	def config_callback(self, config, level):
