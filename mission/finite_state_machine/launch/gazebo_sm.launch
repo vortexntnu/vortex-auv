@@ -20,14 +20,14 @@
 
 
   <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" />
-  <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance" output="screen"  />
+  <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance"     />
   <node pkg="dp_controller"      type="node"                       name="controller" 	     />
   <node pkg="vortex_allocator"   type="node"                       name="allocator"          />
 
-<!-- Launch object detection 
+<!-- Launch object detection -->
 
 <include file="$(find pole_detect)/launch/pole_detect.launch"/>
-<include file="$(find gate_detect)/launch/gate_detect.launch"/> -->
+<include file="$(find gate_detect)/launch/gate_detect.launch"/> 
  
 <!-- State machine -->
    <node

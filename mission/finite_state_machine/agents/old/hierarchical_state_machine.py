@@ -37,30 +37,30 @@ class Navigation():
 
     def __init__(self):
 
-    	# vehicle states
-    	self.x  = 0
-    	self.y  = 0
-    	self.z  = 0
-    	self.qx = 0
-    	self.qy = 0
-    	self.qz = 0
-    	self.qw = 0
+        self.x  = 0
+        self.y  = 0
+        self.z  = 0
+        self.qx = 0
+        self.qy = 0
+        self.qz = 0
+        self.qw = 0
 
-    	# pole detection states
-    	self.pole_px = -1
-    	self.pole_py = -1
-    	self.pole_fx = 0
-    	self.pole_fy = 0
-    	self.pole_confidence = 0
-    	self.distance_to_pole = 0
+        # pole detection states
+    
+        self.pole_px = -1
+        self.pole_py = -1
+        self.pole_fx = 0
+        self.pole_fy = 0
+        self.pole_confidence = 0
+        self.distance_to_pole = 0
 
-    	# gate detection states
-    	self.gate_px = -1
-    	self.gate_py = -1
-    	self.gate_fx = 0
-    	self.gate_fy = 0
-    	self.gate_confidence = 0
-    	self.distance_to_gate = 0
+        # gate detection states
+        self.gate_px = -1
+        self.gate_py = -1
+        self.gate_fx = 0
+        self.gate_fy = 0
+        self.gate_confidence = 0
+        self.distance_to_gate = 0  
 
         # subscriber
         self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
@@ -68,34 +68,31 @@ class Navigation():
         self.sub_gate = rospy.Subscriber('/gate_midpoint', CameraObjectInfo, self.gateDetectionCallback, queue_size=1)
 
     def positionCallback(self, msg):
-        
-    	self.x  = msg.pose.pose.position.x
-    	self.y  = msg.pose.pose.position.y
-    	self.z  = msg.pose.pose.position.z
-    	self.qx = msg.pose.pose.orientation.x
-    	self.qy = msg.pose.pose.orientation.y
-    	self.qz = msg.pose.pose.orientation.z
-    	self.qw = msg.pose.pose.orientation.w
+        self.x  = msg.pose.pose.position.x
+        self.y  = msg.pose.pose.position.y
+        self.z  = msg.pose.pose.position.z
+        self.qx = msg.pose.pose.orientation.x
+        self.qy = msg.pose.pose.orientation.y
+        self.qz = msg.pose.pose.orientation.z
+        self.qw = msg.pose.pose.orientation.w
     
     def poleDetectionCallback(self, msg):
-
-    	self.pole_px = msg.pos_x
-    	self.pole_py = msg.pos_y
-    	self.pole_fx = msg.frame_width
-    	self.pole_fy = msg.frame_height
-    	self.pole_confidence = msg.confidence
-    	self.pole_distance = msg.distance_to_pole
+        
+        self.pole_px = msg.pos_x
+        self.pole_py = msg.pos_y
+        self.pole_fx = msg.frame_width
+        self.pole_fy = msg.frame_height
+        self.pole_confidence = msg.confidence
+        self.pole_distance = msg.distance_to_pole
 
     def gateDetectionCallback(self, msg):
 
-    	self.gate_px = msg.pos_x
-    	self.gate_py = msg.pos_y
-    	self.gate_fx = msg.frame_width
-    	self.gate_fy = msg.frame_height
-    	self.gate_confidence = msg.confidence
-    	self.gate_distance = msg.distance_to_pole
-
-    	print(self.gate_confidence)
+        self.gate_px = msg.pos_x
+        self.gate_py = msg.pos_y
+        self.gate_fx = msg.frame_width
+        self.gate_fy = msg.frame_height
+        self.gate_confidence = msg.confidence
+        self.gate_distance = msg.distance_to_pole
 
 
 class ControlMode(State):
