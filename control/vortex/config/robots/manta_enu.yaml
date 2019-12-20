@@ -70,7 +70,7 @@ propulsion:
 
 controller:
   circleOfAcceptance: 0.10
-  frequency: 40
+  frequency: 40 # THIS SHOULD BE 40Hz for the controller to perform good. This is because the built in reference model will work 2x faster as if the controller ran at 20Hz
   position_gain: 0.3 #5.0
   attitude_gain: 0.4 #2.5
   velocity_gain: 0.7 #0.4
