@@ -32,6 +32,34 @@ class AutopilotPID:
 
 		return tau
 
+class CameraPID:
+
+	"""
+	(0,0)	increase->
+	----------------> X
+	|
+	|
+	| increase 
+	|	 |
+	|    v
+	v
+
+	Y
+
+	"""
+
+	def __init__(self):
+
+		self.pid = PIDRegulator(3.0, 0.024, 1.0, 2)
+
+	def swayController(self, px_d, px, t):
+
+		# error
+		e = px - px_d
+
+		tau = self.pid.regulate(e, t)
+
+		return tau
 
 class AutopilotBackstepping:
 
