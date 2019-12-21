@@ -17,7 +17,7 @@ def setup_task_environment(self):
 	self.pool_depth = rospy.get_param('~pool_depth', -1.0) # meters
 
 	# Search area size
-	self.search_area_size = rospy.get_param('~search_area_size', 1.0)
+	self.search_area_size = rospy.get_param('~search_area_size', 0.5)
 	self.search_depth = rospy.get_param('~search_depth', 0.5*self.pool_depth)
 
 	# Set the low battery threshold (between 0 and 100)
