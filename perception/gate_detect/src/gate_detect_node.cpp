@@ -51,7 +51,7 @@ void gateFinder::Contours(cv_bridge::CvImagePtr cv_ptr)
   for (int i = 0; i < contours.size(); i++) 
   {
      bbox = boundingRect(contours[i]);
-     if ( bbox.height > height && bbox.width < 5.0*height)
+     if ( bbox.height > height && (bbox.width > 0.5*height && bbox.width < 8.0*height))
      {
        height = bbox.height;
        heights.push_back(bbox);

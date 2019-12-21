@@ -83,7 +83,7 @@ void poleFinder::Contours(cv_bridge::CvImagePtr cv_ptr)
   {
     bbox = boundingRect(contours[i]);
     //std::cout << "bbhox height: " << bbox.height << std::endl;
-    if ( bbox.height > height && bbox.width < 0.8*height) {
+    if ( bbox.height > height && bbox.width < height) {
       //height = bbox.height;
       bbox_big = bbox;
       detected.confidence = 0.5;
