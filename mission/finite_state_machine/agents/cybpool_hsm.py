@@ -20,6 +20,9 @@ from finite_state_machine.mission_plan import *
 # import object detection
 from	vortex_msgs.msg import CameraObjectInfo
 
+# camera centering controller
+from autopilot.autopilot import CameraPID
+
 # Imported help functions from src/finite_state_machine/
 from    finite_state_machine import ControllerMode, WaypointClient, PathFollowingClient
 
@@ -52,45 +55,12 @@ class Navigation():
 
 		# my current pose
 		self.vehicle_pose = Pose()
-		self.gate_object = CameraObjectInfo()
-		self.pole_object = CameraObjectInfo()
-
-		#pole detection states
-		self.pole_px = -1
-		self.pole_py = -1
-		self.pole_fx = 0
-		self.pole_fy = 0
-		self.pole_confidence = 0
-		self.distance_to_pole = 0
-
-		# gate detection states
-		self.gate_px = -1
-		self.gate_py = -1
-		self.gate_fx = 0
-		self.gate_fy = 0
-		self.gate_confidence = 0
-		self.distance_to_gate = 0
-
 		self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
-		self.sub_pole = rospy.Subscriber('/pole_midpoint', CameraObjectInfo, self.poleDetectionCallback, queue_size=1)
-		self.sub_gate = rospy.Subscriber('/gate_midpoint', CameraObjectInfo, self.gateDetectionCallback, queue_size=1)
 
 	def positionCallback(self, msg):
 
 		self.vehicle_pose = msg.pose.pose
 
-	def poleDetectionCallback(self, msg):
-
-		self.pole_px = msg.pos_x
-		self.pole_py = msg.pos_y
-		self.pole_fx = msg.frame_width
-		self.pole_fy = msg.frame_height
-		self.pole_confidence = msg.confidence
-		self.pole_distance = msg.distance_to_pole
-
-	def gateDetectionCallback(self, msg):
-
-		self.gate_object = msg
 
 
 # A list of tasks to be done
@@ -99,47 +69,84 @@ task_list = {'docking':['transit'],
 			 'pole':['searching','detect','camera_centering','path_planning','tracking', 'passed']
 			}
 
-class AlignWithTarget(State):
-
-	def __init__(self, target, timer):
-		State.__init__(self,outcomes=['succeeded','aborted','preempted'])
-
-		self.task = 'align_with_target'
-		self.target = target
-		self.timer = timer
-		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
-
-	def execute(self, userdata):
-		rospy.loginfo('Aligning with' + str(self.target) + '...')
-
-		sleep(5)
-
-		rospy.loginfo('Done aligning with ' + str(self.target) + '!')
-
-		return 'succeeded'
+def update_task_list(target, task):
+    task_list[target].remove(task)
+    if len(task_list[target]) == 0:
+        del task_list[target]
 
 class SearchForTarget(State):
 
 	def __init__(self, target):
-		State.__init__(self,outcomes=['succeeded','aborted','preempted'])
+		State.__init__(self,outcomes=['found','unseen'],
+							output_keys=['px_output'])
+
+		self.target = target
+
+		# initialize controller
+		self.CameraPID = CameraPID()
+		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+
+		# search for object
+		if target == 'gate':
+			self.sub_object = rospy.Subscriber('/gate_midpoint', CameraObjectInfo, self.objectDetectionCallback, queue_size=1)
+		else:
+			self.sub_object = rospy.Subscriber('/pole_midpoint', CameraObjectInfo, self.objectDetectionCallback, queue_size=1)
+
+	def objectDetectionCallback(self, msg):
+
+		""" detection frame
+		(0,0)	increase->
+		----------------> X
+		|
+		|
+		| increase 
+		|	 |
+		|    v
+		v
+		
+		Y
+
+		"""
+
+		self.object_px = msg.pos_x
+		self.object_py = msg.pos_y
+		self.object_fx = msg.frame_width
+		self.object_fy = msg.frame_height
+		self.object_confidence = msg.confidence
+		self.object_distance = msg.distance_to_pole
+		self.time = msg.header.stamp.to_sec()
+
+	def alignWithTarget(self):
+
+		self.CameraPID.swayController(0.0, self.object_px, self.time)
+
+	def execute(self, userdata):
+
+		rospy.loginfo('Searching for ' + self.target)
+		sleep(0.5)
+
+		if self.object_px >= 0.0 and self.object_py >= 0.0:
+			rospy.loginfo(self.target + ' found')
+
+			# output the object pixel position
+			userdata.px_output = self.object_px
+			return 'found'
+		else:
+			rospy.loginfo(self.target + ' not found')
+			return 'unseen'
+
+class TrackTarget(State):
+
+	def __init__(self, target):
+		State.__init__(self, outcomes=['succeeded','aborted','preempted'],
+							input_keys=['px_input'])
 		self.target = target
 
 	def execute(self, userdata):
 
-		if self.target == 'gate':
-			rospy.loginfo('Searching for gate...')
-		else:
-			rospy.loginfo('Searching for pole...')		
-
-		sleep(5)
+		rospy.loginfo('Pixel info: ' + str(userdata.px_input))
 
 		return 'succeeded'
-
-
-def update_task_list(target, task):
-    task_list[target].remove(task)
-    if len(task_list[target]) == 0:
-        del task_list[garget]
 
 
 class TaskManager():
@@ -194,11 +201,17 @@ class TaskManager():
 		""" Create individual state machines for assigning tasks to each target zone """
 
 		# Create a state machine for the orienting towards the gate subtask(s)
-		sm_gate_tasks = StateMachine(outcomes=['succeeded','aborted','preempted'])
+		sm_gate_tasks = StateMachine(outcomes=['found','unseen','aborted','succeeded','aborted','preempted'])
 
 		# Then add the subtask(s)
 		with sm_gate_tasks:
-			StateMachine.add('GATE_SEARCH', SearchForTarget('gate'), transitions={'succeeded':'','aborted':'','preempted':''})
+			# if gate is found, pass pixel info onto TrackTarget. If gate is not found, look again
+			StateMachine.add('GATE_SEARCH', SearchForTarget('gate'), transitions={'found':'GATE_TRACK','unseen':'GATE_SEARCH'},
+																	 remapping={'px_output':'object_px'})
+
+			StateMachine.add('GATE_TRACK', TrackTarget('gate'), transitions={'succeeded':'', 'aborted':'', 'preempted':''},
+																remapping={'px_input':'object_px'})
+
 
 		""" Assemble a Hierarchical State Machine """
 
@@ -215,7 +228,7 @@ class TaskManager():
 			StateMachine.add('GATE_AREA_STATIONKEEP', nav_terminal_states['gate'], transitions={'succeeded':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
 
 			""" When in GATE ZONE """		
-			StateMachine.add('EXECUTE_GATE_TASKS', sm_gate_tasks, transitions={'succeeded':'GATE_PASSED','aborted':'RETURN_TO_DOCK','preempted':'GATE_AREA_STATIONKEEP'})		
+			StateMachine.add('EXECUTE_GATE_TASKS', sm_gate_tasks, transitions={'found':'GATE_PASSED','unseen':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK'})		
 			
 			""" Transiting to gate """
 			StateMachine.add('GATE_PASSED', ControlMode(OPEN_LOOP), transitions={'succeeded':'TRANSIT_TO_POLE','aborted':'RETURN_TO_DOCK','preempted':'GATE_AREA_STATIONKEEP'})
