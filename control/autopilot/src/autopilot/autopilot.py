@@ -50,14 +50,33 @@ class CameraPID:
 
 	def __init__(self):
 
-		self.pid = PIDRegulator(3.0, 0.024, 1.0, 2)
+		self.sway = PIDRegulator(0.02, 0.0002, 0.0, 2.5)
+		self.depth = PIDRegulator(25, 0.024, 3.5, 5.0)
+		self.speed = PIDRegulator(25, 0.024, 3.5, 5.0)
 
 	def swayController(self, px_d, px, t):
 
 		# error
-		e = px - px_d
+		e = px_d - px
 
-		tau = self.pid.regulate(e, t)
+		tau = self.sway.regulate(e, t)
+
+		return tau
+
+	def depthController(self, z_d, z, t):
+
+		e = z_d - z;
+
+		tau = self.depth.regulate(e, t)
+
+		return tau
+
+
+	def speedController(self, u_d, u, t):
+
+		e = u_d - u;
+
+		tau = self.speed.regulate(e, t)
 
 		return tau
 
