@@ -4,6 +4,7 @@
 # All rights reserved.
 
 import	rospy
+import  math
 from    time import sleep
 from	collections import OrderedDict
 from	smach	import	State, StateMachine		
@@ -13,6 +14,7 @@ from    move_base_msgs.msg  import  MoveBaseAction, MoveBaseGoal
 from    vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 from 	vortex_msgs.msg import PropulsionCommand
 from 	geometry_msgs.msg import Wrench, Pose
+from 	tf.transformations import euler_from_quaternion
 
 # import mission plan
 from finite_state_machine.mission_plan import *
@@ -110,7 +112,7 @@ class SearchForTarget(State):
 
 		rospy.loginfo('Searching for ' + self.target)
 
-		sleep(0.1)
+		sleep(0.2)
 
 		if self.object_px >= 0.0 and self.object_py >= 0.0:
 			rospy.loginfo(self.target + ' found')
@@ -135,6 +137,7 @@ class TrackTarget(State):
 		
 
 		# initialize controller
+		self.omega = 0
 		self.CameraPID = CameraPID()
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 		
@@ -150,6 +153,13 @@ class TrackTarget(State):
 
 		self.vehicle_odom = msg
 		self.time = msg.header.stamp.to_sec()
+
+		global roll, pitch, yaw
+		orientation_q = msg.pose.pose.orientation
+		orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+		(roll,pitch,yaw) = euler_from_quaternion(orientation_list)
+
+		self.psi = yaw
 
 	def pathPlanning(self):
 
@@ -168,26 +178,29 @@ class TrackTarget(State):
 
 	def alignWithTarget(self, object_fx, object_px, search_input):
 
-		# center the object in the middle of the image px_d = 0.0
-		# fix bounding boxes, their center values are calculated wrong and are not in center
-		tau_sway = self.CameraPID.swayController(object_fx*(0.70), object_px, self.time)
 		tau_heave = self.CameraPID.depthController(-0.5, self.vehicle_odom.pose.pose.position.z, self.time)
-		tau_surge = self.CameraPID.speedController(0.2, self.vehicle_odom.twist.twist.linear.x, self.time)
-
-		#rospy.loginfo('actual z: ' + str(self.vehicle_odom.pose.pose.position.z))
+		tau_surge = self.CameraPID.speedController(0.3, self.vehicle_odom.twist.twist.linear.x, self.time)
+		self.thrust_msg.force.z = tau_heave
+		self.thrust_msg.force.x = tau_surge
 
 		if search_input == 'found':
-			self.thrust_msg.force.x = tau_surge
+			# fix bounding boxes, their center values are calculated wrong and are not in center
+			tau_sway = self.CameraPID.swayController(object_fx*(0.60), object_px, self.time)
 			self.thrust_msg.force.y = tau_sway
-			self.thrust_msg.force.z = tau_heave
+
 		else:
-			self.thrust_msg.torque.z = 0.1
+			#self.omega = self.omega + 0.04
+			#psi_d = 20*math.sin(self.time)
+			tau_heading = self.CameraPID.headingController(0, self.psi, self.time)
+
+			self.thrust_msg.torque.z = tau_heading
 
 		#publish
 		self.pub_thrust.publish(self.thrust_msg)
 
 	def execute(self, userdata):
 
+		sleep(0.2)
 		# track the target
 		nav_goal = LosPathFollowingGoal()	
 		
@@ -271,10 +284,10 @@ class TaskManager():
 		with hsm_pool_patrol:
 
 			""" Navigate to GATE in TERMINAL mode """
-			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_AREA','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			#StateMachine.add('GATE_AREA', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'GATE_AREA_STATIONKEEP','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			#StateMachine.add('GATE_AREA_STATIONKEEP', nav_terminal_states['gate'], transitions={'succeeded':'START_GATE_MISSION','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			StateMachine.add('GATE_AREA', ControlMode(OPEN_LOOP), transitions={'succeeded':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_SECTOR','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			#StateMachine.add('GATE_SECTOR', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'GATE_SECTOR_STATIONKEEP','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			#StateMachine.add('GATE_SECTOR_STATIONKEEP', nav_terminal_states['gate'], transitions={'succeeded':'GATE_MODE','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			StateMachine.add('GATE_SECTOR', ControlMode(OPEN_LOOP), transitions={'succeeded':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
 
 			""" When in GATE ZONE """		
 			StateMachine.add('EXECUTE_GATE_TASKS', sm_gate_tasks, transitions={'found':'GATE_PASSED','unseen':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK'})		
