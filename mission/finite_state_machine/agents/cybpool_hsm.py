@@ -66,10 +66,14 @@ def update_task_list(target, task):
 class SearchForTarget(State):
 
 	def __init__(self, target):
-		State.__init__(self,outcomes=['found','unseen'],
+		State.__init__(self,outcomes=['found','unseen','passed','missed'],
 							output_keys=['px_output','fx_output', 'search_output', 'search_confidence_output'])
 
 		self.target = target
+		self.search_timeout = 40.0
+		self.sampling_time = 0.2
+		self.timer = 0.0
+		self.task_status = 'missed'
 
 		# search for object
 		if target == 'gate':
@@ -79,8 +83,6 @@ class SearchForTarget(State):
 
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 		
-		# change control mode
-		#ControlMode(OPEN_LOOP)
 		
 		# thrust message
 		self.thrust_msg = Wrench()
@@ -113,7 +115,11 @@ class SearchForTarget(State):
 
 		rospy.loginfo('Searching for ' + self.target)
 
-		sleep(0.2)
+		sleep(self.sampling_time)
+		self.timer += self.sampling_time
+
+		if self.timer > self.search_timeout:
+			return self.task_status
 
 		if self.object_px >= 0.0 and self.object_py >= 0.0:
 			rospy.loginfo(self.target + ' found')
@@ -123,6 +129,7 @@ class SearchForTarget(State):
 			userdata.fx_output = self.object_fx
 			userdata.search_confidence_output = self.object_confidence
 			userdata.search_output = 'found'
+			self.task_status = 'passed'
 
 			return 'found'
 		else:
@@ -198,11 +205,12 @@ class TrackTarget(State):
 
 		tau_heave = self.CameraPID.depthController(-0.5, self.vehicle_odom.pose.pose.position.z, self.time)
 		self.thrust_msg.force.z = tau_heave
+		target_center_screen = object_fx*(0.60)
 
 		if search_input == 'found' and object_confidence >= 1.0:
 			# fix bounding boxes, their center values are calculated wrong and are not in center
 
-			tau_sway = self.CameraPID.swayController(object_fx*(0.60), object_px, self.time)
+			tau_sway = self.CameraPID.swayController(target_center_screen, object_px, self.time)
 			tau_surge = self.CameraPID.speedController(0.1, self.vehicle_odom.twist.twist.linear.x, self.time)
 			
 			# you're on the right path, keep this heading
@@ -295,24 +303,24 @@ class TaskManager():
 		""" Create individual state machines for assigning tasks to each target zone """
 
 		# Create a state machine for the orienting towards the gate subtask(s)
-		sm_gate_tasks = StateMachine(outcomes=['found','unseen','aborted','succeeded','aborted','preempted'])
+		sm_gate_tasks = StateMachine(outcomes=['found','unseen','missed','passed','aborted','preempted'])
 
 		# Then add the subtask(s)
 		with sm_gate_tasks:
 			# if gate is found, pass pixel info onto TrackTarget. If gate is not found, look again
-			StateMachine.add('GATE_SEARCH', SearchForTarget('gate'), transitions={'found':'GATE_FOUND','unseen':'GATE_UNSEEN'},
+			StateMachine.add('GATE_SEARCH', SearchForTarget('gate'), transitions={'found':'GATE_FOUND','unseen':'GATE_UNSEEN','passed':'','missed':''},
 																	 remapping={'px_output':'object_px','fx_output':'object_fx','search_output':'object_search','search_confidence_output':'object_confidence'})
 
-			StateMachine.add('GATE_FOUND', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH', 'aborted':'', 'preempted':''},
+			StateMachine.add('GATE_FOUND', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH'},
 														  remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search','search_confidence_input':'object_confidence'})
 
-			StateMachine.add('GATE_UNSEEN', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH', 'aborted':'', 'preempted':''},
+			StateMachine.add('GATE_UNSEEN', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH'},
 														   remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search','search_confidence_input':'object_confidence'})
 
 		""" Assemble a Hierarchical State Machine """
 
 		# Initialize the HSM
-		hsm_pool_patrol = StateMachine(outcomes=['succeeded','aborted','preempted'])
+		hsm_pool_patrol = StateMachine(outcomes=['succeeded','aborted','preempted','passed','missed','unseen','found'])
 
 		# Build the HSM from nav states and target states
 
@@ -322,10 +330,10 @@ class TaskManager():
 			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_SECTOR','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
 			#StateMachine.add('GATE_SECTOR', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'GATE_SECTOR_STATIONKEEP','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
 			#StateMachine.add('GATE_SECTOR_STATIONKEEP', nav_terminal_states['gate'], transitions={'succeeded':'GATE_MODE','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			StateMachine.add('GATE_SECTOR', ControlMode(OPEN_LOOP), transitions={'succeeded':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			StateMachine.add('GATE_SECTOR', ControlMode(OPEN_LOOP), transitions={'succeeded':'GATE_PASSING_TASK','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
 
 			""" When in GATE ZONE """		
-			StateMachine.add('EXECUTE_GATE_TASKS', sm_gate_tasks, transitions={'found':'GATE_PASSED','unseen':'EXECUTE_GATE_TASKS','aborted':'RETURN_TO_DOCK'})		
+			StateMachine.add('GATE_PASSING_TASK', sm_gate_tasks, transitions={'passed':'GATE_PASSED','missed':'RETURN_TO_DOCK','aborted':'RETURN_TO_DOCK'})		
 			
 			""" Transiting to gate """
 			StateMachine.add('GATE_PASSED', ControlMode(OPEN_LOOP), transitions={'succeeded':'TRANSIT_TO_POLE','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
