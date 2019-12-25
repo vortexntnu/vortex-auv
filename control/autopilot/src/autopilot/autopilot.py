@@ -50,9 +50,9 @@ class CameraPID:
 
 	def __init__(self):
 
-		self.sway = PIDRegulator(0.05, 0.002, 0.0, 3.5)
+		self.sway = PIDRegulator(0.01, 0.0001, 0.0, 5.5)
 		#self.heading = PIDRegulator(0.02, 0.0, 0.0, 0.15)
-		self.heading = PIDRegulator(0.15,0.002, 0.0, 0.20)
+		self.heading = PIDRegulator(0.15,0.002, 0.0, 0.25)
 		self.depth = PIDRegulator(25, 0.024, 3.5, 5.0)
 		self.speed = PIDRegulator(25, 0.024, 3.5, 5.0)
 
