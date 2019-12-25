@@ -15,10 +15,12 @@ def setup_task_environment(self):
 
 	# How deep is the pool we want to patrol?
 	self.pool_depth = rospy.get_param('~pool_depth', -1.0) # meters
+	self.transit_speed = rospy.get_param('~transit_speed', 0.3)
 
 	# Search area size
 	self.search_area_size = rospy.get_param('~search_area_size', 0.5)
 	self.search_depth = rospy.get_param('~search_depth', 0.5*self.pool_depth)
+	self.search_speed = rospy.get_param('~search_speed',0.2)
 
 	# Set the low battery threshold (between 0 and 100)
 	self.low_battery_threshold = rospy.get_param('~low_battery_threshold',50)
@@ -53,7 +55,7 @@ def setup_task_environment(self):
 
 	# Append each of the waypoints to the list.
 	self.waypoints.append(Pose(Point( 2.0, 2.0, self.search_depth), quaternions[0]))
-	self.waypoints.append(Pose(Point( 6.0,-0.1, self.search_depth), quaternions[1]))
+	self.waypoints.append(Pose(Point( 5.0, 1.0, self.search_depth), quaternions[1]))
 	self.waypoints.append(Pose(Point( 25.0, 0.0, self.search_depth), quaternions[2]))
 	self.waypoints.append(Pose(Point( 25.0, 0.5, self.search_depth), quaternions[3]))
 	self.waypoints.append(Pose(Point( 30.0,  2.5, self.search_depth), quaternions[4]))

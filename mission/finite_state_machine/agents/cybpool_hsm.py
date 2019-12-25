@@ -5,6 +5,7 @@
 
 import	rospy
 import  math
+import numpy as np
 from    time import sleep
 from	collections import OrderedDict
 from	smach	import	State, StateMachine		
@@ -66,7 +67,7 @@ class SearchForTarget(State):
 
 	def __init__(self, target):
 		State.__init__(self,outcomes=['found','unseen'],
-							output_keys=['px_output','fx_output', 'search_output'])
+							output_keys=['px_output','fx_output', 'search_output', 'search_confidence_output'])
 
 		self.target = target
 
@@ -120,24 +121,26 @@ class SearchForTarget(State):
 			# output the object pixel position
 			userdata.px_output = self.object_px
 			userdata.fx_output = self.object_fx
+			userdata.search_confidence_output = self.object_confidence
 			userdata.search_output = 'found'
+
 			return 'found'
 		else:
 			rospy.loginfo(self.target + ' not found')
 			userdata.px_output = self.object_px
 			userdata.fx_output = self.object_fx
+			userdata.search_confidence_output = self.object_confidence
 			userdata.search_output = 'unseen'
 			return 'unseen'
 
 class TrackTarget(State):
 
-	def __init__(self):
+	def __init__(self, search_target, search_area):
 		State.__init__(self, outcomes=['succeeded','aborted','preempted'],
-							input_keys=['px_input','fx_input','search_input'])
+							input_keys=['px_input','fx_input','search_input','search_confidence_input'])
 		
 
 		# initialize controller
-		self.omega = 0
 		self.CameraPID = CameraPID()
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 		
@@ -147,6 +150,15 @@ class TrackTarget(State):
 		# my current pose
 		self.vehicle_odom = Odometry()
 		self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
+
+		# set init_flag
+		self.init_flag = True
+		
+		# straight-line path segment
+		self.search_target = search_target
+		self.search_y = search_area.y
+		self.search_x = search_area.x
+
 
 
 	def positionCallback(self, msg):
@@ -163,7 +175,13 @@ class TrackTarget(State):
 
 	def pathPlanning(self):
 
-		pass
+		# straight-line path segment
+		y_delta = self.search_y - self.vehicle_odom.pose.pose.position.y
+		x_delta = self.search_x - self.vehicle_odom.pose.pose.position.x
+
+		# angle
+		self.search_direction = np.arctan2(y_delta, x_delta) 
+
 
 	def pathTracking(self):
 
@@ -176,27 +194,39 @@ class TrackTarget(State):
 		if status == GoalStatus.SUCCEEDED:
 			rospy.loginfo("Waypoint succeeded")
 
-	def alignWithTarget(self, object_fx, object_px, search_input):
+	def alignWithTarget(self, object_fx, object_px, search_input, object_confidence):
 
 		tau_heave = self.CameraPID.depthController(-0.5, self.vehicle_odom.pose.pose.position.z, self.time)
-		tau_surge = self.CameraPID.speedController(0.3, self.vehicle_odom.twist.twist.linear.x, self.time)
 		self.thrust_msg.force.z = tau_heave
-		self.thrust_msg.force.x = tau_surge
 
-		if search_input == 'found':
+		if search_input == 'found' and object_confidence >= 1.0:
 			# fix bounding boxes, their center values are calculated wrong and are not in center
+
 			tau_sway = self.CameraPID.swayController(object_fx*(0.60), object_px, self.time)
+			tau_surge = self.CameraPID.speedController(0.1, self.vehicle_odom.twist.twist.linear.x, self.time)
+			
+			# you're on the right path, keep this heading
+			tau_heading = self.CameraPID.headingController(self.psi, self.psi, self.time)
+
+			#publish
+
+			self.thrust_msg.torque.z = tau_heading
+			self.thrust_msg.force.x = tau_surge
 			self.thrust_msg.force.y = tau_sway
 
 		else:
-			#self.omega = self.omega + 0.04
-			#psi_d = 20*math.sin(self.time)
-			tau_heading = self.CameraPID.headingController(0, self.psi, self.time)
 
+			tau_surge = self.CameraPID.speedController(0.3, self.vehicle_odom.twist.twist.linear.x, self.time)
+			tau_heading = self.CameraPID.headingController(self.search_direction, self.psi, self.time)
+			tau_sway = 0.0
+
+			#publish
 			self.thrust_msg.torque.z = tau_heading
+			self.thrust_msg.force.x = tau_surge
+			self.thrust_msg.force.y = tau_sway
 
-		#publish
 		self.pub_thrust.publish(self.thrust_msg)
+
 
 	def execute(self, userdata):
 
@@ -204,8 +234,13 @@ class TrackTarget(State):
 		# track the target
 		nav_goal = LosPathFollowingGoal()	
 		
-		self.alignWithTarget(userdata.fx_input,userdata.px_input, userdata.search_input)
-		self.pathPlanning()
+		# initialize the direction you want to be looking
+		if self.init_flag is True:
+			self.pathPlanning()
+			self.init_flag = False
+
+		
+		self.alignWithTarget(userdata.fx_input,userdata.px_input, userdata.search_input, userdata.search_confidence_input)
 		self.pathTracking()
 
 		return 'succeeded'
@@ -246,7 +281,7 @@ class TaskManager():
 			nav_goal = LosPathFollowingGoal()
 			#nav_goal.prev_waypoint = navigation.vehicle_pose.position
 			nav_goal.next_waypoint = self.pool_locations[target].position
-			nav_goal.forward_speed.linear.x = 0.2
+			nav_goal.forward_speed.linear.x = self.transit_speed
 			nav_goal.desired_depth.z = self.search_depth
 			nav_goal.sphereOfAcceptance = self.search_area_size
 			los_path_state = SimpleActionState('los_path', LosPathFollowingAction,
@@ -266,13 +301,13 @@ class TaskManager():
 		with sm_gate_tasks:
 			# if gate is found, pass pixel info onto TrackTarget. If gate is not found, look again
 			StateMachine.add('GATE_SEARCH', SearchForTarget('gate'), transitions={'found':'GATE_FOUND','unseen':'GATE_UNSEEN'},
-																	 remapping={'px_output':'object_px','fx_output':'object_fx','search_output':'object_search'})
+																	 remapping={'px_output':'object_px','fx_output':'object_fx','search_output':'object_search','search_confidence_output':'object_confidence'})
 
-			StateMachine.add('GATE_FOUND', TrackTarget(), transitions={'succeeded':'GATE_SEARCH', 'aborted':'', 'preempted':''},
-														  remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search'})
+			StateMachine.add('GATE_FOUND', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH', 'aborted':'', 'preempted':''},
+														  remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search','search_confidence_input':'object_confidence'})
 
-			StateMachine.add('GATE_UNSEEN', TrackTarget(), transitions={'succeeded':'GATE_SEARCH', 'aborted':'', 'preempted':''},
-														   remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search'})
+			StateMachine.add('GATE_UNSEEN', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH', 'aborted':'', 'preempted':''},
+														   remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search','search_confidence_input':'object_confidence'})
 
 		""" Assemble a Hierarchical State Machine """
 
