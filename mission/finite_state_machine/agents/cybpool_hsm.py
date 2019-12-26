@@ -70,7 +70,7 @@ class SearchForTarget(State):
 							output_keys=['px_output','fx_output', 'search_output', 'search_confidence_output'])
 
 		self.target = target
-		self.search_timeout = 40.0
+		self.search_timeout = 30.0
 		self.sampling_time = 0.2
 		self.timer = 0.0
 		self.task_status = 'missed'
@@ -302,20 +302,32 @@ class TaskManager():
 
 		""" Create individual state machines for assigning tasks to each target zone """
 
-		# Create a state machine for the orienting towards the gate subtask(s)
+		# Create a state machine container for the orienting towards the gate subtask(s)
 		sm_gate_tasks = StateMachine(outcomes=['found','unseen','missed','passed','aborted','preempted'])
 
 		# Then add the subtask(s)
 		with sm_gate_tasks:
 			# if gate is found, pass pixel info onto TrackTarget. If gate is not found, look again
-			StateMachine.add('GATE_SEARCH', SearchForTarget('gate'), transitions={'found':'GATE_FOUND','unseen':'GATE_UNSEEN','passed':'','missed':''},
+			StateMachine.add('SCANNING_OBJECTS', SearchForTarget('gate'), transitions={'found':'CAMERA_CENTERING','unseen':'BROADEN_SEARCH','passed':'','missed':''},
 																	 remapping={'px_output':'object_px','fx_output':'object_fx','search_output':'object_search','search_confidence_output':'object_confidence'})
 
-			StateMachine.add('GATE_FOUND', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH'},
+			StateMachine.add('CAMERA_CENTERING', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'SCANNING_OBJECTS'},
 														  remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search','search_confidence_input':'object_confidence'})
 
-			StateMachine.add('GATE_UNSEEN', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'GATE_SEARCH'},
+			StateMachine.add('BROADEN_SEARCH', TrackTarget('gate', self.pool_locations['gate'].position), transitions={'succeeded':'SCANNING_OBJECTS'},
 														   remapping={'px_input':'object_px','fx_input':'object_fx','search_input':'object_search','search_confidence_input':'object_confidence'})
+
+
+		# Create a state machine container for returning to dock
+		sm_docking = StateMachine(outcomes=['succeeded','aborted','preempted'])
+
+		# Add states to container
+
+		with sm_docking:
+
+			StateMachine.add('RETURN_TO_DOCK', nav_transit_states['docking'], transitions={'succeeded':'DOCKING_SECTOR','aborted':'','preempted':'RETURN_TO_DOCK'})
+			StateMachine.add('DOCKING_SECTOR', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'DOCKING_PROCEEDURE','aborted':'','preempted':''})
+			StateMachine.add('DOCKING_PROCEEDURE', nav_terminal_states['docking'], transitions={'succeeded':'','aborted':'','preempted':''})
 
 		""" Assemble a Hierarchical State Machine """
 
@@ -327,21 +339,21 @@ class TaskManager():
 		with hsm_pool_patrol:
 
 			""" Navigate to GATE in TERMINAL mode """
-			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_SECTOR','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			#StateMachine.add('GATE_SECTOR', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'GATE_SECTOR_STATIONKEEP','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			#StateMachine.add('GATE_SECTOR_STATIONKEEP', nav_terminal_states['gate'], transitions={'succeeded':'GATE_MODE','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			StateMachine.add('GATE_SECTOR', ControlMode(OPEN_LOOP), transitions={'succeeded':'GATE_PASSING_TASK','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_SEARCH','aborted':'DOCKING','preempted':'DOCKING'})
 
-			""" When in GATE ZONE """		
-			StateMachine.add('GATE_PASSING_TASK', sm_gate_tasks, transitions={'passed':'GATE_PASSED','missed':'RETURN_TO_DOCK','aborted':'RETURN_TO_DOCK'})		
+			""" When in GATE sector"""		
+			StateMachine.add('GATE_SEARCH', sm_gate_tasks, transitions={'passed':'GATE_PASSED','missed':'DOCKING','aborted':'DOCKING'})		
 			
 			""" Transiting to gate """
-			StateMachine.add('GATE_PASSED', ControlMode(OPEN_LOOP), transitions={'succeeded':'TRANSIT_TO_POLE','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
-			StateMachine.add('TRANSIT_TO_POLE', nav_transit_states['pole'], transitions={'succeeded':'RETURN_TO_DOCK','aborted':'RETURN_TO_DOCK','preempted':'RETURN_TO_DOCK'})
+			StateMachine.add('GATE_PASSED', ControlMode(OPEN_LOOP), transitions={'succeeded':'TRANSIT_TO_POLE','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('TRANSIT_TO_POLE', nav_transit_states['pole'], transitions={'succeeded':'DOCKING','aborted':'DOCKING','preempted':'DOCKING'})
+
+			""" When in POLE sector"""		
+			#StateMachine.add('POLE_PASSING_TASK', sm_pole_tasks, transitions={'passed':'POLE_PASSING_TASK','missed':'RETURN_TO_DOCK','aborted':'RETURN_TO_DOCK'})		
 
 			""" When aborted, return to docking """
-			StateMachine.add('RETURN_TO_DOCK', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'DOCKING','aborted':'','preempted':''})
-			StateMachine.add('DOCKING', nav_terminal_states['docking'], transitions={'succeeded':'','aborted':'','preempted':''})
+			StateMachine.add('DOCKING', sm_docking, transitions={'succeeded':'','aborted':'','preempted':''})
+
 
 		# Create and start the SMACH Introspection server
 
