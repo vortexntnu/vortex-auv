@@ -28,12 +28,16 @@
 
 <include file="$(find pole_detect)/launch/pole_detect.launch"/>
 <include file="$(find gate_detect)/launch/gate_detect.launch"/> 
- 
+
+<!-- Launch battery simulator -->
+<include file="$(find anomaly_detection)/launch/fake_battery_simulator.launch"/> 
+
+
 <!-- State machine -->
    <node
-    name="cybpool_hsm"
+    name="hsm_with_battery_concurrence"
     pkg="finite_state_machine"
-    type="cybpool_hsm.py"
+    type="hsm_with_battery_concurrence.py"
     output="screen">
    </node> 
 
