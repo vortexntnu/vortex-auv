@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(anomaly_detection)
-
 find_package(catkin REQUIRED COMPONENTS dynamic_reconfigure #message_generation
 	
 )
