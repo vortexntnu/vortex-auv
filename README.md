@@ -2,6 +2,7 @@
 
 ![MANTA](docs/manta_v1.png)
 
+
 ## Prerequisites
 
 Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
