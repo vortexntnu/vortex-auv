@@ -1,5 +1,6 @@
 ## Vortex NTNU, Manta AUV repository
 
+
 ![MANTA](docs/manta_v1.png)
 
 
