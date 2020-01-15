@@ -25,14 +25,12 @@ def make_base_goal(x, y, z, yaw):
 def make_los_goal(x_prev, y_prev, x_next, y_next, depth, speed=0.20, sphere_of_acceptance=0.3):
 
     los_goal = LosPathFollowingGoal()
-
     los_goal.prev_waypoint.x = x_prev
     los_goal.prev_waypoint.y = y_prev
 
     los_goal.next_waypoint.x = x_next
     los_goal.next_waypoint.y = y_next
-
-    los_goal.desired_depth.z = depth
+    los_goal.next_waypoint.z = depth
 
     los_goal.forward_speed.linear.x = speed
     los_goal.sphereOfAcceptance = sphere_of_acceptance
@@ -47,7 +45,13 @@ patrol = StateMachine(outcomes=[],
                         output_keys=[])
 
 with patrol:
-
+    StateMachine.add('DIVE',
+                    SimpleActionState('move_base',
+                                        MoveBaseAction,
+                                        goal=make_base_goal(0,0,-0,5)),
+                      transitions={'succeeded': 'CHECKPOINT_1',
+                                'aborted': 'DIVE',
+                                'preempted': 'CHECKPOINT_1'})                    
     StateMachine.add('CHECKPOINT_1',
                     SimpleActionState('los_path',
                                         LosPathFollowingAction,

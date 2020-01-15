@@ -18,7 +18,7 @@ def setup_task_environment(self):
 	self.transit_speed = rospy.get_param('~transit_speed', 0.3)
 
 	# Search area size
-	self.search_area_size = rospy.get_param('~search_area_size', 4.0)
+	self.search_area_size = rospy.get_param('~search_area_size', 1.0)
 	self.search_depth = rospy.get_param('~search_depth', 0.5*self.pool_depth)
 	self.search_speed = rospy.get_param('~search_speed',0.2)
 
@@ -54,20 +54,18 @@ def setup_task_environment(self):
 	self.waypoints = list()
 
 	# Append each of the waypoints to the list.
-	self.waypoints.append(Pose(Point( 2.0, 2.0, self.search_depth), quaternions[0]))
-	self.waypoints.append(Pose(Point( 10.0, -2.0, self.search_depth), quaternions[1]))
-	self.waypoints.append(Pose(Point( -6.0, 0.0, self.search_depth), quaternions[2]))
-	self.waypoints.append(Pose(Point( 25.0, 0.5, self.search_depth), quaternions[3]))
-	self.waypoints.append(Pose(Point( 30.0,  2.5, self.search_depth), quaternions[4]))
+	self.waypoints.append(Pose(Point( 0, -2, -0.9), quaternions[0]))
+	self.waypoints.append(Pose(Point( 2, -2, -0.1), quaternions[1]))
+	self.waypoints.append(Pose(Point( 2, 2, -0.9), quaternions[2]))
+	self.waypoints.append(Pose(Point( 0, 2, -0.1),quaternions[3]))
 
 	# Create a mapping of points of interest to waypoint locations
 
 	pool_locations = (
-					 ('docking', self.waypoints[0]),
-                     ('gate', self.waypoints[1]),
-                     ('pole', self.waypoints[2]),
-                     ('p3', self.waypoints[3]),
-                     ('p4', self.waypoints[4]))
+					 ('corner1', self.waypoints[0]),
+                     ('corner2', self.waypoints[1]),
+                     ('corner3', self.waypoints[2]),
+                     ('corner4', self.waypoints[3]))
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence
 	self.pool_locations = OrderedDict(pool_locations)

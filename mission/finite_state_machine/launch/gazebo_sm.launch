@@ -26,27 +26,27 @@
 
 <!-- Launch object detection -->
 
-<include file="$(find pole_detect)/launch/pole_detect.launch"/>
-<include file="$(find gate_detect)/launch/gate_detect.launch"/> 
+<!--include file="$(find pole_detect)/launch/pole_detect.launch"/>
+<include file="$(find gate_detect)/launch/gate_detect.launch"/--> 
 
 <!-- Launch battery simulator -->
-<include file="$(find anomaly_detection)/launch/fake_battery_simulator.launch"/> 
+<!--include file="$(find anomaly_detection)/launch/fake_battery_simulator.launch"/--> 
 
 
 <!-- State machine -->
    <node
-    name="hsm_with_battery_concurrence"
+    name="cybpool_hsm"
     pkg="finite_state_machine"
-    type="hsm_with_battery_concurrence.py"
+    type="cybpool_hsm.py"
     output="screen">
    </node> 
 
 <!-- State machine visualization -->
 
-   <node
+   <!--node
     name="smach_viewer"
     pkg="smach_viewer"
     type="smach_viewer.py">
-   </node>
+   </node-->
 
 </launch>
