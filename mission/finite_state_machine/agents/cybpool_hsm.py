@@ -91,7 +91,7 @@ class TaskManager():
 												result_cb=self.nav_result_cb,
 												exec_timeout=self.nav_timeout,
 												server_wait_timeout=rospy.Duration(10.0))
-			print(target)
+			
 			nav_terminal_states[target] = move_base_state
 
 
@@ -120,11 +120,27 @@ class TaskManager():
 
 		with hsm_pool_patrol:
 
-			""" Navigate to GATE in TERMINAL mode """
-			StateMachine.add('Move_to_task_1', nav_transit_states['corner1'], transitions={'succeeded':'Move_to_task_2','aborted':'Move_to_task_1','preempted':'Move_to_task_1'})
-			StateMachine.add('Move_to_task_2', nav_transit_states['corner2'], transitions={'succeeded':'Move_to_task_3','aborted':'Move_to_task_2','preempted':'Move_to_task_2'})
-			StateMachine.add('Move_to_task_3', nav_transit_states['corner3'], transitions={'succeeded':'Move_to_task_4','aborted':'Move_to_task_3','preempted':'Move_to_task_3'})
-			StateMachine.add('Move_to_task_4', nav_transit_states['corner4'], transitions={'succeeded':'Move_to_task_1','aborted':'Move_to_task_4','preempted':'Move_to_task_4'})
+			""" Navigate to corner1 """
+			StateMachine.add('los_corner1', nav_transit_states['corner1'], transitions={'succeeded':'control_mode_corner1','aborted':'los_corner1','preempted':'los_corner1'})
+			StateMachine.add('control_mode_corner1', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'dp_corner1','aborted':'control_mode_corner1','preempted':'control_mode_corner1'})
+			StateMachine.add('dp_corner1', nav_terminal_states['corner1'], transitions={'succeeded':'transition_corner1','aborted':'dp_corner1','preempted':'dp_corner1'})
+			StateMachine.add('transition_corner1', ControlMode(OPEN_LOOP), transitions={'succeeded':'los_corner2','aborted':'transition_corner1','preempted':'transition_corner1'})
+			""" Navigate to corner2 """
+			StateMachine.add('los_corner2', nav_transit_states['corner2'], transitions={'succeeded':'control_mode_corner2','aborted':'los_corner2','preempted':'los_corner2'})
+			StateMachine.add('control_mode_corner2', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'dp_corner2','aborted':'control_mode_corner2','preempted':'control_mode_corner2'})
+			StateMachine.add('dp_corner2', nav_terminal_states['corner2'], transitions={'succeeded':'transition_corner2','aborted':'dp_corner2','preempted':'dp_corner2'})
+			StateMachine.add('transition_corner2', ControlMode(OPEN_LOOP), transitions={'succeeded':'los_corner3','aborted':'transition_corner1','preempted':'transition_corner1'})
+			""" Navigate to corner3 """
+			StateMachine.add('los_corner3', nav_transit_states['corner3'], transitions={'succeeded':'control_mode_corner3','aborted':'los_corner3','preempted':'los_corner3'})
+			StateMachine.add('control_mode_corner3', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'dp_corner3','aborted':'control_mode_corner3','preempted':'control_mode_corner3'})
+			StateMachine.add('dp_corner3', nav_terminal_states['corner3'], transitions={'succeeded':'transition_corner3','aborted':'dp_corner3','preempted':'dp_corner3'})
+			StateMachine.add('transition_corner3', ControlMode(OPEN_LOOP), transitions={'succeeded':'los_corner4','aborted':'transition_corner1','preempted':'transition_corner1'})
+			""" Navigate to corner4 """
+			StateMachine.add('los_corner4', nav_transit_states['corner4'], transitions={'succeeded':'control_mode_corner4','aborted':'los_corner4','preempted':'los_corner4'})
+			StateMachine.add('control_mode_corner4', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'dp_corner4','aborted':'control_mode_corner4','preempted':'control_mode_corner4'})
+			StateMachine.add('dp_corner4', nav_terminal_states['corner4'], transitions={'succeeded':'transition_corner4','aborted':'dp_corner4','preempted':'dp_corner4'})
+			StateMachine.add('transition_corner4', ControlMode(OPEN_LOOP), transitions={'succeeded':'los_corner1','aborted':'transition_corner1','preempted':'transition_corner1'})
+			
 
 
 

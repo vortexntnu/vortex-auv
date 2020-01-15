@@ -54,9 +54,9 @@ def setup_task_environment(self):
 	self.waypoints = list()
 
 	# Append each of the waypoints to the list.
-	self.waypoints.append(Pose(Point( 0, -2, -0.9), quaternions[0]))
+	self.waypoints.append(Pose(Point( 0, -2, -0.6), quaternions[0]))
 	self.waypoints.append(Pose(Point( 2, -2, -0.1), quaternions[1]))
-	self.waypoints.append(Pose(Point( 2, 2, -0.9), quaternions[2]))
+	self.waypoints.append(Pose(Point( 2, 2, -0.6), quaternions[2]))
 	self.waypoints.append(Pose(Point( 0, 2, -0.1),quaternions[3]))
 
 	# Create a mapping of points of interest to waypoint locations
