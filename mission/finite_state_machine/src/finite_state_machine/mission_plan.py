@@ -39,7 +39,7 @@ def setup_task_environment(self):
 	quaternions = list()
 
 	# Define orientations as Euler angles
-	euler_angles = (0, 0, 0, 0, 0, 0, 0)
+	euler_angles = (0, 0, 0, 0, 0, -3.14, 0)
 
 	# Then convert angles to quaternions
 
@@ -54,18 +54,22 @@ def setup_task_environment(self):
 	self.waypoints = list()
 
 	# Append each of the waypoints to the list.
-	self.waypoints.append(Pose(Point( 0, -2, -0.6), quaternions[0]))
-	self.waypoints.append(Pose(Point( 2, -2, -0.1), quaternions[1]))
-	self.waypoints.append(Pose(Point( 2, 2, -0.6), quaternions[2]))
-	self.waypoints.append(Pose(Point( 0, 2, -0.1),quaternions[3]))
+	self.waypoints.append(Pose(Point( 0, 0, -0.5), quaternions[0]))
+	self.waypoints.append(Pose(Point( 7, 0, -0.5), quaternions[1]))
+	self.waypoints.append(Pose(Point( 8, 1, -0.5), quaternions[2]))
+	self.waypoints.append(Pose(Point( 9, 0, -0.5),quaternions[3]))
+	self.waypoints.append(Pose(Point( 8, -1, -0.5),quaternions[4]))
+	self.waypoints.append(Pose(Point( 0, 0, -0.5),quaternions[5]))
 
 	# Create a mapping of points of interest to waypoint locations
 
 	pool_locations = (
-					 ('corner1', self.waypoints[0]),
-                     ('corner2', self.waypoints[1]),
-                     ('corner3', self.waypoints[2]),
-                     ('corner4', self.waypoints[3]))
+					 ('dive', self.waypoints[0]),
+                     ('gate', self.waypoints[1]),
+                     ('pole1', self.waypoints[2]),
+                     ('pole2', self.waypoints[3]),
+					 ('pole3', self.waypoints[4]),
+					 ('start', self.waypoints[5]))
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence
 	self.pool_locations = OrderedDict(pool_locations)
