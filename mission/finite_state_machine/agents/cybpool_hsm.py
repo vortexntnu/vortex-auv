@@ -64,6 +64,87 @@ def update_task_list(target, task):
         del task_list[target]
 
 
+# Searching for Pole. When pole is found it passes to camera centering to center pole in frame. 
+class SearchForTarget(State):
+	def __init__(self,target):
+		State.__init__(self,outcomes=['found','unseen','passed','missed'],
+							output_keys=['px_output','fx_output', 'search_output', 'search_confidence_output'])
+		self.target = target
+		self.search_timeout = 30.0
+		self.sampling_time = 0.2
+		self.timer = 0.0
+		self.task_status = 'missed'
+		self.CameraPID = CameraPID()
+
+		
+		self.sub_object = rospy.Subscriber('/pole_midpoint', CameraObjectInfo, self.objectDetectionCallback, queue_size=1)
+		self.sub_pose = rospy.Subscriber('/odometry/filtered',Odometry,self.positionCallback,queue_size=1)
+		print(self.sub_pose)
+		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input',Wrench,queue_size=1)
+		self.thrust_msg = Wrench()
+
+	def objectDetectionCallback(self,msg):
+
+		self.object_px = msg.pos_x
+		self.object_py = msg.pos_y
+		self.object_fx = msg.frame_height
+		self.object_confidence = msg.confidence
+		self.object_distance = msg.distance_to_pole
+
+	def positionCallback(self, msg):
+
+		self.vehicle_odom = msg
+		self.time = msg.header.stamp.to_sec()
+
+		global roll, pitch, yaw
+		orientation_q = msg.pose.pose.orientation
+		orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+		(roll,pitch,yaw) = euler_from_quaternion(orientation_list)
+
+		self.psi = yaw
+		
+
+
+	def execute(self,userdata):
+		
+		
+		#rospy.loginfo('Searching for ' + self.target)
+		sleep(self.sampling_time)
+		self.timer += self.sampling_time
+		tau_heave = self.CameraPID.depthController(-0.5,self.vehicle_odom.pose.pose.position.z,self.time)
+		self.thrust_msg.force.z = tau_heave
+
+		if self.timer > self.search_timeout:
+			return self.task_status
+
+		#if self.object_px >= 0.0 and self.object_py >= 0.0:
+		#	rospy.loginfo(self.target + ' found')
+		#
+		#	userdata.px_output = self.object_px
+		#	userdata.fx_output = self.object_fx
+		#	userdata.search_confidence_output = self.object_confidence
+		#	userdata.search_output = 'found'
+		#	self.task_status = 'passed'
+		#	return 'found'
+
+		else:
+			#rospy.loginfo(self.target + ' not found')
+
+			userdata.px_output = self.object_px
+			userdata.fx_output = self.object_fx
+			userdata.search_confidence_output = self.object_confidence
+			userdata.search_output = 'unseen'
+			tau_heading = self.CameraPID.headingController(self.psi + pi/8,self.psi,self.time)
+			self.thrust_msg.torque.z = tau_heading	
+			print(self.thrust_msg.torque.z)
+			self.pub_thrust.publish(self.thrust_msg)
+			return 'unseen'
+
+
+		
+		
+
+
 class TaskManager():
 
 	def __init__(self):
@@ -125,16 +206,22 @@ class TaskManager():
 			StateMachine.add('DIVE', nav_terminal_states['dive'], transitions={'succeeded':'OPEN_LOOP','aborted':'DIVE','preempted':'DIVE'})
 			StateMachine.add('OPEN_LOOP', ControlMode(OPEN_LOOP), transitions={'succeeded':'GO_TO_GATE','aborted':'OPEN_LOOP','preempted':'OPEN_LOOP'})
 			StateMachine.add('GO_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'ENABLE_POLE','aborted':'GO_TO_GATE','preempted':'GO_TO_GATE'})
-			StateMachine.add('ENABLE_POLE', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'POLE1','aborted':'ENABLE_POLE','preempted':'ENABLE_POLE'})
-			StateMachine.add('POLE1', nav_terminal_states['pole1'], transitions={'succeeded':'POLE2','aborted':'POLE1','preempted':'POLE1'})
-			StateMachine.add('POLE2', nav_terminal_states['pole2'], transitions={'succeeded':'POLE3','aborted':'POLE2','preempted':'POLE2'})
-			StateMachine.add('POLE3', nav_terminal_states['pole3'], transitions={'succeeded':'POLE4','aborted':'POLE3','preempted':'POLE3'})
-			StateMachine.add('POLE4', nav_terminal_states['gate'], transitions={'succeeded':'OPEN_LOOP2','aborted':'POLE4','preempted':'POLE4'})
+			StateMachine.add('ENABLE_POLE', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'SEARCH_FOR_POLE','aborted':'ENABLE_POLE','preempted':'ENABLE_POLE'})
+			StateMachine.add('SEARCH_FOR_POLE',SearchForTarget('gate'),transitions={'found':'DIVE','unseen':'SEARCH_FOR_POLE','passed':'','missed':'OPEN_LOOP2'},															 remapping={'px_output':'object_px','fx_output':'object_fx','search_output':'object_search','search_confidence_output':'object_confidence'})
 			StateMachine.add('OPEN_LOOP2', ControlMode(OPEN_LOOP), transitions={'succeeded':'GO_TO_START','aborted':'OPEN_LOOP2','preempted':'OPEN_LOOP2'})
 			StateMachine.add('GO_TO_START', nav_transit_states['start'], transitions={'succeeded':'ENABLE_HOLD','aborted':'GO_TO_START','preempted':'GO_TO_START'})
 			StateMachine.add('ENABLE_HOLD', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'HOLD','aborted':'ENABLE_HOLD','preempted':'ENABLE_HOLD'})
 			StateMachine.add('HOLD', nav_terminal_states['start'], transitions={'succeeded':'OPEN_LOOP','aborted':'DIVE','preempted':'DIVE'})
-
+			'''
+			
+			
+			
+			StateMachine.add('POLE1', nav_terminal_states['pole1'], transitions={'succeeded':'POLE2','aborted':'POLE1','preempted':'POLE1'})
+			StateMachine.add('POLE2', nav_terminal_states['pole2'], transitions={'succeeded':'POLE3','aborted':'POLE2','preempted':'POLE2'})
+			StateMachine.add('POLE3', nav_terminal_states['pole3'], transitions={'succeeded':'POLE4','aborted':'POLE3','preempted':'POLE3'})
+			StateMachine.add('POLE4', nav_terminal_states['gate'], transitions={'succeeded':'OPEN_LOOP2','aborted':'POLE4','preempted':'POLE4'})
+			
+			'''
 
 
 

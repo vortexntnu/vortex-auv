@@ -26,8 +26,8 @@
 
 <!-- Launch object detection -->
 
-<!--include file="$(find pole_detect)/launch/pole_detect.launch"/>
-<include file="$(find gate_detect)/launch/gate_detect.launch"/--> 
+<include file="$(find pole_detect)/launch/pole_detect.launch"/>
+<include file="$(find gate_detect)/launch/gate_detect.launch"/> 
 
 <!-- Launch battery simulator -->
 <!--include file="$(find anomaly_detection)/launch/fake_battery_simulator.launch"/--> 
