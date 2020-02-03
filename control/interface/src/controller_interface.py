@@ -104,10 +104,12 @@ class ControllerInterface:
 
         elif move_goal.controller_name == "LOS":
             change_control_mode(OPEN_LOOP)
+            change_control_mode(POSE_HOLD)
 
             los_goal = LosPathFollowingGoal()
             los_goal.next_waypoint = move_goal.target_pose.position
-            los_goal.forward_speed = self.transit_speed
+            los_goal.forward_speed.linear.x = self.transit_speed
+            los_goal.desired_depth.z = move_goal.target_pose.position.z
             los_goal.sphereOfAcceptance = self.sphere_of_acceptance
 
             self.los_client.send_goal(los_goal, done_cb=self.done_cb, feedback_cb=None)
