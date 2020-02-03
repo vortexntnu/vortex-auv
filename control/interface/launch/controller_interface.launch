@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+   <node
+    name="controller_interface"
+    pkg="interface"
+    type="controller_interface.py"
+    output="screen"/>
+    
+</launch>
