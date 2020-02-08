@@ -23,13 +23,13 @@ def setup_task_environment(self):
 	self.search_speed = rospy.get_param('~search_speed',0.2)
 
 	# Set the low battery threshold (between 0 and 100)
-	self.low_battery_threshold = rospy.get_param('~low_battery_threshold',50)
+	self.low_battery_threshold = rospy.get_param('~low_battery_threshold',30)
 
 	# How many times should we execute the the patrol loop?
 	self.n_patrols = rospy.get_param('~n_patrols', 2)
 
 	# How long do we have to get to each waypoint? 
-	self.nav_timeout = rospy.get_param('~nav_timeout', rospy.Duration(60)) # seconds
+	self.nav_timeout = rospy.get_param('~nav_timeout', rospy.Duration(80)) # seconds
 
 	# Initilize the patrol counter
 	self.patrol_count = 0

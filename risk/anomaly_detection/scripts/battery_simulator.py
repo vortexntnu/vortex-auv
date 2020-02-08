@@ -19,7 +19,7 @@ class BatterySimulator():
 
         # get parameters
         self.rate = rospy.get_param('~rate', 1)
-        self.battery_runtime = rospy.get_param("~battery_runtime", 120) # seconds
+        self.battery_runtime = rospy.get_param("~battery_runtime", 400) # seconds
         self.initial_battery_level = rospy.get_param('~initial_battery_level', 100) # percentage
         self.error_battery_level = rospy.get_param('~error_battery_level', 20) # percentage
         self.warn_battery_level = rospy.get_param('~warn_battery_level', 50) # percentage

@@ -72,7 +72,7 @@ class SearchForTarget(State):
 							output_keys=['px_output','fx_output', 'search_output', 'search_confidence_output'])
 
 		self.target = target
-		self.search_timeout = 30.0
+		self.search_timeout = 25.0
 		self.sampling_time = 0.2
 		self.timer = 0.0
 		self.task_status = 'missed'
@@ -356,13 +356,13 @@ class TaskManager():
 		with self.sm_mission:
 
 			""" Navigate to GATE in TERMINAL mode """
-			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_SEARCH','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('TRANSIT_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'GATE_SEARCH','aborted':'DOCKING','preempted':'TRANSIT_TO_GATE'})
 
 			""" When in GATE sector"""		
-			StateMachine.add('GATE_SEARCH', self.sm_gate_tasks, transitions={'passed':'GATE_PASSED','missed':'DOCKING','aborted':'DOCKING'})		
+			StateMachine.add('GATE_SEARCH', self.sm_gate_tasks, transitions={'passed':'GATE_PASSED','missed':'TRANSIT_TO_GATE','aborted':'DOCKING'})		
 			
 			""" Transiting to gate """
-			StateMachine.add('GATE_PASSED', ControlMode(OPEN_LOOP), transitions={'succeeded':'TRANSIT_TO_POLE','aborted':'DOCKING','preempted':'DOCKING'})
+			StateMachine.add('GATE_PASSED', ControlMode(OPEN_LOOP), transitions={'succeeded':'TRANSIT_TO_POLE','aborted':'DOCKING','preempted':'TRANSIT_TO_GATE'})
 			StateMachine.add('TRANSIT_TO_POLE', nav_transit_states['pole'], transitions={'succeeded':'','aborted':'','preempted':''})
 
 			""" When in POLE sector"""		
