@@ -7,11 +7,8 @@
 
   <node pkg="thruster_interface"    type="thruster_interface_node.py"   name="thruster_interface"/>
   <node pkg="vortex_allocator"      type="node"                         name="allocator"/>
-  <node pkg="dp_controller"         type="node"                         name="controller"       output="screen"/>
-  <node pkg="los_guidance"          type="los_guidance_backstepping.py" name="los_guidance"     output="screen"/>
-  <node pkg="interface"             type="controller_interface.py"      name="controller_interface"/>
+  <node pkg="dp_controller"         type="node"                         name="controller"           output="screen"/>
+  <node pkg="los_guidance"          type="los_guidance_backstepping.py" name="los_guidance"         output="screen"/>
+  <node pkg="interface"             type="controller_interface.py"      name="controller_interface" output="screen"/>
 
-<!--
-  <node pkg="interface"             type="controller_interface.py"    name="controller_interface"  output="screen"/>
--->
 </launch>

@@ -40,9 +40,6 @@ POSE_HEADING_HOLD   = 5
 CONTROL_MODE_END    = 6
 
 
-TIMEOUT = 30 # in seconds
-
-
 def change_control_mode(requested_mode):
 
         rospy.wait_for_service('controlmode_service')
@@ -63,16 +60,12 @@ class ControllerInterface:
         
         # import parameters
         self.transit_speed = rospy.get_param('~transit_speed', 0.3)
-        self.sphere_of_acceptance = rospy.get_param('~sphere_of_acceptance', 1)
-
-        # initiate controller mode 
-        change_control_mode(POSE_HOLD)
+        self.sphere_of_acceptance = rospy.get_param('~sphere_of_acceptance', 0.5)
+        self.timeout = rospy.get_param('~controller_interface_timeout', 90)
 
         # start action server that listens for move commands
         self.action_server = actionlib.SimpleActionServer('move', MoveAction, self.move_cb, auto_start=False)
         self.action_server.start()
-
-        self._result = MoveActionResult()
 
         # start action clients for DP and LOS controller
         self.dp_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
@@ -82,23 +75,24 @@ class ControllerInterface:
 
 
     def move_cb(self, move_goal):
+        """
+        Converts move_goal into the proper goal type for the desired controller and sends it.
+        Aborts action if it is not completed within self.timeout seconds
+        """
 
         if move_goal.controller_name == "DP":
 
-            #  put controller into proper mode
             change_control_mode(POSE_HEADING_HOLD)
 
-            # create action goal
             dp_goal = MoveBaseGoal()
             dp_goal.target_pose.pose = move_goal.target_pose
 
-            # send action goal to client
             self.dp_client.send_goal(dp_goal, done_cb=self.done_cb, feedback_cb=None)
 
-            # timeout if action takes too long
-            if not self.dp_client.wait_for_result(timeout=rospy.Duration(TIMEOUT)):
+            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
                 self.action_server.set_aborted()
                 rospy.loginfo('DP controller aborted action due to timeout')
+
 
         elif move_goal.controller_name == "LOS":
 
@@ -106,13 +100,13 @@ class ControllerInterface:
 
             los_goal = LosPathFollowingGoal()
             los_goal.next_waypoint = move_goal.target_pose.position
-            los_goal.forward_speed.linear.x = 0.3
-            los_goal.desired_depth.z = -0.5
-            los_goal.sphereOfAcceptance = 0.5
+            los_goal.forward_speed.linear.x = self.transit_speed
+            los_goal.sphereOfAcceptance = self.sphere_of_acceptance
+            los_goal.desired_depth.z = move_goal.target_pose.position.z
 
             self.los_client.send_goal(los_goal, done_cb=self.done_cb, feedback_cb=None)
 
-            if not self.los_client.wait_for_result(timeout=rospy.Duration(TIMEOUT)):
+            if not self.los_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
                 self.action_server.set_aborted()
                 rospy.loginfo('LOS controller aborted action due to timeout')
         
