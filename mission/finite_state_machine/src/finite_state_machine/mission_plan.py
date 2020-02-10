@@ -18,7 +18,7 @@ def setup_task_environment(self):
 	self.transit_speed = rospy.get_param('~transit_speed', 0.3)
 
 	# Search area size
-	self.search_area_size = rospy.get_param('~search_area_size', 1.0)
+	self.los_sphere_of_acceptance = rospy.get_param('~search_area_size', 1.5)
 	self.search_depth = rospy.get_param('~search_depth', 0.5*self.pool_depth)
 	self.search_speed = rospy.get_param('~search_speed',0.2)
 
@@ -38,9 +38,9 @@ def setup_task_environment(self):
 
 	pool_locations = (
 		('start', make_waypoint(0, 0)),
-        ('gate', make_waypoint(5, 0)),
-        ('pole1', make_waypoint(2, 2)),
-		('point_1', make_waypoint(-2, -2, z=-1, yaw_euler=3.14))
+        ('gate', make_waypoint(5,0)),
+        ('bouy', make_waypoint(10, 0)),
+		('rand_point', make_waypoint(-2, -2, yaw_euler=3.14))
 	)
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence

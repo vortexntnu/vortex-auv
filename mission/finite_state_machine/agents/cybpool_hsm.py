@@ -91,6 +91,35 @@ class SearchForTarget(State):
 		self.object_confidence = msg.confidence
 		self.object_distance = msg.distance_to_pole
 
+		
+class TrackTarget(State):
+
+	def __init__(self, search_target, search_area):
+		State.__init__(self, outcomes=['succeeded','aborted','preempted'],
+							input_keys=['px_input','fx_input','search_input','search_confidence_input'])
+		
+
+		# initialize controller
+		self.CameraPID = CameraPID()
+		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+		
+		# thrust message
+		self.thrust_msg = Wrench()
+
+		# my current pose
+		self.vehicle_odom = Odometry()
+		self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
+
+		# set init_flag
+		self.init_flag = True
+		
+		# straight-line path segment
+		self.search_target = search_target
+		self.search_y = search_area.y
+		self.search_x = search_area.x
+
+
+
 	def positionCallback(self, msg):
 
 		self.vehicle_odom = msg
@@ -102,8 +131,79 @@ class SearchForTarget(State):
 		(roll,pitch,yaw) = euler_from_quaternion(orientation_list)
 
 		self.psi = yaw
-		
 
+	def pathPlanning(self):
+
+		# straight-line path segment
+		y_delta = self.search_y - self.vehicle_odom.pose.pose.position.y
+		x_delta = (self.search_x+5) - self.vehicle_odom.pose.pose.position.x
+
+		# angle
+		self.search_direction = np.arctan2(y_delta, x_delta) 
+
+
+	def pathTracking(self):
+
+		pass
+
+	def nav_result_cb(self, userdata, status, result):
+
+		if status == GoalStatus.PREEMPTED:
+			rospy.loginfo("Waypoint preempted")
+		if status == GoalStatus.SUCCEEDED:
+			rospy.loginfo("Waypoint succeeded")
+
+	def alignWithTarget(self, object_fx, object_px, search_input, object_confidence):
+
+		tau_heave = self.CameraPID.depthController(-0.5, self.vehicle_odom.pose.pose.position.z, self.time)
+		self.thrust_msg.force.z = tau_heave
+		target_center_screen = object_fx*(0.60)
+
+		if search_input == 'found' and object_confidence >= 1.0:
+			# fix bounding boxes, their center values are calculated wrong and are not in center
+
+			tau_sway = self.CameraPID.swayController(target_center_screen, object_px, self.time)
+			tau_surge = self.CameraPID.speedController(0.1, self.vehicle_odom.twist.twist.linear.x, self.time)
+			
+			# you're on the right path, keep this heading
+			tau_heading = self.CameraPID.headingController(self.psi, self.psi, self.time)
+
+			#publish
+
+			self.thrust_msg.torque.z = tau_heading
+			self.thrust_msg.force.x = tau_surge
+			self.thrust_msg.force.y = tau_sway
+
+		else:
+
+			tau_surge = self.CameraPID.speedController(0.3, self.vehicle_odom.twist.twist.linear.x, self.time)
+			tau_heading = self.CameraPID.headingController(self.search_direction, self.psi, self.time)
+			tau_sway = 0.0
+
+			#publish
+			self.thrust_msg.torque.z = tau_heading
+			self.thrust_msg.force.x = tau_surge
+			self.thrust_msg.force.y = tau_sway
+
+		self.pub_thrust.publish(self.thrust_msg)
+
+
+	def execute(self, userdata):
+
+		sleep(0.2)
+		# track the target
+		nav_goal = LosPathFollowingGoal()	
+		
+		# initialize the direction you want to be looking
+		if self.init_flag is True:
+			self.pathPlanning()
+			self.init_flag = False
+
+		
+		self.alignWithTarget(userdata.fx_input,userdata.px_input, userdata.search_input, userdata.search_confidence_input)
+		self.pathTracking()
+
+		return 'succeeded'
 
 	def execute(self,userdata):
 		
@@ -185,7 +285,7 @@ class TaskManager():
 			nav_goal.next_waypoint = self.pool_locations[target].position
 			nav_goal.forward_speed.linear.x = self.transit_speed
 			nav_goal.desired_depth.z = self.pool_locations[target].position.z
-			nav_goal.sphereOfAcceptance = self.search_area_size
+			nav_goal.sphereOfAcceptance = self.los_sphere_of_acceptance
 			los_path_state = SimpleActionState('los_path', LosPathFollowingAction,
 												goal=nav_goal, 
 												result_cb=self.nav_result_cb,
@@ -202,16 +302,36 @@ class TaskManager():
 		with hsm_pool_patrol:
 
 			# Qualification Run
-			StateMachine.add('GO_TO_DIVE', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'DIVE','aborted':'GO_TO_DIVE','preempted':'GO_TO_DIVE'})
-			StateMachine.add('DIVE', nav_terminal_states['start'], transitions={'succeeded':'OPEN_LOOP','aborted':'DIVE','preempted':'DIVE'})
-			StateMachine.add('OPEN_LOOP', ControlMode(OPEN_LOOP), transitions={'succeeded':'GO_TO_GATE','aborted':'OPEN_LOOP','preempted':'OPEN_LOOP'})
-			StateMachine.add('GO_TO_GATE', nav_transit_states['gate'], transitions={'succeeded':'ENABLE_POLE','aborted':'GO_TO_GATE','preempted':'GO_TO_GATE'})
-			StateMachine.add('ENABLE_POLE', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'SEARCH_FOR_POLE','aborted':'ENABLE_POLE','preempted':'ENABLE_POLE'})
-			StateMachine.add('SEARCH_FOR_POLE',SearchForTarget('gate'),transitions={'found':'DIVE','unseen':'SEARCH_FOR_POLE','passed':'','missed':'OPEN_LOOP2'},															 remapping={'px_output':'object_px','fx_output':'object_fx','search_output':'object_search','search_confidence_output':'object_confidence'})
-			StateMachine.add('OPEN_LOOP2', ControlMode(OPEN_LOOP), transitions={'succeeded':'GO_TO_START','aborted':'OPEN_LOOP2','preempted':'OPEN_LOOP2'})
-			StateMachine.add('GO_TO_START', nav_transit_states['start'], transitions={'succeeded':'ENABLE_HOLD','aborted':'GO_TO_START','preempted':'GO_TO_START'})
-			StateMachine.add('ENABLE_HOLD', ControlMode(POSE_HEADING_HOLD), transitions={'succeeded':'HOLD','aborted':'ENABLE_HOLD','preempted':'ENABLE_HOLD'})
-			StateMachine.add('HOLD', nav_terminal_states['start'], transitions={'succeeded':'OPEN_LOOP','aborted':'DIVE','preempted':'DIVE'})
+			StateMachine.add('POSE_HEADING_1', ControlMode(POSE_HEADING_HOLD), transitions={
+				'succeeded':'DIVE','aborted':'POSE_HEADING_1','preempted':'POSE_HEADING_1'})
+			StateMachine.add('DIVE', nav_terminal_states['start'], transitions={
+				'succeeded':'OPEN_LOOP_1','aborted':'DIVE','preempted':'DIVE'})
+
+			StateMachine.add('OPEN_LOOP_1', ControlMode(OPEN_LOOP), transitions={
+				'succeeded':'GO_TO_GATE','aborted':'OPEN_LOOP_1','preempted':'OPEN_LOOP_1'})
+			StateMachine.add('GO_TO_GATE', nav_transit_states['gate'], transitions={
+				'succeeded':'POSE_HEADING_HOLD_1','aborted':'GO_TO_GATE','preempted':'GO_TO_GATE'})
+			StateMachine.add('POSE_HEADING_HOLD_1', ControlMode(POSE_HEADING_HOLD), transitions={
+				'succeeded':'HOLD_GATE','aborted':'POSE_HEADING_HOLD_1','preempted':'POSE_HEADING_HOLD_1'})
+			StateMachine.add('HOLD_GATE', nav_terminal_states['gate'], transitions={
+				'succeeded':'OPEN_LOOP_2','aborted':'DIVE','preempted':'DIVE'})
+
+			StateMachine.add('OPEN_LOOP_2', ControlMode(OPEN_LOOP), transitions={
+				'succeeded':'GO_TO_BOUY','aborted':'OPEN_LOOP_2','preempted':'OPEN_LOOP_2'})
+			StateMachine.add('GO_TO_BOUY', nav_transit_states['bouy'], transitions={
+				'succeeded':'POSE_HEADING_HOLD_2','aborted':'GO_TO_BOUY','preempted':'GO_TO_BOUY'})
+			StateMachine.add('POSE_HEADING_HOLD_2', ControlMode(POSE_HEADING_HOLD), transitions={
+				'succeeded':'HOLD_BOUY','aborted':'POSE_HEADING_HOLD_2','preempted':'POSE_HEADING_HOLD_2'})
+			StateMachine.add('HOLD_BOUY', nav_terminal_states['bouy'], transitions={
+				'succeeded':'OPEN_LOOP_3','aborted':'DIVE','preempted':'DIVE'})
+
+			StateMachine.add('OPEN_LOOP_3', ControlMode(OPEN_LOOP), transitions={
+				'succeeded':'GO_TO_START','aborted':'OPEN_LOOP_3','preempted':'OPEN_LOOP_3'})
+			StateMachine.add('GO_TO_START', nav_transit_states['start'], transitions={
+				'succeeded':'POSE_HEADING_HOLD_3','aborted':'GO_TO_START','preempted':'GO_TO_START'})
+			StateMachine.add('POSE_HEADING_HOLD_3', ControlMode(POSE_HEADING_HOLD), transitions={
+				'succeeded':'HOLD_START','aborted':'POSE_HEADING_HOLD_3','preempted':'POSE_HEADING_HOLD_3'})
+			StateMachine.add('HOLD_START', nav_terminal_states['start'])
 
 		# Create and start the SMACH Introspection server
 
