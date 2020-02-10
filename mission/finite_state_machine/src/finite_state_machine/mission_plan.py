@@ -36,43 +36,24 @@ def setup_task_environment(self):
 
 	""" Create a list of target quaternions """
 
-	quaternions = list()
-
-	# Define orientations as Euler angles
-	euler_angles = (0, 0, 0, 0, 0, -3.14, 0)
-
-	# Then convert angles to quaternions
-
-	for angle in euler_angles:
-		q_angle = quaternion_from_euler(0, 0, angle, 'sxyz')
-		q = Quaternion(*q_angle)
-		quaternions.append(q)
-
-
-	""" Create a list of target waypoints """ 
-
-	self.waypoints = list()
-
-	# Append each of the waypoints to the list.
-	self.waypoints.append(Pose(Point( 0, 0, -0.5), quaternions[0]))
-	self.waypoints.append(Pose(Point( 5, 0, -0.5), quaternions[1]))
-	self.waypoints.append(Pose(Point( 8, 1, -0.5), quaternions[2]))
-	self.waypoints.append(Pose(Point( 9, 0, -0.5),quaternions[3]))
-	self.waypoints.append(Pose(Point( 8, -1, -0.5),quaternions[4]))
-	self.waypoints.append(Pose(Point( 0, 0, -0.5),quaternions[5]))
-
-	# Create a mapping of points of interest to waypoint locations
-
 	pool_locations = (
-					 ('dive', self.waypoints[0]),
-                     ('gate', self.waypoints[1]),
-                     ('pole1', self.waypoints[2]),
-                     ('pole2', self.waypoints[3]),
-					 ('pole3', self.waypoints[4]),
-					 ('start', self.waypoints[5]))
+		('start', make_waypoint(0, 0)),
+        ('gate', make_waypoint(5, 0)),
+        ('pole1', make_waypoint(2, 2),
+		('point_1', make_waypoint(-2, -2, z=-1, yaw_euler=3.14)))
+	)
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence
 	self.pool_locations = OrderedDict(pool_locations)
 
 	# Where is the docking station?
 	#self.docking_station_pose = (Pose(Point(1, 1, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0)))
+
+
+def make_waypoint(x, y, z=-0.5, yaw_euler=0):
+
+	yaw_quat = Quaternion(*quaternion_from_euler(0, 0, yaw_euler, 'sxyz'))
+	waypoint = Pose(Point( x, y, z), yaw_quat[0])
+
+	return (name, waypoint)
+
