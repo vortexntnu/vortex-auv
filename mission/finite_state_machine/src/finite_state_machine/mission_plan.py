@@ -39,8 +39,8 @@ def setup_task_environment(self):
 	pool_locations = (
 		('start', make_waypoint(0, 0)),
         ('gate', make_waypoint(5, 0)),
-        ('pole1', make_waypoint(2, 2),
-		('point_1', make_waypoint(-2, -2, z=-1, yaw_euler=3.14)))
+        ('pole1', make_waypoint(2, 2)),
+		('point_1', make_waypoint(-2, -2, z=-1, yaw_euler=3.14))
 	)
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence
