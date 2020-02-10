@@ -53,7 +53,7 @@ def setup_task_environment(self):
 def make_waypoint(x, y, z=-0.5, yaw_euler=0):
 
 	yaw_quat = Quaternion(*quaternion_from_euler(0, 0, yaw_euler, 'sxyz'))
-	waypoint = Pose(Point( x, y, z), yaw_quat[0])
+	waypoint = Pose(Point( x, y, z), yaw_quat)
 
 	return (name, waypoint)
 
