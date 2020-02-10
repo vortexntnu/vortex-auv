@@ -18,7 +18,7 @@ def setup_task_environment(self):
 	self.transit_speed = rospy.get_param('~transit_speed', 0.3)
 
 	# Search area size
-	self.los_sphere_of_acceptance = rospy.get_param('~search_area_size', 1.5)
+	self.los_sphere_of_acceptance = rospy.get_param('~search_area_size', 0.7)
 	self.search_depth = rospy.get_param('~search_depth', 0.5*self.pool_depth)
 	self.search_speed = rospy.get_param('~search_speed',0.2)
 
