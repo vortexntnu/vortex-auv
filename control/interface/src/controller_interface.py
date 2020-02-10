@@ -36,7 +36,7 @@ POSE_HOLD           = 1
 HEADING_HOLD        = 2
 DEPTH_HEADING_HOLD  = 3
 DEPTH_HOLD          = 4
-STAY_LEVEL          = 5
+POSE_HEADING_HOLD   = 5
 CONTROL_MODE_END    = 6
 
 
