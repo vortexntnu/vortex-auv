@@ -19,34 +19,26 @@
 <param name="computer" value="pc-debug" />
 
 
-  <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" />
+  <!--<node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" />-->
   <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance"     />
-  <node pkg="dp_controller"      type="node"                       name="controller" 	     />
-  <node pkg="vortex_allocator"   type="node"                       name="allocator"          />
-
-<!-- Launch object detection -->
-
-<include file="$(find pole_detect)/launch/pole_detect.launch"/>
-<include file="$(find gate_detect)/launch/gate_detect.launch"/> 
-
-<!-- Launch battery simulator -->
-<!--include file="$(find anomaly_detection)/launch/fake_battery_simulator.launch"/--> 
+  <!--<node pkg="dp_controller"      type="node"                       name="controller" 	     />-->
+  <!-- <node pkg="vortex_allocator"   type="node"                       name="allocator"          />-->
 
 
 <!-- State machine -->
    <node
-    name="cybpool_hsm"
+    name="practice_fsm"
     pkg="finite_state_machine"
-    type="cybpool_hsm.py"
+    type="practice_fsm.py"
     output="screen">
    </node> 
 
 <!-- State machine visualization -->
 
-   <!--node
+   <node
     name="smach_viewer"
     pkg="smach_viewer"
     type="smach_viewer.py">
-   </node-->
+   </node>
 
 </launch>
