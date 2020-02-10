@@ -9,7 +9,7 @@ from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
 
 
-def dp_move(x, y, z=-1, yaw=0):
+def dp_move(x, y, z=-0.5, yaw=0):
     goal = MoveGoal()
 
     goal.controller_name = 'DP'
@@ -19,7 +19,7 @@ def dp_move(x, y, z=-1, yaw=0):
     return SimpleActionState('move', MoveAction, goal=goal)
 
 
-def los_move(x, y, z=-1):
+def los_move(x, y, z=-0.5):
     goal = MoveGoal()
 
     goal.controller_name = 'LOS'
@@ -34,8 +34,8 @@ sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome=
 
 with sm:
 
-    Sequence.add('TWO', los_move(-5, 0))
     Sequence.add('ONE', dp_move(1, 0))
     Sequence.add('THREE', dp_move(2, 0))
+    Sequence.add('TWO', los_move(-5, 0))
 
 sm.execute()
