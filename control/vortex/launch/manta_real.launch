@@ -2,6 +2,7 @@
 <launch>
 
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+  <include file="$(find robot_localization)/launch/ekf_novembertest.launch"/>
 
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
 
