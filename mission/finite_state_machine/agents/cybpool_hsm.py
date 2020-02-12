@@ -302,36 +302,41 @@ class TaskManager():
 		with hsm_pool_patrol:
 
 			# Qualification Run
+			StateMachine.add('OPEN_LOOP', ControlMode(OPEN_LOOP), transitions={
+				'succeeded':'GO_TO_CORNER1','aborted':'OPEN_LOOP','preempted':'OPEN_LOOP'})
+			StateMachine.add('GO_TO_CORNER1', nav_transit_states['corner_2'], transitions={
+				'succeeded':'POSE_HEADING_1','aborted':'GO_TO_CORNER1','preempted':'GO_TO_CORNER1'})
 			StateMachine.add('POSE_HEADING_1', ControlMode(POSE_HEADING_HOLD), transitions={
 				'succeeded':'DIVE','aborted':'POSE_HEADING_1','preempted':'POSE_HEADING_1'})
-			StateMachine.add('DIVE', nav_terminal_states['start'], transitions={
+			StateMachine.add('DIVE', nav_terminal_states['corner_1'], transitions={
 				'succeeded':'OPEN_LOOP_1','aborted':'DIVE','preempted':'DIVE'})
 
 			StateMachine.add('OPEN_LOOP_1', ControlMode(OPEN_LOOP), transitions={
 				'succeeded':'GO_TO_GATE','aborted':'OPEN_LOOP_1','preempted':'OPEN_LOOP_1'})
-			StateMachine.add('GO_TO_GATE', nav_transit_states['gate'], transitions={
+			StateMachine.add('GO_TO_GATE', nav_transit_states['corner_2'], transitions={
 				'succeeded':'POSE_HEADING_HOLD_1','aborted':'GO_TO_GATE','preempted':'GO_TO_GATE'})
 			StateMachine.add('POSE_HEADING_HOLD_1', ControlMode(POSE_HEADING_HOLD), transitions={
 				'succeeded':'HOLD_GATE','aborted':'POSE_HEADING_HOLD_1','preempted':'POSE_HEADING_HOLD_1'})
-			StateMachine.add('HOLD_GATE', nav_terminal_states['gate'], transitions={
+			StateMachine.add('HOLD_GATE', nav_terminal_states['corner_2'], transitions={
 				'succeeded':'OPEN_LOOP_2','aborted':'DIVE','preempted':'DIVE'})
 
 			StateMachine.add('OPEN_LOOP_2', ControlMode(OPEN_LOOP), transitions={
 				'succeeded':'GO_TO_BOUY','aborted':'OPEN_LOOP_2','preempted':'OPEN_LOOP_2'})
-			StateMachine.add('GO_TO_BOUY', nav_transit_states['bouy'], transitions={
+			StateMachine.add('GO_TO_BOUY', nav_transit_states['corner_3'], transitions={
 				'succeeded':'POSE_HEADING_HOLD_2','aborted':'GO_TO_BOUY','preempted':'GO_TO_BOUY'})
 			StateMachine.add('POSE_HEADING_HOLD_2', ControlMode(POSE_HEADING_HOLD), transitions={
 				'succeeded':'HOLD_BOUY','aborted':'POSE_HEADING_HOLD_2','preempted':'POSE_HEADING_HOLD_2'})
-			StateMachine.add('HOLD_BOUY', nav_terminal_states['bouy'], transitions={
+			StateMachine.add('HOLD_BOUY', nav_terminal_states['corner_3'], transitions={
 				'succeeded':'OPEN_LOOP_3','aborted':'DIVE','preempted':'DIVE'})
 
 			StateMachine.add('OPEN_LOOP_3', ControlMode(OPEN_LOOP), transitions={
 				'succeeded':'GO_TO_START','aborted':'OPEN_LOOP_3','preempted':'OPEN_LOOP_3'})
-			StateMachine.add('GO_TO_START', nav_transit_states['start'], transitions={
+			StateMachine.add('GO_TO_START', nav_transit_states['corner_4'], transitions={
 				'succeeded':'POSE_HEADING_HOLD_3','aborted':'GO_TO_START','preempted':'GO_TO_START'})
 			StateMachine.add('POSE_HEADING_HOLD_3', ControlMode(POSE_HEADING_HOLD), transitions={
 				'succeeded':'HOLD_START','aborted':'POSE_HEADING_HOLD_3','preempted':'POSE_HEADING_HOLD_3'})
-			StateMachine.add('HOLD_START', nav_terminal_states['start'])
+			StateMachine.add('HOLD_START', nav_terminal_states['corner_4'],) transitions={
+				'succeeded':'OPEN_LOOP','aborted':'HOLD_START','preempted':'HOLD_START'})
 
 		# Create and start the SMACH Introspection server
 
