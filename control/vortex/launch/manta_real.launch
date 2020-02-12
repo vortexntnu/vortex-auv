@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <launch>
 
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
   <include file="$(find robot_localization)/launch/ekf_novembertest.launch"/>
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
+  <node pkg="mcu_interface"      type="mcu_interface_node"           name="mcu_interface"      />
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
 
   <!-- Load parameters -->
@@ -11,8 +12,9 @@
   <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
   <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>
 
+  <param name="computer" value="pc-debug" />
+
   <!-- Lauch nodes -->
-  <node pkg="mcu_interface"      type="mcu_interface_node"           name="mcu_interface"      />
   <node pkg="vortex_allocator"   type="node"                         name="allocator"         />
   <node pkg="thruster_interface" type="thruster_interface_node.py"   name="thruster_interface"/>
   <node pkg="dp_controller"      type="node"                         name="controller"            output="screen"/>
