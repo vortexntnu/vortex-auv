@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-  <include file="$(find vortex)/launch/manta_enu.launch"/>
+  <include file="$(find vortex)/launch/manta_real.launch"/>
 
   <!-- Launch object detection -->
   <include file="$(find pole_detect)/launch/pole_detect.launch"/>
