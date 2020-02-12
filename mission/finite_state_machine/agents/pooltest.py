@@ -35,8 +35,8 @@ sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome=
 with sm:
 
     Sequence.add('ONE', dp_move(1, 0))
-    Sequence.add('TWO', los_move(-7, 0))
-    Sequence.add('THREE', los_move(0, 0))
-    Sequence.add('FOUR', dp_move(2, 0))
+    Sequence.add('TWO', los_move(4, 0))
+    Sequence.add('THREE', los_move(1, 0))
+    Sequence.add('FOUR', dp_move(0, 0))
 
 sm.execute()
