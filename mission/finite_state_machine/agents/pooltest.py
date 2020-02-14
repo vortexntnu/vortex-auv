@@ -9,6 +9,8 @@ from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
 
 
+CONSTANT_PI = 3.141592
+
 def dp_move(x, y, z=-0.5, yaw=0):
     goal = MoveGoal()
 
@@ -38,5 +40,11 @@ with sm:
     Sequence.add('TWO', los_move(4, 0))
     Sequence.add('THREE', los_move(1, 0))
     Sequence.add('FOUR', dp_move(0, 0))
+    Sequence.add('FOUR1', dp_move(1, 1))
+    Sequence.add('FOUR2', dp_move(3, 3))
+    Sequence.add('FOUR3', los_move(2, 2))
+    Sequence.add('FOUR4', los_move(1, 1))
+    Sequence.add('FOUR5', los_move(0, 0))
+    Sequence.add('FOUR6', dp_move(0, 0,0,CONSTANT_PI))
 
 sm.execute()
