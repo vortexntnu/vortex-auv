@@ -37,10 +37,10 @@ def setup_task_environment(self):
 	""" Create a list of target quaternions """
 
 	pool_locations = (
-		('start', make_waypoint(0, 0)),
-        ('gate', make_waypoint(5,0)),
-        ('bouy', make_waypoint(10, 0)),
-		('rand_point', make_waypoint(-2, -2, yaw_euler=3.14))
+		('corner_1', make_waypoint(0, 0)),
+        ('corner_2', make_waypoint(15,0)),
+        ('corner_3', make_waypoint(4, 4)),
+		('corner_4', make_waypoint(0, 4))
 	)
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence

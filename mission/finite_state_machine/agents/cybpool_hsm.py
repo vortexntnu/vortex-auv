@@ -304,7 +304,7 @@ class TaskManager():
 			# Qualification Run
 			StateMachine.add('OPEN_LOOP', ControlMode(OPEN_LOOP), transitions={
 				'succeeded':'GO_TO_CORNER1','aborted':'OPEN_LOOP','preempted':'OPEN_LOOP'})
-			StateMachine.add('GO_TO_CORNER1', nav_transit_states['corner_2'], transitions={
+			StateMachine.add('GO_TO_CORNER1', nav_transit_states['corner_1'], transitions={
 				'succeeded':'POSE_HEADING_1','aborted':'GO_TO_CORNER1','preempted':'GO_TO_CORNER1'})
 			StateMachine.add('POSE_HEADING_1', ControlMode(POSE_HEADING_HOLD), transitions={
 				'succeeded':'DIVE','aborted':'POSE_HEADING_1','preempted':'POSE_HEADING_1'})
@@ -335,7 +335,7 @@ class TaskManager():
 				'succeeded':'POSE_HEADING_HOLD_3','aborted':'GO_TO_START','preempted':'GO_TO_START'})
 			StateMachine.add('POSE_HEADING_HOLD_3', ControlMode(POSE_HEADING_HOLD), transitions={
 				'succeeded':'HOLD_START','aborted':'POSE_HEADING_HOLD_3','preempted':'POSE_HEADING_HOLD_3'})
-			StateMachine.add('HOLD_START', nav_terminal_states['corner_4'],) transitions={
+			StateMachine.add('HOLD_START', nav_terminal_states['corner_4'],transitions={
 				'succeeded':'OPEN_LOOP','aborted':'HOLD_START','preempted':'HOLD_START'})
 
 		# Create and start the SMACH Introspection server
