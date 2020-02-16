@@ -57,6 +57,7 @@
   <build_depend>smach</build_depend>
   <build_depend>smach_ros</build_depend>
   <build_depend>vortex_msgs</build_depend>
+  <build_depend>python-math</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
@@ -71,6 +72,7 @@
   <exec_depend>smach_ros</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>vortex_msgs</exec_depend>
+  <exec_depend>python-math</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

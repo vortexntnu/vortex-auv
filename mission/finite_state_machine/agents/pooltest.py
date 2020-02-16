@@ -3,32 +3,9 @@
 
 import rospy
 from smach import StateMachine, Sequence
-from smach_ros import SimpleActionState
-from geometry_msgs.msg import Pose, Point, Quaternion
-from vortex_msgs.msg import MoveGoal, MoveAction
-from tf.transformations import quaternion_from_euler
-
-
-CONSTANT_PI = 3.141592
-
-def dp_move(x, y, z=-0.5, yaw=0):
-    goal = MoveGoal()
-
-    goal.controller_name = 'DP'
-    goal.target_pose.position = Point(x, y, z)
-    goal.target_pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw))
-
-    return SimpleActionState('move', MoveAction, goal=goal)
-
-
-def los_move(x, y, z=-0.5):
-    goal = MoveGoal()
-
-    goal.controller_name = 'LOS'
-    goal.target_pose.position = Point(x, y, z)
-
-    return SimpleActionState('move', MoveAction, goal=goal)
-
+from std_msgs.msg import String
+from math import pi
+from helper import dp_move, los_move
 
 rospy.init_node('the_great_testing_node')
 
@@ -36,15 +13,15 @@ sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome=
 
 with sm:
 
-    Sequence.add('ONE', dp_move(1, 0))
+    # Add desired waypoints (including controller choice) here
+    Sequence.add('ONE', dp_move(0, 0, yaw_rad=pi))
     Sequence.add('TWO', los_move(4, 0))
     Sequence.add('THREE', los_move(1, 0))
-    Sequence.add('FOUR', dp_move(0, 0))
-    Sequence.add('FOUR1', dp_move(1, 1))
-    Sequence.add('FOUR2', dp_move(3, 3))
-    Sequence.add('FOUR3', los_move(2, 2))
-    Sequence.add('FOUR4', los_move(1, 1))
-    Sequence.add('FOUR5', los_move(0, 0))
-    Sequence.add('FOUR6', dp_move(0, 0,0,CONSTANT_PI))
+    Sequence.add('FOUR', dp_move(0, 0, yaw_rad=pi))
 
+
+arm_pub = rospy.Publisher('/mcu_arm', String)
+
+arm_pub.publish("data: 'arm'")      # thrusters must be armed before use
 sm.execute()
+arm_pub.publish("data: 'disarm'")   # and disarmed
