@@ -7,7 +7,9 @@ from std_msgs.msg import String
 from math import pi
 from helper import dp_move, los_move
 
+
 rospy.init_node('the_great_testing_node')
+thruster_armer = rospy.Publisher('/mcu_arm', String, queue_size=10)
 
 sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome='succeeded')
 
@@ -20,8 +22,13 @@ with sm:
     Sequence.add('FOUR', dp_move(0, 0, yaw_rad=pi))
 
 
-arm_pub = rospy.Publisher('/mcu_arm', String)
+try:
 
-arm_pub.publish("data: 'arm'")      # thrusters must be armed before use
-sm.execute()
-arm_pub.publish("data: 'disarm'")   # and disarmed
+    thruster_armer.publish("data: 'arm'")   # thrusters must be armed before use
+    sm.execute()
+    thruster_armer.publish("data: 'disarm'")   
+
+except:
+
+    thruster_armer.publish("data: 'disarm'")   
+    rospy.loginfo("Pooltest is stoppted")   # make sure thrusters are disarmed if sm is stopped
