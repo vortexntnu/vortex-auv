@@ -11,7 +11,7 @@ from helper import dp_move, los_move, patrol_sequence
 rospy.init_node('the_great_testing_node')
 thruster_armer = rospy.Publisher('/mcu_arm', String, queue_size=10)
 
-patrol = patrol_sequence([
+patrol_sm = patrol_sequence([
     dp_move(0, 0, yaw_rad=pi),
     los_move(4, 0),
     los_move(1, 0),
@@ -21,7 +21,7 @@ patrol = patrol_sequence([
 try:
 
     thruster_armer.publish("data: 'arm'")   # thrusters must be armed before use
-    patrol.execute()
+    patrol_sm.execute()
     thruster_armer.publish("data: 'disarm'")   
 
 except:
