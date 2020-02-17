@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>finite_state_machine</name>
+  <name>memory</name>
   <version>0.0.0</version>
-  <description>The finite_state_machine package</description>
+  <description>The memory package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="kristoffer@todo.todo">kristoffer</maintainer>
+  <maintainer email="vortex@todo.todo">vortex</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/finite_state_machine</url> -->
+  <!-- <url type="website">http://wiki.ros.org/memory</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -57,7 +57,6 @@
   <build_depend>smach</build_depend>
   <build_depend>smach_ros</build_depend>
   <build_depend>vortex_msgs</build_depend>
-  <build_depend>python-math</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
@@ -72,7 +71,6 @@
   <exec_depend>smach_ros</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>vortex_msgs</exec_depend>
-  <exec_depend>python-math</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

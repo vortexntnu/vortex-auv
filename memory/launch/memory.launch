@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+
+    <node name="landmark_server" pkg="memory" type="landmark_server.py" output="screen"/> 
+
+</launch>

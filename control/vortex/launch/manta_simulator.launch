@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+
+  <rosparam command="load" file="$(find vortex)/config/robots/manta_enu.yaml"/>
+  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+  <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>
+
+  <node pkg="thruster_interface"    type="thruster_interface_node.py"   name="thruster_interface"/>
+  <node pkg="vortex_allocator"      type="node"                         name="allocator"/>
+  <node pkg="dp_controller"         type="node"                         name="controller"           output="screen"/>
+  <node pkg="los_guidance"          type="los_guidance_backstepping.py" name="los_guidance"         output="screen"/>
+  <node pkg="interface"             type="controller_interface.py"      name="controller_interface" output="screen"/>
+
+</launch>

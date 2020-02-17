@@ -18,7 +18,7 @@ def setup_task_environment(self):
 	self.transit_speed = rospy.get_param('~transit_speed', 0.3)
 
 	# Search area size
-	self.search_area_size = rospy.get_param('~search_area_size', 4.0)
+	self.los_sphere_of_acceptance = rospy.get_param('~search_area_size', 0.7)
 	self.search_depth = rospy.get_param('~search_depth', 0.5*self.pool_depth)
 	self.search_speed = rospy.get_param('~search_speed',0.2)
 
@@ -36,41 +36,24 @@ def setup_task_environment(self):
 
 	""" Create a list of target quaternions """
 
-	quaternions = list()
-
-	# Define orientations as Euler angles
-	euler_angles = (0, 0, 0, 0, 0, 0, 0)
-
-	# Then convert angles to quaternions
-
-	for angle in euler_angles:
-		q_angle = quaternion_from_euler(0, 0, angle, 'sxyz')
-		q = Quaternion(*q_angle)
-		quaternions.append(q)
-
-
-	""" Create a list of target waypoints """ 
-
-	self.waypoints = list()
-
-	# Append each of the waypoints to the list.
-	self.waypoints.append(Pose(Point( 2.0, 2.0, self.search_depth), quaternions[0]))
-	self.waypoints.append(Pose(Point( 10.0, -2.0, self.search_depth), quaternions[1]))
-	self.waypoints.append(Pose(Point( -6.0, 0.0, self.search_depth), quaternions[2]))
-	self.waypoints.append(Pose(Point( 25.0, 0.5, self.search_depth), quaternions[3]))
-	self.waypoints.append(Pose(Point( 30.0,  2.5, self.search_depth), quaternions[4]))
-
-	# Create a mapping of points of interest to waypoint locations
-
 	pool_locations = (
-					 ('docking', self.waypoints[0]),
-                     ('gate', self.waypoints[1]),
-                     ('pole', self.waypoints[2]),
-                     ('p3', self.waypoints[3]),
-                     ('p4', self.waypoints[4]))
+		('corner_1', make_waypoint(0, 0)),
+        ('corner_2', make_waypoint(15,0)),
+        ('corner_3', make_waypoint(4, 4)),
+		('corner_4', make_waypoint(0, 4))
+	)
 	
 	# Store the mapping as an ordered dictionary so we can visit the target zones in sequence
 	self.pool_locations = OrderedDict(pool_locations)
 
 	# Where is the docking station?
 	#self.docking_station_pose = (Pose(Point(1, 1, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0)))
+
+
+def make_waypoint(x, y, z=-0.5, yaw_euler=0):
+
+	yaw_quat = Quaternion(*quaternion_from_euler(0, 0, yaw_euler, 'sxyz'))
+	waypoint = Pose(Point( x, y, z), yaw_quat)
+
+	return waypoint
+
