@@ -26,5 +26,5 @@ try:
 
 except:
 
-    thruster_armer.publish("data: 'disarm'")   
+    thruster_armer.publish("data: 'disarm'")   # TODO: doesnt get called after interrupt
     rospy.loginfo("Pooltest is stoppted")   # make sure thrusters are disarmed if sm is stopped
