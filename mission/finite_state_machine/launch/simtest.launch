@@ -2,6 +2,6 @@
 <launch>
 
   <!-- Lauch state machine -->
-  <node name="pooltest"   pkg="finite_state_machine"    type="pooltest.py"    output="screen"/>
+  <node name="simtest"   pkg="finite_state_machine"    type="simtest.py"    output="screen"/>
 
 </launch>
