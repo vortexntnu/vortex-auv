@@ -12,6 +12,8 @@ from std_msgs.msg import UInt32
 
 class BatteryMonitor():
 
+    # TODO: decide which voltage to read from (0, 1 or 2)
+
     def __init__(self):
         self.voltag_limit = rospy.get_param('voltage_limit', default=13500)
         self.voltage_sub = rospy.Subscriber('/tx_voltage_0', UInt32, self.voltage_cb, queue_size=1)
