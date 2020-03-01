@@ -77,3 +77,5 @@ controller:
   integral_gain: 0.0 #0.3
 
 computer: 'odroid'
+
+voltage_limit: 13500
