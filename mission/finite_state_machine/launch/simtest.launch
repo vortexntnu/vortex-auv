@@ -1,9 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
-  <!-- Lauch operational nodes -->
-  <include file="$(find vortex)/launch/manta_simulator.launch"/>
-
   <!-- Lauch state machine -->
   <node name="pooltest"   pkg="finite_state_machine"    type="pooltest.py"    output="screen"/>
 

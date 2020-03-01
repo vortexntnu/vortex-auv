@@ -1,12 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
-  <include file="$(find vortex)/launch/manta_real.launch"/>
-
-  <!-- Launch object detection -->
-  <include file="$(find pole_detect)/launch/pole_detect.launch"/>
-  <include file="$(find gate_detect)/launch/gate_detect.launch"/> 
-
   <!-- Lauch state machine -->
   <node name="pooltest"   pkg="finite_state_machine"    type="pooltest.py"    output="screen"/>
 

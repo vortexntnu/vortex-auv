@@ -8,7 +8,7 @@ from math import pi
 from helper import dp_move, los_move, patrol_sequence
 
 
-rospy.init_node('the_great_testing_node')
+rospy.init_node('pooltest_fsm')
 thruster_armer = rospy.Publisher('/mcu_arm', String, queue_size=10)
 
 patrol_sm = patrol_sequence([

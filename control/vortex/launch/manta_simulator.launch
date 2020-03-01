@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
 
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+
   <rosparam command="load" file="$(find vortex)/config/robots/manta_enu.yaml"/>
   <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
   <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>

@@ -1,20 +1,30 @@
 ## Vortex NTNU, Manta AUV repository
 
-## How to run the mission ##
--------------------------
+## How to run a mission in simulator
 
-1. Open a window and run dp-controller:
+1. Open a window and start gazebo:
 	```bash
-	$ roslaunch vortex dp_control.launch 
-	```
-2. Open a window and change the controller mode: 
-	```bash
-	$ rosrun finite_state_machine service_client.py
-	```
-3. Open a third window and run:
-	```bash
-	$ rosrun finite_state_machine patrol_fsm.py
+	$ roslaunch simulator_launch cybernetics_pool.launch
 	```
 
+2. Open another window and lauch nodes neccessary for operating auv:
+	```bash
+	$ roslaunch vortex manta_simulator.launch 
+	```
 
+3. Open a third window and lauch the state machine: 
+	```bash
+	$ roslaunch finite_state_machine simtest.launch
+	```
 
+## How to run a mission on AUV
+
+1. Lauch nodes neccessary for operating auv:
+	```bash
+	$ roslaunch vortex manta_real.launch 
+	```
+
+1. Lauch the desired state machine (eg. pooltest): 
+	```bash
+	$ roslaunch finite_state_machine pooltest.launch
+	```
