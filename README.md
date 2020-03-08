@@ -159,9 +159,14 @@ Figure by: Kristoffer Rakstad Solberg
 	$ roslaunch simulator_launch cybernetics_pool.launch
 	```
 
-2. Execute your state machine of choice. This will activate all modules in Manta V1 architecture. i.e: 
+2. Launch all modules required for operating Manta:
 	```bash
-	$ roslaunch finite_state_machine gazebo_sm.launch
+	$ roslaunch vortex manta_simulator.launch
+	```
+
+2. Execute your state machine of choice. i.e: 
+	```bash
+	$ roslaunch finite_state_machine simtest.launch
 	```
 
 ## 7. Alternative: Run Manta V1 in Linux minimal on your drone without Gazebo, Smach viewer, Camera pop-up windows etc ##

@@ -1,10 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  
-<!--
-  Can be nice to launch eskf seperatly, to omit having to reposition manta for every launch
-  <include file="$(find robot_localization)/launch/ekf_novembertest.launch"/>
--->
 
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
@@ -14,6 +9,9 @@
   <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
   <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>
 
+  <!-- Launch ESKF (It can also be nice to launch eskf seperatly, to omit having to reposition manta for every launch) -->
+  <include file="$(find robot_localization)/launch/ekf_novembertest.launch"/>
+  
   <!-- Lauch nodes -->
   <node pkg="mcu_interface"      type="mcu_interface_node"           name="mcu_interface"      />
   <node pkg="vortex_allocator"   type="node"                         name="allocator"         />

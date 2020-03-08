@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <include file="$(find vortex)/launch/manta_enu.launch"/>
-
-   <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance"     output="screen"/>
-   <node name="pooltest_sm" pkg="finite_state_machine" type="pooltest_sm.py" output="screen"/> 
-
-</launch>
