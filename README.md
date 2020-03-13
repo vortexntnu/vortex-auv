@@ -4,6 +4,9 @@
 ![MANTA](docs/manta_v1.png)
 
 
+## Documentation
+A Master's thesis explaining the project and features of the Manta software is found in the /docs folder.
+
 ## Prerequisites
 
 Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
