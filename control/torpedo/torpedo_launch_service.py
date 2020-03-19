@@ -7,18 +7,22 @@ from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 import odroid_wiringpi as wpi
 
 
-TORPEDO_PIN = 0
+"""
 
-def run():
+Service that lauches torpedos individually. 
 
-    INPUT = 0
-    OUTPUT = 1
+"""
 
-    wpi.wiringPiSetup()
-    wpi.pinMode(TORPEDO_PIN, OUTPUT)
 
-    torpedo_service = rospy.Service('torpedo_launch', Trigger, torpedo_launch_cd)
-    torpedo_service.spin()
+# enums for clearifying code
+INPUT = 0
+OUTPUT = 1
+HIGH = 1
+LOW = 0
+
+# the two torpedos pin assignments. These have to be specified in a config file
+torpedo_left = rospy.get_param('torpedo_pin_left')
+torpedo_right = rospy.get_param('torpedo_pin_right')
 
 
 def torpedo_launch_cd(trigger_request):
@@ -28,15 +32,18 @@ def torpedo_launch_cd(trigger_request):
     testing. 
     """
 
-    HIGH = 1
-    LOW = 0
-
     # example code
-    wpi.digitalWrite(TORPEDO_PIN, HIGH)
+    wpi.digitalWrite(torpedo_left, HIGH)
     rospy.sleep(3) # 3 seconds
-    wpi.digitalWrite(TORPEDO_PIN, LOW)
+    wpi.digitalWrite(torpedo_left, LOW)
 
 
 
-if __name__ == "__main__":
-    run()
+
+
+wpi.wiringPiSetup()
+wpi.pinMode(torpedo_left, OUTPUT)
+wpi.pinMode(torpedo_right, OUTPUT)
+
+torpedo_service = rospy.Service('torpedo_launch', Trigger, torpedo_launch_cd)
+torpedo_service.spin()
