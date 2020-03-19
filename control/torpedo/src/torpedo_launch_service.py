@@ -6,11 +6,7 @@ import RPi.GPIO as GPIO
 from vortex_msgs.srv import LaunchTorpedo
 
 
-# enums for clearifying code
-INPUT = 0
-OUTPUT = 1
-HIGH = 1
-LOW = 0
+# How long to wait after a pin has been set to high
 FIRING_DURATION = 3 # in seconds
 
 # the two torpedos pin assignments. These have to be specified in a config file
