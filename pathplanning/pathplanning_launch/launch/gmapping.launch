@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+
+<launch>
+
+  <node pkg="gmapping" type="slam_gmapping" name="gmapping" >
+    <remap from="scan" to="manta/sonar" />
+    <param name="map_frame" value="manta/map"/>
+    <param name="odom_frame" value="manta/odom" />
+    <param name="base_frame" value="manta/base_link" />
+    <param name="xmin" value="-15.0"/>
+    <param name="ymin" value="-15.0"/>
+    <param name="xmax" value="15.0"/>
+    <param name="ymax" value="15.0"/>
+    <param name="delta" value="0.1"/>
+    <!--<remap from="manta/global_map" to="gmapping/map"/>
+    <remap from="map" to="gmapping_map"/>-->
+    <param name="angularUpdate" value="0.1"/>
+  </node>
+
+</launch>

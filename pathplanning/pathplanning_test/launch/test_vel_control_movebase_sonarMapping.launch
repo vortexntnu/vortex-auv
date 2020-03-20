@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find los_guidance)/launch/los_backstepping_simulator.launch"/>
+
+   <node
+    name="test_movebase_vel_command"
+    pkg="pathplanning_test"
+    type="test_vel_control_movebase.py"
+    output="screen">
+   </node> 
+
+  <node pkg="Sonar_mapping" type="sonar_mapping_node.py" name="sonar_mapping_node" output="screen" />
+
+  <include file="$(find pathplanning_launch)/launch/move_base.launch"/>
+
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find pathplanning_launch)/rviz/config_file_premade_map.rviz" />
+
+</launch>

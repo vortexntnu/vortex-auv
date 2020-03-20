@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="utilities" type="img_to_map.py" name="premade_map_node" output="screen" />
+
+</launch>

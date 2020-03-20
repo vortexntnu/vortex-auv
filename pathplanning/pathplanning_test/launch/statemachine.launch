@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+	
+
+   <node
+    name="inspect_point"
+    pkg="pathplanning_test"
+    type="inspect_point.py"
+    output="screen">
+   </node> 
+
+  <include file="$(find pathplanning_test)/launch/pid_global_plan_gmapping.launch"/>
+  
+   <node
+    name="statemachine"
+    pkg="pathplanning_test"
+    type="statemachine.py"
+    output="screen">
+   </node> 
+  
+
+</launch>
