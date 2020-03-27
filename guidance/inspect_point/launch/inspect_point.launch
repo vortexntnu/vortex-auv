@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+
+  <rosparam command="load" file="$(find vortex)/config/robots/manta_enu.yaml"/>
+  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+  <rosparam command="load" file="$(find vortex)/config/environments/trondheim_freshwater.yaml"/>
+
+
+  <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" />
+  <node pkg="mcu_interface"      type="mcu_interface_node"         name="mcu_interface"      />
+-->
+  <node pkg="inspect_point"       type="inspect_point.py" name="inspect_point"     output="screen"/>
+
+<!--  <node pkg="vortex_allocator"   type="node"                       name="allocator"          />-->
+
+</launch>
