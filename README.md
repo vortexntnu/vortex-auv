@@ -15,7 +15,7 @@
 
 
 ## Documentation
-A Master's thesis explaining the project and features of the Manta software is found in the docs folder: https://github.com/vortexntnu/manta-auv/blob/master/docs/master_thesis_manta_v1_kristoffer_solberg_compressed.pdf
+A Master's thesis explaining the project and features of the Manta software is found in the docs folder: https://github.com/vortexntnu/manta-auv/blob/master/docs/master_thesis_manta_v1_kristoffer_solberg.pdf
 
 ## Prerequisites
 
@@ -131,7 +131,7 @@ or install manually the remaining dependencies
 
 2. Clone the repository: 
 	```bash
-	$  git clone https://github.com/vortexntnu/Manta-AUV.git
+	$  git clone https://github.com/vortexntnu/manta-auv.git
 	$  git clone https://github.com/vortexntnu/vortex_msgs.git
 	```
 Ps. You can also manually download the zip-folder in the up-right corner and extract the file <br />
@@ -157,7 +157,7 @@ Figure by: Kristoffer Rakstad Solberg
 
 2. Clone the repository: 
 	```bash
-	$ git clone https://github.com/vortexntnu/uuv-simulator.git
+	$ git clone https://github.com/vortexntnu/manta-auv-simulator.git
 	```
 
 3. Clone the repository. WARNING: HIGH CPU LOAD, you might want to build packages separately the first time: 
