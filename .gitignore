@@ -2,6 +2,10 @@
 # Created by https://www.gitignore.io/api/ros
 # Edit at https://www.gitignore.io/?templates=ros
 
+### IDE
+.DS_Store
+.idea
+
 ### ROS ###
 devel/
 logs/
