@@ -2,6 +2,9 @@
 # Created by https://www.gitignore.io/api/ros
 # Edit at https://www.gitignore.io/?templates=ros
 
+# CMake
+cmake-build-debug/
+
 ### ROS ###
 devel/
 logs/
@@ -34,6 +37,8 @@ devel_isolated/
 .project
 .cproject
 .vscode
+.DS_Store
+.idea
 
 # qcreator stuff
 CMakeLists.txt.user

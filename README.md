@@ -1,8 +1,21 @@
-## Vortex NTNU, Manta AUV repository
-
+[![GitHub stars](https://img.shields.io/github/stars/vortexntnu/manta-auv.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/vortexntnu/manta-auv/stargazers/)
+[![GitHub watchers](https://img.shields.io/github/watchers/vortexntnu/manta-auv.svg?style=social&label=Watch&maxAge=2592000)](https://GitHub.com/vortexntnu/manta-auv/watchers/)
+[![GitHub forks](https://img.shields.io/github/forks/vortexntnu/manta-auv.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/vortexntnu/manta-auv/network/)
+## Manta AUV software - Vortex NTNU
+[![Website shields.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://vortexntnu.no)
+[![version](https://img.shields.io/badge/version-1.0.0-blue)](https://GitHub.com/vortexntnu/manta-auv/releases/)
+![ViewCount](https://views.whatilearened.today/views/github/vortexntnu/manta-auv.svg)
+[![GitHub contributors](https://img.shields.io/github/contributors/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/graphs/contributors/)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/vortexntnu/manta-auv/graphs/commit-activity)
+[![GitHub pull-requests](https://img.shields.io/github/issues-pr/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
+[![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ![MANTA](docs/manta_v1.png)
 
+
+## Documentation
+A Master's thesis explaining the project and features of the Manta software is found in the docs folder: https://github.com/vortexntnu/manta-auv/blob/master/docs/master_thesis_manta_v1_kristoffer_solberg_compressed.pdf
 
 ## Prerequisites
 
@@ -118,7 +131,7 @@ or install manually the remaining dependencies
 
 2. Clone the repository: 
 	```bash
-	$  git clone https://github.com/vortexntnu/Manta-AUV.git
+	$  git clone https://github.com/vortexntnu/manta-auv.git
 	$  git clone https://github.com/vortexntnu/vortex_msgs.git
 	```
 Ps. You can also manually download the zip-folder in the up-right corner and extract the file <br />
@@ -144,7 +157,7 @@ Figure by: Kristoffer Rakstad Solberg
 
 2. Clone the repository: 
 	```bash
-	$ git clone https://github.com/vortexntnu/uuv-simulator.git
+	$ git clone https://github.com/vortexntnu/manta-auv-simulator.git
 	```
 
 3. Clone the repository. WARNING: HIGH CPU LOAD, you might want to build packages separately the first time: 
