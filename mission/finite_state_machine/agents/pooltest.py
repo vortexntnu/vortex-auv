@@ -19,12 +19,12 @@ patrol_sm = patrol_sequence([
 ])
 
 try:
-
-    thruster_armer.publish("data: 'arm'")   # thrusters must be armed before use
+    thruster_armer.publish("data: 'arm'")       # arm thrusters
+    rospy.sleep(3)
     patrol_sm.execute()
-    thruster_armer.publish("data: 'disarm'")   
 
-except:
+except Exception as e:
+    rospy.loginfo("Pooltest is stoppted: %s" % e) 
 
-    thruster_armer.publish("data: 'disarm'")   # TODO: doesnt get called after interrupt
-    rospy.loginfo("Pooltest is stoppted")   # make sure thrusters are disarmed if sm is stopped
+finally: 
+    thruster_armer.publish("data: 'disarm'")    # disarm thrusters

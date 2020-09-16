@@ -20,5 +20,5 @@ patrol_sm = patrol_sequence([
 try:
     patrol_sm.execute()
 
-except:
-    rospy.loginfo("Pooltest is stoppted")   
+except Exception as e:
+    rospy.loginfo("Pooltest failed: %s" % e)   

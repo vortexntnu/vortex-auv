@@ -1,0 +1,12 @@
+global_costmap:
+
+  global_frame: manta/map
+  robot_base_frame: manta/base_link
+  update_frequency: 2.0
+  publish_frequency: 2.0
+  static_map: true
+  rolling_window: true
+  width: 30.0
+  height: 30.0
+  resolution: 0.1
+  planner_frequency: 0.2
