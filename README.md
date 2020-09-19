@@ -19,12 +19,12 @@ A Master's thesis explaining the project and features of the Manta software is f
 
 ## Prerequisites
 
-Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
+Linux distributions Bionic (Ubuntu 18.04) <br />
 C++ 11 compiler or newer.
 
-## 1. Install ROS kinetic for Ubuntu (If you do not have it already) ##
+## 1. Install ROS melodic for Ubuntu (If you do not have it already) ##
 
-###### This should take no more than 3 minutes. If you have another version of linux but Ubuntu, follow this guide: http://wiki.ros.org/kinetic/Installation. It is very important that you follow the installation guide and instructions on how to run the guide EXACTLY as stated or you will get running errors. Simply copy and paste the commands to your terminal command window ######
+###### This should take no more than 3 minutes. If you have another version of linux but Ubuntu, follow this guide: http://wiki.ros.org/melodic/Installation/Ubuntu. It is very important that you follow the installation guide and instructions on how to run the guide EXACTLY as stated or you will get running errors. Simply copy and paste the commands to your terminal command window ######
 
 Robot operating system (ROS) provides services designed for heterogeneous computer cluster such as hardware abstraction, low-level device control, implementation of commonly used functionality, message-passing between processes, and package management. The main ROS client libraries (C++, Python, and Lisp) are geared toward a Unix-like system, primarily because of their dependence on large collections of open-source software dependencies.
 
@@ -38,7 +38,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 
 2. Set up your keys:
 	```bash
-	$ sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+	$ sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 	```
 
 3. Update:
@@ -47,7 +47,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
   
 4. Installation:
 	```bash
-	$ sudo apt-get install ros-kinetic-desktop-full
+	$ sudo apt install ros-melodic-desktop-full
 	```
 
 5. Before you can use ROS, you will need to initialize rosdep: 
@@ -58,7 +58,7 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 
 6. Environment setup:
 	```bash
-	$ echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
+	$ echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 	$ source ~/.bashrc
 
 ## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
@@ -77,22 +77,22 @@ or install manually the remaining dependencies
 
 2. Install rosbridge-server to interface with sensor and actuator drivers on the physical Manta.
 	```bash
-	$ sudo apt-get install ros-kinetic-rosbridge-server
+	$ sudo apt-get install ros-melodic-rosbridge-server
   
 3. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
-	$ sudo apt-get install ros-kinetic-message-to-tf
+	$ sudo apt-get install ros-melodic-message-to-tf
 
 4. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
-	$ sudo apt-get install ros-kinetic-geographic-msgs
+	$ sudo apt-get install ros-melodic-geographic-msgs
 
 5. Install move-base-msgs. This is necessary to perform some actions:
 	```bash
-	$ sudo apt-get install ros-kinetic-move-base
-	$ sudo apt-get install ros-kinetic-move-base-msgs 
+	$ sudo apt-get install ros-melodic-move-base
+	$ sudo apt-get install ros-melodic-move-base-msgs 
 
-## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
+## 3. Now that you have ROS Melodic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
 -------------------------
 
@@ -119,7 +119,7 @@ or install manually the remaining dependencies
 4. Open a new window. To make sure the workspace is properly overlayed:
 	```bash
 	$ echo $ROS_PACKAGE_PATH
-	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
+	  /home/youruser/manta_ws/src:/opt/ros/melodic/share 
 
 
 ## 4. Download and build Manta V1 ##
@@ -132,9 +132,12 @@ or install manually the remaining dependencies
 2. Clone the repository: 
 	```bash
 	$  git clone https://github.com/vortexntnu/manta-auv.git
-	$  git clone https://github.com/vortexntnu/vortex_msgs.git
+	$  git clone -b melodic https://github.com/vortexntnu/vortex_msgs.git
 	```
-Ps. You can also manually download the zip-folder in the up-right corner and extract the file <br />
+Note! It is extremely important to include "-b melodic" when cloning vortex_msgs. If forgotten, <br />
+it will NOT build!
+
+Ps. Can also be manually download the zip-folder in the up-right corner and extract the file <br />
 inside the src-folder of you workspace
 
 3. Compile the code by running "catkin build" inside the workspace:
