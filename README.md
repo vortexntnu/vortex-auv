@@ -64,12 +64,12 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 ## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
 -------------------------
 
-Run the shell script for install dependencies:
+Quick command for installing all dependencies:  
+```
+sudo apt install protobuf-compiler ros-melodic-rosbridge-server ros-melodic-message-to-tf ros-melodic-geographic-msgs ros-melodic-move-base ros-melodic-move-base-msgs 
+```
 
-	```bash
-	$ sh install-prereq.sh
-
-or install manually the remaining dependencies
+Explainations for the dependencies: 
 
 1. Install the protobuf library, which is used as interface to Gazebo.:
 	```bash
