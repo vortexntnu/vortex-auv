@@ -99,28 +99,35 @@ Explainations for the dependencies:
 1. creating a catkin workspace:
 	```bash
 	$ mkdir -p ~/manta_ws/src
-	$ cd ~/manta_ws/src
+	$ cd ~/manta_ws
 	$ catkin_init_workspace
-  
+	```
+
 2. building the workspace created:
 	```bash
 	$ cd ~/manta_ws/
 	$ catkin build
-  
+	```
+Note: if you get the error message "catkin: command not found", run the following command:
+
+	```bash
+	$ sudo apt-get install python-catkin-tools
+	```
+
+
 3. source the current workspace and Gazebo model:
 	```bash
 	$ echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
-	$ echo "export GAZEBO_MODEL_PATH=/home/youruser/manta_ws/src/manta_gazebo:$GAZEBO_MODEL_PATH" >> ~/.bashrc 
-	$ echo "export ROS_PACKAGE_PATH=/home/youruser/manta_ws:$ROS_PACKAGE_PATH" >> ~/.bashrc
+	```
 
 	
-3. close the current window.
+4. close the current terminal.
 
-4. Open a new window. To make sure the workspace is properly overlayed:
+5. Open a new terminal window. To make sure the workspace is properly overlayed:
 	```bash
 	$ echo $ROS_PACKAGE_PATH
 	  /home/youruser/manta_ws/src:/opt/ros/melodic/share 
-
+	```
 
 ## 4. Download and build Manta V1 ##
 -------------------------
@@ -132,10 +139,8 @@ Explainations for the dependencies:
 2. Clone the repository: 
 	```bash
 	$  git clone https://github.com/vortexntnu/manta-auv.git
-	$  git clone -b melodic https://github.com/vortexntnu/vortex_msgs.git
+	$  git clone https://github.com/vortexntnu/vortex_msgs.git
 	```
-Note! It is extremely important to include "-b melodic" when cloning vortex_msgs. If forgotten, <br />
-it will NOT build!
 
 Ps. Can also be manually download the zip-folder in the up-right corner and extract the file <br />
 inside the src-folder of you workspace
