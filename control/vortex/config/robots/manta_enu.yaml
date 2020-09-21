@@ -77,3 +77,7 @@ controller:
   integral_gain: 0.0 #0.3
 
 computer: 'odroid'
+
+torpedos:       # TODO: decide what pins to use for torpedo
+  left_pin: 23  # both given in BCM scheme
+  right_pin: 24 
