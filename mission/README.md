@@ -1,6 +1,12 @@
-## Vortex NTNU, Manta AUV repository
+# Vortex NTNU mission control
 
-## How to run a mission in simulator
+## Overview of Robosub 2020 state machine
+
+todo
+
+## How to run a mission 
+
+### in simulator
 
 1. Open a window and start gazebo:
 	```bash
@@ -17,7 +23,7 @@
 	$ roslaunch finite_state_machine simtest.launch
 	```
 
-## How to run a mission on AUV
+### on AUV
 
 1. Lauch nodes neccessary for operating auv:
 	```bash
