@@ -24,42 +24,10 @@ C++ 11 compiler or newer.
 
 ## 1. Install ROS melodic for Ubuntu (If you do not have it already) ##
 
-###### This should take no more than 3 minutes. If you have another version of linux but Ubuntu, follow this guide: http://wiki.ros.org/melodic/Installation/Ubuntu. It is very important that you follow the installation guide and instructions on how to run the guide EXACTLY as stated or you will get running errors. Simply copy and paste the commands to your terminal command window ######
+Follow the official guide at http://wiki.ros.org/melodic/Installation/Ubuntu
 
 Robot operating system (ROS) provides services designed for heterogeneous computer cluster such as hardware abstraction, low-level device control, implementation of commonly used functionality, message-passing between processes, and package management. The main ROS client libraries (C++, Python, and Lisp) are geared toward a Unix-like system, primarily because of their dependence on large collections of open-source software dependencies.
 
-
--------------------------
-
-1. Setup your computer to accept software from packages.ros.org:
-	```bash
-	 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
-	```
-
-2. Set up your keys:
-	```bash
-	 sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
-	```
-
-3. Update:
-	```bash
-	 sudo apt-get update
-  
-4. Installation:
-	```bash
-	 sudo apt-get install ros-kinetic-desktop-full
-	```
-
-5. Before you can use ROS, you will need to initialize rosdep: 
-	```bash
-	 sudo rosdep init
-	 rosdep update
-  
-
-6. Environment setup:
-	```bash
-	 echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc
-	 source ~/.bashrc
 
 ## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
 -------------------------
@@ -93,8 +61,7 @@ Explainations for the dependencies:
 	 sudo apt-get install ros-kinetic-move-base-msgs 
 
 
-## 3. Now that you have ROS Melodic installed. Create ROS workspace ##
-###### This is necessary to be able to run the simulation package that I have created
+## 3. Create a ROS workspace ##
 -------------------------
 
 1. creating a catkin workspace:
@@ -129,7 +96,7 @@ Note: if you get the error message "catkin: command not found", run the followin
 	 echo $ROS_PACKAGE_PATH
 	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
 
-## 4. Download and build Manta V1 ##
+## 4. Download and build Vortex AUV ##
 -------------------------
 1. Enter the folder where you want to clone the repostory:
 	```bash
@@ -138,7 +105,7 @@ Note: if you get the error message "catkin: command not found", run the followin
 
 2. Clone the repository: 
 	```bash
-	  git clone https://github.com/vortexntnu/manta-auv.git
+	  git clone https://github.com/vortexntnu/Vortex-AUV.git
 	  git clone https://github.com/vortexntnu/vortex_msgs.git
 	```
 
@@ -151,7 +118,7 @@ inside the src-folder of you workspace
 	 catkin build vortex_msgs
 	 catkin build
   
-## 5. Download and build the customized UUV simulator for Manta AUV ##
+## 5. Download and build the customized UUV simulator ##
 -------------------------
 
 ![MANTA](docs/manta_underwater_robosub.png)
@@ -165,7 +132,7 @@ Figure by: Kristoffer Rakstad Solberg
 
 2. Clone the repository: 
 	```bash
-	 git clone https://github.com/vortexntnu/manta-auv-simulator.git
+	 git clone https://github.com/vortexntnu/Vortex-Simulator.git
 	```
 
 3. Clone the repository. WARNING: HIGH CPU LOAD, you might want to build packages separately the first time: 
