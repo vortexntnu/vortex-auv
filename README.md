@@ -45,20 +45,20 @@ Explainations for the dependencies:
 
 2. Install rosbridge-server to interface with sensor and actuator drivers on the physical Manta.
 	```bash
-	 sudo apt-get install ros-kinetic-rosbridge-server
+	 sudo apt-get install ros-melodic-rosbridge-server
   
 3. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
-	 sudo apt-get install ros-kinetic-message-to-tf
+	 sudo apt-get install ros-melodic-message-to-tf
 
 4. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
 	```bash
-	 sudo apt-get install ros-kinetic-geographic-msgs
+	 sudo apt-get install ros-melodic-geographic-msgs
 
 5. Install move-base-msgs. This is necessary to perform some actions:
 	```bash
-	 sudo apt-get install ros-kinetic-move-base
-	 sudo apt-get install ros-kinetic-move-base-msgs 
+	 sudo apt-get install ros-melodic-move-base
+	 sudo apt-get install ros-melodic-move-base-msgs 
 
 
 ## 3. Create a ROS workspace ##
