@@ -19,12 +19,12 @@ A Master's thesis explaining the project and features of the Manta software is f
 
 ## Prerequisites
 
-Linux distributions such as Wily (Ubuntu 15.10), Xenial (Ubuntu 16.04) and Jessie (Debian 8)<br />
+Linux distributions Bionic (Ubuntu 18.04) <br />
 C++ 11 compiler or newer.
 
-## 1. Install ROS kinetic for Ubuntu (If you do not have it already) ##
+## 1. Install ROS melodic for Ubuntu (If you do not have it already) ##
 
-###### This should take no more than 3 minutes. If you have another version of linux but Ubuntu, follow this guide: http://wiki.ros.org/kinetic/Installation. It is very important that you follow the installation guide and instructions on how to run the guide EXACTLY as stated or you will get running errors. Simply copy and paste the commands to your terminal command window ######
+###### This should take no more than 3 minutes. If you have another version of linux but Ubuntu, follow this guide: http://wiki.ros.org/melodic/Installation/Ubuntu. It is very important that you follow the installation guide and instructions on how to run the guide EXACTLY as stated or you will get running errors. Simply copy and paste the commands to your terminal command window ######
 
 Robot operating system (ROS) provides services designed for heterogeneous computer cluster such as hardware abstraction, low-level device control, implementation of commonly used functionality, message-passing between processes, and package management. The main ROS client libraries (C++, Python, and Lisp) are geared toward a Unix-like system, primarily because of their dependence on large collections of open-source software dependencies.
 
@@ -64,12 +64,12 @@ Robot operating system (ROS) provides services designed for heterogeneous comput
 ## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
 -------------------------
 
-Run the shell script for install dependencies:
+Quick command for installing all dependencies:  
+```
+sudo apt install protobuf-compiler ros-melodic-rosbridge-server ros-melodic-message-to-tf ros-melodic-geographic-msgs ros-melodic-move-base ros-melodic-move-base-msgs 
+```
 
-	```bash
-	 sh install-prereq.sh
-
-or install manually the remaining dependencies
+Explainations for the dependencies: 
 
 1. Install the protobuf library, which is used as interface to Gazebo.:
 	```bash
@@ -92,35 +92,42 @@ or install manually the remaining dependencies
 	 sudo apt-get install ros-kinetic-move-base
 	 sudo apt-get install ros-kinetic-move-base-msgs 
 
-## 3. Now that you have ROS Kinetic installed. Create ROS workspace ##
+
+## 3. Now that you have ROS Melodic installed. Create ROS workspace ##
 ###### This is necessary to be able to run the simulation package that I have created
 -------------------------
 
 1. creating a catkin workspace:
 	```bash
-	 mkdir -p ~/manta_ws/src
-	 cd ~/manta_ws/src
-	 catkin_init_workspace
-  
+	mkdir -p ~/manta_ws/src
+	cd ~/manta_ws
+	catkin_init_workspace
+	```
+
 2. building the workspace created:
 	```bash
-	 cd ~/manta_ws/
-	 catkin build
-  
+	cd ~/manta_ws/
+	catkin build
+	```
+
+Note: if you get the error message "catkin: command not found", run the following command:
+
+	```bash
+	sudo apt-get install python-catkin-tools
+	```
+
 3. source the current workspace and Gazebo model:
 	```bash
-	 echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
-	 echo "export GAZEBO_MODEL_PATH=/home/youruser/manta_ws/src/manta_gazebo:$GAZEBO_MODEL_PATH" >> ~/.bashrc 
-	 echo "export ROS_PACKAGE_PATH=/home/youruser/manta_ws:$ROS_PACKAGE_PATH" >> ~/.bashrc
-
+	echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
+	```
 	
-3. close the current window.
+4. close the current terminal.
 
-4. Open a new window. To make sure the workspace is properly overlayed:
+5. Open a new terminal window. To make sure the workspace is properly overlayed:
 	```bash
+  
 	 echo $ROS_PACKAGE_PATH
 	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
-
 
 ## 4. Download and build Manta V1 ##
 -------------------------
@@ -134,7 +141,8 @@ or install manually the remaining dependencies
 	  git clone https://github.com/vortexntnu/manta-auv.git
 	  git clone https://github.com/vortexntnu/vortex_msgs.git
 	```
-Ps. You can also manually download the zip-folder in the up-right corner and extract the file <br />
+
+Ps. Can also be manually download the zip-folder in the up-right corner and extract the file <br />
 inside the src-folder of you workspace
 
 3. Compile the code by running "catkin build" inside the workspace:
