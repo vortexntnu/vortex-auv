@@ -83,7 +83,7 @@ Note: if you get the error message "catkin: command not found", run the followin
 	sudo apt-get install python-catkin-tools
 	```
 
-3. source the current workspace and Gazebo model:
+3. source the current workspace:
 	```bash
 	echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
 	```
