@@ -90,11 +90,6 @@ Note: if you get the error message "catkin: command not found", run the followin
 	
 4. close the current terminal.
 
-5. Open a new terminal window. To make sure the workspace is properly overlayed:
-	```bash
-  
-	 echo $ROS_PACKAGE_PATH
-	  /home/youruser/manta_ws/src:/opt/ros/kinetic/share 
 
 ## 4. Download and build Vortex AUV ##
 -------------------------
