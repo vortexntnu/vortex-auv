@@ -77,12 +77,12 @@ Explainations for the dependencies:
 	catkin build
 	```
 
-Note: if you get the error message "catkin: command not found", run the following command:
+	Note: if you get the error message "catkin: command not found", run the following command:  
 
 	```bash
 	sudo apt-get install python-catkin-tools
 	```
-
+	
 3. source the current workspace:
 	```bash
 	echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
