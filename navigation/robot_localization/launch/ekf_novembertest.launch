@@ -8,13 +8,7 @@
 
 	<!-- Stim300 driver -->
 
-	<node 
-	pkg = "drivers-imu_stim300"
-	type = "stim300"
-	name = "stim300_driver"
-	
-	args="/dev/ttyUSB0"
-	/>
+	<node pkg = "driver_stim300" type = "stim300_driver_node" name = "driver_stim300" args="/dev/ttyUSB0"/>
 
 	<!--Static transform from base_link to imu_frame --> 
 
