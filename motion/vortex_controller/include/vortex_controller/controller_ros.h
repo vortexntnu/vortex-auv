@@ -7,7 +7,7 @@
 #include <dynamic_reconfigure/server.h>
 
 #include <vortex_controller/VortexControllerConfig.h>
-#include "vortex/eigen_typedefs.h"
+#include "eigen_typedefs.h"
 #include "vortex_controller/control_modes.h"
 #include "vortex_msgs/PropulsionCommand.h"
 #include "vortex_msgs/RovState.h"

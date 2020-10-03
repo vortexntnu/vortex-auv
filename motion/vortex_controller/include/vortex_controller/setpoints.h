@@ -2,7 +2,7 @@
 #define VORTEX_CONTROLLER_SETPOINTS_H
 
 #include <Eigen/Dense>
-#include "vortex/eigen_typedefs.h"
+#include "eigen_typedefs.h"
 
 class Setpoints
 {

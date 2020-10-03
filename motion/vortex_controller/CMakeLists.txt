@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
   std_msgs
-  vortex
   vortex_msgs
   roslint
 )
@@ -31,7 +30,6 @@ catkin_package(
   nav_msgs
   roscpp
   std_msgs
-  vortex
   vortex_msgs
 )
 
