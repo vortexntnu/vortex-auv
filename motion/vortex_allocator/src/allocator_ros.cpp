@@ -6,8 +6,8 @@
 
 #include <eigen_conversions/eigen_msg.h>
 #include "vortex_msgs/ThrusterForces.h"
-#include "vortex/eigen_typedefs.h"
-#include "vortex/eigen_helper.h"
+#include "vortex_allocator/eigen_typedefs.h"
+#include "vortex_allocator/eigen_helper.h"
 
 Allocator::Allocator(ros::NodeHandle nh)
   :

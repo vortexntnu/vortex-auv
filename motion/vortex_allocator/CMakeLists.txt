@@ -7,7 +7,6 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   geometry_msgs
   roscpp
-  vortex
   vortex_msgs
   roslint
 )
@@ -24,7 +23,6 @@ catkin_package(
   eigen_conversions
   geometry_msgs
   roscpp
-  vortex
   vortex_msgs
 )
 

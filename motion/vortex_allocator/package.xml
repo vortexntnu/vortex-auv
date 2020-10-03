@@ -11,13 +11,11 @@
   <build_depend>eigen_conversions</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_depend>vortex</build_depend>
   <build_depend>vortex_msgs</build_depend>
   <build_depend>roslint</build_depend>
 
   <run_depend>eigen_conversions</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>roscpp</run_depend>
-  <run_depend>vortex</run_depend>
   <run_depend>vortex_msgs</run_depend>
 </package>
