@@ -13,7 +13,7 @@
 #include <cstdlib>
 #include <Eigen/Dense>
 #include <cmath>
-#include "vortex/eigen_typedefs.h"
+#include "eigen_typedefs.h"
 #include <iostream>
 using namespace Eigen;
 

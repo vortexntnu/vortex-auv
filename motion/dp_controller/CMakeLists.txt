@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   std_msgs
-  vortex
   vortex_msgs
   roslint
 )
@@ -37,7 +36,6 @@ catkin_package(
   geometry_msgs
   roscpp
   std_msgs
-  vortex
   vortex_msgs
 )
 
