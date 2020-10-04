@@ -14,9 +14,9 @@
   
   <!-- Lauch nodes -->
   <node pkg="mcu_interface"      type="mcu_interface_node"           name="mcu_interface"      />
-  <node pkg="vortex_allocator"   type="node"                         name="allocator"         />
+  <node pkg="vortex_allocator"   type="vortex_allocator_node"        name="allocator"         />
   <node pkg="thruster_interface" type="thruster_interface_node.py"   name="thruster_interface"/>
-  <node pkg="dp_controller"      type="node"                         name="controller"            output="screen"/>
+  <node pkg="dp_controller"      type="dp_controller_node"           name="controller"            output="screen"/>
   <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance"     />
   <node pkg="interface"          type="controller_interface.py"      name="controller_interface"  output="screen"/>
 
