@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+
+  <!-- Load parameters -->
+  <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
+  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+  <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
+
+  <!-- Launch ESKF (It can also be nice to launch eskf seperatly, to omit having to reposition manta for every launch) -->
+  <include file="$(find robot_localization)/launch/ekf_novembertest.launch"/>
+  
+  <!-- Lauch nodes -->
+  <node pkg="mcu_interface"      type="mcu_interface_node"           name="mcu_interface"      />
+  <node pkg="vortex_allocator"   type="vortex_allocator_node"        name="allocator"         />
+  <node pkg="thruster_interface" type="thruster_interface_node.py"   name="thruster_interface"/>
+  <node pkg="dp_controller"      type="dp_controller_node"           name="controller"            output="screen"/>
+  <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los_guidance"     />
+  <node pkg="interface"          type="controller_interface.py"      name="controller_interface"  output="screen"/>
+
+
+</launch>
