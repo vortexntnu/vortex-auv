@@ -6,6 +6,7 @@ from smach import StateMachine, Sequence
 from std_msgs.msg import String
 from math import pi
 from helper import dp_move, los_move, patrol_sequence
+from smach_ros import MonitorState, IntrospectionServer
 
 
 rospy.init_node('simtest_fsm')
@@ -17,8 +18,13 @@ patrol_sm = patrol_sequence([
     dp_move(0, 0, yaw_rad=pi)
 ])
 
+intro_server = IntrospectionServer(str(rospy.get_name()), patrol_sm,'/SM_ROOT')
+intro_server.start()
+
+
 try:
     patrol_sm.execute()
+    intro_server.stop()
 
 except Exception as e:
     rospy.loginfo("Pooltest failed: %s" % e)   
