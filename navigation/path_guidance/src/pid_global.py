@@ -12,7 +12,6 @@ from nav_msgs.msg import OccupancyGrid, Odometry, Path
 from nav_msgs.srv import GetPlan, GetMap
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from visualization_msgs.msg import Marker, MarkerArray
-#from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 import actionlib
 from vortex_msgs.msg import MoveAction, MoveGoal
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
