@@ -6,6 +6,8 @@
   <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
   <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
+  
+  <include file="$(find navigation_launch)/launch/navigation.launch"/>
 
   <node pkg="thruster_interface"    type="thruster_interface_node.py"   name="thruster_interface"/>
   <node pkg="vortex_allocator"      type="vortex_allocator_node"        name="allocator"/>
