@@ -144,7 +144,7 @@ Figure by: Kristoffer Rakstad Solberg
 
 2. Launch all modules required for operating Manta:
 	```bash
-	 roslaunch vortex manta_simulator.launch
+	 roslaunch auv_setup auv.launch type:=simulator
 	```
 
 2. Execute your state machine of choice. i.e: 
