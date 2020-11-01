@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+
+  <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
+  <node pkg="vortex_allocator"    type="vortex_allocator_node"        name="allocator"/>
+  <node pkg="dp_controller"       type="dp_controller_node"           name="controller"           output="screen"/>
+  <node pkg="interface"           type="controller_interface.py"      name="controller_interface" output="screen"/>
+
+  <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
+</launch>
