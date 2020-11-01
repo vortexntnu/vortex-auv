@@ -1,6 +1,19 @@
 <?xml version="1.0" ?>
 <launch>
- <!-- <include file="$(find imu_complementary_filter)/launch/complementary_filter.launch"/> -->
-  <include file="$(find underwater_odom)/launch/underwater_odom.launch"/>
-  <include file="$(find robot_localization)/launch/dvl_ekf_template.launch"/>
+
+  <!-- Navigation for real AUV -->
+  <group if="$(eval type == 'real')">
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+    <include file="$(find robot_localization)/launch/ekf_novembertest.launch"/>
+
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" />
+  </group>
+
+  <!-- Navigation for simulator AUV -->
+  <group if="$(eval type == 'simulator')">
+    <include file="$(find underwater_odom)/launch/underwater_odom.launch"/>
+    <include file="$(find robot_localization)/launch/dvl_ekf_template.launch"/>
+
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" output="screen"/>
+  </group>
 </launch>
