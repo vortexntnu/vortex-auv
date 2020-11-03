@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <launch>
 
-  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" if="$(eval type == 'real')"/>
+  <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" output="screen" if="$(eval type == 'simulator')"/>
 
   <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
   <node pkg="vortex_allocator"    type="vortex_allocator_node"        name="allocator"/>
