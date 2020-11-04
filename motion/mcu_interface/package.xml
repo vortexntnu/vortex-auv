@@ -3,9 +3,7 @@
   <name>mcu_interface</name>
   <version>0.0.0</version>
   <description>The mcu_interface package</description>
-
   <maintainer email="eirik.storesund@gmail.com">bigbay</maintainer>
-
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
