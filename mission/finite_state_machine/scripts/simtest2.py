@@ -11,11 +11,11 @@ from sm_classes import GateSearchState, FooState
 
 
 def main():
-    rospy.init_node('sim_sm2')
+    rospy.init_node('simulator_state_machine')
 
-    simtest_sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome='succeeded')        
+    simulator_state_machine = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome='succeeded')        
 
-    with simtest_sm:
+    with simulator_state_machine:
 
         Sequence.add('REACH_DEPTH',dp_move(0,0),transitions={'succeeded':'GATE_SM'})
 
@@ -50,12 +50,12 @@ def main():
 
     
     
-    intro_server = IntrospectionServer(str(rospy.get_name()), simtest_sm,'/SM_ROOT')
+    intro_server = IntrospectionServer(str(rospy.get_name()), simulator_state_machine,'/SM_ROOT')
     intro_server.start()
 
 
     try:
-        simtest_sm.execute()
+        simulator_state_machine.execute()
         intro_server.stop()
 
     except Exception as e:
