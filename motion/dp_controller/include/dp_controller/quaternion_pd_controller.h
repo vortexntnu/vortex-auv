@@ -68,16 +68,16 @@ private:
    * The quaternion error is given by the product of desired state q_d and
    * current state q
    * 
-   * @param p
-   * @param p_d
+   * @param x
+   * @param x_d
    * 
    * @param q
    * @param q_d
    * 
    * @return a 6x1 vector consisting of the error in position and attitudes. 
   */
-  Eigen::Vector6d errorVector(const Eigen::Vector3d    &p,
-                              const Eigen::Vector3d    &p_d,
+  Eigen::Vector6d errorVector(const Eigen::Vector3d    &x,
+                              const Eigen::Vector3d    &x_d,
                               const Eigen::Quaterniond &q,
                               const Eigen::Quaterniond &q_d);
 
