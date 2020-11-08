@@ -1,8 +1,14 @@
 
 /*   Written by Kristoffer Rakstad Solberg, Student
+     Documented by Christopher Strøm
      Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved. */
 
+/**
+ * @file
+ * @brief A ROS wrapper layer for the quaternion PID controller
+ * 
+*/
 #ifndef VORTEX_CONTROLLER_CONTROLLER_ROS_H
 #define VORTEX_CONTROLLER_CONTROLLER_ROS_H
 
@@ -34,18 +40,42 @@
 // typedef so you dont have to write out definition every time
 typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
 
+/**
+ * @brief the Controller class
+ * 
+ * This class serves as a wrapper for the lower-level controller implementation
+ * @see quaternion_pd_controller.h
+ * 
+*/
 class Controller
 {
 
 public:
+
+  /**
+   * @brief Controller class constructor
+   * 
+   * @param nh ROS nodehandle
+  */
   explicit Controller(ros::NodeHandle nh);
 
+  /**
+   * 
+  */
   void stateCallback(const nav_msgs::Odometry &msg);
+
+  /**
+   * 
+  */
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
+
+
+  /**
+   * 
+  */
   void spin();  
   
-  // service
-  ros::ServiceServer control_mode_service_;
+  ros::ServiceServer control_mode_service_; /** Control mode service server */
 
 private:
 
@@ -130,24 +160,30 @@ private:
 
 protected:
 
-  // Action object
-  MoveBaseActionServer* mActionServer;
+  MoveBaseActionServer* mActionServer;  /** Action server object */
 
-  // feedback variable
-  move_base_msgs::MoveBaseFeedback feedback_;
+  move_base_msgs::MoveBaseFeedback feedback_; /** Current feedback value*/
   
-  // circle of acceptance
-  float R;
+  float R;  /** Radius of the circle of acceptance */
 
-  // goal variable
-  geometry_msgs::PoseStamped mGoal;
+  geometry_msgs::PoseStamped mGoal; /** The current goal */
 
 public:
-  // Action server
-  // Called when a new goal is set, simply accepts the goal
+
+  /**
+   * @brief Action server; goal
+   * 
+   * Called when a new goal is set, and simply accepts the new goal.
+   * 
+  */
   void actionGoalCallBack();
 
-  // Called when e.g. rviz sends us a simple goal.
+
+  /**
+   * @brief Action server; preemptive goal
+   * 
+   * Called whenever external applications like rviz sends a simple goal.
+  */
   void preemptCallBack();
 
 };
