@@ -143,66 +143,69 @@ private:
   enum EulerIndex { EULER_YAW = 0, EULER_PITCH = 1, EULER_ROLL = 2 };
 
   /**
-   * @brief
+   * @brief Convert integer to ControlMode
    * 
-   * @param mode
+   * @param mode  An integer that is to be converted to a ControlMode
    * 
-   * @return
+   * @return The ControlMode corresponding to the given @p mode integer
+   * as defined in control_modes.h
   */
   ControlMode getControlMode(int mode);
 
 
   /**
-   * @brief
+   * @brief Initialize setpoints by loading and setting default wrench params 
   */
   void initSetpoints();
 
 
   /**
-   * @brief
+   * @brief Reset setpoints by setting them equal to current state
   */
   void resetSetpoints();
 
 
   /**
-   * @brief
+   * @brief Update the current setpoint for a given @p axis
    * 
-   * @param axis
+   * @param axis  The selected axis for which the setpoint updates
   */
   void updateSetpoint(PoseIndex axis);
 
 
   /**
-   * @brief
+   * @brief Read parameters and initialize the controller
+   * 
+   * @see quaternion_pd_controller.h
   */
   void initPositionHoldController();
 
 
   /**
-   * @brief
+   * @brief Perform validity checks on a propulsion command
    * 
-   * @param msg
+   * @param msg   A PropulsionCommand from vortex_msgs
    * 
-   * @return
+   * @return true if the @p msg is valid/healthy
   */
   bool healthyMessage(const vortex_msgs::PropulsionCommand &msg);
 
 
   /**
-   * @brief
+   * @brief Publish the control mode through the mode publisher
   */
   void publishControlMode();
 
 
   /**
-   * @brief 
+   * @brief Publish a vortex_msgs Debug message containing current state and setpoint data
    * 
-   * @param position_state
-   * @param orientation_state
-   * @param velocity_state
+   * @param position_state          A 3d vector containing the current body position
+   * @param orientation_state       A quaternion containing the current orientation
+   * @param velocity_state          A 6d vector containing the current velocity
    * 
-   * @param position_setpoint
-   * @param orientation_setpoint
+   * @param position_setpoint       A 3d vector containing the position setpoint   
+   * @param orientation_setpoint    A quaternion containing the orientation setpoint
   */
   void publishDebugMsg(const Eigen::Vector3d    &position_state,
                        const Eigen::Quaterniond &orientation_state,
@@ -213,10 +216,10 @@ private:
   /**
    * @brief Control mode for staying level
    * 
-   * @param orientation_state
-   * @param velocity_state
+   * @param orientation_state       A quaternion containing the current orientation
+   * @param velocity_state          A 6d vector containing the current velocity
    * 
-   * @return
+   * @return  A feedback torque vector for maintaining a level pose
   */
   Eigen::Vector6d stayLevel(const Eigen::Quaterniond &orientation_state,
                             const Eigen::Vector6d &velocity_state);
@@ -225,15 +228,15 @@ private:
   /**
    * @brief Control mode for keeping constant depth
    * 
-   * @param tau_openloop
+   * @param tau_openloop            A 6d torque vector from the open loop control
    * 
-   * @param position_state
-   * @param orientation_state
-   * @param velocity_state
+   * @param position_state          A 3d vector containing the current body position
+   * @param orientation_state       A quaternion containing the current orientation
+   * @param velocity_state          A 6d vector containing the current velocity
    * 
-   * @param position_setpoint
+   * @param position_setpoint       A 3d vector containing the position setpoint  
    * 
-   * @return
+   * @return  A feedback torque vector for maintaining constant depth
   */
   Eigen::Vector6d depthHold(const Eigen::Vector6d &tau_openloop,
                             const Eigen::Vector3d &position_state,
@@ -245,15 +248,15 @@ private:
   /**
    * @brief Control mode for keeping a fixed heading
    * 
-   * @param tau_openloop
+   * @param tau_openloop            A 6d torque vector from the open loop control
    * 
-   * @param position_state
-   * @param orientation_state
-   * @param velocity_state
+   * @param position_state          A 3d vector containing the current body position
+   * @param orientation_state       A quaternion containing the current orientation
+   * @param velocity_state          A 6d vector containing the current velocity
    * 
-   * @param orientation_setpoint
+   * @param orientation_setpoint    A quaternion containing the orientation setpoint
    * 
-   * @return 
+   * @return  A feedback torque vector for maintaining constant heading
   */
   Eigen::Vector6d headingHold(const Eigen::Vector6d &tau_openloop,
                               const Eigen::Vector3d &position_state,
@@ -265,16 +268,16 @@ private:
   /**
    * @brief Control mode for keeping a fixed pose
    * 
-   * @param tau_openloop
+   * @param tau_openloop            A 6d torque vector from the open loop control
    * 
-   * @param position_state
-   * @param orientation_state
-   * @param velocity_state
+   * @param position_state          A 3d vector containing the current body position
+   * @param orientation_state       A quaternion containing the current orientation
+   * @param velocity_state          A 6d vector containing the current velocity
    * 
-   * @param position_setpoint
-   * @param orientation_setpoint
+   * @param position_setpoint       A 3d vector containing the position setpoint   
+   * @param orientation_setpoint    A quaternion containing the orientation setpoint
    * 
-   * @return 
+   * @return  A feedback torque vector for maintaining a fixed pose
   */
   Eigen::Vector6d poseHold(const Eigen::Vector6d &tau_openloop,
                            const Eigen::Vector3d &position_state,
@@ -287,16 +290,16 @@ private:
   /**
    * @brief Control mode for keeping both fixed pose and fixed heading
    *  
-   * @param tau_openloop
+   * @param tau_openloop            A 6d torque vector from the open loop control
    * 
-   * @param position_state
-   * @param orientation_state
-   * @param velocity_state
+   * @param position_state          A 3d vector containing the current body position
+   * @param orientation_state       A quaternion containing the current orientation
+   * @param velocity_state          A 6d vector containing the current velocity
    * 
-   * @param position_setpoint
-   * @param orientation_setpoint
+   * @param position_setpoint       A 3d vector containing the position setpoint   
+   * @param orientation_setpoint    A quaternion containing the orientation setpoint
    * 
-   * @return 
+   * @return  A feedback torque vector for maintaining both a fixed pose and heading
   */
   Eigen::Vector6d poseHeadingHold(const Eigen::Vector6d &tau_openloop,
                                   const Eigen::Vector3d &position_state,
