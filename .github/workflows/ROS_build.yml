@@ -3,8 +3,13 @@ on:
   push:
     branches:
       - feature/dev_ops-CI
+
+defaults:
+  run:
+    shell: bash
+
 jobs:    
-  build:
+  build-and-test-run:
     runs-on: ubuntu-18.04
 
     steps:
@@ -25,17 +30,28 @@ jobs:
         run: |
           mkdir -p ~/catkin_ws/src
           cd ~/catkin_ws
-          /bin/bash -c "source /opt/ros/melodic/setup.bash && catkin build" 
+          source /opt/ros/melodic/setup.bash >> ~/.bashrc
+          source ~/.bashrc
+          catkin build
           
       - name: Clone repositories
         run: |
           cd ~/catkin_ws/src
           cp -r $GITHUB_WORKSPACE .
-          git clone https://github.com/vortexNTNU/Vortex-Simulator
+          git clone https://github.com/vortexNTNU/Vortex-Simulator --branch mesh_fixes --single-branch
           git clone https://github.com/vortexNTNU/vortex_msgs
 
-      - name: Source workspace and Build packages
+      - name: Build packages
         run: |
           cd ~/catkin_ws/
-          /bin/bash -c "source devel/setup.bash && catkin build"
+          source devel/setup.bash && catkin build
+          source devel/setup.bash
 
+      - name: Run Vortex-AUV with Vortex-Simulator
+        run: |
+          cd ~/catkin_ws/
+          source /opt/ros/melodic/setup.bash
+          source ~/catkin_ws/devel/setup.bash
+          cd ~/catkin_ws/src/Vortex-Simulator/launch_scripts_bash
+          chmod u+x+r ./sim_launch_fsm.sh
+          ./sim_launch_fsm.sh --gui 0 --camerafront 0 --sleep 25
