@@ -1,3 +1,10 @@
+/**
+ * @file
+ * @brief An extension of the eigen library containing useful
+ * functionality for matrix computation
+*/
+
+
 #ifndef VORTEX_EIGEN_HELPER_H
 #define VORTEX_EIGEN_HELPER_H
 
