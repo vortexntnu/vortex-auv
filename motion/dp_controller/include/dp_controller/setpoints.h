@@ -3,6 +3,11 @@
      Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved. */
 
+/**
+ * @file
+ * @brief Class declaration for the Setpoint class
+*/
+
 
 #ifndef VORTEX_CONTROLLER_SETPOINTS_H
 #define VORTEX_CONTROLLER_SETPOINTS_H
@@ -10,6 +15,10 @@
 #include <Eigen/Dense>
 #include "eigen_typedefs.h"
 
+
+/**
+ * @brief a class containing the current setpoint data for wrench, position and orientation
+*/
 class Setpoints
 {
 public:
