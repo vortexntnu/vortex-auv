@@ -57,13 +57,27 @@ public:
   */
   explicit Controller(ros::NodeHandle nh);
 
+
   /**
    * @brief Callback for the state subscriber
+   * 
+   * If the orientation given in @p msg is invalid, this function returns early.
+   * Else it publishes the calculated feedback through the action server. It also
+   * returns "success" if the setpoint is within the circle of acceptance.
+   * 
+   * @param msg   A nav_msg::Odometry message containing state data about the AUV.
   */
   void stateCallback(const nav_msgs::Odometry &msg);
 
+
   /**
    * @brief Callback for the dynamic reconfigure server
+   * 
+   * @param config   A VortexControllerConfig object used to store parameters
+   * @param level    Unused integer
+   * 
+   * This function sets the controller gains for the @p config and passes these
+   * to the @c setGains() command in the controller.
   */
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
 
@@ -100,6 +114,10 @@ public:
 
   /**
    * @brief class wrapper for the usual ros::spin() command
+   * 
+   * for each spinOnce, this function gets the newest state
+   * and newest setpoints, and calculates a force vector
+   * depending on the current control mode.
   */
   void spin();  
   
