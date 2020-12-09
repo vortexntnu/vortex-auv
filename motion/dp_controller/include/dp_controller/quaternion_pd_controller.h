@@ -78,7 +78,7 @@ public:
    * @param x     The current body position, as a 3d vector
    * @param q     The current attitude, in quaternion form
    * 
-   * @param nu    
+   * @param nu    Body fixed linear velocity and angular velocity in x,y,z 
    * 
    * @param x_d   The desired body position, as a 3d vector
    * @param q_d   The desired attitude, in quaternion form
