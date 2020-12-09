@@ -14,6 +14,7 @@
 
 #include <Eigen/Dense>
 #include "eigen_typedefs.h"
+
 using namespace Eigen;
 
 /**
@@ -22,6 +23,7 @@ using namespace Eigen;
 class State
 {
 public:
+
   /**
    * @brief State class constructor
    * 
@@ -86,6 +88,7 @@ public:
   */
   bool getEuler(Eigen::Vector3d *orientation);
 
+
   /**
    * @brief Set position, orientation and velocity states
    * 
@@ -93,11 +96,12 @@ public:
    * @param orientation   A quaternion containing the orientation to be set
    * @param velocity      A 6d vector containing the velocity to be set
    * 
-   * @warning All state values are considered invalid until this is called.
+   * @warning All state values are considered invalid until this function is called.
   */
   void set(const Eigen::Vector3d    &position,
            const Eigen::Quaterniond &orientation,
            const Eigen::Vector6d    &velocity);
+
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
