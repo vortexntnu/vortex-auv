@@ -239,6 +239,12 @@ class LosPathFollowing(object):
 		reconfigure and action servers are set up.
 		"""
 
+		""""
+		A flag to indicate whether or not a goal has not been reached.
+		True means that a goal is in progress of being completed.
+		False means that a goal has been completed (or not started
+		with any goal)
+		"""
 		self.flag = False
 
 		rospy.init_node('los_path_following')
@@ -303,6 +309,10 @@ class LosPathFollowing(object):
 		The callback used in the subscribed topic /odometry/filtered.
 		When called, position and velocity states are updated, and 
 		a new current goal is set.
+
+		If the flag attribute is True, we have not yet reached a goal
+		and so a control force is published, alongside the desired
+		pose.
 
 		Args:
 			msg		A nav_msgs/Odometry ROS message type
