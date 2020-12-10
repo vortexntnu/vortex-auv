@@ -198,7 +198,20 @@ class LOS:
 		return self.chi_d
 
 class LosPathFollowing(object):
-	"""The ROS wrapper class for the LOS class."""
+	"""
+	This is the ROS wrapper class for the LOS class. 
+	
+	Node created:
+		los_path_following
+
+	Subscribes to:
+		/odometry/filtered
+	
+	Publishes to:
+		/manta/thruster_manager/input
+		/manta/los_desired
+	
+	"""
 
 	# create messages that are used to send feedback/result
 	_feedback = LosPathFollowingFeedback()
