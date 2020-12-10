@@ -119,9 +119,13 @@ class LOS:
 
 	def sphereOfAcceptance(self):
 		"""
-		The setpoint has to be within a certain distance to 
-		the current position to be valid. This function can
-		be used to check if that is the case or not.
+		The sphere of acceptance is a sphere around the setpoint,
+		where if the AUV is within it, the position can be counted
+		as "acceptably close" to the setpoint
+
+		Returns:
+			bool:	True if the current position is less than the
+					radius of the sphere of acceptance. False otherwise
 		"""
 		return self.distance() < self.R
 
@@ -228,6 +232,12 @@ class LosPathFollowing(object):
 	_result = LosPathFollowingResult()
 
 	def __init__(self):
+		"""
+		To initialize the ROS wrapper, the node, subscribers
+		and publishers are set up. The high-level guidance and
+		controller objects are also intialized. Lastly, dynamic
+		reconfigure and action servers are set up.
+		"""
 
 		self.flag = False
 
@@ -256,7 +266,13 @@ class LosPathFollowing(object):
 		self.action_server.start()
 
 	def fixHeadingWrapping(self):
-
+		"""
+		The heading angle is obtained by the use of an arctangent
+		function, which is discontinuous at -pi and pi. This can 
+		be problematic when the heading angle is fed into the
+		reference model. This function fixes this problem by
+		wrapping the angles around by 2pi.
+		"""
 
 		e = self.psi - self.psi_ref
 		if e < -math.pi:
@@ -283,6 +299,14 @@ class LosPathFollowing(object):
 
 
 	def callback(self, msg): 
+		"""
+		The callback used in the subscribed topic /odometry/filtered.
+		When called, position and velocity states are updated, and 
+		a new current goal is set.
+
+		Args:
+			msg		A nav_msgs/Odometry ROS message type
+		"""
 
 		# update current position
 		self.psi = self.los.quat2euler(msg)
