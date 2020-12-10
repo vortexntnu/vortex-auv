@@ -379,6 +379,11 @@ class LosPathFollowing(object):
 			self.statusActionGoal()
 
 	def statusActionGoal(self):
+		"""
+		Publish the current distance to target and check if the current
+		position is within the sphere of acceptance. If it is, the 
+		attribute _result can be set to true, and the flag to false.
+		"""
 
 		# feedback
 		self._feedback.distanceToGoal = self.los.distance()
@@ -391,6 +396,10 @@ class LosPathFollowing(object):
 			self.flag = False
 
 	def preemptCB(self):
+		"""
+		The preempt callback for the action server.
+		"""
+
 		# check that preempt has not been requested by the client
 		if self.action_server.is_preempt_requested():
 			rospy.loginfo("Preempted requested by los path client")
@@ -398,6 +407,9 @@ class LosPathFollowing(object):
 			self.flag = False
 
 	def goalCB(self):
+		"""
+		The goal callback for the action server.
+		"""
 
 		self.flag = True
 		_goal = self.action_server.accept_new_goal()
@@ -421,9 +433,18 @@ class LosPathFollowing(object):
 
 
 	def config_callback(self, config, level):
-		"""Handle updated configuration values."""
-		# Config has changed, reset PID controllers
+		"""
+		Handle updated configuration values.
+		
+		Args:
+			config	The dynamic reconfigure server's config
+			level	Ununsed variable
 
+		Returns:
+			The updated config argument.
+		"""
+
+		# Config has changed, reset PID controllers
 		rospy.loginfo("""Reconfigure Request: {delta}, {p_rot}, {i_rot}, {d_rot}, {sat_rot} """.format(**config))
         
 		# update look-ahead distance
