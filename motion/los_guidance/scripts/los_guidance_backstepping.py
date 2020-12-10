@@ -200,8 +200,13 @@ class LOS:
 class LosPathFollowing(object):
 	"""
 	This is the ROS wrapper class for the LOS class. 
+
+	Attributes:
+		_feedback	A vortex_msgs action that contains the distance to goal
+		_result		A vortex_msgs action, true if a goal is set within the
+					sphereof acceptance, false if not
 	
-	Node created:
+	Nodes created:
 		los_path_following
 
 	Subscribes to:
