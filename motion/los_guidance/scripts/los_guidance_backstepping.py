@@ -161,6 +161,14 @@ class LOS:
 		return yaw
 
 	def lookaheadBasedSteering(self):
+		"""
+		Calculate the desired heading angle. This angle is
+		the sum of the path-tangential angle and the velocity-
+		path relative angle.
+
+		Returns:
+			float: The desired heading angle chi_d
+		"""
 
 		# straight-line path segment
 		self.y_delta = self.y_kp1 - self.y_k
