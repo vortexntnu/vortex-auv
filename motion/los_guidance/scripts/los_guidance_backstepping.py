@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Written by Kristoffer Rakstad Solberg, Student
+# Documented by Christopher Strøm and Jae Hyeong Hwang
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
 # All rights reserved.
 
@@ -24,6 +25,28 @@ from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
+	"""
+	The Line-Of-Sight guidance class, with an imported controller.
+
+	Many physical states are referenced throughout this class:
+
+	x: surge; position in the direction of the x-axis
+	y:  sway; position in the direction of the y-axis
+	z: heave; position in the direction of the z-axis
+
+	u:
+	v:
+	w: 
+
+	alpha:	The path-tangential angle.
+  	psi:	Heading (angle)
+	r: 
+	t:
+
+	R: sphere of acceptance. If a setpoint is outside
+	   of this radius, it is not valid.
+
+	"""
 
 	def __init__(self):
 
@@ -60,10 +83,12 @@ class LOS:
 
 	def updateState(self, x, y, z, u, v, w, psi, r, time):
 
+		# Update position
 		self.x = x
 		self.y = y
 		self.z = z
 
+		# Update velocities
 		self.u_dot = (u - self.u) / self.h
 		self.u = u
 		self.v = v
@@ -84,13 +109,25 @@ class LOS:
 		self.y_kp1 = y_kp1
 
 	def distance(self):
+		"""
+		Calculate straight line distance (2D) between the
+		current position and the setpoint position.
+		"""
 		return np.sqrt((self.x_kp1 - self.x)**2 + 
 					   (self.y_kp1 - self.y)**2 )
+
 
 	def sphereOfAcceptance(self):
 		return self.distance() < self.R
 
+
 	def getEpsilonVector(self):
+		"""
+		Calculate the epsilon vector, which is the vector
+		that contains the coordinates of the AUV in the 
+		path-fixed reference frame for a straight line going
+		from the reference point to the target position.
+		"""
 
 		alpha = self.alpha
 
@@ -111,6 +148,11 @@ class LOS:
 		return epsilon
 
 	def quat2euler(self,msg):
+		"""
+		Calculate roll, pitch and yaw from the orientation
+		quaternion with the axis sequence xyzw
+		"""
+
 		global roll, pitch, yaw
 		orientation_q = msg.pose.pose.orientation
 		orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
@@ -135,8 +177,6 @@ class LOS:
 
 		# cross-track error
 		self.e = epsilon[1]
-		#print('\n cross-track error: ')
-		#print(self.e)
 
 		# path-tangential angle (eq 10.73 Fossen)
 		self.chi_p = self.alpha
@@ -150,6 +190,7 @@ class LOS:
 		return self.chi_d
 
 class LosPathFollowing(object):
+	"""The ROS wrapper class for the LOS class."""
 
 	# create messages that are used to send feedback/result
 	_feedback = LosPathFollowingFeedback()
