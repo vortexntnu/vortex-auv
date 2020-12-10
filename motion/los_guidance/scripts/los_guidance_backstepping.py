@@ -118,6 +118,11 @@ class LOS:
 
 
 	def sphereOfAcceptance(self):
+		"""
+		The setpoint has to be within a certain distance to 
+		the current position to be valid. This function can
+		be used to check if that is the case or not.
+		"""
 		return self.distance() < self.R
 
 
