@@ -28,26 +28,17 @@ class LOS:
 	"""
 	The Line-Of-Sight guidance class, with an imported controller.
 
-	Many physical states are referenced throughout this class:
+	Physical attributes referenced in the class:
+	x, y, z: 	surge, sway, heave (position)
+	u, v, w:	surge, sway, heave (velocity)
 
-	x: surge; position in the direction of the x-axis.
-	y:  sway; position in the direction of the y-axis.
-	z: heave; position in the direction of the z-axis.
-
-	u: Body fixed velocity in the x-direction.
-	v: Body fixed velocity in the y-direction.
-	w: Body fixed velocity in the z-direction.
-
-	alpha:	The path-tangential angle.
+	alpha:	The path-tangential angle
   	psi:	Heading angle required to reach the LOS intersection
 	  		point.
-	r: 
-	t:	Time
 
 	R: sphere of acceptance. If the AUV is inside the sphere
 	   defined by this radius and the setpoint, it will be
 	   considered to have reached the setpoint.
-
 	"""
 
 	def __init__(self):
@@ -84,7 +75,23 @@ class LOS:
 
 
 	def updateState(self, x, y, z, u, v, w, psi, r, time):
+		"""
+		Update all state values contained in the LOS class.
 
+		Args:
+			x	Surge; position in the direction of the x-axis.
+			y	Sway;  position in the direction of the y-axis.
+			z	Heave; position in the direction of the z-axis.
+
+			u	Body fixed velocity in the x-direction.
+			v	Body fixed velocity in the y-direction.
+			w	Body fixed velocity in the z-direction.
+
+  			psi	Heading angle required to reach the LOS intersection
+			  	point.
+			r
+			time	A double with the current time
+		"""
 		# Update position
 		self.x = x
 		self.y = y
