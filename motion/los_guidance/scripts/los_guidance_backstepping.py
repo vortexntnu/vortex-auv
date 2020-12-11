@@ -79,18 +79,18 @@ class LOS:
 		Update all state values contained in the LOS class.
 
 		Args:
-			x	Surge; position in the direction of the x-axis.
-			y	Sway;  position in the direction of the y-axis.
-			z	Heave; position in the direction of the z-axis.
+			x	  Surge; position in the direction of the x-axis.
+			y	  Sway;  position in the direction of the y-axis.
+			z	  Heave; position in the direction of the z-axis.
 
-			u	Body fixed velocity in the x-direction.
-			v	Body fixed velocity in the y-direction.
-			w	Body fixed velocity in the z-direction.
+			u	  Body fixed velocity in the x-direction.
+			v	  Body fixed velocity in the y-direction.
+			w	  Body fixed velocity in the z-direction.
 
-  			psi	Heading angle required to reach the LOS intersection
-			  	point.
+  			psi	  Heading angle required to reach the LOS intersection
+			  	  point.
 			r
-			time	A double with the current time
+			time  A double with the current time
 		"""
 		# Update position
 		self.x = x
@@ -108,7 +108,16 @@ class LOS:
 		self.t = time
 
 	def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
+		"""
+		Set the previous and next waypoints
 
+		Args:
+			x_k     x-component of the previous waypoint
+			y_k     y-component of the previous waypoint
+
+			x_kp1	x-component of the next waypoint
+			y_kp1	y-component of the next waypoint
+		"""
 		# previous waypoint
 		self.x_k = x_k
 		self.y_k = y_k
@@ -145,6 +154,10 @@ class LOS:
 		that contains the coordinates of the AUV in the 
 		path-fixed reference frame for a straight line going
 		from the reference point to the target position.
+
+		Returns:
+			float: The calculated epsilon vector
+
 		"""
 
 		alpha = self.alpha
@@ -169,6 +182,12 @@ class LOS:
 		"""
 		Calculate roll, pitch and yaw from the orientation
 		quaternion with the axis sequence xyzw
+
+		Args:
+			msg		A nav_msgs/Odometry message
+
+		Returns:
+			float: The euler yaw angle calculated from the msg argument
 		"""
 
 		global roll, pitch, yaw
