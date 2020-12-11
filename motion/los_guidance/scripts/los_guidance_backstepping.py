@@ -92,6 +92,7 @@ class LOS:
 			r
 			time  A double with the current time
 		"""
+
 		# Update position
 		self.x = x
 		self.y = y
@@ -118,6 +119,7 @@ class LOS:
 			x_kp1	x-component of the next waypoint
 			y_kp1	y-component of the next waypoint
 		"""
+
 		# previous waypoint
 		self.x_k = x_k
 		self.y_k = y_k
@@ -131,6 +133,7 @@ class LOS:
 		Calculate straight line distance (2D) between the
 		current position and the setpoint position.
 		"""
+
 		return np.sqrt((self.x_kp1 - self.x)**2 + 
 					   (self.y_kp1 - self.y)**2 )
 
@@ -145,6 +148,7 @@ class LOS:
 			bool:	True if the current position is less than the
 					radius of the sphere of acceptance. False otherwise
 		"""
+
 		return self.distance() < self.R
 
 
@@ -267,7 +271,7 @@ class LosPathFollowing(object):
 		reconfigure and action servers are set up.
 		"""
 
-		""""
+		"""
 		A flag to indicate whether or not a goal has not been reached.
 		True means that a goal is in progress of being completed.
 		False means that a goal has been completed (or not started
