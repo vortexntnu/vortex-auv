@@ -30,21 +30,23 @@ class LOS:
 
 	Many physical states are referenced throughout this class:
 
-	x: surge; position in the direction of the x-axis
-	y:  sway; position in the direction of the y-axis
-	z: heave; position in the direction of the z-axis
+	x: surge; position in the direction of the x-axis.
+	y:  sway; position in the direction of the y-axis.
+	z: heave; position in the direction of the z-axis.
 
-	u:
-	v:
-	w: 
+	u: Body fixed velocity in the x-direction.
+	v: Body fixed velocity in the y-direction.
+	w: Body fixed velocity in the z-direction.
 
 	alpha:	The path-tangential angle.
-  	psi:	Heading (angle)
+  	psi:	Heading angle required to reach the LOS intersection
+	  		point.
 	r: 
-	t:
+	t:	Time
 
-	R: sphere of acceptance. If a setpoint is outside
-	   of this radius, it is not valid.
+	R: sphere of acceptance. If the AUV is inside the sphere
+	   defined by this radius and the setpoint, it will be
+	   considered to have reached the setpoint.
 
 	"""
 
@@ -119,9 +121,9 @@ class LOS:
 
 	def sphereOfAcceptance(self):
 		"""
-		The sphere of acceptance is a sphere around the setpoint,
-		where if the AUV is within it, the position can be counted
-		as "acceptably close" to the setpoint
+		The sphere of acceptance is a sphere around the setpoint.
+		If the AUV is inside this sphere, it will be considered
+		as having reached the setpoint.
 
 		Returns:
 			bool:	True if the current position is less than the
