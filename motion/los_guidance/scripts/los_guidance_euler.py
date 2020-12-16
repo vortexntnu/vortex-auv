@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Written by Kristoffer Rakstad Solberg, Student
-# Documented by Christopher Strøm and Jae Hyeong Hwang
+# Documented by Christopher Strom and Jae Hyeong Hwang
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
 # All rights reserved.
 
