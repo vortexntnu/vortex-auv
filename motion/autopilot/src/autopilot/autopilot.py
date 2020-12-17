@@ -67,7 +67,7 @@ class CameraPID:
 
 	def depthController(self, z_d, z, t):
 
-		e = z_d - z;
+		e = z_d - z
 
 		tau = self.depth.regulate(e, t)
 
@@ -76,7 +76,7 @@ class CameraPID:
 
 	def speedController(self, u_d, u, t):
 
-		e = u_d - u;
+		e = u_d - u
 
 		tau = self.speed.regulate(e, t)
 
