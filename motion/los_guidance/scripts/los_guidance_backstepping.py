@@ -287,7 +287,7 @@ class LosPathFollowing(object):
 		# Publishers
 		self.pub_thrust  = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
-		self.pub_data_autopilot = rospy.Publisher('/manta/guidance_data_autopilot', GuidanceData, queue_size=1)
+		self.pub_data_autopilot = rospy.Publisher('/manta/LOS_guidance_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()

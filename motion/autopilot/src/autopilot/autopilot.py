@@ -147,7 +147,7 @@ class Autopilot:
 
 	
 		# Subscribers
-		self.sub_guidance = rospy.Subscriber('/manta/guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
+		self.sub_guidance = rospy.Subscriber('/manta/LOS_guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
 
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
@@ -161,8 +161,8 @@ class Autopilot:
 		Args:
 			msg:	The guidance data message
 		"""
-		# control force
-		
+
+		# Control forces
 		tau_d = self.Backstepping.backstepping.controlLaw(
 				u,
 				u_dot,
@@ -177,8 +177,19 @@ class Autopilot:
 		tau_depth_hold = self.PID.depthController(z_d, z, t)
 
 		# add speed controllers here
+
 		thrust_msg = Wrench()
 
+		# Thrust message forces and torque
+		if tau_d[0] > 0.0:
+			thrust_msg.force.x = tau_d[0]
+
+		thrust_msg.force.y = tau_d[1]
+		thrust_msg.force.z = tau_depth_hold
+
+		thrust_msg.torque.z = tau_d[2]
+
+		# Publish the thrust message to /manta/thruster_manager/input
 		self.pub_thrust.publish(thrust_msg)
 		
 		
