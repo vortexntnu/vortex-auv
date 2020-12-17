@@ -141,11 +141,49 @@ class Autopilot:
 
 		rospy.init_node('autopilot')
 
+		# Create controllers
+		self.Backstepping = AutopilotBackstepping()
+		self.PID = AutopilotPID()
+
+	
 		# Subscribers
-		self.sub_guidance = rospy.Subscriber('/manta/guidance_data', GuidanceData, self.callback, queue_size=1)
+		self.sub_guidance = rospy.Subscriber('/manta/guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
 
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+
+
+	def guidance_data_callback(self, msg):
+		"""
+		Handle guidance data whenever it is published by calculating
+		a control vector based on the given data.
+
+		Args:
+			msg:	The guidance data message
+		"""
+		# control force
+		
+		tau_d = self.Backstepping.backstepping.controlLaw(
+				u,
+				u_dot,
+				u_d,
+				u_d_dot,
+				v,
+				psi, psi_d, 
+				r,
+				r_d,
+				r_d_dot)
+
+		tau_depth_hold = self.PID.depthController(z_d, z, t)
+
+		# add speed controllers here
+		thrust_msg = Wrench()
+
+		self.pub_thrust.publish(thrust_msg)
+		
+		
+
+
 
 if __name__ == '__main__':
 	try:
