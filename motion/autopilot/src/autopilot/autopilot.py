@@ -1,5 +1,16 @@
+#!/usr/bin/env python
+# Written by Christopher Strom
+# Copyright (c) 2020, Vortex NTNU.
+# All rights reserved.
+
+import rospy
+
+from geometry_msgs.msg import Wrench
+from vortex_msgs.msg import GuidanceData
+
 from PID import PIDRegulator
 from backstepping import BacksteppingDesign, BacksteppingControl
+
 
 class AutopilotPID:
 
@@ -93,6 +104,12 @@ class CameraPID:
 		return tau
 
 class AutopilotBackstepping:
+	"""
+	Wrapper for the backstepping controller.
+
+	Attributes:
+		backstepping	The controller
+	"""
 
 	def __init__(self):
 												# 0.75, 30, 12, 2.5
@@ -100,4 +117,39 @@ class AutopilotBackstepping:
 
 	def updateGains(self, c, k1, k2, k3):
 
+		pass
+
+
+class Autopilot:
+	"""
+	The ROS wrapper class for the Autopilot. The autopilot is made up
+	of a PID and a backstepping controller, and is mainly used in
+	conjunction with the LOS guidance system.
+
+	Nodes created:
+		autopilot
+
+	Subscribes to:
+		/manta/guidance_data
+
+	Publishes to:
+		/manta/thruster_manager/input
+
+	"""
+
+	def __init__(self):
+
+		rospy.init_node('autopilot')
+
+		# Subscribers
+		self.sub_guidance = rospy.Subscriber('/manta/guidance_data', GuidanceData, self.callback, queue_size=1)
+
+		# Publishers
+		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+
+if __name__ == '__main__':
+	try:
+		autopilot = Autopilot()
+		rospy.spin()
+	except rospy.ROSInterruptException:
 		pass
