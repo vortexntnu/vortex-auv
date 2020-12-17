@@ -26,7 +26,7 @@ class AutopilotPID:
 
 	def depthController(self, z_d, z, t):
 
-		e = z_d - z;
+		e = z_d - z
 
 		tau = self.pid.regulate(e, t)
 
