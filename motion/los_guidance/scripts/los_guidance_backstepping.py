@@ -21,7 +21,7 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
+#from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
@@ -266,9 +266,8 @@ class LosPathFollowing(object):
 	def __init__(self):
 		"""
 		To initialize the ROS wrapper, the node, subscribers
-		and publishers are set up. The high-level guidance and
-		controller objects are also intialized. Lastly, dynamic
-		reconfigure and action servers are set up.
+		and publishers are set up, as well as dynamic
+		reconfigure and action servers.
 		"""
 
 		"""
@@ -285,14 +284,13 @@ class LosPathFollowing(object):
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
 
 		# Publishers
-		self.pub_thrust  = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
-		self.pub_data_autopilot = rospy.Publisher('/manta/LOS_guidance_data', GuidanceData, queue_size=1)
+		self.pub_data_autopilot = rospy.Publisher('/guidance/los_guidance_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
-		self.PID = AutopilotPID()
-		self.autopilot = AutopilotBackstepping()
+	#self.PID = AutopilotPID()
+	#self.autopilot = AutopilotBackstepping()
 		self.reference_model = ReferenceModel(np.array((0, 0)), self.los.h)
 
 		# dynamic reconfigure
@@ -426,24 +424,6 @@ class LosPathFollowing(object):
 
 			self.pub_data_autopilot.publish(guidance_data)
 
-			
-			# control force
-			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)
-			tau_depth_hold = self.PID.depthController(self.los.z_d, self.los.z, self.los.t)
-
-			# add speed controllers here
-			thrust_msg = Wrench()
-			if tau_d[0] > 0.0:
-				thrust_msg.force.x = tau_d[0]
-
-			thrust_msg.force.y = tau_d[1]
-			thrust_msg.force.z = tau_depth_hold
-			thrust_msg.torque.z = tau_d[2] # 2.0*self.error_ENU
-
-			# write to thrusters
-			self.pub_thrust.publish(thrust_msg)
-			
-
 			# check if action goal succeeded
 			self.statusActionGoal()
 
@@ -520,7 +500,7 @@ class LosPathFollowing(object):
 		self.los.delta = config['delta']
 
 		# self.pid_lin = PIDRegulator(config['pos_p'], config['pos_i'], config['pos_d'], config['pos_sat'])
-		self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
+	#self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
 
 		# update config
 		self.config = config
