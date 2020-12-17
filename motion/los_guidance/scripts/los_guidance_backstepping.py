@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # Written by Kristoffer Rakstad Solberg, Student
-# Documented by Christopher Strøm and Jae Hyeong Hwang
+# Documented by Christopher Strom and Jae Hyeong Hwang
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
 # All rights reserved.
 
 import rospy
 import numpy as np
 import math
-from vortex_msgs.msg import PropulsionCommand
+from vortex_msgs.msg import PropulsionCommand, GuidanceData
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Wrench, PoseStamped, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
@@ -280,9 +280,14 @@ class LosPathFollowing(object):
 		self.flag = False
 
 		rospy.init_node('los_path_following')
+
+		# Subscribers
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
-		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+
+		# Publishers
+		self.pub_thrust  = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
+		self.pub_data    = rospy.Publisher('/manta/guidance_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
@@ -378,18 +383,50 @@ class LosPathFollowing(object):
 			r_d = x_d[3]
 			r_d_dot = x_d[4]
 
-			los_msg = Odometry()
-			los_msg.header.stamp = rospy.Time.now()
 			quat_d = quaternion_from_euler(0, 0, psi_d)
+
+			# Publish the desired state
+			los_msg = Odometry()
+
+			los_msg.header.stamp = rospy.Time.now()
+
 			los_msg.pose.pose.position.z = msg.pose.pose.position.z
+
 			los_msg.pose.pose.orientation.x = quat_d[0]
 			los_msg.pose.pose.orientation.y = quat_d[1]
 			los_msg.pose.pose.orientation.z = quat_d[2]
 			los_msg.pose.pose.orientation.w = quat_d[3]
+
 			los_msg.twist.twist.linear.x = u_d
 			los_msg.twist.twist.angular.z = r_d
+
 			self.pub_desired.publish(los_msg)
 
+			# Publish guidance data for the controller
+			guidance_data = GuidanceData()
+
+			guidance_data.u = self.los.u
+			guidance_data.u_d = u_d
+
+			guidance_data.u_dot = self.los.u_dot
+			guidance_data.u_d_dot = u_d_dot
+
+			guidance_data.psi = self.psi
+			guidance_data.psi_d = psi_d
+
+			guidance_data.r = self.los.r
+			guidance_data.r_d = r_d
+			guidance_data.r_d_dot = r_d_dot
+
+			guidance_data.z = self.los.z
+			guidance_data.z_d = self.los.z_d
+
+			guidance_data.v = self.los.v
+			guidance_data.t = self.los.t
+
+			self.pub_data.publish(guidance_data)
+
+			
 			# control force
 			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)
 			tau_depth_hold = self.PID.depthController(self.los.z_d, self.los.z, self.los.t)
@@ -405,7 +442,7 @@ class LosPathFollowing(object):
 
 			# write to thrusters
 			self.pub_thrust.publish(thrust_msg)
-
+			
 
 			# check if action goal succeeded
 			self.statusActionGoal()
