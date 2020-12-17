@@ -64,8 +64,9 @@ public:
 
   /**
    * @brief a getter for the restoring forces vector.
-   * 
    * @see  restoringForceVector()
+   *
+   * @param q  A quaternion containing the AUV pose in the inertial/world frame
    * 
    * @return the restoring forces vector
   */
