@@ -8,22 +8,21 @@ import rospy
 from geometry_msgs.msg import Wrench
 from vortex_msgs.msg import GuidanceData
 
-from PID import PIDRegulator
-from backstepping import BacksteppingDesign, BacksteppingControl
-
+from pid.pid_controller import PIDRegulator
+from backstepping.backstepping_controller import BacksteppingDesign, BacksteppingControl
 
 class AutopilotPID:
 
 	def __init__(self):
 		# PIDRegulator(p, i, d, sat)
-		self.pid = PIDRegulator(25, 0.024, 3.5, 5.0)
+		self.controller = PIDRegulator(25, 0.024, 3.5, 5.0)
 
 	def updateGains(self, p, i, d, sat):
 
-		self.pid.p = p
-		self.pid.i = i
-		self.pid.d = d
-		self.pid.sat = sat
+		self.controller.p = p
+		self.controller.i = i
+		self.controller.d = d
+		self.controller.sat = sat
 
 	def headingController(self, psi_d, psi, t):
 
@@ -31,7 +30,7 @@ class AutopilotPID:
 		e_rot = psi_d - psi
 
 		# regulate(err, t)
-		tau = self.pid.regulate(e_rot, t)
+		tau = self.controller.regulate(e_rot, t)
 
 		return tau
 
@@ -39,7 +38,7 @@ class AutopilotPID:
 
 		e = z_d - z
 
-		tau = self.pid.regulate(e, t)
+		tau = self.controller.regulate(e, t)
 
 		return tau
 
@@ -106,18 +105,21 @@ class CameraPID:
 class AutopilotBackstepping:
 	"""
 	Wrapper for the backstepping controller.
-
-	Attributes:
-		backstepping	The controller
 	"""
 
 	def __init__(self):
 												# 0.75, 30, 12, 2.5
-		self.backstepping = BacksteppingControl(3.75, 45.0, 28.0, 10.5)
+		self.controller = BacksteppingControl(3.75, 45.0, 28.0, 10.5)
 
 	def updateGains(self, c, k1, k2, k3):
 
 		pass
+
+	def regulate(self, u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot):
+		
+		tau = self.controller.controlLaw(u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot)
+		return tau
+
 
 
 class Autopilot:
@@ -130,7 +132,7 @@ class Autopilot:
 		autopilot
 
 	Subscribes to:
-		/manta/guidance_data
+		/guidance/los_guidance_data
 
 	Publishes to:
 		/manta/thruster_manager/input
@@ -147,7 +149,7 @@ class Autopilot:
 
 	
 		# Subscribers
-		self.sub_guidance = rospy.Subscriber('/manta/LOS_guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
+		self.sub_guidance = rospy.Subscriber('/guidance/los_guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
 
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
@@ -163,18 +165,19 @@ class Autopilot:
 		"""
 
 		# Control forces
-		tau_d = self.Backstepping.backstepping.controlLaw(
-				u,
-				u_dot,
-				u_d,
-				u_d_dot,
-				v,
-				psi, psi_d, 
-				r,
-				r_d,
-				r_d_dot)
+		tau_d = self.Backstepping.regulate(
+				msg.u,
+				msg.u_dot,
+				msg.u_d,
+				msg.u_d_dot,
+				msg.v,
+				msg.psi,
+				msg.psi_d, 
+				msg.r,
+				msg.r_d,
+				msg.r_d_dot)
 
-		tau_depth_hold = self.PID.depthController(z_d, z, t)
+		tau_depth_hold = self.PID.depthController(msg.z_d, msg.z, msg.t)
 
 		# add speed controllers here
 
@@ -193,8 +196,6 @@ class Autopilot:
 		self.pub_thrust.publish(thrust_msg)
 		
 		
-
-
 
 if __name__ == '__main__':
 	try:

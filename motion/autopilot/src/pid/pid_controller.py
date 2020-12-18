@@ -1,9 +1,9 @@
-import numpy as np
-
 #!/usr/bin/env python
 # Written by Kristoffer Rakstad Solberg, Student
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
 # All rights reserved.
+
+import numpy as np
 
 class PIDRegulator:
 	""" A very basic 1D PID regulator """
@@ -20,7 +20,7 @@ class PIDRegulator:
 	def __str__(self):
 		msg = 'PID controller:'
 		msg += '\n\tp=%f' % self.p
-		msg += '\n\ti=%f' % self.i
+		msg += '\n\cd ti=%f' % self.i
 		msg += '\n\td=%f' % self.d
 		msg += '\n\tsat=%f' % self.sat
 		return msg

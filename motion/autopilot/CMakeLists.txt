@@ -118,7 +118,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-catkin_install_python(PROGRAMS src/autopilot/autopilot.py
+catkin_install_python(PROGRAMS src/autopilot.py
                                #scripts/PositionControl.py
                                #scripts/VelocityControl.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
