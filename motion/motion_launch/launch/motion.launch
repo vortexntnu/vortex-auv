@@ -6,8 +6,8 @@
   <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" output="screen" if="$(eval type == 'simulator')"/>
 
   <!-- Controller nodes-->
-  <node pkg="autopilot"           type="autopilot.py"                 name="autopilot"            output="screen"/>
-  <node pkg="dp_controller"       type="dp_controller_node"           name="controller"           output="screen"/>
+  <node pkg="autopilot"           type="autopilot.py"                 name="autopilot_controller" output="screen"/>
+  <node pkg="dp_controller"       type="dp_controller_node"           name="dp_controller"        output="screen"/>
   <node pkg="interface"           type="controller_interface.py"      name="controller_interface" output="screen"/>
 
   <!-- Thruster nodes-->
