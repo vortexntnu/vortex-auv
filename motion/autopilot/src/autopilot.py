@@ -12,36 +12,76 @@ from pid.pid_controller import PIDRegulator
 from backstepping.backstepping_controller import BacksteppingDesign, BacksteppingControl
 
 class AutopilotPID:
+	"""
+	Wrapper for the PID controller to make the autopilot
+	code cleaner.
+	"""
 
 	def __init__(self):
-		# PIDRegulator(p, i, d, sat)
-		self.controller = PIDRegulator(25, 0.024, 3.5, 5.0)
+		"""
+		Initialize the PID controller with fixed gains and saturation limit.
+		"""
+
+		self.controller = PIDRegulator(25, 0.024, 3.5, 5.0)	# Args: p, i, d, sat
+
 
 	def updateGains(self, p, i, d, sat):
+		"""
+		Update the controller gains and saturation limit.
+
+		Args:
+			p	  proportional gain
+			i	  integral gain
+			d	  derivative gain
+			sat	  saturation limit
+		"""
 
 		self.controller.p = p
 		self.controller.i = i
 		self.controller.d = d
 		self.controller.sat = sat
 
+
 	def headingController(self, psi_d, psi, t):
+		"""
+		Calculate force to maintain fixed heading.
+
+		Args:
+			psi_d	desired heading
+			psi     current heading
+			t       time
+
+		Returns:
+			float:	A restoring force output by the controller.
+		"""
 
 		# error ENU
 		e_rot = psi_d - psi
 
 		# regulate(err, t)
 		tau = self.controller.regulate(e_rot, t)
-
 		return tau
 
+
 	def depthController(self, z_d, z, t):
+		"""
+		Calculate force to maintain fixed depth.
+
+		Args:
+			z_d	  desired depth
+			z	  current depth
+			t	  time
+
+		Returns:
+			float:	A restoring force output by the controller.
+		"""
 
 		e = z_d - z
 
 		tau = self.controller.regulate(e, t)
-
 		return tau
 
+# Not in use?
 class CameraPID:
 
 	"""
@@ -108,14 +148,41 @@ class AutopilotBackstepping:
 	"""
 
 	def __init__(self):
+		"""
+		Initialize the backstepping controller with fixed parameters.
+		"""
 												# 0.75, 30, 12, 2.5
 		self.controller = BacksteppingControl(3.75, 45.0, 28.0, 10.5)
 
+	
 	def updateGains(self, c, k1, k2, k3):
+		"""
+		Currently an empty placeholder
+		"""
 
 		pass
 
+
 	def regulate(self, u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot):
+		"""
+		A wrapper for the controlLaw() method in the BacksteppingContoller
+		class, to make the autopilot code cleaner.
+
+		Args:
+			u         current velocity in the body-fixed x-direction	
+			u_dot     current acceleration in the body-fixed x-direction
+			u_d       desired velocity in the body-fixed x-direction
+			u_d_dot	  desired acceleration in the body-fixed x-direction
+			v         current velocity in the body-fixed y-direction
+			psi       current heading angle
+			psi_d     desired heading angle
+			r
+			r_d
+			r_d_dot
+
+		Returns:
+			float[3]:	The control force vector tau
+		"""
 		
 		tau = self.controller.controlLaw(u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot)
 		return tau
@@ -140,13 +207,16 @@ class Autopilot:
 	"""
 
 	def __init__(self):
+		"""
+		Initialize the autopilot node, subscribers, publishers and the
+		objects for the PID and the backstepping controllers.
+		"""
 
 		rospy.init_node('autopilot')
 
 		# Create controllers
 		self.Backstepping = AutopilotBackstepping()
 		self.PID = AutopilotPID()
-
 	
 		# Subscribers
 		self.sub_guidance = rospy.Subscriber('/guidance/los_guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
