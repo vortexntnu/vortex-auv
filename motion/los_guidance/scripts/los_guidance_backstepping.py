@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Written by Kristoffer Rakstad Solberg, Student
+# Documented by Christopher Strom and Jae Hyeong Hwang
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
 # All rights reserved.
 
@@ -24,6 +25,21 @@ from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
+	"""
+	The Line-Of-Sight guidance class, with an imported controller.
+
+	Physical attributes referenced in the class:
+	x, y, z: 	surge, sway, heave (position)
+	u, v, w:	surge, sway, heave (velocity)
+
+	alpha:	The path-tangential angle
+  	psi:	Heading angle required to reach the LOS intersection
+	  		point.
+
+	R: sphere of acceptance. If the AUV is inside the sphere
+	   defined by this radius and the setpoint, it will be
+	   considered to have reached the setpoint.
+	"""
 
 	def __init__(self):
 
@@ -59,11 +75,30 @@ class LOS:
 
 
 	def updateState(self, x, y, z, u, v, w, psi, r, time):
+		"""
+		Update all state values contained in the LOS class.
 
+		Args:
+			x	  Surge; position in the direction of the x-axis.
+			y	  Sway;  position in the direction of the y-axis.
+			z	  Heave; position in the direction of the z-axis.
+
+			u	  Body fixed velocity in the x-direction.
+			v	  Body fixed velocity in the y-direction.
+			w	  Body fixed velocity in the z-direction.
+
+  			psi	  Heading angle required to reach the LOS intersection
+			  	  point.
+			r
+			time  A double with the current time
+		"""
+
+		# Update position
 		self.x = x
 		self.y = y
 		self.z = z
 
+		# Update velocities
 		self.u_dot = (u - self.u) / self.h
 		self.u = u
 		self.v = v
@@ -74,6 +109,16 @@ class LOS:
 		self.t = time
 
 	def setWayPoints(self, x_k, y_k, x_kp1, y_kp1):
+		"""
+		Set the previous and next waypoints
+
+		Args:
+			x_k     x-component of the previous waypoint
+			y_k     y-component of the previous waypoint
+
+			x_kp1	x-component of the next waypoint
+			y_kp1	y-component of the next waypoint
+		"""
 
 		# previous waypoint
 		self.x_k = x_k
@@ -84,13 +129,40 @@ class LOS:
 		self.y_kp1 = y_kp1
 
 	def distance(self):
+		"""
+		Calculate straight line distance (2D) between the
+		current position and the setpoint position.
+		"""
+
 		return np.sqrt((self.x_kp1 - self.x)**2 + 
 					   (self.y_kp1 - self.y)**2 )
 
+
 	def sphereOfAcceptance(self):
+		"""
+		The sphere of acceptance is a sphere around the setpoint.
+		If the AUV is inside this sphere, it will be considered
+		as having reached the setpoint.
+
+		Returns:
+			bool:	True if the current position is less than the
+					radius of the sphere of acceptance. False otherwise
+		"""
+
 		return self.distance() < self.R
 
+
 	def getEpsilonVector(self):
+		"""
+		Calculate the epsilon vector, which is the vector
+		that contains the coordinates of the AUV in the 
+		path-fixed reference frame for a straight line going
+		from the reference point to the target position.
+
+		Returns:
+			float: The calculated epsilon vector
+
+		"""
 
 		alpha = self.alpha
 
@@ -111,6 +183,17 @@ class LOS:
 		return epsilon
 
 	def quat2euler(self,msg):
+		"""
+		Calculate roll, pitch and yaw from the orientation
+		quaternion with the axis sequence xyzw
+
+		Args:
+			msg		A nav_msgs/Odometry message
+
+		Returns:
+			float: The euler yaw angle calculated from the msg argument
+		"""
+
 		global roll, pitch, yaw
 		orientation_q = msg.pose.pose.orientation
 		orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
@@ -119,6 +202,14 @@ class LOS:
 		return yaw
 
 	def lookaheadBasedSteering(self):
+		"""
+		Calculate the desired heading angle. This angle is
+		the sum of the path-tangential angle and the velocity-
+		path relative angle.
+
+		Returns:
+			float: The desired heading angle chi_d
+		"""
 
 		# straight-line path segment
 		self.y_delta = self.y_kp1 - self.y_k
@@ -135,8 +226,6 @@ class LOS:
 
 		# cross-track error
 		self.e = epsilon[1]
-		#print('\n cross-track error: ')
-		#print(self.e)
 
 		# path-tangential angle (eq 10.73 Fossen)
 		self.chi_p = self.alpha
@@ -150,13 +239,44 @@ class LOS:
 		return self.chi_d
 
 class LosPathFollowing(object):
+	"""
+	This is the ROS wrapper class for the LOS class. 
+
+	Attributes:
+		_feedback	A vortex_msgs action that contains the distance to goal
+		_result		A vortex_msgs action, true if a goal is set within the
+					sphereof acceptance, false if not
+	
+	Nodes created:
+		los_path_following
+
+	Subscribes to:
+		/odometry/filtered
+	
+	Publishes to:
+		/manta/thruster_manager/input
+		/manta/los_desired
+	
+	"""
 
 	# create messages that are used to send feedback/result
 	_feedback = LosPathFollowingFeedback()
 	_result = LosPathFollowingResult()
 
 	def __init__(self):
+		"""
+		To initialize the ROS wrapper, the node, subscribers
+		and publishers are set up. The high-level guidance and
+		controller objects are also intialized. Lastly, dynamic
+		reconfigure and action servers are set up.
+		"""
 
+		"""
+		A flag to indicate whether or not a goal has not been reached.
+		True means that a goal is in progress of being completed.
+		False means that a goal has been completed (or not started
+		with any goal)
+		"""
 		self.flag = False
 
 		rospy.init_node('los_path_following')
@@ -184,7 +304,13 @@ class LosPathFollowing(object):
 		self.action_server.start()
 
 	def fixHeadingWrapping(self):
-
+		"""
+		The heading angle is obtained by the use of an arctangent
+		function, which is discontinuous at -pi and pi. This can 
+		be problematic when the heading angle is fed into the
+		reference model. This function fixes this problem by
+		wrapping the angles around by 2pi.
+		"""
 
 		e = self.psi - self.psi_ref
 		if e < -math.pi:
@@ -211,6 +337,18 @@ class LosPathFollowing(object):
 
 
 	def callback(self, msg): 
+		"""
+		The callback used in the subscribed topic /odometry/filtered.
+		When called, position and velocity states are updated, and 
+		a new current goal is set.
+
+		If the flag attribute is True, we have not yet reached a goal
+		and so a control force is published, alongside the desired
+		pose.
+
+		Args:
+			msg		A nav_msgs/Odometry ROS message type
+		"""
 
 		# update current position
 		self.psi = self.los.quat2euler(msg)
@@ -273,6 +411,11 @@ class LosPathFollowing(object):
 			self.statusActionGoal()
 
 	def statusActionGoal(self):
+		"""
+		Publish the current distance to target and check if the current
+		position is within the sphere of acceptance. If it is, the 
+		attribute _result can be set to true, and the flag to false.
+		"""
 
 		# feedback
 		self._feedback.distanceToGoal = self.los.distance()
@@ -285,6 +428,10 @@ class LosPathFollowing(object):
 			self.flag = False
 
 	def preemptCB(self):
+		"""
+		The preempt callback for the action server.
+		"""
+
 		# check that preempt has not been requested by the client
 		if self.action_server.is_preempt_requested():
 			rospy.loginfo("Preempted requested by los path client")
@@ -292,6 +439,9 @@ class LosPathFollowing(object):
 			self.flag = False
 
 	def goalCB(self):
+		"""
+		The goal callback for the action server.
+		"""
 
 		self.flag = True
 		_goal = self.action_server.accept_new_goal()
@@ -315,9 +465,18 @@ class LosPathFollowing(object):
 
 
 	def config_callback(self, config, level):
-		"""Handle updated configuration values."""
-		# Config has changed, reset PID controllers
+		"""
+		Handle updated configuration values.
+		
+		Args:
+			config	The dynamic reconfigure server's config
+			level	Ununsed variable
 
+		Returns:
+			The updated config argument.
+		"""
+
+		# Config has changed, reset PID controllers
 		rospy.loginfo("""Reconfigure Request: {delta}, {p_rot}, {i_rot}, {d_rot}, {sat_rot} """.format(**config))
         
 		# update look-ahead distance

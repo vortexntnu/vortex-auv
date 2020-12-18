@@ -23,13 +23,12 @@ enum ControlMode
 }  // namespace ControlModes
 typedef ControlModes::ControlMode ControlMode;
 
-/*
-Control mode
-Set all elements false to keep current mode.
-Set one element true to switch mode. Its index determines the mode,
-as defined in the control_modes.h.
-bool[] control_mode */
-
+/**
+ * @brief Convert controlMode to a string representation
+ * 
+ * @param control_mode the control mode to be converted to a string
+ * 
+*/
 inline std::string controlModeString(ControlMode control_mode)
 {
   std::string s;
