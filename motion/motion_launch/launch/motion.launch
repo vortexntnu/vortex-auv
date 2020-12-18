@@ -1,18 +1,28 @@
 <?xml version="1.0"?>
 <launch>
 
+  <!-- Namespace arguments-->
+  <arg name="ns_guidance"   default="guidance"/>
+  <arg name="ns_controller" default="controller"/>
+  <arg name="ns_thruster"   default="thruster"/>
+
   <!-- Guidance nodes-->
-  <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" if="$(eval type == 'real')"/>
-  <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" output="screen" if="$(eval type == 'simulator')"/>
+  <group ns="$(arg ns_guidance)">
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" if="$(eval type == 'real')"/>
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" output="screen" if="$(eval type == 'simulator')"/>
+  </group>
 
   <!-- Controller nodes-->
-  <node pkg="autopilot"           type="autopilot.py"                 name="autopilot_controller" output="screen"/>
-  <node pkg="dp_controller"       type="dp_controller_node"           name="dp_controller"        output="screen"/>
-  <node pkg="interface"           type="controller_interface.py"      name="controller_interface" output="screen"/>
+  <group ns="$(arg ns_controller)">
+    <node pkg="autopilot"           type="autopilot.py"                 name="autopilot"    output="screen"/>
+    <node pkg="dp_controller"       type="dp_controller_node"           name="dp"           output="screen"/>
+    <node pkg="interface"           type="controller_interface.py"      name="interface"    output="screen"/>
+  </group>
 
-  <!-- Thruster nodes-->
-  <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
-  <node pkg="vortex_allocator"    type="vortex_allocator_node"        name="allocator"/>
-  <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
-
+    <!-- Thruster nodes-->
+  <group ns="$(arg ns_thruster)"/>
+    <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
+    <node pkg="vortex_allocator"    type="vortex_allocator_node"        name="allocator"/>
+    <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
+  <group/>
 </launch>
