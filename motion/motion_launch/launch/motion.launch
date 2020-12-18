@@ -21,7 +21,7 @@
 
     <!-- Thruster nodes-->
   <group ns="$(arg ns_thruster)"/>
-    <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
+    <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="interface"/>
     <node pkg="vortex_allocator"    type="vortex_allocator_node"        name="allocator"/>
     <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
   <group/>
