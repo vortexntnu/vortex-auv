@@ -6,8 +6,18 @@
 import numpy as np
 
 class BacksteppingDesign:
+    """
+    A class containing all the matrices, vectors and constants
+    needed for the calculations in the backstepping controller.
+    """
 
     def __init__(self):
+        """
+        Defines numerical values: model parameters, static
+        matrices and dynamics vectors.
+
+        TODO: explain physical constants
+        """
         
         # numerical values
         
@@ -39,12 +49,21 @@ class BacksteppingDesign:
         self.n = np.identity(3)
         
     def rotationMatrix(self, psi):
+        """
+        Implements the 3D rotation matrix
+
+        Args:
+            psi Angle parameter for the rotation matrix
+        """
         
         R = np.array(( (np.cos(psi), -np.sin(psi), 0),
                        (np.sin(psi),  np.cos(psi), 0),
                        (          0,            0, 1) ))
         
     def nonlinVector(self, u):
+        """
+        TODO
+        """
 
         self.n = np.array(( (-self.Xu, 0.0,          0.0),
                             (0.0, -self.Yv,       self.m*u - self.Yr),
@@ -52,17 +71,29 @@ class BacksteppingDesign:
 
 
 class BacksteppingControl:
+    """
+    The backstepping controller. This class keeps states
+    and setpoints needed to calculate the control vector.
+    """
 
     def __init__(self, c, k1, k2, k3):
+        """
+        Initialize states and physical constants (as defined in BacksteppingDesign).
+
+        Args:
+            c   heading gain
+            k1  surge speed gain
+            k2  sway speed gain
+            k3  heave speed gain
+        """
         
-        # backstepping init
         self.bs = BacksteppingDesign()
         
-        self.c = c #heading gain
+        self.c = c
         
-        self.K = np.array(( (k1, 0, 0), # surge speed gain
-                            (0, k2, 0), # sway speed gain  
-                            (0, 0, k3) )) # 
+        self.K = np.array(( (k1, 0, 0),
+                            (0, k2, 0), 
+                            (0, 0, k3) )) 
         
         self.nu = np.transpose(np.array((0,0,0)))
         self.h = np.transpose(np.array((0,0,1)))
@@ -71,6 +102,16 @@ class BacksteppingControl:
         
     
     def updateState(self, u, u_dot, v, psi, r):
+        """
+        Update the controller state values.
+
+        Args:
+            u       current velocity in the body-fixed x-direction	
+            u_dot   current acceleration in the body-fixed x-direction  
+            v       current velocity in the body-fixed y-direction
+            psi     current heading angle
+            r
+        """
         
         # remains constant
         self.psi = psi
@@ -78,11 +119,19 @@ class BacksteppingControl:
         self.bs.nonlinVector(u)
         self.u_dot = u_dot
         self.nu = np.transpose(np.array((u, v, r)))
+
     
     def updateSetpoint(self, u_d, u_d_dot, psi_d, r_d, r_d_dot):
-    
-        # wrapping to take the shortest turn. Just in case
-        # I believe the angles are in atan2, so shouldnt be necessary
+        """
+        Update the controller setpoint values.
+
+        Args:
+            u_d       desired velocity in the body-fixed x-direction
+            u_d_dot   desired acceleration in the body-fixed x-direction
+            psi_d     desired heading angle
+            r_d
+            r_d_dot
+        """
 
         self.z1 = self.psi - psi_d
         self.z2 = self.nu - self.alpha
@@ -100,17 +149,30 @@ class BacksteppingControl:
         
     
     def controlLaw(self, u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot):
+        """
+        Update states and setpoints, then calculate the control
+        vector
+
+        Args:
+			u         current velocity in the body-fixed x-direction	
+			u_dot     current acceleration in the body-fixed x-direction
+			u_d       desired velocity in the body-fixed x-direction
+			u_d_dot	  desired acceleration in the body-fixed x-direction
+			v         current velocity in the body-fixed y-direction
+			psi       current heading angle
+			psi_d     desired heading angle
+			r
+			r_d
+			r_d_dot
+
+		Returns:
+			float[3]:	The control force vector tau
+        """
             
-        # update state
         self.updateState(u, u_dot, v, psi, r)
         
-        # update setpoint
         self.updateSetpoint(u_d, u_d_dot, psi_d, r_d, r_d_dot)
   
         # control force
-        tau = self.bs.M.dot(self.alpha_dot) + self.bs.n.dot(self.nu) - self.K.dot(self.z2) - self.h.dot(self.z1)
-        a = self.bs.n.dot(self.nu) 
-        b = self.K.dot(self.z2)
-        #print(tau)
-        
+        tau = self.bs.M.dot(self.alpha_dot) + self.bs.n.dot(self.nu) - self.K.dot(self.z2) - self.h.dot(self.z1)        
         return tau
