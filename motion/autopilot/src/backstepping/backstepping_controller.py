@@ -114,8 +114,8 @@ class BacksteppingControl:
             u       current velocity in the body-fixed x-direction	
             u_dot   current acceleration in the body-fixed x-direction  
             v       current velocity in the body-fixed y-direction
-            psi     current heading angle
-            r
+            psi     current heading angle in the NED frame
+            r       current angular velocity around the body-fixed z-axis
         """
         
         # remains constant
@@ -133,9 +133,9 @@ class BacksteppingControl:
         Args:
             u_d       desired velocity in the body-fixed x-direction
             u_d_dot   desired acceleration in the body-fixed x-direction
-            psi_d     desired heading angle
-            r_d
-            r_d_dot
+            psi_d     desired heading angle in the NED frame
+			r_d       desired angular velocity around the body-fixed z-axis
+			r_d_dot   desired angular acceleration around the body-fixed z-axis
         """
 
         self.z1 = self.psi - psi_d
@@ -164,11 +164,11 @@ class BacksteppingControl:
 			u_d       desired velocity in the body-fixed x-direction
 			u_d_dot	  desired acceleration in the body-fixed x-direction
 			v         current velocity in the body-fixed y-direction
-			psi       current heading angle
-			psi_d     desired heading angle
-			r
-			r_d
-			r_d_dot
+			psi       current heading angle in the NED frame
+			psi_d     desired heading angle in the NED frame
+            r         current angular velocity around the body-fixed z-axis
+			r_d       desired angular velocity around the body-fixed z-axis
+			r_d_dot   desired angular acceleration around the body-fixed z-axis
 
 		Returns:
 			float[3]:	The control force vector tau

@@ -174,11 +174,11 @@ class AutopilotBackstepping:
 			u_d       desired velocity in the body-fixed x-direction
 			u_d_dot	  desired acceleration in the body-fixed x-direction
 			v         current velocity in the body-fixed y-direction
-			psi       current heading angle
-			psi_d     desired heading angle
-			r
-			r_d
-			r_d_dot
+			psi       current heading angle in the NED frame
+			psi_d     desired heading angle in the NED frame
+			r         current angular velocity around the body-fixed z-axis
+			r_d       desired angular velocity around the body-fixed z-axis
+			r_d_dot   desired angular acceleration around the body-fixed z-axis
 
 		Returns:
 			float[3]:	The control force vector tau
