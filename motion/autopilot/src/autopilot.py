@@ -199,7 +199,7 @@ class Autopilot:
 		autopilot
 
 	Subscribes to:
-		/guidance/los_guidance_data
+		/guidance/los_data
 
 	Publishes to:
 		/manta/thruster_manager/input
@@ -219,7 +219,7 @@ class Autopilot:
 		self.PID = AutopilotPID()
 	
 		# Subscribers
-		self.sub_guidance = rospy.Subscriber('/guidance/los_guidance_data', GuidanceData, self.guidance_data_callback, queue_size=1)
+		self.sub_guidance = rospy.Subscriber('/guidance/los_data', GuidanceData, self.guidance_data_callback, queue_size=1)
 
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)

@@ -256,6 +256,7 @@ class LosPathFollowing(object):
 	Publishes to:
 		/manta/thruster_manager/input
 		/manta/los_desired
+		/guidance/los_data
 	
 	"""
 
@@ -285,7 +286,7 @@ class LosPathFollowing(object):
 
 		# Publishers
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
-		self.pub_data_autopilot = rospy.Publisher('/guidance/los_guidance_data', GuidanceData, queue_size=1)
+		self.pub_data_autopilot = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
