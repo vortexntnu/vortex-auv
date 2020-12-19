@@ -17,7 +17,7 @@ def dp_move(x, y, z=-0.5, yaw_rad=0):
     goal.target_pose.position = Point(x, y, z)
     goal.target_pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
 
-    return SimpleActionState('move', MoveAction, goal=goal)
+    return SimpleActionState('/controller/move', MoveAction, goal=goal)
 
 
 def los_move(x, y, z=-0.5):
@@ -26,7 +26,7 @@ def los_move(x, y, z=-0.5):
     goal.controller_name = 'LOS'
     goal.target_pose.position = Point(x, y, z)
 
-    return SimpleActionState('move', MoveAction, goal=goal)
+    return SimpleActionState('/controller/move', MoveAction, goal=goal)
 
 
 def circle_move(target_point, direction):
@@ -88,7 +88,7 @@ def allign_with_target(target):
 
         Concurrence.add(
             'CIRCLE_GATE', 
-            SimpleActionState('move', MoveAction, goal=move_goal) # TODO
+            SimpleActionState('controller/move', MoveAction, goal=move_goal) # TODO
         )
         Concurrence.add(
             'ALLIGNMENT_CHECKER', 

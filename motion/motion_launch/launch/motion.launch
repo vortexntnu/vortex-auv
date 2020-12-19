@@ -4,12 +4,12 @@
   <!-- Namespace arguments-->
   <arg name="ns_guidance"   default="guidance"/>
   <arg name="ns_controller" default="controller"/>
-  <arg name="ns_thruster"   default="thruster"/>
+  <arg name="ns_thrust"     default="thrust"/>
 
   <!-- Guidance nodes-->
   <group ns="$(arg ns_guidance)">
-    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" if="$(eval type == 'real')"/>
-    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los_guidance" output="screen" if="$(eval type == 'simulator')"/>
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los" if="$(eval type == 'real')"/>
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los" output="screen" if="$(eval type == 'simulator')"/>
   </group>
 
   <!-- Controller nodes-->
@@ -19,10 +19,11 @@
     <node pkg="interface"           type="controller_interface.py"      name="interface"    output="screen"/>
   </group>
 
-    <!-- Thruster nodes-->
-  <group ns="$(arg ns_thruster)"/>
+    <!-- Thrust nodes-->
+  <group ns="$(arg ns_thrust)">
     <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="interface"/>
     <node pkg="vortex_allocator"    type="vortex_allocator_node"        name="allocator"/>
     <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
-  <group/>
+  </group>
+
 </launch>

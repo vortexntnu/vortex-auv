@@ -15,7 +15,7 @@ Allocator::Allocator(ros::NodeHandle nh)
   m_min_thrust(-std::numeric_limits<double>::infinity()),
   m_max_thrust(std::numeric_limits<double>::infinity())
 {
-  m_sub = m_nh.subscribe("manta/thruster_manager/input", 1, &Allocator::callback, this);
+  m_sub = m_nh.subscribe("/manta/thruster_manager/input", 1, &Allocator::callback, this);
   m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("thruster_forces", 1);
   //m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("manta/thruster_manager/input", 1);
 
@@ -41,7 +41,7 @@ Allocator::Allocator(ros::NodeHandle nh)
 
   // Read thrust config matrix
   Eigen::MatrixXd thrust_configuration;
-  if (!getMatrixParam(m_nh, "propulsion/thrusters/configuration_matrix", &thrust_configuration))
+  if (!getMatrixParam(m_nh, "/propulsion/thrusters/configuration_matrix", &thrust_configuration))
   {
     ROS_FATAL("Failed to read parameter thrust config matrix. Killing node...");
     ros::shutdown();
