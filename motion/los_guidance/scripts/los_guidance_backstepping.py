@@ -21,7 +21,6 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-#from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
@@ -89,7 +88,7 @@ class LOS:
 
   			psi	  Heading angle required to reach the LOS intersection
 			  	  point.
-			r
+			r	  current angular velocity around the body-fixed z-axis
 			time  A double with the current time
 		"""
 
@@ -254,10 +253,8 @@ class LosPathFollowing(object):
 		/odometry/filtered
 	
 	Publishes to:
-		/manta/thruster_manager/input
-		/manta/los_desired
 		/guidance/los_data
-	
+		/manta/los_desired
 	"""
 
 	# create messages that are used to send feedback/result
@@ -290,8 +287,6 @@ class LosPathFollowing(object):
 
 		# constructor object
 		self.los = LOS()
-	#self.PID = AutopilotPID()
-	#self.autopilot = AutopilotBackstepping()
 		self.reference_model = ReferenceModel(np.array((0, 0)), self.los.h)
 
 		# dynamic reconfigure
