@@ -21,7 +21,7 @@ class PathFollowingClient():
         rospy.init_node('waypoint_client')
 
         #Create action client
-        self.client = actionlib.SimpleActionClient('los_path',LosPathFollowingAction)
+        self.client = actionlib.SimpleActionClient('/guidance/los_path',LosPathFollowingAction)
         rospy.loginfo("Waiting for LOS path action server...")
         wait = self.client.wait_for_server(rospy.Duration(15.0))
         if not wait:

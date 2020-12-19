@@ -7,7 +7,7 @@
 import rospy
 import numpy as np
 import math
-from vortex_msgs.msg import PropulsionCommand
+from vortex_msgs.msg import PropulsionCommand, GuidanceData
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Wrench, PoseStamped, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
@@ -21,7 +21,7 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
+#from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
@@ -256,6 +256,7 @@ class LosPathFollowing(object):
 	Publishes to:
 		/manta/thruster_manager/input
 		/manta/los_desired
+		/guidance/los_data
 	
 	"""
 
@@ -266,9 +267,8 @@ class LosPathFollowing(object):
 	def __init__(self):
 		"""
 		To initialize the ROS wrapper, the node, subscribers
-		and publishers are set up. The high-level guidance and
-		controller objects are also intialized. Lastly, dynamic
-		reconfigure and action servers are set up.
+		and publishers are set up, as well as dynamic
+		reconfigure and action servers.
 		"""
 
 		"""
@@ -280,14 +280,18 @@ class LosPathFollowing(object):
 		self.flag = False
 
 		rospy.init_node('los_path_following')
+
+		# Subscribers
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
-		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+
+		# Publishers
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
+		self.pub_data_autopilot = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
-		self.PID = AutopilotPID()
-		self.autopilot = AutopilotBackstepping()
+	#self.PID = AutopilotPID()
+	#self.autopilot = AutopilotBackstepping()
 		self.reference_model = ReferenceModel(np.array((0, 0)), self.los.h)
 
 		# dynamic reconfigure
@@ -378,34 +382,48 @@ class LosPathFollowing(object):
 			r_d = x_d[3]
 			r_d_dot = x_d[4]
 
-			los_msg = Odometry()
-			los_msg.header.stamp = rospy.Time.now()
 			quat_d = quaternion_from_euler(0, 0, psi_d)
+
+			# Publish the desired state
+			los_msg = Odometry()
+
+			los_msg.header.stamp = rospy.Time.now()
+
 			los_msg.pose.pose.position.z = msg.pose.pose.position.z
+
 			los_msg.pose.pose.orientation.x = quat_d[0]
 			los_msg.pose.pose.orientation.y = quat_d[1]
 			los_msg.pose.pose.orientation.z = quat_d[2]
 			los_msg.pose.pose.orientation.w = quat_d[3]
+
 			los_msg.twist.twist.linear.x = u_d
 			los_msg.twist.twist.angular.z = r_d
+
 			self.pub_desired.publish(los_msg)
 
-			# control force
-			tau_d = self.autopilot.backstepping.controlLaw(self.los.u, self.los.u_dot, u_d, u_d_dot, self.los.v, self.psi, psi_d, self.los.r, r_d, r_d_dot)
-			tau_depth_hold = self.PID.depthController(self.los.z_d, self.los.z, self.los.t)
+			# Publish guidance data for the controller
+			guidance_data = GuidanceData()
 
-			# add speed controllers here
-			thrust_msg = Wrench()
-			if tau_d[0] > 0.0:
-				thrust_msg.force.x = tau_d[0]
+			guidance_data.u = self.los.u
+			guidance_data.u_d = u_d
 
-			thrust_msg.force.y = tau_d[1]
-			thrust_msg.force.z = tau_depth_hold
-			thrust_msg.torque.z = tau_d[2] # 2.0*self.error_ENU
+			guidance_data.u_dot = self.los.u_dot
+			guidance_data.u_d_dot = u_d_dot
 
-			# write to thrusters
-			self.pub_thrust.publish(thrust_msg)
+			guidance_data.psi = self.psi
+			guidance_data.psi_d = psi_d
 
+			guidance_data.r = self.los.r
+			guidance_data.r_d = r_d
+			guidance_data.r_d_dot = r_d_dot
+
+			guidance_data.z = self.los.z
+			guidance_data.z_d = self.los.z_d
+
+			guidance_data.v = self.los.v
+			guidance_data.t = self.los.t
+
+			self.pub_data_autopilot.publish(guidance_data)
 
 			# check if action goal succeeded
 			self.statusActionGoal()
@@ -483,7 +501,7 @@ class LosPathFollowing(object):
 		self.los.delta = config['delta']
 
 		# self.pid_lin = PIDRegulator(config['pos_p'], config['pos_i'], config['pos_d'], config['pos_sat'])
-		self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
+	#self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
 
 		# update config
 		self.config = config

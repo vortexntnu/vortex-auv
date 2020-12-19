@@ -68,8 +68,8 @@ class ControllerInterface:
         self.action_server.start()
 
         # start action clients for DP and LOS controller
-        self.dp_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-        self.los_client = actionlib.SimpleActionClient('los_path', LosPathFollowingAction)
+        self.dp_client = actionlib.SimpleActionClient('/controller/move_base', MoveBaseAction)
+        self.los_client = actionlib.SimpleActionClient('/guidance/los_path', LosPathFollowingAction)
 
         rospy.loginfo('Controller interface is up and running')
 
