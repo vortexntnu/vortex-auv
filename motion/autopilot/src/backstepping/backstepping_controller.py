@@ -62,7 +62,12 @@ class BacksteppingDesign:
         
     def nonlinVector(self, u):
         """
-        TODO
+        Calculate the N matrix, here given by the sum of the linearized
+	rigid-body coriolis and centripetal matrix and the hydrodynamic
+	damping matrix
+	
+        Args:
+            u       current velocity in the body-fixed x-direction	
         """
 
         self.n = np.array(( (-self.Xu, 0.0,          0.0),
