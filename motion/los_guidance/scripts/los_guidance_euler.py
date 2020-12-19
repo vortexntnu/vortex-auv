@@ -81,7 +81,7 @@ class LOS:
 			r	  current angular velocity around the body-fixed z-axis
 			time  A double with the current time
 		"""
-		
+
 		# Update position
 		self.x = x
 		self.y = y
