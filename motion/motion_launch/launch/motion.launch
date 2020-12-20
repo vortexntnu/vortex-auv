@@ -10,6 +10,7 @@
   <group ns="$(arg ns_guidance)">
     <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los"                         if="$(eval type == 'real')"     />
     <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los"       output="screen"   if="$(eval type == 'simulator')"/>
+    <node pkg="dp_guidance"  type="dp_guidance.py"               name="dp"        output="screen"                                   />
     <node pkg="interface"    type="guidance_interface.py"        name="interface" output="screen"                                   />
   </group>
 
