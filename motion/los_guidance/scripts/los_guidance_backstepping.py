@@ -7,7 +7,7 @@
 import rospy
 import numpy as np
 import math
-from vortex_msgs.msg import PropulsionCommand, GuidanceData
+from vortex_msgs.msg import GuidanceData
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Wrench, PoseStamped, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
