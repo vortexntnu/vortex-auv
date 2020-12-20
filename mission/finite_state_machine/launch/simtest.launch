@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <launch>
 
-  <!-- Lauch state machine -->
-  <node name="simtest"   pkg="finite_state_machine"    type="simtest.py"    output="screen"/>
+  <arg name="fsm_ns" default="fsm"/>
+
+  <group ns="$(arg fsm_ns)">
+    <node name="simtest"   pkg="finite_state_machine"    type="simtest.py"    output="screen"/>
+  </group>
 
 </launch>
