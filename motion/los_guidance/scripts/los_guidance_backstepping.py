@@ -247,7 +247,7 @@ class LosPathFollowing(object):
 					sphereof acceptance, false if not
 	
 	Nodes created:
-		los_path_following
+		los
 
 	Subscribes to:
 		/odometry/filtered
@@ -276,7 +276,7 @@ class LosPathFollowing(object):
 		"""
 		self.publish_guidance_data = False
 
-		rospy.init_node('los_path_following')
+		rospy.init_node('los')
 
 		# Subscribers
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
