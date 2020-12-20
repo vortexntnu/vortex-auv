@@ -5,7 +5,7 @@ import rospy
 from smach import StateMachine, Sequence
 from std_msgs.msg import String
 from math import pi
-from helper import dp_move, los_move, patrol_sequence
+from fsm_helper import dp_move, los_move, patrol_sequence
 
 
 rospy.init_node('pooltest_fsm')
