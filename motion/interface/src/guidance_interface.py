@@ -64,11 +64,12 @@ class GuidanceInterface:
         self.timeout = rospy.get_param('~controller_interface_timeout', 90)
 
         # Start the action server /guidance/move
+        # This is how the FSM and the guidance system communicates
         self.action_server = actionlib.SimpleActionServer('move', MoveAction, self.move_cb, auto_start=False)
         self.action_server.start()
 
         # start action clients for DP and LOS controller
-        self.dp_client = actionlib.SimpleActionClient('/controller/move_base', MoveBaseAction)
+        self.dp_client = actionlib.SimpleActionClient('dp_action_server', MoveBaseAction)
         self.los_client = actionlib.SimpleActionClient('los_action_server', LosPathFollowingAction)
 
         rospy.loginfo('Guidance interface is up and running')
@@ -76,7 +77,9 @@ class GuidanceInterface:
 
     def move_cb(self, move_goal):
         """
-        Converts move_goal into the proper goal type for the desired controller and sends it.
+        Converts move_goal into the proper goal type for the desired guidance
+        system and engages the corresponding guidance node through the
+        action servers.
         Aborts action if it is not completed within self.timeout seconds
         """
 
