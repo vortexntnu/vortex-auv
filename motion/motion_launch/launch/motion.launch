@@ -8,15 +8,15 @@
 
   <!-- Guidance nodes-->
   <group ns="$(arg ns_guidance)">
-    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los" if="$(eval type == 'real')"/>
-    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los" output="screen" if="$(eval type == 'simulator')"/>
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los"                         if="$(eval type == 'real')"     />
+    <node pkg="los_guidance" type="los_guidance_backstepping.py" name="los"       output="screen"   if="$(eval type == 'simulator')"/>
+    <node pkg="interface"    type="guidance_interface.py"        name="interface" output="screen"                                   />
   </group>
 
   <!-- Controller nodes-->
   <group ns="$(arg ns_controller)">
     <node pkg="autopilot"           type="autopilot.py"                 name="autopilot"    output="screen"/>
     <node pkg="dp_controller"       type="dp_controller_node"           name="dp"           output="screen"/>
-    <node pkg="interface"           type="controller_interface.py"      name="interface"    output="screen"/>
   </group>
 
     <!-- Thrust nodes-->
