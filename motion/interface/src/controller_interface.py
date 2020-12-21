@@ -80,7 +80,7 @@ class ControllerInterface:
         Aborts action if it is not completed within self.timeout seconds
         """
 
-        if move_goal.controller_name == "DP":
+        if move_goal.guidance_type == "DP":
 
             change_control_mode(POSE_HEADING_HOLD)
 
@@ -94,7 +94,7 @@ class ControllerInterface:
                 rospy.loginfo('DP controller aborted action due to timeout')
 
 
-        elif move_goal.controller_name == "LOS":
+        elif move_goal.guidance_type == "LOS":
 
             change_control_mode(OPEN_LOOP)
 

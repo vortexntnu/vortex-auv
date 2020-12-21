@@ -9,30 +9,31 @@ from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
 
 
+move_action_server = '/controller/move'
 
 def dp_move(x, y, z=-0.5, yaw_rad=0):
     goal = MoveGoal()
 
-    goal.controller_name = 'DP'
+    goal.guidance_type = 'DP'
     goal.target_pose.position = Point(x, y, z)
     goal.target_pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
 
-    return SimpleActionState('/controller/move', MoveAction, goal=goal)
+    return SimpleActionState(move_action_server, MoveAction, goal=goal)
 
 
 def los_move(x, y, z=-0.5):
     goal = MoveGoal()
 
-    goal.controller_name = 'LOS'
+    goal.guidance_type = 'LOS'
     goal.target_pose.position = Point(x, y, z)
 
-    return SimpleActionState('/controller/move', MoveAction, goal=goal)
+    return SimpleActionState(move_action_server, MoveAction, goal=goal)
 
 
 def circle_move(target_point, direction):
     goal = MoveGoal()
 
-    goal.controller_name = ''
+    goal.guidance_type = ''
 
 
 def patrol_sequence(action_states):

@@ -12,6 +12,9 @@ from sm_classes import GateSearchState
 
 def main():
     rospy.init_node('simulator_state_machine')
+
+    
+    move_action_server = '/controller/move'
           
     simulator_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     
@@ -35,11 +38,11 @@ def main():
             def gate_goal_cb(userdata, goal):
                 gate_goal = MoveGoal()
                 gate_goal.target_pose.position = userdata.goal_position                
-                gate_goal.controller_name = "LOS"
+                gate_goal.guidance_type = "LOS"
                 return gate_goal
                         
             StateMachine.add('LOS_MOVE_TO_GATE',
-                            SimpleActionState('move',
+                            SimpleActionState(move_action_server,
                                                 MoveAction,
                                                 goal_cb=gate_goal_cb,
                                                 input_keys=['goal_position']),
