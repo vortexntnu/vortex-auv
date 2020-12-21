@@ -6,8 +6,6 @@
 import rospy
 import actionlib
 
-from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose
 from move_base_msgs.msg import MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 
