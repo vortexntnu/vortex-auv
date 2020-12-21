@@ -9,6 +9,7 @@ import actionlib
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose
 from move_base_msgs.msg import MoveBaseAction
+from actionlib_msgs.msg import GoalStatus
 
 class DPGuidance:
     """
@@ -18,94 +19,78 @@ class DPGuidance:
     /controller/dp node.
 
     The dp guidance node is different from the LOS node in the sense
-    that it will continuously publish on the topic until a different
-    guidance mode is requested (and thats it, nothing else).
+    that it will not communicate with the controller via a topic.
+    This is done because, as mentioned above, the dp guidance node
+    does not perform any calculations. Therefore, we have no continuous
+    data we need to send, only a discrete goal that will be updated 
+    in the FSM.
 
-    Strategy:
-        change control mode when this is addressed, change to OPEN LOOP
-        when a different guidance node is selected.
+    One could argue that there is no need for the dp_guidance node;
+    and you would be right. However, it is introduced as a means of
+    eliminating any crosstalk directly between the fsm and the controller.
+    This will facilitate a cleaner, more modular system in the future.
     """
 
     def __init__(self):
+        """
+        Create the ROS node dp and set constants, as well as the action
+        server that the fsm connects to. Connect to the move_base action
+        server in the dp controller. The guidance and controller communicate
+        through this server.
+        """
 
         rospy.init_node('dp')
 
-        self.publish_guidance_data = False
+        self.timeout = rospy.get_param('~guidance_dp_timeout', 90)
 
 
-        # Subscribers
-        self.sub_odom = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1)
-
-        # Publishers
-        self.pub_data_dp = rospy.Publisher('/guidance/dp_data', Pose, queue_size=1)
-
-        # Create action server (previously move_base)
-        # When a goal is sent from guidance_interface, the goalCB is called
         self.action_server = actionlib.SimpleActionServer(name='dp_action_server', ActionSpec=MoveBaseAction, auto_start=False)
-        self.action_server.register_goal_callback(self.goalCB)
+        self.action_server.register_goal_callback(self.goalCB)  # Called whenever guidance_interface sends a new goal for the dp system
         self.action_server.register_preempt_callback(self.preemptCB)
         self.action_server.start()
 
-        
-    def callback(self, msg):
-        dp_data = Pose()
-        self.pub_data_dp.publish(dp_data)
+        # Connect to the dp controller action server. This is how the guidance and controller systems will communicate
+        self.dp_controller_client = actionlib.SimpleActionClient('/controller/move_base', MoveBaseAction)
+
 
     def goalCB(self):
         """
-        This will replace the actionGoalCallBack() in the controller_ros.cpp file:
-
-        instead of the controller setting variables locally, it will set variables
-        in this node, and will receive them "continuously" from this node through
-        the data topic.
-
-        Important to set local variables here and publish those since the goalCB 
-        is not continuously called!
+        Accept a goal from the guidance interface and pass it right on :)
         """
+        
+        controller_goal = self.action_server.accept_new_goal()
 
+        self.dp_controller_client.send_goal(controller_goal, done_cb=self.done_cb, feedback_cb=None)
 
-        """
-        void Controller::actionGoalCallBack()
-        {
-            // set current target position to previous position
-            m_controller->x_d_prev = position;
-            m_controller->x_d_prev_prev = position;
-            m_controller->x_ref_prev = position;
-            m_controller->x_ref_prev_prev = position;
-
-            // accept the new goal - do I have to cancel a pre-existing one first?
-            mGoal = mActionServer->acceptNewGoal()->target_pose;
-
-            // print the current goal
-            ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
-
-            // Transform from Msg to Eigen
-            tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
-            tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
-
-            // setpoint declared as private variable
-            m_setpoints->set(setpoint_position, setpoint_orientation);
-
-            // Integral action reset
-            m_controller->integral = Eigen::Vector6d::Zero();
-
-        }
-        """
-        pass
+        if not self.dp_controller_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+            self.action_server.set_aborted()
+            rospy.loginfo('DP controller aborted action due to timeout')
+        
 
     def preemptCB(self):
         """
-            void Controller::preemptCallBack()
-            {
+		The preempt callback for the action server.
+		"""
 
-                //notify the ActionServer that we've successfully preempted
-                ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
+        if self.action_server.is_preempt_requested():
+            rospy.loginfo("Preempted requested by dp guidance client!")
+            self.action_server.set_preempted()
 
-                // set the action state to preempted
-                mActionServer->setPreempted();
-            }
+    
+    def done_cb(self, state, result):
         """
-        pass
+        Set the outcome of the action depending on
+        the returning result.
+        """
+
+        if state == GoalStatus.SUCCEEDED:
+            self.action_server.set_succeeded()
+
+        elif state == GoalStatus.PREEMPTED:
+            self.action_server.set_preempted()
+
+        else:
+            self.action_server.set_aborted()
 
 if __name__ == '__main__':
 
