@@ -207,9 +207,6 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
 }
 
-void Controller::guidanceDataCallback(const geometry_msgs::Pose &msg) {
-
-}
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
 {

@@ -71,15 +71,6 @@ public:
 
 
   /**
-   * @brief Callback for the guidance data subscriber
-   * 
-   * This callback is used to handle the data coming from the dp_guidance node.
-   * 
-   * @param msg   A geometry_msg::Pose message containing state data.
-  */
-  void guidanceDataCallback(const geometry_msgs::Pose &msg);
-
-  /**
    * @brief Callback for the dynamic reconfigure server
    * 
    * @param config   A VortexControllerConfig object used to store parameters
@@ -138,7 +129,6 @@ private:
 
   ros::Subscriber m_command_sub;       /** Command subscriber  */          
   ros::Subscriber m_state_sub;         /** State subscriber    */
-  ros::Subscriber m_guidance_data_sub; /** Guidance data subscriber */
   ros::Subscriber m_mode_sub;          /** Mode subscriber     */
 
   ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
