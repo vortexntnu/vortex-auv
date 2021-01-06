@@ -14,7 +14,7 @@ def main():
     rospy.init_node('simulator_state_machine')
 
     
-    move_action_server = '/controller/move'
+    move_action_server = '/guidance/move'
           
     simulator_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     
