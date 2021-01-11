@@ -7,7 +7,7 @@ from fsm_helper import dp_move, los_move
 from smach_ros import IntrospectionServer, SimpleActionState
 from geometry_msgs.msg import Point
 from vortex_msgs.msg import MoveAction, MoveGoal
-from sm_classes import GateSearchState
+from sm_classes import GateSearchState, MoveThroughLineUpState
 
 
 def main():
@@ -46,9 +46,15 @@ def main():
                                                 MoveAction,
                                                 goal_cb=gate_goal_cb,
                                                 input_keys=['goal_position']),
-                            transitions={'succeeded':'LOS_MOVE_THROUGH_GATE','aborted':'GATE_SEARCH'},
-                            remapping={'goal_position':'goal_position'})                     
-            
+                            transitions={'succeeded':'MOVE_THROUGH_LINE_UP','aborted':'GATE_SEARCH'},
+                            remapping={'goal_position':'goal_position'})
+
+            #
+            StateMachine.add('MOVE_THROUGH_LINE_UP',
+                            MoveThroughLineUpState(),
+                            transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'},
+                            remapping={'goal_pos_input':'goal_position'})                     
+            #
             StateMachine.add('LOS_MOVE_THROUGH_GATE',
                             los_move(8,1.5),
                             transitions={'aborted':'GATE_SEARCH'})                  
