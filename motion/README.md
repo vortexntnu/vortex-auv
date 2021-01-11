@@ -50,6 +50,5 @@ Anything related to how the AUV physically moves in located in this folder, name
 
 * motion_launch
     * A container for the launch file that launches every required motion node. 
-    * Used by the top-level auv launchfile
 
 </details>
