@@ -1,4 +1,4 @@
-# Sensor Interface
+# Sensor Interface (OUTDATED)
 These nodes interface with the IMU and the pressure sensors.
 
 ## Dependencies
