@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <launch>
 
-  <!-- Lauch state machine -->
-  <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
-  <node name="simulator_fsm"    pkg="finite_state_machine"    type="simulator_state_machine.py"    output="screen"/>
+  <arg name="fsm_ns" default="fsm"/>
 
+  <group ns="$(arg fsm_ns)">
+    <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
+    <node name="simulator_fsm"    pkg="finite_state_machine"    type="simulator_state_machine.py"    output="screen"/>
+  </group>
 </launch>

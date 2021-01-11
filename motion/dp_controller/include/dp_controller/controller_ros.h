@@ -125,16 +125,16 @@ public:
 
 private:
 
-  ros::NodeHandle m_nh;           /** Nodehandle          */
+  ros::NodeHandle m_nh;                /** Nodehandle          */
 
-  ros::Subscriber m_command_sub;  /** Command subscriber  */          
-  ros::Subscriber m_state_sub;    /** State subscriber    */
-  ros::Subscriber m_mode_sub;     /** Mode subscriber     */
+  ros::Subscriber m_command_sub;       /** Command subscriber  */          
+  ros::Subscriber m_state_sub;         /** State subscriber    */
+  ros::Subscriber m_mode_sub;          /** Mode subscriber     */
 
-  ros::Publisher  m_wrench_pub;   /** Wrench publisher    */
-  ros::Publisher  m_rpm_pub;      /** RPM publisher       */
-  ros::Publisher  m_mode_pub;     /** Mode publisher      */
-  ros::Publisher  m_debug_pub;    /** Debug publisher     */
+  ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
+  ros::Publisher  m_rpm_pub;           /** RPM publisher       */
+  ros::Publisher  m_mode_pub;          /** Mode publisher      */
+  ros::Publisher  m_debug_pub;         /** Debug publisher     */
 
   dynamic_reconfigure::Server<dp_controller::VortexControllerConfig> m_dr_srv;  /** dynamic_reconfigure server */
 

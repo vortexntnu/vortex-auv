@@ -3,7 +3,7 @@
 import rospy
 from smach import StateMachine
 import smach
-from helper import dp_move, los_move
+from fsm_helper import dp_move, los_move
 from smach_ros import IntrospectionServer, SimpleActionState
 from geometry_msgs.msg import Point
 from vortex_msgs.msg import MoveAction, MoveGoal
@@ -14,7 +14,7 @@ def main():
     rospy.init_node('simulator_state_machine')
 
     
-    move_action_server = '/controller/move'
+    move_action_server = '/guidance/move'
           
     simulator_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     

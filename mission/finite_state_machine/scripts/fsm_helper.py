@@ -8,22 +8,26 @@ from geometry_msgs.msg import Point, Quaternion
 from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
 
-
-move_action_server = '/controller/move'
+move_action_server = '/guidance/move'
+# maybe create class for this? 
+# something to signal that the **_move functions are used for crosstalk
+# between the FSM and the Guidance systems.
+# rename the file accordingly too; put in own folder
 
 def dp_move(x, y, z=-0.5, yaw_rad=0):
     goal = MoveGoal()
 
-    goal.guidance_type = 'DP'
+    goal.guidance_type = 'PositionHold'
     goal.target_pose.position = Point(x, y, z)
     goal.target_pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
+
 
     return SimpleActionState(move_action_server, MoveAction, goal=goal)
 
 
 def los_move(x, y, z=-0.5):
-    goal = MoveGoal()
 
+    goal = MoveGoal()
     goal.guidance_type = 'LOS'
     goal.target_pose.position = Point(x, y, z)
 

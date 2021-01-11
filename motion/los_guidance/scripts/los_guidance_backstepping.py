@@ -7,7 +7,7 @@
 import rospy
 import numpy as np
 import math
-from vortex_msgs.msg import PropulsionCommand, GuidanceData
+from vortex_msgs.msg import GuidanceData
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Wrench, PoseStamped, Pose
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
@@ -247,7 +247,7 @@ class LosPathFollowing(object):
 					sphereof acceptance, false if not
 	
 	Nodes created:
-		los_path_following
+		los
 
 	Subscribes to:
 		/odometry/filtered
@@ -274,9 +274,9 @@ class LosPathFollowing(object):
 		False means that a goal has been completed (or not started
 		with any goal)
 		"""
-		self.flag = False
+		self.publish_guidance_data = False
 
-		rospy.init_node('los_path_following')
+		rospy.init_node('los')
 
 		# Subscribers
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
@@ -293,11 +293,8 @@ class LosPathFollowing(object):
 		self.config = {}
 		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
 
-		"""
-			action server guide
-			https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
-		"""
-		self.action_server = actionlib.SimpleActionServer(name='los_path', ActionSpec=LosPathFollowingAction, auto_start=False)
+		# Action server, see https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
+		self.action_server = actionlib.SimpleActionServer(name='los_action_server', ActionSpec=LosPathFollowingAction, auto_start=False)
 		self.action_server.register_goal_callback(self.goalCB)
 		self.action_server.register_preempt_callback(self.preemptCB)
 		self.action_server.start()
@@ -341,7 +338,7 @@ class LosPathFollowing(object):
 		When called, position and velocity states are updated, and 
 		a new current goal is set.
 
-		If the flag attribute is True, we have not yet reached a goal
+		If the self.publish_guidance_data attribute is True, we have not yet reached a goal
 		and so a control force is published, alongside the desired
 		pose.
 
@@ -361,7 +358,7 @@ class LosPathFollowing(object):
 		self.psi_ref = self.los.lookaheadBasedSteering()
 
 
-		if self.flag is True:
+		if self.publish_guidance_data is True:
 
 			"""
 				Wrapping would have been avoided by using quaternions instead of Euler angles
@@ -438,7 +435,7 @@ class LosPathFollowing(object):
 		if self.los.sphereOfAcceptance():
 			self._result.terminalSector = True
 			self.action_server.set_succeeded(self._result, text="goal completed")
-			self.flag = False
+			self.publish_guidance_data = False
 
 	def preemptCB(self):
 		"""
@@ -449,14 +446,17 @@ class LosPathFollowing(object):
 		if self.action_server.is_preempt_requested():
 			rospy.loginfo("Preempted requested by los path client")
 			self.action_server.set_preempted()
-			self.flag = False
+			self.publish_guidance_data = False
 
 	def goalCB(self):
 		"""
 		The goal callback for the action server.
+
+		Once a goal has been recieved from the client, self.publish_guidance_data is set to True
+		This means that this node will start publishing data for the controller
 		"""
 
-		self.flag = True
+		self.publish_guidance_data = True
 		_goal = self.action_server.accept_new_goal()
 
 		# set goal
