@@ -5,5 +5,6 @@ Functionality includes:
 * Controlling light
 * Setting thruster speed
 * Reading leak detection sensors
+
 The MCU is addressed from the '/mcu/device' parameter, defaulting to '/dev/ttySAC0', and can be accessed
 by serial read/write.
