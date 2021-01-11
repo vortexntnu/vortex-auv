@@ -37,7 +37,7 @@ Anything related to how the AUV physically moves in located in this folder, name
 <summary>Interfaces to physical units and misc:</summary>
 
 * reference_model
-    * An implementation of the bilinear transform for the continuous <-> discrete system transformation used in the LOS system
+    * Reference model calculation used in the LOS guidance system.
     
 * mcu_interface
     * The interface between the ROS system and a multi-purpose MicroController Unit (MCU) in the AUV.
