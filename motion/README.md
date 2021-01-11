@@ -3,8 +3,8 @@ Anything related to how the AUV physically moves in located in this folder, name
 
 
 ### Controllers
-
-The currently implemented controllers:
+<details>
+<summary>The currently implemented controllers:</summary>
 
 * autopilot
     * An integral backstepping controller used by the los_guidance system
@@ -12,9 +12,11 @@ The currently implemented controllers:
 * dp_controller
     * The dynamic positioning controller, which is implemented as a nonlinear PID controller.
 
+</details>
 
 ### Guidance
-The currently implemented guidance modules:
+<details>
+<summary>The currently implemented guidance modules:</summary>
 
 * interface
     * The interface for all the different guidance modules that the state machine uses to steer the AUV
@@ -26,10 +28,13 @@ The currently implemented guidance modules:
 * dp_guidance
     * The state machine technically can reference the dp controller directly, but this module is in place to fully separate the controllers and state machine.
 
+</details>
 
 
 
 ### Others
+<details>
+<summary>Interfaces to physical units and misc:</summary>
 
 * reference_model
     * An implementation of the bilinear transform for the continuous <-> discrete system transformation used in the LOS system
@@ -47,4 +52,4 @@ The currently implemented guidance modules:
     * A container for the launch file that launches every required motion node. 
     * Used by the top-level auv launchfile
 
-
+</details>
