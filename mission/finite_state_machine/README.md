@@ -30,7 +30,7 @@ easier and the state-machine code simpler. It takes care of the action server/cl
 
 3. Open a third window and lauch the state machine: 
 	```bash
-	$ roslaunch finite_state_machine <state_machine_of_choice.launch>
+	$ roslaunch finite_state_machine <state_machine_of_choice>.launch
 	```
 
 ### on AUV
@@ -42,5 +42,5 @@ easier and the state-machine code simpler. It takes care of the action server/cl
 
 1. Lauch the desired state machine (eg. pooltest): 
 	```bash
-	$ roslaunch finite_state_machine <state_machine_of_choice.launch>
+	$ roslaunch finite_state_machine <state_machine_of_choice>.launch
 	```
