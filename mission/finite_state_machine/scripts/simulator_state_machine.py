@@ -7,17 +7,24 @@ from fsm_helper import dp_move, los_move
 from smach_ros import IntrospectionServer, SimpleActionState
 from geometry_msgs.msg import Point
 from vortex_msgs.msg import MoveAction, MoveGoal
-from sm_classes import GateSearchState, MoveThroughLineUpState
-
+from sm_classes import GateSearchState, PrepareMoveThroughState
+#
+#from nav_msgs.msg import Odometry
+#
 
 def main():
     rospy.init_node('simulator_state_machine')
-
     
     move_action_server = '/guidance/move'
           
     simulator_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     
+    # #
+    # odom = Odometry(None,None,None,None)
+    # def odom_cb(odom_msg):
+    #     odom = odom_msg
+    # rospy.Subscriber("odometry/filtered", Odometry, odom_cb)                  
+    # #
     with simulator_state_machine:
                 
         StateMachine.add('REACH_DEPTH',
@@ -46,14 +53,22 @@ def main():
                                                 MoveAction,
                                                 goal_cb=gate_goal_cb,
                                                 input_keys=['goal_position']),
-                            transitions={'succeeded':'MOVE_THROUGH_LINE_UP','aborted':'GATE_SEARCH'},
+                            transitions={'succeeded':'PREPARE_MOVE_THROUGH','aborted':'GATE_SEARCH'},
                             remapping={'goal_position':'goal_position'})
 
             #
-            StateMachine.add('MOVE_THROUGH_LINE_UP',
-                            MoveThroughLineUpState(),
-                            transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'},
-                            remapping={'goal_pos_input':'goal_position'})                     
+            # def prep_goal_cb(userdata, goal):
+            #     prep_goal = MoveGoal()
+            #     if userdata.goal_position.x < 
+            #     prep_goal.target_pose.position = userdata.goal_position 
+            #     prep_goal.target_pose.position.x = userdata.goal_position.x +                  
+            #     prep_goal.guidance_type = "PositionHold" #DP?
+            #     return prep_goal
+
+            # StateMachine.add('PREPARE_MOVE_THROUGH',
+            #                 PrepareMoveThroughState(),
+            #                 transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'},
+            #                 remapping={'goal_pos_input':'goal_position'})                     
             #
             StateMachine.add('LOS_MOVE_THROUGH_GATE',
                             los_move(8,1.5),

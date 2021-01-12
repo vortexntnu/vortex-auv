@@ -1,11 +1,10 @@
 import rospy
 import smach
 from nav_msgs.msg import Odometry
-#from fsm_helper import los_move
 
 move_action_server = '/guidance/move'
 
-class MoveThroughLineUpState(smach.State):
+class PrepareMoveThroughState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['goal_pos_input'])
 
@@ -20,9 +19,9 @@ class MoveThroughLineUpState(smach.State):
         rospy.loginfo("goal position: %f,%f,%f", userdata.goal_pos_input.x,userdata.goal_pos_input.y,userdata.goal_pos_input.z)
 
         # if self.pos.x < userdata.goal_pos_input.x:
-        #     los_move(userdata.goal_pos_input.x,userdata.goal_pos_input.y,userdata.goal_pos_input.z)
+        #     dp_move(userdata.goal_pos_input.x-1,userdata.goal_pos_input.y)
         # else :
-        
+        #     dp_move(userdata.goal_pos_input.x+1,userdata.goal_pos_input.y)
         return 'succeeded'
     
     def callback(self, odom):
