@@ -14,7 +14,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 # dynamic reconfigure
 from dynamic_reconfigure.server import Server
-from los_guidance.cfg import AutopilotConfig
+from los_guidance.cfg import LOSConfig
 
 # action message
 import actionlib
@@ -291,7 +291,7 @@ class LosPathFollowing(object):
 
 		# dynamic reconfigure
 		self.config = {}
-		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
+		self.srv_reconfigure = Server(LOSConfig, self.config_callback)
 
 		# Action server, see https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
 		self.action_server = actionlib.SimpleActionServer(name='los_action_server', ActionSpec=LosPathFollowingAction, auto_start=False)
@@ -489,16 +489,12 @@ class LosPathFollowing(object):
 			The updated config argument.
 		"""
 
-		# Config has changed, reset PID controllers
-		rospy.loginfo("""Reconfigure Request: {delta}, {p_rot}, {i_rot}, {d_rot}, {sat_rot} """.format(**config))
+		delta = config['delta']
+		
+		rospy.loginfo("""los_guidance reconfigure request: \n delta: {0} -> {1}""".format(self.los.delta, delta))
         
-		# update look-ahead distance
+		# update look-ahead distance and config
 		self.los.delta = config['delta']
-
-		# self.pid_lin = PIDRegulator(config['pos_p'], config['pos_i'], config['pos_d'], config['pos_sat'])
-	#self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
-
-		# update config
 		self.config = config
 
 		return config
