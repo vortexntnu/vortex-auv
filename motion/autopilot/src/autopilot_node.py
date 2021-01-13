@@ -11,6 +11,9 @@ from vortex_msgs.msg import GuidanceData
 from pid.pid_controller import PIDRegulator
 from backstepping.backstepping_controller import BacksteppingDesign, BacksteppingControl
 
+from dynamic_reconfigure.server import Server
+from autopilot.cfg import AutopilotConfig
+
 class AutopilotPID:
 	"""
 	Wrapper for the PID controller to make the autopilot
