@@ -1,4 +1,15 @@
 ## Autopilot
+The purpose of the autopilot package is to provide the LOS guidance system
+with a controller that can maintain a fixed heading and depth.
 
-The autopilot package contains a 1D PID-controller and an integral backstepping controller. These two
-controllers are used by the LOS guidance system, respectively via the classes PIDRegulator and BacksteppingControl.
+This is achieved by a 1D PID-controller and an integral backstepping controller. These two
+controllers are used by the LOS guidance system respectively via the classes PIDRegulator and BacksteppingControl.
+
+The controller parameters can be changed during runtime because of the dynamic reconfigure server that is present
+in the autopilot_node script. The parameters can be found under /cfg/Autopilot.cfg
+
+Subscribes to:
+* /guidance/los_data
+
+Publishes to:
+* /manta/thruster_manager/input
