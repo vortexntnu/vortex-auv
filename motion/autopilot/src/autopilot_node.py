@@ -4,6 +4,7 @@
 # All rights reserved.
 
 import rospy
+import numpy as np
 
 from geometry_msgs.msg import Wrench
 from vortex_msgs.msg import GuidanceData
@@ -160,10 +161,18 @@ class AutopilotBackstepping:
 	
 	def updateGains(self, c, k1, k2, k3):
 		"""
-		Currently an empty placeholder
+		Update the backstepping controller gains.
+        Args:
+            c   heading gain
+            k1  surge speed gain
+            k2  sway speed gain
+            k3  heave speed gain
 		"""
-
-		pass
+		
+		self.controller.c = c
+		self.controller.K = np.array(( (k1, 0, 0),
+                            		   (0, k2, 0), 
+                            		   (0, 0, k3) )) 
 
 
 	def regulate(self, u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot):
@@ -227,6 +236,9 @@ class Autopilot:
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 
+		# Dynamic reconfigure 
+		self.config = {}
+		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
 
 	def guidance_data_callback(self, msg):
 		"""
@@ -268,6 +280,60 @@ class Autopilot:
 		# Publish the thrust message to /manta/thruster_manager/input
 		self.pub_thrust.publish(thrust_msg)
 		
+	def config_callback(self, config, level):
+		"""
+		Handle updated configuration values.
+		
+		Args:
+			config	The dynamic reconfigure server's config
+			level	Ununsed variable
+
+		Returns:
+			The updated config argument.
+		"""
+
+		# Old parameters
+		p_old = self.PID.controller.p
+		i_old = self.PID.controller.i
+		d_old = self.PID.controller.d
+		sat_old = self.PID.controller.sat
+
+		c_old = self.Backstepping.controller.c
+		K = self.Backstepping.controller.K
+
+		# Reconfigured PID parameters
+		p = config['PID_p']
+		i = config['PID_i']
+		d = config['PID_d']
+		sat = config['PID_sat']
+
+		# Reconfigured Backstepping parameters
+		c = config['Backstepping_c']
+		k1 = config['Backstepping_k1']
+		k2 = config['Backstepping_k2']
+		k3 = config['Backstepping_k3']
+
+		rospy.loginfo("autopilot reconfigure request:")
+		rospy.loginfo("\t p: {0} -> {1}".format(p_old, p))
+		rospy.loginfo("\t i: {0} -> {1}".format(i_old, i))
+		rospy.loginfo("\t d: {0} -> {1}".format(d_old, d))
+		rospy.loginfo("\t sat: {0} -> {1}".format(sat_old, sat))
+
+		rospy.loginfo("\t c: {0} -> {1}".format(c_old, c))
+		rospy.loginfo("\t k1: {0} -> {1}".format(K[0, 0], k1))
+		rospy.loginfo("\t k2: {0} -> {1}".format(K[1, 1], k2))
+		rospy.loginfo("\t k3: {0} -> {1}".format(K[2, 2], k3))
+
+
+		
+		# Update controller gains
+		self.PID.updateGains(p, i, d, sat)
+		self.Backstepping.updateGains(c, k1, k2, k3)
+
+		# update config
+		self.config = config
+
+		return config
 		
 
 if __name__ == '__main__':
