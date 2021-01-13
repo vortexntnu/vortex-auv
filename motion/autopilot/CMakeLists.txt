@@ -9,7 +9,9 @@ project(autopilot)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   rospy
-  #dynamic_reconfigure
+  geometry_msgs
+  vortex_msgs
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -87,9 +89,9 @@ catkin_python_setup()
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-#generate_dynamic_reconfigure_options(
-#   cfg/Autopilot.cfg
-#)
+generate_dynamic_reconfigure_options(
+   cfg/Autopilot.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -118,7 +120,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-catkin_install_python(PROGRAMS src/autopilot.py
+catkin_install_python(PROGRAMS src/autopilot_node.py
                                #scripts/PositionControl.py
                                #scripts/VelocityControl.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

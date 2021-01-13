@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   vortex_msgs
   tf
-  autopilot
   dynamic_reconfigure
   reference_model
 )
