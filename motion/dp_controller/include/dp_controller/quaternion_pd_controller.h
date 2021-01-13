@@ -1,4 +1,5 @@
 /*   Written by Kristoffer Rakstad Solberg, Student
+     Edited by Jae Hyeong Hwang
      Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved. */
 
@@ -34,9 +35,6 @@ public:
                               const Eigen::Vector6d    &nu,
                               const Eigen::Vector3d    &x_d,
                               const Eigen::Quaterniond &q_d);
-
-  Eigen::Vector3d referenceModel(const Eigen::Vector3d   &x,
-                                 const Eigen::Vector3d   &x_ref);
 
   bool circleOfAcceptance(const Eigen::Vector3d   &x,
                           const Eigen::Vector3d   &x_d,
