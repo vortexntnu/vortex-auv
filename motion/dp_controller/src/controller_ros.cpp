@@ -209,11 +209,11 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
 {
-  ROS_INFO_STREAM("DP controller reconfigure:");
-  ROS_INFO_STREAM("\t velocity_gain: " << config.velocity_gain);
-  ROS_INFO_STREAM("\t position_gain: " << config.position_gain);
-  ROS_INFO_STREAM("\t attitude_gain: " << config.attitude_gain);
-  ROS_INFO_STREAM("\t integral_gain: " << config.integral_gain);
+  ROS_INFO("DP controller reconfigure:");
+  ROS_INFO("\t velocity_gain: %2.4f", config.velocity_gain);
+  ROS_INFO("\t position_gain: %2.4f", config.position_gain);
+  ROS_INFO("\t attitude_gain: %2.4f", config.attitude_gain);
+  ROS_INFO("\t integral_gain: %2.4f", config.integral_gain);
 
   m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain, config.integral_gain);
 }
