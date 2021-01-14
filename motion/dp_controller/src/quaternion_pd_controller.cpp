@@ -4,6 +4,7 @@
 
 
 #include "dp_controller/quaternion_pd_controller.h"
+#include "dp_controller/reference_model.h"
 
 QuaternionPdController::QuaternionPdController(double a, double b, double c, double i, double W, double B,
                                                const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B)
@@ -40,8 +41,8 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
   Eigen::Matrix6d K_p = proportionalGainMatrix(R);
   Eigen::Matrix6d K_i = integralGainMatrix(R);
 
-  // Reference model
-  Eigen::Vector3d x_d_smooth = referenceModel(x,x_d);
+  // Reference model from reference_model.cpp
+  Eigen::Vector3d x_d_smooth = ReferenceModel(x,x_d);
 
   // Error Vector
   Eigen::Vector6d z   = errorVector(x, x_d_smooth, q, q_d);

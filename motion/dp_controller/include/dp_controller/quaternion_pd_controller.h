@@ -92,19 +92,6 @@ public:
                               const Eigen::Vector3d    &x_d,
                               const Eigen::Quaterniond &q_d);
 
-
-  /**
-   * @brief Utilize a calculated reference model to find next desired body position
-   * 
-   * @param x       The current body position, as a 3d vector
-   * @param x_ref   The body position reference, as a 3d vector
-   * 
-   * @return Next desired body position
-  */
-  Eigen::Vector3d referenceModel(const Eigen::Vector3d   &x,
-                                 const Eigen::Vector3d   &x_ref);
-
-
   /**
    * @brief Check if desired position is within a defined radius of the current position
    * 
