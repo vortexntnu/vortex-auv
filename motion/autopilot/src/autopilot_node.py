@@ -292,7 +292,7 @@ class Autopilot:
 		"""
 
 		if old_value != new_value:
-			rospy.loginfo("\t {0}: {1} -> {2}".format(name, old_value, new_value))
+			rospy.loginfo("\t {:}: {:.4f} -> {:.4f}".format(name, old_value, new_value))
 
 
 	def config_callback(self, config, level):
