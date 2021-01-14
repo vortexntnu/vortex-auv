@@ -280,6 +280,21 @@ class Autopilot:
 		# Publish the thrust message to /manta/thruster_manager/input
 		self.pub_thrust.publish(thrust_msg)
 		
+
+	def log_value_if_updated(self, name, old_value, new_value):
+		"""
+		A helper function for the config_callback() method
+
+		Args:
+			name		The string name of the variable
+			old_value	The old value :)
+			new_value	The new value :)
+		"""
+
+		if old_value != new_value:
+			rospy.loginfo("\t {0}: {1} -> {2}".format(name, old_value, new_value))
+
+
 	def config_callback(self, config, level):
 		"""
 		Handle updated configuration values.
@@ -313,18 +328,17 @@ class Autopilot:
 		k2 = config['Backstepping_k2']
 		k3 = config['Backstepping_k3']
 
-		rospy.loginfo("autopilot reconfigure request:")
-		rospy.loginfo("\t p: {0} -> {1}".format(p_old, p))
-		rospy.loginfo("\t i: {0} -> {1}".format(i_old, i))
-		rospy.loginfo("\t d: {0} -> {1}".format(d_old, d))
-		rospy.loginfo("\t sat: {0} -> {1}".format(sat_old, sat))
+		rospy.loginfo("autopilot reconfigure: ")
 
-		rospy.loginfo("\t c: {0} -> {1}".format(c_old, c))
-		rospy.loginfo("\t k1: {0} -> {1}".format(K[0, 0], k1))
-		rospy.loginfo("\t k2: {0} -> {1}".format(K[1, 1], k2))
-		rospy.loginfo("\t k3: {0} -> {1}".format(K[2, 2], k3))
+		self.log_value_if_updated('p', p_old, p)
+		self.log_value_if_updated('i', i_old, i)
+		self.log_value_if_updated('d', d_old, d)
+		self.log_value_if_updated('sat', sat_old, sat)
 
-
+		self.log_value_if_updated('c', c_old, c)
+		self.log_value_if_updated('k1', K[0, 0], k1)
+		self.log_value_if_updated('k2', K[1, 1], k2) 
+		self.log_value_if_updated('k3', K[2, 2], k3) 
 		
 		# Update controller gains
 		self.PID.updateGains(p, i, d, sat)
