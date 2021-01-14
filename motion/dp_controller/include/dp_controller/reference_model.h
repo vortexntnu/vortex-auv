@@ -10,8 +10,9 @@ using namespace Eigen;
 struct ReferenceModel {   
 
      ReferenceModel();
-     
+
      Eigen::Vector3d calculate_smooth(const Eigen::Vector3d &x_ref);
+     void reset(Eigen::Vector3d pos);
 
      Eigen::Vector3d x_d_prev;         /** Previous desired body position            */
      Eigen::Vector3d x_d_prev_prev;    /** Previous previous desired body position   */

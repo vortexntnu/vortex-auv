@@ -26,3 +26,10 @@ Eigen::Vector3d ReferenceModel::calculate_smooth(const Eigen::Vector3d &x_ref)
      x_d_prev = x_d;
      return x_d;
 }
+
+void ReferenceModel::reset(Eigen::Vector3d pos) {
+     x_d_prev = pos;
+     x_d_prev_prev = pos;
+     x_ref_prev = pos;
+     x_ref_prev_prev = pos;
+}
