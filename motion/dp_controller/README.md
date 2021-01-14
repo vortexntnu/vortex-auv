@@ -29,3 +29,10 @@ The controller is currently used by the dp_guidance block to provide one of the 
 * Depth hold      
 * Pose+Heading hold
 
+
+The controller parameters can be changed during runtime because of the dynamic reconfigure server that is present
+in the controller_ros file. The parameters can be found under /cfg/Controller.cfg. To reconfigure the parameters, use
+```
+rosrun rqt_reconfigure rqt_reconfigure
+```
+and select the /dp node from the list of reconfigurable nodes.
