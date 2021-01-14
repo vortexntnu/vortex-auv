@@ -491,6 +491,7 @@ class LosPathFollowing(object):
 
 		delta = config['delta']
 		
+		# Print reconfigure data with precision of 4 decimal points.
 		rospy.loginfo("los_guidance reconfigure:")
 		rospy.loginfo("\t delta: {:.4f} -> {:.4f}".format(self.los.delta, delta))
         
