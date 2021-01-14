@@ -43,7 +43,7 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
   Eigen::Matrix6d K_p = proportionalGainMatrix(R);
   Eigen::Matrix6d K_i = integralGainMatrix(R);
 
-  // Reference model
+  // Reference model from reference_model.cpp
   Eigen::Vector3d x_d_smooth = ReferenceModel(x,x_d);
 
   // Error Vector
