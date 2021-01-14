@@ -163,10 +163,10 @@ class AutopilotBackstepping:
 		"""
 		Update the backstepping controller gains.
         Args:
-            c   heading gain
-            k1  surge speed gain
-            k2  sway speed gain
-            k3  heave speed gain
+            c   a double containing heading gain
+            k1  a double containing surge speed gain
+            k2  a double containing sway speed gain
+            k3  a double containing heave speed gain
 		"""
 		
 		self.controller.c = c
@@ -287,8 +287,8 @@ class Autopilot:
 
 		Args:
 			name		The string name of the variable
-			old_value	The old value :)
-			new_value	The new value :)
+			old_value	A real number
+			new_value	A real number
 		"""
 
 		if old_value != new_value:
@@ -300,11 +300,11 @@ class Autopilot:
 		Handle updated configuration values.
 		
 		Args:
-			config	The dynamic reconfigure server's config
+			config	The dynamic reconfigure server's Config type variable
 			level	Ununsed variable
 
 		Returns:
-			The updated config argument.
+			A Config type containing the updated config argument.
 		"""
 
 		# Old parameters
