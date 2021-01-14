@@ -8,6 +8,11 @@
 * controller/mode
 * debug/controlstates
 
+#### Servers:
+* Dynamic reconfigure
+* Move base action server
+* Control mode service server
+
 
 This package provices an implementation of _Fjellstad & Fossen 1994: Quaternion Feedback Regulation of Underwater Vehicles_,
 a nonlinear PD position and orientation controller, which in this implementation has been expanded with integral effect.
