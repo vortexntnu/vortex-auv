@@ -491,7 +491,8 @@ class LosPathFollowing(object):
 
 		delta = config['delta']
 		
-		rospy.loginfo("""los_guidance reconfigure request: \n delta: {0} -> {1}""".format(self.los.delta, delta))
+		rospy.loginfo("los_guidance reconfigure:")
+		rospy.loginfo("\t delta: {:.4f} -> {:.4f}".format(self.los.delta, delta))
         
 		# update look-ahead distance and config
 		self.los.delta = config['delta']
