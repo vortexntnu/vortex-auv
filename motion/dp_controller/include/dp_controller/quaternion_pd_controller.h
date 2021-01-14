@@ -25,6 +25,8 @@
 #include <cmath>
 #include "eigen_typedefs.h"
 #include <iostream>
+#include "reference_model.h"
+
 using namespace Eigen;
 
 /**
@@ -105,12 +107,9 @@ public:
                           const Eigen::Vector3d   &x_d,
                                 float             R);
 
-
-  Eigen::Vector6d integral          = Eigen::Vector6d::Zero();  /** Integral error vector                     */
-  Eigen::Vector3d x_d_prev          = Eigen::Vector3d::Zero();  /** Previous desired body position            */
-  Eigen::Vector3d x_d_prev_prev     = Eigen::Vector3d::Zero();  /** Previous previous desired body position   */
-  Eigen::Vector3d x_ref_prev        = Eigen::Vector3d::Zero();  /** Previous reference body position          */
-  Eigen::Vector3d x_ref_prev_prev   = Eigen::Vector3d::Zero();  /** Previous previous reference body position */
+  ReferenceModel referenceModel;
+  
+  Eigen::Vector6d integral = Eigen::Vector6d::Zero();  /** Integral error vector */
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

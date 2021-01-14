@@ -5,7 +5,15 @@
 #include "dp_controller/quaternion_pd_controller.h"
 #include "dp_controller/reference_model.h"
 
-double ReferenceModel(const Egien::Vector3d &x, const Eigen::Vector3d &x_ref)
+
+ReferenceModel::ReferenceModel() {
+     Eigen::Vector3d x_d_prev          = Eigen::Vector3d::Zero();
+     Eigen::Vector3d x_d_prev_prev     = Eigen::Vector3d::Zero();
+     Eigen::Vector3d x_ref_prev        = Eigen::Vector3d::Zero();
+     Eigen::Vector3d x_ref_prev_prev   = Eigen::Vector3d::Zero();
+}
+
+Eigen::Vector3d ReferenceModel::calculate_smooth(const Eigen::Vector3d &x_ref)
 {
      Eigen::Vector3d x_d;
      Eigen::Vector3d a_x(1,-1.990024937655860,0.990049813123053);

@@ -90,10 +90,11 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 
       // TO AVOID AGGRESSIVE SWITCHING
       // set current target position to previous position
-      m_controller->x_d_prev = position;
-      m_controller->x_d_prev_prev = position;
-      m_controller->x_ref_prev = position;
-      m_controller->x_ref_prev_prev = position;
+
+      m_controller->referenceModel.x_d_prev = position;
+      m_controller->referenceModel.x_d_prev_prev = position;
+      m_controller->referenceModel.x_ref_prev = position;
+      m_controller->referenceModel.x_ref_prev_prev = position;
 
       // Integral action reset
       m_controller->integral = Eigen::Vector6d::Zero(); 
@@ -143,10 +144,10 @@ void Controller::actionGoalCallBack()
 {
 
   // set current target position to previous position
-  m_controller->x_d_prev = position;
-  m_controller->x_d_prev_prev = position;
-  m_controller->x_ref_prev = position;
-  m_controller->x_ref_prev_prev = position;
+  m_controller->referenceModel.x_d_prev = position;
+  m_controller->referenceModel.x_d_prev_prev = position;
+  m_controller->referenceModel.x_ref_prev = position;
+  m_controller->referenceModel.x_ref_prev_prev = position;
 
   // accept the new goal - do I have to cancel a pre-existing one first?
   mGoal = mActionServer->acceptNewGoal()->target_pose;

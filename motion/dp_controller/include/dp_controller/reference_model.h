@@ -7,7 +7,18 @@
 #include <math.h>
 using namespace Eigen;
 
+struct ReferenceModel {   
 
-double ReferenceModel(const Egien::Vector3d &x, const Eigen::Vector3d &x_ref);
+     ReferenceModel();
+     
+     Eigen::Vector3d calculate_smooth(const Eigen::Vector3d &x_ref);
+
+     Eigen::Vector3d x_d_prev;         /** Previous desired body position            */
+     Eigen::Vector3d x_d_prev_prev;    /** Previous previous desired body position   */
+     Eigen::Vector3d x_ref_prev;       /** Previous reference body position          */
+     Eigen::Vector3d x_ref_prev_prev;  /** Previous previous reference body position */
+
+     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
 
 #endif  // VORTEX_CONTROLLER_REFERENCE_MODEL_H

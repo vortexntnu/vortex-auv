@@ -4,13 +4,13 @@
 
 
 #include "dp_controller/quaternion_pd_controller.h"
-#include "dp_controller/reference_model.h"
 
 QuaternionPdController::QuaternionPdController(double a, double b, double c, double i, double W, double B,
                                                const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B)
 : m_r_G(r_G), m_r_B(r_B), m_W(W), m_B(B)
 {
   setGains(a, b, c, i);
+  referenceModel = ReferenceModel();
 }
 
 void QuaternionPdController::setGains(double a, double b, double c, double i)
@@ -42,7 +42,7 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d    &x,
   Eigen::Matrix6d K_i = integralGainMatrix(R);
 
   // Reference model from reference_model.cpp
-  Eigen::Vector3d x_d_smooth = ReferenceModel(x,x_d);
+  Eigen::Vector3d x_d_smooth = referenceModel.calculate_smooth(x_d);
 
   // Error Vector
   Eigen::Vector6d z   = errorVector(x, x_d_smooth, q, q_d);
@@ -137,21 +137,3 @@ bool QuaternionPdController::circleOfAcceptance(const Eigen::Vector3d   &x,
   return (distance < R);
 }
 
-
-Eigen::Vector3d QuaternionPdController::referenceModel(const Eigen::Vector3d   &x,
-                                                       const Eigen::Vector3d   &x_ref)
-{
-  
-  Eigen::Vector3d x_d;
-
-  Eigen::Vector3d a_x(1,-1.990024937655860,0.990049813123053);
-  Eigen::Vector3d b_x(6.218866798092052e-06,1.243773359618410e-05,6.218866798092052e-06);
-  x_d = b_x(0) * x_ref + b_x(1) * x_ref_prev + b_x(2) * x_ref_prev_prev - a_x(1) * x_d_prev - a_x(2) * x_d_prev_prev;
-
-  // x_d[k] = x_d[k-1]
-  x_ref_prev_prev = x_ref_prev;
-  x_ref_prev = x_ref;
-  x_d_prev_prev = x_d_prev;
-  x_d_prev = x_d;
-  return x_d;
-}
