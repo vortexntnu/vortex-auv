@@ -1,0 +1,2 @@
+##Landmarks
+This ROS-node serves as an interface between the perception system and the control system. The node receives object positions ("landmarks") published by the perception system on a ROS-topic. The object positions are stored in the node before they are published on a ROS-topic the control system subscribes to. 
