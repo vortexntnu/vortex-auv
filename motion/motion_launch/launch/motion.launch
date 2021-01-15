@@ -16,8 +16,8 @@
 
   <!-- Controller nodes-->
   <group ns="$(arg ns_controller)">
-    <node pkg="autopilot"           type="autopilot.py"                 name="autopilot"    output="screen"/>
-    <node pkg="dp_controller"       type="dp_controller_node"           name="dp"           output="screen"/>
+    <node pkg="autopilot"           type="autopilot_node.py"     name="autopilot" output="screen"/>
+    <node pkg="dp_controller"       type="dp_controller_node"    name="dp"        output="screen"/>
   </group>
 
     <!-- Thrust nodes-->

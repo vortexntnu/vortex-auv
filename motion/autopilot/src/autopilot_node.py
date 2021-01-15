@@ -4,12 +4,16 @@
 # All rights reserved.
 
 import rospy
+import numpy as np
 
 from geometry_msgs.msg import Wrench
 from vortex_msgs.msg import GuidanceData
 
 from pid.pid_controller import PIDRegulator
 from backstepping.backstepping_controller import BacksteppingDesign, BacksteppingControl
+
+from dynamic_reconfigure.server import Server
+from autopilot.cfg import AutopilotConfig
 
 class AutopilotPID:
 	"""
@@ -157,10 +161,18 @@ class AutopilotBackstepping:
 	
 	def updateGains(self, c, k1, k2, k3):
 		"""
-		Currently an empty placeholder
+		Update the backstepping controller gains.
+        Args:
+            c   a double containing heading gain
+            k1  a double containing surge speed gain
+            k2  a double containing sway speed gain
+            k3  a double containing heave speed gain
 		"""
-
-		pass
+		
+		self.controller.c = c
+		self.controller.K = np.array(( (k1, 0, 0),
+                            		   (0, k2, 0), 
+                            		   (0, 0, k3) )) 
 
 
 	def regulate(self, u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot):
@@ -224,6 +236,9 @@ class Autopilot:
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 
+		# Dynamic reconfigure 
+		self.config = {}
+		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
 
 	def guidance_data_callback(self, msg):
 		"""
@@ -265,6 +280,74 @@ class Autopilot:
 		# Publish the thrust message to /manta/thruster_manager/input
 		self.pub_thrust.publish(thrust_msg)
 		
+
+	def log_value_if_updated(self, name, old_value, new_value):
+		"""
+		A helper function for the config_callback() method
+
+		Args:
+			name		The string name of the variable
+			old_value	A real number
+			new_value	A real number
+		"""
+
+		if old_value != new_value:
+			rospy.loginfo("\t {:}: {:.4f} -> {:.4f}".format(name, old_value, new_value))
+
+
+	def config_callback(self, config, level):
+		"""
+		Handle updated configuration values.
+		
+		Args:
+			config	The dynamic reconfigure server's Config type variable
+			level	Ununsed variable
+
+		Returns:
+			A Config type containing the updated config argument.
+		"""
+
+		# Old parameters
+		p_old = self.PID.controller.p
+		i_old = self.PID.controller.i
+		d_old = self.PID.controller.d
+		sat_old = self.PID.controller.sat
+
+		c_old = self.Backstepping.controller.c
+		K = self.Backstepping.controller.K
+
+		# Reconfigured PID parameters
+		p = config['PID_p']
+		i = config['PID_i']
+		d = config['PID_d']
+		sat = config['PID_sat']
+
+		# Reconfigured Backstepping parameters
+		c = config['Backstepping_c']
+		k1 = config['Backstepping_k1']
+		k2 = config['Backstepping_k2']
+		k3 = config['Backstepping_k3']
+
+		rospy.loginfo("autopilot reconfigure: ")
+
+		self.log_value_if_updated('p', p_old, p)
+		self.log_value_if_updated('i', i_old, i)
+		self.log_value_if_updated('d', d_old, d)
+		self.log_value_if_updated('sat', sat_old, sat)
+
+		self.log_value_if_updated('c', c_old, c)
+		self.log_value_if_updated('k1', K[0, 0], k1)
+		self.log_value_if_updated('k2', K[1, 1], k2) 
+		self.log_value_if_updated('k3', K[2, 2], k3) 
+		
+		# Update controller gains
+		self.PID.updateGains(p, i, d, sat)
+		self.Backstepping.updateGains(c, k1, k2, k3)
+
+		# update config
+		self.config = config
+
+		return config
 		
 
 if __name__ == '__main__':
