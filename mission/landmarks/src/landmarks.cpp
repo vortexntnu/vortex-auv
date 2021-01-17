@@ -13,8 +13,7 @@ public:
 
     void callback(vortex_msgs::ObjectPosition objPos){
         objectPositions[objPos.objectID] = objPos.position;
-        op_pub.publish(objPos);
-        printMap(objectPositions);
+        op_pub.publish(objPos);        
     }
 
     void execute(){
@@ -23,8 +22,8 @@ public:
             loop_rate.sleep();
         }
     }
-    void printMap(std::map<std::string,geometry_msgs::Point> myMap){
-        for(auto elem : myMap){
+    void printMap(std::map<std::string,geometry_msgs::Point> objectsMap){
+        for(auto elem : objectsMap){
             ROS_INFO("ID: %s", elem.first.c_str());
             ROS_INFO("position: %f,%f,%f",elem.second.x,elem.second.y,elem.second.z);
             
