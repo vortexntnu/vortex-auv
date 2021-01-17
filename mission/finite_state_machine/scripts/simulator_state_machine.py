@@ -7,7 +7,7 @@ from fsm_helper import dp_move, los_move
 from smach_ros import IntrospectionServer, SimpleActionState
 from geometry_msgs.msg import Point
 from vortex_msgs.msg import MoveAction, MoveGoal
-from sm_classes import GateSearchState, HoldPositionState
+from sm_classes import GateSearchState
 from nav_msgs.msg import Odometry
 
 
@@ -75,11 +75,9 @@ def main():
                             los_move(8,1.5),
                             transitions={'aborted':'GATE_SEARCH'})                  
                 
-        StateMachine.add('GATE_SM',gate_sm, transitions={'succeeded':'HOLDING_POSITION'})
+        StateMachine.add('GATE_SM',gate_sm)
 
-        StateMachine.add('HOLDING_POSITION',HoldPositionState())  
-
-    
+            
     intro_server = IntrospectionServer(str(rospy.get_name()), simulator_state_machine,'/SM_ROOT')    
     intro_server.start()
 
