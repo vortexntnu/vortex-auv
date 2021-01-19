@@ -1,0 +1,7 @@
+thrusters:
+  rate_of_change:
+    max:  # Maximum rate of change in newton per second for a thruster
+  characteristics:
+    thrust:      []
+    pulse_width: []
+  offset: []
