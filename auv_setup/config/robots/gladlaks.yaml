@@ -1,0 +1,73 @@
+# This file defines parameters specific to Gladlaks
+#
+# When looking at the AUV from above, the thruster placement is:
+
+
+#
+
+physical:
+  mass_kg: TODO
+  displacement_m3: TODO
+  center_of_mass: [TODO, TODO, TODO]
+  center_of_buoyancy: [TODO, TODO, TODO]
+  drag_coefficients: [TODO, TODO, TODO, TODO, TODO, TODO]
+  thruster_layout:
+    [[ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO]]
+  thruster_positions:
+    [[ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO],
+     [ TODO, TODO, TODO]]
+
+propulsion:
+  dofs:
+    num: 6
+    which:
+      surge: true
+      sway:  true
+      heave: true
+      roll:  true
+      pitch: true
+      yaw:   true
+  thrusters:
+    num: 8
+    map: [0, 1, 2, 3, 4, 5, 6, 7]
+    direction: [TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]
+    configuration_matrix:
+      [[ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Surge
+       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Sway
+       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Heave
+       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Roll
+       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Pitch
+       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]] # Yaw
+  command:
+    wrench:
+      max:     [ TODO, TODO, TODO, TODO, TODO, TODO]
+      scaling: [ TODO, TODO, TODO, TODO, TODO, TODO]
+
+controller:
+  circleOfAcceptance: 0.10
+  frequency: 40 # THIS SHOULD BE 40Hz for the controller to perform good. This is because the built in reference model will work 2x faster as if the controller ran at 20Hz
+  position_gain: 0.3 #5.0
+  attitude_gain: 0.4 #2.5
+  velocity_gain: 0.7 #0.4
+  integral_gain: 0.0 #0.3
+# TODO: change controller->dp
+# TODO: add autopilot gains (see Autopilot.cfg)
+
+computer: TODO
+
+torpedos:
+  left_pin: TODO
+  right_pin: TODO
