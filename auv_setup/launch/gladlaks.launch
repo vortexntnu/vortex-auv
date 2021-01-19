@@ -12,7 +12,6 @@
 
   <!-- Include files -->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-
   <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
   <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
 
