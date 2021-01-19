@@ -280,6 +280,37 @@ class Autopilot:
 		# Publish the thrust message to /manta/thruster_manager/input
 		self.pub_thrust.publish(thrust_msg)
 		
+	def override_dyn_reconfigure_defaults(self):
+		"""
+		Fetch controller parameters from the parameter server
+		and override the ones set by default by the dynamic reconfigure
+		server.
+
+		The parameters that are loaded are defined in <auv>.yaml.
+		"""
+		p = rospy.get_param("/controllers/autopilot/PID/p")
+		i = rospy.get_param("/controllers/autopilot/PID/i")
+		d = rospy.get_param("/controllers/autopilot/PID/d")
+		sat = rospy.get_param("/controllers/autopilot/PID/sat")
+
+		c = rospy.get_param("/controllers/autopilot/backstepping/c")
+		k1 = rospy.get_param("/controllers/autopilot/backstepping/k1")
+		k2 = rospy.get_param("/controllers/autopilot/backstepping/k2")
+		k3 = rospy.get_param("/controllers/autopilot/backstepping/k3")
+
+		rospy.loginfo("Overriding dyn. reconfigure default values with values from parameter server...")
+		
+		self.srv_reconfigure.update_configuration({\
+			"PID_p":p,
+			"PID_i":i,
+			"PID_d":d,
+			"PID_sat":sat,
+			"Backstepping_c":c,
+			"Backstepping_c":k1,
+			"Backstepping_c":k2,
+			"Backstepping_c":k3
+			})
+
 
 	def log_value_if_updated(self, name, old_value, new_value):
 		"""
@@ -348,11 +379,14 @@ class Autopilot:
 		self.config = config
 
 		return config
-		
+
 
 if __name__ == '__main__':
 	try:
 		autopilot = Autopilot()
+	
+		autopilot.override_dyn_reconfigure_defaults()
+
 		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass

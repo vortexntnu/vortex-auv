@@ -476,6 +476,18 @@ class LosPathFollowing(object):
 
 		self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
 
+	def override_dyn_reconfigure_defaults(self):
+		"""
+		Fetch controller parameters from the parameter server
+		and override the ones set by default by the dynamic reconfigure
+		server.
+
+		The parameters that are loaded are defined in <auv>.yaml.
+		"""
+		delta = rospy.get_param("/guidance/LOS/delta")
+
+		rospy.loginfo("Overriding dyn. reconfigure default values with values from parameter server...")
+		self.srv_reconfigure.update_configuration({"delta":delta})
 
 	def config_callback(self, config, level):
 		"""
@@ -505,6 +517,7 @@ class LosPathFollowing(object):
 if __name__ == '__main__':
 	try:
 		los_path_following = LosPathFollowing()
+		los_path_following.override_dyn_reconfigure_defaults();
 		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass
