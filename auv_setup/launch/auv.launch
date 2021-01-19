@@ -26,7 +26,7 @@
 
 
     <!-- IMU -->
-    <group if="$(eval type='real')">
+    <group if="$(eval type == 'real')">
       <node pkg = "driver_stim300" type = "stim300_driver_node" name = "driver_stim300" args="/dev/ttyUSB0"/>
       <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 3.14159 0 0 base_link imu_0" />
 
