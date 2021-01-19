@@ -36,7 +36,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   position = startPoint;
 
   // Launch file specifies manta.yaml as directory
-  if (!m_nh.getParam("/controller/frequency", m_frequency))
+  if (!m_nh.getParam("/controllers/dp/frequency", m_frequency))
     ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
   std::string s;
   if (!m_nh.getParam("/computer", s))
@@ -47,7 +47,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   if (s == "pc-debug")
     m_debug_mode = true;
 
-  if(!m_nh.getParam("/controller/circleOfAcceptance", R)){
+  if(!m_nh.getParam("/controllers/dp/circleOfAcceptance", R)){
     ROS_WARN("Failed to read parameter circleOfAcceptance");
   }  
 
@@ -418,13 +418,13 @@ void Controller::initPositionHoldController()
 {
   // Read controller gains from parameter server
   double a, b, c, i;
-  if (!m_nh.getParam("/controller/velocity_gain", a))
+  if (!m_nh.getParam("/controllers/dp/velocity_gain", a))
     ROS_ERROR("Failed to read parameter velocity_gain.");
-  if (!m_nh.getParam("/controller/position_gain", b))
+  if (!m_nh.getParam("/controllers/dp/position_gain", b))
     ROS_ERROR("Failed to read parameter position_gain.");
-  if (!m_nh.getParam("/controller/attitude_gain", c))
+  if (!m_nh.getParam("/controllers/dp/attitude_gain", c))
     ROS_ERROR("Failed to read parameter attitude_gain.");
-  if (!m_nh.getParam("/controller/integral_gain", i))
+  if (!m_nh.getParam("/controllers/dp/integral_gain", i))
     ROS_ERROR("Failed to read parameter integral_gain.");
 
   // Read center of gravity and buoyancy vectors
