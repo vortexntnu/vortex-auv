@@ -56,16 +56,24 @@ OCR5A = 0; /* Duty-cycle THR6 */
 OCR5B = 0; /* Duty-cycle THR7 */
 
 
-/* Setting A to Fast PWM, clearing OCnA and OCnB on compare match */
-TCCR3A = (1 << COM3A1) | (1 << COM3B1) | (1 << WGM31) | (1 << WGM30);
-TCCR4A = (1 << COM4A1) | (1 << COM4B1) | (1 << WGM41) | (1 << WGM40);
-TCCR5A = (1 << COM5A1) | (1 << COM5B1) | (1 << WGM51) | (1 << WGM50);
+/* Setting A to Fast PWM, clearing OCnA, OCnB and OCnC on compare match */
+TCCR3A = (1 << COM3A1) | (1 << COM3B1) | (1 << COM3C1) | (1 << WGM32) | (1 << WGM31) | (1 << WGM30);
+TCCR4A = (1 << COM4A1) | (1 << COM4B1) | (1 << COM4C1) | (1 << WGM42) | (1 << WGM41) | (1 << WGM40);
+TCCR5A = (1 << COM5A1) | (1 << COM5B1) | (1 << COM5C1) | (1 << WGM52) | (1 << WGM51) | (1 << WGM50);
 
 
 /* Setting clock-source to 1/1024 * clk. See table 17-6 */
 TCCR3B = (1 << CS32) | (1 << CS30);
 TCCR4B = (1 << CS42) | (1 << CS40);
 TCCR4B = (1 << CS52) | (1 << CS50);
+
+
+/* Enabling timers */
+PRR1 &= !((1 << PRTIM3) | (1 << PRTIM4) | (1 << PRTIM5));
+
+
+/* Enabling interrupt */
+SREG |= (1 << I);
 
 
 /* Init timers */
@@ -77,6 +85,22 @@ TCNT5 = 0;
 /* Inserting nop for system-sync */
 __no_operation();
 
+/* Function to map the wanted Duty-cycle to counting-variable */
+/* Variables used: 
+clock_speed = 16MHz 
+clk_divisior = 1024
+
+OCRnx could be set to at most 0xFF
+
+It is required to develop a function to translate the value
+into the required duty-cycle
+*/
+uint16_t offset = 0;
+uint8_t calculate_OCRnx_signal(const uint16_t& value){
+  return (uint8_t)((value - offset) / 0xFF);
+}
+
+
 /* Test to set the duty cycle */
 int main(void){
   while(1){
@@ -84,7 +108,7 @@ int main(void){
     uint16_t diff_duty_cycle = 100;
     
     for(int i = 0; i < 100; i++){
-      OCRA3 = base_duty_cycle + i * diff_duty_cycle;
+      OCR3A = base_duty_cycle + i * diff_duty_cycle;
       
       _delay_ms(250);
     }
