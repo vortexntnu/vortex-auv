@@ -184,7 +184,10 @@ void setup()
   
   
   /* Enabling global interrupt */
-  SREG |= 0x7;
+  #ifndef I
+    #define I 7
+  #endif /* I */
+  SREG = (1 << I);
   
   
   /* Init timers */
