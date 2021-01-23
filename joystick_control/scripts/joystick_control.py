@@ -1,21 +1,21 @@
 import rospy
 
-#from vortex_msgs.msg import ThrusterForces
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
 
+# to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
 class JoystickMappingNode(object):
 
 	def __init__(self):
 		
-		rospy.init_node('ControllerMapping', anonymous = True)
+		rospy.init_node('joystick_control', anonymous = True)
 
 		self.sub = 
-		rospy.Subscriber('manta/thruster_manager/input', Wrench, self.callback, queue_size=1)
+		rospy.Subscriber('joystick_node', Wrench, self.callback, queue_size=1)
 		
 		self.pub = 
-		rospy.Publisher('joystick_control', Joy, queue_size=1)
+		rospy.Publisher('manta/thruster_manager/input', Wrench, queue_size=1)
 		
 
 		# Name buttons and axes based on index from joy-node
@@ -32,6 +32,16 @@ class JoystickMappingNode(object):
 
 		def callback(self, msg):
 	
+		buttons = {}
+		axes = {}
+
+		for i in range(len(msg.buttons)):
+            buttons[self.buttons_map[i]] = msg.buttons[i]
+
+        for j in range(len(msg.axes)):
+            axes[self.axes_map[j]] = msg.axes[j]
+
+
 		joystick_msg = Wrench()
 
 		surge = joystick_msg.force.x
@@ -41,12 +51,12 @@ class JoystickMappingNode(object):
 		pitch = joystick_msg.torque.y
 		yaw = joystick_msg.torque.z
 
-		surge = axes['vertical_axis_left_stick']     # Surge
-	   	sway = -axes['horizontal_axis_left_stick']
-	   	heave = (axes['RT'] - axes['LT'])/2  
-	    roll = (buttons['RB'] - buttons['LB'])      # Roll
-	    pitch = -axes['vertical_axis_right_stick']   # Pitch
-	    yaw = -axes['horizontal_axis_right_stick']  # Yaw
+		axes['vertical_axis_left_stick'] = surge    
+	   	-axes['horizontal_axis_left_stick'] = sway
+	   	(axes['RT'] - axes['LT'])/2 = heave
+	    (buttons['RB'] - buttons['LB']) = roll     
+	    -axes['vertical_axis_right_stick'] = pitch   
+	    -axes['horizontal_axis_right_stick'] = yaw  
        
     	
     	self.pub.publish(joystick_msg)
@@ -55,9 +65,8 @@ class JoystickMappingNode(object):
 if __name__ == '__main__':
 
 	try:
-		ControllerMapping = JoystickMappingNode()
+		joystick_control = JoystickMappingNode()
 		rospy.spin()
-
 	except rospy.ROSInterruptException:
 		pass
 
