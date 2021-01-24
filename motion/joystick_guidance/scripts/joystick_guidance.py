@@ -5,11 +5,11 @@ from sensor_msgs.msg import Joy
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
-class JoystickMappingNode(object):
+class JoystickGuidanceNode(object):
 
 	def __init__(self):
 		
-		rospy.init_node('joystick_control', anonymous = True)
+		rospy.init_node('joystick_guidance', anonymous = True)
 
 		self.sub = 
 		rospy.Subscriber('joystick_node', Wrench, self.callback, queue_size=1)
@@ -65,7 +65,7 @@ class JoystickMappingNode(object):
 if __name__ == '__main__':
 
 	try:
-		joystick_control = JoystickMappingNode()
+		joystick_guidance = JoystickGuidanceNode()
 		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass

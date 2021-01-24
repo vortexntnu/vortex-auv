@@ -1,6 +1,4 @@
 import rospy
-
-#from vortex_msgs.msg import ThrusterForces
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
 
@@ -32,6 +30,15 @@ class JoystickMappingNode(object):
 
 		def callback(self, msg):
 	
+		buttons = {}
+		axes = {}
+
+		for i in range(len(msg.buttons)):
+			buttons[self.buttons_map[i]] = msg.buttons[i]
+
+		for j in range(len(msg.axes)):
+            axes[self.axes_map[j]] = msg.axes[j]
+
 		joystick_msg = Wrench()
 
 		surge = axes['vertical_axis_left_stick']     

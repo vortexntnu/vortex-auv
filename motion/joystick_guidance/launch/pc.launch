@@ -15,5 +15,5 @@
   <node pkg="dp_controller" type="node" name="controller" output="screen"/>
   <node pkg="vortex_allocator"  type="node" name="allocator"  output="screen"/>
 
-  <include file="$(find joystick_control)/launch/joystick_control.launch" /> 
+  <include file="$(find joystick_guidance)/launch/joystick_guidance.launch" /> 
 </launch>
