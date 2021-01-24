@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  
+  <!-- Input arguments -->
+  <arg name="type" default="simulator"/> <!-- real | simulator -->
+  <arg name="rov"  default="manta"/>     <!-- manta | gladlaks-->
+
+  <!-- Argument to signal that we are driving in ROV mode-->
+  <arg name="control_mode" default="manual"/>
+
+
+  <!-- COMMON -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+  <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
+
+
+
+  <!-- MANTA SPECIFIC-->
+  <group if="$(eval auv == 'manta')">
+    <!-- Load parameters -->
+    <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
+    <rosparam command="load" file="$(find auv_setup)/config/thrusters/thruster_terrapin.yaml" />
+
+    <!-- Include files -->
+    <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+    <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+    <!-- Joystick controls -->
+  </group>
+  
+
+
+  <!-- GLADLAKS SPECIFIC -->
+  <group if="$(eval auv == 'gladlaks')">
+    <!-- Load parameters -->
+    <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
+    <rosparam command="load" file="$(find auv_setup)/config/thrusters/thruster_T200.yaml" />
+
+    <!-- Include files -->
+    <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+    <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+  </group>
+
+</launch>

@@ -5,9 +5,11 @@
   <!-- Input arguments -->
   <arg name="type" default="simulator"/> <!-- real|simulator -->
 
-  <!-- Load parameters -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
-  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+  <!-- Argument to signal that we are driving in AUV mode-->
+  <arg name="control_mode" default="auto"/>
+
+  <!-- COMMON -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
 
   <!-- Include files -->
