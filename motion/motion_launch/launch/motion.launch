@@ -35,11 +35,11 @@
   <!-- ROV motion -->
   <group if="$(eval control_mode == 'manual')"/>
 
+    <param name="joy/deadzone"        value="0.2"/>
+    <param name="joy/autorepeat_rate" value="100"/>
+    
     <!-- Joystick nodes -->
     <group ns="$(arg ns_joystick)">
-        <param name="joy/deadzone"        value="0.2"/>
-        <param name="joy/autorepeat_rate" value="100"/>
-
         <node pkg="joy"                name="joy"                type="joy_node"              output="screen"/>
         <node pkg="topic_tools"        name="joy_throttler"      type="throttle"              output="screen" args="messages /joy 20"/>
         <node pkg="joystick_guidance"  name="joystick_guidance"  type="joystick_guidance.py"  output="screen"/>
