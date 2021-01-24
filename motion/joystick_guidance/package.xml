@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <  <name>joystick_guidance</name>
+  <name>joystick_guidance</name>
   <version>0.0.0</version>
   <description>The joystick_guidance package</description>
   <maintainer email="jaehh@stud.ntnu.no">Jae Hyeong Hwang</maintainer>
