@@ -9,7 +9,7 @@ class JoystickGuidanceNode(object):
 
 	def __init__(self):
 		
-		rospy.init_node('joystick_guidance', anonymous = True)
+		rospy.init_node('joystick_guidance')
 
 		self.sub = 
 		rospy.Subscriber('joystick_node', Wrench, self.callback, queue_size=1)
