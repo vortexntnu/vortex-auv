@@ -14,6 +14,6 @@
 
 
   <!-- Dependencies needed after this package is compiled. -->
-  <run_depend>rospy</run_depend>
+  <exec_depend>rospy</exec_depend>
   
 </package>
