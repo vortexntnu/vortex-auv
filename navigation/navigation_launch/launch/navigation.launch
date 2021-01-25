@@ -2,7 +2,7 @@
 <launch>
 
   <!-- AUV navigation -->
-  <group if="$(eval control_mode == 'auto')"/>
+  <group if="$(eval control_mode == 'auto')">
 
     <!-- Navigation for real AUV -->
     <group if="$(eval type == 'real')">
@@ -30,8 +30,8 @@
   </group>
 
 
-    <!-- ROV navigation -->
-  <group if="$(eval control_mode == 'manual')"/>
+  <!-- ROV navigation -->
+  <group if="$(eval control_mode == 'manual')">
 
   </group>
 </launch>
