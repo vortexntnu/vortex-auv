@@ -4,7 +4,6 @@
   
   <!-- Input arguments -->
   <arg name="type" default="simulator"/> <!-- real | simulator -->
-  <arg name="dev" default="/dev/input/js0"/> <!-- The joystick device -->
 
   <!-- Argument to signal that we are driving in ROV mode-->
   <arg name="control_mode" default="manual"/>
