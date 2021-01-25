@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Written by Jae Hyeong Hwang
-# Copyright (c) 2020, Vortex NTNU.
+# Copyright (c) 2021, Vortex NTNU.
 # All rights reserved.
 
 import rospy
@@ -20,9 +20,12 @@ class JoystickGuidanceNode():
 
 		self.pub = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
 
-		self.surge_scaling = 10
-		self.sway_scaling  = 10
-		self.heave_scaling = 10
+		self.surge_scaling = rospy.get_param('/joystick/scaling/surge', 1)
+		self.sway_scaling  = rospy.get_param('/joystick/scaling/sway', 1)
+		self.heave_scaling = rospy.get_param('/joystick/scaling/heave', 1)
+		self.roll_scaling  = rospy.get_param('/joystick/scaling/roll', 1)
+		self.pitch_scaling = rospy.get_param('/joystick/scaling/pitch', 1)
+		self.yaw_scaling   = rospy.get_param('/joystick/scaling/yaw', 1)
 
 
 		# Name buttons and axes based on index from joy-node
@@ -51,9 +54,9 @@ class JoystickGuidanceNode():
 		surge 	= axes['vertical_axis_left_stick'] * self.surge_scaling
 		sway 	= axes['horizontal_axis_left_stick'] * self.sway_scaling
 		heave 	= (axes['RT'] - axes['LT'])/2 * self.heave_scaling
-		roll 	= (buttons['RB'] - buttons['LB'])   
-		pitch 	= -axes['vertical_axis_right_stick'] 
-		yaw 	= axes['horizontal_axis_right_stick']
+		roll 	= (buttons['RB'] - buttons['LB']) * self.roll_scaling  
+		pitch 	= axes['vertical_axis_right_stick'] * self.pitch_scaling
+		yaw 	= axes['horizontal_axis_right_stick'] * self.yaw_scaling
 
 		joystick_msg = Wrench()
 		joystick_msg.force.x  = surge
