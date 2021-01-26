@@ -9,7 +9,7 @@ from geometry_msgs.msg import Point
 from vortex_msgs.msg import MoveAction, MoveGoal
 from sm_classes import GateSearchState
 from nav_msgs.msg import Odometry
-
+import copy #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def main():
     rospy.init_node('simulator_state_machine')
@@ -52,28 +52,41 @@ def main():
                                                 MoveAction,
                                                 goal_cb=gate_goal_cb,
                                                 input_keys=['goal_position']),
-                            transitions={'succeeded':'PREPARE_MOVE_THROUGH','aborted':'GATE_SEARCH'},
+                            transitions={'succeeded':'LOS_MOVE_THROUGH_GATE','aborted':'GATE_SEARCH'},#transitions={'succeeded':'PREPARE_MOVE_THROUGH','aborted':'GATE_SEARCH'},
                             remapping={'goal_position':'goal_position'})
             
-            def prep_goal_cb(userdata, goal):
-                prep_goal = MoveGoal()                
-                prep_goal.target_pose.position = userdata.goal_position
-                x_dist = odom.pose.pose.position.x - userdata.goal_position.x
-                prep_goal.target_pose.position.x = userdata.goal_position.x + (x_dist/abs(x_dist))/2                 
-                prep_goal.guidance_type = "PositionHold" 
-                return prep_goal
+            # def prep_goal_cb(userdata, goal):
+            #     prep_goal = MoveGoal()                
+            #     prep_goal.target_pose.position = userdata.goal_position
+            #     x_dist = odom.pose.pose.position.x - userdata.goal_position.x
+            #     prep_goal.target_pose.position.x = userdata.goal_position.x + (x_dist/abs(x_dist))/2                 
+            #     prep_goal.guidance_type = "PositionHold" 
+            #     return prep_goal
 
-            StateMachine.add('PREPARE_MOVE_THROUGH',
-                            SimpleActionState(move_action_server,
-                                                MoveAction,
-                                                goal_cb=prep_goal_cb,
-                                                input_keys=['goal_position']),
-                            transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'},
-                            remapping={'goal_pos_input':'goal_position'})                     
+            # StateMachine.add('PREPARE_MOVE_THROUGH',
+            #                 SimpleActionState(move_action_server,
+            #                                 MoveAction,
+            #                                 goal_cb=prep_goal_cb,
+            #                                 input_keys=['goal_position']),
+            #                 transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'},
+            #                 remapping={'goal_pos_input':'goal_position'})                     
             
+            # StateMachine.add('LOS_MOVE_THROUGH_GATE',
+            #                 los_move(8,1.5),
+            #                 transitions={'aborted':'GATE_SEARCH'})
+            #
+            def through_goal_cb(userdata,goal):
+                through_goal = MoveGoal()
+                through_goal.target_pose.position = copy.deepcopy(userdata.goal_position)
+                through_goal.target_pose.position.x += 1
+                through_goal.guidance_type = 'LOS'
+                return through_goal
+
             StateMachine.add('LOS_MOVE_THROUGH_GATE',
-                            los_move(8,1.5),
-                            transitions={'aborted':'GATE_SEARCH'})                  
+                            SimpleActionState(move_action_server,
+                                            MoveAction,
+                                            goal_cb=through_goal_cb,
+                                            input_keys=['goal_position']))
                 
         StateMachine.add('GATE_SM',gate_sm)
 
