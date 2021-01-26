@@ -76,6 +76,15 @@ controller:
   velocity_gain: 0.7 #0.4
   integral_gain: 0.0 #0.3
 
+joystick:
+  scaling:
+    surge: 10
+    sway:  10
+    heave: 10
+    roll:  1
+    pitch: 1
+    yaw:   1
+
 computer: 'odroid'
 
 torpedos:       # TODO: decide what pins to use for torpedo
