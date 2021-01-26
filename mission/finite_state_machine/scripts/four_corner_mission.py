@@ -18,9 +18,9 @@ def main():
     with four_corner_sm:
 
         Sequence.add('1ST_CORNER', dp_move(0,0))
-        Sequence.add('2ND_CORNER', los_move(2,0))
-        Sequence.add('3RD_CORNER', los_move(2,2))
-        Sequence.add('4TH_CORNER', los_move(0,2))
+        Sequence.add('2ND_CORNER', los_move(4,0))
+        Sequence.add('3RD_CORNER', los_move(4,4))
+        Sequence.add('4TH_CORNER', los_move(0,4))
         Sequence.add('ORIGIN_RETURN',dp_move(0,0))        
 
     try:
