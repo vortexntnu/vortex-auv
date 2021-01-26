@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   vortex_msgs
   tf
-  autopilot
   dynamic_reconfigure
   reference_model
 )
@@ -94,7 +93,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-   cfg/Autopilot.cfg
+   cfg/LOS.cfg
 )
 
 ###################################
