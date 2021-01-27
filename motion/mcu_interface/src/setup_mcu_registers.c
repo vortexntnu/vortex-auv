@@ -110,15 +110,52 @@ void setup() {
   _delay_ms(1);
 }
 
-void loop() {
+/**
+ * @brief Small test-script to test THR7 
+ */
+void test_THR7(){
   /* Setting LED D3 high and LED D2 low */
   PORTF = 0xAA;
+  _delay_ms(1000);
 
-  /* Testing PWM-signals on THR7 */
-  OCR5B = 127;
-  _delay_ms(100);
+  /* Spinning from idle to full reverse thrust */
+  for(int thrust_count = 191; thrust_count > 126; thrust_count--){
+    OCR5B = thrust_count;
+    _delay(50);
+  }
+
+  /* Waiting 1 second */
+  _delay(1000);
+
+  /* Spinning from full reverse thrust to idle */
+  for(int thrust_count = 127; thrust_count < 192; thrust_count++){
+    OCR5B = thrust_count;
+    _delay(50);
+  }
   
+  /* Waiting for 2 seconds */
+  _delay(2000);
+
+  /* Spinning from idle to full forward thrust */
+  for(int thrust_count = 191; thrust_count < 256; thrust_count++){
+    OCR5B = thrust_count;
+    _delay(50);
+  }
+
+  /* Spinning from full forward thrust to idle */
+  for(int thrust_count = 255; thrust_count > 191; thrust_count--){
+    OCR5B = thrust_count;
+    _delay(50);
+  }
+
   /* Setting LED D2 high and LED D3 low */
   PORTF = 0x55;
-  _delay_ms(100);
+  _delay_ms(100000);
+
+  return;
+}
+
+void loop() {
+  test_THR7();
+  return;
 }
