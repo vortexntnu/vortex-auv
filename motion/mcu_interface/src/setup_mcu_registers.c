@@ -46,8 +46,12 @@ void setup() {
   DDRF = 0;
 
 
-  /* Set MISO output, all others input */
+  /* Set MISO as output, all others input */
   DDRB = (1 << DD_MISO);
+  
+  /* Enable SPI as slave */
+  SPCR = (1 << SPE);
+  SPCR &= !(1 << MSTR);
   
   
   /* Setting ports as output */
