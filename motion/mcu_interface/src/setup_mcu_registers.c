@@ -3,20 +3,37 @@
 #include <avr/interrupt.h>
 
 /**
- * @TODO Write better documentation if we go for this
+ * @brief This function does a linear transformation of a 16 bit control signal
+ * in the range [1000, 2000] to a 8 bit control signal in the range [127, 255] 
+ * 
+ * 
+ * From linear calculations: 
+ *      thruster_control_signal = 1000 => pwm_signal = 127
+ *      thruster_control_signal = 2000 => pwm_signal = 255
+ * 
+ * we get the function f: R -> R given by
+ * pwm_signal := f(thruster_control_signal) = 0.128 * thruster_control_signal - 1  
+ * 
+ * The calculated pwm_signal - value is casted to uint8_t as we desire values between
+ * 0x7F and 0xFF
+ *
+ * @warning If the given value is outside the specified range, the thrust is set to idle
+ * 
+ * @warning This linear transformation assumes that the clock-scaler is 
+ * set to 1/64
+ * 
+ * @warning May be a redundant code, due to using a 8 bit MCU. The thruster-commands
+ * should therefore be specified to be within 0x00 and 0xFF
  */
 uint8_t calculate_pwm_counter(const uint16_t& thruster_control_signal){
-  /** 
-   * From linear calculations: 
-   *      thruster_control_signal = 1000 => pwm_signal = 127
-   *      thruster_control_signal = 2000 => pwm_signal = 255
+  /**
+   * Checking if the signal is valid
    * 
-   * we get the function f: R -> R given by
-   * pwm_signal := f(thruster_control_signal) = 0.128 * thruster_control_signal - 1  
-   * 
-   * The calculated pwm_signal - value is casted to uint8_t as we desire values between
-   * 0x7F and 0xFF
+   * If not valid (outside the range), the thruster is set to idle thrust
    */
+  if(thruster_control_signal < 1000 || thruster_control_signal > 2000)
+    return (uint8_t) ((0xFF - 0x7F) / 2 + 0x7F);
+  
   return (uint8_t) (0.128 * thruster_control_signal - 1);
 }
 
@@ -48,17 +65,17 @@ void setup() {
   PORTL &= !((1 << PL3) | (1 << PL4));
 
 
-  /* Init duty-cycles to 0 */
-  OCR3AH = 0; /* Duty-cycle THR0 */
-  OCR3BH = 0; /* Duty-cycle THR1 */ 
-  OCR3CH = 0; /* Duty-cycle THR2 */ 
+  /* Init upper count-limit to 0 */
+  OCR3A = 0; /* Count THR0 */
+  OCR3B = 0; /* Count THR1 */ 
+  OCR3C = 0; /* Count THR2 */ 
   
-  OCR4AH = 0; /* Duty-cycle THR3 */ 
-  OCR4BH = 0; /* Duty-cycle THR4 */ 
-  OCR4CH = 0; /* Duty-cycle THR5 */ 
+  OCR4A = 0; /* Count THR3 */ 
+  OCR4B = 0; /* Count THR4 */ 
+  OCR4C = 0; /* Count THR5 */ 
   
-  OCR5AH = 0; /* Duty-cycle THR6 */ 
-  OCR5BH = 0; /* Duty-cycle THR7 */
+  OCR5A = 0; /* Count THR6 */ 
+  OCR5B = 0; /* Count THR7 */
   
   
   /* Setting A to Fast PWM, clearing OCnA and OCnB on compare match */
