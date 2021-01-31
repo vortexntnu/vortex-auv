@@ -48,13 +48,21 @@ propulsion:
        [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Roll
        [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Pitch
        [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]] # Yaw
+
+    rate_of_change:
+      max: TODO # Maximum rate of change in newton per second for a thruster
+    characteristics:  # The relationship between thrust in newton and the width in microseconds of the PWM signal to the ESCs
+      thrust:      [TODO]
+      pulse_width: [TODO]
+    offset: [TODO]
+
   command:
     wrench:
       max:     [ TODO, TODO, TODO, TODO, TODO, TODO]
       scaling: [ TODO, TODO, TODO, TODO, TODO, TODO]
 
 controllers:
-  dp:
+  LOS:
     circleOfAcceptance: 0.10
     frequency: 40 # THIS SHOULD BE 40Hz for the controller to perform good. This is because the built in reference model will work 2x faster as if the controller ran at 20Hz
     velocity_gain: 3.5   #0.4
@@ -82,3 +90,5 @@ computer: TODO
 torpedos:
   left_pin: TODO
   right_pin: TODO
+
+thrusters:

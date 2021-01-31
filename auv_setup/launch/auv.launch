@@ -18,7 +18,6 @@
   <group if="$(eval auv == 'manta')">
     <!-- Load parameters -->
     <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
-    <rosparam command="load" file="$(find auv_setup)/config/thrusters/thruster_terrapin.yaml" />
 
     <!-- Include files -->
     <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
@@ -45,8 +44,7 @@
   <group if="$(eval auv == 'gladlaks')">
     <!-- Load parameters -->
     <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
-    <rosparam command="load" file="$(find auv_setup)/config/thrusters/thruster_T200.yaml" />
-
+    
     <!-- Include files -->
     <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
     <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>

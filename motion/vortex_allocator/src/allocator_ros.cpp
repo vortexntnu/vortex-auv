@@ -33,7 +33,7 @@ Allocator::Allocator(ros::NodeHandle nh)
 
   // Read thrust limits
   std::vector<double> thrust;
-  if (!m_nh.getParam("/thrusters/characteristics/thrust", thrust))
+  if (!m_nh.getParam("/propulsion/thrusters/characteristics/thrust", thrust))
   {
     ROS_WARN("Failed to read params min/max thrust. Using (%.2f) to (%.2f).",
       m_min_thrust, m_max_thrust);

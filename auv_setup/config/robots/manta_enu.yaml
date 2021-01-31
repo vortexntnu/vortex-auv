@@ -63,6 +63,14 @@ propulsion:
        [ 0.00000,  0.12000,  0.12000,  0.00000,  0.00000, -0.12000, -0.12000, 0.00000], # Roll
        [ 0.00000,  0.12000, -0.12000,  0.00000,  0.00000, -0.12000,  0.12000, 0.00000], # Pitch
        [ 0.29000, -0.00000, -0.00000, -0.29000,  0.29000,  0.00000,  0.00000,-0.29000]] # Yaw
+
+    rate_of_change:
+      max: 1 # Maximum rate of change in newton per second for a thruster
+    characteristics: # The relationship between thrust in newton and the width in microseconds of the PWM signal to the ESCs
+      thrust: [-12.0, -0.0001, 0.0001, 12.0]
+      pulse_width: [ 1300,   1475,  1525, 1700]
+    offset: [-0.20,  1.00,  1.00, -0.35, -0.20,  1.00,  1.00, -0.35]
+
   command:
     wrench:
       max:     [33.9, 33.9, 48.0, 7.6, 3.2, 9.9]
@@ -97,5 +105,4 @@ computer: 'odroid'
 torpedos:       # TODO: decide what pins to use for torpedo
   left_pin: 23  # both given in BCM scheme
   right_pin: 24 
-
 
