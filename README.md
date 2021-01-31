@@ -17,19 +17,21 @@
 ## Documentation
 A Master's thesis explaining the project and features of the Manta software is found in the docs folder: https://github.com/vortexntnu/manta-auv/blob/master/docs/master_thesis_manta_v1_kristoffer_solberg_compressed.pdf
 
-## Prerequisites
+## Installation
+
+### Prerequisites
 
 Linux distributions Bionic (Ubuntu 18.04) <br />
 C++ 11 compiler or newer.
 
-## 1. Install ROS melodic for Ubuntu (If you do not have it already) ##
+### 1. Install ROS melodic for Ubuntu (If you do not have it already) ##
 
 Follow the official guide at http://wiki.ros.org/melodic/Installation/Ubuntu
 
 Robot operating system (ROS) provides services designed for heterogeneous computer cluster such as hardware abstraction, low-level device control, implementation of commonly used functionality, message-passing between processes, and package management. The main ROS client libraries (C++, Python, and Lisp) are geared toward a Unix-like system, primarily because of their dependence on large collections of open-source software dependencies.
 
 
-## 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
+### 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
 -------------------------
 
 Quick command for installing all dependencies:  
@@ -61,7 +63,7 @@ Explainations for the dependencies:
 	 sudo apt-get install ros-melodic-move-base-msgs 
 
 
-## 3. Create a ROS workspace ##
+### 3. Create a ROS workspace ##
 -------------------------
 
 1. creating a catkin workspace:
@@ -91,7 +93,7 @@ Explainations for the dependencies:
 4. close the current terminal.
 
 
-## 4. Download and build Vortex AUV ##
+### 4. Download and build Vortex AUV ##
 -------------------------
 1. Enter the folder where you want to clone the repostory:
 	```bash
@@ -113,7 +115,7 @@ inside the src-folder of you workspace
 	 catkin build vortex_msgs
 	 catkin build
   
-## 5. Download and build the customized UUV simulator ##
+### 5. Download and build the customized UUV simulator ##
 -------------------------
 
 ![MANTA](docs/manta_underwater_robosub.png)
@@ -134,7 +136,7 @@ Figure by: Kristoffer Rakstad Solberg
 	```bash
 	 catkin build
 	```
-## 6. Run Manta V1 in Simulation with Gazebo, Smach viewer, Camera pop-up windows etc ##
+## Run Manta V1 in Simulation with Gazebo, Smach viewer, Camera pop-up windows etc ##
 -------------------------
 
 1. Run your simulation world. This will upload Manta (w/ sensor, camera, thrusters etc) and launch robot localization as well. i.e :
@@ -152,7 +154,7 @@ Figure by: Kristoffer Rakstad Solberg
 	 roslaunch finite_state_machine simtest.launch
 	```
 
-## 7. Alternative: Run Manta V1 in Linux minimal on your drone without Gazebo, Smach viewer, Camera pop-up windows etc ##
+## Run Manta V1 in Linux minimal on your drone without Gazebo, Smach viewer, Camera pop-up windows etc ##
 
 ![MANTA](docs/hardware.png)
 

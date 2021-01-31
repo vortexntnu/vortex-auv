@@ -1,27 +1,37 @@
 <?xml version="1.0" ?>
 <launch>
 
-  <!-- Navigation for real AUV -->
-  <group if="$(eval type == 'real')">
+  <!-- AUV navigation -->
+  <group if="$(eval control_mode == 'auto')">
 
-    <!-- Kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-        <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-    </node>
+    <!-- Navigation for real AUV -->
+    <group if="$(eval type == 'real')">
 
+      <!-- Kalman filter -->
+      <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+          <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
+      </node>
+
+    </group>
+
+    <!-- Navigation for simulator AUV -->
+    <group if="$(eval type == 'simulator')">
+
+      <!-- Underwater odometry -->
+      <rosparam command="load" file="$(find underwater_odom)/param/environment_config.yaml" />
+      <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
+      
+      <!-- Kalman filter -->
+      <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+        <rosparam command="load" file="$(find robot_localization)/params/dvl_ekf_template.yaml" />
+      </node>
+
+    </group>
   </group>
 
-  <!-- Navigation for simulator AUV -->
-  <group if="$(eval type == 'simulator')">
 
-    <!-- Underwater odometry -->
-    <rosparam command="load" file="$(find underwater_odom)/param/environment_config.yaml" />
-	  <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
-    
-    <!-- Kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-      <rosparam command="load" file="$(find robot_localization)/params/dvl_ekf_template.yaml" />
-    </node>
+  <!-- ROV navigation -->
+  <group if="$(eval control_mode == 'manual')">
 
   </group>
 </launch>
