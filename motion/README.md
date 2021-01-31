@@ -6,7 +6,7 @@ Anything related to how the AUV physically moves in located in this folder, name
 <details>
 <summary>The currently implemented controllers:</summary>
 
-* autopilot
+* los_controller
     * An integral backstepping controller used by the los_guidance system
 
 * dp_controller

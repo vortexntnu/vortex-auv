@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(autopilot)
+project(los_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -90,7 +90,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-   cfg/Autopilot.cfg
+   cfg/LOSController.cfg
 )
 
 ###################################
@@ -104,7 +104,7 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES autopilot
+#  LIBRARIES los_controller
 #  CATKIN_DEPENDS rospy
 #  DEPENDS system_lib
 )
@@ -120,7 +120,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-#catkin_install_python(PROGRAMS src/autopilot_node.py
+#catkin_install_python(PROGRAMS src/los_controller_node.py
 #                               #scripts/PositionControl.py
 #                               #scripts/VelocityControl.py
 #                      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

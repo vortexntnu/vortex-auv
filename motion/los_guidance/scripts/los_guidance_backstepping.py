@@ -283,7 +283,7 @@ class LosPathFollowing(object):
 
 		# Publishers
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
-		self.pub_data_autopilot = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
+		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
@@ -415,7 +415,7 @@ class LosPathFollowing(object):
 			guidance_data.v = self.los.v
 			guidance_data.t = self.los.t
 
-			self.pub_data_autopilot.publish(guidance_data)
+			self.pub_data_los_controller.publish(guidance_data)
 
 			# check if action goal succeeded
 			self.statusActionGoal()

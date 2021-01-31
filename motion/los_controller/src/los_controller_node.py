@@ -13,11 +13,11 @@ from pid.pid_controller import PIDRegulator
 from backstepping.backstepping_controller import BacksteppingDesign, BacksteppingControl
 
 from dynamic_reconfigure.server import Server
-from autopilot.cfg import AutopilotConfig
+from los_controller.cfg import LOSControllerConfig
 
-class AutopilotPID:
+class LOSControllerPID:
 	"""
-	Wrapper for the PID controller to make the autopilot
+	Wrapper for the PID controller to make the los_controller
 	code cleaner.
 	"""
 
@@ -146,7 +146,7 @@ class CameraPID:
 
 		return tau
 
-class AutopilotBackstepping:
+class LOSControllerBackstepping:
 	"""
 	Wrapper for the backstepping controller.
 	"""
@@ -178,7 +178,7 @@ class AutopilotBackstepping:
 	def regulate(self, u, u_dot, u_d, u_d_dot, v, psi, psi_d, r, r_d, r_d_dot):
 		"""
 		A wrapper for the controlLaw() method in the BacksteppingContoller
-		class, to make the autopilot code cleaner.
+		class, to make the los_controller code cleaner.
 
 		Args:
 			u         current velocity in the body-fixed x-direction	
@@ -201,14 +201,14 @@ class AutopilotBackstepping:
 
 
 
-class Autopilot:
+class LOSController:
 	"""
-	The ROS wrapper class for the Autopilot. The autopilot is made up
+	The ROS wrapper class for the LOSController. The los_controller is made up
 	of a PID and a backstepping controller, and is mainly used in
 	conjunction with the LOS guidance system.
 
 	Nodes created:
-		autopilot
+		los_controller
 
 	Subscribes to:
 		/guidance/los_data
@@ -220,15 +220,15 @@ class Autopilot:
 
 	def __init__(self):
 		"""
-		Initialize the autopilot node, subscribers, publishers and the
+		Initialize the los_controller node, subscribers, publishers and the
 		objects for the PID and the backstepping controllers.
 		"""
 
-		rospy.init_node('autopilot')
+		rospy.init_node('los_controller')
 
 		# Create controllers
-		self.Backstepping = AutopilotBackstepping()
-		self.PID = AutopilotPID()
+		self.Backstepping = LOSControllerBackstepping()
+		self.PID = LOSControllerPID()
 	
 		# Subscribers
 		self.sub_guidance = rospy.Subscriber('/guidance/los_data', GuidanceData, self.guidance_data_callback, queue_size=1)
@@ -238,7 +238,7 @@ class Autopilot:
 
 		# Dynamic reconfigure 
 		self.config = {}
-		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
+		self.srv_reconfigure = Server(LOSControllerConfig, self.config_callback)
 
 	def guidance_data_callback(self, msg):
 		"""
@@ -288,15 +288,15 @@ class Autopilot:
 
 		The parameters that are loaded are defined in <auv>.yaml.
 		"""
-		p = rospy.get_param("/controllers/autopilot/PID/p")
-		i = rospy.get_param("/controllers/autopilot/PID/i")
-		d = rospy.get_param("/controllers/autopilot/PID/d")
-		sat = rospy.get_param("/controllers/autopilot/PID/sat")
+		p = rospy.get_param("/controllers/los_controller/PID/p")
+		i = rospy.get_param("/controllers/los_controller/PID/i")
+		d = rospy.get_param("/controllers/los_controller/PID/d")
+		sat = rospy.get_param("/controllers/los_controller/PID/sat")
 
-		c = rospy.get_param("/controllers/autopilot/backstepping/c")
-		k1 = rospy.get_param("/controllers/autopilot/backstepping/k1")
-		k2 = rospy.get_param("/controllers/autopilot/backstepping/k2")
-		k3 = rospy.get_param("/controllers/autopilot/backstepping/k3")
+		c = rospy.get_param("/controllers/los_controller/backstepping/c")
+		k1 = rospy.get_param("/controllers/los_controller/backstepping/k1")
+		k2 = rospy.get_param("/controllers/los_controller/backstepping/k2")
+		k3 = rospy.get_param("/controllers/los_controller/backstepping/k3")
 
 		rospy.loginfo("Overriding dyn. reconfigure default values with values from parameter server...")
 		
@@ -359,7 +359,7 @@ class Autopilot:
 		k2 = config['Backstepping_k2']
 		k3 = config['Backstepping_k3']
 
-		rospy.loginfo("autopilot reconfigure: ")
+		rospy.loginfo("los_controller reconfigure: ")
 
 		self.log_value_if_updated('p', p_old, p)
 		self.log_value_if_updated('i', i_old, i)
@@ -383,9 +383,9 @@ class Autopilot:
 
 if __name__ == '__main__':
 	try:
-		autopilot = Autopilot()
+		los_controller = LOSController()
 	
-		autopilot.override_dyn_reconfigure_defaults()
+		los_controller.override_dyn_reconfigure_defaults()
 
 		rospy.spin()
 	except rospy.ROSInterruptException:

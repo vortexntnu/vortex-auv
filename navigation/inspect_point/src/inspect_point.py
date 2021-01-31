@@ -15,7 +15,7 @@ from nav_msgs.msg import OccupancyGrid, Odometry, Path
 from nav_msgs.srv import GetPlan, GetMap
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from visualization_msgs.msg import Marker, MarkerArray
-from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
+from los_controller.los_controller import LOSControllerBackstepping, LOSControllerPID
 import actionlib
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from PID.PIDregulator import PIDRegulator
@@ -58,7 +58,7 @@ class InspectPoint:
         sat_angle = 5
         self.PID_angle = PIDRegulator(P_angle, I_angle, D_angle, sat_angle)
 
-        self.PID = AutopilotPID()
+        self.PID = LOSControllerPID()
 
         # subscribers
         self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
