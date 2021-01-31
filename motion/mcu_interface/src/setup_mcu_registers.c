@@ -4,7 +4,7 @@
 
 /**
  * @brief This function does a linear transformation of a 16 bit control signal
- * in the range [1000, 2000] to a 8 bit control signal in the range [127, 255] 
+ * in the range [1100, 1900] to a 8 bit control signal in the range [127, 255] 
  * 
  * 
  * From linear calculations: 
@@ -31,15 +31,30 @@ uint8_t calculate_pwm_counter(const uint16_t& thruster_control_signal){
    * 
    * If not valid (outside the range), the thruster is set to idle thrust
    */
-  if(thruster_control_signal < 1000 || thruster_control_signal > 2000)
+  if(thruster_control_signal < 1100 || thruster_control_signal > 1900)
     return (uint8_t) ((0xFF - 0x7F) / 2 + 0x7F);
-  
+
   return (uint8_t) (0.128 * thruster_control_signal - 1);
 }
 
+/**
+ * @brief Function to initialize the thruster
+ * 
+ * @warning Only used to initialize THR7
+ */
+void initialize_thrusters(){
+  PORTF = 0xAA;
+  OCR5B = 191;
+  _delay_ms(1000);
+
+  /* Testing THR5 to zero */
+  OCR4C = 191;
+  _delay_ms(1000);
+}
 
 void setup() {  
   /* Clear ports */
+  DDRB = 0;
   DDRE = 0;
   DDRH = 0;
   DDRL = 0;
@@ -47,7 +62,7 @@ void setup() {
 
 
   /* Set MISO as output, all others input */
-  //DDRB = (1 << DD_MISO);
+  DDRB |= (1 << MISO);
   
   /* Enable SPI as slave */
   SPCR = (1 << SPE);
@@ -158,6 +173,7 @@ void test_THR7(){
 }
 
 void loop() {
+  initialize_thrusters();
   test_THR7();
   return;
 }
