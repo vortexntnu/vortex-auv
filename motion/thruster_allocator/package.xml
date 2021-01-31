@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>vortex_allocator</name>
+  <name>thruster_allocator</name>
   <version>0.0.0</version>
-  <description>The vortex_allocator package</description>
+  <description>The thruster_allocator package</description>
   <maintainer email="morten.fyhn.amundsen@gmail.com">Morten Fyhn Amundsen</maintainer>
   <license>MIT</license>
 
