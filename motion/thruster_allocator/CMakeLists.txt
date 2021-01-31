@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(vortex_allocator)
+project(thruster_allocator)
 
 add_definitions(-std=c++11)
 

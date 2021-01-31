@@ -14,14 +14,14 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 # dynamic reconfigure
 from dynamic_reconfigure.server import Server
-from los_guidance.cfg import AutopilotConfig
+from los_guidance.cfg import LOSControllerConfig
 
 # action message
 import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from autopilot.autopilot import AutopilotPID
+from los_controller.los_controller import LOSControllerPID
 from reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
@@ -273,12 +273,12 @@ class LosPathFollowing(object):
 
 		# constructor object
 		self.los = LOS()
-		self.autopilot = AutopilotPID()
+		self.los_controller = LOSControllerPID()
 		self.reference_model = ReferenceModel(np.array((0, 0)), 0.05)
 
 		# dynamic reconfigure
 		self.config = {}
-		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
+		self.srv_reconfigure = Server(LOSControllerConfig, self.config_callback)
 
 		"""
 			action server guide
@@ -315,7 +315,7 @@ class LosPathFollowing(object):
 		print(x_smooth)
 		
 		# control force
-		tau_d_heading = self.autopilot.headingController(self.psi_d, self.psi, self.los.t)
+		tau_d_heading = self.los_controller.headingController(self.psi_d, self.psi, self.los.t)
 
 		# add speed controllers here
 		thrust_msg = Wrench()
@@ -395,7 +395,7 @@ class LosPathFollowing(object):
 		self.los.delta = config['delta']
 
 		# self.pid_lin = PIDRegulator(config['pos_p'], config['pos_i'], config['pos_d'], config['pos_sat'])
-		self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
+		self.los_controller.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
 
 		# update config
 		self.config = config

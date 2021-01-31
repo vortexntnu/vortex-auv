@@ -1,23 +1,69 @@
 <?xml version="1.0"?>
 <launch>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
- 
+  
   <!-- Input arguments -->
-  <arg name="type" default="simulator"/> <!-- real|simulator -->
-
+  <arg name="type" default="simulator"/> <!-- real | simulator -->
+  <arg name="auv"  default="manta"/>     <!-- manta | gladlaks-->
 
   <!-- Argument to signal that we are driving in AUV mode-->
   <arg name="control_mode" default="auto"/>
 
-  <!-- Load parameters -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
-  <rosparam command="load" file="$(find thruster_interface)/config/thruster_terrapin.yaml" />
+
+  <!-- COMMON -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
 
-  <!-- Include files -->
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
-  <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
-  <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+  <!-- MANTA SPECIFIC-->
+  <group if="$(eval auv == 'manta')">
+    <!-- Load parameters -->
+    <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
+
+    <!-- Include files -->
+    <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+    <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+
+    <!-- IMU -->
+    <group if="$(eval type == 'real')">
+      <node pkg = "driver_stim300" type = "stim300_driver_node" name = "driver_stim300" args="/dev/ttyUSB0"/>
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 3.14159 0 0 base_link imu_0" />
+
+      <!-- DVL-->	
+      <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="-0.035 -0.017 -0.211 3.14159 3.14159 0 base_link dvl_link" />
+
+      <!-- Remap pressure reading from DVL -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" />
+    </group>
+  </group>
+  
+
+
+  <!-- GLADLAKS SPECIFIC -->
+  <group if="$(eval auv == 'gladlaks')">
+    <!-- Load parameters -->
+    <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
+    
+    <!-- Include files -->
+    <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+    <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+
+    <group if="$(eval type='real')">
+      <!-- IMU-->
+      <node pkg = "driver_stim300" type = "stim300_driver_node" name = "driver_stim300" args="/dev/ttyUSB0"/>
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="TODO TODO TODO TODO TODO TODO base_link imu_0" />
+
+      <!-- DVL -->	
+      <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="TODO TODO TODO TODO TODO TODO base_link dvl_link" />
+
+      <!-- Remap pressure reading from DVL -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" />
+    </group>
+  </group>
 
 </launch>
