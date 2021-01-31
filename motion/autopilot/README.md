@@ -20,3 +20,7 @@ in the autopilot_node script. The parameters can be found under /cfg/Autopilot.c
 rosrun rqt_reconfigure rqt_reconfigure
 ```
 and select the /autopilot node from the list of reconfigurable nodes.
+
+
+**NOTE:** Currently, the dynamic reconfigure default values will be the parameters that the controller will end up using,
+NOT the parameters in the (auv).yaml file.
