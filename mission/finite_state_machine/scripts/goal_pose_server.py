@@ -12,7 +12,7 @@ def goal_position_publisher():
 
     rate = rospy.Rate(1) # 1hz    
 
-    goal_position = Point(6.3,1.5,-0.5)    
+    goal_position = Point(7,1.5,-0.5)        
 
     while not rospy.is_shutdown():
         

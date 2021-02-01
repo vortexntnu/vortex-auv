@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>joystick_guidance</name>
+  <version>0.0.0</version>
+  <description>The joystick_guidance package</description>
+  <maintainer email="jaehh@stud.ntnu.no">Jae Hyeong Hwang</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. --> 
+  <build_depend>rospy</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+</package>

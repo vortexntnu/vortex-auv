@@ -14,7 +14,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 # dynamic reconfigure
 from dynamic_reconfigure.server import Server
-from los_guidance.cfg import AutopilotConfig
+from los_guidance.cfg import LOSConfig
 
 # action message
 import actionlib
@@ -283,7 +283,7 @@ class LosPathFollowing(object):
 
 		# Publishers
 		self.pub_desired = rospy.Publisher('/manta/los_desired', Odometry, queue_size=1)
-		self.pub_data_autopilot = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
+		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
@@ -291,7 +291,7 @@ class LosPathFollowing(object):
 
 		# dynamic reconfigure
 		self.config = {}
-		self.srv_reconfigure = Server(AutopilotConfig, self.config_callback)
+		self.srv_reconfigure = Server(LOSConfig, self.config_callback)
 
 		# Action server, see https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
 		self.action_server = actionlib.SimpleActionServer(name='los_action_server', ActionSpec=LosPathFollowingAction, auto_start=False)
@@ -415,7 +415,7 @@ class LosPathFollowing(object):
 			guidance_data.v = self.los.v
 			guidance_data.t = self.los.t
 
-			self.pub_data_autopilot.publish(guidance_data)
+			self.pub_data_los_controller.publish(guidance_data)
 
 			# check if action goal succeeded
 			self.statusActionGoal()
@@ -476,6 +476,18 @@ class LosPathFollowing(object):
 
 		self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
 
+	def override_dyn_reconfigure_defaults(self):
+		"""
+		Fetch controller parameters from the parameter server
+		and override the ones set by default by the dynamic reconfigure
+		server.
+
+		The parameters that are loaded are defined in <auv>.yaml.
+		"""
+		delta = rospy.get_param("/guidance/LOS/delta")
+
+		rospy.loginfo("Overriding dyn. reconfigure default values with values from parameter server...")
+		self.srv_reconfigure.update_configuration({"delta":delta})
 
 	def config_callback(self, config, level):
 		"""
@@ -489,16 +501,14 @@ class LosPathFollowing(object):
 			The updated config argument.
 		"""
 
-		# Config has changed, reset PID controllers
-		rospy.loginfo("""Reconfigure Request: {delta}, {p_rot}, {i_rot}, {d_rot}, {sat_rot} """.format(**config))
+		delta = config['delta']
+		
+		# Print reconfigure data with precision of 4 decimal points.
+		rospy.loginfo("los_guidance reconfigure:")
+		rospy.loginfo("\t delta: {:.4f} -> {:.4f}".format(self.los.delta, delta))
         
-		# update look-ahead distance
+		# update look-ahead distance and config
 		self.los.delta = config['delta']
-
-		# self.pid_lin = PIDRegulator(config['pos_p'], config['pos_i'], config['pos_d'], config['pos_sat'])
-	#self.autopilot.updateGains(config['p_rot'], config['i_rot'], config['d_rot'], config['sat_rot'])
-
-		# update config
 		self.config = config
 
 		return config
@@ -507,6 +517,7 @@ class LosPathFollowing(object):
 if __name__ == '__main__':
 	try:
 		los_path_following = LosPathFollowing()
+		los_path_following.override_dyn_reconfigure_defaults();
 		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass

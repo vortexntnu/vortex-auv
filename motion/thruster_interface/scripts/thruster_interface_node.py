@@ -9,9 +9,9 @@ from vortex_msgs.msg import ThrusterForces, Pwm
 THRUST_RANGE_LIMIT = 100
 
 NUM_THRUSTERS = rospy.get_param('/propulsion/thrusters/num')
-THRUST_OFFSET = rospy.get_param('/thrusters/offset')
-LOOKUP_THRUST = rospy.get_param('/thrusters/characteristics/thrust')
-LOOKUP_PULSE_WIDTH = rospy.get_param('/thrusters/characteristics/pulse_width')
+THRUST_OFFSET = rospy.get_param('/propulsion/thrusters/offset')
+LOOKUP_THRUST = rospy.get_param('/propulsion/thrusters/characteristics/thrust')
+LOOKUP_PULSE_WIDTH = rospy.get_param('/propulsion/thrusters/characteristics/pulse_width')
 THRUSTER_MAPPING = rospy.get_param('/propulsion/thrusters/map')
 THRUSTER_DIRECTION = rospy.get_param('/propulsion/thrusters/direction')
 

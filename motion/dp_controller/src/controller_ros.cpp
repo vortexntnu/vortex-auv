@@ -21,7 +21,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   // Subscribers
   //m_state_sub = m_nh.subscribe("/manta/pose_gt", 1, &Controller::stateCallback, this);
   m_state_sub         = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
-  //m_guidance_data_sub = m_nh.subscribe("/guidance/dp_data", 1, &Controller::guidanceDataCallback, this);
 
   // Service callback
   control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
@@ -37,7 +36,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   position = startPoint;
 
   // Launch file specifies manta.yaml as directory
-  if (!m_nh.getParam("/controller/frequency", m_frequency))
+  if (!m_nh.getParam("/controllers/dp/frequency", m_frequency))
     ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
   std::string s;
   if (!m_nh.getParam("/computer", s))
@@ -48,7 +47,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   if (s == "pc-debug")
     m_debug_mode = true;
 
-  if(!m_nh.getParam("/controller/circleOfAcceptance", R)){
+  if(!m_nh.getParam("/controllers/dp/circleOfAcceptance", R)){
     ROS_WARN("Failed to read parameter circleOfAcceptance");
   }  
 
@@ -210,9 +209,12 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
 {
-  ROS_INFO_STREAM("Entering dynamic_reconfigure callback \n ");
-  ROS_INFO_STREAM("Setting gains: [vel = " << config.velocity_gain << ", pos = " << config.position_gain
-    << ", rot = " << config.attitude_gain << ", int = " << config.integral_gain << "]");
+  ROS_INFO("DP controller reconfigure:");
+  ROS_INFO("\t velocity_gain: %2.4f", config.velocity_gain);
+  ROS_INFO("\t position_gain: %2.4f", config.position_gain);
+  ROS_INFO("\t attitude_gain: %2.4f", config.attitude_gain);
+  ROS_INFO("\t integral_gain: %2.4f", config.integral_gain);
+
   m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain, config.integral_gain);
 }
 
@@ -416,13 +418,13 @@ void Controller::initPositionHoldController()
 {
   // Read controller gains from parameter server
   double a, b, c, i;
-  if (!m_nh.getParam("/controller/velocity_gain", a))
+  if (!m_nh.getParam("/controllers/dp/velocity_gain", a))
     ROS_ERROR("Failed to read parameter velocity_gain.");
-  if (!m_nh.getParam("/controller/position_gain", b))
+  if (!m_nh.getParam("/controllers/dp/position_gain", b))
     ROS_ERROR("Failed to read parameter position_gain.");
-  if (!m_nh.getParam("/controller/attitude_gain", c))
+  if (!m_nh.getParam("/controllers/dp/attitude_gain", c))
     ROS_ERROR("Failed to read parameter attitude_gain.");
-  if (!m_nh.getParam("/controller/integral_gain", i))
+  if (!m_nh.getParam("/controllers/dp/integral_gain", i))
     ROS_ERROR("Failed to read parameter integral_gain.");
 
   // Read center of gravity and buoyancy vectors
