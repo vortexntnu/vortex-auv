@@ -64,6 +64,74 @@ uint8_t calculate_pwm_counter(const uint16_t& thruster_control_signal){
 
 
 /**
+ * @brief Prototype to higher lever code to set register-values
+ * 
+ * @warning This code is only a prototype. It must be specified later
+ * where this should be done, as the MCU can only handle 8 bits of code
+ * 
+ * @param thrust_idx Idx describing what thruster we would like to
+ * write the command to. It is assumed that @p thrust_idx \in [0, 7]
+ * 
+ * @param thrust_val Value to be written to the thruster. It is assumed
+ * that @p thrust_val \in [1100, 1900]. If the value is outside of this
+ * range, the thruster is set to idle 
+ */
+void write_thrust(uint8_t thrust_idx, uint16_t thrust_val){
+  /* Checking if valid thruster */
+  if(thrust_idx < 0 || thrust_idx > 7){
+    return;
+  }
+
+  /* Converting the value to uint8_t */
+  uint8_t thrust = calculate_pwm_counter(thrust_val);
+
+  /* Switching between the correct thruster */
+  switch (thrust_idx)
+  {
+  case 0:
+    THR0 = thrust;
+    break;
+  
+  case 1:
+    THR1 = thrust;
+    break;
+  
+  case 1:
+    THR1 = thrust;
+    break;
+  
+  case 2:
+    THR2 = thrust;
+    break;
+  
+  case 3:
+    THR3 = thrust;
+    break;
+  
+  case 4:
+    THR4 = thrust;
+    break;
+  
+  case 5:
+    THR5 = thrust;
+    break;
+  
+  case 6:
+    THR6 = thrust;
+    break;
+  
+  case 7:
+    THR7 = thrust;
+    break;
+
+  default:
+    break;
+  }
+}
+
+
+
+/**
  * @brief Function to initialize the thrusters to IDLE
  * 
  * @warning Must be enabled after the pwm
