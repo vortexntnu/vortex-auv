@@ -4,14 +4,14 @@
 
 
 /* Counters. Write the thrust values to these registers                   */
-#define THR0 = OCR3A              /* Counter THR0                         */
-#define THR1 = OCR3B              /* Counter THR1                         */ 
-#define THR2 = OCR3C              /* Counter THR2                         */ 
-#define THR3 = OCR4A              /* Counter THR3                         */
-#define THR4 = OCR4B              /* Counter THR4                         */
-#define THR5 = OCR4C              /* Counter THR5                         */
-#define THR6 = OCR5A              /* Counter THR6                         */
-#define THR7 = OCR5B              /* Counter THR7                         */
+#define THR0 OCR3A                /* Counter THR0                         */
+#define THR1 OCR3B                /* Counter THR1                         */ 
+#define THR2 OCR3C                /* Counter THR2                         */ 
+#define THR3 OCR4A                /* Counter THR3                         */
+#define THR4 OCR4B                /* Counter THR4                         */
+#define THR5 OCR4C                /* Counter THR5                         */
+#define THR6 OCR5A                /* Counter THR6                         */
+#define THR7 OCR5B                /* Counter THR7                         */
 
 
 /* Thrust-values                                                          */
@@ -23,6 +23,16 @@
 /* Limits on 16-bits thrust-values                                        */
 #define MIN_THRUST_16       1100  /* Min thrust the thrusters handles     */
 #define MAX_THRUST_16       1900  /* Max thrust the thrusters handles     */
+
+
+/* LEDS                                                                   */
+#define LED_PORT          PORTF   /* The ports that the LEDS belong to    */   
+#define LED_D2_PIN          PF0   /* The pin that LED D2 belongs to       */
+#define LED_D3_PIN          PF1   /* The pin that LED D2 belongs to       */
+#define LED_D2                0   /* Idx of LED D2 on LED_PORT            */
+#define LED_D3                1   /* Idx of LED D3 on LED_PORT            */
+#define LED_OFF               0   /* Turn off the LED                     */
+#define LED_ON                1   /* Turn on the LED                      */
 
 
 
@@ -96,10 +106,6 @@ void write_thrust(uint8_t thrust_idx, uint16_t thrust_val){
     THR1 = thrust;
     break;
   
-  case 1:
-    THR1 = thrust;
-    break;
-  
   case 2:
     THR2 = thrust;
     break;
@@ -142,7 +148,8 @@ void write_thrust(uint8_t thrust_idx, uint16_t thrust_val){
  */
 void initialize_thrusters(){
   /* Turning LED D3 high and LED D2 low */
-  PORTF = 0xAA;
+  set_led(LED_D3, LED_ON);
+  set_led(LED_D2, LED_OFF);
 
   /* Init thrusters to idle */
   THR0 = THRUST_IDLE;
@@ -158,7 +165,8 @@ void initialize_thrusters(){
   _delay_ms(3000);
 
   /* Turning LED D2 high and LED D3 low */
-  PORTF = 0x55;
+  set_led(LED_D2, LED_ON);
+  set_led(LED_D3, LED_OFF);
 
   /* Waiting for another second */
   _delay_ms(1000);
@@ -230,11 +238,60 @@ void initialize_spi(){
  */
 void initialize_leds(){
   /* Clear port */
-  DDRF = 0;
+  LED_PORT = 0;
 
   /* Enable LEDs */
-  DDRF |= (1 << PF0) | (1 << PF1);
+  LED_PORT |= (1 << LED_D2_PIN) | (1 << LED_D3_PIN);
 }
+
+
+/**
+ * @brief Function to enable LEDs.
+ * 
+ * Use the macros to turn the LEDs on/off to ease the readability
+ * 
+ * @warning The function assumes that the function initialize_leds have
+ * been called
+ * 
+ * @warning Spaghetti
+ * 
+ * @param LED_idx Index determining which LED is to be set
+ * 
+ * If LED_idx % 2 = 0
+ *    LED D2 will be set to @p val
+ * 
+ * If LED_idx % 2 = 1
+ *    LED D3 will be set to @p val
+ * 
+ * 
+ * @param value Value describing if the LED is to be turned off or on 
+ */
+void set_led(int LED_idx, int value){
+  switch (value % 2)
+  {
+  case 0:{
+    if(LED_idx % 2){
+      LED_PORT &= ~(1 << LED_D3_PIN);
+    }
+    else{
+      LED_PORT &= ~(1 << LED_D2_PIN);
+    }
+    break;
+  }
+  case 1:{
+    if(LED_idx % 2){
+      LED_PORT |= (1 << LED_D3_PIN);
+    }
+    else{
+      LED_PORT |= (1 << LED_D2_PIN);
+    }
+    break;
+  }
+  default:
+    break;
+  }
+}
+
 
 
 /**
@@ -257,53 +314,16 @@ void setup() {
   initialize_thrusters();
 }
 
-// /**
-//  * @brief Small test-script to test THR7 
-//  */
-// void test_THR7(){
-//   /* Setting LED D3 high and LED D2 low */
-//   PORTF = 0xAA;
-//   OCR5B = 191;
-//   _delay_ms(10000);
-  
-
-//   /* Spinning from idle to full reverse thrust */
-//   for(int thrust_count = 191; thrust_count > 126; thrust_count--){
-//     OCR5B = thrust_count;
-//     _delay_ms(50);
-//   }
-
-//   /* Waiting 1 second */
-//   _delay_ms(1000);
-
-//   /* Spinning from full reverse thrust to idle */
-//   for(int thrust_count = 127; thrust_count < 192; thrust_count++){
-//     OCR5B = thrust_count;
-//     _delay_ms(50);
-//   }
-  
-//   /* Waiting for 2 seconds */
-//   _delay_ms(2000);
-
-//   /* Spinning from idle to full forward thrust */
-//   for(int thrust_count = 191; thrust_count < 256; thrust_count++){
-//     OCR5B = thrust_count;
-//     _delay_ms(50);
-//   }
-
-//   /* Spinning from full forward thrust to idle */
-//   for(int thrust_count = 255; thrust_count > 191; thrust_count--){
-//     OCR5B = thrust_count;
-//     _delay_ms(50);
-//   }
-
-//   /* Setting LED D2 high and LED D3 low */
-//   PORTF = 0x55;
-//   _delay_ms(100000);
-
-//   return;
-// }
-
 void loop() {
-  /* Do something */
+  /* Small test-script to check some of the thusters */
+  set_led(LED_D2, LED_OFF);
+  set_led(LED_D3, LED_OFF);
+
+  THR7 = 191;
+  set_led(LED_D2, LED_ON);
+  _delay_ms(5000);
+
+  THR4 = 200;
+  set_led(LED_D3, LED_ON);
+  _delay_ms(5000);
 }
