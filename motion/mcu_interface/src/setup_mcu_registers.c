@@ -173,6 +173,7 @@ void initialize_thrusters(){
 }
 
 
+
 /**
  * @brief This function initializes the pwm
  * 
@@ -217,6 +218,7 @@ void initialize_pwm(){
 }
 
 
+
 /**
  * @brief This function initializes SPI
  */
@@ -233,6 +235,7 @@ void initialize_spi(){
 }
 
 
+
 /**
  * @brief Initialize LEDs D2 and D3
  */
@@ -243,6 +246,7 @@ void initialize_leds(){
   /* Enable LEDs */
   LED_PORT |= (1 << LED_D2_PIN) | (1 << LED_D3_PIN);
 }
+
 
 
 /**
@@ -314,16 +318,24 @@ void setup() {
   initialize_thrusters();
 }
 
-void loop() {
-  /* Small test-script to check some of the thusters */
-  set_led(LED_D2, LED_OFF);
-  set_led(LED_D3, LED_OFF);
 
-  THR7 = 191;
-  set_led(LED_D2, LED_ON);
-  _delay_ms(5000);
 
-  THR4 = 200;
-  set_led(LED_D3, LED_ON);
-  _delay_ms(5000);
+int main() {
+  /* Initialization */
+  setup();
+
+  while(1){
+    /* Small test-script to check some of the thusters */
+    set_led(LED_D2, LED_OFF);
+    set_led(LED_D3, LED_OFF);
+
+    THR7 = 191;
+    set_led(LED_D2, LED_ON);
+    _delay_ms(5000);
+
+    THR4 = 200;
+    set_led(LED_D3, LED_ON);
+    _delay_ms(5000);
+  }
+  return 0;
 }
