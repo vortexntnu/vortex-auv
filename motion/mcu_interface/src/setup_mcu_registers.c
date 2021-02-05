@@ -275,10 +275,10 @@ void set_led(int LED_idx, int value){
   {
   case 0:{
     if(LED_idx % 2){
-      LED_PORT &= ~(1 << LED_D3_PIN);
+      LED_PORT &= !(1 << LED_D3_PIN);
     }
     else{
-      LED_PORT &= ~(1 << LED_D2_PIN);
+      LED_PORT &= !(1 << LED_D2_PIN);
     }
     break;
   }
