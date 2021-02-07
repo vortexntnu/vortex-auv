@@ -51,6 +51,8 @@
     <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
     <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
 
+    <!-- ZED-ROS-Wrapper -->
+    <include file="$(find zed_wrapper)/launch/zed2.launch"/>
 
     <group if="$(eval type='real')">
       <!-- IMU-->
