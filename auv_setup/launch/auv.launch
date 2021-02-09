@@ -6,10 +6,6 @@
   <arg name="type" default="simulator"/> <!-- real | simulator -->
   <arg name="auv"  default="manta"/>     <!-- manta | gladlaks-->
 
-  <!-- Argument to signal that we are driving in AUV mode-->
-  <arg name="control_mode" default="auto"/>
-
-
   <!-- COMMON -->
   <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>

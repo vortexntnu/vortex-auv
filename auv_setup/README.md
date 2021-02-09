@@ -10,11 +10,18 @@ The config folder contains physical parameters related to the AUV and the enviro
 * thrusters: Thruster configs for different thruster types
 
 ### Launch
-The package contains one launchfile that is used for every AUV, both for the real system and the simulator:
-| Parameter | Options         |
-| ----------|-----------------|
-| auv       | manta, gladlaks | 
-| type      | real, simulator |
+The package contains a single launchfile that is used for every AUV, both for the real system and the simulator.
+There are also two launchfiles that are to be used for the AUV when driving in ROV mode, namely rov.launch
+and pc.launch. The launchfiles should be run on their respective hardware. The pc-launch is needed for the
+joystick control.
+
+For the AUV and ROV launchfiles, the following parameters can be used:
+
+| Parameter | Options         | Default   |
+| ----------|-----------------|-----------|
+| auv       | manta, gladlaks | manta     |
+| type      | real, simulator | simulator |
+
 
 ### Sensors
 Currently, this launchfile also contains the sensor driver launches, including the remapping of them:
