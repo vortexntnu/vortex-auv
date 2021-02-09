@@ -4,7 +4,7 @@
 * /odometry/filtered
 
 #### Publishes to:
-* /manta/thruster_manager/input
+* /auv/thruster_manager/input
 * controller/mode
 * debug/controlstates
 

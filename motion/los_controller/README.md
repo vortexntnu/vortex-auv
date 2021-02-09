@@ -4,7 +4,7 @@
 * /guidance/los_data
 
 #### Publishes to:
-* /manta/thruster_manager/input
+* /auv/thruster_manager/input
 
 The purpose of the los_controller package is to provide the LOS guidance system
 with a controller that can maintain a fixed heading and depth.

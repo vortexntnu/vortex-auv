@@ -214,7 +214,7 @@ class LOSController:
 		/guidance/los_data
 
 	Publishes to:
-		/manta/thruster_manager/input
+		/auv/thruster_manager/input
 
 	"""
 
@@ -234,7 +234,7 @@ class LOSController:
 		self.sub_guidance = rospy.Subscriber('/guidance/los_data', GuidanceData, self.guidance_data_callback, queue_size=1)
 
 		# Publishers
-		self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+		self.pub_thrust = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
 
 		# Dynamic reconfigure 
 		self.config = {}
@@ -277,40 +277,8 @@ class LOSController:
 
 		thrust_msg.torque.z = tau_d[2]
 
-		# Publish the thrust message to /manta/thruster_manager/input
+		# Publish the thrust message to /auv/thruster_manager/input
 		self.pub_thrust.publish(thrust_msg)
-		
-	def override_dyn_reconfigure_defaults(self):
-		"""
-		Fetch controller parameters from the parameter server
-		and override the ones set by default by the dynamic reconfigure
-		server.
-
-		The parameters that are loaded are defined in <auv>.yaml.
-		"""
-		p = rospy.get_param("/controllers/los_controller/PID/p")
-		i = rospy.get_param("/controllers/los_controller/PID/i")
-		d = rospy.get_param("/controllers/los_controller/PID/d")
-		sat = rospy.get_param("/controllers/los_controller/PID/sat")
-
-		c = rospy.get_param("/controllers/los_controller/backstepping/c")
-		k1 = rospy.get_param("/controllers/los_controller/backstepping/k1")
-		k2 = rospy.get_param("/controllers/los_controller/backstepping/k2")
-		k3 = rospy.get_param("/controllers/los_controller/backstepping/k3")
-
-		rospy.loginfo("Overriding dyn. reconfigure default values with values from parameter server...")
-		
-		self.srv_reconfigure.update_configuration({\
-			"PID_p":p,
-			"PID_i":i,
-			"PID_d":d,
-			"PID_sat":sat,
-			"Backstepping_c":c,
-			"Backstepping_c":k1,
-			"Backstepping_c":k2,
-			"Backstepping_c":k3
-			})
-
 
 	def log_value_if_updated(self, name, old_value, new_value):
 		"""
@@ -384,9 +352,6 @@ class LOSController:
 if __name__ == '__main__':
 	try:
 		los_controller = LOSController()
-	
-		los_controller.override_dyn_reconfigure_defaults()
-
 		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass

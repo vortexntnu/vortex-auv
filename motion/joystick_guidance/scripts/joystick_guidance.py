@@ -18,7 +18,7 @@ class JoystickGuidanceNode():
 
 		self.sub = rospy.Subscriber('/joystick/joy', Joy, self.callback, queue_size=1)
 
-		self.pub = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
 
 		self.surge_scaling = rospy.get_param('/joystick/scaling/surge', 1)
 		self.sway_scaling  = rospy.get_param('/joystick/scaling/sway', 1)

@@ -4,7 +4,7 @@
 * /joystick/joy
 
 #### Publishes to:
-* /manta/thruster_manager/input
+* /auv/thruster_manager/input
 
 This package contains a conversion from joystick input to thrust vector. In the future it may serve as a
 way to 
