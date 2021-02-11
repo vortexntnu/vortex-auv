@@ -19,14 +19,14 @@
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
   // Subscribers
-  //m_state_sub = m_nh.subscribe("/manta/pose_gt", 1, &Controller::stateCallback, this);
+  //m_state_sub = m_nh.subscribe("/auv/pose_gt", 1, &Controller::stateCallback, this);
   m_state_sub         = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
 
   // Service callback
   control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
 
   // Publishers
-  m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("/manta/thruster_manager/input", 1);
+  m_wrench_pub  = m_nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 1);
   m_mode_pub    = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub   = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
@@ -35,7 +35,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   Eigen::Vector3d startPoint(5,-10,0);
   position = startPoint;
 
-  // Launch file specifies manta.yaml as directory
+  // Launch file specifies <auv>.yaml as directory
   if (!m_nh.getParam("/controllers/dp/frequency", m_frequency))
     ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
   std::string s;
@@ -427,8 +427,7 @@ void Controller::initPositionHoldController()
   if (!m_nh.getParam("/controllers/dp/integral_gain", i))
     ROS_ERROR("Failed to read parameter integral_gain.");
 
-  // Read center of gravity and buoyancy vectors
-  // from manta.yaml
+  // Read center of gravity and buoyancy vectors from <auv>.yaml
   std::vector<double> r_G_vec, r_B_vec;
   if (!m_nh.getParam("/physical/center_of_mass", r_G_vec))
     ROS_FATAL("Failed to read robot center of mass parameter.");
@@ -437,8 +436,7 @@ void Controller::initPositionHoldController()
   Eigen::Vector3d r_G(r_G_vec.data());
   Eigen::Vector3d r_B(r_B_vec.data());
 
-  // Read and calculate ROV weight and buoyancy
-  // from manta.yaml
+  // Read and calculate ROV weight and buoyancy from <auv>.yaml
   double mass, displacement, acceleration_of_gravity, density_of_water;
   if (!m_nh.getParam("/physical/mass_kg", mass))
     ROS_FATAL("Failed to read parameter mass.");
