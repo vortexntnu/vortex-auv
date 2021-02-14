@@ -93,6 +93,40 @@ Explainations for the dependencies:
 4. close the current terminal.
 
 
+### 3.1 Install ZED-ROS-Wrapper ##
+-------------------------
+[Official documentation](https://www.stereolabs.com/docs/ros/)
+
+1. Enter the catkin workspace:
+	```bash
+	 cd ~/manta_ws/src
+	```
+
+2. Clone the zed-ros-wrapper repo:
+	```bash
+	 git clone https://github.com/stereolabs/zed-ros-wrapper.git
+	```
+
+3. Jump up to parent directory:
+	```bash
+	 cd ../
+	```
+
+4. Install dependencies:
+	```bash
+	 rosdep install --from-paths src --ignore-src -r -y
+	```
+
+5. Build the package:
+	```bash
+	 catkin_make -DCMAKE_BUILD_TYPE=Release
+	```
+
+6. Source the package:
+	```bash
+	 source ./devel/setup.bash
+	```
+
 ### 4. Download and build Vortex AUV ##
 -------------------------
 1. Enter the folder where you want to clone the repostory:
