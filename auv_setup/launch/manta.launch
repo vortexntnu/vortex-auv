@@ -7,7 +7,7 @@
 
 
   <!-- PARAMETERS -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
+  <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
 
 
