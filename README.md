@@ -135,7 +135,7 @@ Explainations for the dependencies:
 
 6. Build the package:
 	```bash
-	 catkin build -DCMAKE_BUILD_TYPE=Release
+	 catkin build
 	```
 
 7. Source the package:
