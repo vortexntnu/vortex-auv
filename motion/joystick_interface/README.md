@@ -4,12 +4,10 @@
 * /joystick/joy
 
 #### Publishes to:
-* /auv/thruster_manager/input
+* /joystick/input
 
-This package contains a conversion from joystick input to thrust vector. In the future it may serve as a
-way to 
-
-
+This package contains a mapping between the joystick raw data and what we consider to be "inputs". "Inputs are defined as 
+movement of the joysticks in all 6 DOFs.
 
 ## Setup
 The joystick may require some configuring before use. Take special note of the **Configuration** step.
@@ -38,12 +36,5 @@ rosparam set joy_node/dev "/dev/input/jsX"
 ```
 
 ### Launch
-
-The joystick guidance is only in use when the AUV is run in "ROV mode". Because of this, you will need to launch
-the ROV specific top-level launchfile:
-
-```
-roslaunch auv_setup rov.launch
-```
-
-Additionally, you will not need to run any mission script to operate the drone.
+This interface is to be launched on the topside computer that the Xbox-controller is connected to. Note that you have
+to be on the same network as the drone (via the ethernet tether) for things to work.
