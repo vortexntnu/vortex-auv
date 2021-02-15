@@ -1,4 +1,4 @@
-## Joystick guidance
+## Joystick interface
 
 #### Subscribes to:
 * /joystick/joy
