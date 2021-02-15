@@ -97,32 +97,48 @@ Explainations for the dependencies:
 -------------------------
 [Official documentation](https://www.stereolabs.com/docs/ros/)
 
-1. Enter the catkin workspace:
+1. Download and install ZED SDK
+    1. Download from [Stereolabs](https://www.stereolabs.com/developers/release/)
+	2. Enter the directory with the file:
+	```bash
+	 cd path/to/download/folder
+	```
+	3. Make the file executable:
+	```
+	 chmod +x ZED_SDK_Ubuntu18_v3.0.run
+	```
+	4. Run the installer:
+	```
+	 ./ZED_SDK_Ubuntu18_v3.0.run
+	```
+
+
+2. Enter the catkin workspace:
 	```bash
 	 cd ~/manta_ws/src
 	```
 
-2. Clone the zed-ros-wrapper repo:
+3. Clone the zed-ros-wrapper repo:
 	```bash
 	 git clone https://github.com/stereolabs/zed-ros-wrapper.git
 	```
 
-3. Jump up to parent directory:
+4. Jump up to parent directory:
 	```bash
 	 cd ../
 	```
 
-4. Install dependencies:
+5. Install dependencies:
 	```bash
 	 rosdep install --from-paths src --ignore-src -r -y
 	```
 
-5. Build the package:
+6. Build the package:
 	```bash
-	 catkin_make -DCMAKE_BUILD_TYPE=Release
+	 catkin build -DCMAKE_BUILD_TYPE=Release
 	```
 
-6. Source the package:
+7. Source the package:
 	```bash
 	 source ./devel/setup.bash
 	```
