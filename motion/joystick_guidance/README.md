@@ -1,7 +1,7 @@
 ## Joystick guidance
 
 #### Subscribes to:
-* /joystick/input
+* /guidance/joystick_data
 
 #### Publishes to:
 * /auv/thruster_manager/input

@@ -16,7 +16,7 @@ class JoystickGuidanceNode():
 
 		rospy.init_node('joystick_guidance')
 
-		self.sub = rospy.Subscriber('/joystick/input', Joy, self.callback, queue_size=1)
+		self.sub = rospy.Subscriber('/guidance/joystick_data', Joy, self.callback, queue_size=1)
 		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
 
 		self.surge 	= 0
