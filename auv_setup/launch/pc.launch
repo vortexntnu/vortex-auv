@@ -6,7 +6,6 @@
   <!-- Joystick nodes -->
   <group ns="$(arg ns_joystick)">
     <node pkg="joy"                name="joystick_driver"    type="joy_node"              output="screen" args="_deadzone:=0.15 _autorepeat_rate:=100"/>
-    <node pkg="joystick_topside"  name="joystick_topside"  type="joystick_topside.py"  output="screen"/>
   </group>
 
 </launch>
