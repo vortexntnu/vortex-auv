@@ -24,6 +24,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, Point, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from sensor_msgs.msg import Joy
 from vortex_msgs.msg import (
     MoveAction, MoveActionFeedback, MoveActionResult, LosPathFollowingAction, LosPathFollowingGoal
 )
@@ -86,6 +87,9 @@ class GuidanceInterface:
 
         self.dp_client = actionlib.SimpleActionClient('dp_action_server', MoveBaseAction)
         self.los_client = actionlib.SimpleActionClient('los_action_server', LosPathFollowingAction)
+
+        self.joystick_sub = rospy.Subscriber('/joystick/topside_input', Joy, self.joystick_cb, queue_size=1)
+        self.joystick_pub = rospy.Publisher('/guidance/joystick_data', Joy, queue_size=1)
 
         rospy.loginfo('Guidance interface is up and running')
 
@@ -150,6 +154,9 @@ class GuidanceInterface:
 
         else:
             self.action_server.set_aborted()
+
+    def joystick_cb(self, msg):
+        self.joystick_pub.publish(msg)
 
 
 if __name__ == "__main__":
