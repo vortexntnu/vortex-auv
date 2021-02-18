@@ -50,6 +50,9 @@ roslaunch auv_setup pc.launch
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
 * TODO: How to adapt the software stack to new hardware.
 * A collection of master theses:
-  *   [Manta v1: A Deliberative Agent SoftwareArchitecture for AutonomousUnderwater Vehicles]()
+  *   [Manta v1: A Deliberative Agent Software Architecture for Autonomous Underwater Vehicles](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/master_theses/Kristoffer%20Solberg%20(2020).pdf)
+  *   [A real-time DVL and pressure sensor AINScomparison study between EKF, ESKF andNLO for Manta-2020](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/master_theses/Oyvind%20Denvik%20(2020).pdf)
+  *   []()
+  *   []()
 * Diagrams
 
