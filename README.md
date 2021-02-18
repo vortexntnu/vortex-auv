@@ -8,10 +8,20 @@
 [![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+# *VORTEX BANNER*
+
+A short introduction to what this repo is. Anyone, including those without much software experience, should be able to understand this. Maybe a GIF of one of the drones in action.
+
+## Repo overview
+* A drop-down menu for each folder, explaining how the software stack is organized: Which features do they implement.
+* Which problems does this repo solve?
+
+## Usage
+* Installation (link to wiki)
+* How to launch
+* What hardware dependencies can you configure?
 
 ## Documentation
-A Master's thesis explaining the project and features of the Manta software is found in the docs folder: https://github.com/vortexntnu/manta-auv/blob/master/docs/master_thesis_manta_v1_kristoffer_solberg_compressed.pdf
+* Master thesis
+* Diagrams
 
-## Installation
-
-For instructions on how to install Vortex-AUV and Vortex-Simulator check out the [wiki page](https://github.com/vortexntnu/Vortex-AUV/wiki/Software-installation) 
