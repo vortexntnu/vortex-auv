@@ -14,7 +14,7 @@ This repo contains software for operating UUVs, developed by students at NTNU. T
 
 ## Overview
 Provided below is a brief summary how the software stack is divided.
-| Folder           |  Contents  |https://github.com/vortexntnu/Vortex-AUV
+| Folder           |  Contents  |
 |------------------|--------------------------------------------------------------------------------------------------------------------------------|
 | auv_setup        | Provides a wrapper for drone parameters and any other physical parameters, as well as the launchfiles for each specific drone. |
 | manipulators     | Contains code related to drone manipulators, such as grippers. |
