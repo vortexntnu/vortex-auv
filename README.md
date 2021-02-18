@@ -8,7 +8,7 @@
 [![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-![Banner](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/banner_image.png)
+![Banner](docs/banner_image.png)
 
 This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS Melodic framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
 
