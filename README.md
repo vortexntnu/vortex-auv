@@ -22,6 +22,7 @@ A short introduction to what this repo is. Anyone, including those without much 
 * What hardware dependencies can you configure?
 
 ## Documentation
+* Drivers/hardware specifics should be put in the wiki, but link to them here.
 * Master thesis
 * Diagrams
 
