@@ -1,7 +1,4 @@
-[![GitHub stars](https://img.shields.io/github/stars/vortexntnu/manta-auv.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/vortexntnu/manta-auv/stargazers/)
-[![GitHub watchers](https://img.shields.io/github/watchers/vortexntnu/manta-auv.svg?style=social&label=Watch&maxAge=2592000)](https://GitHub.com/vortexntnu/manta-auv/watchers/)
-[![GitHub forks](https://img.shields.io/github/forks/vortexntnu/manta-auv.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/vortexntnu/manta-auv/network/)
-## Manta AUV software - Vortex NTNU
+## Vortex AUV
 [![Website shields.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://vortexntnu.no)
 [![version](https://img.shields.io/badge/version-1.0.0-blue)](https://GitHub.com/vortexntnu/manta-auv/releases/)
 ![ViewCount](https://views.whatilearened.today/views/github/vortexntnu/manta-auv.svg)
@@ -11,233 +8,50 @@
 [![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-![MANTA](docs/manta_v1.png)
+![Banner](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/banner_image.png)
 
+This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS Melodic framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
+
+## Overview
+Provided below is a brief summary how the software stack is divided.
+| Folder           |  Contents  |
+|------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| auv_setup        | Provides a wrapper for drone parameters and any other physical parameters, as well as the launchfiles for each specific drone. |
+| manipulators     | Contains code related to drone manipulators, such as grippers. |
+| mission          | Contains the state machine that dictates drone behavior. |
+| motion           | Anything related to physical motion of the drone, such as guidance and control systems. |
+| navigation       | This folder contains localization, mapping and path planning packages. | 
+| object_detection | Contains packages for visually detecting known objects, and estimating their pose. |
+
+
+A more detailed description of the system can be found [here](https://miro.com/app/board/o9J_lV3eIZc=/)
+
+## Usage
+Instructions for installation can be found [here](https://github.com/vortexntnu/Vortex-AUV/wiki/Software-installation)
+
+To launch a drone you will first need to to prepare it for operation:
+```
+roslaunch auv_setup <drone>.launch
+```
+
+Next,you have to choices:
+
+For autonomous operation, execute the desired mission script:
+ ```
+roslaunch finite_state_machine <mission_script>.launch
+```
+
+For manual operation, execute the joystick nodes on the topside computer connected to the drone:
+```
+roslaunch auv_setup pc.launch
+```
 
 ## Documentation
-A Master's thesis explaining the project and features of the Manta software is found in the docs folder: https://github.com/vortexntnu/manta-auv/blob/master/docs/master_thesis_manta_v1_kristoffer_solberg_compressed.pdf
-
-## Installation
-
-### Prerequisites
-
-Linux distributions Bionic (Ubuntu 18.04) <br />
-C++ 11 compiler or newer.
-
-### 1. Install ROS melodic for Ubuntu (If you do not have it already) ##
-
-Follow the official guide at http://wiki.ros.org/melodic/Installation/Ubuntu
-
-Robot operating system (ROS) provides services designed for heterogeneous computer cluster such as hardware abstraction, low-level device control, implementation of commonly used functionality, message-passing between processes, and package management. The main ROS client libraries (C++, Python, and Lisp) are geared toward a Unix-like system, primarily because of their dependence on large collections of open-source software dependencies.
-
-
-### 2. Install the necessary dependencies to interface with drivers, Gazebo etc. ##
--------------------------
-
-Quick command for installing all dependencies:  
-```
-sudo apt install protobuf-compiler ros-melodic-rosbridge-server ros-melodic-message-to-tf ros-melodic-geographic-msgs ros-melodic-move-base ros-melodic-move-base-msgs 
-```
-
-Explainations for the dependencies: 
-
-1. Install the protobuf library, which is used as interface to Gazebo.:
-	```bash
-	 sudo apt-get install protobuf-compiler
-
-2. Install rosbridge-server to interface with sensor and actuator drivers on the physical Manta.
-	```bash
-	 sudo apt-get install ros-melodic-rosbridge-server
-  
-3. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
-	```bash
-	 sudo apt-get install ros-melodic-message-to-tf
-
-4. Install tf. tf is a package that lets the user keep track of multiple coordinate frames over time:
-	```bash
-	 sudo apt-get install ros-melodic-geographic-msgs
-
-5. Install move-base-msgs. This is necessary to perform some actions:
-	```bash
-	 sudo apt-get install ros-melodic-move-base
-	 sudo apt-get install ros-melodic-move-base-msgs 
-
-
-### 3. Create a ROS workspace ##
--------------------------
-
-1. creating a catkin workspace:
-	```bash
-	mkdir -p ~/manta_ws/src
-	cd ~/manta_ws
-	catkin_init_workspace
-	```
-
-2. building the workspace created:
-	```bash
-	cd ~/manta_ws/
-	catkin build
-	```
-
-	Note: if you get the error message "catkin: command not found", run the following command:  
-
-	```bash
-	sudo apt-get install python-catkin-tools
-	```
-	
-3. source the current workspace:
-	```bash
-	echo "source manta_ws/devel/setup.bash" >> ~/.bashrc
-	```
-	
-4. close the current terminal.
-
-
-### 3.1 Install ZED-ROS-Wrapper ##
--------------------------
-[Official documentation](https://www.stereolabs.com/docs/ros/)
-
-1. Download and install ZED SDK
-    1. Download from [Stereolabs](https://www.stereolabs.com/developers/release/)
-	2. Enter the directory with the file:
-	```bash
-	 cd path/to/download/folder
-	```
-	3. Make the file executable:
-	```
-	 chmod +x ZED_SDK_Ubuntu18_v3.0.run
-	```
-	4. Run the installer:
-	```
-	 ./ZED_SDK_Ubuntu18_v3.0.run
-	```
-
-
-2. Enter the catkin workspace:
-	```bash
-	 cd ~/manta_ws/src
-	```
-
-3. Clone the zed-ros-wrapper repo:
-	```bash
-	 git clone https://github.com/stereolabs/zed-ros-wrapper.git
-	```
-
-4. Jump up to parent directory:
-	```bash
-	 cd ../
-	```
-
-5. Install dependencies:
-	```bash
-	 rosdep install --from-paths src --ignore-src -r -y
-	```
-
-6. Build the package:
-	```bash
-	 catkin build
-	```
-
-7. Source the package:
-	```bash
-	 source ./devel/setup.bash
-	```
-
-### 4. Download and build Vortex AUV ##
--------------------------
-1. Enter the folder where you want to clone the repostory:
-	```bash
-	 cd manta_ws/src
-	```
-
-2. Clone the repository: 
-	```bash
-	  git clone https://github.com/vortexntnu/Vortex-AUV.git
-	  git clone https://github.com/vortexntnu/vortex_msgs.git
-	```
-
-Ps. Can also be manually download the zip-folder in the up-right corner and extract the file <br />
-inside the src-folder of you workspace
-
-3. Compile the code by running "catkin build" inside the workspace:
-	```bash
-	 cd ~/manta_ws/
-	 catkin build vortex_msgs
-	 catkin build
-  
-### 5. Download and build the customized UUV simulator ##
--------------------------
-
-![MANTA](docs/manta_underwater_robosub.png)
-
-Figure by: Kristoffer Rakstad Solberg
-
-1. Enter the folder where you want to clone the repostory:
-	```bash
-	 cd manta_ws/src
-	```
-
-2. Clone the repository: 
-	```bash
-	 git clone https://github.com/vortexntnu/Vortex-Simulator.git
-	```
-
-3. Clone the repository. WARNING: HIGH CPU LOAD, you might want to build packages separately the first time: 
-	```bash
-	 catkin build
-	```
-## Run Manta V1 in Simulation with Gazebo, Smach viewer, Camera pop-up windows etc ##
--------------------------
-
-1. Run your simulation world. This will upload Manta (w/ sensor, camera, thrusters etc) and launch robot localization as well. i.e :
-	```bash
-	 roslaunch simulator_launch cybernetics_pool.launch
-	```
-
-2. Launch all modules required for operating Manta:
-	```bash
-	 roslaunch auv_setup auv.launch type:=simulator
-	```
-
-2. Execute your state machine of choice. i.e: 
-	```bash
-	 roslaunch finite_state_machine simtest.launch
-	```
-
-## Run Manta V1 in Linux minimal on your drone without Gazebo, Smach viewer, Camera pop-up windows etc ##
-
-![MANTA](docs/hardware.png)
-
-Figure by: Kristoffer Rakstad Solberg
-
-1. The main computer for Manta AUV is a ODROID. Find the IP-address of the ODROID:
-	```bash
-	 nmap 10.42.0.1/24
-	```
-2. SSH into the ODROID:
-	```bash
-	 ssh root@10.42.*INSERT*
-	```
-3. Specify your static transforms and initial states in robot_localization/launch and robot_localization/params
-
-![MANTA](docs/coordinate_frame.png)
-
-Figure by: Kristoffer Rakstad Solberg
-
-4. Run the robot localization for extended Kalman Filter for Aided Inertial Navigation:
-	```bash
-	 roslaunch robot_localization ekf_novembertest.launch
-	```
-5. ARM the thrusters (system specific). For the Manta AUV it will be:
-	```bash
-	 rostopic pub /mcu_arm std_msgs/String "data: 'arm'"
-	```
-6. Run your state machine of choice. This will activate all modules in Manta V1 architecture. i.e:
-	```bash
-	 roslaunch finite_state_machine odroid_sm
-	```
-7. DISARM the thrusters (system specific). For the Manta AUV it will be:
-	```bash
-	 rostopic pub /mcu_arm std_msgs/String "data: 'ben'"
-	```
+* TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
+* TODO: How to adapt the software stack to new hardware.
+* A collection of master theses written by Vortex members:
+  *   [Manta v1: A Deliberative Agent Software Architecture for Autonomous Underwater Vehicles](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/master_theses/Kristoffer%20Solberg%20(2020).pdf)
+  *   [A real-time DVL and pressure sensor AINS comparison study between EKF, ESKF and NLO for Manta-2020](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/master_theses/Oyvind%20Denvik%20(2020).pdf)
+  *   [Sonar EKF-SLAM and mapping inanstructured underwater environment](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/master_theses/Ambj%C3%B8rn%20Waldum%20(2020).pdf)
+  *   [Autonomous Navigation, Mapping, and Exploration for Underwater Robots](https://github.com/vortexntnu/Vortex-AUV/blob/documentation/top-level_readme/docs/master_theses/V%C3%A5ge%2C%20Utbjoe%2C%20Gjerden%20og%20Engebretsen%20(2019).pdf)
 
