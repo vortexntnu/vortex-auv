@@ -1,4 +1,4 @@
-## Vortex AUV software - Vortex NTNU
+## Vortex AUV
 [![Website shields.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://vortexntnu.no)
 [![version](https://img.shields.io/badge/version-1.0.0-blue)](https://GitHub.com/vortexntnu/manta-auv/releases/)
 ![ViewCount](https://views.whatilearened.today/views/github/vortexntnu/manta-auv.svg)
