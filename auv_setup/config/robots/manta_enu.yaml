@@ -106,3 +106,11 @@ torpedos:       # TODO: decide what pins to use for torpedo
   left_pin: 23  # both given in BCM scheme
   right_pin: 24 
 
+joystick:
+  scaling:
+    surge: 10
+    sway: 10
+    heave: 10
+    roll: 5
+    pitch: 5
+    yaw: 5

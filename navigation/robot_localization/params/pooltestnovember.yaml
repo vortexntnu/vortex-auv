@@ -9,7 +9,7 @@ transform_time_offset: 0.0
 transform_timeout: 0.0
 print_diagnostics: false
 debug: true
-debug_out_file: /root/manta_auv_backup/debugfiles/debug.txt
+debug_out_file: /root/auv_backup/debugfiles/debug.txt
 publish_tf: true
 publish_acceleration: false
 
@@ -53,7 +53,7 @@ imu0_queue_size: 10
 imu0_remove_gravitational_acceleration: true
 
 # DVL
-odom0: /manta/dvl
+odom0: /auv/dvl
 odom0_config: [false,  false, false, # x, y, z
                false, false, false,  # roll, pitch, yaw
                true, true, true,     # vx, vy, vz
@@ -68,7 +68,7 @@ odom0_relative: false
 
 
 #  Pressure sensor - Z value
-odom1: /manta/pressureZ
+odom1: /auv/pressureZ
 odom1_config: [false,  false, true, # x, y, z
                false, false, false,  # roll, pitch, yaw
                false, false, false,     # vx, vy, vz
@@ -89,7 +89,7 @@ initial_state: [ 0.0, 0.0, 0.0,
 
 
 # DVl - pose mesasge (z position)
-#pose0: /manta/pose_z
+#pose0: /auv/pose_z
 
 #pose0_config: [false, false, true, # x, y, z
 #               false, false, false,  # roll, pitch, yaw
@@ -102,7 +102,7 @@ initial_state: [ 0.0, 0.0, 0.0,
 #pose0_relative: false
 
 
-#twist0: /manta/twist_dvl
+#twist0: /auv/twist_dvl
 
 #twist0_config: [false,  false, false, # x, y, z
 #               false, false, false,  # roll, pitch, yaw

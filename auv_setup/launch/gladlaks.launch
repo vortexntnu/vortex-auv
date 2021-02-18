@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  
+  <!-- INPUT ARGS -->
+  <arg name="type" default="simulator"/> <!-- real | simulator -->
+
+
+  <!-- PARAMETERS -->
+  <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
+  <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
+
+
+  <!-- INCLUDES -->
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
+  <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+  <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+
+  <!-- DRIVERS -->
+  <group if="$(eval type == 'real')">
+    <!-- IMU -->
+    <node pkg = "driver_stim300" type = "stim300_driver_node" name = "driver_stim300" args="/dev/ttyUSB0"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 TODO TODO TODO base_link imu_0" />
+
+    <!-- DVL -->	
+    <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="TODO TODO TODO TODO TODO 0 base_link dvl_link" />
+
+    <!-- Remap pressure reading from DVL -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" />
+  </group>
+
+</launch>

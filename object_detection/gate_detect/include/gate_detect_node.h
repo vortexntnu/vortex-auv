@@ -78,7 +78,7 @@ public:
       : it_(nh_)
     {
       // Subscribe to input video feed and publish output video feed
-      image_sub_ = it_.subscribe("/manta/manta/camerafront/camera_image", 1, &gateFinder::run, this);
+      image_sub_ = it_.subscribe("/auv/auv/camerafront/camera_image", 1, &gateFinder::run, this);
       image_pub_ =it_.advertise("/camera/gate_detect",1);
       gate_pub_ = it_.advertise("/camera/gate_tuning",1);
       detect_pub_ = n_.advertise<vortex_msgs::CameraObjectInfo>("gate_midpoint",1000);

@@ -34,7 +34,7 @@ using namespace cv_bridge;
 using namespace image_transport; 	
 static const std::string OPENCV_WINDOW = "Binary image, pole";
 static const std::string WINDOW2 = "Bounding boxes, pole";
-static const std::string CAMERA_FRAME = "manta/camerafront_link";
+static const std::string CAMERA_FRAME = "auv/camerafront_link";
 
 
 class poleFinder{
@@ -96,7 +96,7 @@ public:
       : it_(nh_)
     {
       // Subscribe to input video feed and publish output video feed
-      image_sub_ = it_.subscribe("/manta/manta/camerafront/camera_image", 1, &poleFinder::run, this);
+      image_sub_ = it_.subscribe("/auv/auv/camerafront/camera_image", 1, &poleFinder::run, this);
 	  image_pub_ = it_.advertise("/camera/pole_detect",1);
 	  red_image_pub_ = it_.advertise("/camera/pole_tuning",1);
       detect_pub_ = n_.advertise<vortex_msgs::CameraObjectInfo>("pole_midpoint",1000);

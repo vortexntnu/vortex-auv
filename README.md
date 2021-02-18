@@ -35,6 +35,7 @@ roslaunch auv_setup <drone>.launch
 ```
 
 Next,you have to choices:
+
 For autonomous operation, execute the desired mission script:
  ```
 roslaunch finite_state_machine <mission_script>.launch

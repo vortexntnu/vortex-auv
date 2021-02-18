@@ -91,4 +91,11 @@ torpedos:
   left_pin: TODO
   right_pin: TODO
 
-thrusters:
+joystick:
+  scaling:
+    surge: 10
+    sway: 10
+    heave: 10
+    roll: 5
+    pitch: 5
+    yaw: 5

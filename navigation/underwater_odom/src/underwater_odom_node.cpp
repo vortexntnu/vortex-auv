@@ -9,11 +9,11 @@
 UnderwaterOdom::UnderwaterOdom(){
 
   // Subscribers	
-  fluid_pressure_sub_ = nh_.subscribe("/manta/pressure", 1, &UnderwaterOdom::pressureCallback, this);
-  dvl_twist_sub_ = nh_.subscribe("/manta/dvl_twist", 1, &UnderwaterOdom::dvlCallback, this);
+  fluid_pressure_sub_ = nh_.subscribe("/auv/pressure", 1, &UnderwaterOdom::pressureCallback, this);
+  dvl_twist_sub_ = nh_.subscribe("/auv/dvl_twist", 1, &UnderwaterOdom::dvlCallback, this);
 
   // Publishers
-  odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/manta/odom",1);
+  odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/auv/odom",1);
 
 
   // values picked from /params/environment_config.yaml
@@ -27,8 +27,8 @@ UnderwaterOdom::UnderwaterOdom(){
     ROS_ERROR("Could not read parameter gravititional acceleration.");
 	
   // headers
-	odom.header.frame_id = "manta/odom";
-	odom.child_frame_id = "manta/base_link";
+	odom.header.frame_id = "auv/odom";
+	odom.child_frame_id = "auv/base_link";
 
 }
 
