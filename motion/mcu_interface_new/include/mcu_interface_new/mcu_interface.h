@@ -2,6 +2,7 @@
 
 #include <vortex_msgs/Pwm.h>
 #include <vortex_msgs/ThrusterForces.h>
+#include <std_msgs/String.h>
 
 #include <string>
 #include <cmath>
@@ -17,12 +18,13 @@ class MCU_Interface{
     private:
         ros::NodeHandle nh;
         ros::Subscriber thruster_forces_sub;
+        ros::Subscriber thruster_arm_sub;
         ros::Rate loop_rate;
 
         int num_thrusters;
-        std::vector<double> thrust_offset;
         std::vector<double> lookup_thrust;
         std::vector<double> lookup_pulse_width;
+        std::vector<double> thruster_offset;
         std::vector<double> thruster_mapping;
         std::vector<double> thruster_direction;
 
@@ -30,6 +32,7 @@ class MCU_Interface{
 
         /** Callbacks */
         void thruster_forces_cb(const vortex_msgs::ThrusterForces &msg) ;
+        void thruster_arm_cb(const std_msgs::String &msg);
 
         /** Utility */
         bool is_healthy(const vortex_msgs::ThrusterForces &msg);
@@ -37,8 +40,6 @@ class MCU_Interface{
         double thrust_to_microseconds(const double thrust);
         void output_to_zero();
 
-        void transfer_to_mcu(std::vector<double> pwm);
-
-
+        void transfer_to_mcu(const std::vector<double> pwm);
 
 };

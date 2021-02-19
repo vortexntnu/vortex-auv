@@ -2,7 +2,7 @@
 
 MCU_Interface::MCU_Interface ():loop_rate(10){
     thruster_forces_sub = nh.subscribe("/thrust/thruster_forces", 10, &MCU_Interface::thruster_forces_cb, this);
-
+    thruster_arm_sub = nh.subscribe("/thrust/arm", 10, &MCU_Interface::thruster_arm_cb, this);
 
     if (!nh.getParam("/propulsion/thrusters/num", num_thrusters)) {
         ROS_WARN("Could not get parameter '/propulsion/thrusters/num', using default.");
@@ -11,29 +11,29 @@ MCU_Interface::MCU_Interface ():loop_rate(10){
 
     std::vector<double> default_vec(num_thrusters, 0.0);
 
-    if (!nh.getParam("/propulsion/thrusters/offset", thrust_offset)) {
-        ROS_WARN("Could not get parameter '/propulsion/thrusters/offset', using default.");
-        thrust_offset = default_vec;
-    }
-
     if (!nh.getParam("/propulsion/thrusters/characteristics/thrust",  lookup_thrust)) {
         ROS_WARN("Could not get parameter '/propulsion/thrusters/characteristics/thrust', using default.");
-        thrust_offset = default_vec;
+        lookup_thrust = default_vec;
     }
 
     if (!nh.getParam("/propulsion/thrusters/characteristics/pulse_width", lookup_pulse_width)) {
         ROS_WARN("Could not get parameter '/propulsion/thrusters/characteristics/pulse_width', using default.");
-        thrust_offset = default_vec;    
+        lookup_pulse_width = default_vec;    
+    }
+
+    if (!nh.getParam("/propulsion/thrusters/offset", thruster_offset)) {
+        ROS_WARN("Could not get parameter '/propulsion/thrusters/offset', using default.");
+        thruster_offset = default_vec;
     }
 
     if (!nh.getParam("/propulsion/thrusters/map", thruster_mapping)) {
         ROS_WARN("Could not get parameter '/propulsion/thrusters/map', using default.");
-        thrust_offset = default_vec;
+        thruster_mapping = default_vec;
     }
 
     if (!nh.getParam("/propulsion/thrusters/direction", thruster_direction)) {
         ROS_WARN("Could not get parameter '/propulsion/thrusters/direction', using default.");
-        thrust_offset = default_vec; 
+        thruster_direction = default_vec; 
     }
 
 }
@@ -49,10 +49,17 @@ void MCU_Interface::thruster_forces_cb(const vortex_msgs::ThrusterForces &msg) {
     std::vector<double> microseconds;
 
     for(int i = 0; i < num_thrusters; i++) {
-        microseconds.push_back(thrust_to_microseconds(thrust[i] + thrust_offset[i]));
+        microseconds.push_back(thrust_to_microseconds(thrust[i] + thruster_offset[i]));
     }
 
     transfer_to_mcu(microseconds);
+}
+
+void MCU_Interface::thruster_arm_cb(const std_msgs::String &msg) {
+    if (msg.data == "arm me daddy") {
+        ROS_INFO("ARMING THRUSTERS, WATCH YOUR FINGERS, TOES, AND ANY OTHER EXPOSED LIMBS");
+        // Transfer a string, "command_arm" to mcu
+    }
 
 }
 
@@ -95,9 +102,11 @@ double MCU_Interface::thrust_to_microseconds(const double thrust) {
     return 0;
 }
 
-void MCU_Interface::transfer_to_mcu(std::vector<double> pwm) {
+void MCU_Interface::transfer_to_mcu(const std::vector<double> pwm) {
 
+    // Use I2C connection to transfer the values in the pwm vector
 }
+
 
 
 void MCU_Interface::execute(){
