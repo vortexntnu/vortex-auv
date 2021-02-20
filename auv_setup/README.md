@@ -19,6 +19,21 @@ For the AUV launchfiles, the following parameters can be used:
 | ----------|-----------------|-----------|
 | type      | real, simulator | simulator |
 
+#### pc.launch
+The pc.launch file is to be run on the topside computer, which needs to be connected to the same network as the drone.
+The drone will be the master, and the topside computer needs to know how to connect to the drone. To configure this, do the following:
+
+1. Find the IP of the Xavier. When running the Xavier on the drone, this should be `10.42.0.1`.
+2. On the topside computer, execute
+```echo "source vortex_ws/devel/setup.bash" >> ~/.bashrc
+echo "export ROS_MASTER_URI=http://X.X.X.X:11311" >> ~/.bashrc
+```
+where X.X.X.X is the IP of the Xavier.
+
+3. Source the newly edited file.
+```
+source ~/.bashrc
+```
 
 ### Sensors
 Currently, the AUV launchfiles also contain the sensor driver launches, including the remapping of them:
