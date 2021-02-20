@@ -8,6 +8,7 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include "mcu_interface_new/interp.h"
 MCU_Interface::MCU_Interface ():loop_rate(10){
     thruster_forces_sub = nh.subscribe("/thrust/thruster_forces", 10, &MCU_Interface::thruster_forces_cb, this);
     thruster_arm_sub = nh.subscribe("/thrust/arm", 10, &MCU_Interface::thruster_arm_cb, this);
@@ -106,8 +107,7 @@ bool MCU_Interface::is_healthy(const vortex_msgs::ThrusterForces &msg) {
 
 
 double MCU_Interface::thrust_to_microseconds(const double thrust) {
-    // Need to implement the equivalent of numpy.interp(thrust, lookup_thrust, lookup_pulse_width)
-    return 0;
+    return interpolate(thrust, lookup_thrust, lookup_pulse_width);
 }
 
 void MCU_Interface::i2c_init(int MCU_addr) {
