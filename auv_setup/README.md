@@ -28,7 +28,7 @@ you will need to configure the topside computer:
 
 1. Find the IP of the master. When running the Xavier on the drone, this should be `10.42.0.1`.
 2. On the topside computer, execute
-```echo "source vortex_ws/devel/setup.bash" >> ~/.bashrc
+```
 echo "export ROS_MASTER_URI=http://X.X.X.X:11311" >> ~/.bashrc
 ```
 where X.X.X.X is the IP of the Xavier.
