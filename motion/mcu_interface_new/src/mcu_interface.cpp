@@ -4,11 +4,11 @@
 #include <unistd.h>
 #include <string.h>
 #include "mcu_interface_new/i2c.h"
+#include "mcu_interface_new/interp.h"
 
 #include <time.h>
 #include <stdlib.h>
 
-#include "mcu_interface_new/interp.h"
 MCU_Interface::MCU_Interface ():loop_rate(10){
     thruster_forces_sub = nh.subscribe("/thrust/thruster_forces", 10, &MCU_Interface::thruster_forces_cb, this);
     thruster_arm_sub = nh.subscribe("/thrust/arm", 10, &MCU_Interface::thruster_arm_cb, this);
@@ -172,7 +172,8 @@ void MCU_Interface::transfer_to_mcu(u_int8_t a_byte) {
     // To compile and run all files:
     // cc -c ./i2c_test.c && cc ./i2c.o ./i2c_test.o -o main && ./main
     const I2CDevice dev_1 = MCU_Interface::device;
-
+    
+    char num_str[num_thrusters];
     for (int i = 0; i < num_thrusters; i++)
     {
         num_str[i] = a_byte;

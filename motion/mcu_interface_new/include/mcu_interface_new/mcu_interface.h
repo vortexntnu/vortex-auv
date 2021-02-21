@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ros/ros.h"
 
 #include <vortex_msgs/Pwm.h>
@@ -9,6 +11,7 @@
 #include <vector>
 
 #include "mcu_interface_new/i2c.h"
+#include "mcu_interface_new/interp.h"
 
 class MCU_Interface{
     public:

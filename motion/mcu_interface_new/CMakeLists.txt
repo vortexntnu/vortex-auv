@@ -204,6 +204,6 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(mcu_interface src/mcu_interface.cpp src/i2c.c)
+add_executable(mcu_interface src/mcu_interface.cpp src/i2c.c src/interp.cpp)
 target_link_libraries(mcu_interface ${catkin_LIBRARIES})
 add_dependencies(mcu_interface ${catkin_EXPORTED_TARGETS})
