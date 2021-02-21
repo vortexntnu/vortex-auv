@@ -10,6 +10,31 @@ from sensor_msgs.msg import Joy
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
+
+def nearest_list_value(value, ref_list):
+	"""
+	Returns the highest value in the list 'ref_list' that is
+	less or equal to the given value 'value'.
+	"""
+
+	# Sorting the list in ascending order
+	ref_list = sorted(ref_list, key = lambda x:float(x)) 
+
+	for i in range(len(ref_list)):
+		if i == 0 and value < ref_list[i]:
+			value = 0
+			break
+		if value < ref_list[i]:
+			# The first if-should prevent out of bounds
+			value = ref_list[i - 1]
+			break
+	if value not in ref_list:
+		# We know that we are given largest value in the list
+		value = ref_list[-1]
+	
+	return value
+
+
 class JoystickGuidanceNode():
 
 	def __init__(self):
@@ -52,7 +77,7 @@ class JoystickGuidanceNode():
 
 		self.pub.publish(joystick_msg)
 
-	def calculate_joystick_point(joystick_msg):
+	def calculate_joystick_point(self, joystick_msg):
 		"""
 		Calculates a point in the local frame based on the given thrust-vectors 
 		from joystick 
@@ -82,7 +107,7 @@ class JoystickGuidanceNode():
 		return calculated_point
 
 
-	def scale_force_vectors(joystick_msg):
+	def scale_force_vectors(self, joystick_msg):
         """
         Scales the thrust-vectors to
         """
@@ -95,43 +120,9 @@ class JoystickGuidanceNode():
         # Using a try-catch to prevent out-of-bounds to become a large problem
         try:
             # Scale each force
-            for i in range(len(self.limits)):
-                if i == 0 and scale_x_vec < self.limits[i]:
-                    scale_x_vec = 0
-                    break
-                if scale_x_vec < self.limits[i]:
-                    # The first if-should prevent out of bounds
-                    scale_x_vec = self.limits[i - 1]
-                    break
-            if scale_x_vec not in self.limits:
-                # We know that we are given max force
-                scale_x_vec = self.limits[-1]
-
-
-            for i in range(len(self.limits)):
-                if i == 0 and scale_y_vec < self.limits[i]:
-                    scale_y_vec = 0
-                    break
-                if scale_y_vec < self.limits[i]:
-                    # The first if-should prevent out of bounds
-                    scale_y_vec = self.limits[i - 1]
-                    break
-            if scale_y_vec not in self.limits:
-                # We know that we are given max force
-                scale_y_vec = self.limits[-1]
-
-            
-            for i in range(len(self.limits)):
-                if i == 0 and scale_z_vec < self.limits[i]:
-                    scale_z_vec = 0
-                    break
-                if scale_z_vec < self.limits[i]:
-                    # The first if-should prevent out of bounds
-                    scale_z_vec = self.limits[i - 1]
-                    break
-            if scale_z_vec not in self.limits:
-                # We know that we are given max force
-                scale_z_vec = self.limits[-1]
+			scale_x_vec = nearest_list_value(scale_x_vec, self.limits)
+			scale_y_vec = nearest_list_value(scale_y_vec, self.limits)
+			scale_z_vec = nearest_list_value(scale_z_vec, self.limits)
 
 			return scale_x_vec, scale_y_vec, scale_z_vec
         
