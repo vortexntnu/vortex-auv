@@ -94,7 +94,7 @@ class JoystickGuidanceNode():
         try:
             # Scale each force
             for i in range(len(self.limits)):
-                if i == 0 and scale_x_vec < self.limits(i):
+                if i == 0 and scale_x_vec < self.limits[i]:
                     scale_x_vec = 0
                     break
                 if scale_x_vec < self.limits[i]:
