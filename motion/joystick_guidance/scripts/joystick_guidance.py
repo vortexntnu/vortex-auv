@@ -52,28 +52,28 @@ class JoystickGuidanceNode():
 
 		self.pub.publish(joystick_msg)
 
-	    def calculate_joystick_point(joystick_msg):
-        """
-        Calculates a point in the local frame based on the given thrust-vectors 
-        from joystick 
+	def calculate_joystick_point(joystick_msg):
+		"""
+		Calculates a point in the local frame based on the given thrust-vectors 
+		from joystick 
 
-        If required it must be converted into the global reference-frame
-        """
+		If required it must be converted into the global reference-frame
+		"""
 
-        # Scaling the force to get a linearized model
+		# Scaling the force to get a linearized model
 		scaled_force_x, scaled_force_y, scaled_force_z = scale_force_vectors(joystick_msg)
 
 		# TODO Change this to the required point-type size
 		calculated_point = [scaled_force_x, scaled_force_y, scaled_force_z]
 
-        # Calculating the length of the vectors
+		# Calculating the length of the vectors
 		vector_length_square = 0
 		for i in range(len(calculated_point)):
 			vector_length_square += pow(calculated_point(i), 2)
 
-        # Scale the point to hold withing the designated area
-        if vector_length_square < pow(self.min_point_range, 2):
-            vector_length_square *= 0
+		# Scale the point to hold withing the designated area
+		if vector_length_square < pow(self.min_point_range, 2):
+			vector_length_square *= 0
 		elif vector_length_square >= pow(self.max_point_range, 2):
 			calculated_point /= vector_length_square
 
