@@ -44,6 +44,8 @@ MCU_Interface::MCU_Interface ():loop_rate(10){
         ROS_WARN("Could not get parameter '/propulsion/thrusters/direction', using default.");
         thruster_direction = default_vec; 
     }
+    
+    i2c_init(0x8);
 
 }
 
@@ -61,14 +63,14 @@ void MCU_Interface::thruster_forces_cb(const vortex_msgs::ThrusterForces &msg) {
         microseconds.push_back(thrust_to_microseconds(thrust[i] + thruster_offset[i]));
     }
 
-    MCU_Interface::transfer_to_mcu(microseconds);
+    transfer_to_mcu(microseconds);
 }
 
 void MCU_Interface::thruster_arm_cb(const std_msgs::String &msg) {
     if (msg.data == "arm me daddy") {
-        ROS_INFO("ARMING THRUSTERS, WATCH YOUR FINGERS, TOES, AND ANY OTHER EXPOSED LIMBS");
+        ROS_WARN("ARMING THRUSTERS, WATCH YOUR FINGERS, TOES, AND ANY OTHER EXPOSED LIMBS");
         for (int i = 0; i < 1001; i++) {
-            MCU_Interface::transfer_to_mcu(100);
+            transfer_to_mcu(100);
         }
     }
 
