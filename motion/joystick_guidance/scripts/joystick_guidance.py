@@ -130,11 +130,14 @@ class JoystickGuidanceNode():
             if scale_z_vec not in self.limits:
                 # We know that we are given max force
                 scale_z_vec = self.limits[-1]
+
+			return scale_x_vec, scale_y_vec, scale_z_vec
         
         except Exception as e:
             rospy.logerr(e)
-		
-		return scale_x_vec, scale_y_vec, scale_z_vec
+			
+			# Return a standard response if an error occurs
+			return 0, 0, 0
  
 
 if __name__ == '__main__':
