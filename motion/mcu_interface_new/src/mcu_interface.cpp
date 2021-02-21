@@ -67,7 +67,9 @@ void MCU_Interface::thruster_forces_cb(const vortex_msgs::ThrusterForces &msg) {
 void MCU_Interface::thruster_arm_cb(const std_msgs::String &msg) {
     if (msg.data == "arm me daddy") {
         ROS_INFO("ARMING THRUSTERS, WATCH YOUR FINGERS, TOES, AND ANY OTHER EXPOSED LIMBS");
-        // Transfer a string, "command_arm" to mcu
+        for (int i = 0; i < 1001; i++) {
+            MCU_Interface::transfer_to_mcu(100);
+        }
     }
 
 }
@@ -167,24 +169,20 @@ void MCU_Interface::transfer_to_mcu(const std::vector<double> pwm) {
 }
 
 void MCU_Interface::transfer_to_mcu(u_int8_t a_byte) {
-// To compile and run all files:
-// cc -c ./i2c_test.c && cc ./i2c.o ./i2c_test.o -o main && ./main
+    // To compile and run all files:
+    // cc -c ./i2c_test.c && cc ./i2c.o ./i2c_test.o -o main && ./main
     const I2CDevice dev_1 = MCU_Interface::device;
 
-    for (int outer = 0; outer < 1000; outer++) {
-        char num_str[num_thrusters];
-        for (int i = 0; i < num_thrusters; i++)
-        {
-            num_str[i] = a_byte;
-        }
-
-        if (i2c_ioctl_write(&dev_1, 0x0, num_str, strlen(num_str)) != strlen(num_str))
-        {
-            /* Error process */
-        }
+    for (int i = 0; i < num_thrusters; i++)
+    {
+        num_str[i] = a_byte;
     }
 
-    
+    if (i2c_ioctl_write(&dev_1, 0x0, num_str, strlen(num_str)) != strlen(num_str))
+    {
+        /* Error process */
+    }
+
     // for (u_int16_t i = 9000; i < 100000; i++) {
     //     u_int16_t num = rand() % 65535;
     //     char num_str[5];
@@ -199,7 +197,6 @@ void MCU_Interface::transfer_to_mcu(u_int8_t a_byte) {
     // }
     //i2c_close(MCU_Interface::device.bus);
 }
-
 
 void MCU_Interface::execute(){
     while (ros::ok()){
