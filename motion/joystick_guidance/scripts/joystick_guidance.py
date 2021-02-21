@@ -73,9 +73,11 @@ class JoystickGuidanceNode():
 
 		# Scale the point to hold withing the designated area
 		if vector_length_square < pow(self.min_point_range, 2):
+			# Under the set limit. Setting current vector to 0
 			vector_length_square *= 0
 		elif vector_length_square >= pow(self.max_point_range, 2):
-			calculated_point /= vector_length_square
+			# Over the set limit. Normalizing
+			calculated_point /= sqrt(vector_length_square)
 
 		return calculated_point
 
