@@ -196,7 +196,7 @@ class GuidanceInterface:
 
         joystick_msg = Joy()
         joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
-
+        
         self.joystick_pub.publish(joystick_msg)
 
 if __name__ == "__main__":

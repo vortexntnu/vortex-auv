@@ -209,7 +209,7 @@ void MCU_Interface::execute(){
 }
 
 int main(int argc, char **argv){
-    ros::init(argc,argv,"mcu_interface_new");
+    ros::init(argc,argv,"mcu_interface");
     MCU_Interface mcu_i;
     mcu_i.execute();
 }
