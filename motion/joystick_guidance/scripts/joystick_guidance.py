@@ -51,18 +51,18 @@ class JoystickGuidanceNode():
 		self.pitch 	= 4 
 		self.yaw 	= 5 
 
-        self.min_point_range = 0.2                          # Minimum allowed distance from the UUV to the point
-        self.max_point_range = 1                            # Maximum allowed distance from the UUV to the calculated point
-        self.num_ranges = 5                                 # Number of ranges the input is scaled by
-        self.joystick_num_bit = 16                          # Resolution on the joystick
+		self.min_point_range = 0.2                          # Minimum allowed distance from the UUV to the point
+		self.max_point_range = 1                            # Maximum allowed distance from the UUV to the calculated point
+		self.num_ranges = 5                                 # Number of ranges the input is scaled by
+		self.joystick_num_bit = 16                          # Resolution on the joystick
 
 
-        # Required input-values to generate valid signals
-        limits = []
-        self.max_value = pow(2, self.joystick_num_bit - 1)  # -1 due to only positive integers
-        for i in range(1, self.num_ranges + 1):         
-            limits.append((max_value / self.num_ranges) * i)
-        self.limits = limits
+		# Required input-values to generate valid signals
+		limits = []
+		self.max_value = pow(2, self.joystick_num_bit - 1)  # -1 due to only positive integers
+		for i in range(1, self.num_ranges + 1):         
+			limits.append((max_value / self.num_ranges) * i)
+		self.limits = limits
 
 
 	def callback(self, msg):
@@ -108,26 +108,26 @@ class JoystickGuidanceNode():
 
 
 	def scale_force_vectors(self, joystick_msg):
-        """
-        Scales the thrust-vectors to
-        """
+		"""
+		Scales the thrust-vectors to
+		"""
 
-        # Recovering the given forces
+		# Recovering the given forces
 		scale_x_vec = joystick_msg.force.x
 		scale_y_vec = joystick_msg.force.y
 		scale_z_vec = joystick_msg.force.z
 
-        # Using a try-catch to prevent out-of-bounds to become a large problem
-        try:
-            # Scale each force
+		# Using a try-catch to prevent out-of-bounds to become a large problem
+		try:
+			# Scale each force
 			scale_x_vec = nearest_list_value(scale_x_vec, self.limits)
 			scale_y_vec = nearest_list_value(scale_y_vec, self.limits)
 			scale_z_vec = nearest_list_value(scale_z_vec, self.limits)
 
 			return scale_x_vec, scale_y_vec, scale_z_vec
-        
-        except Exception as e:
-            rospy.logerr(e)
+
+		except Exception as e:
+			rospy.logerr(e)
 			
 			# Return a standard response if an error occurs
 			return 0, 0, 0
