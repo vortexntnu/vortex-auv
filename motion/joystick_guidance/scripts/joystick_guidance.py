@@ -61,7 +61,7 @@ class JoystickGuidanceNode():
 		limits = []
 		self.max_value = pow(2, self.joystick_num_bit - 1)  # -1 due to only positive integers
 		for i in range(1, self.num_ranges + 1):         
-			limits.append((max_value / self.num_ranges) * i)
+			limits.append((self.max_value / self.num_ranges) * i)
 		self.limits = limits
 
 
