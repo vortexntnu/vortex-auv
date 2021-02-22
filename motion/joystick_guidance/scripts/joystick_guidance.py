@@ -12,11 +12,15 @@ from math import sqrt
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
 
-def nearest_list_value(value, ref_list, decimal_values):
+def nearest_list_value(param_list, ref_list, decimal_list):
 	"""
 	Returns the highest value in the list 'ref_list' that is
 	less or equal to the given value 'value'.
 	"""
+
+	# Extracting the value and deadzone
+	value = param_list[0]
+	deadzone = param_list[1]
 
 	# Sorting the list in ascending order
 	ref_list = sorted(ref_list, key = lambda x:float(x)) 
@@ -26,13 +30,13 @@ def nearest_list_value(value, ref_list, decimal_values):
 
 	for i in range(len(ref_list)):
 		if value < ref_list[i]:
-			temp_value = decimal_values[i]
+			temp_value = decimal_list[i]
 			break
 
 	# We allow maximum thrust when it is given below a certain threshold
 	if value >= ref_list[-1] - deadzone:
 		# We know that we are given largest value in the list
-		temp_value = decimal_values[-1]
+		temp_value = decimal_list[-1]
 
 	# Correcting for negative sign
 	if value < 0:
@@ -62,7 +66,7 @@ class JoystickGuidanceNode():
 		self.max_point_range = 1                            # Maximum allowed distance from the UUV to the calculated point
 		self.num_ranges = 5                                 # Number of ranges the input is scaled by
 		self.joystick_num_bit = 16                          # Resolution on the joystick
-
+		self.deadzone = 1000								# Deadzone on upper input
 
 		# Required input-values to generate valid signals
 		limits = []
@@ -73,10 +77,10 @@ class JoystickGuidanceNode():
 
 
 		# Calculated input in decimal
-		decimal_values = []
+		decimal_list = []
 		for i in range(0, num_ranges + 1):
-			decimal_values.append((max_point_range / num_ranges) * i)
-		self.decimal_values = decimal_values
+			decimal_list.append((max_point_range / num_ranges) * i)
+		self.decimal_list = decimal_list
 
 
 	def callback(self, msg):
@@ -125,18 +129,23 @@ class JoystickGuidanceNode():
 		"""
 
 		# Recovering the given forces
-		scale_x_vec = joystick_msg.force.x
-		scale_y_vec = joystick_msg.force.y
-		scale_z_vec = joystick_msg.force.z
+		force_x = joystick_msg.force.x
+		force_y = joystick_msg.force.y
+		force_z = joystick_msg.force.z
 
 		# Using a try-catch to prevent out-of-bounds to become a large problem
 		try:
-			# Scale each force
-			scale_x_vec = nearest_list_value(scale_x_vec, self.limits, self.decimal_values)
-			scale_y_vec = nearest_list_value(scale_y_vec, self.limits, self.decimal_values)
-			scale_z_vec = nearest_list_value(scale_z_vec, self.limits, self.decimal_values)
+			# Set up a list with param
+			param_list_x = [force_x, self.deadzone]
+			param_list_y = [force_y, self.deadzone]
+			param_list_z = [force_z, self.deadzone]
 
-			return scale_x_vec, scale_y_vec, scale_z_vec
+			# Scale each force
+			force_x = nearest_list_value(param_list_x, self.limits, self.decimal_list)
+			force_y = nearest_list_value(param_list_y, self.limits, self.decimal_list)
+			force_z = nearest_list_value(param_list_z, self.limits, self.decimal_list)
+
+			return force_x, force_y, force_z
 
 		except Exception as e:
 			rospy.logerr(e)
