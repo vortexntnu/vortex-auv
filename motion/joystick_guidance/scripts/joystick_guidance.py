@@ -29,7 +29,7 @@ def nearest_list_value(value, ref_list):
 			# The first if-should prevent out of bounds
 			value = ref_list[i - 1]
 			break
-	if value not in ref_list:
+	if value not in ref_list and value != 0:
 		# We know that we are given largest value in the list
 		value = ref_list[-1]
 	
