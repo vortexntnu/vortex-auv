@@ -7,6 +7,7 @@ import rospy
 
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
+from math import sqrt
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
@@ -102,7 +103,8 @@ class JoystickGuidanceNode():
 			vector_length_square *= 0
 		elif vector_length_square >= pow(self.max_point_range, 2):
 			# Over the set limit. Normalizing
-			calculated_point /= sqrt(vector_length_square)
+			vector_length = sqrt(vector_length_square)
+			calculated_point = [val / vector_length for val in calculated_point]
 
 		return calculated_point
 
