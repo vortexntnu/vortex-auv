@@ -12,7 +12,7 @@ from math import sqrt
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
 
-def nearest_list_value(value, ref_list):
+def nearest_list_value(value, ref_list, decimal_values):
 	"""
 	Returns the highest value in the list 'ref_list' that is
 	less or equal to the given value 'value'.
@@ -25,16 +25,14 @@ def nearest_list_value(value, ref_list):
 	temp_value = 0
 
 	for i in range(len(ref_list)):
-		if i == 0 and value < ref_list[i]:
-			temp_value = 0
-			break
 		if value < ref_list[i]:
-			# The first if-should prevent out of bounds
-			temp_value = ref_list[i - 1]
+			temp_value = decimal_values[i]
 			break
-	if value not in ref_list and value != 0:
+
+	# We allow maximum thrust when it is given below a certain threshold
+	if value >= ref_list[-1] - deadzone:
 		# We know that we are given largest value in the list
-		temp_value = ref_list[-1]
+		temp_value = decimal_values[-1]
 
 	# Correcting for negative sign
 	if value < 0:
@@ -74,6 +72,13 @@ class JoystickGuidanceNode():
 		self.limits = limits
 
 
+		# Calculated input in decimal
+		decimal_values = []
+		for i in range(0, num_ranges + 1):
+			decimal_values.append((max_point_range / num_ranges) * i)
+		self.decimal_values = decimal_values
+
+
 	def callback(self, msg):
 
 		joystick_msg = Wrench()
@@ -103,13 +108,10 @@ class JoystickGuidanceNode():
 		# Calculating the length of the vectors
 		vector_length_square = 0
 		for i in range(len(calculated_point)):
-			vector_length_square += pow(calculated_point(i), 2)
+			vector_length_square += pow(calculated_point[i], 2)
 
-		# Scale the point to hold withing the designated area
-		if vector_length_square < pow(self.min_point_range, 2):
-			# Under the set limit. Setting current vector to 0
-			vector_length_square *= 0
-		elif vector_length_square >= pow(self.max_point_range, 2):
+		# Normalizing if exceeding the max_point_range
+		if vector_length_square >= pow(max_point_range, 2):
 			# Over the set limit. Normalizing
 			vector_length = sqrt(vector_length_square)
 			calculated_point = [val / vector_length for val in calculated_point]
@@ -130,9 +132,9 @@ class JoystickGuidanceNode():
 		# Using a try-catch to prevent out-of-bounds to become a large problem
 		try:
 			# Scale each force
-			scale_x_vec = nearest_list_value(scale_x_vec, self.limits)
-			scale_y_vec = nearest_list_value(scale_y_vec, self.limits)
-			scale_z_vec = nearest_list_value(scale_z_vec, self.limits)
+			scale_x_vec = nearest_list_value(scale_x_vec, self.limits, self.decimal_values)
+			scale_y_vec = nearest_list_value(scale_y_vec, self.limits, self.decimal_values)
+			scale_z_vec = nearest_list_value(scale_z_vec, self.limits, self.decimal_values)
 
 			return scale_x_vec, scale_y_vec, scale_z_vec
 
