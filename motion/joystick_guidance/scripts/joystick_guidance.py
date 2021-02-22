@@ -21,18 +21,26 @@ def nearest_list_value(value, ref_list):
 	# Sorting the list in ascending order
 	ref_list = sorted(ref_list, key = lambda x:float(x)) 
 
+	# Using a temp_value to keep track of sign
+	temp_value = 0
+
 	for i in range(len(ref_list)):
 		if i == 0 and value < ref_list[i]:
-			value = 0
+			temp_value = 0
 			break
 		if value < ref_list[i]:
 			# The first if-should prevent out of bounds
-			value = ref_list[i - 1]
+			temp_value = ref_list[i - 1]
 			break
 	if value not in ref_list and value != 0:
 		# We know that we are given largest value in the list
-		value = ref_list[-1]
-	
+		temp_value = ref_list[-1]
+
+	# Correcting for negative sign
+	if value < 0:
+		temp_value *= -1 
+
+	value = temp_value
 	return value
 
 
