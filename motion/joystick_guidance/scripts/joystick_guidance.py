@@ -29,12 +29,12 @@ def nearest_list_value(param_list, ref_list, decimal_list):
 	temp_value = 0
 
 	for i in range(len(ref_list)):
-		if value < ref_list[i]:
+		if abs(value) < ref_list[i]:
 			temp_value = decimal_list[i]
 			break
 
 	# We allow maximum thrust when it is given below a certain threshold
-	if value >= ref_list[-1] - deadzone:
+	if abs(value) >= ref_list[-1] - deadzone:
 		# We know that we are given largest value in the list
 		temp_value = decimal_list[-1]
 
