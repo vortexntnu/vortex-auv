@@ -216,8 +216,8 @@ class GuidanceInterface:
             axes[self.joystick_axes_map[j]] = msg.axes[j]
 
         posehold = button['A']
-        depthhold = buttons['X']  
-        depthheadinghold = button['B']
+        depthhold = buttons['B']  
+        depthheadinghold = button['X']
         openloop = buttons['Y']
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
