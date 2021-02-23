@@ -1,6 +1,20 @@
 # This file defines parameters specific to Gladlaks
 #
 # When looking at the AUV from above, the thruster placement is:   
+#
+# WIP:
+#
+#       |=====|
+#  |=7↗=|     |=7↗=|
+#  |    |     |    |
+#  | 0⨯ |     | 0⨯ |
+#  |    |     |    |
+#  | 0⨯ |     | 0⨯ |
+#  |    |     |    |
+#  |=7↗=|     |=7↗=|
+#       |=====|
+#
+
 
 physical:
   mass_kg: TODO
