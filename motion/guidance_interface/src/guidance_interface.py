@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: UTF-8
-
+# Edited by Jaehyeong Hwang
 """
 Node that ease access the access to the controller. 
 The module takes responsibility for switching between different control-
@@ -135,6 +135,36 @@ class GuidanceInterface:
                 rospy.loginfo('DP guidance aborted action due to timeout')
 
 
+
+        elif move_goal.guidance_type == 'DepthHold'
+            rospy.loginfo('move_cb -> DepthHold. Changing control mode...')
+            change_control_mode(DEPTH_HOLD)
+
+            depth_hold = MoveBaseGoal()
+            depth_hold.target_pose.pose.z = move_goal.target_pose.pose.z                # hold the depth value
+
+            self.dp_client.send_goal(dp_goal, done_cb = self.done_cb, feedback_cb = None)
+
+            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+                self.action_server.set_aborted()
+                rospy.loginfo('DP guidance aborted action due to timeout')
+
+
+        elif move_goal.guidance_type == 'DepthHeadingHold'
+            rospy.loginfo('move_cb -> DepthHeadingHold. Changing control mode...')
+            change_control_mode(DEPTH_HEADING_HOLD)
+
+            depth_hold = MoveBaseGoal()
+            depth_hold.target_pose.pose.orientation.w = 1.0                             # no rotation(0 yaw angle)
+            depth_hold.target_pose.pose.z = move_goal.target_pose.pose.z                # hold the depth value 
+
+            self.dp_client.send_goal(dp_goal, done_cb = self.done_cb, feedback_cb = None)
+
+            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+                self.action_server.set_aborted()
+                rospy.loginfo('DP guidance aborted action due to timeout')
+
+
         # Talk to the los_guidance node...
         elif move_goal.guidance_type == 'LOS':
             rospy.loginfo('move_cb -> LOS. Changing control mode...')
@@ -182,7 +212,10 @@ class GuidanceInterface:
         for j in range(len(msg.axes)):
             axes[self.joystick_axes_map[j]] = msg.axes[j]
 
-        # TODO: Buttons to change control mode, should be a service server between this and guidance
+        posehold = button['A']
+        depthhold = buttons['B']  
+        depthheadinghold = button['X']
+        openloop = buttons['Y']
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
         sway 	= axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
@@ -193,6 +226,7 @@ class GuidanceInterface:
 
         joystick_msg = Joy()
         joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
+        joystick_msg.buttons = [posehold, depthhold, depthheadinghold, openloop]
 
         self.joystick_pub.publish(joystick_msg)
 
