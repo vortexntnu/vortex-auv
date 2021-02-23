@@ -39,7 +39,7 @@ propulsion:
       yaw:   true
   thrusters:
     num: 8
-    map: [0, 1, 2, 3, 4, 5, 6, 7]
+    map: [TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]
     direction: [TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]
     configuration_matrix:
       [[ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Surge
@@ -85,11 +85,6 @@ guidance:
   LOS:
     delta: 0.7
         
-computer: TODO
-
-torpedos:
-  left_pin: TODO
-  right_pin: TODO
 
 joystick:
   scaling:
