@@ -215,7 +215,10 @@ class GuidanceInterface:
         for j in range(len(msg.axes)):
             axes[self.joystick_axes_map[j]] = msg.axes[j]
 
-        # TODO: Buttons to change control mode, should be a service server between this and guidance
+        posehold = button['A']
+        depthhold = buttons['X']  
+        depthheadinghold = button['B']
+        openloop = buttons['Y']
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
         sway 	= axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
@@ -226,6 +229,7 @@ class GuidanceInterface:
 
         joystick_msg = Joy()
         joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
+        joystick_msg.buttons = [posehold, depthhold, depthheadinghold, openloop]
 
         self.joystick_pub.publish(joystick_msg)
 
