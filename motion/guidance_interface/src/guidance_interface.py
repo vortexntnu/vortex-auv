@@ -2,19 +2,16 @@
 # coding: UTF-8
 
 """
+Node that ease access the access to the controller. 
+The module takes responsibility for switching between different control-
+modes, such that the state machines are easier to implement and maintain.
 
-Node som forenkler tilganger til controlleren. 
-Den skal ta av seg bytting mellom controller moduser, 
-slik at koden i state machinene kan bli enklere. 
+The node uses an action-server which takes inn an action, and should include:
+- Target pose
+- String determining the controller that should be used
 
-Noden skal ha en action-server som tar inn en ny action (ligner på
-move_base) som skal inneholde: 
-- Target pose og 
-- String for kontroller som skal benyttes
-
-Noden sender så target posen videre som en ny action
-til den valgte kontrolleren. Resultat og feedback fra endelig kontroller
-sendes videre igjennom noden. 
+The node sends the 'Target pose' as an action to the specified controller.
+Both result and feedback from said controller is sent through the node 
 
 """
 
