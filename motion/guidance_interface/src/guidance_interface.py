@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: UTF-8
+# Edited by Jaehyeong Hwang
 
 """
 
@@ -132,6 +133,36 @@ class GuidanceInterface:
             dp_goal.target_pose.pose = move_goal.target_pose
 
             self.dp_client.send_goal(dp_goal, done_cb=self.done_cb, feedback_cb=None)
+
+            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+                self.action_server.set_aborted()
+                rospy.loginfo('DP guidance aborted action due to timeout')
+
+
+
+        elif move_goal.guidance_type == 'DepthHold'
+            rospy.loginfo('move_cb -> DepthHold. Changing control mode...')
+            change_control_mode(DEPTH_HOLD)
+
+            depth_hold = MoveBaseGoal()
+            depth_hold.target_pose.pose.z = move_goal.target_pose.pose.z                # hold the depth value
+
+            self.dp_client.send_goal(dp_goal, done_cb = self.done_cb, feedback_cb = None)
+
+            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+                self.action_server.set_aborted()
+                rospy.loginfo('DP guidance aborted action due to timeout')
+
+
+        elif move_goal.guidance_type == 'DepthHeadingHold'
+            rospy.loginfo('move_cb -> DepthHeadingHold. Changing control mode...')
+            change_control_mode(DEPTH_HEADING_HOLD)
+
+            depth_hold = MoveBaseGoal()
+            depth_hold.target_pose.pose.orientation.w = 1.0                             # no rotation(0 yaw angle)
+            depth_hold.target_pose.pose.z = move_goal.target_pose.pose.z                # hold the depth value 
+
+            self.dp_client.send_goal(dp_goal, done_cb = self.done_cb, feedback_cb = None)
 
             if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
                 self.action_server.set_aborted()
