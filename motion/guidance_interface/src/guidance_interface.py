@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: UTF-8
 # Edited by Jaehyeong Hwang
-
 """
 
 Node som forenkler tilganger til controlleren. 
