@@ -14,8 +14,10 @@ This node publishes the battery level using the auv/battery_level publisher. It 
 #### Parameters
 In gladlaks.yaml
 
-* battery/threshold/warning and battery/threshold/critical dictate at what voltage-levels the node changes between info, warn, and fatal.
+* `battery/threshold/warning` dictates at what voltage-level the node changes to `rospy.logwarn`
 
-* battery/logging/frequency dictates how often the node updates the voltage, the time given is how many seconds between each update
+* `battery/threshold/critical` dictates at what voltage-level the node changes to `rospy.logfatal`
 
-* battery/logging/path is the path to the Xavier-specific folder from where the voltage-levels are retrieved see more at [docs.nvidia.com](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/power_management_jetson_xavier.html#wwpID0E0AG0HA)
+* `battery/logging/frequency` dictates how often the node updates the voltage, the time given is how many seconds between each update
+
+* `battery/logging/path` is the path to the Xavier-specific folder from where the voltage-levels are retrieved see more at [docs.nvidia.com](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/power_management_jetson_xavier.html#wwpID0E0AG0HA)
