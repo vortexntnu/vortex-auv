@@ -1,11 +1,21 @@
-## Battery Monitor
+# Battery Monitor
 
 Running out of power in the middle of a mission is less than ideal, on top of possibly damaging the betteries and other components.
 
-### Inputs
+This node publishes the battery level using the auv/battery_level publisher. It also logs the info through `rospy.loginfo`. If battery voltages drop beneath a threshold it will start using `rospy.logwarn` instead of `rospyloginfo`. If it falls even lower it will write the voltage using `rospy.logfatal` 10 times, with half a second in between. Then it will shut down the drone.
 
-The node takes no arguments. The settings are set in the source-file as they are not supposed to be changed often.
+## Inputs and Outputs
 
-### Outputs
+#### Publishes to:
+* /auv/battery_level of type Int32
 
-This node publishes the battery level using the auv/battery_level publisher. It also logs the info through `rospy.loginfo`. If battery voltages drop beneath a threshold it will start using `rospy.logwarn` instead of `loginfo`. If it falls even lower it will write the voltage using `rospy.logfatal` 10 times, with half a second in between. Then it will shut down the drone.
+## Setup instructions
+
+#### Parameters
+In gladlaks.yaml
+
+* battery/threshold/warning and battery/threshold/critical dictate at what voltage-levels the node changes between info, warn, and fatal.
+
+* battery/logging/frequency dictates how often the node updates the voltage, the time given is how many seconds between each update
+
+* battery/logging/path is the path to the Xavier-specific folder from where the voltage-levels are retrieved see more at [docs.nvidia.com](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/power_management_jetson_xavier.html#wwpID0E0AG0HA)

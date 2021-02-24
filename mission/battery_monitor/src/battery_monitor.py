@@ -14,12 +14,12 @@ class BatteryMonitor():
         rospy.init_node("battery_monitor")
 
         # Settings
-        self.path_to_voltage_meter = "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input"
-        self.frequency = 10.0       # How often the battery level is checked and published
+        self.path_to_voltage_meter = rospy.get_param("/battery/logging/path")
+        self.frequency = rospy.get_param("/battery/logging/frequency")          # How often the battery level is checked and published
 
         # Thresholds
-        self.critical_level = 14000 # Minimum allowed value in millivolts
-        self.warning_level = 15000  # Warning threshold in millivolts
+        self.critical_level = rospy.get_param("/battery/thresholds/critical")   # Minimum allowed value in millivolts
+        self.warning_level = rospy.get_param("/battery/thresholds/warning")     # Warning threshold in millivolts
         
         # Publisher
         self.battery_level_pub = rospy.Publisher("/auv/battery_level", Int32, queue_size=1)
