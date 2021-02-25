@@ -2,19 +2,17 @@
 #
 # When looking at the AUV from above, the thruster placement is:   
 #
-# WIP:
+#        front
+#       |======|
+#  |=7↗=|      |=0↖=|
+#  |    |      |    |
+#  | 6⨯ |      | 1⨯ |
+#  |    |      |    |
+#  |    |      |    |
+#  | 5⨯ |      | 2⨯ |
+#  |    |      |    |
+#  |=4↘=|==||==|=3↙=|
 #
-#       |=====|
-#  |=7↗=|     |=7↗=|
-#  |    |     |    |
-#  | 0⨯ |     | 0⨯ |
-#  |    |     |    |
-#  | 0⨯ |     | 0⨯ |
-#  |    |     |    |
-#  |=7↗=|     |=7↗=|
-#       |=====|
-#
-
 
 physical:
   mass_kg: TODO
@@ -22,24 +20,6 @@ physical:
   center_of_mass: [TODO, TODO, TODO]
   center_of_buoyancy: [TODO, TODO, TODO]
   drag_coefficients: [TODO, TODO, TODO, TODO, TODO, TODO]
-  thruster_layout:
-    [[ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO]]
-  thruster_positions:
-    [[ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO],
-     [ TODO, TODO, TODO]]
 
 propulsion:
   dofs:
@@ -53,8 +33,6 @@ propulsion:
       yaw:   true
   thrusters:
     num: 8
-    map: [TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]
-    direction: [TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]
     configuration_matrix:
       [[ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Surge
        [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Sway
