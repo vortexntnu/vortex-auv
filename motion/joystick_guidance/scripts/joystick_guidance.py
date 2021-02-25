@@ -55,7 +55,8 @@ class JoystickGuidanceNode():
 
 		self.sub = rospy.Subscriber('/guidance/joystick_data', Joy, self.callback, queue_size=1)
 		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
-		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Point, queue_size=1)
+		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Pose, queue_size=1)
+		
 		self.surge 	= 0
 		self.sway 	= 1
 		self.heave 	= 2
@@ -94,6 +95,20 @@ class JoystickGuidanceNode():
 		joystick_msg.torque.y = msg.axes[self.pitch]
 		joystick_msg.torque.z = msg.axes[self.yaw]
 
+		self.pub.publish(joystick_msg)
+
+		point = self.calculate_joystick_point(joystick_msg)
+
+		pose_msg = Pose()
+		pose_msg.position.x = point[0]
+		pose_msg.position.y = point[1]
+		pose_msg.position.z = point[2]
+		pose_msg.orientation.x = 0
+		pose_msg.orientation.y = 0
+		pose_msg.orientation.z = 0
+		pose_msg.orientation.w = 0
+
+		self.pub_joy.publish(pose_msg)
 
 	def calculate_joystick_point(self, joystick_msg):
 		"""
