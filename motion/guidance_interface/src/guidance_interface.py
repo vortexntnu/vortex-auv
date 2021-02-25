@@ -136,7 +136,7 @@ class GuidanceInterface:
 
 
 
-        elif move_goal.guidance_type == 'DepthHold'
+        elif move_goal.guidance_type == 'DepthHold':
             rospy.loginfo('move_cb -> DepthHold. Changing control mode...')
             change_control_mode(DEPTH_HOLD)
 
@@ -150,7 +150,7 @@ class GuidanceInterface:
                 rospy.loginfo('DP guidance aborted action due to timeout')
 
 
-        elif move_goal.guidance_type == 'DepthHeadingHold'
+        elif move_goal.guidance_type == 'DepthHeadingHold':
             rospy.loginfo('move_cb -> DepthHeadingHold. Changing control mode...')
             change_control_mode(DEPTH_HEADING_HOLD)
 
@@ -212,9 +212,9 @@ class GuidanceInterface:
         for j in range(len(msg.axes)):
             axes[self.joystick_axes_map[j]] = msg.axes[j]
 
-        posehold = button['A']
+        posehold = buttons['A']
         depthhold = buttons['B']  
-        depthheadinghold = button['X']
+        depthheadinghold = buttons['X']
         openloop = buttons['Y']
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling

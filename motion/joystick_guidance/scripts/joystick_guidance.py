@@ -6,6 +6,7 @@
 import rospy
 
 from geometry_msgs.msg import Wrench
+from geometry_msgs.msg import Pose
 from sensor_msgs.msg import Joy
 from math import sqrt
 
@@ -54,7 +55,7 @@ class JoystickGuidanceNode():
 
 		self.sub = rospy.Subscriber('/guidance/joystick_data', Joy, self.callback, queue_size=1)
 		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
-
+		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Point, queue_size=1)
 		self.surge 	= 0
 		self.sway 	= 1
 		self.heave 	= 2
@@ -78,8 +79,8 @@ class JoystickGuidanceNode():
 
 		# Calculated input in decimal
 		decimal_list = []
-		for i in range(0, num_ranges + 1):
-			decimal_list.append((max_point_range / num_ranges) * i)
+		for i in range(0, self.num_ranges + 1):
+			decimal_list.append((self.max_point_range / self.num_ranges) * i)
 		self.decimal_list = decimal_list
 
 
@@ -93,7 +94,6 @@ class JoystickGuidanceNode():
 		joystick_msg.torque.y = msg.axes[self.pitch]
 		joystick_msg.torque.z = msg.axes[self.yaw]
 
-		self.pub.publish(joystick_msg)
 
 	def calculate_joystick_point(self, joystick_msg):
 		"""
@@ -104,7 +104,7 @@ class JoystickGuidanceNode():
 		"""
 
 		# Scaling the force to get a linearized model
-		scaled_force_x, scaled_force_y, scaled_force_z = scale_force_vectors(joystick_msg)
+		scaled_force_x, scaled_force_y, scaled_force_z = self.scale_force_vectors(joystick_msg)
 
 		# TODO Change this to the required point-type size
 		calculated_point = [scaled_force_x, scaled_force_y, scaled_force_z]
@@ -115,7 +115,7 @@ class JoystickGuidanceNode():
 			vector_length_square += pow(calculated_point[i], 2)
 
 		# Normalizing if exceeding the max_point_range
-		if vector_length_square >= pow(max_point_range, 2):
+		if vector_length_square >= pow(self.max_point_range, 2):
 			# Over the set limit. Normalizing
 			vector_length = sqrt(vector_length_square)
 			calculated_point = [val / vector_length for val in calculated_point]
