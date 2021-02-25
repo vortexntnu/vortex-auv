@@ -18,7 +18,7 @@
   <!-- Controller nodes -->
   <group ns="$(arg ns_controller)">
     <node pkg="los_controller"      type="los_controller_node.py"     name="los_controller"   output="screen"/>
-    <node pkg="dp_controller"       type="dp_controller_node"         name="dp"               output="screen"/>
+<!--    <node pkg="dp_controller"       type="dp_controller_node"         name="dp"               output="screen"/> -->
   </group>
 
   <!-- Thrust nodes -->
