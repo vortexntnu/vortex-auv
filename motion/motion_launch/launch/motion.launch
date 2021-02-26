@@ -23,9 +23,8 @@
 
   <!-- Thrust nodes -->
   <group ns="$(arg ns_thrust)">
-    <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
     <node pkg="thruster_allocator"  type="thruster_allocator_node"      name="thruster_allocator"/>
-    <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
+    <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface" if="$(eval type == 'simulator')"/> 
   </group>
 
 </launch>
