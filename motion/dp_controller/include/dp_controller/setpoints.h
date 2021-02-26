@@ -109,7 +109,6 @@ public:
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
-  Eigen::Vector6d    m_wrench;        /** 6d vector containing wrench setpoint values   */
   Eigen::Vector3d    m_position;      /** 6d vector containing position setpoint values */
   Eigen::Quaterniond m_orientation;   /** Quaternion containing orientation setpoints   */
 

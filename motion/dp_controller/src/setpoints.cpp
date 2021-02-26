@@ -6,7 +6,6 @@
 #include "dp_controller/setpoints.h"
 
 Setpoints::Setpoints() {
-  m_wrench.setZero();
   m_position.setZero();
   m_orientation.setIdentity();
 
