@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-# Written by Jae Hyeong Hwang
+# Written by Jae Hyeong Hwang and Ø. Solbø
 # Copyright (c) 2021, Vortex NTNU.
 # All rights reserved.
 
+# IMPORTANT: MUST BE ON TOP OF THE FILE! ERROR IF NOT
 from __future__ import division
 
 import rospy
