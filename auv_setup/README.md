@@ -19,6 +19,24 @@ For the AUV launchfiles, the following parameters can be used:
 | ----------|-----------------|-----------|
 | type      | real, simulator | simulator |
 
+#### ROV mode topside launch
+We make no distinction for launching in AUV or ROV mode for the system running on the physical drone.
+You will however need to run the pc.launch file on the topside computer in order to operate the drone
+with a joystick. The topside computer needs to be connected to the same network as the drone. In our configuration, the drone
+is the master node, while the topside computer is the slave. For the slave to know how to connect to the master node,
+you will need to configure the topside computer:
+
+1. Find the IP of the master. When running the Xavier on the drone, this should be `10.42.0.1`.
+2. On the topside computer, execute
+```
+echo "export ROS_MASTER_URI=http://X.X.X.X:11311" >> ~/.bashrc
+```
+where X.X.X.X is the IP of the Xavier.
+
+3. Source the newly edited file.
+```
+source ~/.bashrc
+```
 
 ### Sensors
 Currently, the AUV launchfiles also contain the sensor driver launches, including the remapping of them:
