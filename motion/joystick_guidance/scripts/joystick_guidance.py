@@ -122,7 +122,7 @@ class JoystickGuidanceNode():
 		"""
 
 		# Scaling the force to get a linearized model
-		scaled_force_x, scaled_force_y, scaled_force_z = scale_force_vectors(joystick_msg)
+		scaled_force_x, scaled_force_y, scaled_force_z = self.scale_force_vectors(joystick_msg)
 
 		calculated_point = [scaled_force_x, scaled_force_y, scaled_force_z]
 
@@ -132,7 +132,7 @@ class JoystickGuidanceNode():
 			vector_length_square += pow(calculated_point[i], 2)
 
 		# Normalizing if exceeding the max_point_range
-		if vector_length_square >= pow(max_point_range, 2):
+		if vector_length_square >= pow(self.max_point_range, 2):
 			# Over the set limit. Normalizing
 			vector_length = sqrt(vector_length_square)
 			calculated_point = [val / vector_length for val in calculated_point]
