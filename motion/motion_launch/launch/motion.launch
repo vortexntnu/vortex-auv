@@ -24,7 +24,6 @@
   <!-- Thrust nodes -->
   <group ns="$(arg ns_thrust)">
     <node pkg="thruster_allocator"  type="thruster_allocator_node"      name="thruster_allocator"/>
-    <node pkg="mcu_interface"       type="mcu_interface_node"           name="mcu_interface"  if="$(eval type == 'real')"/> 
   </group>
 
 </launch>
