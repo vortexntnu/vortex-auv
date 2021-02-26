@@ -18,15 +18,6 @@ Setpoints::Setpoints(const Eigen::Vector6d &wrench_scaling,
   m_pose_is_valid   = false;
 }
 
-bool Setpoints::update(const Eigen::Vector6d &command)
-{
-  for (int i = 0; i < 6; ++i)
-    m_wrench(i) = m_wrench_scaling(i) * m_wrench_max(i) * command(i);
-  m_wrench_is_valid = true;
-
-  return true;
-}
-
 bool Setpoints::get(Eigen::Vector6d *wrench)
 {
   if (!m_wrench_is_valid)
