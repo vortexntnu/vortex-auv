@@ -25,33 +25,18 @@ public:
   /**
    * @brief Setpoints class constructor
    * 
-   * @param wrench_scaling    Wrench scaling constant
-   * @param wrench_max        Max wrench value
   */
-  Setpoints(const Eigen::Vector6d &wrench_scaling,
-            const Eigen::Vector6d &wrench_max);
-
-  /**
-   * @brief Update wrench setpoint
-   * 
-   * Each value in the wrench vector will be updated according to the equation
-   * wrench = wrench_scaling * wrench_max * command
-   * 
-   * @param command   The command used to update the wrench setpoint
-   * 
-   * @return always true
-  */          
-  bool update(const Eigen::Vector6d &command);
+  Setpoints();
 
 
   /**
    * @brief Get wrench setpoint
    * 
-   * @param wrench    A pointer whos value will be set to the current wrench setpoint
+   * @param wrench    A pointer whos values will be set to zeros
    * 
    * @return false if current wrench setpoint is invalid, true otherwise
   */
-  bool get(Eigen::Vector6d *wrench);
+  bool getZero(Eigen::Vector6d *wrench);
 
 
   /**
@@ -127,9 +112,6 @@ private:
   Eigen::Vector6d    m_wrench;        /** 6d vector containing wrench setpoint values   */
   Eigen::Vector3d    m_position;      /** 6d vector containing position setpoint values */
   Eigen::Quaterniond m_orientation;   /** Quaternion containing orientation setpoints   */
-
-  Eigen::Vector6d m_wrench_scaling;   /** Wrench scaling factor                         */
-  Eigen::Vector6d m_wrench_max;       /** Maximum allowed wrench values                 */
 
   bool   m_wrench_is_valid;           /** Determines if current wrench values are valid */
   bool   m_pose_is_valid;             /** Determines if current pose is valid           */

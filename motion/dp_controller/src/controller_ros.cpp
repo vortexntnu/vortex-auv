@@ -251,7 +251,7 @@ void Controller::spin()
     // gets the newest state and newest setpoints as Eigen
     m_state->get(&position_state, &orientation_state, &velocity_state);
     m_setpoints->get(&position_setpoint, &orientation_setpoint);
-    m_setpoints->get(&tau_openloop);
+    m_setpoints->getZero(&tau_openloop);
 
     if (m_debug_mode)
     publishDebugMsg(position_state, orientation_state, velocity_state,
