@@ -5,9 +5,7 @@
 
 #include "dp_controller/setpoints.h"
 
-Setpoints::Setpoints()
-:
-{
+Setpoints::Setpoints() {
   m_wrench.setZero();
   m_position.setZero();
   m_orientation.setIdentity();
@@ -21,7 +19,10 @@ bool Setpoints::getZero(Eigen::Vector6d *wrench)
   if (!m_wrench_is_valid)
     return false;
 
-  *wrench.setZero();
+  Eigen::Vector6d zero_wrench; 
+  zero_wrench.setZero();
+  *wrench = zero_wrench;
+
   //CHANGE BY KRISTOFFER
   //sreturn true;
   return false; // TODO: why is this always false?
