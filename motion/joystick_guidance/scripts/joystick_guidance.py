@@ -3,10 +3,11 @@
 # Copyright (c) 2021, Vortex NTNU.
 # All rights reserved.
 
+from __future__ import division
+
 import rospy
 
-from geometry_msgs.msg import Wrench
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Wrench, Pose
 from sensor_msgs.msg import Joy
 from math import sqrt
 
@@ -56,7 +57,7 @@ class JoystickGuidanceNode():
 		self.sub = rospy.Subscriber('/guidance/joystick_data', Joy, self.callback, queue_size=1)
 		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
 		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Pose, queue_size=1)
-		
+
 		self.surge 	= 0
 		self.sway 	= 1
 		self.heave 	= 2
@@ -86,7 +87,8 @@ class JoystickGuidanceNode():
 
 
 	def callback(self, msg):
-
+		
+		# Calculating thrust and publish to thrusters 
 		joystick_msg = Wrench()
 		joystick_msg.force.x  = msg.axes[self.surge]
 		joystick_msg.force.y  = msg.axes[self.sway]
@@ -97,16 +99,17 @@ class JoystickGuidanceNode():
 
 		self.pub.publish(joystick_msg)
 
+		# Calculating point and publishing to DP-controller
 		point = self.calculate_joystick_point(joystick_msg)
 
 		pose_msg = Pose()
-		pose_msg.position.x = point[0]
-		pose_msg.position.y = point[1]
-		pose_msg.position.z = point[2]
-		pose_msg.orientation.x = 0
-		pose_msg.orientation.y = 0
-		pose_msg.orientation.z = 0
-		pose_msg.orientation.w = 0
+		pose_msg.position.x   	= point[0]
+		pose_msg.position.y   	= point[1]
+		pose_msg.position.z   	= point[2]
+		pose_msg.orientation.x 	= 0
+		pose_msg.orientation.y 	= 0
+		pose_msg.orientation.z 	= 0
+		pose_msg.orientation.w 	= 0
 
 		self.pub_joy.publish(pose_msg)
 
@@ -119,9 +122,8 @@ class JoystickGuidanceNode():
 		"""
 
 		# Scaling the force to get a linearized model
-		scaled_force_x, scaled_force_y, scaled_force_z = self.scale_force_vectors(joystick_msg)
+		scaled_force_x, scaled_force_y, scaled_force_z = scale_force_vectors(joystick_msg)
 
-		# TODO Change this to the required point-type size
 		calculated_point = [scaled_force_x, scaled_force_y, scaled_force_z]
 
 		# Calculating the length of the vectors
@@ -130,7 +132,7 @@ class JoystickGuidanceNode():
 			vector_length_square += pow(calculated_point[i], 2)
 
 		# Normalizing if exceeding the max_point_range
-		if vector_length_square >= pow(self.max_point_range, 2):
+		if vector_length_square >= pow(max_point_range, 2):
 			# Over the set limit. Normalizing
 			vector_length = sqrt(vector_length_square)
 			calculated_point = [val / vector_length for val in calculated_point]
