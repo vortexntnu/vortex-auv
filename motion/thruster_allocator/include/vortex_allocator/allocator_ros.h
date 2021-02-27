@@ -22,7 +22,6 @@ private:
 
   int m_num_degrees_of_freedom;
   int m_num_thrusters;
-  std::vector<int> m_direction;
   std::map<std::string, bool> m_active_degrees_of_freedom;
   double m_min_thrust;
   double m_max_thrust;
