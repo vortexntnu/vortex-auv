@@ -251,7 +251,7 @@ void Controller::spin()
     // gets the newest state and newest setpoints as Eigen
     m_state->get(&position_state, &orientation_state, &velocity_state);
     m_setpoints->get(&position_setpoint, &orientation_setpoint);
-    m_setpoints->get(&tau_openloop);
+    m_setpoints->getZero(&tau_openloop);
 
     if (m_debug_mode)
     publishDebugMsg(position_state, orientation_state, velocity_state,
@@ -354,17 +354,7 @@ void Controller::spin()
 
 void Controller::initSetpoints()
 {
-  std::vector<double> v;
-
-  if (!m_nh.getParam("/propulsion/command/wrench/max", v))
-    ROS_FATAL("Failed to read parameter max wrench command.");
-  const Eigen::Vector6d wrench_command_max = Eigen::Vector6d::Map(v.data(), v.size());
-
-  if (!m_nh.getParam("/propulsion/command/wrench/scaling", v))
-    ROS_FATAL("Failed to read parameter scaling wrench command.");
-  const Eigen::Vector6d wrench_command_scaling = Eigen::Vector6d::Map(v.data(), v.size());
-
-  m_setpoints.reset(new Setpoints(wrench_command_scaling, wrench_command_max));
+  m_setpoints.reset(new Setpoints());
 }
 
 void Controller::resetSetpoints()
