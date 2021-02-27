@@ -3,8 +3,14 @@
 # Copyright (c) 2021, Vortex NTNU.
 # All rights reserved.
 
-# IMPORTANT: MUST BE ON TOP OF THE FILE! ERROR IF NOT
+# from__future__ is a hacky way of implementing correct division in python2
+# Warning: Must be on top of the file
+
+###############################
 from __future__ import division
+###############################
+
+
 
 import rospy
 
