@@ -25,11 +25,6 @@ Allocator::Allocator(ros::NodeHandle nh)
     ROS_FATAL("Failed to read parameter number of thrusters.");
   if (!m_nh.getParam("/propulsion/dofs/which", m_active_degrees_of_freedom))
     ROS_FATAL("Failed to read parameter which dofs.");
-  if (!m_nh.getParam("/propulsion/thrusters/direction", m_direction))
-  {
-    ROS_WARN("Failed to read parameter thruster direction.");
-    std::fill(m_direction.begin(), m_direction.begin() + m_num_thrusters, 1);
-  }
 
   // Read thrust limits
   std::vector<double> thrust;
@@ -80,9 +75,6 @@ void Allocator::callback(const geometry_msgs::Wrench &msg_in) const
 
   vortex_msgs::ThrusterForces msg_out;
   arrayEigenToMsg(thruster_forces, &msg_out);
-
-  for (int i = 0; i < m_num_thrusters; i++)
-    msg_out.thrust[i] *= m_direction[i];
 
   msg_out.header.stamp = ros::Time::now();
   m_pub.publish(msg_out);
