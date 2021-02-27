@@ -16,7 +16,7 @@ Allocator::Allocator(ros::NodeHandle nh)
   m_max_thrust(std::numeric_limits<double>::infinity())
 {
   m_sub = m_nh.subscribe("/auv/thruster_manager/input", 1, &Allocator::callback, this);
-  m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("thruster_forces", 1);
+  m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("/thrust/thruster_forces", 1);
   //m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("/auv/thruster_manager/input", 1);
 
   if (!m_nh.getParam("/propulsion/dofs/num", m_num_degrees_of_freedom))
