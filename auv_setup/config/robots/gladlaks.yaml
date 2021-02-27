@@ -11,15 +11,14 @@
 #  |    |      |    |
 #  | 5⨯ |      | 2⨯ |
 #  |    |      |    |
-#  |=4↘=|==||==|=3↙=|
+#  |=4↖=|==||==|=3↗=|
 #
 
 physical:
-  mass_kg: TODO
-  displacement_m3: TODO
-  center_of_mass: [TODO, TODO, TODO]
-  center_of_buoyancy: [TODO, TODO, TODO]
-#  drag_coefficients: [TODO, TODO, TODO, TODO, TODO, TODO] Not in use anywhere
+  mass_kg: 0
+  displacement_m3: 0
+  center_of_mass: [0, 0, 0]
+  center_of_buoyancy: [0, 0, 0]
 
 propulsion:
   dofs:
@@ -34,18 +33,18 @@ propulsion:
   thrusters:
     num: 8
     configuration_matrix:
-      [[ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Surge
-       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Sway
-       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Heave
-       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Roll
-       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO], # Pitch
-       [ TODO, TODO, TODO, TODO, TODO, TODO, TODO, TODO]] # Yaw
+      [[ 0.70711,  0.00000,  0.00000,  0.70711,  0.70711,  0.00000,  0.00000, 0.70711], # Surge
+       [ 0.70711,  0.00000,  0.00000,  -0.70711, 0.70711,  0.00000,  0.00000,-0.70711], # Sway
+       [ 0.00000, -1.00000, -1.00000,  0.00000,  0.00000, -1.00000, -1.00000, 0.00000], # Heave
+       [ 0.00000,  0.00000,  0.00000,  0.00000,  0.00000,  0.00000,  0.00000, 0.00000], # Roll
+       [ 0.00000,  0.00000,  0.00000,  0.00000,  0.00000,  0.00000,  0.00000, 0.00000], # Pitch 
+       [ 0.00000,  0.00000,  0.00000,  0.00000,  0.00000,  0.00000,  0.00000, 0.00000]] # Yaw
 
     rate_of_change:
-      max: TODO # Maximum rate of change in newton per second for a thruster
-    characteristics:  # The relationship between thrust in newton and the width in microseconds of the PWM signal to the ESCs: See T200 excel sheet
-      thrust:      [TODO]
-      pulse_width: [TODO]
+      max: 1 # Maximum rate of change in newton per second for a thruster
+    characteristics:  
+      thrust:      [-34.5, -24.0, -12.9, -3.92, 0.00, 4.91, 12.6, 26.1, 35.5, 44.3] 
+      pulse_width: [ 1100,  1192,  1292,  1400, 1500, 1600, 1676, 1780, 1840, 1900]
 
 controllers:
   dp:
