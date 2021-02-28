@@ -4,4 +4,8 @@
     type="battery_monitor.py"
     name="battery_monitor"
     output="screen"/>
+    <node pkg="temperature_monitor"
+    type="temperature_monitor.py"
+    name="temperature_monitor"
+    output="screen"/>
 </launch>
