@@ -35,6 +35,20 @@
 #include <actionlib/server/simple_action_server.h>
 #include <move_base_msgs/MoveBaseAction.h>
 
+
+#include "dp_controller/controller_ros.h"
+
+#include "dp_controller/eigen_helper.h"
+#include <tf/transform_datatypes.h>
+#include <eigen_conversions/eigen_msg.h>
+
+#include "std_msgs/String.h"
+
+#include <math.h>
+#include <map>
+#include <string>
+#include <vector>
+
 // typedef so you dont have to write out definition every time
 typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
 

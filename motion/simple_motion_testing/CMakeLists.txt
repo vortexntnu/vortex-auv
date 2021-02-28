@@ -9,6 +9,7 @@ project(simple_motion_testing)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,6 +106,7 @@ catkin_package(
 #  LIBRARIES simple_motion_testing
 #  CATKIN_DEPENDS roscpp
 #  DEPENDS system_lib
+  
 )
 
 ###########
@@ -202,3 +204,8 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+#Build the simple cpp motion node:
+
+add_executable(simple_motion_node src/simple_motion_node.cpp)
+target_link_libraries(simple_motion_node ${catkin_LIBRARIES})
