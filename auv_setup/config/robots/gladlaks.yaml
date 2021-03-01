@@ -89,3 +89,13 @@ battery:
   logging:
     frequency: 10   # Seconds
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
+
+i2c:
+  address: 0x40
+  bus: 8
+
+pca9685:
+  pwm:
+    bits_per_period: 4095
+    frequency: 50.0
+    frequency_measured: 51.6
