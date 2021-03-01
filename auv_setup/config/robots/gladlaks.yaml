@@ -93,3 +93,9 @@ battery:
 i2c:
   address: 0x40
   bus: 8
+
+pca9685:
+  pwm:
+    bits_per_period: 4095
+    frequency: 50.0
+    frequency_measured: 51.6
