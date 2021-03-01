@@ -32,8 +32,9 @@
     <!-- Remap pressure reading from DVL -->
     <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" />
 
-    <!-- Driver for communication between Xavier and MCU -->
-    <node pkg="ATMEGA2560_ros_driver" type="ATMEGA2560_ros_driver" name="ATMEGA2560_ROS_DRIVER"/>
+    <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
+    <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
+    <node pkg="pca9685_ros_driver" type="pca9685_ros_node" name="pca9685_ros_driver" output="screen" />
   </group>
 
 </launch>
