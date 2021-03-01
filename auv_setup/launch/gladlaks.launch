@@ -34,7 +34,7 @@
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
     <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
-    <node pkg="pca9685_ros_driver" type="pca9685_ros_node" name="pca9685_ros_driver" output="screen" />
+    <node pkg="pca9685_ros_driver" type="pca9685_ros_node.py" name="pca9685_ros_driver" output="screen" />
   </group>
 
 </launch>
