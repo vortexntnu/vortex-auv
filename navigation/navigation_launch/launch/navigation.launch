@@ -3,11 +3,24 @@
 
   <!-- Navigation for real AUV -->
   <group if="$(eval type == 'real')">
-
-    <!-- Kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+    
+    <group if="$(eval type == 'ekf')">
+      
+      <!-- Kalman filter -->
+      <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
         <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-    </node>
+      </node>
+
+    </group>
+
+    <group if="$(eval type == 'eskf')">
+      
+      <!-- Error State Kalman Filter-->
+      <node pkg="eskf" type="eskf" name="eskf_localization_node" clear_params="true" output="screen" />
+	      <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" /> 
+      </node>
+
+    </group>
 
   </group>
 
