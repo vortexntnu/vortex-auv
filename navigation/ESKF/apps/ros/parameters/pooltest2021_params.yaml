@@ -18,9 +18,9 @@ sr_accelerometer_to_NED: [3.1415926,0.0,0.0] #[-0.004397,3.1866482,0]  # Static 
 
 sr_gyro_to_NED: [3.1415926,0.0,0.0] #[-0.004397,3.1866482,0] # # Static rotation (roll, pitch, yaw) to NED
 
-sr_accelerometer_alignment: [-0.011303,0.014528,0] # Static rotation alignment (roll, pitch, yaw) to NED #NOT YET SET FOR GLADLAKS
+sr_accelerometer_alignment: [-0.061983,-0.220129,-0.005696] # Static rotation alignment (roll, pitch, yaw) to NED
 
-sr_gyro_alignment: [-0.011303,0.014528,0] # Static rotation alignment (roll, pitch, yaw) to NED #NOT YET SET FOR GLADLAKS
+sr_gyro_alignment: [0.000176,0.000220,0.000079] # Static rotation alignment (roll, pitch, yaw) to NED 
 
 St_inc: [-0.9990, 1.9804e-04, -0.0450,
          1.3553e-20, 1.0, 0.0044,
@@ -46,9 +46,9 @@ dvl_topic: "/auv/odom"
 
 R_dvl: [1.0e-10, 0.0, 0.0,
          0.0, 1.0e-10, 0.0,
-         0.0, 0.0, 1.0e-10 ] #NOT YET SET FOR GLADLAKS
+         0.0, 0.0, 1.0e-10 ] 
 
-sr_dvl_to_NED: [0.0,0.0,0.0] #NOT YET SET FOR GLADLAKS
+sr_dvl_to_NED: [0.0,0.0,0.0] 
 
 sr_dvl_alignment: [0.0,0.0,0.0] #NOT YET SET FOR GLADLAKS
 
@@ -89,7 +89,7 @@ initial_covariance: [1e-2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e-18, 0, 0, 0,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e-3, 0, 0,
                     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e-3, 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e-3 ] #NOT YET SET FOR GLADLAKS
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e-3 ]
 
 
 
