@@ -15,7 +15,7 @@ class BatteryMonitor():
 
         # Settings
         self.path_to_voltage_meter = rospy.get_param("/battery/logging/path")
-        self.frequency = rospy.get_param("/battery/logging/frequency")          # How often the battery level is checked and published
+        self.interval = rospy.get_param("/battery/logging/interval")          # How often the battery level is checked and published
 
         # Thresholds
         self.critical_level = rospy.get_param("/battery/thresholds/critical")   # Minimum allowed value in millivolts
@@ -44,7 +44,7 @@ class BatteryMonitor():
             else :
                 rospy.loginfo(self.voltage)
             
-            rospy.sleep(self.frequency)
+            rospy.sleep(self.interval)
             
 
 
