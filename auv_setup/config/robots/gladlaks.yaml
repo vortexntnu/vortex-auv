@@ -87,7 +87,7 @@ battery:
     warning: 15000  # Millivolts
     critical: 14000 # Millivolts
   logging:
-    frequency: 10   # Seconds
+    interval: 10   # Seconds
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
 
 i2c:
