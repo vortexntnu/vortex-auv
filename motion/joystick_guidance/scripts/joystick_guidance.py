@@ -1,15 +1,7 @@
 #!/usr/bin/env python
-# Written by Jae Hyeong Hwang and Ø. Solbø
+# Written by Jae Hyeong Hwang and O. Solbo
 # Copyright (c) 2021, Vortex NTNU.
 # All rights reserved.
-
-# from__future__ is a hacky way of implementing correct division in python2
-# Warning: Must be on top of the file
-
-###############################
-from __future__ import division
-###############################
-
 
 
 import rospy
@@ -73,14 +65,13 @@ class JoystickGuidanceNode():
 		self.yaw 	= 5 
 
 		self.min_point_range = 0.2                          # Minimum allowed distance from the UUV to the point
-		self.max_point_range = 1                            # Maximum allowed distance from the UUV to the calculated point
-		self.num_ranges = 5                                 # Number of ranges the input is scaled by
-		self.joystick_num_bit = 16                          # Resolution on the joystick
-		self.deadzone = 1000								# Deadzone on upper input
+		self.max_point_range = 1.0                          # Maximum allowed distance from the UUV to the calculated point
+		self.num_ranges 	 = 5                            # Number of ranges the input is scaled by
+		self.deadzone 		 = 1.0	   						# Deadzone on upper input
 
 		# Required input-values to generate valid signals
 		limits = []
-		self.max_value = pow(2, self.joystick_num_bit - 1)  # -1 due to only positive integers
+		self.max_value = 10.0
 		for i in range(1, self.num_ranges + 1):         
 			limits.append((self.max_value / self.num_ranges) * i)
 		self.limits = limits
@@ -153,9 +144,11 @@ class JoystickGuidanceNode():
 		"""
 
 		# Recovering the given forces
+		# Scaling force_z with 2 since heave is /2 in guidance_interface.py. This is to 
+		# simplify the mathematics/code in this program
 		force_x = joystick_msg.force.x
 		force_y = joystick_msg.force.y
-		force_z = joystick_msg.force.z
+		force_z = joystick_msg.force.z * 2			
 
 		# Using a try-catch to prevent out-of-bounds to become a large problem
 		try:
@@ -184,5 +177,6 @@ if __name__ == '__main__':
 		joystick_guidance = JoystickGuidanceNode()
 		rospy.spin()
 	except rospy.ROSInterruptException:
+		#rospy.logerr("An error occured during startup")
 		pass
 
