@@ -59,6 +59,15 @@ public:
 
 
   /**
+   * @brief Callback for the mode subscriber
+   * 
+   * The function is activated once the topic containing the desired mode has been
+   * updated
+   */
+  //void controlModeCallback();
+
+
+  /**
    * @brief Callback for the state subscriber
    * 
    * If the orientation given in @p msg is invalid, this function returns early.
@@ -130,6 +139,7 @@ private:
   ros::Subscriber m_command_sub;       /** Command subscriber  */          
   ros::Subscriber m_state_sub;         /** State subscriber    */
   ros::Subscriber m_mode_sub;          /** Mode subscriber     */
+  ros::Subscriber m_state_ref_sub;     /** Goal subscriber     */ 
 
   ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
   ros::Publisher  m_rpm_pub;           /** RPM publisher       */
@@ -196,7 +206,7 @@ private:
    * 
    * @see quaternion_pd_controller.h
   */
-  void initPositionHoldController();
+  void initPositionHoldController(); 
 
 
   /**
