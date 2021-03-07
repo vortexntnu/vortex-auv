@@ -1,6 +1,7 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float64.h"
 #include <iostream>
 
 
@@ -13,7 +14,11 @@ class subscribe_and_publish{
 public:
     subscribe_and_publish(){
         wrench_pub = nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 100);
+        ref_pub = nh.advertise<std_msgs::Float64>("simple_reference", 100);
         odom_sub = nh.subscribe("/odometry/filtered", 100, &subscribe_and_publish::odometry_callback,this);
+        ref_sub = nh.subscribe("simple_reference", 100, &subscribe_and_publish::reference_callback,this);
+        
+        reference = 0.0; //default value
     }
 
     void odometry_callback(const nav_msgs::Odometry & position_msg){
@@ -21,14 +26,20 @@ public:
         msg.force.x = K_p*(reference-position_msg.pose.pose.position.x);
         wrench_pub.publish(msg);
     }
+
+    void reference_callback(const std_msgs::Float64 & ref_msg){
+        this->reference = ref_msg.data;
+    }
 private:
     ros::NodeHandle nh;
     ros::Publisher wrench_pub;
+    ros::Publisher ref_pub;
     ros::Subscriber odom_sub;
+    ros::Subscriber ref_sub;
     geometry_msgs::Wrench msg;
-    float reference = -10.0;
+    float reference;
     float K_p = 3;      
-};
+}; 
 
 
 // geometry_msgs::Wrench msg;
