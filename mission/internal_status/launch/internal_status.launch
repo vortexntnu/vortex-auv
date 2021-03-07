@@ -1,11 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="battery_monitor"
-    type="battery_monitor.py"
-    name="battery_monitor"
-    output="screen"/>
-    <node pkg="temperature_monitor"
-    type="temperature_monitor.py"
-    name="temperature_monitor"
-    output="screen"/>
+
+    <!-- Namespace -->
+    <arg name="ns_monitor"   default="monitor"/>
+
+    <!-- Monitoring nodes -->
+    <group ns="$(arg ns_monitor)">
+        <node pkg="battery_monitor"
+        type="battery_monitor.py"
+        name="battery_monitor"
+        output="screen"/>
+        <node pkg="temperature_monitor"
+        type="temperature_monitor.py"
+        name="temperature_monitor"
+        output="screen"/>
+    </group>
 </launch>

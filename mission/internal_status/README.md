@@ -3,18 +3,18 @@
 This package contains nodes for retrieving internal statuses like battery levels and temperature.
 
 #### Temperature
-High temperatures can be dangerous for any electronic device. Monitoring the temperature is therefore important. Temperature gets published to auv/temperature.
+High temperatures can be dangerous for any electronic device. Monitoring the temperature is therefore important. Temperature gets published to auv/temperature. Measured in milli celsius
 
 #### Battery
 Running out of power in the middle of a mission is less than ideal, on top of possibly damaging the betteries and other components.
 
-This node publishes the battery level using the auv/battery_level publisher. It also logs the info through `rospy.loginfo`. If battery voltages drop beneath a threshold it will start using `rospy.logwarn` instead of `rospyloginfo`. If it falls even lower it will write the voltage using `rospy.logfatal` 10 times, with half a second in between. Then it will shut down the drone.
+This node publishes the battery level using the auv/battery_level publisher. It also logs the info through `rospy.loginfo`. If battery voltages drop beneath a threshold it will start using `rospy.logwarn` instead of `rospyloginfo`. If it falls even lower it will write the voltage using `rospy.logfatal` 10 times, with half a second in between. Then it will shut down the drone. Measured in milli volt
 
 ## Inputs and Outputs
 
 #### Publishes to:
-* /auv/battery_level of type Int32
-* /auv/temperature of type Int32
+* /auv/battery_level of type Int32 in milli volt
+* /auv/temperature of type Int32 in milli celsius
 
 ## Setup instructions
 
