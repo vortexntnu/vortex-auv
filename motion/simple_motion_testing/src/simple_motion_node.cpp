@@ -17,21 +17,21 @@ public:
     }
 
     void odometry_callback(const nav_msgs::Odometry & position_msg){
-        std::cout << position_msg.pose.pose.position.x << "\n";
-        //geometry_msgs::Wrench msg;
-        //msg.force.x = 10.0;//K_p*(reference-position_msg.pose.pose.position.x);
-       // wrench_pub.publish(msg);
-        sleep(1);
+        //std::cout << position_msg.pose.pose.position.x << "\n";
+        msg.force.x = K_p*(reference-position_msg.pose.pose.position.x);
+        wrench_pub.publish(msg);
     }
 private:
     ros::NodeHandle nh;
     ros::Publisher wrench_pub;
     ros::Subscriber odom_sub;
-    float reference = 1.0;
+    geometry_msgs::Wrench msg;
+    float reference = -10.0;
     float K_p = 3;      
 };
 
 
+// geometry_msgs::Wrench msg;
 
 // void odometry_callback(const nav_msgs::Odometry & position_msg){
 //     std::cout << position_msg.pose.pose.position.x << "\n";
@@ -42,7 +42,6 @@ private:
 
 int main(int argc, char **argv)
 {
-    geometry_msgs::Wrench msg;
 
     ros::init(argc,argv,"simple_motion_node");
     
