@@ -36,9 +36,9 @@ int main(int argc, char **argv)
     //publish wrench message to topic /auv/thruster_manager/input
 
 
-    while(1){
+    for (int i = 0; i<10; i++){
         wrench_pub.publish(msg);
-        sleep(10);
+        sleep(1);
     }
 
     ros::spin();

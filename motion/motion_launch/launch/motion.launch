@@ -21,6 +21,8 @@
   <!--  <node pkg="dp_controller"       type="dp_controller_node"         name="dp"               output="screen"/> -->
   </group>
 
+  <node pkg="simple_motion_testing"   type="simple_motion_node"   name="simple_motion_node"   output="screen"/>
+
   <!-- Thrust nodes -->
   <group ns="$(arg ns_thrust)">
     <node pkg="thruster_interface"  type="thruster_interface_node.py"   name="thruster_interface"/>
