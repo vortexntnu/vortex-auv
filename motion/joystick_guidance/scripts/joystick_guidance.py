@@ -9,6 +9,7 @@ import rospy
 from geometry_msgs.msg import Wrench, Pose
 from sensor_msgs.msg import Joy
 from math import sqrt
+from std_msgs.msg import Bool
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
@@ -54,8 +55,15 @@ class JoystickGuidanceNode():
 		rospy.init_node('joystick_guidance')
 
 		self.sub = rospy.Subscriber('/guidance/joystick_data', Joy, self.callback, queue_size=1)
-		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
+		# self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1) # Uncomment to run the thrusters directly
 		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Pose, queue_size=1)
+		self.pub_state = rospy.Publisher('/guidance/joystick_state', Bool, queue_size=1)
+
+		# Joystick-state indicates if the UUV should be in ROV- or AUV-mode. Controlled by 'start'
+		# False <=> AUV
+		# True 	<=> ROV
+		self.start_pressed = False
+		self.start_idx = 9
 
 		self.surge 	= 0
 		self.sway 	= 1
@@ -86,6 +94,7 @@ class JoystickGuidanceNode():
 
 	def callback(self, msg):
 		
+		
 		# Calculating thrust and publish to thrusters 
 		joystick_msg = Wrench()
 		joystick_msg.force.x  = msg.axes[self.surge]
@@ -95,7 +104,18 @@ class JoystickGuidanceNode():
 		joystick_msg.torque.y = msg.axes[self.pitch]
 		joystick_msg.torque.z = msg.axes[self.yaw]
 
+		"""
+		# Uncomment if the thrust-vector should be given directly to the thrusters
 		self.pub.publish(joystick_msg)
+		"""
+
+		start_command = msg.buttons[self.start_idx]
+		if start_command == 1:
+			self.start_pressed = not self.start_pressed
+			# Sleep for 0.25 seconds to prevent the system from constantly switching between ROV and AUV
+			rospy.Duration(0.25).sleep()
+			self.pub_state.publish(self.start_pressed)
+
 
 		# Calculating point and publishing to DP-controller
 		point = self.calculate_joystick_point(joystick_msg)
