@@ -59,15 +59,6 @@ public:
 
 
   /**
-   * @brief Callback for the mode subscriber
-   * 
-   * The function is activated once the topic containing the desired mode has been
-   * updated
-   */
-  //void controlModeCallback();
-
-
-  /**
    * @brief Callback for the state subscriber
    * 
    * If the orientation given in @p msg is invalid, this function returns early.
