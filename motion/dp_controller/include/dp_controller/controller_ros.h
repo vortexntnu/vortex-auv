@@ -130,7 +130,6 @@ private:
   ros::Subscriber m_command_sub;       /** Command subscriber  */          
   ros::Subscriber m_state_sub;         /** State subscriber    */
   ros::Subscriber m_mode_sub;          /** Mode subscriber     */
-  ros::Subscriber m_state_ref_sub;     /** Goal subscriber     */ 
 
   ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
   ros::Publisher  m_rpm_pub;           /** RPM publisher       */
