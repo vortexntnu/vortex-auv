@@ -112,9 +112,13 @@ class JoystickGuidanceNode():
 		start_command = msg.buttons[self.start_idx]
 		if start_command == 1:
 			self.start_pressed = not self.start_pressed
+
+			bool_msg = Bool()
+			mool_msg.data = self.start_pressed
+			self.pub_state.publish(bool_msg)
+
 			# Sleep for 0.25 seconds to prevent the system from constantly switching between ROV and AUV
 			rospy.Duration(0.25).sleep()
-			self.pub_state.publish(self.start_pressed)
 
 
 		# Calculating point and publishing to DP-controller
