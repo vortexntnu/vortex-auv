@@ -20,30 +20,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
   // Subscribers
   m_state_sub       = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
- // m_state_ref_sub   = m_nh.subscribe("/guidance/dp_controller_reference", 1, &Controller::stateCallback, this);
- // m_mode_sub        = m_nh.subscribe("/guidence/dp_controller_state", 1, &Controller::)
 
-
-  /**
-   * We would like to implement a system where the DP-controller subscribes to two different topics
-   * 
-   * 1) 
-   *    guidance-block which holds the current point that the AUV should goto
-   * 
-   * 2) 
-   *    odometry-block such that we can get the current state of the system
-   * 
-   * 3) 
-   *    a topic with the current system-state 
-   * 
-   * 
-   * We would also like to push the current state the DP-controller should operate on as a topic
-   * 
-   * The DP-controller should still publish the torque onto the action-server
-   * 
-   * Would also like to remove everything that has to do with the action-server
-   * 
-   */
 
 
   // Service callback
