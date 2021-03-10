@@ -10,8 +10,29 @@ from geometry_msgs.msg import Wrench, Pose
 from sensor_msgs.msg import Joy
 from math import sqrt
 from std_msgs.msg import Bool
+from pyquaternion import Quaternion
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
+
+
+def convert_to_global(local_point, pose):
+	"""
+	Returns the point converted into the global framework when
+	taking the pose into account
+	"""
+	# Initializing the global point
+	global_point = local_point
+
+	# Calculating the quaternion and rotating the vector
+	quaternion = Quaternion([pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z])
+	rotated_vector = quaternion.rotate(local_point)
+
+	# Linar scaling the global point with position and orientation
+	global_point[0] += (pose.position.x + rotated_vector[0])
+	global_point[1] += (pose.position.y + rotated_vector[1])
+	global_point[2] += (pose.position.z + rotated_vector[2])
+
+	return global_point
 
 
 def nearest_list_value(param_list, ref_list, decimal_list):
@@ -54,7 +75,8 @@ class JoystickGuidanceNode():
 
 		rospy.init_node('joystick_guidance')
 
-		self.sub = rospy.Subscriber('/guidance/joystick_data', Joy, self.callback, queue_size=1)
+		self.sub_joystick_data = rospy.Subscriber('/guidance/joystick_data', Joy, self.joystick_data_cb, queue_size=1)
+		self.sub_odometry_filtered = rospy.Subscriber('/odometry/filtered', Pose, self.odometry_cb, queue_size=1)
 		# self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1) # Uncomment to run the thrusters directly
 		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Pose, queue_size=1)
 		self.pub_state = rospy.Publisher('/guidance/joystick_state', Bool, queue_size=1)
@@ -92,8 +114,11 @@ class JoystickGuidanceNode():
 		self.decimal_list = decimal_list
 
 
-	def callback(self, msg):
-		
+	def odometry_cb(self, msg):
+		self.uuv_pose = msg
+
+
+	def joystick_data_cb(self, msg):
 		
 		# Calculating thrust and publish to thrusters 
 		joystick_msg = Wrench()
@@ -122,7 +147,7 @@ class JoystickGuidanceNode():
 
 
 		# Calculating point and publishing to DP-controller
-		point = self.calculate_joystick_point(joystick_msg)
+		point = self.calculate_global_point(joystick_msg)
 
 		pose_msg = Pose()
 		pose_msg.position.x   	= point[0]
@@ -135,7 +160,7 @@ class JoystickGuidanceNode():
 
 		self.pub_joy.publish(pose_msg)
 
-	def calculate_joystick_point(self, joystick_msg):
+	def calculate_global_point(self, joystick_msg):
 		"""
 		Calculates a point in the local frame based on the given thrust-vectors 
 		from joystick 
@@ -146,20 +171,23 @@ class JoystickGuidanceNode():
 		# Scaling the force to get a linearized model
 		scaled_force_x, scaled_force_y, scaled_force_z = self.scale_force_vectors(joystick_msg)
 
-		calculated_point = [scaled_force_x, scaled_force_y, scaled_force_z]
+		local_calculated_point = [scaled_force_x, scaled_force_y, scaled_force_z]
 
 		# Calculating the length of the vectors
 		vector_length_square = 0
-		for i in range(len(calculated_point)):
-			vector_length_square += pow(calculated_point[i], 2)
+		for i in range(len(local_calculated_point)):
+			vector_length_square += pow(local_calculated_point[i], 2)
 
 		# Normalizing if exceeding the max_point_range
 		if vector_length_square >= pow(self.max_point_range, 2):
 			# Over the set limit. Normalizing
 			vector_length = sqrt(vector_length_square)
-			calculated_point = [val / vector_length for val in calculated_point]
+			local_calculated_point = [val / vector_length for val in local_calculated_point]
 
-		return calculated_point
+		# Converting to the local point
+		global_calculated_point convert_to_global(local_calculated_point, self.uuv_pose)
+
+		return global_calculated_point
 
 
 	def scale_force_vectors(self, joystick_msg):
