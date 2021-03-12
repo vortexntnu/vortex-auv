@@ -86,7 +86,7 @@ class JoystickGuidanceNode():
 		# False <=> AUV
 		# True 	<=> ROV
 		self.start_pressed = False
-		self.start_idx = 9
+		self.start_button_idx = 9
 
 		self.surge 	= 0
 		self.sway 	= 1
@@ -99,6 +99,8 @@ class JoystickGuidanceNode():
 		self.max_point_range = 1.0                          # Maximum allowed distance from the UUV to the calculated point
 		self.num_ranges 	 = 5                            # Number of ranges the input is scaled by
 		self.deadzone 		 = 1.0	   						# Deadzone on upper input
+
+		self.uuv_pose = Odometry()
 
 		# Required input-values to generate valid signals
 		limits = []
@@ -116,7 +118,7 @@ class JoystickGuidanceNode():
 
 
 	def odometry_cb(self, msg):
-		self.uuv_pose = msg
+		self.uuv_pose = msg.pose.pose
 
 
 	def joystick_data_cb(self, msg):
@@ -135,7 +137,7 @@ class JoystickGuidanceNode():
 		self.pub.publish(joystick_msg)
 		"""
 
-		start_command = msg.buttons[self.start_idx]
+		start_command = msg.buttons[self.start_button_idx]
 		if start_command == 1:
 			self.start_pressed = not self.start_pressed
 
@@ -185,7 +187,7 @@ class JoystickGuidanceNode():
 			vector_length = sqrt(vector_length_square)
 			local_calculated_point = [val / vector_length for val in local_calculated_point]
 
-		# Converting to the local point
+		# Converting to the local point (Note that this will only work when we have inputs from /odometry/filtered)
 		global_calculated_point = convert_to_global(local_calculated_point, self.uuv_pose)
 
 		return global_calculated_point
