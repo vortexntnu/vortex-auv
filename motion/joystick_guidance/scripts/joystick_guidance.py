@@ -11,6 +11,7 @@ from sensor_msgs.msg import Joy
 from math import sqrt
 from std_msgs.msg import Bool
 from pyquaternion import Quaternion
+from nav_msgs.msg import Odometry
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
@@ -76,7 +77,7 @@ class JoystickGuidanceNode():
 		rospy.init_node('joystick_guidance')
 
 		self.sub_joystick_data = rospy.Subscriber('/guidance/joystick_data', Joy, self.joystick_data_cb, queue_size=1)
-		self.sub_odometry_filtered = rospy.Subscriber('/odometry/filtered', Pose, self.odometry_cb, queue_size=1)
+		self.sub_odometry_filtered = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1)
 		# self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1) # Uncomment to run the thrusters directly
 		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Pose, queue_size=1)
 		self.pub_state = rospy.Publisher('/guidance/joystick_state', Bool, queue_size=1)
@@ -185,7 +186,7 @@ class JoystickGuidanceNode():
 			local_calculated_point = [val / vector_length for val in local_calculated_point]
 
 		# Converting to the local point
-		global_calculated_point convert_to_global(local_calculated_point, self.uuv_pose)
+		global_calculated_point = convert_to_global(local_calculated_point, self.uuv_pose)
 
 		return global_calculated_point
 
