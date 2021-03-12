@@ -45,6 +45,7 @@ For manual operation, execute the joystick nodes on the topside computer connect
 ```
 roslaunch auv_setup pc.launch
 ```
+Refer to the guide in [this README](./auv_setup/README.md) for how to set up the joystick and the topside pc.
 
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
