@@ -36,8 +36,8 @@ class BatterySimulator():
         self.mutex = thread.allocate_lock()
 
         # topics
-        self.battery_level_pub = rospy.Publisher("/manta/battery_level", Float32, queue_size=1)
-        self.diag_pub = rospy.Publisher("/manta/diagnostics", DiagnosticArray, queue_size=1)
+        self.battery_level_pub = rospy.Publisher("/auv/battery_level", Float32, queue_size=1)
+        self.diag_pub = rospy.Publisher("/auv/diagnostics", DiagnosticArray, queue_size=1)
 
         # services
         # manually set battery level

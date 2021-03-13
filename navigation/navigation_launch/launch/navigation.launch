@@ -7,18 +7,7 @@
     <!-- Kalman filter -->
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
         <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-      </node>
-
-    <!-- Stim300 driver and static transform: base_link -> imu_frame-->
-    <node pkg = "driver_stim300" type = "stim300_driver_node" name = "driver_stim300" args="/dev/ttyUSB0"/>
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0 0 0 3.14159 0 0 base_link imu_0" />
-
-    <!-- DVL and static transform: base_link -> DVL_frame -->	
-    <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="-0.035 -0.017 -0.211 3.14159 3.14159 0 base_link dvl_link" />
-    
-    <!-- Static transform from base_link to pressure_link -->
-    <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" />
+    </node>
 
   </group>
 
@@ -27,7 +16,7 @@
 
     <!-- Underwater odometry -->
     <rosparam command="load" file="$(find underwater_odom)/param/environment_config.yaml" />
-	  <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
+    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
     
     <!-- Kalman filter -->
     <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
@@ -35,4 +24,6 @@
     </node>
 
   </group>
+
+
 </launch>
