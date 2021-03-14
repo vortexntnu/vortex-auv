@@ -2,16 +2,19 @@
 # coding: UTF-8
 # Edited by Jaehyeong Hwang
 """
-Node that ease access the access to the controller. 
-The module takes responsibility for switching between different control-
-modes, such that the state machines are easier to implement and maintain.
 
-The node uses an action-server which takes inn an action, and should include:
-- Target pose
-- String determining the controller that should be used
+Node som forenkler tilganger til controlleren. 
+Den skal ta av seg bytting mellom controller moduser, 
+slik at koden i state machinene kan bli enklere. 
 
-The node sends the 'Target pose' as an action to the specified controller.
-Both result and feedback from said controller is sent through the node 
+Noden skal ha en action-server som tar inn en ny action (ligner på
+move_base) som skal inneholde: 
+- Target pose og 
+- String for kontroller som skal benyttes
+
+Noden sender så target posen videre som en ny action
+til den valgte kontrolleren. Resultat og feedback fra endelig kontroller
+sendes videre igjennom noden. 
 
 """
 
@@ -136,7 +139,7 @@ class GuidanceInterface:
 
 
 
-        elif move_goal.guidance_type == 'DepthHold':
+        elif move_goal.guidance_type == 'DepthHold'
             rospy.loginfo('move_cb -> DepthHold. Changing control mode...')
             change_control_mode(DEPTH_HOLD)
 
@@ -150,7 +153,7 @@ class GuidanceInterface:
                 rospy.loginfo('DP guidance aborted action due to timeout')
 
 
-        elif move_goal.guidance_type == 'DepthHeadingHold':
+        elif move_goal.guidance_type == 'DepthHeadingHold'
             rospy.loginfo('move_cb -> DepthHeadingHold. Changing control mode...')
             change_control_mode(DEPTH_HEADING_HOLD)
 
@@ -182,6 +185,13 @@ class GuidanceInterface:
                 self.action_server.set_aborted()
                 rospy.loginfo('LOS guidance aborted action due to timeout')
         
+"""
+        elif move_goal.guidance_type == 'switch':
+            rospy.loginfo('move_cb -> swtich. Changing control mode...')
+            change_control_mode(SWITCH)
+
+        NEED TO BE UPDATED?
+"""
         else:
             rospy.logerr('Unknown guidace type sent to guidance_interface')
             self.action_server.set_aborted()
@@ -202,6 +212,7 @@ class GuidanceInterface:
         else:
             self.action_server.set_aborted()
 
+
     def joystick_cb(self, msg):
         buttons = {}
         axes = {}
@@ -216,6 +227,14 @@ class GuidanceInterface:
         depthhold = buttons['B']  
         depthheadinghold = buttons['X']
         openloop = buttons['Y']
+        LB = buttons['LB']
+        RB = buttons['RB']
+        BACK = buttons['back']
+        SWITCH = buttons['start']
+        POWER = buttons['power']
+        SBL = buttons['stick_button_right']
+        SBR = buttons['stick_button_right']
+
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
         sway 	= axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
@@ -226,9 +245,8 @@ class GuidanceInterface:
 
         joystick_msg = Joy()
         joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
-        joystick_msg.buttons = [posehold, depthhold, depthheadinghold, openloop]
+        joystick_msg.buttons = [posehold, depthhold, depthheadinghold, openloop, LB, RB, BACK, SWITCH, POWER, SBL, SBR]
 
-        
         self.joystick_pub.publish(joystick_msg)
 
 if __name__ == "__main__":
