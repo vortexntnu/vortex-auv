@@ -85,7 +85,10 @@ class JoystickGuidanceNode():
 		# False <=> AUV
 		# True 	<=> ROV
 		self.start_pressed = False
-		self.start_idx = 9
+		self.start_button_idx = 9
+
+		# Bool used to prevent invalid operations in case odometry is not pushed to
+		self.odometry_published = False
 
 		self.surge 	= 0
 		self.sway 	= 1
@@ -115,6 +118,7 @@ class JoystickGuidanceNode():
 
 
 	def odometry_cb(self, msg):
+		self.odometry_published = True
 		self.uuv_pose = msg
 
 
@@ -147,7 +151,9 @@ class JoystickGuidanceNode():
 
 
 		# Calculating point and publishing to DP-controller
-		point = self.calculate_global_point(joystick_msg)
+		point = [0, 0, 0]
+		if self.odometry_published:
+			point = self.calculate_global_point(joystick_msg)
 
 		pose_msg = Pose()
 		pose_msg.position.x   	= point[0]
@@ -185,7 +191,7 @@ class JoystickGuidanceNode():
 			local_calculated_point = [val / vector_length for val in local_calculated_point]
 
 		# Converting to the local point
-		global_calculated_point convert_to_global(local_calculated_point, self.uuv_pose)
+		global_calculated_point = convert_to_global(local_calculated_point, self.uuv_pose)
 
 		return global_calculated_point
 
