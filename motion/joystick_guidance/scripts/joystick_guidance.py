@@ -85,17 +85,26 @@ class JoystickGuidanceNode():
 		# False <=> AUV
 		# True 	<=> ROV
 		self.start_pressed = False
-		self.start_button_idx = 9
 
-		# Bool used to prevent invalid operations in case odometry is not pushed to
-		self.odometry_published = False
+		# Previously saved Pose from odometry
+		self.odometry_published 	= False
+		self.uuv_pose 				= Pose()
+		self.uuv_pose.position.x    = 0
+		self.uuv_pose.position.y    = 0
+		self.uuv_pose.position.z    = 0
+		self.uuv_pose.orientation.x = 0
+		self.uuv_pose.orientation.y = 0
+		self.uuv_pose.orientation.z = 0
+		self.uuv_pose.orientation.w = 0
 
-		self.surge 	= 0
-		self.sway 	= 1
-		self.heave 	= 2
-		self.roll 	= 3 
-		self.pitch 	= 4 
-		self.yaw 	= 5 
+		# Indexes for the button-array
+		self.surge 			  = 0
+		self.sway 			  = 1
+		self.heave 			  = 2
+		self.roll 			  = 3 
+		self.pitch 			  = 4 
+		self.yaw 			  = 5
+		self.start_button_idx = 9 
 
 		self.min_point_range = 0.2                          # Minimum allowed distance from the UUV to the point
 		self.max_point_range = 1.0                          # Maximum allowed distance from the UUV to the calculated point
