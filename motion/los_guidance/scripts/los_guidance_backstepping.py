@@ -21,7 +21,7 @@ import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
 # modules included in this package
-from reference_model.discrete_tustin import ReferenceModel
+from temp_reference_model.discrete_tustin import ReferenceModel
 
 class LOS:
 	"""
@@ -60,7 +60,7 @@ class LOS:
 		self.y_kp1 = 0.0
 
 		# depth hold depth
-		self.z_d = 0.0
+		#self.z_d = 0.0
 
 		# desired speed
 		self.speed = 0
@@ -166,7 +166,8 @@ class LOS:
 		alpha = self.alpha
 
 		# rotation matrix
-		R = np.array(( (np.cos(alpha), -np.sin(alpha)),
+		R = np.arra
+		y(( (np.cos(alpha), -np.sin(alpha)),
 					   (np.sin(alpha),  np.cos(alpha)) ))
 
 		# transpose
@@ -233,7 +234,7 @@ class LOS:
 		self.chi_r = np.arctan(-self.e / self.delta)
 
 		# desired heading angle
-		self.chi_d = self.chi_p + self.chi_r
+		#self.chi_d = self.chi_p + self.chi_r
 
 		return self.chi_d
 
@@ -282,7 +283,7 @@ class LosPathFollowing(object):
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
 
 		# Publishers
-		self.pub_desired = rospy.Publisher('/auv/los_desired', Odometry, queue_size=1)
+		# self.pub_desired = rospy.Publisher('/auv/los_desired', Odometry, queue_size=1)
 		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# constructor object
@@ -316,20 +317,20 @@ class LosPathFollowing(object):
 
 
 		# reference model
-		x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, self.psi_ref)))
-		psi_d = x_d[2]
+		#x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, self.psi_ref)))
+		#psi_d = x_d[2]
 
-		e = self.psi - psi_d
-		if e > math.pi:
-			psi_d = psi_d - 2*math.pi
-			self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
-			x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
-		if e < -math.pi:
-			psi_d = psi_d + 2*math.pi
-			self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
-			x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
+		# e = self.psi - psi_d
+		# if e > math.pi:
+		# 	psi_d = psi_d - 2*math.pi
+		# 	self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+		# 	x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
+		# if e < -math.pi:
+		# 	psi_d = psi_d + 2*math.pi
+		# 	self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+		# 	x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
 
-		return x_d
+		# return x_d
 
 
 	def callback(self, msg): 
@@ -366,51 +367,51 @@ class LosPathFollowing(object):
 
 				x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed,psi_d)))
 			"""
-			x_d = self.fixHeadingWrapping()
+			# x_d = self.fixHeadingWrapping()
 
-			u_d = x_d[0]
-			u_d_dot = x_d[1]
-			psi_d = x_d[2]
-			r_d = x_d[3]
-			r_d_dot = x_d[4]
+			# u_d = x_d[0]
+			# u_d_dot = x_d[1]
+			# psi_d = x_d[2]
+			# r_d = x_d[3]
+			# r_d_dot = x_d[4]
 
-			quat_d = quaternion_from_euler(0, 0, psi_d)
+			# quat_d = quaternion_from_euler(0, 0, psi_d)
 
 			# Publish the desired state
-			los_msg = Odometry()
+			# los_msg = Odometry()
 
-			los_msg.header.stamp = rospy.Time.now()
+			# los_msg.header.stamp = rospy.Time.now()
 
-			los_msg.pose.pose.position.z = msg.pose.pose.position.z
+			# los_msg.pose.pose.position.z = msg.pose.pose.position.z
 
-			los_msg.pose.pose.orientation.x = quat_d[0]
-			los_msg.pose.pose.orientation.y = quat_d[1]
-			los_msg.pose.pose.orientation.z = quat_d[2]
-			los_msg.pose.pose.orientation.w = quat_d[3]
+			# los_msg.pose.pose.orientation.x = quat_d[0]
+			# los_msg.pose.pose.orientation.y = quat_d[1]
+			# los_msg.pose.pose.orientation.z = quat_d[2]
+			# los_msg.pose.pose.orientation.w = quat_d[3]
 
-			los_msg.twist.twist.linear.x = u_d
-			los_msg.twist.twist.angular.z = r_d
+			# los_msg.twist.twist.linear.x = u_d
+			# los_msg.twist.twist.angular.z = r_d
 
-			self.pub_desired.publish(los_msg)
+			# self.pub_desired.publish(los_msg)
 
-			# Publish guidance data for the controller
+			#Publish guidance data for the controller
 			guidance_data = GuidanceData()
 
 			guidance_data.u = self.los.u
-			guidance_data.u_d = u_d
+			# guidance_data.u_d = u_d
 
 			guidance_data.u_dot = self.los.u_dot
-			guidance_data.u_d_dot = u_d_dot
+			# guidance_data.u_d_dot = u_d_dot
 
 			guidance_data.psi = self.psi
-			guidance_data.psi_d = psi_d
+			# guidance_data.psi_d = psi_d
 
 			guidance_data.r = self.los.r
-			guidance_data.r_d = r_d
-			guidance_data.r_d_dot = r_d_dot
+			# guidance_data.r_d = r_d
+			# guidance_data.r_d_dot = r_d_dot
 
 			guidance_data.z = self.los.z
-			guidance_data.z_d = self.los.z_d
+			#guidance_data.z_d = self.los.z_d
 
 			guidance_data.v = self.los.v
 			guidance_data.t = self.los.t
@@ -433,7 +434,7 @@ class LosPathFollowing(object):
 
 		# succeeded
 		if self.los.sphereOfAcceptance():
-			self._result.terminalSector = True
+			sef._result.terminalSector = True
 			self.action_server.set_succeeded(self._result, text="goal completed")
 			self.publish_guidance_data = False
 
@@ -469,7 +470,7 @@ class LosPathFollowing(object):
 		self.los.speed = _goal.forward_speed.linear.x
 
 		# depth hold
-		self.los.z_d = _goal.desired_depth.z
+		#self.los.z_d = _goal.desired_depth.z
 
 		# sphere of acceptance
 		self.los.R = _goal.sphereOfAcceptance
@@ -501,6 +502,8 @@ class LosPathFollowing(object):
 		return config
 
 
+
+#Move this to reference_model_node.py:
 if __name__ == '__main__':
 	try:
 		los_path_following = LosPathFollowing()
