@@ -11,6 +11,7 @@ from sensor_msgs.msg import Joy
 from math import sqrt
 from std_msgs.msg import Bool
 from pyquaternion import Quaternion
+from nav_msgs.msg import Odometry
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
@@ -76,7 +77,7 @@ class JoystickGuidanceNode():
 		rospy.init_node('joystick_guidance')
 
 		self.sub_joystick_data = rospy.Subscriber('/guidance/joystick_data', Joy, self.joystick_data_cb, queue_size=1)
-		self.sub_odometry_filtered = rospy.Subscriber('/odometry/filtered', Pose, self.odometry_cb, queue_size=1)
+		self.sub_odometry_filtered = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1)
 		# self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1) # Uncomment to run the thrusters directly
 		self.pub_joy = rospy.Publisher('/guidance/joystick_reference', Pose, queue_size=1)
 		self.pub_state = rospy.Publisher('/guidance/joystick_state', Bool, queue_size=1)
@@ -86,7 +87,7 @@ class JoystickGuidanceNode():
 		# True 	<=> ROV
 		self.start_pressed = False
 
-		# Previously saved Pose from odometry
+		# Initializing the Pose corresponding from odometry
 		self.odometry_published 	= False
 		self.uuv_pose 				= Pose()
 		self.uuv_pose.position.x    = 0
@@ -111,6 +112,8 @@ class JoystickGuidanceNode():
 		self.num_ranges 	 = 5                            # Number of ranges the input is scaled by
 		self.deadzone 		 = 1.0	   						# Deadzone on upper input
 
+		self.uuv_pose = Odometry()
+
 		# Required input-values to generate valid signals
 		limits = []
 		self.max_value = 10.0
@@ -128,7 +131,7 @@ class JoystickGuidanceNode():
 
 	def odometry_cb(self, msg):
 		self.odometry_published = True
-		self.uuv_pose = msg
+		self.uuv_pose = msg.pose.pose
 
 
 	def joystick_data_cb(self, msg):
@@ -147,7 +150,7 @@ class JoystickGuidanceNode():
 		self.pub.publish(joystick_msg)
 		"""
 
-		start_command = msg.buttons[self.start_idx]
+		start_command = msg.buttons[self.start_button_idx]
 		if start_command == 1:
 			self.start_pressed = not self.start_pressed
 
@@ -199,7 +202,7 @@ class JoystickGuidanceNode():
 			vector_length = sqrt(vector_length_square)
 			local_calculated_point = [val / vector_length for val in local_calculated_point]
 
-		# Converting to the local point
+		# Converting to the local point (Note that this will only work when we have inputs from /odometry/filtered)
 		global_calculated_point = convert_to_global(local_calculated_point, self.uuv_pose)
 
 		return global_calculated_point
