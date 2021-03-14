@@ -139,7 +139,7 @@ class GuidanceInterface:
 
 
 
-        elif move_goal.guidance_type == 'DepthHold'
+        elif move_goal.guidance_type == 'DepthHold':
             rospy.loginfo('move_cb -> DepthHold. Changing control mode...')
             change_control_mode(DEPTH_HOLD)
 
@@ -153,7 +153,7 @@ class GuidanceInterface:
                 rospy.loginfo('DP guidance aborted action due to timeout')
 
 
-        elif move_goal.guidance_type == 'DepthHeadingHold'
+        elif move_goal.guidance_type == 'DepthHeadingHold':
             rospy.loginfo('move_cb -> DepthHeadingHold. Changing control mode...')
             change_control_mode(DEPTH_HEADING_HOLD)
 
@@ -230,7 +230,7 @@ class GuidanceInterface:
         LB = buttons['LB']
         RB = buttons['RB']
         BACK = buttons['back']
-        SWITCH = buttons['start']
+        START = buttons['start']
         POWER = buttons['power']
         SBL = buttons['stick_button_right']
         SBR = buttons['stick_button_right']
@@ -245,7 +245,7 @@ class GuidanceInterface:
 
         joystick_msg = Joy()
         joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
-        joystick_msg.buttons = [posehold, depthhold, depthheadinghold, openloop, LB, RB, BACK, SWITCH, POWER, SBL, SBR]
+        joystick_msg.buttons = [posehold, depthhold, depthheadinghold, openloop, LB, RB, BACK, START, POWER, SBL, SBR]
 
         self.joystick_pub.publish(joystick_msg)
 
