@@ -231,7 +231,7 @@ class LOSController:
 		self.PID = LOSControllerPID()
 	
 		# Subscribers
-		self.sub_guidance = rospy.Subscriber('/guidance/los_data', GuidanceData, self.guidance_data_callback, queue_size=1)
+		self.sub_guidance = rospy.Subscriber('/rm/los_data', GuidanceData, self.guidance_data_callback, queue_size=1)
 
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
