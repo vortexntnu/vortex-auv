@@ -1,6 +1,7 @@
 import rospy
 import smach
 from geometry_msgs.msg import Point
+from std_msgs.msg import String
 
 class GateSearchState(smach.State):
     def __init__(self):
@@ -8,7 +9,11 @@ class GateSearchState(smach.State):
 
         rospy.Subscriber("goal_position", Point, self.callback)
                     
-        self.goal_position = None      
+        self.goal_position = None 
+
+        #testing
+        st_pub = rospy.Publisher('state_transition', String, queue_size=10)     
+        st_pub.publish("GATE_SEARCH")
         
     def execute(self, userdata):
                
