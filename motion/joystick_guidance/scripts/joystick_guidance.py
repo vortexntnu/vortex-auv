@@ -105,7 +105,7 @@ class JoystickGuidanceNode():
 		self.roll 			  = 3 
 		self.pitch 			  = 4 
 		self.yaw 			  = 5
-		self.start_button_idx = 9 
+		self.start_button_idx = 7 
 
 		self.min_point_range = 0.2                          # Minimum allowed distance from the UUV to the point
 		self.max_point_range = 1.0                          # Maximum allowed distance from the UUV to the calculated point
