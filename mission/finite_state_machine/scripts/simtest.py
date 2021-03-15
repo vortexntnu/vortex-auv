@@ -12,10 +12,7 @@ from smach_ros import IntrospectionServer
 rospy.init_node('simtest_fsm')
 
 simtest_sm = patrol_sequence([
-    dp_move(0, 0),
-    los_move(4, 0),
-    los_move(1, 0),
-    dp_move(0, 0, yaw_rad=pi)
+    dp_move(0, 0, 0.3)
 ])
 
 intro_server = IntrospectionServer(str(rospy.get_name()), simtest_sm,'/SM_ROOT')
