@@ -34,7 +34,7 @@ class LOSReferenceModelNode():
 		self.guidance_data_sub = rospy.Subscriber('/guidance/los_data', GuidanceData, self.guidanceDataCallback, queue_size=1)
 
 		# Publishers
-		self.rm_los_data_pub = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
+		self.rm_los_data_pub = rospy.Publisher('/reference_model/los_data', GuidanceData, queue_size=1)
 
 		# RM object
 		self.reference_model = ReferenceModel(np.array((0, 0)), self.h)
@@ -79,8 +79,8 @@ class LOSReferenceModelNode():
 		# Guidance data sub
 		u = msg.u
 		psi = msg.psi
-		psi_ref = msg.psi_ref # DOES NOT EXIST
-		speed = msg.speed # DOES NOT EXIST
+		psi_ref = msg.psi_ref
+		speed = msg.speed 
 
 		# Reference model calc
 		"""
@@ -91,12 +91,6 @@ class LOSReferenceModelNode():
 		"""
 		x_d = self.fixHeadingWrapping(u, psi, psi_ref, speed)
 
-		# u_d = x_d[0]
-		# u_d_dot = x_d[1]
-		# psi_d = x_d[2]
-		# r_d = x_d[3]
-		# r_d_dot = x_d[4]
-
 		# Reference Model data pub
 
 		msg.u_d = x_d[0]
@@ -105,26 +99,6 @@ class LOSReferenceModelNode():
 		msg.r_d = x_d[3]
 		msg.r_d_dot = x_d[4]
 
-		# rm_data = GuidanceData()
-
-		# rm_data.u = msg.u
-		# rm_data.u_d = u_d
-
-		# rm_data.u_dot = msg.u_dot
-		# rm_data.u_d_dot = u_d_dot
-
-		# rm_data.psi = msg.psi
-		# rm_data.psi_d = psi_d
-
-		# rm_data.r = msg.r
-		# rm_data.r_d = r_d
-		# rm_data.r_d_dot = r_d_dot
-
-		# rm_data.z = msg.z
-		# rm_data.z_d = msg.z_d
-
-		# rm_data.v = msg.v
-		
 		self.rm_los_data_pub.publish(msg)
 
 if __name__ == '__main__':

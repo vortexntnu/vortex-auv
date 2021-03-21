@@ -336,7 +336,10 @@ class LosPathFollowing(object):
 			guidance_data.z_d = self.los.z_d
 
 			guidance_data.v = self.los.v
-			# guidance_data.t = self.los.t # (?) DOES NOT EXIST IN GUIDANCEDATA MSG TYPE 
+			guidance_data.t = self.los.t
+			
+			guidance_data.psi_ref = self.psi_ref
+			guidance_data.speed = self.los.speed
 
 			self.pub_data_los_controller.publish(guidance_data)
 
