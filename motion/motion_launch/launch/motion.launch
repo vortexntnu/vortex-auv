@@ -18,7 +18,7 @@
   <!-- Reference model nodes (please review syntax)-->
   <group ns="$(arg ns_rm)">
     <node pkg="dp_reference_model" type="dp_reference_model_node" name="dp_reference_model" output="screen"/>
-    <node pkg="los_reference_model"     type="los_reference_model_node.py"  name="los_rm"       output="screen" />
+    <node pkg="los_reference_model"     type="los_reference_model_node.py"  name="los_reference_model"       output="screen" />
   </group>
 
   <!-- Controller nodes -->
