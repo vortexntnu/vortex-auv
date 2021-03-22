@@ -12,13 +12,13 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : ROV_state{false}
       * Have used the old values (if changed) as default-values. 
       * If ROS is unable to locate new values, the old ones should be good  
       */
-     double a1 = nh.getParam("rm_a1", 1);
-     double a2 = nh.getParam("rm_a2", -1.990024937655860);
-     double a3 = nh.getParam("rm_a3", 0.990049813123053);
+     double a1 = 1;
+     double a2 = -1.990024937655860;
+     double a3 = 0.990049813123053;
 
-     double b1 = nh.getParam("rm_b1", 6.218866798092052e-06);
-     double b2 = nh.getParam("rm_b2", 1.243773359618410e-05);
-     double b3 = nh.getParam("rm_b3", 6.218866798092052e-06);
+     double b1 = 6.218866798092052e-06;
+     double b2 = 1.243773359618410e-05;
+     double b3 = 6.218866798092052e-06;
 
      Eigen::Vector3d a_x(a1, a2, a3);
      Eigen::Vector3d b_x(b1, b2, b3);
@@ -30,7 +30,7 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : ROV_state{false}
 
      uuv_state_sub            = nh.subscribe("/guidance/joystick_state", 1, &ReferenceModel::uuv_state_cb, this);
      joystick_setpoint_sub    = nh.subscribe("/guidance/joystick_reference", 1, &ReferenceModel::joystick_setpoint_cb, this);
-     fsm_setpoint_sub         = nh.subscribe("/reference_model/input", 1, %ReferenceModel::fsm_setpoint_cb, this); 
+     fsm_setpoint_sub         = nh.subscribe("/reference_model/input", 1, &ReferenceModel::fsm_setpoint_cb, this); 
      reference_pub            = nh.advertise<geometry_msgs::Pose>("/reference_model/output", 10, this);
 }
 

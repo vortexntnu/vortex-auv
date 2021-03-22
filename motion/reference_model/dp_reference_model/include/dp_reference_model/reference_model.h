@@ -91,6 +91,14 @@ private:
      void reset(Eigen::Vector3d pos);
 
 
+     /**
+      * @brief Calculate and publish the desired, smooth position
+      * and orientation.
+      * 
+      * @param msg  A Pose that contains information about desired pose
+      */
+     void calculate_desired_pose(const geometry_msgs::Pose &msg);
+
      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 public:
