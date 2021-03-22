@@ -1,0 +1,11 @@
+# Parameters used for the DP-reference model
+dp_reference_model_parameters:
+  rm_a_values:
+    rm_a1: 1
+    rm_a2: -1.990024937655860
+    rm_a3: 0.990049813123053
+
+  rm_b_values:
+    rm_b1: 6.218866798092052e-06
+    rm_b2: 1.243773359618410e-05
+    rm_b3: 6.218866798092052e-06
