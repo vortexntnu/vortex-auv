@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 import math
 
-from los_reference_model.discrete_tustin import ReferenceModel
+from discrete_tustin import ReferenceModel
 
 from vortex_msgs.msg import GuidanceData
 
