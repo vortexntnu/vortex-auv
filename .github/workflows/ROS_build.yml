@@ -38,7 +38,7 @@ jobs:
         run: |
           cd ~/catkin_ws/src
           cp -r $GITHUB_WORKSPACE .
-          git clone https://github.com/vortexNTNU/Vortex-Simulator --branch mesh_fixes --single-branch
+          git clone https://github.com/vortexNTNU/Vortex-Simulator
           git clone https://github.com/vortexNTNU/vortex_msgs
 
       - name: Build packages
