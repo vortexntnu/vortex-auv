@@ -34,7 +34,7 @@ To launch a drone you will first need to to prepare it for operation:
 roslaunch auv_setup <drone>.launch
 ```
 
-Next,you have two choices:
+Next, you have two choices:
 
 For autonomous operation, execute the desired mission script:
  ```
