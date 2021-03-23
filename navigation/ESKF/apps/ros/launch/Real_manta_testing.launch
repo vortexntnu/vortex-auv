@@ -1,0 +1,20 @@
+    <launch>
+        
+	<node pkg="ESKF" type="ESKF" name="ESKF_localization_node" clear_params="true" />
+	<rosparam file="$(find ESKF)/parameters/test.yaml" />
+
+	<node 
+	pkg = "driver_stim300"
+	type = "stim300_driver_node"
+	name = "stim300_driver"
+	args="/dev/ttyUSB0"
+	/>
+
+
+	<!-- DVL -->
+	
+	<node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
+
+	 
+
+    </launch>

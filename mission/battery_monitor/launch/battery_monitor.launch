@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node pkg="battery_monitor"
-    type="battery_monitor.py"
-    name="battery_monitor"
-    output="screen"/>
-</launch>

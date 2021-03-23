@@ -49,6 +49,7 @@ propulsion:
     direction: [1, -1, 1, 1, -1, -1, 1, -1]
     offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
 
+
 controllers:
   dp:
     circleOfAcceptance: 0.10
@@ -87,15 +88,23 @@ battery:
     warning: 15000  # Millivolts
     critical: 14000 # Millivolts
   logging:
-    frequency: 10   # Seconds
+    interval: 10   # Seconds
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
 
+temperature:
+  logging:
+    interval: 10    # Seconds
+    paths:
+      cpu: "/sys/kernel/debug/bpmp/debug/soctherm/group_CPU/temp"
+      gpu: "/sys/kernel/debug/bpmp/debug/soctherm/group_GPU/temp"
+      
 i2c:
   address: 0x40
   bus: 8
 
 pca9685:
   pwm:
-    bits_per_period: 4095 # old and tested value is 4095
+    bits_per_period: 4095 
     frequency: 50.0
-    frequency_measured: 50 # 51.6 is old and tested
+    frequency_measured: 50 # 51.6 is the former value, but we dont know why
+
