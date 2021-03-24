@@ -1,0 +1,6 @@
+    <launch>
+        
+	<node pkg="eskf" type="eskf" name="eskf_localization_node" clear_params="true" output="screen" />
+	<rosparam file="$(find eskf)/apps/ros/parameters/underwater_sinus_test.yaml" /> 
+
+    </launch>

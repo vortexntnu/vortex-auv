@@ -66,7 +66,7 @@ $ roslaunch pole_detect pole_detect.launch topic:=[topic]
 ```
 
 Topics should be spesified for `[topic]`. Any topic publishing a video may be spesified.
-If no topic is provided, then pole_detect will subscribe to default topic of simulator: `/manta/manta/cameraunder/camera_image`.
+If no topic is provided, then pole_detect will subscribe to default topic of simulator: `/auv/auv/cameraunder/camera_image`.
 Recomended topics from camera is `/camera/front` and `/camera/under`.
 
 ### Path_marker

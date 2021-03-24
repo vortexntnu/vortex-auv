@@ -8,7 +8,7 @@ project(inspect_point)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  autopilot
+  los_controller
   nav_msgs
   reference_model
   std_msgs
@@ -108,7 +108,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES inspect_point
-#  CATKIN_DEPENDS autopilot nav_msgs reference_model std_msgs tf vortex_msgs
+#  CATKIN_DEPENDS los_controller nav_msgs reference_model std_msgs tf vortex_msgs
 #  DEPENDS system_lib
 )
 

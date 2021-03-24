@@ -5,12 +5,7 @@
 
 #include "dp_controller/setpoints.h"
 
-Setpoints::Setpoints(const Eigen::Vector6d &wrench_scaling,
-                     const Eigen::Vector6d &wrench_max)
-: m_wrench_scaling(wrench_scaling),
-  m_wrench_max(wrench_max)
-{
-  m_wrench.setZero();
+Setpoints::Setpoints() {
   m_position.setZero();
   m_orientation.setIdentity();
 
@@ -18,24 +13,18 @@ Setpoints::Setpoints(const Eigen::Vector6d &wrench_scaling,
   m_pose_is_valid   = false;
 }
 
-bool Setpoints::update(const Eigen::Vector6d &command)
-{
-  for (int i = 0; i < 6; ++i)
-    m_wrench(i) = m_wrench_scaling(i) * m_wrench_max(i) * command(i);
-  m_wrench_is_valid = true;
-
-  return true;
-}
-
-bool Setpoints::get(Eigen::Vector6d *wrench)
+bool Setpoints::getZero(Eigen::Vector6d *wrench)
 {
   if (!m_wrench_is_valid)
     return false;
 
-  *wrench = m_wrench;
+  Eigen::Vector6d zero_wrench; 
+  zero_wrench.setZero();
+  *wrench = zero_wrench;
+
   //CHANGE BY KRISTOFFER
   //sreturn true;
-  return false;
+  return false; // TODO: why is this always false?
 }
 
 bool Setpoints::get(Eigen::Vector3d    *position,

@@ -15,7 +15,7 @@ from nav_msgs.msg import OccupancyGrid, Odometry, Path
 from nav_msgs.srv import GetPlan, GetMap
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 from visualization_msgs.msg import Marker, MarkerArray
-from autopilot.autopilot import AutopilotBackstepping, AutopilotPID
+from los_controller.los_controller import LOSControllerBackstepping, LOSControllerPID
 import actionlib
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from PID.PIDregulator import PIDRegulator
@@ -58,13 +58,13 @@ class InspectPoint:
         sat_angle = 5
         self.PID_angle = PIDRegulator(P_angle, I_angle, D_angle, sat_angle)
 
-        self.PID = AutopilotPID()
+        self.PID = LOSControllerPID()
 
         # subscribers
         self.sub_pose = rospy.Subscriber('/odometry/filtered', Odometry, self.positionCallback, queue_size=1)
 
         # publishers
-        self.pub_thrust = rospy.Publisher('/manta/thruster_manager/input', Wrench, queue_size=1)
+        self.pub_thrust = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
 
         # action server setup
         self.action_server = actionlib.SimpleActionServer(name='inspect_point', ActionSpec=MoveAction, auto_start=False)
@@ -75,7 +75,7 @@ class InspectPoint:
 
     def fixHeadingWrapping(self, err_yaw):
         """
-        Fix error in yaw such that manta rotates in the closest direction
+        Fix error in yaw such that the auv rotates in the closest direction
         Example: Instead of rotating 3/2 pi clockwise, rotate -1/2 pi counter clockwise
         """
 
@@ -88,9 +88,9 @@ class InspectPoint:
         return err_yaw
 
         
-    def getVectorFromMantaToCentre(self):
+    def getVectorFromAUVToCentre(self):
         """
-        Get vector from manta to the centre point of the object it is inspecting
+        Get vector from auv to the centre point of the object it is inspecting
         """
         vec_to_mid = np.array([0,0])
 
@@ -121,15 +121,15 @@ class InspectPoint:
 
         pid_output = self.PID_dist.regulate(err_dist, rospy.get_time())
 
-        vec_to_mid_glob_frame = self.getVectorFromMantaToCentre()
+        vec_to_mid_glob_frame = self.getVectorFromAUVToCentre()
 
         rot_mat = np.array([[np.cos(self.yaw), -np.sin(self.yaw)],[np.sin(self.yaw), np.cos(self.yaw)]])
         rot_mat = rot_mat.transpose()
 
-        vec_to_mid_manta_frame = np.dot(rot_mat,vec_to_mid_glob_frame)
+        vec_to_mid_auv_frame = np.dot(rot_mat,vec_to_mid_glob_frame)
 
 
-        force_vec = vec_to_mid_manta_frame * pid_output
+        force_vec = vec_to_mid_auv_frame * pid_output
 
         force_x = force_vec[0]
         force_y = force_vec[1]
@@ -138,10 +138,10 @@ class InspectPoint:
 
 
         # angle control
-        manta_pos = Point()
-        manta_pos.x = self.x
-        manta_pos.y = self.y
-        desired_angle = self.getYawFrom2Pos(manta_pos, self.centre_of_rot)
+        auv_pos = Point()
+        auv_pos.x = self.x
+        auv_pos.y = self.y
+        desired_angle = self.getYawFrom2Pos(auv_pos, self.centre_of_rot)
 
         err_yaw = desired_angle - self.yaw
 
@@ -196,7 +196,7 @@ class InspectPoint:
 
     def distanceBetweenPoseAndSelf(self, pose):
         """
-        Distance from a pose to manta
+        Distance from a pose to the auv
         """
         return np.sqrt(self.x-pose.position.x)**2 + abs(self.y - pose.position.y)**2
 
