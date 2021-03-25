@@ -19,8 +19,9 @@
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
   // Subscribers
-  //m_state_sub = m_nh.subscribe("/auv/pose_gt", 1, &Controller::stateCallback, this);
-  m_state_sub         = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
+  m_state_sub       = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
+
+
 
   // Service callback
   control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);

@@ -196,7 +196,7 @@ private:
    * 
    * @see quaternion_pd_controller.h
   */
-  void initPositionHoldController();
+  void initPositionHoldController(); 
 
 
   /**
