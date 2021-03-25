@@ -16,6 +16,9 @@
 #include <string>
 #include <vector>
 
+
+//TODO: unused parameters that will be left when switching from server to topic
+//should be removed from the constructor.
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
   // Subscribers
@@ -63,14 +66,18 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 
   ROS_INFO("Initialized at %i Hz.", m_frequency);
 
-  /* Action server */
-  //ros::NodeHandle nodeHandle("move_base");
-  mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
+// TODO: Replace with a subscriber to the reference model
+//
+//  /* Action server */
+//  //ros::NodeHandle nodeHandle("move_base");
+//  mActionServer = new MoveBaseActionServer(m_nh, "move_base", /*autostart*/false);
+//
+//  //register the goal and feeback callbacks
+//
+//  mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
+//  mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
+//  mActionServer->start();
 
-  //register the goal and feeback callbacks
-  mActionServer->registerGoalCallback(boost::bind(&Controller::actionGoalCallBack, this));
-  mActionServer->registerPreemptCallback(boost::bind(&Controller::preemptCallBack, this));
-  mActionServer->start();
   ROS_INFO("Started action server.");
 }
 
@@ -139,6 +146,9 @@ void Controller::preemptCallBack()
     mActionServer->setPreempted();
 }
 
+
+// TODO: This function will no longer exist since we wwant to remove the action server
+// This mainly updates the local setpoints, that are used in spin()
 void Controller::actionGoalCallBack()
 {
 
@@ -167,7 +177,8 @@ void Controller::actionGoalCallBack()
 }
 
 
-//void Controller::stateCallback(const vortex_msgs::RovState &msg)
+//TODO: This should only update local state, and not have anything to do with the action server
+//Need to decide on how to handle the circle of acceptance?
 void Controller::stateCallback(const nav_msgs::Odometry &msg)
 {
 
@@ -207,6 +218,10 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 
 }
 
+//TODO: Add a callback for the reference model topic
+//This callback should do most of what the spin() function does,
+//and ultimately publish a control vector
+
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
 {
@@ -220,6 +235,13 @@ void Controller::configCallback(const dp_controller::VortexControllerConfig &con
 }
 
 
+
+// TODO: Spin is no longer needed since we only want the controller to output
+// control vectors whenever addressed by the reference model
+// WARNING!: The rate should still be 40Hz, so the reference model should
+// output values at a frequency >= 40Hz
+
+// Spin will be replaced by a callback for the topic output by the reference model
 void Controller::spin()
 {
   // Declaration of general forces
