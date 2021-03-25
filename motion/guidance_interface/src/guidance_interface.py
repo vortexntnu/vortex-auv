@@ -185,13 +185,6 @@ class GuidanceInterface:
                 self.action_server.set_aborted()
                 rospy.loginfo('LOS guidance aborted action due to timeout')
         
-"""
-        elif move_goal.guidance_type == 'switch':
-            rospy.loginfo('move_cb -> swtich. Changing control mode...')
-            change_control_mode(SWITCH)
-
-        NEED TO BE UPDATED?
-"""
         else:
             rospy.logerr('Unknown guidace type sent to guidance_interface')
             self.action_server.set_aborted()
