@@ -1,7 +1,7 @@
 ## DP controller
 
 #### Subscribes to:
-* /odometry/filtered
+* /odometry/filtered (adjustable through ros param dp_controller/odometry_topic)
 
 #### Publishes to:
 * /auv/thruster_manager/input
