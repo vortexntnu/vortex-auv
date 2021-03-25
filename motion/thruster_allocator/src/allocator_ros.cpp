@@ -5,7 +5,7 @@
 #include <limits>
 
 #include <eigen_conversions/eigen_msg.h>
-#include "vortex_msgs/ThrusterForces.h"
+#include "std_msgs/Float32MultiArray.h"
 #include "vortex_allocator/eigen_typedefs.h"
 #include "vortex_allocator/eigen_helper.h"
 
@@ -16,8 +16,7 @@ Allocator::Allocator(ros::NodeHandle nh)
   m_max_thrust(std::numeric_limits<double>::infinity())
 {
   m_sub = m_nh.subscribe("/auv/thruster_manager/input", 1, &Allocator::callback, this);
-  m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("/thrust/thruster_forces", 1);
-  //m_pub = m_nh.advertise<vortex_msgs::ThrusterForces>("/auv/thruster_manager/input", 1);
+  m_pub = m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
 
   if (!m_nh.getParam("/propulsion/dofs/num", m_num_degrees_of_freedom))
     ROS_FATAL("Failed to read parameter number of dofs.");
@@ -56,12 +55,6 @@ void Allocator::callback(const geometry_msgs::Wrench &msg_in) const
 {
   const Eigen::VectorXd rov_forces = rovForcesMsgToEigen(msg_in);
 
-  if (!healthyWrench(rov_forces))
-  {
-    ROS_ERROR("ROV forces vector invalid, ignoring.");
-    return;
-  }
-
   Eigen::VectorXd thruster_forces = m_pseudoinverse_allocator->compute(rov_forces);
 
   if (isFucked(thruster_forces))
@@ -70,13 +63,9 @@ void Allocator::callback(const geometry_msgs::Wrench &msg_in) const
     return;
   }
 
-  if (!saturateVector(&thruster_forces, m_min_thrust, m_max_thrust))
-    ROS_WARN_THROTTLE(1, "Thruster forces vector required saturation.");
-
-  vortex_msgs::ThrusterForces msg_out;
+  std_msgs::Float32MultiArray msg_out;
   arrayEigenToMsg(thruster_forces, &msg_out);
 
-  msg_out.header.stamp = ros::Time::now();
   m_pub.publish(msg_out);
 }
 
@@ -105,18 +94,4 @@ Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench &msg)
   }
 
   return rov_forces;
-}
-
-bool Allocator::healthyWrench(const Eigen::VectorXd &v) const
-{
-  // Check for NaN/Inf
-  if (isFucked(v))
-    return false;
-
-  // Check reasonableness
-  for (unsigned i = 0; i < v.size(); ++i)
-    if (std::abs(v[i]) > c_force_range_limit)
-      return false;
-
-  return true;
 }
