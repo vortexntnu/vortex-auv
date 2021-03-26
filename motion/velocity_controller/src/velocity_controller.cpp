@@ -1,6 +1,5 @@
 #include "velocity_controller/velocity_controller.h"
 
-
 VelocityController::VelocityController(ros::NodeHandle ros_node)
 {
   // get params
@@ -28,26 +27,39 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
 
 void VelocityController::odometryCallback(const nav_msgs::Odometry& odom_msg)
 {
-  odometry = odom_msg;  // TODO: might have to make this thread safe
+  // TODO: might have to make this thread safe
+  tf::twistMsgToEigen(odom_msg.twist.twist, velocity);
+  orientation = Eigen::Quaterniond(odom_msg.pose.pose.orientation.w, odom_msg.pose.pose.orientation.x,
+                                   odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z)
 }
 
 void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_msg)
 {
-  // copy odometry to remove chance of odom beeing updated during function call
-  nav_msgs::Odometry current_odom = odometry;
+  // copy velocity to remove chance of odom beeing updated during function call
 
   // convert to Eigen? Has to be set up, but would simplify everything else
-  const Eigen::Vector6d twist_desired;
-  //tf::twistMsgToEigen(twist_msg, twist_desired);
-  
+  Eigen::Vector6d desired_velocity;
+  tf::twistMsgToEigen(twist_msg, desired_velocity);
 
   // calculate restoring forces
+  Eigen::Vector6d restoring_forces = restoringForces();
 
-  // calculate tau using MiniPID and restoring forces 
-  geometry_msgs::Wrench tau;
-  
+  // calculate tau using MiniPID and restoring forces
+  Eigen::Vector6d tau;
+  for (int i=0; i<6; i++) {
+    tau[i] = - restoring_forces[i];
+  }
+
   // publish tau as thrust
   thrust_pub.publish(tau);
+}
+Eigen::Vector6d VelocityController::restoringForces()
+{
+  // calculates restoring forces in ENU (not NED)
+  Eigen::Matrix3d R = orientation.toRotationMatrix();
+  Eigen::Vector3d f_G = R.transpose() * Eigen::Vector3d(0, 0, -drone_weight);
+  Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, drone_bouyancy);
+  return Eigen::Vector6d(f_G + f_B, center_of_gravity.cross(f_G) + center_of_bouyancy.cross(f_B));
 }
 
 int main(int argc, char** argv)

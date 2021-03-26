@@ -25,15 +25,21 @@ public:
   VelocityController(ros::NodeHandle ros_node);
   void odometryCallback(const nav_msgs::Odometry& odom_msg);
   void controlLawCallback(const geometry_msgs::Twist& twist_msg);
+  Eigen::Vector6d restoringForces();
 
 private:
   std::string odometry_topic;
   std::string thrust_topic;
   std::string desired_velocity_topic;
+  double drone_weight;
+  float drone_bouyancy; 
+  Eigen::Vector3d center_of_gravity;
+  Eigen::Vector3d center_of_bouyancy;
   ros::Publisher thrust_pub;
   ros::Subscriber odom_sub;
   ros::Subscriber vel_sub;
-  nav_msgs::Odometry odometry;
+  Eigen::Vector6d velocity;
+  Eigen::Quaterniond orientation;
 };
 
 #endif
