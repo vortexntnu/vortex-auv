@@ -15,10 +15,10 @@
 #
 
 physical:
-  mass_kg: 0
-  displacement_m3: 0
-  center_of_mass: [0, 0, 0]
-  center_of_buoyancy: [0, 0, 0]
+  weight: 29.20     # kg
+  bouyancy: 29.43   # kg
+  center_of_mass: [26.3, 0.8, 6.0]        # mm (x,y,z)
+  center_of_buoyancy: [25.9, 0.8, 48.3]   # mm (x,y,z)
 
 propulsion:
   dofs:
