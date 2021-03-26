@@ -19,15 +19,24 @@ typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 }  // namespace Eigen
 
+const std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
+const std::string DEFAULT_THRUST_TOPIC = "/thrust/desired";
+const std::string DEFAULT_VELOCITY_TOPIC = "/controller/desired_velocity";
+
 class VelocityController
 {
 public:
   VelocityController(ros::NodeHandle ros_node);
   void odometryCallback(const nav_msgs::Odometry& odom_msg);
   void controlLawCallback(const geometry_msgs::Twist& twist_msg);
+  template<typename T>
+  void getParam(std::string name, T &variable);
+  template<typename T>
+  void getParam(std::string name, T &variable, T default_value);
   Eigen::Vector6d restoringForces();
 
 private:
+  ros::NodeHandle ros_node;
   std::string odometry_topic;
   std::string thrust_topic;
   std::string desired_velocity_topic;

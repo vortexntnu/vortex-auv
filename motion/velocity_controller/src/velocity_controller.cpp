@@ -2,16 +2,17 @@
 
 VelocityController::VelocityController(ros::NodeHandle ros_node)
 {
+  this->ros_node = ros_node;
+
   // get params
-  if (!ros_node.getParam("/velocity_controller/odometry_topic", odometry_topic))
-    odometry_topic = "/odometry/filtered";
-
-  if (!ros_node.getParam("/velocity_controller/thrust_topic", thrust_topic))
-    thrust_topic = "/thrust/desired";
-
-  if (!ros_node.getParam("velocity_controller/desired_velocity_topic", desired_velocity_topic))
-    desired_velocity_topic = "/controller/desired_velocity";
-
+  getParam("/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
+  getParam("/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
+  getParam("/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
+  getParam("physical/weight", drone_weight);
+  getParam("physical/bouyancy", drone_bouyancy);
+  getParam("physical/center_of_mass", center_of_gravity);
+  getParam("physical/center_of_bouyancy", center_of_bouyancy);
+  
   // create subscribers and publsihers
   thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
@@ -53,6 +54,7 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
   // publish tau as thrust
   thrust_pub.publish(tau);
 }
+
 Eigen::Vector6d VelocityController::restoringForces()
 {
   // calculates restoring forces in ENU (not NED)
@@ -60,6 +62,23 @@ Eigen::Vector6d VelocityController::restoringForces()
   Eigen::Vector3d f_G = R.transpose() * Eigen::Vector3d(0, 0, -drone_weight);
   Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, drone_bouyancy);
   return Eigen::Vector6d(f_G + f_B, center_of_gravity.cross(f_G) + center_of_bouyancy.cross(f_B));
+}
+
+template<typename T>
+void VelocityController::getParam(std::string name, T &variable)
+{
+  if (!ros_node.getParam(name, variable))
+    {
+      ROS_FATAL("Missing parameter " << name << "Shutting down node..");
+      ros_node.shutdown();
+    }
+}
+
+template<typename T>
+void VelocityController::getParam(std::string name, T &variable, T default_value)
+{
+  if (!ros_node.getParam(name, variable))
+    variable = default_value;
 }
 
 int main(int argc, char** argv)
