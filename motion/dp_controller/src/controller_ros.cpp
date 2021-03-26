@@ -24,7 +24,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   // Subscribers
   m_state_sub       = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
 
-
+  m_refmodel_sub    = m_nh.subscribe("/reference_model/output", 1, &Controller::refmodelCallback, this);
 
   // Service callback
   control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
@@ -135,47 +135,47 @@ ControlMode Controller::getControlMode(int mode)
 // a preempt callback is created to ensure that the action responds promptly to a cancel request.
 // The callback function takes no arguments and sets preempted on the action server.
 // I wonder whether this needs to be mutexed.
-
-void Controller::preemptCallBack()
-{
-
- 	//notify the ActionServer that we've successfully preempted
-    ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
-
-    // set the action state to preempted
-    mActionServer->setPreempted();
-}
-
-
-// TODO: This function will no longer exist since we wwant to remove the action server
-// This mainly updates the local setpoints, that are used in spin()
-void Controller::actionGoalCallBack()
-{
-
-  // set current target position to previous position
-  m_controller->x_d_prev = position;
-  m_controller->x_d_prev_prev = position;
-  m_controller->x_ref_prev = position;
-  m_controller->x_ref_prev_prev = position;
-
-  // accept the new goal - do I have to cancel a pre-existing one first?
-  mGoal = mActionServer->acceptNewGoal()->target_pose;
-
-  // print the current goal
-  ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
-
-  // Transform from Msg to Eigen
-  tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
-  tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
-
-  // setpoint declared as private variable
-  m_setpoints->set(setpoint_position, setpoint_orientation);
-
-  // Integral action reset
-  m_controller->integral = Eigen::Vector6d::Zero();
-
-}
-
+//
+//void Controller::preemptCallBack()
+//{
+//
+// 	//notify the ActionServer that we've successfully preempted
+//    ROS_DEBUG_NAMED("move_base","Move base preempting the current goal");	
+//
+//    // set the action state to preempted
+//    mActionServer->setPreempted();
+//}
+//
+//
+//// TODO: This function will no longer exist since we wwant to remove the action server
+//// This mainly updates the local setpoints, that are used in spin()
+//void Controller::actionGoalCallBack()
+//{
+//
+//  // set current target position to previous position
+//  m_controller->x_d_prev = position;
+//  m_controller->x_d_prev_prev = position;
+//  m_controller->x_ref_prev = position;
+//  m_controller->x_ref_prev_prev = position;
+//
+//  // accept the new goal - do I have to cancel a pre-existing one first?
+//  mGoal = mActionServer->acceptNewGoal()->target_pose;
+//
+//  // print the current goal
+//  ROS_INFO("Controller::actionGoalCallBack(): driving to %2.2f/%2.2f/%2.2f", mGoal.pose.position.x, mGoal.pose.position.y, mGoal.pose.position.z);
+//
+//  // Transform from Msg to Eigen
+//  tf::pointMsgToEigen(mGoal.pose.position, setpoint_position);
+//  tf::quaternionMsgToEigen(mGoal.pose.orientation, setpoint_orientation);
+//
+//  // setpoint declared as private variable
+//  m_setpoints->set(setpoint_position, setpoint_orientation);
+//
+//  // Integral action reset
+//  m_controller->integral = Eigen::Vector6d::Zero();
+//
+//}
+//
 
 //TODO: This should only update local state, and not have anything to do with the action server
 //Need to decide on how to handle the circle of acceptance?
@@ -221,7 +221,117 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 //TODO: Add a callback for the reference model topic
 //This callback should do most of what the spin() function does,
 //and ultimately publish a control vector
+void Controller::refmodelCallback(const geometry_msgs::Point &msg) {
+  // Declaration of general forces
+  Eigen::Vector6d    tau_command          = Eigen::VectorXd::Zero(6);
+  Eigen::Vector6d    tau_openloop         = Eigen::VectorXd::Zero(6);
 
+  Eigen::Vector3d    position_state       = Eigen::Vector3d::Zero();
+  Eigen::Quaterniond orientation_state    = Eigen::Quaterniond::Identity();
+  Eigen::Vector6d    velocity_state       = Eigen::VectorXd::Zero(6);
+
+  Eigen::Vector3d    position_setpoint    = Eigen::Vector3d::Zero();
+  Eigen::Quaterniond orientation_setpoint = Eigen::Quaterniond::Identity();
+
+  // Message declaration
+  geometry_msgs::Wrench tau_msg;
+  
+  // gets the newest state and newest setpoints as Eigen
+  m_state->get(&position_state, &orientation_state, &velocity_state);
+  m_setpoints->get(&position_setpoint, &orientation_setpoint);
+  m_setpoints->getZero(&tau_openloop);
+
+  tau_command.setZero();
+
+  switch (m_control_mode)
+  {
+
+    // idle
+    case ControlModes::OPEN_LOOP:
+      tau_command = tau_openloop;
+      break;
+
+    // 3D coordinates
+    case ControlModes::POSE_HOLD:
+
+      Eigen::Vector6d tau_posehold = poseHold(tau_openloop,
+                                position_state,
+                                orientation_state,
+                                velocity_state,
+                                position_setpoint,
+                                orientation_setpoint);
+      tau_command = tau_posehold;
+
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      
+      break;
+
+    // 3D coordinates with heading
+    case ControlModes::DEPTH_HOLD:
+      Eigen::Vector6d tau_depthhold = depthHold(tau_openloop,
+                                                position_state,
+                                                orientation_state,
+                                                velocity_state,
+                                                position_setpoint);
+
+      tau_command = tau_openloop + tau_depthhold;
+
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+
+      break;
+
+    // adjust roll and pitch
+    case ControlModes::POSE_HEADING_HOLD:
+      Eigen::Vector6d tau_poseheadinghold = poseHeadingHold(tau_openloop,
+                                                            position_state,
+                                                            orientation_state,
+                                                            velocity_state,
+                                                            position_setpoint,
+                                                            orientation_setpoint);
+
+      tau_command = tau_openloop + tau_poseheadinghold;
+
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+
+      break;
+
+    // only heading
+    case ControlModes::HEADING_HOLD:
+      Eigen::Vector6d tau_headinghold = headingHold(tau_openloop,
+                                                    position_state,
+                                                    orientation_state,
+                                                    velocity_state,
+                                                    orientation_setpoint);
+      tau_command = tau_headinghold;
+
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+
+      break;
+
+    // only depth and heading
+    case ControlModes::DEPTH_HEADING_HOLD:
+      Eigen::Vector6d tau_depthhold = depthHold(tau_openloop,
+                                                position_state,
+                                                orientation_state,
+                                                velocity_state,
+                                                position_setpoint);
+
+      tau_command = tau_openloop + tau_depthhold + tau_headinghold;
+      
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      
+      break;
+
+    default:
+      ROS_ERROR("Default control mode reached.");
+  }
+
+}
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig &config, uint32_t level)
 {
@@ -232,147 +342,6 @@ void Controller::configCallback(const dp_controller::VortexControllerConfig &con
   ROS_INFO("\t integral_gain: %2.4f", config.integral_gain);
 
   m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain, config.integral_gain);
-}
-
-
-
-// TODO: Spin is no longer needed since we only want the controller to output
-// control vectors whenever addressed by the reference model
-// WARNING!: The rate should still be 40Hz, so the reference model should
-// output values at a frequency >= 40Hz
-
-// Spin will be replaced by a callback for the topic output by the reference model
-void Controller::spin()
-{
-  // Declaration of general forces
-  Eigen::Vector6d    rpm_command          = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_command          = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_openloop         = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_restoring        = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_staylevel        = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_depthhold        = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_headinghold      = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_poseheadinghold  = Eigen::VectorXd::Zero(6);
-  Eigen::Vector6d    tau_posehold         = Eigen::VectorXd::Zero(6);  
-
-  Eigen::Vector3d    position_state       = Eigen::Vector3d::Zero();
-  Eigen::Quaterniond orientation_state    = Eigen::Quaterniond::Identity();
-  Eigen::Vector6d    velocity_state       = Eigen::VectorXd::Zero(6);
-
-  Eigen::Vector3d    position_setpoint    = Eigen::Vector3d::Zero();
-  Eigen::Quaterniond orientation_setpoint = Eigen::Quaterniond::Identity();
-
-  // Message declaration
-  geometry_msgs::Wrench msg;
-
-  vortex_msgs::Debug    dbg_msg;
-
-  ros::Rate rate(m_frequency);
-  while (ros::ok())
-  {
-    
-    // gets the newest state and newest setpoints as Eigen
-    m_state->get(&position_state, &orientation_state, &velocity_state);
-    m_setpoints->get(&position_setpoint, &orientation_setpoint);
-    m_setpoints->getZero(&tau_openloop);
-
-    if (m_debug_mode)
-    publishDebugMsg(position_state, orientation_state, velocity_state,
-                    position_setpoint, orientation_setpoint);
-
-    tau_command.setZero();
-
-    switch (m_control_mode)
-    {
-
-      // idle
-      case ControlModes::OPEN_LOOP:
-      tau_command = tau_openloop;
-      break;
-
-      // 3D coordinates
-      case ControlModes::POSE_HOLD:
-  
-      tau_posehold = poseHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
-                                position_setpoint,
-                                orientation_setpoint);
-      tau_command = tau_posehold;
-
-      tf::wrenchEigenToMsg(tau_command, msg);
-      m_wrench_pub.publish(msg);
-      
-      break;
-
-      // 3D coordinates with heading
-      case ControlModes::DEPTH_HOLD:
-      tau_depthhold = depthHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
-                                position_setpoint);
-      tau_command = tau_openloop + tau_depthhold;
-
-      tf::wrenchEigenToMsg(tau_command, msg);
-      m_wrench_pub.publish(msg);
-
-      break;
-
-      // adjust roll and pitch
-      case ControlModes::POSE_HEADING_HOLD:
-      tau_poseheadinghold = poseHeadingHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
-                                position_setpoint,
-                                orientation_setpoint);
-
-      tau_command = tau_openloop + tau_poseheadinghold;
-
-      tf::wrenchEigenToMsg(tau_command, msg);
-      m_wrench_pub.publish(msg);
-
-      break;
-
-      // only heading
-      case ControlModes::HEADING_HOLD:
-      tau_headinghold = headingHold(tau_openloop,
-                                    position_state,
-                                    orientation_state,
-                                    velocity_state,
-                                    orientation_setpoint);
-      tau_command = tau_headinghold;
-
-      tf::wrenchEigenToMsg(tau_command, msg);
-      m_wrench_pub.publish(msg);
-
-      break;
-
-      // only depth and heading
-      case ControlModes::DEPTH_HEADING_HOLD:
-      tau_depthhold = depthHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
-                                position_setpoint);
-
-      tau_command = tau_openloop + tau_depthhold + tau_headinghold;
-      
-      tf::wrenchEigenToMsg(tau_command, msg);
-      m_wrench_pub.publish(msg);
-      
-      break;
-
-      default:
-      ROS_ERROR("Default control mode reached.");
-      break;
-    }
-
-    ros::spinOnce();
-    rate.sleep();
-  }
 }
 
 void Controller::initSetpoints()
