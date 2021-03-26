@@ -10,6 +10,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "dp_controller");
   ros::NodeHandle nh;
   Controller controller(nh);
-  controller.spin();
+  ros::spin();
+
   return 0;
 }
