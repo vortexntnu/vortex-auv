@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.0.2)
 project(velocity_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  nav_msgs
   roscpp
+  nav_msgs
   std_msgs
   geometry_msgs
 )
@@ -104,9 +104,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include include/${PROJECT_NAME} libs/MiniPID ${catkin_INCLUDE_DIRS}
 #  LIBRARIES velocity_controller
-#  CATKIN_DEPENDS nav_msgs roscpp std_msgs
+  CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -117,7 +117,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
+  include/${PROJECT_NAME}
+  libs/MiniPID
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -134,7 +136,10 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/velocity_controller_node.cpp)
+add_executable(${PROJECT_NAME}_node 
+  src/velocity_controller.cpp
+  libs/MiniPID/MiniPID.cpp
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

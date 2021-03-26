@@ -1,27 +1,5 @@
+#include "velocity_controller/velocity_controller.h"
 
-
-#include "ros/ros.h"
-#include "ros/console.h"
-#include "nav_msgs/Odometry.h"
-#include "geometry_msgs/Twist.h"
-#include "geometry_msgs/Wrench.h"
-
-class VelocityController
-{
-public:
-  VelocityController(ros::NodeHandle ros_node);
-  void odometryCallback(nav_msgs::Odometry& odom_msg);
-  void controlLawCallback(geometry_msgs::Twist& twist_msg);
-
-private:
-  std::string odometry_topic;
-  std::string thrust_topic;
-  std::string desired_velocity_topic;
-  ros::Publisher thrust_pub;
-  ros::Subscriber odom_sub;
-  ros::Subscriber vel_sub;
-  nav_msgs::Odometry odometry;
-};
 
 VelocityController::VelocityController(ros::NodeHandle ros_node)
 {
@@ -36,9 +14,9 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
     desired_velocity_topic = "/controller/desired_velocity";
 
   // create subscribers and publsihers
-  thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
-  odom_sub = ros_node.subscribe<nav_msgs::Odometry>(odometry_topic, 1, VelocityController::odometryCallback);
-  vel_sub = ros_node.subscribe<geometry_msgs::Twist>(desired_velocity_topic, 1, VelocityController::controlLawCallback);
+  // thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
+  // odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
+  // vel_sub = ros_node.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // wait for first odometry message
   if (!ros::topic::waitForMessage<nav_msgs::Odometry>(odometry_topic, ros_node, ros::Duration(30)))
@@ -48,12 +26,12 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   }
 }
 
-void VelocityController::odometryCallback(nav_msgs::Odometry& odom_msg)
+void VelocityController::odometryCallback(const nav_msgs::Odometry& odom_msg)
 {
   odometry = odom_msg;  // TODO: might have to make this thread safe
 }
 
-void VelocityController::controlLawCallback(geometry_msgs::Twist& twist_msg)
+void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_msg)
 {
   // copy odometry to remove chance of odom beeing updated during function call
   nav_msgs::Odometry current_odom = odometry;
