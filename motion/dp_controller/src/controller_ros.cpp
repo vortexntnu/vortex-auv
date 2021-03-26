@@ -139,7 +139,7 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
 //TODO: Add a callback for the reference model topic
 //This callback should do most of what the spin() function does,
 //and ultimately publish a control vector
-void Controller::refmodelCallback(const geometry_msgs::Point &msg) {
+void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
   // Declaration of general forces
   Eigen::Vector6d    tau_command          = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_openloop         = Eigen::VectorXd::Zero(6);
@@ -451,32 +451,6 @@ void Controller::publishDebugMsg(const Eigen::Vector3d    &position_state,
   m_debug_pub.publish(dbg_msg);
 }
 
-Eigen::Vector6d Controller::stayLevel(const Eigen::Quaterniond &orientation_state,
-                                      const Eigen::Vector6d &velocity_state)
-{
-  // Convert quaternion setpoint to euler angles (ZYX convention)
-  Eigen::Vector3d euler;
-  euler = orientation_state.toRotationMatrix().eulerAngles(2, 1, 0);
-
-  // Set pitch and roll setpoints to zero
-  euler(EULER_PITCH) = 0;
-  euler(EULER_ROLL)  = 0;
-
-  // Convert euler setpoint back to quaternions
-  Eigen::Matrix3d R;
-  R = Eigen::AngleAxisd(euler(EULER_YAW),   Eigen::Vector3d::UnitZ())
-    * Eigen::AngleAxisd(euler(EULER_PITCH), Eigen::Vector3d::UnitY())
-    * Eigen::AngleAxisd(euler(EULER_ROLL),  Eigen::Vector3d::UnitX());
-  Eigen::Quaterniond orientation_staylevel(R);
-
-  Eigen::Vector6d tau = m_controller->getFeedback(Eigen::Vector3d::Zero(), orientation_state, velocity_state,
-                                                Eigen::Vector3d::Zero(), orientation_staylevel);
-
-  tau(ROLL)  = 0;
-  tau(PITCH) = 0;
-
-  return tau;
-}
 
 Eigen::Vector6d Controller::depthHold(const Eigen::Vector6d &tau_openloop,
                                       const Eigen::Vector3d &position_state,

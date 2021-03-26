@@ -73,7 +73,7 @@ public:
   /**
    * @brief Callback for the reference model subscriber
   */
-  void refmodelCallback(const geometry_msgs::Point &msg);
+  void refmodelCallback(const geometry_msgs::Pose &msg);
 
   /**
    * @brief Callback for the dynamic reconfigure server
@@ -117,7 +117,7 @@ public:
 //  */
 //  void preemptCallBack();
 
-  
+
   ros::ServiceServer control_mode_service_; /** Control mode service server */
 
 private:
