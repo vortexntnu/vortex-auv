@@ -14,9 +14,9 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
     desired_velocity_topic = "/controller/desired_velocity";
 
   // create subscribers and publsihers
-  // thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
-  // odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
-  // vel_sub = ros_node.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
+  thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
+  odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
+  vel_sub = ros_node.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // wait for first odometry message
   if (!ros::topic::waitForMessage<nav_msgs::Odometry>(odometry_topic, ros_node, ros::Duration(30)))
@@ -37,13 +37,15 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
   nav_msgs::Odometry current_odom = odometry;
 
   // convert to Eigen? Has to be set up, but would simplify everything else
+  const Eigen::Vector6d twist_desired;
+  //tf::twistMsgToEigen(twist_msg, twist_desired);
+  
 
   // calculate restoring forces
 
   // calculate tau using MiniPID and restoring forces 
   geometry_msgs::Wrench tau;
   
-
   // publish tau as thrust
   thrust_pub.publish(tau);
 }

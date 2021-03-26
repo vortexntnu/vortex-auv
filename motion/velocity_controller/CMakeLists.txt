@@ -12,10 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   std_msgs
   geometry_msgs
+  eigen_conversions
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen3 REQUIRED)
+
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -106,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include include/${PROJECT_NAME} libs/MiniPID ${catkin_INCLUDE_DIRS}
 #  LIBRARIES velocity_controller
-  CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs
+  CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs eigen_conversions
 #  DEPENDS system_lib
 )
 
@@ -149,12 +152,12 @@ add_executable(${PROJECT_NAME}_node
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##

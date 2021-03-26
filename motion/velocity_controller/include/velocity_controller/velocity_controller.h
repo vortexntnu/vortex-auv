@@ -7,7 +7,17 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Wrench.h>
 
+#include <eigen3/Eigen/Dense>
+#include <eigen_conversions/eigen_msg.h>
+
 #include "MiniPID.h"
+
+// These typdefs are lacking from the default eigen namespace
+namespace Eigen
+{
+typedef Eigen::Matrix<double, 6, 6> Matrix6d;
+typedef Eigen::Matrix<double, 6, 1> Vector6d;
+}  // namespace Eigen
 
 class VelocityController
 {
