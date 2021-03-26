@@ -49,6 +49,7 @@ private:
   ros::Subscriber vel_sub;
   Eigen::Vector6d velocity;
   Eigen::Quaterniond orientation;
+  std::vector<MiniPID> pid;
 };
 
 #endif
