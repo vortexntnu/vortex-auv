@@ -12,7 +12,7 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   getParam("physical/bouyancy", drone_bouyancy);
   getParam("physical/center_of_mass", center_of_gravity);
   getParam("physical/center_of_bouyancy", center_of_bouyancy);
-  
+
   // create subscribers and publsihers
   thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
@@ -47,8 +47,9 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
 
   // calculate tau using MiniPID and restoring forces
   Eigen::Vector6d tau;
-  for (int i=0; i<6; i++) {
-    tau[i] = - restoring_forces[i];
+  for (int i = 0; i < 6; i++)
+  {
+    tau[i] = -restoring_forces[i];
   }
 
   // publish tau as thrust
@@ -64,18 +65,18 @@ Eigen::Vector6d VelocityController::restoringForces()
   return Eigen::Vector6d(f_G + f_B, center_of_gravity.cross(f_G) + center_of_bouyancy.cross(f_B));
 }
 
-template<typename T>
-void VelocityController::getParam(std::string name, T &variable)
+template <typename T>
+void VelocityController::getParam(std::string name, T& variable)
 {
   if (!ros_node.getParam(name, variable))
-    {
-      ROS_FATAL("Missing parameter " << name << "Shutting down node..");
-      ros_node.shutdown();
-    }
+  {
+    ROS_FATAL("Missing parameter " << name << "Shutting down node..");
+    ros_node.shutdown();
+  }
 }
 
-template<typename T>
-void VelocityController::getParam(std::string name, T &variable, T default_value)
+template <typename T>
+void VelocityController::getParam(std::string name, T& variable, T default_value)
 {
   if (!ros_node.getParam(name, variable))
     variable = default_value;
