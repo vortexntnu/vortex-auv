@@ -161,9 +161,16 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
   
   // gets the newest state and newest setpoints as Eigen
   m_state->get(&position_state, &orientation_state, &velocity_state);
-  m_setpoints->get(&position_setpoint, &orientation_setpoint);
-  m_setpoints->getZero(&tau_openloop);
+  // m_setpoints->get(&position_setpoint, &orientation_setpoint);
 
+  // Sets setpoints equal to geometry_msgs::Pose message from topic /reference_model/output
+  position_setpoint[0] = msg.position.x;
+  position_setpoint[1] = msg.position.y;
+  position_setpoint[2] = msg.position.z;
+  orientation_setpoint = Quaterniond(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z);
+
+
+  m_setpoints->getZero(&tau_openloop);
   tau_command.setZero();
 
   switch (m_control_mode)
