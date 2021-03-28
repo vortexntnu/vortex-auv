@@ -5,18 +5,12 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   this->ros_node = ros_node;
 
   // get params
-  std::vector<double> P_gains;
-  std::vector<double> I_gains;
-  std::vector<double> D_gains;
-  std::vector<double> F_gains;
-  double integral_windup_limit;
-  std::vector<double> CB;
-  std::vector<double> CG;
-
   getParam("/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
   getParam("/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
   getParam("/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
 
+  std::vector<double> CB;
+  std::vector<double> CG;
   getParam("physical/weight", drone_weight);
   getParam("physical/bouyancy", drone_bouyancy);
   getParam("physical/center_of_bouyancy", CB);
@@ -24,6 +18,11 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   center_of_bouyancy = Eigen::Vector3d(CB[0], CB[1], CB[2]);
   center_of_gravity = Eigen::Vector3d(CG[0], CG[1], CG[2]);
 
+  std::vector<double> P_gains;
+  std::vector<double> I_gains;
+  std::vector<double> D_gains;
+  std::vector<double> F_gains;
+  double integral_windup_limit;
   getParam("controllers/velocity_controller/P_gains", P_gains);
   getParam("controllers/velocity_controller/I_gains", I_gains);
   getParam("controllers/velocity_controller/D_gains", D_gains);
@@ -41,6 +40,10 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
   vel_sub = ros_node.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
+
+  // create services
+  ros::ServiceServer reset_service =
+      ros_node.advertiseService("velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
 
   // wait for first odometry message
   if (!ros::topic::waitForMessage<nav_msgs::Odometry>(odometry_topic, ros_node, ros::Duration(30)))
@@ -79,6 +82,15 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
   geometry_msgs::Wrench thrust_msg;
   tf::wrenchEigenToMsg(tau, thrust_msg);
   thrust_pub.publish(thrust_msg);
+}
+
+bool VelocityController::resetPidCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response)
+{
+  for (MiniPID pid : this->pid)
+  {
+    pid.reset();
+  }
+  return true;
 }
 
 Eigen::Vector6d VelocityController::restoringForces()
