@@ -159,9 +159,8 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
   // Message declaration
   geometry_msgs::Wrench tau_msg;
   
-  // gets the newest state and newest setpoints as Eigen
+  // gets the newest state as Eigen
   m_state->get(&position_state, &orientation_state, &velocity_state);
-  // m_setpoints->get(&position_setpoint, &orientation_setpoint);
 
   // Sets setpoints equal to geometry_msgs::Pose message from topic /reference_model/output
   position_setpoint[0] = msg.position.x;
@@ -169,8 +168,11 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
   position_setpoint[2] = msg.position.z;
   orientation_setpoint = Quaterniond(msg.orientation.w, msg.orientation.x, msg.orientation.y, msg.orientation.z);
 
+  // Q: Why do we need to set tau_openloop to zero again? Code bellow from getZero function in setpoints.cpp.
+  Eigen::Vector6d zero_wrench; 
+  zero_wrench.setZero();
+  tau_openloop = zero_wrench;
 
-  m_setpoints->getZero(&tau_openloop);
   tau_command.setZero();
 
   switch (m_control_mode)
