@@ -20,22 +20,25 @@ VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_
   std::vector<double> I_gains;
   std::vector<double> D_gains;
   std::vector<double> F_gains;
-  std::vector<double> integral_windup_limit;
-  std::vector<double> setpoint_range;
+  double integral_windup_limit;
+  double setpoint_range;
+  double max_output_ramp_rate;
   getParam("/controllers/velocity_controller/P_gains", P_gains);
   getParam("/controllers/velocity_controller/I_gains", I_gains);
   getParam("/controllers/velocity_controller/D_gains", D_gains);
   getParam("/controllers/velocity_controller/F_gains", F_gains);
   getParam("/controllers/velocity_controller/integral_windup_limit", integral_windup_limit);
   getParam("/controllers/velocity_controller/setpoint_range", setpoint_range);
+  getParam("/controllers/velocity_controller/max_output_ramp_rate", max_output_ramp_rate);
 
   // initialize PIDs
   pid.reserve(6);
   for (int i = 0; i < 6; i++)
   {
     MiniPID pid_i(P_gains[i], I_gains[i], D_gains[i], F_gains[i]);
-    pid_i.setMaxIOutput(integral_windup_limit[i]);
-    pid_i.setSetpointRange(setpoint_range[i]);
+    pid_i.setMaxIOutput(integral_windup_limit);
+    pid_i.setSetpointRange(setpoint_range);
+    pid_i.setOutputRampRate(max_output_ramp_rate);
     pid[i] = &pid_i;
   }
 
