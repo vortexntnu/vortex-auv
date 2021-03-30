@@ -44,6 +44,8 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   // create services
   ros::ServiceServer reset_service =
       ros_node.advertiseService("velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
+  ros::ServiceServer set_gains_service =
+      ros_node.advertiseService("velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
 
   // wait for first odometry message
   if (!ros::topic::waitForMessage<nav_msgs::Odometry>(odometry_topic, ros_node, ros::Duration(30)))
@@ -87,9 +89,25 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
 bool VelocityController::resetPidCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response)
 {
   for (MiniPID pid : this->pid)
-  {
     pid.reset();
+
+  ROS_INFO("PIDs have been reset");
+  return true;
+}
+
+bool VelocityController::setGainsCallback(vortex_msgs::SetPidGainsRequest& request,
+                                          vortex_msgs::SetPidGainsResponse& response)
+{
+  for (int i = 0; i < 6; i++)
+  {
+    pid[i].setP(request.P_gains[i]);
+    pid[i].setI(request.I_gains[i]);
+    pid[i].setD(request.D_gains[i]);
+    pid[i].setF(request.F_gains[i]);
+    pid[i].setMaxIOutput(request.integral_windup_limit);
+    pid[i].reset();
   }
+  ROS_INFO("PID reset and gains set to new values");
   return true;
 }
 
@@ -107,14 +125,13 @@ void VelocityController::getParam(std::string name, T& variable)
 {
   if (!ros_node.getParam(name, variable))
   {
-    std::string log_message = "Missing parameter " + name + ". Shutting down node..";
-    ROS_FATAL("test");
+    ROS_FATAL_STREAM("Missing parameter " << name << ". Shutting down node..");
     ros_node.shutdown();
   }
 }
 
 template <typename T>
-void VelocityController::getParam(std::string name, T& variable, T default_value)
+void VelocityController::getParam(std::string name, T& variable, T& default_value)
 {
   if (!ros_node.getParam(name, variable))
     variable = default_value;

@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   eigen_conversions
+  vortex_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -109,7 +110,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
   INCLUDE_DIRS include include/${PROJECT_NAME} libs/MiniPID ${catkin_INCLUDE_DIRS}
 #  LIBRARIES velocity_controller
-  CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs eigen_conversions
+  CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs eigen_conversions vortex_msgs
 #  DEPENDS system_lib
 )
 
