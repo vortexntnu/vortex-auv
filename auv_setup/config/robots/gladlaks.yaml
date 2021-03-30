@@ -17,8 +17,10 @@
 physical:
   weight: 29.20     # kg
   bouyancy: 29.43   # kg
+  displacement_m3: 0.02943
   center_of_mass: [26.3, 0.8, 6.0]        # mm (x,y,z)
   center_of_buoyancy: [25.9, 0.8, 48.3]   # mm (x,y,z)
+
 
 propulsion:
   dofs:
@@ -46,8 +48,9 @@ propulsion:
       thrust:      [-34.5, -24.0, -12.9, -3.92, 0.00, 4.91, 12.6, 26.1, 35.5, 44.3] 
       pulse_width: [ 1100,  1192,  1292,  1400, 1500, 1600, 1676, 1780, 1840, 1900]
     map: [0, 1, 2, 3, 4, 5, 6, 7]  
-    direction: [1, -1, 1, 1, 1, -1, 1, 1]
-    offset: [0.40, -0.40,  0.40, 0.00, 0.00,  -0.20,  0.10 , 0.40] # Offset IN NEWTON!
+    direction: [1, -1, 1, 1, -1, -1, 1, -1]
+    offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
+
 
 controllers:
   dp:
@@ -81,12 +84,12 @@ guidance:
         
 joystick:
   scaling:
-    surge: 10
-    sway: 10
-    heave: 10
-    roll: 5
-    pitch: 5
-    yaw: 5
+    surge: 60
+    sway: 60
+    heave: 60
+    roll: 30
+    pitch: 30
+    yaw: 30
 
 battery:
   thresholds:
@@ -109,6 +112,7 @@ i2c:
 
 pca9685:
   pwm:
-    bits_per_period: 4095
+    bits_per_period: 4095 
     frequency: 50.0
-    frequency_measured: 51.6
+    frequency_measured: 50 # 51.6 is the former value, but we dont know why
+

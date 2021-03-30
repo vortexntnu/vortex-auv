@@ -30,7 +30,6 @@ private:
   std::unique_ptr<PseudoinverseAllocator> m_pseudoinverse_allocator;
 
   Eigen::VectorXd rovForcesMsgToEigen(const geometry_msgs::Wrench &msg) const;
-  bool healthyWrench(const Eigen::VectorXd &v) const;
 };
 
 #endif  // VORTEX_ALLOCATOR_ALLOCATOR_ROS_H

@@ -1,7 +1,7 @@
 #ifndef VORTEX_EIGEN_HELPER_H
 #define VORTEX_EIGEN_HELPER_H
 
-#include "vortex_msgs/ThrusterForces.h"
+#include "std_msgs/Float32MultiArray.h"
 #include "ros/ros.h"
 #include <Eigen/Dense>
 
@@ -71,13 +71,13 @@ inline Eigen::Matrix3d skew(const Eigen::Vector3d &v)
   return S;
 }
 
-inline void arrayEigenToMsg(const Eigen::VectorXd &u, vortex_msgs::ThrusterForces *msg)
+inline void arrayEigenToMsg(const Eigen::VectorXd &u, std_msgs::Float32MultiArray *msg)
 {
   int r = u.size();
-  std::vector<double> u_vec(r);
+  std::vector<float> u_vec(r);
   for (int i = 0; i < r; ++i)
     u_vec[i] = u(i);
-  msg->thrust = u_vec;
+  msg->data = u_vec;
 }
 
 // Saturate all elements of vector v to within [min, max].
