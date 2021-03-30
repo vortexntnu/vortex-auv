@@ -4,6 +4,8 @@ A velocity controller using six one-dimensional PIDs with feed-forward term and 
 
 This package uses [MiniPID](https://github.com/tekdemo/MiniPID) as PID implementation. 
 
+A max setpoint range is used instead of a reference model. This might lead to less optimal performance, but it will most likely be good enough. 
+
 ## Input and output
 
 Subscribes to:
