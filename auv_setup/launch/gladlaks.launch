@@ -4,7 +4,7 @@
   
   <!-- INPUT ARGS -->
   <arg name="type" default="simulator"/> <!-- real | simulator -->
-
+  <arg name="localization" default="ekf"/>
 
   <!-- PARAMETERS -->
   <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
