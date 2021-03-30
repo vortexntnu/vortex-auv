@@ -73,7 +73,7 @@ controllers:
     I_gains: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     D_gains: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     F_gains: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-    integral_windup_limit: 10
+    integral_windup_limit: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
       
 guidance:
   LOS:

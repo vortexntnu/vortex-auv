@@ -5,15 +5,15 @@ A velocity controller using six one-dimensional PIDs with feed-forward term and 
 ## Input and output
 
 Subscribes to:
-* /odometry/filtered (nav_msgs::Odometry)
-* /controller/desired_velocity (geometry_msgs::Twist)
+* /odometry/filtered (nav_msgs/Odometry)
+* /controller/desired_velocity (geometry_msgs/Twist)
 
 Publishes:
-* /thrust/desired (geometry_msgs::Wrench)
+* /thrust/desired (geometry_msgs/Wrench)
 
 Services:
-* velocity_controller/reset_pid (std_srvs::Empty)
-* velocity_controller/set_gains (vortex_msgs::SetPidGains)
+* velocity_controller/reset_pid (std_srvs/Empty)
+* velocity_controller/set_gains (vortex_msgs/SetPidGains)
 
 ## Setup and parameters
 
