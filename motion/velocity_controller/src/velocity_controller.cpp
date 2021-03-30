@@ -48,9 +48,9 @@ VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_
   vel_sub = ros_node.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // create services
-  ros::ServiceServer reset_service =
+  reset_service =
       ros_node.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
-  ros::ServiceServer set_gains_service =
+  set_gains_service =
       ros_node.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
 
   // wait for first odometry message

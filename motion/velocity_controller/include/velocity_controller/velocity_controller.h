@@ -117,6 +117,8 @@ private:
   ros::Publisher thrust_pub;
   ros::Subscriber odom_sub;
   ros::Subscriber vel_sub;
+  ros::ServiceServer reset_service;
+  ros::ServiceServer set_gains_service;
   Eigen::Vector6d velocity;
   Eigen::Quaterniond orientation;
   std::vector<MiniPID*> pid;
