@@ -21,11 +21,13 @@ VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_
   std::vector<double> D_gains;
   std::vector<double> F_gains;
   std::vector<double> integral_windup_limit;
+  std::vector<double> setpoint_range;
   getParam("/controllers/velocity_controller/P_gains", P_gains);
   getParam("/controllers/velocity_controller/I_gains", I_gains);
   getParam("/controllers/velocity_controller/D_gains", D_gains);
   getParam("/controllers/velocity_controller/F_gains", F_gains);
   getParam("/controllers/velocity_controller/integral_windup_limit", integral_windup_limit);
+  getParam("/controllers/velocity_controller/setpoint_range", setpoint_range);
 
   // initialize PIDs
   pid.reserve(6);
@@ -33,6 +35,7 @@ VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_
   {
     MiniPID pid_i(P_gains[i], I_gains[i], D_gains[i], F_gains[i]);
     pid_i.setMaxIOutput(integral_windup_limit[i]);
+    pid_i.setSetpointRange(setpoint_range[i]);
     pid[i] = &pid_i;
   }
 
