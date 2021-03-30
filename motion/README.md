@@ -12,6 +12,9 @@ Anything related to how the AUV physically moves in located in this folder, name
 * dp_controller
     * The dynamic positioning controller, which is implemented as a nonlinear PID controller.
 
+* veloctiy_controller
+    * A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces. 
+
 </details>
 
 ### Guidance

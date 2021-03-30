@@ -15,14 +15,14 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   getParam("physical/bouyancy", drone_bouyancy);
   getParam("physical/center_of_bouyancy", CB);
   getParam("physical/center_of_mass", CG);
-  center_of_bouyancy = Eigen::Vector3d(CB[0], CB[1], CB[2]);
-  center_of_gravity = Eigen::Vector3d(CG[0], CG[1], CG[2]);
+  center_of_bouyancy = Eigen::Vector3d(CB[0], CB[1], CB[2]) / 1000; // convert from mm to m
+  center_of_gravity = Eigen::Vector3d(CG[0], CG[1], CG[2]) / 1000;  
 
   std::vector<double> P_gains;
   std::vector<double> I_gains;
   std::vector<double> D_gains;
   std::vector<double> F_gains;
-  double integral_windup_limit;
+  std::vector<double> integral_windup_limit;
   getParam("controllers/velocity_controller/P_gains", P_gains);
   getParam("controllers/velocity_controller/I_gains", I_gains);
   getParam("controllers/velocity_controller/D_gains", D_gains);
@@ -33,7 +33,7 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
   for (int i = 0; i < 6; i++)
   {
     pid[i] = MiniPID(P_gains[i], I_gains[i], D_gains[i], F_gains[i]);
-    pid[i].setMaxIOutput(integral_windup_limit);
+    pid[i].setMaxIOutput(integral_windup_limit[i]);
   }
 
   // create subscribers and publsihers
