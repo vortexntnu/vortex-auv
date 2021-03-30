@@ -16,7 +16,7 @@
 
 physical:
   weight: 29.20     # kg
-  bouyancy: 29.43   # kg
+  buoyancy: 29.43   # kg
   displacement_m3: 0.02943
   center_of_mass: [26.3, 0.8, 6.0]        # mm (x,y,z)
   center_of_buoyancy: [25.9, 0.8, 48.3]   # mm (x,y,z)

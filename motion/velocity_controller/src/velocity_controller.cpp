@@ -1,9 +1,7 @@
 #include "velocity_controller/velocity_controller.h"
 
-VelocityController::VelocityController(ros::NodeHandle ros_node)
+VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_node)
 {
-  this->ros_node = ros_node;
-
   // get params
   getParam("/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
   getParam("/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
@@ -11,29 +9,31 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
 
   std::vector<double> CB;
   std::vector<double> CG;
-  getParam("physical/weight", drone_weight);
-  getParam("physical/bouyancy", drone_bouyancy);
-  getParam("physical/center_of_bouyancy", CB);
-  getParam("physical/center_of_mass", CG);
-  center_of_bouyancy = Eigen::Vector3d(CB[0], CB[1], CB[2]) / 1000; // convert from mm to m
-  center_of_gravity = Eigen::Vector3d(CG[0], CG[1], CG[2]) / 1000;  
+  getParam("/physical/weight", drone_weight);
+  getParam("/physical/buoyancy", drone_buoyancy);
+  getParam("/physical/center_of_buoyancy", CB);
+  getParam("/physical/center_of_mass", CG);
+  center_of_buoyancy = Eigen::Vector3d(CB[0], CB[1], CB[2]) / 1000;  // convert from mm to m
+  center_of_gravity = Eigen::Vector3d(CG[0], CG[1], CG[2]) / 1000;
 
   std::vector<double> P_gains;
   std::vector<double> I_gains;
   std::vector<double> D_gains;
   std::vector<double> F_gains;
   std::vector<double> integral_windup_limit;
-  getParam("controllers/velocity_controller/P_gains", P_gains);
-  getParam("controllers/velocity_controller/I_gains", I_gains);
-  getParam("controllers/velocity_controller/D_gains", D_gains);
-  getParam("controllers/velocity_controller/F_gains", F_gains);
-  getParam("controllers/velocity_controller/integral_windup_limit", integral_windup_limit);
+  getParam("/controllers/velocity_controller/P_gains", P_gains);
+  getParam("/controllers/velocity_controller/I_gains", I_gains);
+  getParam("/controllers/velocity_controller/D_gains", D_gains);
+  getParam("/controllers/velocity_controller/F_gains", F_gains);
+  getParam("/controllers/velocity_controller/integral_windup_limit", integral_windup_limit);
 
   // initialize PIDs
+  pid.reserve(6);
   for (int i = 0; i < 6; i++)
   {
-    pid[i] = MiniPID(P_gains[i], I_gains[i], D_gains[i], F_gains[i]);
-    pid[i].setMaxIOutput(integral_windup_limit[i]);
+    MiniPID pid_i(P_gains[i], I_gains[i], D_gains[i], F_gains[i]);
+    pid_i.setMaxIOutput(integral_windup_limit[i]);
+    pid[i] = &pid_i;
   }
 
   // create subscribers and publsihers
@@ -43,16 +43,19 @@ VelocityController::VelocityController(ros::NodeHandle ros_node)
 
   // create services
   ros::ServiceServer reset_service =
-      ros_node.advertiseService("velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
+      ros_node.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
   ros::ServiceServer set_gains_service =
-      ros_node.advertiseService("velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
+      ros_node.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
 
   // wait for first odometry message
+  ROS_INFO("Waiting for odometry message..");
   if (!ros::topic::waitForMessage<nav_msgs::Odometry>(odometry_topic, ros_node, ros::Duration(30)))
   {
     ROS_FATAL("No odometry recieved within initial 30 seconds. Shutting down node..");
-    ros_node.shutdown();
+    ros::shutdown();
   }
+  ROS_INFO("Odometry message recieved");
+  ROS_INFO("Velocity controller setup complete");
 }
 
 void VelocityController::odometryCallback(const nav_msgs::Odometry& odom_msg)
@@ -77,7 +80,7 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
   Eigen::Vector6d tau;
   for (int i = 0; i < 6; i++)
   {
-    tau[i] = pid[i].getOutput(velocity[i], desired_velocity[i]) - restoring_forces[i];
+    tau[i] = pid[i]->getOutput(velocity[i], desired_velocity[i]) - restoring_forces[i];
   }
 
   // publish tau as wrench
@@ -88,8 +91,8 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
 
 bool VelocityController::resetPidCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response)
 {
-  for (MiniPID pid : this->pid)
-    pid.reset();
+  for (int i = 0; i < 6; i++)
+    pid[i]->reset();
 
   ROS_INFO("PIDs have been reset");
   return true;
@@ -100,12 +103,12 @@ bool VelocityController::setGainsCallback(vortex_msgs::SetPidGainsRequest& reque
 {
   for (int i = 0; i < 6; i++)
   {
-    pid[i].setP(request.P_gains[i]);
-    pid[i].setI(request.I_gains[i]);
-    pid[i].setD(request.D_gains[i]);
-    pid[i].setF(request.F_gains[i]);
-    pid[i].setMaxIOutput(request.integral_windup_limit);
-    pid[i].reset();
+    pid[i]->setP(request.P_gains[i]);
+    pid[i]->setI(request.I_gains[i]);
+    pid[i]->setD(request.D_gains[i]);
+    pid[i]->setF(request.F_gains[i]);
+    pid[i]->setMaxIOutput(request.integral_windup_limit);
+    pid[i]->reset();
   }
   ROS_INFO("PID reset and gains set to new values");
   return true;
@@ -116,8 +119,8 @@ Eigen::Vector6d VelocityController::restoringForces()
   // calculates restoring forces in ENU (not NED)
   Eigen::Matrix3d R = orientation.toRotationMatrix();
   Eigen::Vector3d f_G = R.transpose() * Eigen::Vector3d(0, 0, -drone_weight);
-  Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, drone_bouyancy);
-  return (Eigen::Vector6d() << f_G + f_B, center_of_gravity.cross(f_G) + center_of_bouyancy.cross(f_B)).finished();
+  Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, drone_buoyancy);
+  return (Eigen::Vector6d() << f_G + f_B, center_of_gravity.cross(f_G) + center_of_buoyancy.cross(f_B)).finished();
 }
 
 template <typename T>
@@ -126,7 +129,7 @@ void VelocityController::getParam(std::string name, T& variable)
   if (!ros_node.getParam(name, variable))
   {
     ROS_FATAL_STREAM("Missing parameter " << name << ". Shutting down node..");
-    ros_node.shutdown();
+    ros::shutdown();
   }
 }
 

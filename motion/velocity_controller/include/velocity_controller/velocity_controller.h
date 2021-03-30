@@ -2,6 +2,7 @@
 #define VELOCITY_CONTROLLER_H
 
 #include <string>
+#include <vector>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -26,12 +27,12 @@ typedef Eigen::Matrix<double, 6, 1> Vector6d;
 // topic names that will be used if no others are provided through params
 std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
 std::string DEFAULT_THRUST_TOPIC = "/thrust/desired";
-std::string DEFAULT_VELOCITY_TOPIC = "/controller/desired_velocity";
+std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
 
 /**
- * @brief class of a velocity controller that uses six one dimensional PID controllers 
+ * @brief class of a velocity controller that uses six one dimensional PID controllers
  * with feed-forward term and integral windup protection. The control law includes
- * compensation for restoring forces. 
+ * compensation for restoring forces.
  *
  */
 class VelocityController
@@ -110,15 +111,14 @@ private:
   std::string thrust_topic;
   std::string desired_velocity_topic;
   double drone_weight;
-  float drone_bouyancy;
+  float drone_buoyancy;
   Eigen::Vector3d center_of_gravity;
-  Eigen::Vector3d center_of_bouyancy;
+  Eigen::Vector3d center_of_buoyancy;
   ros::Publisher thrust_pub;
   ros::Subscriber odom_sub;
   ros::Subscriber vel_sub;
   Eigen::Vector6d velocity;
   Eigen::Quaterniond orientation;
-  std::vector<MiniPID> pid;
+  std::vector<MiniPID*> pid;
 };
-
 #endif
