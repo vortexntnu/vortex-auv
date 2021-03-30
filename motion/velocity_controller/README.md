@@ -2,6 +2,8 @@
 
 A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces. 
 
+This package uses [MiniPID](https://github.com/tekdemo/MiniPID) as PID implementation. 
+
 ## Input and output
 
 Subscribes to:
