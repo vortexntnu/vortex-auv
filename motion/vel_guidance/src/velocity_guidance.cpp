@@ -6,14 +6,14 @@ VelocityGuidance::VelocityGuidance(ros::NodeHandle ros_node)
     rate = 40;
 
   if (!ros_node.getParam("/vel_guidance/desired_velocity_topic", velocity_topic))
-    velocity_topic = "desired/velocity";
+    velocity_topic = "/desired_velocity";
 
   vel_pub = ros_node.advertise<geometry_msgs::Twist>(velocity_topic, 1);
   
   set_vel_service = 
-      ros_node.advertiseService("vel_guidance/set_velocity", &VelocityGuidance::setVelocity, this);
+      ros_node.advertiseService("/vel_guidance/set_velocity", &VelocityGuidance::setVelocity, this);
   stop_guidance_service =
-      ros_node.advertiseService("vel_guidance/stop_guidance", &VelocityGuidance::stopGuidance, this);
+      ros_node.advertiseService("/vel_guidance/stop_guidance", &VelocityGuidance::stopGuidance, this);
 
   ROS_INFO("Velocity guidance up and ready");
 }

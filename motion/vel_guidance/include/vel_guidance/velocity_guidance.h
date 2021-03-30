@@ -10,10 +10,27 @@
 
 #include "vortex_msgs/SetVelocity.h"
 
+
+/**
+ * @brief class that recieves desired velocities through a service and publishes them with a predefined rate 
+ * as a topic until a stop-service is called. 
+ * 
+ */
 class VelocityGuidance
 {
 public:
+  /**
+   * @brief Construct a new Velocity Guidance object
+   * 
+   * @param ros_node 
+   */
   VelocityGuidance(ros::NodeHandle ros_node);
+
+  /**
+   * @brief contains a control loop that repeats with the objects rate until ros::ok() is false. In the loop
+   * the desired velocity is publsihed depending on what service was last called. 
+   * 
+   */
   void spin();
 
 private:
