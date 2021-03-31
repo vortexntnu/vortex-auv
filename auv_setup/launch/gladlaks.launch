@@ -39,6 +39,9 @@
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch"/>
 
+    <!-- Joystick nodes for ROV missions -->
+    <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
+
   </group>
 
 </launch>
