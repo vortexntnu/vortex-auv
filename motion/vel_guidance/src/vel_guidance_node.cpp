@@ -2,8 +2,16 @@
 
 int main(int argc, char** argv)
 {
+  const bool DEBUG_MODE = false;  // debug logs are printed to console when true
+
   ros::init(argc, argv, "velocity_guidance");
   ros::NodeHandle ros_node;
+
+  if (DEBUG_MODE)
+  {
+    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
+    ros::console::notifyLoggerLevelsChanged();
+  }
 
   VelocityGuidance velocity_guidance(ros_node);
   velocity_guidance.spin();

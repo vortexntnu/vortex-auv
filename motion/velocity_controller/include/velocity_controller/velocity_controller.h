@@ -24,11 +24,6 @@ typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 }  // namespace Eigen
 
-// topic names that will be used if no others are provided through params
-std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
-std::string DEFAULT_THRUST_TOPIC = "/thrust/desired";
-std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
-
 /**
  * @brief class of a velocity controller that uses six one dimensional PID controllers
  * with feed-forward term and integral windup protection. The control law includes
@@ -122,5 +117,6 @@ private:
   Eigen::Vector6d velocity;
   Eigen::Quaterniond orientation;
   std::vector<MiniPID*> pid;
+  bool odom_recieved;
 };
 #endif

@@ -4,9 +4,11 @@ VelocityGuidance::VelocityGuidance(ros::NodeHandle ros_node)
 {
   if (!ros_node.getParam("/vel_guidance/rate", rate))
     rate = 40;
+  ROS_DEBUG_STREAM("Using rate: " << rate);
 
   if (!ros_node.getParam("/vel_guidance/desired_velocity_topic", velocity_topic))
     velocity_topic = "/desired_velocity";
+  ROS_DEBUG_STREAM("Using velocity topic: " << velocity_topic);
 
   vel_pub = ros_node.advertise<geometry_msgs::Twist>(velocity_topic, 1);
   

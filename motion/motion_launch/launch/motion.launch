@@ -6,6 +6,9 @@
   <arg name="ns_controller" default="controller"/>
   <arg name="ns_thrust"     default="thrust"/>
 
+  <!-- Configuration parameters -->
+  <param name="/velocity_controller/odometry_topic" value="/odometry/filtered" />
+
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
     <node pkg="los_guidance"       type="los_guidance_backstepping.py" name="los"           output="screen"/>
