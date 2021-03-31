@@ -23,8 +23,13 @@ from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, Point, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import Joy
-from vortex_msgs.msg import (MoveAction, MoveActionFeedback, MoveActionResult,
-                             LosPathFollowingAction, LosPathFollowingGoal)
+from vortex_msgs.msg import (
+    MoveAction,
+    MoveActionFeedback,
+    MoveActionResult,
+    LosPathFollowingAction,
+    LosPathFollowingGoal,
+)
 from vortex_msgs.srv import ControlMode
 
 # ENUM for controller mode
@@ -52,76 +57,86 @@ def change_control_mode(requested_mode):
 
     """
 
-    rospy.wait_for_service(
-        '/controller/controlmode_service')  # From controller_ros.cpp
+    rospy.wait_for_service("/controller/controlmode_service")  # From controller_ros.cpp
 
     try:
-        control_mode = rospy.ServiceProxy('/controller/controlmode_service',
-                                          ControlMode)
+        control_mode = rospy.ServiceProxy(
+            "/controller/controlmode_service", ControlMode
+        )
         response = control_mode(requested_mode)
         return response.result
 
     except rospy.ServiceException as e:
-        rospy.logerr('guidance_interface could not change control mode')
-        print('Service call failed: %s' % e)
+        rospy.logerr("guidance_interface could not change control mode")
+        print("Service call failed: %s" % e)
 
 
 class GuidanceInterface_old:
     def __init__(self):
         """
         Define constants used in the guidance systems, create the
-        move action server that the fsm uses to communicate with 
+        move action server that the fsm uses to communicate with
         this node,  and connect to the actions servers in the guidance
         systems.
         """
 
-        self.joystick_surge_scaling = rospy.get_param(
-            '/joystick/scaling/surge')
-        self.joystick_sway_scaling = rospy.get_param('/joystick/scaling/sway')
-        self.joystick_heave_scaling = rospy.get_param(
-            '/joystick/scaling/heave')
-        self.joystick_roll_scaling = rospy.get_param('/joystick/scaling/roll')
-        self.joystick_pitch_scaling = rospy.get_param(
-            '/joystick/scaling/pitch')
-        self.joystick_yaw_scaling = rospy.get_param('/joystick/scaling/yaw')
+        self.joystick_surge_scaling = rospy.get_param("/joystick/scaling/surge")
+        self.joystick_sway_scaling = rospy.get_param("/joystick/scaling/sway")
+        self.joystick_heave_scaling = rospy.get_param("/joystick/scaling/heave")
+        self.joystick_roll_scaling = rospy.get_param("/joystick/scaling/roll")
+        self.joystick_pitch_scaling = rospy.get_param("/joystick/scaling/pitch")
+        self.joystick_yaw_scaling = rospy.get_param("/joystick/scaling/yaw")
 
         # Name buttons and axes based on index from joy-node
         self.joystick_buttons_map = [
-            'A', 'B', 'X', 'Y', 'LB', 'RB', 'back', 'start', 'power',
-            'stick_button_left', 'stick_button_right'
+            "A",
+            "B",
+            "X",
+            "Y",
+            "LB",
+            "RB",
+            "back",
+            "start",
+            "power",
+            "stick_button_left",
+            "stick_button_right",
         ]
 
         self.joystick_axes_map = [
-            'horizontal_axis_left_stick', 'vertical_axis_left_stick', 'LT',
-            'horizontal_axis_right_stick', 'vertical_axis_right_stick', 'RT',
-            'dpad_horizontal', 'dpad_vertical'
+            "horizontal_axis_left_stick",
+            "vertical_axis_left_stick",
+            "LT",
+            "horizontal_axis_right_stick",
+            "vertical_axis_right_stick",
+            "RT",
+            "dpad_horizontal",
+            "dpad_vertical",
         ]
 
-        self.transit_speed = rospy.get_param('~transit_speed', 0.3)
-        self.sphere_of_acceptance = rospy.get_param('~sphere_of_acceptance',
-                                                    0.5)
-        self.timeout = rospy.get_param('~guidance_interface_timeout', 90)
+        self.transit_speed = rospy.get_param("~transit_speed", 0.3)
+        self.sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
+        self.timeout = rospy.get_param("~guidance_interface_timeout", 90)
 
-        self.action_server = actionlib.SimpleActionServer('move',
-                                                          MoveAction,
-                                                          self.move_cb,
-                                                          auto_start=False)
+        self.action_server = actionlib.SimpleActionServer(
+            "move", MoveAction, self.move_cb, auto_start=False
+        )
         self.action_server.start()
 
-        self.dp_client = actionlib.SimpleActionClient('dp_action_server',
-                                                      MoveBaseAction)
-        self.los_client = actionlib.SimpleActionClient('los_action_server',
-                                                       LosPathFollowingAction)
+        self.dp_client = actionlib.SimpleActionClient(
+            "dp_action_server", MoveBaseAction
+        )
+        self.los_client = actionlib.SimpleActionClient(
+            "los_action_server", LosPathFollowingAction
+        )
 
-        self.joystick_sub = rospy.Subscriber('/joystick/joy',
-                                             Joy,
-                                             self.joystick_cb,
-                                             queue_size=1)
-        self.joystick_pub = rospy.Publisher('/guidance/joystick_data',
-                                            Joy,
-                                            queue_size=1)
+        self.joystick_sub = rospy.Subscriber(
+            "/joystick/joy", Joy, self.joystick_cb, queue_size=1
+        )
+        self.joystick_pub = rospy.Publisher(
+            "/guidance/joystick_data", Joy, queue_size=1
+        )
 
-        rospy.loginfo('Guidance interface is up and running')
+        rospy.loginfo("Guidance interface is up and running")
 
     def move_cb(self, move_goal):
         """
@@ -133,25 +148,22 @@ class GuidanceInterface_old:
         """
 
         # Talk to the dp_guidance node...
-        if move_goal.guidance_type == 'PositionHold':
-            rospy.loginfo('move_cb -> PositionHold. Changing control mode...')
+        if move_goal.guidance_type == "PositionHold":
+            rospy.loginfo("move_cb -> PositionHold. Changing control mode...")
             change_control_mode(POSE_HEADING_HOLD)
 
             dp_goal = MoveBaseGoal()
             dp_goal.target_pose.pose = move_goal.target_pose
 
-            self.dp_client.send_goal(dp_goal,
-                                     done_cb=self.done_cb,
-                                     feedback_cb=None)
+            self.dp_client.send_goal(dp_goal, done_cb=self.done_cb, feedback_cb=None)
 
-            if not self.dp_client.wait_for_result(
-                    timeout=rospy.Duration(self.timeout)):
+            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
                 self.action_server.set_aborted()
-                rospy.loginfo('DP guidance aborted action due to timeout')
+                rospy.loginfo("DP guidance aborted action due to timeout")
 
         # Talk to the los_guidance node...
-        elif move_goal.guidance_type == 'LOS':
-            rospy.loginfo('move_cb -> LOS. Changing control mode...')
+        elif move_goal.guidance_type == "LOS":
+            rospy.loginfo("move_cb -> LOS. Changing control mode...")
             change_control_mode(OPEN_LOOP)
 
             los_goal = LosPathFollowingGoal()
@@ -160,17 +172,16 @@ class GuidanceInterface_old:
             los_goal.sphereOfAcceptance = self.sphere_of_acceptance
             los_goal.desired_depth.z = move_goal.target_pose.position.z
 
-            self.los_client.send_goal(los_goal,
-                                      done_cb=self.done_cb,
-                                      feedback_cb=None)
+            self.los_client.send_goal(los_goal, done_cb=self.done_cb, feedback_cb=None)
 
             if not self.los_client.wait_for_result(
-                    timeout=rospy.Duration(self.timeout)):
+                timeout=rospy.Duration(self.timeout)
+            ):
                 self.action_server.set_aborted()
-                rospy.loginfo('LOS guidance aborted action due to timeout')
+                rospy.loginfo("LOS guidance aborted action due to timeout")
 
         else:
-            rospy.logerr('Unknown guidace type sent to guidance_interface')
+            rospy.logerr("Unknown guidace type sent to guidance_interface")
             self.action_server.set_aborted()
 
     def done_cb(self, state, result):
@@ -200,12 +211,12 @@ class GuidanceInterface_old:
 
         # TODO: Buttons to change control mode, should be a service server between this and guidance
 
-        surge = axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
-        sway = axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
-        heave = (axes['RT'] - axes['LT']) / 2 * self.joystick_heave_scaling
-        roll = (buttons['RB'] - buttons['LB']) * self.joystick_roll_scaling
-        pitch = axes['vertical_axis_right_stick'] * self.joystick_pitch_scaling
-        yaw = axes['horizontal_axis_right_stick'] * self.joystick_yaw_scaling
+        surge = axes["vertical_axis_left_stick"] * self.joystick_surge_scaling
+        sway = axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling
+        heave = (axes["RT"] - axes["LT"]) / 2 * self.joystick_heave_scaling
+        roll = (buttons["RB"] - buttons["LB"]) * self.joystick_roll_scaling
+        pitch = axes["vertical_axis_right_stick"] * self.joystick_pitch_scaling
+        yaw = axes["horizontal_axis_right_stick"] * self.joystick_yaw_scaling
 
         joystick_msg = Joy()
         joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
@@ -218,13 +229,32 @@ class GuidanceInterface:
 
         # get params
 
+        self.transit_speed = rospy.get_param("~transit_speed", 0.3)
+        self.sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
+        self.timeout = rospy.get_param("~guidance_interface_timeout", 90)
+
         # DP setup
+        self.dp_move_server = actionlib.SimpleActionServer(
+            "dp_move", MoveBaseAction, self.dpCallback, auto_start=False
+        )
+        self.dp_move_client = actionlib.SimpleActionClient(
+            "dp_action_server", MoveBaseAction
+        )
 
         # LOS setup
+        self.los_move_server = actionlib.SimpleActionServer(
+            "los_move", LosPathFollowingAction, self.losCallback, auto_start=False
+        )
+        self.los_client = actionlib.SimpleActionClient(
+            "los_action_server", LosPathFollowingAction
+        )
 
         # Vel setup
 
         # Joy setup
+
+        # start action servers
+        self.dp_action_server.start()
 
         pass
 
@@ -248,6 +278,6 @@ class GuidanceInterface:
 
 
 if __name__ == "__main__":
-    rospy.init_node('interface')
+    rospy.init_node("interface")
     server = GuidanceInterface()
     rospy.spin()
