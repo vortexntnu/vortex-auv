@@ -39,7 +39,7 @@ class JoystickInterface():
         self.joystick_sub = rospy.Subscriber('/joystick/joy', Joy, self.joystick_cb, queue_size=1)
         self.joystick_pub = rospy.Publisher('/mission/joystick_data', Joy, queue_size=1)
 
-        self.guidance_interface_client = actionlib.SimpleActionClient("TODOTODOTODO", ControlModeAction)
+        self.guidance_interface_client = actionlib.SimpleActionClient("/guidance/control_mode_server", ControlModeAction)
 
         rospy.loginfo('Joystick interface is up and running')
 
