@@ -24,6 +24,7 @@ import time
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, Point, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from std_srvs.srv import Empty
 
 from vortex_msgs.msg import (
     MoveAction,
@@ -32,7 +33,7 @@ from vortex_msgs.msg import (
     ControlModeAction,
     SetVelocityAction,
 )
-from vortex_msgs.srv import ControlMode
+from vortex_msgs.srv import ControlMode, SetVelocity, SetVelocityRequest
 
 # ENUM for controller mode
 OPEN_LOOP = 0
@@ -199,30 +200,43 @@ class VelocityGuidance:
     def __init__(self, guidance_interface):
         self.guidance_interface = guidance_interface
 
-        # get params
-        self.vel_set_velocity_service = rospy.get_param(
-            "guidance/set_velocity_service", default="/vel_guidance/set_velocity"
-        )
-        self.vel_stop_guidance_service = rospy.get_param(
-            "guidance/stop_velocity_guidance_service",
-            default="/vel_guidance/stop_guidance",
-        )
+        # params
+        self.set_velocity_service_name = "/vel_guidance/set_velocity"
+        self.stop_guidance_service_name = "/vel_guidance/stop_guidance"
+        action_server_name = "vel_server"
 
         # set up servers and clients
-        self.vel_server = actionlib.SimpleActionServer(
-            "vel_server", MoveBaseAction, self.dpCallback, auto_start=False
+        rospy.wait_for_service(self.set_velocity_service)
+        self.set_velocity_service = rospy.ServiceProxy(
+            self.set_velocity_service_name, SetVelocity
         )
-
-        # wait for external services and start
-        rospy.wait_for_service(self.vel_set_velocity_service)
-        rospy.wait_for_service(self.vel_stop_guidance_service)
-        self.vel_server.start()
+        rospy.wait_for_service(self.stop_guidance_service)
+        self.stop_guidance_service = rospy.ServiceProxy(
+            self.stop_guidance_service_name, Empty
+        )
+        self.action_server = actionlib.SimpleActionServer(
+            action_server_name, MoveBaseAction, self.dpCallback, auto_start=False
+        )
+        self.action_server.start()
 
     def callback(self, set_velocity_goal):
         self.guidance_interface.stopAllGuidance()
 
+        request = SetVelocityRequest()
+        request.desired_velocity = set_velocity_goal.desired_velocity
+
+        try:
+            self.set_velocity_service(request)
+        except rospy.ServiceException as exc:
+            rospy.logerr("Set velocity service did not process request: " + str(exc))
+
     def stop(self):
-        pass
+        try:
+            self.stop_guidance_service()
+        except rospy.ServiceException as exc:
+            rospy.logerr(
+                "Stop velocity guidance service did not process request: " + str(exc)
+            )
 
 
 class DpGuidance:
