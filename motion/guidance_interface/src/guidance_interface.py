@@ -18,7 +18,7 @@ sendes videre igjennom noden.
 """
 
 import time
-from enum import Enum
+from enum import IntEnum, Enum
 
 import rospy
 import actionlib
@@ -42,7 +42,7 @@ from vortex_msgs.srv import (
 )
 
 
-class ControlMode(Enum):
+class ControlMode(IntEnum):
     OPEN_LOOP = 0
     POSE_HOLD = 1
     HEADING_HOLD = 2
@@ -56,18 +56,16 @@ class JoyGuidance:
     def __init__(self, guidance_interface) -> None:
         self.guidance_interface = guidance_interface
 
-        # get params
+        # params
+        action_server_name = "/guidance_interface/joystick_server"
 
         # set up servers and clients
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
-            "/guidance_interface/control_mode_server",
+            action_server_name,
             ControlModeAction,
             self.joystick_control_mode_cb,
             auto_start=False,
         )
-
-        # wait for external services and start
-        rospy.wait_for_service("/controller/controlmode_service")
         self.joystick_controlmode_server.start()
 
     def joystick_control_mode_cb(self, control_mode):
@@ -175,6 +173,24 @@ class DpGuidance:
             self.action_server.set_aborted()
 
     def change_control_mode(self, control_mode_index):
+        """Requests dp controller to change its control mode to the given mode
+
+        Args:
+            control_mode_index (int or bool): requested control mode
+        """
+
+        if issubclass(control_mode_index, ControlMode):
+            control_mode_index = (
+                control_mode_index.value
+            )  # since enum.field returns name and value
+        else:
+            # check if index is valid
+            if control_mode_index not in [member.value for member in ControlMode]:
+                rospy.logerr(
+                    "Invalid control mode %s requested. Ignoring." % control_mode_index
+                )
+                return
+
         request = ControlModeRequest()
         request.controlModeIndex = control_mode_index
 
