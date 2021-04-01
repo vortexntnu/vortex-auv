@@ -34,7 +34,7 @@ class DPGuidance:
         self.period = 0.025 # Run at 40Hz
         self.controller_setpoint = Pose()
 
-        self.is_active = False
+        self.publish_guidance_data = False
 
         # Publisher for the reference model
         self.reference_model_pub = rospy.Publisher('/dp_guidance/output', Pose, queue_size=1)
@@ -52,7 +52,7 @@ class DPGuidance:
         has it's own thread)
         """
         while not rospy.is_shutdown():
-            if self.is_active:
+            if self.publish_guidance_data:
                 self.reference_model_pub.publish(controller_setpoint)
 
             rospy.sleep(rospy.Duration(self.period))
@@ -66,7 +66,7 @@ class DPGuidance:
         new_goal = self.goal_action_server.accept_new_goal()
         self.controller_setpoint = new_goal.target_pose
 
-        self.is_active = True
+        self.publish_guidance_data = True
         
 
     def preempt_cb(self):
@@ -77,7 +77,7 @@ class DPGuidance:
             rospy.loginfo("Goal action server in dp_guidance was preempted!")
             self.goal_action_server.set_preempted()
 
-            self.is_active = False
+            self.publish_guidance_data = False
 
 
 if __name__ == '__main__':
