@@ -15,10 +15,12 @@
 #
 
 physical:
-  mass_kg: 29.32
+  weight: 29.20     # kg
+  buoyancy: 29.43   # kg
   displacement_m3: 0.02943
-  center_of_mass: [0, 0, 0]
-  center_of_buoyancy: [0, 0, 0]
+  center_of_mass: [26.3, 0.8, 6.0]        # mm (x,y,z)
+  center_of_buoyancy: [25.9, 0.8, 48.3]   # mm (x,y,z)
+
 
 propulsion:
   dofs:
@@ -69,6 +71,14 @@ controllers:
       k1: 45.0
       k2: 28.0
       k3: 10.5
+  velocity_controller:
+    P_gains: [20, 20, 20, 5, 5, 5]
+    I_gains: [0, 0, 0, 0, 0, 0]
+    D_gains: [0, 0, 0, 0, 0, 0]
+    F_gains: [10, 15, 20, 5, 10, 5]
+    integral_windup_limit: 5        # in newton
+    setpoint_range: 1.5             # max distance from current point to setpoint
+    max_output_ramp_rate: 1         # in newton per cycle
       
 guidance:
   LOS:
@@ -85,8 +95,8 @@ joystick:
 
 battery:
   thresholds:
-    warning: 15000  # Millivolts
-    critical: 14000 # Millivolts
+    warning: 14000  # Millivolts
+    critical: 13000 # Millivolts
   logging:
     interval: 10   # Seconds
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
