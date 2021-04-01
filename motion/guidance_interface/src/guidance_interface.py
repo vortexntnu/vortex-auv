@@ -51,6 +51,7 @@ class ControlMode(Enum):
     POSE_HEADING_HOLD = 5
     CONTROL_MODE_END = 6
 
+
 class JoyGuidance:
     def __init__(self, guidance_interface) -> None:
         self.guidance_interface = guidance_interface
@@ -261,6 +262,6 @@ class GuidanceInterface:
 
 
 if __name__ == "__main__":
-    rospy.init_node("interface")
+    rospy.init_node("guidance_interface")
     server = GuidanceInterface()
     rospy.spin()
