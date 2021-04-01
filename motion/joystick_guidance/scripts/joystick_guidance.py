@@ -18,60 +18,6 @@ from std_srvs.srv import SetBool
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
 
-def convert_to_global(local_point, pose):
-	"""
-	Returns the point converted into the global framework when
-	taking the pose into account
-	"""
-	# Initializing the global point
-	global_point = local_point
-
-	# Calculating the quaternion and rotating the vector
-	quaternion = Quaternion([pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z])
-	rotated_vector = quaternion.rotate(local_point)
-
-	# Linar scaling the global point with position and orientation
-	global_point[0] += (pose.position.x + rotated_vector[0])
-	global_point[1] += (pose.position.y + rotated_vector[1])
-	global_point[2] += (pose.position.z + rotated_vector[2])
-
-	return global_point
-
-
-def nearest_list_value(param_list, ref_list, decimal_list):
-	"""
-	Returns the highest value in the list 'ref_list' that is
-	less or equal to the given value 'value'.
-	"""
-
-	# Extracting the value and deadzone
-	value = param_list[0]
-	deadzone = param_list[1]
-
-	# Sorting the list in ascending order
-	ref_list = sorted(ref_list, key = lambda x:float(x)) 
-
-	# Using a temp_value to keep track of sign
-	temp_value = 0
-
-	for i in range(len(ref_list)):
-		if abs(value) < ref_list[i]:
-			temp_value = decimal_list[i]
-			break
-
-	# We allow maximum thrust when it is given below a certain threshold
-	if abs(value) >= ref_list[-1] - deadzone:
-		# We know that we are given largest value in the list
-		temp_value = decimal_list[-1]
-
-	# Correcting for negative sign
-	if value < 0:
-		temp_value *= -1 
-
-	value = temp_value
-	return value
-
-
 class JoystickGuidanceNode():
 
 	def __init__(self):
@@ -110,12 +56,6 @@ class JoystickGuidanceNode():
 	def toggle_joystick_cb(self, request):
 		self.publish_guidance_data = request.data
 
-		except Exception as e:
-			rospy.logerr(e)
-			
-			# Return a standard response if an error occurs
-			return 0, 0, 0
- 
 
 if __name__ == '__main__':
 
