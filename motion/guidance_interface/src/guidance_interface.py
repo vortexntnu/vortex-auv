@@ -17,10 +17,11 @@ sendes videre igjennom noden.
 
 """
 
+import time
+from enum import Enum
+
 import rospy
 import actionlib
-import time
-
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, Point, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
@@ -33,16 +34,22 @@ from vortex_msgs.msg import (
     ControlModeAction,
     SetVelocityAction,
 )
-from vortex_msgs.srv import ControlMode, SetVelocity, SetVelocityRequest
+from vortex_msgs.srv import (
+    ControlMode,
+    ControlModeRequest,
+    SetVelocity,
+    SetVelocityRequest,
+)
 
-# ENUM for controller mode
-OPEN_LOOP = 0
-POSE_HOLD = 1
-HEADING_HOLD = 2
-DEPTH_HEADING_HOLD = 3
-DEPTH_HOLD = 4
-POSE_HEADING_HOLD = 5
-CONTROL_MODE_END = 6
+
+class ControlMode(Enum):
+    OPEN_LOOP = 0
+    POSE_HOLD = 1
+    HEADING_HOLD = 2
+    DEPTH_HEADING_HOLD = 3
+    DEPTH_HOLD = 4
+    POSE_HEADING_HOLD = 5
+    CONTROL_MODE_END = 6
 
 
 def change_control_mode(requested_mode):
@@ -246,24 +253,62 @@ class DpGuidance:
         # params
         dp_guidance_action_server = "dp_action_server"
         guidance_interface_dp_action_server = "dp_server"
+        dp_controller_control_mode_service = "/controller/controlmode_service"
 
         # set up servers and clients
-        self.dp_move_client = actionlib.SimpleActionClient(
+        rospy.wait_for_service(dp_controller_control_mode_service)
+        self.control_mode_service = rospy.ServiceProxy(
+            dp_controller_control_mode_service, ControlMode
+        )
+        self.action_client = actionlib.SimpleActionClient(
             dp_guidance_action_server, MoveBaseAction
         )
-        self.dp_server = actionlib.SimpleActionServer(
+        self.action_server = actionlib.SimpleActionServer(
             guidance_interface_dp_action_server,
             MoveBaseAction,
-            self.dpCallback,
+            self.dp_callback,
             auto_start=False,
         )
-        self.dp_server.start()
+        self.action_server.start()
 
-    def callback(self, goal):
+    def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
+        self.action_client.send_goal(
+            goal, done_cb=self.guidance_finished_cb, feedback_cb=None
+        )
+
+        if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+            self.action_server.set_aborted()
+            rospy.loginfo("DP guidance aborted action due to timeout")
+
+    def guidance_finished_cb(self, state, result):
+        """
+        Set the outcome of the action depending on
+        the returning result.
+        """
+
+        if state == GoalStatus.SUCCEEDED:
+            self.action_server.set_succeeded()
+
+        elif state == GoalStatus.PREEMPTED:
+            self.action_server.set_preempted()
+
+        else:
+            self.action_server.set_aborted()
+
+    def change_control_mode(self, control_mode_index):
+        request = ControlModeRequest()
+        request.controlModeIndex = control_mode_index
+
+        try:
+            self.control_mode_service(request)
+        except rospy.ServiceException as exc:
+            rospy.logerr("Control mode service did not process request: " + str(exc))
+
     def stop(self):
-        pass
+        self.action_client.cancel_all_goals()
+        self.change_control_mode(ControlMode.OPEN_LOOP)
 
 
 class LosGuidance:
@@ -294,11 +339,11 @@ class LosGuidance:
         )
         self.action_server.start()
 
-    def los_callback(self, los_goal):
+    def los_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
         self.action_client.send_goal(
-            los_goal, done_cb=self.guidance_finished_cb, feedback_cb=None
+            goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
 
         if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
@@ -336,6 +381,9 @@ class GuidanceInterface:
         self.vel_guidance.stop()
         self.dp_guidance.stop()
         self.los_guidance.stop()
+
+    def change_dp_control_mode(self, control_mode_index):
+        self.dp_guidance.change_control_mode(control_mode_index)
 
 
 if __name__ == "__main__":
