@@ -6,27 +6,19 @@
 import rospy
 import actionlib
 
+from geometry_msgs.msg import Pose
 from move_base_msgs.msg import MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 
+from std_srvs.srv import SetBool
+
 class DPGuidance:
     """
-    The dynamic positioning guidance system is very simple.
-    It does not perform any calculations, but simply passes
-    the setpoints directly to the DP controller in the
-    /controller/dp node.
+    Take an input goal from an action client and pass
+    it on to the reference model, but this time on a topic.
 
-    The dp guidance node is different from the LOS node in the sense
-    that it will not communicate with the controller via a topic.
-    This is done because, as mentioned above, the dp guidance node
-    does not perform any calculations. Therefore, we have no continuous
-    data we need to send, only a discrete goal that will be updated 
-    in the FSM.
-
-    One could argue that there is no need for the dp_guidance node;
-    and you would be right. However, it is introduced as a means of
-    eliminating any crosstalk directly between the fsm and the controller.
-    This will facilitate a cleaner, more modular system in the future.
+    The goal is only passed on if dp is activated from the
+    guidance interface.
     """
 
     def __init__(self):
@@ -39,62 +31,61 @@ class DPGuidance:
 
         rospy.init_node('dp')
 
-        self.timeout = rospy.get_param('~guidance_dp_timeout', 90)
+        self.period = 0.025 # Run at 40Hz
+        self.controller_setpoint = Pose()
+
+        # Publisher for the reference model
+        self.reference_model_pub = rospy.Publisher('/dp_guidance/output', Pose)
+
+        # Action server for receiving goal data
+        self.goal_action_server = actionlib.SimpleActionServer(name='dp_action_server', ActionSpec=MoveBaseAction, auto_start=False)
+        self.goal_action_server.register_goal_callback(self.goal_cb)  # Called whenever guidance_interface sends a new goal for the dp system
+        self.goal_action_server.register_preempt_callback(self.preempt_cb)
+        self.goal_action_server.start()
+
+        # Action client for receiving the activation/deactivation signal
+        self.is_active = false
+        self.dp_toggle_service = rospy.Service('/dp_guidance/activate_dp_control', SetBool, self.toggle_service_cb)
 
 
-        self.action_server = actionlib.SimpleActionServer(name='dp_action_server', ActionSpec=MoveBaseAction, auto_start=False)
-        self.action_server.register_goal_callback(self.goalCB)  # Called whenever guidance_interface sends a new goal for the dp system
-        self.action_server.register_preempt_callback(self.preemptCB)
-        self.action_server.start()
-
-        # Connect to the dp controller action server. This is how the guidance and controller systems will communicate
-        self.dp_controller_client = actionlib.SimpleActionClient('/controller/move_base', MoveBaseAction)
-
-
-    def goalCB(self):
+    def spin(self):
         """
-        Accept a goal from the guidance interface and pass it right on :)
+        A replacement for the normal rospy.spin(), equivalent
+        to "spinOnce" in roscpp (except simpler, since each cb/topic
+        has it's own thread)
         """
+        while not rospy.is_shutdown():
+            if self.is_active:
+                self.reference_model_pub.publish(controller_setpoint)
+
+            rospy.sleep(rospy.Duration(self.period))
+
+
+    def goal_cb(self):
+        """
+        Accept a goal from the guidance interface and store it as local state
+        """
+        new_goal = self.goal_action_server.accept_new_goal()
+        self.controller_setpoint = new_goal.target_pose
         
-        controller_goal = self.action_server.accept_new_goal()
 
-        self.dp_controller_client.send_goal(controller_goal, done_cb=self.done_cb, feedback_cb=None)
-
-        if not self.dp_controller_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-            self.action_server.set_aborted()
-            rospy.loginfo('DP controller aborted action due to timeout')
-        
-
-    def preemptCB(self):
+    def preempt_cb(self):
         """
 		The preempt callback for the action server.
 		"""
+        if self.goal_action_server.is_preempt_requested():
+            rospy.loginfo("Goal action server in dp_guidance was preempted!")
+            self.goal_action_server.set_preempted()
 
-        if self.action_server.is_preempt_requested():
-            rospy.loginfo("Preempted requested by dp guidance client!")
-            self.action_server.set_preempted()
 
-    
-    def done_cb(self, state, result):
-        """
-        Set the outcome of the action depending on
-        the returning result.
-        """
-
-        if state == GoalStatus.SUCCEEDED:
-            self.action_server.set_succeeded()
-
-        elif state == GoalStatus.PREEMPTED:
-            self.action_server.set_preempted()
-
-        else:
-            self.action_server.set_aborted()
+    def toggle_service_cb(self, request):
+        self.is_active = request.data
 
 if __name__ == '__main__':
 
     try:
         dp_guidance = DPGuidance()
-        rospy.spin()
+        dp_guidance.spin()
 
     except rospy.ROSInternalException as e:
         rospy.logerr(e)
