@@ -149,6 +149,8 @@ class DpGuidance:
     def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
+        self.change_control_mode(ControlMode.POSE_HOLD)
+
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
