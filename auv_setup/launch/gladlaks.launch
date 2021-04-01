@@ -16,6 +16,9 @@
   <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
   <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
 
+  <!-- Joystick nodes for ROV missions -->
+  <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
+
   <!-- DRIVERS -->
   <group if="$(eval type == 'real')">
     <!-- IMU -->
@@ -39,8 +42,6 @@
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch"/>
 
-    <!-- Joystick nodes for ROV missions -->
-    <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
 
   </group>
 
