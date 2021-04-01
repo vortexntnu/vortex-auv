@@ -17,8 +17,10 @@ class DPGuidance:
     Take an input goal from an action client and pass
     it on to the reference model, but this time on a topic.
 
-    The goal is only passed on if dp is activated from the
-    guidance interface.
+    When a goal is given to this module, it will begin to publish
+    data for the reference model, which in turn makes the dp
+    controller produce a thrust vector. It will only stop
+    publishing once the goal has been preempted.
     """
 
     def __init__(self):
