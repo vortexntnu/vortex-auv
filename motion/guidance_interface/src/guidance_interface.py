@@ -27,11 +27,10 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 from vortex_msgs.msg import (
     MoveAction,
-    MoveActionFeedback,
-    MoveActionResult,
     LosPathFollowingAction,
     LosPathFollowingGoal,
-    ControlModeAction
+    ControlModeAction,
+    SetVelocityAction,
 )
 from vortex_msgs.srv import ControlMode
 
@@ -83,15 +82,21 @@ class GuidanceInterface_old:
         systems.
         """
 
-        self.transit_speed = rospy.get_param('~transit_speed', 0.3)
-        self.sphere_of_acceptance = rospy.get_param('~sphere_of_acceptance', 0.5)
-        self.timeout = rospy.get_param('~guidance_interface_timeout', 90)
+        self.transit_speed = rospy.get_param("~transit_speed", 0.3)
+        self.sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
+        self.timeout = rospy.get_param("~guidance_interface_timeout", 90)
 
-        self.action_server = actionlib.SimpleActionServer('move', MoveAction, self.move_cb, auto_start=False)
+        self.action_server = actionlib.SimpleActionServer(
+            "move", MoveAction, self.move_cb, auto_start=False
+        )
         self.action_server.start()
 
-        self.dp_client = actionlib.SimpleActionClient('dp_action_server', MoveBaseAction)
-        self.los_client = actionlib.SimpleActionClient('los_action_server', LosPathFollowingAction)
+        self.dp_client = actionlib.SimpleActionClient(
+            "dp_action_server", MoveBaseAction
+        )
+        self.los_client = actionlib.SimpleActionClient(
+            "los_action_server", LosPathFollowingAction
+        )
 
         self.joystick_sub = rospy.Subscriber(
             "/joystick/joy", Joy, self.joystick_cb, queue_size=1
@@ -164,67 +169,123 @@ class GuidanceInterface_old:
             self.action_server.set_aborted()
 
 
-class GuidanceInterface:
-    def __init__(self):
+class JoyGuidance:
+    def __init__(self, guidance_interface) -> None:
+        self.guidance_interface = guidance_interface
 
         # get params
 
-        self.transit_speed = rospy.get_param("~transit_speed", 0.3)
-        self.sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
-        self.timeout = rospy.get_param("~guidance_interface_timeout", 90)
-
-        # Joystick setup
+        # set up servers and clients
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
-            'control_mode_server', ControlModeAction, self.joystick_control_mode_cb, auto_start=False
+            "control_mode_server",
+            ControlModeAction,
+            self.joystick_control_mode_cb,
+            auto_start=False,
         )
 
-        # DP setup
-        self.dp_move_server = actionlib.SimpleActionServer(
-            "dp_move", MoveBaseAction, self.dpCallback, auto_start=False
+        # wait for external services and start
+        rospy.wait_for_service("/controller/controlmode_service")
+        self.joystick_controlmode_server.start()
+
+    def joystick_control_mode_cb(self, control_mode):
+        change_control_mode(control_mode.controlModeIndex)
+        time.sleep(0.25)  # Avoid aggressive switching
+
+    def stop(self):
+        pass
+
+
+class VelocityGuidance:
+    def __init__(self, guidance_interface):
+        self.guidance_interface = guidance_interface
+
+        # get params
+        self.vel_set_velocity_service = rospy.get_param(
+            "guidance/set_velocity_service", default="/vel_guidance/set_velocity"
+        )
+        self.vel_stop_guidance_service = rospy.get_param(
+            "guidance/stop_velocity_guidance_service",
+            default="/vel_guidance/stop_guidance",
+        )
+
+        # set up servers and clients
+        self.vel_server = actionlib.SimpleActionServer(
+            "vel_server", MoveBaseAction, self.dpCallback, auto_start=False
+        )
+
+        # wait for external services and start
+        rospy.wait_for_service(self.vel_set_velocity_service)
+        rospy.wait_for_service(self.vel_stop_guidance_service)
+        self.vel_server.start()
+
+    def callback(self, set_velocity_goal):
+        self.guidance_interface.stopAllGuidance()
+
+    def stop(self):
+        pass
+
+
+class DpGuidance:
+    def __init__(self, guidance_interface) -> None:
+        self.guidance_interface = guidance_interface
+
+        # get params
+
+        # set up servers and clients
+        self.dp_server = actionlib.SimpleActionServer(
+            "dp_server", MoveBaseAction, self.dpCallback, auto_start=False
         )
         self.dp_move_client = actionlib.SimpleActionClient(
             "dp_action_server", MoveBaseAction
         )
+        # wait for external services and start
+        self.dp_server.start()
 
-        # LOS setup
-        self.los_move_server = actionlib.SimpleActionServer(
-            "los_move", LosPathFollowingAction, self.losCallback, auto_start=False
+    def callback(self, goal):
+        pass
+
+    def stop(self):
+        pass
+
+
+class LosGuidance:
+    def __init__(self, guidance_interface) -> None:
+        self.guidance_interface = guidance_interface
+
+        # get params
+        self.los_transit_speed = rospy.get_param("~transit_speed", 0.3)
+        self.los_sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
+        self.los_timeout = rospy.get_param("~guidance_interface_timeout", 90)
+
+        # set up servers and clients
+        self.los_server = actionlib.SimpleActionServer(
+            "los_server", LosPathFollowingAction, self.losCallback, auto_start=False
         )
         self.los_client = actionlib.SimpleActionClient(
             "los_action_server", LosPathFollowingAction
         )
+        # wait for external services and start
+        self.los_server.start()
 
-        # Vel setup
-
-        # Joy setup
-
-        # start action servers
-        self.dp_move_server.start()
-        self.joystick_controlmode_server.start()
-
+    def callback(self, goal):
         pass
 
-    def stopAllGuidance(self):
+    def stop(self):
         pass
 
-    def changeControlMode(self):
-        pass
 
-    def dpCallback(self, msg):
-        pass
+class GuidanceInterface:
+    def __init__(self):
+        self.vel_guidance = VelocityGuidance(self)
+        self.dp_guidance = DpGuidance(self)
+        self.los_guidance = LosGuidance(self)
+        self.joy_guidance = JoyGuidance(self)
 
-    def losCallback(self, msg):
-        pass
-
-    def velCallback(self, msg):
-        pass
-
-    def joyCallback(self, msg):
-        pass
-
-    def joystick_control_mode_cb(self, control_mode):
-        change_control_mode(control_mode.controlModeIndex)
-        time.sleep(0.25) # Avoid aggressive switching
+    def stop_all_guidance(self):
+        self.joy_guidance.stop()
+        self.vel_guidance.stop()
+        self.dp_guidance.stop()
+        self.los_guidance.stop()
 
 
 if __name__ == "__main__":
