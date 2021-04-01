@@ -60,7 +60,7 @@ class JoyGuidance:
 
         # set up servers and clients
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
-            "control_mode_server",
+            "/guidance_interface/control_mode_server",
             ControlModeAction,
             self.joystick_control_mode_cb,
             auto_start=False,
@@ -85,7 +85,7 @@ class VelocityGuidance:
         # params
         set_velocity_service_name = "/vel_guidance/set_velocity"
         stop_guidance_service_name = "/vel_guidance/stop_guidance"
-        action_server_name = "vel_server"
+        action_server_name = "/guidance_interface/vel_server"
 
         # set up servers and clients
         rospy.wait_for_service(self.set_velocity_service)
@@ -127,7 +127,7 @@ class DpGuidance:
 
         # params
         dp_guidance_action_server = "dp_action_server"
-        guidance_interface_dp_action_server = "dp_server"
+        guidance_interface_dp_action_server = "/guidance_interface/dp_server"
         dp_controller_control_mode_service = "/controller/controlmode_service"
 
         # set up servers and clients
@@ -200,7 +200,7 @@ class LosGuidance:
         )
 
         los_guidance_action_server = "los_action_server"
-        guidance_interface_los_action_server = "los_server"
+        guidance_interface_los_action_server = "/guidance_interface/los_server"
 
         # set up servers and clients
         self.action_client = actionlib.SimpleActionClient(
