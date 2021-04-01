@@ -5,7 +5,7 @@ int main(int argc, char** argv)
   const bool DEBUG_MODE = false;  // debug logs are printed to console when true
 
   ros::init(argc, argv, "velocity_guidance");
-  ros::NodeHandle ros_node;
+  ros::NodeHandle nh;
 
   if (DEBUG_MODE)
   {
@@ -13,6 +13,6 @@ int main(int argc, char** argv)
     ros::console::notifyLoggerLevelsChanged();
   }
 
-  VelocityGuidance velocity_guidance(ros_node);
+  VelocityGuidance velocity_guidance(nh);
   velocity_guidance.spin();
 }

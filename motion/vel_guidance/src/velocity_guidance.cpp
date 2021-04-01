@@ -1,21 +1,21 @@
 #include "vel_guidance/velocity_guidance.h"
 
-VelocityGuidance::VelocityGuidance(ros::NodeHandle ros_node)
+VelocityGuidance::VelocityGuidance(ros::NodeHandle nh)
 {
-  if (!ros_node.getParam("/vel_guidance/rate", rate))
+  if (!nh.getParam("/vel_guidance/rate", rate))
     rate = 40;
   ROS_DEBUG_STREAM("Using rate: " << rate);
 
-  if (!ros_node.getParam("/vel_guidance/desired_velocity_topic", velocity_topic))
+  if (!nh.getParam("/vel_guidance/desired_velocity_topic", velocity_topic))
     velocity_topic = "/desired_velocity";
   ROS_DEBUG_STREAM("Using velocity topic: " << velocity_topic);
 
-  vel_pub = ros_node.advertise<geometry_msgs::Twist>(velocity_topic, 1);
+  vel_pub = nh.advertise<geometry_msgs::Twist>(velocity_topic, 1);
   
   set_vel_service = 
-      ros_node.advertiseService("/vel_guidance/set_velocity", &VelocityGuidance::setVelocity, this);
+      nh.advertiseService("/vel_guidance/set_velocity", &VelocityGuidance::setVelocity, this);
   stop_guidance_service =
-      ros_node.advertiseService("/vel_guidance/stop_guidance", &VelocityGuidance::stopGuidance, this);
+      nh.advertiseService("/vel_guidance/stop_guidance", &VelocityGuidance::stopGuidance, this);
 
   ROS_INFO("Velocity guidance up and ready");
 }

@@ -36,9 +36,9 @@ public:
   /**
    * @brief Construct a new Velocity Controller object
    *
-   * @param ros_node ros node handle
+   * @param nh ros node handle
    */
-  VelocityController(ros::NodeHandle ros_node);
+  VelocityController(ros::NodeHandle nh);
 
 private:
   /**
@@ -101,7 +101,7 @@ private:
    */
   Eigen::Vector6d restoringForces();
 
-  ros::NodeHandle ros_node;
+  ros::NodeHandle nh;
   std::string odometry_topic;
   std::string thrust_topic;
   std::string desired_velocity_topic;

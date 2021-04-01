@@ -22,9 +22,9 @@ public:
   /**
    * @brief Construct a new Velocity Guidance object
    * 
-   * @param ros_node 
+   * @param nh 
    */
-  VelocityGuidance(ros::NodeHandle ros_node);
+  VelocityGuidance(ros::NodeHandle nh);
 
   /**
    * @brief contains a control loop that repeats with the objects rate until ros::ok() is false. In the loop

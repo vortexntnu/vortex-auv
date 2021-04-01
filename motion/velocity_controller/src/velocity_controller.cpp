@@ -1,6 +1,6 @@
 #include "velocity_controller/velocity_controller.h"
 
-VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_node)
+VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
 {
   // get params
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
@@ -51,15 +51,15 @@ VelocityController::VelocityController(ros::NodeHandle ros_node) : ros_node(ros_
 
   // create subscribers and publsihers
   odom_recieved = false;
-  thrust_pub = ros_node.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
-  odom_sub = ros_node.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
-  vel_sub = ros_node.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
+  thrust_pub = nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
+  odom_sub = nh.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
+  vel_sub = nh.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // create services
   reset_service =
-      ros_node.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
+      nh.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
   set_gains_service =
-      ros_node.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
+      nh.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
 
   // wait for first odometry message
   ROS_INFO("Waiting for odometry message..");
@@ -147,7 +147,7 @@ Eigen::Vector6d VelocityController::restoringForces()
 template <typename T>
 void VelocityController::getParam(std::string name, T& variable)
 {
-  if (!ros_node.getParam(name, variable))
+  if (!nh.getParam(name, variable))
   {
     ROS_FATAL_STREAM("Missing parameter " << name << ". Shutting down node..");
     ros::shutdown();
@@ -157,7 +157,7 @@ void VelocityController::getParam(std::string name, T& variable)
 template <typename T>
 void VelocityController::getParam(std::string name, T& variable, T& default_value)
 {
-  if (!ros_node.getParam(name, variable))
+  if (!nh.getParam(name, variable))
     variable = default_value;
   ROS_DEBUG_STREAM(name << ": " << variable);
 }
@@ -167,7 +167,7 @@ int main(int argc, char** argv)
   const bool DEBUG_MODE = false;  // debug logs are printed to console when true
 
   ros::init(argc, argv, "velocity_controller");
-  ros::NodeHandle ros_node;
+  ros::NodeHandle nh;
 
   if (DEBUG_MODE)
   {
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
     ros::console::notifyLoggerLevelsChanged();
   }
 
-  VelocityController velocity_controller(ros_node);
+  VelocityController velocity_controller(nh);
 
   ros::spin();
 }
