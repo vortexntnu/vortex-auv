@@ -201,18 +201,18 @@ class VelocityGuidance:
         self.guidance_interface = guidance_interface
 
         # params
-        self.set_velocity_service_name = "/vel_guidance/set_velocity"
-        self.stop_guidance_service_name = "/vel_guidance/stop_guidance"
+        set_velocity_service_name = "/vel_guidance/set_velocity"
+        stop_guidance_service_name = "/vel_guidance/stop_guidance"
         action_server_name = "vel_server"
 
         # set up servers and clients
         rospy.wait_for_service(self.set_velocity_service)
         self.set_velocity_service = rospy.ServiceProxy(
-            self.set_velocity_service_name, SetVelocity
+            set_velocity_service_name, SetVelocity
         )
         rospy.wait_for_service(self.stop_guidance_service)
         self.stop_guidance_service = rospy.ServiceProxy(
-            self.stop_guidance_service_name, Empty
+            stop_guidance_service_name, Empty
         )
         self.action_server = actionlib.SimpleActionServer(
             action_server_name, MoveBaseAction, self.dpCallback, auto_start=False
@@ -266,26 +266,58 @@ class LosGuidance:
     def __init__(self, guidance_interface) -> None:
         self.guidance_interface = guidance_interface
 
-        # get params
-        self.los_transit_speed = rospy.get_param("~transit_speed", 0.3)
-        self.los_sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
-        self.los_timeout = rospy.get_param("~guidance_interface_timeout", 90)
+        # params
+        self.los_transit_speed = rospy.get_param("guidance/LOS/transit_speed", 0.3)
+        self.los_sphere_of_acceptance = rospy.get_param(
+            "guidance/LOS/sphere_of_acceptance", 0.5
+        )
+        self.los_timeout = rospy.get_param(
+            "guidance/LOS/guidance_interface_timeout", 90
+        )
+
+        action_client_name = "los_action_server"
+        action_server_name = "los_server"
 
         # set up servers and clients
-        self.los_server = actionlib.SimpleActionServer(
-            "los_server", LosPathFollowingAction, self.losCallback, auto_start=False
+        self.action_client = actionlib.SimpleActionClient(
+            action_client_name, LosPathFollowingAction
         )
-        self.los_client = actionlib.SimpleActionClient(
-            "los_action_server", LosPathFollowingAction
+        self.action_server = actionlib.SimpleActionServer(
+            action_server_name,
+            LosPathFollowingAction,
+            self.los_callback,
+            auto_start=False,
         )
-        # wait for external services and start
-        self.los_server.start()
+        self.action_server.start()
 
-    def callback(self, goal):
-        pass
+    def los_callback(self, los_goal):
+        self.guidance_interface.stop_all_guidance()
+
+        self.action_client.send_goal(
+            los_goal, done_cb=self.guidance_finished_cb, feedback_cb=None
+        )
+
+        if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+            self.action_server.set_aborted()
+            rospy.loginfo("LOS guidance aborted action due to timeout")
+
+    def guidance_finished_cb(self, state, result):
+        """
+        Set the outcome of the action depending on
+        the returning result.
+        """
+
+        if state == GoalStatus.SUCCEEDED:
+            self.action_server.set_succeeded()
+
+        elif state == GoalStatus.PREEMPTED:
+            self.action_server.set_preempted()
+
+        else:
+            self.action_server.set_aborted()
 
     def stop(self):
-        pass
+        self.action_client.cancel_all_goals()
 
 
 class GuidanceInterface:
