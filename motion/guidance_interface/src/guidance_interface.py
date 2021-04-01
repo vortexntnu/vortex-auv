@@ -1,19 +1,14 @@
 #!/usr/bin/env python
 
-import time
-from enum import IntEnum, Enum
+from enum import IntEnum
 
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from geometry_msgs.msg import Pose, Point, PoseStamped
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from move_base_msgs.msg import MoveBaseAction
 from std_srvs.srv import Empty, SetBool
 
-from vortex_msgs.msg import (
-    LosPathFollowingAction,
-    ControlModeAction,
-)
+from vortex_msgs.msg import LosPathFollowingAction, ControlModeAction, SetVelocityAction
 from vortex_msgs.srv import (
     ControlMode,
     ControlModeRequest,
@@ -100,7 +95,7 @@ class VelocityGuidance:
         )
         self.action_server = actionlib.SimpleActionServer(
             action_server_name,
-            MoveBaseAction,
+            SetVelocityAction,
             self.action_server_callback,
             auto_start=False,
         )
@@ -135,7 +130,7 @@ class DpGuidance:
         dp_controller_control_mode_service,
     ):
         self.guidance_interface = guidance_interface
-        self.timeout = rospy.get_param("guidance/interface/action_timeout", 90)
+        self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
 
         # set up servers and clients
         rospy.wait_for_service(dp_controller_control_mode_service)
@@ -221,7 +216,7 @@ class LosGuidance:
         guidance_interface_los_action_server,
     ):
         self.guidance_interface = guidance_interface
-        self.timeout = rospy.get_param("guidance/interface/action_timeout", 90)
+        self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
 
         # set up servers and clients
         self.action_client = actionlib.SimpleActionClient(
