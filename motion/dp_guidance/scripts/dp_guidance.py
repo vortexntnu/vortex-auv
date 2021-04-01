@@ -34,19 +34,16 @@ class DPGuidance:
         self.period = 0.025 # Run at 40Hz
         self.controller_setpoint = Pose()
 
+        self.is_active = False
+
         # Publisher for the reference model
-        self.reference_model_pub = rospy.Publisher('/dp_guidance/output', Pose)
+        self.reference_model_pub = rospy.Publisher('/dp_guidance/output', Pose, queue_size=1)
 
         # Action server for receiving goal data
         self.goal_action_server = actionlib.SimpleActionServer(name='dp_action_server', ActionSpec=MoveBaseAction, auto_start=False)
         self.goal_action_server.register_goal_callback(self.goal_cb)  # Called whenever guidance_interface sends a new goal for the dp system
         self.goal_action_server.register_preempt_callback(self.preempt_cb)
         self.goal_action_server.start()
-
-        # Action client for receiving the activation/deactivation signal
-        self.is_active = false
-        self.dp_toggle_service = rospy.Service('/dp_guidance/activate_dp_control', SetBool, self.toggle_service_cb)
-
 
     def spin(self):
         """
@@ -63,10 +60,13 @@ class DPGuidance:
 
     def goal_cb(self):
         """
-        Accept a goal from the guidance interface and store it as local state
+        Accept a goal from the guidance interface and store it as local state,
+        then activate publishing
         """
         new_goal = self.goal_action_server.accept_new_goal()
         self.controller_setpoint = new_goal.target_pose
+
+        self.is_active = True
         
 
     def preempt_cb(self):
@@ -77,9 +77,8 @@ class DPGuidance:
             rospy.loginfo("Goal action server in dp_guidance was preempted!")
             self.goal_action_server.set_preempted()
 
+            self.is_active = False
 
-    def toggle_service_cb(self, request):
-        self.is_active = request.data
 
 if __name__ == '__main__':
 
