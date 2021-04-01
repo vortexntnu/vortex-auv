@@ -23,7 +23,7 @@ class JoystickGuidanceNode():
 
 
 		self.joystick_activation_service_server = rospy.Service(
-			"activate_joystick_control", SetBool, self.toggle_joystick_cb
+			"/joystick_guidance/activate_joystick_control", SetBool, self.toggle_joystick_cb
 		)
 
 		self.publish_guidance_data = False

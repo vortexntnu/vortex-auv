@@ -265,7 +265,7 @@ class GuidanceInterface:
         self.joy_guidance = JoyGuidance(
             guidance_interface=self,
             action_server_name="/guidance_interface/joystick_server",
-            activate_joystick_service_name="activate_joystick_control",
+            activate_joystick_service_name="/joystick_guidance/activate_joystick_control",
         )
         self.vel_guidance = VelocityGuidance(
             guidance_interface=self,
