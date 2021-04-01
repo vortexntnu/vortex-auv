@@ -271,12 +271,13 @@ class LosPathFollowing(object):
 		False means that a goal has been completed (or not started
 		with any goal)
 		"""
-		self.publish_guidance_data = False
-
 		rospy.init_node('los')
 
+		self.publish_guidance_data = False
+		self.period = 0.025 # Run at 40Hz
+
 		# Subscribers
-		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.callback, queue_size=1) # 20hz
+		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1) # 20hz
 
 		# Publishers
 		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
@@ -294,7 +295,107 @@ class LosPathFollowing(object):
 		self.action_server.register_preempt_callback(self.preemptCB)
 		self.action_server.start()
 
-	def callback(self, msg): 
+	def spin(self):
+
+		while not rospy.is_shutdown():
+			if self.publish_guidance_data is True:
+
+				"""
+					Wrapping would have been avoided by using quaternions instead of Euler angles
+					if you don't care about wrapping, use this instead:
+
+					x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed,psi_d)))
+				"""
+				x_d = self.fixHeadingWrapping()
+
+				u_d = x_d[0]
+				u_d_dot = x_d[1]
+				psi_d = x_d[2]
+				r_d = x_d[3]
+				r_d_dot = x_d[4]
+
+				quat_d = quaternion_from_euler(0, 0, psi_d)
+
+				# Publish the desired state
+				los_msg = Odometry()
+
+				los_msg.header.stamp = rospy.Time.now()
+
+				los_msg.pose.pose.position.z = msg.pose.pose.position.z
+
+				los_msg.pose.pose.orientation.x = quat_d[0]
+				los_msg.pose.pose.orientation.y = quat_d[1]
+				los_msg.pose.pose.orientation.z = quat_d[2]
+				los_msg.pose.pose.orientation.w = quat_d[3]
+
+				los_msg.twist.twist.linear.x = u_d
+				los_msg.twist.twist.angular.z = r_d
+
+				self.pub_desired.publish(los_msg)
+
+				# Publish guidance data for the controller
+				guidance_data = GuidanceData()
+
+				guidance_data.u = self.los.u
+				guidance_data.u_d = u_d
+
+				guidance_data.u_dot = self.los.u_dot
+				guidance_data.u_d_dot = u_d_dot
+
+				guidance_data.psi = self.psi
+				guidance_data.psi_d = psi_d
+
+				guidance_data.r = self.los.r
+				guidance_data.r_d = r_d
+				guidance_data.r_d_dot = r_d_dot
+
+				guidance_data.z = self.los.z
+				guidance_data.z_d = self.los.z_d
+
+				guidance_data.v = self.los.v
+				guidance_data.t = self.los.t
+
+				self.pub_data_los_controller.publish(guidance_data)
+
+				# check if action goal succeeded
+				self.statusActionGoal()
+
+			rospy.sleep(rospy.Duration(self.period))
+
+	def fixHeadingWrapping(self):
+		"""
+		The heading angle is obtained by the use of an arctangent
+		function, which is discontinuous at -pi and pi. This can 
+		be problematic when the heading angle is fed into the
+		reference model. This function fixes this problem by
+		wrapping the angles around by 2pi.
+		"""
+
+		e = self.psi - self.psi_ref
+		if e < -math.pi:
+			self.psi_ref = self.psi_ref - 2*math.pi
+		if e > math.pi:
+			self.psi_ref = self.psi_ref + 2*math.pi
+
+
+		# reference model
+		x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, self.psi_ref)))
+		psi_d = x_d[2]
+
+		e = self.psi - psi_d
+		if e > math.pi:
+			psi_d = psi_d - 2*math.pi
+			self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+			x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
+		if e < -math.pi:
+			psi_d = psi_d + 2*math.pi
+			self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+			x_d = self.reference_model.discreteTustinMSD(np.array((self.los.speed, psi_d)))
+
+		return x_d
+
+
+	def odometry_cb(self, msg): 
 		"""
 		The callback used in the subscribed topic /odometry/filtered.
 		When called, position and velocity states are updated, and 
@@ -320,31 +421,6 @@ class LosPathFollowing(object):
 		self.psi_ref = self.los.lookaheadBasedSteering()
 
 
-		if self.publish_guidance_data is True:
-			#Publish guidance data to the reference model
-			guidance_data = GuidanceData()
-
-			guidance_data.u = self.los.u
-
-			guidance_data.u_dot = self.los.u_dot
-
-			guidance_data.psi = self.psi
-
-			guidance_data.r = self.los.r
-
-			guidance_data.z = self.los.z
-			guidance_data.z_d = self.los.z_d
-
-			guidance_data.v = self.los.v
-			guidance_data.t = self.los.t
-			
-			guidance_data.psi_ref = self.psi_ref
-			guidance_data.speed = self.los.speed
-
-			self.pub_data_los_controller.publish(guidance_data)
-
-			# check if action goal succeeded
-			self.statusActionGoal()
 
 	def statusActionGoal(self):
 		"""
@@ -382,7 +458,6 @@ class LosPathFollowing(object):
 		This means that this node will start publishing data for the controller
 		"""
 
-		self.publish_guidance_data = True
 		_goal = self.action_server.accept_new_goal()
 
 		# set goal
@@ -399,6 +474,10 @@ class LosPathFollowing(object):
 
 		# sphere of acceptance
 		self.los.R = _goal.sphereOfAcceptance
+
+		self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
+
+		self.publish_guidance_data = True
 
 	def config_callback(self, config, level):
 		"""
@@ -430,7 +509,7 @@ class LosPathFollowing(object):
 if __name__ == '__main__':
 	try:
 		los_path_following = LosPathFollowing()
+		los_path_following.spin()
 
-		rospy.spin()
 	except rospy.ROSInterruptException:
 		pass

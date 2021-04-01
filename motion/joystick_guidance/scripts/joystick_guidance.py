@@ -81,11 +81,12 @@ class JoystickGuidanceNode():
 		self.sub = rospy.Subscriber('/mission/joystick_data', Joy, self.joystick_data_cb, queue_size=1)
 		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
 
+
 		self.joystick_activation_service_server = rospy.Service(
-			"/joystick_guidance/activate_joystick_control", SetBool, self.activate_joystick_cb
+			"activate_joystick_control", SetBool, self.toggle_joystick_cb
 		)
 
-		self.is_joystick_control_active = false
+		self.publish_guidance_data = False
 
 		self.surge 	= 0
 		self.sway 	= 1
@@ -95,7 +96,7 @@ class JoystickGuidanceNode():
 		self.yaw 	= 5
 
 	def joystick_data_cb(self, msg):
-		if self.is_joystick_control_active:
+		if self.publish_guidance_data:
 			joystick_msg = Wrench()
 			joystick_msg.force.x  = msg.axes[self.surge]
 			joystick_msg.force.y  = msg.axes[self.sway]
@@ -106,8 +107,8 @@ class JoystickGuidanceNode():
 
 			self.pub.publish(joystick_msg)
 
-	def activate_joystick_cb(self, request):
-		self.is_joystick_control_active = request.data
+	def toggle_joystick_cb(self, request):
+		self.publish_guidance_data = request.data
 
 		except Exception as e:
 			rospy.logerr(e)
