@@ -240,30 +240,34 @@ class VelocityGuidance:
 
 
 class DpGuidance:
-    def __init__(self, guidance_interface) -> None:
+    def __init__(self, guidance_interface):
         self.guidance_interface = guidance_interface
 
-        # get params
+        # params
+        dp_guidance_action_server = "dp_action_server"
+        guidance_interface_dp_action_server = "dp_server"
 
         # set up servers and clients
-        self.dp_server = actionlib.SimpleActionServer(
-            "dp_server", MoveBaseAction, self.dpCallback, auto_start=False
-        )
         self.dp_move_client = actionlib.SimpleActionClient(
-            "dp_action_server", MoveBaseAction
+            dp_guidance_action_server, MoveBaseAction
         )
-        # wait for external services and start
+        self.dp_server = actionlib.SimpleActionServer(
+            guidance_interface_dp_action_server,
+            MoveBaseAction,
+            self.dpCallback,
+            auto_start=False,
+        )
         self.dp_server.start()
 
     def callback(self, goal):
-        pass
+        self.guidance_interface.stop_all_guidance()
 
     def stop(self):
         pass
 
 
 class LosGuidance:
-    def __init__(self, guidance_interface) -> None:
+    def __init__(self, guidance_interface):
         self.guidance_interface = guidance_interface
 
         # params
@@ -275,15 +279,15 @@ class LosGuidance:
             "guidance/LOS/guidance_interface_timeout", 90
         )
 
-        action_client_name = "los_action_server"
-        action_server_name = "los_server"
+        los_guidance_action_server = "los_action_server"
+        guidance_interface_los_action_server = "los_server"
 
         # set up servers and clients
         self.action_client = actionlib.SimpleActionClient(
-            action_client_name, LosPathFollowingAction
+            los_guidance_action_server, LosPathFollowingAction
         )
         self.action_server = actionlib.SimpleActionServer(
-            action_server_name,
+            guidance_interface_los_action_server,
             LosPathFollowingAction,
             self.los_callback,
             auto_start=False,
