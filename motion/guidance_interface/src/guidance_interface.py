@@ -1,21 +1,4 @@
 #!/usr/bin/env python
-# coding: UTF-8
-"""
-
-Node som forenkler tilganger til controlleren. 
-Den skal ta av seg bytting mellom controller moduser, 
-slik at koden i state machinene kan bli enklere. 
-
-Noden skal ha en action-server som tar inn en ny action (ligner på
-move_base) som skal inneholde: 
-- Target pose og 
-- String for kontroller som skal benyttes
-
-Noden sender så target posen videre som en ny action
-til den valgte kontrolleren. Resultat og feedback fra endelig kontroller
-sendes videre igjennom noden. 
-
-"""
 
 import time
 from enum import IntEnum, Enum
@@ -28,11 +11,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from std_srvs.srv import Empty, SetBool
 
 from vortex_msgs.msg import (
-    MoveAction,
     LosPathFollowingAction,
-    LosPathFollowingGoal,
     ControlModeAction,
-    SetVelocityAction,
 )
 from vortex_msgs.srv import (
     ControlMode,
@@ -58,14 +38,12 @@ class JoyGuidance:
 
         # params
         action_server_name = "/guidance_interface/joystick_server"
-        joystick_activation_service_name = (
-            "/joystick_guidance/activate_joystick_control"
-        )
+        activate_joystick_service_name = "/joystick_guidance/activate_joystick_control"
 
         # set up servers and clients
-        rospy.wait_for_service(joystick_activation_service_name)
+        rospy.wait_for_service(activate_joystick_service_name)
         self.activate_joystick_service = rospy.ServiceProxy(
-            joystick_activation_service_name, SetBool
+            activate_joystick_service_name, SetBool
         )
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
             action_server_name,
@@ -75,7 +53,7 @@ class JoyGuidance:
         )
         self.joystick_controlmode_server.start()
 
-    def joystick_activation(self, activate):
+    def activate_joystick(self, activate):
         """Requests joystick activation/deactivation from joystick_guidance
 
         Args:
@@ -97,10 +75,10 @@ class JoyGuidance:
         self.guidance_interface.change_dp_control_mode(
             control_mode_goal.controlModeIndex
         )
-        self.joystick_activation(True)
+        self.activate_joystick(True)
 
     def stop(self):
-        self.joystick_activation(False)
+        self.activate_joystick(False)
 
 
 class VelocityGuidance:
@@ -122,11 +100,14 @@ class VelocityGuidance:
             stop_guidance_service_name, Empty
         )
         self.action_server = actionlib.SimpleActionServer(
-            action_server_name, MoveBaseAction, self.dpCallback, auto_start=False
+            action_server_name,
+            MoveBaseAction,
+            self.action_server_callback,
+            auto_start=False,
         )
         self.action_server.start()
 
-    def callback(self, set_velocity_goal):
+    def action_server_callback(self, set_velocity_goal):
         self.guidance_interface.stopAllGuidance()
 
         request = SetVelocityRequest()
@@ -154,6 +135,8 @@ class DpGuidance:
         dp_guidance_action_server = "dp_action_server"
         guidance_interface_dp_action_server = "/guidance_interface/dp_server"
         dp_controller_control_mode_service = "/controller/controlmode_service"
+
+        self.timeout = rospy.get_param("guidance/interface/action_timeout", 90)
 
         # set up servers and clients
         rospy.wait_for_service(dp_controller_control_mode_service)
@@ -236,16 +219,10 @@ class LosGuidance:
         self.guidance_interface = guidance_interface
 
         # params
-        self.los_transit_speed = rospy.get_param("guidance/LOS/transit_speed", 0.3)
-        self.los_sphere_of_acceptance = rospy.get_param(
-            "guidance/LOS/sphere_of_acceptance", 0.5
-        )
-        self.los_timeout = rospy.get_param(
-            "guidance/LOS/guidance_interface_timeout", 90
-        )
-
         los_guidance_action_server = "los_action_server"
         guidance_interface_los_action_server = "/guidance_interface/los_server"
+
+        self.timeout = rospy.get_param("guidance/interface/action_timeout", 90)
 
         # set up servers and clients
         self.action_client = actionlib.SimpleActionClient(
