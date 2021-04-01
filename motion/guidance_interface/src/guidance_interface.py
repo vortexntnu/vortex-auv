@@ -25,7 +25,7 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose, Point, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, SetBool
 
 from vortex_msgs.msg import (
     MoveAction,
@@ -58,22 +58,49 @@ class JoyGuidance:
 
         # params
         action_server_name = "/guidance_interface/joystick_server"
+        joystick_activation_service_name = (
+            "/joystick_guidance/activate_joystick_control"
+        )
 
         # set up servers and clients
+        rospy.wait_for_service(joystick_activation_service_name)
+        self.activate_joystick_service = rospy.ServiceProxy(
+            joystick_activation_service_name, SetBool
+        )
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
             action_server_name,
             ControlModeAction,
-            self.joystick_control_mode_cb,
+            self.action_server_callback,
             auto_start=False,
         )
         self.joystick_controlmode_server.start()
 
-    def joystick_control_mode_cb(self, control_mode):
-        self.guidance_interface.change_dp_control_mode(control_mode.controlModeIndex)
-        time.sleep(0.25)  # Avoid aggressive switching
+    def joystick_activation(self, activate):
+        """Requests joystick activation/deactivation from joystick_guidance
+
+        Args:
+            activate (bool): True activates joystick, False deactivates
+        """
+        request = SetBool()
+        request.data = activate
+
+        try:
+            self.activate_joystick_service(request)
+        except rospy.ServiceException as exc:
+            rospy.logerr(
+                "Joystick activation service did not process request: " + str(exc)
+            )
+
+    def action_server_callback(self, control_mode_goal):
+        self.guidance_interface.stop_all_guidance()
+
+        self.guidance_interface.change_dp_control_mode(
+            control_mode_goal.controlModeIndex
+        )
+        self.joystick_activation(True)
 
     def stop(self):
-        pass
+        self.joystick_activation(False)
 
 
 class VelocityGuidance:
@@ -86,11 +113,11 @@ class VelocityGuidance:
         action_server_name = "/guidance_interface/vel_server"
 
         # set up servers and clients
-        rospy.wait_for_service(self.set_velocity_service)
+        rospy.wait_for_service(set_velocity_service_name)
         self.set_velocity_service = rospy.ServiceProxy(
             set_velocity_service_name, SetVelocity
         )
-        rospy.wait_for_service(self.stop_guidance_service)
+        rospy.wait_for_service(stop_guidance_service_name)
         self.stop_guidance_service = rospy.ServiceProxy(
             stop_guidance_service_name, Empty
         )
