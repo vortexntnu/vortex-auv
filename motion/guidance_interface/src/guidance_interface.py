@@ -33,12 +33,10 @@ class ControlMode(IntEnum):
 
 
 class JoyGuidance:
-    def __init__(self, guidance_interface) -> None:
+    def __init__(
+        self, guidance_interface, action_server_name, activate_joystick_service_name
+    ):
         self.guidance_interface = guidance_interface
-
-        # params
-        action_server_name = "/guidance_interface/joystick_server"
-        activate_joystick_service_name = "/joystick_guidance/activate_joystick_control"
 
         # set up servers and clients
         rospy.wait_for_service(activate_joystick_service_name)
@@ -82,13 +80,14 @@ class JoyGuidance:
 
 
 class VelocityGuidance:
-    def __init__(self, guidance_interface):
+    def __init__(
+        self,
+        guidance_interface,
+        set_velocity_service_name,
+        stop_guidance_service_name,
+        action_server_name,
+    ):
         self.guidance_interface = guidance_interface
-
-        # params
-        set_velocity_service_name = "/vel_guidance/set_velocity"
-        stop_guidance_service_name = "/vel_guidance/stop_guidance"
-        action_server_name = "/guidance_interface/vel_server"
 
         # set up servers and clients
         rospy.wait_for_service(set_velocity_service_name)
@@ -128,14 +127,14 @@ class VelocityGuidance:
 
 
 class DpGuidance:
-    def __init__(self, guidance_interface):
+    def __init__(
+        self,
+        guidance_interface,
+        dp_guidance_action_server,
+        guidance_interface_dp_action_server,
+        dp_controller_control_mode_service,
+    ):
         self.guidance_interface = guidance_interface
-
-        # params
-        dp_guidance_action_server = "dp_action_server"
-        guidance_interface_dp_action_server = "/guidance_interface/dp_server"
-        dp_controller_control_mode_service = "/controller/controlmode_service"
-
         self.timeout = rospy.get_param("guidance/interface/action_timeout", 90)
 
         # set up servers and clients
@@ -215,13 +214,13 @@ class DpGuidance:
 
 
 class LosGuidance:
-    def __init__(self, guidance_interface):
+    def __init__(
+        self,
+        guidance_interface,
+        los_guidance_action_server,
+        guidance_interface_los_action_server,
+    ):
         self.guidance_interface = guidance_interface
-
-        # params
-        los_guidance_action_server = "los_action_server"
-        guidance_interface_los_action_server = "/guidance_interface/los_server"
-
         self.timeout = rospy.get_param("guidance/interface/action_timeout", 90)
 
         # set up servers and clients
@@ -268,10 +267,28 @@ class LosGuidance:
 
 class GuidanceInterface:
     def __init__(self):
-        self.vel_guidance = VelocityGuidance(self)
-        self.dp_guidance = DpGuidance(self)
-        self.los_guidance = LosGuidance(self)
-        self.joy_guidance = JoyGuidance(self)
+        self.joy_guidance = JoyGuidance(
+            guidance_interface=self,
+            action_server_name="/guidance_interface/joystick_server",
+            activate_joystick_service_name="/joystick_guidance/activate_joystick_control",
+        )
+        self.vel_guidance = VelocityGuidance(
+            guidance_interface=self,
+            set_velocity_service_name="/vel_guidance/set_velocity",
+            stop_guidance_service_name="/vel_guidance/stop_guidance",
+            action_server_name="/guidance_interface/vel_server",
+        )
+        self.dp_guidance = DpGuidance(
+            guidance_interface=self,
+            dp_guidance_action_server="dp_action_server",
+            guidance_interface_dp_action_server="/guidance_interface/dp_server",
+            dp_controller_control_mode_service="/controller/controlmode_service",
+        )
+        self.los_guidance = LosGuidance(
+            guidance_interface=self,
+            los_guidance_action_server="los_action_server",
+            guidance_interface_los_action_server="/guidance_interface/los_server",
+        )
 
     def stop_all_guidance(self):
         self.joy_guidance.stop()
