@@ -231,7 +231,7 @@ class LOSController:
 		self.PID = LOSControllerPID()
 	
 		# Subscribers
-		self.sub_guidance = rospy.Subscriber('/guidance/los_data', GuidanceData, self.guidance_data_callback, queue_size=1)
+		self.sub_reference_model = rospy.Subscriber('/reference_model/los_data', GuidanceData, self.reference_model_data_callback, queue_size=1)
 
 		# Publishers
 		self.pub_thrust = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
@@ -240,7 +240,7 @@ class LOSController:
 		self.config = {}
 		self.srv_reconfigure = Server(LOSControllerConfig, self.config_callback)
 
-	def guidance_data_callback(self, msg):
+	def reference_model_data_callback(self, msg):
 		"""
 		Handle guidance data whenever it is published by calculating
 		a control vector based on the given data.

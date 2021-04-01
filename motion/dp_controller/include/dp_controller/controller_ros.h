@@ -71,6 +71,11 @@ public:
 
 
   /**
+   * @brief Callback for the reference model subscriber
+  */
+  void refmodelCallback(const geometry_msgs::Pose &msg);
+
+  /**
    * @brief Callback for the dynamic reconfigure server
    * 
    * @param config   A VortexControllerConfig object used to store parameters
@@ -95,32 +100,24 @@ public:
                            vortex_msgs::ControlMode::Response &res);
 
 
-  /**
-   * @brief Action server; goal
-   * 
-   * Called when a new goal is set, and simply accepts the new goal.
-   * 
-  */
-  void actionGoalCallBack();
+
+//  /**
+//   * @brief Action server; goal
+//   * 
+//   * Called when a new goal is set, and simply accepts the new goal.
+//   * 
+//  */
+//  void actionGoalCallBack();
+//
+//
+//  /**
+//   * @brief Action server; preemptive goal
+//   * 
+//   * Called whenever external applications like rviz sends a simple goal.
+//  */
+//  void preemptCallBack();
 
 
-  /**
-   * @brief Action server; preemptive goal
-   * 
-   * Called whenever external applications like rviz sends a simple goal.
-  */
-  void preemptCallBack();
-
-
-  /**
-   * @brief class wrapper for the usual ros::spin() command
-   * 
-   * for each spinOnce, this function gets the newest state
-   * and newest setpoints, and calculates a force vector
-   * depending on the current control mode.
-  */
-  void spin();  
-  
   ros::ServiceServer control_mode_service_; /** Control mode service server */
 
 private:
@@ -129,6 +126,7 @@ private:
 
   ros::Subscriber m_command_sub;       /** Command subscriber  */          
   ros::Subscriber m_state_sub;         /** State subscriber    */
+  ros::Subscriber m_refmodel_sub;      /** Reference model subscriber*/
   ros::Subscriber m_mode_sub;          /** Mode subscriber     */
 
   ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
@@ -196,7 +194,7 @@ private:
    * 
    * @see quaternion_pd_controller.h
   */
-  void initPositionHoldController();
+  void initPositionHoldController(); 
 
 
   /**

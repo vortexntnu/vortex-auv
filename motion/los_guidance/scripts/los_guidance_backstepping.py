@@ -20,9 +20,6 @@ from los_guidance.cfg import LOSConfig
 import actionlib
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal, LosPathFollowingResult, LosPathFollowingFeedback
 
-# modules included in this package
-from reference_model.discrete_tustin import ReferenceModel
-
 class LOS:
 	"""
 	The Line-Of-Sight guidance class, with an imported controller.
@@ -283,12 +280,10 @@ class LosPathFollowing(object):
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1) # 20hz
 
 		# Publishers
-		self.pub_desired = rospy.Publisher('/auv/los_desired', Odometry, queue_size=1)
 		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# constructor object
 		self.los = LOS()
-		self.reference_model = ReferenceModel(np.array((0, 0)), self.los.h)
 
 		# dynamic reconfigure
 		self.config = {}
@@ -509,6 +504,8 @@ class LosPathFollowing(object):
 		return config
 
 
+
+#Move this to reference_model_node.py:
 if __name__ == '__main__':
 	try:
 		los_path_following = LosPathFollowing()
