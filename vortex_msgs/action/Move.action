@@ -1,0 +1,9 @@
+# The move action is used to interface between the FSM
+# and the guidance system.
+# Valid guidance types are: LOS, PositionHold
+
+string guidance_type
+geometry_msgs/Pose target_pose
+float32 radius_of_acceptance
+---
+---

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>battery_monitor</name>
+  <name>internal_status</name>
   <version>0.0.0</version>
-  <description>The battery_monitor package</description>
+  <description>The internal_status package</description>
   
   <maintainer email="vortex@vortex.vortex">vortex</maintainer>
 

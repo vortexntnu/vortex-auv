@@ -6,13 +6,7 @@
 
     <!-- Monitoring nodes -->
     <group ns="$(arg ns_monitor)">
-        <node pkg="battery_monitor"
-        type="battery_monitor.py"
-        name="battery_monitor"
-        output="screen"/>
-        <node pkg="temperature_monitor"
-        type="temperature_monitor.py"
-        name="temperature_monitor"
-        output="screen"/>
+        <node pkg="internal_status" type="battery_monitor.py"       name="battery_monitor"      output="screen"/>
+        <node pkg="internal_status" type="temperature_monitor.py"   name="temperature_monitor"  output="screen"/>
     </group>
 </launch>
