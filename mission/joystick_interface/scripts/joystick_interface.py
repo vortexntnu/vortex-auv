@@ -4,7 +4,7 @@ import rospy
 import actionlib
 
 from sensor_msgs.msg import Joy
-from vortex_msgs.msg import ControlModeAction
+from vortex_msgs.msg import ControlModeAction, ControlModeGoal
 
 class JoystickInterface():
 
@@ -39,7 +39,7 @@ class JoystickInterface():
         self.joystick_sub = rospy.Subscriber('/joystick/joy', Joy, self.joystick_cb, queue_size=1)
         self.joystick_pub = rospy.Publisher('/mission/joystick_data', Joy, queue_size=1)
 
-        self.guidance_interface_client = actionlib.SimpleActionClient("/guidance/control_mode_server", ControlModeAction)
+        self.guidance_interface_client = actionlib.SimpleActionClient("/guidance_interface/joystick_server", ControlModeAction)
 
         rospy.loginfo('Joystick interface is up and running')
 
@@ -55,8 +55,14 @@ class JoystickInterface():
 
 
         abxy = self._abxy_pressed(buttons)
+
         if abxy != -1:
-            self.guidance_interface_client.send_goal(abxy)
+            rospy.loginfo("Control mode changed by joystick: %d" % abxy)
+
+            cm = ControlModeGoal()
+            cm.controlModeIndex = abxy
+            self.guidance_interface_client.send_goal(cm)
+            rospy.sleep(rospy.Duration(0.25)) # Sleep to avoid aggressie switching
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
         sway 	= axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
@@ -71,11 +77,21 @@ class JoystickInterface():
         self.joystick_pub.publish(joystick_msg)
 
     def _abxy_pressed(self, buttons):
-        for i in range(4):
-            if buttons[i]:
-                return i
+        pressed = -1
 
-        return -1 # Needs to be -1 since 0 (or "false") is part of the valid indices above
+        if buttons['A']:
+            pressed = 0
+        
+        if buttons['B']:
+            pressed = 1
+
+        if buttons['X']:
+            pressed = 2
+
+        if buttons['Y']:
+            pressed = 3
+
+        return pressed
 
 if __name__ == '__main__':
     
