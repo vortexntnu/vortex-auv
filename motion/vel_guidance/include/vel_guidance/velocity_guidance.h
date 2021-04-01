@@ -1,5 +1,5 @@
-#ifndef VELOCITY_GUIDANCE
-#define VELOCITY_GUIDANCE
+#ifndef VELOCITY_GUIDANCE_H
+#define VELOCITY_GUIDANCE_H
 
 #include <string>
 
