@@ -93,10 +93,6 @@ class GuidanceInterface_old:
         self.dp_client = actionlib.SimpleActionClient('dp_action_server', MoveBaseAction)
         self.los_client = actionlib.SimpleActionClient('los_action_server', LosPathFollowingAction)
 
-        self.joystick_controlmode_server = actionlib.SimpleActionServer('control_mode_server',
-            ControlModeAction, self.joystick_control_mode_cb, auto_start=False)
-        self.joystick_controlmode_server.start()
-
         self.joystick_sub = rospy.Subscriber(
             "/joystick/joy", Joy, self.joystick_cb, queue_size=1
         )
@@ -167,12 +163,6 @@ class GuidanceInterface_old:
         else:
             self.action_server.set_aborted()
 
-    def joystick_control_mode_cb(self, control_mode):
-        change_control_mode(control_mode.controlModeIndex)
-        time.sleep(0.25) # Avoid aggressive switching
-        
-
-
 
 class GuidanceInterface:
     def __init__(self):
@@ -182,6 +172,11 @@ class GuidanceInterface:
         self.transit_speed = rospy.get_param("~transit_speed", 0.3)
         self.sphere_of_acceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
         self.timeout = rospy.get_param("~guidance_interface_timeout", 90)
+
+        # Joystick setup
+        self.joystick_controlmode_server = actionlib.SimpleActionServer(
+            'control_mode_server', ControlModeAction, self.joystick_control_mode_cb, auto_start=False
+        )
 
         # DP setup
         self.dp_move_server = actionlib.SimpleActionServer(
@@ -204,7 +199,8 @@ class GuidanceInterface:
         # Joy setup
 
         # start action servers
-        self.dp_action_server.start()
+        self.dp_move_server.start()
+        self.joystick_controlmode_server.start()
 
         pass
 
@@ -225,6 +221,10 @@ class GuidanceInterface:
 
     def joyCallback(self, msg):
         pass
+
+    def joystick_control_mode_cb(self, control_mode):
+        change_control_mode(control_mode.controlModeIndex)
+        time.sleep(0.25) # Avoid aggressive switching
 
 
 if __name__ == "__main__":
