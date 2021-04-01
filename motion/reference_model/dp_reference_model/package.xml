@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dp_reference_model</name>
+  <version>0.0.0</version>
+  <description>The dp_reference_model package</description>
+
+  <maintainer email="chstr@stud.ntnu.no">Christopher Strøm</maintainer>
+
+  <license>MIT</license>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>tf</build_depend>  
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+
+  <exec_depend>tf</exec_depend>  
+  <exec_depend>tf_conversions</exec_depend>
+  <exec_depend>eigen_conversions</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+</package>

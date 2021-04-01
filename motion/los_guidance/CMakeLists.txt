@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   vortex_msgs
   tf
   dynamic_reconfigure
-  reference_model
+  los_reference_model
 )
 
 ## System dependencies are found with CMake's conventions

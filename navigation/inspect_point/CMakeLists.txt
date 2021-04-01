@@ -10,7 +10,7 @@ project(inspect_point)
 find_package(catkin REQUIRED COMPONENTS
   los_controller
   nav_msgs
-  reference_model
+  los_reference_model
   std_msgs
   tf
   vortex_msgs
