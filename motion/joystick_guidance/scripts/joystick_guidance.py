@@ -13,7 +13,7 @@ from std_msgs.msg import Bool
 from pyquaternion import Quaternion
 from nav_msgs.msg import Odometry
 
-from std_srvs.srv import SetBool
+from std_srvs.srv import SetBool, SetBoolResponse
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
 
@@ -55,6 +55,9 @@ class JoystickGuidanceNode():
 
 	def toggle_joystick_cb(self, request):
 		self.publish_guidance_data = request.data
+		response = SetBoolResponse()
+		response.success = True
+		return response
 
 
 if __name__ == '__main__':
