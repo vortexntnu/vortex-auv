@@ -64,7 +64,6 @@ class JoyGuidance:
 
         try:
             self.activate_joystick_service(request)
-            rospy.loginfo("activate joystick service called")
         except rospy.ServiceException as exc:
             rospy.logerr(
                 "Joystick activation service did not process request: " + str(exc)
@@ -127,7 +126,7 @@ class VelocityGuidance:
     def stop(self):
         try:
             self.stop_guidance_service()
-            rospy.loginfo("vel guidance stopped!")
+            rospy.logdebug("vel guidance stopped!")
         except rospy.ServiceException as exc:
             rospy.logerr(
                 "Stop velocity guidance service did not process request: " + str(exc)
@@ -178,7 +177,7 @@ class DpGuidance:
 
         if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
             self.action_server.set_aborted()
-            rospy.loginfo("DP guidance aborted action due to timeout")
+            rospy.logwarn("DP guidance aborted action due to timeout")
 
     def guidance_finished_cb(self, state, result):
         """
@@ -204,10 +203,7 @@ class DpGuidance:
 
         # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
         if issubclass(type(control_mode), ControlModeEnum):
-            control_mode = (
-                control_mode.value
-            )  # since enum.field returns name and value
-            rospy.loginfo("Control mode changed")
+            control_mode = control_mode.value  # since enum.field returns name and value
         else:
             # check if index is valid
             if control_mode not in [member.value for member in ControlModeEnum]:
@@ -266,7 +262,7 @@ class LosGuidance:
 
         if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
             self.action_server.set_aborted()
-            rospy.loginfo("LOS guidance aborted action due to timeout")
+            rospy.logwarn("LOS guidance aborted action due to timeout")
 
     def guidance_finished_cb(self, state, result):
         """
