@@ -6,7 +6,7 @@
 
 #include "dp_reference_model/reference_model.h"
 
-ReferenceModel::ReferenceModel(ros::NodeHandle nh) : ROV_state{false}
+ReferenceModel::ReferenceModel(ros::NodeHandle nh)
 {
      /**
       * Have used the old values (if changed) as default-values. 
@@ -28,36 +28,24 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : ROV_state{false}
      Eigen::Vector3d x_ref_prev          = Eigen::Vector3d::Zero();
      Eigen::Vector3d x_ref_prev_prev     = Eigen::Vector3d::Zero();
 
-     uuv_state_sub            = nh.subscribe("/guidance/joystick_state", 1, &ReferenceModel::uuv_state_cb, this);
-     joystick_setpoint_sub    = nh.subscribe("/guidance/joystick_reference", 1, &ReferenceModel::joystick_setpoint_cb, this);
-     fsm_setpoint_sub         = nh.subscribe("/reference_model/input", 1, &ReferenceModel::fsm_setpoint_cb, this); 
-     reference_pub            = nh.advertise<geometry_msgs::Pose>("/reference_model/output", 10, this);
+     setpoint_sub   = nh.subscribe("/guidance/dp_data", 1, &ReferenceModel::setpoint_cb, this); 
+     reference_pub  = nh.advertise<geometry_msgs::Pose>("/reference_model/output", 10, this);
 }
 
-
-// Callbacks
-void ReferenceModel::joystick_setpoint_cb(const geometry_msgs::Pose &msg) 
+void ReferenceModel::setpoint_cb(const geometry_msgs::Pose &msg) 
 {
-     /* Only accepting if driving as a ROV */
-     if(ROV_state){
-          calculate_desired_pose(msg);
-     }
-}
+     Eigen::Vector3d x_ref{msg.position.x, msg.position.y, msg.position.z};
+     Eigen::Vector3d x_d = calculate_smooth(x_ref);
 
-void ReferenceModel::fsm_setpoint_cb(const geometry_msgs::Pose &msg) 
-{
-     /* Only accepting if driving as an AUV */
-     if(!ROV_state){
-          calculate_desired_pose(msg);
-     }
-}
+     geometry_msgs::Point x_d_point;
+     tf::pointEigenToMsg(x_d, x_d_point);
 
-void ReferenceModel::uuv_state_cb(const std_msgs::Bool &msg)
-{
-     /* Changing the state between ROV <--> AUV */
-     ROV_state = msg.data;
-}
+     geometry_msgs::Pose pose;
+     pose.position = x_d_point;
+     pose.orientation = msg.orientation;
 
+     reference_pub.publish(pose);
+}
 
 // Utility
 Eigen::Vector3d ReferenceModel::calculate_smooth(const Eigen::Vector3d &x_ref)
@@ -80,19 +68,4 @@ void ReferenceModel::reset(Eigen::Vector3d pos)
      x_d_prev_prev = pos;
      x_ref_prev = pos;
      x_ref_prev_prev = pos;
-}
-
-
-void ReferenceModel::calculate_desired_pose(const geometry_msgs::Pose &msg)
-{
-     Eigen::Vector3d x_ref{msg.position.x, msg.position.y, msg.position.z};
-     Eigen::Vector3d x_d = calculate_smooth(x_ref);
-
-     geometry_msgs::Point x_d_point;
-     tf::pointEigenToMsg(x_d, x_d_point);
-
-     geometry_msgs::Pose pose;
-     pose.position = x_d_point;
-     pose.orientation = msg.orientation;
-     reference_pub.publish(pose);
 }
