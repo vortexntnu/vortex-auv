@@ -34,10 +34,10 @@ class JoyGuidance:
         self.guidance_interface = guidance_interface
 
         # set up servers and clients
-        rospy.wait_for_service(activate_joystick_service_name)
-        self.activate_joystick_service = rospy.ServiceProxy(
-            activate_joystick_service_name, SetBool
-        )
+        #rospy.wait_for_service(activate_joystick_service_name)
+        #self.activate_joystick_service = rospy.ServiceProxy(
+        #    activate_joystick_service_name, SetBool
+        #)
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
             action_server_name,
             ControlModeAction,
@@ -85,14 +85,14 @@ class VelocityGuidance:
         self.guidance_interface = guidance_interface
 
         # set up servers and clients
-        rospy.wait_for_service(set_velocity_service_name)
-        self.set_velocity_service = rospy.ServiceProxy(
-            set_velocity_service_name, SetVelocity
-        )
-        rospy.wait_for_service(stop_guidance_service_name)
-        self.stop_guidance_service = rospy.ServiceProxy(
-            stop_guidance_service_name, Empty
-        )
+        #rospy.wait_for_service(set_velocity_service_name)
+        #self.set_velocity_service = rospy.ServiceProxy(
+        #    set_velocity_service_name, SetVelocity
+        #)
+        #rospy.wait_for_service(stop_guidance_service_name)
+        #self.stop_guidance_service = rospy.ServiceProxy(
+        #    stop_guidance_service_name, Empty
+        #)
         self.action_server = actionlib.SimpleActionServer(
             action_server_name,
             SetVelocityAction,
@@ -133,10 +133,11 @@ class DpGuidance:
         self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
 
         # set up servers and clients
-        rospy.wait_for_service(dp_controller_control_mode_service)
-        self.control_mode_service = rospy.ServiceProxy(
-            dp_controller_control_mode_service, ControlMode
-        )
+        #rospy.wait_for_service(dp_controller_control_mode_service)
+        
+        #self.control_mode_service = rospy.ServiceProxy(
+        #    dp_controller_control_mode_service, ControlMode
+        #)
         self.action_client = actionlib.SimpleActionClient(
             dp_guidance_action_server, MoveBaseAction
         )
@@ -262,23 +263,27 @@ class LosGuidance:
 
 class GuidanceInterface:
     def __init__(self):
+        
         self.joy_guidance = JoyGuidance(
             guidance_interface=self,
             action_server_name="/guidance_interface/joystick_server",
             activate_joystick_service_name="/joystick_guidance/activate_joystick_control",
         )
+
         self.vel_guidance = VelocityGuidance(
             guidance_interface=self,
             set_velocity_service_name="/vel_guidance/set_velocity",
             stop_guidance_service_name="/vel_guidance/stop_guidance",
             action_server_name="/guidance_interface/vel_server",
         )
+
         self.dp_guidance = DpGuidance(
             guidance_interface=self,
-            dp_guidance_action_server="dp_action_server",
+            dp_guidance_action_server='dp_action_server',
             guidance_interface_dp_action_server="/guidance_interface/dp_server",
             dp_controller_control_mode_service="/controller/controlmode_service",
         )
+
         self.los_guidance = LosGuidance(
             guidance_interface=self,
             los_guidance_action_server="los_action_server",
