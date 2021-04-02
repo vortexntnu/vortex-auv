@@ -63,18 +63,7 @@ private:
       * 
       * @param msg Reference Pose
       */
-     void fsm_setpoint_cb(const geometry_msgs::Pose& msg);
-
-
-     /**
-      * @brief Callback to change the desired state of the UUV
-      * 
-      * @param msg Bool determining if the system should be set as a ROV or as an AUV
-      * msg == false => ROV
-      * msg == true  => AUV
-      */
-     void uuv_state_cb(const std_msgs::Bool &msg);
-
+     void setpoint_cb(const geometry_msgs::Pose& msg);
 
 
      /**
@@ -90,15 +79,6 @@ private:
       */
      void reset(Eigen::Vector3d pos);
 
-
-     /**
-      * @brief Calculate and publish the desired, smooth position
-      * and orientation.
-      * 
-      * @param msg  A Pose that contains information about desired pose
-      */
-     void calculate_desired_pose(const geometry_msgs::Pose &msg);
-
      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 public:
@@ -109,9 +89,7 @@ public:
       */
      ReferenceModel(ros::NodeHandle nh);
 
-     ros::Subscriber uuv_state_sub;               /* Subscriber for changing uuv-state         */
-     ros::Subscriber joystick_setpoint_sub;       /* Subscriber for listening to the joystick  */
-     ros::Subscriber fsm_setpoint_sub;            /* Subscriber for listening to the FSM       */
+     ros::Subscriber setpoint_sub;            /* Subscriber for listening to the FSM       */
      ros::Publisher reference_pub;                /* Publish of point to DP-controller         */
 
 };

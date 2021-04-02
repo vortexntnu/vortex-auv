@@ -19,15 +19,12 @@
 
 //TODO: unused parameters that will be left when switching from server to topic
 //should be removed from the constructor.
-Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
+Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
 {
   // ROS Parameters
   std::string odometry_topic;
   if (!nh.getParam("dp_controller/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
-
-  if (!m_nh.getParam("/controllers/dp/frequency", m_frequency))
-    ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
 
   std::string s;
   if (!m_nh.getParam("/computer", s))
@@ -43,8 +40,8 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   }  
 
   // Subscribers
-  m_state_sub   = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
-  m_refmodel_sub    = m_nh.subscribe("/reference_model/output", 1, &Controller::refmodelCallback, this);
+  m_state_sub       = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
+  m_guidance_sub    = m_nh.subscribe("/guidance/dp_data", 1, &Controller::guidanceCallback, this);
 
   // Service callback
   control_mode_service_ = m_nh.advertiseService("controlmode_service",&Controller::controlModeCallback, this);
@@ -59,9 +56,10 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   Eigen::Vector3d startPoint(5,-10,0);
   position = startPoint;
 
+  position = Eigen::Vector3d::Zero();
+  orientation = Eigen::Quaterniond::Identity();
+  velocity = Eigen::VectorXd::Zero(6);
 
-  m_state.reset(new State());
-  initSetpoints();
   initPositionHoldController();
 
   // Set up a dynamic reconfigure server
@@ -69,7 +67,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   dr_cb = boost::bind(&Controller::configCallback, this, _1, _2);
   m_dr_srv.setCallback(dr_cb);
 
-  ROS_INFO("Initialized at %i Hz.", m_frequency);
 }
 
 /* SERVICE SERVER */
@@ -125,6 +122,8 @@ ControlMode Controller::getControlMode(int mode)
 void Controller::stateCallback(const nav_msgs::Odometry &msg)
 {
 
+  // Update local states position, orientation and velocity
+
   // Convert to eigen for computation
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
@@ -137,15 +136,9 @@ void Controller::stateCallback(const nav_msgs::Odometry &msg)
     return;
   }
 
-  // takes a odometry message and transforms to Eigen message
-  m_state->set(position, orientation, velocity);
-
 }
 
-//TODO: Add a callback for the reference model topic
-//This callback should do most of what the spin() function does,
-//and ultimately publish a control vector
-void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
+void Controller::guidanceCallback(const geometry_msgs::Pose &msg) {
   // Declaration of general forces
   Eigen::Vector6d    tau_command          = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_openloop         = Eigen::VectorXd::Zero(6);
@@ -155,18 +148,10 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
   Eigen::Vector6d    tau_poseheadinghold  = Eigen::VectorXd::Zero(6);
   Eigen::Vector6d    tau_posehold         = Eigen::VectorXd::Zero(6);  
 
-  Eigen::Vector3d    position_state       = Eigen::Vector3d::Zero();
-  Eigen::Quaterniond orientation_state    = Eigen::Quaterniond::Identity();
-  Eigen::Vector6d    velocity_state       = Eigen::VectorXd::Zero(6);
-
   Eigen::Vector3d    position_setpoint    = Eigen::Vector3d::Zero();
   Eigen::Quaterniond orientation_setpoint = Eigen::Quaterniond::Identity();
-
-  // Message declaration
-  geometry_msgs::Wrench tau_msg;
   
   // gets the newest state as Eigen
-  m_state->get(&position_state, &orientation_state, &velocity_state);
 
   // Sets setpoints equal to geometry_msgs::Pose message from topic /reference_model/output
   position_setpoint[0] = msg.position.x;
@@ -193,9 +178,9 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
     case ControlModes::POSE_HOLD:
 
       tau_posehold = poseHold(tau_openloop,
-                              position_state,
-                              orientation_state,
-                              velocity_state,
+                              position,
+                              orientation,
+                              velocity,
                               position_setpoint,
                               orientation_setpoint);
 
@@ -206,9 +191,9 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
     // 3D coordinates with heading
     case ControlModes::DEPTH_HOLD:
       tau_depthhold = depthHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
+                                position,
+                                orientation,
+                                velocity,
                                 position_setpoint);
 
       tau_command = tau_openloop + tau_depthhold;
@@ -218,9 +203,9 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
     // adjust roll and pitch
     case ControlModes::POSE_HEADING_HOLD:
       tau_poseheadinghold = poseHeadingHold(tau_openloop,
-                                            position_state,
-                                            orientation_state,
-                                            velocity_state,
+                                            position,
+                                            orientation,
+                                            velocity,
                                             position_setpoint,
                                             orientation_setpoint);
 
@@ -231,9 +216,9 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
     // only heading
     case ControlModes::HEADING_HOLD:
       tau_headinghold = headingHold(tau_openloop,
-                                    position_state,
-                                    orientation_state,
-                                    velocity_state,
+                                    position,
+                                    orientation,
+                                    velocity,
                                     orientation_setpoint);
       tau_command = tau_headinghold;
 
@@ -242,15 +227,15 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
     // only depth and heading
     case ControlModes::DEPTH_HEADING_HOLD:
       tau_depthhold = depthHold(tau_openloop,
-                                position_state,
-                                orientation_state,
-                                velocity_state,
+                                position,
+                                orientation,
+                                velocity,
                                 position_setpoint);
 
       tau_headinghold = headingHold(tau_openloop,
-                                    position_state,
-                                    orientation_state,
-                                    velocity_state,
+                                    position,
+                                    orientation,
+                                    velocity,
                                     orientation_setpoint);
 
       tau_command = tau_openloop + tau_depthhold + tau_headinghold;
@@ -261,6 +246,7 @@ void Controller::refmodelCallback(const geometry_msgs::Pose &msg) {
       ROS_ERROR("Default control mode reached.");
   }
 
+  geometry_msgs::Wrench tau_msg;
   tf::wrenchEigenToMsg(tau_command, tau_msg);
   m_wrench_pub.publish(tau_msg);
 }
@@ -276,57 +262,7 @@ void Controller::configCallback(const dp_controller::VortexControllerConfig &con
   m_controller->setGains(config.velocity_gain, config.position_gain, config.attitude_gain, config.integral_gain);
 }
 
-void Controller::initSetpoints()
-{
-  m_setpoints.reset(new Setpoints());
-}
 
-void Controller::resetSetpoints()
-{
-  // Reset setpoints to be equal to state
-  Eigen::Vector3d position;
-  Eigen::Quaterniond orientation;
-  m_state->get(&position, &orientation);
-  m_setpoints->set(position, orientation);
-}
-
-void Controller::updateSetpoint(PoseIndex axis)
-{
-  Eigen::Vector3d state;
-  Eigen::Vector3d setpoint;
-
-  switch (axis)
-  {
-    case SURGE:
-    case SWAY:
-    case HEAVE:
-
-      m_state->get(&state);
-      m_setpoints->get(&setpoint);
-
-      setpoint[axis] = state[axis];
-      m_setpoints->set(setpoint);
-      break;
-
-    case ROLL:
-    case PITCH:
-    case YAW:
-
-    // calculate heading setpoint based on current position
-    // and location of position setpoint
-      m_state->getEuler(&state);
-      m_setpoints->getEuler(&setpoint);
-
-      setpoint[axis-3] = state[axis-3];
-      Eigen::Matrix3d R;
-      R = Eigen::AngleAxisd(setpoint(2), Eigen::Vector3d::UnitZ())
-        * Eigen::AngleAxisd(setpoint(1), Eigen::Vector3d::UnitY())
-        * Eigen::AngleAxisd(setpoint(0), Eigen::Vector3d::UnitX());
-      Eigen::Quaterniond quaternion_setpoint(R);
-      m_setpoints->set(quaternion_setpoint);
-      break;
-  }
-}
 
 void Controller::initPositionHoldController()
 {
@@ -490,7 +426,6 @@ Eigen::Vector6d Controller::depthHold(const Eigen::Vector6d &tau_openloop,
   }
   else
   {
-    updateSetpoint(HEAVE);
     tau.setZero();
   }
 
@@ -520,7 +455,6 @@ Eigen::Vector6d Controller::headingHold(const Eigen::Vector6d &tau_openloop,
   }
   else
   {
-    updateSetpoint(YAW);
     tau.setZero();
   }
 
@@ -549,9 +483,6 @@ Eigen::Vector6d Controller::poseHold(const Eigen::Vector6d &tau_openloop,
   }
   else
   {
-    updateSetpoint(SURGE);
-    updateSetpoint(SWAY);
-    updateSetpoint(HEAVE);
     tau.setZero();
   }
 
@@ -580,10 +511,6 @@ Eigen::Vector6d Controller::poseHeadingHold(const Eigen::Vector6d &tau_openloop,
   }
   else
   {
-    updateSetpoint(SURGE);
-    updateSetpoint(SWAY);
-    updateSetpoint(HEAVE);
-    updateSetpoint(YAW);
     tau.setZero();
   }
 
