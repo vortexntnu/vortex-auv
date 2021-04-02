@@ -10,7 +10,7 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh)
   // get params
   std::vector<double> beta_temp;
   if (!nh.getParam("/reference_model/dp/beta", beta_temp))
-    beta_temp = { 0.025, 0.025, 0.025 };
+    beta_temp = { 0.025, 0.025, 0.0025 };
   beta = Eigen::Vector3d(beta_temp[0], beta_temp[1], beta_temp[2]);
 
   /**

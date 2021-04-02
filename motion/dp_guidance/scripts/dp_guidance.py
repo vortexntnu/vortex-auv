@@ -30,8 +30,8 @@ class DPGuidance:
         server in the dp controller. The guidance and controller communicate
         through this server.
         """
-        
-        rate = rospy.get_param("guidance/dp/rate", "20")  # [Hz]
+
+        rate = rospy.get_param("guidance/dp/rate", 20)  # [Hz]
         self.ros_rate = rospy.Rate(rate)
 
         self.controller_setpoint = Pose()
