@@ -21,8 +21,29 @@
 //should be removed from the constructor.
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 {
+  // ROS Parameters
+  std::string odometry_topic;
+  if (!nh.getParam("dp_controller/odometry_topic", odometry_topic))
+    odometry_topic = "/odometry/filtered";
+
+  if (!m_nh.getParam("/controllers/dp/frequency", m_frequency))
+    ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
+
+  std::string s;
+  if (!m_nh.getParam("/computer", s))
+  {
+    s = "pc-debug";
+    ROS_WARN("Failed to read parameter computer");
+  }
+  if (s == "pc-debug")
+    m_debug_mode = true;
+
+  if(!m_nh.getParam("/controllers/dp/circleOfAcceptance", R)){
+    ROS_WARN("Failed to read parameter circleOfAcceptance");
+  }  
+
   // Subscribers
-  m_state_sub       = m_nh.subscribe("/odometry/filtered", 1, &Controller::stateCallback, this);
+  m_state_sub   = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
   m_refmodel_sub    = m_nh.subscribe("/reference_model/output", 1, &Controller::refmodelCallback, this);
 
   // Service callback
@@ -38,21 +59,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
   Eigen::Vector3d startPoint(5,-10,0);
   position = startPoint;
 
-  // Launch file specifies <auv>.yaml as directory
-  if (!m_nh.getParam("/controllers/dp/frequency", m_frequency))
-    ROS_WARN("Failed to read parameter controller frequency, defaulting to %i Hz.", m_frequency);
-  std::string s;
-  if (!m_nh.getParam("/computer", s))
-  {
-    s = "pc-debug";
-    ROS_WARN("Failed to read parameter computer");
-  }
-  if (s == "pc-debug")
-    m_debug_mode = true;
-
-  if(!m_nh.getParam("/controllers/dp/circleOfAcceptance", R)){
-    ROS_WARN("Failed to read parameter circleOfAcceptance");
-  }  
 
   m_state.reset(new State());
   initSetpoints();

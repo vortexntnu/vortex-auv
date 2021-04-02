@@ -1,0 +1,11 @@
+#goal definition
+float32 x
+float32 y
+float32 z
+float32 angle
+---
+#result definition
+bool distanceMoved
+---
+#feedback
+float32 distanceLeft
