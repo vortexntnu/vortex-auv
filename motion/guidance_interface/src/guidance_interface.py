@@ -39,7 +39,6 @@ class JoyGuidance:
         self.guidance_interface = guidance_interface
 
         # set up servers and clients
-        # BUG: Services hang indefinitely, preventing any other code execution
         rospy.logdebug("Waiting for joystick activation service..")
         rospy.wait_for_service(activate_joystick_service_name)
         self.activate_joystick_service = rospy.ServiceProxy(
@@ -63,7 +62,6 @@ class JoyGuidance:
         request = SetBool()
         request.data = activate
 
-        # BUG: Services hang indefinitely, preventing any other code execution
         try:
             self.activate_joystick_service(request)
             rospy.loginfo("activate joystick service called")
@@ -94,7 +92,6 @@ class VelocityGuidance:
     ):
         self.guidance_interface = guidance_interface
 
-        # BUG: Services hang indefinitely, preventing any other code execution
         # set up servers and clients
         rospy.logdebug("Waiting for set velocity service..")
         rospy.wait_for_service(set_velocity_service_name)
@@ -149,8 +146,6 @@ class DpGuidance:
         self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
 
         # set up servers and clients
-
-        # BUG: Services hang indefinitely, preventing any other code execution
         rospy.logdebug("Waiting for dp control mode service..")
         rospy.wait_for_service(dp_controller_control_mode_service)
         self.control_mode_service = rospy.ServiceProxy(
@@ -160,7 +155,6 @@ class DpGuidance:
             dp_guidance_action_server, MoveBaseAction
         )
 
-        # BUG: Potentially: MoveBaseAction should be MoveAction if fsm_helper() does not change
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_dp_action_server,
             MoveBaseAction,
