@@ -22,7 +22,7 @@ from vortex_msgs.srv import (
 )
 
 
-class ControlMode(IntEnum):
+class ControlModeEnum(IntEnum):
     OPEN_LOOP = 0
     POSE_HOLD = 1
     HEADING_HOLD = 2
@@ -153,7 +153,6 @@ class DpGuidance:
         # BUG: Services hang indefinitely, preventing any other code execution
         rospy.logdebug("Waiting for dp control mode service..")
         rospy.wait_for_service(dp_controller_control_mode_service)
-
         self.control_mode_service = rospy.ServiceProxy(
             dp_controller_control_mode_service, ControlMode
         )
@@ -174,7 +173,7 @@ class DpGuidance:
     def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
-        self.change_control_mode(ControlMode.POSE_HOLD)
+        self.change_control_mode(ControlModeEnum.POSE_HOLD)
 
         # BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
         self.action_client.send_goal(
@@ -208,14 +207,14 @@ class DpGuidance:
         """
 
         # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
-        if issubclass(type(control_mode_index), ControlMode):
+        if issubclass(type(control_mode_index), ControlModeEnum):
             control_mode_index = (
                 control_mode_index.value
             )  # since enum.field returns name and value
             rospy.loginfo("Control mode changed")
         else:
             # check if index is valid
-            if control_mode_index not in [member.value for member in ControlMode]:
+            if control_mode_index not in [member.value for member in ControlModeEnum]:
                 rospy.logerr(
                     "Invalid control mode %s requested. Ignoring." % control_mode_index
                 )
@@ -232,7 +231,7 @@ class DpGuidance:
 
     def stop(self):
         self.action_client.cancel_all_goals()
-        self.change_control_mode(ControlMode.OPEN_LOOP)
+        self.change_control_mode(ControlModeEnum.OPEN_LOOP)
 
 
 class LosGuidance:

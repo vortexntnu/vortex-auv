@@ -72,7 +72,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh), m_frequency(10)
 
 /* SERVICE SERVER */
 
-bool Controller::controlModeCallback(vortex_msgs::ControlMode::Request& req, vortex_msgs::ControlMode::Response& res)
+bool Controller::controlModeCallback(vortex_msgs::ControlModeRequest& req, vortex_msgs::ControlModeResponse& res)
 {
   ControlMode new_control_mode = m_control_mode;
   int mode = req.controlmode;
