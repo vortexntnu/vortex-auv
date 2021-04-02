@@ -30,10 +30,11 @@ class DPGuidance:
         server in the dp controller. The guidance and controller communicate
         through this server.
         """
+        
+        rate = rospy.get_param("guidance/dp/rate", "20")  # [Hz]
+        self.ros_rate = rospy.Rate(rate)
 
-        self.period = 0.025 # Run at 40Hz
         self.controller_setpoint = Pose()
-
         self.publish_guidance_data = False
 
         # Publisher for the reference model
@@ -55,7 +56,7 @@ class DPGuidance:
             if self.publish_guidance_data:
                 self.reference_model_pub.publish(self.controller_setpoint)
 
-            rospy.sleep(rospy.Duration(self.period))
+            self.ros_rate.sleep()
 
 
     def goal_cb(self):
