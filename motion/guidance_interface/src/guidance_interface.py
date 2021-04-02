@@ -145,8 +145,10 @@ class DpGuidance:
 
         # set up servers and clients
 
-#BUG: Services hang indefinitely, preventing any other code execution
+        #BUG: Services hang indefinitely, preventing any other code execution
+        rospy.logdebug("Waiting for dp control mode service")
         rospy.wait_for_service(dp_controller_control_mode_service)
+        rospy.logdebug("dp control mode service found")
         
         self.control_mode_service = rospy.ServiceProxy(
             dp_controller_control_mode_service, ControlMode
@@ -155,7 +157,7 @@ class DpGuidance:
             dp_guidance_action_server, MoveBaseAction
         )
 
-#BUG: Potentially: MoveBaseAction should be MoveAction if fsm_helper() does not change
+        #BUG: Potentially: MoveBaseAction should be MoveAction if fsm_helper() does not change
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_dp_action_server,
             MoveBaseAction,
@@ -169,7 +171,7 @@ class DpGuidance:
 
         self.change_control_mode(ControlMode.POSE_HOLD)
 
-#BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
+        #BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
@@ -201,8 +203,8 @@ class DpGuidance:
         """
 
 
-#BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
-        if issubclass(control_mode_index, ControlMode):
+        #BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
+        if issubclass(type(control_mode_index), ControlMode):
             control_mode_index = (
                 control_mode_index.value
             )  # since enum.field returns name and value
