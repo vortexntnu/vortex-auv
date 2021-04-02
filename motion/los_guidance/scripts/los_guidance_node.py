@@ -403,8 +403,6 @@ class LosPathFollowing(object):
 		# sphere of acceptance
 		self.los.R = _goal.sphereOfAcceptance
 
-		self.reference_model = ReferenceModel(np.array((self.los.u, self.los.psi)), self.los.h)
-
 		self.publish_guidance_data = True
 
 	def config_cb(self, config, level):
@@ -433,7 +431,6 @@ class LosPathFollowing(object):
 
 
 
-#Move this to reference_model_node.py:
 if __name__ == '__main__':
 	try:
 		los_path_following = LosPathFollowing()
