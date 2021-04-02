@@ -81,7 +81,7 @@ bool Controller::controlModeCallback(vortex_msgs::ControlModeRequest& req, vorte
   {
     new_control_mode = getControlMode(mode);
     res.result = "success";
-    ROS_INFO("successfull callback");
+    ROS_DEBUG("successfull callback");
 
     // TO AVOID AGGRESSIVE SWITCHING
     // set current target position to previous position
@@ -96,7 +96,7 @@ bool Controller::controlModeCallback(vortex_msgs::ControlModeRequest& req, vorte
   catch (const std::exception& e)
   {
     res.result = "failed";
-    ROS_INFO("failed callback");
+    ROS_ERROR("failed callback");
   }
 
   if (new_control_mode != m_control_mode)
