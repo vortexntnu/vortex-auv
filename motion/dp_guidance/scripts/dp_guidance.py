@@ -9,8 +9,10 @@ import actionlib
 from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
+from geometry_msgs.msg import Pose
 
 from std_srvs.srv import SetBool
+
 
 class DPGuidance:
     """
@@ -38,11 +40,17 @@ class DPGuidance:
         self.publish_guidance_data = False
 
         # Publisher for the reference model
-        self.reference_model_pub = rospy.Publisher('/guidance/dp_data', Pose, queue_size=1)
+        self.reference_model_pub = rospy.Publisher(
+            "/guidance/dp_data", Pose, queue_size=1
+        )
 
         # Action server for receiving goal data
-        self.goal_action_server = actionlib.SimpleActionServer(name='dp_action_server', ActionSpec=MoveBaseAction, auto_start=False)
-        self.goal_action_server.register_goal_callback(self.goal_cb)  # Called whenever guidance_interface sends a new goal for the dp system
+        self.goal_action_server = actionlib.SimpleActionServer(
+            name="dp_action_server", ActionSpec=MoveBaseAction, auto_start=False
+        )
+        self.goal_action_server.register_goal_callback(
+            self.goal_cb
+        )  # Called whenever guidance_interface sends a new goal for the dp system
         self.goal_action_server.register_preempt_callback(self.preempt_cb)
         self.goal_action_server.start()
 
@@ -58,7 +66,6 @@ class DPGuidance:
 
             self.ros_rate.sleep()
 
-
     def goal_cb(self):
         """
         Accept a goal from the guidance interface and store it as local state,
@@ -66,15 +73,16 @@ class DPGuidance:
         """
         new_goal = self.goal_action_server.accept_new_goal()
         self.controller_setpoint = new_goal.target_pose.pose
-        rospy.logdebug("New dp guidance setpoint has type: %s" % type(self.controller_setpoint))
+        rospy.logdebug(
+            "New dp guidance setpoint has type: %s" % type(self.controller_setpoint)
+        )
 
         self.publish_guidance_data = True
-        
 
     def preempt_cb(self):
         """
-		The preempt callback for the action server.
-		"""
+        The preempt callback for the action server.
+        """
         if self.goal_action_server.is_preempt_requested():
             rospy.logdebug("Goal action server in dp_guidance was preempted!")
             self.goal_action_server.set_preempted()
@@ -82,8 +90,8 @@ class DPGuidance:
             self.publish_guidance_data = False
 
 
-if __name__ == '__main__':
-    rospy.init_node('dp_guidance', log_level=rospy.DEBUG)
+if __name__ == "__main__":
+    rospy.init_node("dp_guidance", log_level=rospy.DEBUG)
 
     try:
         dp_guidance = DPGuidance()
