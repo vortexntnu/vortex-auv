@@ -13,6 +13,7 @@ from vortex_msgs.msg import (
     LosPathFollowingAction,
     LosPathFollowingActionGoal,
 )
+from helper import create_sequence
 
 
 class GoToState(State):
@@ -27,8 +28,8 @@ class GoToState(State):
         self.goal_pose = goal_pose
 
     def execute(self, ud):
-        los_state = simple_los_state(self.goal_pose.position)
-        dp_state = simple_dp_state(self.goal_pose)
+        los_state = los_state(self.goal_pose.position)
+        dp_state = dp_state(self.goal_pose)
 
         sm = create_sequence(
             [los_state, dp_state], state_names=["los_move_state", "dp_move_state"]
@@ -36,7 +37,7 @@ class GoToState(State):
         sm.execute()
 
 
-def simple_dp_state(pose, action_server="/guidance_interface/dp_server"):
+def dp_state(pose, action_server="/guidance_interface/dp_server"):
     """Create a SimpleActionState that travels to a goal pose using our DP guidance.
     Only use when in close proximity of goal pose.
 
@@ -49,12 +50,12 @@ def simple_dp_state(pose, action_server="/guidance_interface/dp_server"):
         SimpleActionState: state that travels to pose using DP guidance.
     """
     goal = MoveBaseActionGoal()
-    goal.target_pose.pose = pose
+    goal.goal.target_pose.pose = pose
 
-    return SimpleActionState(action_server, MoveBaseAction, goal)
+    return SimpleActionState(action_server, MoveBaseAction, goal.goal)
 
 
-def simple_los_state(
+def los_state(
     goal_positon,
     travel_speed=0.5,
     sphere_of_acceptance=0.5,
@@ -76,15 +77,15 @@ def simple_los_state(
         SimpleActionState: state that travel to from start to goal using LOS guidance
     """
     goal = LosPathFollowingActionGoal()
-    goal.next_waypoint = goal_positon
-    goal.forward_speed = travel_speed
-    goal.desired_depth = goal_positon.z
-    goal.sphereOfAcceptance = sphere_of_acceptance
+    goal.goal.next_waypoint = goal_positon
+    goal.goal.forward_speed = travel_speed
+    goal.goal.desired_depth = goal_positon.z
+    goal.goal.sphereOfAcceptance = sphere_of_acceptance
 
     return SimpleActionState(action_server, LosPathFollowingAction, goal)
 
 
-def simple_vel_state(twist, action_server="/guidance_interface/vel_server"):
+def vel_state(twist, action_server="/guidance_interface/vel_server"):
     """Creates a SimpleActionState that sets drone velocity to a given twist.
 
     Args:
@@ -99,4 +100,3 @@ def simple_vel_state(twist, action_server="/guidance_interface/vel_server"):
     goal.desired_velocity = twist
 
     return SimpleActionState(action_server, SetVelocityAction, goal)
-

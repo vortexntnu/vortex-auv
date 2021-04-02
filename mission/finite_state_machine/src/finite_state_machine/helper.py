@@ -27,6 +27,15 @@ def pose(x, y, z, roll, pitch, yaw):
     return new_pose
 
 
+def point(x, y, z):
+    new_point = Point()
+    new_point.x = x
+    new_point.y = y
+    new_point.z = z
+
+    return new_point
+
+
 def quaternion(roll, pitch, yaw):
     return Quaternion(
         *quaternion_from_euler(roll, pitch, yaw)

@@ -6,7 +6,7 @@ import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction
-from std_srvs.srv import Empty, SetBool
+from std_srvs.srv import Empty, EmptyRequest, SetBool, SetBoolRequest
 
 from vortex_msgs.msg import (
     LosPathFollowingAction,
@@ -59,7 +59,7 @@ class JoyGuidance:
         Args:
             activate (bool): True activates joystick, False deactivates
         """
-        request = SetBool()
+        request = SetBoolRequest()
         request.data = activate
 
         try:
@@ -126,7 +126,7 @@ class VelocityGuidance:
 
     def stop(self):
         try:
-            # self.stop_guidance_service()
+            self.stop_guidance_service()
             rospy.loginfo("vel guidance stopped!")
         except rospy.ServiceException as exc:
             rospy.logerr(
@@ -151,10 +151,12 @@ class DpGuidance:
         self.control_mode_service = rospy.ServiceProxy(
             dp_controller_control_mode_service, ControlMode
         )
+        rospy.logdebug("Connecting dp action client..")
         self.action_client = actionlib.SimpleActionClient(
             dp_guidance_action_server, MoveBaseAction
         )
 
+        rospy.logdebug("Starting dp action server..")
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_dp_action_server,
             MoveBaseAction,
@@ -193,7 +195,7 @@ class DpGuidance:
         else:
             self.action_server.set_aborted()
 
-    def change_control_mode(self, control_mode_index):
+    def change_control_mode(self, control_mode):
         """Requests dp controller to change its control mode to the given mode
 
         Args:
@@ -201,22 +203,22 @@ class DpGuidance:
         """
 
         # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
-        if issubclass(type(control_mode_index), ControlModeEnum):
-            control_mode_index = (
-                control_mode_index.value
+        if issubclass(type(control_mode), ControlModeEnum):
+            control_mode = (
+                control_mode.value
             )  # since enum.field returns name and value
             rospy.loginfo("Control mode changed")
         else:
             # check if index is valid
-            if control_mode_index not in [member.value for member in ControlModeEnum]:
+            if control_mode not in [member.value for member in ControlModeEnum]:
                 rospy.logerr(
-                    "Invalid control mode %s requested. Ignoring." % control_mode_index
+                    "Invalid control mode %s requested. Ignoring." % control_mode
                 )
                 return
 
         # BUG: [ERROR] [1617332984.272044] [/guidance/interface]: Exception in your execute callback: 'ControlModeAction' object has no attribute 'controlModeIndex'
         request = ControlModeRequest()
-        request.controlModeIndex = control_mode_index
+        request.controlmode = control_mode
 
         try:
             self.control_mode_service(request)
@@ -239,11 +241,13 @@ class LosGuidance:
         self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
 
         # set up servers and clients
+        rospy.logdebug("Connecting los action client..")
         self.action_client = actionlib.SimpleActionClient(
             los_guidance_action_server, LosPathFollowingAction
         )
 
         # BUG: Potentially: LosPathFollowingAction should be MoveAction if fsm_helper() does not change
+        rospy.logdebug("Starting los action server..")
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_los_action_server,
             LosPathFollowingAction,
@@ -251,6 +255,7 @@ class LosGuidance:
             auto_start=False,
         )
         self.action_server.start()
+        rospy.logdebug("LosGuidance initialized")
 
     def los_callback(self, goal):
         self.guidance_interface.stop_all_guidance()

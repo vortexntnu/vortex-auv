@@ -4,7 +4,8 @@ import rospy
 from smach import State
 from nav_msgs.msg import Odometry, Twist
 
-from common_states import GoToState, simple_vel_state, create_sequence
+from common_states import GoToState, vel_state
+from helper import create_sequence, point, pose, twist
 
 
 class Monitor(State):
@@ -41,10 +42,36 @@ class SingleTest(State):
     def execute(self, ud):
         states = [
             GoToState(self.start_pose),
-            simple_vel_state(self.twist),
+            vel_state(self.twist),
             Monitor(self.goal_pose, self.timeout),
             GoToState(self.start_pose),
         ]
         names = ["go_to_start", "set_velocity", "monitor", "back_to_start"]
         sm = create_sequence(states, state_names=names)
         sm.execute()
+
+
+def surge_sway_heave():
+    states = [
+        SingleTest(
+            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+        ),
+    ]
+    sm = create_sequence(states)
+    sm.execute()
+
+
+if __name__ == "__main__":
+    surge_sway_heave()
