@@ -39,7 +39,8 @@ class JoyGuidance:
         self.guidance_interface = guidance_interface
 
         # set up servers and clients
-#BUG: Services hang indefinitely, preventing any other code execution
+        # BUG: Services hang indefinitely, preventing any other code execution
+        rospy.logdebug("Waiting for joystick activation service..")
         rospy.wait_for_service(activate_joystick_service_name)
         self.activate_joystick_service = rospy.ServiceProxy(
             activate_joystick_service_name, SetBool
@@ -51,6 +52,7 @@ class JoyGuidance:
             auto_start=False,
         )
         self.joystick_controlmode_server.start()
+        rospy.logdebug("JoyGuidance initialized")
 
     def activate_joystick(self, activate):
         """Requests joystick activation/deactivation from joystick_guidance
@@ -61,7 +63,7 @@ class JoyGuidance:
         request = SetBool()
         request.data = activate
 
-#BUG: Services hang indefinitely, preventing any other code execution
+        # BUG: Services hang indefinitely, preventing any other code execution
         try:
             self.activate_joystick_service(request)
             rospy.loginfo("activate joystick service called")
@@ -92,12 +94,14 @@ class VelocityGuidance:
     ):
         self.guidance_interface = guidance_interface
 
-#BUG: Services hang indefinitely, preventing any other code execution
+        # BUG: Services hang indefinitely, preventing any other code execution
         # set up servers and clients
+        rospy.logdebug("Waiting for set velocity service..")
         rospy.wait_for_service(set_velocity_service_name)
         self.set_velocity_service = rospy.ServiceProxy(
             set_velocity_service_name, SetVelocity
         )
+        rospy.logdebug("Waiting for stop vel guidance service..")
         rospy.wait_for_service(stop_guidance_service_name)
         self.stop_guidance_service = rospy.ServiceProxy(
             stop_guidance_service_name, Empty
@@ -110,6 +114,7 @@ class VelocityGuidance:
             auto_start=False,
         )
         self.action_server.start()
+        rospy.logdebug("VelocityGuidance initialized")
 
     def action_server_callback(self, set_velocity_goal):
         self.guidance_interface.stopAllGuidance()
@@ -124,7 +129,7 @@ class VelocityGuidance:
 
     def stop(self):
         try:
-            #self.stop_guidance_service()
+            # self.stop_guidance_service()
             rospy.loginfo("vel guidance stopped!")
         except rospy.ServiceException as exc:
             rospy.logerr(
@@ -145,11 +150,10 @@ class DpGuidance:
 
         # set up servers and clients
 
-        #BUG: Services hang indefinitely, preventing any other code execution
-        rospy.logdebug("Waiting for dp control mode service")
+        # BUG: Services hang indefinitely, preventing any other code execution
+        rospy.logdebug("Waiting for dp control mode service..")
         rospy.wait_for_service(dp_controller_control_mode_service)
-        rospy.logdebug("dp control mode service found")
-        
+
         self.control_mode_service = rospy.ServiceProxy(
             dp_controller_control_mode_service, ControlMode
         )
@@ -157,7 +161,7 @@ class DpGuidance:
             dp_guidance_action_server, MoveBaseAction
         )
 
-        #BUG: Potentially: MoveBaseAction should be MoveAction if fsm_helper() does not change
+        # BUG: Potentially: MoveBaseAction should be MoveAction if fsm_helper() does not change
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_dp_action_server,
             MoveBaseAction,
@@ -165,13 +169,14 @@ class DpGuidance:
             auto_start=False,
         )
         self.action_server.start()
+        rospy.logdebug("DpGuidance initialized")
 
     def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
         self.change_control_mode(ControlMode.POSE_HOLD)
 
-        #BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
+        # BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
@@ -202,8 +207,7 @@ class DpGuidance:
             control_mode_index (int or bool): requested control mode
         """
 
-
-        #BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
+        # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
         if issubclass(type(control_mode_index), ControlMode):
             control_mode_index = (
                 control_mode_index.value
@@ -217,8 +221,7 @@ class DpGuidance:
                 )
                 return
 
-
-#BUG: [ERROR] [1617332984.272044] [/guidance/interface]: Exception in your execute callback: 'ControlModeAction' object has no attribute 'controlModeIndex'
+        # BUG: [ERROR] [1617332984.272044] [/guidance/interface]: Exception in your execute callback: 'ControlModeAction' object has no attribute 'controlModeIndex'
         request = ControlModeRequest()
         request.controlModeIndex = control_mode_index
 
@@ -247,7 +250,7 @@ class LosGuidance:
             los_guidance_action_server, LosPathFollowingAction
         )
 
-#BUG: Potentially: LosPathFollowingAction should be MoveAction if fsm_helper() does not change
+        # BUG: Potentially: LosPathFollowingAction should be MoveAction if fsm_helper() does not change
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_los_action_server,
             LosPathFollowingAction,
@@ -288,7 +291,7 @@ class LosGuidance:
 
 class GuidanceInterface:
     def __init__(self):
-        
+
         self.joy_guidance = JoyGuidance(
             guidance_interface=self,
             action_server_name="/guidance_interface/joystick_server",
@@ -304,7 +307,7 @@ class GuidanceInterface:
 
         self.dp_guidance = DpGuidance(
             guidance_interface=self,
-            dp_guidance_action_server='dp_action_server',
+            dp_guidance_action_server="dp_action_server",
             guidance_interface_dp_action_server="/guidance_interface/dp_server",
             dp_controller_control_mode_service="/controller/controlmode_service",
         )
@@ -314,6 +317,7 @@ class GuidanceInterface:
             los_guidance_action_server="los_action_server",
             guidance_interface_los_action_server="/guidance_interface/los_server",
         )
+        rospy.logdebug("GuidanceInterface initialized")
 
     def stop_all_guidance(self):
         self.joy_guidance.stop()
@@ -326,6 +330,6 @@ class GuidanceInterface:
 
 
 if __name__ == "__main__":
-    rospy.init_node("guidance_interface")
+    rospy.init_node("guidance_interface", log_level=rospy.DEBUG)
     server = GuidanceInterface()
     rospy.spin()
