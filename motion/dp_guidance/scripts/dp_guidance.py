@@ -39,7 +39,7 @@ class DPGuidance:
         self.publish_guidance_data = False
 
         # Publisher for the reference model
-        self.reference_model_pub = rospy.Publisher('/dp_guidance/output', Pose, queue_size=1)
+        self.reference_model_pub = rospy.Publisher('/guidance/dp_data', Pose, queue_size=1)
 
         # Action server for receiving goal data
         self.goal_action_server = actionlib.SimpleActionServer(name='dp_action_server', ActionSpec=MoveBaseAction, auto_start=False)
