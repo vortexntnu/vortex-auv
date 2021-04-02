@@ -6,7 +6,7 @@
 import rospy
 import actionlib
 
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 
@@ -31,8 +31,6 @@ class DPGuidance:
         through this server.
         """
 
-        rospy.init_node('dp')
-
         self.period = 0.025 # Run at 40Hz
         self.controller_setpoint = Pose()
 
@@ -55,7 +53,7 @@ class DPGuidance:
         """
         while not rospy.is_shutdown():
             if self.publish_guidance_data:
-                self.reference_model_pub.publish(controller_setpoint)
+                self.reference_model_pub.publish(self.controller_setpoint)
 
             rospy.sleep(rospy.Duration(self.period))
 
@@ -66,7 +64,8 @@ class DPGuidance:
         then activate publishing
         """
         new_goal = self.goal_action_server.accept_new_goal()
-        self.controller_setpoint = new_goal.target_pose
+        self.controller_setpoint = new_goal.target_pose.pose
+        rospy.logdebug("New dp guidance setpoint has type: %s" % type(self.controller_setpoint))
 
         self.publish_guidance_data = True
         
@@ -76,13 +75,14 @@ class DPGuidance:
 		The preempt callback for the action server.
 		"""
         if self.goal_action_server.is_preempt_requested():
-            rospy.loginfo("Goal action server in dp_guidance was preempted!")
+            rospy.logdebug("Goal action server in dp_guidance was preempted!")
             self.goal_action_server.set_preempted()
 
             self.publish_guidance_data = False
 
 
 if __name__ == '__main__':
+    rospy.init_node('dp_guidance', log_level=rospy.DEBUG)
 
     try:
         dp_guidance = DPGuidance()
