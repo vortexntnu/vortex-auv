@@ -5,13 +5,13 @@ from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState, St
 from smach_ros import SimpleActionState
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import Point, Quaternion
-from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 from vortex_msgs.msg import (
     SetVelocityAction,
-    SetVelocityActionGoal,
+    SetVelocityGoal,
     LosPathFollowingAction,
-    LosPathFollowingActionGoal,
+    LosPathFollowingGoal,
 )
 from helper import create_sequence
 
@@ -49,7 +49,7 @@ def dp_state(pose, action_server="/guidance_interface/dp_server"):
     Returns:
         SimpleActionState: state that travels to pose using DP guidance.
     """
-    goal = MoveBaseActionGoal().goal
+    goal = MoveBaseGoal()
     goal.target_pose.pose = pose
 
     return SimpleActionState(action_server, MoveBaseAction, goal)
@@ -76,7 +76,7 @@ def los_state(
     Returns:
         SimpleActionState: state that travel to from start to goal using LOS guidance
     """
-    goal = LosPathFollowingActionGoal().goal
+    goal = LosPathFollowingGoal()
     goal.next_waypoint = goal_positon
     goal.forward_speed = travel_speed
     goal.desired_depth = goal_positon.z
@@ -96,7 +96,7 @@ def vel_state(twist, action_server="/guidance_interface/vel_server"):
     Returns:
         SimpleActionState: state that sets drone velocity to a given twist.
     """
-    goal = SetVelocityActionGoal().goal
+    goal = SetVelocityGoal()
     goal.desired_velocity = twist
 
     return SimpleActionState(action_server, SetVelocityAction, goal)

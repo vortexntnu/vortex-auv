@@ -50,16 +50,6 @@ private:
   void setpoint_cb(const geometry_msgs::Pose& msg);
 
   /**
-   * @brief Callback-function calculating desired Pose when topic from
-   * guidance_block (FSM) is updated
-   *
-   * @warning Only published further if ROV_state == false
-   *
-   * @param msg Reference Pose
-   */
-  void setpoint_cb(const geometry_msgs::Pose& msg);
-
-  /**
    * @brief Utility function that calculates a smooth trajectory from current
    * position to the desired position @p x_ref
    *

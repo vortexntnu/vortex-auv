@@ -24,15 +24,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
   if (!nh.getParam("dp_controller/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
 
-  std::string s;
-  if (!m_nh.getParam("/computer", s))
-  {
-    s = "pc-debug";
-    ROS_WARN("Failed to read parameter computer");
-  }
-  if (s == "pc-debug")
-    m_debug_mode = true;
-
   if (!m_nh.getParam("/controllers/dp/circleOfAcceptance", R))
   {
     ROS_WARN("Failed to read parameter circleOfAcceptance");
@@ -41,9 +32,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
   // Subscribers
   m_state_sub = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
   m_guidance_sub = m_nh.subscribe("/guidance/dp_data", 1, &Controller::guidanceCallback, this);
-
-  // Service callback
-  control_mode_service_ = m_nh.advertiseService("controlmode_service", &Controller::controlModeCallback, this);
 
   // Publishers
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 1);
