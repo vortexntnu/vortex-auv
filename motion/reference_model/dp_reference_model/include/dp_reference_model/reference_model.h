@@ -30,6 +30,8 @@ using namespace Eigen;
 class ReferenceModel 
 {   
 private:
+     Eigen::Vector3d beta;
+
      /* Eigen-vectors used during calculate_smooth */
      Eigen::Vector3d a_x; 
      Eigen::Vector3d b_x;
@@ -58,6 +60,14 @@ private:
       * @param x_ref Reference used 
       */
      Eigen::Vector3d calculate_smooth(const Eigen::Vector3d &x_ref);
+
+     /**
+      * @brief Low pass filters the reference value 
+      * 
+      * @param x_ref reference value
+      * @return Eigen::Vector3d x_d
+      */
+     Eigen::Vector3d low_pass_filter(const Eigen::Vector3d &x_ref);
 
      /**
       * @brief Function that resets the private variables to @p pos
