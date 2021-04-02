@@ -395,10 +395,10 @@ class LosPathFollowing(object):
 		self.los.y_kp1 = _goal.next_waypoint.y
 
 		# forward speed
-		self.los.speed = _goal.forward_speed.linear.x
+		self.los.speed = _goal.forward_speed
 
 		# depth hold
-		self.los.z_d = _goal.desired_depth.z
+		self.los.z_d = _goal.desired_depth
 
 		# sphere of acceptance
 		self.los.R = _goal.sphereOfAcceptance

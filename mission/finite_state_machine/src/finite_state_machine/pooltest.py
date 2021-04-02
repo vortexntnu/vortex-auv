@@ -16,7 +16,6 @@ def visit_waypoints():
 
     sm = create_sequence(
         [
-            dp_state(pose(0, 0, -0.5, 0, 0, 0)),
             los_state(point(2, 0, -0.5)),
             los_state(point(0, 0, -0.5)),
             dp_state(pose(0, 0, -0.5, 0, 0, 0)),

@@ -49,10 +49,10 @@ def dp_state(pose, action_server="/guidance_interface/dp_server"):
     Returns:
         SimpleActionState: state that travels to pose using DP guidance.
     """
-    goal = MoveBaseActionGoal()
-    goal.goal.target_pose.pose = pose
+    goal = MoveBaseActionGoal().goal
+    goal.target_pose.pose = pose
 
-    return SimpleActionState(action_server, MoveBaseAction, goal.goal)
+    return SimpleActionState(action_server, MoveBaseAction, goal)
 
 
 def los_state(
@@ -76,11 +76,11 @@ def los_state(
     Returns:
         SimpleActionState: state that travel to from start to goal using LOS guidance
     """
-    goal = LosPathFollowingActionGoal()
-    goal.goal.next_waypoint = goal_positon
-    goal.goal.forward_speed = travel_speed
-    goal.goal.desired_depth = goal_positon.z
-    goal.goal.sphereOfAcceptance = sphere_of_acceptance
+    goal = LosPathFollowingActionGoal().goal
+    goal.next_waypoint = goal_positon
+    goal.forward_speed = travel_speed
+    goal.desired_depth = goal_positon.z
+    goal.sphereOfAcceptance = sphere_of_acceptance
 
     return SimpleActionState(action_server, LosPathFollowingAction, goal)
 
@@ -96,7 +96,7 @@ def vel_state(twist, action_server="/guidance_interface/vel_server"):
     Returns:
         SimpleActionState: state that sets drone velocity to a given twist.
     """
-    goal = SetVelocityActionGoal()
+    goal = SetVelocityActionGoal().goal
     goal.desired_velocity = twist
 
     return SimpleActionState(action_server, SetVelocityAction, goal)
