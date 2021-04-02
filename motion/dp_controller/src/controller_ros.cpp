@@ -246,27 +246,32 @@ void Controller::initPositionHoldController()
   if (!m_nh.getParam("/controllers/dp/integral_gain", i))
     ROS_ERROR("Failed to read parameter integral_gain.");
 
-  // Read center of gravity and buoyancy vectors from <auv>.yaml
+  // Get physical parameters
+  double W;
+  double B;
   std::vector<double> r_G_vec, r_B_vec;
+  if (!m_nh.getParam("/physical/weight", W))
+  {
+    ROS_FATAL("Failed to read parameter physical/weight. Shutting down node..");
+    ros::shutdown();
+  }
+  if (!m_nh.getParam("/physical/buoyancy", B))
+  {
+    ROS_FATAL("Failed to read parameter physical/buoyancy. Shutting down node..");
+    ros::shutdown();
+  }
   if (!m_nh.getParam("/physical/center_of_mass", r_G_vec))
-    ROS_FATAL("Failed to read robot center of mass parameter.");
+  {
+    ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down node..");
+    ros::shutdown();
+  }
   if (!m_nh.getParam("/physical/center_of_buoyancy", r_B_vec))
-    ROS_FATAL("Failed to read robot center of buoyancy parameter.");
-  Eigen::Vector3d r_G(r_G_vec.data());
-  Eigen::Vector3d r_B(r_B_vec.data());
-
-  // Read and calculate ROV weight and buoyancy from <auv>.yaml
-  double mass, displacement, acceleration_of_gravity, density_of_water;
-  if (!m_nh.getParam("/physical/mass_kg", mass))
-    ROS_FATAL("Failed to read parameter mass.");
-  if (!m_nh.getParam("/physical/displacement_m3", displacement))
-    ROS_FATAL("Failed to read parameter displacement.");
-  if (!m_nh.getParam("/gravity/acceleration", acceleration_of_gravity))
-    ROS_FATAL("Failed to read parameter acceleration of gravity");
-  if (!m_nh.getParam("/water/density", density_of_water))
-    ROS_FATAL("Failed to read parameter density of water");
-  double W = mass * acceleration_of_gravity;
-  double B = density_of_water * displacement * acceleration_of_gravity;
+  {
+    ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting down node..");
+    ros::shutdown();
+  }
+  Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]) / 1000;  // convert from mm to m
+  Eigen::Vector3d r_B = Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]) / 1000;
 
   m_controller.reset(new QuaternionPdController(a, b, c, i, W, B, r_G, r_B));
 }
