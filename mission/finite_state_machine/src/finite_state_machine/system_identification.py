@@ -3,7 +3,8 @@
 import rospy
 from smach import State
 from smach_ros import IntrospectionServer
-from nav_msgs.msg import Odometry, Twist
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
 from tf2_geometry_msgs import euler_to_quaternion, quaternion_to_euler, Quaternion, quaternion_multiply
 
 from common_states import GoToState, vel_state
