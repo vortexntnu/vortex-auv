@@ -104,18 +104,32 @@ class Monitor(State):
 
 
 class SingleTest(State):
-    def __init__(self, twist, start_pose, goal_pose, timeout=10, range_of_acceptance=[0.5, 0.5, 0.2, ]):
+    def __init__(self, twist, start_pose, goal_pose, timeout=10, goal_boundry=[0.5, 0.5, 0.2, 0.15, 0.15, 0.15]):
         super().__init__(outcomes=["preempted", "succeeded", "aborted"])
         self.twist = twist
         self.goal_pose = goal_pose
         self.start_pose = start_pose
         self.timeout = timeout
+        self.goal_boundry = goal_boundry
+
+        self.x_min = 0
+        self.x_max = 10        
+        self.y_min = -2
+        self.y_max = 2
+        self.z_min = -1.2
+        self.z_max = -0.3
 
     def execute(self, ud):
         states = [
             GoToState(self.start_pose),
             vel_state(self.twist),
-            Monitor(self.goal_pose, self.timeout),
+            Monitor(
+                goal_pose=self.goal_pose, 
+                duration=self.timeout, 
+                pool_bounds=[(self.x_min, self.x_max), (self.y_min, self.y_max), (self.z_min, self.z_max)], 
+                goal_boundry=goal_boundry,
+                odom_topic="/odometry/filtered"
+            ),
             GoToState(self.start_pose),
         ]
         names = ["go_to_start", "set_velocity", "monitor", "back_to_start"]
@@ -130,16 +144,7 @@ def surge_sway_heave():
         ),
         SingleTest(
             twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
-        ),
-        SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
-        ),
-        SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
-        ),
-        SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
-        ),
+        )
     ]
     sm = create_sequence(states)
     sm.execute()
