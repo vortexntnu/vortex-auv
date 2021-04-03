@@ -131,7 +131,7 @@ class SingleTest(State):
         ]
         names = ["go_to_start", "set_velocity", "monitor", "back_to_start"]
         sm = create_sequence(states, state_names=names)
-        sm.execute()
+        return sm.execute()
 
 
 def surge_sway_heave():

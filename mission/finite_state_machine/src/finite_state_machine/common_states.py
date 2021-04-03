@@ -34,7 +34,7 @@ class GoToState(State):
         sm = create_sequence(
             [los, dp], state_names=["los_move_state", "dp_move_state"]
         )
-        sm.execute()
+        return sm.execute()
 
 
 def dp_state(pose, action_server="/guidance_interface/dp_server"):
