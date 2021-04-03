@@ -43,9 +43,6 @@ propulsion:
 
     rate_of_change:
       max: 1 # Maximum rate of change in newton per second for a thruster
-    characteristics:  
-      thrust:      [-34.5, -24.0, -12.9, -3.92, 0.00, 4.91, 12.6, 26.1, 35.5, 44.3] 
-      pulse_width: [ 1100,  1192,  1292,  1400, 1500, 1600, 1676, 1780, 1840, 1900]
     map: [0, 1, 2, 3, 4, 5, 6, 7]  
     direction: [1, -1, 1, 1, -1, -1, 1, -1]
     offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
