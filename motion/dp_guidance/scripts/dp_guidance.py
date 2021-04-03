@@ -10,6 +10,7 @@ from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose
+from nav_msgs.msg import Odometry
 
 from std_srvs.srv import SetBool
 
@@ -44,6 +45,11 @@ class DPGuidance:
             "/guidance/dp_data", Pose, queue_size=1
         )
 
+        # Subscriber for state (for circle of acceptance)
+        self.state_sub = rospy.Subscriber(
+            "/odometry/filtered", nav_msgs::Odometry , self.circle_of_acceptance_cb
+        )
+
         # Action server for receiving goal data
         self.goal_action_server = actionlib.SimpleActionServer(
             name="dp_action_server", ActionSpec=MoveBaseAction, auto_start=False
@@ -65,6 +71,10 @@ class DPGuidance:
                 self.reference_model_pub.publish(self.controller_setpoint)
 
             self.ros_rate.sleep()
+
+    def circle_of_acceptance_cb(self, msg):
+        #generate and publish feedback message to client of type move_base_msgs::MoveBaseFeedback
+        #if within circle of acceptance, return result move_base_msgs::MoveBaseResult("Goal Reached.")
 
     def goal_cb(self):
         """
