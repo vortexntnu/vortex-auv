@@ -2,7 +2,7 @@
 
 from smach import Sequence
 from geometry_msgs.msg import Twist, Pose, Point, Quaternion
-from tf2_geometry_msgs import euler_to_quaternion
+from tf.transformations import quaternion_from_euler
 
 
 def twist(X, Y, Z, K, M, N):
@@ -22,7 +22,7 @@ def pose(x, y, z, roll, pitch, yaw):
     new_pose.position.x = x
     new_pose.position.y = y
     new_pose.position.z = z
-    new_pose.orientation = euler_to_quaternion(roll, pitch, yaw)
+    new_pose.orientation = Quaternion(*quaternion_from_euler(roll, pitch, yaw))
 
     return new_pose
 

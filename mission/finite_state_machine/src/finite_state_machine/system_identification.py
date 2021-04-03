@@ -5,7 +5,7 @@ from smach import State
 from smach_ros import IntrospectionServer
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
-from tf2_geometry_msgs import euler_to_quaternion, quaternion_to_euler, Quaternion, quaternion_multiply
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 from common_states import GoToState, vel_state
 from helper import create_sequence, point, pose, twist
@@ -22,7 +22,7 @@ class Monitor(State):
             goal_boundry (list[double]): boundries for how close drone must be to goal pose in 6DOF
             odom_topic (str, optional): Topic for odometry. Defaults to "/odometry/filtered".
         """
-        super().__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         self.duration = max_duration
         self.timeout = False
 
@@ -30,19 +30,10 @@ class Monitor(State):
         self.odom = Odometry()
         self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.update_odom)
 
-        self.x_min, self.x_max = self.pool_bounds[0]
-        self.y_min, self.y_max = self.pool_bounds[1]
-        self.z_min, self.z_max = self.pool_bounds[2]
+        self.x_min, self.x_max = pool_bounds[0]
+        self.y_min, self.y_max = pool_bounds[1]
+        self.z_min, self.z_max = pool_bounds[2]
 
-        # create quats from msg
-        goal_orientation_list = [
-            self.goal_pose.pose.orientation.x, 
-            self.goal_pose.pose.orientation.y, 
-            self.goal_pose.pose.orientation.z, 
-            self.goal_pose.pose.orientation.w  
-        ]
-        self.goal_quat = Quaternion(goal_orientation_list)
-        self.current_quat = Quaternion()
 
     def execute(self, ud):
         # start timer
@@ -60,13 +51,6 @@ class Monitor(State):
 
     def update_odom(self, odom_msg):
         self.odom = odom_msg
-        current_orientation_list = [
-            self.odom.pose.pose.orientation.x,
-            self.odom.pose.pose.orientation.y,
-            self.odom.pose.pose.orientation.z,
-            self.odom.pose.pose.orientation.w
-        ]
-        self.current_quat = Quaternion(current_orientation_list)
 
     def timer_cb(self, event):
         self.timeout = True
@@ -81,9 +65,20 @@ class Monitor(State):
         return True
 
     def close_to_goal(self):
-        
-        # find relative quat
-        q_r = quaternion_multiply(self.current_quat, self.goal_quat.inverse())
+        # create quats from msg
+        goal_quat_list = [
+            self.goal_pose.pose.orientation.x, 
+            self.goal_pose.pose.orientation.y, 
+            self.goal_pose.pose.orientation.z, 
+            -self.goal_pose.pose.orientation.w  # invert goal quat
+        ]
+        current_quat_list = [
+            self.odom.pose.pose.orientation.x,
+            self.odom.pose.pose.orientation.y,
+            self.odom.pose.pose.orientation.z,
+            self.odom.pose.pose.orientation.w
+        ]
+        q_r = quaternion_multiply(current_quat_list, goal_quat_list)
 
         # convert relative quat to euler 
         (roll_diff, pitch_diff, yaw_diff) = quaternion_to_euler(q_r)
@@ -107,7 +102,7 @@ class Monitor(State):
 
 class SingleTest(State):
     def __init__(self, twist, start_pose, goal_pose, timeout=10, goal_boundry=[0.5, 0.5, 0.2, 0.15, 0.15, 0.15]):
-        super().__init__(outcomes=["preempted", "succeeded", "aborted"])
+        State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         self.twist = twist
         self.goal_pose = goal_pose
         self.start_pose = start_pose
@@ -127,9 +122,9 @@ class SingleTest(State):
             vel_state(self.twist),
             Monitor(
                 goal_pose=self.goal_pose, 
-                duration=self.timeout, 
+                max_duration=self.timeout, 
                 pool_bounds=[(self.x_min, self.x_max), (self.y_min, self.y_max), (self.z_min, self.z_max)], 
-                goal_boundry=goal_boundry,
+                goal_boundry=self.goal_boundry,
                 odom_topic="/odometry/filtered"
             ),
             GoToState(self.start_pose),
@@ -140,6 +135,7 @@ class SingleTest(State):
 
 
 def surge_sway_heave():
+    rospy.init_node('system_identification_sm',log_level=rospy.DEBUG)
     states = [
         SingleTest(
             twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)

@@ -24,15 +24,15 @@ class GoToState(State):
         Args:
             goal_pose (geometry_msgs/Pose): Pose the drone will travel to.
         """
-        super().__init__(outcomes=["preempted", "succeeded", "aborted"])
+        State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         self.goal_pose = goal_pose
 
     def execute(self, ud):
-        los_state = los_state(self.goal_pose.position)
-        dp_state = dp_state(self.goal_pose)
+        los = los_state(self.goal_pose.position)
+        dp = dp_state(self.goal_pose)
 
         sm = create_sequence(
-            [los_state, dp_state], state_names=["los_move_state", "dp_move_state"]
+            [los, dp], state_names=["los_move_state", "dp_move_state"]
         )
         sm.execute()
 
