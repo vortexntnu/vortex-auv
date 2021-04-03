@@ -9,20 +9,22 @@ from helper import create_sequence, point, pose, twist
 
 
 class Monitor(State):
-    def __init__(self, goal_pose, timeout, odom_topic="/odometry/filtered"):
+    def __init__(self, goal_pose, max_duration, bounds, range_of_acceptance, odom_topic="/odometry/filtered"):
         super().__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        self.duration = max_duration
+        self.timeout = False
+
         self.odom = Odometry()
         self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.update_odom)
 
     def execute(self, ud):
         # start timer
+        rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
 
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and not timeout:
             # check if within bounds
 
             # check if within range of acceptance
-
-            # check if timeout
 
             pass
         return "preempted"
@@ -30,9 +32,12 @@ class Monitor(State):
     def update_odom(self, odom_msg):
         self.odom = odom_msg
 
+    def timer_cb(self, event):
+        self.timeout = True
+
 
 class SingleTest(State):
-    def __init__(self, twist, start_pose, goal_pose, timeout=10):
+    def __init__(self, twist, start_pose, goal_pose, timeout=10, range_of_acceptance=[0.5, 0.5, 0.2, ]):
         super().__init__(outcomes=["preempted", "succeeded", "aborted"])
         self.twist = twist
         self.goal_pose = goal_pose
