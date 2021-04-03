@@ -4,7 +4,7 @@ The node takes in odometry data and a point in the global coordinate frame, and 
 
 
 The system parameters can be changed during runtime because of the dynamic reconfigure server that is present
-in the los_guidance_backstepping script. The parameters can be found under /cfg/LOS.cfg. To reconfigure the parameters, use
+in the los_guidance script. The parameters can be found under /cfg/LOS.cfg. To reconfigure the parameters, use
 ```
 rosrun rqt_reconfigure rqt_reconfigure
 ```

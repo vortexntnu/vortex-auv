@@ -1,171 +1,190 @@
 #!/usr/bin/env python
-# coding: UTF-8
 
-"""
-
-Node som forenkler tilganger til controlleren. 
-Den skal ta av seg bytting mellom controller moduser, 
-slik at koden i state machinene kan bli enklere. 
-
-Noden skal ha en action-server som tar inn en ny action (ligner på
-move_base) som skal inneholde: 
-- Target pose og 
-- String for kontroller som skal benyttes
-
-Noden sender så target posen videre som en ny action
-til den valgte kontrolleren. Resultat og feedback fra endelig kontroller
-sendes videre igjennom noden. 
-
-"""
-
+from enum import IntEnum
 
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from geometry_msgs.msg import Pose, Point, PoseStamped
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from sensor_msgs.msg import Joy
+from move_base_msgs.msg import MoveBaseAction
+from std_srvs.srv import Empty, EmptyRequest, SetBool, SetBoolRequest
+
 from vortex_msgs.msg import (
-    MoveAction, MoveActionFeedback, MoveActionResult, LosPathFollowingAction, LosPathFollowingGoal
+    LosPathFollowingAction,
+    ControlModeAction,
+    SetVelocityAction,
 )
-from vortex_msgs.srv import ControlMode
+
+from vortex_msgs.srv import (
+    ControlMode,
+    ControlModeRequest,
+    SetVelocity,
+    SetVelocityRequest,
+)
 
 
-# ENUM for controller mode
-OPEN_LOOP           = 0
-POSE_HOLD           = 1
-HEADING_HOLD        = 2
-DEPTH_HEADING_HOLD  = 3
-DEPTH_HOLD          = 4
-POSE_HEADING_HOLD   = 5
-CONTROL_MODE_END    = 6
+class ControlModeEnum(IntEnum):
+    OPEN_LOOP = 0
+    POSE_HOLD = 1
+    HEADING_HOLD = 2
+    DEPTH_HEADING_HOLD = 3
+    DEPTH_HOLD = 4
+    POSE_HEADING_HOLD = 5
+    CONTROL_MODE_END = 6
 
 
-def change_control_mode(requested_mode):
-    """
-    Change the controller mode of the DP controller.
+class JoyGuidance:
+    def __init__(
+        self, guidance_interface, action_server_name, activate_joystick_service_name
+    ):
+        self.guidance_interface = guidance_interface
 
-    Although this is technically breaking the design
-    idea that FSM and controller should not talk to
-    eachother, it makes sense to keep it for now, seeing
-    as some guidance systems may rely on one of the control
-    modes for the controller.
+        # set up servers and clients
+        rospy.logdebug("Waiting for joystick activation service..")
+        rospy.wait_for_service(activate_joystick_service_name)
+        self.activate_joystick_service = rospy.ServiceProxy(
+            activate_joystick_service_name, SetBool
+        )
+        self.joystick_controlmode_server = actionlib.SimpleActionServer(
+            action_server_name,
+            ControlModeAction,
+            self.action_server_callback,
+            auto_start=False,
+        )
+        self.joystick_controlmode_server.start()
+        rospy.logdebug("JoyGuidance initialized")
 
-    In the future, it may be moved to the DP guidance node,
-    if it makes sense to.
+    def activate_joystick(self, activate):
+        """Requests joystick activation/deactivation from joystick_guidance
 
-    """
-
-    rospy.wait_for_service('/controller/controlmode_service')   # From controller_ros.cpp
-
-    try:
-        control_mode = rospy.ServiceProxy('/controller/controlmode_service', ControlMode)
-        response = control_mode(requested_mode)
-        return response.result
-
-    except rospy.ServiceException as e:
-        rospy.logerr('guidance_interface could not change control mode')
-        print('Service call failed: %s' %e)
-
-
-class GuidanceInterface:
-
-    def __init__(self):
+        Args:
+            activate (bool): True activates joystick, False deactivates
         """
-        Define constants used in the guidance systems, create the
-        move action server that the fsm uses to communicate with 
-        this node,  and connect to the actions servers in the guidance
-        systems.
-        """
+        request = SetBoolRequest()
+        request.data = activate
 
-        self.joystick_surge_scaling = rospy.get_param('/joystick/scaling/surge')
-        self.joystick_sway_scaling  = rospy.get_param('/joystick/scaling/sway')
-        self.joystick_heave_scaling = rospy.get_param('/joystick/scaling/heave')
-        self.joystick_roll_scaling  = rospy.get_param('/joystick/scaling/roll')
-        self.joystick_pitch_scaling = rospy.get_param('/joystick/scaling/pitch')
-        self.joystick_yaw_scaling   = rospy.get_param('/joystick/scaling/yaw')
+        try:
+            self.activate_joystick_service(request)
+        except rospy.ServiceException as exc:
+            rospy.logerr(
+                "Joystick activation service did not process request: " + str(exc)
+            )
 
-        # Name buttons and axes based on index from joy-node
-        self.joystick_buttons_map = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'back',
-							         'start', 'power', 'stick_button_left',
-							         'stick_button_right']
+    def action_server_callback(self, control_mode_goal):
+        self.guidance_interface.stop_all_guidance()
 
-        self.joystick_axes_map = ['horizontal_axis_left_stick',
-						          'vertical_axis_left_stick', 'LT',
-						          'horizontal_axis_right_stick',
-						          'vertical_axis_right_stick', 'RT',
-						          'dpad_horizontal', 'dpad_vertical']
+        self.guidance_interface.change_dp_control_mode(
+            control_mode_goal.controlModeIndex
+        )
+        self.activate_joystick(True)
 
-        
-        self.transit_speed = rospy.get_param('~transit_speed', 0.3)
-        self.sphere_of_acceptance = rospy.get_param('~sphere_of_acceptance', 0.5)
-        self.timeout = rospy.get_param('~guidance_interface_timeout', 90)
+    def stop(self):
+        self.activate_joystick(False)
 
-        self.action_server = actionlib.SimpleActionServer('move', MoveAction, self.move_cb, auto_start=False)
+
+class VelocityGuidance:
+    def __init__(
+        self,
+        guidance_interface,
+        set_velocity_service_name,
+        stop_guidance_service_name,
+        action_server_name,
+    ):
+        self.guidance_interface = guidance_interface
+
+        # set up servers and clients
+        rospy.logdebug("Waiting for set velocity service..")
+        rospy.wait_for_service(set_velocity_service_name)
+        self.set_velocity_service = rospy.ServiceProxy(
+            set_velocity_service_name, SetVelocity
+        )
+        rospy.logdebug("Waiting for stop vel guidance service..")
+        rospy.wait_for_service(stop_guidance_service_name)
+        self.stop_guidance_service = rospy.ServiceProxy(
+            stop_guidance_service_name, Empty
+        )
+
+        self.action_server = actionlib.SimpleActionServer(
+            action_server_name,
+            SetVelocityAction,
+            self.action_server_callback,
+            auto_start=False,
+        )
         self.action_server.start()
+        rospy.logdebug("VelocityGuidance initialized")
 
-        self.dp_client = actionlib.SimpleActionClient('dp_action_server', MoveBaseAction)
-        self.los_client = actionlib.SimpleActionClient('los_action_server', LosPathFollowingAction)
+    def action_server_callback(self, set_velocity_goal):
+        self.guidance_interface.stopAllGuidance()
 
-        
-        self.joystick_sub = rospy.Subscriber('/joystick/joy', Joy, self.joystick_cb, queue_size=1)
-        self.joystick_pub = rospy.Publisher('/guidance/joystick_data', Joy, queue_size=1)
+        request = SetVelocityRequest()
+        request.desired_velocity = set_velocity_goal.desired_velocity
 
-        rospy.loginfo('Guidance interface is up and running')
+        try:
+            self.set_velocity_service(request)
+        except rospy.ServiceException as exc:
+            rospy.logerr("Set velocity service did not process request: " + str(exc))
 
-
-    def move_cb(self, move_goal):
-        """
-        Converts move_goal into the proper goal type for the desired guidance
-        system and engages the corresponding guidance node through the
-        action servers.
-
-        Aborts action if it is not completed within self.timeout seconds
-        """
-
-        # Talk to the dp_guidance node...
-        if move_goal.guidance_type == 'PositionHold':
-            rospy.loginfo('move_cb -> PositionHold. Changing control mode...')
-            change_control_mode(POSE_HEADING_HOLD)
-
-            dp_goal = MoveBaseGoal()
-            dp_goal.target_pose.pose = move_goal.target_pose
-
-            self.dp_client.send_goal(dp_goal, done_cb=self.done_cb, feedback_cb=None)
-
-            if not self.dp_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-                self.action_server.set_aborted()
-                rospy.loginfo('DP guidance aborted action due to timeout')
+    def stop(self):
+        try:
+            self.stop_guidance_service()
+            rospy.logdebug("vel guidance stopped!")
+        except rospy.ServiceException as exc:
+            rospy.logerr(
+                "Stop velocity guidance service did not process request: " + str(exc)
+            )
 
 
-        # Talk to the los_guidance node...
-        elif move_goal.guidance_type == 'LOS':
-            rospy.loginfo('move_cb -> LOS. Changing control mode...')
-            change_control_mode(OPEN_LOOP)
+class DpGuidance:
+    def __init__(
+        self,
+        guidance_interface,
+        dp_guidance_action_server,
+        guidance_interface_dp_action_server,
+        dp_controller_control_mode_service,
+    ):
+        self.guidance_interface = guidance_interface
+        self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
 
-            los_goal = LosPathFollowingGoal()
-            los_goal.next_waypoint = move_goal.target_pose.position
-            los_goal.forward_speed.linear.x = self.transit_speed
-            los_goal.sphereOfAcceptance = self.sphere_of_acceptance
-            los_goal.desired_depth.z = move_goal.target_pose.position.z
+        # set up servers and clients
+        rospy.logdebug("Waiting for dp control mode service..")
+        rospy.wait_for_service(dp_controller_control_mode_service)
+        self.control_mode_service = rospy.ServiceProxy(
+            dp_controller_control_mode_service, ControlMode
+        )
+        rospy.logdebug("Connecting dp action client..")
+        self.action_client = actionlib.SimpleActionClient(
+            dp_guidance_action_server, MoveBaseAction
+        )
 
-            self.los_client.send_goal(los_goal, done_cb=self.done_cb, feedback_cb=None)
+        rospy.logdebug("Starting dp action server..")
+        self.action_server = actionlib.SimpleActionServer(
+            guidance_interface_dp_action_server,
+            MoveBaseAction,
+            self.dp_callback,
+            auto_start=False,
+        )
+        self.action_server.start()
+        rospy.logdebug("DpGuidance initialized")
 
-            if not self.los_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-                self.action_server.set_aborted()
-                rospy.loginfo('LOS guidance aborted action due to timeout')
-        
-        else:
-            rospy.logerr('Unknown guidace type sent to guidance_interface')
+    def dp_callback(self, goal):
+        self.guidance_interface.stop_all_guidance()
+
+        self.change_control_mode(ControlModeEnum.POSE_HOLD)
+
+        # BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
+        self.action_client.send_goal(
+            goal, done_cb=self.guidance_finished_cb, feedback_cb=None
+        )
+
+        if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
             self.action_server.set_aborted()
+            rospy.logwarn("DP guidance aborted action due to timeout")
 
-    
-    def done_cb(self, state, result):
+    def guidance_finished_cb(self, state, result):
         """
         Set the outcome of the action depending on
         the returning result.
         """
-        
+
         if state == GoalStatus.SUCCEEDED:
             self.action_server.set_succeeded()
 
@@ -175,31 +194,136 @@ class GuidanceInterface:
         else:
             self.action_server.set_aborted()
 
-    def joystick_cb(self, msg):
-        buttons = {}
-        axes = {}
+    def change_control_mode(self, control_mode):
+        """Requests dp controller to change its control mode to the given mode
 
-        for i in range(len(msg.buttons)):
-            buttons[self.joystick_buttons_map[i]] = msg.buttons[i]
+        Args:
+            control_mode_index (int or bool): requested control mode
+        """
 
-        for j in range(len(msg.axes)):
-            axes[self.joystick_axes_map[j]] = msg.axes[j]
+        # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
+        if issubclass(type(control_mode), ControlModeEnum):
+            control_mode = control_mode.value  # since enum.field returns name and value
+        else:
+            # check if index is valid
+            if control_mode not in [member.value for member in ControlModeEnum]:
+                rospy.logerr(
+                    "Invalid control mode %s requested. Ignoring." % control_mode
+                )
+                return
 
-        # TODO: Buttons to change control mode, should be a service server between this and guidance
+        # BUG: [ERROR] [1617332984.272044] [/guidance/interface]: Exception in your execute callback: 'ControlModeAction' object has no attribute 'controlModeIndex'
+        request = ControlModeRequest()
+        request.controlmode = control_mode
 
-        surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
-        sway 	= axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
-        heave 	= (axes['RT'] - axes['LT'])/2 * self.joystick_heave_scaling
-        roll 	= (buttons['RB'] - buttons['LB']) * self.joystick_roll_scaling  
-        pitch 	= axes['vertical_axis_right_stick'] * self.joystick_pitch_scaling
-        yaw 	= axes['horizontal_axis_right_stick'] * self.joystick_yaw_scaling
+        try:
+            self.control_mode_service(request)
+        except rospy.ServiceException as exc:
+            rospy.logerr("Control mode service did not process request: " + str(exc))
 
-        joystick_msg = Joy()
-        joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
-        
-        self.joystick_pub.publish(joystick_msg)
+    def stop(self):
+        self.action_client.cancel_all_goals()
+        self.change_control_mode(ControlModeEnum.OPEN_LOOP)
+
+
+class LosGuidance:
+    def __init__(
+        self,
+        guidance_interface,
+        los_guidance_action_server,
+        guidance_interface_los_action_server,
+    ):
+        self.guidance_interface = guidance_interface
+        self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
+
+        # set up servers and clients
+        rospy.logdebug("Connecting los action client..")
+        self.action_client = actionlib.SimpleActionClient(
+            los_guidance_action_server, LosPathFollowingAction
+        )
+
+        # BUG: Potentially: LosPathFollowingAction should be MoveAction if fsm_helper() does not change
+        rospy.logdebug("Starting los action server..")
+        self.action_server = actionlib.SimpleActionServer(
+            guidance_interface_los_action_server,
+            LosPathFollowingAction,
+            self.los_callback,
+            auto_start=False,
+        )
+        self.action_server.start()
+        rospy.logdebug("LosGuidance initialized")
+
+    def los_callback(self, goal):
+        self.guidance_interface.stop_all_guidance()
+
+        self.action_client.send_goal(
+            goal, done_cb=self.guidance_finished_cb, feedback_cb=None
+        )
+
+        if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
+            self.action_server.set_aborted()
+            rospy.logwarn("LOS guidance aborted action due to timeout")
+
+    def guidance_finished_cb(self, state, result):
+        """
+        Set the outcome of the action depending on
+        the returning result.
+        """
+
+        if state == GoalStatus.SUCCEEDED:
+            self.action_server.set_succeeded()
+
+        elif state == GoalStatus.PREEMPTED:
+            self.action_server.set_preempted()
+
+        else:
+            self.action_server.set_aborted()
+
+    def stop(self):
+        self.action_client.cancel_all_goals()
+
+
+class GuidanceInterface:
+    def __init__(self):
+
+        self.joy_guidance = JoyGuidance(
+            guidance_interface=self,
+            action_server_name="/guidance_interface/joystick_server",
+            activate_joystick_service_name="/joystick_guidance/activate_joystick_control",
+        )
+
+        self.vel_guidance = VelocityGuidance(
+            guidance_interface=self,
+            set_velocity_service_name="/vel_guidance/set_velocity",
+            stop_guidance_service_name="/vel_guidance/stop_guidance",
+            action_server_name="/guidance_interface/vel_server",
+        )
+
+        self.dp_guidance = DpGuidance(
+            guidance_interface=self,
+            dp_guidance_action_server="dp_action_server",
+            guidance_interface_dp_action_server="/guidance_interface/dp_server",
+            dp_controller_control_mode_service="/controller/controlmode_service",
+        )
+
+        self.los_guidance = LosGuidance(
+            guidance_interface=self,
+            los_guidance_action_server="los_action_server",
+            guidance_interface_los_action_server="/guidance_interface/los_server",
+        )
+        rospy.logdebug("GuidanceInterface initialized")
+
+    def stop_all_guidance(self):
+        self.joy_guidance.stop()
+        self.vel_guidance.stop()
+        self.dp_guidance.stop()
+        self.los_guidance.stop()
+
+    def change_dp_control_mode(self, control_mode_index):
+        self.dp_guidance.change_control_mode(control_mode_index)
+
 
 if __name__ == "__main__":
-    rospy.init_node('interface')
+    rospy.init_node("guidance_interface", log_level=rospy.DEBUG)
     server = GuidanceInterface()
     rospy.spin()

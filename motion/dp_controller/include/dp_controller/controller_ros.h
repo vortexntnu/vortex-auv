@@ -71,6 +71,11 @@ public:
 
 
   /**
+   * @brief Callback for the reference model subscriber
+  */
+  void guidanceCallback(const geometry_msgs::Pose &msg);
+
+  /**
    * @brief Callback for the dynamic reconfigure server
    * 
    * @param config   A VortexControllerConfig object used to store parameters
@@ -95,32 +100,24 @@ public:
                            vortex_msgs::ControlMode::Response &res);
 
 
-  /**
-   * @brief Action server; goal
-   * 
-   * Called when a new goal is set, and simply accepts the new goal.
-   * 
-  */
-  void actionGoalCallBack();
+
+//  /**
+//   * @brief Action server; goal
+//   * 
+//   * Called when a new goal is set, and simply accepts the new goal.
+//   * 
+//  */
+//  void actionGoalCallBack();
+//
+//
+//  /**
+//   * @brief Action server; preemptive goal
+//   * 
+//   * Called whenever external applications like rviz sends a simple goal.
+//  */
+//  void preemptCallBack();
 
 
-  /**
-   * @brief Action server; preemptive goal
-   * 
-   * Called whenever external applications like rviz sends a simple goal.
-  */
-  void preemptCallBack();
-
-
-  /**
-   * @brief class wrapper for the usual ros::spin() command
-   * 
-   * for each spinOnce, this function gets the newest state
-   * and newest setpoints, and calculates a force vector
-   * depending on the current control mode.
-  */
-  void spin();  
-  
   ros::ServiceServer control_mode_service_; /** Control mode service server */
 
 private:
@@ -129,6 +126,7 @@ private:
 
   ros::Subscriber m_command_sub;       /** Command subscriber  */          
   ros::Subscriber m_state_sub;         /** State subscriber    */
+  ros::Subscriber m_guidance_sub;      /** Reference model subscriber*/
   ros::Subscriber m_mode_sub;          /** Mode subscriber     */
 
   ros::Publisher  m_wrench_pub;        /** Wrench publisher    */
@@ -139,22 +137,21 @@ private:
   dynamic_reconfigure::Server<dp_controller::VortexControllerConfig> m_dr_srv;  /** dynamic_reconfigure server */
 
   ControlMode m_control_mode;                       /** Current control mode                        */
-  int m_frequency;                                  /** Update frequency for controller (ros rate)  */
   bool m_debug_mode = false;                        /** Bool to run in debug mode                   */
   const double c_normalized_force_deadzone = 0.01;  /** Normalized force deadzone                   */
   const double c_max_quat_norm_deviation = 0.1;     /** Maximum normalized deviation (quaternion)   */
 
-  std::unique_ptr<State>                  m_state;      /** Current states (position, orientation, velocity)  */
-  std::unique_ptr<Setpoints>              m_setpoints;  /** Current setpoints (wrench, orientation, velocity) */
+  // Internal state
+  Eigen::Vector3d       m_current_position;
+  Eigen::Quaterniond    m_current_orientation;
+  Eigen::Vector6d       m_current_velocity;
+
   std::unique_ptr<QuaternionPdController> m_controller; /** The Quaternion PID controller object              */
 
   // EIGEN CONVERSION INITIALIZE
   Eigen::Vector3d    position;              /** Current position      */
   Eigen::Quaterniond orientation;           /** Current orientation   */
   Eigen::Vector6d    velocity;              /** Current velocity      */
-  Eigen::Vector3d    setpoint_position;     /** Position setpoint     */
-  Eigen::Quaterniond setpoint_orientation;  /** Orientation setpoint  */
-  Eigen::Vector3d prev_setpoint_position;   /** Previous setpoint position (initial position hardcoded)*/
 
 
   enum PoseIndex { SURGE = 0, SWAY = 1, HEAVE = 2, ROLL = 3, PITCH = 4, YAW = 5 };
@@ -196,7 +193,7 @@ private:
    * 
    * @see quaternion_pd_controller.h
   */
-  void initPositionHoldController();
+  void initPositionHoldController(); 
 
 
   /**

@@ -46,6 +46,8 @@ add_action_files(
   MoveRelative.action
   LosPathFollowing.action
   Move.action
+  ControlMode.action
+  SetVelocity.action
 )
 
 generate_messages(

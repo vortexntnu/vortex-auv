@@ -1,9 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>reference_model</name>
+  <name>los_reference_model</name>
   <version>0.0.0</version>
-  <description>The reference_model package</description>
-  <maintainer email="kristoffer@todo.todo">kristoffer</maintainer>
+  <description>The los_reference_model package</description>
+  
+  <maintainer email="chstr@stud.ntnu.no">strom</maintainer>
+
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
@@ -16,5 +18,4 @@
   
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>rospy</exec_depend>
-
 </package>
