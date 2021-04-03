@@ -2,6 +2,7 @@
 
 import rospy
 from smach import State
+from smach_ros import IntrospectionServer
 from nav_msgs.msg import Odometry, Twist
 from tf2_geometry_msgs import euler_to_quaternion, quaternion_to_euler, Quaternion, quaternion_multiply
 
@@ -147,6 +148,9 @@ def surge_sway_heave():
         )
     ]
     sm = create_sequence(states)
+    introspection_server = IntrospectionServer(str(rospy.get_name()), sm,'/SM_ROOT')
+
+    introspection_server.start()
     sm.execute()
 
 
