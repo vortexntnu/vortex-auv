@@ -89,7 +89,7 @@ class Monitor(State):
 
         # check if close to goal
         diff_list = [
-            abs(self.goal_pose.position.x - self.odom.pose.pose.position.x) 
+            abs(self.goal_pose.position.x - self.odom.pose.pose.position.x), 
             abs(self.goal_pose.position.y - self.odom.pose.pose.position.y),
             abs(self.goal_pose.position.z - self.odom.pose.pose.position.z),
             roll_diff,
