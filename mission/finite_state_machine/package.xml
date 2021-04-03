@@ -16,11 +16,13 @@
   <build_depend>smach_ros</build_depend>
   <build_depend>vortex_msgs</build_depend>
   <build_depend>python-math</build_depend>
+  <build_depend>tf2</build_depend>
 
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>
   <build_export_depend>nav_msgs</build_export_depend>
+  <build_export_depend>tf2</build_export_depend>
 
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
@@ -31,5 +33,6 @@
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>vortex_msgs</exec_depend>
   <exec_depend>python-math</exec_depend>
+  <exec_depend>tf2</exec_depend>
 
 </package>
