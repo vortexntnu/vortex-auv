@@ -11,6 +11,7 @@ from move_base_msgs.msg import MoveBaseAction
 from actionlib_msgs.msg import GoalStatus
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
+from tf.transformations import euler_from_quaternion, quaternion_from_euler, quaternion_multiply
 
 from std_srvs.srv import SetBool
 
@@ -35,10 +36,12 @@ class DPGuidance:
         """
 
         rate = rospy.get_param("guidance/dp/rate", 20)  # [Hz]
+        self.circle_of_acceptance = rospy.get_param("controllers/dp/circleOfAcceptance", 0.1)
         self.ros_rate = rospy.Rate(rate)
 
-        self.controller_setpoint = Pose()
         self.publish_guidance_data = False
+        self.controller_setpoint = Pose()
+        self.current_pose = Pose()
 
         # Publisher for the reference model
         self.reference_model_pub = rospy.Publisher(
@@ -47,7 +50,7 @@ class DPGuidance:
 
         # Subscriber for state (for circle of acceptance)
         self.state_sub = rospy.Subscriber(
-            "/odometry/filtered", nav_msgs::Odometry , self.circle_of_acceptance_cb
+            "/odometry/filtered", Odometry , self.update_current_pose
         )
 
         # Action server for receiving goal data
@@ -60,6 +63,45 @@ class DPGuidance:
         self.goal_action_server.register_preempt_callback(self.preempt_cb)
         self.goal_action_server.start()
 
+    
+    def update_current_pose(self, odom_msg):
+        self.current_pose = odom_msg.pose.pose
+
+    def within_circle_of_acceptance(self):
+        # create quats from msg
+        goal_quat_list = [
+            self.controller_setpoint.orientation.x, 
+            self.controller_setpoint.orientation.y, 
+            self.controller_setpoint.orientation.z, 
+            -self.controller_setpoint.orientation.w  # invert goal quat
+        ]
+        current_quat_list = [
+            self.current_pose.orientation.x,
+            self.current_pose.orientation.y,
+            self.current_pose.orientation.z,
+            self.current_pose.orientation.w
+        ]
+        q_r = quaternion_multiply(current_quat_list, goal_quat_list)
+
+        # convert relative quat to euler 
+        (roll_diff, pitch_diff, yaw_diff) = euler_from_quaternion(q_r)
+
+        # check if close to goal
+        diff_list = [
+            abs(self.controller_setpoint.position.x - self.current_pose.position.x), 
+            abs(self.controller_setpoint.position.y - self.current_pose.position.y),
+            abs(self.controller_setpoint.position.z - self.current_pose.position.z),
+            roll_diff,
+            pitch_diff,
+            yaw_diff
+        ]
+        is_close = True
+        for diff in diff_list:
+            if diff > self.circle_of_acceptance:
+                is_close = False
+
+        return is_close
+
     def spin(self):
         """
         A replacement for the normal rospy.spin(), equivalent
@@ -67,14 +109,17 @@ class DPGuidance:
         has it's own thread)
         """
         while not rospy.is_shutdown():
+
             if self.publish_guidance_data:
+
+                if self.within_circle_of_acceptance():
+                    self.publish_guidance_data = False
+                    self.goal_action_server.set_succeeded()
+                    continue    # dont pub next contorller setpoint
+
                 self.reference_model_pub.publish(self.controller_setpoint)
 
             self.ros_rate.sleep()
-
-    def circle_of_acceptance_cb(self, msg):
-        #generate and publish feedback message to client of type move_base_msgs::MoveBaseFeedback
-        #if within circle of acceptance, return result move_base_msgs::MoveBaseResult("Goal Reached.")
 
     def goal_cb(self):
         """
