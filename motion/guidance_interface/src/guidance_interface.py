@@ -170,6 +170,7 @@ class DpGuidance:
 
         self.change_control_mode(ControlModeEnum.POSE_HOLD)
 
+        rospy.logdebug("Sending new goal to dp_guidance..")
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
@@ -252,6 +253,7 @@ class LosGuidance:
     def los_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
+        rospy.logdebug("Sending new goal to los_guidance..")
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
