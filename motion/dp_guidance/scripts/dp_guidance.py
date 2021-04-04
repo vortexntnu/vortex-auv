@@ -36,9 +36,8 @@ class DPGuidance:
         """
 
         rate = rospy.get_param("guidance/dp/rate", 20)  # [Hz]
-        self.circle_of_acceptance = rospy.get_param("controllers/dp/circleOfAcceptance", 0.1)
+        self.circle_of_acceptance = rospy.get_param("controllers/dp/circleOfAcceptance", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         self.ros_rate = rospy.Rate(rate)
-
         self.publish_guidance_data = False
         self.controller_setpoint = Pose()
         self.current_pose = Pose()
@@ -95,11 +94,11 @@ class DPGuidance:
             pitch_diff,
             yaw_diff
         ]
-        is_close = True
-        for diff in diff_list:
-            if diff > self.circle_of_acceptance:
-                is_close = False
 
+        is_close = True
+        for i in range(len(diff_list)):
+            if diff_list[i] > self.circle_of_acceptance[i]:
+                is_close = False
         return is_close
 
     def spin(self):
