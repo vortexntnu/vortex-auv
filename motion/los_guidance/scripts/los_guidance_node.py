@@ -278,6 +278,8 @@ class LosPathFollowing(object):
 
 		# Subscribers
 		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1) # 20hz
+		rospy.loginfo("Waiting for initial odometry..")
+		rospy.wait_for_message('/odometry/filtered', Odometry)
 
 		# Publishers
 		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
@@ -294,6 +296,8 @@ class LosPathFollowing(object):
 		self.action_server.register_goal_callback(self.goal_cb)
 		self.action_server.register_preempt_callback(self.preempt_cb)
 		self.action_server.start()
+
+		rospy.loginfo("los guidance initiated")
 
 	def spin(self):
 
@@ -387,6 +391,7 @@ class LosPathFollowing(object):
 		"""
 
 		_goal = self.action_server.accept_new_goal()
+		rospy.logdebug("los_guidance recieved new goal")
 
 		# set goal
 		self.los.x_k = self.los.x
