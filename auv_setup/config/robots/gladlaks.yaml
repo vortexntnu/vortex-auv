@@ -96,6 +96,7 @@ battery:
   logging:
     interval: 10   # Seconds
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
+    powersense_dev: "/dev/ttyUSB2"
 
 temperature:
   logging:
