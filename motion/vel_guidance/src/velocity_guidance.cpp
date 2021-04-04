@@ -10,8 +10,8 @@ VelocityGuidance::VelocityGuidance(ros::NodeHandle nh)
     velocity_topic = "/desired_velocity";
   ROS_DEBUG_STREAM("Using velocity topic: " << velocity_topic);
 
+  guidance_active = false;
   vel_pub = nh.advertise<geometry_msgs::Twist>(velocity_topic, 1);
-  
   set_vel_service = 
       nh.advertiseService("/vel_guidance/set_velocity", &VelocityGuidance::setVelocity, this);
   stop_guidance_service =
