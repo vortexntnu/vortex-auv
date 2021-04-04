@@ -95,11 +95,12 @@ joystick:
 
 battery:
   thresholds:
-    warning: 14000  # Millivolts
-    critical: 13000 # Millivolts
+    warning: 14  # Volts
+    critical: 13 # Volts
   logging:
     interval: 10   # Seconds
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
+    powersense_dev: "/dev/ttyUSB2"
 
 temperature:
   logging:
