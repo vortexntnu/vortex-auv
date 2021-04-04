@@ -134,11 +134,10 @@ class SingleTest(State):
         return sm.execute()
 
 
-def surge_sway_heave():
-    rospy.init_node('system_identification_sm',log_level=rospy.DEBUG)
+def run_tests():
     states = [
         SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+            twist(1, 0, 0, 0, 0, 0), pose(2, 0, -0.5, 0, 0, 0), pose(5, 0, -0.5, 0, 0, 0)
         ),
         SingleTest(
             twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
@@ -151,5 +150,11 @@ def surge_sway_heave():
     sm.execute()
 
 
+def trials():
+    state = GoToState(pose(0,0,-0.5,0,0,0))
+    state.execute(None)
+
+
 if __name__ == "__main__":
-    surge_sway_heave()
+    rospy.init_node('system_identification_sm',log_level=rospy.DEBUG)
+    run_tests()
