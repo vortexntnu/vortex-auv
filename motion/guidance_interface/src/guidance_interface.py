@@ -170,7 +170,6 @@ class DpGuidance:
 
         self.change_control_mode(ControlModeEnum.POSE_HOLD)
 
-        # BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
