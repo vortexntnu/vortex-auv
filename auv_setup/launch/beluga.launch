@@ -4,10 +4,10 @@
   
   <!-- INPUT ARGS -->
   <arg name="type" default="simulator"/> <!-- real | simulator -->
-  <arg name="localization" default="ekf"/>
+  <arg name="localization" default="eskf"/> <!-- ekf | eskf-->
 
   <!-- PARAMETERS -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
+  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
 
 
