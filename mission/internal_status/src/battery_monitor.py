@@ -52,7 +52,11 @@ class BatteryMonitor():
         xavier_voltage = xavier_mV / 1000.0
 
         system_voltage_str = self.powersense_device.readline()
+<<<<<<< HEAD
         system_voltage = float(system_voltage_str) # strip /r/n
+=======
+        system_voltage = float(system_voltage_str[:-2]) # strip /r/n
+>>>>>>> refactor/beluga_name_update
 
         return xavier_voltage, system_voltage
 
@@ -76,4 +80,8 @@ class BatteryMonitor():
 if __name__ == '__main__':
 
     bm = BatteryMonitor()
+<<<<<<< HEAD
     bm.spin()
+=======
+    bm.spin()
+>>>>>>> refactor/beluga_name_update

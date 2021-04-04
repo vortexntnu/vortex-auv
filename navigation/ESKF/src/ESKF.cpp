@@ -682,7 +682,7 @@ InnovationParameters ESKF::innovationDVLWithLeverArm(const VectorXd& xnominal, c
   MatrixXd X_deltaX{ MatrixXd::Identity(NOMINAL_STATE_SIZE, ERROR_STATE_SIZE) };
   X_deltaX.block<4, 3>(6, 6) = Q_deltaT;
 
-  Vector3d leverarm {0.014, 0.0, 0.166}; //Lever arm for gladlaks    //-0.035,-0.017,-0.211  -0.017,-0.035,0.211
+  Vector3d leverarm {0.014, 0.0, 0.166}; //Lever arm for beluga    //-0.035,-0.017,-0.211  -0.017,-0.035,0.211
 
   InnovationParameters dvlStates(3);
   dvlStates.jacobianOfErrorStates = Hx * X_deltaX;
