@@ -20,7 +20,7 @@ class BatteryMonitor():
         self.interval = rospy.get_param("/battery/logging/interval")          # How often the battery level is checked and published
 
         # Power Sense device
-        self.powersense_device = serial.Serial("/dev/ttyUSB2", 115200)
+        self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
         self.powersense_device.flushInput()
         self.powersense_device.flushOutput()
 
