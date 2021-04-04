@@ -187,6 +187,7 @@ class DpGuidance:
 
         if state == GoalStatus.SUCCEEDED:
             self.action_server.set_succeeded()
+            self.change_control_mode(ControlModeEnum.POSE_HOLD) # dp keeps holding position after its done
 
         elif state == GoalStatus.PREEMPTED:
             self.action_server.set_preempted()
@@ -201,7 +202,6 @@ class DpGuidance:
             control_mode_index (int or bool): requested control mode
         """
 
-        # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
         if issubclass(type(control_mode), ControlModeEnum):
             control_mode = control_mode.value  # since enum.field returns name and value
         else:
@@ -212,7 +212,6 @@ class DpGuidance:
                 )
                 return
 
-        # BUG: [ERROR] [1617332984.272044] [/guidance/interface]: Exception in your execute callback: 'ControlModeAction' object has no attribute 'controlModeIndex'
         request = ControlModeRequest()
         request.controlmode = control_mode
 
@@ -241,8 +240,6 @@ class LosGuidance:
         self.action_client = actionlib.SimpleActionClient(
             los_guidance_action_server, LosPathFollowingAction
         )
-
-        # BUG: Potentially: LosPathFollowingAction should be MoveAction if fsm_helper() does not change
         rospy.logdebug("Starting los action server..")
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_los_action_server,
