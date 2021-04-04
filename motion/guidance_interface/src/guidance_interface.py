@@ -113,7 +113,7 @@ class VelocityGuidance:
         rospy.logdebug("VelocityGuidance initialized")
 
     def action_server_callback(self, set_velocity_goal):
-        self.guidance_interface.stopAllGuidance()
+        self.guidance_interface.stop_all_guidance()
 
         request = SetVelocityRequest()
         request.desired_velocity = set_velocity_goal.desired_velocity
