@@ -58,10 +58,10 @@ def create_sequence(list_of_states, connector_outcome="succeeded", state_names=[
     with container:
         if len(list_of_states) == len(state_names):
             for name, state in zip(state_names, list_of_states):
-                container.add(name, state)
+                Sequence.add(name, state)
         else:  # no state names provided
             counter = 0
             for state in list_of_states:
-                container.add("State-%d" % counter, state)
+                Sequence.add("State-%d" % counter, state)
                 counter += 1
     return container

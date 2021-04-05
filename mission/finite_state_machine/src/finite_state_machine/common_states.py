@@ -59,8 +59,10 @@ class GoToState(State):
         )
 
     def execute(self, ud):
-        return self.sm.execute()
-
+        res = self.sm.execute()
+        rospy.logdebug(res)
+        return res
+    
 
 def dp_state(pose, action_server="/guidance_interface/dp_server"):
     """Create a SimpleActionState that travels to a goal pose using our DP guidance.
