@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from _typeshed import NoneType
 from enum import IntEnum
 
 import rospy
