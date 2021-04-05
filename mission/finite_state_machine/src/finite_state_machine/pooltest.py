@@ -31,14 +31,19 @@ def visit_waypoints():
     introspection_server.start()
     sm.execute()
 
-def stay():
+def test_restoring():
     twist = Twist()
     state = vel_state(twist)
     res = state.execute(None)
-    rospy.loginfo("sm stay result: " + str(res))
-
+    rospy.loginfo(str(res))
+    
+def test_dp():
+    test_pose = Pose()
+    test_pose.position.z = -0.5
+    state = dp_state(test_pose)
+    res = state.execute(None)
+    rospy.loginfo(str(res))
 
 if __name__ == "__main__":
     rospy.init_node("pooltest_fsm")
-    stay()
-    rospy.spin()
+    test_restoring()
