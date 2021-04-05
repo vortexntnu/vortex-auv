@@ -24,11 +24,13 @@ bool VelocityGuidance::setVelocity(vortex_msgs::SetVelocityRequest& req, vortex_
 {
   desired_velocity = req.desired_velocity;
   guidance_active = true;
+  return true;
 }
 
 bool VelocityGuidance::stopGuidance(std_srvs::EmptyRequest& req, std_srvs::EmptyResponse& res)
 {
   guidance_active = false;
+  return true;
 }
 
 void VelocityGuidance::spin()
