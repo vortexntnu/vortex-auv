@@ -16,6 +16,32 @@ from vortex_msgs.msg import (
 from helper import create_sequence
 
 
+class DpState(SimpleActionState):
+    def __init__(self, pose, action_server="/guidance_interface/dp_server"):
+
+        goal = MoveBaseGoal()
+        goal.target_pose.pose = pose
+
+        SimpleActionState.__init__(self, action_server, MoveBaseAction, goal)
+
+
+class LosState(SimpleActionState):
+    def __init__(
+        self,
+        goal_positon,
+        travel_speed=0.5,
+        sphere_of_acceptance=0.5,
+        action_server="/guidance_interface/los_server",
+    ):
+        goal = LosPathFollowingGoal()
+        goal.next_waypoint = goal_positon
+        goal.forward_speed = travel_speed
+        goal.desired_depth = goal_positon.z
+        goal.sphereOfAcceptance = sphere_of_acceptance
+
+        SimpleActionState.__init__(self, action_server, LosPathFollowingAction, goal)
+
+
 class GoToState(State):
     def __init__(self, goal_pose):
         """State that moves to a goal pose by first using LOS guindace for traveling
@@ -26,15 +52,14 @@ class GoToState(State):
         """
         State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         self.goal_pose = goal_pose
+        self.los_state = LosState(self.goal_pose.position)
+        self.dp_state = DpState(self.goal_pose)
+        self.sm = create_sequence(
+            [self.los_state, self.dp_state], state_names=["los_state", "dp_state"]
+        )
 
     def execute(self, ud):
-        los = los_state(self.goal_pose.position)
-        dp = dp_state(self.goal_pose)
-
-        sm = create_sequence(
-            [los, dp], state_names=["los_move_state", "dp_move_state"]
-        )
-        return sm.execute()
+        return self.sm.execute()
 
 
 def dp_state(pose, action_server="/guidance_interface/dp_server"):

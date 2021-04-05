@@ -45,5 +45,5 @@ def test_dp():
     rospy.loginfo(str(res))
 
 if __name__ == "__main__":
-    rospy.init_node("pooltest_fsm")
-    test_restoring()
+    rospy.init_node("pooltest_fsm", log_level=rospy.DEBUG)
+    visit_waypoints()
