@@ -62,7 +62,6 @@ class BatteryMonitor():
             for i in range(10):
                 rospy.logfatal("Critical %s voltage: %.3fV" % (title, voltage))
                 rospy.sleep(0.25)
-            #os.system("sudo shutdown now")
             
         # Warning voltage level
         elif voltage <= self.warning_level:
