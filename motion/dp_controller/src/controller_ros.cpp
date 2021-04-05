@@ -104,7 +104,6 @@ ControlMode Controller::getControlMode(int mode)
 }
 
 // TODO: This should only update local state, and not have anything to do with the action server
-// Need to decide on how to handle the circle of acceptance?
 void Controller::stateCallback(const nav_msgs::Odometry& msg)
 {
   // Update local states position, orientation and velocity
