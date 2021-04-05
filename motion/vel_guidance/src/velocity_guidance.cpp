@@ -24,12 +24,14 @@ bool VelocityGuidance::setVelocity(vortex_msgs::SetVelocityRequest& req, vortex_
 {
   desired_velocity = req.desired_velocity;
   guidance_active = true;
+  ROS_DEBUG_STREAM("vel guidance active and set to new velocity");
   return true;
 }
 
 bool VelocityGuidance::stopGuidance(std_srvs::EmptyRequest& req, std_srvs::EmptyResponse& res)
 {
   guidance_active = false;
+  ROS_DEBUG_STREAM("vel guidance deactived");
   return true;
 }
 
