@@ -62,8 +62,7 @@ public:
    * @brief Callback for the state subscriber
    * 
    * If the orientation given in @p msg is invalid, this function returns early.
-   * Else it publishes the calculated feedback through the action server. It also
-   * returns "success" if the setpoint is within the circle of acceptance.
+   * Else it publishes the calculated feedback through the action server.
    * 
    * @param msg   A nav_msg::Odometry message containing state data about the AUV.
   */
