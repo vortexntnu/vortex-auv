@@ -9,6 +9,7 @@
   <!-- PARAMETERS -->
   <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
+  <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml"/>
 
 
   <!-- INCLUDES -->
@@ -37,7 +38,7 @@
     <node pkg="pca9685_ros_driver" type="pca9685_ros_node.py" name="pca9685_ros_driver" output="screen" />
 
     <!-- ZED2 camera node -->
-    <include file="$(find zed_wrapper)/launch/zed2.launch" />
+    <!--<include file="$(find zed_wrapper)/launch/zed2.launch" /> -->
     
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch"/>

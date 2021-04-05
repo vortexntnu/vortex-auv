@@ -16,9 +16,7 @@
     <group if="$(eval localization == 'eskf')">
       
       <!-- Error State Kalman Filter-->
-      <node pkg="eskf" type="eskf" name="eskf_localization_node" clear_params="true" output="screen">
-	      <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" /> 
-      </node>
+      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen"/>
 
     </group>
 
