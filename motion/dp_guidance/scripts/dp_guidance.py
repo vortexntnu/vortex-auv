@@ -36,7 +36,7 @@ class DPGuidance:
         """
 
         rate = rospy.get_param("guidance/dp/rate", 20)  # [Hz]
-        self.acceptance_margins = rospy.get_param("controllers/dp/AcceptanceMargins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.acceptance_margins = rospy.get_param("guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         self.ros_rate = rospy.Rate(rate)
         self.publish_guidance_data = False
         self.controller_setpoint = Pose()
