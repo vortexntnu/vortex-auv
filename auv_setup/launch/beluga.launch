@@ -3,11 +3,11 @@
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
   
   <!-- INPUT ARGS -->
-  <arg name="type" default="simulator"/> <!-- real | simulator -->
-  <arg name="localization" default="ekf"/>
+  <arg name="type" default="real"/> <!-- real | simulator -->
+  <arg name="localization" default="eskf"/> <!-- ekf | eskf-->
 
   <!-- PARAMETERS -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/gladlaks.yaml"/>
+  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
 
 
@@ -18,7 +18,7 @@
 
   <!-- Joystick nodes for ROV missions -->
   <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
-
+ 
   <!-- DRIVERS -->
   <group if="$(eval type == 'real')">
     <!-- IMU -->

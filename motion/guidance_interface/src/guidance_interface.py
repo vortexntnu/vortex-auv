@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from _typeshed import NoneType
 from enum import IntEnum
 
 import rospy
@@ -64,10 +65,12 @@ class JoyGuidance:
 
         try:
             self.activate_joystick_service(request)
+            return True
         except rospy.ServiceException as exc:
             rospy.logerr(
                 "Joystick activation service did not process request: " + str(exc)
             )
+            return False
 
     def action_server_callback(self, control_mode_goal):
         self.guidance_interface.stop_all_guidance()
@@ -75,7 +78,12 @@ class JoyGuidance:
         self.guidance_interface.change_dp_control_mode(
             control_mode_goal.controlModeIndex
         )
-        self.activate_joystick(True)
+
+        if self.activate_joystick(True):
+            self.joystick_controlmode_server.set_succeeded()
+        else:
+            self.joystick_controlmode_server.set_aborted()
+
 
     def stop(self):
         self.activate_joystick(False)
@@ -113,20 +121,22 @@ class VelocityGuidance:
         rospy.logdebug("VelocityGuidance initialized")
 
     def action_server_callback(self, set_velocity_goal):
-        self.guidance_interface.stopAllGuidance()
+        self.guidance_interface.stop_all_guidance()
 
         request = SetVelocityRequest()
         request.desired_velocity = set_velocity_goal.desired_velocity
 
         try:
             self.set_velocity_service(request)
+            self.action_server.set_succeeded()
         except rospy.ServiceException as exc:
             rospy.logerr("Set velocity service did not process request: " + str(exc))
+            self.action_server.set_aborted()
 
     def stop(self):
         try:
             self.stop_guidance_service()
-            rospy.logdebug("vel guidance stopped!")
+            rospy.logdebug("interface stopped vel guidance")
         except rospy.ServiceException as exc:
             rospy.logerr(
                 "Stop velocity guidance service did not process request: " + str(exc)
@@ -142,7 +152,9 @@ class DpGuidance:
         dp_controller_control_mode_service,
     ):
         self.guidance_interface = guidance_interface
-        self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
+        self.max_duration = rospy.get_param("/guidance/interface/action_timeout", 90)
+        self.timeout = False
+        self.client_done = False
 
         # set up servers and clients
         rospy.logdebug("Waiting for dp control mode service..")
@@ -167,32 +179,52 @@ class DpGuidance:
 
     def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
-
         self.change_control_mode(ControlModeEnum.POSE_HOLD)
 
-        # BUG: Exception in your execute callback: 'Pose' object has no attribute 'header'
+        rospy.logdebug("Sending new goal to dp_guidance..")
+        self.client_done =  False
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
 
-        if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-            self.action_server.set_aborted()
-            rospy.logwarn("DP guidance aborted action due to timeout")
+        self.timeout = False
+        rospy.Timer(rospy.Duration(self.max_duration), self.set_timeout, oneshot=True)
 
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+
+            # preempt requested
+            if self.action_server.is_preempt_requested():
+                self.action_client.cancel_all_goals()
+                self.action_server.set_preempted()
+                break
+
+            # client has finished its goal
+            if self.client_done:
+                state = self.action_client.get_state()
+                if state == GoalStatus.SUCCEEDED:
+                    self.action_server.set_succeeded()
+                elif state == GoalStatus.PREEMPTED:
+                    self.action_server.set_preempted()
+                else:
+                    self.action_server.set_aborted()
+                break
+
+            # timeout has occured
+            if self.timeout:
+                self.action_client.cancel_all_goals()
+                self.action_server.set_aborted()
+                rospy.logwarn("DP guidance aborted action due to timeout")
+                break
+            rate.sleep()
+
+
+    def set_timeout(self):
+        self.timeout = True
+        
     def guidance_finished_cb(self, state, result):
-        """
-        Set the outcome of the action depending on
-        the returning result.
-        """
-
-        if state == GoalStatus.SUCCEEDED:
-            self.action_server.set_succeeded()
-
-        elif state == GoalStatus.PREEMPTED:
-            self.action_server.set_preempted()
-
-        else:
-            self.action_server.set_aborted()
+        self.client_done = True
+        
 
     def change_control_mode(self, control_mode):
         """Requests dp controller to change its control mode to the given mode
@@ -201,7 +233,6 @@ class DpGuidance:
             control_mode_index (int or bool): requested control mode
         """
 
-        # BUG: [ERROR] [1617332877.287364] [/guidance/interface]: Exception in your execute callback: issubclass() arg 1 must be a class
         if issubclass(type(control_mode), ControlModeEnum):
             control_mode = control_mode.value  # since enum.field returns name and value
         else:
@@ -212,7 +243,6 @@ class DpGuidance:
                 )
                 return
 
-        # BUG: [ERROR] [1617332984.272044] [/guidance/interface]: Exception in your execute callback: 'ControlModeAction' object has no attribute 'controlModeIndex'
         request = ControlModeRequest()
         request.controlmode = control_mode
 
@@ -222,7 +252,8 @@ class DpGuidance:
             rospy.logerr("Control mode service did not process request: " + str(exc))
 
     def stop(self):
-        self.action_client.cancel_all_goals()
+        if self.action_client.gh:   # goal handle. None if no goal exists.
+            self.action_client.cancel_all_goals()
         self.change_control_mode(ControlModeEnum.OPEN_LOOP)
 
 
@@ -234,15 +265,15 @@ class LosGuidance:
         guidance_interface_los_action_server,
     ):
         self.guidance_interface = guidance_interface
-        self.timeout = rospy.get_param("/guidance/interface/action_timeout", 90)
+        self.max_duration = rospy.get_param("/guidance/interface/action_timeout", 90)
+        self.timeout = False
+        self.client_done = False
 
         # set up servers and clients
         rospy.logdebug("Connecting los action client..")
         self.action_client = actionlib.SimpleActionClient(
             los_guidance_action_server, LosPathFollowingAction
         )
-
-        # BUG: Potentially: LosPathFollowingAction should be MoveAction if fsm_helper() does not change
         rospy.logdebug("Starting los action server..")
         self.action_server = actionlib.SimpleActionServer(
             guidance_interface_los_action_server,
@@ -256,31 +287,53 @@ class LosGuidance:
     def los_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
 
+        rospy.logdebug("Sending new goal to los_guidance..")
+        self.client_done =  False
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
 
-        if not self.action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-            self.action_server.set_aborted()
-            rospy.logwarn("LOS guidance aborted action due to timeout")
+        self.timeout = False
+        rospy.Timer(rospy.Duration(self.max_duration), self.set_timeout, oneshot=True)
 
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+
+            # preempt requested
+            if self.action_server.is_preempt_requested():
+                self.action_client.cancel_all_goals()
+                self.action_server.set_preempted()
+                break
+
+            # client has finished its goal
+            if self.client_done:
+                state = self.action_client.get_state()
+                if state == GoalStatus.SUCCEEDED:
+                    self.action_server.set_succeeded()
+                elif state == GoalStatus.PREEMPTED:
+                    self.action_server.set_preempted()
+                else:
+                    self.action_server.set_aborted()
+                break
+
+            # timeout has occured
+            if self.timeout:
+                self.action_client.cancel_all_goals()
+                self.action_server.set_aborted()
+                rospy.logwarn("LOS guidance aborted action due to timeout")
+                break
+            rate.sleep()
+
+
+    def set_timeout(self):
+        self.timeout = True
+        
     def guidance_finished_cb(self, state, result):
-        """
-        Set the outcome of the action depending on
-        the returning result.
-        """
-
-        if state == GoalStatus.SUCCEEDED:
-            self.action_server.set_succeeded()
-
-        elif state == GoalStatus.PREEMPTED:
-            self.action_server.set_preempted()
-
-        else:
-            self.action_server.set_aborted()
+        self.client_done = True
 
     def stop(self):
-        self.action_client.cancel_all_goals()
+        if self.action_client.gh:   # goal handle. None if no goal exists.
+            self.action_client.cancel_all_goals()
 
 
 class GuidanceInterface:

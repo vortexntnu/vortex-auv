@@ -7,7 +7,7 @@ import rospy
 from smach import StateMachine, Sequence
 from smach_ros import IntrospectionServer
 from std_msgs.msg import String
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Twist
 
 from helper import create_sequence, point, pose
 from common_states import GoToState, dp_state, los_state, vel_state
@@ -20,6 +20,7 @@ def visit_waypoints():
 
     sm = create_sequence(
         [
+            dp_state(test_pose),
             los_state(point(2, 0, -0.5)),
             los_state(point(0, 0, -0.5)),
             dp_state(test_pose),
@@ -30,8 +31,14 @@ def visit_waypoints():
     introspection_server.start()
     sm.execute()
 
+def stay():
+    twist = Twist()
+    state = vel_state(twist)
+    res = state.execute(None)
+    rospy.loginfo("sm stay result: " + str(res))
+
 
 if __name__ == "__main__":
     rospy.init_node("pooltest_fsm")
-    visit_waypoints()
+    stay()
     rospy.spin()

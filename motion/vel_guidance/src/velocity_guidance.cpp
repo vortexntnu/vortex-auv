@@ -10,8 +10,8 @@ VelocityGuidance::VelocityGuidance(ros::NodeHandle nh)
     velocity_topic = "/desired_velocity";
   ROS_DEBUG_STREAM("Using velocity topic: " << velocity_topic);
 
+  guidance_active = false;
   vel_pub = nh.advertise<geometry_msgs::Twist>(velocity_topic, 1);
-  
   set_vel_service = 
       nh.advertiseService("/vel_guidance/set_velocity", &VelocityGuidance::setVelocity, this);
   stop_guidance_service =
@@ -24,11 +24,13 @@ bool VelocityGuidance::setVelocity(vortex_msgs::SetVelocityRequest& req, vortex_
 {
   desired_velocity = req.desired_velocity;
   guidance_active = true;
+  return true;
 }
 
 bool VelocityGuidance::stopGuidance(std_srvs::EmptyRequest& req, std_srvs::EmptyResponse& res)
 {
   guidance_active = false;
+  return true;
 }
 
 void VelocityGuidance::spin()

@@ -22,6 +22,7 @@ class TemperatureMonitor():
         self.cpu_temperature_pub = rospy.Publisher("/auv/temperature/cpu", Int32, queue_size=1)
         self.gpu_temperature_pub = rospy.Publisher("/auv/temperature/gpu", Int32, queue_size=1)
         
+    def spin(self):
         # Main loop
         while not rospy.is_shutdown():
 
@@ -36,3 +37,8 @@ class TemperatureMonitor():
         # Record output from temperature meter command, decode from bytes object to string, convert from string to integer
         self.cpu_temperature = int(subprocess.check_output(["cat", self.path_to_cpu_temperature_meter]).decode("utf-8"))
         self.gpu_temperature = int(subprocess.check_output(["cat", self.path_to_gpu_temperature_meter]).decode("utf-8"))
+        
+        
+if __name__ == "__main__":
+    tm = TemperatureMonitor()
+    tm.spin()

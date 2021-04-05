@@ -1,18 +1,18 @@
 #!/usr/bin/env python
+
 # Written by Jae Hyeong Hwang and O. Solbo
 # Copyright (c) 2021, Vortex NTNU.
 # All rights reserved.
 
 
-import rospy
+from math import sqrt
+from pyquaternion import Quaternion
 
+import rospy
 from geometry_msgs.msg import Wrench, Pose
 from sensor_msgs.msg import Joy
-from math import sqrt
 from std_msgs.msg import Bool
-from pyquaternion import Quaternion
 from nav_msgs.msg import Odometry
-
 from std_srvs.srv import SetBool, SetBoolResponse
 
 # to configure joystick environment, please refer to http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
@@ -21,8 +21,6 @@ from std_srvs.srv import SetBool, SetBoolResponse
 class JoystickGuidanceNode():
 
 	def __init__(self):
-
-		rospy.init_node('joystick_guidance')
 
 		self.sub = rospy.Subscriber('/mission/joystick_data', Joy, self.joystick_data_cb, queue_size=1)
 		self.pub = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
@@ -62,10 +60,6 @@ class JoystickGuidanceNode():
 
 if __name__ == '__main__':
 
-	try:
-		joystick_guidance = JoystickGuidanceNode()
-		rospy.spin()
-	except rospy.ROSInterruptException:
-		#rospy.logerr("An error occured during startup")
-		pass
-
+	rospy.init_node('joystick_guidance')
+	joystick_guidance = JoystickGuidanceNode()
+	rospy.spin()
