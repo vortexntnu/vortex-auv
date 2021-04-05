@@ -50,7 +50,6 @@ propulsion:
 
 controllers:
   dp:
-    circleOfAcceptance: 0.10
     frequency: 40 # THIS SHOULD BE 40Hz for the controller to perform good. This is because the built in reference model will work 2x faster as if the controller ran at 20Hz
     velocity_gain: 3.5   #0.4
     position_gain: 30.5   #5.0
@@ -77,6 +76,8 @@ controllers:
     max_output_ramp_rate: 1         # in newton per cycle
       
 guidance:
+  dp:
+    acceptance_margins: [0.10, 0.10, 0.10, 0.10, 0.10, 0.10] # Order: x,y,z,roll,pitch,yaw
   LOS:
     delta: 0.7
         

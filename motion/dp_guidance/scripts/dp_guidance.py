@@ -36,9 +36,8 @@ class DPGuidance:
         """
 
         rate = rospy.get_param("guidance/dp/rate", 20)  # [Hz]
-        self.circle_of_acceptance = rospy.get_param("controllers/dp/circleOfAcceptance", 0.1)
+        self.acceptance_margins = rospy.get_param("guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         self.ros_rate = rospy.Rate(rate)
-
         self.publish_guidance_data = False
         self.controller_setpoint = Pose()
         self.current_pose = Pose()
@@ -48,7 +47,7 @@ class DPGuidance:
             "/guidance/dp_data", Pose, queue_size=1
         )
 
-        # Subscriber for state (for circle of acceptance)
+        # Subscriber for state (for acceptance margins)
         self.state_sub = rospy.Subscriber(
             "/odometry/filtered", Odometry , self.update_current_pose
         )
@@ -67,7 +66,7 @@ class DPGuidance:
     def update_current_pose(self, odom_msg):
         self.current_pose = odom_msg.pose.pose
 
-    def within_circle_of_acceptance(self):
+    def within_acceptance_margins(self):
         # create quats from msg
         goal_quat_list = [
             self.controller_setpoint.orientation.x, 
@@ -95,11 +94,11 @@ class DPGuidance:
             pitch_diff,
             yaw_diff
         ]
-        is_close = True
-        for diff in diff_list:
-            if diff > self.circle_of_acceptance:
-                is_close = False
 
+        is_close = True
+        for i in range(len(diff_list)):
+            if diff_list[i] > self.acceptance_margins[i]:
+                is_close = False
         return is_close
 
     def spin(self):
@@ -112,7 +111,7 @@ class DPGuidance:
 
             if self.publish_guidance_data:
 
-                if self.within_circle_of_acceptance():
+                if self.within_acceptance_margins():
                     self.publish_guidance_data = False
                     self.goal_action_server.set_succeeded()
                     continue    # dont pub next contorller setpoint
