@@ -7,7 +7,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from tf.transformations import euler_from_quaternion, quaternion_from_euler, quaternion_multiply
 
-from .common_states import GoToState, vel_state, VelState
+from common_states import GoToState, vel_state, VelState
 from helper import create_sequence, point, pose, twist
 
 
