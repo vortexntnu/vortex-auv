@@ -18,6 +18,14 @@ from helper import create_sequence
 
 class DpState(SimpleActionState):
     def __init__(self, pose, action_server="/guidance_interface/dp_server"):
+        """A SimpleActionState that travels to a goal pose using our DP guidance.
+        Only use when in close proximity of goal pose.
+
+        Args:
+            pose (geometry_msgs/Pose): Goal pose.
+            action_server (str, optional):
+                    name of dp action server. Defaults to "/guidance_interface/dp_server".
+        """
 
         goal = MoveBaseGoal()
         goal.target_pose.pose = pose
@@ -33,6 +41,18 @@ class LosState(SimpleActionState):
         sphere_of_acceptance=0.5,
         action_server="/guidance_interface/los_server",
     ):
+        """A SimpleActionState for traveling to a goal position using LOS guidance.
+
+        Args:
+            goal_positon (geometry_msgs/Point): position drone should travel to.
+            start_position (geometry_msgs/Point): position drone starts in.
+            travel_speed (float, optional):
+                    forward velocity drone shoudl travel at. Defaults to 0.5.
+            sphere_of_acceptance (float, optional):
+                    action returns success when drone is inside this sphere. Defaults to 0.5.
+            action_server (str, optional):
+                    name of los action server. Defaults to "/guidance_interface/los_server".
+        """
         goal = LosPathFollowingGoal()
         goal.next_waypoint = goal_positon
         goal.forward_speed = travel_speed
@@ -40,6 +60,20 @@ class LosState(SimpleActionState):
         goal.sphereOfAcceptance = sphere_of_acceptance
 
         SimpleActionState.__init__(self, action_server, LosPathFollowingAction, goal)
+
+
+class VelState(SimpleActionState):
+    def __init__(self, twist, action_server="/guidance_interface/vel_server"):
+        """A SimpleActionState that sets drone velocity to a given twist.
+
+        Args:
+            twist (geometry_msgs/Twist): desired velocity
+            action_server (str, optional):
+                    name of vel action server. Defaults to "/guidance_interface/vel_server".
+        """
+        goal = SetVelocityGoal()
+        goal.desired_velocity = twist
+        SimpleActionState.__init__(self, action_server, SetVelocityAction, goal)
 
 
 class GoToState(State):

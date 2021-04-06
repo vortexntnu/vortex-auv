@@ -5,9 +5,9 @@ from smach import State
 from smach_ros import IntrospectionServer
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from tf.transformations import euler_from_quaternion, quaternion_from_euler, quaternion_multiply
 
-from common_states import GoToState, vel_state
+from .common_states import GoToState, vel_state, VelState
 from helper import create_sequence, point, pose, twist
 
 
@@ -39,7 +39,7 @@ class Monitor(State):
         # start timer
         rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
 
-        while not rospy.is_shutdown() and not timeout:
+        while not rospy.is_shutdown() and not self.timeout:
 
             if not self.within_bounds():
                 return 'succeeded'
@@ -56,11 +56,11 @@ class Monitor(State):
         self.timeout = True
 
     def within_bounds(self):
-        if not (x_min <= self.odom.pose.pose.position.x <= x_max):
+        if not (self.x_min <= self.odom.pose.pose.position.x <= self.x_max):
             return False
-        if not (y_min <= self.odom.pose.pose.position.y <= y_max):
+        if not (self.y_min <= self.odom.pose.pose.position.y <= self.y_max):
             return False
-        if not (z_min <= self.odom.pose.pose.position.z <= z_max):
+        if not (self.z_min <= self.odom.pose.pose.position.z <= self.z_max):
             return False
         return True
 
@@ -81,7 +81,7 @@ class Monitor(State):
         q_r = quaternion_multiply(current_quat_list, goal_quat_list)
 
         # convert relative quat to euler 
-        (roll_diff, pitch_diff, yaw_diff) = quaternion_to_euler(q_r)
+        (roll_diff, pitch_diff, yaw_diff) = euler_from_quaternion(q_r)
 
         # check if close to goal
         diff_list = [
@@ -94,7 +94,7 @@ class Monitor(State):
         ]
         is_close = True
         for diff, bound in zip(diff_list, self.goal_boundry):
-            if diff > boud:
+            if diff > bound:
                 is_close = False
 
         return is_close
@@ -119,7 +119,7 @@ class SingleTest(State):
     def execute(self, ud):
         states = [
             GoToState(self.start_pose),
-            vel_state(self.twist),
+            VelState(self.twist),
             Monitor(
                 goal_pose=self.goal_pose, 
                 max_duration=self.timeout, 
