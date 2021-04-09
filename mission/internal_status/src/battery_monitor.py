@@ -17,20 +17,23 @@ class BatteryMonitor():
         # Settings
         self.path_to_powersense = rospy.get_param("/battery/logging/powersense_dev")
         self.path_to_voltage_meter = rospy.get_param("/battery/logging/path")
-        self.interval = rospy.get_param("/battery/logging/interval")          # How often the battery level is checked and published
+        self.interval = rospy.get_param("/battery/logging/interval")            # How often the battery level is checked and published
+        self.critical_level = rospy.get_param("/battery/thresholds/critical")   # Minimum allowed value in millivolts
+        self.warning_level = rospy.get_param("/battery/thresholds/warning")     # Warning threshold in millivolts
 
         # Power Sense device
+        rospy.loginfo("Setting up usb read..")
         self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
         self.powersense_device.flushInput()
         self.powersense_device.flushOutput()
-
-        # Thresholds
-        self.critical_level = rospy.get_param("/battery/thresholds/critical")   # Minimum allowed value in millivolts
-        self.warning_level = rospy.get_param("/battery/thresholds/warning")     # Warning threshold in millivolts
         
+        xavier_voltage, system_voltage = self.get_voltages()    # try reading input
+
         # Publisher
         self.xavier_battery_level_pub = rospy.Publisher("/auv/battery_level/xavier", Float32, queue_size=1)
         self.system_battery_level_pub = rospy.Publisher("/auv/battery_level/system", Float32, queue_size=1)
+
+        rospy.loginfo("BatteryMonitor initialized")
 
     
     def spin(self):
