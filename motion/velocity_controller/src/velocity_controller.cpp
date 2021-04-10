@@ -91,7 +91,7 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     tf::twistMsgToEigen(twist_msg, desired_velocity);
 
     // calculate restoring forces
-    Eigen::Vector6d restoring_forces = restoringForces();
+    Eigen::Vector6d restoring_forces = - restoringForces();
 
     // calculate tau using MiniPID and restoring forces
     Eigen::Vector6d tau;
