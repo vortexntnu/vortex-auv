@@ -9,6 +9,7 @@
 
   <!-- Configuration parameters -->
   <param name="/velocity_controller/odometry_topic" value="/odometry/filtered" />
+  <param name="/velocity_controller/thrust_topic" value="/auv/thruster_manager/input" />
 
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
