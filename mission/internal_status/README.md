@@ -13,8 +13,8 @@ This node publishes the battery level using the auv/battery_level publisher. It 
 ## Inputs and Outputs
 
 #### Publishes to:
-* /auv/battery_level of type Int32 in milli volt
-* /auv/temperature of type Int32 in milli celsius
+* /auv/battery_level of type Int32 in volt
+* /auv/temperature of type Int32 in celsius
 
 ## Setup instructions
 
