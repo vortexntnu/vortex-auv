@@ -105,7 +105,7 @@ battery:
 temperature:
   logging:
     interval: 10    # Seconds
-    temperature_template: "\d*\.\d*"
+    temperature_template: "\d*\.{0,1}\d*"
     zones:
       cpu: "CPU"
       gpu: "GPU"
