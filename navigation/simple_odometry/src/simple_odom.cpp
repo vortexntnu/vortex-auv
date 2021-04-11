@@ -1,41 +1,73 @@
 #include "simple_odom.h"
 
-simple_odom::SimpleOdom(ros::NodeHandle nh) nh(nh)
+SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
 {
     // get params
 
     // subscribers and publishers
 
+    imu_sub = nh.subscribe("/imu/data_raw", 1, &SimpleOdom::imuCallback, this);
+    dvl_sub = nh.subscribe("/auv/odom", 1, &SimpleOdom::dvlCallback, this);
+
+    odom_pub = nh.advertise<nav_msgs::Odometry>("/odometry/filtered", 1);
+
     // wait for first imu and dvl msg
+
+   ros::topic::waitForMessage<nav_msgs::Odometry>("/auv/odom", nh);
+   ros::topic::waitForMessage<sensor_msgs::Imu>("/imu/data_raw", nh);
+
 
     ROS_INFO("SimpleOdom initialized");
 }
 
-simple_odom::spin()
+void SimpleOdom::spin()
 {
     // create odom msg
+    nav_msgs::Odometry odometry_msg; // consider changing variable name
+    odometry_msg.pose.pose.position.x = position[0];
+    odometry_msg.pose.pose.position.y = position[1];
+    odometry_msg.pose.pose.position.z = position[2];
+
+    odometry_msg.pose.pose.orientation.x = orientation.x();
+    odometry_msg.pose.pose.orientation.y = orientation.y();
+    odometry_msg.pose.pose.orientation.z = orientation.z();
+    odometry_msg.pose.pose.orientation.w = orientation.w();
+
+    odometry_msg.twist.twist.angular.x = angular_vel[0];
+    odometry_msg.twist.twist.angular.y = angular_vel[1];
+    odometry_msg.twist.twist.angular.z = angular_vel[2];
+
+    odometry_msg.twist.twist.linear.x = linear_vel[0];
+    odometry_msg.twist.twist.linear.y = linear_vel[1];
+    odometry_msg.twist.twist.linear.z = linear_vel[2];
 
     // publish odom
+
+    odom_pub.publish(odometry_msg);
+
+    //rate.sleep(); Spørre christopher
 }
 
-void imuCallback(const sensor_msgs::Imu &imu_msg)
+void SimpleOdom::imuCallback(const sensor_msgs::Imu &imu_msg)
 {
-    tf::twistMsgToEigen(odom_msg.twist.twist, velocity);
-    orientation = Eigen::Quaterniond(odom_msg.pose.pose.orientation.w, odom_msg.pose.pose.orientation.x,
-                                     odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z);
+    angular_vel = Eigen::Vector3d(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z);
+    orientation = Eigen::Quaterniond(imu_msg.orientation.w, imu_msg.orientation.x,
+                                     imu_msg.orientation.y, imu_msg.orientation.z);
 }
 
-
-
-void dvlCallback(const nav_msgs::Odometry &odom_msg)
+void SimpleOdom::dvlCallback(const nav_msgs::Odometry &odom_msg)
 {
+    linear_vel = Eigen::Vector3d(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z);
+
+    //TODO: calculate position.x, position.y (numerical integration)
+    position = Eigen::Vector3d(0, 0, odom_msg.pose.pose.position.z);
 }
 
 int main(int argc, char **argv)
 {
     const bool DEBUG_MODE = false; // debug logs are printed to console when true
 
-    ros::init(argc, argv, "velocity_controller");
+    ros::init(argc, argv, "simple_odometry");
     ros::NodeHandle nh;
 
     if (DEBUG_MODE)
@@ -44,6 +76,7 @@ int main(int argc, char **argv)
         ros::console::notifyLoggerLevelsChanged();
     }
 
+    ros::Rate rate(50);
     SimpleOdom simple_odom(nh);
-    simple_odom::spin();
+    simple_odom.spin();
 }

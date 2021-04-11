@@ -11,10 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   nav_msgs
   sensor_msgs
+  eigen_conversions
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(Eigen3 REQUIRED)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -103,9 +105,9 @@ find_package(Boost REQUIRED COMPONENTS system)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES simple_odometry
-#  CATKIN_DEPENDS roscpp
+ CATKIN_DEPENDS roscpp nav_msgs geometry_msgs eigen_conversions sensor_msgs
 #  DEPENDS system_lib
 )
 
@@ -135,7 +137,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node 
-  src/simple_odometry.cpp
+  src/simple_odom.cpp
 )
 
 ## Rename C++ executable without prefix

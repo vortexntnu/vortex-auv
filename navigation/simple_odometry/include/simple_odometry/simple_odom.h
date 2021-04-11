@@ -21,15 +21,22 @@ class SimpleOdom
 {
     public:
     void spin();
+    SimpleOdom(ros::NodeHandle nh);
+
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     private:
     void imuCallback(const sensor_msgs::Imu& imu_msg);
     void dvlCallback(const nav_msgs::Odometry& odom_msg);
-    Eigen::Vector6d twist;
+    Eigen::Vector3d linear_vel;
+    Eigen::Vector3d angular_vel;
     Eigen::Vector3d position;
     Eigen::Quaterniond orientation;
     ros::Subscriber imu_sub;
     ros::Subscriber dvl_sub;
     ros::Publisher odom_pub;
+    ros::NodeHandle nh;
+
 };
 
 #endif

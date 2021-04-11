@@ -20,6 +20,13 @@
 
     </group>
 
+    <group if="$(eval localization == 'simple_odom')">
+      
+      <!-- Simple Odometry-->
+      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen"/>
+
+    </group>
+
   </group>
 
   <!-- Navigation for simulator AUV -->
