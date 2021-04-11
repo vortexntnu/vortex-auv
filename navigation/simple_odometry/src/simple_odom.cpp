@@ -6,7 +6,7 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
 
     // subscribers and publishers
 
-    imu_sub = nh.subscribe("/imu/data_raw", 1, &SimpleOdom::imuCallback, this);
+    imu_sub = nh.subscribe("/auv/imu", 1, &SimpleOdom::imuCallback, this);
     dvl_sub = nh.subscribe("/auv/odom", 1, &SimpleOdom::dvlCallback, this);
 
     odom_pub = nh.advertise<nav_msgs::Odometry>("/odometry/filtered", 1);
@@ -14,7 +14,7 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
     // wait for first imu and dvl msg
 
    ros::topic::waitForMessage<nav_msgs::Odometry>("/auv/odom", nh);
-   ros::topic::waitForMessage<sensor_msgs::Imu>("/imu/data_raw", nh);
+   ros::topic::waitForMessage<sensor_msgs::Imu>("/auv/imu", nh);
 
 
     ROS_INFO("SimpleOdom initialized");
@@ -22,6 +22,8 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
 
 void SimpleOdom::spin()
 {
+    while(ros::ok()){
+
     // create odom msg
     nav_msgs::Odometry odometry_msg; // consider changing variable name
     odometry_msg.pose.pose.position.x = position[0];
@@ -45,7 +47,12 @@ void SimpleOdom::spin()
 
     odom_pub.publish(odometry_msg);
 
-    //rate.sleep(); Spørre christopher
+    ros::spinOnce();
+    ros::Rate rate(50);
+    rate.sleep();
+
+    
+    }
 }
 
 void SimpleOdom::imuCallback(const sensor_msgs::Imu &imu_msg)
@@ -76,7 +83,7 @@ int main(int argc, char **argv)
         ros::console::notifyLoggerLevelsChanged();
     }
 
-    ros::Rate rate(50);
+    // ros::Rate rate(50);
     SimpleOdom simple_odom(nh);
     simple_odom.spin();
 }
