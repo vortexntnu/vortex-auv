@@ -30,7 +30,7 @@ class TemperatureMonitor():
 
         # Record output from temperature meter command, decode from bytes object to string, convert from string to integer
 
-        stats = self.process.stdout.readline()
+        stats = self.process.stdout.readline().decode("utf-8")
 
         if stats != "":
 
@@ -51,6 +51,6 @@ class TemperatureMonitor():
             rospy.sleep(self.interval)
 
 if __name__ == "__main__":
-    
+
     tm = TemperatureMonitor()
     tm.spin()
