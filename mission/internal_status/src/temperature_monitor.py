@@ -17,7 +17,7 @@ class TemperatureMonitor():
         self.cpu_thermal_zone = rospy.get_param("/temperature/logging/zones/cpu")
         self.gpu_thermal_zone = rospy.get_param("/temperature/logging/zones/gpu")
         self.interval = rospy.get_param("/temperature/logging/interval")          # How often the battery level is checked and published
-        self.temperature_template = rospy.get_param("/temperature/logging/temperature_template")
+        self.temperature_template = r"\d*\.{0,1}\d*" # In python file because yaml doesn't like escape characters
         
         # Publisher
         self.cpu_temperature_pub = rospy.Publisher("/auv/temperature/cpu", Int32, queue_size=1)
