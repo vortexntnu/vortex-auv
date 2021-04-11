@@ -24,8 +24,23 @@ class TemperatureMonitor():
         self.gpu_temperature_pub = rospy.Publisher("/auv/temperature/gpu", Int32, queue_size=1)
         
         # Start the tegrastats subprocess
-        self.process = subprocess.Popen("tegrastats", shell=True, stderr=subprocess.PIPE)
+        self.process = subprocess.Popen("tegrastats", shell=False, stdout=subprocess.PIPE)
 
+    def measure_temp(self):
+
+        # Record output from temperature meter command, decode from bytes object to string, convert from string to integer
+
+        stats = self.process.stdout.readline()
+
+        if stats != "":
+
+            cpu_search = re.search("{self.cpu_thermal_zone}@({self.temperature_template})C", stats)
+            gpu_search = re.search("{self.gpu_thermal_zone}@({self.temperature_template})C", stats)
+
+            self.cpu_temperature = int(cpu_search.group(1))
+            self.gpu_temperature = int(gpu_search.group(1))
+
+    def spin(self):
         # Main loop
         while not rospy.is_shutdown():
 
@@ -35,14 +50,7 @@ class TemperatureMonitor():
 
             rospy.sleep(self.interval)
 
-    def measure_temp(self):
-
-        # Record output from temperature meter command, decode from bytes object to string, convert from string to integer
-
-        stats = self.process.stderr.read(1)
-
-        cpu_search = re.search("{self.cpu_thermal_zone}@({self.temperature_template})C", stats)
-        gpu_search = re.search("{self.gpu_thermal_zone}@({self.temperature_template})C", stats)
-
-        self.cpu_temperature = int(cpu_search.group(1))
-        self.gpu_temperature = int(gpu_search.group(1))
+if __name__ == "__main__":
+    
+    tm = TemperatureMonitor()
+    tm.spin()
