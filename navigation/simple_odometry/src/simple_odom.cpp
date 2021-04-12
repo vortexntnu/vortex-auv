@@ -6,15 +6,14 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
   std::string imu_topic;
   std::string dvl_topic;
   std::string odom_topic;
-  double update_rate;
   if (!nh.getParam("simple_odom/imu_topic", imu_topic))
     imu_topic = "/auv/imu";
   if (!nh.getParam("simple_odom/dvl_topic", dvl_topic))
-    dvl_topic = "/auv/dvl";
+    dvl_topic = "/auv/odom";
   if (!nh.getParam("simple_odom/odom_topic", odom_topic))
-    odom_topic = "/auv/odom";
+    odom_topic = "/odometry/filtered";
   if (!nh.getParam("simple_odom/update_rate", update_rate))
-    update_rate = 40;
+    update_rate = 60.0;
 
   // subscribers and publishers
   imu_sub = nh.subscribe(imu_topic, 1, &SimpleOdom::imuCallback, this);
@@ -23,8 +22,8 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
 
   // wait for first imu and dvl msg
   ROS_INFO("Waiting for initial IMU and DVL msgs..");
-  ros::topic::waitForMessage<nav_msgs::Odometry>(imu_topic, nh);
-  ros::topic::waitForMessage<sensor_msgs::Imu>(dvl_topic, nh);
+  ros::topic::waitForMessage<sensor_msgs::Imu>(imu_topic, nh);
+  ros::topic::waitForMessage<nav_msgs::Odometry>(dvl_topic, nh);
 
   ROS_INFO("SimpleOdom initialized");
 }
@@ -39,13 +38,13 @@ void SimpleOdom::spin()
     ros::spinOnce();
 
     // integrate x and y postion
-    double dt = rate.cycleTime().toSec();
+    double dt = rate.expectedCycleTime().toSec();
     position[0] = position[0] + linear_vel[0] * dt;
     position[1] = position[1] + linear_vel[1] * dt;
-    ROS_DEBUG_STREAM("cycle time: " << dt);
+    ROS_DEBUG_STREAM_ONCE("cycle time: " << dt);
 
     // create odom msg
-    nav_msgs::Odometry odometry_msg;  // consider changing variable name
+    nav_msgs::Odometry odometry_msg;  
     odometry_msg.pose.pose.position.x = position[0];
     odometry_msg.pose.pose.position.y = position[1];
     odometry_msg.pose.pose.position.z = position[2];
