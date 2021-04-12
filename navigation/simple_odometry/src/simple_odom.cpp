@@ -75,10 +75,10 @@ void SimpleOdom::imuCallback(const sensor_msgs::Imu& imu_msg)
   angular_vel[1] = imu_msg.angular_velocity.y;
   angular_vel[2] = imu_msg.angular_velocity.z;
 
-  orientation[0] = imu_msg.orientation.w;
-  orientation[1] = imu_msg.orientation.x;  
-  orientation[2] = imu_msg.orientation.y;
-  orientation[3] = imu_msg.orientation.z;
+  orientation.w() = imu_msg.orientation.w;
+  orientation.x() = imu_msg.orientation.x;  
+  orientation.y() = imu_msg.orientation.y;
+  orientation.z() = imu_msg.orientation.z;
 }
 
 void SimpleOdom::dvlCallback(const nav_msgs::Odometry& odom_msg)
