@@ -79,6 +79,7 @@ void SimpleOdom::imuCallback(const sensor_msgs::Imu& imu_msg)
   orientation.x() = imu_msg.orientation.x;  
   orientation.y() = imu_msg.orientation.y;
   orientation.z() = imu_msg.orientation.z;
+  orientation.normalize();
 }
 
 void SimpleOdom::dvlCallback(const nav_msgs::Odometry& odom_msg)
