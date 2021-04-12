@@ -138,6 +138,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node 
   src/simple_odom.cpp
+  src/simple_odom_node.cpp
 )
 
 ## Rename C++ executable without prefix
