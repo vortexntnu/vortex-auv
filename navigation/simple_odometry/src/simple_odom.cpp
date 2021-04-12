@@ -31,6 +31,8 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
 void SimpleOdom::spin()
 {
   ros::Rate rate(update_rate);
+  double dt = rate.expectedCycleTime().toSec();
+  ROS_DEBUG_STREAM("cycle time: " << dt);
 
   while (ros::ok())
   {
@@ -38,10 +40,8 @@ void SimpleOdom::spin()
     ros::spinOnce();
 
     // integrate x and y postion
-    double dt = rate.expectedCycleTime().toSec();
     position[0] = position[0] + linear_vel[0] * dt;
     position[1] = position[1] + linear_vel[1] * dt;
-    ROS_DEBUG_STREAM_ONCE("cycle time: " << dt);
 
     // create odom msg
     nav_msgs::Odometry odometry_msg;  
