@@ -9,6 +9,11 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
 
+/**
+ * @brief Class that combines measurements from IMU and DVL into a simple
+ * odometry publisher. Positions in x and y are estimated by euler integration.
+ *
+ */
 class SimpleOdom
 {
 public:
