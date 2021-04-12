@@ -23,6 +23,8 @@
     <group if="$(eval localization == 'simple_odom')">
       
       <!-- Simple Odometry-->
+      <param name="simple_odom/imu_topic" value="/imu/data_raw"/>
+      <param name="simple_odom/dvl_topic" value="/auv/odom"/>
       <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen"/>
 
     </group>
