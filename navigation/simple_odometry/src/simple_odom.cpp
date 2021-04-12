@@ -71,14 +71,21 @@ void SimpleOdom::spin()
 
 void SimpleOdom::imuCallback(const sensor_msgs::Imu& imu_msg)
 {
-  angular_vel = Eigen::Vector3d(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z);
-  orientation =
-      Eigen::Quaterniond(imu_msg.orientation.w, imu_msg.orientation.x, imu_msg.orientation.y, imu_msg.orientation.z);
+  angular_vel[0] = imu_msg.angular_velocity.x;
+  angular_vel[1] = imu_msg.angular_velocity.y;
+  angular_vel[2] = imu_msg.angular_velocity.z;
+
+  orientation[0] = imu_msg.orientation.w;
+  orientation[1] = imu_msg.orientation.x;  
+  orientation[2] = imu_msg.orientation.y;
+  orientation[3] = imu_msg.orientation.z;
 }
 
 void SimpleOdom::dvlCallback(const nav_msgs::Odometry& odom_msg)
 {
-  linear_vel =
-      Eigen::Vector3d(odom_msg.twist.twist.linear.x, odom_msg.twist.twist.linear.y, odom_msg.twist.twist.linear.z);
-  position = Eigen::Vector3d(0, 0, odom_msg.pose.pose.position.z);
+  linear_vel[0] = odom_msg.twist.twist.linear.x;
+  linear_vel[1] = odom_msg.twist.twist.linear.y;
+  linear_vel[2] = odom_msg.twist.twist.linear.z;
+
+  position[2] = odom_msg.pose.pose.position.z;
 }
