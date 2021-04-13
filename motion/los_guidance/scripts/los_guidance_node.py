@@ -274,12 +274,16 @@ class LosPathFollowing(object):
 		rospy.init_node('los')
 
 		self.publish_guidance_data = False
-		self.period = 0.025 # Run at 40Hz
+
+		# parameters
+		odom_topic = rospy.get_param("/guidance/los/odom_topic", default="/odometry/filtered")
+		rate = rospy.get_param("/guidance/los/rate", default=40)
+		self.ros_rate = rospy.Rate(rate)
 
 		# Subscribers
-		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1) # 20hz
+		self.sub = rospy.Subscriber(odom_topic, Odometry, self.odometry_cb, queue_size=1) # 20hz
 		rospy.loginfo("Waiting for initial odometry..")
-		rospy.wait_for_message('/odometry/filtered', Odometry)
+		rospy.wait_for_message(odom_topic, Odometry)
 
 		# Publishers
 		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
@@ -327,7 +331,7 @@ class LosPathFollowing(object):
 				# check if action goal succeeded
 				self.statusActionGoal()
 
-			rospy.sleep(rospy.Duration(self.period))
+			self.ros_rate.sleep()
 
 	def odometry_cb(self, msg): 
 		"""

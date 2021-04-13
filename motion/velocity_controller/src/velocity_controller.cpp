@@ -6,9 +6,9 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
   std::string DEFAULT_THRUST_TOPIC = "/thrust/desired";
   std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
-  getParam("/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
-  getParam("/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
-  getParam("/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
+  getParam("/controllers/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
+  getParam("/controllers/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
+  getParam("/controllers/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
 
   std::vector<double> CB;
   std::vector<double> CG;
@@ -43,7 +43,8 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
     pid_i.setSetpointRange(setpoint_range);
     pid_i.setOutputRampRate(max_output_ramp_rate);
     pid[i] = &pid_i;
-    ROS_DEBUG_STREAM("pid" << i << " initialized with: " << P_gains[i] << " " << I_gains[i] << " " << D_gains[i] << " " << F_gains[i]);
+    ROS_DEBUG_STREAM("pid" << i << " initialized with: " << P_gains[i] << " " << I_gains[i] << " " << D_gains[i] << " "
+                           << F_gains[i]);
   }
   ROS_DEBUG_STREAM("integral_windup_limit: " << integral_windup_limit);
   ROS_DEBUG_STREAM("setpoint_range: " << setpoint_range);
@@ -56,8 +57,7 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   vel_sub = nh.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // create services
-  reset_service =
-      nh.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
+  reset_service = nh.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
   set_gains_service =
       nh.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
 
@@ -91,7 +91,7 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     tf::twistMsgToEigen(twist_msg, desired_velocity);
 
     // calculate restoring forces
-    Eigen::Vector6d restoring_forces = - restoringForces();
+    Eigen::Vector6d restoring_forces = -restoringForces();
 
     // calculate tau using MiniPID and restoring forces
     Eigen::Vector6d tau;

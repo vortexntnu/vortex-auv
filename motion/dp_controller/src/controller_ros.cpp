@@ -21,15 +21,18 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
 {
   // ROS Parameters
   std::string odometry_topic;
-  if (!nh.getParam("dp_controller/odometry_topic", odometry_topic))
+  if (!nh.getParam("/controllers/dp/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
+  std::string thrust_topic;
+  if (!nh.getParam("/controllers/dp/thrust_topic", thrust_topic))
+    thrust_topic = "/thrust/desired_forces";
 
   // Subscribers
   m_state_sub = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
   m_guidance_sub = m_nh.subscribe("/guidance/dp_data", 1, &Controller::guidanceCallback, this);
 
   // Publishers
-  m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 1);
+  m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   m_mode_pub = m_nh.advertise<std_msgs::String>("controller/mode", 10);
   m_debug_pub = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
