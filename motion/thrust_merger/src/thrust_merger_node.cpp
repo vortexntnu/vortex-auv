@@ -1,10 +1,10 @@
-#include "vel_guidance/velocity_guidance.h"
+#include "thrust_merger/thrust_merger.h"
 
-int main(int argc, char const** argv)
+int main(int argc, char** argv)
 {
   const bool DEBUG_MODE = false;  // debug logs are printed to console when true
 
-  ros::init(argc, argv, "velocity_guidance");
+  ros::init(argc, argv, "thrust_merger");
   ros::NodeHandle nh;
 
   if (DEBUG_MODE)
@@ -13,6 +13,6 @@ int main(int argc, char const** argv)
     ros::console::notifyLoggerLevelsChanged();
   }
 
-  VelocityGuidance velocity_guidance(nh);
-  velocity_guidance.spin();
+  ThrustMerger thrust_merger(nh);
+  thrust_merger.spin();
 }
