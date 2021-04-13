@@ -94,7 +94,7 @@ controllers:
 
 thrust_merger:
   rate: 20
-  output_topic: "/thrust/desired_forces"
+  output_topic: "/auv/thruster_manager/input" # "/thrust/desired_forces"
         
 joystick:
   scaling:
