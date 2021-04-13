@@ -14,13 +14,13 @@ ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
   if (!nh.getParam("/thrust_merger/dp_topic", dp_topic))
     dp_topic = "/thrust/dp";
   if (!nh.getParam("/thrust_merger/los_topic", los_topic))
-    dp_topic = "/thrust/los";
+    los_topic = "/thrust/los";
   if (!nh.getParam("/thrust_merger/vel_topic", vel_topic))
-    dp_topic = "/thrust/vel";
+    vel_topic = "/thrust/vel";
   if (!nh.getParam("/thrust_merger/joy_topic", joy_topic))
-    dp_topic = "/thrust/joy";
+    joy_topic = "/thrust/joy";
   if (!nh.getParam("/thrust_merger/output_topic", output_topic))
-    dp_topic = "/thrust/combined";
+    output_topic = "/thrust/combined";
 
   // init class variables
   dp_wrench = Eigen::Vector6d();

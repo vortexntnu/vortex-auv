@@ -1,6 +1,6 @@
 #include "vel_guidance/velocity_guidance.h"
 
-int main(int argc, char const** argv)
+int main(int argc, char** argv)
 {
   const bool DEBUG_MODE = false;  // debug logs are printed to console when true
 
