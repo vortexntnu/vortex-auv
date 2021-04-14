@@ -84,10 +84,10 @@ controllers:
   velocity_controller:
     thrust_topic: "/thrust/vel"
     odometry_topic: "/odometry/filtered"
-    P_gains: [0, 0, 0, 0, 0, 0]
+    P_gains: [20, 20, 20, 20, 20, 20]
     I_gains: [0, 0, 0, 0, 0, 0]
     D_gains: [0, 0, 0, 0, 0, 0]
-    F_gains: [0, 0, 0, 0, 0, 0]
+    F_gains: [10, 10, 10, 10, 10, 10]
     integral_windup_limit: 5        # in newton
     setpoint_range: 1.5             # max distance from current point to setpoint
     max_output_ramp_rate: 1         # in newton per cycle

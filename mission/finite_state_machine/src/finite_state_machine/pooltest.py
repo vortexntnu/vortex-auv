@@ -36,6 +36,13 @@ def test_restoring():
     state = vel_state(twist)
     res = state.execute(None)
     rospy.loginfo(str(res))
+
+def test_vel_forward():
+    twist = Twist()
+    twist.linear.x = 0.5
+    state = vel_state(twist)
+    state.execute(None)
+
     
 def test_dp():
     test_pose = Pose()
@@ -46,4 +53,4 @@ def test_dp():
 
 if __name__ == "__main__":
     rospy.init_node("pooltest_fsm", log_level=rospy.DEBUG)
-    visit_waypoints()
+    test_vel_forward()
