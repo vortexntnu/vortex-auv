@@ -37,9 +37,10 @@ def test_restoring():
     res = state.execute(None)
     rospy.loginfo(str(res))
 
-def test_vel_forward():
+def test_vel():
     twist = Twist()
-    twist.linear.x = 0.5
+    twist.linear.x = 0.0
+    twist.angular.z = 0.5
     state = vel_state(twist)
     state.execute(None)
 
@@ -53,4 +54,4 @@ def test_dp():
 
 if __name__ == "__main__":
     rospy.init_node("pooltest_fsm", log_level=rospy.DEBUG)
-    test_vel_forward()
+    test_restoring()
