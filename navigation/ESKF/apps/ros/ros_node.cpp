@@ -55,7 +55,7 @@ ESKF_Node::ESKF_Node(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
 
 
   ROS_INFO("Publishing State");
-  publishPose_ = nh_.advertise<nav_msgs::Odometry>("pose", 1);
+  publishPose_ = nh_.advertise<nav_msgs::Odometry>("/odometry/filtered", 1);
 
   ROS_INFO("Publishing acc, gyro biases and gravity");
   publishAccGyrobiasandGravity_ = nh_.advertise<nav_msgs::Odometry>("BiasAndGravity",1);
