@@ -35,7 +35,6 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   getParam("/controllers/velocity_controller/max_output_ramp_rate", max_output_ramp_rate);
 
   // initialize PIDs
-  pids.reserve(6);
   for (int i = 0; i < 6; i++)
   {
     pids.push_back(std::make_unique<MiniPID>(P_gains[i], I_gains[i], D_gains[i], F_gains[i]));
