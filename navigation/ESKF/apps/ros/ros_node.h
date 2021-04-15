@@ -7,6 +7,7 @@
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
+#include <geometry_msgs/Vector3.h>
 #include <nav_msgs/Odometry.h>
 
 #include "ESKF.h"
@@ -86,6 +87,9 @@ private:
   bool publish_execution_time_dvl_;
   bool publish_execution_time_PressureZ_;
   bool publish_execution_time_imu_;
+
+  // angular velocity
+  geometry_msgs::Vector3 angular_vel;
 };
 
 double meanOfVector(const std::vector<double>& vec);

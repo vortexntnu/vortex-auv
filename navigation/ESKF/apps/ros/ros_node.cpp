@@ -55,6 +55,8 @@ ESKF_Node::ESKF_Node(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
   publishAccGyrobiasandGravity_ = nh_.advertise<nav_msgs::Odometry>("BiasAndGravity", 1);
 
   pubTImer_ = nh_.createTimer(ros::Duration(1.0f / publish_rate), &ESKF_Node::publishPoseState, this);
+
+  angular_vel = geometry_msgs::Vector3();
 }
 
 // IMU Subscriber
@@ -127,6 +129,8 @@ void ESKF_Node::imuCallback(const sensor_msgs::Imu::ConstPtr& imu_Message_data)
     }
   }
   previousTimeStampIMU_ = imu_Message_data->header.stamp;
+
+  angular_vel = imu_Message_data->angular_velocity;
 }
 // DVL subscriber
 void ESKF_Node::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& msg)
@@ -259,10 +263,12 @@ void ESKF_Node::publishPoseState(const ros::TimerEvent&)
   odom_msg.twist.twist.linear.x = velocity(0);             // NEDpose(StateMemberVx);
   odom_msg.twist.twist.linear.y = velocity(1);             // NEDpose(StateMemberVy);
   odom_msg.twist.twist.linear.z = velocity(2);             // NEDpose(StateMemberVz);
+  odom_msg.twist.twist.angular = angular_vel;
   odom_msg.pose.pose.orientation.w = quaternion.w();       // pose(StateMemberQw);
   odom_msg.pose.pose.orientation.x = quaternion.x();       // pose(StateMemberQx);
   odom_msg.pose.pose.orientation.y = quaternion.y();       // pose(StateMemberQy);
   odom_msg.pose.pose.orientation.z = quaternion.z();       // pose(StateMemberQz);
+
   // odom_msg.pose.covariance
 
   // Position covariance

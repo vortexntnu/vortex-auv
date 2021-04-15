@@ -7,19 +7,28 @@ DepthEstimator::DepthEstimator(ros::NodeHandle nh) : nh(nh)
   std::string depth_topic;
 
   if (!nh.getParam("/atmosphere/pressure", atmospheric_pressure))
+  {
     ROS_ERROR("Could not read parameter atmospheric pressure.");
+    ros::shutdown();
+  }
 
   if (!nh.getParam("/water/density", water_density))
+  {
     ROS_ERROR("Could not read parameter water density.");
+    ros::shutdown();
+  }
     
   if (!nh.getParam("/gravity/acceleration", earth_gravitation))
+  {
     ROS_ERROR("Could not read parameter gravititional acceleration.");
+    ros::shutdown();
+  }
 
   if (!nh.getParam("depth_estimator/pressure_topic", pressure_topic))
     pressure_topic = "/dvl/pressure";
 
   if (!nh.getParam("depth_estimator/depth_topic", depth_topic))
-    pressure_topic = "/depth/estimated";
+    depth_topic = "/depth/estimated";
 
   // subscriber and publsiher
   depth_pub = nh.advertise<std_msgs::Float64>(depth_topic, 1);

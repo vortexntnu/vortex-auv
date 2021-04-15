@@ -1,36 +1,31 @@
 <?xml version="1.0"?>
 <launch>
 
-  <group ns="navigation">
+  <!-- Depth estimation -->
+  <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen" ns="localization" />
 
-    <!-- Depth estimation -->
-    <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen" />
 
-    
-    <group if="$(eval localization == 'ekf')">
-      
-      <!-- Kalman filter -->
-      <node pkg="robot_localization" type="ekf_localization_node" name="ekf" output="screen">
-        <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-      </node>
+  <group if="$(eval localization == 'ekf')">
+    <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
 
-      <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
-      <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
+    <!-- Kalman filter -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf" output="screen" ns="localization" />
 
-    </group>
-
-    <!-- Error State Kalman Filter-->
-    <group if="$(eval localization == 'eskf')">
-      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen">
-        <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
-      </node>
-    </group>
-
-    <!-- Simple Odometry-->
-    <group if="$(eval localization == 'simple_odom')">
-      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
-    </group>
+    <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
+    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
   </group>
+
+  <!-- Error State Kalman Filter-->
+  <group if="$(eval localization == 'eskf')">
+    <rosparam command="load" file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
+    <node pkg="eskf" type="eskf" name="eskf" output="screen" ns="localization" />
+  </group>
+
+  <!-- Simple Odometry-->
+  <group if="$(eval localization == 'simple_odom')">
+    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" ns="localization" />
+  </group>
+
 
 </launch>
