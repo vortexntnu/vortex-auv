@@ -118,9 +118,9 @@ void ESKF_Node::imuCallback(const sensor_msgs::Imu::ConstPtr& imu_Message_data)
     // std::cout<<diff_in_ms<<std::endl;
     if (execution_time_vector_imu_.size() == 1000 && publish_execution_time_imu_ == true)
     {
-      std::cout << "Max value of IMU: " << maxOfVector(execution_time_vector_imu_) << std::endl;
-      std::cout << "Mean value of IMU: " << meanOfVector(execution_time_vector_imu_) << std::endl;
-      std::cout << "STD value of IMU: " << stanardDeviationOfVector(execution_time_vector_imu_) << std::endl;
+      ROS_DEBUG_STREAM("Max value of IMU: " << maxOfVector(execution_time_vector_imu_));
+      ROS_DEBUG_STREAM("Mean value of IMU: " << meanOfVector(execution_time_vector_imu_));
+      ROS_DEBUG_STREAM("STD value of IMU: " << stanardDeviationOfVector(execution_time_vector_imu_));
       publish_execution_time_imu_ = false;
     }
     else
