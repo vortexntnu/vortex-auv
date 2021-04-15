@@ -4,16 +4,19 @@
   <group ns="navigation">
 
     <!-- Depth estimation -->
-    <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen"/>
+    <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen" />
 
-    <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
-    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
-
-    <!-- Kalman filter -->
+    
     <group if="$(eval localization == 'ekf')">
+      
+      <!-- Kalman filter -->
       <node pkg="robot_localization" type="ekf_localization_node" name="ekf" output="screen">
         <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
       </node>
+
+      <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
+      <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
+
     </group>
 
     <!-- Error State Kalman Filter-->
