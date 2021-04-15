@@ -7,9 +7,8 @@
   <arg name="localization" default="eskf"/> <!-- ekf | eskf-->
 
   <!-- PARAMETERS -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
-  <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml"/>
+  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
 
 
   <!-- INCLUDES -->

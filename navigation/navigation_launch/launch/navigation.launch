@@ -1,59 +1,31 @@
 <?xml version="1.0"?>
 <launch>
 
-  <!-- Navigation for real AUV -->
-  <group if="$(eval type == 'real')">
+  <!-- Underwater odometry -->
+  <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
-    <group if="$(eval localization == 'ekf')">
+  <group if="$(eval localization == 'ekf')">
 
-      <!-- Kalman filter -->
-      <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-        <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-      </node>
-
-    </group>
-
-    <group if="$(eval localization == 'eskf')">
-
-      <!-- Error State Kalman Filter-->
-      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen" />
-
-    </group>
-
-    <group if="$(eval localization == 'simple_odom')">
-
-      <!-- Simple Odometry-->
-      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
-
-    </group>
+    <!-- Kalman filter -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+      <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
+    </node>
 
   </group>
 
-  <!-- Navigation for simulator AUV -->
-  <group if="$(eval type == 'simulator')">
+  <group if="$(eval localization == 'eskf')">
 
-    <group if="$(eval localization == 'ekf')">
+    <!-- Error State Kalman Filter-->
+    <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen">
+      <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
+    </node>
 
-      <!-- Kalman filter -->
-      <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-        <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-      </node>
+  </group>
 
-    </group>
+  <group if="$(eval localization == 'simple_odom')">
 
-    <group if="$(eval localization == 'eskf')">
-
-      <!-- Error State Kalman Filter-->
-      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen" />
-
-    </group>
-
-    <group if="$(eval localization == 'simple_odom')">
-
-      <!-- Simple Odometry-->
-      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
-
-    </group>
+    <!-- Simple Odometry-->
+    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
 
   </group>
 
