@@ -1,33 +1,30 @@
 <?xml version="1.0"?>
 <launch>
 
-  <!-- Underwater odometry -->
-  <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
+  <group ns="navigation">
 
-  <group if="$(eval localization == 'ekf')">
+    <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
+    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
     <!-- Kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" output="screen">
-      <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-    </node>
-
-  </group>
-
-  <group if="$(eval localization == 'eskf')">
+    <group if="$(eval localization == 'ekf')">
+      <node pkg="robot_localization" type="ekf_localization_node" name="ekf" output="screen">
+        <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
+      </node>
+    </group>
 
     <!-- Error State Kalman Filter-->
-    <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen">
-      <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
-    </node>
-
-  </group>
-
-  <group if="$(eval localization == 'simple_odom')">
+    <group if="$(eval localization == 'eskf')">
+      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen">
+        <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
+      </node>
+    </group>
 
     <!-- Simple Odometry-->
-    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
+    <group if="$(eval localization == 'simple_odom')">
+      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
+    </group>
 
   </group>
-
 
 </launch>

@@ -16,7 +16,7 @@ UnderwaterOdom::UnderwaterOdom()
   odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/dvl/odom", 1);
 
   // values picked from /params/environment_config.yaml
-  if (!nh_.getParam("atmosphere/pressure", atmospheric_pressure))
+  if (!nh_.getParam("/atmosphere/pressure", atmospheric_pressure))
     ROS_ERROR("Could not read parameter atmospheric pressure.");
 
   if (!nh_.getParam("/water/density", water_density))
