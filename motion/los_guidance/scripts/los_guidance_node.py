@@ -280,26 +280,26 @@ class LosPathFollowing(object):
 		rate = rospy.get_param("/guidance/los/rate", default=40)
 		self.ros_rate = rospy.Rate(rate)
 
-		# Subscribers
-		self.sub = rospy.Subscriber(odom_topic, Odometry, self.odometry_cb, queue_size=1) # 20hz
-		rospy.loginfo("Waiting for initial odometry..")
-		rospy.wait_for_message(odom_topic, Odometry)
-
-		# Publishers
-		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
-
 		# constructor object
 		self.los = LOS()
 
 		# dynamic reconfigure
 		self.config = {}
 		self.srv_reconfigure = Server(LOSConfig, self.config_cb)
+		
+		# Publishers
+		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# Action server, see https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
 		self.action_server = actionlib.SimpleActionServer(name='los_action_server', ActionSpec=LosPathFollowingAction, auto_start=False)
 		self.action_server.register_goal_callback(self.goal_cb)
 		self.action_server.register_preempt_callback(self.preempt_cb)
 		self.action_server.start()
+
+		# Subscribers
+		self.sub = rospy.Subscriber(odom_topic, Odometry, self.odometry_cb, queue_size=1) # 20hz
+		rospy.loginfo("Waiting for initial odometry..")
+		rospy.wait_for_message(odom_topic, Odometry)
 
 		rospy.loginfo("los guidance initiated")
 
