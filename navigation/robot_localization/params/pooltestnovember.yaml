@@ -9,7 +9,7 @@ transform_time_offset: 0.0
 transform_timeout: 0.0
 print_diagnostics: false
 debug: true
-debug_out_file: /root/auv_backup/debugfiles/debug.txt
+debug_out_file: ~/auv_backup/debugfiles/debug.txt
 publish_tf: true
 publish_acceleration: false
 
@@ -22,7 +22,7 @@ world_frame: odom           # Defaults to the value of odom_frame if unspecified
 
 # IMU
 imu0: /imu/data_raw
-imu0_config: [true, true, false, # x, y, z
+imu0_config: [false, false, false, # x, y, z
               false, false, false,  # roll, pitch, yaw
               false, false, false, # vx, vy, vz
               true, true, true,  # vroll, vpitch, vyaw
@@ -30,7 +30,7 @@ imu0_config: [true, true, false, # x, y, z
 imu0_nodelay: false
 imu0_differential: false
 imu0_relative: false #true
-imu0_queue_size: 1
+imu0_queue_size: 10
 #imu0_pose_rejection_threshold: 0.8                 # Note the difference in parameter names
 #imu0_twist_rejection_threshold: 0.8                #
 #imu0_linear_acceleration_rejection_threshold: 4  #
@@ -44,7 +44,7 @@ odom0_config: [false,  false, true, # x, y, z
                true, true, true,     # vx, vy, vz
                false, false, false,   # vroll, vpitch, vyaw
                false, false, false]  # ax, ay, az
-odom0_queue_size: 1
+odom0_queue_size: 10
 odom0_nodelay: false
 odom0_differential: false
 odom0_relative: false
