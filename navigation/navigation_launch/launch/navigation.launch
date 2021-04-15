@@ -7,7 +7,7 @@
   <group if="$(eval localization == 'ekf')">
 
     <!-- Kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" output="screen">
       <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
     </node>
 
