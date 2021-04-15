@@ -3,6 +3,9 @@
 
   <group ns="navigation">
 
+    <!-- Depth estimation -->
+    <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen"/>
+
     <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
     <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
