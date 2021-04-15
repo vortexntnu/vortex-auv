@@ -16,6 +16,7 @@
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/AccelWithCovariance.h>
+#include <std_msgs/Float64.h>
 
 /* Include guard to prevent double declaration of identifiers
    such as types, enums and static variacles */
@@ -33,7 +34,7 @@ public:
   ~UnderwaterOdom(){};
 
   // Functions
-  void pressureCallback(const sensor_msgs::FluidPressure& msg);
+  void depthCallback(const std_msgs::Float64& msg);
   void dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& msg);
 
 private:
@@ -43,19 +44,13 @@ private:
 
   // Subscribers
 
-  ros::Subscriber fluid_pressure_sub_;
+  ros::Subscriber depth_sub_;
   ros::Subscriber dvl_twist_sub_;
 
   // Publishers
 
   // ros::Publisher depth_odom_pub_;
   ros::Publisher odom_pub_;
-
-  // Variables
-
-  double atmospheric_pressure;  // [kPa]
-  double water_density;         //[kg/m3]
-  double earth_gravitation;     //[m/s2]
 
   // Messages
   nav_msgs::Odometry odom;

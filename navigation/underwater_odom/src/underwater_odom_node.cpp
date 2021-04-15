@@ -9,21 +9,11 @@
 UnderwaterOdom::UnderwaterOdom()
 {
   // Subscribers
-  fluid_pressure_sub_ = nh_.subscribe("/dvl/pressure", 1, &UnderwaterOdom::pressureCallback, this);
+  depth_sub_ = nh_.subscribe("/depth/estimated", 1, &UnderwaterOdom::depthCallback, this);
   dvl_twist_sub_ = nh_.subscribe("/dvl/twist", 1, &UnderwaterOdom::dvlCallback, this);
 
   // Publishers
   odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/dvl/odom", 1);
-
-  // values picked from /params/environment_config.yaml
-  if (!nh_.getParam("/atmosphere/pressure", atmospheric_pressure))
-    ROS_ERROR("Could not read parameter atmospheric pressure.");
-
-  if (!nh_.getParam("/water/density", water_density))
-    ROS_ERROR("Could not read parameter water density.");
-
-  if (!nh_.getParam("/gravity/acceleration", earth_gravitation))
-    ROS_ERROR("Could not read parameter gravititional acceleration.");
 
   // headers
   odom.header.frame_id = "dvl/odom";
@@ -31,14 +21,10 @@ UnderwaterOdom::UnderwaterOdom()
 }
 
 /* Callback */
-void UnderwaterOdom::pressureCallback(const sensor_msgs::FluidPressure& msg)
+void UnderwaterOdom::depthCallback(const std_msgs::Float64& msg)
 {
-  // compute depth
-  const float gauge_pressure = 1000 * msg.fluid_pressure - atmospheric_pressure;
-  const float depth_meters = gauge_pressure / (water_density * earth_gravitation);
-
   // update odom pose, ENU
-  odom.pose.pose.position.z = -depth_meters;
+  odom.pose.pose.position.z = msg.data;
 }
 
 void UnderwaterOdom::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& msg)
