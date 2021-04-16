@@ -34,6 +34,8 @@ class Monitor(State):
         self.y_min, self.y_max = pool_bounds[1]
         self.z_min, self.z_max = pool_bounds[2]
 
+        self.goal_boundry = goal_boundry
+
 
     def execute(self, ud):
         # start timer

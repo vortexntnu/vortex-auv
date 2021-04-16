@@ -24,12 +24,13 @@ from vortex_msgs.srv import (
 
 class ControlModeEnum(IntEnum):
     OPEN_LOOP = 0
-    POSE_HOLD = 1
+    POSITION_HOLD = 1
     HEADING_HOLD = 2
     DEPTH_HEADING_HOLD = 3
     DEPTH_HOLD = 4
-    POSE_HEADING_HOLD = 5
+    POSITION_HEADING_HOLD = 5
     CONTROL_MODE_END = 6
+    POSE_HOLD = 7
 
 
 class JoyGuidance:
@@ -178,7 +179,7 @@ class DpGuidance:
 
     def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
-        self.change_control_mode(ControlModeEnum.POSE_HOLD)
+        self.change_control_mode(ControlModeEnum.POSITION_HEADING_HOLD)
 
         rospy.logdebug("Sending new goal to dp_guidance..")
         self.client_done =  False
@@ -253,7 +254,7 @@ class DpGuidance:
     def stop(self):
         if self.action_client.gh:   # goal handle. None if no goal exists.
             self.action_client.cancel_all_goals()
-        self.change_control_mode(ControlModeEnum.OPEN_LOOP)
+        self.change_control_mode(ControlModeEnum.OPEN_LOOP) 
 
 
 class LosGuidance:

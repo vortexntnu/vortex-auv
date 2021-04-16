@@ -164,7 +164,7 @@ void VelocityController::getParam(std::string name, T& variable, T& default_valu
 
 int main(int argc, char** argv)
 {
-  const bool DEBUG_MODE = true;  // debug logs are printed to console when true
+  const bool DEBUG_MODE = false;  // debug logs are printed to console when true
 
   ros::init(argc, argv, "velocity_controller");
   ros::NodeHandle nh;
