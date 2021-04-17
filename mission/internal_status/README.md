@@ -8,7 +8,7 @@ High temperatures can be dangerous for any electronic device. Monitoring the tem
 #### Battery
 Running out of power in the middle of a mission is less than ideal, on top of possibly damaging the betteries and other components.
 
-This node publishes the battery level using the auv/battery_level publisher. It also logs the info through `rospy.loginfo`. If battery voltages drop beneath a threshold it will start using `rospy.logwarn` instead of `rospyloginfo`. If it falls even lower it will write the voltage using `rospy.logfatal` 10 times, with half a second in between. Then it will shut down the drone. Measured in volt
+This node publishes the battery level using the auv/battery_level publisher. It also logs the info through `rospy.loginfo`. If battery voltages drop beneath a threshold it will start using `rospy.logwarn` instead of `rospyloginfo`. If it falls even lower it will write the voltage using `rospy.logerror`. Measured in volt
 
 ## Inputs and Outputs
 

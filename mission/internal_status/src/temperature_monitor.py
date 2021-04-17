@@ -14,8 +14,6 @@ class TemperatureMonitor():
         rospy.init_node("temperature_monitor")
 
         # Settings
-        self.cpu_thermal_zone = rospy.get_param("/temperature/logging/zones/cpu")
-        self.gpu_thermal_zone = rospy.get_param("/temperature/logging/zones/gpu")
         self.interval = rospy.get_param("/temperature/logging/interval")          # How often the battery level is checked and published
         self.temperature_template = r"\d*\.{0,1}\d*" # In python file because yaml doesn't like escape characters
         
@@ -34,8 +32,8 @@ class TemperatureMonitor():
 
         if stats != "":
 
-            cpu_search = re.search(self.cpu_thermal_zone+"@("+self.temperature_template+")C", stats)
-            gpu_search = re.search(self.gpu_thermal_zone+"@("+self.temperature_template+")C", stats)
+            cpu_search = re.search("CPU@("+self.temperature_template+")C", stats)
+            gpu_search = re.search("GPU@("+self.temperature_template+")C", stats)
 
             self.cpu_temperature = int(float(cpu_search.group(1)))
             self.gpu_temperature = int(float(gpu_search.group(1)))

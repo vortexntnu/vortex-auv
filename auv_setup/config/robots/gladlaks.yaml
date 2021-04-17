@@ -105,9 +105,6 @@ battery:
 temperature:
   logging:
     interval: 10    # Seconds
-    zones:
-      cpu: "CPU"
-      gpu: "GPU"
       
 i2c:
   address: 0x40
