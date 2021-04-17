@@ -65,7 +65,7 @@ class BatteryMonitor():
 
         #Critical voltage level
         if voltage <= self.critical_level:
-            rospy.logerror("Critical %s voltage: %.3fV" % (title, voltage))
+            rospy.logerr("Critical %s voltage: %.3fV" % (title, voltage))
             
         # Warning voltage level
         elif voltage <= self.warning_level:
@@ -73,7 +73,7 @@ class BatteryMonitor():
 
         elif voltage == 0:
             rospy.loginfo("Voltage is zero. Killswitch is probably off.")
-            
+
         else:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
             
