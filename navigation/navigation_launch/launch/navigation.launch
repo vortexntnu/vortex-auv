@@ -33,9 +33,8 @@
       <remap from="/qualisys/Body_1/odom" to="/odometry/filtered"/>
       <include file="$(find mocap_qualisys)/launch/qualisys.launch">
         <arg name="qtm_protocol_version" value="17"/>
-	<arg name="server_address" value="192.168.0.20"/>
+	      <arg name="server_address" value="192.168.0.20"/>
       </include>
-    </group>
   </group>
 
 
