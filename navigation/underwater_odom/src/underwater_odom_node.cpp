@@ -16,8 +16,8 @@ UnderwaterOdom::UnderwaterOdom()
   odom_pub_ = nh_.advertise<nav_msgs::Odometry>("/dvl/odom", 1);
 
   // headers
-  odom.header.frame_id = "dvl/odom";
-  odom.child_frame_id = "auv/base_link";
+  odom.header.frame_id = "odom";
+  odom.child_frame_id = "base_link";
 }
 
 /* Callback */
