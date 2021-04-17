@@ -37,8 +37,8 @@ class TemperatureMonitor():
             cpu_search = re.search(self.cpu_thermal_zone+"@("+self.temperature_template+")C", stats)
             gpu_search = re.search(self.gpu_thermal_zone+"@("+self.temperature_template+")C", stats)
 
-            self.cpu_temperature = int(cpu_search.group(1))
-            self.gpu_temperature = int(gpu_search.group(1))
+            self.cpu_temperature = int(float(cpu_search.group(1)))
+            self.gpu_temperature = int(float(gpu_search.group(1)))
 
     def spin(self):
         # Main loop
