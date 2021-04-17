@@ -40,8 +40,10 @@ class BatteryMonitor():
         while not rospy.is_shutdown():
 
             xavier_voltage, system_voltage = self.get_voltages()
-            self.xavier_battery_level_pub.publish(xavier_voltage)
-            self.system_battery_level_pub.publish(system_voltage)
+            if not xavier_voltage == 0: 
+                self.xavier_battery_level_pub.publish(xavier_voltage)
+            if not system_voltage == 0:
+                self.system_battery_level_pub.publish(system_voltage)
 
             self.log_voltage(xavier_voltage, "xavier")
             self.log_voltage(system_voltage, "system")
@@ -60,17 +62,18 @@ class BatteryMonitor():
         return xavier_voltage, system_voltage
 
     def log_voltage(self, voltage, title):
+
         #Critical voltage level
-        if voltage == 0:
-            pass
-        elif voltage <= self.critical_level:
+        if voltage <= self.critical_level:
             rospy.logerror("Critical %s voltage: %.3fV" % (title, voltage))
-            rospy.sleep(0.25)
             
         # Warning voltage level
         elif voltage <= self.warning_level:
             rospy.logwarn("%s voltage: %.3fV" % (title, voltage))
 
+        elif voltage == 0:
+            rospy.loginfo("Voltage is zero. Killswitch is probably off.")
+            
         else:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
             
