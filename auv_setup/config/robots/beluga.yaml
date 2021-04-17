@@ -128,3 +128,25 @@ pca9685:
     frequency: 50.0
     frequency_measured: 50 # 51.6 is the former value, but we dont know why
 
+driver_stim300:
+  device_name: "/dev/ttyUSB0"
+
+ping360_node:
+  device: "/dev/ttyUSB1"
+  baudrate: 115200
+  debug: False
+  imgSize: 500
+  gain: 0
+  step: 1
+  numberOfSamples: 200
+  transmitFrequency: 740
+  sonarRange: 10
+  speedOfSound: 1500
+  queueSize: 1
+  threshold: 100
+  enableImageTopic: True 
+  enableScanTopic: True 
+  enableDataTopic: True 
+  maxAngle: 400 
+  minAngle: 0 
+  oscillate: False 
