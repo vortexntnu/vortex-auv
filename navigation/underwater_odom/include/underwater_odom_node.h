@@ -1,7 +1,7 @@
-/* 
-	 Written by Kristoffer Rakstad Solberg & Øyvind Denvik, Students
-	 Copyright (c) 2019 Manta AUV, Vortex NTNU.
-	 All rights reserved. */
+/*
+   Written by Kristoffer Rakstad Solberg & Øyvind Denvik, Students
+   Copyright (c) 2019 Manta AUV, Vortex NTNU.
+   All rights reserved. */
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
@@ -16,7 +16,7 @@
 #include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <geometry_msgs/AccelWithCovariance.h>
-
+#include <std_msgs/Float64.h>
 
 /* Include guard to prevent double declaration of identifiers
    such as types, enums and static variacles */
@@ -24,46 +24,36 @@
 #ifndef __underwaterOdom_ROS_HH__
 #define __underwaterOdom_ROS_HH__
 
-class UnderwaterOdom {
+class UnderwaterOdom
+{
+public:
+  // Constructor
+  UnderwaterOdom();
 
-	public:
+  // Destructor
+  ~UnderwaterOdom(){};
 
-	// Constructor
-	UnderwaterOdom();
+  // Functions
+  void depthCallback(const std_msgs::Float64& msg);
+  void dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& msg);
 
-	// Destructor
-	~UnderwaterOdom(){};
+private:
+  // Nodehandle
 
-	// Functions
-	void pressureCallback(const sensor_msgs::FluidPressure &msg);
-	void dvlCallback(const geometry_msgs::TwistWithCovarianceStamped &msg);
+  ros::NodeHandle nh_;
 
-	private:
+  // Subscribers
 
-	// Nodehandle	
+  ros::Subscriber depth_sub_;
+  ros::Subscriber dvl_twist_sub_;
 
-	ros::NodeHandle nh_;	
-	
-	// Subscribers
+  // Publishers
 
-	ros::Subscriber fluid_pressure_sub_;
-	ros::Subscriber dvl_twist_sub_;
+  // ros::Publisher depth_odom_pub_;
+  ros::Publisher odom_pub_;
 
-	// Publishers
-
-	//ros::Publisher depth_odom_pub_;
-	ros::Publisher odom_pub_;
-
-	// Variables
-
-	double atmospheric_pressure; // [kPa]
-	double water_density; //[kg/m3]
-	double earth_gravitation; //[m/s2]
-
-	// Messages
-	nav_msgs::Odometry odom;
-
+  // Messages
+  nav_msgs::Odometry odom;
 };
 
-
-#endif // __underwaterOdom_ROS_HH__
+#endif  // __underwaterOdom_ROS_HH__

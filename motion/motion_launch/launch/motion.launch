@@ -9,6 +9,7 @@
 
   <!-- Configuration parameters -->
   <param name="/velocity_controller/odometry_topic" value="/odometry/filtered" />
+  <param name="/velocity_controller/thrust_topic" value="/auv/thruster_manager/input" />
 
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
@@ -34,7 +35,8 @@
 
   <!-- Thrust nodes -->
   <group ns="$(arg ns_thrust)">
-    <node pkg="thruster_allocator"  type="thruster_allocator_node"      name="thruster_allocator"/>
+    <node pkg="thruster_allocator"  type="thruster_allocator_node"     name="thruster_allocator"/>
+    <node pkg="thrust_merger"       type="thrust_merger_node"          name="thrust_merger"/>
   </group>
 
 </launch>

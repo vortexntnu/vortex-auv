@@ -20,7 +20,7 @@ This node publishes the battery level using the auv/battery_level publisher. It 
 ## Setup instructions
 
 #### Parameters
-In gladlaks.yaml
+In beluga.yaml
 
 * `battery/threshold/warning` dictates at what voltage-level the node changes to `rospy.logwarn`
 

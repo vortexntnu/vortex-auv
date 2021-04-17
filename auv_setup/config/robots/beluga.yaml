@@ -1,4 +1,4 @@
-# This file defines parameters specific to Gladlaks
+# This file defines parameters specific to Beluga
 #
 # When looking at the AUV from above, the thruster placement is:   
 #
@@ -15,11 +15,10 @@
 #
 
 physical:
-  weight: 29.20     # kg
-  buoyancy: 29.43   # kg
-  displacement_m3: 0.02943
-  center_of_mass: [26.3, 0.8, 6.0]        # mm (x,y,z)
-  center_of_buoyancy: [25.9, 0.8, 48.3]   # mm (x,y,z)
+  weight: 25.37     # kg
+  buoyancy: 25.50   # kg
+  center_of_mass: [-15.2, 1, 9.4]        # mm (x,y,z)
+  center_of_buoyancy: [-15.1, 0.9, 35.5]   # mm (x,y,z)
 
 
 propulsion:
@@ -44,45 +43,58 @@ propulsion:
 
     rate_of_change:
       max: 1 # Maximum rate of change in newton per second for a thruster
-    characteristics:  
-      thrust:      [-34.5, -24.0, -12.9, -3.92, 0.00, 4.91, 12.6, 26.1, 35.5, 44.3] 
-      pulse_width: [ 1100,  1192,  1292,  1400, 1500, 1600, 1676, 1780, 1840, 1900]
     map: [0, 1, 2, 3, 4, 5, 6, 7]  
     direction: [1, -1, 1, 1, -1, -1, 1, -1]
     offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
 
+guidance:
+  dp:
+    rate: 40
+    acceptance_margins: [0.10, 0.10, 0.10, 0.10, 0.10, 0.10] # Order: x,y,z,roll,pitch,yaw
+  LOS:
+    rate: 40
+    delta: 0.7
+    odom_topic: "/odometry/filtered"
+  vel: 
+    rate: 40
+  joy:
+    thrust_topic: "/thrust/joy"
 
 controllers:
   dp:
-    circleOfAcceptance: 0.10
-    frequency: 40 # THIS SHOULD BE 40Hz for the controller to perform good. This is because the built in reference model will work 2x faster as if the controller ran at 20Hz
-    velocity_gain: 3.5   #0.4
-    position_gain: 30.5   #5.0
-    attitude_gain: 1.3  #2.5
-    integral_gain: 0.024 #0.3
+    thrust_topic: "/thrust/dp"
+    odometry_topic: "/odometry/filtered"
+    velocity_gain: 0.4 # 3.5  
+    position_gain: 5.0 # 30.5 
+    attitude_gain: 2.5 # 1.3  
+    integral_gain: 0.3 # 0.024
   los_controller: # Note: Not loaded by the backstepping/pid controllers yet! Make sure to do this after tuning with dyn. reconf.
-    PID:
+    PID:  # might be unused
       p: 25.0
       i: 0.0024
       d: 3.5
       sat: 3.0
-    backstepping:
+    backstepping: # might be unused
       c:  3.75
       k1: 45.0
       k2: 28.0
       k3: 10.5
+  los:
+    thrust_topic: "/thrust/los"
   velocity_controller:
-    P_gains: [20, 20, 20, 5, 5, 5]
+    thrust_topic: "/thrust/vel"
+    odometry_topic: "/odometry/filtered"
+    P_gains: [20, 20, 20, 1, 1, 1]
     I_gains: [0, 0, 0, 0, 0, 0]
     D_gains: [0, 0, 0, 0, 0, 0]
-    F_gains: [10, 15, 20, 5, 10, 5]
+    F_gains: [20, 30, 30, 1, 1, 1]
     integral_windup_limit: 5        # in newton
     setpoint_range: 1.5             # max distance from current point to setpoint
     max_output_ramp_rate: 1         # in newton per cycle
-      
-guidance:
-  LOS:
-    delta: 0.7
+
+thrust_merger:
+  rate: 20
+  output_topic: "/thrust/desired_forces"
         
 joystick:
   scaling:

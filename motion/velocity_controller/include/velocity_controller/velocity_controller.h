@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <memory> // for std::make_unique
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -116,7 +117,7 @@ private:
   ros::ServiceServer set_gains_service;
   Eigen::Vector6d velocity;
   Eigen::Quaterniond orientation;
-  std::vector<MiniPID*> pid;
+  std::vector<std::unique_ptr<MiniPID>> pids;
   bool odom_recieved;
 };
 #endif

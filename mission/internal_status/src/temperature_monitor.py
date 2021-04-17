@@ -38,6 +38,7 @@ class TemperatureMonitor():
             self.cpu_temperature = int(float(cpu_search.group(1)))
             self.gpu_temperature = int(float(gpu_search.group(1)))
 
+
     def spin(self):
         # Main loop
         while not rospy.is_shutdown():
