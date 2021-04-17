@@ -61,10 +61,11 @@ class BatteryMonitor():
 
     def log_voltage(self, voltage, title):
         #Critical voltage level
-        if voltage <= self.critical_level:
-            for i in range(10):
-                rospy.logfatal("Critical %s voltage: %.3fV" % (title, voltage))
-                rospy.sleep(0.25)
+        if voltage == 0:
+            pass
+        elif voltage <= self.critical_level:
+            rospy.logerror("Critical %s voltage: %.3fV" % (title, voltage))
+            rospy.sleep(0.25)
             
         # Warning voltage level
         elif voltage <= self.warning_level:

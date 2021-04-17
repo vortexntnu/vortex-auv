@@ -117,9 +117,6 @@ battery:
 temperature:
   logging:
     interval: 10    # Seconds
-    paths:
-      cpu: "/sys/kernel/debug/bpmp/debug/soctherm/group_CPU/temp"
-      gpu: "/sys/kernel/debug/bpmp/debug/soctherm/group_GPU/temp"
       
 i2c:
   address: 0x40
