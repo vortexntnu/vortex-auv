@@ -18,6 +18,19 @@ def twist(X, Y, Z, K, M, N):
 
 
 def pose(x, y, z, roll, pitch, yaw):
+    """creates a geometry_msgs/Pose 
+
+    Args:
+        x (double): [description]
+        y (double): [description]
+        z (double): [description]
+        roll (double): [description]
+        pitch (double): [description]
+        yaw (double): [description]
+
+    Returns:
+        geometry_msgs/Pose: a pose 
+    """
     new_pose = Pose()
     new_pose.position.x = x
     new_pose.position.y = y

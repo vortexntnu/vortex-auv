@@ -84,9 +84,7 @@ Matrix3d quaternion2Rotationmatrix(const Vector4d& quaternion)
   imaginaryPart = quaternion.segment(1, quaternion.size() - 1);
 
   S = crossProductMatrix(imaginaryPart);
-  // std::cout << S << std::endl;
   RotationMatrix = MatrixXd::Identity(3, 3) + (2 * realPart * S) + (2 * S * S);
-  // std::cout << RotationMatrix<< std::endl;
 
   return RotationMatrix;
 }

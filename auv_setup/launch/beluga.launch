@@ -7,13 +7,10 @@
   <arg name="localization" default="eskf"/> <!-- ekf | eskf-->
 
   <!-- PARAMETERS -->
-  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
-  <rosparam file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml"/>
-
+  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
 
   <!-- INCLUDES -->
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
   <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
   <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
 
@@ -41,7 +38,7 @@
     <!--<include file="$(find zed_wrapper)/launch/zed2.launch" /> -->
     
     <!-- For monitoring internal state -->
-    <include file="$(find internal_status)/launch/internal_status.launch"/>
+    <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />
 
 
   </group>

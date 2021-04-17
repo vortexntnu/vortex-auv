@@ -1,11 +1,16 @@
 #pragma once
 
-#include "ESKF.h"
-//#include "common.h"
+#include <Eigen/Core>
+#include <chrono>
 
-#include "ros/ros.h"
-#include "sensor_msgs/Imu.h"
-#include "nav_msgs/Odometry.h"
+#include <ros/ros.h>
+#include <sensor_msgs/Imu.h>
+#include <std_msgs/Float64.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
+#include <geometry_msgs/Vector3.h>
+#include <nav_msgs/Odometry.h>
+
+#include "ESKF.h"
 
 const Eigen::Matrix3d R_ACC((Eigen::Matrix3d() << 4, 0, 0, 0, 4, 0, 0, 0, 4).finished());
 const Eigen::Matrix3d R_ACCBIAS((Eigen::Matrix3d() << 6e-5, 0, 0, 0, 6e-5, 0, 0, 0, 6e-5).finished());
@@ -70,21 +75,21 @@ private:
 
   // Callbacks
   void imuCallback(const sensor_msgs::Imu::ConstPtr& imu_Message_data);
-  void dvlCallback(const nav_msgs::Odometry::ConstPtr& dvl_Message_data);
+  void dvlCallback(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& msg);
   void publishPoseState(const ros::TimerEvent&);
-  
-  void pressureZCallback(const nav_msgs::Odometry::ConstPtr& pressureZ_Message_data);
 
-
+  void pressureZCallback(const std_msgs::Float64::ConstPtr& depth_msg);
 
   // Execution time
-	std::vector<double> execution_time_vector_imu_; 
+  std::vector<double> execution_time_vector_imu_;
   std::vector<double> execution_time_vector_dvl_;
   std::vector<double> execution_time_vector_pressureZ_;
-	bool publish_execution_time_dvl_;
+  bool publish_execution_time_dvl_;
   bool publish_execution_time_PressureZ_;
   bool publish_execution_time_imu_;
 
+  // angular velocity
+  geometry_msgs::Vector3 angular_vel;
 };
 
 double meanOfVector(const std::vector<double>& vec);
@@ -96,4 +101,3 @@ void setPressureZTopicNameFromYaml(std::string& pressure_Z_topic_name);
 void setPublishrateFromYaml(int& publish_rate);
 void setRdvlFromYamlFile(Eigen::Matrix3d& R_dvl);
 void setRpressureZFromYamlFile(Eigen::Matrix<double, 1, 1>& R_pressureZ);
-

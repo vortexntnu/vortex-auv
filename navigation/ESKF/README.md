@@ -14,8 +14,8 @@ Publishes
 Subscribes to 
 
 - IMU (sensor_msgs::Imu)
-- Pressure (nav_msgs::odometry)
-- DVL (nav_msgs::odometry)
+- Depth (std_msgs/Float64)
+- DVL twist (geometry_msgs/TwistWithCovarianceStamped)
 
 ## Setup instructions
 

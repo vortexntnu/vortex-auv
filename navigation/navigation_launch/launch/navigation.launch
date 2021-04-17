@@ -1,48 +1,33 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <launch>
 
-  <!-- Navigation for real AUV -->
-  <group if="$(eval type == 'real')">
+  <!-- Depth estimation -->
+  <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen" ns="localization" />
+
+
+  <group if="$(eval localization == 'ekf')">
     
-    <group if="$(eval localization == 'ekf')">
-      
-      <!-- Kalman filter -->
-      <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-        <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-      </node>
+    <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
+    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
-    </group>
+    <!-- Kalman filter -->
+    <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf" output="screen" />
 
-    <group if="$(eval localization == 'eskf')">
-      
-      <!-- Error State Kalman Filter-->
-      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen"/>
-
-    </group>
-
-    <group if="$(eval localization == 'simple_odom')">
-      
-      <!-- Simple Odometry-->
-      <param name="simple_odom/imu_topic" value="/imu/data_raw"/>
-      <param name="simple_odom/dvl_topic" value="/auv/odom"/>
-      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen"/>
-
-    </group>
 
   </group>
 
-  <!-- Navigation for simulator AUV -->
-  <group if="$(eval type == 'simulator')">
+  <!-- Error State Kalman Filter-->
+  <group if="$(eval localization == 'eskf')">
+    <rosparam command="load" file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
+    <node pkg="eskf" type="eskf" name="eskf" output="screen" ns="localization" />
+  </group>
 
-    <!-- Underwater odometry -->
-    <rosparam command="load" file="$(find underwater_odom)/param/environment_config.yaml" />
-    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
-    
-    <!-- Kalman filter -->
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-      <rosparam command="load" file="$(find robot_localization)/params/dvl_ekf_template.yaml" />
-    </node>
-
+  <!-- Simple Odometry-->
+  <group if="$(eval localization == 'simple_odom')">
+      <param name="simple_odom/imu_topic" value="/imu/data_raw"/>
+      <param name="simple_odom/dvl_topic" value="/dvl/odom"/>
+    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" ns="localization" />
   </group>
 
 

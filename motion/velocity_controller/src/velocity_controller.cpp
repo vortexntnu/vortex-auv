@@ -4,11 +4,11 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
 {
   // get params
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
-  std::string DEFAULT_THRUST_TOPIC = "/thrust/desired";
+  std::string DEFAULT_THRUST_TOPIC = "/thrust/desired_forces";
   std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
-  getParam("/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
-  getParam("/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
-  getParam("/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
+  getParam("/controllers/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
+  getParam("/controllers/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
+  getParam("/controllers/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
 
   std::vector<double> CB;
   std::vector<double> CG;
@@ -35,15 +35,16 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   getParam("/controllers/velocity_controller/max_output_ramp_rate", max_output_ramp_rate);
 
   // initialize PIDs
-  pid.reserve(6);
   for (int i = 0; i < 6; i++)
   {
-    MiniPID pid_i(P_gains[i], I_gains[i], D_gains[i], F_gains[i]);
-    pid_i.setMaxIOutput(integral_windup_limit);
-    pid_i.setSetpointRange(setpoint_range);
-    pid_i.setOutputRampRate(max_output_ramp_rate);
-    pid[i] = &pid_i;
-    ROS_DEBUG_STREAM("pid" << i << " initialized with: " << P_gains[i] << " " << I_gains[i] << " " << D_gains[i] << " " << F_gains[i]);
+    pids.push_back(std::make_unique<MiniPID>(P_gains[i], I_gains[i], D_gains[i], F_gains[i]));
+    pids[i]->setMaxIOutput(integral_windup_limit);
+    pids[i]->setSetpointRange(setpoint_range);
+    pids[i]->setOutputRampRate(max_output_ramp_rate);
+
+    ROS_DEBUG_STREAM("pid" << i << " initialized with: " << P_gains[i] << " " << I_gains[i] << " " << D_gains[i] << " "
+                           << F_gains[i]);
+    ROS_DEBUG_STREAM("pid_" << i  << " address: " << &pids[i]);
   }
   ROS_DEBUG_STREAM("integral_windup_limit: " << integral_windup_limit);
   ROS_DEBUG_STREAM("setpoint_range: " << setpoint_range);
@@ -56,8 +57,7 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   vel_sub = nh.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // create services
-  reset_service =
-      nh.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
+  reset_service = nh.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
   set_gains_service =
       nh.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
 
@@ -91,13 +91,13 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     tf::twistMsgToEigen(twist_msg, desired_velocity);
 
     // calculate restoring forces
-    Eigen::Vector6d restoring_forces = - restoringForces();
+    Eigen::Vector6d restoring_forces = restoringForces();
 
     // calculate tau using MiniPID and restoring forces
     Eigen::Vector6d tau;
     for (int i = 0; i < 6; i++)
     {
-      tau[i] = pid[i]->getOutput(velocity[i], desired_velocity[i]) - restoring_forces[i];
+      tau[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) + restoring_forces[i];
       ROS_DEBUG_STREAM("tau_" << i << ": " << tau[i] << " (rest_forces: " << restoring_forces[i]);
     }
 
@@ -111,7 +111,7 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
 bool VelocityController::resetPidCallback(std_srvs::EmptyRequest& request, std_srvs::EmptyResponse& response)
 {
   for (int i = 0; i < 6; i++)
-    pid[i]->reset();
+    pids[i]->reset();
 
   ROS_INFO("PIDs have been reset");
   return true;
@@ -122,14 +122,14 @@ bool VelocityController::setGainsCallback(vortex_msgs::SetPidGainsRequest& reque
 {
   for (int i = 0; i < 6; i++)
   {
-    pid[i]->setP(request.P_gains[i]);
-    pid[i]->setI(request.I_gains[i]);
-    pid[i]->setD(request.D_gains[i]);
-    pid[i]->setF(request.F_gains[i]);
-    pid[i]->setMaxIOutput(request.integral_windup_limit);
-    pid[i]->setSetpointRange(request.setpoint_range);
-    pid[i]->setOutputRampRate(request.max_output_ramp_rate);
-    pid[i]->reset();
+    pids[i]->setP(request.P_gains[i]);
+    pids[i]->setI(request.I_gains[i]);
+    pids[i]->setD(request.D_gains[i]);
+    pids[i]->setF(request.F_gains[i]);
+    pids[i]->setMaxIOutput(request.integral_windup_limit);
+    pids[i]->setSetpointRange(request.setpoint_range);
+    pids[i]->setOutputRampRate(request.max_output_ramp_rate);
+    pids[i]->reset();
   }
   ROS_INFO("PID reset and gains set to new values");
   return true;

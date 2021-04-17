@@ -2,11 +2,11 @@
 
 VelocityGuidance::VelocityGuidance(ros::NodeHandle nh)
 {
-  if (!nh.getParam("/vel_guidance/rate", rate))
+  if (!nh.getParam("/guidance/vel/rate", rate))
     rate = 40;
   ROS_DEBUG_STREAM("Using rate: " << rate);
 
-  if (!nh.getParam("/vel_guidance/desired_velocity_topic", velocity_topic))
+  if (!nh.getParam("/guidance/vel/desired_velocity_topic", velocity_topic))
     velocity_topic = "/desired_velocity";
   ROS_DEBUG_STREAM("Using velocity topic: " << velocity_topic);
 

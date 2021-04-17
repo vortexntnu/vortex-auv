@@ -34,6 +34,8 @@ class Monitor(State):
         self.y_min, self.y_max = pool_bounds[1]
         self.z_min, self.z_max = pool_bounds[2]
 
+        self.goal_boundry = goal_boundry
+
 
     def execute(self, ud):
         # start timer
@@ -67,10 +69,10 @@ class Monitor(State):
     def close_to_goal(self):
         # create quats from msg
         goal_quat_list = [
-            self.goal_pose.pose.orientation.x, 
-            self.goal_pose.pose.orientation.y, 
-            self.goal_pose.pose.orientation.z, 
-            -self.goal_pose.pose.orientation.w  # invert goal quat
+            self.goal_pose.orientation.x, 
+            self.goal_pose.orientation.y, 
+            self.goal_pose.orientation.z, 
+            -self.goal_pose.orientation.w  # invert goal quat
         ]
         current_quat_list = [
             self.odom.pose.pose.orientation.x,

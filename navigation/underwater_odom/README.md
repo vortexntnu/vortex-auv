@@ -1,7 +1,15 @@
-## Odometry
+# Underwater Odom 
 
-This package creates the odometry node, which takes data from the */auv/pressure* and */auv/dvl_twist* topics
-and combines it into a *nav_msgs::Odometry* message, which is then finally published to */auv/odom*.
+This node takes data from the */depth/estimated* and */dvl/twist* topics
+and combines it into a *nav_msgs::Odometry* message, which is then finally published to */dvl/odom*.
 
-Note that the pressure data is converted into a depth reading before added to the nav_msg.
-Also note that the nav_msg is only published when new DVL data is published to */auv/dvl_twist*
+Note that the nav_msg is only published when new DVL data is published to */auv/dvl_twist*
+
+## Input and Output
+
+Subscibers
+* __/depth/estimated__ estimated depth
+* __/dvl/twist__ linear velocities from dvl
+
+Publishers
+* __/dvl/odom__ odom msg with linear velocities and depth

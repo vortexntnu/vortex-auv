@@ -15,9 +15,7 @@ Allocator::Allocator(ros::NodeHandle nh)
   m_min_thrust(-std::numeric_limits<double>::infinity()),
   m_max_thrust(std::numeric_limits<double>::infinity())
 {
-  m_sub = m_nh.subscribe("/auv/thruster_manager/input", 1, &Allocator::callback, this);
-  m_pub = m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
-
+  // parameters
   if (!m_nh.getParam("/propulsion/dofs/num", m_num_degrees_of_freedom))
     ROS_FATAL("Failed to read parameter number of dofs.");
   if (!m_nh.getParam("/propulsion/thrusters/num", m_num_thrusters))
@@ -46,6 +44,10 @@ Allocator::Allocator(ros::NodeHandle nh)
     ROS_FATAL("Failed to compute pseudoinverse of thrust config matrix. Killing node...");
     ros::shutdown();
   }
+
+  // publisher and subscriber
+  m_sub = m_nh.subscribe("/thrust/desired_forces", 1, &Allocator::callback, this);
+  m_pub = m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
 
   m_pseudoinverse_allocator.reset(new PseudoinverseAllocator(thrust_configuration_pseudoinverse));
   ROS_INFO("Initialized.");
