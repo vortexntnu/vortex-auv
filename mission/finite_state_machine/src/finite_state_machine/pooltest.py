@@ -16,15 +16,17 @@ from common_states import GoToState, dp_state, los_state, vel_state
 
 def visit_waypoints():
 
-    test_pose = Pose()
-    test_pose.position.z = -0.5
+    pose1 = Pose()
+    pose1.position.z = -0.5
+    pose1.position.x = 2
+
+    pose2 = Pose()
+    pose2.position.z = -0.5
 
     sm = create_sequence(
         [
-            GoToState(test_pose),
-            los_state(point(2, 0, -0.5)),
-            los_state(point(0, 0, -0.5)),
-            dp_state(test_pose),
+            GoToState(pose1),
+            GoToState(pose2),
         ]
     )
     introspection_server = IntrospectionServer(str(rospy.get_name()), sm, '/sm_root')
@@ -40,13 +42,13 @@ def test_restoring():
 
 def test_vel():
     twist = Twist()
-    twist.linear.x = 0.0
-    twist.angular.z = 0.5
+    twist.linear.x = 0.5
+    twist.angular.z = 0.0
     state = vel_state(twist)
     state.execute(None)
 
 def test_dp():
-    test_pose = pose(0, 0, 1, 0, 0, 0.5)
+    test_pose = pose(0, 0, 1, 0, 0, 0)
     state = dp_state(test_pose)
     res = state.execute(None)
 
