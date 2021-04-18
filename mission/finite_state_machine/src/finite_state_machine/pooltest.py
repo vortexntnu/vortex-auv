@@ -17,11 +17,11 @@ from common_states import GoToState, dp_state, los_state, vel_state
 def visit_waypoints():
 
     pose1 = Pose()
-    pose1.position.z = -0.5
+    pose1.position.z = 1.0
     pose1.position.x = 2
 
     pose2 = Pose()
-    pose2.position.z = -0.5
+    pose2.position.z = 0.5
 
     sm = create_sequence(
         [

@@ -128,7 +128,7 @@ class DPGuidance:
         new_goal = self.goal_action_server.accept_new_goal()
         self.controller_setpoint = new_goal.target_pose.pose
         rospy.logdebug(
-            "New dp guidance setpoint has type: %s" % type(self.controller_setpoint)
+            "DP has recieved new goal with x: %d, y: %d, z: %d" % (controller_setpoint.x, controller_setpoint.y, controller_setpoint.z)
         )
 
         self.publish_guidance_data = True
