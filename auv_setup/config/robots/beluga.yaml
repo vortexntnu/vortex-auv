@@ -64,10 +64,10 @@ controllers:
   dp:
     thrust_topic: "/thrust/desired_forces"
     odometry_topic: "/odometry/filtered"
-    velocity_gain: 0.4 # 3.5  
-    position_gain: 5.0 # 30.5 
-    attitude_gain: 2.5 # 1.3  
-    integral_gain: 0.3 # 0.024
+    velocity_gain: 3.5  
+    position_gain: 30.5 
+    attitude_gain: 1.3  
+    integral_gain: 0.024
   los_controller: # Note: Not loaded by the backstepping/pid controllers yet! Make sure to do this after tuning with dyn. reconf.
     PID:  # might be unused
       p: 25.0

@@ -48,7 +48,7 @@ def test_vel():
     state.execute(None)
 
 def test_dp():
-    test_pose = pose(0, 0, 1, 0, 0, 0)
+    test_pose = pose(2, 0, 1, 0, 0, 0)
     state = dp_state(test_pose)
     res = state.execute(None)
 
