@@ -7,7 +7,7 @@ import rospy
 from smach import StateMachine, Sequence
 from smach_ros import IntrospectionServer
 from std_msgs.msg import String
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import Pose, Twist, Point
 from tf.transformations import quaternion_from_euler
 
 from helper import create_sequence, point, pose
@@ -42,8 +42,8 @@ def test_restoring():
 
 def test_vel():
     twist = Twist()
-    twist.linear.x = 0.5
-    twist.angular.z = 0.0
+    twist.linear.x = 0.0
+    twist.angular.z = 0.5
     state = vel_state(twist)
     state.execute(None)
 
@@ -51,6 +51,12 @@ def test_dp():
     test_pose = pose(0, 0, 1, 0, 0, 0)
     state = dp_state(test_pose)
     res = state.execute(None)
+
+def test_los():
+    goal_pos = Point()
+    goal_pos.z = 1
+    state = los_state(goal_pos)
+    state.execute(None)
 
 
 if __name__ == "__main__":

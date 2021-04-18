@@ -58,11 +58,11 @@ guidance:
   vel: 
     rate: 40
   joy:
-    thrust_topic: "/thrust/joy"
+    thrust_topic: "/thrust/desired_forces"
 
 controllers:
   dp:
-    thrust_topic: "/thrust/dp"
+    thrust_topic: "/thrust/desired_forces"
     odometry_topic: "/odometry/filtered"
     velocity_gain: 0.4 # 3.5  
     position_gain: 5.0 # 30.5 
@@ -80,7 +80,7 @@ controllers:
       k2: 28.0
       k3: 10.5
   los:
-    thrust_topic: "/thrust/los"
+    thrust_topic: "/thrust/desired_forces"
   velocity_controller:
     thrust_topic: "/thrust/vel"
     odometry_topic: "/odometry/filtered"
