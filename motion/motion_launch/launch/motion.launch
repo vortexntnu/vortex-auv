@@ -36,9 +36,7 @@
   <!-- Thrust nodes -->
   <group ns="$(arg ns_thrust)">
     <node pkg="thruster_allocator"  type="thruster_allocator_node"     name="thruster_allocator"/>
-    <!--
     <node pkg="thrust_merger"       type="thrust_merger_node"          name="thrust_merger"/>
-    -->
   </group>
 
 </launch>
