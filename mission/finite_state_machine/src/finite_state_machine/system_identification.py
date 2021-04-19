@@ -52,7 +52,7 @@ class Monitor(State):
         # start timer
         rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
 
-        while not rospy.is_shutdown() and not self.timeout:
+        while not rospy.is_shutdown():
 
             if not self.within_bounds():
                 return "succeeded"
@@ -138,12 +138,12 @@ class SingleTest(State):
         self.timeout = timeout
         self.goal_boundry = goal_boundry
 
-        self.x_min = -3
-        self.x_max = 3
-        self.y_min = -2
-        self.y_max = 2
-        self.z_min = 0.4
-        self.z_max = 1.1
+        self.x_min = -2
+        self.x_max = 2
+        self.y_min = -1
+        self.y_max = 1
+        self.z_min = 0.3
+        self.z_max = 0.8
 
     def execute(self, ud):
         states = [
@@ -169,11 +169,10 @@ class SingleTest(State):
 
 def surge_tests():
     states = [
-        SingleTest(twist(0.1, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(0.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(0.4, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(0.8, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(1.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5),
+        SingleTest(twist(0.1, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
+        SingleTest(twist(0.2, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
+        SingleTest(twist(0.4, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
+        SingleTest(twist(0.8, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
     ]
     sm = create_sequence(states)
     introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
