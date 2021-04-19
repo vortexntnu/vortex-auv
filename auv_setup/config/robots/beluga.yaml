@@ -73,12 +73,12 @@ controllers:
       p: 25.0
       i: 0.0024
       d: 3.5
-      sat: 3.0
+      sat: 50.0
     backstepping: # might be unused
-      c:  3.75
-      k1: 45.0
-      k2: 28.0
-      k3: 10.5
+      c:  0.5
+      k1: 25.0
+      k2: 18.0
+      k3: 5.5
   los:
     thrust_topic: "/thrust/desired_forces"
   velocity_controller:
