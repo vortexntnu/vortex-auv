@@ -111,12 +111,12 @@ class SingleTest(State):
         self.timeout = timeout
         self.goal_boundry = goal_boundry
 
-        self.x_min = 0
-        self.x_max = 10        
+        self.x_min = -3
+        self.x_max = 3        
         self.y_min = -2
         self.y_max = 2
-        self.z_min = -1.2
-        self.z_max = -0.3
+        self.z_min = 0.4
+        self.z_max = 1.1
 
     def execute(self, ud):
         states = [
