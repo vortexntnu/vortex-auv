@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mocap_base</name>
+  <version>0.0.1</version>
+  <description>Base class for different motion capture systems</description>
+
+  <maintainer email="sunke.polyu@gmail.com">Ke Sun</maintainer>
+  <license>Apache-2.0</license>
+  <author>Ke Sun</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>eigen_conversions</depend>
+
+  <export>
+  </export>
+</package>
