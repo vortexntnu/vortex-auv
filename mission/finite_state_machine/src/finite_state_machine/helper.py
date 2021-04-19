@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import math
+
 from smach import Sequence
 from geometry_msgs.msg import Twist, Pose, Point, Quaternion
 from tf.transformations import quaternion_from_euler
@@ -17,24 +19,17 @@ def twist(X, Y, Z, K, M, N):
     return new_twist
 
 
-def pose(x, y, z, roll, pitch, yaw):
-    """creates a geometry_msgs/Pose 
-
-    Args:
-        x (double): [description]
-        y (double): [description]
-        z (double): [description]
-        roll (double): [description]
-        pitch (double): [description]
-        yaw (double): [description]
-
-    Returns:
-        geometry_msgs/Pose: a pose 
-    """
+def pose(x, y, z, roll, pitch, yaw, use_deg=True):
     new_pose = Pose()
     new_pose.position.x = x
     new_pose.position.y = y
     new_pose.position.z = z
+
+    if use_deg:
+        roll = math.radians(roll)
+        pitch = math.radians(pitch)
+        yaw = math.radians(yaw)
+
     new_pose.orientation = Quaternion(*quaternion_from_euler(roll, pitch, yaw))
 
     return new_pose
