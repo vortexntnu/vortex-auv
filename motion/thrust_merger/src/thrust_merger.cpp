@@ -22,11 +22,18 @@ ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
   if (!nh.getParam("/thrust_merger/output_topic", output_topic))
     output_topic = "/thrust/combined";
 
-  // init class variables
+  // init wrenches as zero
   dp_wrench = Eigen::Vector6d();
   los_wrench = Eigen::Vector6d();
   vel_wrench = Eigen::Vector6d();
   joy_wrench = Eigen::Vector6d();
+
+  // init spin coutners that ensure not-updated wrenches are reset to zero
+  spins_without_update_limit = 5;
+  dp_counter = 0;
+  los_counter = 0;
+  vel_counter = 0;
+  joy_counter = 0;
 
   // subscribers and publisher
   dp_sub = nh.subscribe(dp_topic, 1, &ThrustMerger::dpCallback, this);
@@ -52,11 +59,26 @@ void ThrustMerger::spin()
     tf::wrenchEigenToMsg(combined_wrench, wrench_msg);
     thrust_pub.publish(wrench_msg);
 
-    // reset local wrenches
-    dp_wrench.setZero();
-    los_wrench.setZero();
-    vel_wrench.setZero();
-    joy_wrench.setZero();
+    // reset wrenches that are no longer updated
+    if (dp_counter > spins_without_update_limit)
+      dp_wrench.setZero();
+    else
+      dp_counter++;
+
+    if (los_counter > spins_without_update_limit)
+      los_wrench.setZero();
+    else
+      los_counter++;
+
+    if (vel_counter > spins_without_update_limit)
+      vel_wrench.setZero();
+    else
+      vel_counter++;
+
+    if (joy_counter > spins_without_update_limit)
+      joy_wrench.setZero();
+    else
+      joy_counter++;
 
     ros_rate.sleep();
   }
@@ -65,19 +87,23 @@ void ThrustMerger::spin()
 void ThrustMerger::dpCallback(geometry_msgs::Wrench wrench_msgs)
 {
   tf::wrenchMsgToEigen(wrench_msgs, dp_wrench);
+  dp_counter = 0;
 }
 
 void ThrustMerger::losCallback(geometry_msgs::Wrench wrench_msgs)
 {
   tf::wrenchMsgToEigen(wrench_msgs, los_wrench);
+  los_counter = 0;
 }
 
 void ThrustMerger::velCallback(geometry_msgs::Wrench wrench_msgs)
 {
   tf::wrenchMsgToEigen(wrench_msgs, vel_wrench);
+  vel_counter = 0;
 }
 
 void ThrustMerger::joyCallback(geometry_msgs::Wrench wrench_msgs)
 {
   tf::wrenchMsgToEigen(wrench_msgs, joy_wrench);
+  joy_counter = 0;
 }

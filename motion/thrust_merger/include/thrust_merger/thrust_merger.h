@@ -39,6 +39,12 @@ private:
   Eigen::Vector6d joy_wrench;
   Eigen::Vector6d combined_wrench;
 
+  int spins_without_update_limit;
+  int dp_counter;
+  int los_counter;
+  int vel_counter;
+  int joy_counter;
+
   void dpCallback(geometry_msgs::Wrench wrench_msg);
   void losCallback(geometry_msgs::Wrench wrench_msg);
   void velCallback(geometry_msgs::Wrench wrench_msg);
