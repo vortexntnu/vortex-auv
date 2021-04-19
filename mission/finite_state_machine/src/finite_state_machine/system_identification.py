@@ -139,10 +139,10 @@ class SingleTest(State):
 def run_tests():
     states = [
         SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(2, 0, -0.5, 0, 0, 0), pose(5, 0, -0.5, 0, 0, 0)
+            twist(1, 0, 0, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0), pose(5, 0, 0.7, 0, 0, 0)
         ),
         SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0, 0, 0), pose(5, 0, 0, 0, 0, 0)
+            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0.7, 0, 0), pose(5, 0, 0.7, 0, 0, 0)
         )
     ]
     sm = create_sequence(states)
@@ -158,5 +158,5 @@ def trials():
 
 
 if __name__ == "__main__":
-    rospy.init_node('system_identification_sm',log_level=rospy.DEBUG)
+    rospy.init_node('system_identification_sm')
     run_tests()
