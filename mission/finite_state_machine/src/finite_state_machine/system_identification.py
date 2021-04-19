@@ -136,13 +136,22 @@ class SingleTest(State):
         return sm.execute()
 
 
-def run_tests():
+def surge_tests():
     states = [
         SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0), pose(5, 0, 0.7, 0, 0, 0)
+            twist(0.1, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
         ),
         SingleTest(
-            twist(1, 0, 0, 0, 0, 0), pose(0, 0, 0, 0.7, 0, 0), pose(5, 0, 0.7, 0, 0, 0)
+            twist(0.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(0.4, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(0.8, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+        ),
+        SingleTest(
+            twist(1.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
         )
     ]
     sm = create_sequence(states)
@@ -159,4 +168,4 @@ def trials():
 
 if __name__ == "__main__":
     rospy.init_node('system_identification_sm')
-    run_tests()
+    surge_tests()
