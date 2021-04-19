@@ -12,7 +12,7 @@ from helper import create_sequence, point, pose, twist
 
 
 class Monitor(State):
-    def __init__(self, goal_pose, max_duration, pool_bounds, goal_boundry, odom_topic="/odometry/filtered"):
+    def __init__(self, max_duration, pool_bounds, goal_pose=None, goal_boundry=None, odom_topic="/odometry/filtered"):
         """State that monitors in drone is within pool bounds, close enough to goal or a timeout has occured.
 
         Args:
@@ -23,6 +23,7 @@ class Monitor(State):
             odom_topic (str, optional): Topic for odometry. Defaults to "/odometry/filtered".
         """
         State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        self.rate = rospy.Rate(10)
         self.duration = max_duration
         self.timeout = False
 
@@ -49,7 +50,13 @@ class Monitor(State):
             if self.close_to_goal():
                 return 'succeeded'
 
-        return 'succeeded'
+            if self.timeout:
+                return 'succeeded'
+
+            self.rate.sleep()
+        
+        return "preempted"
+
 
     def update_odom(self, odom_msg):
         self.odom = odom_msg
@@ -67,6 +74,10 @@ class Monitor(State):
         return True
 
     def close_to_goal(self):
+        # check if goal_pose in use
+        if not self.goal_pose:
+            return False
+
         # create quats from msg
         goal_quat_list = [
             self.goal_pose.orientation.x, 
@@ -103,7 +114,7 @@ class Monitor(State):
 
 
 class SingleTest(State):
-    def __init__(self, twist, start_pose, goal_pose, timeout=10, goal_boundry=[0.5, 0.5, 0.2, 0.15, 0.15, 0.15]):
+    def __init__(self, twist, start_pose, goal_pose=None, timeout=10, goal_boundry=[0.5, 0.5, 0.2, 0.15, 0.15, 0.15]):
         State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         self.twist = twist
         self.goal_pose = goal_pose
@@ -139,19 +150,19 @@ class SingleTest(State):
 def surge_tests():
     states = [
         SingleTest(
-            twist(0.1, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+            twist(0.1, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5
         ),
         SingleTest(
-            twist(0.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+            twist(0.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5
         ),
         SingleTest(
-            twist(0.4, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+            twist(0.4, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5
         ),
         SingleTest(
-            twist(0.8, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+            twist(0.8, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5
         ),
         SingleTest(
-            twist(1.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), pose(2, 0, 0.7, 0, 0, 0)
+            twist(1.2, 0, 0, 0, 0, 0), pose(-2, 0, 0.7, 0, 0, 0), timeout=5
         )
     ]
     sm = create_sequence(states)
