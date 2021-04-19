@@ -112,9 +112,7 @@ class DPGuidance:
             if self.publish_guidance_data:
 
                 if self.within_acceptance_margins():
-                    # self.publish_guidance_data = False
                     self.goal_action_server.set_succeeded()
-                    continue    # dont pub next contorller setpoint
 
                 self.reference_model_pub.publish(self.controller_setpoint)
 
