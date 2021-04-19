@@ -3,7 +3,7 @@
 
   <!-- Namespace arguments -->
   <arg name="ns_guidance"   default="guidance"/>
-  <arg name="ns_controller" default="controller"/>
+  <arg name="ns_controller" default="controllers"/>
   <arg name="ns_rm"         default="rm"/>
   <arg name="ns_thrust"     default="thrust"/>
 
