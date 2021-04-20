@@ -1,19 +1,6 @@
 #include "vortex_allocator/allocator_ros.h"
 
-#include <cmath>
-#include <vector>
-#include <limits>
-
-#include <eigen_conversions/eigen_msg.h>
-#include "std_msgs/Float32MultiArray.h"
-#include "vortex_allocator/eigen_typedefs.h"
-#include "vortex_allocator/eigen_helper.h"
-
-Allocator::Allocator(ros::NodeHandle nh)
-  :
-  m_nh(nh),
-  m_min_thrust(-std::numeric_limits<double>::infinity()),
-  m_max_thrust(std::numeric_limits<double>::infinity())
+Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh),
 {
   // parameters
   if (!m_nh.getParam("/propulsion/dofs/num", m_num_degrees_of_freedom))
@@ -23,21 +10,14 @@ Allocator::Allocator(ros::NodeHandle nh)
   if (!m_nh.getParam("/propulsion/dofs/which", m_active_degrees_of_freedom))
     ROS_FATAL("Failed to read parameter which dofs.");
 
-  // Read thrust limits
-  std::vector<double> thrust;
-  if (!m_nh.getParam("/propulsion/thrusters/characteristics/thrust", thrust))
-  {
-    ROS_WARN("Failed to read params min/max thrust. Using (%.2f) to (%.2f).",
-      m_min_thrust, m_max_thrust);
-  }
-
   // Read thrust config matrix
-  Eigen::MatrixXd thrust_configuration;
   if (!getMatrixParam(m_nh, "/propulsion/thrusters/configuration_matrix", &thrust_configuration))
   {
     ROS_FATAL("Failed to read parameter thrust config matrix. Killing node...");
     ros::shutdown();
   }
+
+  // calculate pseudo inverse of thrust config matrix
   Eigen::MatrixXd thrust_configuration_pseudoinverse;
   if (!pseudoinverse(thrust_configuration, &thrust_configuration_pseudoinverse))
   {
@@ -53,7 +33,7 @@ Allocator::Allocator(ros::NodeHandle nh)
   ROS_INFO("Initialized.");
 }
 
-void Allocator::callback(const geometry_msgs::Wrench &msg_in) const
+void Allocator::callback(const geometry_msgs::Wrench& msg_in) const
 {
   const Eigen::VectorXd rov_forces = rovForcesMsgToEigen(msg_in);
 
@@ -71,7 +51,7 @@ void Allocator::callback(const geometry_msgs::Wrench &msg_in) const
   m_pub.publish(msg_out);
 }
 
-Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench &msg) const
+Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench& msg) const
 {
   Eigen::VectorXd rov_forces(m_num_degrees_of_freedom);
   unsigned i = 0;
@@ -90,10 +70,21 @@ Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench &msg)
 
   if (i != m_num_degrees_of_freedom)
   {
-    ROS_WARN_STREAM("Invalid length of rov_forces vector. Is " << i << ", should be " << m_num_degrees_of_freedom <<
-                    ". Returning zero thrust vector.");
+    ROS_WARN_STREAM("Invalid length of rov_forces vector. Is " << i << ", should be " << m_num_degrees_of_freedom
+                                                               << ". Returning zero thrust vector.");
     return Eigen::VectorXd::Zero(m_num_degrees_of_freedom);
   }
 
   return rov_forces;
+}
+
+void Allocator::thrusterForcesCb(const std_msgs::Float32MultiArray& thruster_forces_msg)
+{
+  // convert msg to eigen
+
+  // calculate forces in body
+  Eigen::Vector6d forces_body = thrust_configuration * 
+
+  // publish body forces
+
 }
