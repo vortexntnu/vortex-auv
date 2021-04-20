@@ -49,7 +49,8 @@ class DPGuidance:
 
     def __init__(self):
         """
-        Create the ROS node dp and set constants, as well as the action
+        Create the ROS node dp and         self.publish_guidance_data = True
+set constants, as well as the action
         server that the fsm connects to. Connect to the move_base action
         server in the dp controller. The guidance and controller communicate
         through this server.
@@ -63,9 +64,8 @@ class DPGuidance:
 
         # init internal variables
         self.ros_rate = rospy.Rate(rate)
-        self.publish_guidance_data = False
-        self.controller_setpoint = Pose()
         self.current_pose = Pose()
+        self.controller_setpoint = Pose()
         self.control_mode = ControlModeEnum.OPEN_LOOP.value
 
         # Publisher for the reference model
@@ -163,8 +163,6 @@ class DPGuidance:
                 self.controller_setpoint.position.z,
             )
         )
-
-        self.publish_guidance_data = True
 
     def preempt_cb(self):
         """
