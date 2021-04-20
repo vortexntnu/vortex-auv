@@ -57,9 +57,9 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   vel_sub = nh.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // create services
-  reset_service = nh.advertiseService("/velocity_controller/reset_pid", &VelocityController::resetPidCallback, this);
+  reset_service = nh.advertiseService("reset_pid", &VelocityController::resetPidCallback, this);
   set_gains_service =
-      nh.advertiseService("/velocity_controller/set_gains", &VelocityController::setGainsCallback, this);
+      nh.advertiseService("set_gains", &VelocityController::setGainsCallback, this);
 
   // wait for first odometry message
   ROS_INFO("Waiting for odometry message..");
