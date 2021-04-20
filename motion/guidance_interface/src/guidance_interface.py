@@ -356,7 +356,7 @@ class GuidanceInterface:
             guidance_interface=self,
             dp_guidance_action_server="dp_action_server",
             guidance_interface_dp_action_server="/guidance_interface/dp_server",
-            dp_controller_control_mode_service="/controller/controlmode_service",
+            dp_controller_control_mode_service="/controllers/controlmode_service",
         )
 
         self.los_guidance = LosGuidance(
