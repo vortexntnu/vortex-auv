@@ -186,6 +186,7 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
 
     case ControlModes::ORIENTATION_HOLD:
       tau_command = orientationHold(orientation, velocity, orientation_setpoint);
+      break;
 
     default:
       ROS_ERROR("Default control mode reached.");

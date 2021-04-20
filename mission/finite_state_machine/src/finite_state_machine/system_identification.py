@@ -145,7 +145,6 @@ class SingleTest(State):
         self.z_min = 0.3
         self.z_max = 0.8
 
-    def execute(self, ud):
         states = [
             GoToState(self.start_pose),
             VelState(self.twist),
@@ -163,8 +162,10 @@ class SingleTest(State):
             GoToState(self.start_pose),
         ]
         names = ["go_to_start", "set_velocity", "monitor", "back_to_start"]
-        sm = create_sequence(states, state_names=names)
-        return sm.execute()
+        self.sm = create_sequence(states, state_names=names)
+        
+    def execute(self, ud):
+        return self.sm.execute()
 
 
 def surge_tests():

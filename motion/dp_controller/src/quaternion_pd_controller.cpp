@@ -40,10 +40,10 @@ Eigen::Vector6d QuaternionPdController::getFeedback(const Eigen::Vector3d& x, co
   Eigen::Matrix6d K_i = integralGainMatrix(R);
 
   // Reference model
-  Eigen::Vector3d x_d_smooth = referenceModel(x, x_d);
+  // Eigen::Vector3d x_d_smooth = referenceModel(x, x_d);
 
   // Error Vector
-  Eigen::Vector6d z = errorVector(x, x_d_smooth, q, q_d);
+  Eigen::Vector6d z = errorVector(x, x_d, q, q_d);
   Eigen::Vector6d g = restoringForceVector(R);
 
   // Integral

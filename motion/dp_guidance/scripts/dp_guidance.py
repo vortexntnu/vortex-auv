@@ -49,8 +49,7 @@ class DPGuidance:
 
     def __init__(self):
         """
-        Create the ROS node dp and         self.publish_guidance_data = True
-set constants, as well as the action
+        Create the ROS node dp and set constants, as well as the action
         server that the fsm connects to. Connect to the move_base action
         server in the dp controller. The guidance and controller communicate
         through this server.

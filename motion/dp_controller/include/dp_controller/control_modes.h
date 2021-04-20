@@ -58,6 +58,14 @@ inline std::string controlModeString(ControlMode control_mode)
     case ControlModes::POSITION_HEADING_HOLD:
       s = "POSE HEADING HOLD";
       break;
+    
+    case ControlModes::POSE_HOLD:
+      s = "POSE HOLD";
+      break;
+
+    case ControlModes::ORIENTATION_HOLD:
+      s = "ORIENTATION HOLD";
+      break;
 
     default:
       s = "INVALID CONTROL MODE";
