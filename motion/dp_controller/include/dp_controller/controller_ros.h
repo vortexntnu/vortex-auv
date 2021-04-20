@@ -31,7 +31,7 @@
 #include <eigen_conversions/eigen_msg.h>
 
 #include "vortex_msgs/Debug.h"
-#include "vortex_msgs/ControlMode.h" 
+#include "vortex_msgs/ControlMode.h"
 #include "vortex_msgs/PropulsionCommand.h"
 #include "vortex_msgs/RovState.h"
 #include "vortex_msgs/DpSetpoint.h"
@@ -42,7 +42,6 @@
 #include "dp_controller/setpoints.h"
 #include "dp_controller/eigen_helper.h"
 #include "dp_controller/eigen_typedefs.h"
-
 
 // typedef so you dont have to write out definition every time
 typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
@@ -123,7 +122,7 @@ private:
 
   dynamic_reconfigure::Server<dp_controller::VortexControllerConfig> m_dr_srv; /** dynamic_reconfigure server */
 
-  ControlMode prev_control_mode;                      /** Previous control mode                        */
+  ControlMode prev_control_mode;                   /** Previous control mode                        */
   bool m_debug_mode = false;                       /** Bool to run in debug mode                   */
   const double c_normalized_force_deadzone = 0.01; /** Normalized force deadzone                   */
   const double c_max_quat_norm_deviation = 0.1;    /** Maximum normalized deviation (quaternion)   */
@@ -190,7 +189,6 @@ private:
    */
   void initPositionHoldController();
 
-
   /**
    * @brief Publish a vortex_msgs Debug message containing current state and setpoint data
    *
@@ -240,8 +238,8 @@ private:
    *
    * @return  A wrench vector for maintaining constant heading
    */
-  Eigen::Vector6d headingHold(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
-                              const Eigen::Vector6d& velocity_state, const Eigen::Quaterniond& orientation_setpoint);
+  Eigen::Vector6d headingHold(const Eigen::Quaterniond& orientation_state, const Eigen::Vector6d& velocity_state,
+                              const Eigen::Quaterniond& orientation_setpoint);
 
   /**
    * @brief Control mode for keeping a fixed position
@@ -291,6 +289,17 @@ private:
   Eigen::Vector6d poseHold(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
                            const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint,
                            const Eigen::Quaterniond& orientation_setpoint);
+
+  /**
+   * @brief Control mode for keeping a fixed orientation
+   *
+   * @param orientation_state A quaternion containing the current orientation
+   * @param velocity_state A 6d vector containing the current velocity
+   * @param orientation_setpoint A quaternion containing the orientation setpoint
+   * @return Eigen::Vector6d
+   */
+  Eigen::Vector6d orientationHold(const Eigen::Quaterniond& orientation_state, const Eigen::Vector6d& velocity_state,
+                                  const Eigen::Quaterniond& orientation_setpoint);
 
 protected:
   MoveBaseActionServer* mActionServer; /** Action server object */

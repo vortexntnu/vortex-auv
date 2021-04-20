@@ -184,6 +184,9 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
       break;
     }
 
+    case ControlModes::ORIENTATION_HOLD:
+      tau_command = orientationHold(orientation, velocity, orientation_setpoint);
+
     default:
       ROS_ERROR("Default control mode reached.");
   }
@@ -265,8 +268,7 @@ Eigen::Vector6d Controller::depthHold(const Eigen::Vector3d& position_state,
   return tau;
 }
 
-Eigen::Vector6d Controller::headingHold(const Eigen::Vector3d& position_state,
-                                        const Eigen::Quaterniond& orientation_state,
+Eigen::Vector6d Controller::headingHold(const Eigen::Quaterniond& orientation_state,
                                         const Eigen::Vector6d& velocity_state,
                                         const Eigen::Quaterniond& orientation_setpoint)
 {
@@ -321,5 +323,14 @@ Eigen::Vector6d Controller::poseHold(const Eigen::Vector3d& position_state, cons
 {
   Eigen::Vector6d tau = m_controller.getFeedback(position_state, orientation_state, velocity_state, position_setpoint,
                                                  orientation_setpoint);
+  return tau;
+}
+
+Eigen::Vector6d Controller::orientationHold(const Eigen::Quaterniond& orientation_state,
+                                            const Eigen::Vector6d& velocity_state,
+                                            const Eigen::Quaterniond& orientation_setpoint)
+{
+  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d::Zero(), orientation_state, velocity_state,
+                                                 Eigen::Vector3d::Zero(), orientation_setpoint);
   return tau;
 }

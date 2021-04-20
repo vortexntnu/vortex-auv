@@ -246,7 +246,7 @@ class DpGuidance:
 
         request = ControlModeRequest()
         request.controlmode = control_mode
-True
+
         try:
             self.control_mode_service(request)
         except rospy.ServiceException as exc:
