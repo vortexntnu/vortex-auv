@@ -112,9 +112,7 @@ class DPGuidance:
             if self.publish_guidance_data:
 
                 if self.within_acceptance_margins():
-                    # self.publish_guidance_data = False
                     self.goal_action_server.set_succeeded()
-                    continue    # dont pub next contorller setpoint
 
                 self.reference_model_pub.publish(self.controller_setpoint)
 
@@ -128,7 +126,9 @@ class DPGuidance:
         new_goal = self.goal_action_server.accept_new_goal()
         self.controller_setpoint = new_goal.target_pose.pose
         rospy.logdebug(
-            "New dp guidance setpoint has type: %s" % type(self.controller_setpoint)
+            "DP has recieved new goal with x: %d, y: %d, z: %d" % (
+                self.controller_setpoint.position.x, self.controller_setpoint.position.y, self.controller_setpoint.position.z
+                )
         )
 
         self.publish_guidance_data = True
