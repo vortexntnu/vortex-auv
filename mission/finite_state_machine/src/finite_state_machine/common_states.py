@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from enum import IntEnum
+
 import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState, State
 from smach_ros import SimpleActionState
@@ -14,6 +16,18 @@ from vortex_msgs.msg import (
     LosPathFollowingGoal,
 )
 from helper import create_sequence
+
+
+class ControlModeEnum(IntEnum):
+    OPEN_LOOP = 0
+    POSITION_HOLD = 1
+    HEADING_HOLD = 2
+    DEPTH_HEADING_HOLD = 3
+    DEPTH_HOLD = 4
+    POSITION_HEADING_HOLD = 5
+    CONTROL_MODE_END = 6
+    POSE_HOLD = 7
+    ORIENTATION_HOLD = 8
 
 
 class DpState(SimpleActionState):
@@ -63,7 +77,12 @@ class LosState(SimpleActionState):
 
 
 class VelState(SimpleActionState):
-    def __init__(self, twist, action_server="/guidance_interface/vel_server"):
+    def __init__(
+        self,
+        twist,
+        dp_control_mode=ControlModeEnum.OPEN_LOOP,
+        action_server="/guidance_interface/vel_server",
+    ):
         """A SimpleActionState that sets drone velocity to a given twist.
 
         Args:
@@ -73,6 +92,7 @@ class VelState(SimpleActionState):
         """
         goal = SetVelocityGoal()
         goal.desired_velocity = twist
+        goal.control_mode = dp_control_mode.value
         SimpleActionState.__init__(self, action_server, SetVelocityAction, goal)
 
 
@@ -96,7 +116,7 @@ class GoToState(State):
         res = self.sm.execute()
         rospy.logdebug(res)
         return res
-    
+
 
 def dp_state(pose, action_server="/guidance_interface/dp_server"):
     """Create a SimpleActionState that travels to a goal pose using our DP guidance.

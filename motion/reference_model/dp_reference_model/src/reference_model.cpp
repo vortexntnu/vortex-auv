@@ -34,12 +34,13 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh)
   Eigen::Vector3d x_ref_prev_prev = Eigen::Vector3d::Zero();
 
   setpoint_sub = nh.subscribe("/guidance/dp_data", 1, &ReferenceModel::setpoint_cb, this);
-  reference_pub = nh.advertise<geometry_msgs::Pose>("/reference_model/output", 10, this);
+  reference_pub = nh.advertise<vortex_msgs::DpSetpoint>("/reference_model/output", 1, this);
 }
 
-void ReferenceModel::setpoint_cb(const geometry_msgs::Pose& msg)
+void ReferenceModel::setpoint_cb(const vortex_msgs::DpSetpoint& setpoint_msg)
 {
-  Eigen::Vector3d x_ref{ msg.position.x, msg.position.y, msg.position.z };
+  Eigen::Vector3d x_ref{ setpoint_msg.setpoint.position.x, setpoint_msg.setpoint.position.y,
+                         setpoint_msg.setpoint.position.z };
   Eigen::Vector3d x_d = low_pass_filter(x_ref);
 
   x_d_prev = x_d;
@@ -47,17 +48,18 @@ void ReferenceModel::setpoint_cb(const geometry_msgs::Pose& msg)
   geometry_msgs::Point x_d_point;
   tf::pointEigenToMsg(x_d, x_d_point);
 
-  geometry_msgs::Pose pose;
-  pose.position = x_d_point;
-  pose.orientation = msg.orientation;
+  vortex_msgs::DpSetpoint dp_setpoint;
+  dp_setpoint.setpoint.position = x_d_point;
+  dp_setpoint.setpoint.orientation = setpoint_msg.setpoint.orientation;
+  dp_setpoint.control_mode = setpoint_msg.control_mode;
 
-  reference_pub.publish(pose);
+  reference_pub.publish(dp_setpoint);
 }
 
 Eigen::Vector3d ReferenceModel::low_pass_filter(const Eigen::Vector3d& x_ref)
 {
   Eigen::Vector3d x_d;
-  for (int i=0; i<3; i++)
+  for (int i = 0; i < 3; i++)
   {
     x_d[i] = x_d_prev[i] - beta[i] * (x_d_prev[i] - x_ref[i]);
   }

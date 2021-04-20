@@ -12,28 +12,37 @@
 #ifndef VORTEX_CONTROLLER_CONTROLLER_ROS_H
 #define VORTEX_CONTROLLER_CONTROLLER_ROS_H
 
-#include <Eigen/Dense>
+#include <math.h>
+#include <map>
+#include <string>
+#include <vector>
 
-#include "ros/ros.h"
+#include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
-
-#include <dp_controller/VortexControllerConfig.h>
-#include "eigen_typedefs.h"
-#include "dp_controller/control_modes.h"
-#include "vortex_msgs/PropulsionCommand.h"
-#include "vortex_msgs/RovState.h"
-#include "nav_msgs/Odometry.h"
-#include "geometry_msgs/Pose.h"
-#include "vortex_msgs/Debug.h"
-#include "vortex_msgs/ControlMode.h"  //service
-
-#include "dp_controller/state.h"
-#include "dp_controller/setpoints.h"
-#include "dp_controller/quaternion_pd_controller.h"
-
-// Action server
+#include <tf/transform_datatypes.h>
+#include <dp_controller/control_modes.h>
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Pose.h>
 #include <actionlib/server/simple_action_server.h>
 #include <move_base_msgs/MoveBaseAction.h>
+#include <std_msgs/String.h>
+
+#include <Eigen/Dense>
+#include <eigen_conversions/eigen_msg.h>
+
+#include "vortex_msgs/Debug.h"
+#include "vortex_msgs/ControlMode.h" 
+#include "vortex_msgs/PropulsionCommand.h"
+#include "vortex_msgs/RovState.h"
+#include "vortex_msgs/DpSetpoint.h"
+
+#include "dp_controller/quaternion_pd_controller.h"
+#include "dp_controller/VortexControllerConfig.h"
+#include "dp_controller/state.h"
+#include "dp_controller/setpoints.h"
+#include "dp_controller/eigen_helper.h"
+#include "dp_controller/eigen_typedefs.h"
+
 
 // typedef so you dont have to write out definition every time
 typedef actionlib::SimpleActionServer<move_base_msgs::MoveBaseAction> MoveBaseActionServer;
@@ -68,7 +77,7 @@ public:
   /**
    * @brief Callback for the reference model subscriber
    */
-  void guidanceCallback(const geometry_msgs::Pose& msg);
+  void guidanceCallback(const vortex_msgs::DpSetpoint& msg);
 
   /**
    * @brief Callback for the dynamic reconfigure server
@@ -80,17 +89,6 @@ public:
    * to the @c setGains() command in the controller.
    */
   void configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level);
-
-  /**
-   * @brief Service server callback for setting control mode
-   *
-   * @param req   The requested control mode
-   * @param res   The server respose to the @p req
-   *
-   * @return Always returns true if function execution makes it to
-   * the end of the function
-   */
-  bool controlModeCallback(vortex_msgs::ControlMode::Request& req, vortex_msgs::ControlMode::Response& res);
 
   //  /**
   //   * @brief Action server; goal
@@ -125,7 +123,7 @@ private:
 
   dynamic_reconfigure::Server<dp_controller::VortexControllerConfig> m_dr_srv; /** dynamic_reconfigure server */
 
-  ControlMode m_control_mode;                      /** Current control mode                        */
+  ControlMode prev_control_mode;                      /** Previous control mode                        */
   bool m_debug_mode = false;                       /** Bool to run in debug mode                   */
   const double c_normalized_force_deadzone = 0.01; /** Normalized force deadzone                   */
   const double c_max_quat_norm_deviation = 0.1;    /** Maximum normalized deviation (quaternion)   */
@@ -135,7 +133,7 @@ private:
   Eigen::Quaterniond m_current_orientation;
   Eigen::Vector6d m_current_velocity;
 
-  std::unique_ptr<QuaternionPdController> m_controller; /** The Quaternion PID controller object              */
+  QuaternionPdController m_controller;
 
   // EIGEN CONVERSION INITIALIZE
   Eigen::Vector3d position;       /** Current position      */
@@ -192,10 +190,6 @@ private:
    */
   void initPositionHoldController();
 
-  /**
-   * @brief Publish the control mode through the mode publisher
-   */
-  void publishControlMode();
 
   /**
    * @brief Publish a vortex_msgs Debug message containing current state and setpoint data

@@ -31,6 +31,7 @@ class ControlModeEnum(IntEnum):
     POSITION_HEADING_HOLD = 5
     CONTROL_MODE_END = 6
     POSE_HOLD = 7
+    ORIENTATION_HOLD = 8
 
 
 class JoyGuidance:
@@ -84,7 +85,6 @@ class JoyGuidance:
         else:
             self.joystick_controlmode_server.set_aborted()
 
-
     def stop(self):
         self.activate_joystick(False)
 
@@ -127,7 +127,9 @@ class VelocityGuidance:
         request.desired_velocity = set_velocity_goal.desired_velocity
 
         try:
-            self.guidance_interface.change_dp_control_mode(set_velocity_goal.control_mode)
+            self.guidance_interface.change_dp_control_mode(
+                set_velocity_goal.control_mode
+            )
             self.set_velocity_service(request)
             self.action_server.set_succeeded()
         except rospy.ServiceException as exc:
@@ -183,7 +185,7 @@ class DpGuidance:
         self.change_control_mode(ControlModeEnum.POSITION_HEADING_HOLD)
 
         rospy.logdebug("Sending new goal to dp_guidance..")
-        self.client_done =  False
+        self.client_done = False
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
@@ -219,13 +221,11 @@ class DpGuidance:
                 break
             rate.sleep()
 
-
     def set_timeout(self):
         self.timeout = True
-        
+
     def guidance_finished_cb(self, state, result):
         self.client_done = True
-        
 
     def change_control_mode(self, control_mode):
         """Requests dp controller to change its control mode to the given mode
@@ -246,16 +246,16 @@ class DpGuidance:
 
         request = ControlModeRequest()
         request.controlmode = control_mode
-
+True
         try:
             self.control_mode_service(request)
         except rospy.ServiceException as exc:
             rospy.logerr("Control mode service did not process request: " + str(exc))
 
     def stop(self):
-        if self.action_client.gh:   # goal handle. None if no goal exists.
+        if self.action_client.gh:  # goal handle. None if no goal exists.
             self.action_client.cancel_all_goals()
-        self.change_control_mode(ControlModeEnum.OPEN_LOOP) 
+        self.change_control_mode(ControlModeEnum.OPEN_LOOP)
 
 
 class LosGuidance:
@@ -289,7 +289,7 @@ class LosGuidance:
         self.guidance_interface.stop_all_guidance()
 
         rospy.logdebug("Sending new goal to los_guidance..")
-        self.client_done =  False
+        self.client_done = False
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
@@ -325,15 +325,14 @@ class LosGuidance:
                 break
             rate.sleep()
 
-
     def set_timeout(self):
         self.timeout = True
-        
+
     def guidance_finished_cb(self, state, result):
         self.client_done = True
 
     def stop(self):
-        if self.action_client.gh:   # goal handle. None if no goal exists.
+        if self.action_client.gh:  # goal handle. None if no goal exists.
             self.action_client.cancel_all_goals()
 
 
@@ -357,7 +356,7 @@ class GuidanceInterface:
             guidance_interface=self,
             dp_guidance_action_server="dp_action_server",
             guidance_interface_dp_action_server="/guidance_interface/dp_server",
-            dp_controller_control_mode_service="/controllers/controlmode_service",
+            dp_controller_control_mode_service="/guidance/dp_guidance/controlmode_service",
         )
 
         self.los_guidance = LosGuidance(

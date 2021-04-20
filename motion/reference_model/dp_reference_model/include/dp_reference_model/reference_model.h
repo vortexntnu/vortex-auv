@@ -23,6 +23,8 @@
 #include "tf/tf.h"
 #include "tf_conversions/tf_eigen.h"
 
+#include "vortex_msgs/DpSetpoint.h"
+
 using namespace Eigen;
 
 class ReferenceModel
@@ -45,9 +47,9 @@ private:
    * and orientation.
    *
    *
-   * @param msg Reference Pose
+   * @param setpoint_msg target setpoint 
    */
-  void setpoint_cb(const geometry_msgs::Pose& msg);
+  void setpoint_cb(const vortex_msgs::DpSetpoint& setpoint_msg);
 
   /**
    * @brief Utility function that calculates a smooth trajectory from current

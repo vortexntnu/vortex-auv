@@ -18,7 +18,8 @@ enum ControlMode
   DEPTH_HOLD = 4,
   POSITION_HEADING_HOLD = 5,
   CONTROL_MODE_END = 6,
-  POSE_HOLD = 7
+  POSE_HOLD = 7,
+  ORIENTATION_HOLD = 8
 };
 }  // namespace ControlModes
 typedef ControlModes::ControlMode ControlMode;
