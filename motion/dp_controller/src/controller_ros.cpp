@@ -170,7 +170,7 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
       break;
 
     case ControlModes::HEADING_HOLD:
-      tau_command = headingHold(position, orientation, velocity, orientation_setpoint);
+      tau_command = headingHold(orientation, velocity, orientation_setpoint);
       break;
 
     case ControlModes::POSE_HOLD:
@@ -179,7 +179,7 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
 
     case ControlModes::DEPTH_HEADING_HOLD: {
       Eigen::Vector6d tau_depthhold = depthHold(position, orientation, velocity, position_setpoint);
-      Eigen::Vector6d tau_headinghold = headingHold(position, orientation, velocity, orientation_setpoint);
+      Eigen::Vector6d tau_headinghold = headingHold(orientation, velocity, orientation_setpoint);
       tau_command = tau_depthhold + tau_headinghold;
       break;
     }
