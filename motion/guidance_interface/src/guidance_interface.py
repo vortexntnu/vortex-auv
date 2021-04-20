@@ -127,6 +127,7 @@ class VelocityGuidance:
         request.desired_velocity = set_velocity_goal.desired_velocity
 
         try:
+            self.guidance_interface.change_dp_control_mode(set_velocity_goal.control_mode)
             self.set_velocity_service(request)
             self.action_server.set_succeeded()
         except rospy.ServiceException as exc:
