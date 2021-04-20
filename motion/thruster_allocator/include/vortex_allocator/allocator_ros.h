@@ -21,6 +21,8 @@ class Allocator
 public:
   explicit Allocator(ros::NodeHandle nh);
   void callback(const geometry_msgs::Wrench &msg) const;
+  void thrusterForcesCb(const std_msgs::Float32MultiArray &thruster_forces_msg);
+  
 private:
   ros::NodeHandle m_nh;
 
@@ -43,7 +45,6 @@ private:
   std::unique_ptr<PseudoinverseAllocator> m_pseudoinverse_allocator;
 
   Eigen::VectorXd rovForcesMsgToEigen(const geometry_msgs::Wrench &msg) const;
-  void thrusterForcesCb(const std_msgs::Float32MultiArray &thruster_forces_msg);
 };
 
 #endif  // VORTEX_ALLOCATOR_ALLOCATOR_ROS_H

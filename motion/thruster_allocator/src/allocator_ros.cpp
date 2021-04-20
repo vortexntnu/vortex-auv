@@ -1,6 +1,6 @@
 #include "vortex_allocator/allocator_ros.h"
 
-Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh),
+Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh)
 {
   // parameters
   if (!m_nh.getParam("/propulsion/dofs/num", m_num_degrees_of_freedom))
@@ -25,9 +25,12 @@ Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh),
     ros::shutdown();
   }
 
-  // publisher and subscriber
+  // publishers and subscribers
   m_sub = m_nh.subscribe("/thrust/desired_forces", 1, &Allocator::callback, this);
   m_pub = m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
+
+  delivered_forces_pub = m_nh.advertise<geometry_msgs::Wrench>("tau_delivered", 1);
+  thruster_forces_sub = m_nh.subscribe("/thrust/delivered_forces", 1, &Allocator::thrusterForcesCb, this);
 
   m_pseudoinverse_allocator.reset(new PseudoinverseAllocator(thrust_configuration_pseudoinverse));
   ROS_INFO("Initialized.");
@@ -81,10 +84,19 @@ Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench& msg)
 void Allocator::thrusterForcesCb(const std_msgs::Float32MultiArray& thruster_forces_msg)
 {
   // convert msg to eigen
+  Eigen::Vector8d thruster_forces;
+  for (int i=0; i<8; i++)
+  {
+    thruster_forces[i] = thruster_forces_msg.data[i];
+  }
 
   // calculate forces in body
-  Eigen::Vector6d forces_body = thrust_configuration * 
+  Eigen::Vector6d forces_body = thrust_configuration * thruster_forces;
+
+  // convert back to msg
+  geometry_msgs::Wrench tau_delivered;
+  tf::wrenchEigenToMsg(forces_body, tau_delivered);
 
   // publish body forces
-
+  delivered_forces_pub.publish(tau_delivered);
 }
