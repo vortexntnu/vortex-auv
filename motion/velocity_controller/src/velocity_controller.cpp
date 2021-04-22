@@ -93,13 +93,27 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     // calculate restoring forces
     Eigen::Vector6d restoring_forces = restoringForces();
 
-    // calculate tau using MiniPID and restoring forces
-    Eigen::Vector6d tau;
-    for (int i = 0; i < 6; i++)
+    // calculate tau for positions
+    Eigen::Vector3d tau_position_ned;
+    for (int i = 0; i < 3; i++)
     {
-      tau[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) + restoring_forces[i];
-      ROS_DEBUG_STREAM("tau_" << i << ": " << tau[i] << " (rest_forces: " << restoring_forces[i]);
+      tau_position_ned[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) + restoring_forces[i];
+      ROS_DEBUG_STREAM("tau_" << i << ": " << tau_position_ned[i] << " (rest_forces: " << restoring_forces[i]);
     }
+    Eigen::Vector3d tau_position_body = orientation.toRotationMatrix().transpose() * tau_position_ned;
+
+    // calculate tau for orientation
+    Eigen::Vector3d tau_orientation;
+    for (int i = 3; i < 6; i++)
+    {
+      tau_orientation[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) + restoring_forces[i];
+      ROS_DEBUG_STREAM("tau_" << i << ": " << tau_orientation[i] << " (rest_forces: " << restoring_forces[i]);
+    }
+
+    // create full tau
+    Eigen::Vector6d tau;
+    tau << tau_position_body, tau_orientation;
+
 
     // publish tau as wrench
     geometry_msgs::Wrench thrust_msg;
