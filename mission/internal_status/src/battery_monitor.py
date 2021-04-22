@@ -50,7 +50,7 @@ class BatteryMonitor:
     def xavier_cb(self, event):
         """Record output from voltage meter command, decode from bytes object to string, convert from string to integer"""
         xavier_mV = int(
-            subprocess.check_output(["cat", self.path_to_voltage_meter]).decode("utf-8")
+            subprocess.check_output(["cat", self.path_to_xavier_measurement]).decode("utf-8")
         )
         self.xavier_voltage = xavier_mV / 1000.0
 
@@ -68,8 +68,8 @@ class BatteryMonitor:
         self.system_battery_level_pub.publish(self.system_voltage)
 
     def log_cb(self, event):
-        self.log_voltage(xavier_voltage, "xavier")
-        self.log_voltage(system_voltage, "system")
+        self.log_voltage(self.xavier_voltage, "xavier")
+        self.log_voltage(self.system_voltage, "system")
 
     def log_voltage(self, voltage, title):
 
