@@ -24,8 +24,7 @@ class BatteryMonitor():
         # Power Sense device
         rospy.loginfo("Setting up usb read..")
         self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
-        self.powersense_device.flushInput()
-        self.powersense_device.flushOutput()
+        self.powersense_device.reset_input_buffer()
         
         xavier_voltage, system_voltage = self.get_voltages()    # try reading input
 
@@ -37,18 +36,23 @@ class BatteryMonitor():
 
     
     def spin(self):
-        while not rospy.is_shutdown():
+        
+        try:
+            while not rospy.is_shutdown():
 
-            xavier_voltage, system_voltage = self.get_voltages()
-            if not xavier_voltage == 0: 
-                self.xavier_battery_level_pub.publish(xavier_voltage)
-            if not system_voltage == 0:
-                self.system_battery_level_pub.publish(system_voltage)
+                xavier_voltage, system_voltage = self.get_voltages()
+                if not xavier_voltage == 0: 
+                    self.xavier_battery_level_pub.publish(xavier_voltage)
+                if not system_voltage == 0:
+                    self.system_battery_level_pub.publish(system_voltage)
 
-            self.log_voltage(xavier_voltage, "xavier")
-            self.log_voltage(system_voltage, "system")
+                self.log_voltage(xavier_voltage, "xavier")
+                self.log_voltage(system_voltage, "system")
 
-            rospy.sleep(self.interval)
+                rospy.sleep(self.interval)
+
+        finally:
+            self.powersense_device.close()
             
 
     def get_voltages(self):
@@ -58,6 +62,10 @@ class BatteryMonitor():
 
         system_voltage_str = self.powersense_device.readline()
         system_voltage = float(system_voltage_str[:-2]) # strip /r/n
+        self.powersense_device.reset_input_buffer()     
+        # readline only reads the top line, so make sure 
+        # the buffer is not filled with old voltage readings
+        # by resetting the input buffer
 
         return xavier_voltage, system_voltage
 
@@ -81,5 +89,5 @@ class BatteryMonitor():
 
 if __name__ == '__main__':
 
-    bm = BatteryMonitor()
-    bm.spin()
+        bm = BatteryMonitor()
+        bm.spin()
