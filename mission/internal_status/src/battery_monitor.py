@@ -47,7 +47,7 @@ class BatteryMonitor:
 
         rospy.loginfo("BatteryMonitor initialized")
 
-    def xavier_cb(self):
+    def xavier_cb(self, event):
         """Record output from voltage meter command, decode from bytes object to string, convert from string to integer"""
         xavier_mV = int(
             subprocess.check_output(["cat", self.path_to_voltage_meter]).decode("utf-8")
@@ -56,7 +56,7 @@ class BatteryMonitor:
 
         self.xavier_battery_level_pub.publish(self.xavier_voltage)
 
-    def system_cb(self):
+    def system_cb(self, event):
         """Read voltage of system from powersense device."""
         system_voltage_str = self.powersense_device.readline()
         self.system_voltage = float(system_voltage_str[:-2])  # strip /r/n
@@ -67,7 +67,7 @@ class BatteryMonitor:
 
         self.system_battery_level_pub.publish(self.system_voltage)
 
-    def log_cb(self):
+    def log_cb(self, event):
         self.log_voltage(xavier_voltage, "xavier")
         self.log_voltage(system_voltage, "system")
 
