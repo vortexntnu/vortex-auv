@@ -12,7 +12,7 @@ from tf.transformations import (
 )
 
 from common_states import GoToState, vel_state, VelState
-from helper import create_sequence, point, pose, twist
+from helper import create_sequence, point, pose, twist, ControlModeEnum
 
 
 class Monitor(State):
@@ -127,6 +127,7 @@ class SingleTest(State):
         self,
         twist,
         start_pose,
+        dp_mode=ControlModeEnum.OPEN_LOOP,
         goal_pose=None,
         timeout=10,
         goal_boundry=[0.5, 0.5, 0.2, 0.15, 0.15, 0.15],
@@ -147,7 +148,7 @@ class SingleTest(State):
 
         states = [
             GoToState(self.start_pose),
-            VelState(self.twist),
+            VelState(self.twist, dp_control_mode=dp_mode),
             Monitor(
                 goal_pose=self.goal_pose,
                 max_duration=self.timeout,
@@ -163,17 +164,37 @@ class SingleTest(State):
         ]
         names = ["go_to_start", "set_velocity", "monitor", "back_to_start"]
         self.sm = create_sequence(states, state_names=names)
-        
+
     def execute(self, ud):
         return self.sm.execute()
 
 
 def surge_tests():
     states = [
-        SingleTest(twist(0.1, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(0.2, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(0.4, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
-        SingleTest(twist(0.8, 0, 0, 0, 0, 0), pose(-1, 0, 0.7, 0, 0, 0), timeout=5),
+        SingleTest(
+            twist(0.1, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=5,
+            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+        ),
+        SingleTest(
+            twist(0.2, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=5,
+            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+        ),
+        SingleTest(
+            twist(0.4, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=5,
+            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+        ),
+        SingleTest(
+            twist(0.8, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=5,
+            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+        ),
     ]
     sm = create_sequence(states)
     introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
@@ -188,6 +209,7 @@ def roll_tests():
             twist(0.1, 0, 0, 0.1, 0, 0),
             pose(-2, 0, 0.7, 0, 0, 0),
             goal_pose=pose(0, 0, 0.7, 90, 0, 0),
+            dp_mode=ControlModeEnum.POSITION_HEADING_HOLD
         ),
     ]
     sm = create_sequence(states)

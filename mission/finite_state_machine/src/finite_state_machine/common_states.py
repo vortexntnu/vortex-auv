@@ -15,19 +15,7 @@ from vortex_msgs.msg import (
     LosPathFollowingAction,
     LosPathFollowingGoal,
 )
-from helper import create_sequence
-
-
-class ControlModeEnum(IntEnum):
-    OPEN_LOOP = 0
-    POSITION_HOLD = 1
-    HEADING_HOLD = 2
-    DEPTH_HEADING_HOLD = 3
-    DEPTH_HOLD = 4
-    POSITION_HEADING_HOLD = 5
-    CONTROL_MODE_END = 6
-    POSE_HOLD = 7
-    ORIENTATION_HOLD = 8
+from helper import create_sequence, ControlModeEnum
 
 
 class DpState(SimpleActionState):

@@ -1,10 +1,24 @@
 #!/usr/bin/env python
 
 import math
+from enum import IntEnum
 
 from smach import Sequence
 from geometry_msgs.msg import Twist, Pose, Point, Quaternion
 from tf.transformations import quaternion_from_euler
+
+
+class ControlModeEnum(IntEnum):
+    # remember to change all copies of this if you change it
+    OPEN_LOOP = 0
+    POSITION_HOLD = 1
+    HEADING_HOLD = 2
+    DEPTH_HEADING_HOLD = 3
+    DEPTH_HOLD = 4
+    POSITION_HEADING_HOLD = 5
+    CONTROL_MODE_END = 6
+    POSE_HOLD = 7
+    ORIENTATION_HOLD = 8
 
 
 def twist(X, Y, Z, K, M, N):
