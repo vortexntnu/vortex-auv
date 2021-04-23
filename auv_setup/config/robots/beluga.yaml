@@ -15,8 +15,8 @@
 #
 
 physical:
-  weight: 25.37     # kg
-  buoyancy: 25.50   # kg
+  weight: 24.00     # kg
+  buoyancy: 23.25   # kg
   center_of_mass: [-15.2, 1, 9.4]        # mm (x,y,z)
   center_of_buoyancy: [-15.1, 0.9, 35.5]   # mm (x,y,z)
 
