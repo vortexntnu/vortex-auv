@@ -16,11 +16,11 @@ class BatteryMonitor:
         rospy.init_node("battery_monitor")
 
         # Parameters
-        self.path_to_xavier_measurement = rospy.get_param("/battery/logging/path")
-        self.path_to_powersense = rospy.get_param("/battery/logging/powersense_dev")
+        self.path_to_xavier_measurement = rospy.get_param("/battery/xavier/path")
+        self.path_to_powersense = rospy.get_param("/battery/system/path")
         self.critical_level = rospy.get_param("/battery/thresholds/critical")
         self.warning_level = rospy.get_param("/battery/thresholds/warning")
-        system_interval = rospy.get_param("/battery/system/interval", 0.025)
+        system_interval = rospy.get_param("/battery/system/interval", 0.05)
         xavier_interval = rospy.get_param("/battery/xavier/interval", 10)
         logging_interval = rospy.get_param("/battery/logging/interval", 10)
 
