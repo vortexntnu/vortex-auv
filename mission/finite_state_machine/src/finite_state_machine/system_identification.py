@@ -50,7 +50,8 @@ class Monitor(State):
 
     def execute(self, ud):
         # start timer
-        rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
+        self.timeout = False
+        timer = rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
 
         while not rospy.is_shutdown():
 
@@ -64,6 +65,8 @@ class Monitor(State):
                 return "succeeded"
 
             self.rate.sleep()
+            
+        timer.shutdown()
 
         return "preempted"
 

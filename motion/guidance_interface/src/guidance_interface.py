@@ -34,7 +34,7 @@ class ControlModeEnum(IntEnum):
     ORIENTATION_HOLD = 8
     
 
-class GoalStatusEnum(Enum)
+class GoalStatusEnum(Enum):
     PENDING = 0
     ACTIVE = 1
     PREEMPTED = 2

@@ -97,12 +97,9 @@ class DPGuidance:
         rospy.logdebug("DP guidance initialized")
 
     def action_cb(self, goal):
-        
-        # set action goal to active state
-        move_base_goal = self.action_server.accept_new_goal()
 
         # set new setpoint and control mode
-        self.controller_setpoint =  move_base_goal.target_pose.pose
+        self.controller_setpoint =  goal.target_pose.pose
         self.control_mode = ControlModeEnum.POSE_HOLD.value
         rospy.logdebug(
             "DP has recieved new goal with x: %d, y: %d, z: %d"
@@ -115,7 +112,7 @@ class DPGuidance:
 
         # start a timout Timer
         self.dp_timout = False
-        rospy.Timer(
+        timer = rospy.Timer(
             rospy.Duration(self.action_server_max_duration),
             self.set_timeout,
             oneshot=True,
@@ -144,6 +141,8 @@ class DPGuidance:
                 break
 
             check_rate.sleep()
+            
+        timer.shutdown()
 
     def control_mode_service_cb(self, control_mode_req):
         # change control mode
