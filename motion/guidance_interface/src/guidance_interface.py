@@ -280,7 +280,7 @@ class LosGuidance:
         guidance_interface_los_action_server,
     ):
         self.guidance_interface = guidance_interface
-        self.max_duration = rospy.get_param("/guidance/interface/action_timeout", 90)
+        self.max_duration = rospy.get_param("/guidance/interface/action_timeout", 300)
         self.timeout = False
         self.client_done = False
 
@@ -309,7 +309,7 @@ class LosGuidance:
         )
 
         self.timeout = False
-        rospy.Timer(rospy.Duration(self.max_duration), self.set_timeout, oneshot=True)
+        timer = rospy.Timer(rospy.Duration(self.max_duration), self.set_timeout, oneshot=True)
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -338,6 +338,8 @@ class LosGuidance:
                 rospy.logwarn("LOS guidance aborted action due to timeout")
                 break
             rate.sleep()
+        
+        timer.shutdown()
 
     def set_timeout(self):
         self.timeout = True
@@ -346,7 +348,8 @@ class LosGuidance:
         self.client_done = True
 
     def stop(self):
-        if self.action_client.gh:  # goal handle. None if no goal exists.
+        state = self.action_client.get_state()
+        if state == GoalStatusEnum.ACTIVE: 
             self.action_client.cancel_all_goals()
 
 
