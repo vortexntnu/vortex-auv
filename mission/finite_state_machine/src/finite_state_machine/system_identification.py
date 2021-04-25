@@ -175,7 +175,19 @@ class SingleTest(State):
 def surge_tests():
     states = [
         SingleTest(
+            twist(0.05, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
             twist(0.1, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.15, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
@@ -199,23 +211,129 @@ def surge_tests():
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
-            twist(0.6, 0, 0, 0, 0, 0),
+            twist(0.5, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        )
+        SingleTest(
+            twist(-0.05, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
-            twist(0.8, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
+            twist(-0.1, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
-            twist(1.0, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
+            twist(-0.15, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
+        SingleTest(
+            twist(-0.2, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(-0.3, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(-0.4, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(-0.5, 0, 0, 0, 0, 0),
+            pose(2, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        )
+    ]
+    sm = create_sequence(states)
+    introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
+
+    introspection_server.start()
+    sm.execute()
+    
+
+def sway_tests():
+    states = [
+        SingleTest(
+            twist(0.0, 0.05, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, -90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, 0.1, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, -90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, 0.15, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, -90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, 0.2, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, -90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, 0.25, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, -90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, 0.3, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, -90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, -0.05, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, -0.15, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, -0.2, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, -0.25, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, -0.3, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 90),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        )
     ]
     sm = create_sequence(states)
     introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
