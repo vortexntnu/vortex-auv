@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from enum import IntEnum
+from enum import IntEnum, Enum
 
 import rospy
 import actionlib
@@ -32,6 +32,19 @@ class ControlModeEnum(IntEnum):
     CONTROL_MODE_END = 6
     POSE_HOLD = 7
     ORIENTATION_HOLD = 8
+    
+
+class GoalStatusEnum(Enum)
+    PENDING = 0
+    ACTIVE = 1
+    PREEMPTED = 2
+    SUCCEEDED = 3
+    ABORTED = 4
+    REJECTED = 5
+    PREEMPTING = 6
+    RECALLING = 7
+    RECALLED = 8
+    LOST = 9
 
 
 class JoyGuidance:
@@ -253,7 +266,8 @@ class DpGuidance:
             rospy.logerr("Control mode service did not process request: " + str(exc))
 
     def stop(self):
-        if self.action_client.gh:  # goal handle. None if no goal exists.
+        state = self.action_client.get_state()
+        if state == GoalStatusEnum.ACTIVE: 
             self.action_client.cancel_all_goals()
         self.change_control_mode(ControlModeEnum.OPEN_LOOP)
 
@@ -377,6 +391,6 @@ class GuidanceInterface:
 
 
 if __name__ == "__main__":
-    rospy.init_node("guidance_interface", log_level=rospy.DEBUG)
+    rospy.init_node("guidance_interface", log_level=rospy.INFO)
     server = GuidanceInterface()
     rospy.spin()

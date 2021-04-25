@@ -140,7 +140,7 @@ class SingleTest(State):
         self.goal_boundry = goal_boundry
 
         self.x_min = -2
-        self.x_max = 2
+        self.x_max = 3
         self.y_min = -1
         self.y_max = 1
         self.z_min = 0.3
@@ -174,25 +174,25 @@ def surge_tests():
         SingleTest(
             twist(0.1, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=5,
+            timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_HOLD,
         ),
         SingleTest(
             twist(0.2, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=5,
+            timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_HOLD,
         ),
         SingleTest(
             twist(0.4, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=5,
+            timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_HOLD,
         ),
         SingleTest(
             twist(0.8, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=5,
+            timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_HOLD,
         ),
     ]

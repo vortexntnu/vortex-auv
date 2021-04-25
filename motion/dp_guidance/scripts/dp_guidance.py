@@ -9,8 +9,7 @@ from enum import IntEnum
 import rospy
 import actionlib
 from geometry_msgs.msg import Pose, PoseStamped
-from move_base_msgs.msg import MoveBaseAction
-from actionlib_msgs.msg import GoalStatus
+from move_base_msgs.msg import MoveBaseAction, MoveBaseActionResult, MoveBaseActionGoal
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from tf.transformations import (
@@ -58,7 +57,10 @@ class DPGuidance:
         # params
         rate = rospy.get_param("guidance/dp/rate", 20)  # [Hz]
         self.acceptance_margins = rospy.get_param(
-            "guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+            "/guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+        )
+        self.action_server_max_duration = rospy.get_param(
+            "/guidance/dp/max_duration", default=60
         )
 
         # init internal variables
@@ -66,6 +68,7 @@ class DPGuidance:
         self.current_pose = Pose()
         self.controller_setpoint = Pose()
         self.control_mode = ControlModeEnum.OPEN_LOOP.value
+        self.dp_timout = False
 
         # Publisher for the reference model
         self.reference_model_pub = rospy.Publisher(
@@ -83,34 +86,79 @@ class DPGuidance:
         )
 
         # Action server for receiving goal data
+        rospy.logdebug("Starting dp_guidance action server..")
         self.action_server = actionlib.SimpleActionServer(
-            name="dp_action_server", ActionSpec=MoveBaseAction, auto_start=False
+            name="dp_action_server",
+            ActionSpec=MoveBaseAction,
+            execute_cb=self.action_cb,
+            auto_start=False,
         )
-        self.action_server.register_goal_callback(
-            self.goal_cb
-        )  # Called whenever guidance_interface sends a new goal for the dp system
-        self.action_server.register_preempt_callback(self.preempt_cb)
         self.action_server.start()
+        rospy.logdebug("DP guidance initialized")
+
+    def action_cb(self, goal):
+        
+        # set action goal to active state
+        move_base_goal = self.action_server.accept_new_goal()
+
+        # set new setpoint and control mode
+        self.controller_setpoint =  move_base_goal.target_pose.pose
+        self.control_mode = ControlModeEnum.POSE_HOLD.value
+        rospy.logdebug(
+            "DP has recieved new goal with x: %d, y: %d, z: %d"
+            % (
+                self.controller_setpoint.position.x,
+                self.controller_setpoint.position.y,
+                self.controller_setpoint.position.z,
+            )
+        )
+
+        # start a timout Timer
+        self.dp_timout = False
+        rospy.Timer(
+            rospy.Duration(self.action_server_max_duration),
+            self.set_timeout,
+            oneshot=True,
+        )
+
+        # wait for goal to be reached
+        check_rate = rospy.Rate(2)
+        while not rospy.is_shutdown():
+
+            # check for preempt request
+            if self.action_server.is_preempt_requested():
+                self.control_mode = ControlModeEnum.OPEN_LOOP.value
+                self.action_server.set_preempted()
+                break
+
+            # check if goal is reached
+            if self.within_acceptance_margins():
+                res = MoveBaseActionResult()
+                self.action_server.set_succeeded(result=res)
+                break
+
+            # check if timeout is reached
+            if self.dp_timout:
+                self.action_server.set_aborted()
+                rospy.logwarn("DP guidance aborted action due to timeout")
+                break
+
+            check_rate.sleep()
 
     def control_mode_service_cb(self, control_mode_req):
-        # cancel any active actions
-        if self.action_server.current_goal.goal:
-            self.action_server.current_goal.set_canceled()
-            self.action_server.set_preempted()
-            rospy.logdebug(
-                "dp_guidance action server preempted from control mode change"
-            )
-
         # change control mode
         self.control_mode = control_mode_req.controlmode
 
         # update setpoint to current point
         self.controller_setpoint = self.current_pose
-        
+
         return []  # empty list for no result
 
     def update_current_pose(self, odom_msg):
         self.current_pose = odom_msg.pose.pose
+
+    def set_timeout(self, event):
+        self.dp_timout = True
 
     def within_acceptance_margins(self):
         # create quats from msg
@@ -147,49 +195,16 @@ class DPGuidance:
                 is_close = False
         return is_close
 
-    def goal_cb(self):
-        """
-        Accept a goal from the guidance interface and store it as local state,
-        then activate publipublish_guidance_datashing
-        """
-        new_goal = self.action_server.accept_new_goal()
-        self.controller_setpoint = new_goal.target_pose.pose
-        rospy.logdebug(
-            "DP has recieved new goal with x: %d, y: %d, z: %d"
-            % (
-                self.controller_setpoint.position.x,
-                self.controller_setpoint.position.y,
-                self.controller_setpoint.position.z,
-            )
-        )
-
-    def preempt_cb(self):
-        """
-        The preempt callback for the action server.
-        """
-        if self.action_server.is_preempt_requested():
-            self.action_server.current_goal.set_canceled()
-            self.action_server.set_preempted()
-            rospy.logdebug("Goal action server in dp_guidance was preempted!")
-
-            self.control_mode = ControlModeEnum.OPEN_LOOP.value
-
     def spin(self):
         """
         A replacement for the normal rospy.spin(), equivalent
         to "spinOnce" in roscpp (except simpler, since each cb/topic
         has it's own thread)
         """
+        dp_setpoint = DpSetpoint()
         while not rospy.is_shutdown():
 
-            # if action server is active, check if within acceptance margins
-            if self.action_server.current_goal.goal:
-                if self.within_acceptance_margins():
-                    self.action_server.current_goal.set_succeeded()
-                    self.action_server.set_succeeded()
-
             # publish setpoint and sleep
-            dp_setpoint = DpSetpoint()
             dp_setpoint.setpoint = self.controller_setpoint
             dp_setpoint.control_mode = self.control_mode
             self.reference_model_pub.publish(dp_setpoint)
@@ -197,11 +212,6 @@ class DPGuidance:
 
 
 if __name__ == "__main__":
-    rospy.init_node("dp_guidance", log_level=rospy.DEBUG)
-
-    try:
-        dp_guidance = DPGuidance()
-        dp_guidance.spin()
-
-    except rospy.ROSInternalException as e:
-        rospy.logerr(e)
+    rospy.init_node("dp_guidance")
+    dp_guidance = DPGuidance()
+    dp_guidance.spin()
