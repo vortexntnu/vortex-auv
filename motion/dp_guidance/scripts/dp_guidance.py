@@ -33,6 +33,7 @@ class ControlModeEnum(IntEnum):
     CONTROL_MODE_END = 6
     POSE_HOLD = 7
     ORIENTATION_HOLD = 8
+    ORIENTATION_DEPTH_HOLD = 9
 
 
 class DPGuidance:

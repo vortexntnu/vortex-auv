@@ -188,6 +188,10 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
       tau_command = orientationHold(orientation, velocity, orientation_setpoint);
       break;
 
+    case ControlModes::ORIENTATION_DEPTH_HOLD:
+      tau_command = orientationDepthHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+      break;
+
     default:
       ROS_ERROR("Default control mode reached.");
   }
@@ -256,16 +260,8 @@ Eigen::Vector6d Controller::depthHold(const Eigen::Vector3d& position_state,
                                       const Eigen::Quaterniond& orientation_state,
                                       const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint)
 {
-  Eigen::Vector6d tau = m_controller.getFeedback(position_state, Eigen::Quaterniond::Identity(), velocity_state,
-                                                 position_setpoint, Eigen::Quaterniond::Identity());
-
-  // Allow only heave feedback command
-  tau(SURGE) = 0;
-  tau(SWAY) = 0;
-  tau(ROLL) = 0;
-  tau(PITCH) = 0;
-  tau(YAW) = 0;
-
+  Eigen::Vector6d tau = m_controller.getFeedback(position_state, orientation_state, velocity_state,
+                                                 position_setpoint, orientation_state);
   return tau;
 }
 
@@ -333,5 +329,14 @@ Eigen::Vector6d Controller::orientationHold(const Eigen::Quaterniond& orientatio
 {
   Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d::Zero(), orientation_state, velocity_state,
                                                  Eigen::Vector3d::Zero(), orientation_setpoint);
+  return tau;
+}
+
+Eigen::Vector6d Controller::orientationDepthHold(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
+                                     const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint,
+                                     const Eigen::Quaterniond& orientation_setpoint)
+{
+  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d{0, 0, position_state[2]}, orientation_state, velocity_state, 
+                                      Eigen::Vector3d{0, 0, position_setpoint[2]}, orientation_setpoint);
   return tau;
 }

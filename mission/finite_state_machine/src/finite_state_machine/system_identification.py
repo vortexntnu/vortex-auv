@@ -178,25 +178,43 @@ def surge_tests():
             twist(0.1, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
             timeout=10,
-            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.2, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
             timeout=10,
-            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.3, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.4, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
             timeout=10,
-            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.6, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.8, 0, 0, 0, 0, 0),
             pose(-1, 0, 0.7, 0, 0, 0),
             timeout=10,
-            dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(1.0, 0, 0, 0, 0, 0),
+            pose(-1, 0, 0.7, 0, 0, 0),
+            timeout=10,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
     ]
     sm = create_sequence(states)
