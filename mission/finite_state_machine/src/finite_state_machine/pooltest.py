@@ -10,8 +10,8 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Pose, Twist, Point
 from tf.transformations import quaternion_from_euler
 
-from helper import create_sequence, point, pose
-from common_states import GoToState, dp_state, los_state, vel_state
+from helper import create_sequence, point, pose, ControlModeEnum
+from common_states import GoToState, VelState, DpState, LosState
 
 
 def visit_waypoints():
@@ -36,15 +36,15 @@ def visit_waypoints():
 
 def test_restoring():
     twist = Twist()
-    state = vel_state(twist)
+    state = VelState(twist)
     res = state.execute(None)
     rospy.loginfo(str(res))
 
 def test_vel():
     twist = Twist()
-    twist.linear.y = 0.2
+    twist.linear.x = 0.5
     twist.angular.z = 0.0
-    state = vel_state(twist)
+    state = VelState(twist, dp_control_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD)
     state.execute(None)
 
 def test_dp():
