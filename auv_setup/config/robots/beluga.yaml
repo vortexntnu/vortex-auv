@@ -111,7 +111,7 @@ battery:
     critical: 13.5 # Volts
   system:
     interval: 0.05 # seconds
-    path: "/dev/ttyUSB2"
+    path: "/dev/ttyUSB1"
   xavier:
     interval: 10
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
@@ -136,7 +136,7 @@ driver_stim300:
   device_name: "/dev/ttyUSB0"
 
 ping360_node:
-  device: "/dev/ttyUSB1"
+  device: "/dev/ttyUSB2"
   baudrate: 115200
   debug: False
   imgSize: 500
