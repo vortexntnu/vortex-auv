@@ -3,6 +3,8 @@
 VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
 {
   // get params
+  getParam("/controllers/velocity_controller/", use_restoring_forces, false);
+
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
   std::string DEFAULT_THRUST_TOPIC = "/thrust/desired_forces";
   std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
@@ -90,30 +92,28 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     Eigen::Vector6d desired_velocity;
     tf::twistMsgToEigen(twist_msg, desired_velocity);
 
-    // calculate restoring forces
-    Eigen::Vector6d restoring_forces = restoringForces();
-
-    // calculate tau for positions
-    Eigen::Vector3d tau_position_ned;
-    for (int i = 0; i < 3; i++)
+    if (use_restoring_forces)
     {
-      tau_position_ned[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) + restoring_forces[i];
-      ROS_DEBUG_STREAM("tau_" << i << ": " << tau_position_ned[i] << " (rest_forces: " << restoring_forces[i]);
-    }
-    Eigen::Vector3d tau_position_body = orientation.toRotationMatrix().transpose() * tau_position_ned;
+      // calculate restoring forces
+      Eigen::Vector6d restoring_forces = restoringForces();
 
-    // calculate tau for orientation
-    Eigen::Vector3d tau_orientation;
-    for (int i = 3; i < 6; i++)
+      // calculate tau using MiniPID and restoring forces
+      Eigen::Vector6d tau;
+      for (int i = 0; i < 6; i++)
+      {
+        tau[i] = pid[i]->getOutput(velocity[i], desired_velocity[i]) - restoring_forces[i];
+        ROS_DEBUG_STREAM("tau_" << i << ": " << tau[i] << " (rest_forces: " << restoring_forces[i]);
+      }
+    }
+    else
     {
-      tau_orientation[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) + restoring_forces[i];
-      ROS_DEBUG_STREAM("tau_" << i << ": " << tau_orientation[i] << " (rest_forces: " << restoring_forces[i]);
+      // calculate tau using MiniPID
+      Eigen::Vector6d tau;
+      for (int i = 0; i < 6; i++)
+      {
+        tau[i] = pid[i]->getOutput(velocity[i], desired_velocity[i]);
+      }
     }
-
-    // create full tau
-    Eigen::Vector6d tau;
-    tau << tau_position_body, tau_orientation;
-
 
     // publish tau as wrench
     geometry_msgs::Wrench thrust_msg;

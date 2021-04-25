@@ -119,5 +119,6 @@ private:
   Eigen::Quaterniond orientation;
   std::vector<std::unique_ptr<MiniPID>> pids;
   bool odom_recieved;
+  bool use_restoring_forces;
 };
 #endif
