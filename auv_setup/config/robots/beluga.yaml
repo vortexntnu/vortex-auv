@@ -66,8 +66,8 @@ controllers:
     odometry_topic: "/odometry/filtered"
     velocity_gain: 3.5  
     position_gain: 30.5 
-    attitude_gain: 5.0  
-    integral_gain: 0.024
+    attitude_gain: 8.0  
+    integral_gain: 0.06
   los_controller: # Note: Not loaded by the backstepping/pid controllers yet! Make sure to do this after tuning with dyn. reconf.
     PID:
       p: 25.0
