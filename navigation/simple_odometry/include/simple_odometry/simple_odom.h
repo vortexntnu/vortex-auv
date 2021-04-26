@@ -5,6 +5,8 @@
 #include <ros/console.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <eigen3/Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
@@ -23,13 +25,15 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
   void imuCallback(const sensor_msgs::Imu& imu_msg);
-  void dvlCallback(const nav_msgs::Odometry& odom_msg);
+  void dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& twist_msg);
+  void mocapCallback(const geometry_msgs::PoseStamped& msg);
   Eigen::Vector3d linear_vel;
   Eigen::Vector3d angular_vel;
   Eigen::Vector3d position;
   Eigen::Quaterniond orientation;
   ros::Subscriber imu_sub;
   ros::Subscriber dvl_sub;
+  ros::Subscriber mocap_sub;
   ros::Publisher odom_pub;
   ros::NodeHandle nh;
   double update_rate;
