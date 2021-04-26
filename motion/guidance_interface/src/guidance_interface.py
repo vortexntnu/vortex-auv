@@ -352,6 +352,7 @@ class LosGuidance:
 
     def stop(self):
         state = self.action_client.get_state()
+        rospy.logdebug("LosGuidance client state on cancel is " + str(state))
         if state in [
             GoalStatusEnum.ACTIVE,
             GoalStatusEnum.PREEMPTING,
