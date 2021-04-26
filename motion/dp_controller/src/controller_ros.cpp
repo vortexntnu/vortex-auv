@@ -260,8 +260,8 @@ Eigen::Vector6d Controller::depthHold(const Eigen::Vector3d& position_state,
                                       const Eigen::Quaterniond& orientation_state,
                                       const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint)
 {
-  Eigen::Vector6d tau = m_controller.getFeedback(position_state, orientation_state, velocity_state,
-                                                 position_setpoint, orientation_state);
+  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d{0, 0, position_state[2]}, orientation_state, velocity_state,
+                                                 Eigen::Vector3d{0, 0, position_setpoint[2]}, orientation_state);
   return tau;
 }
 
