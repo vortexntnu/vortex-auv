@@ -27,15 +27,18 @@ class BatteryMonitor:
         # Local variables
         self.xavier_voltage = 0.0
         self.system_voltage = 0.0
+        
+        self.xavier_recieved = False
+        self.system_recieved = False
 
         # Power Sense device for system voltage
         self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
         self.powersense_device.reset_input_buffer()
 
         # set up callbacks
-        rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
-        rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
-        rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
+        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
+        self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
+        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
         # Publishers
         self.xavier_battery_level_pub = rospy.Publisher(
@@ -53,8 +56,9 @@ class BatteryMonitor:
             subprocess.check_output(["cat", self.path_to_xavier_measurement]).decode("utf-8")
         )
         self.xavier_voltage = xavier_mV / 1000.0
-
+        
         self.xavier_battery_level_pub.publish(self.xavier_voltage)
+        self.xavier_recieved = True
 
     def system_cb(self, event):
         """Read voltage of system from powersense device."""
@@ -66,10 +70,20 @@ class BatteryMonitor:
         # by resetting the input buffer
 
         self.system_battery_level_pub.publish(self.system_voltage)
+        self.system_recieved = True
 
     def log_cb(self, event):
-        self.log_voltage(self.xavier_voltage, "xavier")
-        self.log_voltage(self.system_voltage, "system")
+        
+        if self.xavier_recieved:
+            self.log_voltage(self.xavier_voltage, "xavier")
+        else:
+            rospy.loginfo("Not voltage recieved from Xavier yet.")
+            
+        if self.system_recieved:
+            self.log_voltage(self.system_voltage, "system")
+        else:
+            rospy.loginfo("Not voltage recieved from system yet.")
+            
 
     def log_voltage(self, voltage, title):
 
@@ -88,6 +102,9 @@ class BatteryMonitor:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
 
     def shutdown(self):
+        self.system_timer.shutdown()
+        self.xavier_timer.shutdown()
+        self.log_timer.shutdown()
         self.powersense_device.close()
 
 
