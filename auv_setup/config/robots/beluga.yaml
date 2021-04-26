@@ -50,7 +50,7 @@ propulsion:
 guidance:
   dp:
     rate: 20
-    acceptance_margins: [0.10, 0.10, 0.10, 0.20, 0.20, 0.20] # Order: x,y,z,roll,pitch,yaw
+    acceptance_margins: [0.10, 0.10, 0.10, 0.15, 0.15, 0.15] # Order: x,y,z,roll,pitch,yaw
   LOS:
     rate: 20
     delta: 0.7
@@ -66,8 +66,8 @@ controllers:
     odometry_topic: "/odometry/filtered"
     velocity_gain: 3.5  
     position_gain: 30.5 
-    attitude_gain: 8.0  
-    integral_gain: 0.06
+    attitude_gain: 7.5  
+    integral_gain: 0.055
   los_controller: # Note: Not loaded by the backstepping/pid controllers yet! Make sure to do this after tuning with dyn. reconf.
     PID:
       p: 25.0

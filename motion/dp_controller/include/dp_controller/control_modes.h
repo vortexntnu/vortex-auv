@@ -68,6 +68,10 @@ inline std::string controlModeString(ControlMode control_mode)
       s = "ORIENTATION HOLD";
       break;
 
+    case ControlModes::ORIENTATION_DEPTH_HOLD:
+      s = "ORIENTATION DEPTH HOLD";
+      break;
+
     default:
       s = "INVALID CONTROL MODE";
       break;

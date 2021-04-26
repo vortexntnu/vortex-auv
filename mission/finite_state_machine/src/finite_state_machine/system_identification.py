@@ -143,7 +143,7 @@ class SingleTest(State):
         self.goal_boundry = goal_boundry
 
         self.x_min = -2
-        self.x_max = 3
+        self.x_max = 2
         self.y_min = -1
         self.y_max = 1
         self.z_min = 0.3
@@ -215,46 +215,46 @@ def surge_tests():
             pose(-1, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
-        )
+        ),
         SingleTest(
             twist(-0.05, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.1, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.15, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.2, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.3, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.4, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.5, 0, 0, 0, 0, 0),
-            pose(2, 0, 0.7, 0, 0, 0),
+            pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=10,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         )

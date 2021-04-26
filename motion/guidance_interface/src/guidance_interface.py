@@ -33,7 +33,7 @@ class ControlModeEnum(IntEnum):
     POSE_HOLD = 7
     ORIENTATION_HOLD = 8
     ORIENTATION_DEPTH_HOLD = 9
-    
+
 
 class GoalStatusEnum(Enum):
     PENDING = 0
@@ -268,7 +268,7 @@ class DpGuidance:
 
     def stop(self):
         state = self.action_client.get_state()
-        if state == GoalStatusEnum.ACTIVE: 
+        if state == GoalStatusEnum.ACTIVE:
             self.action_client.cancel_all_goals()
         self.change_control_mode(ControlModeEnum.OPEN_LOOP)
 
@@ -310,7 +310,9 @@ class LosGuidance:
         )
 
         self.timeout = False
-        timer = rospy.Timer(rospy.Duration(self.max_duration), self.set_timeout, oneshot=True)
+        timer = rospy.Timer(
+            rospy.Duration(self.max_duration), self.set_timeout, oneshot=True
+        )
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
@@ -339,7 +341,7 @@ class LosGuidance:
                 rospy.logwarn("LOS guidance aborted action due to timeout")
                 break
             rate.sleep()
-        
+
         timer.shutdown()
 
     def set_timeout(self):
@@ -350,7 +352,12 @@ class LosGuidance:
 
     def stop(self):
         state = self.action_client.get_state()
-        if state == GoalStatusEnum.ACTIVE: 
+        if state in [
+            GoalStatusEnum.ACTIVE,
+            GoalStatusEnum.PREEMPTING,
+            GoalStatusEnum.RECALLING,
+            GoalStatusEnum.PENDING,
+        ]:
             self.action_client.cancel_all_goals()
 
 
