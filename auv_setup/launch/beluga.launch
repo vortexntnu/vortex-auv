@@ -28,7 +28,7 @@
 
     <!-- DVL -->	
     <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 3.14159 3.14159 0 base_link dvl_link" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 3.14159 3.14159 0 base_link dvl_link" /> 
     <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" /> <!-- Remap pressure reading from DVL -->
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
@@ -36,9 +36,10 @@
     <node pkg="pca9685_ros_driver" type="pca9685_ros_node.py" name="pca9685_ros_driver" output="screen" />
 
     <!-- ZED2 camera node -->
-    <include file="$(find zed_wrapper)/launch/zed2.launch" />
+    <!-- <include file="$(find zed_wrapper)/launch/zed2.launch" /> -->
     
-    <!-- Sonar ping360 -->
+    <!-- Sonar ping360 --> 
+    <!--
     <node pkg="tf" type="static_transform_publisher" name="transform_sonar_frame" args="0 0 0 0 0 0 1 map sonar_frame 10" />
     <env name="emulated_sonar" value="false" />
     <node pkg="ping360_sonar" type="ping360_node" name="ping360_node" output="screen">
@@ -60,6 +61,7 @@
         <param name="minAngle" value="0"/> 
         <param name="oscillate" value="True"/> 
     </node>
+    -->
 
 
 

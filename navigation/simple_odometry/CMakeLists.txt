@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   sensor_msgs
   eigen_conversions
+  tf2_ros
+  tf2_eigen
 )
 
 ## System dependencies are found with CMake's conventions
@@ -107,7 +109,14 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES simple_odometry
- CATKIN_DEPENDS roscpp nav_msgs geometry_msgs eigen_conversions sensor_msgs
+ CATKIN_DEPENDS 
+ roscpp 
+ nav_msgs 
+ geometry_msgs 
+ eigen_conversions 
+ sensor_msgs 
+ tf2_ros
+ tf2_eigen
 #  DEPENDS system_lib
 )
 

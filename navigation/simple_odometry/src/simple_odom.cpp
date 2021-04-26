@@ -12,11 +12,17 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
   if (!nh.getParam("simple_odom/dvl_topic", dvl_topic))
     dvl_topic = "/auv/odom";  
   if (!nh.getParam("simple_odom/mocap_topic", mocap_topic))
-    mocap_topic = "/qualisys/Body_1/odom";
+    mocap_topic = "/qualisys/Body_1/pose";
   if (!nh.getParam("simple_odom/odom_topic", odom_topic))
     odom_topic = "/odometry/filtered";
   if (!nh.getParam("simple_odom/update_rate", update_rate))
     update_rate = 60.0;
+
+  // set up IMU and DVL transforms
+  tf2_ros::Buffer tf_buffer;
+  tf2_ros::TransformListener tf_listener(tf_buffer);
+  imu_transform = tf_buffer.lookupTransform("imu_0", "base_link", ros::Time(0));
+  dvl_transform = tf_buffer.lookupTransform("dvl_link", "base_link", ros::Time(0));
 
   // subscribers and publishers
   imu_sub = nh.subscribe(imu_topic, 1, &SimpleOdom::imuCallback, this);
@@ -44,14 +50,9 @@ void SimpleOdom::spin()
 
     // create odom msg
     nav_msgs::Odometry odometry_msg;  
-    odometry_msg.pose.pose.position.x = position[0];
-    odometry_msg.pose.pose.position.y = position[1];
-    odometry_msg.pose.pose.position.z = position[2];
 
-    odometry_msg.pose.pose.orientation.x = orientation.x();
-    odometry_msg.pose.pose.orientation.y = orientation.y();
-    odometry_msg.pose.pose.orientation.z = orientation.z();
-    odometry_msg.pose.pose.orientation.w = orientation.w();
+    odometry_msg.pose.pose.position = tf2::toMsg(position);
+    odometry_msg.pose.pose.orientation = tf2::toMsg(orientation);
 
     odometry_msg.twist.twist.angular.x = angular_vel[0];
     odometry_msg.twist.twist.angular.y = angular_vel[1];
@@ -70,27 +71,20 @@ void SimpleOdom::spin()
 
 void SimpleOdom::imuCallback(const sensor_msgs::Imu& imu_msg)
 {
-  angular_vel[0] = imu_msg.angular_velocity.x;
-  angular_vel[1] = imu_msg.angular_velocity.y;
-  angular_vel[2] = imu_msg.angular_velocity.z;
+  Eigen::Vector3d angular_vel_imu;
+  tf2::fromMsg(imu_msg.angular_velocity, angular_vel_imu);
+  tf2::doTransform(angular_vel_imu, angular_vel, imu_transform);
 }
 
 void SimpleOdom::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& twist_msg)
 {
-  linear_vel[0] = twist_msg.twist.twist.linear.x;
-  linear_vel[1] = twist_msg.twist.twist.linear.y;
-  linear_vel[2] = twist_msg.twist.twist.linear.z;
+  Eigen::Vector3d linear_vel_dvl;
+  tf2::fromMsg(twist_msg.twist.twist.linear, linear_vel_dvl);
+  tf2::doTransform(linear_vel_dvl, linear_vel, dvl_transform);
 }
 
 void SimpleOdom::mocapCallback(const geometry_msgs::PoseStamped& msg)
 {
-  position[0] = msg.pose.position.x;
-  position[1] = msg.pose.position.y;
-  position[2] = msg.pose.position.z;
-
-  orientation.w() = msg.pose.orientation.w;
-  orientation.x() = msg.pose.orientation.x;  
-  orientation.y() = msg.pose.orientation.y;
-  orientation.z() = msg.pose.orientation.z;
-  orientation.normalize();
+  tf2::fromMsg(msg.pose.position, position);
+  tf2::fromMsg(msg.pose.orientation, orientation);
 }

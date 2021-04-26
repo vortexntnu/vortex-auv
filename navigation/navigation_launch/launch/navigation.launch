@@ -29,8 +29,9 @@
       <arg name="publish_tf" value="true"/>
     </include>
     <param name="simple_odom/imu_topic" value="/imu/data_raw"/>
-    <param name="simple_odom/dvl_topic" value="/dvl/odom"/>
-    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" ns="localization" />
+    <param name="simple_odom/dvl_topic" value="/dvl/twist"/>
+    <param name="simple_odom/mocap_topic" value="/qualisys/Body_1/pose"/>
+    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
   </group>
 
   <!-- Qualisys mocap -->
