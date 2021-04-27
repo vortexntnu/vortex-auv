@@ -64,10 +64,10 @@ controllers:
   dp:
     thrust_topic: "/thrust/dp"
     odometry_topic: "/odometry/filtered"
-    velocity_gain: 3.5  
-    position_gain: 30.5 
+    velocity_gain: 1.0    # lower (1.0) is good when using state estimates  
+    position_gain: 35.0 
     attitude_gain: 7.5  
-    integral_gain: 0.055
+    integral_gain: 0.065
   los_controller: # Note: Not loaded by the backstepping/pid controllers yet! Make sure to do this after tuning with dyn. reconf.
     PID:
       p: 25.0

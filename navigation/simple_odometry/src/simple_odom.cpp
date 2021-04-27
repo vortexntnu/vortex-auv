@@ -7,6 +7,8 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
   std::string dvl_topic;
   std::string odom_topic;
   std::string mocap_topic;
+  std::string imu_link;
+  std::string dvl_link;
   if (!nh.getParam("simple_odom/imu_topic", imu_topic))
     imu_topic = "/auv/imu";
   if (!nh.getParam("simple_odom/dvl_topic", dvl_topic))
@@ -15,16 +17,18 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
     mocap_topic = "/qualisys/Body_1/pose";
   if (!nh.getParam("simple_odom/odom_topic", odom_topic))
     odom_topic = "/odometry/filtered";
-  if (!nh.getParam("simple_odom/update_rate", update_rate))
-    update_rate = 60.0;
+  if (!nh.getParam("simple_odom/imu_link", imu_link))
+    imu_link = "imu_0";
+  if (!nh.getParam("simple_odom/dvl_link", dvl_link))
+    dvl_link = "dvl_link";
 
   // set up IMU and DVL transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
   double timeout = 10; // seconds to wait for transforms to become available
   ROS_INFO("Waiting for IMU and DVL transforms..");
-  imu_transform = tf_buffer.lookupTransform("base_link", "imu_0", ros::Time(0), ros::Duration(timeout));
-  dvl_transform = tf_buffer.lookupTransform("base_link", "dvl_link", ros::Time(0), ros::Duration(timeout));
+  imu_transform = tf_buffer.lookupTransform("base_link", imu_link, ros::Time(0), ros::Duration(timeout));
+  dvl_transform = tf_buffer.lookupTransform("base_link", dvl_link, ros::Time(0), ros::Duration(timeout));
 
   // subscribers and publishers
   imu_sub = nh.subscribe(imu_topic, 1, &SimpleOdom::imuCallback, this);

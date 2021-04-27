@@ -20,7 +20,7 @@
     <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
 
     <!-- DVL -->	
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 3.14159 3.14159 0 base_link dvl_link" /> 
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 0 3.14159 0 base_link dvl_link" /> 
     <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 base_link pressure_link" /> <!-- Remap pressure reading from DVL -->
     <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
 
