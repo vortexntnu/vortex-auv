@@ -49,7 +49,7 @@ def test_vel():
 
 def test_dp():
     test_pose = pose(0, 0, 0.7, 90, 0, 0)
-    state = dp_state(test_pose)
+    state = DpState(test_pose)
     res = state.execute(None)
 
 def test_los():
@@ -61,4 +61,4 @@ def test_los():
 
 if __name__ == "__main__":
     rospy.init_node("pooltest_fsm", log_level=rospy.DEBUG)
-    test_vel()
+    test_dp()

@@ -146,8 +146,8 @@ class SingleTest(State):
         self.x_max = 2
         self.y_min = -1
         self.y_max = 1
-        self.z_min = 0.3
-        self.z_max = 1.2
+        self.z_min = 0.4
+        self.z_max = 1.1
 
         states = [
             GoToState(self.start_pose),
@@ -305,6 +305,12 @@ def sway_tests():
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
+            twist(0.0, 0.4, 0, 0, 0, 0),
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
             twist(0.0, -0.05, 0, 0, 0, 0),
             pose(-1.5, 0, 0.7, 0, 0, 90),
             timeout=20,
@@ -330,6 +336,12 @@ def sway_tests():
         ),
         SingleTest(
             twist(0.0, -0.3, 0, 0, 0, 0),
+            pose(-1.5, 0, 0.7, 0, 0, 90),
+            timeout=20,
+            dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+        ),
+        SingleTest(
+            twist(0.0, -0.4, 0, 0, 0, 0),
             pose(-1.5, 0, 0.7, 0, 0, 90),
             timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
@@ -365,4 +377,4 @@ def trials():
 
 if __name__ == "__main__":
     rospy.init_node("system_identification_sm")
-    surge_tests()
+    sway_tests()
