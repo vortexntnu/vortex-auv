@@ -21,8 +21,10 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
   // set up IMU and DVL transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
-  imu_transform = tf_buffer.lookupTransform("imu_0", "base_link", ros::Time(0));
-  dvl_transform = tf_buffer.lookupTransform("dvl_link", "base_link", ros::Time(0));
+  double timeout = 10; // seconds to wait for transforms to become available
+  ROS_INFO("Waiting for IMU and DVL transforms..");
+  imu_transform = tf_buffer.lookupTransform("base_link", "imu_0", ros::Time(0), ros::Duration(timeout));
+  dvl_transform = tf_buffer.lookupTransform("base_link", "dvl_link", ros::Time(0), ros::Duration(timeout));
 
   // subscribers and publishers
   imu_sub = nh.subscribe(imu_topic, 1, &SimpleOdom::imuCallback, this);
