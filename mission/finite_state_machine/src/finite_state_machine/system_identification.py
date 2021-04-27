@@ -132,7 +132,7 @@ class SingleTest(State):
         start_pose,
         dp_mode=ControlModeEnum.OPEN_LOOP,
         goal_pose=None,
-        timeout=10,
+        timeout=20,
         goal_boundry=[0.5, 0.5, 0.2, 0.15, 0.15, 0.15],
     ):
         State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
@@ -147,7 +147,7 @@ class SingleTest(State):
         self.y_min = -1
         self.y_max = 1
         self.z_min = 0.3
-        self.z_max = 0.8
+        self.z_max = 1.2
 
         states = [
             GoToState(self.start_pose),
@@ -176,86 +176,86 @@ def surge_tests():
     states = [
         SingleTest(
             twist(0.05, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.1, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.15, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.2, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.3, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.4, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.5, 0, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 0),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.05, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.1, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.15, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.2, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.3, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.4, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(-0.5, 0, 0, 0, 0, 0),
             pose(1.5, 0, 0.7, 0, 0, 0),
-            timeout=10,
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         )
     ]
@@ -270,68 +270,68 @@ def sway_tests():
     states = [
         SingleTest(
             twist(0.0, 0.05, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, -90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, 0.1, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, -90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, 0.15, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, -90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, 0.2, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, -90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, 0.25, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, -90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, 0.3, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, -90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, -90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, -0.05, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, -0.15, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, -0.2, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, -0.25, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
         SingleTest(
             twist(0.0, -0.3, 0, 0, 0, 0),
-            pose(-1, 0, 0.7, 0, 0, 90),
-            timeout=10,
+            pose(-1.5, 0, 0.7, 0, 0, 90),
+            timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         )
     ]
