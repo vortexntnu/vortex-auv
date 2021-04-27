@@ -61,7 +61,7 @@ class DPGuidance:
             "/guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
         )
         self.action_server_max_duration = rospy.get_param(
-            "/guidance/dp/max_duration", default=60
+            "/guidance/dp/max_duration", default=90
         )
 
         # init internal variables
