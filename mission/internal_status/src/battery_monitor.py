@@ -77,12 +77,12 @@ class BatteryMonitor:
         if self.xavier_recieved:
             self.log_voltage(self.xavier_voltage, "xavier")
         else:
-            rospy.loginfo("Not voltage recieved from Xavier yet.")
+            rospy.loginfo("No voltage recieved from Xavier yet.")
             
         if self.system_recieved:
             self.log_voltage(self.system_voltage, "system")
         else:
-            rospy.loginfo("Not voltage recieved from system yet.")
+            rospy.loginfo("No voltage recieved from system yet.")
             
 
     def log_voltage(self, voltage, title):
