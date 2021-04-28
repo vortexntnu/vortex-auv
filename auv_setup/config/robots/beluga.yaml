@@ -16,9 +16,9 @@
 
 physical:
   weight: 24.00     # kg
-  buoyancy: 23.25   # kg
-  center_of_mass: [-15.2, 1, 9.4]        # mm (x,y,z)
-  center_of_buoyancy: [-15.1, 0.9, 35.5]   # mm (x,y,z)
+  buoyancy: 23.00   # kg
+  center_of_mass: [-15.2, 1.0, 9.4]        # mm (x,y,z)
+  center_of_buoyancy: [-15.1, 0, 70.0]   # mm (x,y,z)
 
 
 propulsion:
@@ -64,7 +64,7 @@ controllers:
   dp:
     thrust_topic: "/thrust/dp"
     odometry_topic: "/odometry/filtered"
-    velocity_gain: 1.0    # lower (1.0) is good when using state estimates  
+    velocity_gain: 1.0    # lower (1.0) is good when using slightly noisy state estimates  
     position_gain: 35.0 
     attitude_gain: 7.5  
     integral_gain: 0.065
