@@ -8,6 +8,4 @@
     <node pkg="joy"                name="joystick_driver"    type="joy_node"              output="screen" args="_deadzone:=0.15 _autorepeat_rate:=100"/>
   </group>
 
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-
 </launch>

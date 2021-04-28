@@ -259,11 +259,7 @@ def surge_tests():
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
     ]
-    sm = create_sequence(states)
-    introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
-
-    introspection_server.start()
-    sm.execute()
+    return states
 
 
 def sway_tests():
@@ -347,11 +343,7 @@ def sway_tests():
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
         ),
     ]
-    sm = create_sequence(states)
-    introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
-
-    introspection_server.start()
-    sm.execute()
+    return states
 
 
 def roll_tests():
@@ -363,39 +355,40 @@ def roll_tests():
             dp_mode=ControlModeEnum.POSITION_HEADING_HOLD,
         ),
     ]
-    sm = create_sequence(states)
-    introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
-
-    introspection_server.start()
-    sm.execute()
+    return states
 
 
 def yaw_tests():
     class YawTest(SingleTest):
         def __init__(self, yaw_vel):
             SingleTest.__init__(
+                self,
                 twist(0.0, 0, 0, 0.0, 0, yaw_vel),
-                pose(0, 0, 0.8, 0, 0, 0),
+                pose(0, 0, 0.7, 0, 0, 0),
                 timeout=20,
-                dp_mode=ControlModeEnum.POSITION_HOLD,
+                dp_mode=ControlModeEnum.DEPTH_HOLD,
             )
 
     states = [
-        YawTest(0.05),
         YawTest(0.1),
         YawTest(0.15),
         YawTest(0.2),
         YawTest(0.25),
         YawTest(0.3),
-        YawTest(-0.05),
+        YawTest(0.4),
+        YawTest(0.5),
+        YawTest(0.6),
         YawTest(-0.1),
         YawTest(-0.15),
         YawTest(-0.2),
         YawTest(-0.25),
         YawTest(-0.3),
+        YawTest(-0.4),
+        YawTest(-0.5),
+        YawTest(-0.6),
     ]
-    sm = create_sequence(states)
-    sm.execute()
+
+    return states
 
 
 def surge_sway_tests():
@@ -437,10 +430,11 @@ def surge_sway_tests():
         SurgeSwayTest(-0.30, -0.30, 135),
     ]
 
-    sm = create_sequence(states)
-    sm.execute()
+    return states
 
 
 if __name__ == "__main__":
     rospy.init_node("system_identification_sm")
-    yaw_tests()
+    states = yaw_tests()
+    sm = create_sequence(states)
+    sm.execute()

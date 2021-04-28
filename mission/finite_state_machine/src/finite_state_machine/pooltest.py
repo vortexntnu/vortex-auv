@@ -42,9 +42,9 @@ def test_restoring():
 
 def test_vel():
     twist = Twist()
-    twist.linear.x = 0.25
-    twist.angular.z = 0.0
-    state = VelState(twist, dp_control_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD)
+    twist.linear.x = 0.0
+    twist.angular.z = 0.5
+    state = VelState(twist, dp_control_mode=ControlModeEnum.DEPTH_HOLD)
     state.execute(None)
 
 def test_dp():
@@ -61,4 +61,4 @@ def test_los():
 
 if __name__ == "__main__":
     rospy.init_node("pooltest_fsm", log_level=rospy.DEBUG)
-    test_dp()
+    test_vel()

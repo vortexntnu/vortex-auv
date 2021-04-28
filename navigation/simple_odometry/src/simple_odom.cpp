@@ -21,14 +21,19 @@ SimpleOdom::SimpleOdom(ros::NodeHandle nh) : nh(nh)
     imu_link = "imu_0";
   if (!nh.getParam("simple_odom/dvl_link", dvl_link))
     dvl_link = "dvl_link";
+  if (!nh.getParam("simple_odom/publish_rate", update_rate))
+    update_rate = 20;
 
   // set up IMU and DVL transforms
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener(tf_buffer);
   double timeout = 10; // seconds to wait for transforms to become available
   ROS_INFO("Waiting for IMU and DVL transforms..");
-  imu_transform = tf_buffer.lookupTransform("base_link", imu_link, ros::Time(0), ros::Duration(timeout));
-  dvl_transform = tf_buffer.lookupTransform("base_link", dvl_link, ros::Time(0), ros::Duration(timeout));
+  geometry_msgs::TransformStamped imu_transform = tf_buffer.lookupTransform("base_link", imu_link, ros::Time(0), ros::Duration(timeout));
+  geometry_msgs::TransformStamped dvl_transform = tf_buffer.lookupTransform("base_link", dvl_link, ros::Time(0), ros::Duration(timeout));
+  tf2::fromMsg(imu_transform.transform.rotation, imu_rotation);
+  tf2::fromMsg(dvl_transform.transform.rotation, dvl_rotation);
+  tf2::fromMsg(dvl_transform.transform.translation, dvl_translation);
 
   // subscribers and publishers
   imu_sub = nh.subscribe(imu_topic, 1, &SimpleOdom::imuCallback, this);
@@ -68,7 +73,7 @@ void SimpleOdom::spin()
     odometry_msg.twist.twist.linear.y = linear_vel[1];
     odometry_msg.twist.twist.linear.z = linear_vel[2];
 
-    // publish odom
+    // publish
     odom_pub.publish(odometry_msg);
 
     rate.sleep();
@@ -77,16 +82,28 @@ void SimpleOdom::spin()
 
 void SimpleOdom::imuCallback(const sensor_msgs::Imu& imu_msg)
 {
-  Eigen::Vector3d angular_vel_imu;
+  tf2::Vector3 angular_vel_imu;
   tf2::fromMsg(imu_msg.angular_velocity, angular_vel_imu);
-  tf2::doTransform(angular_vel_imu, angular_vel, imu_transform);
+  angular_vel = tf2::quatRotate(imu_rotation, angular_vel_imu);
 }
 
 void SimpleOdom::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& twist_msg)
 {
-  Eigen::Vector3d linear_vel_dvl;
+  tf2::Vector3 linear_vel_dvl, linear_vel_uncorrected;
   tf2::fromMsg(twist_msg.twist.twist.linear, linear_vel_dvl);
-  tf2::doTransform(linear_vel_dvl, linear_vel, dvl_transform);
+  linear_vel_uncorrected = tf2::quatRotate(dvl_rotation, linear_vel_dvl);
+
+  // compensate for translation of DVL
+  linear_vel[0] = linear_vel_uncorrected[0]  // surge
+                + dvl_translation[1] * angular_vel[2]   // y * yaw
+                + dvl_translation[2] * angular_vel[1];  // z * pitch
+  linear_vel[1] = linear_vel_uncorrected[1]  // sway
+                - dvl_translation[0] * angular_vel[2]   // x * yaw
+                - dvl_translation[2] * angular_vel[0];  // z * roll
+  linear_vel[2] = linear_vel_uncorrected[2]  // heave
+                - dvl_translation[0] * angular_vel[1]   // x * pitch
+                + dvl_translation[1] * angular_vel[0];  // y * roll
+  // this was calculated by hand. It looks a bit like it could be replaced by a single operation
 }
 
 void SimpleOdom::mocapCallback(const geometry_msgs::PoseStamped& msg)
