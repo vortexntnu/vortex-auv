@@ -28,7 +28,7 @@ class TemperatureMonitor():
 
         # Record output from temperature meter command, decode from bytes object to string, convert from string to integer
 
-        stats = self.process.stdout.readline().decode("utf-8")
+        stats = self.process.stdout.readlines()[-1].decode("utf-8")
 
         if stats != "":
 
