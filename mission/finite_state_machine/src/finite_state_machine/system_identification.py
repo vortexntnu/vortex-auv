@@ -368,6 +368,34 @@ def roll_tests():
 
     introspection_server.start()
     sm.execute()
+    
+def yaw_tests():
+    
+    class YawTest(SingleTest):
+        def __init__(self, yaw_vel):
+            SingleTest.__init__(
+                twist(0.0, 0, 0, 0.0, 0, yaw_vel),
+                pose(0, 0, 0.8, 0, 0, 0),
+                timeout=20,
+                dp_mode=ControlModeEnum.POSITION_HOLD
+            )
+            
+    states = [
+        YawTest(0.05),
+        YawTest(0.1),
+        YawTest(0.15),
+        YawTest(0.2),
+        YawTest(0.25),
+        YawTest(0.3),
+        YawTest(-0.05),
+        YawTest(-0.1),
+        YawTest(-0.15),
+        YawTest(-0.2),
+        YawTest(-0.25),
+        YawTest(-0.3),
+    ]
+    sm = create_sequence(states)
+    sm.execute()
 
 
 def trials():
@@ -377,4 +405,4 @@ def trials():
 
 if __name__ == "__main__":
     rospy.init_node("system_identification_sm")
-    sway_tests()
+    yaw_tests()
