@@ -65,7 +65,7 @@ class Monitor(State):
                 return "succeeded"
 
             self.rate.sleep()
-            
+
         timer.shutdown()
 
         return "preempted"
@@ -257,14 +257,14 @@ def surge_tests():
             pose(1.5, 0, 0.7, 0, 0, 0),
             timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
-        )
+        ),
     ]
     sm = create_sequence(states)
     introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
 
     introspection_server.start()
     sm.execute()
-    
+
 
 def sway_tests():
     states = [
@@ -345,7 +345,7 @@ def sway_tests():
             pose(-1.5, 0, 0.7, 0, 0, 90),
             timeout=20,
             dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
-        )
+        ),
     ]
     sm = create_sequence(states)
     introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/SM_ROOT")
@@ -360,7 +360,7 @@ def roll_tests():
             twist(0.1, 0, 0, 0.1, 0, 0),
             pose(-2, 0, 0.7, 0, 0, 0),
             goal_pose=pose(0, 0, 0.7, 90, 0, 0),
-            dp_mode=ControlModeEnum.POSITION_HEADING_HOLD
+            dp_mode=ControlModeEnum.POSITION_HEADING_HOLD,
         ),
     ]
     sm = create_sequence(states)
@@ -368,18 +368,18 @@ def roll_tests():
 
     introspection_server.start()
     sm.execute()
-    
+
+
 def yaw_tests():
-    
     class YawTest(SingleTest):
         def __init__(self, yaw_vel):
             SingleTest.__init__(
                 twist(0.0, 0, 0, 0.0, 0, yaw_vel),
                 pose(0, 0, 0.8, 0, 0, 0),
                 timeout=20,
-                dp_mode=ControlModeEnum.POSITION_HOLD
+                dp_mode=ControlModeEnum.POSITION_HOLD,
             )
-            
+
     states = [
         YawTest(0.05),
         YawTest(0.1),
@@ -398,9 +398,47 @@ def yaw_tests():
     sm.execute()
 
 
-def trials():
-    state = GoToState(pose(0, 0, -0.5, 0, 0, 0))
-    state.execute(None)
+def surge_sway_tests():
+    class SurgeSwayTest(SingleTest):
+        def __init__(self, surge_vel, sway_vel, initial_angle):
+            SingleTest.__init__(
+                SingleTest(
+                    twist(surge_vel, sway_vel, 0, 0, 0, 0),
+                    pose(-1.5, 0, 0.7, 0, 0, initial_angle),
+                    timeout=20,
+                    dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
+                )
+            )
+
+    states = [
+        SurgeSwayTest(0.05, 0.05, -45),
+        SurgeSwayTest(0.10, 0.10, -45),
+        SurgeSwayTest(0.15, 0.15, -45),
+        SurgeSwayTest(0.20, 0.20, -45),
+        SurgeSwayTest(0.25, 0.25, -45),
+        SurgeSwayTest(0.30, 0.30, -45),
+        SurgeSwayTest(0.05, -0.05, 45),
+        SurgeSwayTest(0.10, -0.10, 45),
+        SurgeSwayTest(0.15, -0.15, 45),
+        SurgeSwayTest(0.20, -0.20, 45),
+        SurgeSwayTest(0.25, -0.25, 45),
+        SurgeSwayTest(0.30, -0.30, 45),
+        SurgeSwayTest(-0.05, 0.05, -135),
+        SurgeSwayTest(-0.10, 0.10, -135),
+        SurgeSwayTest(-0.15, 0.15, -135),
+        SurgeSwayTest(-0.20, 0.20, -135),
+        SurgeSwayTest(-0.25, 0.25, -135),
+        SurgeSwayTest(-0.30, 0.30, -135),
+        SurgeSwayTest(-0.05, -0.05, 135),
+        SurgeSwayTest(-0.10, -0.10, 135),
+        SurgeSwayTest(-0.15, -0.15, 135),
+        SurgeSwayTest(-0.20, -0.20, 135),
+        SurgeSwayTest(-0.25, -0.25, 135),
+        SurgeSwayTest(-0.30, -0.30, 135),
+    ]
+
+    sm = create_sequence(states)
+    sm.execute()
 
 
 if __name__ == "__main__":
