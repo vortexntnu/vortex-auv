@@ -44,7 +44,7 @@ def test_vel():
     twist = Twist()
     twist.linear.y = 0.0
     twist.angular.x = 0.0
-    return VelState(twist, dp_control_mode=ControlModeEnum.POSE_HOLD)
+    return VelState(twist, dp_control_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD)
 
 def test_dp():
     test_pose = pose(0, 0, 0.7, 0, 0, 0)
