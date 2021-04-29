@@ -37,7 +37,7 @@ DepthEstimator::DepthEstimator(ros::NodeHandle nh) : nh(nh)
 
 void DepthEstimator::pressureCallback(const sensor_msgs::FluidPressure& msg)
 {
-  const double gauge_pressure = 1000 * msg.fluid_pressure - atmospheric_pressure;
+  const double gauge_pressure = msg.fluid_pressure - atmospheric_pressure;
   const double depth_meters = gauge_pressure / (water_density * earth_gravitation);
 
   std_msgs::Float64 depth_msg;
