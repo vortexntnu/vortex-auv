@@ -18,6 +18,7 @@ class ControlModeEnum(IntEnum):
     CONTROL_MODE_END = 6
     POSE_HOLD = 7
     ORIENTATION_HOLD = 8
+    ORIENTATION_DEPTH_HOLD = 9
 
 class JoystickInterface():
 
@@ -96,13 +97,13 @@ class JoystickInterface():
             pressed = ControlModeEnum.OPEN_LOOP.value
         
         if buttons['B']:
-            pressed = ControlModeEnum.ORIENTATION_HOLD.value
+            pressed = ControlModeEnum.ORIENTATION_DEPTH_HOLD.value
 
         if buttons['X']:
             pressed = ControlModeEnum.DEPTH_HOLD.value
 
         if buttons['Y']:
-            pressed = ControlModeEnum.POSE_HOLD.value
+            pressed = ControlModeEnum.POSITION_HEADING_HOLD.value
 
         return pressed
 
