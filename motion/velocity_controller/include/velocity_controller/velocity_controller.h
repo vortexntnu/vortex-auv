@@ -50,7 +50,8 @@ private:
   void odometryCallback(const nav_msgs::Odometry& odom_msg);
 
   /**
-   * @brief publishes a thrust given by a control law
+   * @brief publishes a thrust given by a control law. Only non-zero desired velocities 
+   * are controlled.
    *
    * @param twist_msg message with desired velocity
    */

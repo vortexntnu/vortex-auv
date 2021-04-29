@@ -3,8 +3,6 @@
 VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
 {
   // get params
-  use_restoring_forces = false;
-
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
   std::string DEFAULT_THRUST_TOPIC = "/thrust/desired_forces";
   std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
@@ -92,26 +90,14 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     Eigen::Vector6d desired_velocity;
     tf::twistMsgToEigen(twist_msg, desired_velocity);
 
+    // calculate tau 
     Eigen::Vector6d tau;
-    if (use_restoring_forces)
+    for (int i = 0; i < 6; i++)
     {
-      // calculate restoring forces
-      Eigen::Vector6d restoring_forces = restoringForces();
-
-      // calculate tau using MiniPID and restoring forces
-      for (int i = 0; i < 6; i++)
-      {
-        tau[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]) - restoring_forces[i];
-        ROS_DEBUG_STREAM("tau_" << i << ": " << tau[i] << " (rest_forces: " << restoring_forces[i]);
-      }
-    }
-    else
-    {
-      // calculate tau using MiniPID
-      for (int i = 0; i < 6; i++)
-      {
+      if (desired_velocity[i] == 0)
         tau[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]);
-      }
+      else
+        tau[i] = 0;
     }
 
     // publish tau as wrench
