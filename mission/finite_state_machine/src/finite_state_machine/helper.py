@@ -23,7 +23,7 @@ class ControlModeEnum(IntEnum):
 
 
 
-def twist(X, Y, Z, K, M, N):
+def twist(X=0, Y=0, Z=0, K=0, M=0, N=0):
     new_twist = Twist()
     new_twist.linear.x = X
     new_twist.linear.y = Y
