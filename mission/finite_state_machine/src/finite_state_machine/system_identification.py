@@ -395,12 +395,10 @@ def surge_sway_tests():
     class SurgeSwayTest(SingleTest):
         def __init__(self, surge_vel, sway_vel, initial_angle):
             SingleTest.__init__(
-                SingleTest(
-                    twist(surge_vel, sway_vel, 0, 0, 0, 0),
-                    pose(-1.5, 0, 0.7, 0, 0, initial_angle),
-                    timeout=20,
-                    dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
-                )
+                twist(surge_vel, sway_vel, 0, 0, 0, 0),
+                pose(-1.5, 0, 0.7, 0, 0, initial_angle),
+                timeout=20,
+                dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
             )
 
     states = [
@@ -430,6 +428,66 @@ def surge_sway_tests():
         SurgeSwayTest(-0.30, -0.30, 135),
     ]
 
+    return states
+
+
+def heave_tests():
+    class HeaveTest(SingleTest):
+        def __init__(self, velocity, start_depth):
+            SingleTest.__init__(
+                twist(0, 0, velocity, 0, 0, 0),
+                pose(0, 0, start_depth, 0, 0, 0),
+                dp_mode=ControlModeEnum.ORIENTATION_HOLD
+            ))
+            
+    states = [
+        HeaveTest(0.05, 0.5),
+        HeaveTest(0.10, 0.5),
+        HeaveTest(0.15, 0.5),
+        HeaveTest(0.20, 0.5),
+        HeaveTest(-0.05, 1.2),
+        HeaveTest(-0.10, 1.2),
+        HeaveTest(-0.15, 1.2),
+        HeaveTest(-0.20, 1.2),
+    ]
+    return states
+
+
+def heave_surge_tests():
+    class HeaveSurgeTest(SingleTest):
+        def __init__(self, heave_vel, surge_vel, initial_angle, initial_depth):
+            SingleTest.__init__(
+                twist(surge_vel, 0, heave_vel, 0, 0, 0),
+                pose(-1.5, 0, 0.)
+                dp_mode=ControlModeEnum.ORIENTATION_HOLD,
+            )
+            
+    states = [
+        HeaveSurgeTest(0.05, 0.1, 0, 0.5),
+        HeaveSurgeTest(0.05, 0.2, 0, 0.5),
+        HeaveSurgeTest(0.1, 0.1, 0, 0.5),
+        HeaveSurgeTest(0.1, 0.2, 0, 0.5),
+        HeaveSurgeTest(0.15, 0.1, 0, 0.5),
+        HeaveSurgeTest(0.15, 0.2, 0, 0.5),
+        HeaveSurgeTest(-0.05, 0.1, 0, 1.2),
+        HeaveSurgeTest(-0.05, 0.2, 0, 1.2),
+        HeaveSurgeTest(-0.1, 0.1, 0,  1.2),
+        HeaveSurgeTest(-0.1, 0.2, 0,  1.2),
+        HeaveSurgeTest(-0.15, 0.1, 0, 1.2),
+        HeaveSurgeTest(-0.15, 0.2, 0, 1.2),
+        HeaveSurgeTest( 0.05, -0.1, 180, 0.5),
+        HeaveSurgeTest( 0.05, -0.2, 180, 0.5),
+        HeaveSurgeTest( 0.10, -0.1, 180, 0.5),
+        HeaveSurgeTest( 0.10, -0.2, 180, 0.5),
+        HeaveSurgeTest( 0.15, -0.1, 180, 0.5),
+        HeaveSurgeTest( 0.15, -0.2, 180, 0.5),
+        HeaveSurgeTest(-0.05, -0.1, 180, 1.2),
+        HeaveSurgeTest(-0.05, -0.2, 180, 1.2),
+        HeaveSurgeTest(-0.10, -0.1, 180, 1.2),
+        HeaveSurgeTest(-0.10, -0.2, 180, 1.2),
+        HeaveSurgeTest(-0.15, -0.1, 180, 1.2),
+        HeaveSurgeTest(-0.15, -0.2, 180, 1.2),
+    ]
     return states
 
 
