@@ -95,16 +95,6 @@ void SimpleOdom::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped& tw
 
   // compensate for translation of DVL
   linear_vel = linear_vel_uncorrected + angular_vel.cross(dvl_translation);  // from fossen2021 eq 14.3
-  // linear_vel[0] = linear_vel_uncorrected[0]  // surge
-  //               + dvl_translation[1] * angular_vel[2]   // y * yaw
-  //               + dvl_translation[2] * angular_vel[1];  // z * pitch
-  // linear_vel[1] = linear_vel_uncorrected[1]  // sway
-  //               - dvl_translation[0] * angular_vel[2]   // x * yaw
-  //               - dvl_translation[2] * angular_vel[0];  // z * roll
-  // linear_vel[2] = linear_vel_uncorrected[2]  // heave
-  //               - dvl_translation[0] * angular_vel[1]   // x * pitch
-  //               + dvl_translation[1] * angular_vel[0];  // y * roll
-  // this was calculated by hand. It looks a bit like it could be replaced by a single operation
 }
 
 void SimpleOdom::mocapCallback(const geometry_msgs::PoseStamped& msg)
