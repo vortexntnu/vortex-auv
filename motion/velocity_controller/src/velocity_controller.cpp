@@ -94,7 +94,7 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
     Eigen::Vector6d tau;
     for (int i = 0; i < 6; i++)
     {
-      if (desired_velocity[i] == 0)
+      if (desired_velocity[i] != 0)
         tau[i] = pids[i]->getOutput(velocity[i], desired_velocity[i]);
       else
         tau[i] = 0;
