@@ -42,9 +42,9 @@ def test_restoring():
 
 def test_vel():
     twist = Twist()
-    twist.linear.x = 0.0
-    twist.angular.x = -0.2
-    state = VelState(twist, dp_control_mode=ControlModeEnum.POSITION_HOLD)
+    twist.linear.y = 0.0
+    twist.angular.x = -0.0
+    state = VelState(twist, dp_control_mode=ControlModeEnum.POSE_HOLD)
     state.execute(None)
 
 def test_dp():

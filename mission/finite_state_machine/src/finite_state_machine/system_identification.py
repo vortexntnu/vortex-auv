@@ -395,6 +395,7 @@ def surge_sway_tests():
     class SurgeSwayTest(SingleTest):
         def __init__(self, surge_vel, sway_vel, initial_angle):
             SingleTest.__init__(
+                self,
                 twist(surge_vel, sway_vel, 0, 0, 0, 0),
                 pose(-1.5, 0, 0.7, 0, 0, initial_angle),
                 timeout=20,
@@ -435,10 +436,11 @@ def heave_tests():
     class HeaveTest(SingleTest):
         def __init__(self, velocity, start_depth):
             SingleTest.__init__(
+                self,
                 twist(0, 0, velocity, 0, 0, 0),
                 pose(0, 0, start_depth, 0, 0, 0),
                 dp_mode=ControlModeEnum.ORIENTATION_HOLD
-            ))
+            )
             
     states = [
         HeaveTest(0.05, 0.5),
@@ -457,8 +459,9 @@ def heave_surge_tests():
     class HeaveSurgeTest(SingleTest):
         def __init__(self, heave_vel, surge_vel, initial_angle, initial_depth):
             SingleTest.__init__(
+                self,
                 twist(surge_vel, 0, heave_vel, 0, 0, 0),
-                pose(-1.5, 0, 0.)
+                pose(-1.5, 0, 0.0),
                 dp_mode=ControlModeEnum.ORIENTATION_HOLD,
             )
             
@@ -493,6 +496,6 @@ def heave_surge_tests():
 
 if __name__ == "__main__":
     rospy.init_node("system_identification_sm")
-    states = yaw_tests()
+    states = heave_tests()
     sm = create_sequence(states)
     sm.execute()
