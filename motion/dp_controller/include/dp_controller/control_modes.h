@@ -41,7 +41,7 @@ inline std::string controlModeString(ControlMode control_mode)
       break;
 
     case ControlModes::POSITION_HOLD:
-      s = "POSE HOLD";
+      s = "POSITION HOLD";
       break;
 
     case ControlModes::HEADING_HOLD:
@@ -57,7 +57,7 @@ inline std::string controlModeString(ControlMode control_mode)
       break;
 
     case ControlModes::POSITION_HEADING_HOLD:
-      s = "POSE HEADING HOLD";
+      s = "POSITION HEADING HOLD";
       break;
     
     case ControlModes::POSE_HOLD:
