@@ -267,9 +267,8 @@ class DpGuidance:
             rospy.logerr("Control mode service did not process request: " + str(exc))
 
     def stop(self):
-        state = self.action_client.get_state()
-        if state == GoalStatusEnum.ACTIVE:
-            self.action_client.cancel_all_goals()
+        if self.action_client.gh:
+            self.action_client.cancel_goal()
         self.change_control_mode(ControlModeEnum.OPEN_LOOP)
 
 
@@ -351,15 +350,8 @@ class LosGuidance:
         self.client_done = True
 
     def stop(self):
-        state = self.action_client.get_state()
-        rospy.logdebug("LosGuidance client state on cancel is " + str(state))
-        if state in [
-            GoalStatusEnum.ACTIVE,
-            GoalStatusEnum.PREEMPTING,
-            GoalStatusEnum.RECALLING,
-            GoalStatusEnum.PENDING,
-        ]:
-            self.action_client.cancel_all_goals()
+        if self.action_client.gh:
+            self.action_client.cancel_goal()
 
 
 class GuidanceInterface:

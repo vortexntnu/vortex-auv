@@ -166,7 +166,7 @@ class DPGuidance:
             odom_msg.twist.twist.linear.z,
             odom_msg.twist.twist.angular.x,
             odom_msg.twist.twist.angular.y,
-            odom_msg.twist.twist.angular.z0
+            odom_msg.twist.twist.angular.z
         ]
 
     def set_timeout(self, event):
@@ -204,7 +204,7 @@ class DPGuidance:
         for i in range(len(diff_list)):
             if diff_list[i] > self.acceptance_margins[i]: 
                 if self.current_velocity_list[i] > self.acceptance_velocities[i]:
-                is_close = False
+                    is_close = False
         return is_close
 
     def spin(self):
