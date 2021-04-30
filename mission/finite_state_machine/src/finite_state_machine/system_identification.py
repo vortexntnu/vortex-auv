@@ -146,7 +146,7 @@ class SingleTest(State):
         y_min = -0.85
         y_max = 0.85
         z_min = 0.4
-        z_max = 1.1
+        z_max = 1.05
 
         states = [
             GoToState(start_pose),
@@ -248,26 +248,26 @@ def yaw_tests():
                 self,
                 twist(0.0, 0, 0, 0.0, 0, yaw_vel),
                 pose(0, 0, 0.7, 0, 0, 0),
-                timeout=20,
+                timeout=15,
                 dp_mode=ControlModeEnum.DEPTH_HOLD,
             )
 
     states = [
         YawTest(0.1),
-        YawTest(0.15),
-        YawTest(0.2),
-        YawTest(0.25),
-        YawTest(0.3),
-        YawTest(0.4),
-        YawTest(0.5),
-        YawTest(0.6),
         YawTest(-0.1),
+        YawTest(0.15),
         YawTest(-0.15),
+        YawTest(0.2),
         YawTest(-0.2),
+        YawTest(0.25),
         YawTest(-0.25),
+        YawTest(0.3),
         YawTest(-0.3),
+        YawTest(0.4),
         YawTest(-0.4),
+        YawTest(0.5),
         YawTest(-0.5),
+        YawTest(0.6),
         YawTest(-0.6),
     ]
 
@@ -330,11 +330,9 @@ def heave_tests():
         HeaveTest(0.05, 0.5),
         HeaveTest(0.10, 0.5),
         HeaveTest(0.15, 0.5),
-        HeaveTest(0.20, 0.5, end_pose=HOME_POSE),
-        HeaveTest(-0.05, 1.2),
-        HeaveTest(-0.10, 1.2),
-        HeaveTest(-0.15, 1.2),
-        HeaveTest(-0.20, 1.2),
+        HeaveTest(-0.05, 1),
+        HeaveTest(-0.10, 1),
+        HeaveTest(-0.15, 1),
     ]
     return states
 
@@ -345,7 +343,7 @@ def heave_surge_tests():
             SingleTest.__init__(
                 self,
                 twist(surge_vel, 0, heave_vel, 0, 0, 0),
-                pose(-1.5, 0, 0.0),
+                pose(-1.5, 0, initial_depth, 0, 0, initial_angle),
                 dp_mode=ControlModeEnum.ORIENTATION_HOLD,
                 end_pose=end_pose
             )
@@ -357,24 +355,24 @@ def heave_surge_tests():
         HeaveSurgeTest(0.1, 0.2, 0, 0.5),
         HeaveSurgeTest(0.15, 0.1, 0, 0.5),
         HeaveSurgeTest(0.15, 0.2, 0, 0.5, end_pose=HOME_POSE),
-        HeaveSurgeTest(-0.05, 0.1, 0, 1.2),
-        HeaveSurgeTest(-0.05, 0.2, 0, 1.2),
-        HeaveSurgeTest(-0.1, 0.1, 0,  1.2),
-        HeaveSurgeTest(-0.1, 0.2, 0,  1.2),
-        HeaveSurgeTest(-0.15, 0.1, 0, 1.2),
-        HeaveSurgeTest(-0.15, 0.2, 0, 1.2, end_pose=HOME_POSE),
+        HeaveSurgeTest(-0.05, 0.1, 0, 1.0),
+        HeaveSurgeTest(-0.05, 0.2, 0, 1.0),
+        HeaveSurgeTest(-0.1, 0.1, 0,  1.0),
+        HeaveSurgeTest(-0.1, 0.2, 0,  1.0),
+        HeaveSurgeTest(-0.15, 0.1, 0, 1.0),
+        HeaveSurgeTest(-0.15, 0.2, 0, 1.0, end_pose=HOME_POSE),
         HeaveSurgeTest( 0.05, -0.1, 180, 0.5),
         HeaveSurgeTest( 0.05, -0.2, 180, 0.5),
         HeaveSurgeTest( 0.10, -0.1, 180, 0.5),
         HeaveSurgeTest( 0.10, -0.2, 180, 0.5),
         HeaveSurgeTest( 0.15, -0.1, 180, 0.5),
         HeaveSurgeTest( 0.15, -0.2, 180, 0.5, end_pose=HOME_POSE),
-        HeaveSurgeTest(-0.05, -0.1, 180, 1.2),
-        HeaveSurgeTest(-0.05, -0.2, 180, 1.2),
-        HeaveSurgeTest(-0.10, -0.1, 180, 1.2),
-        HeaveSurgeTest(-0.10, -0.2, 180, 1.2),
-        HeaveSurgeTest(-0.15, -0.1, 180, 1.2),
-        HeaveSurgeTest(-0.15, -0.2, 180, 1.2),
+        HeaveSurgeTest(-0.05, -0.1, 180, 1.0),
+        HeaveSurgeTest(-0.05, -0.2, 180, 1.0),
+        HeaveSurgeTest(-0.10, -0.1, 180, 1.0),
+        HeaveSurgeTest(-0.10, -0.2, 180, 1.0),
+        HeaveSurgeTest(-0.15, -0.1, 180, 1.0),
+        HeaveSurgeTest(-0.15, -0.2, 180, 1.0),
     ]
     return states
 
@@ -383,7 +381,7 @@ if __name__ == "__main__":
     rospy.init_node("system_identification_sm")
     
     HOME_POSE = pose(0, 0, 0.7, 0, 0, 0)
-    states = surge_tests()
+    states = yaw_tests()
     
     sm = create_sequence(states)
     sm.execute()

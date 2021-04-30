@@ -61,7 +61,7 @@ class DPGuidance:
             "/guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
         )
         self.acceptance_velocities = rospy.get_param(
-            "/guidance/dp/acceptance_velocities", [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+            "/guidance/dp/acceptance_velocities", [0.01, 0.01, 0.01, 0.01, 0.01, 0.001]
         )
         self.action_server_max_duration = rospy.get_param(
             "/guidance/dp/max_duration", default=90
@@ -203,8 +203,10 @@ class DPGuidance:
         is_close = True
         for i in range(len(diff_list)):
             if diff_list[i] > self.acceptance_margins[i]: 
-                if self.current_velocity_list[i] > self.acceptance_velocities[i]:
-                    is_close = False
+                is_close = False
+            elif self.current_velocity_list[i] > self.acceptance_velocities[i]:
+                is_close = False
+                
         return is_close
 
     def spin(self):
