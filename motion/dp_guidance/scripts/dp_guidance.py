@@ -10,7 +10,7 @@ import rospy
 import actionlib
 from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionResult, MoveBaseActionGoal
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Twist
 from nav_msgs.msg import Odometry
 from tf.transformations import (
     euler_from_quaternion,
@@ -60,6 +60,9 @@ class DPGuidance:
         self.acceptance_margins = rospy.get_param(
             "/guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
         )
+        self.acceptance_velocities = rospy.get_param(
+            "/guidance/dp/acceptance_velocities", [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        )
         self.action_server_max_duration = rospy.get_param(
             "/guidance/dp/max_duration", default=90
         )
@@ -67,6 +70,7 @@ class DPGuidance:
         # init internal variables
         self.ros_rate = rospy.Rate(rate)
         self.current_pose = Pose()
+        self.current_velocity_list = []
         self.controller_setpoint = Pose()
         self.control_mode = ControlModeEnum.OPEN_LOOP.value
         self.dp_timout = False
@@ -78,7 +82,7 @@ class DPGuidance:
 
         # Subscriber for state (for acceptance margins)
         self.state_sub = rospy.Subscriber(
-            "/odometry/filtered", Odometry, self.update_current_pose
+            "/odometry/filtered", Odometry, self.update_odom
         )
 
         # Service for chaning control mode
@@ -154,8 +158,16 @@ class DPGuidance:
 
         return []  # empty list for no result
 
-    def update_current_pose(self, odom_msg):
+    def update_odom(self, odom_msg):
         self.current_pose = odom_msg.pose.pose
+        self.current_velocity_list = [
+            odom_msg.twist.twist.linear.x,
+            odom_msg.twist.twist.linear.y,
+            odom_msg.twist.twist.linear.z,
+            odom_msg.twist.twist.angular.x,
+            odom_msg.twist.twist.angular.y,
+            odom_msg.twist.twist.angular.z0
+        ]
 
     def set_timeout(self, event):
         self.dp_timout = True
@@ -188,10 +200,10 @@ class DPGuidance:
             pitch_diff,
             yaw_diff,
         ]
-
         is_close = True
         for i in range(len(diff_list)):
-            if diff_list[i] > self.acceptance_margins[i]:
+            if diff_list[i] > self.acceptance_margins[i]: 
+                if self.current_velocity_list[i] > self.acceptance_velocities[i]:
                 is_close = False
         return is_close
 
