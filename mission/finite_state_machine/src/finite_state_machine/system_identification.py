@@ -159,7 +159,7 @@ class SingleTest(State):
                     (y_min, y_max),
                     (z_min, z_max),
                 ],
-                goal_boundry=self.goal_boundry,
+                goal_boundry=goal_boundry,
                 odom_topic="/odometry/filtered",
             )
         ]
@@ -182,6 +182,7 @@ def surge_tests():
                 self, 
                 twist(X=velocity),
                 pose(-1.5, 0, 0.7, 0, 0, orientation),
+                dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
                 end_pose=end_pose
             )
     states = [
@@ -208,6 +209,7 @@ def sway_tests():
                 self, 
                 twist(Y=velocity),
                 pose(-1.5, 0, 0.7, 0, 0, orientation),
+                dp_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD,
                 end_pose=end_pose
             )
     states = [
@@ -320,7 +322,7 @@ def heave_tests():
                 self,
                 twist(0, 0, velocity, 0, 0, 0),
                 pose(0, 0, start_depth, 0, 0, 0),
-                dp_mode=ControlModeEnum.ORIENTATION_HOLD
+                dp_mode=ControlModeEnum.ORIENTATION_HOLD,
                 end_pose=end_pose
             )
             
@@ -381,7 +383,7 @@ if __name__ == "__main__":
     rospy.init_node("system_identification_sm")
     
     HOME_POSE = pose(0, 0, 0.7, 0, 0, 0)
-    states = surge_sway_tests()
+    states = surge_tests()
     
     sm = create_sequence(states)
     sm.execute()
