@@ -1,21 +1,17 @@
 //#include"common.h"
-#include "ESKF.h"
-#include <Eigen/Core>
 #include "ros_node.h"
-#include "chrono"
 
 using namespace eskf;
 using namespace Eigen;
-
 
 ESKF_Node::ESKF_Node(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
   : nh_{ pnh }
   , init_{ false }
   , eskf_{ loadParametersFromYamlFile() }
-  , publish_execution_time_imu_{true}
-  , publish_execution_time_dvl_{true}
-  , publish_execution_time_PressureZ_{true}
-  //,eskf_{R_ACC,R_ACCBIAS,R_GYRO,R_GYROBIAS,P_GYRO_BIAS,P_ACC_BIAS,returnStaticRotationFromIMUtoBodyFrame(roll_pitch_yaw_NED_and_alignment_corrected),returnStaticRotationFromIMUtoBodyFrame(roll_pitch_yaw_NED_and_alignment_corrected),S_DVL,S_INC}
+  , publish_execution_time_imu_{ true }
+  , publish_execution_time_dvl_{ true }
+  , publish_execution_time_PressureZ_{ true }
+//,eskf_{R_ACC,R_ACCBIAS,R_GYRO,R_GYROBIAS,P_GYRO_BIAS,P_ACC_BIAS,returnStaticRotationFromIMUtoBodyFrame(roll_pitch_yaw_NED_and_alignment_corrected),returnStaticRotationFromIMUtoBodyFrame(roll_pitch_yaw_NED_and_alignment_corrected),S_DVL,S_INC}
 {
   R_dvl_.setZero();
   R_pressureZ_.setZero();
@@ -40,27 +36,27 @@ ESKF_Node::ESKF_Node(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
                                                   ros::TransportHints().tcpNoDelay(true));
   // Subscribe to DVL
   ROS_INFO("Subscribing to DVL: %s", dvl_topic.c_str());
-  subcribeDVL_ = nh_.subscribe<nav_msgs::Odometry>(dvl_topic, 1000, &ESKF_Node::dvlCallback, this,
-                                                   ros::TransportHints().tcpNoDelay(true));
+  subcribeDVL_ = nh_.subscribe(dvl_topic, 1000, &ESKF_Node::dvlCallback, this, ros::TransportHints().tcpNoDelay(true));
   // Subscribe to Pressure sensor
   ROS_INFO("Subscribing to pressure sensor: %s", pressureZ_topic.c_str());
-  subscribePressureZ_ = nh_.subscribe<nav_msgs::Odometry>(pressureZ_topic, 1000, &ESKF_Node::pressureZCallback, this,
-                                                          ros::TransportHints().tcpNoDelay(true));
+  subscribePressureZ_ =
+    nh_.subscribe(pressureZ_topic, 1000, &ESKF_Node::pressureZCallback, this, ros::TransportHints().tcpNoDelay(true));
 
   ROS_INFO("Publish NIS DVL");
-  publish_DVLNIS_ = nh_.advertise<nav_msgs::Odometry>("nis_dvl",1);
+  publish_DVLNIS_ = nh_.advertise<nav_msgs::Odometry>("nis_dvl", 1);
 
   ROS_INFO("Publish NIS Pressure Z");
-  publish_PressureZNIS_ = nh_.advertise<nav_msgs::Odometry>("nis_pressureZ",1);
-
+  publish_PressureZNIS_ = nh_.advertise<nav_msgs::Odometry>("nis_pressureZ", 1);
 
   ROS_INFO("Publishing State");
-  publishPose_ = nh_.advertise<nav_msgs::Odometry>("pose", 1);
+  publishPose_ = nh_.advertise<nav_msgs::Odometry>("/odometry/filtered", 1);
 
   ROS_INFO("Publishing acc, gyro biases and gravity");
-  publishAccGyrobiasandGravity_ = nh_.advertise<nav_msgs::Odometry>("BiasAndGravity",1);
+  publishAccGyrobiasandGravity_ = nh_.advertise<nav_msgs::Odometry>("BiasAndGravity", 1);
 
   pubTImer_ = nh_.createTimer(ros::Duration(1.0f / publish_rate), &ESKF_Node::publishPoseState, this);
+
+  angular_vel = geometry_msgs::Vector3();
 }
 
 // IMU Subscriber
@@ -96,94 +92,70 @@ void ESKF_Node::imuCallback(const sensor_msgs::Imu::ConstPtr& imu_Message_data)
     }
   }
 
-  // ROS_INFO("Acceleration_x: %f",imu_Message_data->linear_acceleration.x);
-
   if (previousTimeStampIMU_.sec != 0)
   {
-    const double deltaIMU =(imu_Message_data->header.stamp - previousTimeStampIMU_).toSec();
+    const double deltaIMU = (imu_Message_data->header.stamp - previousTimeStampIMU_).toSec();
 
-    //ROS_INFO("TimeStamps: %f",delta);
-
-    if(init_ == false)
+    if (init_ == false)
     {
       initialIMUTimestamp_ = imu_Message_data->header.stamp.toSec();
       init_ = true;
       ROS_INFO("ESKF initilized");
     }
 
-    const double ros_timeStampNow = imu_Message_data->header.stamp.toSec() - initialIMUTimestamp_; 
-
-    //ROS_INFO("IMU_timeStamp: %f",ros_timeStampNow);
+    const double ros_timeStampNow = imu_Message_data->header.stamp.toSec() - initialIMUTimestamp_;
 
     // Execution time
     auto start = std::chrono::steady_clock::now();
     eskf_.predict(raw_acceleration_measurements, raw_gyro_measurements, Ts, R_acc, R_gyro);
-    //eskf_.bufferIMUMessages(raw_acceleration_measurements,raw_gyro_measurements,ros_timeStampNow,Ts,R_acc,R_gyro);
-     
-	  auto end = std::chrono::steady_clock::now();
 
-	  auto diff = end - start;
+    auto end = std::chrono::steady_clock::now();
 
-	  auto diff_in_ms = std::chrono::duration <double, std::milli> (diff).count();
+    auto diff = end - start;
 
-    //std::cout<<diff_in_ms<<std::endl;
-    if(execution_time_vector_imu_.size() == 1000 && publish_execution_time_imu_ == true)
+    auto diff_in_ms = std::chrono::duration<double, std::milli>(diff).count();
+
+    // std::cout<<diff_in_ms<<std::endl;
+    if (execution_time_vector_imu_.size() == 1000 && publish_execution_time_imu_ == true)
     {
-      std::cout<<"Max value of IMU: "<<maxOfVector(execution_time_vector_imu_)<<std::endl;
-      std::cout<<"Mean value of IMU: "<<meanOfVector(execution_time_vector_imu_)<<std::endl;
-      std::cout<<"STD value of IMU: "<<stanardDeviationOfVector(execution_time_vector_imu_)<<std::endl;
+      ROS_DEBUG_STREAM("Max value of IMU: " << maxOfVector(execution_time_vector_imu_));
+      ROS_DEBUG_STREAM("Mean value of IMU: " << meanOfVector(execution_time_vector_imu_));
+      ROS_DEBUG_STREAM("STD value of IMU: " << stanardDeviationOfVector(execution_time_vector_imu_));
       publish_execution_time_imu_ = false;
     }
     else
     {
       execution_time_vector_imu_.push_back(diff_in_ms);
     }
-
-    //eskf_.predict();
   }
   previousTimeStampIMU_ = imu_Message_data->header.stamp;
+
+  angular_vel = imu_Message_data->angular_velocity;
 }
 // DVL subscriber
-void ESKF_Node::dvlCallback(const nav_msgs::Odometry::ConstPtr& dvl_Message_data)
+void ESKF_Node::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& msg)
 {
   Vector3d raw_dvl_measurements = Vector3d::Zero();
   Matrix3d R_dvl = Matrix3d::Zero();
 
-  raw_dvl_measurements << dvl_Message_data->twist.twist.linear.x, dvl_Message_data->twist.twist.linear.y,
-    dvl_Message_data->twist.twist.linear.z;
+  raw_dvl_measurements << msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z;
 
-  /*
-  for (size_t i = 0; i < R_dvl.rows(); i++)
-  {
-    for (size_t j = 0; j < R_dvl.cols(); j++)
-    {
-      R_dvl(i, j) = dvl_Message_data->twist.covariance[(3 * i) + j];
-    }
-  }
-  */
+  R_dvl(0, 0) = msg->twist.covariance[0];
+  R_dvl(1, 1) = msg->twist.covariance[7];
+  R_dvl(2, 2) = msg->twist.covariance[14];
 
-  R_dvl(0,0) = dvl_Message_data->twist.covariance[0];
-  R_dvl(1,1) = dvl_Message_data->twist.covariance[7];
-  R_dvl(2,2) = dvl_Message_data->twist.covariance[14];
-
-  const double ros_timeStampNow = dvl_Message_data->header.stamp.toSec() - initialIMUTimestamp_; 
-  // ROS_INFO("Velocity_z: %f",dvl_Message_data->twist.twist.linear.z);
+  const double ros_timeStampNow = msg->header.stamp.toSec() - initialIMUTimestamp_;
   auto start = std::chrono::steady_clock::now();
   eskf_.updateDVL(raw_dvl_measurements, R_dvl_);
-  //eskf_.bufferDVLMessages(raw_dvl_measurements,ros_timeStampNow,R_dvl);
-
   auto end = std::chrono::steady_clock::now();
-
   auto diff = end - start;
+  auto diff_in_ms = std::chrono::duration<double, std::milli>(diff).count();
 
-  auto diff_in_ms = std::chrono::duration <double, std::milli> (diff).count();
-
-  //std::cout<<diff_in_ms<<std::endl;
-  if(execution_time_vector_dvl_.size() == 500 && publish_execution_time_dvl_ == true)
+  if (execution_time_vector_dvl_.size() == 500 && publish_execution_time_dvl_ == true)
   {
-    std::cout<<"Max value of DVL: "<<maxOfVector(execution_time_vector_dvl_)<<std::endl;
-    std::cout<<"Mean value of DVL: "<<meanOfVector(execution_time_vector_dvl_)<<std::endl;
-    std::cout<<"STD value of DVL: "<<stanardDeviationOfVector(execution_time_vector_dvl_)<<std::endl;
+    std::cout << "Max value of DVL: " << maxOfVector(execution_time_vector_dvl_) << std::endl;
+    std::cout << "Mean value of DVL: " << meanOfVector(execution_time_vector_dvl_) << std::endl;
+    std::cout << "STD value of DVL: " << stanardDeviationOfVector(execution_time_vector_dvl_) << std::endl;
     publish_execution_time_dvl_ = false;
   }
   else
@@ -198,40 +170,30 @@ void ESKF_Node::dvlCallback(const nav_msgs::Odometry::ConstPtr& dvl_Message_data
   odom_msg.header.seq = trace_id++;
   odom_msg.header.stamp = ros::Time::now();
   odom_msg.pose.pose.position.x = eskf_.getNISDVL();
-  //double nis_DVL_msg{eskf_.getNISDVL()};
-  //std::cout<<nis_DVL_msg<<std::endl;
   publish_DVLNIS_.publish(odom_msg);
-
 }
 
 // PressureZ subscriber
-void ESKF_Node::pressureZCallback(const nav_msgs::Odometry::ConstPtr& pressureZ_Message_data)
+void ESKF_Node::pressureZCallback(const std_msgs::Float64::ConstPtr& depth_msg)
 {
   Matrix<double, 1, 1> RpressureZ;
-  const double raw_pressure_z = pressureZ_Message_data->pose.pose.position.z;
-
-  RpressureZ(0) = pressureZ_Message_data->pose.covariance[0];
-
-  // std::cout<<RpressureZ<<std::endl;
-  // const double R_pressureZ = 2.2500;
-  const double ros_timeStampNow = pressureZ_Message_data->header.stamp.toSec() - initialIMUTimestamp_; 
+  const double raw_pressure_z = depth_msg->data;
 
   auto start = std::chrono::steady_clock::now();
   eskf_.updatePressureZ(raw_pressure_z, R_pressureZ_);
-  //eskf_.bufferPressureZMessages(raw_pressure_z,ros_timeStampNow,R_pressureZ_);
 
   auto end = std::chrono::steady_clock::now();
 
   auto diff = end - start;
 
-  auto diff_in_ms = std::chrono::duration <double, std::milli> (diff).count();
+  auto diff_in_ms = std::chrono::duration<double, std::milli>(diff).count();
 
-  //std::cout<<diff_in_ms<<std::endl;
-  if(execution_time_vector_pressureZ_.size() == 500 && publish_execution_time_PressureZ_ == true)
+  // std::cout<<diff_in_ms<<std::endl;
+  if (execution_time_vector_pressureZ_.size() == 500 && publish_execution_time_PressureZ_ == true)
   {
-    std::cout<<"Max value of PressureZ: "<<maxOfVector(execution_time_vector_pressureZ_)<<std::endl;
-    std::cout<<"Mean value of PressureZ: "<<meanOfVector(execution_time_vector_pressureZ_)<<std::endl;
-    std::cout<<"STD value of PressureZ: "<<stanardDeviationOfVector(execution_time_vector_pressureZ_)<<std::endl;
+    std::cout << "Max value of PressureZ: " << maxOfVector(execution_time_vector_pressureZ_) << std::endl;
+    std::cout << "Mean value of PressureZ: " << meanOfVector(execution_time_vector_pressureZ_) << std::endl;
+    std::cout << "STD value of PressureZ: " << stanardDeviationOfVector(execution_time_vector_pressureZ_) << std::endl;
     publish_execution_time_PressureZ_ = false;
   }
   else
@@ -239,25 +201,21 @@ void ESKF_Node::pressureZCallback(const nav_msgs::Odometry::ConstPtr& pressureZ_
     execution_time_vector_pressureZ_.push_back(diff_in_ms);
   }
 
-   // Publish Pressure Z - NIS
+  // Publish Pressure Z - NIS
   nav_msgs::Odometry odom_msg;
   static size_t trace_id{ 0 };
   odom_msg.header.frame_id = "/eskf_link";
   odom_msg.header.seq = trace_id++;
   odom_msg.header.stamp = ros::Time::now();
   odom_msg.pose.pose.position.x = eskf_.getNISPressureZ();
-  
+
   publish_PressureZNIS_.publish(odom_msg);
-
-
-
 }
 
 void ESKF_Node::publishPoseState(const ros::TimerEvent&)
 {
-
-  //eskf_.update();
-  //eskf_.UpdateOnlyWithPrediction();
+  // eskf_.update();
+  // eskf_.UpdateOnlyWithPrediction();
   nav_msgs::Odometry odom_msg;
   nav_msgs::Odometry imu_biases_and_gravity;
   static size_t trace_id{ 0 };
@@ -271,17 +229,17 @@ void ESKF_Node::publishPoseState(const ros::TimerEvent&)
 
   const MatrixXd& errorCovariance = eskf_.getErrorCovariance();
 
-  Matrix<double,3,3> position_error_covariance;
+  Matrix<double, 3, 3> position_error_covariance;
   position_error_covariance.setZero();
-  position_error_covariance = errorCovariance.block<3,3>(0,0);
-  Matrix<double,3,3> velocity_error_covariance;
+  position_error_covariance = errorCovariance.block<3, 3>(0, 0);
+  Matrix<double, 3, 3> velocity_error_covariance;
   velocity_error_covariance.setZero();
-  velocity_error_covariance = errorCovariance.block<3,3>(3,3);
-  Matrix<double,3,3> attitude_error_covariance;
+  velocity_error_covariance = errorCovariance.block<3, 3>(3, 3);
+  Matrix<double, 3, 3> attitude_error_covariance;
   attitude_error_covariance.setZero();
-  attitude_error_covariance = errorCovariance.block<3,3>(6,6);
+  attitude_error_covariance = errorCovariance.block<3, 3>(6, 6);
 
-  imu_biases_and_gravity.header.frame_id="/eskf_link";
+  imu_biases_and_gravity.header.frame_id = "/eskf_link";
   imu_biases_and_gravity.header.seq = trace_id++;
   imu_biases_and_gravity.header.stamp = ros::Time::now();
   imu_biases_and_gravity.pose.pose.position.x = accbias(0);
@@ -305,45 +263,42 @@ void ESKF_Node::publishPoseState(const ros::TimerEvent&)
   odom_msg.twist.twist.linear.x = velocity(0);             // NEDpose(StateMemberVx);
   odom_msg.twist.twist.linear.y = velocity(1);             // NEDpose(StateMemberVy);
   odom_msg.twist.twist.linear.z = velocity(2);             // NEDpose(StateMemberVz);
+  odom_msg.twist.twist.angular = angular_vel;
   odom_msg.pose.pose.orientation.w = quaternion.w();       // pose(StateMemberQw);
   odom_msg.pose.pose.orientation.x = quaternion.x();       // pose(StateMemberQx);
   odom_msg.pose.pose.orientation.y = quaternion.y();       // pose(StateMemberQy);
   odom_msg.pose.pose.orientation.z = quaternion.z();       // pose(StateMemberQz);
+
   // odom_msg.pose.covariance
 
   // Position covariance
-  for(size_t i = 0; i < NOMINAL_POSITION_STATE_SIZE;i++)
+  for (size_t i = 0; i < NOMINAL_POSITION_STATE_SIZE; i++)
   {
-      for(size_t j = 0; j<NOMINAL_POSITION_STATE_SIZE;j++)
-      {
-          odom_msg.pose.covariance[NOMINAL_POSITION_STATE_SIZE*i+j] = position_error_covariance(i,j);
-      }
+    for (size_t j = 0; j < NOMINAL_POSITION_STATE_SIZE; j++)
+    {
+      odom_msg.pose.covariance[NOMINAL_POSITION_STATE_SIZE * i + j] = position_error_covariance(i, j);
+    }
   }
 
-  
-  for(size_t i = 0; i < NOMINAL_VELOCITY_STATE_SIZE; i++)
+  for (size_t i = 0; i < NOMINAL_VELOCITY_STATE_SIZE; i++)
   {
-      for(size_t j = 0; j< NOMINAL_VELOCITY_STATE_SIZE; j++)
-      {
-          odom_msg.twist.covariance[(NOMINAL_VELOCITY_STATE_SIZE*i+j)] = velocity_error_covariance(i,j);
-      }
-  }
-  
-    for(size_t i = 0; i < NOMINAL_QUATERNION_STATE_SIZE-1; i++)
-  {
-      for(size_t j = 0; j< NOMINAL_QUATERNION_STATE_SIZE-1; j++)
-      {
-          odom_msg.pose.covariance[((NOMINAL_QUATERNION_STATE_SIZE-1)*i+j)+9] = attitude_error_covariance(i,j);
-      }
+    for (size_t j = 0; j < NOMINAL_VELOCITY_STATE_SIZE; j++)
+    {
+      odom_msg.twist.covariance[(NOMINAL_VELOCITY_STATE_SIZE * i + j)] = velocity_error_covariance(i, j);
+    }
   }
 
+  for (size_t i = 0; i < NOMINAL_QUATERNION_STATE_SIZE - 1; i++)
+  {
+    for (size_t j = 0; j < NOMINAL_QUATERNION_STATE_SIZE - 1; j++)
+    {
+      odom_msg.pose.covariance[((NOMINAL_QUATERNION_STATE_SIZE - 1) * i + j) + 9] = attitude_error_covariance(i, j);
+    }
+  }
 
   // ROS_INFO("StateX: %f",odom_msg.pose.pose.position.x);
   publishPose_.publish(odom_msg);
-
 }
-
-
 
 parametersInESKF ESKF_Node::loadParametersFromYamlFile()
 {
@@ -489,7 +444,7 @@ parametersInESKF ESKF_Node::loadParametersFromYamlFile()
     for (int i = 0; i < matrix_size; i++)
     {
       std::ostringstream ostr;
-      ostr <<St_to_ned_accelerometer_Config[i];
+      ostr << St_to_ned_accelerometer_Config[i];
       std::istringstream istr(ostr.str());
       istr >> parameters.Sr_to_ned_accelerometer(i);
     }
@@ -538,8 +493,6 @@ parametersInESKF ESKF_Node::loadParametersFromYamlFile()
     ROS_BREAK();
   }
 
-
-
   if (ros::param::has("/sr_gyro_alignment"))
   {
     ros::param::get("/sr_gyro_alignment", St_gyro_alignment_Config);
@@ -559,7 +512,7 @@ parametersInESKF ESKF_Node::loadParametersFromYamlFile()
     ROS_BREAK();
   }
 
-   if (ros::param::has("/sr_dvl_alignment"))
+  if (ros::param::has("/sr_dvl_alignment"))
   {
     ros::param::get("/sr_dvl_alignment", St_dvl_alignment_Config);
     int matrix_size = parameters.Sr_dvl_alignment.rows();
@@ -578,7 +531,7 @@ parametersInESKF ESKF_Node::loadParametersFromYamlFile()
     ROS_BREAK();
   }
 
-   if (ros::param::has("/sr_dvl_to_NED"))
+  if (ros::param::has("/sr_dvl_to_NED"))
   {
     ros::param::get("/sr_dvl_to_NED", St_to_ned_DVL_Config);
     int matrix_size = parameters.Sr_to_ned_dvl.rows();
@@ -596,8 +549,6 @@ parametersInESKF ESKF_Node::loadParametersFromYamlFile()
     ROS_FATAL("No static rotation for DVL (sr_dvl_to_NED) set in parameter file");
     ROS_BREAK();
   }
-
-
 
   /*
   if (ros::param::has("/St_dvl"))
@@ -858,7 +809,6 @@ void setRpressureZFromYamlFile(Matrix<double, 1, 1>& R_pressureZ)
     ROS_BREAK();
   }
 }
-
 
 int main(int argc, char* argv[])
 {

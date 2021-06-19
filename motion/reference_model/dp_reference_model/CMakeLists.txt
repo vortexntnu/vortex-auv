@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   geometry_msgs
   roscpp
+  vortex_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -20,6 +21,7 @@ catkin_package(
   roscpp
   tf
   tf_conversions
+  vortex_msgs
 )
 
 include_directories(

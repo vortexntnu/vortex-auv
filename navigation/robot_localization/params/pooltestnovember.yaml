@@ -7,7 +7,7 @@ sensor_timeout: 0.1
 two_d_mode: false
 transform_time_offset: 0.0
 transform_timeout: 0.0
-print_diagnostics: false
+print_diagnostics: true
 debug: true
 debug_out_file: /root/auv_backup/debugfiles/debug.txt
 publish_tf: true
@@ -53,8 +53,8 @@ imu0_queue_size: 10
 imu0_remove_gravitational_acceleration: true
 
 # DVL
-odom0: /auv/dvl
-odom0_config: [false,  false, false, # x, y, z
+odom0: /dvl/odom
+odom0_config: [false,  false, true, # x, y, z
                false, false, false,  # roll, pitch, yaw
                true, true, true,     # vx, vy, vz
                false, false, false,   # vroll, vpitch, vyaw
@@ -65,19 +65,6 @@ odom0_differential: false
 odom0_relative: false
 #odom0_pose_rejection_threshold: 5
 #odom0_twist_rejection_threshold: 1
-
-
-#  Pressure sensor - Z value
-odom1: /auv/pressureZ
-odom1_config: [false,  false, true, # x, y, z
-               false, false, false,  # roll, pitch, yaw
-               false, false, false,     # vx, vy, vz
-               false, false, false,   # vroll, vpitch, vyaw
-               false, false, false]  # ax, ay, az 
-odom1_queue_size: 10
-odom1_nodelay: false
-odom1_differential: false
-odom1_relative: false
 
 initial_state: [ 0.0, 0.0, 0.0,
                  0.0, 0.0, 0.0,
@@ -146,4 +133,3 @@ initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-9, 0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-9, 0,
 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-9]
-

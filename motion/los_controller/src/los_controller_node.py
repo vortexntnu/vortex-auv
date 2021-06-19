@@ -214,7 +214,7 @@ class LOSController:
 		/guidance/los_data
 
 	Publishes to:
-		/auv/thruster_manager/input
+		/thrust/desired_forces
 
 	"""
 
@@ -226,6 +226,8 @@ class LOSController:
 
 		rospy.init_node('los_controller')
 
+		thrust_topic = rospy.get_param("/controllers/los/thrust_topic", default="/thrust/desired_forces")
+
 		# Create controllers
 		self.Backstepping = LOSControllerBackstepping()
 		self.PID = LOSControllerPID()
@@ -234,7 +236,7 @@ class LOSController:
 		self.sub_reference_model = rospy.Subscriber('/reference_model/los_data', GuidanceData, self.reference_model_data_callback, queue_size=1)
 
 		# Publishers
-		self.pub_thrust = rospy.Publisher('/auv/thruster_manager/input', Wrench, queue_size=1)
+		self.pub_thrust = rospy.Publisher(thrust_topic, Wrench, queue_size=1)
 
 		# Dynamic reconfigure 
 		self.config = {}

@@ -274,13 +274,11 @@ class LosPathFollowing(object):
 		rospy.init_node('los')
 
 		self.publish_guidance_data = False
-		self.period = 0.025 # Run at 40Hz
 
-		# Subscribers
-		self.sub = rospy.Subscriber('/odometry/filtered', Odometry, self.odometry_cb, queue_size=1) # 20hz
-
-		# Publishers
-		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
+		# parameters
+		odom_topic = rospy.get_param("/guidance/los/odom_topic", default="/odometry/filtered")
+		rate = rospy.get_param("/guidance/los/rate", default=40)
+		self.ros_rate = rospy.Rate(rate)
 
 		# constructor object
 		self.los = LOS()
@@ -288,12 +286,22 @@ class LosPathFollowing(object):
 		# dynamic reconfigure
 		self.config = {}
 		self.srv_reconfigure = Server(LOSConfig, self.config_cb)
+		
+		# Publishers
+		self.pub_data_los_controller = rospy.Publisher('/guidance/los_data', GuidanceData, queue_size=1)
 
 		# Action server, see https://github.com/strawlab/ros_common/blob/master/actionlib/src/actionlib/simple_action_server.py
 		self.action_server = actionlib.SimpleActionServer(name='los_action_server', ActionSpec=LosPathFollowingAction, auto_start=False)
 		self.action_server.register_goal_callback(self.goal_cb)
 		self.action_server.register_preempt_callback(self.preempt_cb)
 		self.action_server.start()
+
+		# Subscribers
+		self.sub = rospy.Subscriber(odom_topic, Odometry, self.odometry_cb, queue_size=1) # 20hz
+		rospy.loginfo("Waiting for initial odometry..")
+		rospy.wait_for_message(odom_topic, Odometry)
+
+		rospy.loginfo("los guidance initiated")
 
 	def spin(self):
 
@@ -323,7 +331,7 @@ class LosPathFollowing(object):
 				# check if action goal succeeded
 				self.statusActionGoal()
 
-			rospy.sleep(rospy.Duration(self.period))
+			self.ros_rate.sleep()
 
 	def odometry_cb(self, msg): 
 		"""
@@ -387,6 +395,7 @@ class LosPathFollowing(object):
 		"""
 
 		_goal = self.action_server.accept_new_goal()
+		rospy.logdebug("los_guidance recieved new goal")
 
 		# set goal
 		self.los.x_k = self.los.x

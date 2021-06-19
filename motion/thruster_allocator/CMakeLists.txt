@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   vortex_msgs
   roslint
+  std_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -24,6 +25,7 @@ catkin_package(
   geometry_msgs
   roscpp
   vortex_msgs
+  std_msgs
 )
 
 include_directories(

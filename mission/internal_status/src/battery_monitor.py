@@ -1,79 +1,116 @@
 #!/usr/bin/env python
 
-#python imports
+# python imports
 import subprocess
 import os
 import serial
 
-#ros imports
+# ros imports
 import rospy
 from std_msgs.msg import Float32
 
-class BatteryMonitor():
+
+class BatteryMonitor:
     def __init__(self):
-        
+
         rospy.init_node("battery_monitor")
 
-        # Settings
-        self.path_to_powersense = rospy.get_param("/battery/logging/powersense_dev")
-        self.path_to_voltage_meter = rospy.get_param("/battery/logging/path")
-        self.interval = rospy.get_param("/battery/logging/interval")          # How often the battery level is checked and published
+        # Parameters
+        self.path_to_xavier_measurement = rospy.get_param("/battery/xavier/path", default="/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input")
+        self.path_to_powersense = rospy.get_param("/battery/system/path", default="/dev/ttyUSB1")
+        self.critical_level = rospy.get_param("/battery/thresholds/critical", default=13.5)
+        self.warning_level = rospy.get_param("/battery/thresholds/warning", default=14.5)
+        system_interval = rospy.get_param("/battery/system/interval", 0.05)
+        xavier_interval = rospy.get_param("/battery/xavier/interval", 10)
+        logging_interval = rospy.get_param("/battery/logging/interval", 10)
 
-        # Power Sense device
-        self.powersense_device = serial.Serial("/dev/ttyUSB2", 115200)
-        self.powersense_device.flushInput()
-        self.powersense_device.flushOutput()
-
-        # Thresholds
-        self.critical_level = rospy.get_param("/battery/thresholds/critical")   # Minimum allowed value in millivolts
-        self.warning_level = rospy.get_param("/battery/thresholds/warning")     # Warning threshold in millivolts
+        # Local variables
+        self.xavier_voltage = 0.0
+        self.system_voltage = 0.0
         
-        # Publisher
-        self.xavier_battery_level_pub = rospy.Publisher("/auv/battery_level/xavier", Float32, queue_size=1)
-        self.system_battery_level_pub = rospy.Publisher("/auv/battery_level/system", Float32, queue_size=1)
+        self.xavier_recieved = False
+        self.system_recieved = False
 
-    
-    def spin(self):
-        while not rospy.is_shutdown():
+        # Power Sense device for system voltage
+        self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
+        self.powersense_device.reset_input_buffer()
 
-            xavier_voltage, system_voltage = self.get_voltages()
-            self.xavier_battery_level_pub.publish(xavier_voltage)
-            self.system_battery_level_pub.publish(system_voltage)
+        # set up callbacks
+        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
+        self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
+        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
-            self.log_voltage(xavier_voltage, "xavier")
-            self.log_voltage(system_voltage, "system")
+        # Publishers
+        self.xavier_battery_level_pub = rospy.Publisher(
+            "/auv/battery_level/xavier", Float32, queue_size=1
+        )
+        self.system_battery_level_pub = rospy.Publisher(
+            "/auv/battery_level/system", Float32, queue_size=1
+        )
 
-            rospy.sleep(self.interval)
-            
+        rospy.loginfo("BatteryMonitor initialized")
 
-    def get_voltages(self):
-        # Record output from voltage meter command, decode from bytes object to string, convert from string to integer
-        xavier_mV = int(subprocess.check_output(["cat", self.path_to_voltage_meter]).decode("utf-8"))
-        xavier_voltage = xavier_mV / 1000.0
+    def xavier_cb(self, event):
+        """Record output from voltage meter command, decode from bytes object to string, convert from string to integer"""
+        xavier_mV = int(
+            subprocess.check_output(["cat", self.path_to_xavier_measurement]).decode("utf-8")
+        )
+        self.xavier_voltage = xavier_mV / 1000.0
+        
+        self.xavier_battery_level_pub.publish(self.xavier_voltage)
+        self.xavier_recieved = True
 
+    def system_cb(self, event):
+        """Read voltage of system from powersense device."""
         system_voltage_str = self.powersense_device.readline()
-        system_voltage = float(system_voltage_str[:-2]) # strip /r/n
+        self.system_voltage = float(system_voltage_str[:-2])  # strip /r/n
+        self.powersense_device.reset_input_buffer()
+        # readline only reads the top line, so make sure
+        # the buffer is not filled with old voltage readings
+        # by resetting the input buffer
 
-        return xavier_voltage, system_voltage
+        self.system_battery_level_pub.publish(self.system_voltage)
+        self.system_recieved = True
+
+    def log_cb(self, event):
+        
+        if self.xavier_recieved:
+            self.log_voltage(self.xavier_voltage, "xavier")
+        else:
+            rospy.loginfo("No voltage recieved from Xavier yet.")
+            
+        if self.system_recieved:
+            self.log_voltage(self.system_voltage, "system")
+        else:
+            rospy.loginfo("No voltage recieved from system yet.")
+            
 
     def log_voltage(self, voltage, title):
-        #Critical voltage level
-        if voltage <= self.critical_level:
-            for i in range(10):
-                rospy.logfatal("Critical %s voltage: %.3fV" % (title, voltage))
-                rospy.sleep(0.25)
-            #os.system("sudo shutdown now")
-            
+
+        if voltage == 0:
+            rospy.loginfo("Voltage is zero. Killswitch is probably off.")
+
+        # Critical voltage level
+        elif voltage <= self.critical_level:
+            rospy.logerr("Critical %s voltage: %.3fV" % (title, voltage))
+
         # Warning voltage level
         elif voltage <= self.warning_level:
             rospy.logwarn("%s voltage: %.3fV" % (title, voltage))
 
         else:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
-            
+
+    def shutdown(self):
+        self.system_timer.shutdown()
+        self.xavier_timer.shutdown()
+        self.log_timer.shutdown()
+        self.powersense_device.close()
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     bm = BatteryMonitor()
-    bm.spin()
+    try:
+        rospy.spin()
+    finally:
+        bm.shutdown()

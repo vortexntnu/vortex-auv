@@ -4,7 +4,7 @@
 # Gravity value from EGM2008 12th order via wolframalpha.com
 
 atmosphere:
-  pressure: 101000
+  pressure: 100000 # phone measurement from mclab
 
 water:
   density: 1000
