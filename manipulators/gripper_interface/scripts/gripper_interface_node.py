@@ -2,7 +2,7 @@
 import rospy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
-import RPi.GPIO as GPIO
+import Jetson.GPIO as GPIO
 
 # TODO: Need different nodes/topics/modes for ROV and AUV operations
 # TODO: Integrate with HW using https://github.com/NVIDIA/jetson-gpio
@@ -18,6 +18,9 @@ class GripperInterfaceNode():
 
         self.gripper_state = 0
 
+        # GPIO setup
+        GPIO.setmode(GPIO.BOARD)
+
     def btn_bounceback(self):
         if self.btn_state and self.prev_btn_state:
             return True     
@@ -30,13 +33,10 @@ class GripperInterfaceNode():
     def callback(data):
         rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
         
-    def gripper_interface_node():
 
-
-        rospy.Subscriber("chatter", String, callback)
-
-        # spin() simply keeps python from exiting until this node is stopped
-        rospy.spin()
 
 if __name__ == '__main__':
-    gripper_interface_node()
+    node = GripperInterfaceNode()
+    
+    while not rospy.is_shutdown():
+        pass
