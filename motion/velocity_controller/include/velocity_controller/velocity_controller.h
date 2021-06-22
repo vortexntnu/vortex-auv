@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <memory> // for std::make_unique
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -49,7 +50,8 @@ private:
   void odometryCallback(const nav_msgs::Odometry& odom_msg);
 
   /**
-   * @brief publishes a thrust given by a control law
+   * @brief publishes a thrust given by a control law. Only non-zero desired velocities 
+   * are controlled.
    *
    * @param twist_msg message with desired velocity
    */
@@ -116,7 +118,8 @@ private:
   ros::ServiceServer set_gains_service;
   Eigen::Vector6d velocity;
   Eigen::Quaterniond orientation;
-  std::vector<MiniPID*> pid;
+  std::vector<std::unique_ptr<MiniPID>> pids;
   bool odom_recieved;
+  bool use_restoring_forces;
 };
 #endif

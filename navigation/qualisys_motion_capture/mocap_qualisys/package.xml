@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mocap_qualisys</name>
+  <version>0.0.1</version>
+  <description>Driver for Qualisys</description>
+
+  <maintainer email="sunke.polyu@gmail.com">Ke Sun</maintainer>
+  <license>Apache-2.0</license>
+  <author>Ke Sun</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>tf</depend>
+  <depend>tf_conversions</depend>
+  <depend>mocap_base</depend>
+
+  <export>
+  </export>
+</package>

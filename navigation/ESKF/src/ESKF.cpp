@@ -183,7 +183,6 @@ MatrixXd ESKF::AerrDiscretizedFirstOrder(const VectorXd& xnominal, const Vector3
 
   // auto diff = end - start;
 
-  // std::cout <<"Aerr_discretized: " <<std::chrono::duration <double, std::milli> (diff).count() << " ms" << std::endl;
 
   return A_err_discretized;
 }
@@ -302,7 +301,6 @@ AdandGQGD ESKF::discreteErrorMatrix(const VectorXd& xnominal, const Vector3d& ac
 
   // auto diff = end - start;
 
-  // std::cout <<"DiscreteErrorMatrix: " <<std::chrono::duration <double, std::milli> (diff).count() << " ms" <<
   // std::endl;
 
   return std::move(errorMatrix);
@@ -459,10 +457,6 @@ void ESKF::emptyPressureZBuffer()
 
 void ESKF::predictWithBuffer()
 {
-  
-  //std::cout<<"buffer_size: "<<imu_msg_buffer_.size()<<std::endl;
-
-
   Vector3d gyroMessage{imu_msg_buffer_.front().zGyroMeasurement_};
   Vector3d accMessage{imu_msg_buffer_.front().zAccMeasurement_};
   Matrix<double,3,3> Racc{imu_msg_buffer_.front().R_acc_};
@@ -682,12 +676,11 @@ InnovationParameters ESKF::innovationDVLWithLeverArm(const VectorXd& xnominal, c
   MatrixXd X_deltaX{ MatrixXd::Identity(NOMINAL_STATE_SIZE, ERROR_STATE_SIZE) };
   X_deltaX.block<4, 3>(6, 6) = Q_deltaT;
 
-  Vector3d leverarm {0.014, 0.0, 0.166}; //Lever arm for gladlaks    //-0.035,-0.017,-0.211  -0.017,-0.035,0.211
+  Vector3d leverarm {0.014, 0.0, 0.166}; //Lever arm for beluga    //-0.035,-0.017,-0.211  -0.017,-0.035,0.211
 
   InnovationParameters dvlStates(3);
   dvlStates.jacobianOfErrorStates = Hx * X_deltaX;
   dvlStates.measurementStates = (zDVLvel + crossProductMatrix(leverarm)*gyro_msg_in_dvl_compensation_) - Hv * vel_world;
-  //std::cout<<crossProductMatrix(leverarm)*gyro_msg_in_dvl_compensation_<<std::endl;
   dvlStates.measurementCovariance =
     (dvlStates.jacobianOfErrorStates * P * dvlStates.jacobianOfErrorStates.transpose()) + RDVL;
 

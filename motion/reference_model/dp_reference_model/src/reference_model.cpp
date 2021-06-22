@@ -8,63 +8,81 @@
 ReferenceModel::ReferenceModel(ros::NodeHandle nh)
 {
   // get params
+  double a1, a2, a3;
+  double b1, b2, b3;
   std::vector<double> beta_temp;
+
+  if (!nh.getParam("dp_rm/a1", a1))
+    a1 = 1;
+  if (!nh.getParam("dp_rm/a2", a2))
+    a2 = -1.990024937655860;
+  if (!nh.getParam("dp_rm/a3", a3))
+    a3 = 0.990049813123053;
+  if (!nh.getParam("dp_rm/b1", b1))
+    b1 = 6.218866798092052e-06;
+  if (!nh.getParam("dp_rm/b2", b2))
+    b2 = 1.243773359618410e-05;
+  if (!nh.getParam("dp_rm/b3", b3))    
+    b3 = 6.218866798092052e-06;
   if (!nh.getParam("/reference_model/dp/beta", beta_temp))
     beta_temp = { 0.025, 0.025, 0.0025 };
+
+  a_x = Eigen::Vector3d(a1, a2, a3);
+  b_x = Eigen::Vector3d(b1, b2, b3);
   beta = Eigen::Vector3d(beta_temp[0], beta_temp[1], beta_temp[2]);
 
-  /**
-   * Have used the old values (if changed) as default-values.
-   * If ROS is unable to locate new values, the old ones should be good
-   */
-  double a1 = 1;
-  double a2 = -1.990024937655860;
-  double a3 = 0.990049813123053;
+  // initiate local variables
+  prev_control_mode = 0;  // OPEN LOOP
+  x_d_prev = Eigen::Vector3d::Zero();
+  x_d_prev_prev = Eigen::Vector3d::Zero();
+  x_ref_prev = Eigen::Vector3d::Zero();
+  x_ref_prev_prev = Eigen::Vector3d::Zero();
 
-  double b1 = 6.218866798092052e-06;
-  double b2 = 1.243773359618410e-05;
-  double b3 = 6.218866798092052e-06;
-
-  Eigen::Vector3d a_x(a1, a2, a3);
-  Eigen::Vector3d b_x(b1, b2, b3);
-
-  Eigen::Vector3d x_d_prev = Eigen::Vector3d::Zero();
-  Eigen::Vector3d x_d_prev_prev = Eigen::Vector3d::Zero();
-  Eigen::Vector3d x_ref_prev = Eigen::Vector3d::Zero();
-  Eigen::Vector3d x_ref_prev_prev = Eigen::Vector3d::Zero();
-
+  // subs and pubs
   setpoint_sub = nh.subscribe("/guidance/dp_data", 1, &ReferenceModel::setpoint_cb, this);
-  reference_pub = nh.advertise<geometry_msgs::Pose>("/reference_model/output", 10, this);
+  reference_pub = nh.advertise<vortex_msgs::DpSetpoint>("/reference_model/output", 1, this);
 }
 
-void ReferenceModel::setpoint_cb(const geometry_msgs::Pose& msg)
+void ReferenceModel::setpoint_cb(const vortex_msgs::DpSetpoint& setpoint_msg)
 {
-  Eigen::Vector3d x_ref{ msg.position.x, msg.position.y, msg.position.z };
-  Eigen::Vector3d x_d = low_pass_filter(x_ref);
 
-  x_d_prev = x_d;
+  // parse msg
+  Eigen::Vector3d x_ref{ setpoint_msg.setpoint.position.x, setpoint_msg.setpoint.position.y,
+                         setpoint_msg.setpoint.position.z };
+  
+  // check if control mode has changed
+  if (setpoint_msg.control_mode != prev_control_mode)
+  {
+    reset(x_ref); // reset prev values to current target position
+    prev_control_mode = setpoint_msg.control_mode;
+    ROS_DEBUG("DP reference model reset");
+  }
 
+  // calculate smooth setpoint
+  Eigen::Vector3d x_d = calculate_smooth(x_ref);
+
+  // convert and publish smooth setpoint
   geometry_msgs::Point x_d_point;
   tf::pointEigenToMsg(x_d, x_d_point);
 
-  geometry_msgs::Pose pose;
-  pose.position = x_d_point;
-  pose.orientation = msg.orientation;
+  vortex_msgs::DpSetpoint dp_setpoint;
+  dp_setpoint.setpoint.position = x_d_point;
+  dp_setpoint.setpoint.orientation = setpoint_msg.setpoint.orientation;
+  dp_setpoint.control_mode = setpoint_msg.control_mode;
 
-  reference_pub.publish(pose);
+  reference_pub.publish(dp_setpoint);
 }
 
 Eigen::Vector3d ReferenceModel::low_pass_filter(const Eigen::Vector3d& x_ref)
 {
   Eigen::Vector3d x_d;
-  for (int i=0; i<3; i++)
+  for (int i = 0; i < 3; i++)
   {
     x_d[i] = x_d_prev[i] - beta[i] * (x_d_prev[i] - x_ref[i]);
   }
   return x_d;
 }
 
-// Utility
 Eigen::Vector3d ReferenceModel::calculate_smooth(const Eigen::Vector3d& x_ref)
 {
   Eigen::Vector3d x_d;

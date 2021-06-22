@@ -42,7 +42,7 @@ p_accBias: 0.001 #0.0001 #Assume this is the Gauss-Markov bias model
 
 ## Sensors
 
-dvl_topic: "/auv/odom"
+dvl_topic: "/dvl/twist"
 
 R_dvl: [1.0e-10, 0.0, 0.0,
          0.0, 1.0e-10, 0.0,
@@ -57,7 +57,7 @@ sr_dvl_alignment: [0.0,0.0,0.0] #NOT YET SET FOR GLADLAKS
 #        0.0, 1.0, 0.0,
 #        0.0, 0.0, 1.0 ]  # using NED
 
-pressureZ_topic: "/auv/odom"
+pressureZ_topic: "/depth/estimated"
 
 R_pressureZ: [2.5125] 
 

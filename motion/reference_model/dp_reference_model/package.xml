@@ -16,10 +16,12 @@
   <build_depend>tf_conversions</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>vortex_msgs</build_depend>
 
   <exec_depend>tf</exec_depend>  
   <exec_depend>tf_conversions</exec_depend>
   <exec_depend>eigen_conversions</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>roscpp</exec_depend>
+  <exec_depend>vortex_msgs</exec_depend>
 </package>

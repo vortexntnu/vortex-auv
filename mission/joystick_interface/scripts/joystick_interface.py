@@ -1,10 +1,24 @@
 #!/usr/bin/env python
 
+from enum import IntEnum
+
 import rospy
 import actionlib
 
 from sensor_msgs.msg import Joy
 from vortex_msgs.msg import ControlModeAction, ControlModeGoal
+
+class ControlModeEnum(IntEnum):
+    OPEN_LOOP = 0
+    POSITION_HOLD = 1
+    HEADING_HOLD = 2
+    DEPTH_HEADING_HOLD = 3
+    DEPTH_HOLD = 4
+    POSITION_HEADING_HOLD = 5
+    CONTROL_MODE_END = 6
+    POSE_HOLD = 7
+    ORIENTATION_HOLD = 8
+    ORIENTATION_DEPTH_HOLD = 9
 
 class JoystickInterface():
 
@@ -68,7 +82,7 @@ class JoystickInterface():
         sway 	= axes['horizontal_axis_left_stick'] * self.joystick_sway_scaling
         heave 	= (axes['RT'] - axes['LT'])/2 * self.joystick_heave_scaling
         roll 	= (buttons['RB'] - buttons['LB']) * self.joystick_roll_scaling  
-        pitch 	= axes['vertical_axis_right_stick'] * self.joystick_pitch_scaling
+        pitch 	= axes['vertical_axis_right_stick'] * self.joystick_pitch_scaling * (-1)
         yaw 	= axes['horizontal_axis_right_stick'] * self.joystick_yaw_scaling
         
         dpad_lights = axes['dpad_horizontal']
@@ -83,16 +97,16 @@ class JoystickInterface():
         pressed = -1
 
         if buttons['A']:
-            pressed = 0
+            pressed = ControlModeEnum.OPEN_LOOP.value
         
         if buttons['B']:
-            pressed = 1
+            pressed = ControlModeEnum.ORIENTATION_DEPTH_HOLD.value
 
         if buttons['X']:
-            pressed = 2
+            pressed = ControlModeEnum.DEPTH_HOLD.value
 
         if buttons['Y']:
-            pressed = 3
+            pressed = ControlModeEnum.POSITION_HEADING_HOLD.value
 
         return pressed
 

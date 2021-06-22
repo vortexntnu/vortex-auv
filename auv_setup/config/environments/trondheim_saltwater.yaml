@@ -5,10 +5,10 @@
 # Gravity value from EGM2008 12th order via wolframalpha.com
 
 atmosphere:
-  pressure: 101000
+  pressure: 101000 # [Pa]
 
 water:
-  density: 1026
+  density: 1026 # [kg/m3]
 
 gravity:
   acceleration: 9.82841

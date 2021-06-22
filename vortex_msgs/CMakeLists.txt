@@ -25,6 +25,7 @@ add_message_files(
   CameraFeedSelection.msg
   CameraObjectInfo.msg
   ObjectPosition.msg
+  DpSetpoint.msg
 )
 
 ## Generate services in the 'srv' folder
