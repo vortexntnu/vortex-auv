@@ -21,7 +21,7 @@ class LightsInterfaceNode:
         rospy.init_node('lights_interface')
 
         self.js_sub = rospy.Subscriber('/mission/joystick_data', Joy, self.callback, queue_size=1)
-        self.pwm_pub = rospy.Publisher('/manipulators/lights', Pwm, queue_size=1)
+        self.pwm_pub = rospy.Publisher('/pwm', Pwm, queue_size=1)
 
         self.pwm_pin = 8
         self.light_state = off
