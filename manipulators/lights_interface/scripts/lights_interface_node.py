@@ -3,12 +3,13 @@
 import rospy
 from sensor_msgs.msg import Joy
 from vortex_msgs.msg import Pwm
+from datetime import datetime
 
 # TODO:  have multiple light intensity lvls using pwm
 # TODO: subscribe to lights pwm topic from PCA interface node
 
-on = 1
-off = -1
+on = -1.0
+off = 1.0
 active = 1
 inactive = 0
 
@@ -17,7 +18,7 @@ PWM_HIGH = 1900
 
 class LightsInterfaceNode:
     def __init__(self):
-        rospy.init_node('/manipulators/lights_interface')
+        rospy.init_node('lights_interface')
 
         self.js_sub = rospy.Subscriber('/mission/joystick_data', Joy, self.callback, queue_size=1)
         self.pwm_pub = rospy.Publisher('/manipulators/lights', Pwm, queue_size=1)
@@ -31,23 +32,26 @@ class LightsInterfaceNode:
     def callback(self, joy_msg):
         
         Dpad = joy_msg.axes[6]
+        
+        if Dpad != 0: # only handle non-zero messages, since the joy topic is spammed
+            time_delta = datetime.now() - self.last_press
+            if time_delta.total_seconds() > self.cooldown_period:
 
-        time_since_press = self.last_press - datetime.now()
-        if time_since_press > self.cooldown_period:
+                if Dpad == on and self.light_state != active:
+                    rospy.loginfo("Lights on!")
+                    self.publish_pwm_msg(PWM_HIGH)
+                    self.last_press = datetime.now()
+                    self.light_state = active
 
-            if Dpad == on and self.light_state != active:
-                self.pwm_pub.publish(PWM_HIGH)
-                self.last_press = datetime.now()
-                self.light_state = active
-
-            elif Dpad == off and self.light_state == active:
-                self.pwm_pub.publish(PWM_LOW)
-                self.last_press = datetime.now()
-                self.light_state = inactive
+                elif Dpad == off and self.light_state == active:
+                    rospy.loginfo("Lights off!")
+                    self.publish_pwm_msg(PWM_LOW)
+                    self.last_press = datetime.now()
+                    self.light_state = inactive
 
     def publish_pwm_msg(self, us):
             msg = Pwm()
-            msg.pins = self.pwm_pin
+            msg.pins = 8
             msg.positive_width_us = us
 
             self.pwm_pub.publish(msg)
