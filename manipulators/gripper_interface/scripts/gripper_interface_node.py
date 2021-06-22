@@ -4,7 +4,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 from time import sleep
 from datetime import datetime
-#import Jetson.GPIO as GPIO
+import Jetson.GPIO as GPIO
 
 # TODO: Need different nodes/topics/modes for ROV and AUV operations
 # Note: is currently hardware dependent; replace GPIO calls with ros publish at some point,
@@ -27,9 +27,9 @@ class GripperInterfaceNode():
 
         # GPIO setup
         gripper_gpio_pin = 7
-        #GPIO.setmode(GPIO.BOARD)
-        #GPIO.setup(gripper_gpio_pin, GPIO.OUT)
-        #GPIO.output(gripper_gpio_pin, GPIO.LOW)
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(gripper_gpio_pin, GPIO.OUT)
+        GPIO.output(gripper_gpio_pin, GPIO.LOW)
 
     def callback(self, joy_msg):
         
@@ -40,15 +40,16 @@ class GripperInterfaceNode():
             if time_delta.total_seconds() > self.cooldown_period:
 
                 if Dpad == on and self.gripper_state != active:
-                    #GPIO.output(gripper_gpio_pin, GPIO.HIGH)
+                    GPIO.output(gripper_gpio_pin, GPIO.HIGH)
                     rospy.loginfo("Gripper activated!")
 
                     self.last_press = datetime.now()
                     self.gripper_state = active
 
                 elif Dpad == off and self.gripper_state == active:
-                    #GPIO.output(gripper_gpio_pin, GPIO.LOW)
+                    GPIO.output(gripper_gpio_pin, GPIO.LOW)
                     rospy.loginfo("Gripper deactivated!")
+                    
                     self.last_press = datetime.now()
                     self.gripper_state = inactive
 

@@ -6,7 +6,6 @@ from vortex_msgs.msg import Pwm
 from datetime import datetime
 
 # TODO:  have multiple light intensity lvls using pwm
-# TODO: subscribe to lights pwm topic from PCA interface node
 
 on = -1.0
 off = 1.0
