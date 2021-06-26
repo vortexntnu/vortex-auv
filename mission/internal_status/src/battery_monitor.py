@@ -3,7 +3,8 @@
 # python imports
 import subprocess
 import os
-import serial
+import ctypes
+import pylibi2c
 
 # ros imports
 import rospy
@@ -17,9 +18,15 @@ class BatteryMonitor:
 
         # Parameters
         self.path_to_xavier_measurement = rospy.get_param("/battery/xavier/path", default="/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input")
-        self.path_to_powersense = rospy.get_param("/battery/system/path", default="/dev/ttyUSB1")
+        self.path_to_powersense = rospy.get_param("/battery/system/path", default="/dev/i2c-8")
+        
+        self.i2c_address_powersense_voltage = rospy.get_param("/i2c/psm/address_voltage")
+        self.i2c_address_powersense_current = rospy.get_param("/i2c/psm/address_current")
+        self.i2c_bus_powersense = rospy.get_param("/i2c/psm/bus")
+        
         self.critical_level = rospy.get_param("/battery/thresholds/critical", default=13.5)
         self.warning_level = rospy.get_param("/battery/thresholds/warning", default=14.5)
+        
         system_interval = rospy.get_param("/battery/system/interval", 0.05)
         xavier_interval = rospy.get_param("/battery/xavier/interval", 10)
         logging_interval = rospy.get_param("/battery/logging/interval", 10)
@@ -27,13 +34,18 @@ class BatteryMonitor:
         # Local variables
         self.xavier_voltage = 0.0
         self.system_voltage = 0.0
+        self.system_current = 0.0
         
         self.xavier_recieved = False
-        self.system_recieved = False
+        self.system_recieved_voltage = False
+        self.system_recieved_current = False
 
         # Power Sense device for system voltage
-        self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
-        self.powersense_device.reset_input_buffer()
+        self.powersense_device_voltage = pylibi2c.I2CDevice(self.path_to_powersense, self.i2c_address_powersense_voltage)
+        self.powersense_device_current = pylibi2c.I2CDevice(self.path_to_powersense, self.i2c_address_powersense_current)
+
+        self.voltage_buffer = bytes(bytearray(256))
+        self.current_buffer = bytes(bytearray(256))
 
         # set up callbacks
         self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
@@ -62,9 +74,9 @@ class BatteryMonitor:
 
     def system_cb(self, event):
         """Read voltage of system from powersense device."""
-        system_voltage_str = self.powersense_device.readline()
-        self.system_voltage = float(system_voltage_str[:-2])  # strip /r/n
-        self.powersense_device.reset_input_buffer()
+        self.system_voltage = self.powersense_device_voltage.ioctl_read(0x0, 256)
+        self.system_current = self.powersense_device_current.ioctl_read(0x0, 256)
+
         # readline only reads the top line, so make sure
         # the buffer is not filled with old voltage readings
         # by resetting the input buffer
