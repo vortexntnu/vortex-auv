@@ -20,9 +20,8 @@ class BatteryMonitor:
         self.path_to_xavier_measurement = rospy.get_param("/battery/xavier/path", default="/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input")
         self.path_to_powersense = rospy.get_param("/battery/system/path", default="/dev/i2c-8")
         
-        self.i2c_address_powersense_voltage = rospy.get_param("/i2c/psm/address_voltage")
-        self.i2c_address_powersense_current = rospy.get_param("/i2c/psm/address_current")
-        self.i2c_bus_powersense = rospy.get_param("/i2c/psm/bus")
+        self.i2c_address_powersense_voltage = rospy.get_param("/i2c/psm/address_voltage", default=0x69)
+        self.i2c_address_powersense_current = rospy.get_param("/i2c/psm/address_current", default=0x6a)
         
         self.critical_level = rospy.get_param("/battery/thresholds/critical", default=13.5)
         self.warning_level = rospy.get_param("/battery/thresholds/warning", default=14.5)
@@ -37,12 +36,11 @@ class BatteryMonitor:
         self.system_current = 0.0
         
         self.xavier_recieved = False
-        self.system_recieved_voltage = False
-        self.system_recieved_current = False
+        self.system_recieved = False
 
         # Setup powersense module devices with I2C protocol
-        self.powersense_device_voltage = pylibi2c.I2CDevice(self.i2c_address_powersense_voltage, self.i2c_bus_powersense)
-        self.powersense_device_current = pylibi2c.I2CDevice(self.i2c_address_powersense_current, self.i2c_bus_powersense)
+        self.powersense_device_voltage = pylibi2c.I2CDevice(self.path_to_powersense, self.i2c_address_powersense_voltage)
+        self.powersense_device_current = pylibi2c.I2CDevice(self.path_to_powersense, self.i2c_address_powersense_current)
 
         # Send configure command to the module to enable continuous conversion in 12-bit mode
         self.powersense_device_voltage.ioctl_write(0x0, bytes(0b10010000))
@@ -91,11 +89,9 @@ class BatteryMonitor:
         self.system_current = self.system_current * 0.011
         
         self.system_battery_level_pub.publish(self.system_voltage)
-        self.system_recieved_voltage = True
+        self.system_recieved = True
 
         self.system_battery_current_draw_pub.publish(self.system_current)
-        self.system_recieved_current = True
-
 
     def log_cb(self, event):
         
