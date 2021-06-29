@@ -45,6 +45,8 @@ class BatteryMonitor:
         # Send configure command to the module to enable continuous conversion in 12-bit mode
         self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
         time.sleep(0.5)
+        self.bus.write_byte(self.i2c_address_powersense_current, 0x10)
+        time.sleep(0.5)
 
         # Publishers
         self.xavier_battery_level_pub = rospy.Publisher(
