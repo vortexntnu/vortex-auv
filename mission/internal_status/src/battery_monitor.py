@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-# python imports
 import subprocess
-import os
-import serial
+import time
 
-# ros imports
 import rospy
+import smbus
 from std_msgs.msg import Float32
 
 
@@ -17,9 +15,15 @@ class BatteryMonitor:
 
         # Parameters
         self.path_to_xavier_measurement = rospy.get_param("/battery/xavier/path", default="/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input")
-        self.path_to_powersense = rospy.get_param("/battery/system/path", default="/dev/ttyUSB1")
+        self.path_to_powersense = rospy.get_param("/battery/system/path", default="/dev/i2c-8")
+        
+        self.i2c_address_powersense_voltage = rospy.get_param("/i2c/psm/address_voltage", default=0x69)
+        self.i2c_address_powersense_current = rospy.get_param("/i2c/psm/address_current", default=0x6a)
+        self.i2c_bus_number = rospy.get_param("/i2c/psm/bus_number", default=8)
+        
         self.critical_level = rospy.get_param("/battery/thresholds/critical", default=13.5)
         self.warning_level = rospy.get_param("/battery/thresholds/warning", default=14.5)
+        
         system_interval = rospy.get_param("/battery/system/interval", 0.05)
         xavier_interval = rospy.get_param("/battery/xavier/interval", 10)
         logging_interval = rospy.get_param("/battery/logging/interval", 10)
@@ -27,18 +31,20 @@ class BatteryMonitor:
         # Local variables
         self.xavier_voltage = 0.0
         self.system_voltage = 0.0
+        self.system_current = 0.0
         
         self.xavier_recieved = False
         self.system_recieved = False
 
-        # Power Sense device for system voltage
-        self.powersense_device = serial.Serial(self.path_to_powersense, 115200)
-        self.powersense_device.reset_input_buffer()
+        # Get I2C bus for power sense module
+        self.bus = smbus.SMBus(self.i2c_bus_number)
+        time.sleep(1)
 
-        # set up callbacks
-        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
-        self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
-        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
+        # Send configure command to the module to enable continuous conversion in 12-bit mode
+        self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
+        time.sleep(0.5)
+        self.bus.write_byte(self.i2c_address_powersense_current, 0x10)
+        time.sleep(0.5)
 
         # Publishers
         self.xavier_battery_level_pub = rospy.Publisher(
@@ -47,8 +53,18 @@ class BatteryMonitor:
         self.system_battery_level_pub = rospy.Publisher(
             "/auv/battery_level/system", Float32, queue_size=1
         )
+        
+        self.system_battery_current_draw_pub = rospy.Publisher(
+            "/auv/battery_level/system_current_draw", Float32, queue_size=1
+        )
+
+        # set up callbacks
+        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
+        self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
+        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
         rospy.loginfo("BatteryMonitor initialized")
+
 
     def xavier_cb(self, event):
         """Record output from voltage meter command, decode from bytes object to string, convert from string to integer"""
@@ -58,19 +74,41 @@ class BatteryMonitor:
         self.xavier_voltage = xavier_mV / 1000.0
         
         self.xavier_battery_level_pub.publish(self.xavier_voltage)
-        self.xavier_recieved = True
+        if not self.xavier_recieved:
+            self.xavier_recieved = True
 
     def system_cb(self, event):
         """Read voltage of system from powersense device."""
-        system_voltage_str = self.powersense_device.readline()
-        self.system_voltage = float(system_voltage_str[:-2])  # strip /r/n
-        self.powersense_device.reset_input_buffer()
-        # readline only reads the top line, so make sure
-        # the buffer is not filled with old voltage readings
-        # by resetting the input buffer
+        
+        # MCP3425 address, 0x68(104)
+        # Read data back from 0x00(00), 2 bytes, MSB first
+        # raw_adc MSB, raw_adc LSB
+        voltage_msg = self.bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
 
+        # Convert the data to 12-bits
+        raw_adc_voltage = (voltage_msg[0] & 0x0F) * 256 + voltage_msg[1]
+        if raw_adc_voltage > 2047:
+            raw_adc_voltage -= 4095
+            
+        # MCP3425 address, 0x68(104)
+        # Read data back from 0x00(00), 2 bytes, MSB first
+        # raw_adc MSB, raw_adc LSB
+        current_msg = self.bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
+
+        # Convert the data to 12-bits
+        raw_adc_current = (current_msg[0] & 0x0F) * 256 + current_msg[1]
+        if raw_adc_current > 2047:
+            raw_adc_current -= 4095
+        
+        # PSM specific conversion ratio
+        self.system_voltage = raw_adc_voltage * 0.011
+        self.system_current = raw_adc_current * 0.0504
+        
+        # publish
         self.system_battery_level_pub.publish(self.system_voltage)
-        self.system_recieved = True
+        self.system_battery_current_draw_pub.publish(self.system_current)
+        if not self.system_recieved:
+            self.system_recieved = True
 
     def log_cb(self, event):
         
@@ -105,7 +143,7 @@ class BatteryMonitor:
         self.system_timer.shutdown()
         self.xavier_timer.shutdown()
         self.log_timer.shutdown()
-        self.powersense_device.close()
+        self.bus.close()
 
 
 if __name__ == "__main__":
