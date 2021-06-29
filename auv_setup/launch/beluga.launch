@@ -29,7 +29,7 @@
     <node pkg="pca9685_ros_driver" type="pca9685_ros_node.py" name="pca9685_ros_driver" output="screen" />
 
     <!-- ZED2 camera node -->
-    <!-- <include file="$(find zed_wrapper)/launch/zed2.launch" /> -->
+    <include file="$(find zed_wrapper)/launch/zed2.launch" />
     
     <!-- Sonar ping360 --> 
     <!--
