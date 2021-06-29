@@ -104,7 +104,7 @@ class BatteryMonitor:
         
         # PSM specific conversion ratio
         self.system_voltage = raw_adc_voltage * 0.011
-        self.system_current = raw_adc_current * 0.011
+        self.system_current = raw_adc_current * 0.0504
         
         # publish
         self.system_battery_level_pub.publish(self.system_voltage)
