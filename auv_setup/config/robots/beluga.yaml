@@ -127,8 +127,8 @@ i2c:
     address: 0x40
     bus: 8
   psm:
-    address_voltage: 0x69
-    address_current: 0x6a
+    address_voltage: 0x6a
+    address_current: 0x69
     bus: 8
 
 pca9685:
