@@ -10,8 +10,8 @@ import Jetson.GPIO as GPIO
 # Note: is currently hardware dependent; replace GPIO calls with ros publish at some point,
 # and create a driver.
 
-on = 1.0
-off = -1.0
+on = -1.0
+off = 1.0
 active = 1
 inactive = 0
 
