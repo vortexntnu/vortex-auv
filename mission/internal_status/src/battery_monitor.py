@@ -46,11 +46,6 @@ class BatteryMonitor:
         self.powersense_device_voltage.ioctl_write(0x0, bytes(0b10010000))
         self.powersense_device_current.ioctl_write(0x0, bytes(0b10010000))
 
-        # set up callbacks
-        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
-        self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
-        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
-
         # Publishers
         self.xavier_battery_level_pub = rospy.Publisher(
             "/auv/battery_level/xavier", Float32, queue_size=1
@@ -62,6 +57,11 @@ class BatteryMonitor:
         self.system_battery_current_draw_pub = rospy.Publisher(
             "/auv/battery_level/system_current_draw", Float32, queue_size=1
         )
+
+        # set up callbacks
+        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
+        self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
+        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
         rospy.loginfo("BatteryMonitor initialized")
 
