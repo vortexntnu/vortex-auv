@@ -23,5 +23,6 @@ class Compass:
         self.compass_pub(heading)
 
 if __name__ == "__main__":
+    rospy.init_node("compass")
     compass = Compass()
     rospy.spin()
