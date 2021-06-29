@@ -74,7 +74,7 @@ class BatteryMonitor:
         self.xavier_voltage = xavier_mV / 1000.0
         
         self.xavier_battery_level_pub.publish(self.xavier_voltage)
-        if not self.xavier_recieved:'
+        if not self.xavier_recieved:
             self.xavier_recieved = True
 
     def system_cb(self, event):
