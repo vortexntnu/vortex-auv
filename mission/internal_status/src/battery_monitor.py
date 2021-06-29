@@ -38,13 +38,13 @@ class BatteryMonitor:
         self.xavier_recieved = False
         self.system_recieved = False
 
-        # Setup powersense module devices with I2C protocol
-        self.powersense_device_voltage = pylibi2c.I2CDevice(self.path_to_powersense, self.i2c_address_powersense_voltage)
-        self.powersense_device_current = pylibi2c.I2CDevice(self.path_to_powersense, self.i2c_address_powersense_current)
+        # Get I2C bus for power sense module
+        self.bus = smbus.SMBus(8)
+        time.sleep(1)
 
         # Send configure command to the module to enable continuous conversion in 12-bit mode
-        self.powersense_device_voltage.ioctl_write(0x0, bytes(0b10010000))
-        self.powersense_device_current.ioctl_write(0x0, bytes(0b10010000))
+        self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
+        time.sleep(0.5)
 
         # Publishers
         self.xavier_battery_level_pub = rospy.Publisher(
@@ -64,19 +64,6 @@ class BatteryMonitor:
         self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
         rospy.loginfo("BatteryMonitor initialized")
-        
-        
-
-        # Get I2C bus
-        self.bus = smbus.SMBus(8)
-        time.sleep(1)
-
-        # MCP3426 address, 0x68(104)
-        # Send configuration command
-        #		0x10(16)	Continuous conversion mode, 12-bit Resolution
-        self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
-        time.sleep(0.5)
-
 
 
     def xavier_cb(self, event):
@@ -87,7 +74,8 @@ class BatteryMonitor:
         self.xavier_voltage = xavier_mV / 1000.0
         
         self.xavier_battery_level_pub.publish(self.xavier_voltage)
-        self.xavier_recieved = True
+        if not self.xavier_recieved:'
+            self.xavier_recieved = True
 
     def system_cb(self, event):
         """Read voltage of system from powersense device."""
@@ -118,9 +106,9 @@ class BatteryMonitor:
         
         # publish
         self.system_battery_level_pub.publish(self.system_voltage)
-        self.system_recieved = True
-
         self.system_battery_current_draw_pub.publish(self.system_current)
+        if not self.system_recieved:
+            self.system_recieved = True
 
     def log_cb(self, event):
         
