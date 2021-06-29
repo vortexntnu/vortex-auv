@@ -68,13 +68,13 @@ class BatteryMonitor:
         
 
         # Get I2C bus
-        bus = smbus.SMBus(8)
+        self.bus = smbus.SMBus(8)
         time.sleep(1)
 
         # MCP3426 address, 0x68(104)
         # Send configuration command
         #		0x10(16)	Continuous conversion mode, 12-bit Resolution
-        bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
+        self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
         time.sleep(0.5)
 
 
@@ -95,7 +95,7 @@ class BatteryMonitor:
         # MCP3425 address, 0x68(104)
         # Read data back from 0x00(00), 2 bytes, MSB first
         # raw_adc MSB, raw_adc LSB
-        voltage_msg = bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
+        voltage_msg = self.bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
 
         # Convert the data to 12-bits
         raw_adc_voltage = (voltage_msg[0] & 0x0F) * 256 + voltage_msg[1]
@@ -105,7 +105,7 @@ class BatteryMonitor:
         # MCP3425 address, 0x68(104)
         # Read data back from 0x00(00), 2 bytes, MSB first
         # raw_adc MSB, raw_adc LSB
-        current_msg = bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
+        current_msg = self.bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
 
         # Convert the data to 12-bits
         raw_adc_current = (current_msg[0] & 0x0F) * 256 + current_msg[1]
@@ -155,6 +155,7 @@ class BatteryMonitor:
         self.system_timer.shutdown()
         self.xavier_timer.shutdown()
         self.log_timer.shutdown()
+        self.bus.close()
 
 
 if __name__ == "__main__":
