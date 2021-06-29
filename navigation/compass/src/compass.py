@@ -22,7 +22,7 @@ class Compass:
 
     def magnetometer_cb(self, mag_msg):
         heading = atan2(mag_msg.magnetic_field.y, mag_msg.magnetic_field.x)
-        self.compass_pub(heading)
+        self.compass_pub.publish(heading)
 
 if __name__ == "__main__":
     rospy.init_node("compass")
