@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-# python imports
-import subprocess
-import os
 import ctypes
-import pylibi2c
+import os
+import subprocess
+import time
 
-# ros imports
+import pylibi2c
 import rospy
+import smbus
 from std_msgs.msg import Float32
 
 
@@ -64,6 +64,20 @@ class BatteryMonitor:
         self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
         rospy.loginfo("BatteryMonitor initialized")
+        
+        
+
+        # Get I2C bus
+        bus = smbus.SMBus(8)
+        time.sleep(1)
+
+        # MCP3426 address, 0x68(104)
+        # Send configuration command
+        #		0x10(16)	Continuous conversion mode, 12-bit Resolution
+        bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
+        time.sleep(0.5)
+
+
 
     def xavier_cb(self, event):
         """Record output from voltage meter command, decode from bytes object to string, convert from string to integer"""
@@ -78,16 +92,31 @@ class BatteryMonitor:
     def system_cb(self, event):
         """Read voltage of system from powersense device."""
         
-        self.voltage_bytes = self.powersense_device_voltage.ioctl_read(0x0, 3)
-        self.current_bytes = self.powersense_device_current.ioctl_read(0x0, 3)
-        
-        self.system_voltage = (self.voltage_bytes[1]<<8) | (self.voltage_bytes[2])
-        self.system_current = (self.current_bytes[1]<<8) | (self.current_bytes[2])
+        # MCP3425 address, 0x68(104)
+        # Read data back from 0x00(00), 2 bytes, MSB first
+        # raw_adc MSB, raw_adc LSB
+        voltage_msg = bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
+
+        # Convert the data to 12-bits
+        raw_adc_voltage = (voltage_msg[0] & 0x0F) * 256 + voltage_msg[1]
+        if raw_adc_voltage > 2047:
+            raw_adc_voltage -= 4095
+            
+        # MCP3425 address, 0x68(104)
+        # Read data back from 0x00(00), 2 bytes, MSB first
+        # raw_adc MSB, raw_adc LSB
+        current_msg = bus.read_i2c_block_data(self.i2c_address_powersense_voltage, 0x00, 2)
+
+        # Convert the data to 12-bits
+        raw_adc_current = (current_msg[0] & 0x0F) * 256 + current_msg[1]
+        if raw_adc_current > 2047:
+            raw_adc_current -= 4095
         
         # PSM specific conversion ratio
-        self.system_voltage = self.system_voltage * 0.0909090909
-        self.system_current = self.system_current * 0.011
+        self.system_voltage = raw_adc_voltage * 0.011
+        self.system_current = raw_adc_current * 0.011
         
+        # publish
         self.system_battery_level_pub.publish(self.system_voltage)
         self.system_recieved = True
 
