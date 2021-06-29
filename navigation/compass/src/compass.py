@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from math import atan2
+from math import atan2, degrees
 
 import rospy
 from sensor_msgs.msg import MagneticField
@@ -17,12 +17,14 @@ class Compass:
         
         # set up sub and pub
         self.compass_pub = rospy.Publisher(heading_topic, Float32, queue_size=1)
+        self.compass_pub_deg = rospy.Publisher(heading_topic + "_deg", Float32, queue_size=1)
         self.magnetometer_sub = rospy.Subscriber(magnetometer_topic, MagneticField, self.magnetometer_cb)
         
 
     def magnetometer_cb(self, mag_msg):
         heading = atan2(mag_msg.magnetic_field.y, mag_msg.magnetic_field.x)
         self.compass_pub.publish(heading)
+        self.compass_pub_deg.publish(degrees(heading))
 
 if __name__ == "__main__":
     rospy.init_node("compass")
