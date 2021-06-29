@@ -50,8 +50,8 @@ class LightsInterfaceNode:
 
     def publish_pwm_msg(self, us):
             msg = Pwm()
-            msg.pins = 8
-            msg.positive_width_us = us
+            msg.pins = [self.pwm_pin]
+            msg.positive_width_us = [us]
 
             self.pwm_pub.publish(msg)
 
