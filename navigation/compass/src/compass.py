@@ -10,7 +10,7 @@ class Compass:
         """
         
         # parameters
-        magnetometer_topic = rospy.get_param("magnetometer_topic", default='zed')
+        magnetometer_topic = rospy.get_param("magnetometer_topic", default='/zed2/zed_node/imu/mag')
         heading_topic = rospy.get_param("heading_topic", default="heading_magnetic")
         
         # set up sub and pub
