@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-import ctypes
-import os
 import subprocess
 import time
 
-import pylibi2c
 import rospy
 import smbus
 from std_msgs.msg import Float32
@@ -22,6 +19,7 @@ class BatteryMonitor:
         
         self.i2c_address_powersense_voltage = rospy.get_param("/i2c/psm/address_voltage", default=0x69)
         self.i2c_address_powersense_current = rospy.get_param("/i2c/psm/address_current", default=0x6a)
+        self.i2c_bus_number = rospy.get_param("/i2c/psm/bus_number", default=8)
         
         self.critical_level = rospy.get_param("/battery/thresholds/critical", default=13.5)
         self.warning_level = rospy.get_param("/battery/thresholds/warning", default=14.5)
@@ -39,7 +37,7 @@ class BatteryMonitor:
         self.system_recieved = False
 
         # Get I2C bus for power sense module
-        self.bus = smbus.SMBus(8)
+        self.bus = smbus.SMBus(self.i2c_bus_number)
         time.sleep(1)
 
         # Send configure command to the module to enable continuous conversion in 12-bit mode
