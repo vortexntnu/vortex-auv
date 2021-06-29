@@ -84,9 +84,12 @@ class JoystickInterface():
         roll 	= (buttons['RB'] - buttons['LB']) * self.joystick_roll_scaling  
         pitch 	= axes['vertical_axis_right_stick'] * self.joystick_pitch_scaling * (-1)
         yaw 	= axes['horizontal_axis_right_stick'] * self.joystick_yaw_scaling
+        
+        dpad_lights = axes['dpad_horizontal']
+        dpad_gripper = axes['dpad_vertical']
 
         joystick_msg = Joy()
-        joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw]
+        joystick_msg.axes = [surge, sway, heave, roll, pitch, yaw, dpad_lights, dpad_gripper]
         
         self.joystick_pub.publish(joystick_msg)
 
