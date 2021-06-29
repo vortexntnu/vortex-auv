@@ -81,8 +81,8 @@ class BatteryMonitor:
         self.voltage_bytes = self.powersense_device_voltage.ioctl_read(0x0, 3)
         self.current_bytes = self.powersense_device_current.ioctl_read(0x0, 3)
         
-        self.system_voltage = (self.voltage_bytes[1]<<5) | (self.voltage_bytes[2])
-        self.system_current = (self.current_bytes[1]<<5) | (self.current_bytes[2])
+        self.system_voltage = (self.voltage_bytes[1]<<8) | (self.voltage_bytes[2])
+        self.system_current = (self.current_bytes[1]<<8) | (self.current_bytes[2])
         
         # PSM specific conversion ratio
         self.system_voltage = self.system_voltage * 0.011
