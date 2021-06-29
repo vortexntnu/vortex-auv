@@ -111,7 +111,7 @@ battery:
     critical: 13.5 # Volts
   system:
     interval: 0.05 # seconds
-    path: "/dev/ttyUSB2"
+    path: "/dev/i2c-8"
   xavier:
     interval: 10
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
@@ -123,8 +123,13 @@ temperature:
     interval: 10    # Seconds
       
 i2c:
-  address: 0x40
-  bus: 8
+  pca9685:
+    address: 0x40
+    bus: 8
+  psm:
+    address_voltage: 0x69
+    address_current: 0x6a
+    bus: 8
 
 pca9685:
   pwm:
