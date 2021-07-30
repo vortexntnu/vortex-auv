@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS signals)
+#find_package(Boost REQUIRED COMPONENTS signals)
 
 catkin_package(
   INCLUDE_DIRS include
