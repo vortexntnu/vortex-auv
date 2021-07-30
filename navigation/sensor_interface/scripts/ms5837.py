@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 try:
     import smbus
 except:

@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
+
 import rospy
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
