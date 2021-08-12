@@ -31,17 +31,17 @@ DepthEstimator::DepthEstimator(ros::NodeHandle nh) : nh(nh)
     depth_topic = "/depth/estimated";
 
   // subscriber and publsiher
-  depth_pub = nh.advertise<std_msgs::Float64>(depth_topic, 1);
+  depth_pub = nh.advertise<std_msgs::Float32>("/depth/estimator", 1);
   pressure_sub = nh.subscribe(pressure_topic, 1, &DepthEstimator::pressureCallback, this);
 }
 
 void DepthEstimator::pressureCallback(const sensor_msgs::FluidPressure& msg)
 {
-  const double gauge_pressure = msg.fluid_pressure - atmospheric_pressure;
-  const double depth_meters = gauge_pressure / (water_density * earth_gravitation);
+  const double mbar_pressure = msg.fluid_pressure / 10.0;
+  const double depth_mm = mbar_pressure * 10.197; // 10.197 is the constant to convert mbar to mmH2O
+  const double depth_meters = depth_mm / 1000.0;
 
-  std_msgs::Float64 depth_msg;
-  depth_msg.data = - depth_meters;
-
+  std_msgs::Float32 depth_msg;
+  depth_msg.data = depth_meters;
   depth_pub.publish(depth_msg);
 }

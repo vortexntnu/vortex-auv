@@ -22,7 +22,7 @@ class GripperInterfaceNode():
 
         self.gripper_state = inactive
 
-        self.cooldown_period = 2 # Seconds
+        self.cooldown_period = 0.4 # Seconds
         self.last_press = datetime.now()
 
         # GPIO setup

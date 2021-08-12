@@ -5,7 +5,7 @@
 
 #include <ros/ros.h>
 #include <ros/console.h>
-#include <std_msgs/Float64.h>
+#include <std_msgs/Float32.h>
 #include <sensor_msgs/FluidPressure.h>
 
 class DepthEstimator
