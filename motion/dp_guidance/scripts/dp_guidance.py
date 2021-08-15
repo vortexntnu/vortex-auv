@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Christopher Strom
 # Copyright (c) 2020, Vortex NTNU.
 # All rights reserved.

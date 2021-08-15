@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
+
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
 project(dp_controller)
 
 add_definitions(-std=c++11)
@@ -17,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
-find_package(Boost REQUIRED COMPONENTS signals)
+#find_package(Boost REQUIRED COMPONENTS signals)
 
 set(ROSLINT_CPP_OPTS "--filter=-legal/copyright")
 roslint_cpp()
