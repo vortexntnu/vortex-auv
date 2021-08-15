@@ -1,0 +1,56 @@
+name: ROS melodic CI
+on:
+  pull_request:
+    branches:
+      - development
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  build-and-test-run:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Install ROS and workspace dependencies
+        run: |
+          sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' &&
+          sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 &&
+          sudo apt-get update &&
+          sudo apt-get -qq update -y &&
+          ( sudo apt-get -qq install build-essential openssh-client ros-melodic-desktop-full ros-melodic-catkin python-catkin-tools python-openpyxl python3-catkin-pkg python3-rosdep ros-melodic-diagnostics ros-melodic-geometry protobuf-compiler ros-melodic-rosbridge-server ros-melodic-message-to-tf ros-melodic-geographic-msgs ros-melodic-move-base ros-melodic-move-base-msgs -y ||
+          sudo apt-get -qq install build-essential openssh-client ros-melodic-desktop-full ros-melodic-catkin python-catkin-tools python-catkin-pkg python-rosdep ros-melodic-diagnostics ros-melodic-geometry protobuf-compiler ros-melodic-rosbridge-server ros-melodic-message-to-tf ros-melodic-geographic-msgs ros-melodic-move-base ros-melodic-move-base-msgs -y ; ) &&
+          sudo rosdep init && 
+          rosdep update`;
+          rosdep install --from-paths --reinstall --ignore-packages-from-source --default-yes --verbose .`;
+
+      - name: Setup catkin workspace
+        run: |
+          mkdir -p ~/catkin_ws/src
+          cd ~/catkin_ws
+          source /opt/ros/melodic/setup.bash >> ~/.bashrc
+          source ~/.bashrc
+          catkin build
+          
+      - name: Clone repositories
+        run: |
+          cd ~/catkin_ws/src
+          cp -r $GITHUB_WORKSPACE .
+          git clone https://github.com/vortexNTNU/Vortex-Simulator
+
+      - name: Build packages
+        run: |
+          cd ~/catkin_ws/
+          source devel/setup.bash && catkin build
+          source devel/setup.bash
+
+      - name: Run Vortex-AUV with Vortex-Simulator
+        run: |
+          cd ~/catkin_ws/
+          source /opt/ros/melodic/setup.bash
+          source ~/catkin_ws/devel/setup.bash
+          cd ~/catkin_ws/src/Vortex-Simulator/launch_scripts_bash
+          chmod u+x+r ./sim_launch_fsm.sh
+          ./sim_launch_fsm.sh --gui 0 --camerafront 0 --sleep 25

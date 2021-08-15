@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="fsm_ns" default="fsm"/>
+
+  <group ns="$(arg fsm_ns)">
+    <node name="go_home"   pkg="finite_state_machine"    type="go_home.py"    output="screen"/>
+  </group>
+
+</launch>

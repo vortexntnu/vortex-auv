@@ -1,30 +1,13 @@
-## Vortex NTNU, Manta AUV repository
+## Mission
+Any packages that determine how the AUV behaves during a mission is put here. This will mainly be
+a state machine and/or behavior tree for decision making, but also collision detection and other mission-related
+plans.
 
-## How to run a mission in simulator
+The current system contains:
 
-1. Open a window and start gazebo:
-	```bash
-	$ roslaunch simulator_launch cybernetics_pool.launch
-	```
+* finite_state_machine
+    * SMACH-based fsm that determines how tasks are to be executed
+    * Closely linked to the guidance interface
 
-2. Open another window and lauch nodes neccessary for operating auv:
-	```bash
-	$ roslaunch vortex manta_simulator.launch 
-	```
-
-3. Open a third window and lauch the state machine: 
-	```bash
-	$ roslaunch finite_state_machine simtest.launch
-	```
-
-## How to run a mission on AUV
-
-1. Lauch nodes neccessary for operating auv:
-	```bash
-	$ roslaunch vortex manta_real.launch 
-	```
-
-1. Lauch the desired state machine (eg. pooltest): 
-	```bash
-	$ roslaunch finite_state_machine pooltest.launch
-	```
+* anomaly_detection
+    * A currently unused battery simulator to keep track of actual battery status

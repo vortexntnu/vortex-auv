@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Namespace -->
+    <arg name="ns_monitor"   default="monitor"/>
+
+    <!-- Monitoring nodes -->
+    <group ns="$(arg ns_monitor)">
+        <node pkg="internal_status"
+        type="battery_monitor.py"
+        name="battery_monitor"
+        output="screen"/>
+        <node pkg="internal_status"
+        type="temperature_monitor.py"
+        name="temperature_monitor"
+        output="screen"/>
+    </group>
+</launch>

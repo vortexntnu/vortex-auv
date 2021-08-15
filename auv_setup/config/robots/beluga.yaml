@@ -1,0 +1,161 @@
+# This file defines parameters specific to Beluga
+#
+# When looking at the AUV from above, the thruster placement is:   
+#
+#        front
+#       |======|
+#  |=7↗=|      |=0↖=|
+#  |    |      |    |
+#  | 6• |      | 1• |
+#  |    |      |    |
+#  |    |      |    |
+#  | 5• |      | 2• |
+#  |    |      |    |
+#  |=4↖=|==||==|=3↗=|
+#
+
+physical:
+  weight: 24.00     # kg
+  buoyancy: 23.00   # kg
+  center_of_mass: [-15.2, 1.0, 9.4]        # mm (x,y,z)
+  center_of_buoyancy: [-15.1, 0.9, 20.0]   # mm (x,y,z)
+
+
+propulsion:
+  dofs:
+    num: 6
+    which:
+      surge: true
+      sway:  true
+      heave: true
+      roll:  true
+      pitch: true
+      yaw:   true
+  thrusters:
+    num: 8
+    configuration_matrix:
+      [[ 0.70711,  0.00000,  0.00000,  0.70711,  0.70711,  0.00000,  0.00000, 0.70711], # Surge
+       [ 0.70711,  0.00000,  0.00000,  -0.70711, 0.70711,  0.00000,  0.00000,-0.70711], # Sway
+       [ 0.00000,  1.00000,  1.00000,  0.00000,  0.00000,  1.00000,  1.00000, 0.00000], # Heave
+       [ 0.00000, -0.22000, -0.22000,  0.00000,  0.00000,  0.22000,  0.22000, 0.00000], # Roll
+       [ 0.06500, -0.24000,  0.24000,  0.06500,  0.06500,  0.24000, -0.24000, 0.06500], # Pitch 
+       [ 0.32557,  0.00000,  0.00000,  0.32557,  -0.32557, 0.00000,  0.00000,-0.32557]] # Yaw
+
+    rate_of_change:
+      max: 1 # Maximum rate of change in newton per second for a thruster
+    map: [0, 1, 2, 3, 4, 5, 6, 7]  
+    direction: [1, -1, 1, 1, -1, -1, 1, -1]
+    offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
+
+guidance:
+  dp:
+    rate: 20
+    acceptance_margins: [0.10, 0.10, 0.10, 0.15, 0.15, 0.15] # Order: x,y,z,roll,pitch,yaw
+  LOS:
+    rate: 20
+    delta: 0.7
+    odom_topic: "/odometry/filtered"
+  vel: 
+    rate: 20
+  joy:
+    thrust_topic: "/thrust/joy"
+
+controllers:
+  dp:
+    thrust_topic: "/thrust/dp"
+    odometry_topic: "/odometry/filtered"
+    velocity_gain: 1.0    # lower (1.0) is good when using slightly noisy state estimates  
+    position_gain: 35.0 
+    attitude_gain: 7.5  
+    integral_gain: 0.065
+  los_controller: # Note: Not loaded by the backstepping/pid controllers yet! Make sure to do this after tuning with dyn. reconf.
+    PID:
+      p: 25.0
+      i: 0.0024
+      d: 3.5
+      sat: 40.0
+    backstepping:
+      c:  0.5
+      k1: 25.0
+      k2: 10.0
+      k3: 10.0
+  los:
+    thrust_topic: "/thrust/los"
+  velocity_controller:
+    thrust_topic: "/thrust/vel"
+    odometry_topic: "/odometry/filtered"
+    P_gains: [40, 40, 75, 50, 10, 10]
+    I_gains: [1, 1, 1, 1.5, 0.015, 0.015]
+    D_gains: [0.01, 0.01, 0.01, 0.12, 0.03, 0.03]
+    F_gains: [50, 75, 75, 50, 10, 10]
+    integral_windup_limit: 10        # in newton
+    setpoint_range: 0.5             # max distance from current point to setpoint
+    max_output_ramp_rate: 1         # in newton per cycle
+
+thrust_merger:
+  rate: 20
+  output_topic: "/thrust/desired_forces"
+        
+joystick:
+  scaling:
+    surge: 60
+    sway: 60
+    heave: 60
+    roll: 30
+    pitch: 30
+    yaw: 30
+
+battery:
+  thresholds:
+    warning: 14.5  # Volts
+    critical: 13.5 # Volts
+  system:
+    interval: 0.05 # seconds
+    path: "/dev/i2c-8"
+  xavier:
+    interval: 10
+    path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
+  logging:
+    interval: 10   # Seconds
+
+temperature:
+  logging:
+    interval: 10    # Seconds
+      
+i2c:
+  pca9685:
+    address: 0x40
+    bus: 8
+  psm:
+    address_voltage: 0x6a
+    address_current: 0x69
+    bus: 8
+
+pca9685:
+  pwm:
+    bits_per_period: 4095 
+    frequency: 50.0
+    frequency_measured: 50 # 51.6 is the former value, but we dont know why
+
+driver_stim300:
+  device_name: "/dev/ttyUSB0"
+
+ping360_node:
+  device: "/dev/ttyUSB1"
+  baudrate: 115200
+  debug: False
+  imgSize: 500
+  gain: 0
+  step: 1
+  numberOfSamples: 200
+  transmitFrequency: 740
+  sonarRange: 10
+  speedOfSound: 1500
+  queueSize: 1
+  threshold: 100
+  enableImageTopic: True 
+  enableScanTopic: True 
+  enableDataTopic: True 
+  maxAngle: 400 
+  minAngle: 0 
+  oscillate: False 

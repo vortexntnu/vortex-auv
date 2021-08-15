@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="fsm_ns" default="fsm"/>
+
+  <group ns="$(arg fsm_ns)">
+    <node name="four_corner_mission"   pkg="finite_state_machine"    type="four_corner_mission.py"    output="screen"/>
+  </group>
+
+</launch>

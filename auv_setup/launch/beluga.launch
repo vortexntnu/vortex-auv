@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  
+  <!-- INPUT ARGS -->
+  <arg name="type" default="real"/> <!-- real | simulator -->
+  <arg name="localization" default="eskf"/> <!-- ekf | eskf-->
+
+  <!-- PARAMETERS -->
+  <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
+  <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
+
+  <!-- DRIVERS -->
+  <group if="$(eval type == 'real')">
+    <!-- For monitoring internal state -->
+    <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />
+
+    <!-- IMU -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0.029 0 0.091 3.14159 0 0 base_link imu_0" />
+    <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
+
+    <!-- DVL -->	
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 0 3.14159 0 base_link dvl_link" /> 
+    <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 base_link pressure_link" /> <!-- Remap pressure reading from DVL -->
+    <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
+
+    <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
+    <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
+    <node pkg="pca9685_ros_driver" type="pca9685_ros_node.py" name="pca9685_ros_driver" output="screen" />
+
+    <!-- ZED2 camera node -->
+    <include file="$(find zed_wrapper)/launch/zed2.launch" />
+    
+    <!-- Sonar ping360 --> 
+    <!--
+    <node pkg="tf" type="static_transform_publisher" name="transform_sonar_frame" args="0 0 0 0 0 0 1 map sonar_frame 10" />
+    <env name="emulated_sonar" value="false" />
+    <node pkg="ping360_sonar" type="ping360_node" name="ping360_node" output="screen">
+        <param name="baudrate" value="115200"/>
+        <param name="debug" value="False"/>
+        <param name="imgSize" value="500"/>
+        <param name="gain" value="0"/>
+        <param name="step" value="1"/>
+        <param name="numberOfSamples" value="200"/>
+        <param name="transmitFrequency" value="740"/>
+        <param name="sonarRange" value="10"/>
+        <param name="speedOfSound" value="1500"/>
+        <param name="queueSize" value="1"/>
+        <param name="threshold" value="100"/>
+        <param name="enableImageTopic" value="True"/> 
+        <param name="enableScanTopic" value="True"/> 
+        <param name="enableDataTopic" value="True"/> 
+        <param name="maxAngle" value="400"/> 
+        <param name="minAngle" value="0"/> 
+        <param name="oscillate" value="True"/> 
+    </node>
+    -->
+  </group> <!-- end drivers -->
+
+
+  <!-- INCLUDES -->
+  <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+  <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+  <include file="$(find manipulators_launch)/launch/manipulators.launch"    pass_all_args="true"/>
+
+  <!-- Joystick nodes for ROV missions -->
+  <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
+
+</launch>

@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  <arg name="ns_joystick"   default="joystick"/>
+
+  <!-- Joystick nodes -->
+  <group ns="$(arg ns_joystick)">
+    <node pkg="joy"                name="joystick_driver"    type="joy_node"              output="screen" args="_deadzone:=0.15 _autorepeat_rate:=100"/>
+  </group>
+
+</launch>

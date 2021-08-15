@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+
+   <node name="guidance_interface"    pkg="interface"     type="guidance_interface.py"    output="screen"/>
+    
+</launch>
