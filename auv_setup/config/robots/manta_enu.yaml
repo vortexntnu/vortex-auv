@@ -18,8 +18,8 @@
 #
 
 physical:
-  mass_kg: 0
-  displacement_m3: 0
+  weight: 18.8    #kg
+  buoyancy: 18.8  #kg 
   center_of_mass: [0, 0, 0]
   center_of_buoyancy: [0, 0, 0]
   drag_coefficients: [80, 80, 204, 1, 1, 1]

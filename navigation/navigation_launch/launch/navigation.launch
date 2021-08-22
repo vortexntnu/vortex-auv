@@ -10,8 +10,7 @@
     <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
     <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
-    <rosparam command="load" file="$(find robot_localization)/params/pooltestnovember.yaml" />
-    <node pkg="robot_localization" type="ekf_localization_node" name="ekf" output="screen" />
+    <include file="$(find robot_localization)/launch/vortex_auv_ekf.launch"/>
 
   </group>
 

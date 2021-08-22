@@ -4,7 +4,7 @@
   
   <!-- INPUT ARGS -->
   <arg name="type" default="real"/> <!-- real | simulator -->
-  <arg name="localization" default="eskf"/> <!-- ekf | eskf-->
+  <arg name="localization" default="ekf"/> <!-- ekf | eskf-->
 
   <!-- PARAMETERS -->
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>

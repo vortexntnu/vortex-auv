@@ -4,7 +4,7 @@
   
   <!-- INPUT ARGS -->
   <arg name="type" default="simulator"/> <!-- real | simulator -->
-
+  <arg name="localization" default="ekf"/> <!-- ekf | eskf-->
 
   <!-- PARAMETERS -->
   <rosparam command="load" file="$(find auv_setup)/config/robots/manta_enu.yaml"/>
@@ -30,5 +30,9 @@
     <!-- Remap pressure reading from DVL -->
     <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 odom pressure_link" />
   </group>
+
+  <!-- Joystick nodes for ROV missions -->
+  <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
+
 
 </launch>
