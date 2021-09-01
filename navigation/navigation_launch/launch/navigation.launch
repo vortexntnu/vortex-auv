@@ -10,7 +10,13 @@
     <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
     <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
 
-    <include file="$(find robot_localization)/launch/vortex_auv_ekf.launch"/>
+    <group if="$(eval type == 'real')">
+      <include file="$(find robot_localization)/launch/vortex_auv_ekf.launch"/>
+    </group>
+
+    <group if="$(eval type == 'simulator')">
+      <include file="$(find robot_localization)/launch/vortex_simulator_ekf.launch"/>
+    </group>
 
   </group>
 
