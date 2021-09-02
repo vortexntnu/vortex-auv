@@ -1,52 +1,41 @@
-<?xml version="1.0"?>
+<?xml version="1.0" ?>
 <launch>
 
-  <!-- Depth estimation -->
-  <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen" ns="localization" />
-
-  <!-- Kalman filter -->
-  <group if="$(eval localization == 'ekf')">
+    <group if="$(eval localization == 'ekf')">
     
-    <!-- Underwater odometry. Creates /dvl/odom, which contains depth and linear vel -->
-    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen" />
+      <group if="$(eval type == 'real')">
+        <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+          <rosparam command="load" file="$(find robot_localization)/params/beluga_auv_ekf.yaml" />
+        </node>
+      </group>
 
-    <group if="$(eval type == 'real')">
-      <include file="$(find robot_localization)/launch/vortex_auv_ekf.launch"/>
+      <group if="$(eval type == 'simulator')">
+        <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+          <rosparam command="load" file="$(find robot_localization)/params/vortex_simulator.yaml" />
+        </node>
+      </group>
+
     </group>
 
-    <group if="$(eval type == 'simulator')">
-      <include file="$(find robot_localization)/launch/vortex_simulator_ekf.launch"/>
+    <group if="$(eval localization == 'eskf')">
+      
+      <!-- Error State Kalman Filter-->
+      <node pkg="eskf" type="eskf" name="eskf_localization_node" output="screen"/>
+
     </group>
 
-  </group>
+    <group if="$(eval localization == 'simple_odom')">
+      
+      <!-- Simple Odometry-->
+      <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen"/>
 
-  <!-- Error State Kalman Filter-->
-  <group if="$(eval localization == 'eskf')">
-    <rosparam command="load" file="$(find eskf)/apps/ros/parameters/pooltest2021_params.yaml" />
-    <node pkg="eskf" type="eskf" name="eskf" output="screen" ns="localization" />
-  </group>
+    </group>
 
-  <!-- Simple Odometry-->
-  <group if="$(eval localization == 'simple_odom')">
-    <include file="$(find mocap_qualisys)/launch/qualisys.launch">
-      <arg name="qtm_protocol_version" value="17"/>
-      <arg name="server_address" value="192.168.0.20"/>
-      <arg name="publish_tf" value="true"/>
-    </include>
-    <param name="simple_odom/imu_topic" value="/imu/data_raw"/>
-    <param name="simple_odom/dvl_topic" value="/dvl/twist"/>
-    <param name="simple_odom/mocap_topic" value="/qualisys/Body_1/pose"/>
-    <node pkg="simple_odometry" type="simple_odometry_node" name="simple_odom_node" output="screen" />
-  </group>
 
-  <!-- Qualisys mocap -->
-  <group if="$(eval localization == 'qualisys')">
-    <remap from="/qualisys/Body_1/odom" to="/odometry/filtered"/>
-    <include file="$(find mocap_qualisys)/launch/qualisys.launch">
-      <arg name="qtm_protocol_version" value="17"/>
-      <arg name="server_address" value="192.168.0.20"/>
-      <arg name="publish_tf" value="true"/>
-    </include>
+  <group if="$(eval type == 'simulator')">
+    <!-- Underwater odometry -->
+    <rosparam command="load" file="$(find underwater_odom)/param/environment_config.yaml" />
+    <node pkg="underwater_odom" type="underwater_odom_node" name="underwater_odom_node" output="screen"/>
   </group>
 
 </launch>
