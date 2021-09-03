@@ -1,0 +1,9 @@
+repositories:
+  robot_localization:
+    type: git
+    url: git@github.com:vortexntnu/robot_localization
+    version: melodic-devel
+  vortex-simulator:
+    type: git
+    url: git@github.com:vortexntnu/Vortex-Simulator
+    version: development

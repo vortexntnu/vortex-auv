@@ -1,0 +1,13 @@
+protobuf-compiler
+ros-melodic-rosbridge-server
+ros-melodic-message-to-tf
+ros-melodic-geographic-msgs
+ros-melodic-move-base
+ros-melodic-move-base-msgs
+python-osrf-pycommon
+python-openpyxl
+python-yaml
+python-enum34
+python-pip
+python-catkin-tools
+libgeographic-dev

@@ -1,0 +1,3 @@
+rospkg
+pyquaternion
+vcstool
