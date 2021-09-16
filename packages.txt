@@ -10,4 +10,5 @@ python-yaml
 python-enum34
 python-pip
 python-catkin-tools
+python-vcstool
 libgeographic-dev
