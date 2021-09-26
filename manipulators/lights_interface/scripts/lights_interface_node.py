@@ -7,8 +7,7 @@ from datetime import datetime
 
 # TODO:  have multiple light intensity lvls using pwm
 
-on = -1.0
-off = 1.0
+pressed = 1
 active = 1
 inactive = 0
 
@@ -19,30 +18,30 @@ class LightsInterfaceNode:
     def __init__(self):
         rospy.init_node('lights_interface')
 
-        self.js_sub = rospy.Subscriber('/mission/joystick_data', Joy, self.callback, queue_size=1)
+        self.js_sub = rospy.Subscriber('/joystick/joy', Joy, self.callback, queue_size=1)
         self.pwm_pub = rospy.Publisher('/pwm', Pwm, queue_size=1)
 
         self.pwm_pin = 8
-        self.light_state = off
+        self.light_state = inactive
 
-        self.cooldown_period = 2 # Seconds
+        self.cooldown_period = 0.4 # Seconds
         self.last_press = datetime.now()
 
     def callback(self, joy_msg):
         
-        Dpad = joy_msg.axes[6]
+        button = joy_msg.buttons[7]
         
-        if Dpad != 0: # only handle non-zero messages, since the joy topic is spammed
+        if button == pressed: # only handle non-zero messages, since the joy topic is spammed
             time_delta = datetime.now() - self.last_press
             if time_delta.total_seconds() > self.cooldown_period:
 
-                if Dpad == on and self.light_state != active:
+                if self.light_state != active:
                     rospy.loginfo("Lights on!")
                     self.publish_pwm_msg(PWM_HIGH)
                     self.last_press = datetime.now()
                     self.light_state = active
 
-                elif Dpad == off and self.light_state == active:
+                elif self.light_state == active:
                     rospy.loginfo("Lights off!")
                     self.publish_pwm_msg(PWM_LOW)
                     self.last_press = datetime.now()

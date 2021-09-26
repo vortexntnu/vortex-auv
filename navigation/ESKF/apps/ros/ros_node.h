@@ -51,6 +51,8 @@ private:
 
   eskf::ESKF eskf_;
 
+  double TAC_z;
+
   // Load from Yaml file
   eskf::parametersInESKF loadParametersFromYamlFile();
 

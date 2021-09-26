@@ -5,6 +5,7 @@ from enum import IntEnum
 import rospy
 import actionlib
 
+from std_msgs.msg import String
 from sensor_msgs.msg import Joy
 from vortex_msgs.msg import ControlModeAction, ControlModeGoal
 
@@ -52,6 +53,7 @@ class JoystickInterface():
 
         self.joystick_sub = rospy.Subscriber('/joystick/joy', Joy, self.joystick_cb, queue_size=1)
         self.joystick_pub = rospy.Publisher('/mission/joystick_data', Joy, queue_size=1)
+        self.control_mode_pub = rospy.Publisher('/mission/control_mode', String, queue_size=1)
 
         self.guidance_interface_client = actionlib.SimpleActionClient("/guidance_interface/joystick_server", ControlModeAction)
 
@@ -76,6 +78,20 @@ class JoystickInterface():
             cm = ControlModeGoal()
             cm.controlModeIndex = abxy
             self.guidance_interface_client.send_goal(cm)
+            
+            control_mode_msg = String()
+            if abxy == 0:
+                control_mode_msg.data = "open loop"
+            elif abxy == 7:
+                control_mode_msg.data = "pose hold"
+            elif abxy == 3:
+                control_mode_msg.data = "depth heading hold"
+            elif abxy == 1:
+                control_mode_msg.data = "position hold"
+            else: 
+                control_mode_msg.data = "unknown control mode"
+            self.control_mode_pub.publish(control_mode_msg)
+            
             rospy.sleep(rospy.Duration(0.25)) # Sleep to avoid aggressie switching
 
         surge 	= axes['vertical_axis_left_stick'] * self.joystick_surge_scaling
