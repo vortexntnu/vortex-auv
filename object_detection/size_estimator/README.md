@@ -1,0 +1,1 @@
+This node is going to take in the bounding boxes topic, and with the data included, proccess the size of an object whereupon it publishes the actual size of the same object.
