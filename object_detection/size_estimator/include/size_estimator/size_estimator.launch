@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+
+   <node name="size_estimator"    pkg="size_estimator"     type="size_estimator.py"    output="screen"/>
+    
+</launch>
