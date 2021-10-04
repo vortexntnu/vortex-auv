@@ -88,7 +88,7 @@ class GuidanceAndControlNode:
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.path = Path1()
-        self.waypoints = [[0, 0, 0.5], [10,0,0.05]]
+        self.waypoints = [[0, -5, 0], [0,-4,0]] #for testing
         self.path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
