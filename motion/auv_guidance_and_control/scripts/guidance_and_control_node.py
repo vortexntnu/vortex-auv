@@ -94,7 +94,8 @@ class GuidanceAndControlNode:
         virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
         dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
         self.path_following_controller = VirtualTarget(self.path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
-        
+        publish_path_once(self.path) #gets stuck in while loop ...
+
         '''Publish frequency'''
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
         self.rate = rospy.Rate(self.publish_rate)
@@ -118,15 +119,15 @@ class GuidanceAndControlNode:
             continue
 
     def publish_control_forces(self):
-        print("start")
+        #print("start")
         while not rospy.is_shutdown():
             try:
-                print("entry")
+                #print("entry")
                 self.get_state_estimates()
-                print("state")
+                #print("state")
                 # Path following mode
                 if self.mode == 'path_following':
-                    print("path follwing")
+                    print(self.waypoints)
                     '''Do this only once when new path is recieved'''
                     # waypoints = [[0, 0, 0.5], [-2, 4, 2]] # Extract the waypoints as shown.
                     # path = Path1()
@@ -135,7 +136,7 @@ class GuidanceAndControlNode:
                     # virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
                     # dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
                     # self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
-                    # publish_path_once(path)
+                    #publish_path_once(self.path)
 
                     final_wp = self.path_following_controller.path.path[-1](1)
                     final_orientation = [0, 0, 0] # Parameter server
@@ -188,7 +189,7 @@ class GuidanceAndControlNode:
                 # Publish control forces
                 msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
                 self.rate.sleep()
-                print("publish")
+                #print("publish")
                 self.pub.publish(msg)
             except rospy.ROSInterruptException:
                 pass
@@ -226,6 +227,7 @@ def publish_path_once(path):
     rate = rospy.Rate(10)
     ctrl_c = False
     while not ctrl_c:
+        print("stuck in while")
         connections = path_pub.get_num_connections()
         if connections > 0:
             path_pub.publish(msg)
