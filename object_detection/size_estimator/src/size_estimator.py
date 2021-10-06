@@ -1,25 +1,35 @@
 #!/usr/bin/env python
 
 
+from re import X
 import rospy
 
 from darknet_ros_msgs.msg import BoundingBoxes, _BoundingBox
 from sensor_msgs.msg import Image
 
 import numpy as np
+from math import sin
 from std_msgs.msg import Int64, Float64
 
 
 class SizeEstimatorNode():
     ppdh = 29.87
+    fov_horizontal = 110.0          # Degrees
+    fov_vertical = 70               # Degrees
+    focal_length = 2.12             # mm
+    max_width = 1344.0              # pxl
+    max_height = 376.0              # pxl
+    angles_pr_pxl_hor = fov_horizontal/max_width
+    angles_pr_pxl_ver = fov_vertical/max_height
+
     def __init__(self):
         rospy.init_node('size_estimator')
         self.estimatorSub = rospy.Subscriber('/darknet_ros/bounding_boxes', BoundingBoxes, self.callback)
-        self.imageSub = rospy.Subscriber('/darknet_ros/detection_image', Image, self.img_CB)
+        # self.imageSub = rospy.Subscriber('/darknet_ros/detection_image', Image, self.img_CB)
         self.estimatorPub = rospy.Publisher('/object_detection/size_estimator', Float64, queue_size= 1)
 
-    def img_CB(self, data):
-        rospy.loginfo("%f  %f",data.height, data.width)
+    # def img_CB(self, data):
+    #     rospy.loginfo("%f  %f",data.height, data.width)
 
 
     def callback(self, data):
@@ -42,25 +52,34 @@ class SizeEstimatorNode():
         send.data = self.mymsg
         self.estimatorPub.publish(send)
 
-    def theMath():
-        pass
     
     def abs_height_obj(self, data):
         # Do stuff
-        var_abs_height_obj = 0
-        return var_abs_height_obj
+        # length_pxl = (data[1]-data[0])
+        length_m = 10.0
+        angle_max = data[1] * self.angles_pr_pxl_hor
+        angle_min = data[0] * self.angles_pr_pxl_hor
+        delta_angle = angle_max - angle_min
+        if delta_angle >= 0:
+            # h = sin(delta_angle)*length_pxl
+            # conv_const = h/data[2]
+            length_m = data[2] * sin(delta_angle)
+        rospy.loginfo("%f  %f   %f   %f   %f   %f    %f", data[0], data[1], data[2], length_m, delta_angle, angle_max, angle_min)
+        return length_m
 
     def abs_width_obj(self, data):
         # Do stuff
-        F = 0.0028
-        p = data[1] - data[0]
-        d = data[2]
-        w = F/(p*d)
-        rospy.loginfo("%f  %f   %f   %f   %f   %f    %f", data[0], data[1], data[2], F, p, d, w)
-
-
-        var_abs_width_obj = w
-        return var_abs_width_obj
+        # length_pxl = (data[1]-data[0])
+        length_m = 10.0
+        angle_max = data[1] * self.angles_pr_pxl_ver
+        angle_min = data[0] * self.angles_pr_pxl_ver
+        delta_angle = angle_max - angle_min
+        if delta_angle >= 0:
+            # h = sin(delta_angle)*length_pxl
+            # conv_const = h/data[2]
+            length_m = data[2] * sin(delta_angle)
+        rospy.loginfo("%f  %f   %f   %f   %f   %f    %f", data[0], data[1], data[2], length_m, delta_angle, angle_max, angle_min)
+        return length_m
 
 if __name__ == '__main__':
     node = SizeEstimatorNode()
