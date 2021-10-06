@@ -34,6 +34,9 @@ class SizeEstimatorNode():
         send = Float64()
         send.data = self.mymsg
         self.estimatorPub.publish(send)
+
+    def theMath():
+        pass
     
     def abs_height_obj(self, data):
         # Do stuff
