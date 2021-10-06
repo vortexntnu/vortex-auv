@@ -3,7 +3,10 @@
 
 import rospy
 
-from darknet_ros_msgs.msg import BoundingBoxes, BoundingBox
+from darknet_ros_msgs.msg import BoundingBoxes, _BoundingBox
+from sensor_msgs.msg import Image
+
+import numpy as np
 from std_msgs.msg import Int64, Float64
 
 
@@ -12,7 +15,11 @@ class SizeEstimatorNode():
     def __init__(self):
         rospy.init_node('size_estimator')
         self.estimatorSub = rospy.Subscriber('/darknet_ros/bounding_boxes', BoundingBoxes, self.callback)
+        self.imageSub = rospy.Subscriber('/darknet_ros/detection_image', Image, self.img_CB)
         self.estimatorPub = rospy.Publisher('/object_detection/size_estimator', Float64, queue_size= 1)
+
+    def img_CB(self, data):
+        rospy.loginfo("%f  %f",data.height, data.width)
 
 
     def callback(self, data):
