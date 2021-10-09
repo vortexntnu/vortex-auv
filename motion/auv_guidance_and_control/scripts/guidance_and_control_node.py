@@ -88,27 +88,26 @@ class GuidanceAndControlNode:
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.path = Path1()
-        self.waypoints = [[0, -5, 0], [0,-4,0]] #for testing
+        self.waypoints = [[0, 0, -0.5], [0,4,-0.5]] #for testing
         self.path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
         dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
         self.path_following_controller = VirtualTarget(self.path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
-        publish_path_once(self.path) #gets stuck in while loop ...
-
+        
         '''Publish frequency'''
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
         self.rate = rospy.Rate(self.publish_rate)
 
         # Publish the path for vizualization purposes
-        # publish_path_once(self.path)
+        publish_path_once(self.path)
 
     def navigation_callback(self, msg):
         if self.get_pose:
-            self.eta, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
+            #self.eta, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
 
-            #self.eta = extract_from_pose(msg.pose.pose)
-            #self.nu = extract_from_twist(msg.twist.twist)
+            self.eta = extract_from_pose(msg.pose.pose)
+            self.nu = extract_from_twist(msg.twist.twist)
             self.get_pose = False
         else:
             pass
@@ -240,11 +239,11 @@ def create_wrenchstamped_msg(tau, t):
     msg.header.stamp = t
     msg.header.frame_id = "beluga/base_link_ned"
     msg.wrench.force.x = tau[0]
-    msg.wrench.force.y = -tau[1]
-    msg.wrench.force.z = -tau[2]
+    msg.wrench.force.y = tau[1]
+    msg.wrench.force.z = tau[2]
     msg.wrench.torque.x = tau[3]
-    msg.wrench.torque.y = -tau[4]
-    msg.wrench.torque.z = -tau[5]
+    msg.wrench.torque.y = tau[4]
+    msg.wrench.torque.z = tau[5]
     return msg
 
 if __name__ == '__main__':
