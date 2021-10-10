@@ -189,6 +189,7 @@ class GuidanceAndControlNode:
                 msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
                 self.rate.sleep()
                 #print("publish")
+                print(msg)
                 self.pub.publish(msg)
             except rospy.ROSInterruptException:
                 pass

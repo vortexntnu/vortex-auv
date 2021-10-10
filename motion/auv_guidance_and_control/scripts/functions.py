@@ -88,7 +88,7 @@ def memoize(function):
             return rv
     return wrapper
 
-def ned_enu_conversion(eta,nu): #eta = [x,y,z,r,p,y]
+def ned_enu_conversion(eta,nu): #eta = [y,x,z,p,r,y] assume we take in ENU
     """Rotates from north-east-down to east-north-up
     
     Args: 
@@ -100,6 +100,7 @@ def ned_enu_conversion(eta,nu): #eta = [x,y,z,r,p,y]
     
     """
     #newEta = [y,x,-z,pitch,roll,-yaw]
-    return [eta[1],eta[0],-eta[2],eta[4],eta[3],-eta[5]],[nu[1],nu[0],-nu[2],nu[4],nu[3],-nu[5]]    
+    #return [eta[1],eta[0],-eta[2],eta[4],eta[3],-eta[5]],[nu[1],nu[0],-nu[2],nu[4],nu[3],-nu[5]]    
+    return [eta[1], -eta[0], -eta[2], eta[4], -eta[3], -eta[5]], [nu[1], -nu[0], -nu[2], nu[4], -nu[3], -nu[5]]
     
     
