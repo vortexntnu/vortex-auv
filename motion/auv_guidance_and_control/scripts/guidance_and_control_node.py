@@ -167,10 +167,13 @@ class GuidanceAndControlNode:
 
                 #Hard coding Testing of Tau_c
 
-                tau_c = [3,0,0,0,0,0] #This makes the drone move forward (positive x) at speed 3! => NED?!
+                #tau_c = [3,0,0,0,0,0] #This makes the drone move forward (positive x) at speed 3! => NED?!
                 #tau_c = [0,3,0,0,0,0] #This makes the drone go right => NED?!
                 #tau_c = [0,0,3,0,0,0] #This gives a syntax error! wtf?!
                 #tau_c = [0,0,-3,0,0,0] #This makes the drone move up => NED?!
+                #tau_c = [0,0,0,3,0,0] #This makes the drone rotate in positive roll axis. However, also some yaw rotation... => NED?!
+                #tau_c = [0,0,0,0,3,0] #This makes the drone tilt backwards (i.e. positive pitch axis) =>NED?!
+                tau_c = [0,0,0,0,0,3000] #This makes the drone rotate right (i.e. negative yaw axis) => NED!
 
                 # Publish virtual target frame
                 p = eta_r[:3]
