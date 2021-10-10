@@ -88,7 +88,7 @@ class GuidanceAndControlNode:
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.path = Path1()
-        self.waypoints = [[0, 0, -0.5], [0,4,-0.5]] #for testing
+        self.waypoints = [[0, 0, 0.5], [4,0,0.5]] #for testing
         self.path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
@@ -218,14 +218,14 @@ def extract_from_twist(twist):
 def publish_path_once(path):
     path_pub = rospy.Publisher('/beluga/guidance_and_control_system/path', Path, queue_size=1)
     msg = Path()
-    msg.header.frame_id = '/world'
+    msg.header.frame_id = '/world_ned'
     for i in range(len(path.path)):
         for j in list(np.linspace(0, 1, 50)):
             p = path.path[i](j)
             psi = path.chi_p[i](j)
             q = quaternion_from_euler(0, 0, psi)
             pose = PoseStamped()
-            pose.header.frame_id = '/world'
+            pose.header.frame_id = '/world_ned'
             pose.pose.position.x = p[0]
             pose.pose.position.y = p[1]
             pose.pose.position.z = p[2]
