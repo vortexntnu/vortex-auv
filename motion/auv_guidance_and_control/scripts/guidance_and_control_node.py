@@ -163,7 +163,14 @@ class GuidanceAndControlNode:
                 self.nu_d = nu_d[0]
 
                 # Control System
-                tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], dot_nu_d[0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
+                #tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], dot_nu_d[0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
+
+                #Hard coding Testing of Tau_c
+
+                tau_c = [3,0,0,0,0,0] #This makes the drone move forward (positive x) at speed 3! => NED?!
+                #tau_c = [0,3,0,0,0,0] #This makes the drone go right => NED?!
+                #tau_c = [0,0,3,0,0,0] #This gives a syntax error! wtf?!
+                #tau_c = [0,0,-3,0,0,0] #This makes the drone move up => NED?!
 
                 # Publish virtual target frame
                 p = eta_r[:3]
