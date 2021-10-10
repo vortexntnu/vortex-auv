@@ -4,6 +4,8 @@
 import rospy
 import numpy as np
 import tf
+import tf2_ros
+import tf2_geometry_msgs
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import WrenchStamped, PoseStamped
@@ -69,7 +71,7 @@ class GuidanceAndControlNode:
         omega_b = np.array(rospy.get_param("/guidance_and_control_parameters/control_bandwidth"))
         zeta = np.array(rospy.get_param("/guidance_and_control_parameters/relative_damping_ratio"))
         self.dp_control_system = DPControlSystem(M, D, gvect, omega_b, zeta)
-        
+        print("kskjdlkskkjdl")
         '''Initialize reference model'''
         u_gain = rospy.get_param("/guidance_and_control_parameters/reference_model_control_input_saturation_limit_gain")
         u_min_simulator = u_min*u_gain
@@ -88,7 +90,7 @@ class GuidanceAndControlNode:
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.path = Path1()
-        self.waypoints = [[0, 0, 0.5], [4,0,0.5]] #for testing
+        self.waypoints = [[0, 0, 0.5], [0.5,0,0.5]] #for testing
         self.path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
@@ -99,15 +101,25 @@ class GuidanceAndControlNode:
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
         self.rate = rospy.Rate(self.publish_rate)
 
+        '''TF listeners'''
+        self.tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
         # Publish the path for vizualization purposes
         publish_path_once(self.path)
 
     def navigation_callback(self, msg):
         if self.get_pose:
-            #self.eta, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
+            dummy, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
+            print(msg.header.frame_id)
+            transform = self.tf_buffer.lookup_transform('world_ned',
+                                       msg.header.frame_id, #source frame
+                                       rospy.Time(0), #get the tf at first available time
+                                       rospy.Duration(1.0)) #wait for 1 second
 
-            self.eta = extract_from_pose(msg.pose.pose)
-            self.nu = extract_from_twist(msg.twist.twist)
+            pose_transformed = tf2_geometry_msgs.do_transform_pose(msg.pose, transform)
+
+            self.eta = extract_from_pose(pose_transformed.pose)
             self.get_pose = False
         else:
             pass
@@ -118,12 +130,9 @@ class GuidanceAndControlNode:
             continue
 
     def publish_control_forces(self):
-        #print("start")
         while not rospy.is_shutdown():
             try:
-                #print("entry")
                 self.get_state_estimates()
-                #print("state")
                 # Path following mode
                 if self.mode == 'path_following':
                     print(self.waypoints)
@@ -143,7 +152,7 @@ class GuidanceAndControlNode:
                     heading_mode = 'path_dependent_heading' # Use either 'path_dependent_heading' or 'point_dependent_heading'
                     point = [-6, 3] # x, y coordinates
                     if inside_sphere_of_acceptence(self.eta[:3], final_wp, pos_tol):
-                        nu_r = np.zeros(6)
+                        nu_r = np.zeros(6) 
                         eta_r = np.zeros(6)
                         eta_r[:3] = final_wp
                         eta_r[3:] = final_orientation
@@ -163,17 +172,8 @@ class GuidanceAndControlNode:
                 self.nu_d = nu_d[0]
 
                 # Control System
-                #tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], dot_nu_d[0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
+                tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], dot_nu_d[0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
 
-                #Hard coding Testing of Tau_c
-
-                #tau_c = [3,0,0,0,0,0] #This makes the drone move forward (positive x) at speed 3! => NED?!
-                #tau_c = [0,3,0,0,0,0] #This makes the drone go right => NED?!
-                #tau_c = [0,0,3,0,0,0] #This gives a syntax error! wtf?!
-                #tau_c = [0,0,-3,0,0,0] #This makes the drone move up => NED?!
-                #tau_c = [0,0,0,3,0,0] #This makes the drone rotate in positive roll axis. However, also some yaw rotation... => NED?!
-                #tau_c = [0,0,0,0,3,0] #This makes the drone tilt backwards (i.e. positive pitch axis) =>NED?!
-                tau_c = [0,0,0,0,0,3000] #This makes the drone rotate right (i.e. negative yaw axis) => NED!
 
                 # Publish virtual target frame
                 p = eta_r[:3]
@@ -237,7 +237,7 @@ def publish_path_once(path):
     rate = rospy.Rate(10)
     ctrl_c = False
     while not ctrl_c:
-        print("stuck in while")
+        print("Echo path!")
         connections = path_pub.get_num_connections()
         if connections > 0:
             path_pub.publish(msg)
