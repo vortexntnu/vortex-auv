@@ -56,7 +56,7 @@ class SizeEstimatorNode():
     def abs_height_obj(self, data):
         # Do stuff
         # length_pxl = (data[1]-data[0])
-        length_m = 10.0
+        length_m = 0.0
         angle_max = data[1] * self.angles_pr_pxl_hor
         angle_min = data[0] * self.angles_pr_pxl_hor
         delta_angle = angle_max - angle_min
@@ -70,16 +70,16 @@ class SizeEstimatorNode():
     def abs_width_obj(self, data):
         # Do stuff
         # length_pxl = (data[1]-data[0])
-        length_m = 10.0
+        width_m = 0.0
         angle_max = data[1] * self.angles_pr_pxl_ver
         angle_min = data[0] * self.angles_pr_pxl_ver
         delta_angle = angle_max - angle_min
         if delta_angle >= 0:
             # h = sin(delta_angle)*length_pxl
             # conv_const = h/data[2]
-            length_m = data[2] * sin(delta_angle)
-        rospy.loginfo("%f  %f   %f   %f   %f   %f    %f", data[0], data[1], data[2], length_m, delta_angle, angle_max, angle_min)
-        return length_m
+            width_m = data[2] * sin(delta_angle)
+        rospy.loginfo("%f  %f   %f   %f   %f   %f    %f", data[0], data[1], data[2], width_m, delta_angle, angle_max, angle_min)
+        return width_m
 
 if __name__ == '__main__':
     node = SizeEstimatorNode()
