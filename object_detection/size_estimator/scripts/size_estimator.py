@@ -4,7 +4,7 @@ import rospy
 
 from darknet_ros_msgs.msg import BoundingBoxes, BoundingBox
 from sensor_msgs.msg import Image
-from vortex_msgs.msg import ObjectPosition, BBox, BBoxes
+from vortex_msgs.msg import BBox, BBoxes
 
 import numpy as np
 from math import sin
