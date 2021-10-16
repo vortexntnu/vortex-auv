@@ -9,6 +9,7 @@ from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
 
 move_action_server = '/guidance/move'
+
 # maybe create class for this? 
 # something to signal that the **_move functions are used for crosstalk
 # between the FSM and the Guidance systems.

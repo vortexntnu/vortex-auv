@@ -102,7 +102,7 @@ class DPGuidance:
         rospy.logdebug("DP guidance initialized")
 
     def action_cb(self, goal):
-
+        
         # set new setpoint and control mode
         self.controller_setpoint =  goal.target_pose.pose
         self.control_mode = ControlModeEnum.POSE_HOLD.value
@@ -114,7 +114,7 @@ class DPGuidance:
                 self.controller_setpoint.position.z,
             )
         )
-
+        
         # start a timout Timer
         self.dp_timout = False
         timer = rospy.Timer(
@@ -122,11 +122,13 @@ class DPGuidance:
             self.set_timeout,
             oneshot=True,
         )
+        
 
         # wait for goal to be reached
         check_rate = rospy.Rate(2)
         while not rospy.is_shutdown():
-
+            
+            
             # check for preempt request
             if self.action_server.is_preempt_requested():
                 self.control_mode = ControlModeEnum.OPEN_LOOP.value

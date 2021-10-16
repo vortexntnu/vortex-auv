@@ -41,6 +41,7 @@ ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
   vel_sub = nh.subscribe(vel_topic, 1, &ThrustMerger::velCallback, this);
   joy_sub = nh.subscribe(joy_topic, 1, &ThrustMerger::joyCallback, this);
   thrust_pub = nh.advertise<geometry_msgs::Wrench>(output_topic, 1);
+  thrust_pub_sim = nh.advertise<geometry_msgs::Wrench>("/auv/thruster_manager/input", 1);
 
   ROS_INFO("thrust_merger initiated");
 }
@@ -58,6 +59,7 @@ void ThrustMerger::spin()
     geometry_msgs::Wrench wrench_msg;
     tf::wrenchEigenToMsg(combined_wrench, wrench_msg);
     thrust_pub.publish(wrench_msg);
+    thrust_pub_sim.publish(wrench_msg);
 
     // reset wrenches that are no longer updated
     if (dp_counter > spins_without_update_limit)
