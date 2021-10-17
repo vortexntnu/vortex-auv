@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
 
-    <node name="object_detection_v1"    pkg="object_detection_v1"     type="object_detection_node_v1.py"    output="screen"/>
-    <node pkg="tf2" type="static_transform_publisher" name="detection" args="0 0 0 0 0 0 1 map detection 10" />
+    <node name="object_detection_v1"    pkg="object_detection_v1"     type="object_detection_v1.py"    output="screen"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="detection" args="0 0 0 0 0 0 1 map detection" />
 
     
 </launch>
