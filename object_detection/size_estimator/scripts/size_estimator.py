@@ -6,14 +6,17 @@ from darknet_ros_msgs.msg import BoundingBoxes, BoundingBox
 from sensor_msgs.msg import Image
 from vortex_msgs.msg import BBox, BBoxes
 
+from geometry_msgs.msg import PointStamped, Point
+import tf
+
 import numpy as np
-from math import sin, radians
+from math import cos, sin, radians
 from std_msgs.msg import Int64, Float64
 
 
 class SizeEstimatorNode():
     fov_horizontal = 110.0                          # Degrees
-    fov_vertical = 70.0                               # Degrees
+    fov_vertical = 70.0                             # Degrees
     focal_length = 2.12                             # mm
     max_width = 672                                 # pxl
     max_height = 376                                # pxl
@@ -25,6 +28,7 @@ class SizeEstimatorNode():
         self.estimatorSub = rospy.Subscriber('/darknet_ros/bounding_boxes', BoundingBoxes, self.callback)
         # self.imageSub = rospy.Subscriber('/darknet_ros/detection_image', Image, self.img_CB)
         self.estimatorPub = rospy.Publisher('/object_detection/size_estimator', BBoxes, queue_size= 1)
+        self.pointPub = rospy.Publisher('/object_detection/obj_vector', PointStamped, queue_size= 1)
 
 
     def callback(self, data):
@@ -60,6 +64,18 @@ class SizeEstimatorNode():
             # Calculate the sizes in metres of a boundingbox
             length_x_mtr = self.calc_size(delta_angle_x, depth_mtr)
             length_y_mtr = self.calc_size(delta_angle_y, depth_mtr)
+
+            vector = self.calc_3D_vector(redefined_angle_x, redefined_angle_y, depth_mtr)
+            rospy.loginfo("%f   %f   %f", vector[0], vector[1], vector[2])
+
+            new_point = PointStamped()
+            new_point.header = data.header
+            new_point.header.stamp = rospy.get_rostime()
+
+            new_point.point.x = vector[0]
+            new_point.point.y = vector[1]
+            new_point.point.z = vector[2]
+            self.pointPub.publish(new_point)
 
             # Build the new bounding box message
             CurrentBoundingBox = BBox()
@@ -139,10 +155,18 @@ class SizeEstimatorNode():
         angle_centre_object = angle_min + delta_angle * 0.5
         
         return delta_angle, angle_centre_object
+    
+    def calc_3D_vector(self, x_angle, y_angle, length):
+        x_comp = length * cos(radians(x_angle)) * sin(radians(y_angle))
+        y_comp = length * cos(radians(x_angle)) * cos(radians(y_angle))
+        z_comp = length * sin(radians(x_angle))
+
+        return [x_comp, y_comp, z_comp]
+
 
 if __name__ == '__main__':
     node = SizeEstimatorNode()
-    
+
     while not rospy.is_shutdown():
         rospy.spin()
 
