@@ -7,23 +7,28 @@ from smach_ros import SimpleActionState
 from geometry_msgs.msg import Point, Quaternion
 from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+
 
 move_action_server = '/guidance/move'
+guidance_interface_dp_action_server="/guidance_interface/dp_server"
 
 # maybe create class for this? 
 # something to signal that the **_move functions are used for crosstalk
 # between the FSM and the Guidance systems.
 # rename the file accordingly too; put in own folder
 
+
 def dp_move(x, y, z=-0.5, yaw_rad=0):
-    goal = MoveGoal()
 
-    goal.guidance_type = 'PositionHold'
-    goal.target_pose.position = Point(x, y, z)
-    goal.target_pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
+    goal = MoveBaseGoal()
+    goal.target_pose.pose.position = Point(x,y,z)
+    goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
 
+    #dp_client = actionlib.SimpleActionClient('/controller/move_base', MoveBaseAction)
+    #dp_client.send_goal(goal, done_cb= done_cb, feedback_cb=None)
 
-    return SimpleActionState(move_action_server, MoveAction, goal=goal)
+    return SimpleActionState(guidance_interface_dp_action_server, MoveBaseAction, goal=goal)
 
 
 def los_move(x, y, z=-0.5):
