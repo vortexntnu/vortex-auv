@@ -14,13 +14,13 @@ import tf
 from size_estimator import SizeEstimatorClass as SEC
 from coord_pos import CoordPositionClass as CPC
 
-class OD_NODE_V1():
+class OD_NODE():
     def __init__(self):
-        rospy.init_node('size_estimator')
+        rospy.init_node('object_detection_node')
         self.estimatorSub = rospy.Subscriber('/darknet_ros/bounding_boxes', BoundingBoxes, self.estimatorSub_callback)
         # self.imageSub = rospy.Subscriber('/darknet_ros/detection_image', Image, self.img_CB)
-        self.estimatorPub = rospy.Publisher('/object_detection/size_estimator', BBoxes, queue_size= 1)
-        self.pointPub = rospy.Publisher('/object_detection/obj_vector', PointStamped, queue_size= 1)
+        self.estimatorPub = rospy.Publisher('/object_detection/size_estimates', BBoxes, queue_size= 1)
+        self.pointPub = rospy.Publisher('/object_detection/object_point', PointStamped, queue_size= 1)
         self.size_estimator = SEC()
         self.coord_positioner = CPC()
 
@@ -78,7 +78,7 @@ class OD_NODE_V1():
         self.estimatorPub.publish(ArrayBoundingBoxes)
 
 if __name__ == '__main__':
-    node = OD_NODE_V1()
+    node = OD_NODE()
 
     while not rospy.is_shutdown():
         rospy.spin()
