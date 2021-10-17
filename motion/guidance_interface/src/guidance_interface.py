@@ -389,19 +389,6 @@ class GuidanceInterface:
             guidance_interface_los_action_server="/guidance_interface/los_server",
         )
 
-        # import parameters
-        self.transit_speed = rospy.get_param('~transit_speed', 0.3)
-        self.sphere_of_acceptance = rospy.get_param('~sphere_of_acceptance', 0.5)
-        self.timeout = rospy.get_param('~controller_interface_timeout', 90)
-
-        # Start the action server /guidance/move
-        self.action_server = actionlib.SimpleActionServer('move', MoveAction, self.move_cb, auto_start=False)
-        self.action_server.start()
-
-        # start action clients for DP and LOS controller
-        # self.dp_client = actionlib.SimpleActionClient('/controller/move_base', MoveBaseAction)
-        # self.los_client = actionlib.SimpleActionClient('los_action_server', LosPathFollowingAction)
-
         rospy.logdebug("GuidanceInterface initialized")
 
     def stop_all_guidance(self):
@@ -412,57 +399,6 @@ class GuidanceInterface:
 
     def change_dp_control_mode(self, control_mode_index):
         self.dp_guidance.change_control_mode(control_mode_index)
-
-    def move_cb(self, move_goal):
-        """
-        Converts move_goal into the proper goal type for the desired controller and sends it.
-        Aborts action if it is not completed within self.timeout seconds
-        """
-
-        if move_goal.guidance_type == 'PositionHold':
-
-            dp_goal = MoveBaseGoal()
-            dp_goal.target_pose.pose = move_goal.target_pose
-            
-            action_client = actionlib.SimpleActionClient("/guidance_interface/dp_server", MoveBaseAction)
-
-            action_client.wait_for_server() 
-            action_client.send_goal(dp_goal, done_cb=self.done_cb, feedback_cb=None)
-            if not action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-                self.dp_guidance.action_server.set_aborted()
-                rospy.loginfo('DP controller aborted action due to timeout')
-
-
-        elif move_goal.guidance_type == 'LOS':
-            
-            los_goal = LosPathFollowingGoal()
-            los_goal.next_waypoint = move_goal.target_pose.position
-            los_goal.forward_speed = self.transit_speed
-            los_goal.sphereOfAcceptance = self.sphere_of_acceptance
-            los_goal.desired_depth = move_goal.target_pose.position.z
-
-            action_client = actionlib.SimpleActionClient("/guidance_interface/los_server", LosPathFollowingAction)
-            action_client.wait_for_server() 
-            action_client.send_goal(los_goal, done_cb=self.done_cb, feedback_cb=None)
-            if not action_client.wait_for_result(timeout=rospy.Duration(self.timeout)):
-                self.los_guidance.action_server.set_aborted()
-                rospy.loginfo('LOS controller aborted action due to timeout')
-        
-        else:
-            rospy.logerr('Unknown controller name sent to controller_interface')
-            self.action_server.set_aborted()
-
-    
-    def done_cb(self, state, result):
-        
-        if state == GoalStatus.SUCCEEDED:
-            self.action_server.set_succeeded()
-
-        elif state == GoalStatus.PREEMPTED:
-            self.action_server.set_preempted()
-
-        else:
-            self.action_server.set_aborted()
 
 
 if __name__ == "__main__":
