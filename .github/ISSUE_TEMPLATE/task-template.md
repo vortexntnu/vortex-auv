@@ -8,9 +8,8 @@ assignees: ''
 
 ---
 
-**Time estimate:**  
-**Deadline:**  
-**Teams SCRUM link:** [Insert link here ->]()  
+**Time estimate:** XX hours  
+**Deadline:**  DD.MONTH
 
-**Description of task:**
+**Description of task:** DESCRIPTION
 
