@@ -10,10 +10,11 @@ class SizeEstimatorClass():
     fov_horizontal = 110.0                          # Degrees
     fov_vertical = 70.0                             # Degrees
     focal_length = 2.12                             # mm
-    max_width = 672                                 # pxl
+    max_width = 1344                                # pxl
     max_height = 376                                # pxl
     angles_pr_pxl_hor = fov_horizontal/max_width
     angles_pr_pxl_ver = fov_vertical/max_height
+    use_single_lense = False
 
     def main(self, bbox):
         """
@@ -38,23 +39,26 @@ class SizeEstimatorClass():
         max_x_pxl = bbox.xmax
 
         # Get y-pos of boundingbox
-        min_y_pxl = bbox.ymin
-        max_y_pxl = bbox.ymax
+        # Unintuitively position is logged as top to bottom. We fix it so it is from bot to top
+        min_y_pxl = self.max_height - bbox.ymax
+        max_y_pxl = self.max_height - bbox.ymin
         
         # Get depth measurement of boundingbox
         depth_mtr = bbox.z
 
         # Calculate the angles for x and y
-        delta_angle_x, angle_centre_object_x = self.calc_angles(self.angles_pr_pxl_hor, min_x_pxl,max_x_pxl)
+        delta_angle_x, angle_centre_object_x = self.calc_angles(self.angles_pr_pxl_hor, min_x_pxl,max_x_pxl) # Note no difference from double lense since fov and max pixels are both halved.
         delta_angle_y, angle_centre_object_y = self.calc_angles(self.angles_pr_pxl_ver, min_y_pxl,max_y_pxl)
-
-        # Redefine angles to coord frame
-        redefined_angle_x = self.redefine_angles(angle_centre_object_x, self.fov_horizontal)
-        redefined_angle_y = self.redefine_angles(angle_centre_object_y, self.fov_vertical)
 
         # Calculate the sizes in metres of a boundingbox
         length_x_mtr = self.calc_size(delta_angle_x, depth_mtr)
         length_y_mtr = self.calc_size(delta_angle_y, depth_mtr)
+        # Redefine angles to coord frame
+        redefined_angle_x = self.redefine_angles(angle_centre_object_x, self.fov_horizontal)
+        redefined_angle_y = self.redefine_angles(angle_centre_object_y, self.fov_vertical)
+
+        if self.use_single_lense:
+            redefined_angle_x = self.redefine_angles(angle_centre_object_x, self.fov_horizontal*0.5)  
 
         size_estimator_data = [length_x_mtr, length_y_mtr, redefined_angle_x, redefined_angle_y]
         return size_estimator_data
@@ -75,14 +79,16 @@ class SizeEstimatorClass():
         # Split the screen in two halves
         new_fov = fov_type * 0.5
         
-        # For some reason the horizontal angle is calculated from left to right,
-        # however the vertical angle is quite unintuitively calculated from top to bottom,
-        # and therefore needs to be inverted to have neg degrees in the bottom half  
-        if new_fov == 35:
-            redefined_angle = -(angle_centre_object - new_fov)
-            # rospy.loginfo("\n%f \n%f",angle_centre_object, new_fov)
-        else:
+        if angle_centre_object >= new_fov:
             redefined_angle = angle_centre_object - new_fov
+        else:
+            redefined_angle = (-1)*(new_fov - angle_centre_object)
+
+        # if new_fov == 35:
+        #     redefined_angle = -(angle_centre_object - new_fov)
+        #     # rospy.loginfo("\n%f \n%f",angle_centre_object, new_fov)
+        # else:
+        #     redefined_angle = angle_centre_object - new_fov
 
         return redefined_angle
         
@@ -121,6 +127,7 @@ class SizeEstimatorClass():
         angle_centre_object = angle_min + delta_angle * 0.5
         
         return delta_angle, angle_centre_object
+    
     
 
 
