@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Odometry1
-      Splitter Ratio: 0.5
+      Splitter Ratio: 0.7058823704719543
     Tree Height: 549
   - Class: rviz/Selection
     Name: Selection
@@ -110,6 +110,128 @@ Visualization Manager:
       Topic: /beluga/guidance_and_control_system/path
       Unreliable: false
       Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        auv/base_footprint:
+          Value: false
+        auv/base_link:
+          Value: true
+        auv/base_link_ned:
+          Value: true
+        auv/base_stabilized:
+          Value: true
+        auv/camerafront_link:
+          Value: false
+        auv/camerafront_link_optical:
+          Value: false
+        auv/cameraunder_link:
+          Value: false
+        auv/cameraunder_link_optical:
+          Value: false
+        auv/dvl_link:
+          Value: false
+        auv/dvl_sonar0_link:
+          Value: false
+        auv/dvl_sonar1_link:
+          Value: false
+        auv/dvl_sonar2_link:
+          Value: false
+        auv/dvl_sonar3_link:
+          Value: false
+        auv/imu_link:
+          Value: false
+        auv/magnetometer_link:
+          Value: false
+        auv/pose_sensor_link_default:
+          Value: false
+        auv/pressure_link:
+          Value: false
+        auv/thruster_0:
+          Value: false
+        auv/thruster_1:
+          Value: false
+        auv/thruster_2:
+          Value: false
+        auv/thruster_3:
+          Value: false
+        auv/thruster_4:
+          Value: false
+        auv/thruster_5:
+          Value: false
+        auv/thruster_6:
+          Value: false
+        auv/thruster_7:
+          Value: false
+        reference_model:
+          Value: true
+        virtual_target:
+          Value: true
+        world:
+          Value: true
+        world_ned:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        world:
+          auv/base_footprint:
+            auv/base_stabilized:
+              {}
+          auv/base_link:
+            auv/base_link_ned:
+              {}
+            auv/camerafront_link:
+              auv/camerafront_link_optical:
+                {}
+            auv/cameraunder_link:
+              auv/cameraunder_link_optical:
+                {}
+            auv/dvl_link:
+              auv/dvl_sonar0_link:
+                {}
+              auv/dvl_sonar1_link:
+                {}
+              auv/dvl_sonar2_link:
+                {}
+              auv/dvl_sonar3_link:
+                {}
+            auv/imu_link:
+              {}
+            auv/magnetometer_link:
+              {}
+            auv/pose_sensor_link_default:
+              {}
+            auv/pressure_link:
+              {}
+            auv/thruster_0:
+              {}
+            auv/thruster_1:
+              {}
+            auv/thruster_2:
+              {}
+            auv/thruster_3:
+              {}
+            auv/thruster_4:
+              {}
+            auv/thruster_5:
+              {}
+            auv/thruster_6:
+              {}
+            auv/thruster_7:
+              {}
+          world_ned:
+            reference_model:
+              {}
+            virtual_target:
+              {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -138,7 +260,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.049280166625977
+      Distance: 15.089544296264648
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -153,10 +275,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.785398006439209
+      Pitch: 0.17039795219898224
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.785398006439209
+      Yaw: 1.5504001379013062
     Saved: ~
 Window Geometry:
   Displays:
