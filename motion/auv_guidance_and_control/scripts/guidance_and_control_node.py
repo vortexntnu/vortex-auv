@@ -71,7 +71,6 @@ class GuidanceAndControlNode:
         omega_b = np.array(rospy.get_param("/guidance_and_control_parameters/control_bandwidth"))
         zeta = np.array(rospy.get_param("/guidance_and_control_parameters/relative_damping_ratio"))
         self.dp_control_system = DPControlSystem(M, D, gvect, omega_b, zeta)
-        print("kskjdlkskkjdl")
         '''Initialize reference model'''
         u_gain = rospy.get_param("/guidance_and_control_parameters/reference_model_control_input_saturation_limit_gain")
         u_min_simulator = u_min*u_gain
@@ -110,16 +109,8 @@ class GuidanceAndControlNode:
 
     def navigation_callback(self, msg):
         if self.get_pose:
-            dummy, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
-            print(msg.header.frame_id)
-            transform = self.tf_buffer.lookup_transform('world_ned',
-                                       msg.header.frame_id, #source frame
-                                       rospy.Time(0), #get the tf at first available time
-                                       rospy.Duration(1.0)) #wait for 1 second
+            self.eta, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
 
-            pose_transformed = tf2_geometry_msgs.do_transform_pose(msg.pose, transform)
-
-            self.eta = extract_from_pose(pose_transformed.pose)
             self.get_pose = False
         else:
             pass
