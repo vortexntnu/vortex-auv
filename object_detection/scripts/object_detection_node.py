@@ -63,13 +63,13 @@ class OD_NODE():
             # will be updated, and when it looks somewhere else, the last know location will be stored in the message(dont think storing works).
             # Inefficient since it publishes a new topic for each class name
             # Idea is that self.test is replaced by str(bbox.Class) so the if statement will be replaced by only
-            # pointPub = rospy.Publisher('/object_detection/object_point/' + str(bbox.Class), PointStamped, queue_size= 1)
-            if self.test == 'T':
-                pointPub = rospy.Publisher('/object_detection/object_point/' + self.test, PointStamped, queue_size= 1)
-                self.test = 'P'
-            else:
-                pointPub = rospy.Publisher('/object_detection/object_point/' + self.test, PointStamped, queue_size= 1)
-                self.test = 'T'
+            pointPub = rospy.Publisher('/object_detection/object_point/' + str(bbox.Class), PointStamped, queue_size= 1)
+            # if self.test == 'T':
+            #     pointPub = rospy.Publisher('/object_detection/object_point/' + self.test, PointStamped, queue_size= 1)
+            #     self.test = 'P'
+            # else:
+            #     pointPub = rospy.Publisher('/object_detection/object_point/' + self.test, PointStamped, queue_size= 1)
+            #     self.test = 'T'
             # Build the message to place detected obejct in relation to camera
             new_point = PointStamped()
             new_point.header = data.header
