@@ -26,7 +26,8 @@ class DPControlSystem():
         eta_error_body = np.dot(J.T, eta_error)
         J_target = J_from_eul([0, 0, eta[5]-eta_d[5]])
         nu_d = np.dot(J_target.T, nu_d)
-        nu_error = np.array(nu)-np.array(nu_d)
+        nu_error = (np.array(nu)-np.array(nu_d))
+        nu_error[5] = -nu_error[5]
         '''
         nu_c = np.dot(J.T, dot_eta_c)
         dot_v_c = np.dot(-skew([0, 0, nu[5]]), nu_c[:3])

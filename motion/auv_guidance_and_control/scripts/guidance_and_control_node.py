@@ -33,6 +33,8 @@ class GuidanceAndControlNode:
 
         self.pub = rospy.Publisher('/auv/thruster_manager/input_stamped', WrenchStamped, queue_size=1) # Change Sim/Real 
 
+        self.odom_pub = rospy.Publisher('/odometry/filtered_ned', Odometry) # Odometry ned publisher 
+
         self.br = tf.TransformBroadcaster()
         self.br_eta_r = tf.TransformBroadcaster()
         self.get_pose = False
@@ -89,7 +91,7 @@ class GuidanceAndControlNode:
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.path = Path1()
-        self.waypoints = [[0, 0.5, 0], [10,0,0]] #for testing
+        self.waypoints = [[0, 0, 0.5], [10,0,0.5]] #for testing
         self.path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
@@ -110,7 +112,7 @@ class GuidanceAndControlNode:
     def navigation_callback(self, msg):
         if self.get_pose:
             self.eta, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
-
+            publish_ned(self.odom_pub,self.eta,self.nu)
             self.get_pose = False
         else:
             pass
@@ -163,8 +165,9 @@ class GuidanceAndControlNode:
                 self.nu_d = nu_d[0]
 
                 # Control System
-                tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], dot_nu_d[0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
-
+                tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], [0,0,0,0,0,0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
+                #tau_c = [10,0,0,0,0,0]
+                #tau_c[5]= 0
 
                 # Publish virtual target frame
                 p = eta_r[:3]
@@ -190,7 +193,7 @@ class GuidanceAndControlNode:
                 msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
                 self.rate.sleep()
                 #print("publish")
-                print(msg)
+                #print(msg)
                 self.pub.publish(msg)
             except rospy.ROSInterruptException:
                 pass
@@ -247,6 +250,30 @@ def create_wrenchstamped_msg(tau, t):
     msg.wrench.torque.y = tau[4]
     msg.wrench.torque.z = tau[5]
     return msg
+
+def publish_ned(pub, eta, nu):
+    odom = Odometry()
+
+    orien = quaternion_from_euler(eta[3],eta[4],eta[5])
+
+    odom.pose.pose.position.x = eta[0]
+    odom.pose.pose.position.y = eta[1]
+    odom.pose.pose.position.z = eta[2]
+    odom.pose.pose.orientation.x = orien[0]
+    odom.pose.pose.orientation.y = orien[1]
+    odom.pose.pose.orientation.z = orien[2]
+    odom.pose.pose.orientation.w = orien[3]
+
+    odom.twist.twist.linear.x = nu[0]
+    odom.twist.twist.linear.y = nu[1]
+    odom.twist.twist.linear.z = nu[2]
+    odom.twist.twist.angular.x = nu[3]
+    odom.twist.twist.angular.y = nu[4]
+    odom.twist.twist.angular.z = nu[5]
+
+    odom.header.frame_id = '/world_ned'
+
+    pub.publish(odom)
 
 if __name__ == '__main__':
     try:
