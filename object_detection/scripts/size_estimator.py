@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
-
-# import Locally used packages
 from math import sin, radians
-
-
 
 class SizeEstimatorClass():
     fov_horizontal = 110.0                          # Degrees
