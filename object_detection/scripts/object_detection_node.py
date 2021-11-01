@@ -3,31 +3,38 @@
 import rospy
 
 # Import msg types
-from darknet_ros_msgs.msg import BoundingBoxes, BoundingBox
-from sensor_msgs.msg import Image
+from darknet_ros_msgs.msg import BoundingBoxes
 from vortex_msgs.msg import BBox, BBoxes
-from std_msgs.msg import Int64, Float64
-from geometry_msgs.msg import PointStamped, Point
-import tf
+from geometry_msgs.msg import PointStamped
 
 # Import classes
-from size_estimator import SizeEstimatorClass as SEC
-from coord_pos import CoordPositionClass as CPC
+from size_estimator import SizeEstimator
+from coord_pos import CoordPosition
 
-class OD_NODE():
-    test = 'T'
+class ObjectDetectionNode():
+    """Handles tasks related to object detection
+    """
+
     def __init__(self):
         rospy.init_node('object_detection_node')
         self.estimatorSub = rospy.Subscriber('/darknet_ros/bounding_boxes', BoundingBoxes, self.estimatorSub_callback)
-        # self.imageSub = rospy.Subscriber('/darknet_ros/detection_image', Image, self.img_CB)
         self.estimatorPub = rospy.Publisher('/object_detection/size_estimates', BBoxes, queue_size= 1)
-        # self.pointPub = rospy.Publisher('/object_detection/object_point', PointStamped, queue_size= 1)
-        self.size_estimator = SEC()
-        self.coord_positioner = CPC()
+        self.size_estimator = SizeEstimator()
+        self.coord_positioner = CoordPosition()
 
     def estimatorSub_callback(self, data):
-        # Allocates msg data to local variables
-        # In order to process abs size
+        """
+        Gets the data from the subscribed message BoundingBoxes and publishes the size estimates of a detected object, and the position of the object.
+
+        Args:
+            data: The message that has been recieved.
+
+        Returns:
+            Published topics:
+                estimatorPub: Array of detected objects as the estimated size of these. Topic also includes angles to the objects from the camera frame.
+                pointPub: A topic is created for each object that is detected. Publishes the point of the object in a coordinate frame.
+        """
+        # Allocates msg data to local variables in order to process abs size
         ArrayBoundingBoxes = BBoxes()
         ArrayBoundingBoxes.header = data.header
         ArrayBoundingBoxes.image_header = data.image_header
@@ -58,25 +65,16 @@ class OD_NODE():
             # Append the new message to bounding boxes array
             ArrayBoundingBoxes.bounding_boxes.append(CurrentBoundingBox)
             
-            # This part may seem superfluos at first. The idea is that for each class of object that is detected,
-            # a seperate point will be generated and published. When the camera is looking at the objects the position
-            # will be updated, and when it looks somewhere else, the last know location will be stored in the message(dont think storing works).
-            # Inefficient since it publishes a new topic for each class name
-            # Idea is that self.test is replaced by str(bbox.Class) so the if statement will be replaced by only
+            # Create a publisher for each detected object. The name of the topic will be the name of the object from class in bounding box message. 
             pointPub = rospy.Publisher('/object_detection/object_point/' + str(bbox.Class), PointStamped, queue_size= 1)
-            # if self.test == 'T':
-            #     pointPub = rospy.Publisher('/object_detection/object_point/' + self.test, PointStamped, queue_size= 1)
-            #     self.test = 'P'
-            # else:
-            #     pointPub = rospy.Publisher('/object_detection/object_point/' + self.test, PointStamped, queue_size= 1)
-            #     self.test = 'T'
+
             # Build the message to place detected obejct in relation to camera
             new_point = PointStamped()
             new_point.header = data.header
             new_point.header.stamp = rospy.get_rostime()
 
             # Get the position of the object relative to the camera
-            vector = self.coord_positioner.calc_3D_vector(redefined_angle_x, redefined_angle_y, depth_mtr)
+            vector = self.coord_positioner.main(redefined_angle_x, redefined_angle_y, depth_mtr)
             new_point.point.x = vector[0]
             new_point.point.y = vector[1]
             new_point.point.z = vector[2]
@@ -87,7 +85,7 @@ class OD_NODE():
         self.estimatorPub.publish(ArrayBoundingBoxes)
 
 if __name__ == '__main__':
-    node = OD_NODE()
+    node = ObjectDetectionNode()
 
     while not rospy.is_shutdown():
         rospy.spin()

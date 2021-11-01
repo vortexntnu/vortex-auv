@@ -2,7 +2,7 @@
 
 from math import sin, radians
 
-class SizeEstimatorClass():
+class SizeEstimator():
     fov_horizontal = 110.0                          # Degrees
     fov_vertical = 70.0                             # Degrees
     focal_length = 2.12                             # mm
@@ -20,11 +20,11 @@ class SizeEstimatorClass():
             bbox                        the boundingbox message which includes data needed to calculate the size of an object
 
         Returns:
-            size_estimator_data\t         list of usefull data\n
-                length_x_mtr     \t       width of object\n
-                length_y_mtr       \t     height of object\n
-                redefined_angle_x    \t   the horizontal angle to centre of boundingbox in a new coordinate frame shown below\n
-                redefined_angle_y      \t the vertical angle to centre of boundingbox in a new coordinate frame shown below\n
+            size_estimator_data: List of usefull data
+                length_x_mtr: Width of object
+                length_y_mtr: Height of object
+                redefined_angle_x: The horizontal angle to centre of boundingbox in a new coordinate frame shown below
+                redefined_angle_y: The vertical angle to centre of boundingbox in a new coordinate frame shown below
 
         xy \t xy = -+ \t ++ \n
         xy \t xy = -- \t +-\n
@@ -79,12 +79,6 @@ class SizeEstimatorClass():
             redefined_angle = angle_centre_object - new_fov
         else:
             redefined_angle = (-1)*(new_fov - angle_centre_object)
-
-        # if new_fov == 35:
-        #     redefined_angle = -(angle_centre_object - new_fov)
-        #     # rospy.loginfo("\n%f \n%f",angle_centre_object, new_fov)
-        # else:
-        #     redefined_angle = angle_centre_object - new_fov
 
         return redefined_angle
         
