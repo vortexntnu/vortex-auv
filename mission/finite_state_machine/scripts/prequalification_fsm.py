@@ -13,7 +13,7 @@ from nav_msgs.msg import Odometry
 import copy
 
 def main():
-    rospy.init_node('prequalification_test')
+    rospy.init_node('prequalification_fsm')
           
     prequalification_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     
@@ -30,7 +30,7 @@ def main():
                 
         StateMachine.add('REACH_DEPTH',
                         dp_move(0,0), #moves to depth 0.5 (hard coded in dp_move, see fsm helper)
-                        transitions={'succeeded':'GATE_SM'}) #is this ok?
+                        transitions={'succeeded':'GATE_SM'})
             
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
