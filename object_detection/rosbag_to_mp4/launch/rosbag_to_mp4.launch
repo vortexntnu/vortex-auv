@@ -1,8 +1,0 @@
-<launch>
-  <node pkg="rosbag" type="play" name="rosbag" required="true" args="$(arg bag_filename)"/>
-  <node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/zed2/zed_node/rgb_raw/image_raw_color
- out:=/zed2/zed_node/rgb_raw/image_raw_color" />
-  <node name="extract" pkg="image_view" type="extract_images" respawn="false" required="true" output="screen" cwd="ROS_HOME">
-    <remap from="image" to="/zed2/zed_node/rgb_raw/image_raw_color"/>
-  </node>
-</launch>

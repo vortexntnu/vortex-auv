@@ -1,3 +1,6 @@
+
+<!-- See the Vorex wiki for information on how to use the launch file. http://vortex.a2hosted.com/index.php/Object_detection#Using_rosbags_as_training_data -->
+
 <launch>
   <node pkg="rosbag" type="play" name="rosbag" required="true" args="$(arg bag_filename)"/>
   <node name="republish" type="republish" pkg="image_transport" output="screen" 	args="compressed in:=/zed2/zed_node/rgb_raw/image_raw_color
