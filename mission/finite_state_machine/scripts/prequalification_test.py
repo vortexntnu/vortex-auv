@@ -6,7 +6,8 @@ import smach
 from fsm_helper import dp_move, los_move
 from smach_ros import IntrospectionServer, SimpleActionState
 from geometry_msgs.msg import Point
-from vortex_msgs.msg import MoveAction, MoveGoal
+from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sm_classes import GateSearchState
 from nav_msgs.msg import Odometry
 import copy
@@ -16,7 +17,9 @@ def main():
           
     prequalification_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     
-    move_action_server = '/guidance/move'
+   guidance_interface_dp_action_server="guidance_interface/dp_server"
+   guidance_interface_los_action_server="guidance_interface/los_server"
+   #virtual target action server ...
 
     odom = Odometry(None,None,None,None)
     def odom_cb(odom_msg):
@@ -26,8 +29,8 @@ def main():
     with prequalification_state_machine:
                 
         StateMachine.add('REACH_DEPTH',
-                        dp_move(0,0),
-                        transitions={'succeeded':'GATE_SM'})
+                        dp_move(0,0), #moves to depth 0.5 (hard coded in dp_move, see fsm helper)
+                        transitions={'succeeded':'GATE_SM'}) #is this ok?
             
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
@@ -38,47 +41,52 @@ def main():
             StateMachine.add('GATE_SEARCH',
                             GateSearchState(), 
                             transitions={'succeeded':'LOS_MOVE_TO_GATE'}, 
-                            remapping={'gate_search_output':'goal_position'}) #??      
+                            remapping={'gate_search_output':'goal_position'})      
                         
-            def gate_goal_cb(userdata, goal): #What does this function do?? I think we need 'getMiddlePointGate' in this function
-                gate_goal = MoveGoal()
-                gate_goal.target_pose.position = userdata.goal_position                
-                gate_goal.guidance_type = "LOS"
+            def gate_goal_cb(userdata, goal):  #This is where we take in the position(s) from landmarks and generate the new waypoint for LOS
+                gate_goal = LosPathFollowingGoal()
+                # possibly some function 'getMiddlePointGate' here
+                #gate_goal.target_pose.position = userdata.goal_position    
+                gate_goal.forward_speed = rospy.get_param('~transit_speed',0.3)  
+                gate_goal.sphereOfAcceptance = rospy.get_param('~sphere_of_acceptance',0.5)      
+                gate_goal.desired_depth = 0.5    
                 return gate_goal
                         
-            StateMachine.add('LOS_MOVE_TO_GATE',
-                            SimpleActionState(move_action_server,
-                                                MoveAction,
+            StateMachine.add('LOS_MOVE_TO_GATE', #potentially replace with VTPF (virtual target path following)
+                            SimpleActionState(guidance_interface_los_action_server,
+                                                LosPathFollowingAction,
                                                 goal_cb=gate_goal_cb,
                                                 input_keys=['goal_position']),
                             transitions={'succeeded':'PREPARE_MOVE_THROUGH','aborted':'GATE_SEARCH'})
                             
             
-            def prep_goal_cb(userdata, goal): #??
-                prep_goal = MoveGoal()                
-                prep_goal.target_pose.position = userdata.goal_position
+            def prep_goal_cb(userdata, goal):
+                prep_goal = MoveBaseGoal()                
+                prep_goal.target_pose.pose.position = userdata.goal_position #(or whichever point from userfdata.goal_position we care about)
                 x_dist = odom.pose.pose.position.x - userdata.goal_position.x
-                prep_goal.target_pose.position.x = userdata.goal_position.x + (x_dist/abs(x_dist))/4                 
-                prep_goal.guidance_type = "PositionHold" 
+                prep_goal.target_pose.pose.position.x = userdata.goal_position.x + (x_dist/abs(x_dist))/4        #(probably dont need this)         
                 return prep_goal
 
             StateMachine.add('PREPARE_MOVE_THROUGH',
-                            SimpleActionState(move_action_server,
-                                            MoveAction,
+                            SimpleActionState(guidance_interface_dp_action_server,
+                                            MoveBaseAction,
                                             goal_cb=prep_goal_cb,
                                             input_keys=['goal_position']),
                             transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'})                            
            
-            def through_goal_cb(userdata,goal): #??
-                through_goal = MoveGoal() #Must here move goal to pole-coordinates
-                through_goal.target_pose.position = copy.deepcopy(userdata.goal_position)
-                through_goal.target_pose.position.x += 1
-                through_goal.guidance_type = 'LOS'
+            def through_goal_cb(userdata,goal):
+                through_goal = LosPathFollowingGoal()
+                through_goal.target_pose.pose.position = copy.deepcopy(userdata.goal_position) #what is copy.deepcopy?
+                through_goal.target_pose.pose.position.x += 1 #why?
+
+                through_goal.forward_speed = rospy.get_param('~transit_speed',0.3)  
+                through_goal.sphereOfAcceptance = rospy.get_param('~sphere_of_acceptance',0.5)      
+                through_goal.desired_depth = 0.5    
                 return through_goal
 
             StateMachine.add('LOS_MOVE_THROUGH_GATE',
-                            SimpleActionState(move_action_server,
-                                            MoveAction,
+                            SimpleActionState(guidance_interface_los_action_server,
+                                            LosPathFollowingAction,
                                             goal_cb=through_goal_cb,
                                             input_keys=['goal_position']))
                 

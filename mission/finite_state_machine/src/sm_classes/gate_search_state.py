@@ -7,7 +7,7 @@ class GateSearchState(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['gate_search_output'])
 
-        rospy.Subscriber("goal_position", Point, self.callback)
+        rospy.Subscriber("goal_position", Point, self.callback) #possibly change message type (for gate, maybee 3 points?)
                     
         self.goal_position = None 
 
@@ -16,6 +16,8 @@ class GateSearchState(smach.State):
         st_pub.publish("GATE_SEARCH")
         
     def execute(self, userdata):
+
+        #possibly rotate the drone until it finds the gate first?
                
         rospy.wait_for_message('goal_position', Point)
                         
