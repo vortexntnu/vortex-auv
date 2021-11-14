@@ -1,8 +1,9 @@
-#include "landmarks.h"
+#include "landmarks/landmarks.h"
 
 Landmarks::Landmarks ():loop_rate(10) {
     op_sub = n.subscribe("object_positions_in",10, &Landmarks::callback, this);
     op_pub = n.advertise<vortex_msgs::ObjectPosition>("object_positions_out",10);
+    service = n.advertiseService("send_positions", &Landmarks::send_pos, this);
 }
 
 void Landmarks::callback(vortex_msgs::ObjectPosition objPos){
@@ -23,6 +24,11 @@ void Landmarks::printMap(std::map<std::string,geometry_msgs::Point> objectsMap){
         ROS_INFO("position: %f,%f,%f",elem.second.x,elem.second.y,elem.second.z);
             
     }
+}
+
+bool Landmarks::send_pos(landmarks::request_position::Request &req, landmarks::request_position::Response &res){
+    res.pos = Landmarks::objectPositions[req.ID];
+    return true;
 }
 
 int main(int argc, char **argv){

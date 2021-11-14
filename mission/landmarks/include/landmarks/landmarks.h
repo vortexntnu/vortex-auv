@@ -3,6 +3,7 @@
 #include <vortex_msgs/ObjectPosition.h>
 #include <map>
 #include <string>
+#include "landmarks/request_position.h"
 
 class Landmarks{
     /**
@@ -35,4 +36,6 @@ protected:
     ros::Publisher op_pub;
     ros::Rate loop_rate;
     std::map<std::string,geometry_msgs::Point> objectPositions;
+    bool send_pos(landmarks::request_position::Request& req, landmarks::request_position::Response& res);
+    ros::ServiceServer service;
 };
