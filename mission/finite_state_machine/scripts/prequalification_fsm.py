@@ -97,27 +97,27 @@ def main():
 
         pole_sm.userdata.goal_position = Point(None,None,None)
 
-        with pole_sm:
+        # with pole_sm:
 
-            StateMachine.add('POLE_SEARCH',
-                            PoleSearchState(), #Must make PoleSearchState
-                            transitions={'succeeded':'LOS_MOVE_TO_POLE'}) 
-                            #remapping={'gate_search_output':'goal_position'}) Unsure what this does -copied from gate_sm
+        #     StateMachine.add('POLE_SEARCH',
+        #                     PoleSearchState(), #Must make PoleSearchState
+        #                     transitions={'succeeded':'LOS_MOVE_TO_POLE'}) 
+        #                     #remapping={'gate_search_output':'goal_position'}) Unsure what this does -copied from gate_sm
             
 
-            StateMachine.add('LOS_MOVE_TO_POLE',
-                            SimpleActionState(), #must make SimpleActionState
-                            transitions={'succeeded':'PREPARE_MOVE_AROUND_POLE','aborted':'POLE_SEARCH'})
+        #     StateMachine.add('LOS_MOVE_TO_POLE',
+        #                     SimpleActionState(), #must make SimpleActionState
+        #                     transitions={'succeeded':'PREPARE_MOVE_AROUND_POLE','aborted':'POLE_SEARCH'})
 
-            StateMachine.add('PREPARE_MOVE_AROUND_POLE',
-                            SimpleActionState(), #Must make SimpleActionState
-                            transitions={'succeeded': 'MOVE_AROUND_POLE'})
+        #     StateMachine.add('PREPARE_MOVE_AROUND_POLE',
+        #                     SimpleActionState(), #Must make SimpleActionState
+        #                     transitions={'succeeded': 'MOVE_AROUND_POLE'})
 
-            StateMachine.add('MOVE_AROUND_POLE', 
-                            SimpleActionState())
+        #     StateMachine.add('MOVE_AROUND_POLE', 
+        #                     SimpleActionState())
                             
 
-        StateMachine.add('POLE_SM', pole_sm)
+        # StateMachine.add('POLE_SM', pole_sm)
 
 
     intro_server = IntrospectionServer(str(rospy.get_name()), prequalification_state_machine,'/SM_ROOT')    
