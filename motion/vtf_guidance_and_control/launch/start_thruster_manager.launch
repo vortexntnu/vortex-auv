@@ -31,11 +31,11 @@
   -->
   <arg name="reset_tam" default="false"/>
   <!-- Output folder to store the TAM.yaml and thruster_manager.yaml files -->
-  <arg name="output_dir" default="$(find auv_guidance_and_control)/config"/>
+  <arg name="output_dir" default="$(find vtf_guidance_and_control)/config"/>
   <!-- Thruster manager configuration file path -->
-  <arg name="config_file" default="$(find auv_guidance_and_control)/config/thruster_manager.yaml"/>
+  <arg name="config_file" default="$(find vtf_guidance_and_control)/config/thruster_manager.yaml"/>
   <!-- Thruster allocation matrix file path -->
-  <arg name="tam_file" default="$(find auv_guidance_and_control)/config/TAM.yaml"/>
+  <arg name="tam_file" default="$(find vtf_guidance_and_control)/config/TAM.yaml"/>
 
   <include file="$(find uuv_thruster_manager)/launch/thruster_manager.launch">
     <arg name="model_name" value="$(arg model_name)"/>

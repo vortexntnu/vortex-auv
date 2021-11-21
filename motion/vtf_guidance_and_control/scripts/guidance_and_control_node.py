@@ -18,18 +18,10 @@ from virtual_target import VirtualTarget
 from current_estimator import CurrentEstimator
 from functions import inside_sphere_of_acceptence, ssa, ned_enu_conversion
 
-class GuidanceAndControlNode:
+class VtfGuidanceAndControlNode:
     def __init__(self):
-        
-        '''Initialize the ROS-node'''
-        rospy.init_node('guidance_and_control_system')
-        while rospy.get_time() == 0:
-            continue
 
         rospy.Subscriber('/odometry/filtered', Odometry, self.navigation_callback)# Change Sim/Real
-
-        # Subscribe to a waypoint action server (including a speed assignment and heading reference)
-        # Subscribe to a pose hold server (to include roll and pitch the DP controller needs some work. probably not too much tho)
 
         self.pub = rospy.Publisher('/auv/thruster_manager/input_stamped', WrenchStamped, queue_size=1) # Change Sim/Real 
 
@@ -90,14 +82,12 @@ class GuidanceAndControlNode:
         u_min_vt= u_min*u_gain
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
-        self.path = Path1()
-        self.waypoints = [[0, 0, 0.5], [10,0,0.5]] #for testing
-        self.path.generate_G0_path(self.waypoints)
-        omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
-        virtual_control_system = DPControlSystem(M, D, gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
-        dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
-        self.path_following_controller = VirtualTarget(self.path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
-        
+        self.waypoints = [] 
+        self.path_following_controller = None 
+
+        '''Sphere of acceptance'''
+        self.goal_reached = False
+
         '''Publish frequency'''
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
         self.rate = rospy.Rate(self.publish_rate)
@@ -105,9 +95,6 @@ class GuidanceAndControlNode:
         '''TF listeners'''
         self.tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
-
-        # Publish the path for vizualization purposes
-        publish_path_once(self.path)
 
     def navigation_callback(self, msg):
         if self.get_pose:
@@ -122,81 +109,78 @@ class GuidanceAndControlNode:
         while self.get_pose:
             continue
 
+    def new_path_recieved(self):
+        self.get_state_estimates()
+        self.reference_model.set_initial_conditions(self.eta, self.nu, rospy.get_time())
+        self.waypoints[0] = [self.eta[0],self.eta[1],self.eta[2]]
+        path = Path1()
+        path.generate_G0_path(self.waypoints)
+        omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
+        virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
+        dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
+        self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
+        
+        publish_path_once(path)
+
     def publish_control_forces(self):
-        while not rospy.is_shutdown():
-            try:
-                self.get_state_estimates()
-                # Path following mode
-                if self.mode == 'path_following':
-                    print(self.waypoints)
-                    '''Do this only once when new path is recieved'''
-                    # waypoints = [[0, 0, 0.5], [-2, 4, 2]] # Extract the waypoints as shown.
-                    # path = Path1()
-                    # path.generate_G0_path(waypoints)
-                    # omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
-                    # virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
-                    # dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
-                    # self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
-                    #publish_path_once(self.path)
+        self.get_state_estimates()
+        # Path following mode
+        if self.mode == 'path_following':
+            final_wp = self.path_following_controller.path.path[-1](1)
+            final_orientation = [0, 0, 0] # Parameter server
+            pos_tol = 0.1 # Parameter server
+            heading_mode = 'path_dependent_heading' # Use either 'path_dependent_heading' or 'point_dependent_heading'
+            point = [-6, 3] # x, y coordinates
+            if inside_sphere_of_acceptence(self.eta[:3], final_wp, pos_tol):
+                nu_r = np.zeros(6) 
+                eta_r = np.zeros(6)
+                eta_r[:3] = final_wp
+                eta_r[3:] = final_orientation
+                self.goal_reached = True
+            else:
+                eta_r, nu_r = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), heading_mode, point=point)
 
-                    final_wp = self.path_following_controller.path.path[-1](1)
-                    final_orientation = [0, 0, 0] # Parameter server
-                    pos_tol = 0.1 # Parameter server
-                    heading_mode = 'path_dependent_heading' # Use either 'path_dependent_heading' or 'point_dependent_heading'
-                    point = [-6, 3] # x, y coordinates
-                    if inside_sphere_of_acceptence(self.eta[:3], final_wp, pos_tol):
-                        nu_r = np.zeros(6) 
-                        eta_r = np.zeros(6)
-                        eta_r[:3] = final_wp
-                        eta_r[3:] = final_orientation
-                    else:
-                        eta_r, nu_r = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), heading_mode, point=point)
+        # Pose hold mode
+        elif self.mode == 'pose_hold':
+            eta_r = [0, 0, 0, 0, 0, 0] # Insert desired pose here (roll and pitch do not work atm) [x, y, z, roll, pitch, yaw] NED
+            nu_r = [0, 0, 0, 0, 0, 0]
 
-                # Pose hold mode
-                elif self.mode == 'pose_hold':
-                    eta_r = [0, 0, 0, 0, 0, 0] # Insert desired pose here (roll and pitch do not work atm) [x, y, z, roll, pitch, yaw] NED
-                    nu_r = [0, 0, 0, 0, 0, 0]
 
-                # Reference model
-                if not self.reference_model.online:
-                    self.reference_model.set_initial_conditions(self.eta, self.nu, rospy.get_time())
-                eta_d, nu_d, dot_nu_d = self.reference_model.generate_trajectory_for_dp(rospy.get_time(), 1, 1/float(self.publish_rate), eta_r, nu_ref=nu_r)
-                self.eta_d = eta_d[0]
-                self.nu_d = nu_d[0]
+        
+        # Reference model
+        if not self.reference_model.online:
+            self.reference_model.set_initial_conditions(self.eta, self.nu, rospy.get_time())
+        eta_d, nu_d, dot_nu_d = self.reference_model.generate_trajectory_for_dp(rospy.get_time(), 1, 1/float(self.publish_rate), eta_r, nu_ref=nu_r)
+        self.eta_d = eta_d[0]
+        self.nu_d = nu_d[0]
 
-                # Control System
-                tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], [0,0,0,0,0,0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
-                #tau_c = [10,0,0,0,0,0]
-                #tau_c[5]= 0
+        # Control System
+        tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], [0,0,0,0,0,0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
 
-                # Publish virtual target frame
-                p = eta_r[:3]
-                eul = eta_r[3:]
-                q = quaternion_from_euler(eul[0], eul[1], eul[2])
-                self.br.sendTransform((p[0], p[1], p[2]), 
-                                (q[0], q[1], q[2], q[3]),
-                                rospy.Time.now(),
-                                "/virtual_target",
-                                "/world_ned")
-                
-                # Publish reference model frame
-                p = eta_d[0][:3]
-                eul = eta_d[0][3:]
-                q = quaternion_from_euler(eul[0], eul[1], eul[2])
-                self.br_eta_r.sendTransform((p[0], p[1], p[2]), 
-                                (q[0], q[1], q[2], q[3]),
-                                rospy.Time.now(),
-                                "/reference_model",
-                                "/world_ned")
-                
-                # Publish control forces
-                msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
-                self.rate.sleep()
-                #print("publish")
-                #print(msg)
-                self.pub.publish(msg)
-            except rospy.ROSInterruptException:
-                pass
+        # Publish virtual target frame
+        p = eta_r[:3]
+        eul = eta_r[3:]
+        q = quaternion_from_euler(eul[0], eul[1], eul[2])
+        self.br.sendTransform((p[0], p[1], p[2]), 
+                        (q[0], q[1], q[2], q[3]),
+                        rospy.Time.now(),
+                        "/virtual_target",
+                        "/world_ned")
+        
+        # Publish reference model frame
+        p = eta_d[0][:3]
+        eul = eta_d[0][3:]
+        q = quaternion_from_euler(eul[0], eul[1], eul[2])
+        self.br_eta_r.sendTransform((p[0], p[1], p[2]), 
+                        (q[0], q[1], q[2], q[3]),
+                        rospy.Time.now(),
+                        "/reference_model",
+                        "/world_ned")
+        
+        # Publish control forces
+        msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
+        self.pub.publish(msg)
+            
 
 def extract_from_pose(pose):
     quaternions = pose.orientation
@@ -275,11 +259,5 @@ def publish_ned(pub, eta, nu):
 
     pub.publish(odom)
 
-if __name__ == '__main__':
-    try:
-        
-        node = GuidanceAndControlNode()
-        node.publish_control_forces()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        pass
+
+

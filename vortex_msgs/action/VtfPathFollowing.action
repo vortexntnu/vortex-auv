@@ -1,0 +1,8 @@
+#goal definition
+geometry_msgs/Point[] waypoints
+float32 forward_speed
+---
+#result definition
+bool terminalSector
+---
+#feedback

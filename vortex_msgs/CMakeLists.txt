@@ -46,6 +46,7 @@ add_action_files(
   FILES
   MoveRelative.action
   LosPathFollowing.action
+  VtfPathFollowing.action
   Move.action
   ControlMode.action
   SetVelocity.action

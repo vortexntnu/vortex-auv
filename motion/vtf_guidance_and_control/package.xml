@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>auv_guidance_and_control</name>
-  <version>0.0.0</version>
-  <description>The auv_guidance_and_control package</description>
+  <name>vtf_guidance_and_control</name>
+  <version>0.0.1</version>
+  <description>The vtf_guidance_and_control package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
