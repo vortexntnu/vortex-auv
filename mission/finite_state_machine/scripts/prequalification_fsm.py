@@ -8,7 +8,9 @@ from smach_ros import IntrospectionServer, SimpleActionState
 from geometry_msgs.msg import Point
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-#from sm_classes import GateSearchState
+import sm_classes
+from sm_classes.gate_search_state import GateSearchState
+from sm_classes.move_to_gate import MoveToGate
 from nav_msgs.msg import Odometry
 import copy
 from landmarks.srv import request_position
@@ -33,30 +35,35 @@ def main():
     with prequalification_state_machine:
                 
         StateMachine.add('REACH_DEPTH',
-                        dp_move(5,0), #moves to depth 0.5 (hard coded in dp_move, see fsm helper)
+                        dp_move(0,0), #moves to depth 0.5 (hard coded in dp_move, see fsm helper)
                         transitions={'succeeded':'GATE_SM'})
             
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
-        #Get goal
-        try:
-            rospy.wait_for_service('send_positions')   
-            position = get_pos("gate")
-            test_position = position.pos
-        except:
-            test_position = Point(None,None,None)   
 
         with gate_sm:
             #FOR TESTING:
-            StateMachine.add('TESTING_STATE',
-                            dp_move(test_position.x,test_position.y))
-            print("current gate position" + str(test_position.x) + str(test_position.y) + str(test_position.z))
+            # StateMachine.add('TESTING_STATE',
+            #                 dp_move(test_position.x,test_position.y))
+            # print("current gate position " + str(test_position.x) + ", "+str(test_position.y) + ", "+str(test_position.z))
 
 
             # StateMachine.add('GATE_SEARCH',
             #                 GateSearchState(), 
             #                 transitions={'succeeded':'LOS_MOVE_TO_GATE'}, 
-            #                 remapping={'gate_search_output':'goal_position'})      
+            #                 remapping={'gate_search_output':'goal_position'})  
+
+            
+            StateMachine.add('GATE_SEARCH',
+                            GateSearchState(get_pos), 
+                            transitions={'succeeded':'MOVE_TO_GATE'},
+                            remapping={'gate_search_output':'goal_position'})
+            
+            StateMachine.add('MOVE_TO_GATE',
+                            MoveToGate(),
+                            remapping={'gate_position':'goal_position'})
+            
+            
                         
             # def gate_goal_cb(userdata, goal):  #This is where we take in the position(s) from landmarks and generate the new waypoint for LOS
             #     gate_goal = LosPathFollowingGoal()
@@ -84,7 +91,7 @@ def main():
 
             # StateMachine.add('PREPARE_MOVE_THROUGH',
             #                 SimpleActionState(guidance_interface_dp_action_server,
-            #                                 MoveBaseAction,
+            #                             no attribute 'get_register     MoveBaseAction,
             #                                 goal_cb=prep_goal_cb,
             #                                 input_keys=['goal_position']),
             #                 transitions={'succeeded':'LOS_MOVE_THROUGH_GATE'})                            
