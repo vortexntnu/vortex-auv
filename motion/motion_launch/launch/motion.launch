@@ -10,6 +10,7 @@
   <!-- Configuration parameters -->
   <param name="/velocity_controller/odometry_topic" value="/odometry/filtered" />
   <param name="/velocity_controller/thrust_topic" value="/auv/thruster_manager/input" />
+  <rosparam command="load" file="$(find vtf_guidance_and_control)/config/beluga.yaml" />
 
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
@@ -31,6 +32,7 @@
     <node pkg="los_controller"      type="los_controller_node.py"     name="los_controller"       output="screen"/>
     <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
     <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/>
+    <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>
   </group>
 
   <!-- Thrust nodes -->
