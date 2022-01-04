@@ -120,10 +120,10 @@ class VtfPathFollowing(object):
 
 		#reset goal reached
 		self.vtf.goal_reached = False
-		# set goal, the first item will be replaced by current position by the vtf controller so inserting dummy:
+		# set goal, the first item will be replaced by current position by the vtf controller so init with dummy:
 		self.vtf.waypoints = [[6,6,6]] 
 		for wp in _goal.waypoints:
-			self.vtf.waypoints.append([wp.x,wp.y,wp.z])
+			self.vtf.waypoints.append([wp.y,wp.x,-wp.z])
 
 		self.vtf.new_path_recieved(_goal.forward_speed)
 

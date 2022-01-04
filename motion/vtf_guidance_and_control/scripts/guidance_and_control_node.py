@@ -123,7 +123,7 @@ class VtfGuidanceAndControlNode:
             dot_s_bounds = [-speed,speed]
         self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
         
-        publish_path_once(path)
+        publish_path_once(path) #Currently for debugging, but a vi
 
     def publish_control_forces(self):
         self.get_state_estimates()
