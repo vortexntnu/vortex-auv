@@ -109,15 +109,18 @@ class VtfGuidanceAndControlNode:
         while self.get_pose:
             continue
 
-    def new_path_recieved(self):
+    def new_path_recieved(self, speed = None):
         self.get_state_estimates()
         self.reference_model.set_initial_conditions(self.eta, self.nu, rospy.get_time())
-        self.waypoints[0] = [self.eta[0],self.eta[1],self.eta[2]]
+        self.waypoints[0] = [self.eta[0],self.eta[1],self.eta[2]] #First waypoint is current location
         path = Path1()
         path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
-        dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
+        if speed == None:
+            dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
+        else:
+            dot_s_bounds = [-speed,speed]
         self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
         
         publish_path_once(path)

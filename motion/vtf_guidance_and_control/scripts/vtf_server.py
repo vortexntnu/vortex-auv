@@ -103,7 +103,7 @@ class VtfPathFollowing(object):
 			self.publish_guidance_data = False
 			self.vtf.goal_reached = False
 			self.action_server.set_succeeded(self._result, text="goal completed")
-			msg = self.vtf.create_wrenchstamped_msg([0,0,0,0,0,0], rospy.get_rostime())
+			msg = create_wrenchstamped_msg([0,0,0,0,0,0], rospy.get_rostime())
 			self.vtf.pub.publish(msg)
 			
 
@@ -120,12 +120,12 @@ class VtfPathFollowing(object):
 
 		#reset goal reached
 		self.vtf.goal_reached = False
-		# set goal, the first item will be replaced by current position by the vtf controller
-		self.vtf.waypoints = [[0,0,0]]
+		# set goal, the first item will be replaced by current position by the vtf controller so inserting dummy:
+		self.vtf.waypoints = [[6,6,6]] 
 		for wp in _goal.waypoints:
 			self.vtf.waypoints.append([wp.x,wp.y,wp.z])
 
-		self.vtf.new_path_recieved()
+		self.vtf.new_path_recieved(_goal.forward_speed)
 
 		self.publish_guidance_data = True
 
