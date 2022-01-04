@@ -124,8 +124,7 @@ class VtfPathFollowing(object):
 		self.vtf.waypoints = [[6,6,6]] 
 		for wp in _goal.waypoints:
 			self.vtf.waypoints.append([wp.y,wp.x,-wp.z])
-
-		self.vtf.new_path_recieved(_goal.forward_speed)
+		self.vtf.new_path_recieved(_goal.forward_speed,_goal.heading, [_goal.heading_point.x,_goal.heading_point.y])
 
 		self.publish_guidance_data = True
 

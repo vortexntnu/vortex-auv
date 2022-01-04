@@ -84,9 +84,13 @@ class VtfGuidanceAndControlNode:
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.waypoints = [] 
         self.path_following_controller = None 
+        self.heading_mode = 'path_dependent_heading' # Use either 'path_dependent_heading' or 'point_dependent_heading'
+        self.dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
+        self.heading_point = [0,0]
 
         '''Sphere of acceptance'''
         self.goal_reached = False
+
 
         '''Publish frequency'''
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
@@ -109,7 +113,7 @@ class VtfGuidanceAndControlNode:
         while self.get_pose:
             continue
 
-    def new_path_recieved(self, speed = None):
+    def new_path_recieved(self, speed, heading, heading_point):
         self.get_state_estimates()
         self.reference_model.set_initial_conditions(self.eta, self.nu, rospy.get_time())
         self.waypoints[0] = [self.eta[0],self.eta[1],self.eta[2]] #First waypoint is current location
@@ -117,13 +121,14 @@ class VtfGuidanceAndControlNode:
         path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
-        if speed == None:
-            dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
-        else:
-            dot_s_bounds = [-speed,speed]
-        self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=dot_s_bounds)
         
-        publish_path_once(path) #Currently for debugging, but a vi
+        self.dot_s_bounds = [-speed,speed]
+        self.heading_mode = heading
+        self.heading_point = heading_point
+        
+        self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=self.dot_s_bounds)
+        
+        publish_path_once(path) #Currently for debugging, but a final viz could be nice
 
     def publish_control_forces(self):
         self.get_state_estimates()
@@ -132,8 +137,6 @@ class VtfGuidanceAndControlNode:
             final_wp = self.path_following_controller.path.path[-1](1)
             final_orientation = [0, 0, 0] # Parameter server
             pos_tol = 0.1 # Parameter server
-            heading_mode = 'path_dependent_heading' # Use either 'path_dependent_heading' or 'point_dependent_heading'
-            point = [-6, 3] # x, y coordinates
             if inside_sphere_of_acceptence(self.eta[:3], final_wp, pos_tol):
                 nu_r = np.zeros(6) 
                 eta_r = np.zeros(6)
@@ -141,7 +144,7 @@ class VtfGuidanceAndControlNode:
                 eta_r[3:] = final_orientation
                 self.goal_reached = True
             else:
-                eta_r, nu_r = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), heading_mode, point=point)
+                eta_r, nu_r = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), self.heading_mode, point=self.heading_point)
 
         # Pose hold mode
         elif self.mode == 'pose_hold':
