@@ -39,8 +39,6 @@ class VtfPathFollowing(object):
 		/odometry/filtered
 	
 	Publishes to:
-		/guidance/los_data
-		/auv/los_desired
 	"""
 
 	# create messages that are used to send feedback/result

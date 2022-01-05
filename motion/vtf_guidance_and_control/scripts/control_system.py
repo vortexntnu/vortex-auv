@@ -3,6 +3,8 @@
 
 import numpy as np
 from functions import J_from_eul, ssa, skew, current_to_body
+from std_msgs.msg import Float32
+import rospy
 
 class DPControlSystem():
     '''Dynamic-positioning control system based on linear SISO models and a pole placement algorithm'''
@@ -19,6 +21,9 @@ class DPControlSystem():
         for i in range(6):
             K_P[i][i], K_D[i][i], K_I[i][i] = pid_pole_placement_algorithm(M[i][i], D[i][i], k[i], omega_b[i], zeta[i])
         self.controller = PIDController(K_P, K_D, K_I)
+        self.publisher_ = rospy.Publisher(
+            "yaw_error", Float32, queue_size=1
+        )
 
     def pid_regulate(self, eta, nu, eta_d, nu_d, dot_nu_d, t, dot_eta_c=[0,0,0,0,0,0]):
         eta_error = np.array(eta) - np.array(eta_d)
@@ -27,7 +32,9 @@ class DPControlSystem():
         J_target = J_from_eul([0, 0, eta[5]-eta_d[5]])
         nu_d = np.dot(J_target.T, nu_d)
         nu_error = (np.array(nu)-np.array(nu_d))
-        nu_error[5] = -nu_error[5]
+        #nu_error[5] = -nu_error[5]
+
+        self.publisher_.publish(nu_error[5])
         '''
         nu_c = np.dot(J.T, dot_eta_c)
         dot_v_c = np.dot(-skew([0, 0, nu[5]]), nu_c[:3])
