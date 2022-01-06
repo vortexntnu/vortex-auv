@@ -25,7 +25,9 @@ class VtfGuidanceAndControlNode:
 
         self.pub = rospy.Publisher('/auv/thruster_manager/input_stamped', WrenchStamped, queue_size=1) # Change Sim/Real 
 
-        self.odom_pub = rospy.Publisher('/odometry/filtered_ned', Odometry) # Odometry ned publisher 
+        self.odom_pub = rospy.Publisher('/odometry/filtered_ned', Odometry, queue_size=1) # Odometry ned publisher 
+
+        self.path_pub = rospy.Publisher('/beluga/guidance_and_control_system/path', Path, queue_size=1) #PAth publisher
 
         self.br = tf.TransformBroadcaster()
         self.br_eta_r = tf.TransformBroadcaster()
@@ -128,7 +130,7 @@ class VtfGuidanceAndControlNode:
         
         self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=self.dot_s_bounds)
         
-        publish_path_once(path) #Currently for debugging, but a final viz could be nice
+        self.publish_path_once(path) #Publishes path -> probably move to pathplanner node once that is created
 
     def publish_control_forces(self):
         self.get_state_estimates()
@@ -186,6 +188,38 @@ class VtfGuidanceAndControlNode:
         # Publish control forces
         msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
         self.pub.publish(msg)
+    
+    def publish_path_once(self,path):
+        msg = Path()
+        msg.header.frame_id = '/world_ned'
+        for i in range(len(path.path)):
+            for j in list(np.linspace(0, 1, 50)):
+                p = path.path[i](j)
+                psi = path.chi_p[i](j)
+                q = quaternion_from_euler(0, 0, psi)
+                pose = PoseStamped()
+                pose.header.frame_id = '/world_ned'
+                pose.pose.position.x = p[0]
+                pose.pose.position.y = p[1]
+                pose.pose.position.z = p[2]
+                pose.pose.orientation.x = q[0]
+                pose.pose.orientation.y = q[1]
+                pose.pose.orientation.z = q[2]
+                pose.pose.orientation.w = q[3]
+                msg.poses.append(pose)
+        
+        self.path_pub.publish(msg)
+
+        # rate = rospy.Rate(10)
+        # ctrl_c = False
+        # while not ctrl_c:
+        #     print("Echo path!")
+        #     connections = path_pub.get_num_connections()
+        #     if connections > 0:
+        #         path_pub.publish(msg)
+        #         ctrl_c = True
+        #     else:
+        #         rate.sleep()
             
 
 def extract_from_pose(pose):
@@ -199,35 +233,7 @@ def extract_from_twist(twist):
     angular = (twist.angular.x, twist.angular.y, twist.angular.z)
     return [linear[0], linear[1], linear[2], angular[0], angular[1], angular[2]]
 
-def publish_path_once(path):
-    path_pub = rospy.Publisher('/beluga/guidance_and_control_system/path', Path, queue_size=1)
-    msg = Path()
-    msg.header.frame_id = '/world_ned'
-    for i in range(len(path.path)):
-        for j in list(np.linspace(0, 1, 50)):
-            p = path.path[i](j)
-            psi = path.chi_p[i](j)
-            q = quaternion_from_euler(0, 0, psi)
-            pose = PoseStamped()
-            pose.header.frame_id = '/world_ned'
-            pose.pose.position.x = p[0]
-            pose.pose.position.y = p[1]
-            pose.pose.position.z = p[2]
-            pose.pose.orientation.x = q[0]
-            pose.pose.orientation.y = q[1]
-            pose.pose.orientation.z = q[2]
-            pose.pose.orientation.w = q[3]
-            msg.poses.append(pose)
-    rate = rospy.Rate(10)
-    ctrl_c = False
-    while not ctrl_c:
-        print("Echo path!")
-        connections = path_pub.get_num_connections()
-        if connections > 0:
-            path_pub.publish(msg)
-            ctrl_c = True
-        else:
-            rate.sleep()
+
 
 def create_wrenchstamped_msg(tau, t):
     msg = WrenchStamped()

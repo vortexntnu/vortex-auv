@@ -43,7 +43,7 @@ guidance_and_control_parameters:
   sphere_of_acceptence: 0.1
   control_input_saturation_limits: [-10.5, 10.5]
   control_forces_weights: [0.1, 0.1, 0.1, 10, 10, 1] # Weigths for what DOF is prioritized when allocation control forces. Leave 
-  control_bandwidth: [0.8, 0.4, 0.4, 0.4, 0.4, 0.8]   # Tune the PID control bandwidths for [surge, sway, heave, roll, pitch, yaw]. NB! roll and pitch are redundant
+  control_bandwidth: [0.8, 0.4, 0.8, 0.4, 0.4, 0.8]   # Tune the PID control bandwidths for [surge, sway, heave, roll, pitch, yaw]. NB! roll and pitch are redundant
   relative_damping_ratio: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # Leave
   absolute_relative_velocity_limit: 0.5 # Leave
   reference_model_control_bandwidth_gain: 0.5 # <= 1 # Leave 
