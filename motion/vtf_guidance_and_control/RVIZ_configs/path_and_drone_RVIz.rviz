@@ -169,6 +169,10 @@ Visualization Manager:
           Value: false
         auv/thruster_7:
           Value: false
+        reference_model:
+          Value: true
+        virtual_target:
+          Value: true
         world:
           Value: false
         world_ned:
@@ -226,7 +230,10 @@ Visualization Manager:
             auv/thruster_7:
               {}
           world_ned:
-            {}
+            reference_model:
+              {}
+            virtual_target:
+              {}
       Update Interval: 0
       Value: true
     - Angle Tolerance: 0.0010000000474974513
@@ -260,7 +267,7 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.05000000074505806
         Value: Axes
-      Topic: /odometry/filtered_ned
+      Topic: /odometry/filtered
       Unreliable: false
       Value: true
   Enabled: true
@@ -306,10 +313,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4503980278968811
+      Pitch: -0.04460199549794197
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 2.335400342941284
+      Yaw: 1.0204001665115356
     Saved: ~
 Window Geometry:
   Displays:
