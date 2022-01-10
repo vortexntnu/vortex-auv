@@ -57,11 +57,11 @@ def main():
             StateMachine.add('GATE_SEARCH',
                             GateSearchState(get_pos), 
                             transitions={'succeeded':'MOVE_TO_GATE'},
-                            remapping={'gate_search_output':'goal_position'})
+                            remapping={'gate_search_output':'gate_position'})
+            
             
             StateMachine.add('MOVE_TO_GATE',
-                            MoveToGate(),
-                            remapping={'gate_position':'goal_position'})
+                            MoveToGate() )
             
             
                         
