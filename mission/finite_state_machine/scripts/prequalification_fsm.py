@@ -64,13 +64,8 @@ def main():
             
             
             StateMachine.add('MOVE_TO_GATE',
-<<<<<<< HEAD
-                            MoveToGate())
-            
-=======
                             MoveToGate(),
                             transitions={'succeeded' : 'MOVE_THROUGH_GATE'})
->>>>>>> 97efce4b44ce93d8df635027f14dd48390001168
             
             StateMachine.add('MOVE_THROUGH_GATE',
                             MoveThroughGate())
