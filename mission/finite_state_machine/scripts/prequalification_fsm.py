@@ -11,6 +11,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import sm_classes
 from sm_classes.gate_search_state import GateSearchState
 from sm_classes.move_to_gate import MoveToGate
+from sm_classes.move_through_gate import MoveThroughGate
 from nav_msgs.msg import Odometry
 import copy
 from landmarks.srv import request_position
@@ -61,9 +62,11 @@ def main():
             
             
             StateMachine.add('MOVE_TO_GATE',
-                            MoveToGate() )
+                            MoveToGate(),
+                            transitions={'succeeded' : 'MOVE_THROUGH_GATE'})
             
-            
+            StateMachine.add('MOVE_THROUGH_GATE',
+                            MoveThroughGate())
                         
             # def gate_goal_cb(userdata, goal):  #This is where we take in the position(s) from landmarks and generate the new waypoint for LOS
             #     gate_goal = LosPathFollowingGoal()
