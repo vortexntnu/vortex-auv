@@ -11,6 +11,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import sm_classes
 from sm_classes.gate_search_state import GateSearchState
 from sm_classes.move_to_gate import MoveToGate
+from sm_classes.pole_search_state import PoleSearchState
+from sm_classes.move_to_pole import MoveToPole
 from nav_msgs.msg import Odometry
 import copy
 from landmarks.srv import request_position
@@ -61,7 +63,7 @@ def main():
             
             
             StateMachine.add('MOVE_TO_GATE',
-                            MoveToGate() )
+                            MoveToGate())
             
             
                         
@@ -112,20 +114,23 @@ def main():
             #                                 goal_cb=through_goal_cb,
             #                                 input_keys=['goal_position']))
                 
-        StateMachine.add('GATE_SM',gate_sm)
+        StateMachine.add('GATE_SM',gate_sm,
+                        transitions={'succeeded':'POLE_SM'} )
 
 
-        # pole_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+        pole_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
         # pole_sm.userdata.goal_position = Point(None,None,None)
 
-        # with pole_sm:
+        with pole_sm:
 
-        #     StateMachine.add('POLE_SEARCH',
-        #                     PoleSearchState(), #Must make PoleSearchState
-        #                     transitions={'succeeded':'LOS_MOVE_TO_POLE'}) 
-        #                     #remapping={'gate_search_output':'goal_position'}) Unsure what this does -copied from gate_sm
-            
+            StateMachine.add('POLE_SEARCH',
+                             PoleSearchState(get_pos),
+                             transitions={'succeeded':'MOVE_TO_POLE'}, 
+                             remapping={'pole_search_output':'pole_position'}) 
+        
+            StateMachine.add('MOVE_TO_POLE',
+                            MoveToPole())   
 
         #     StateMachine.add('LOS_MOVE_TO_POLE',
         #                     SimpleActionState(), #must make SimpleActionState
@@ -139,7 +144,7 @@ def main():
         #                     SimpleActionState())
                             
 
-        # StateMachine.add('POLE_SM', pole_sm)
+        StateMachine.add('POLE_SM', pole_sm)
 
 
     intro_server = IntrospectionServer(str(rospy.get_name()), prequalification_state_machine,'/SM_ROOT')    

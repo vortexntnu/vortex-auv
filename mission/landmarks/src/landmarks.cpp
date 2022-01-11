@@ -6,6 +6,7 @@ Landmarks::Landmarks ():loop_rate(10) {
     service = n.advertiseService("send_positions", &Landmarks::send_pos, this);
     geometry_msgs::Point p; p.x = NULL;p.y = NULL;p.z = NULL;
     objectPositions["gate"] = p;
+    objectPositions["pole"] = p;
 }
 
 void Landmarks::callback(vortex_msgs::ObjectPosition objPos){
@@ -23,8 +24,7 @@ void Landmarks::execute(){
 void Landmarks::printMap(std::map<std::string,geometry_msgs::Point> objectsMap){
     for(auto elem : objectsMap){
         ROS_INFO("ID: %s", elem.first.c_str());
-        ROS_INFO("position: %f,%f,%f",elem.second.x,elem.second.y,elem.second.z);
-            
+        ROS_INFO("position: %f,%f,%f",elem.second.x,elem.second.y,elem.second.z);       
     }
 }
 
