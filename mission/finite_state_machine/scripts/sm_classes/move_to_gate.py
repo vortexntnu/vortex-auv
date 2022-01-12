@@ -3,8 +3,6 @@ from smach import StateMachine
 import smach
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
-from fsm_helper import dp_move, los_move
-from nav_msgs.msg import Odometry
 
 import actionlib
 from actionlib_msgs.msg import GoalStatus
@@ -12,14 +10,11 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 
-class MoveToGate(smach.State):
-    
-    def __init__(self, odom):
-        self.odom = odom
+class MoveToGate(smach.State):  
+    def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position']) 
         
         dp_guidance_action_server="/guidance_interface/dp_server" 
-
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
         self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction) 
     

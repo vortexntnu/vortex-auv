@@ -1,24 +1,37 @@
 import rospy
 from smach import StateMachine
 import smach
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
-from fsm_helper import dp_move, los_move
+
+import actionlib
+from actionlib_msgs.msg import GoalStatus
+from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
+from landmarks.srv import request_position
+from tf.transformations import quaternion_from_euler
 
 class MoveToPole(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'])           
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'])
+        
+        dp_guidance_action_server="/guidance_interface/dp_server" 
+        self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
+        self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction)            
 
     def execute(self, userdata):
-        print("should perform the dp move to "+str(userdata.pole_position.x)+" , " +str(userdata.pole_position.y))
-        pole_move_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
-        with pole_move_sm:
-            StateMachine.add('MOVE_TO_POLE',
-                        dp_move(userdata.pole_position.x,userdata.pole_position.y))
+        goal = MoveBaseGoal()
+        goal.target_pose.pose.position = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
+        goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, 0))
+        self.action_client.wait_for_server()
+        self.action_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        while not rospy.is_shutdown():
+            if self.action_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
+                break
+            goal.target_pose.pose.position = self.landmarks_client("pole").pos
+            self.action_client.cancel_goal()
+            self.action_client.send_goal(goal)
+            rate.sleep()
         
-        try:
-            pole_move_sm.execute()
-        except Exception as e:
-            rospy.loginfo("pole_move_sm failed: %s" % e)
-
         return 'succeeded'

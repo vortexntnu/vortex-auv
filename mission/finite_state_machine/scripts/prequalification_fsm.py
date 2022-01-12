@@ -18,7 +18,6 @@ from sm_classes.pole_search_state import PoleSearchState
 from sm_classes.move_to_pole import MoveToPole
 from sm_classes.move_around_pole import MoveAroundPole
 
-from nav_msgs.msg import Odometry
 import copy
 from landmarks.srv import request_position
 
@@ -29,12 +28,7 @@ def main():
     get_pos = rospy.ServiceProxy('send_positions',request_position) 
           
     prequalification_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
-    
-
-    odom = Odometry(None,None,None,None)
-    def odom_cb(odom_msg):
-        odom = odom_msg
-    rospy.Subscriber("odometry/filtered", Odometry, odom_cb)                  
+                   
     
     with prequalification_state_machine:
                 
@@ -58,7 +52,7 @@ def main():
             
             
             StateMachine.add('MOVE_TO_GATE',
-                            MoveToGate(odom),
+                            MoveToGate(),
                             transitions={'succeeded' : 'MOVE_THROUGH_GATE'})
             
             StateMachine.add('MOVE_THROUGH_GATE',
