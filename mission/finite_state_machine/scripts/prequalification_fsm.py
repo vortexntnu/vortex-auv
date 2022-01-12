@@ -9,11 +9,15 @@ from geometry_msgs.msg import Point
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import sm_classes
+#gate:
 from sm_classes.gate_search_state import GateSearchState
 from sm_classes.move_to_gate import MoveToGate
+from sm_classes.move_through_gate import MoveThroughGate
+#pole:
 from sm_classes.pole_search_state import PoleSearchState
 from sm_classes.move_to_pole import MoveToPole
-from sm_classes.move_through_gate import MoveThroughGate
+from sm_classes.move_around_pole import MoveAroundPole
+
 from nav_msgs.msg import Odometry
 import copy
 from landmarks.srv import request_position
@@ -126,19 +130,11 @@ def main():
                              remapping={'pole_search_output':'pole_position'}) 
         
             StateMachine.add('MOVE_TO_POLE',
-                            MoveToPole())   
+                            MoveToPole(),
+                            transitions={'succeeded':'MOVE_AROUND_POLE'})   
 
-        #     StateMachine.add('LOS_MOVE_TO_POLE',
-        #                     SimpleActionState(), #must make SimpleActionState
-        #                     transitions={'succeeded':'PREPARE_MOVE_AROUND_POLE','aborted':'POLE_SEARCH'})
-
-        #     StateMachine.add('PREPARE_MOVE_AROUND_POLE',
-        #                     SimpleActionState(), #Must make SimpleActionState
-        #                     transitions={'succeeded': 'MOVE_AROUND_POLE'})
-
-        #     StateMachine.add('MOVE_AROUND_POLE', 
-        #                     SimpleActionState())
-                            
+            StateMachine.add('MOVE_AROUND_POLE',
+                            MoveAroundPole())                    
 
         StateMachine.add('POLE_SM', pole_sm)
 
