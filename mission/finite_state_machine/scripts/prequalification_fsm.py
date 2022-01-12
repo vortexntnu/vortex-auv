@@ -30,9 +30,6 @@ def main():
           
     prequalification_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
     
-    guidance_interface_dp_action_server="guidance_interface/dp_server"
-    guidance_interface_los_action_server="guidance_interface/los_server"
-   #virtual target action server ...
 
     odom = Odometry(None,None,None,None)
     def odom_cb(odom_msg):
