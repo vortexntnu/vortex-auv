@@ -110,7 +110,6 @@ class VtfPathFollowing(object):
 		The goal callback for the action server.
 
 		Once a goal has been recieved from the client, self.publish_guidance_data is set to True
-		This means that this node will start publishing data for the controller
 		"""
 
 		_goal = self.action_server.accept_new_goal()

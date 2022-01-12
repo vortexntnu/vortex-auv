@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Odometry1/Shape1
+        - /Path1
         - /Path1/Status1
         - /TF1/Frames1
         - /Odometry2
@@ -111,7 +112,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /beluga/guidance_and_control_system/path
+      Topic: /controllers/path
       Unreliable: false
       Value: true
     - Class: rviz/TF
@@ -169,6 +170,10 @@ Visualization Manager:
           Value: false
         auv/thruster_7:
           Value: false
+        beluga/base_link:
+          Value: true
+        beluga/base_link_ned:
+          Value: true
         reference_model:
           Value: true
         virtual_target:
@@ -186,49 +191,48 @@ Visualization Manager:
         world:
           auv/base_footprint:
             auv/base_stabilized:
-              {}
-          auv/base_link:
-            auv/base_link_ned:
-              {}
-            auv/camerafront_link:
-              auv/camerafront_link_optical:
-                {}
-            auv/cameraunder_link:
-              auv/cameraunder_link_optical:
-                {}
-            auv/dvl_link:
-              auv/dvl_sonar0_link:
-                {}
-              auv/dvl_sonar1_link:
-                {}
-              auv/dvl_sonar2_link:
-                {}
-              auv/dvl_sonar3_link:
-                {}
-            auv/imu_link:
-              {}
-            auv/magnetometer_link:
-              {}
-            auv/pose_sensor_link_default:
-              {}
-            auv/pressure_link:
-              {}
-            auv/thruster_0:
-              {}
-            auv/thruster_1:
-              {}
-            auv/thruster_2:
-              {}
-            auv/thruster_3:
-              {}
-            auv/thruster_4:
-              {}
-            auv/thruster_5:
-              {}
-            auv/thruster_6:
-              {}
-            auv/thruster_7:
-              {}
+              auv/base_link:
+                auv/base_link_ned:
+                  {}
+                auv/camerafront_link:
+                  auv/camerafront_link_optical:
+                    {}
+                auv/cameraunder_link:
+                  auv/cameraunder_link_optical:
+                    {}
+                auv/dvl_link:
+                  auv/dvl_sonar0_link:
+                    {}
+                  auv/dvl_sonar1_link:
+                    {}
+                  auv/dvl_sonar2_link:
+                    {}
+                  auv/dvl_sonar3_link:
+                    {}
+                auv/imu_link:
+                  {}
+                auv/magnetometer_link:
+                  {}
+                auv/pose_sensor_link_default:
+                  {}
+                auv/pressure_link:
+                  {}
+                auv/thruster_0:
+                  {}
+                auv/thruster_1:
+                  {}
+                auv/thruster_2:
+                  {}
+                auv/thruster_3:
+                  {}
+                auv/thruster_4:
+                  {}
+                auv/thruster_5:
+                  {}
+                auv/thruster_6:
+                  {}
+                auv/thruster_7:
+                  {}
           world_ned:
             reference_model:
               {}
@@ -313,10 +317,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -0.04460199549794197
+      Pitch: 0.5353980660438538
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.0204001665115356
+      Yaw: 0.9854001998901367
     Saved: ~
 Window Geometry:
   Displays:

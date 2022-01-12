@@ -23,11 +23,9 @@ class VtfGuidanceAndControlNode:
 
         rospy.Subscriber(rospy.get_param("/guidance/vtf/odometry_topic"), Odometry, self.navigation_callback)
 
-        self.pub = rospy.Publisher(rospy.get_param("/thrust_merger/output_topic"), Wrench, queue_size=1) 
-
-        self.odom_pub = rospy.Publisher('/odometry/filtered_ned', Odometry, queue_size=1) # Odometry ned publisher 
-
-        self.path_pub = rospy.Publisher('/beluga/guidance_and_control_system/path', Path, queue_size=1) #PAth publisher
+        self.pub = rospy.Publisher(rospy.get_param("/thrust_merger/output_topic"), Wrench, queue_size=1)  
+        
+        self.path_pub = rospy.Publisher('path', Path, queue_size=1) #Path publisher -> probably change that to path planner when that is created
 
         self.br = tf.TransformBroadcaster()
         self.br_eta_r = tf.TransformBroadcaster()
@@ -96,6 +94,7 @@ class VtfGuidanceAndControlNode:
 
         '''Sphere of acceptance'''
         self.goal_reached = False
+        self.sphere_of_acceptance_radius = rospy.get_param("/guidance_and_control_parameters/sphere_of_acceptence")
 
         '''Publish frequency'''
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
@@ -108,7 +107,6 @@ class VtfGuidanceAndControlNode:
     def navigation_callback(self, msg):
         if self.get_pose:
             self.eta, self.nu = ned_enu_conversion(extract_from_pose(msg.pose.pose),extract_from_twist(msg.twist.twist))
-            publish_ned(self.odom_pub,self.eta,self.nu)
             self.get_pose = False
         else:
             pass
@@ -151,9 +149,8 @@ class VtfGuidanceAndControlNode:
         # Path following mode
         if self.mode == 'path_following':
             final_wp = self.path_following_controller.path.path[-1](1)
-            final_orientation = [0, 0, 0] # Parameter server
-            pos_tol = 0.1 # Parameter server
-            if inside_sphere_of_acceptence(self.eta[:3], final_wp, pos_tol):
+            final_orientation = [0, 0, 0] 
+            if inside_sphere_of_acceptence(self.eta[:3], final_wp, self.sphere_of_acceptance_radius):
                 nu_r = np.zeros(6) 
                 eta_r = np.zeros(6)
                 eta_r[:3] = final_wp
@@ -162,7 +159,7 @@ class VtfGuidanceAndControlNode:
             else:
                 eta_r, nu_r, self.dot_s = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), self.heading_mode, point=self.heading_point)
 
-        # Pose hold mode
+        # Pose hold mode -> Currently not used! 
         elif self.mode == 'pose_hold':
             eta_r = [0, 0, 0, 0, 0, 0] # Insert desired pose here (roll and pitch do not work atm) [x, y, z, roll, pitch, yaw] NED
             nu_r = [0, 0, 0, 0, 0, 0]
@@ -226,17 +223,6 @@ class VtfGuidanceAndControlNode:
                 msg.poses.append(pose)
         
         self.path_pub.publish(msg)
-
-        # rate = rospy.Rate(10)
-        # ctrl_c = False
-        # while not ctrl_c:
-        #     print("Echo path!")
-        #     connections = path_pub.get_num_connections()
-        #     if connections > 0:
-        #         path_pub.publish(msg)
-        #         ctrl_c = True
-        #     else:
-        #         rate.sleep()
             
 
 def extract_from_pose(pose):
