@@ -6,22 +6,20 @@ from std_msgs.msg import String
 class PoleSearchState(smach.State):
     def __init__(self,client):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['pole_search_output'])           
-        self.pole_position = None 
         self.get_position_client = client
+        self.pole_position = self.get_position_client("pole").pos
 
-        #testing
         st_pub = rospy.Publisher('state_transition', String, queue_size=10)     
         st_pub.publish("POLE_SEARCH")
         
     def execute(self, userdata):
 
-        #possibly move the drone around until it finds the pole first?
-        while (self.pole_position is None):
-            print("IN WHILE")
+        while self.pole_position.x == 0:
+            print("SEARCHING FOR POLE ...")
             rospy.wait_for_service('send_positions')   
-            position = self.get_position_client("pole")
-            self.pole_position = position.pos
-               
+            self.pole_position = self.get_position_client("pole").pos
+        
+        print("POLE POSITION DETECTED: "+ str(self.pole_position.x) + ", "+ str(self.pole_position.y))    
                         
         userdata.pole_search_output = self.pole_position       
         return 'succeeded'

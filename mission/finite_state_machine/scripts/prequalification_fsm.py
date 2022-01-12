@@ -49,13 +49,6 @@ def main():
             # StateMachine.add('TESTING_STATE',
             #                 dp_move(test_position.x,test_position.y))
             # print("current gate position " + str(test_position.x) + ", "+str(test_position.y) + ", "+str(test_position.z))
-
-
-            # StateMachine.add('GATE_SEARCH',
-            #                 GateSearchState(), 
-            #                 transitions={'succeeded':'LOS_MOVE_TO_GATE'}, 
-            #                 remapping={'gate_search_output':'goal_position'})  
-
             
             StateMachine.add('GATE_SEARCH',
                             GateSearchState(get_pos), 
@@ -69,7 +62,7 @@ def main():
             
             StateMachine.add('MOVE_THROUGH_GATE',
                             MoveThroughGate())
-                        
+            
             # def gate_goal_cb(userdata, goal):  #This is where we take in the position(s) from landmarks and generate the new waypoint for LOS
             #     gate_goal = LosPathFollowingGoal()
             #     # possibly some function 'getMiddlePointGate' here
