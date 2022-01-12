@@ -10,8 +10,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 
 
-guidance_interface_dp_action_server="/guidance_interface/dp_server"
-guidance_interface_los_action_server="/guidance_interface/los_server"
+guidance_interface_dp_action_server=rospy.get_param("/guidance/dp/action_server")
+guidance_interface_los_action_server=rospy.get_param("/guidance/LOS/action_server")
 
 # rename the file accordingly too; put in own folder
 

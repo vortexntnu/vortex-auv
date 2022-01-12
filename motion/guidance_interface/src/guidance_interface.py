@@ -305,7 +305,6 @@ class LosGuidance:
         rospy.logdebug("LosGuidance initialized")
 
     def los_callback(self, goal):
-        print("yey")
         self.guidance_interface.stop_all_guidance()
 
         rospy.logdebug("Sending new goal to los_guidance..")
