@@ -21,6 +21,8 @@ ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
     joy_topic = "/thrust/joy";
   if (!nh.getParam("/thrust_merger/output_topic", output_topic))
     output_topic = "/thrust/combined";
+  
+  
 
   // init wrenches as zero
   dp_wrench = Eigen::Vector6d();

@@ -5,33 +5,32 @@ import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState
 from smach_ros import SimpleActionState
 from geometry_msgs.msg import Point, Quaternion
-from vortex_msgs.msg import MoveGoal, MoveAction
 from tf.transformations import quaternion_from_euler
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 
-move_action_server = '/guidance/move'
-# maybe create class for this? 
-# something to signal that the **_move functions are used for crosstalk
-# between the FSM and the Guidance systems.
+
+guidance_interface_dp_action_server=rospy.get_param("/guidance/dp/action_server")
+guidance_interface_los_action_server=rospy.get_param("/guidance/LOS/action_server")
+
 # rename the file accordingly too; put in own folder
 
 def dp_move(x, y, z=-0.5, yaw_rad=0):
-    goal = MoveGoal()
 
-    goal.guidance_type = 'PositionHold'
-    goal.target_pose.position = Point(x, y, z)
-    goal.target_pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
+    goal = MoveBaseGoal()
+    goal.target_pose.pose.position = Point(x,y,z)
+    goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
 
-
-    return SimpleActionState(move_action_server, MoveAction, goal=goal)
-
+    return SimpleActionState(guidance_interface_dp_action_server, MoveBaseAction, goal=goal)
 
 def los_move(x, y, z=-0.5):
 
-    goal = MoveGoal()
-    goal.guidance_type = 'LOS'
-    goal.target_pose.position = Point(x, y, z)
-
-    return SimpleActionState(move_action_server, MoveAction, goal=goal)
+    goal = LosPathFollowingGoal()
+    goal.next_waypoint = Point(x,y,z)
+    goal.forward_speed = rospy.get_param('~transit_speed', 0.3)
+    goal.sphereOfAcceptance = rospy.get_param('~sphere_of_acceptance', 0.5)
+    goal.desired_depth = z
+    return SimpleActionState(guidance_interface_los_action_server, LosPathFollowingAction, goal=goal)
 
 
 def circle_move(target_point, direction):

@@ -5,13 +5,16 @@ from enum import IntEnum, Enum
 import rospy
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from move_base_msgs.msg import MoveBaseAction
+from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from std_srvs.srv import Empty, EmptyRequest, SetBool, SetBoolRequest
+from smach_ros import SimpleActionState
 
 from vortex_msgs.msg import (
     LosPathFollowingAction,
     ControlModeAction,
     SetVelocityAction,
+    MoveAction,
+    LosPathFollowingGoal,
 )
 
 from vortex_msgs.srv import (
@@ -196,20 +199,21 @@ class DpGuidance:
 
     def dp_callback(self, goal):
         self.guidance_interface.stop_all_guidance()
+        
         self.change_control_mode(ControlModeEnum.POSITION_HEADING_HOLD)
-
+        
         rospy.logdebug("Sending new goal to dp_guidance..")
         self.client_done = False
         self.action_client.send_goal(
             goal, done_cb=self.guidance_finished_cb, feedback_cb=None
         )
+        
 
         self.timeout = False
         rospy.Timer(rospy.Duration(self.max_duration), self.set_timeout, oneshot=True)
-
+        
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
-
             # preempt requested
             if self.action_server.is_preempt_requested():
                 self.action_client.cancel_all_goals()
@@ -270,6 +274,7 @@ class DpGuidance:
         if self.action_client.gh:
             self.action_client.cancel_goal()
         self.change_control_mode(ControlModeEnum.OPEN_LOOP)
+        
 
 
 class LosGuidance:
@@ -382,6 +387,7 @@ class GuidanceInterface:
             los_guidance_action_server="los_action_server",
             guidance_interface_los_action_server="/guidance_interface/los_server",
         )
+
         rospy.logdebug("GuidanceInterface initialized")
 
     def stop_all_guidance(self):
