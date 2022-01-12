@@ -31,7 +31,7 @@ x = 0
 # Load font
 font = ImageFont.truetype('ScaledFont.ttf', 16)
 
-print("before while")
+print("Displaying IP")
 
 while True:
     # Draw a black filled box to clear the image.
