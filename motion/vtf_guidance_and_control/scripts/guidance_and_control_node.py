@@ -21,7 +21,7 @@ from functions import inside_sphere_of_acceptence, ssa, ned_enu_conversion
 class VtfGuidanceAndControlNode:
     def __init__(self):
 
-        rospy.Subscriber('/odometry/filtered', Odometry, self.navigation_callback)# Change Sim/Real
+        rospy.Subscriber(rospy.get_param("/guidance/vtf/odometry_topic"), Odometry, self.navigation_callback)# Change Sim/Real
 
         self.pub = rospy.Publisher('/auv/thruster_manager/input_stamped', WrenchStamped, queue_size=1) # Change Sim/Real 
 
