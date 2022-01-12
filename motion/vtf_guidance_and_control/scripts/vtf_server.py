@@ -5,16 +5,6 @@
 # All rights reserved.
 
 import rospy
-import numpy as np
-import math
-from vortex_msgs.msg import GuidanceData
-from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Wrench, PoseStamped, Pose
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
-
-# dynamic reconfigure
-from dynamic_reconfigure.server import Server
-from los_guidance.cfg import LOSConfig
 
 # vtf
 from guidance_and_control_node import VtfGuidanceAndControlNode, create_wrench_msg
@@ -38,7 +28,6 @@ class VtfPathFollowing(object):
 	Subscribes to:
 		/odometry/filtered
 	
-	Publishes to:
 	"""
 
 	# create messages that are used to send feedback/result

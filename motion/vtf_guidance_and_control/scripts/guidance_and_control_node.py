@@ -187,7 +187,7 @@ class VtfGuidanceAndControlNode:
                         (q[0], q[1], q[2], q[3]),
                         rospy.Time.now(),
                         "/virtual_target",
-                        "/world_ned")
+                        "/odom_ned")
         
         # Publish reference model frame
         p = eta_d[0][:3]
@@ -197,7 +197,7 @@ class VtfGuidanceAndControlNode:
                         (q[0], q[1], q[2], q[3]),
                         rospy.Time.now(),
                         "/reference_model",
-                        "/world_ned")
+                        "/odom_ned")
         
         # Publish control forces
         msg = create_wrench_msg(tau_c)
@@ -205,14 +205,14 @@ class VtfGuidanceAndControlNode:
     
     def publish_path_once(self,path):
         msg = Path()
-        msg.header.frame_id = '/world_ned'
+        msg.header.frame_id = '/odom_ned'
         for i in range(len(path.path)):
             for j in list(np.linspace(0, 1, 50)):
                 p = path.path[i](j)
                 psi = path.chi_p[i](j)
                 q = quaternion_from_euler(0, 0, psi)
                 pose = PoseStamped()
-                pose.header.frame_id = '/world_ned'
+                pose.header.frame_id = '/odom_ned'
                 pose.pose.position.x = p[0]
                 pose.pose.position.y = p[1]
                 pose.pose.position.z = p[2]
@@ -247,30 +247,6 @@ def create_wrench_msg(tau):
     msg.torque.y = -tau[4]
     msg.torque.z = -tau[5]
     return msg
-
-def publish_ned(pub, eta, nu):
-    odom = Odometry()
-
-    orien = quaternion_from_euler(eta[3],eta[4],eta[5])
-
-    odom.pose.pose.position.x = eta[0]
-    odom.pose.pose.position.y = eta[1]
-    odom.pose.pose.position.z = eta[2]
-    odom.pose.pose.orientation.x = orien[0]
-    odom.pose.pose.orientation.y = orien[1]
-    odom.pose.pose.orientation.z = orien[2]
-    odom.pose.pose.orientation.w = orien[3]
-
-    odom.twist.twist.linear.x = nu[0]
-    odom.twist.twist.linear.y = nu[1]
-    odom.twist.twist.linear.z = nu[2]
-    odom.twist.twist.angular.x = nu[3]
-    odom.twist.twist.angular.y = nu[4]
-    odom.twist.twist.angular.z = nu[5]
-
-    odom.header.frame_id = '/world_ned'
-
-    pub.publish(odom)
 
 
 
