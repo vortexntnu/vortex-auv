@@ -29,6 +29,8 @@ A more detailed description of the system can be found [here](https://miro.com/a
 ## Usage
 Instructions for installation can be found [here](https://github.com/vortexntnu/Vortex-AUV/wiki/Software-installation)
 
+This guide is supposed to be used when you launch the drone with the  *physical setup*. If you wish to run the simulator, check out step 2 in [this file](https://github.com/vortexntnu/Vortex-Simulator)  
+
 To launch a drone you will first need to to prepare it for operation:
 ```
 roslaunch auv_setup <drone>.launch

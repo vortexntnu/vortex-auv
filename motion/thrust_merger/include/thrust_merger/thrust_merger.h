@@ -32,6 +32,7 @@ private:
   ros::Subscriber los_sub;
   ros::Subscriber joy_sub;
   ros::Publisher thrust_pub;
+  ros::Publisher thrust_pub_sim;
 
   Eigen::Vector6d dp_wrench;
   Eigen::Vector6d los_wrench;

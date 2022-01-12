@@ -44,8 +44,17 @@
 
   <!-- Thrust nodes -->
   <group ns="$(arg ns_thrust)">
-    <node pkg="thruster_allocator"  type="thruster_allocator_node"     name="thruster_allocator"/>
-    <node pkg="thrust_merger"       type="thrust_merger_node"          name="thrust_merger"/>
+    <group if="$(eval type == 'simulator')">
+      <remap from="/thrust/desired_forces" to="/auv/thruster_manager/input" />
+      <node pkg="thrust_merger"       type="thrust_merger_node"          name="thrust_merger"/>
+    </group>
+
+    <group if="$(eval type == 'real')">
+      <node pkg="thruster_allocator"  type="thruster_allocator_node"     name="thruster_allocator"/>
+      <node pkg="thrust_merger"       type="thrust_merger_node"          name="thrust_merger"/>
+    </group>
+
+    
   </group>
 
 </launch>

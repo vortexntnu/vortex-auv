@@ -25,7 +25,7 @@ def main():
     rospy.Subscriber("odometry/filtered", Odometry, odom_cb)                  
     
     with simulator_state_machine:
-                
+                    
         StateMachine.add('REACH_DEPTH',
                         dp_move(0,0),
                         transitions={'succeeded':'GATE_SM'})
