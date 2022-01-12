@@ -12,6 +12,13 @@
   <param name="/velocity_controller/thrust_topic" value="/auv/thruster_manager/input" />
   <rosparam command="load" file="$(find vtf_guidance_and_control)/config/beluga.yaml" />
 
+  <!-- Static transforms (needed for VTF controller)-->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="world_ned_frame_publisher"
+    args="0 0 0 1.5707963267948966 0 3.141592653589793 world world_ned" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="sname_frame_publisher"
+    args="0 0 0 0 0 3.141592653589793 /beluga/base_link /beluga/base_link_ned" />
+
+
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
     <node pkg="interface"          type="guidance_interface.py"   name="interface"    output="screen"/>

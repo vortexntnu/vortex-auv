@@ -11,13 +11,13 @@ from control_allocation import ControlAllocationSystem
 from control_system import DPControlSystem
 
 class VirtualTarget():
-    def __init__(self, Path, AUVModel, ControlAllocationSystem, DPControlSystem, omega_b, dot_s_bounds=[-1, 1], current_velocity=[0,0,0,0,0,0], heading_mode='path_dependent_heading', point=[0, 0]):
+    def __init__(self, Path, AUVModel, ControlAllocationSystem, DPControlSystem, omega_b, dot_s_bounds=[-1, 1], current_velocity=[0,0,0,0,0,0], heading_mode='path_dependent_heading', point=[0, 0], speed = 0):
         self.path = Path
         self.auv_model = AUVModel
         self.control_allocation_system = ControlAllocationSystem
         self.dp_control_system = DPControlSystem
 
-        self.dot_s = 0
+        self.dot_s = speed
         self.s = 0
         self.path_index = 0
         self.varpi = 0
@@ -98,7 +98,7 @@ class VirtualTarget():
         self.update_states(heading_mode, point=point)
         self.optimize_along_track_speed(eta, nu, dot_eta_c, t)
         self.simulate_path_variables(t)
-        return self.eta_t, self.nu_t(self.dot_s)
+        return self.eta_t, self.nu_t(self.dot_s),self.dot_s
 
 if __name__ == '__main__':
     waypoints = [[0, 0, 0], [1, 0, 1], [0, 1, 0], [0, 0, 0]]

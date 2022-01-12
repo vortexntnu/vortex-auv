@@ -90,9 +90,12 @@ class VtfGuidanceAndControlNode:
         self.dot_s_bounds = rospy.get_param("/guidance_and_control_parameters/virtual_target_along_track_speed_saturation_limits")
         self.heading_point = [0,0]
 
+        '''Virtual target position and speed'''
+        self.eta_r = [0,0,0,0,0,0]
+        self.dot_s = 0
+
         '''Sphere of acceptance'''
         self.goal_reached = False
-
 
         '''Publish frequency'''
         self.publish_rate = rospy.get_param("/guidance_and_control_parameters/publish_rate")
@@ -131,7 +134,18 @@ class VtfGuidanceAndControlNode:
         self.path_following_controller = VirtualTarget(path, self.auv_model, self.vt_actuator_model, virtual_control_system, self.omega_b_simulator, dot_s_bounds=self.dot_s_bounds)
         
         self.publish_path_once(path) #Publishes path -> probably move to pathplanner node once that is created
-
+    
+    def update_path(self, speed, heading, heading_point):
+        
+        self.waypoints[0] = [self.eta_r[0],self.eta_r[1],self.eta_r[2]] #First waypoint is current location
+        path = Path1()
+        path.generate_G0_path(self.waypoints)
+        
+        self.path_following_controller.varpi = 0
+        self.path_following_controller.path = path
+        
+        self.publish_path_once(path)
+        
     def publish_control_forces(self):
         self.get_state_estimates()
         # Path following mode
@@ -146,7 +160,7 @@ class VtfGuidanceAndControlNode:
                 eta_r[3:] = final_orientation
                 self.goal_reached = True
             else:
-                eta_r, nu_r = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), self.heading_mode, point=self.heading_point)
+                eta_r, nu_r, self.dot_s = self.path_following_controller.generate_reference_trajectories(self.eta_d, self.nu_d, rospy.get_time(), self.heading_mode, point=self.heading_point)
 
         # Pose hold mode
         elif self.mode == 'pose_hold':
@@ -164,6 +178,9 @@ class VtfGuidanceAndControlNode:
 
         # Control System
         tau_c = self.dp_control_system.pid_regulate(self.eta, self.nu, eta_d[0], nu_d[0], [0,0,0,0,0,0], rospy.get_time(), dot_eta_c=self.dot_eta_c)
+
+        # Save virtual target position
+        self.eta_r = eta_r
 
         # Publish virtual target frame
         p = eta_r[:3]
