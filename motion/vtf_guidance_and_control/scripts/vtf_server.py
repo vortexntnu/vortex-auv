@@ -17,7 +17,7 @@ from dynamic_reconfigure.server import Server
 from los_guidance.cfg import LOSConfig
 
 # vtf
-from guidance_and_control_node import VtfGuidanceAndControlNode, create_wrenchstamped_msg
+from guidance_and_control_node import VtfGuidanceAndControlNode, create_wrench_msg
 
 # action message
 import actionlib
@@ -91,7 +91,7 @@ class VtfPathFollowing(object):
 		if self.action_server.is_preempt_requested():
 			rospy.loginfo("Preempted requested by vtf path client")
 			self.publish_guidance_data = False
-			msg = create_wrenchstamped_msg([0,0,0,0,0,0], rospy.get_rostime())
+			msg = create_wrench_msg([0,0,0,0,0,0])
 			self.vtf.pub.publish(msg)
 			self.action_server.set_preempted()
 
@@ -101,7 +101,7 @@ class VtfPathFollowing(object):
 			self.publish_guidance_data = False
 			self.vtf.goal_reached = False
 			self.action_server.set_succeeded(self._result, text="goal completed")
-			msg = create_wrenchstamped_msg([0,0,0,0,0,0], rospy.get_rostime())
+			msg = create_wrench_msg([0,0,0,0,0,0])
 			self.vtf.pub.publish(msg)
 			
 

@@ -8,7 +8,7 @@ import tf2_ros
 import tf2_geometry_msgs
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from nav_msgs.msg import Odometry, Path
-from geometry_msgs.msg import WrenchStamped, PoseStamped
+from geometry_msgs.msg import Wrench, PoseStamped
 from path import Path as Path1
 from auv_model import AUVModel
 from control_allocation import ControlAllocationSystem
@@ -21,9 +21,9 @@ from functions import inside_sphere_of_acceptence, ssa, ned_enu_conversion
 class VtfGuidanceAndControlNode:
     def __init__(self):
 
-        rospy.Subscriber(rospy.get_param("/guidance/vtf/odometry_topic"), Odometry, self.navigation_callback)# Change Sim/Real
+        rospy.Subscriber(rospy.get_param("/guidance/vtf/odometry_topic"), Odometry, self.navigation_callback)
 
-        self.pub = rospy.Publisher('/auv/thruster_manager/input_stamped', WrenchStamped, queue_size=1) # Change Sim/Real 
+        self.pub = rospy.Publisher(rospy.get_param("/thrust_merger/output_topic"), Wrench, queue_size=1) 
 
         self.odom_pub = rospy.Publisher('/odometry/filtered_ned', Odometry, queue_size=1) # Odometry ned publisher 
 
@@ -203,7 +203,7 @@ class VtfGuidanceAndControlNode:
                         "/world_ned")
         
         # Publish control forces
-        msg = create_wrenchstamped_msg(tau_c, rospy.get_rostime())
+        msg = create_wrench_msg(tau_c)
         self.pub.publish(msg)
     
     def publish_path_once(self,path):
@@ -251,17 +251,15 @@ def extract_from_twist(twist):
     return [linear[0], linear[1], linear[2], angular[0], angular[1], angular[2]]
 
 
-
-def create_wrenchstamped_msg(tau, t):
-    msg = WrenchStamped()
-    msg.header.stamp = t
-    msg.header.frame_id = "beluga/base_link_ned"
-    msg.wrench.force.x = tau[0]
-    msg.wrench.force.y = tau[1]
-    msg.wrench.force.z = tau[2]
-    msg.wrench.torque.x = tau[3]
-    msg.wrench.torque.y = tau[4]
-    msg.wrench.torque.z = tau[5]
+#Convert back to ENU
+def create_wrench_msg(tau):
+    msg = Wrench()
+    msg.force.x = tau[0]
+    msg.force.y = -tau[1]
+    msg.force.z = -tau[2]
+    msg.torque.x = tau[3]
+    msg.torque.y = -tau[4]
+    msg.torque.z = -tau[5]
     return msg
 
 def publish_ned(pub, eta, nu):

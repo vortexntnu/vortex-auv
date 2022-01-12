@@ -10,6 +10,11 @@
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
 
+  <!-- SIMULATOR CHANGES-->
+  <group if="$(eval type == 'simulator')">
+    <param name="/thrust_merger/output_topic" value="/auv/thruster_manager/input"/>
+  </group>
+
   <!-- DRIVERS -->
   <group if="$(eval type == 'real')">
     <!-- For monitoring internal state -->

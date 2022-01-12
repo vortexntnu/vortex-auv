@@ -15,7 +15,7 @@ model_parameters:
      [ 0, 0, 1.2]]
   water_density: 997
   M_A: [20, 40, 50, 0.5, 2, 2] # Added mass
-  D: [-20, -40, -50, -3, -10, -18] # Linear damping
+  D: [-20, -40, -50, -3, -10, -12] # Linear damping
 
 thruster_parameters:
   first_order_time_constant: 0.2
@@ -42,7 +42,7 @@ thruster_parameters:
 guidance_and_control_parameters:
   sphere_of_acceptence: 0.1
   control_input_saturation_limits: [-10.5, 10.5]
-  control_forces_weights: [0.1, 0.1, 0.1, 10, 10, 1] # Weigths for what DOF is prioritized when allocation control forces. Leave 
+  control_forces_weights: [0.1, 0.1, 0.1, 10, 10, 1.5] # Weigths for what DOF is prioritized when allocation control forces. Leave 
   control_bandwidth: [0.8, 0.4, 0.8, 0.4, 0.4, 0.8]   # Tune the PID control bandwidths for [surge, sway, heave, roll, pitch, yaw]. NB! roll and pitch are redundant
   relative_damping_ratio: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # Leave
   absolute_relative_velocity_limit: 0.5 # Leave
