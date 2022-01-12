@@ -57,7 +57,7 @@ def main():
             
             
             StateMachine.add('MOVE_TO_GATE',
-                            MoveToGate(),
+                            MoveToGate(odom),
                             transitions={'succeeded' : 'MOVE_THROUGH_GATE'})
             
             StateMachine.add('MOVE_THROUGH_GATE',
