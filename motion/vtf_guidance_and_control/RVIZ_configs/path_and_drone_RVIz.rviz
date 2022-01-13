@@ -150,6 +150,8 @@ Visualization Manager:
           Value: false
         auv/magnetometer_link:
           Value: false
+        auv/odom:
+          Value: false
         auv/pose_sensor_link_default:
           Value: false
         auv/pressure_link:
@@ -170,14 +172,10 @@ Visualization Manager:
           Value: false
         auv/thruster_7:
           Value: false
-        beluga/base_link:
-          Value: true
-        beluga/base_link_ned:
-          Value: true
-        reference_model:
-          Value: true
-        virtual_target:
-          Value: true
+        odom:
+          Value: false
+        odom_ned:
+          Value: false
         world:
           Value: false
         world_ned:
@@ -188,55 +186,57 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        world:
-          auv/base_footprint:
-            auv/base_stabilized:
-              auv/base_link:
-                auv/base_link_ned:
-                  {}
-                auv/camerafront_link:
-                  auv/camerafront_link_optical:
+        odom:
+          auv/odom:
+            {}
+          odom_ned:
+            {}
+          world:
+            auv/base_footprint:
+              auv/base_stabilized:
+                auv/base_link:
+                  auv/base_link_ned:
                     {}
-                auv/cameraunder_link:
-                  auv/cameraunder_link_optical:
+                  auv/camerafront_link:
+                    auv/camerafront_link_optical:
+                      {}
+                  auv/cameraunder_link:
+                    auv/cameraunder_link_optical:
+                      {}
+                  auv/dvl_link:
+                    auv/dvl_sonar0_link:
+                      {}
+                    auv/dvl_sonar1_link:
+                      {}
+                    auv/dvl_sonar2_link:
+                      {}
+                    auv/dvl_sonar3_link:
+                      {}
+                  auv/imu_link:
                     {}
-                auv/dvl_link:
-                  auv/dvl_sonar0_link:
+                  auv/magnetometer_link:
                     {}
-                  auv/dvl_sonar1_link:
+                  auv/pose_sensor_link_default:
                     {}
-                  auv/dvl_sonar2_link:
+                  auv/pressure_link:
                     {}
-                  auv/dvl_sonar3_link:
+                  auv/thruster_0:
                     {}
-                auv/imu_link:
-                  {}
-                auv/magnetometer_link:
-                  {}
-                auv/pose_sensor_link_default:
-                  {}
-                auv/pressure_link:
-                  {}
-                auv/thruster_0:
-                  {}
-                auv/thruster_1:
-                  {}
-                auv/thruster_2:
-                  {}
-                auv/thruster_3:
-                  {}
-                auv/thruster_4:
-                  {}
-                auv/thruster_5:
-                  {}
-                auv/thruster_6:
-                  {}
-                auv/thruster_7:
-                  {}
-          world_ned:
-            reference_model:
-              {}
-            virtual_target:
+                  auv/thruster_1:
+                    {}
+                  auv/thruster_2:
+                    {}
+                  auv/thruster_3:
+                    {}
+                  auv/thruster_4:
+                    {}
+                  auv/thruster_5:
+                    {}
+                  auv/thruster_6:
+                    {}
+                  auv/thruster_7:
+                    {}
+            world_ned:
               {}
       Update Interval: 0
       Value: true
@@ -278,7 +278,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: world
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:
@@ -309,18 +309,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 0.5386993288993835
+        Y: 0.2312241941690445
+        Z: -1.4871125221252441
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5353980660438538
+      Pitch: 0.3053980767726898
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.9854001998901367
+      Yaw: 1.6004000902175903
     Saved: ~
 Window Geometry:
   Displays:
