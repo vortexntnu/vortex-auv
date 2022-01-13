@@ -1,7 +1,7 @@
 
 #!/usr/bin/env python
 # Written by Aksel Kristoffersen
-# Documentation can be found in my master's thesis, chapter __ and __
+# Documentation can be found in my master's thesis: Guidance and Control System for Dynamic Positioning and PathFollowing of an AUV exposed to Ocean Currents
 
 import numpy as np
 import pandas as pd

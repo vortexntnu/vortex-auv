@@ -9,7 +9,7 @@ import tf2_geometry_msgs
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import Wrench, PoseStamped
-from path import Path as Path1
+from path import Path as VTFPath
 from auv_model import AUVModel
 from control_allocation import ControlAllocationSystem
 from control_system import DPControlSystem
@@ -120,7 +120,7 @@ class VtfGuidanceAndControlNode:
         self.get_state_estimates()
         self.reference_model.set_initial_conditions(self.eta, self.nu, rospy.get_time())
         self.waypoints[0] = [self.eta[0],self.eta[1],self.eta[2]] #First waypoint is current location
-        path = Path1()
+        path = VTFPath()
         path.generate_G0_path(self.waypoints)
         omega_b_virtual = rospy.get_param("/guidance_and_control_parameters/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
@@ -136,7 +136,7 @@ class VtfGuidanceAndControlNode:
     def update_path(self, speed, heading, heading_point):
         
         self.waypoints[0] = [self.eta_r[0],self.eta_r[1],self.eta_r[2]] #First waypoint is current location
-        path = Path1()
+        path = VTFPath()
         path.generate_G0_path(self.waypoints)
         
         self.path_following_controller.varpi = 0
