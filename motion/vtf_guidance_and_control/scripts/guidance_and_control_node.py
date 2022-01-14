@@ -21,7 +21,7 @@ from functions import inside_sphere_of_acceptence, ssa, ned_enu_conversion
 class VtfGuidanceAndControlNode:
     def __init__(self):
 
-        rospy.Subscriber(rospy.get_param("/guidance/vtf/odometry_topic"), Odometry, self.navigation_callback)
+        rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.navigation_callback)
 
         self.pub = rospy.Publisher(rospy.get_param("/thrust_merger/output_topic"), Wrench, queue_size=1)  
         
@@ -38,54 +38,54 @@ class VtfGuidanceAndControlNode:
         self.mode = 'path_following'
 
         '''Initialize Fossen's equations'''
-        m = rospy.get_param("/model_parameters/mass")
-        r_g = rospy.get_param("/model_parameters/center_of_mass")
-        r_b = rospy.get_param("/model_parameters/center_of_buoyancy")
-        inertia = np.array(rospy.get_param("/model_parameters/inertia"))
-        volume = rospy.get_param("/model_parameters/volume")
-        M_A = np.diag(rospy.get_param("/model_parameters/M_A"))
-        D = -np.diag(rospy.get_param("/model_parameters/D"))
-        rho = rospy.get_param("/model_parameters/water_density")
+        m = rospy.get_param("/controllers/vtf/model_parameters/mass")
+        r_g = rospy.get_param("/controllers/vtf/model_parameters/center_of_mass")
+        r_b = rospy.get_param("/controllers/vtf/model_parameters/center_of_buoyancy")
+        inertia = np.array(rospy.get_param("/controllers/vtf/model_parameters/inertia"))
+        volume = rospy.get_param("/controllers/vtf/model_parameters/volume")
+        M_A = np.diag(rospy.get_param("/controllers/vtf/model_parameters/M_A"))
+        D = -np.diag(rospy.get_param("/controllers/vtf/model_parameters/D"))
+        rho = rospy.get_param("/controllers/vtf/model_parameters/water_density")
         g = 9.81
         self.auv_model = AUVModel(m, r_g, r_b, inertia, volume, M_A, D, rho=rho, g=g)
 
         '''Initialize control allocation system'''
-        thruster_positions = np.array(rospy.get_param("/thruster_parameters/positions"))
-        thruster_orientations = np.array(rospy.get_param("/thruster_parameters/orientations"))
-        rotor_time_constant = rospy.get_param("/thruster_parameters/first_order_time_constant")
-        w = rospy.get_param("/guidance/vtf/control_forces_weights")
-        u_min = rospy.get_param("/guidance/vtf/control_input_saturation_limits")[0]
-        u_max = rospy.get_param("/guidance/vtf/control_input_saturation_limits")[1]
+        thruster_positions = np.array(rospy.get_param("/controllers/vtf/thruster_parameters/positions"))
+        thruster_orientations = np.array(rospy.get_param("/controllers/vtf/thruster_parameters/orientations"))
+        rotor_time_constant = rospy.get_param("/controllers/vtf/thruster_parameters/first_order_time_constant")
+        w = rospy.get_param("/controllers/vtf/control_forces_weights")
+        u_min = rospy.get_param("/controllers/vtf/control_input_saturation_limits")[0]
+        u_max = rospy.get_param("/controllers/vtf/control_input_saturation_limits")[1]
         self.control_allocation_system = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max, u_min, w)
 
         '''Initialize DP control system'''
         M = self.auv_model.M
         D = self.auv_model.D
         gvect = self.auv_model.gvect
-        omega_b = np.array(rospy.get_param("/guidance/vtf/control_bandwidth"))
-        zeta = np.array(rospy.get_param("/guidance/vtf/relative_damping_ratio"))
+        omega_b = np.array(rospy.get_param("/controllers/vtf/control_bandwidth"))
+        zeta = np.array(rospy.get_param("/controllers/vtf/relative_damping_ratio"))
         self.dp_control_system = DPControlSystem(M, D, gvect, omega_b, zeta)
         '''Initialize reference model'''
-        u_gain = rospy.get_param("/guidance/vtf/reference_model_control_input_saturation_limit_gain")
+        u_gain = rospy.get_param("/controllers/vtf/reference_model_control_input_saturation_limit_gain")
         u_min_simulator = u_min*u_gain
         u_max_simulator = u_max*u_gain
         simulator_control_allocation_system = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_simulator, u_min_simulator, w)
-        omega_b_gain = rospy.get_param("/guidance/vtf/reference_model_control_bandwidth_gain")
+        omega_b_gain = rospy.get_param("/controllers/vtf/reference_model_control_bandwidth_gain")
         self.omega_b_simulator = [x*omega_b_gain for x in omega_b]
         zeta = [1 ,1, 1, 1, 1, 1]
         simulator_control_system = DPControlSystem(M, D, gvect, self.omega_b_simulator, zeta)
-        absolute_relative_velocity_limit = rospy.get_param("/guidance/vtf/absolute_relative_velocity_limit")
+        absolute_relative_velocity_limit = rospy.get_param("/controllers/vtf/absolute_relative_velocity_limit")
         self.reference_model = AUVSimulator(self.auv_model, simulator_control_allocation_system, simulator_control_system, absolute_relative_velocity_limit)
 
         '''Initialize path-following controller'''
-        u_gain = rospy.get_param("/guidance/vtf/virtual_target_control_input_saturation_limit_gain")
+        u_gain = rospy.get_param("/controllers/vtf/virtual_target_control_input_saturation_limit_gain")
         u_min_vt= u_min*u_gain
         u_max_vt = u_max*u_gain
         self.vt_actuator_model = ControlAllocationSystem(thruster_positions, thruster_orientations, rotor_time_constant, u_max_vt, u_min_vt, w)
         self.waypoints = [] 
         self.path_following_controller = None 
         self.heading_mode = 'path_dependent_heading' # Use either 'path_dependent_heading' or 'point_dependent_heading'
-        self.dot_s_bounds = rospy.get_param("/guidance/vtf/virtual_target_along_track_speed_saturation_limits")
+        self.dot_s_bounds = rospy.get_param("/controllers/vtf/virtual_target_along_track_speed_saturation_limits")
         self.heading_point = [0,0]
 
         '''Virtual target position and speed'''
@@ -94,10 +94,10 @@ class VtfGuidanceAndControlNode:
 
         '''Sphere of acceptance'''
         self.goal_reached = False
-        self.sphere_of_acceptance_radius = rospy.get_param("/guidance/vtf/sphere_of_acceptence")
+        self.sphere_of_acceptance_radius = rospy.get_param("/controllers/vtf/sphere_of_acceptence")
 
         '''Publish frequency'''
-        self.publish_rate = rospy.get_param("/guidance/vtf/publish_rate")
+        self.publish_rate = rospy.get_param("/controllers/vtf/publish_rate")
         self.rate = rospy.Rate(self.publish_rate)
 
         '''TF listeners'''
@@ -122,7 +122,7 @@ class VtfGuidanceAndControlNode:
         self.waypoints[0] = [self.eta[0],self.eta[1],self.eta[2]] #First waypoint is current location
         path = VTFPath()
         path.generate_G0_path(self.waypoints)
-        omega_b_virtual = rospy.get_param("/guidance/vtf/virtual_target_controller_bandwidths")
+        omega_b_virtual = rospy.get_param("/controllers/vtf/virtual_target_controller_bandwidths")
         virtual_control_system = DPControlSystem(self.auv_model.M, self.auv_model.D, self.auv_model.gvect, omega_b_virtual, [1, 1, 1, 1, 1, 1])
         
         self.dot_s_bounds = [-speed,speed]
