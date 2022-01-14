@@ -99,3 +99,38 @@ def allign_with_target(target):
             'ALLIGNMENT_CHECKER', 
             CBState(allignment_checker)
         )
+
+import math
+from matplotlib import pyplot as plt
+    
+def createCircleCoordinates(start, centre, angle):
+    
+    coordinates = []
+    radius = math.sqrt(abs((start[0] - centre[0])**2) + abs((centre[1] - start[1])**2))
+    circumference = 2*radius*math.pi
+    number_of_points = int(math.ceil(circumference/0.1))
+    angle_to_add = angle/number_of_points
+    x = start[0]-centre[0]
+    y = start[1]-centre[1]
+    angle = math.atan2(y,x)*180/math.pi
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set(xlim=(-10,10),ylim=(-10,10))
+    ax.plot(centre[0], centre[1],"x")
+    ax.plot(start[0], start[1],"o")
+    xlist = []
+    ylist= []
+    for i in range(number_of_points + 1):
+     
+        coordX = centre[0] + radius*math.cos(angle*math.pi/180)
+        coordY = centre[1] + radius*math.sin(angle*math.pi/180)
+        xlist.append(coordX)
+        ylist.append(coordY)
+        print(str(coordY))
+        coordinates.append([coordX, coordY])
+        angle += angle_to_add
+    ax.plot(xlist,ylist)
+    plt.grid()
+    plt.show()
+    return coordinates
