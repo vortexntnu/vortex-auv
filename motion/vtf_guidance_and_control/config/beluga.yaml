@@ -48,7 +48,7 @@ guidance_and_control_parameters:
   absolute_relative_velocity_limit: 0.5 # Leave
   reference_model_control_bandwidth_gain: 0.5 # <= 1 # Leave 
   reference_model_control_input_saturation_limit_gain: 0.8 # <= 1 Leave
-  virtual_target_controller_bandwidths: [0.75, 0.75, 0.75, 1, 1, 0.75]  # Tune the path following precision for [surge, sway, heave, roll, pitch, yaw]  NB! roll and pitch are redundant. Higher values gives better precision
+  virtual_target_controller_bandwidths: [0.75, 0.75, 0.75, 1, 1, 1.5]  # Tune the path following precision for [surge, sway, heave, roll, pitch, yaw]  NB! roll and pitch are redundant. Higher values gives better precision
   virtual_target_along_track_speed_saturation_limits: [-0.2, 0.2] # <= 1 Speed saturation limits for the virtual target along the path
   virtual_target_control_input_saturation_limit_gain: 0.8 # <= 1 Leave
   publish_rate: 20 # The node frequency
