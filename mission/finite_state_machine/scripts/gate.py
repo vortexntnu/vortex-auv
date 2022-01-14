@@ -12,6 +12,7 @@ from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, los_move
+from vortex_msgs.srv import ControlMode
 
 
 class GateSearch(smach.State):
@@ -43,6 +44,9 @@ class GateConverge(smach.State):
         dp_guidance_action_server="/guidance_interface/dp_server" 
         self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction) 
 
+        dp_controller_control_mode_service = "/guidance/dp_guidance/controlmode_service"
+        self.control_mode_client = rospy.ServiceProxy(dp_controller_control_mode_service, ControlMode)  
+
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
     
@@ -62,17 +66,15 @@ class GateConverge(smach.State):
 
         self.vtf_client.wait_for_server()
         self.action_client.cancel_all_goals()
+        self.control_mode_client(0)
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
-            # goal.target_pose.pose.position = self.landmarks_client("gate").pos
-            # goal.append(p)
-            # self.vtf_client.cancel_goal()
-            # self.vtf_client.send_goal(goal)
-
+            goal.waypoints = [self.landmarks_client("gate").pos]
+            self.vtf_client.send_goal(goal)
             rate.sleep()
 
         return 'succeeded'
