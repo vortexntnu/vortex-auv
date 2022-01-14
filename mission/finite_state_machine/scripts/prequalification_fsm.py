@@ -9,14 +9,9 @@ from geometry_msgs.msg import Point
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import sm_classes
-#gate:
-from sm_classes.gate_search_state import GateSearchState
-from sm_classes.move_to_gate import MoveToGate
-from sm_classes.move_through_gate import MoveThroughGate
-#pole:
-from sm_classes.pole_search_state import PoleSearchState
-from sm_classes.move_to_pole import MoveToPole
-from sm_classes.move_around_pole import MoveAroundPole
+
+from gate import GateSearch, GateConverge, GateExecute
+from pole import PoleSearch, PoleConverge, PoleExecute
 
 import copy
 
@@ -38,17 +33,17 @@ def main():
         with gate_sm:
 
             StateMachine.add('GATE_SEARCH',
-                            GateSearchState(), 
+                            GateSearch(), 
                             transitions={'succeeded':'MOVE_TO_GATE'},
                             remapping={'gate_search_output':'gate_position'})
             
             
             StateMachine.add('MOVE_TO_GATE',
-                            MoveToGate(),
+                            GateConverge(),
                             transitions={'succeeded' : 'MOVE_THROUGH_GATE','aborted' : 'GATE_SEARCH'})
             
             StateMachine.add('MOVE_THROUGH_GATE',
-                            MoveThroughGate())
+                            GateExecute())
         
                 
         StateMachine.add('GATE_SM',gate_sm,
@@ -60,16 +55,16 @@ def main():
         with pole_sm:
 
             StateMachine.add('POLE_SEARCH',
-                             PoleSearchState(),
+                             PoleSearch(),
                              transitions={'succeeded':'MOVE_TO_POLE'}, 
                              remapping={'pole_search_output':'pole_position'}) 
         
             StateMachine.add('MOVE_TO_POLE',
-                            MoveToPole(),
+                            PoleConverge(),
                             transitions={'succeeded':'MOVE_AROUND_POLE', 'aborted':'POLE_SEARCH'})   
 
             StateMachine.add('MOVE_AROUND_POLE',
-                            MoveAroundPole())                    
+                            PoleExecute())                    
 
         StateMachine.add('POLE_SM', pole_sm)
 
