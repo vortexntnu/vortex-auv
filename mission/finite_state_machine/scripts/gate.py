@@ -8,6 +8,7 @@ from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, los_move
@@ -37,25 +38,39 @@ class GateConverge(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position']) 
         
-        dp_guidance_action_server="/guidance_interface/dp_server" 
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
+
+        dp_guidance_action_server="/guidance_interface/dp_server" 
         self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction) 
+
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
     
     def execute(self, userdata):
 
-        goal = MoveBaseGoal()
-        goal.target_pose.pose.position = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
-        goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, 0))
-        self.action_client.wait_for_server()
-        self.action_client.send_goal(goal)
+        # goal = MoveBaseGoal()
+        # goal.target_pose.pose.position = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
+        # goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, 0))
+        # self.action_client.wait_for_server()
+        # self.action_client.send_goal(goal)
+
+        goal = VtfPathFollowingGoal()
+        p = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
+        goal.waypoints =[p]
+        goal.forward_speed = 0.1
+        goal.heading = "path_dependent_heading"
+
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if self.action_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
+            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
-            goal.target_pose.pose.position = self.landmarks_client("gate").pos
-            self.action_client.cancel_goal()
-            self.action_client.send_goal(goal)
+            # goal.target_pose.pose.position = self.landmarks_client("gate").pos
+            # goal.append(p)
+            # self.vtf_client.cancel_goal()
+            # self.vtf_client.send_goal(goal)
             rate.sleep()
 
         return 'succeeded'
