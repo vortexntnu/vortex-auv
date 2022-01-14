@@ -24,9 +24,9 @@ def main():
                 
     with prequalification_state_machine:
                 
-        # StateMachine.add('REACH_DEPTH',
-        #                 dp_move(0,0),
-        #                 transitions={'succeeded':'GATE_SM'})
+        StateMachine.add('REACH_DEPTH',
+                        dp_move(0,0),
+                        transitions={'succeeded':'GATE_SM'})
             
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 

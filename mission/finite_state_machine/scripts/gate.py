@@ -61,6 +61,7 @@ class GateConverge(smach.State):
         goal.heading = "path_dependent_heading"
 
         self.vtf_client.wait_for_server()
+        self.action_client.cancel_all_goals()
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
@@ -71,6 +72,7 @@ class GateConverge(smach.State):
             # goal.append(p)
             # self.vtf_client.cancel_goal()
             # self.vtf_client.send_goal(goal)
+
             rate.sleep()
 
         return 'succeeded'
