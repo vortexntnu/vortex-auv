@@ -8,7 +8,7 @@ from geometry_msgs.msg import Point, Quaternion
 from tf.transformations import quaternion_from_euler
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
-
+import math
 
 
 guidance_interface_dp_action_server=rospy.get_param("/guidance/dp/action_server")
@@ -100,75 +100,26 @@ def allign_with_target(target):
             CBState(allignment_checker)
         )
 
-import math
-from matplotlib import pyplot as plt
+
     
-def createCircleCoordinates(start, centre, angle):
-    
+def createCircleCoordinates(start, centre, angle, counterclockwise = True):
+    resolution = 0.1 #distance between points
     coordinates = []
     radius = math.sqrt(abs((start[0] - centre[0])**2) + abs((centre[1] - start[1])**2))
     circumference = 2*radius*math.pi
-    number_of_points = int(math.ceil(circumference/0.1))
+    number_of_points = int(math.ceil(circumference/resolution))
     angle_to_add = angle/number_of_points
     x = start[0]-centre[0]
     y = start[1]-centre[1]
-    angle = math.atan2(y,x)*180/math.pi
-    
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set(xlim=(-10,10),ylim=(-10,10))
-    ax.plot(centre[0], centre[1],"x")
-    ax.plot(start[0], start[1],"o")
-    xlist = []
-    ylist= []
-    for i in range(number_of_points + 1):
-     
-        coordX = centre[0] + radius*math.cos(angle*math.pi/180)
-        coordY = centre[1] + radius*math.sin(angle*math.pi/180)
-        xlist.append(coordX)
-        ylist.append(coordY)
-        print(str(coordY))
+    start_angle = math.atan2(y,x)*180/math.pi
+    if not counterclockwise:
+        start_angle -= angle
+    for i in range(number_of_points + 1):     
+        coordX = centre[0] + radius*math.cos(start_angle*math.pi/180)
+        coordY = centre[1] + radius*math.sin(start_angle*math.pi/180)
         coordinates.append([coordX, coordY])
-        angle += angle_to_add
-    ax.plot(xlist,ylist)
-    plt.grid()
-    plt.show()
-    return coordinates
-
-import math
-from matplotlib import pyplot as plt
-    
-def createCircleCoordinates(start, centre, angle):
-    
-    coordinates = []
-    radius = math.sqrt(abs((start[0] - centre[0])**2) + abs((centre[1] - start[1])**2))
-    circumference = 2*radius*math.pi
-    number_of_points = int(math.ceil(circumference/0.1))
-    angle_to_add = angle/number_of_points
-    x = start[0]-centre[0]
-    y = start[1]-centre[1]
-    angle = math.atan2(y,x)*180/math.pi
-    
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set(xlim=(-10,10),ylim=(-10,10))
-    ax.plot(centre[0], centre[1],"x")
-    ax.plot(start[0], start[1],"o")
-    xlist = []
-    ylist= []
-    for i in range(number_of_points + 1):
-     
-        coordX = centre[0] + radius*math.cos(angle*math.pi/180)
-        coordY = centre[1] + radius*math.sin(angle*math.pi/180)
-        xlist.append(coordX)
-        ylist.append(coordY)
-        print(str(coordY))
-        coordinates.append([coordX, coordY])
-        angle += angle_to_add
-    ax.plot(xlist,ylist)
-    plt.grid()
-    plt.show()
-    return coordinates
-    
-
-print(createCircleCoordinates([-2,-4], [-1,-6], 160))
+        start_angle += angle_to_add
+    if not counterclockwise:
+        return coordinates[::-1]
+    else:
+        return coordinates
