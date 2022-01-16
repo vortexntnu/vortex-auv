@@ -102,7 +102,7 @@ def allign_with_target(target):
 
 
     
-def createCircleCoordinates(start, centre, angle, counterclockwise = True):
+def create_circle_coordinates(start, centre, angle, counterclockwise = True):
     resolution = 0.1 #distance between points
     coordinates = []
     radius = math.sqrt(abs((start[0] - centre[0])**2) + abs((centre[1] - start[1])**2))
