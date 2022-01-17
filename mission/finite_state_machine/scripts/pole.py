@@ -99,10 +99,11 @@ class PoleExecute(smach.State):
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        if (self.odom.pose.pose.position.x < userdata.pole_position.x):
-            start = Point(userdata.pole_position.x-0.5,userdata.pole_position.y,userdata.pole_position.z)
-        else:
-            start = Point(userdata.pole_position.x+0.5,userdata.pole_position.y,userdata.pole_position.z)
+        # if (self.odom.pose.pose.position.x < userdata.pole_position.x):
+        #     start = Point(userdata.pole_position.x-0.5,userdata.pole_position.y,userdata.pole_position.z)
+        # else:
+        #     start = Point(userdata.pole_position.x+0.5,userdata.pole_position.y,userdata.pole_position.z)
+        start = self.odom.pose.pose.position
         
         centre = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
         goal.waypoints = create_circle_coordinates(start,centre,360)
