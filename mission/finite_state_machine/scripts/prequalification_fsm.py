@@ -26,8 +26,7 @@ def main():
     with prequalification_state_machine:
                 
         StateMachine.add('REACH_DEPTH',
-                        dp_move(0,0),
-                        #ReachDepth(),
+                        ReachDepth(),
                         transitions={'succeeded':'GATE_SM'})
             
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
@@ -79,7 +78,7 @@ def main():
         intro_server.stop()
 
     except Exception as e:
-        rospy.loginfo("PreqTest failed: %s" % e)
+        rospy.loginfo("Prequalification test failed: %s" % e)
 
 
 if __name__ == '__main__':

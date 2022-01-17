@@ -7,7 +7,6 @@ from landmarks.srv import request_position
 
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
@@ -17,25 +16,20 @@ from vortex_msgs.srv import ControlMode#, ControlModeRequest
 class ReachDepth(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'])
-        dp_guidance_action_server="/guidance/dp_action_server" 
-        self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction) 
-        dp_controller_control_mode_service = "/guidance/dp_guidance/controlmode_service"
-        self.control_mode_client = rospy.ServiceProxy(dp_controller_control_mode_service, ControlMode)      
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)    
 
     def execute(self, userdata):
-        goal = MoveBaseGoal()
-        goal.target_pose.pose.position = Point(0,0,0)
-        goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, 0))
-        self.action_client.wait_for_server()
-        self.action_client.send_goal(goal)
+        goal = VtfPathFollowingGoal()
+        goal.waypoints = [Point(0,0,-0.5)]
+        goal.forward_speed = 0.2
+        goal.heading = "path_dependent_heading"
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
         rate = rospy.Rate(10)
-        rate.sleep()
         while not rospy.is_shutdown():
-            print(self.action_client.simple_state)
-            if self.action_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
+            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             rate.sleep()
-        self.action_client.cancel_all_goals()
-        self.control_mode_client(0)
         
         return 'succeeded'
