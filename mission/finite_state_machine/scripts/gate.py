@@ -42,7 +42,7 @@ class GateSearch(smach.State):
             rate.sleep()
         goal.desired_velocity.linear.z = 0
         goal.desired_velocity.angular.z = 0
-        self.vel_action_client.send_goal(goal)  
+        self.vel_action_client.send_goal(goal) 
         self.vel_action_client.cancel_all_goals()
         print("GATE POSITION DETECTED: "+ str(self.gate_position.x) + ", "+ str(self.gate_position.y))                
         userdata.gate_search_output = self.gate_position       
