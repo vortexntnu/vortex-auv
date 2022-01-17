@@ -20,9 +20,6 @@ class GateSearch(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['gate_search_output'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
         self.gate_position = self.landmarks_client("gate").pos
-
-        st_pub = rospy.Publisher('state_transition', String, queue_size=10)     
-        st_pub.publish("GATE_SEARCH")
         
     def execute(self, userdata):
         

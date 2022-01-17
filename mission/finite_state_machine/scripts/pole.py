@@ -19,9 +19,6 @@ class PoleSearch(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['pole_search_output'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
         self.pole_position = self.landmarks_client("pole").pos
-
-        st_pub = rospy.Publisher('state_transition', String, queue_size=10)     
-        st_pub.publish("POLE_SEARCH")
         
     def execute(self, userdata):
 
