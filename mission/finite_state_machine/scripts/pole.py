@@ -37,7 +37,7 @@ class PoleSearch(smach.State):
 
 class PoleConverge(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'])
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'],output_keys=['pole_converge_output'])
         
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)  
         
@@ -67,6 +67,8 @@ class PoleConverge(smach.State):
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             goal.waypoints = [self.landmarks_client("pole").pos]
+            userdata.pole_converge_output=goal.waypoints[0]
+            print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             self.vtf_client.send_goal(goal)
             rate.sleep()
         return 'succeeded'

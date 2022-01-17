@@ -41,7 +41,8 @@ def main():
             
             StateMachine.add('MOVE_TO_GATE',
                             GateConverge(),
-                            transitions={'succeeded' : 'MOVE_THROUGH_GATE','aborted' : 'GATE_SEARCH'})
+                            transitions={'succeeded' : 'MOVE_THROUGH_GATE','aborted' : 'GATE_SEARCH'}, 
+                            remapping={'gate_converge_output':'gate_position'})
             
             StateMachine.add('MOVE_THROUGH_GATE',
                             GateExecute())
@@ -62,7 +63,8 @@ def main():
         
             StateMachine.add('MOVE_TO_POLE',
                             PoleConverge(),
-                            transitions={'succeeded':'MOVE_AROUND_POLE', 'aborted':'POLE_SEARCH'})   
+                            transitions={'succeeded':'MOVE_AROUND_POLE', 'aborted':'POLE_SEARCH'}, 
+                            remapping={'pole_converge_output':'pole_position'})   
 
             StateMachine.add('MOVE_AROUND_POLE',
                             PoleExecute())                    

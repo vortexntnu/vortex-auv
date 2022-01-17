@@ -37,7 +37,7 @@ class GateSearch(smach.State):
     
 class GateConverge(smach.State):  
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position']) 
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position'],output_keys=['gate_converge_output']) 
         
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
 
@@ -68,6 +68,8 @@ class GateConverge(smach.State):
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             goal.waypoints = [self.landmarks_client("gate").pos]
+            userdata.gate_converge_output=goal.waypoints[0]
+            print("GATE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             self.vtf_client.send_goal(goal)
             rate.sleep()
 
