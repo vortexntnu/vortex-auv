@@ -13,6 +13,7 @@ from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, los_move, create_circle_coordinates
 from vortex_msgs.srv import ControlMode
+from nav_msgs.msg import Odometry
 
 class PoleSearch(smach.State):
     def __init__(self):
@@ -45,11 +46,20 @@ class PoleConverge(smach.State):
         self.control_mode_client = rospy.ServiceProxy(dp_controller_control_mode_service, ControlMode)  
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)      
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg     
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        p = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
+        if (self.odom.pose.pose.position.x < userdata.pole_position.x):
+            p = Point(userdata.pole_position.x-0.5,userdata.pole_position.y,userdata.pole_position.z)
+        else:
+            p = Point(userdata.pole_position.x+0.5,userdata.pole_position.y,userdata.pole_position.z)
         goal.waypoints =[p]
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
@@ -66,6 +76,10 @@ class PoleConverge(smach.State):
             goal.waypoints = [self.landmarks_client("pole").pos]
             userdata.pole_converge_output=goal.waypoints[0]
             print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
+            if (self.odom.pose.pose.position.x < userdata.pole_position.x):
+                goal.waypoints[0].x = goal.waypoints[0].x-0.5
+            else:
+                goal.waypoints[0].x = goal.waypoints[0].x+0.5
             self.vtf_client.send_goal(goal)
             rate.sleep()
         return 'succeeded'
@@ -75,16 +89,26 @@ class PoleExecute(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'])  
         
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)            
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg                
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        start = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
-        centre = Point(userdata.pole_position.x+1,userdata.pole_position.y,userdata.pole_position.z)
+        if (self.odom.pose.pose.position.x < userdata.pole_position.x):
+            start = Point(userdata.pole_position.x-0.5,userdata.pole_position.y,userdata.pole_position.z)
+        else:
+            start = Point(userdata.pole_position.x+0.5,userdata.pole_position.y,userdata.pole_position.z)
+        
+        centre = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
         goal.waypoints = create_circle_coordinates(start,centre,360)
-        goal.forward_speed = 0.2
-        goal.heading = "point_dependent_heading"
-        goal.heading_point = centre
+        goal.forward_speed = 0.1
+        goal.heading = "path_dependent_heading"
+        #goal.heading_point = centre
 
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)

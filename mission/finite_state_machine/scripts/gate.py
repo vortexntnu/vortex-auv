@@ -4,6 +4,7 @@ from smach import StateMachine
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
 from landmarks.srv import request_position
+from nav_msgs.msg import Odometry
 
 import actionlib
 from actionlib_msgs.msg import GoalStatus
@@ -46,11 +47,20 @@ class GateConverge(smach.State):
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
-    
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
+
     def execute(self, userdata):
 
         goal = VtfPathFollowingGoal()
-        p = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
+        if (self.odom.pose.pose.position.x < userdata.gate_position.x):
+            p = Point(userdata.gate_position.x-0.5,userdata.gate_position.y,userdata.gate_position.z)
+        else:
+            p = Point(userdata.gate_position.x+0.5,userdata.gate_position.y,userdata.gate_position.z)
         goal.waypoints =[p]
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
@@ -67,10 +77,15 @@ class GateConverge(smach.State):
             goal.waypoints = [self.landmarks_client("gate").pos]
             userdata.gate_converge_output=goal.waypoints[0]
             print("GATE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
+            if (self.odom.pose.pose.position.x < userdata.gate_position.x):
+                goal.waypoints[0].x = goal.waypoints[0].x-0.5
+            else:
+                goal.waypoints[0].x = goal.waypoints[0].x+0.5
             self.vtf_client.send_goal(goal)
             rate.sleep()
 
         return 'succeeded'
+    
 
 class GateExecute(smach.State):
     def __init__(self):
@@ -79,9 +94,18 @@ class GateExecute(smach.State):
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)        
 
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
+
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        p = Point(userdata.gate_position.x+1,userdata.gate_position.y,userdata.gate_position.z)
+        if (self.odom.pose.pose.position.x < userdata.gate_position.x):
+            p = Point(userdata.gate_position.x+1,userdata.gate_position.y,userdata.gate_position.z)
+        else:
+            p = Point(userdata.gate_position.x-1,userdata.gate_position.y,userdata.gate_position.z)
         goal.waypoints =[p]
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
