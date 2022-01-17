@@ -11,7 +11,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
-from fsm_helper import dp_move, los_move
+from fsm_helper import dp_move, los_move, create_circle_coordinates
 from vortex_msgs.srv import ControlMode
 
 class PoleSearch(smach.State):
@@ -30,7 +30,7 @@ class PoleSearch(smach.State):
             rospy.wait_for_service('send_positions')   
             self.pole_position = self.landmarks_client("pole").pos
         
-        print("POLE POSITION DETECTED: "+ str(self.pole_position.x) + ", "+ str(self.pole_position.y))    
+        print("POLE POSITION DETECTED: "+ str(self.pole_position.x) + ", "+ str(self.pole_position.y)+ ", "+ str(self.pole_position.z))    
                         
         userdata.pole_search_output = self.pole_position       
         return 'succeeded'
@@ -73,18 +73,26 @@ class PoleConverge(smach.State):
 
 class PoleExecute(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'])           
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole_position'])  
+        
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)            
 
     def execute(self, userdata):
-        print("should perform manevour around pole ...")
-        pole_move_around_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
-        with pole_move_around_sm:
-            StateMachine.add('MOVE_AROUND_POLE',
-                        dp_move(userdata.pole_position.x,userdata.pole_position.y-1))
-        
-        try:
-            pole_move_around_sm.execute()
-        except Exception as e:
-            rospy.loginfo("pole_move_around_sm failed: %s" % e)
+        goal = VtfPathFollowingGoal()
+        start = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
+        centre = Point(userdata.pole_position.x+1,userdata.pole_position.y,userdata.pole_position.z)
+        goal.waypoints = create_circle_coordinates(start,centre,360)
+        goal.forward_speed = 0.2
+        goal.heading = "point_dependent_heading"
+        goal.heading_point = centre
 
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        while not rospy.is_shutdown():
+            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
+                break
+            rate.sleep()
         return 'succeeded'

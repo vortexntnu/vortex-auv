@@ -31,7 +31,7 @@ class GateSearch(smach.State):
             rospy.wait_for_service('send_positions')   
             self.gate_position = self.landmarks_client("gate").pos
         
-        print("GATE POSITION DETECTED: "+ str(self.gate_position.x) + ", "+ str(self.gate_position.y))                
+        print("GATE POSITION DETECTED: "+ str(self.gate_position.x) + ", "+ str(self.gate_position.y)+ ", "+ str(self.gate_position.z))                
         userdata.gate_search_output = self.gate_position       
         return 'succeeded'
     
@@ -51,12 +51,6 @@ class GateConverge(smach.State):
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
     
     def execute(self, userdata):
-
-        # goal = MoveBaseGoal()
-        # goal.target_pose.pose.position = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
-        # goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, 0))
-        # self.action_client.wait_for_server()
-        # self.action_client.send_goal(goal)
 
         goal = VtfPathFollowingGoal()
         p = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
