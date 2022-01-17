@@ -125,19 +125,19 @@ def allign_with_target(target):
 def create_circle_coordinates(start, centre, angle, counterclockwise = True):
     resolution = 0.1 #distance between points
     coordinates = []
-    radius = math.sqrt(abs((start[0] - centre[0])**2) + abs((centre[1] - start[1])**2))
+    radius = math.sqrt(abs((start.x - centre.x)**2) + abs((centre.y - start.y)**2))
     circumference = 2*radius*math.pi
     number_of_points = int(math.ceil(circumference/resolution))
     angle_to_add = angle/number_of_points
-    x = start[0]-centre[0]
-    y = start[1]-centre[1]
+    x = start.x-centre.x
+    y = start.y-centre.y
     start_angle = math.atan2(y,x)*180/math.pi
     if not counterclockwise:
         start_angle -= angle
     for i in range(number_of_points + 1):     
-        coordX = centre[0] + radius*math.cos(start_angle*math.pi/180)
-        coordY = centre[1] + radius*math.sin(start_angle*math.pi/180)
-        coordinates.append([coordX, coordY])
+        coordX = centre.x + radius*math.cos(start_angle*math.pi/180)
+        coordY = centre.y + radius*math.sin(start_angle*math.pi/180)
+        coordinates.append(Point(coordX, coordY,centre.z))
         start_angle += angle_to_add
     if not counterclockwise:
         return coordinates[::-1]

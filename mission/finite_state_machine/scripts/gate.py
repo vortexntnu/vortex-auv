@@ -52,7 +52,7 @@ class GateSearch(smach.State):
     
 class GateConverge(smach.State):  
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position']) 
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position'],output_keys=['gate_converge_output']) 
         
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
 
@@ -66,12 +66,6 @@ class GateConverge(smach.State):
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
     
     def execute(self, userdata):
-
-        # goal = MoveBaseGoal()
-        # goal.target_pose.pose.position = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
-        # goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, 0))
-        # self.action_client.wait_for_server()
-        # self.action_client.send_goal(goal)
 
         goal = VtfPathFollowingGoal()
         p = Point(userdata.gate_position.x,userdata.gate_position.y,userdata.gate_position.z)
@@ -89,26 +83,34 @@ class GateConverge(smach.State):
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             goal.waypoints = [self.landmarks_client("gate").pos]
+            userdata.gate_converge_output=goal.waypoints[0]
+            print("GATE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             self.vtf_client.send_goal(goal)
             rate.sleep()
 
         return 'succeeded'
 
-
 class GateExecute(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position'])           
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position'])   
+        
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)        
 
     def execute(self, userdata):
-        print("should perform the dp move to "+str(userdata.gate_position.x + 1)+" , " +str(userdata.gate_position.y))
-        gate_move_through_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
-        with gate_move_through_sm:
-            StateMachine.add('MOVE_THROUGH_GATE_X',
-                        dp_move(userdata.gate_position.x + 1,userdata.gate_position.y))
-        try:
-            gate_move_through_sm.execute()
+        goal = VtfPathFollowingGoal()
+        p = Point(userdata.gate_position.x+1,userdata.gate_position.y,userdata.gate_position.z)
+        goal.waypoints =[p]
+        goal.forward_speed = 0.1
+        goal.heading = "path_dependent_heading"
 
-        except Exception as e:
-            rospy.loginfo("gate_move_sm failed: %s" % e)
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        while not rospy.is_shutdown():
+            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
+                break
+            rate.sleep()
 
         return 'succeeded'
