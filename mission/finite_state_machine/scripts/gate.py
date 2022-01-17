@@ -8,7 +8,7 @@ from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
-from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, rotate_certain_angle
@@ -24,28 +24,25 @@ class GateSearch(smach.State):
         self.drone_pose = Pose()
         rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.read_position)
 
-        dp_guidance_action_server="/guidance_interface/dp_server" 
-        self.dp_action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction) 
-
-        dp_controller_control_mode_service = "/guidance/dp_guidance/controlmode_service"
-        self.control_mode_client = rospy.ServiceProxy(dp_controller_control_mode_service, ControlMode)  
-
-        st_pub = rospy.Publisher('state_transition', String, queue_size=10)     
-        st_pub.publish("GATE_SEARCH")
+        vel_guidance_action_server="/guidance_interface/vel_server" 
+        self.vel_action_client = actionlib.SimpleActionClient(vel_guidance_action_server, SetVelocityAction) 
         
     def execute(self, userdata):
         rate = rospy.Rate(1)
-        self.control_mode_client(5)
+        goal = SetVelocityGoal()
+        goal.desired_velocity.linear.z = -0.00001
+        goal.desired_velocity.angular.z = 0.05
+        self.vel_action_client.send_goal(goal)    
         while self.gate_position.x == 0: #should not be 0, but c++ NULL translates to 0.0 ...
             print("SEARCHING FOR GATE ...")
             rospy.wait_for_service('send_positions')   
             self.gate_position = self.landmarks_client("gate").pos
-            goal = MoveBaseGoal()
-            self.dp_action_client.cancel_all_goals()
-            goal.target_pose.pose = rotate_certain_angle(self.drone_pose, 5)
-            self.dp_action_client.send_goal(goal)    
+            
             rate.sleep()
-        self.control_mode_client(0)
+        goal.desired_velocity.linear.z = 0
+        goal.desired_velocity.angular.z = 0
+        self.vel_action_client.send_goal(goal)  
+        self.vel_action_client.cancel_all_goals()
         print("GATE POSITION DETECTED: "+ str(self.gate_position.x) + ", "+ str(self.gate_position.y))                
         userdata.gate_search_output = self.gate_position       
         return 'succeeded'
