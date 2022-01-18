@@ -74,7 +74,6 @@ class PoleConverge(smach.State):
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             goal.waypoints = [self.landmarks_client("pole").pos]
-            userdata.pole_converge_output=goal.waypoints[0]
             print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             if (self.odom.pose.pose.position.x < userdata.pole_position.x):
                 goal.waypoints[0].x = goal.waypoints[0].x-0.5
@@ -82,6 +81,7 @@ class PoleConverge(smach.State):
                 goal.waypoints[0].x = goal.waypoints[0].x+0.5
             self.vtf_client.send_goal(goal)
             rate.sleep()
+        userdata.pole_converge_output=self.landmarks_client("pole").pos
         return 'succeeded'
 
 class PoleExecute(smach.State):
@@ -99,17 +99,12 @@ class PoleExecute(smach.State):
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        # if (self.odom.pose.pose.position.x < userdata.pole_position.x):
-        #     start = Point(userdata.pole_position.x-0.5,userdata.pole_position.y,userdata.pole_position.z)
-        # else:
-        #     start = Point(userdata.pole_position.x+0.5,userdata.pole_position.y,userdata.pole_position.z)
         start = self.odom.pose.pose.position
         
         centre = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
         goal.waypoints = create_circle_coordinates(start,centre,360)
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
-        #goal.heading_point = centre
 
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
