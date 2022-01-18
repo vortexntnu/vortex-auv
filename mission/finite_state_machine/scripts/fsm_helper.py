@@ -4,11 +4,16 @@
 import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState
 from smach_ros import SimpleActionState
-from geometry_msgs.msg import Point, Quaternion
+from geometry_msgs.msg import Point, Quaternion, Pose
 from tf.transformations import quaternion_from_euler
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 
+import math
+from vortex_msgs.srv import ControlMode
+import actionlib
+from scipy.spatial.transform import Rotation as R
+import numpy as np
 
 guidance_interface_dp_action_server=rospy.get_param("/guidance/dp/action_server")
 guidance_interface_los_action_server=rospy.get_param("/guidance/LOS/action_server")
@@ -37,6 +42,22 @@ def circle_move(target_point, direction):
     goal = MoveGoal()
 
     goal.guidance_type = ''
+
+def rotate_certain_angle(pose, angle): 
+    '''Angle in degrees'''
+    
+
+    orientation = R.from_quat([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w])
+    rotation = R.from_rotvec(angle*math.pi/180*np.array([0,0,1]))
+    new_orientation = R.as_quat(orientation*rotation)
+    new_pose = Pose()
+    new_pose.position = pose.position
+    new_pose.orientation.x = new_orientation[0]
+    new_pose.orientation.y = new_orientation[1]
+    new_pose.orientation.z = new_orientation[2]
+    new_pose.orientation.w = new_orientation[3]
+
+    return new_pose
 
 
 def patrol_sequence(action_states):
@@ -98,3 +119,27 @@ def allign_with_target(target):
             'ALLIGNMENT_CHECKER', 
             CBState(allignment_checker)
         )
+
+
+    
+def create_circle_coordinates(start, centre, angle, counterclockwise = True):
+    resolution = 0.1 #distance between points
+    coordinates = []
+    radius = math.sqrt(abs((start.x - centre.x)**2) + abs((centre.y - start.y)**2))
+    circumference = 2*radius*math.pi
+    number_of_points = int(math.ceil(circumference/resolution))
+    angle_to_add = angle/number_of_points
+    x = start.x-centre.x
+    y = start.y-centre.y
+    start_angle = math.atan2(y,x)*180/math.pi
+    if not counterclockwise:
+        start_angle -= angle
+    for i in range(number_of_points + 1):     
+        coordX = centre.x + radius*math.cos(start_angle*math.pi/180)
+        coordY = centre.y + radius*math.sin(start_angle*math.pi/180)
+        coordinates.append(Point(coordX, coordY,centre.z))
+        start_angle += angle_to_add
+    if not counterclockwise:
+        return coordinates[::-1]
+    else:
+        return coordinates

@@ -1,13 +1,17 @@
-#include "landmarks.h"
+#include "landmarks/landmarks.h"
 
 Landmarks::Landmarks ():loop_rate(10) {
     op_sub = n.subscribe("object_positions_in",10, &Landmarks::callback, this);
     op_pub = n.advertise<vortex_msgs::ObjectPosition>("object_positions_out",10);
+    service = n.advertiseService("send_positions", &Landmarks::send_pos, this);
+    geometry_msgs::Point p; p.x = NULL;p.y = NULL;p.z = NULL;
+    objectPositions["gate"] = p;
+    objectPositions["pole"] = p;
 }
 
-void Landmarks::callback(vortex_msgs::ObjectPosition objPos){
-    objectPositions[objPos.objectID] = objPos.position;
-    op_pub.publish(objPos);            
+void Landmarks::callback(vortex_msgs::ObjectPosition objPose){
+    objectPositions[objPose.objectID] = objPose.objectPose.pose.position;
+    op_pub.publish(objPose);        
 }
 
 void Landmarks::execute(){
@@ -20,9 +24,13 @@ void Landmarks::execute(){
 void Landmarks::printMap(std::map<std::string,geometry_msgs::Point> objectsMap){
     for(auto elem : objectsMap){
         ROS_INFO("ID: %s", elem.first.c_str());
-        ROS_INFO("position: %f,%f,%f",elem.second.x,elem.second.y,elem.second.z);
-            
+        ROS_INFO("position: %f,%f,%f",elem.second.x,elem.second.y,elem.second.z);       
     }
+}
+
+bool Landmarks::send_pos(landmarks::request_position::Request &req, landmarks::request_position::Response &res){
+    res.pos = Landmarks::objectPositions[req.ID];
+    return true;
 }
 
 int main(int argc, char **argv){

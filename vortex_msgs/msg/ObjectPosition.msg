@@ -1,2 +1,3 @@
 string objectID
-geometry_msgs/Point position
+geometry_msgs/PoseStamped objectPose
+bool isDetected
