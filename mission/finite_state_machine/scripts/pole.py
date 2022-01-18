@@ -102,7 +102,7 @@ class PoleExecute(smach.State):
         start = self.odom.pose.pose.position
         
         centre = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
-        goal.waypoints = create_circle_coordinates(start,centre,360)
+        goal.waypoints = create_circle_coordinates(start,centre,330)
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
 
