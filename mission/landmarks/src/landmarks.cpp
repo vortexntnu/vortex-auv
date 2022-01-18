@@ -9,9 +9,9 @@ Landmarks::Landmarks ():loop_rate(10) {
     objectPositions["pole"] = p;
 }
 
-void Landmarks::callback(vortex_msgs::ObjectPosition objPos){
-    objectPositions[objPos.objectID] = objPos.position;
-    op_pub.publish(objPos);            
+void Landmarks::callback(vortex_msgs::ObjectPosition objPose){
+    objectPositions[objPose.objectID] = objPose.objectPose.pose.position;
+    op_pub.publish(objPose);        
 }
 
 void Landmarks::execute(){
@@ -30,9 +30,6 @@ void Landmarks::printMap(std::map<std::string,geometry_msgs::Point> objectsMap){
 
 bool Landmarks::send_pos(landmarks::request_position::Request &req, landmarks::request_position::Response &res){
     res.pos = Landmarks::objectPositions[req.ID];
-    //for testing:
-    // geometry_msgs::Point p;p.x = 1;p.y = 1;p.z = 1;
-    // res.pos=p;
     return true;
 }
 

@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Point.h"
+#include "geometry_msgs/PoseStamped.h"
 #include <vortex_msgs/ObjectPosition.h>
 #include <map>
 #include <string>
