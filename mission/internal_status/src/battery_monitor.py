@@ -2,6 +2,7 @@
 
 import subprocess
 import time
+import traceback
 
 import rospy
 import smbus
@@ -20,6 +21,9 @@ class BatteryMonitor:
         self.i2c_address_powersense_voltage = rospy.get_param("/i2c/psm/address_voltage", default=0x69)
         self.i2c_address_powersense_current = rospy.get_param("/i2c/psm/address_current", default=0x6a)
         self.i2c_bus_number = rospy.get_param("/i2c/psm/bus_number", default=8)
+	rospy.loginfo("PSM Voltage I2C address: '0x{:02x}'".format(self.i2c_address_powersense_voltage))
+	rospy.loginfo("PSM Current I2C address: '0x{:02x}'".format(self.i2c_address_powersense_current))
+	rospy.loginfo("PSM I2C bus number: '%d'", self.i2c_bus_number)
         
         self.critical_level = rospy.get_param("/battery/thresholds/critical", default=13.5)
         self.warning_level = rospy.get_param("/battery/thresholds/warning", default=14.5)
@@ -35,36 +39,47 @@ class BatteryMonitor:
         
         self.xavier_recieved = False
         self.system_recieved = False
-
-        # Get I2C bus for power sense module
+	
+	self.is_PSM_fuckd = False
+        
+	# Get I2C bus for power sense module
         self.bus = smbus.SMBus(self.i2c_bus_number)
-        time.sleep(1)
+	time.sleep(1)
 
         # Send configure command to the module to enable continuous conversion in 12-bit mode
-        self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
-        time.sleep(0.5)
-        self.bus.write_byte(self.i2c_address_powersense_current, 0x10)
-        time.sleep(0.5)
+	try:
+		self.bus.write_byte(self.i2c_address_powersense_voltage, 0x10)
+        	time.sleep(0.5)
+        	self.bus.write_byte(self.i2c_address_powersense_current, 0x10)
+        	time.sleep(0.5)
+	except IOError:
+		print(traceback.format_exc())
+		self.is_PSM_fuckd = True
 
         # Publishers
-        self.xavier_battery_level_pub = rospy.Publisher(
+	self.xavier_battery_level_pub = rospy.Publisher(
             "/auv/battery_level/xavier", Float32, queue_size=1
         )
-        self.system_battery_level_pub = rospy.Publisher(
-            "/auv/battery_level/system", Float32, queue_size=1
-        )
-        
-        self.system_battery_current_draw_pub = rospy.Publisher(
-            "/auv/battery_level/system_current_draw", Float32, queue_size=1
-        )
+	if not self.is_PSM_fuckd:
+	        self.system_battery_level_pub = rospy.Publisher(
+	            "/auv/battery_level/system", Float32, queue_size=1
+	        )
+
+	        self.system_battery_current_draw_pub = rospy.Publisher(
+	            "/auv/battery_level/system_current_draw", Float32, queue_size=1
+	        )
+
 
         # set up callbacks
-        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
+
         self.xavier_timer = rospy.Timer(rospy.Duration(secs=xavier_interval), self.xavier_cb)
-        self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
+	self.log_timer = rospy.Timer(rospy.Duration(secs=logging_interval), self.log_cb)
 
-        rospy.loginfo("BatteryMonitor initialized")
+	if not self.is_PSM_fuckd:
+		self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval), self.system_cb)
 
+	rospy.loginfo("BatteryMonitor initialized")
+	rospy.logwarn("System Battery Monitoring from PSM is not available.")
 
     def xavier_cb(self, event):
         """Record output from voltage meter command, decode from bytes object to string, convert from string to integer"""
@@ -140,7 +155,8 @@ class BatteryMonitor:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
 
     def shutdown(self):
-        self.system_timer.shutdown()
+	if not self.is_PSM_fuckd:
+        	self.system_timer.shutdown()
         self.xavier_timer.shutdown()
         self.log_timer.shutdown()
         self.bus.close()
