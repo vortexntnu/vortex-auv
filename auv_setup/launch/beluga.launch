@@ -35,7 +35,7 @@
 
     <!-- ZED2 camera node -->
     <include file="$(find zed_wrapper)/launch/zed2.launch" />
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.4 0 0.4 0 1 0 base_link zed2_camera_center" /> <!-- Remap cameraview to base -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.3175 0 0.10 0 -0.296706 -0.0087266 base_link zed2_camera_center" /> <!-- Remap cameraview to base -->
   
     <!-- Sonar ping360 --> 
   
