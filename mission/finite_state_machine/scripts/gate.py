@@ -22,6 +22,9 @@ class GateSearch(smach.State):
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
         self.gate_position = self.landmarks_client("gate").pos
 
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
+
+
         self.drone_pose = Pose()
         rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.read_position)
 
@@ -29,6 +32,7 @@ class GateSearch(smach.State):
         self.vel_action_client = actionlib.SimpleActionClient(vel_guidance_action_server, SetVelocityAction) 
         
     def execute(self, userdata):
+        self.state_pub.publish("gate_search")
         rate = rospy.Rate(1)
         goal = SetVelocityGoal()
         goal.desired_velocity.linear.z = -0.00001

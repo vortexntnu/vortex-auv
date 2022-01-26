@@ -38,7 +38,7 @@
     <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.4 0 0.4 0 1 0 base_link zed2_camera_center" /> <!-- Remap cameraview to base -->
   
     <!-- Sonar ping360 --> 
-  
+    <!--
     <node pkg="tf" type="static_transform_publisher" name="transform_sonar_frame" args="0 0 0 0 0 0 1 map sonar_frame 10" />
     <env name="emulated_sonar" value="false" />
     <node pkg="ping360_sonar" type="ping360_node" name="ping360_node" output="screen">
@@ -60,6 +60,7 @@
         <param name="minAngle" value="0"/> 
         <param name="oscillate" value="False"/> 
     </node>
+    -->
   </group> <!-- end drivers -->
 
 

@@ -157,6 +157,10 @@ joystick:
     pitch: -30
     yaw: 20
 
+
+fsm:
+  landmark_topic: "/fsm/state"
+
 battery:
   thresholds:
     warning: 14.5  # Volts
