@@ -61,7 +61,7 @@ while True:
     draw.text((x+2, top + 20),"System: " + system_V +"v", font=font, fill = 255)
 
     #draw.rectangle((0,0,width,height), outline=0, fill=0)
-    draw.rectangle((10,60,30,50), outline=1, fill=0)
+    #draw.rectangle((10,60,30,50), outline=1, fill=0)
     # Display image.
     disp.image(image)
     disp.display()
