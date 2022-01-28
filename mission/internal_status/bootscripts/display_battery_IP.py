@@ -41,7 +41,7 @@ while True:
     cmd = "hostname -I | cut -d\' \' -f1"
     IP = subprocess.check_output(cmd, shell = True )
     #Split IP-adress-string into 2 to print on seperate lines
-    s = str(IP.decode('utf-8'))
+    #s = str(IP.decode('utf-8'))
     #IP1 = s[:8]
     #IP2 = s[len(s)-8:]
     xavier_mV = int(subprocess.check_output(["cat", "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input"]).decode("utf-8"))
