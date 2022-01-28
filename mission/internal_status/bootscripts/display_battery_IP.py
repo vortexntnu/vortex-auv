@@ -33,8 +33,6 @@ x = 0
 # Load font
 font = ImageFont.load_default()
 
-print("Displaying IP")
-
 while True:
     # Draw a black filled box to clear the image.
     draw.rectangle((0,0,width,height), outline=0, fill=0)
@@ -52,8 +50,6 @@ while True:
     system_V = bus.read_i2c_block_data(0x6a, 0x00, 2)
     raw_adc_voltage = (system_V[0] & 0x0F) * 256 + system_V[1]
     system_V = str(raw_adc_voltage * 0.011)
-    print(system_V)
-    print(xavier_V)
 
     draw.text((x+2, top+3), "IP: " + IP,  font=font, fill=255)
     #draw.text((x + 28, top + 16), IP2, font=font, fill = 255)
