@@ -50,11 +50,12 @@ RUN pip install \
     vcstool \
     pandas \
     quadprog \
-    scipy
+    scipy \
+    sklearn
 
 RUN echo "source /opt/ros/melodic/setup.bash" >> /home/vortex/.bashrc
 RUN echo "source /home/vortex/auv_ws/devel/setup.bash" >> /home/vortex/.bashrc
-RUN mkdir /home/vortex/.bash_aliases && echo "alias srcdev='source devel/setup.bash'" >> /home/vortex/.bash_aliases
+RUN touch /home/vortex/.bash_aliases && echo "alias srcdev='source devel/setup.bash'" >> /home/vortex/.bash_aliases
 
 RUN mkdir -p /home/vortex/auv_ws/src
 RUN chown -R vortex /home/vortex/auv_ws
