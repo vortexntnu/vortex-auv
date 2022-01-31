@@ -7,7 +7,7 @@ services:
     privileged: true
     volumes:
       - "..:/home/vortex/auv_ws/src" # Shared volume to avoid rebuilding when starting a new container
-      - "~/projects/vortex/vortex_ws/:/home/vortex/auv_ws/"
+      - "../..:/home/vortex/auv_ws/"
       - "/dev:/dev"
 
     environment:
@@ -23,7 +23,7 @@ services:
     privileged: true
     volumes:
       - "..:/home/vortex/auv_ws/src" # Shared volume to avoid rebuilding when starting a new container
-      - "~/projects/vortex/vortex_ws/:/home/vortex/auv_ws/"
+      - "../..:/home/vortex/auv_ws/"
       - "/dev:/dev"
     environment:
       DISPLAY: :0

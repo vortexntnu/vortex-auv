@@ -56,7 +56,7 @@ RUN echo "source /opt/ros/melodic/setup.bash" >> /home/vortex/.bashrc
 RUN echo "source /home/vortex/auv_ws/devel/setup.bash" >> /home/vortex/.bashrc
 
 RUN mkdir -p /home/vortex/auv_ws/src
-RUN chown -R vortex: /home/vortex/auv_ws
+RUN chown -R vortex /home/vortex/auv_ws
 RUN chmod a+rw /dev/ttyUSB* ; exit 0
 
 CMD ["/bin/bash"]
