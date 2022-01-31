@@ -1,0 +1,34 @@
+version: '3.8'
+services:
+  vortex:
+    container_name: vortex_auv
+    build: .
+    user: vortex
+    privileged: true
+    volumes:
+      - "..:/home/vortex/auv_ws/src" # Shared volume to avoid rebuilding when starting a new container
+      - "~/projects/vortex/vortex_ws/:/home/vortex/auv_ws/"
+      - "/dev:/dev"
+
+    environment:
+      DISPLAY: :0
+    stdin_open: true
+    tty: true
+    network_mode: host
+
+  vortex_sim:
+    container_name: vortex_sim
+    build: .
+    user: vortex
+    privileged: true
+    volumes:
+      - "..:/home/vortex/auv_ws/src" # Shared volume to avoid rebuilding when starting a new container
+      - "~/projects/vortex/vortex_ws/:/home/vortex/auv_ws/"
+      - "/dev:/dev"
+    environment:
+      DISPLAY: :0
+    stdin_open: true
+    tty: true
+    network_mode: host
+
+#   read more about the docker-compose here: https://docs.docker.com/compose/
