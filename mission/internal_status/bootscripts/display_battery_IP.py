@@ -40,10 +40,7 @@ while True:
     # Shell scripts for getting IP
     cmd = "hostname -I | cut -d\' \' -f1"
     IP = subprocess.check_output(cmd, shell = True )
-    #Split IP-adress-string into 2 to print on seperate lines
-    #s = str(IP.decode('utf-8'))
-    #IP1 = s[:8]
-    #IP2 = s[len(s)-8:]
+
     xavier_mV = int(subprocess.check_output(["cat", "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input"]).decode("utf-8"))
     xavier_V =str(xavier_mV / 1000.0)
 
@@ -56,13 +53,10 @@ while True:
     no_of_ssh = subprocess.check_output(cmd, shell = True )
 
     draw.text((x+2, top+3), "IP: " + IP,  font=font, fill=255)
-    #draw.text((x + 28, top + 16), IP2, font=font, fill = 255)
     draw.text((x+2, top + 12),"Xavier: " + xavier_V + "v", font=font, fill = 255)
     draw.text((x+2, top + 20),"System: " + system_V +"v", font=font, fill = 255)
     draw.text((x+2, top + 40),"No. of SSH: " + no_of_ssh, font=font, fill = 255)
 
-    #draw.rectangle((0,0,width,height), outline=0, fill=0)
-    #draw.rectangle((10,60,30,50), outline=1, fill=0)
     # Display image.
     disp.image(image)
     disp.display()
