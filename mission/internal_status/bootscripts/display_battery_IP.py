@@ -51,10 +51,15 @@ while True:
     raw_adc_voltage = (system_V[0] & 0x0F) * 256 + system_V[1]
     system_V = str(raw_adc_voltage * 0.011)
 
+    #Script for getting SSH
+    cmd = "w -h | wc -l"
+    no_of_ssh = subprocess.check_output(cmd, shell = True )
+
     draw.text((x+2, top+3), "IP: " + IP,  font=font, fill=255)
     #draw.text((x + 28, top + 16), IP2, font=font, fill = 255)
     draw.text((x+2, top + 12),"Xavier: " + xavier_V + "v", font=font, fill = 255)
     draw.text((x+2, top + 20),"System: " + system_V +"v", font=font, fill = 255)
+    draw.text((x+2, top + 40),"No. of SSH: " + no_of_ssh, font=font, fill = 255)
 
     #draw.rectangle((0,0,width,height), outline=0, fill=0)
     #draw.rectangle((10,60,30,50), outline=1, fill=0)
