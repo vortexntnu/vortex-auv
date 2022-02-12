@@ -50,12 +50,12 @@ while True:
 
     #Script for getting SSH
     cmd = "w -h | wc -l"
-    n_of_ssh = subprocess.check_output(cmd, shell = True )
+    n_of_users = subprocess.check_output(cmd, shell = True )
 
     draw.text((x+2, top+3), "IP: " + IP,  font=font, fill=255)
     draw.text((x+2, top + 12),"Xavier: " + xavier_V + "v", font=font, fill = 255)
     draw.text((x+2, top + 20),"System: " + system_V +"v", font=font, fill = 255)
-    draw.text((x+2, top + 40),"No. SSH: " + n_of_ssh, font=font, fill = 255)
+    draw.text((x+2, top + 40),"No. users: " + n_of_users, font=font, fill = 255)
 
     # Display image.
     disp.image(image)
