@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
-  
+
   <!-- INPUT ARGS -->
   <arg name="type" default="real"/> <!-- real | simulator -->
   <arg name="localization" default="ekf"/> <!-- ekf | eskf-->
@@ -15,18 +15,18 @@
     <param name="/thrust_merger/output_topic" value="/auv/thruster_manager/input"/>
   </group>
 
+  <!-- TFs -->
+  <include file="$(find auv_setup)/launch/tf.launch"/>
+
   <!-- DRIVERS -->
   <group if="$(eval type == 'real')">
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />
 
     <!-- IMU -->
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0.029 0 0.091 1.5708 0 0 base_link imu_0" />
     <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
 
     <!-- DVL -->	
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 -1.5708 3.14159 0 base_link dvl_link" /> 
-    <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 base_link pressure_link" /> <!-- Remap pressure reading from DVL -->
     <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" />
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
@@ -34,8 +34,7 @@
     <node pkg="pca9685_ros_driver" type="pca9685_ros_node.py" name="pca9685_ros_driver" output="screen" />
 
     <!-- ZED2 camera node -->
-    <include file="$(find zed_wrapper)/launch/zed2.launch" />
-    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.3175 0 0.10 0 -0.296706 -0.0087266 base_link zed2_camera_center" /> <!-- Remap cameraview to base -->
+    <!-- <include file="$(find zed_wrapper)/launch/zed2.launch" /> -->
   
     <!-- Sonar ping360 --> 
     <!--
