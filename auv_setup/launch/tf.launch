@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <launch>
 <!-- IMU -->
-<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0.029 0 0.091 1.5708 0 0 base_link imu_0" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0 0.029 0.091 1.570795 0 0 base_link imu_0" />
 <!-- DVL -->
-<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0.015 0 -0.075 -1.5708 3.14159 0 base_link dvl_link" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0 0.3175 -0.11 1.5708 0 3.14159 base_link dvl_link" />
 <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 base_link pressure_link" /> <!-- Remap pressure reading from DVL -->
 <!-- ZED 2 Camera -->
 <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.3175 0 0.10 0 -0.296706 -0.0087266 base_link zed2_camera_center" /> <!-- Remap cameraview to base -->
