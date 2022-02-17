@@ -20,6 +20,9 @@
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />
 
+    <!-- For launching the manipulator (gripper, torpedo, lights) nodes -->
+    <include file="$(find manipulators_launch)/launch/manipulators.launch" pass_all_args="true"/>
+
     <!-- IMU -->
     <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0.029 0 0.091 3.14159 0 0 base_link imu_0" />
     <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
@@ -67,7 +70,6 @@
   <!-- INCLUDES -->
   <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
   <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
-  <include file="$(find manipulators_launch)/launch/manipulators.launch"    pass_all_args="true"/>
 
   <!-- Joystick nodes for ROV missions -->
   <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
