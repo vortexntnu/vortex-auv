@@ -3,7 +3,8 @@
 <!-- IMU -->
 <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu0" args="0 0.029 0.091 1.570795 0 0 base_link imu_0" />
 <!-- DVL -->
-<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_DVL" args="0 0.3175 -0.11 1.5708 0 3.14159 base_link uns_link" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_UNS" args="0 0.3175 -0.11 1.5708 0 3.14159 base_link uns_link" />
+<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_UNS_ahrs" args="0 0.3175 -0.11 1.5708 0 3.14159 base_link uns_link_ahrs" />
 <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_uns" args="0.3 0 -0.1 0 0 3.1415 base_link uns_link" /> -->
 <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_Pressure" args="0 0 0 0 0 0 base_link pressure_link" /> Remap pressure reading from DVL -->
 

@@ -28,6 +28,7 @@
 
     <!-- DVL -->	
     <!-- <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" /> -->
+  
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
     <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
