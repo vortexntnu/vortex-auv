@@ -20,6 +20,7 @@ class PoleSearch(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['pole_search_output'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
         self.object = self.landmarks_client("pole").object_pos
+        self.object_seen = self.object.isDetected
         self.pole_position = self.object.objectPose.pose.position
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
@@ -30,7 +31,7 @@ class PoleSearch(smach.State):
         while not self.object.isDetected:
             print("SEARCHING FOR POLE ...")
             rospy.wait_for_service('send_positions')   
-            self.pole_position = self.landmarks_client("pole").object_pos
+            self.object = self.landmarks_client("pole").object_pos
         
         print("POLE POSITION DETECTED: "+ str(self.pole_position.x) + ", "+ str(self.pole_position.y)+ ", "+ str(self.pole_position.z))    
                         
@@ -77,7 +78,7 @@ class PoleConverge(smach.State):
         while not rospy.is_shutdown():
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
-            goal.waypoints = [self.landmarks_client("pole").pos]
+            goal.waypoints = [self.landmarks_client("pole").object_pos.objectPose.pose.position]
             print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             if (self.odom.pose.pose.position.x < userdata.pole_position.x):
                 goal.waypoints[0].x = goal.waypoints[0].x-0.5
@@ -85,7 +86,7 @@ class PoleConverge(smach.State):
                 goal.waypoints[0].x = goal.waypoints[0].x+0.5
             self.vtf_client.send_goal(goal)
             rate.sleep()
-        userdata.pole_converge_output=self.landmarks_client("pole").pos
+        userdata.pole_converge_output=self.landmarks_client("pole").object_pos.objectPose.pose.position
         return 'succeeded'
 
 class PoleExecute(smach.State):
