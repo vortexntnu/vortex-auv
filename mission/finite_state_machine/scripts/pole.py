@@ -19,17 +19,18 @@ class PoleSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['pole_search_output'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
-        self.pole_position = self.landmarks_client("pole").pos
+        self.object = self.landmarks_client("pole").object_pos
+        self.pole_position = self.object.objectPose.pose.position
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
         
     def execute(self, userdata):
         self.state_pub.publish("pole_search")
 
-        while self.pole_position.x == 0:
+        while not self.object.isDetected:
             print("SEARCHING FOR POLE ...")
             rospy.wait_for_service('send_positions')   
-            self.pole_position = self.landmarks_client("pole").pos
+            self.pole_position = self.landmarks_client("pole").object_pos
         
         print("POLE POSITION DETECTED: "+ str(self.pole_position.x) + ", "+ str(self.pole_position.y)+ ", "+ str(self.pole_position.z))    
                         

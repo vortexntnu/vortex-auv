@@ -5,22 +5,23 @@ from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
 from landmarks.srv import request_position
 from nav_msgs.msg import Odometry
-
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction
-from landmarks.srv import request_position
+
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, rotate_certain_angle
 from vortex_msgs.srv import ControlMode
-from nav_msgs.msg import Odometry
+
 
 class GateSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['gate_search_output'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
-        self.gate_position = self.landmarks_client("gate").pos
+        self.object = self.landmarks_client("gate").object_pos
+        self.object_seen = self.object.isDetected
+        self.gate_position = self.object.objectPose.pose.position
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
@@ -38,10 +39,13 @@ class GateSearch(smach.State):
         goal.desired_velocity.linear.z = -0.00001
         goal.desired_velocity.angular.z = 0.05
         self.vel_action_client.send_goal(goal)    
-        while self.gate_position.x == 0: #should not be 0, but c++ NULL translates to 0.0 ...
+        while not self.object.isDetected:
+
             print("SEARCHING FOR GATE ...")
+            print(self.gate_position)
             rospy.wait_for_service('send_positions')   
-            self.gate_position = self.landmarks_client("gate").pos
+            self.object = self.landmarks_client("gate").object_pos
+
             
             rate.sleep()
         goal.desired_velocity.linear.z = 0
@@ -96,7 +100,7 @@ class GateConverge(smach.State):
         while not rospy.is_shutdown():
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
-            goal.waypoints = [self.landmarks_client("gate").pos]
+            goal.waypoints = [self.landmarks_client("gate").object_pos.objectPose.pose.position]
             userdata.gate_converge_output=goal.waypoints[0]
             print("GATE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             if (self.odom.pose.pose.position.x < userdata.gate_position.x):

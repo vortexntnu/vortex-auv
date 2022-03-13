@@ -36,7 +36,7 @@ protected:
     ros::Subscriber op_sub;
     ros::Publisher op_pub;
     ros::Rate loop_rate;
-    std::map<std::string,geometry_msgs::Point> objectPositions;
+    std::map<std::string,vortex_msgs::ObjectPosition> objectPositions;
     bool send_pos(landmarks::request_position::Request& req, landmarks::request_position::Response& res);
     ros::ServiceServer service;
 };
