@@ -19,24 +19,44 @@ class PoleSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['pole_search_output'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
-        self.object = self.landmarks_client("pole").object_pos
-        self.object_seen = self.object.isDetected
-        self.pole_position = self.object.objectPose.pose.position
-
+        self.pole_position = Pose()
+        self.is_detected = False
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
+
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)  
+
+        self.drone_pose = Pose()
+        rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.read_position)
+
         
     def execute(self, userdata):
         self.state_pub.publish("pole_search")
 
-        while not self.object.isDetected:
+        goal = VtfPathFollowingGoal()
+        goal.waypoints = [Point(15,0,-0.5)]
+        goal.forward_speed = 0.2
+        goal.heading = "path_dependent_heading"
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(10)
+
+        while not self.is_detected:
             print("SEARCHING FOR POLE ...")
-            rospy.wait_for_service('send_positions')   
-            self.object = self.landmarks_client("pole").object_pos
-        
+            rospy.wait_for_service('send_positions')
+            self.pole_position = self.landmarks_client("pole").object_pos.objectPose.pose.position
+            self.is_detected = self.landmarks_client("pole").object_pos.isDetected
+            rate.sleep()
+
+        self.vtf_client.cancel_all_goals()
         print("POLE POSITION DETECTED: "+ str(self.pole_position.x) + ", "+ str(self.pole_position.y)+ ", "+ str(self.pole_position.z))    
                         
         userdata.pole_search_output = self.pole_position       
         return 'succeeded'
+    
+    def read_position(self, msg):
+        self.drone_pose = msg.pose.pose
+    
 
 class PoleConverge(smach.State):
     def __init__(self):
@@ -80,10 +100,9 @@ class PoleConverge(smach.State):
                 break
             goal.waypoints = [self.landmarks_client("pole").object_pos.objectPose.pose.position]
             print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
-            if (self.odom.pose.pose.position.x < userdata.pole_position.x):
-                goal.waypoints[0].x = goal.waypoints[0].x-0.5
-            else:
-                goal.waypoints[0].x = goal.waypoints[0].x+0.5
+
+            goal.waypoints[0].x = goal.waypoints[0].x-0.5
+
             self.vtf_client.send_goal(goal)
             rate.sleep()
         userdata.pole_converge_output=self.landmarks_client("pole").object_pos.objectPose.pose.position

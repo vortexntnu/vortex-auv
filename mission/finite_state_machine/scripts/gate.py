@@ -45,15 +45,15 @@ class GateSearch(smach.State):
         while not self.object.isDetected:
 
             print("SEARCHING FOR GATE ...")
-            print(self.gate_position)
+            print(self.object.objectPose.pose.position)
             rospy.wait_for_service('send_positions')   
             self.object = self.landmarks_client("gate").object_pos
             rate.sleep()
         
         self.vtf_client.cancel_all_goals()
 
-        print("GATE POSITION DETECTED: "+ str(self.gate_position.x) + ", "+ str(self.gate_position.y))                
-        userdata.gate_search_output = self.gate_position       
+        print("GATE POSITION DETECTED: "+ str(self.object.objectPose.pose.position.x) + ", "+ str(self.object.objectPose.pose.position.y))                
+        userdata.gate_search_output = self.object.objectPose.pose.position     
         return 'succeeded'
     
     def read_position(self, msg):
@@ -64,12 +64,6 @@ class GateConverge(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate_position'],output_keys=['gate_converge_output']) 
         
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
-
-        dp_guidance_action_server="/guidance_interface/dp_server" 
-        self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction) 
-
-        dp_controller_control_mode_service = "/guidance/dp_guidance/controlmode_service"
-        self.control_mode_client = rospy.ServiceProxy(dp_controller_control_mode_service, ControlMode)  
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
@@ -92,8 +86,6 @@ class GateConverge(smach.State):
         goal.heading = "path_dependent_heading"
 
         self.vtf_client.wait_for_server()
-        self.action_client.cancel_all_goals()
-        self.control_mode_client(0)
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
