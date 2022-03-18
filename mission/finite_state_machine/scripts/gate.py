@@ -18,40 +18,40 @@ from vortex_msgs.srv import ControlMode
 class GateSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['gate_search_output'])           
-        self.landmarks_client = rospy.ServiceProxy('send_positions',request_position) 
+        self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
+        rospy.wait_for_service('send_positions') 
         self.object = self.landmarks_client("gate").object_pos
-        self.object_seen = self.object.isDetected
-        self.gate_position = self.object.objectPose.pose.position
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)  
 
         self.drone_pose = Pose()
         rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.read_position)
 
-        vel_guidance_action_server="/guidance_interface/vel_server" 
-        self.vel_action_client = actionlib.SimpleActionClient(vel_guidance_action_server, SetVelocityAction) 
         
     def execute(self, userdata):
         self.state_pub.publish("gate_search")
-        rate = rospy.Rate(1)
-        goal = SetVelocityGoal()
-        goal.desired_velocity.linear.z = -0.00001
-        goal.desired_velocity.angular.z = 0.05
-        self.vel_action_client.send_goal(goal)    
+
+        goal = VtfPathFollowingGoal()
+        goal.waypoints = [Point(5,0,-0.5)]
+        goal.forward_speed = 0.2
+        goal.heading = "path_dependent_heading"
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(10)
+
         while not self.object.isDetected:
 
             print("SEARCHING FOR GATE ...")
             print(self.gate_position)
             rospy.wait_for_service('send_positions')   
             self.object = self.landmarks_client("gate").object_pos
-
-            
             rate.sleep()
-        goal.desired_velocity.linear.z = 0
-        goal.desired_velocity.angular.z = 0
-        self.vel_action_client.send_goal(goal) 
-        self.vel_action_client.cancel_all_goals()
+        
+        self.vtf_client.cancel_all_goals()
+
         print("GATE POSITION DETECTED: "+ str(self.gate_position.x) + ", "+ str(self.gate_position.y))                
         userdata.gate_search_output = self.gate_position       
         return 'succeeded'
