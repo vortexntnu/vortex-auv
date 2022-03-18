@@ -32,6 +32,7 @@ RUN apt update && \
     python-yaml \
     python-enum34 \
     python-pip \
+    python-wheel \
     python-catkin-tools \
     python-vcstool \
     libgeographic-dev \
@@ -43,7 +44,6 @@ RUN apt update && \
     protobuf-compiler
 
 RUN pip install \
-    wheel \
     rospkg \
     pyquaternion \
     pandas \
