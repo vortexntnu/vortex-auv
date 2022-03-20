@@ -20,7 +20,5 @@ jobs:
         
       - name: Build the Docker image
         run: docker build . --file Dockerfile --tag auv:ci-build
-         
-      - name: Deploy and enter container
-        run: docker run --rm -i --entrypoint "/bin/bash && source /opt/ros/melodic/setup.bash && cd /home/vortex/auv_ws/ && catkin build" auv:ci-build
-        
+      # Note that the Dockerfile contains a RUN that builds the catkin workspace. Running will however not work due to a cross-dep with another repo
+      # For this reason, the image is also not uploaded to the registry
