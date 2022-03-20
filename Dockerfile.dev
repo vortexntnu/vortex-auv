@@ -61,6 +61,7 @@ RUN echo "source /opt/ros/melodic/setup.bash" >> /home/vortex/.bashrc
 RUN echo "source /home/vortex/auv_ws/devel/setup.bash" >> /home/vortex/.bashrc
 RUN touch /home/vortex/.bash_aliases && echo "alias srcdev='source devel/setup.bash'" >> /home/vortex/.bash_aliases
 
-RUN chmod a+rw /dev/ttyUSB* ; exit 0
+RUN mkdir -p /home/vortex/auv_ws/src
+RUN chown -R vortex /home/vortex/auv_ws
 
 CMD ["/bin/bash"]
