@@ -19,14 +19,8 @@ jobs:
         uses: actions/checkout@v1
         
       - name: Build the Docker image
-        run: docker-compose build auv-dev
+        run: docker build . --file Dockerfile --tag auv:ci-build
          
-      - name: Deploy container
-        run: docker-compose up -d auv-dev
-        
-      - name: Enter container
-        run: docker-compose exec auv-dev /bin/bash
-        
-      - name: Build ROS workspace
-        run: source /opt/ros/melodic/setup.bash && cd /home/vortex/auv_ws/ && catkin build
+      - name: Deploy and enter container
+        run: docker run --rm -it --entrypoint "/bin/bash && source /opt/ros/melodic/setup.bash && cd /home/vortex/auv_ws/ && catkin build" auv:ci-build
         
