@@ -22,5 +22,5 @@ jobs:
         run: docker build . --file Dockerfile --tag auv:ci-build
          
       - name: Deploy and enter container
-        run: docker run --rm -it --entrypoint "/bin/bash && source /opt/ros/melodic/setup.bash && cd /home/vortex/auv_ws/ && catkin build" auv:ci-build
+        run: docker run --rm -i --entrypoint "/bin/bash && source /opt/ros/melodic/setup.bash && cd /home/vortex/auv_ws/ && catkin build" auv:ci-build
         
