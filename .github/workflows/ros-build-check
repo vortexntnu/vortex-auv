@@ -1,0 +1,32 @@
+name: ROS build check
+
+on:
+  push:
+    branches: [ development ]
+  pull_request:
+    branches: [ development ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  build-and-test-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        
+      - name: Build the Docker image
+        run: docker-compose build auv-dev
+         
+      - name: Deploy container
+        run: docker-compose up -d auv-dev
+        
+      - name: Enter container
+        run: docker-compose exec auv-dev /bin/bash
+        
+      - name: Build ROS workspace
+        run: source /opt/ros/melodic/setup.bash && cd /home/vortex/auv_ws/ && catkin build
+        
