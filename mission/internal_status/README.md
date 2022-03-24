@@ -56,3 +56,5 @@ The expected output is:
 ```
 Any deviation from this output suggests that the pins are not connected right.
 For I2C-bus 1 the SDA and CLK pins should be connected to pin 27 and 28 respectively.
+Xavier pin layout (pin 1 is top right when looking at the Xavier):
+![Xavier pin layout](https://aws1.discourse-cdn.com/nvidia/original/2X/b/bf92a41569803336a14c2f18cab74ba2496d0cfa.png)
