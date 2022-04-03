@@ -57,7 +57,9 @@ class PoleConverge(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'], output_keys=['pole_converge_output'])
         
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)  
-        
+        rospy.wait_for_service('send_positions')
+        self.object = self.landmarks_client("pole").object
+
         dp_guidance_action_server="/guidance_interface/dp_server" 
         self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction)   
  
@@ -66,17 +68,15 @@ class PoleConverge(smach.State):
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
-
-
-    def odom_cb(self, msg):
-        self.odom = msg     
+   
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("pole").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, 0,5)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5)
 
-        print(f'get_pose_in_front returned: {goal_pose}')
+        print('get_pose_in_front returned:')
+        print(goal_pose)
 
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = 0.1
@@ -93,29 +93,35 @@ class PoleConverge(smach.State):
                 break
             self.object = self.landmarks_client("pole").object
             
-            goal.waypoints = [self.landmarks_client("pole").object_pos.objectPose.pose.position]
+            goal.waypoints = [self.object.objectPose.pose.position]
             print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
 
             goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
 
             self.vtf_client.send_goal(goal)
+            userdata.pole_converge_output = self.object
             rate.sleep()
 
         return 'succeeded'
 
 class PoleExecute(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate'])  
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['pole'])  
         
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
-           
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg    
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
         start = self.odom.pose.pose.position
-        
-        centre = Point(userdata.pole_position.x,userdata.pole_position.y,userdata.pole_position.z)
+        print(userdata)
+        centre = Point(userdata.pole.objectPose.pose.position.x,userdata.pole.objectPose.pose.position.y, userdata.pole.objectPose.pose.position.z)
         goal.waypoints = create_circle_coordinates(start,centre,330)
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"

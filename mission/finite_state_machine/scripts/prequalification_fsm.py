@@ -69,14 +69,13 @@ def main():
 
             StateMachine.add('GATE_SEARCH',
                             GateSearch(), 
-                            transitions={'succeeded':'GATE_CONVERGE'},
-                            remapping={'gate_search_output':'gate_position'})
+                            transitions={'succeeded':'GATE_CONVERGE'})
             
             
             StateMachine.add('GATE_CONVERGE',
                             GateConverge(),
                             transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
-                            remapping={'gate_converge_output':'gate_position'})
+                            remapping={'gate_converge_output':'gate'})
             
             StateMachine.add('GATE_EXECUTE',
                             GateExecute())
