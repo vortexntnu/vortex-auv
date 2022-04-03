@@ -88,7 +88,7 @@ def memoize(function):
             return rv
     return wrapper
 
-def ned_enu_conversion(eta,nu): #eta = [y,x,z,p,r,y] assume we take in ENU
+def ned_enu_conversion(eta,nu): 
     """Rotates from north-east-down to east-north-up
     
     Args: 

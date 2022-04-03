@@ -237,7 +237,6 @@ def extract_from_twist(twist):
     return [linear[0], linear[1], linear[2], angular[0], angular[1], angular[2]]
 
 
-#Convert back to ENU
 def create_wrench_msg(tau):
     msg = Wrench()
     msg.force.x = tau[0]
