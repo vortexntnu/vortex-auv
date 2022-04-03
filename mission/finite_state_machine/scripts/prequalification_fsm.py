@@ -50,13 +50,12 @@ def main():
 
             StateMachine.add('POLE_SEARCH',
                              PoleSearch(),
-                             transitions={'succeeded':'POLE_CONVERGE'}, 
-                             remapping={'pole_search_output':'pole_position'}) 
+                             transitions={'succeeded':'POLE_CONVERGE'})
         
             StateMachine.add('POLE_CONVERGE',
                             PoleConverge(),
                             transitions={'succeeded':'POLE_EXECUTE', 'aborted':'POLE_SEARCH'}, 
-                            remapping={'pole_converge_output':'pole_position'})   
+                            remapping={'pole_converge_output':'pole'})   
 
             StateMachine.add('POLE_EXECUTE',
                             PoleExecute())                    
