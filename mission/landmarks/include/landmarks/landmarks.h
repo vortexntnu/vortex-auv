@@ -17,11 +17,11 @@ public:
     Landmarks();
     /**
      * The callback function for the op_sub-subscriber.
-     * @param objPos is the message received on the ROS-topic, containing an object ID and the position of the object.
+     * @param objPose is the message received on the ROS-topic, containing an object ID and the position of the object.
      * The object ID and position is stored in the objectPositions-map
      * The message received is further published on the object_positions_out-topic.
      */
-    void callback(vortex_msgs::ObjectPosition objPos);
+    void callback(vortex_msgs::ObjectPosition objPose);
     /**
      * ros::spinOnce() is called at 10Hz
      */

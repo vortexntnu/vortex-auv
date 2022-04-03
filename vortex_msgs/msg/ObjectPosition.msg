@@ -1,3 +1,4 @@
 string objectID
 geometry_msgs/PoseStamped objectPose
 bool isDetected
+bool estimateConverged

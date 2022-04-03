@@ -60,6 +60,11 @@ def rotate_certain_angle(pose, angle):
     return new_pose
 
 
+def get_pose_in_front(object, dist):
+    # returns pose that is dist meters in front of object
+    new_pose = Pose()
+    return new_pose
+
 def patrol_sequence(action_states):
 
     sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome='succeeded')
