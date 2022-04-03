@@ -61,13 +61,13 @@ def rotate_certain_angle(pose, angle):
 
 
 def get_pose_in_front(pose, distance):
-    # returns pose that is dist meters in front of object
+    # returns pose that is distance meters in front of object pose
     
     orientation_object = R.from_quat([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w])
     rotation_matrix = orientation_object.as_dcm()
-    y_vec = rotation_matrix[:,1]
+    x_vec = rotation_matrix[:,0]
     current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
-    new_pose_vec = current_pos_vec + distance*y_vec
+    new_pose_vec = current_pos_vec + distance*x_vec
 
     new_pose = Pose()
     new_pose.position.x = new_pose_vec[0]
