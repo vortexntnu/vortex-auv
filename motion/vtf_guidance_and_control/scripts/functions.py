@@ -99,7 +99,7 @@ def ned_enu_conversion(eta,nu): #eta = [y,x,z,p,r,y] assume we take in ENU
     Array: Rotated eta and nu
     
     """
-    #newEta = [y,x,-z,pitch,roll,-yaw]  
-    return [eta[1], eta[0], -eta[2], eta[3], -eta[4], -eta[5]+np.pi/2], [nu[0], -nu[1], -nu[2], nu[3], -nu[4], -nu[5]]
+    # yaw velocity is wrong -> ask aksel why!
+    return [eta[0], eta[1], eta[2], eta[3], eta[4], eta[5]], [nu[0], nu[1], nu[2], nu[3], nu[4], -nu[5]]
     
     

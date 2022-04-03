@@ -105,7 +105,7 @@ class VtfPathFollowing(object):
 		# set goal, the first item will be replaced by current position by the vtf controller so init with dummy:
 		self.vtf.waypoints = [[6,6,6]] 
 		for wp in _goal.waypoints:
-			self.vtf.waypoints.append([wp.y,wp.x,-wp.z])
+			self.vtf.waypoints.append([wp.x,wp.y, wp.z])
 		if self.publish_guidance_data:
 			self.vtf.update_path(_goal.forward_speed,_goal.heading, [_goal.heading_point.x,_goal.heading_point.y])
 		else:
