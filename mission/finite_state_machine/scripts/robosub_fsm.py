@@ -27,7 +27,7 @@ def main():
             StateMachine.add('GATE_SEARCH',
                         GateSearch(), 
                         transitions={'succeeded':'GATE_CONVERGE'},
-                        remapping={'gate_search_output':'gate_position'})
+                        remapping={'gate_search_output':'gate'})
         
         StateMachine.add('GATE_SM',gate_sm, transitions={'succeeded':'PATH_SM'} )
         ##PATH

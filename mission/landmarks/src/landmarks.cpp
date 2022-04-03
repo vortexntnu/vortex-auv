@@ -33,7 +33,7 @@ void Landmarks::printMap(std::map<std::string,geometry_msgs::Point> objectsMap){
 }
 
 bool Landmarks::send_pos(landmarks::request_position::Request &req, landmarks::request_position::Response &res){
-    res.object_pos= Landmarks::objectPositions[req.ID];
+    res.object= Landmarks::objectPositions[req.ID];
     return true;
 }
 
