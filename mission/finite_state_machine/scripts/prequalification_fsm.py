@@ -2,20 +2,12 @@
 
 import rospy
 from smach import StateMachine
-import smach
-from fsm_helper import dp_move, los_move
-from smach_ros import IntrospectionServer, SimpleActionState
-from geometry_msgs.msg import Point
-from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-
-import sm_classes
+from smach_ros import IntrospectionServer
 
 from gate import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
-from reach_depth import ReachDepth #consider using this function instead of dp_move() for Reach Depth state
+from reach_depth import ReachDepth
 
-import copy
 
 def main():
     rospy.init_node('prequalification_fsm')
