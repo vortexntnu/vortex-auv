@@ -1,14 +1,19 @@
 name: black-format check
-
-on: [ push ]
-
+on: [push]
 jobs:
   linter_name:
     name: runner / black formatter
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: jpetrucciani/black-check@21.12b0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v2
         with:
-          path: "."
-          black_flags: "--check"
+          python-version: 3.8
+          
+      - name: Install deps
+        run: pip install black 
+        
+      - name: Run Python black formatting check
+        run: python3 -m black . --check --diff
