@@ -2,20 +2,12 @@
 
 import rospy
 from smach import StateMachine
-import smach
-from fsm_helper import dp_move, los_move
-from smach_ros import IntrospectionServer, SimpleActionState
-from geometry_msgs.msg import Point
-from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-
-import sm_classes
+from smach_ros import IntrospectionServer
 
 from gate import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
-from reach_depth import ReachDepth #consider using this function instead of dp_move() for Reach Depth state
+from reach_depth import ReachDepth
 
-import copy
 
 def main():
     rospy.init_node('prequalification_fsm')
@@ -36,14 +28,13 @@ def main():
 
             StateMachine.add('GATE_SEARCH',
                             GateSearch(), 
-                            transitions={'succeeded':'GATE_CONVERGE'},
-                            remapping={'gate_search_output':'gate_position'})
+                            transitions={'succeeded':'GATE_CONVERGE'})
             
             
             StateMachine.add('GATE_CONVERGE',
                             GateConverge(),
                             transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
-                            remapping={'gate_converge_output':'gate_position'})
+                            remapping={'gate_converge_output':'gate'})
             
             StateMachine.add('GATE_EXECUTE',
                             GateExecute())
@@ -59,13 +50,12 @@ def main():
 
             StateMachine.add('POLE_SEARCH',
                              PoleSearch(),
-                             transitions={'succeeded':'POLE_CONVERGE'}, 
-                             remapping={'pole_search_output':'pole_position'}) 
+                             transitions={'succeeded':'POLE_CONVERGE'})
         
             StateMachine.add('POLE_CONVERGE',
                             PoleConverge(),
                             transitions={'succeeded':'POLE_EXECUTE', 'aborted':'POLE_SEARCH'}, 
-                            remapping={'pole_converge_output':'pole_position'})   
+                            remapping={'pole_converge_output':'pole'})   
 
             StateMachine.add('POLE_EXECUTE',
                             PoleExecute())                    
@@ -79,14 +69,13 @@ def main():
 
             StateMachine.add('GATE_SEARCH',
                             GateSearch(), 
-                            transitions={'succeeded':'GATE_CONVERGE'},
-                            remapping={'gate_search_output':'gate_position'})
+                            transitions={'succeeded':'GATE_CONVERGE'})
             
             
             StateMachine.add('GATE_CONVERGE',
                             GateConverge(),
                             transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
-                            remapping={'gate_converge_output':'gate_position'})
+                            remapping={'gate_converge_output':'gate'})
             
             StateMachine.add('GATE_EXECUTE',
                             GateExecute())

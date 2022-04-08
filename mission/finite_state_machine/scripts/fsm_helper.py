@@ -60,6 +60,24 @@ def rotate_certain_angle(pose, angle):
     return new_pose
 
 
+def get_pose_in_front(pose, distance):
+    # returns pose that is distance meters in front of object pose
+    
+    orientation_object = R.from_quat([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w])
+    rotation_matrix = orientation_object.as_dcm()
+    x_vec = rotation_matrix[:,0]
+    current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
+    new_pose_vec = current_pos_vec + distance*x_vec
+
+    new_pose = Pose()
+    new_pose.position.x = new_pose_vec[0]
+    new_pose.position.y = new_pose_vec[1]
+    new_pose.position.z = new_pose_vec[2]
+    new_pose.orientation = pose.orientation
+
+    return new_pose
+    
+
 def patrol_sequence(action_states):
 
     sm = Sequence(outcomes=['preempted', 'succeeded', 'aborted'], connector_outcome='succeeded')

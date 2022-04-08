@@ -187,7 +187,7 @@ class VtfGuidanceAndControlNode:
                         (q[0], q[1], q[2], q[3]),
                         rospy.Time.now(),
                         "/virtual_target",
-                        "/odom_ned")
+                        "/odom")
         
         # Publish reference model frame
         p = eta_d[0][:3]
@@ -197,7 +197,7 @@ class VtfGuidanceAndControlNode:
                         (q[0], q[1], q[2], q[3]),
                         rospy.Time.now(),
                         "/reference_model",
-                        "/odom_ned")
+                        "/odom")
         
         # Publish control forces
         msg = create_wrench_msg(tau_c)
@@ -205,14 +205,14 @@ class VtfGuidanceAndControlNode:
     
     def publish_path_once(self,path):
         msg = Path()
-        msg.header.frame_id = '/odom_ned'
+        msg.header.frame_id = '/odom'
         for i in range(len(path.path)):
             for j in list(np.linspace(0, 1, 50)):
                 p = path.path[i](j)
                 psi = path.chi_p[i](j)
                 q = quaternion_from_euler(0, 0, psi)
                 pose = PoseStamped()
-                pose.header.frame_id = '/odom_ned'
+                pose.header.frame_id = '/odom'
                 pose.pose.position.x = p[0]
                 pose.pose.position.y = p[1]
                 pose.pose.position.z = p[2]
@@ -237,15 +237,14 @@ def extract_from_twist(twist):
     return [linear[0], linear[1], linear[2], angular[0], angular[1], angular[2]]
 
 
-#Convert back to ENU
 def create_wrench_msg(tau):
     msg = Wrench()
     msg.force.x = tau[0]
-    msg.force.y = -tau[1]
-    msg.force.z = -tau[2]
+    msg.force.y = tau[1]
+    msg.force.z = tau[2]
     msg.torque.x = tau[3]
-    msg.torque.y = -tau[4]
-    msg.torque.z = -tau[5]
+    msg.torque.y = tau[4]
+    msg.torque.z = tau[5]
     return msg
 
 

@@ -98,13 +98,13 @@ controllers:
     odometry_topic: "/odometry/filtered"
     sphere_of_acceptence: 0.2
     control_input_saturation_limits: [-10.5, 10.5]
-    control_forces_weights: [0.1, 0.1, 0.1, 10, 10, 1.5] # Weigths for what DOF is prioritized when allocation control forces. Leave 
-    control_bandwidth: [0.8, 0.4, 0.8, 0.4, 0.4, 0.8]   # Tune the PID control bandwidths for [surge, sway, heave, roll, pitch, yaw]. NB! roll and pitch are redundant
+    control_forces_weights: [0.1, 0.1, 0.1, 10, 10, 1] # Weigths for what DOF is prioritized when allocation control forces. Leave 
+    control_bandwidth: [0.6, 1, 0.6, 0.6, 0.6, 0.6]   # Tune the PID control bandwidths for [surge, sway, heave, roll, pitch, yaw]. NB! roll and pitch are redundant
     relative_damping_ratio: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # Leave
     absolute_relative_velocity_limit: 0.5 # Leave
     reference_model_control_bandwidth_gain: 0.5 # <= 1 # Leave 
     reference_model_control_input_saturation_limit_gain: 0.8 # <= 1 Leave
-    virtual_target_controller_bandwidths: [0.75, 0.75, 0.75, 1, 1, 1.5]  # Tune the path following precision for [surge, sway, heave, roll, pitch, yaw]  NB! roll and pitch are redundant. Higher values gives better precision
+    virtual_target_controller_bandwidths: [1, 1, 0.75, 1, 1, 1.5]  # Tune the path following precision for [surge, sway, heave, roll, pitch, yaw]  NB! roll and pitch are redundant. Higher values gives better precision
     virtual_target_along_track_speed_saturation_limits: [-0.2, 0.2] # <= 1 Speed saturation limits for the virtual target along the path
     virtual_target_control_input_saturation_limit_gain: 0.8 # <= 1 Leave
     publish_rate: 20 # The node frequency
