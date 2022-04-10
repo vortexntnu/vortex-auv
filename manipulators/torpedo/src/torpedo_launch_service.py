@@ -3,7 +3,7 @@
 
 import rospy
 import Jetson.GPIO as GPIO
-from vortex_msgs.msg import Torpedo_msgs
+from vortex_msgs.srv import LaunchTorpedo
 
 
 # How long to wait after a pin has been set to high
@@ -18,8 +18,8 @@ class TorpedoLaunch():
 ######## Definig the node ########        
         rospy.init_node('torpedo_node')
 
-######## Defining the Service ########        
-        self.torpedo_service = rospy.Subscriber('manipulator/torpedo_launch', Torpedo_msgs, execute)
+######## Defining the Service ########
+        self.torpedo_service = rospy.Service('manipulator/torpedo_launch', LaunchTorpedo, execute)
         self.cooldown_period = 0.4 # Seconds
         self.last_press = datetime.now()
         self.torpedo_state = 'Back'
@@ -30,13 +30,13 @@ class TorpedoLaunch():
         GPIO.setup(self.torpedo_gpio_pin, GPIO.OUT)
         GPIO.output(self.torpedo_gpio_pin, GPIO.LOW)
 
-    def execute(self, msg):
-        if msg.fire == True and self.torpedo_state = 'Back':
+    def execute(self, req):
+        if req.fire == True and self.torpedo_state = 'Back':
             GPIO.output(self.torpedo_gpio_pin, GPIO.HIGH)
             self.last_press = datetime.now()
             self.torpedo_state = 'Front'
 
-        elif msg.fire == False and self.torpedo_state = 'Front':
+        elif req.fire == False and self.torpedo_state = 'Front':
             GPIO.output(self.torpedo_gpio_pin, GPIO.LOW)
             self.last_press = datetime.now()
             self.torpedo_state = 'Back'
