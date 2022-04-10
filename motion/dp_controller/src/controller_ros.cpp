@@ -16,7 +16,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
 
   if (!nh.getParam("/controllers/dp/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
-  if (!nh.getParam("/controllers/dp/thrust_topic", thrust_topic))
+  if (!nh.getParam("/thrust/thrust_topic", thrust_topic))
     thrust_topic = "/thrust/desired_forces";
 
   if (!m_nh.getParam("/controllers/dp/velocity_gain", a))
@@ -86,7 +86,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
 
   // Subscribers
   m_state_sub = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
-  m_guidance_sub = m_nh.subscribe("/guidance/dp_data", 1, &Controller::guidanceCallback, this);
+  m_guidance_sub = m_nh.subscribe("dp_data", 1, &Controller::guidanceCallback, this);
 
   ROS_INFO("DP controller initialized");
 }
@@ -124,13 +124,11 @@ void Controller::stateCallback(const nav_msgs::Odometry& msg)
 
 void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
 {
-  // Declaration of general forces
-  Eigen::Vector6d tau_command = Eigen::VectorXd::Zero(6);
 
   // gets the newest state as Eigen
-  Eigen::Vector3d position_setpoint(msg.setpoint.position.x, msg.setpoint.position.y, msg.setpoint.position.z);
-  Eigen::Quaterniond orientation_setpoint(msg.setpoint.orientation.w, msg.setpoint.orientation.x,
-                                          msg.setpoint.orientation.y, msg.setpoint.orientation.z);
+  position_setpoint = Eigen::Vector3d{msg.setpoint.position.x, msg.setpoint.position.y, msg.setpoint.position.z};
+  orientation_setpoint = Eigen::Quaterniond{msg.setpoint.orientation.w, msg.setpoint.orientation.x,
+                                          msg.setpoint.orientation.y, msg.setpoint.orientation.z};
 
   // check control mode
   ControlMode control_mode = getControlMode(msg.control_mode);
@@ -150,55 +148,6 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
 
     ROS_INFO_STREAM("Changing mode to " << controlModeString(control_mode) << ".");
   }
-
-  switch (control_mode)
-  {
-    case ControlModes::OPEN_LOOP:
-      // let tau_command stay a zero vector
-      break;
-
-    case ControlModes::POSITION_HOLD:
-      tau_command = positionHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-      break;
-
-    case ControlModes::DEPTH_HOLD:
-      tau_command = depthHold(position, orientation, velocity, position_setpoint);
-      break;
-
-    case ControlModes::POSITION_HEADING_HOLD:
-      tau_command = positionHeadingHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-      break;
-
-    case ControlModes::HEADING_HOLD:
-      tau_command = headingHold(orientation, velocity, orientation_setpoint);
-      break;
-
-    case ControlModes::POSE_HOLD:
-      tau_command = poseHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-      break;
-
-    case ControlModes::DEPTH_HEADING_HOLD: {
-      Eigen::Vector6d tau_depthhold = depthHold(position, orientation, velocity, position_setpoint);
-      Eigen::Vector6d tau_headinghold = headingHold(orientation, velocity, orientation_setpoint);
-      tau_command = tau_depthhold + tau_headinghold;
-      break;
-    }
-
-    case ControlModes::ORIENTATION_HOLD:
-      tau_command = orientationHold(orientation, velocity, orientation_setpoint);
-      break;
-
-    case ControlModes::ORIENTATION_DEPTH_HOLD:
-      tau_command = orientationDepthHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-      break;
-
-    default:
-      ROS_ERROR("Default control mode reached.");
-  }
-
-  geometry_msgs::Wrench tau_msg;
-  tf::wrenchEigenToMsg(tau_command, tau_msg);
-  m_wrench_pub.publish(tau_msg);
 }
 
 void Controller::configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level)
@@ -339,4 +288,65 @@ Eigen::Vector6d Controller::orientationDepthHold(const Eigen::Vector3d& position
   Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d{0, 0, position_state[2]}, orientation_state, velocity_state, 
                                       Eigen::Vector3d{0, 0, position_setpoint[2]}, orientation_setpoint);
   return tau;
+}
+
+void Controller::spin(){
+  ros::Rate rate(10);
+
+  // Declaration of general forces
+  Eigen::Vector6d tau_command = Eigen::VectorXd::Zero(6);
+
+  while( ros::ok()){
+    switch (prev_control_mode)
+    {
+      case ControlModes::OPEN_LOOP:
+        // let tau_command stay a zero vector
+        break;
+
+      case ControlModes::POSITION_HOLD:
+        tau_command = positionHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        break;
+
+      case ControlModes::DEPTH_HOLD:
+        tau_command = depthHold(position, orientation, velocity, position_setpoint);
+        break;
+
+      case ControlModes::POSITION_HEADING_HOLD:
+        tau_command = positionHeadingHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        break;
+
+      case ControlModes::HEADING_HOLD:
+        tau_command = headingHold(orientation, velocity, orientation_setpoint);
+        break;
+
+      case ControlModes::POSE_HOLD:
+        tau_command = poseHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        break;
+
+      case ControlModes::DEPTH_HEADING_HOLD: {
+        Eigen::Vector6d tau_depthhold = depthHold(position, orientation, velocity, position_setpoint);
+        Eigen::Vector6d tau_headinghold = headingHold(orientation, velocity, orientation_setpoint);
+        tau_command = tau_depthhold + tau_headinghold;
+        break;
+      }
+
+      case ControlModes::ORIENTATION_HOLD:
+        tau_command = orientationHold(orientation, velocity, orientation_setpoint);
+        break;
+
+      case ControlModes::ORIENTATION_DEPTH_HOLD:
+        tau_command = orientationDepthHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        break;
+
+      default:
+        ROS_ERROR("Default control mode reached.");
+    }
+
+    geometry_msgs::Wrench tau_msg;
+    tf::wrenchEigenToMsg(tau_command, tau_msg);
+    m_wrench_pub.publish(tau_msg);
+
+    ros::spinOnce();
+    rate.sleep();
+  }
 }

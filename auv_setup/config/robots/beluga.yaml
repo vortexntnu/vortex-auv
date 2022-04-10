@@ -144,9 +144,8 @@ controllers:
       M_A: [20, 40, 50, 0.5, 2, 2] # Added mass
       D: [-20, -40, -50, -3, -10, -12] # Linear damping
 
-thrust_merger:
-  rate: 20
-  output_topic: "/thrust/desired_forces"
+thrust:
+  thrust_topic: "/thrust/desired_forces"
         
 joystick:
   scaling:
