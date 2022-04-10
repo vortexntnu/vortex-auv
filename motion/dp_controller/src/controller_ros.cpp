@@ -344,6 +344,7 @@ void Controller::spin(){
 
     geometry_msgs::Wrench tau_msg;
     tf::wrenchEigenToMsg(tau_command, tau_msg);
+    //TODO: Should only publish zero torque once when open loop ...
     m_wrench_pub.publish(tau_msg);
 
     ros::spinOnce();
