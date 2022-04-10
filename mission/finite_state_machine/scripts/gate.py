@@ -8,6 +8,8 @@ import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction, DpSetpoint
+from nav_msgs.msg import Odometry
+from dp_helper import within_acceptance_margins
 
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
@@ -28,12 +30,17 @@ class GateSearch(smach.State):
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)  
 
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg   
+
         
     def execute(self, userdata):
         self.state_pub.publish("gate_search")
-
-
-        #SEARCH PATTERN:
+        
+        #SEARCH PATTERN (currently a bit bs, but included to show how to use the DP controller and VTF combo)
         goal = VtfPathFollowingGoal()
         goal.waypoints = [Point(1,0,-0.5)]
         goal.forward_speed = 0.2
@@ -41,6 +48,34 @@ class GateSearch(smach.State):
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
         self.vtf_client.wait_for_result()
+
+        dp_goal = DpSetpoint()
+        dp_goal.control_mode = 7 #Pose hold
+        dp_goal.setpoint.position = Point(1,-1,-0.5)
+        self.dp_pub.publish(dp_goal)
+        
+        rate = rospy.Rate(10)
+        while not within_acceptance_margins(dp_goal.setpoint,self.odom):
+            rate.sleep()
+        dp_goal.control_mode = 0 #Open loop
+        dp_goal.setpoint.position = Point(0,0,0)
+        self.dp_pub.publish(dp_goal)
+
+        
+        dp_goal = DpSetpoint()
+        dp_goal.control_mode = 7 #Pose hold
+        dp_goal.setpoint.position = Point(1,1,-0.5)
+        self.dp_pub.publish(dp_goal)
+        
+        rate = rospy.Rate(10)
+        while not within_acceptance_margins(dp_goal.setpoint,self.odom):
+            rate.sleep()
+        dp_goal.control_mode = 0 #Open loop
+        dp_goal.setpoint.position = Point(0,0,0)
+        self.dp_pub.publish(dp_goal)
+
+   
+
 
         rate = rospy.Rate(10)
 
@@ -73,6 +108,12 @@ class GateConverge(smach.State):
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg   
 
     def execute(self, userdata):
 

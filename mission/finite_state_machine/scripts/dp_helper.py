@@ -10,7 +10,7 @@ import rospy
 import actionlib
 from geometry_msgs.msg import Pose, PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionResult, MoveBaseActionGoal
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import Pose, Twist, Point
 from nav_msgs.msg import Odometry
 from tf.transformations import (
     euler_from_quaternion,
