@@ -85,7 +85,8 @@ controllers:
   los:
     thrust_topic: "/thrust/los"
   velocity_controller:
-    thrust_topic: "/thrust/vel"
+    desired_velocity_topic: "/desired_velocity"
+    rate: 20
     odometry_topic: "/odometry/filtered"
     P_gains: [40, 40, 75, 50, 10, 10]
     I_gains: [1, 1, 1, 1.5, 0.015, 0.015]
