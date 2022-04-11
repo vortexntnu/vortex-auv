@@ -136,6 +136,14 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
   {
     prev_control_mode = control_mode;
 
+    // If control mode is OPENLOOP, publish zero control force
+    if (prev_control_mode == ControlModes::OPEN_LOOP) {
+      Eigen::Vector6d tau_command = Eigen::VectorXd::Zero(6);
+      geometry_msgs::Wrench tau_msg;
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+    }
+
     // TO AVOID AGGRESSIVE SWITCHING
     // set current target position to previous position
     m_controller.x_d_prev = position;
@@ -295,8 +303,10 @@ void Controller::spin(){
 
   // Declaration of general forces
   Eigen::Vector6d tau_command = Eigen::VectorXd::Zero(6);
+  geometry_msgs::Wrench tau_msg;
 
   while( ros::ok()){
+
     switch (prev_control_mode)
     {
       case ControlModes::OPEN_LOOP:
@@ -305,46 +315,58 @@ void Controller::spin(){
 
       case ControlModes::POSITION_HOLD:
         tau_command = positionHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       case ControlModes::DEPTH_HOLD:
         tau_command = depthHold(position, orientation, velocity, position_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       case ControlModes::POSITION_HEADING_HOLD:
         tau_command = positionHeadingHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       case ControlModes::HEADING_HOLD:
         tau_command = headingHold(orientation, velocity, orientation_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       case ControlModes::POSE_HOLD:
         tau_command = poseHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       case ControlModes::DEPTH_HEADING_HOLD: {
         Eigen::Vector6d tau_depthhold = depthHold(position, orientation, velocity, position_setpoint);
         Eigen::Vector6d tau_headinghold = headingHold(orientation, velocity, orientation_setpoint);
         tau_command = tau_depthhold + tau_headinghold;
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
       }
 
       case ControlModes::ORIENTATION_HOLD:
         tau_command = orientationHold(orientation, velocity, orientation_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       case ControlModes::ORIENTATION_DEPTH_HOLD:
         tau_command = orientationDepthHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
+        tf::wrenchEigenToMsg(tau_command, tau_msg);
+        m_wrench_pub.publish(tau_msg);
         break;
 
       default:
         ROS_ERROR("Default control mode reached.");
     }
-
-    geometry_msgs::Wrench tau_msg;
-    tf::wrenchEigenToMsg(tau_command, tau_msg);
-    m_wrench_pub.publish(tau_msg);
 
     ros::spinOnce();
     rate.sleep();
