@@ -17,4 +17,5 @@ int main(int argc, char** argv)
   VelocityController velocity_controller(nh);
 
   velocity_controller.spin();
+  return 0;
 }

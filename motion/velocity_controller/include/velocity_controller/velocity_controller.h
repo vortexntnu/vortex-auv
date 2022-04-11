@@ -41,6 +41,13 @@ public:
    * @param nh ros node handle
    */
   VelocityController(ros::NodeHandle nh);
+  
+    /**
+   * @brief spin function
+   * 
+   * 
+   */ 
+  void spin();
 
 private:
   /**
@@ -105,12 +112,7 @@ private:
   void getParam(std::string name, T& variable, T& default_value);
 
 
-  /**
-   * @brief spin function
-   * 
-   * 
-   */ 
-  void spin();
+
 
   /**
    * @brief calculates resotring forces acting on drone caused by buoyancy and gravity
