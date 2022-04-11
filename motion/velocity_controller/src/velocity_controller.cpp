@@ -5,11 +5,11 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   // get params
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
   std::string DEFAULT_THRUST_TOPIC = "/thrust/desired_forces";
-  std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
+  std::string DEFAULT_VELOCITY_TOPIC = "/controllers/velocity/desired_velocity";
   getParam("/controllers/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
   getParam("/thrust/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
   getParam("/controllers/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
-  getParam("/velocity_controller/rate", rate);
+  getParam("/controllers/velocity_controller/rate", rate);
 
   std::vector<double> CB;
   std::vector<double> CG;
@@ -59,7 +59,7 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   odom_sub = nh.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
 
   // create services
-  set_velocity_service = nh.advertiseService("velocity/set_velocity", &VelocityController::setVelocity, this);
+  set_velocity_service = nh.advertiseService(desired_velocity_topic, &VelocityController::setVelocity, this);
   reset_service = nh.advertiseService("reset_pid", &VelocityController::resetPidCallback, this);
   set_gains_service =
       nh.advertiseService("set_gains", &VelocityController::setGainsCallback, this);

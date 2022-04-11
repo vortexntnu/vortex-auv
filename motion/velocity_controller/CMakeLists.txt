@@ -9,6 +9,7 @@ add_compile_options(-std=c++14)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  dynamic_reconfigure
   nav_msgs
   std_msgs
   geometry_msgs
@@ -93,10 +94,9 @@ find_package(Eigen3 REQUIRED)
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/velocity.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
