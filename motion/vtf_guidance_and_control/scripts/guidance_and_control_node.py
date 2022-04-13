@@ -106,7 +106,7 @@ class VtfGuidanceAndControlNode:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
     def vtf_reconfigure(self, config, level):
-        omega_b = np.array(config.omega_b_0, config.omega_b_1, config.omega_b_2, config.omega_b_3, config.omega_b_4, config.omega_b_5)
+        omega_b = np.array([config.omega_b_0, config.omega_b_1, config.omega_b_2, config.omega_b_3, config.omega_b_4, config.omega_b_5])
         zeta = [1 ,1, 1, 1, 1, 1]
         K_P = np.zeros((6,6))
         K_D = np.zeros((6,6))
