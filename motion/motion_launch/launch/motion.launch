@@ -25,8 +25,8 @@
 
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
-    <node pkg="interface"          type="guidance_interface.py"   name="interface"    output="screen"/>
-    <node pkg="joystick_guidance"  type="joystick_guidance.py"    name="joystick"     output="screen"/>
+    <!-- <node pkg="interface"          type="guidance_interface.py"   name="interface"    output="screen"/>
+    <node pkg="joystick_guidance"  type="joystick_guidance.py"    name="joystick"     output="screen"/> -->
   </group>
 
   <!-- Reference model nodes (please review syntax)-->
@@ -44,8 +44,8 @@
     </group>
 
     <group if="$(eval type == 'real')">
-      <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
-      <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/>
+      <!-- <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
+      <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/> -->
       <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>
     </group>
   </group>

@@ -106,17 +106,18 @@ class VtfGuidanceAndControlNode:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
     def vtf_reconfigure(self, config, level):
-        omega_b = np.array([config.omega_b_0, config.omega_b_1, config.omega_b_2, config.omega_b_3, config.omega_b_4, config.omega_b_5])
-        zeta = [1 ,1, 1, 1, 1, 1]
-        K_P = np.zeros((6,6))
-        K_D = np.zeros((6,6))
-        K_I = np.zeros((6,6))
-        self.dp_control_system.integral_terms = np.zeros(6)
-        k = [0, 0, 0, 0, 0, 0] # Placeholder. See control_system DPControlSystem()
-        for i in range(6):
-            K_P[i][i], K_D[i][i], K_I[i][i] = \
-                pid_pole_placement_algorithm(self.dp_control_system.M[i][i], self.dp_control_system.D[i][i], k[i], omega_b[i], zeta[i])
-        self.dp_control_system.controller = PIDController(K_P, K_D, K_I)
+        # omega_b = np.array([config.omega_b_0, config.omega_b_1, config.omega_b_2, config.omega_b_3, config.omega_b_4, config.omega_b_5])
+        # zeta = [1 ,1, 1, 1, 1, 1]
+        # K_P = np.zeros((6,6))
+        # K_D = np.zeros((6,6))
+        # K_I = np.zeros((6,6))
+        # self.dp_control_system.integral_terms = np.zeros(6)
+        # k = [0, 0, 0, 0, 0, 0] # Placeholder. See control_system DPControlSystem()
+        # for i in range(6):
+        #     K_P[i][i], K_D[i][i], K_I[i][i] = \
+        #         pid_pole_placement_algorithm(self.dp_control_system.M[i][i], self.dp_control_system.D[i][i], k[i], omega_b[i], zeta[i])
+        # self.dp_control_system.controller = PIDController(K_P, K_D, K_I)
+        return config
 
     def navigation_callback(self, msg):
         if self.get_pose:

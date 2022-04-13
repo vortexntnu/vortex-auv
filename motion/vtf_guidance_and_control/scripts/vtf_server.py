@@ -66,9 +66,10 @@ class VtfPathFollowing(object):
 				if self.publish_guidance_data:
 					self.vtf.publish_control_forces()
 					self.statusActionGoal()
+					self.ros_rate.sleep()
 			except rospy.ROSInterruptException:
 				pass
-			self.ros_rate.sleep()
+			
 
 		
 	def statusActionGoal(self):
