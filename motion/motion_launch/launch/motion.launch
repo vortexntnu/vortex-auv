@@ -25,28 +25,25 @@
 
   <!-- Guidance nodes -->
   <group ns="$(arg ns_guidance)">
+    <node pkg="interface"          type="guidance_interface.py"   name="interface"    output="screen"/>
     <node pkg="joystick_guidance"  type="joystick_guidance.py"    name="joystick"     output="screen"/>
-    <node pkg="los_guidance"       type="los_guidance_node.py"    name="los"          output="screen"/>
   </group>
 
   <!-- Reference model nodes (please review syntax)-->
   <group ns="$(arg ns_rm)">
     <node pkg="dp_reference_model"  type="dp_reference_model_node"      name="dp_reference_model"   output="screen"/>
-    <node pkg="los_reference_model" type="los_reference_model_node.py"  name="los_reference_model"  output="screen" />
   </group>
 
   <!-- Controller nodes -->
   <group ns="$(arg ns_controller)">
     <group if="$(eval type == 'simulator')">
       <param name="/thrust/thrust_topic" value="/auv/thruster_manager/input"/>
-      <!-- <node pkg="los_controller"      type="los_controller_node.py"     name="los_controller"       output="screen"/> -->
       <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
       <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/>
       <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>
     </group>
 
     <group if="$(eval type == 'real')">
-      <node pkg="los_controller"      type="los_controller_node.py"     name="los_controller"       output="screen"/>
       <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
       <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/>
       <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>

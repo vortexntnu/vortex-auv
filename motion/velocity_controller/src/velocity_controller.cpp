@@ -28,7 +28,7 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   double setpoint_range;
   double max_output_ramp_rate;
   Eigen::Vector6d desired_velocity;
-  bool controller_active;
+  controller_active = false;
   getParam("/controllers/velocity_controller/P_gains", P_gains);
   getParam("/controllers/velocity_controller/I_gains", I_gains);
   getParam("/controllers/velocity_controller/D_gains", D_gains);
@@ -66,10 +66,12 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
 
   // wait for first odometry message
   ROS_INFO("Waiting for odometry message..");
+
 }
 
 void VelocityController::odometryCallback(const nav_msgs::Odometry& odom_msg)
 {
+  
   if (!odom_recieved)
   {
     odom_recieved = true;
@@ -90,7 +92,6 @@ bool VelocityController::setVelocity(vortex_msgs::SetVelocityRequest& req, vorte
   // transform desired velocity to eigen
   publishControlForces();
   return true;
-
 }
 
 void VelocityController::publishControlForces()
@@ -177,10 +178,11 @@ void VelocityController::spin()
   ros::Rate ros_rate(rate);
   while (ros::ok())
   {
-    if (controller_active)
-      publishControlForces();
 
+    if (controller_active) {
+      publishControlForces();
+    }
     ros::spinOnce();
-    ros_rate.sleep();
+    ros_rate.sleep(); 
   }
 }
