@@ -87,7 +87,8 @@ controllers:
   los:
     thrust_topic: "/thrust/los"
   velocity_controller:
-    thrust_topic: "/thrust/vel"
+    desired_velocity_topic: "/controllers/velocity/desired_velocity"
+    rate: 20
     odometry_topic: "/odometry/filtered"
     P_gains: [40, 40, 75, 50, 10, 10]
     I_gains: [1, 1, 1, 1.5, 0.015, 0.015]
@@ -146,9 +147,8 @@ controllers:
       M_A: [20, 40, 50, 0.5, 2, 2] # Added mass
       D: [-20, -40, -50, -3, -10, -12] # Linear damping
 
-thrust_merger:
-  rate: 20
-  output_topic: "/thrust/desired_forces"
+thrust:
+  thrust_topic: "/thrust/desired_forces"
         
 joystick:
   scaling:

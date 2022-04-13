@@ -7,7 +7,7 @@ from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
-from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction, DpSetpoint
 
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
@@ -21,6 +21,8 @@ class GateSearch(smach.State):
         rospy.wait_for_service('send_positions') 
         self.object = self.landmarks_client("gate").object
 
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
@@ -30,12 +32,16 @@ class GateSearch(smach.State):
     def execute(self, userdata):
         self.state_pub.publish("gate_search")
 
+
+        #SEARCH PATTERN:
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [Point(5,0,-0.5)]
+        goal.waypoints = [Point(1,0,-0.5)]
         goal.forward_speed = 0.2
         goal.heading = "path_dependent_heading"
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
+        self.vtf_client.wait_for_result()
+
         rate = rospy.Rate(10)
 
         while not self.object.isDetected:
@@ -54,7 +60,9 @@ class GateSearch(smach.State):
             str(self.object.objectPose.pose.position.z))                
         return 'succeeded'
     
-    
+
+
+#TODO: incorporate DP controller to hold pose while estimate converges 
 class GateConverge(smach.State):  
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['gate_converge_output']) 

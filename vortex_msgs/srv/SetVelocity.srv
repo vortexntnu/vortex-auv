@@ -1,2 +1,3 @@
 geometry_msgs/Twist desired_velocity
+bool active
 ---

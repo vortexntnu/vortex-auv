@@ -17,6 +17,7 @@
 
 #include "MiniPID.h"
 #include "vortex_msgs/SetPidGains.h"
+#include "vortex_msgs/SetVelocity.h"
 
 // These typdefs are lacking from the default eigen namespace
 namespace Eigen
@@ -40,6 +41,13 @@ public:
    * @param nh ros node handle
    */
   VelocityController(ros::NodeHandle nh);
+  
+    /**
+   * @brief spin function
+   * 
+   * 
+   */ 
+  void spin();
 
 private:
   /**
@@ -50,12 +58,19 @@ private:
   void odometryCallback(const nav_msgs::Odometry& odom_msg);
 
   /**
-   * @brief publishes a thrust given by a control law. Only non-zero desired velocities 
+   *@brief Set desired velocity and activate or deactivate controller 
+   * 
+   * @param SetVelocity msg with desired velocity and active bool
+   */
+  bool setVelocity(vortex_msgs::SetVelocityRequest& req, vortex_msgs::SetVelocityResponse& res);
+
+  /**
+   * @brief publishes a thrust given by a desired velocity  using a PID. Only non-zero desired velocities 
    * are controlled.
    *
    * @param twist_msg message with desired velocity
    */
-  void controlLawCallback(const geometry_msgs::Twist& twist_msg);
+  void publishControlForces();
 
   /**
    * @brief resets all six PIDs. Clears I and D term and sets setpoint to current position.
@@ -96,6 +111,9 @@ private:
   template <typename T>
   void getParam(std::string name, T& variable, T& default_value);
 
+
+
+
   /**
    * @brief calculates resotring forces acting on drone caused by buoyancy and gravity
    *
@@ -108,6 +126,7 @@ private:
   std::string thrust_topic;
   std::string desired_velocity_topic;
   double drone_weight;
+  int rate;
   float drone_buoyancy;
   Eigen::Vector3d center_of_gravity;
   Eigen::Vector3d center_of_buoyancy;
@@ -116,10 +135,13 @@ private:
   ros::Subscriber vel_sub;
   ros::ServiceServer reset_service;
   ros::ServiceServer set_gains_service;
+  ros::ServiceServer set_velocity_service;
   Eigen::Vector6d velocity;
+  Eigen::Vector6d desired_velocity;
   Eigen::Quaterniond orientation;
   std::vector<std::unique_ptr<MiniPID>> pids;
   bool odom_recieved;
   bool use_restoring_forces;
+  bool controller_active;
 };
 #endif
