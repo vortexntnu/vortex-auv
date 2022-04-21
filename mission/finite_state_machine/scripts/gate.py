@@ -23,6 +23,8 @@ class GateSearch(smach.State):
         rospy.wait_for_service('send_positions') 
         self.object = self.landmarks_client("gate").object
 
+        self.velocity_ctrl_client = rospy.ServiceProxy('',)
+
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
@@ -42,37 +44,43 @@ class GateSearch(smach.State):
         
         #SEARCH PATTERN (currently a bit bs, but included to show how to use the DP controller and VTF combo)
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [Point(1,0,-0.5)]
+        goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-0.5)]
         goal.forward_speed = 0.2
         goal.heading = "path_dependent_heading"
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
         self.vtf_client.wait_for_result()
 
-        dp_goal = DpSetpoint()
-        dp_goal.control_mode = 7 #Pose hold
-        dp_goal.setpoint.position = Point(1,-1,-0.5)
-        self.dp_pub.publish(dp_goal)
+        goal = Pose()
+        goal.position = self.odom.pose.pose.position
+        goal.orientation = self.odom.pose.pose.orientation
+        goal = rotate_certain_angle(goal,90)
+
+
+        # dp_goal = DpSetpoint()
+        # dp_goal.control_mode = 7 #Pose hold
+        # dp_goal.setpoint.position = Point(1,-1,-0.5)
+        # self.dp_pub.publish(dp_goal)
         
-        rate = rospy.Rate(10)
-        while not within_acceptance_margins(dp_goal.setpoint,self.odom):
-            rate.sleep()
-        dp_goal.control_mode = 0 #Open loop
-        dp_goal.setpoint.position = Point(0,0,0)
-        self.dp_pub.publish(dp_goal)
+        # rate = rospy.Rate(10)
+        # while not within_acceptance_margins(dp_goal.setpoint,self.odom):
+        #     rate.sleep()
+        # dp_goal.control_mode = 0 #Open loop
+        # dp_goal.setpoint.position = Point(0,0,0)
+        # self.dp_pub.publish(dp_goal)
 
         
-        dp_goal = DpSetpoint()
-        dp_goal.control_mode = 7 #Pose hold
-        dp_goal.setpoint.position = Point(1,1,-0.5)
-        self.dp_pub.publish(dp_goal)
+        # dp_goal = DpSetpoint()
+        # dp_goal.control_mode = 7 #Pose hold
+        # dp_goal.setpoint.position = Point(1,1,-0.5)
+        # self.dp_pub.publish(dp_goal)
         
-        rate = rospy.Rate(10)
-        while not within_acceptance_margins(dp_goal.setpoint,self.odom):
-            rate.sleep()
-        dp_goal.control_mode = 0 #Open loop
-        dp_goal.setpoint.position = Point(0,0,0)
-        self.dp_pub.publish(dp_goal)
+        # rate = rospy.Rate(10)
+        # while not within_acceptance_margins(dp_goal.setpoint,self.odom):
+        #     rate.sleep()
+        # dp_goal.control_mode = 0 #Open loop
+        # dp_goal.setpoint.position = Point(0,0,0)
+        # self.dp_pub.publish(dp_goal)
 
    
 
