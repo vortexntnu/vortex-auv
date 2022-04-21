@@ -67,6 +67,7 @@ class BuoyConverge(smach.State):
             self.vtf_client.send_goal(goal)
             rate.sleep()
             if self.object.estimateFucked:
+                self.vtf_client.cancel_all_goals()
                 return 'preempted'
         self.vtf_client.cancel_all_goals()
 
@@ -78,6 +79,8 @@ class BuoyConverge(smach.State):
             and not self.object.estimateConverged:
             self.object = self.landmarks_client("buoy").object
             if self.object.estimateFucked:
+                dp_goal.control_mode = 0 # OPEN_LOOP
+                self.dp_pub.publish(dp_goal)
                 return 'preempted'
             rate.sleep()
         dp_goal.control_mode = 0 # OPEN_LOOP
