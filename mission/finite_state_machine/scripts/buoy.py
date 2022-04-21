@@ -17,7 +17,7 @@ class BuoySearch(smach.State):
     def __init__(self, outcomes=['preempted', 'succeeded', 'aborted']):
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
         rospy.wait_for_service('send_positions') 
-        self.object = self.landmarks_client("gate").object
+        self.object = self.landmarks_client("buoy").object
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
@@ -26,7 +26,7 @@ class BuoySearch(smach.State):
 
 
     def execute(self, userdata):
-        ...
+        return 'succeded'
 
 
 class BuoyConverge(smach.State):
@@ -40,13 +40,12 @@ class BuoyConverge(smach.State):
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
 
-        
         self.dp_pub = rospy.Publisher("controllers/dp_data", DpSetpoint)
 
     def execute(self, userdata):
 
         goal = VtfPathFollowingGoal()
-        self.object = self.landmarks_client("buoy").object
+        # self.object = self.landmarks_client("buoy").object        Should be unnecessary to re-initialize
         goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5) 
         print("get_pose_in_front returned:")
         print(goal_pose)
@@ -59,14 +58,16 @@ class BuoyConverge(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown() \
-        and not self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
+            and not self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
             self.object = self.landmarks_client("buoy").object
             goal.waypoints = [self.object.objectPose.pose.position]
-            print("BUOY POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
+            print("BUOY POSITION DETECTED: "+ \
+                str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
             goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
             self.vtf_client.send_goal(goal)
-            userdata.gate_converge_output=self.object
             rate.sleep()
+            if self.object.estimateFucked:
+                return 'preempted'
         self.vtf_client.cancel_all_goals()
 
         dp_goal = DpSetpoint()
@@ -74,11 +75,16 @@ class BuoyConverge(smach.State):
         dp_goal.setpoint = get_pose_in_front(self.object.objectPose.pose, 0.5)
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown()\
-        and not self.object.estimateConverged:
+            and not self.object.estimateConverged:
+            self.object = self.landmarks_client("buoy").object
+            if self.object.estimateFucked:
+                return 'preempted'
             rate.sleep()
-
+        dp_goal.control_mode = 0 # OPEN_LOOP
+        self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("buoy").object
-        print("BUOY POSITION ESTIMATE CONVERGED: " + str(self.object.objectPose.position.x) + "; " \
+        userdata.buoy_converge_output=self.object
+        print("BUOY POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
         + str(self.object.objectPose.position.y) + "; " \
         + str(self.object.objectPose.position.z))
         return 'succeded'
@@ -92,7 +98,7 @@ class BuoyExecute(smach.State):
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        goal_pose = get_pose_in_front(userdata.gate.objectPose.pose,-0.5 )
+        goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose,-0.5 )
         goal.waypoints =[goal_pose.position]
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
