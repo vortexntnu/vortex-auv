@@ -23,7 +23,7 @@ class VtfGuidanceAndControlNode:
 
         rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.navigation_callback)
 
-        self.pub = rospy.Publisher(rospy.get_param("/thrust_merger/output_topic"), Wrench, queue_size=1)  
+        self.pub = rospy.Publisher(rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)  
         
         self.path_pub = rospy.Publisher('path', Path, queue_size=1) #Path publisher -> probably change that to path planner when that is created
 

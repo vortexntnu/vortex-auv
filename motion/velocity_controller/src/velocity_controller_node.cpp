@@ -1,10 +1,11 @@
-#include "vel_guidance/velocity_guidance.h"
+#include "velocity_controller/velocity_controller.h"
+
 
 int main(int argc, char** argv)
 {
   const bool DEBUG_MODE = false;  // debug logs are printed to console when true
 
-  ros::init(argc, argv, "velocity_guidance");
+  ros::init(argc, argv, "velocity_controller");
   ros::NodeHandle nh;
 
   if (DEBUG_MODE)
@@ -13,6 +14,8 @@ int main(int argc, char** argv)
     ros::console::notifyLoggerLevelsChanged();
   }
 
-  VelocityGuidance velocity_guidance(nh);
-  velocity_guidance.spin();
+  VelocityController velocity_controller(nh);
+
+  velocity_controller.spin();
+  return 0;
 }

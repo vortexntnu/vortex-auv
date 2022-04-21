@@ -10,16 +10,14 @@
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
 
-  <!-- SIMULATOR CHANGES-->
-  <group if="$(eval type == 'simulator')">
-    <param name="/thrust_merger/output_topic" value="/auv/thruster_manager/input"/>
-  </group>
-
   <!-- TFs -->
   <include file="$(find auv_setup)/launch/tf.launch"/>
 
   <!-- DRIVERS -->
   <group if="$(eval type == 'real')">
+    <!-- Torpedo system -->
+    <node pkg="torpedo" type="torpedo_launch_service.py" name="torpedo_node" output="screen" />
+
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />
 
@@ -31,7 +29,7 @@
 
     <!-- DVL -->	
     <!-- <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" /> -->
-  
+    <!-- <node pkg="uns_driver" type="uns_ros_driver.py" name="uns_driver" output="screen"/> -->  
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
     <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
