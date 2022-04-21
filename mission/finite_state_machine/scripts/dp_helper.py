@@ -40,9 +40,11 @@ def within_acceptance_margins(setpoint, odom_msg):
         acceptance_margins = rospy.get_param(
             "/guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
         )
+        acceptance_margins = [100, 100, 100, 100, 100, 0.1]
         acceptance_velocities = rospy.get_param(
             "/guidance/dp/acceptance_velocities", [0.01, 0.01, 0.01, 0.01, 0.01, 0.001]
         )
+        acceptance_velocities = [100, 100, 100, 100, 100,100]
 
         current_pose = odom_msg.pose.pose
 
@@ -78,9 +80,9 @@ def within_acceptance_margins(setpoint, odom_msg):
             abs(setpoint.position.x - current_pose.position.x),
             abs(setpoint.position.y - current_pose.position.y),
             abs(setpoint.position.z - current_pose.position.z),
-            roll_diff,
-            pitch_diff,
-            yaw_diff,
+            abs(roll_diff),
+            abs(pitch_diff),
+            abs(yaw_diff),
         ]
         is_close = True
         for i in range(len(diff_list)):
