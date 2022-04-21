@@ -15,9 +15,10 @@ def main():
     buoy_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
     with buoy_state_machine:
+
         StateMachine.add('BUOY_PREPARE',
-                    ReachDepth(),
-                    transitions={'succeeded':'BUOY_SM'})
+                        ReachDepth(),
+                        transitions={'succeeded':'BUOY_SM'})
 
         buoy_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
@@ -34,6 +35,8 @@ def main():
             
             StateMachine.add('BUOY_EXECUTE',
                             BuoyExecute())
+        
+        StateMachine.add('BUOY_SM',buoy_sm)
 
     intro_server = IntrospectionServer(str(rospy.get_name()), buoy_state_machine,'/SM_ROOT')    
     intro_server.start()

@@ -1,6 +1,6 @@
 import rospy
 import smach
-from smach import StateMachine
+from smach import StateMachine, State
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
 from landmarks.srv import request_position
@@ -14,7 +14,8 @@ from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
 from vortex_msgs.srv import ControlMode
 
 class BuoySearch(smach.State):
-    def __init__(self, outcomes=['preempted', 'succeeded', 'aborted']):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
         rospy.wait_for_service('send_positions') 
         self.object = self.landmarks_client("buoy").object
@@ -26,6 +27,7 @@ class BuoySearch(smach.State):
 
 
     def execute(self, userdata):
+        userdata.buoy_converge_output=self.object
         return 'succeded'
 
 
