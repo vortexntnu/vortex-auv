@@ -22,7 +22,7 @@ class JoystickGuidanceNode:
     def __init__(self):
 
         thrust_topic = rospy.get_param(
-            "/guidance/joy/thrust_topic", default="/thrust/desired_forces"
+            "/thrust/thrust_topic", default="/thrust/desired_forces"
         )
 
         self.sub = rospy.Subscriber(
