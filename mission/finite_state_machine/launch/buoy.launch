@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="fsm_ns" default="fsm"/>
+
+  <group ns="$(arg fsm_ns)">
+    <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
+    <node name="buoy_fsm"    pkg="finite_state_machine"    type="buoy_fsm.py"    output="screen"/>
+  </group>
+</launch>
