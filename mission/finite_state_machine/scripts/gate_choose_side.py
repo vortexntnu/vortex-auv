@@ -6,14 +6,11 @@ from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
 from landmarks.srv import request_position
 import actionlib
-from actionlib_msgs.msg import GoalStatus
-from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
-from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
 
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle, get_pose_to_side
 from vortex_msgs.srv import ControlMode
-
 
 class GateSearch(smach.State):
     def __init__(self):
@@ -66,8 +63,6 @@ class GateConverge(smach.State):
 
         self.g_man_side = True
 
-        self.pose = Pose()
-
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
 
@@ -92,9 +87,8 @@ class GateConverge(smach.State):
             self.object = self.landmarks_client("gate").object
             goal.waypoints = [self.object.objectPose.pose.position]
             print("GATE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
-            #goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
-            self.pose = get_pose_in_front(self.object.objectPose.pose, 0.5)
-            goal.waypoints[0] = get_pose_to_side(self.pose, 0.25, self.g_man_side).position
+            goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5)
+            goal.waypoints[0] = get_pose_to_side(goal.waypoints[0], 0.25, self.g_man_side).position
             self.vtf_client.send_goal(goal)
             userdata.gate_converge_output=self.object
             rate.sleep()
