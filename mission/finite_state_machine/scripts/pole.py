@@ -62,12 +62,17 @@ class PoleConverge(smach.State):
 
         dp_guidance_action_server="/guidance_interface/dp_server" 
         self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction)   
- 
-        dp_controller_control_mode_service = "/guidance/dp_guidance/controlmode_service"
-        self.control_mode_client = rospy.ServiceProxy(dp_controller_control_mode_service, ControlMode)  
+
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg   
    
 
     def execute(self, userdata):
@@ -84,12 +89,11 @@ class PoleConverge(smach.State):
 
         self.vtf_client.wait_for_server()
         self.action_client.cancel_all_goals()
-        self.control_mode_client(0)
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE and self.object.estimateConverged:
+            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             self.object = self.landmarks_client("pole").object
             
@@ -109,10 +113,9 @@ class PoleConverge(smach.State):
 
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7 # POSE_HOLD
-        dp_goal.setpoint = get_pose_in_front(self.object.objectPose.pose, 0.5)
+        dp_goal.setpoint = self.odom.pose.pose #get_pose_in_front(self.object.objectPose.pose, 0.5)
         self.dp_pub.publish(dp_goal)
-        while not rospy.is_shutdown()\
-            and not self.object.estimateConverged:
+        while not rospy.is_shutdown() and not self.object.estimateConverged:
             self.object = self.landmarks_client("pole").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0 # OPEN_LOOP
@@ -122,10 +125,10 @@ class PoleConverge(smach.State):
         dp_goal.control_mode = 0 # OPEN_LOOP
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("pole").object
-        userdata.buoy_converge_output=self.object
-        print("POLE POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
-        + str(self.object.objectPose.position.y) + "; " \
-        + str(self.object.objectPose.position.z))    
+        userdata.pole_converge_output=self.object
+        print("POLE POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.pose.position.x) + "; " \
+        + str(self.object.objectPose.pose.position.y) + "; " \
+        + str(self.object.objectPose.pose.position.z))    
 
         return 'succeeded'
 

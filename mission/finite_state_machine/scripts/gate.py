@@ -164,6 +164,8 @@ class GateConverge(smach.State):
         rospy.wait_for_service('send_positions') 
         self.object = self.landmarks_client("gate").object
 
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
 
@@ -189,7 +191,7 @@ class GateConverge(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE and self.object.estimateConverged:
+            if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             self.object = self.landmarks_client("gate").object
             goal.waypoints = [self.object.objectPose.pose.position]
@@ -206,10 +208,10 @@ class GateConverge(smach.State):
 
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7 # POSE_HOLD
-        dp_goal.setpoint = get_pose_in_front(self.object.objectPose.pose, 0.5)
+        dp_goal.setpoint = self.odom.pose.pose #get_pose_in_front(self.object.objectPose.pose, 0.5)
         self.dp_pub.publish(dp_goal)
-        while not rospy.is_shutdown()\
-            and not self.object.estimateConverged:
+        while not rospy.is_shutdown() and not self.object.estimateConverged:
+            print("in dp hold")
             self.object = self.landmarks_client("gate").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0 # OPEN_LOOP
@@ -219,11 +221,10 @@ class GateConverge(smach.State):
         dp_goal.control_mode = 0 # OPEN_LOOP
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("gate").object
-        userdata.buoy_converge_output=self.object
-        print("GATE POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
-        + str(self.object.objectPose.position.y) + "; " \
-        + str(self.object.objectPose.position.z))    
-            
+        userdata.gate_converge_output = self.object
+        print("GATE POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.pose.position.x) + "; " \
+        + str(self.object.objectPose.pose.position.y) + "; " \
+        + str(self.object.objectPose.pose.position.z))  
 
         return 'succeeded'
 
