@@ -198,6 +198,31 @@ class GateConverge(smach.State):
             self.vtf_client.send_goal(goal)
             userdata.gate_converge_output=self.object
             rate.sleep()
+
+            if self.object.estimateFucked:
+                self.vtf_client.cancel_all_goals()
+                return 'aborted'
+        self.vtf_client.cancel_all_goals()
+
+        dp_goal = DpSetpoint()
+        dp_goal.control_mode = 7 # POSE_HOLD
+        dp_goal.setpoint = get_pose_in_front(self.object.objectPose.pose, 0.5)
+        self.dp_pub.publish(dp_goal)
+        while not rospy.is_shutdown()\
+            and not self.object.estimateConverged:
+            self.object = self.landmarks_client("gate").object
+            if self.object.estimateFucked:
+                dp_goal.control_mode = 0 # OPEN_LOOP
+                self.dp_pub.publish(dp_goal)
+                return 'aborted'
+            rate.sleep()
+        dp_goal.control_mode = 0 # OPEN_LOOP
+        self.dp_pub.publish(dp_goal)
+        self.object = self.landmarks_client("gate").object
+        userdata.buoy_converge_output=self.object
+        print("GATE POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
+        + str(self.object.objectPose.position.y) + "; " \
+        + str(self.object.objectPose.position.z))    
             
 
         return 'succeeded'
