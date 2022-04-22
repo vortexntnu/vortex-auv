@@ -6,6 +6,7 @@ from smach_ros import IntrospectionServer
 
 from gate import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
+from path import PathSearch, PathConverge, PathExecute
 from reach_depth import ReachDepth
 
 def main():
@@ -30,7 +31,23 @@ def main():
                         remapping={'gate_search_output':'gate'})
         
         StateMachine.add('GATE_SM',gate_sm, transitions={'succeeded':'PATH_SM'} )
+
         ##PATH
+        path_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+        with path_sm:
+            StateMachine.add('PATH_SEARCH',
+                        PathSearch(), 
+                        transitions={'succeeded':'PATH_CONVERGE'})
+            
+            StateMachine.add('PATH_CONVERGE',
+                        PathConverge(),
+                        transitions={'succeeded' : 'PATH_EXECUTE','aborted' : 'PATH_SEARCH'}, 
+                        remapping={'path_converge_output':'path'})
+            
+            StateMachine.add('PATH_EXECUTE',
+                        PathExecute())
+        
+        StateMachine.add('PATH_SM',path_sm, transitions={'succeeded':'BUOYS_SM'} )
 
         ##BUOYS
 

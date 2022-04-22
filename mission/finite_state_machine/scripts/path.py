@@ -19,7 +19,7 @@ class PathSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'])           
         self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
-        rospy.wait_for_service('send_positions') 
+        rospy.wait_for_service('send_positions')
         self.object = self.landmarks_client("path").object
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
@@ -45,7 +45,8 @@ class PathSearch(smach.State):
             print(self.object.objectPose.pose.position)
             rospy.wait_for_service('send_positions')   
             self.object = self.landmarks_client("path").object
-            rate.sleep()       
+            rate.sleep()
+        
         self.vtf_client.cancel_all_goals()
 
         print("PATH POSITION DETECTED: "+ 
@@ -53,7 +54,6 @@ class PathSearch(smach.State):
             str(self.object.objectPose.pose.position.y) + ", "+ 
             str(self.object.objectPose.pose.position.z))                
         return 'succeeded'
-    
     
 class PathConverge(smach.State):  
     def __init__(self):
@@ -66,7 +66,6 @@ class PathConverge(smach.State):
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
 
-        self.dp_pub = rospy.Publisher("controllers/dp_data", DpSetpoint)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -98,17 +97,38 @@ class PathConverge(smach.State):
                 return 'aborted'
         self.vtf_client.cancel_all_goals()
 
+        self.object = self.landmarks_client("path").object
+        userdata.path_converge_output=self.object
+        print("PATH POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
+        + str(self.object.objectPose.position.y) + "; " \
+        + str(self.object.objectPose.position.z))
+        return 'succeded'
+        
+class PathExecute(smach.State):
+    def __init__(self):
+
+        smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['path'])   
+        
+        self.landmarks_client = rospy.ServiceProxy('send_positions',request_position)
+        rospy.wait_for_service('send_positions') 
+        self.object = self.landmarks_client("path").object
+
+        self.dp_pub = rospy.Publisher("controllers/dp_data", DpSetpoint)
+
+    def execute(self, userdata):
+
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7 # POSE_HOLD
         dp_goal.setpoint = self.odom.pose.pose
         self.dp_pub.publish(dp_goal)
+        rate = rospy.Rate(1)
         while not rospy.is_shutdown()\
             and not self.object.estimateConverged:
             self.object = self.landmarks_client("path").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0 # OPEN_LOOP
                 self.dp_pub.publish(dp_goal)
-                return 'preempted'
+                return 'aborted'
             rate.sleep()
         dp_goal.control_mode = 0 # OPEN_LOOP
         self.dp_pub.publish(dp_goal)
