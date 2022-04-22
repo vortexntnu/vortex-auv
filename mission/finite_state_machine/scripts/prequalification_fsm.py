@@ -4,8 +4,9 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
-from gate import GateSearch, GateConverge, GateExecute
-from pole import PoleSearch, PoleConverge, PoleExecute
+#from gate import GateSearch, GateConverge, GateExecute
+#from pole import PoleSearch, PoleConverge, PoleExecute
+from path import PathSearch, PathConverge, PathExecute
 from reach_depth import ReachDepth
 
 
@@ -20,68 +21,84 @@ def main():
                 
         StateMachine.add('PREQUAL_PREPARE',
                         ReachDepth(),
-                        transitions={'succeeded':'GATE_SM'})
-            
-        gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+                        transitions={'succeeded':'PATH_SM'})
 
-        with gate_sm:
+        path_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+        with path_sm:
+            StateMachine.add('PATH_SEARCH',
+                        PathSearch(), 
+                        transitions={'succeeded':'PATH_CONVERGE'})
+            
+            StateMachine.add('PATH_CONVERGE',
+                        PathConverge(),
+                        transitions={'succeeded' : 'PATH_EXECUTE','aborted' : 'PATH_SEARCH'}, 
+                        remapping={'path_converge_output':'path'})
+            
+            StateMachine.add('PATH_EXECUTE',
+                        PathExecute())
+        
+        StateMachine.add('PATH_SM',path_sm, transitions={'succeeded':'path_sm'} )
+            
+        # gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
-            StateMachine.add('GATE_SEARCH',
-                            GateSearch(), 
-                            transitions={'succeeded':'GATE_CONVERGE'})
+        # with gate_sm:
+
+        #     StateMachine.add('GATE_SEARCH',
+        #                     GateSearch(), 
+        #                     transitions={'succeeded':'GATE_CONVERGE'})
             
             
-            StateMachine.add('GATE_CONVERGE',
-                            GateConverge(),
-                            transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
-                            remapping={'gate_converge_output':'gate'})
+        #     StateMachine.add('GATE_CONVERGE',
+        #                     GateConverge(),
+        #                     transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
+        #                     remapping={'gate_converge_output':'gate'})
             
-            StateMachine.add('GATE_EXECUTE',
-                            GateExecute())
+        #     StateMachine.add('GATE_EXECUTE',
+        #                     GateExecute())
         
                 
-        StateMachine.add('GATE_SM',gate_sm,
-                        transitions={'succeeded':'POLE_SM'} )
+        # StateMachine.add('GATE_SM',gate_sm,
+        #                 transitions={'succeeded':'POLE_SM'} )
 
 
-        pole_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+        # pole_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
-        with pole_sm:
+        # with pole_sm:
 
-            StateMachine.add('POLE_SEARCH',
-                             PoleSearch(),
-                             transitions={'succeeded':'POLE_CONVERGE'})
+        #     StateMachine.add('POLE_SEARCH',
+        #                      PoleSearch(),
+        #                      transitions={'succeeded':'POLE_CONVERGE'})
         
-            StateMachine.add('POLE_CONVERGE',
-                            PoleConverge(),
-                            transitions={'succeeded':'POLE_EXECUTE', 'aborted':'POLE_SEARCH'}, 
-                            remapping={'pole_converge_output':'pole'})   
+        #     StateMachine.add('POLE_CONVERGE',
+        #                     PoleConverge(),
+        #                     transitions={'succeeded':'POLE_EXECUTE', 'aborted':'POLE_SEARCH'}, 
+        #                     remapping={'pole_converge_output':'pole'})   
 
-            StateMachine.add('POLE_EXECUTE',
-                            PoleExecute())                    
+        #     StateMachine.add('POLE_EXECUTE',
+        #                     PoleExecute())                    
 
-        StateMachine.add('POLE_SM', pole_sm,
-                        transitions={'succeeded':'GATE_SM_BACK'})
+        # StateMachine.add('POLE_SM', pole_sm,
+        #                 transitions={'succeeded':'GATE_SM_BACK'})
 
-        gate_sm_back = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+        # gate_sm_back = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 
-        with gate_sm_back:
+        # with gate_sm_back:
 
-            StateMachine.add('GATE_SEARCH',
-                            GateSearch(), 
-                            transitions={'succeeded':'GATE_CONVERGE'})
+        #     StateMachine.add('GATE_SEARCH',
+        #                     GateSearch(), 
+        #                     transitions={'succeeded':'GATE_CONVERGE'})
             
             
-            StateMachine.add('GATE_CONVERGE',
-                            GateConverge(),
-                            transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
-                            remapping={'gate_converge_output':'gate'})
+        #     StateMachine.add('GATE_CONVERGE',
+        #                     GateConverge(),
+        #                     transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
+        #                     remapping={'gate_converge_output':'gate'})
             
-            StateMachine.add('GATE_EXECUTE',
-                            GateExecute())
+        #     StateMachine.add('GATE_EXECUTE',
+        #                     GateExecute())
         
                 
-        StateMachine.add('GATE_SM_BACK',gate_sm_back)
+        # StateMachine.add('GATE_SM_BACK',gate_sm_back)
 
 
 
