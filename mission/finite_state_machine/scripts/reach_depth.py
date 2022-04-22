@@ -10,30 +10,24 @@ from actionlib_msgs.msg import GoalStatus
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, DpSetpoint
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
-from fsm_helper import dp_move, los_move
 from vortex_msgs.srv import ControlMode #, ControlModeRequest
+from fsm_helper import within_acceptance_margins
+from nav_msgs.msg import Odometry
 
 class ReachDepth(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'])
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
+        
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+    def odom_cb(self, msg):
+        self.odom = msg   
    
 
     def execute(self, userdata):
-        print("starting DP move")
-        dp_goal = DpSetpoint()
-        dp_goal.control_mode = 1 #Position hold
-        dp_goal.setpoint.position = Point(1,0,-0.5)
-        self.dp_pub.publish(dp_goal)
-
-        rate = rospy.Rate(10)
-        while not rospy.is_shutdown():
-            print("nei troben.")
-            rate.sleep()
-
         goal = VtfPathFollowingGoal()
         goal.waypoints = [Point(0,0,-0.5)]
         goal.forward_speed = 0.2
