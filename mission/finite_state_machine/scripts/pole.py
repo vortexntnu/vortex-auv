@@ -8,7 +8,7 @@ from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
-from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction, DpSetpoint
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, get_pose_in_front, los_move, create_circle_coordinates
@@ -101,6 +101,31 @@ class PoleConverge(smach.State):
             self.vtf_client.send_goal(goal)
             userdata.pole_converge_output = self.object
             rate.sleep()
+
+            if self.object.estimateFucked:
+                self.vtf_client.cancel_all_goals()
+                return 'aborted'
+        self.vtf_client.cancel_all_goals()
+
+        dp_goal = DpSetpoint()
+        dp_goal.control_mode = 7 # POSE_HOLD
+        dp_goal.setpoint = get_pose_in_front(self.object.objectPose.pose, 0.5)
+        self.dp_pub.publish(dp_goal)
+        while not rospy.is_shutdown()\
+            and not self.object.estimateConverged:
+            self.object = self.landmarks_client("pole").object
+            if self.object.estimateFucked:
+                dp_goal.control_mode = 0 # OPEN_LOOP
+                self.dp_pub.publish(dp_goal)
+                return 'aborted'
+            rate.sleep()
+        dp_goal.control_mode = 0 # OPEN_LOOP
+        self.dp_pub.publish(dp_goal)
+        self.object = self.landmarks_client("pole").object
+        userdata.buoy_converge_output=self.object
+        print("POLE POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
+        + str(self.object.objectPose.position.y) + "; " \
+        + str(self.object.objectPose.position.z))    
 
         return 'succeeded'
 
