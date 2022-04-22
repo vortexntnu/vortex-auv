@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: UTF-8
 
+from enum import IntEnum
+
 import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState
 from smach_ros import SimpleActionState
