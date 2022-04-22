@@ -11,7 +11,7 @@ from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, DpSetp
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
 from vortex_msgs.srv import ControlMode #, ControlModeRequest
-from dp_helper import within_acceptance_margins
+from fsm_helper import within_acceptance_margins
 from nav_msgs.msg import Odometry
 
 class ReachDepth(smach.State):

@@ -9,10 +9,9 @@ from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction, DpSetpoint
 from nav_msgs.msg import Odometry
-from dp_helper import within_acceptance_margins
 
 from tf.transformations import quaternion_from_euler
-from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
+from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle, within_acceptance_margins
 from vortex_msgs.srv import ControlMode, SetVelocity
 
 
@@ -63,7 +62,6 @@ class GateSearch(smach.State):
                 rate.sleep()
             if self.object.isDetected:
                 break
-            # self.vtf_client.wait_for_result()
 
             goal = Pose()
             goal.position = self.odom.pose.pose.position
@@ -73,7 +71,7 @@ class GateSearch(smach.State):
             vel_goal.angular.z = 0.2
             self.velocity_ctrl_client(vel_goal,True)
             rate = rospy.Rate(10)
-            while not within_acceptance_margins(goal,self.odom) and not self.object.isDetected:
+            while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
                 print(self.object.objectPose.pose.position)
@@ -89,7 +87,7 @@ class GateSearch(smach.State):
             vel_goal.angular.z = -0.2
             self.velocity_ctrl_client(vel_goal,True)
             rate = rospy.Rate(10)
-            while not within_acceptance_margins(goal,self.odom) and not self.object.isDetected:
+            while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
                 print(self.object.objectPose.pose.position)
@@ -105,7 +103,7 @@ class GateSearch(smach.State):
             vel_goal.angular.z = 0.2
             self.velocity_ctrl_client(vel_goal,True)
             rate = rospy.Rate(10)
-            while not within_acceptance_margins(goal,self.odom) and not self.object.isDetected:
+            while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
                 print(self.object.objectPose.pose.position)
