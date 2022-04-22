@@ -46,7 +46,6 @@ def circle_move(target_point, direction):
 def rotate_certain_angle(pose, angle): 
     '''Angle in degrees'''
     
-
     orientation = R.from_quat([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w])
     rotation = R.from_rotvec(angle*math.pi/180*np.array([0,0,1]))
     new_orientation = R.as_quat(orientation*rotation)
@@ -76,7 +75,31 @@ def get_pose_in_front(pose, distance):
     new_pose.orientation = pose.orientation
 
     return new_pose
-    
+
+def get_pose_to_side(pose, unsigned_distance, chosen_side):
+    # returns pose that is distance meters to one side of the gate
+    # chosen_side is either Bootlegger or G-man
+    # Bootlegger (False) = right
+    # G-man (True) = left
+
+    orientation_object = R.from_quat([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w])
+    rotation_matrix = orientation_object.as_dcm()
+    y_vec = rotation_matrix[:,1]
+    current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
+    if chosen_side == True:
+        new_pose_vec = current_pos_vec + unsigned_distance*y_vec
+
+    else:
+        new_pose_vec = current_pos_vec - unsigned_distance*y_vec
+
+
+    new_pose = Pose()
+    new_pose.position.x = new_pose_vec[0]
+    new_pose.position.y = new_pose_vec[1]
+    new_pose.position.z = new_pose_vec[2]
+    new_pose.orientation = pose.orientation
+
+    return new_pose
 
 def patrol_sequence(action_states):
 
