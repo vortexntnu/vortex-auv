@@ -68,6 +68,7 @@ class GateConverge(smach.State):
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
 
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
