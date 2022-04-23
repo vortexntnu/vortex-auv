@@ -11,7 +11,7 @@ Landmarks::Landmarks ():loop_rate(10) {
     obj.estimateConverged = false;
     objectPositions["gate"] = obj; 
     objectPositions["pole"] = obj;
-    objectPositions["dir_next_task"] = obj;
+    objectPositions["path"] = obj;
 }
 
 void Landmarks::callback(vortex_msgs::ObjectPosition objPose){

@@ -20,7 +20,7 @@ def main():
         ##COIN FLIP
         StateMachine.add('ROBOSUB_PREPARE',
                         ReachDepth(),
-                        transitions={'succeeded':'GATE_SM'})
+                        transitions={'succeeded':'PATH_SM'})
 
         ##GATE
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
@@ -41,15 +41,17 @@ def main():
             
             StateMachine.add('PATH_CONVERGE',
                         PathConverge(),
-                        transitions={'succeeded' : 'PATH_EXECUTE','aborted' : 'PATH_SEARCH'}, 
-                        remapping={'path_converge_output':'path'})
+                        transitions={'succeeded' : 'PATH_EXECUTE','aborted' : 'PATH_SEARCH'})
             
             StateMachine.add('PATH_EXECUTE',
-                        PathExecute())
+                        PathExecute(),
+                        remapping={'dir_next_task' : 'dir_next_task'},
+                        transitions={'aborted' : 'PATH_SEARCH'}
+                        )
         
-        StateMachine.add('PATH_SM',path_sm, transitions={'succeeded':'BUOYS_SM'} )
+        StateMachine.add('PATH_SM',path_sm )
 
-        ##BUOYS
+        ##BUOY
 
         ##TORPEDO
 
