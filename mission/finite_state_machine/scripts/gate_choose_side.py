@@ -110,7 +110,7 @@ class GateConverge(smach.State):
 
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7 # POSE_HOLD
-        dp_goal.setpoint = self.odom.pose.pose #get_pose_in_front(self.object.objectPose.pose, 0.5)
+        dp_goal.setpoint = self.odom.pose.pose 
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
             self.object = self.landmarks_client("gate").object

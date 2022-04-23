@@ -154,8 +154,6 @@ class GateSearch(smach.State):
         return 'succeeded'
     
 
-
-#TODO: incorporate DP controller to hold pose while estimate converges 
 class GateConverge(smach.State):  
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],output_keys=['gate_converge_output']) 
@@ -210,7 +208,7 @@ class GateConverge(smach.State):
 
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7 # POSE_HOLD
-        dp_goal.setpoint = self.odom.pose.pose #get_pose_in_front(self.object.objectPose.pose, 0.5)
+        dp_goal.setpoint = self.odom.pose.pose
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
             print("in dp hold")
