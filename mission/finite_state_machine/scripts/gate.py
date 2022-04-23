@@ -49,6 +49,7 @@ class GateSearch(smach.State):
         while not self.object.isDetected:
 
             #SEARCH PATTERN
+            #TODO: change the forward waypoint to [get_pose_in_front(self.odom.pose.pose,-1).position] (instead of hardcoding on x)
             goal = VtfPathFollowingGoal()
             goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-0.5)]
             goal.forward_speed = 0.2
@@ -118,32 +119,6 @@ class GateSearch(smach.State):
             rospy.wait_for_service('send_positions')   
             self.object = self.landmarks_client("gate").object
             rate.sleep()
-
-        # dp_goal = DpSetpoint()
-        # dp_goal.control_mode = 7 #Pose hold
-        # dp_goal.setpoint.position = Point(1,-1,-0.5)
-        # self.dp_pub.publish(dp_goal)
-        
-        # rate = rospy.Rate(10)
-        # while not within_acceptance_margins(dp_goal.setpoint,self.odom):
-        #     rate.sleep()
-        # dp_goal.control_mode = 0 #Open loop
-        # dp_goal.setpoint.position = Point(0,0,0)
-        # self.dp_pub.publish(dp_goal)
-
-        
-        # dp_goal = DpSetpoint()
-        # dp_goal.control_mode = 7 #Pose hold
-        # dp_goal.setpoint.position = Point(1,1,-0.5)
-        # self.dp_pub.publish(dp_goal)
-        
-        # rate = rospy.Rate(10)
-        # while not within_acceptance_margins(dp_goal.setpoint,self.odom):
-        #     rate.sleep()
-        # dp_goal.control_mode = 0 #Open loop
-        # dp_goal.setpoint.position = Point(0,0,0)
-        # self.dp_pub.publish(dp_goal)
-
         
         self.vtf_client.cancel_all_goals()
 
