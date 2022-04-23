@@ -6,6 +6,7 @@ from smach_ros import IntrospectionServer
 
 from gate_choose_side import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
+from path import PathSearch, PathConverge, PathExecute
 from reach_depth import ReachDepth
 
 def main():
@@ -17,9 +18,9 @@ def main():
                 
     with robosub_state_machine:
         ##COIN FLIP
-        #StateMachine.add('ROBOSUB_PREPARE',
-        #                ReachDepth(),
-        #                transitions={'succeeded':'GATE_SM'})
+        StateMachine.add('ROBOSUB_PREPARE',
+                        ReachDepth(),
+                        transitions={'succeeded':'GATE_SM'})
 
         ##GATE
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
@@ -37,10 +38,28 @@ def main():
             StateMachine.add('GATE_EXECUTE',
                         GateExecute())
         
-        StateMachine.add('GATE_SM',gate_sm )
-        ##PATH
+        StateMachine.add('GATE_SM',gate_sm, transitions={'succeeded':'PATH_SM'} )
 
-        ##BUOYS
+        ##PATH
+        path_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
+        with path_sm:
+            StateMachine.add('PATH_SEARCH',
+                        PathSearch(), 
+                        transitions={'succeeded':'PATH_CONVERGE'})
+            
+            StateMachine.add('PATH_CONVERGE',
+                        PathConverge(),
+                        transitions={'succeeded' : 'PATH_EXECUTE','aborted' : 'PATH_SEARCH'})
+            
+            StateMachine.add('PATH_EXECUTE',
+                        PathExecute(),
+                        remapping={'dir_next_task' : 'dir_next_task'},
+                        transitions={'aborted' : 'PATH_SEARCH'}
+                        )
+        
+        StateMachine.add('PATH_SM',path_sm )
+
+        ##BUOY
 
         ##TORPEDO
 
