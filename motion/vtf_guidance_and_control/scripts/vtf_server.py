@@ -8,6 +8,8 @@ from guidance_and_control_node import VtfGuidanceAndControlNode, create_wrench_m
 # action message
 import actionlib
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, VtfPathFollowingResult
+from dynamic_reconfigure.server import Server
+from vtf_guidance_and_control.cfg import vtf_controllerConfig
 
 
 class VtfPathFollowing(object):
@@ -53,6 +55,8 @@ class VtfPathFollowing(object):
 		self.action_server = actionlib.SimpleActionServer(name='vtf_action_server', ActionSpec=VtfPathFollowingAction, auto_start=False)
 		self.action_server.register_goal_callback(self.goal_cb)
 		self.action_server.start()
+		self.vtf_reconfigure_srv = Server(vtf_controllerConfig, self.vtf.vtf_reconfigure)
+
 
 		rospy.loginfo("vtf guidance initiated")
 
@@ -65,6 +69,7 @@ class VtfPathFollowing(object):
 					self.ros_rate.sleep()
 			except rospy.ROSInterruptException:
 				pass
+			
 
 		
 	def statusActionGoal(self):

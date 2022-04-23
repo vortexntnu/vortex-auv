@@ -5,10 +5,11 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   // get params
   std::string DEFAULT_ODOM_TOPIC = "/odometry/filtered";
   std::string DEFAULT_THRUST_TOPIC = "/thrust/desired_forces";
-  std::string DEFAULT_VELOCITY_TOPIC = "/desired_velocity";
+  std::string DEFAULT_VELOCITY_TOPIC = "/controllers/velocity/desired_velocity";
   getParam("/controllers/velocity_controller/odometry_topic", odometry_topic, DEFAULT_ODOM_TOPIC);
-  getParam("/controllers/velocity_controller/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
+  getParam("/thrust/thrust_topic", thrust_topic, DEFAULT_THRUST_TOPIC);
   getParam("/controllers/velocity_controller/desired_velocity_topic", desired_velocity_topic, DEFAULT_VELOCITY_TOPIC);
+  getParam("/controllers/velocity_controller/rate", rate);
 
   std::vector<double> CB;
   std::vector<double> CG;
@@ -26,6 +27,8 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   double integral_windup_limit;
   double setpoint_range;
   double max_output_ramp_rate;
+  Eigen::Vector6d desired_velocity;
+  controller_active = false;
   getParam("/controllers/velocity_controller/P_gains", P_gains);
   getParam("/controllers/velocity_controller/I_gains", I_gains);
   getParam("/controllers/velocity_controller/D_gains", D_gains);
@@ -54,19 +57,21 @@ VelocityController::VelocityController(ros::NodeHandle nh) : nh(nh)
   odom_recieved = false;
   thrust_pub = nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   odom_sub = nh.subscribe(odometry_topic, 1, &VelocityController::odometryCallback, this);
-  vel_sub = nh.subscribe(desired_velocity_topic, 1, &VelocityController::controlLawCallback, this);
 
   // create services
+  set_velocity_service = nh.advertiseService(desired_velocity_topic, &VelocityController::setVelocity, this);
   reset_service = nh.advertiseService("reset_pid", &VelocityController::resetPidCallback, this);
   set_gains_service =
       nh.advertiseService("set_gains", &VelocityController::setGainsCallback, this);
 
   // wait for first odometry message
   ROS_INFO("Waiting for odometry message..");
+
 }
 
 void VelocityController::odometryCallback(const nav_msgs::Odometry& odom_msg)
 {
+  
   if (!odom_recieved)
   {
     odom_recieved = true;
@@ -78,7 +83,18 @@ void VelocityController::odometryCallback(const nav_msgs::Odometry& odom_msg)
                                    odom_msg.pose.pose.orientation.y, odom_msg.pose.pose.orientation.z);
 }
 
-void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_msg)
+bool VelocityController::setVelocity(vortex_msgs::SetVelocityRequest& req, vortex_msgs::SetVelocityResponse& res)
+{
+  controller_active = req.active;
+  if (!controller_active){
+    desired_velocity << 0,0,0,0,0,0;
+  } else tf::twistMsgToEigen(req.desired_velocity, desired_velocity);
+  // transform desired velocity to eigen
+  publishControlForces();
+  return true;
+}
+
+void VelocityController::publishControlForces()
 {
   if (!odom_recieved)
   {
@@ -86,10 +102,6 @@ void VelocityController::controlLawCallback(const geometry_msgs::Twist& twist_ms
   }
   else
   {
-    // transform desired velocity to eigen
-    Eigen::Vector6d desired_velocity;
-    tf::twistMsgToEigen(twist_msg, desired_velocity);
-
     // calculate tau 
     Eigen::Vector6d tau;
     for (int i = 0; i < 6; i++)
@@ -161,20 +173,16 @@ void VelocityController::getParam(std::string name, T& variable, T& default_valu
   ROS_DEBUG_STREAM(name << ": " << variable);
 }
 
-int main(int argc, char** argv)
+void VelocityController::spin()
 {
-  const bool DEBUG_MODE = false;  // debug logs are printed to console when true
-
-  ros::init(argc, argv, "velocity_controller");
-  ros::NodeHandle nh;
-
-  if (DEBUG_MODE)
+  ros::Rate ros_rate(rate);
+  while (ros::ok())
   {
-    ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
-    ros::console::notifyLoggerLevelsChanged();
+
+    if (controller_active) {
+      publishControlForces();
+    }
+    ros::spinOnce();
+    ros_rate.sleep(); 
   }
-
-  VelocityController velocity_controller(nh);
-
-  ros::spin();
 }

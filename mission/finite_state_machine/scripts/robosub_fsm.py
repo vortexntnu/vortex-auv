@@ -4,7 +4,7 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
-from gate import GateSearch, GateConverge, GateExecute
+from gate_choose_side import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
 from path import PathSearch, PathConverge, PathExecute
 from reach_depth import ReachDepth
@@ -29,6 +29,14 @@ def main():
                         GateSearch(), 
                         transitions={'succeeded':'GATE_CONVERGE'},
                         remapping={'gate_search_output':'gate'})
+
+            StateMachine.add('GATE_CONVERGE',
+                        GateConverge(),
+                        transitions={'succeeded' : 'GATE_EXECUTE','aborted' : 'GATE_SEARCH'}, 
+                        remapping={'gate_converge_output':'gate'})
+            
+            StateMachine.add('GATE_EXECUTE',
+                        GateExecute())
         
         StateMachine.add('GATE_SM',gate_sm, transitions={'succeeded':'PATH_SM'} )
 

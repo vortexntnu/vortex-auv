@@ -7,17 +7,25 @@ from landmarks.srv import request_position
 
 import actionlib
 from actionlib_msgs.msg import GoalStatus
-from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, DpSetpoint
 from landmarks.srv import request_position
 from tf.transformations import quaternion_from_euler
-from fsm_helper import dp_move, los_move
-from vortex_msgs.srv import ControlMode#, ControlModeRequest
+from vortex_msgs.srv import ControlMode #, ControlModeRequest
+from fsm_helper import within_acceptance_margins
+from nav_msgs.msg import Odometry
 
 class ReachDepth(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'])
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)    
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
+        
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg   
+   
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()

@@ -17,8 +17,8 @@
 physical:
   weight: 24.00     # kg
   buoyancy: 23.00   # kg
-  center_of_mass: [-15.2, 1.0, 9.4]        # mm (x,y,z)
-  center_of_buoyancy: [-15.1, 0.9, 20.0]   # mm (x,y,z)
+  center_of_mass: [0.0, 0.0, 0.0]        # mm (x,y,z)
+  center_of_buoyancy: [0.0, 0.0, 0.0]   # mm (x,y,z)
 
 
 propulsion:
@@ -34,17 +34,19 @@ propulsion:
   thrusters:
     num: 8
     configuration_matrix:
-      [[ -0.70711,  0.00000,  0.00000,  -0.70711,  -0.70711,  0.00000,  0.00000, -0.70711], # Surge
-       [ 0.70711,  0.00000,  0.00000,  -0.70711, 0.70711,  0.00000,  0.00000,-0.70711], # Sway
+
+      [[ 0.70711,  0.00000,  0.00000,  0.70711,  0.70711,  0.00000,  0.00000, 0.70711], # Surge
+       [0.70711,  0.00000,  0.00000,  -0.70711, 0.70711,  0.00000,  0.00000, -0.70711], # Sway
        [ 0.00000,  1.00000,  1.00000,  0.00000,  0.00000,  1.00000,  1.00000, 0.00000], # Heave
-       [ 0.00000, -0.22000, -0.22000,  0.00000,  0.00000,  0.22000,  0.22000, 0.00000], # Roll
-       [ 0.06500, -0.24000,  0.24000,  0.06500,  0.06500,  0.24000, -0.24000, 0.06500], # Pitch 
-       [ 0.32557,  0.00000,  0.00000,  0.32557,  -0.32557, 0.00000,  0.00000,-0.32557]] # Yaw
+
+       [ 0.00000, 0.20600, -0.20600,  0.00000,  0.00000, -0.20600,  0.20600,  0.00000 ], # Roll
+       [ 0.00000, 0.09600,  0.09600,  0.00000,  0.00000, -0.09600, -0.09600,  0.00000 ], # Pitch 
+       [-0.30000, 0.00000,  0.00000,  0.30000,  0.30000,  0.00000,  0.00000, -0.30000 ]] # Yaw
 
     rate_of_change:
       max: 1 # Maximum rate of change in newton per second for a thruster
-    map: [0, 1, 2, 3, 4, 5, 6, 7]  
-    direction: [1, -1, 1, 1, -1, -1, 1, -1]
+    map:  [4, 5, 2, 3, 0, 1, 6, 7] # [0, 1, 2, 3, 4, 5, 6, 7]  
+    direction: [-1, 1, -1, -1, 1, 1, 1, -1]
     offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
 
 guidance:
@@ -85,7 +87,8 @@ controllers:
   los:
     thrust_topic: "/thrust/los"
   velocity_controller:
-    thrust_topic: "/thrust/vel"
+    desired_velocity_topic: "/controllers/velocity/desired_velocity"
+    rate: 20
     odometry_topic: "/odometry/filtered"
     P_gains: [40, 40, 75, 50, 10, 10]
     I_gains: [1, 1, 1, 1.5, 0.015, 0.015]
@@ -144,9 +147,8 @@ controllers:
       M_A: [20, 40, 50, 0.5, 2, 2] # Added mass
       D: [-20, -40, -50, -3, -10, -12] # Linear damping
 
-thrust_merger:
-  rate: 20
-  output_topic: "/thrust/desired_forces"
+thrust:
+  thrust_topic: "/thrust/desired_forces"
         
 joystick:
   scaling:
@@ -215,3 +217,6 @@ ping360_node:
   maxAngle: 400 
   minAngle: 0 
   oscillate: False 
+
+torpedo:
+  gpio_pin: 15
