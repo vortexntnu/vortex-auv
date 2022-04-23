@@ -20,7 +20,7 @@ def main():
         ##COIN FLIP
         StateMachine.add('ROBOSUB_PREPARE',
                         ReachDepth(),
-                        transitions={'succeeded':'PATH_SM'})
+                        transitions={'succeeded':'GATE_SM'})
 
         ##GATE
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])

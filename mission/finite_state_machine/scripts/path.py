@@ -12,7 +12,7 @@ from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, DpSetp
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
 from vortex_msgs.srv import ControlMode
-from nav_msgs import Odometry
+from nav_msgs.msg import Odometry
 
 
 class PathSearch(smach.State):
@@ -76,7 +76,7 @@ class PathConverge(smach.State):
     def execute(self, userdata):
 
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [self.object.objectPose.pose.pose.position]
+        goal.waypoints = [self.object.objectPose.pose.position]
         goal.forward_speed = 0.1
         goal.heading = "path_dependent_heading"
 
@@ -98,10 +98,10 @@ class PathConverge(smach.State):
         self.vtf_client.cancel_all_goals()
 
         self.object = self.landmarks_client("path").object
-        print("PATH POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
-        + str(self.object.objectPose.position.y) + "; " \
-        + str(self.object.objectPose.position.z))
-        return 'succeded'
+        print("PATH POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.pose.position.x) + "; " \
+        + str(self.object.objectPose.pose.position.y) + "; " \
+        + str(self.object.objectPose.pose.position.z))
+        return 'succeeded'
         
         
 class PathExecute(smach.State):
@@ -135,6 +135,7 @@ class PathExecute(smach.State):
                 dp_goal.control_mode = 0 # OPEN_LOOP
                 self.dp_pub.publish(dp_goal)
                 return 'aborted'
+            print("in dp hold")
             self.object = self.landmarks_client("path").object
             dp_goal.setpoint = self.object.objectPose.pose
             self.dp_pub.publish(dp_goal)
