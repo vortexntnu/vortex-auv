@@ -29,9 +29,8 @@ class ReachDepth(smach.State):
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
-                print("succeded")
+                print("ReachDepth succeeded")
                 break
-            print("Print debug")
             rate.sleep()
         
         return 'succeeded'

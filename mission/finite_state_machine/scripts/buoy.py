@@ -27,8 +27,7 @@ class BuoySearch(smach.State):
 
 
     def execute(self, userdata):
-        userdata.buoy_converge_output=self.object
-        return 'succeded'
+        return 'succeeded'
 
 
 class BuoyConverge(smach.State):
@@ -89,10 +88,10 @@ class BuoyConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("buoy").object
         userdata.buoy_converge_output=self.object
-        print("BUOY POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.position.x) + "; " \
-        + str(self.object.objectPose.position.y) + "; " \
-        + str(self.object.objectPose.position.z))
-        return 'succeded'
+        print("BUOY POSITION ESTIMATE CONVERGED AT: " + str(self.object.objectPose.pose.position.x) + "; " \
+        + str(self.object.objectPose.pose.position.y) + "; " \
+        + str(self.object.objectPose.pose.position.z))
+        return 'succeeded'
 
 class BuoyExecute(smach.State):
     def __init__(self):
