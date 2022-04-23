@@ -64,6 +64,7 @@ class PoleConverge(smach.State):
         self.action_client = actionlib.SimpleActionClient(dp_guidance_action_server, MoveBaseAction)   
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
@@ -76,6 +77,8 @@ class PoleConverge(smach.State):
    
 
     def execute(self, userdata):
+        self.state_pub.publish("pole_converge")
+
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("pole").object
         goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5)
@@ -139,6 +142,8 @@ class PoleExecute(smach.State):
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction) 
 
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
+
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
@@ -146,6 +151,8 @@ class PoleExecute(smach.State):
         self.odom = msg    
 
     def execute(self, userdata):
+        self.state_pub.publish("pole_execute")
+
         goal = VtfPathFollowingGoal()
         start = self.odom.pose.pose.position
         print(userdata)

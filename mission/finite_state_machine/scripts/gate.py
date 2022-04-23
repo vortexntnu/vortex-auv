@@ -165,6 +165,7 @@ class GateConverge(smach.State):
         self.object = self.landmarks_client("gate").object
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
@@ -176,6 +177,7 @@ class GateConverge(smach.State):
         self.odom = msg   
 
     def execute(self, userdata):
+        self.state_pub.publish("gate_converge")
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("gate").object
@@ -233,9 +235,12 @@ class GateExecute(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate'])   
         
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)        
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)    
+
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)    
 
     def execute(self, userdata):
+        self.state_pub.publish("gate_execute")
         goal = VtfPathFollowingGoal()
         goal_pose = get_pose_in_front(userdata.gate.objectPose.pose,-0.5)
         goal.waypoints =[goal_pose.position]
