@@ -45,7 +45,7 @@ class PoleSearch(smach.State):
         while not self.object.isDetected:
             #SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-0.5)]
+            goal.waypoints = [get_pose_in_front(self.odom.pose.pose,1).position]
             goal.forward_speed = 0.2
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
