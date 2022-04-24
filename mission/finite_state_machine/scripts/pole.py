@@ -231,7 +231,11 @@ class PoleExecute(smach.State):
         centre = Point(userdata.pole.objectPose.pose.position.x,userdata.pole.objectPose.pose.position.y, userdata.pole.objectPose.pose.position.z)
         goal.waypoints = create_circle_coordinates(start,centre,330)
         goal.forward_speed = 0.1
-        goal.heading = "path_dependent_heading"
+        goal.heading_point.x = userdata.pole.objectPose.pose.position.x
+        goal.heading_point.y = userdata.pole.objectPose.pose.position.y
+        goal.heading_point.z = userdata.pole.objectPose.pose.position.z
+        
+        goal.heading = "point_dependent_heading"
 
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
