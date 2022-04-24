@@ -50,8 +50,10 @@ class GateSearch(smach.State):
 
             #SEARCH PATTERN
             #TODO: change the forward waypoint to [get_pose_in_front(self.odom.pose.pose,-1).position] (instead of hardcoding on x)
+            # Hard code: Point(self.odom.pose.pose.position.x + 1,0,-1.1)
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-1.1)]
+            goal.waypoints = [get_pose_in_front(self.odom.pose.pose,1).position]
+            goal.waypoints[0].z = - 1.1
             goal.forward_speed = 0.2
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
