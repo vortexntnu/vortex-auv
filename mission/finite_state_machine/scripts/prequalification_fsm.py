@@ -13,6 +13,8 @@ from reach_depth import ReachDepth
 def main():
     rospy.init_node('prequalification_fsm')
 
+    rospy.sleep(30.)
+
     rospy.wait_for_service('send_positions')   #consider moving into individual state functions
           
     prequalification_state_machine = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])

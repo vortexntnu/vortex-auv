@@ -175,10 +175,10 @@ class GateConverge(smach.State):
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break
             self.object = self.landmarks_client("gate").object
-            goal.waypoints = [self.object.objectPose.pose.position]
+            # goal.waypoints = [self.object.objectPose.pose.position]
             print("GATE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
-            goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
-            self.vtf_client.send_goal(goal)
+            # goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
+            # self.vtf_client.send_goal(goal)
             userdata.gate_converge_output=self.object
             rate.sleep()
 

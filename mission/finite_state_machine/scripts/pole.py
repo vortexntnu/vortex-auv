@@ -153,7 +153,7 @@ class PoleConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("pole").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, 1)
 
         print('get_pose_in_front returned:')
         print(goal_pose)
@@ -172,12 +172,12 @@ class PoleConverge(smach.State):
                 break
             self.object = self.landmarks_client("pole").object
             
-            goal.waypoints = [self.object.objectPose.pose.position]
+            # goal.waypoints = [self.object.objectPose.pose.position]
             print("POLE POSITION DETECTED: "+ str(goal.waypoints[0].x) + ", "+ str(goal.waypoints[0].y)+ ", "+ str(goal.waypoints[0].z))
 
-            goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
+            # goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
 
-            self.vtf_client.send_goal(goal)
+            # self.vtf_client.send_goal(goal)
             userdata.pole_converge_output = self.object
             rate.sleep()
 
