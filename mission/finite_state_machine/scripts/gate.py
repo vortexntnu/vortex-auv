@@ -50,7 +50,7 @@ class GateSearch(smach.State):
 
             #SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-0.5)]
+            goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-1.1)]
             goal.forward_speed = 0.2
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
@@ -69,6 +69,8 @@ class GateSearch(smach.State):
             goal = rotate_certain_angle(goal,45)
             vel_goal = Twist()
             vel_goal.angular.z = 0.2
+            vel_goal.linear.z = -0.01
+            vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal,True)
             rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
@@ -85,6 +87,8 @@ class GateSearch(smach.State):
             goal = rotate_certain_angle(goal,-90)
             vel_goal = Twist()
             vel_goal.angular.z = -0.2
+            vel_goal.linear.z = -0.01
+            vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal,True)
             rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
@@ -101,6 +105,8 @@ class GateSearch(smach.State):
             goal = rotate_certain_angle(goal,45)
             vel_goal = Twist()
             vel_goal.angular.z = 0.2
+            vel_goal.linear.z = -0.01
+            vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal,True)
             rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
@@ -216,6 +222,7 @@ class GateConverge(smach.State):
                 self.dp_pub.publish(dp_goal)
                 return 'aborted'
             rate.sleep()
+        dp_goal = DpSetpoint()
         dp_goal.control_mode = 0 # OPEN_LOOP
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("gate").object
