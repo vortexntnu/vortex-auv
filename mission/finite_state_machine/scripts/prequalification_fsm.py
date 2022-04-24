@@ -6,6 +6,7 @@ from smach_ros import IntrospectionServer
 
 from gate import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
+from path import PathSearch, PathConverge, PathExecute
 from reach_depth import ReachDepth
 
 
@@ -21,6 +22,7 @@ def main():
         StateMachine.add('PREQUAL_PREPARE',
                         ReachDepth(),
                         transitions={'succeeded':'GATE_SM'})
+
             
         gate_sm = StateMachine(outcomes=['preempted', 'succeeded', 'aborted'])
 

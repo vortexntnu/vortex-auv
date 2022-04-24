@@ -49,6 +49,7 @@ class GateSearch(smach.State):
         while not self.object.isDetected:
 
             #SEARCH PATTERN
+            #TODO: change the forward waypoint to [get_pose_in_front(self.odom.pose.pose,-1).position] (instead of hardcoding on x)
             goal = VtfPathFollowingGoal()
             goal.waypoints = [Point(self.odom.pose.pose.position.x + 1,0,-1.1)]
             goal.forward_speed = 0.2
@@ -124,32 +125,6 @@ class GateSearch(smach.State):
             rospy.wait_for_service('send_positions')   
             self.object = self.landmarks_client("gate").object
             rate.sleep()
-
-        # dp_goal = DpSetpoint()
-        # dp_goal.control_mode = 7 #Pose hold
-        # dp_goal.setpoint.position = Point(1,-1,-0.5)
-        # self.dp_pub.publish(dp_goal)
-        
-        # rate = rospy.Rate(10)
-        # while not within_acceptance_margins(dp_goal.setpoint,self.odom):
-        #     rate.sleep()
-        # dp_goal.control_mode = 0 #Open loop
-        # dp_goal.setpoint.position = Point(0,0,0)
-        # self.dp_pub.publish(dp_goal)
-
-        
-        # dp_goal = DpSetpoint()
-        # dp_goal.control_mode = 7 #Pose hold
-        # dp_goal.setpoint.position = Point(1,1,-0.5)
-        # self.dp_pub.publish(dp_goal)
-        
-        # rate = rospy.Rate(10)
-        # while not within_acceptance_margins(dp_goal.setpoint,self.odom):
-        #     rate.sleep()
-        # dp_goal.control_mode = 0 #Open loop
-        # dp_goal.setpoint.position = Point(0,0,0)
-        # self.dp_pub.publish(dp_goal)
-
         
         self.vtf_client.cancel_all_goals()
 
@@ -169,6 +144,7 @@ class GateConverge(smach.State):
         self.object = self.landmarks_client("gate").object
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)
@@ -180,6 +156,7 @@ class GateConverge(smach.State):
         self.odom = msg   
 
     def execute(self, userdata):
+        self.state_pub.publish("gate_converge")
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("gate").object
@@ -238,9 +215,12 @@ class GateExecute(smach.State):
         smach.State.__init__(self, outcomes=['preempted', 'succeeded', 'aborted'],input_keys=['gate'])   
         
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)        
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server, VtfPathFollowingAction)    
+
+        self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)    
 
     def execute(self, userdata):
+        self.state_pub.publish("gate_execute")
         goal = VtfPathFollowingGoal()
         goal_pose = get_pose_in_front(userdata.gate.objectPose.pose,-0.5)
         goal.waypoints =[goal_pose.position]
