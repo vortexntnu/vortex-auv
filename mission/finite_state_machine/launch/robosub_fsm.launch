@@ -6,5 +6,6 @@
   <group ns="$(arg fsm_ns)">
     <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
     <node name="robosub_fsm"    pkg="finite_state_machine"    type="robosub_fsm.py"    output="screen"/>
+    <node name="landmarks"    pkg="landmarks"    type="landmarks"    output="screen"/>
   </group>
 </launch>
