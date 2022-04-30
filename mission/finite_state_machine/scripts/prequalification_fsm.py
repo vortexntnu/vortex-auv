@@ -13,7 +13,7 @@ from reach_depth import ReachDepth
 def main():
     rospy.init_node('prequalification_fsm')
 
-    rospy.sleep(30.)
+    rospy.sleep(rospy.get_param("/fsm/time_to_launch"))
 
     rospy.wait_for_service('send_positions')   #consider moving into individual state functions
           

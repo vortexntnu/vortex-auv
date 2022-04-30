@@ -171,6 +171,8 @@ class GateConverge(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
+        #TODO: The commented out code below should be there. 
+        # However, the VTF action server prematurely finishes when it is. Investigate this.
         while not rospy.is_shutdown():
             if self.vtf_client.simple_state == actionlib.simple_action_client.SimpleGoalState.DONE:
                 break

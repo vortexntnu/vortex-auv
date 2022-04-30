@@ -38,7 +38,7 @@ class Perciever:
 
     def execute(self):
         rate = rospy.Rate(1)
-        rospy.sleep(30.)
+        rospy.sleep(rospy.get_param("/fsm/time_to_launch"))
         while self.state != "gate_search" and not rospy.is_shutdown():
             rate.sleep()
         time.sleep(20)

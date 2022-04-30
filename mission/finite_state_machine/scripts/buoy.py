@@ -46,7 +46,7 @@ class BuoyConverge(smach.State):
     def execute(self, userdata):
 
         goal = VtfPathFollowingGoal()
-        # self.object = self.landmarks_client("buoy").object        Should be unnecessary to re-initialize
+        self.object = self.landmarks_client("buoy").object
         goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5) 
         print("get_pose_in_front returned:")
         print(goal_pose)

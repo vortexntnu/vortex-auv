@@ -162,8 +162,8 @@ joystick:
 
 fsm:
   landmark_topic: "/fsm/state"
-  # typical speeds used in FSM
-  slow_speed: 0.1
+  time_to_launch: 10 # seconds
+  slow_speed: 0.1 # speeds used for slow tasks
   medium_speed: 0.2
   fast_speed: 0.7
 

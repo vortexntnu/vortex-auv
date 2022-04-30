@@ -77,16 +77,6 @@ def rotate_certain_angle(pose, angle):
 
     return new_pose
 
-# def get_pose_rotated(pose, axis, degrees):
-#     rads = degrees*math.pi/180
-#     rotation = tf.transformations.quaternion_from_euler(0,0,degrees,'sxyz')
-
-
-#     rotation = R.from_euler
-#     orientation_object = R.from_quat([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w])
-#     euler_ang = orientation_object.as_euler('xyz', degrees=True)
-#     euler_ang[axis] += degrees
-
 
 def get_pose_in_front(pose, distance):
     # returns pose that is distance meters in front of object pose

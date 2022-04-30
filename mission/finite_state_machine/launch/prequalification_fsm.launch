@@ -1,12 +1,19 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="fsm_ns" default="fsm"/>
+  <arg name="type" default="real"/> <!-- real | perception_simulator -->
 
-  <group ns="$(arg fsm_ns)">
+  <group if="$(eval type == 'real')">
+    <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
+    <node name="prequalification_fsm"    pkg="finite_state_machine"    type="prequalification_fsm.py"    output="screen"/>
+    <node name="landmarks"    pkg="landmarks"    type="landmarks"    output="screen"/>
+  </group>
+
+   <group if="$(eval type == 'perception_simulator')">
     <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
     <node name="prequalification_fsm"    pkg="finite_state_machine"    type="prequalification_fsm.py"    output="screen"/>
     <node name="landmarks"    pkg="landmarks"    type="landmarks"    output="screen"/>
     <node name="perception_simulator"    pkg="finite_state_machine"    type="perception_simulator.py"    output="screen"/>
   </group>
+
 </launch>
