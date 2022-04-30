@@ -6,4 +6,7 @@
   
   <!-- Init gripper interface -->
   <node name="gripper_interface" pkg="gripper_interface" type="gripper_interface_node.py" output="screen" />
+
+  <!-- Torpedo system -->
+  <node pkg="torpedo" type="torpedo_launch_service.py" name="torpedo_node" output="screen" />
 </launch>

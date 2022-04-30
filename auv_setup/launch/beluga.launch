@@ -15,8 +15,6 @@
 
   <!-- DRIVERS -->
   <group if="$(eval type == 'real')">
-    <!-- Torpedo system -->
-    <node pkg="torpedo" type="torpedo_launch_service.py" name="torpedo_node" output="screen" />
 
     <!-- For monitoring internal state -->
     <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />

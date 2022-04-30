@@ -69,11 +69,10 @@ class GateSearch(smach.State):
             goal.orientation = self.odom.pose.pose.orientation
             goal = rotate_certain_angle(goal,45)
             vel_goal = Twist()
-            vel_goal.angular.z = 0.2
-            vel_goal.linear.z = -0.01
-            vel_goal.linear.x = 0.01
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
+            vel_goal.linear.z = -0.01 # should be ommited if drone is balanced and level underwater
+            vel_goal.linear.x = 0.01 # should be ommited if drone is balanced and level underwater. Same other places.
             self.velocity_ctrl_client(vel_goal,True)
-            rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
@@ -87,11 +86,10 @@ class GateSearch(smach.State):
             goal.orientation = self.odom.pose.pose.orientation
             goal = rotate_certain_angle(goal,-90)
             vel_goal = Twist()
-            vel_goal.angular.z = -0.2
+            vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
             vel_goal.linear.z = -0.01
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal,True)
-            rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
@@ -105,11 +103,10 @@ class GateSearch(smach.State):
             goal.orientation = self.odom.pose.pose.orientation
             goal = rotate_certain_angle(goal,45)
             vel_goal = Twist()
-            vel_goal.angular.z = 0.2
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             vel_goal.linear.z = -0.01
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal,True)
-            rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")

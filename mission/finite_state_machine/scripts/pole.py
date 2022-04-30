@@ -63,9 +63,8 @@ class PoleSearch(smach.State):
             goal.orientation = self.odom.pose.pose.orientation
             goal = rotate_certain_angle(goal,45)
             vel_goal = Twist()
-            vel_goal.angular.z = 0.2
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal,True)
-            rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
@@ -79,9 +78,8 @@ class PoleSearch(smach.State):
             goal.orientation = self.odom.pose.pose.orientation
             goal = rotate_certain_angle(goal,-90)
             vel_goal = Twist()
-            vel_goal.angular.z = -0.2
+            vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal,True)
-            rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
@@ -95,9 +93,8 @@ class PoleSearch(smach.State):
             goal.orientation = self.odom.pose.pose.orientation
             goal = rotate_certain_angle(goal,45)
             vel_goal = Twist()
-            vel_goal.angular.z = 0.2
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal,True)
-            rate = rospy.Rate(10)
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
