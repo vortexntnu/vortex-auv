@@ -51,7 +51,7 @@ class BuoyConverge(smach.State):
         print("get_pose_in_front returned:")
         print(goal_pose)
         goal.waypoints = [goal_pose.position]
-        goal.forward_speed = 0.1
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
 
         self.vtf_client.wait_for_server()
@@ -104,7 +104,7 @@ class BuoyExecute(smach.State):
         goal = VtfPathFollowingGoal()
         goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose,-0.5 )
         goal.waypoints =[goal_pose.position]
-        goal.forward_speed = 0.1
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
 
         self.vtf_client.wait_for_server()

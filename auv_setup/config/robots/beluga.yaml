@@ -162,6 +162,10 @@ joystick:
 
 fsm:
   landmark_topic: "/fsm/state"
+  # typical speeds used in FSM
+  slow_speed: 0.1
+  medium_speed: 0.2
+  fast_speed: 0.7
 
 battery:
   thresholds:

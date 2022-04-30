@@ -33,7 +33,7 @@ class PathSearch(smach.State):
 
         goal = VtfPathFollowingGoal()
         goal.waypoints = [Point(5,0,-0.5)]
-        goal.forward_speed = 0.2
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
@@ -77,7 +77,7 @@ class PathConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         goal.waypoints = [self.object.objectPose.pose.position]
-        goal.forward_speed = 0.1
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
 
         self.vtf_client.wait_for_server()
