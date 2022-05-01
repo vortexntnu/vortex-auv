@@ -29,9 +29,9 @@ class GateSearch(smach.State):
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
 
-        # self.landmarks_pub = rospy.Publisher('/fsm/object_positions_in',ObjectPosition,queue_size=1)
+        self.landmarks_pub = rospy.Publisher('/fsm/object_positions_in',ObjectPosition,queue_size=1)
 
-        # self.recov_point = self.landmarks_client("recovery_point").object
+        self.recov_point = self.landmarks_client("recovery_point").object
 
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
@@ -49,22 +49,26 @@ class GateSearch(smach.State):
         self.state_pub.publish("gate_search")
         rate = rospy.Rate(10)
 
-        # #RECOVERY
-        # if (self.recov_point.isDetected):
-        #     goal = VtfPathFollowingGoal()
-        #     goal.waypoints = [self.recov_point.objectPose.pose.position]
-        #     goal.forward_speed = rospy.get_param("/fsm/fast_speed")
-        #     goal.heading = "point_dependent_heading"
-        #     goal.heading_point = self.object.objectPose.pose.position
-        #     self.vtf_client.wait_for_server()
-        #     self.vtf_client.send_goal(goal)
-        #     while self.vtf_client.simple_state != actionlib.simple_action_client.SimpleGoalState.DONE:
-        #         print("Recovering")
-        #         rate.sleep()
+        #RECOVERY
+        if (self.recov_point.isDetected):
+            goal = VtfPathFollowingGoal()
+            goal.waypoints = [self.recov_point.objectPose.pose.position]
+            goal.forward_speed = rospy.get_param("/fsm/fast_speed")
+            goal.heading = "path_dependent_heading"
+            
+            self.vtf_client.wait_for_server()
+            self.vtf_client.send_goal(goal)
 
-        # self.recov_point.objectPose.pose.position = self.odom.pose.pose.position
-        # self.recov_point.isDetected = True
-        # self.landmarks_pub.publish(self.recov_point)
+            while self.vtf_client.simple_state != actionlib.simple_action_client.SimpleGoalState.DONE:
+                print("Recovering")
+                rate.sleep()
+
+        self.recov_point.objectPose.pose.position = self.odom.pose.pose.position
+        self.recov_point.isDetected = True
+        self.landmarks_pub.publish(self.recov_point)
+
+        self.object.estimateFucked = False
+        self.landmarks_pub.publish(self.object)
         
         while not self.object.isDetected:
 
@@ -79,7 +83,6 @@ class GateSearch(smach.State):
             while self.vtf_client.simple_state != actionlib.simple_action_client.SimpleGoalState.DONE and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
-                print(self.object.objectPose.pose.position)
                 rate.sleep()
             if self.object.isDetected:
                 break
@@ -96,7 +99,6 @@ class GateSearch(smach.State):
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
-                print(self.object.objectPose.pose.position)
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal,False)
             if self.object.isDetected:
@@ -113,7 +115,6 @@ class GateSearch(smach.State):
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
-                print(self.object.objectPose.pose.position)
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal,False)
             if self.object.isDetected:
@@ -130,7 +131,6 @@ class GateSearch(smach.State):
             while not within_acceptance_margins(goal,self.odom, True) and not self.object.isDetected:
                 self.object = self.landmarks_client("gate").object
                 print("SEARCHING FOR GATE ...")
-                print(self.object.objectPose.pose.position)
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal,False)
             if self.object.isDetected:
@@ -138,7 +138,6 @@ class GateSearch(smach.State):
 
         
             print("SEARCHING FOR GATE ...")
-            print(self.object.objectPose.pose.position)
             rospy.wait_for_service('send_positions')   
             self.object = self.landmarks_client("gate").object
             rate.sleep()

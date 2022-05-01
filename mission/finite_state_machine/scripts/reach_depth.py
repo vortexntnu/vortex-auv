@@ -24,7 +24,7 @@ class ReachDepth(smach.State):
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [Point(0,0,-1)]
+        goal.waypoints = [Point(0.1,0,-1)]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
         self.vtf_client.wait_for_server()

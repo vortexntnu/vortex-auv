@@ -15,7 +15,7 @@ class Perciever:
         
         self.gate = ObjectPosition()
         self.gate.objectID = "gate"
-        self.gate.objectPose.pose.position = Point(5,0,-1.4)
+        self.gate.objectPose.pose.position = Point(10,0,-1.4)
         self.gate.objectPose.pose.orientation.x = 0
         self.gate.objectPose.pose.orientation.y = 0
         self.gate.objectPose.pose.orientation.z = 1
@@ -37,16 +37,15 @@ class Perciever:
         self.state = msg.data
 
     def execute(self):
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(10)
         rospy.sleep(rospy.get_param("/fsm/time_to_launch"))
         while self.state != "gate_search" and not rospy.is_shutdown():
             rate.sleep()
         time.sleep(5)
         self.landmarks_pub.publish(self.gate)
-        # print("Published gate position")
-        # time.sleep(5)
-        # self.gate.estimateFucked = True
-        # self.landmarks_pub.publish(self.gate)
+        time.sleep(10)
+        self.gate.estimateFucked = True
+        self.landmarks_pub.publish(self.gate)
         while self.state != "pole_search" and not rospy.is_shutdown():
             rate.sleep()
         self.landmarks_pub.publish(self.pole)

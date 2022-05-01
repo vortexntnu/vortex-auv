@@ -162,7 +162,7 @@ joystick:
 
 fsm:
   landmark_topic: "/fsm/state"
-  time_to_launch: 10 # seconds
+  time_to_launch: 1 # seconds
   slow_speed: 0.1 # speeds used for slow tasks
   medium_speed: 0.2
   fast_speed: 0.7
