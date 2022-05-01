@@ -7,7 +7,7 @@ from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseActionGoal, MoveBaseGoal
-from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction, DpSetpoint
+from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal, SetVelocityGoal, SetVelocityAction, DpSetpoint, ObjectPosition
 from nav_msgs.msg import Odometry
 
 from tf.transformations import quaternion_from_euler
@@ -29,6 +29,10 @@ class GateSearch(smach.State):
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
 
+        # self.landmarks_pub = rospy.Publisher('/fsm/object_positions_in',ObjectPosition,queue_size=1)
+
+        # self.recov_point = self.landmarks_client("recovery_point").object
+
         self.state_pub = rospy.Publisher('/fsm/state',String,queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
@@ -43,9 +47,25 @@ class GateSearch(smach.State):
         
     def execute(self, userdata):
         self.state_pub.publish("gate_search")
-        
-
         rate = rospy.Rate(10)
+
+        # #RECOVERY
+        # if (self.recov_point.isDetected):
+        #     goal = VtfPathFollowingGoal()
+        #     goal.waypoints = [self.recov_point.objectPose.pose.position]
+        #     goal.forward_speed = rospy.get_param("/fsm/fast_speed")
+        #     goal.heading = "point_dependent_heading"
+        #     goal.heading_point = self.object.objectPose.pose.position
+        #     self.vtf_client.wait_for_server()
+        #     self.vtf_client.send_goal(goal)
+        #     while self.vtf_client.simple_state != actionlib.simple_action_client.SimpleGoalState.DONE:
+        #         print("Recovering")
+        #         rate.sleep()
+
+        # self.recov_point.objectPose.pose.position = self.odom.pose.pose.position
+        # self.recov_point.isDetected = True
+        # self.landmarks_pub.publish(self.recov_point)
+        
         while not self.object.isDetected:
 
             #SEARCH PATTERN
