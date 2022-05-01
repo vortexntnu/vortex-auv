@@ -7,6 +7,10 @@
     <node name="goal_pose_server" pkg="finite_state_machine"    type="goal_pose_server.py"                          />
     <node name="robosub_fsm"    pkg="finite_state_machine"    type="robosub_fsm.py"    output="screen"/>
     <node name="landmarks"    pkg="landmarks"    type="landmarks"    output="screen"/>
-    <!-- <node name="perception_simulator"    pkg="finite_state_machine"    type="perception_simulator.py"    output="screen"/> -->
+
+    <group if="$(eval type == 'perception_simulator')">
+      <node name="perception_simulator"    pkg="finite_state_machine"    type="perception_simulator.py"    output="screen"/> 
+    </group>
+    
   </group>
 </launch>
