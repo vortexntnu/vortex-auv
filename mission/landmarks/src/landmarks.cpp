@@ -14,6 +14,7 @@ Landmarks::Landmarks ():loop_rate(10) {
     objectPositions["pole"] = obj;
     objectPositions["path"] = obj;
     objectPositions["buoy"] = obj;
+    objectPositions["recovery_point"] = obj;
 }
 
 void Landmarks::callback(vortex_msgs::ObjectPosition objPose){
