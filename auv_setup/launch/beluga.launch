@@ -6,6 +6,7 @@
   <arg name="type" default="real"/> <!-- real | simulator -->
   <arg name="localization" default="ekf"/> <!-- ekf | eskf-->
   <arg name="computer" default="xavier" /> <!-- xavier | rpi -->
+  <arg name="dvl_ip" default=""/>
   <!-- PARAMETERS -->
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
@@ -20,14 +21,16 @@
     <include file="$(find internal_status)/launch/internal_status.launch" pass_all_args="true" />
 
     <!-- For launching the manipulator (gripper, torpedo, lights) nodes -->
-    <include file="$(find manipulators_launch)/launch/manipulators.launch" pass_all_args="true"/>
+    <!-- <include file="$(find manipulators_launch)/launch/manipulators.launch" pass_all_args="true"/> -->
 
     <!-- IMU -->
     <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
 
     <!-- DVL -->	
     <!-- <node pkg="dvl1000_ros" type="publisherDVL1000.py" name="publisherDVL1000" /> -->
-    <!-- <node pkg="uns_driver" type="uns_ros_driver.py" name="uns_driver" output="screen"/> -->  
+    <node pkg="uns_driver" type="uns_ros_driver.py" name="uns_driver" output="screen">
+        <param name="uns_ip" value="$(arg dvl_ip)"/>
+    </node>  
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
     <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />
