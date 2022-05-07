@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Kristoffer Rakstad Solberg, Student
 # Documented by Christopher Strom and Jae Hyeong Hwang
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
