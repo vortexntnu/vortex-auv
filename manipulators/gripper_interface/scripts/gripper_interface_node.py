@@ -16,14 +16,17 @@ off = 1.0
 active = 1
 inactive = 0
 
-class GripperInterfaceNode():
+
+class GripperInterfaceNode:
     def __init__(self):
-        rospy.init_node('gripper_interface')
-        self.joystick_sub = rospy.Subscriber('/mission/joystick_data', Joy, self.callback, queue_size=1)
+        rospy.init_node("gripper_interface")
+        self.joystick_sub = rospy.Subscriber(
+            "/mission/joystick_data", Joy, self.callback, queue_size=1
+        )
 
         self.gripper_state = inactive
 
-        self.cooldown_period = 0.4 # Seconds
+        self.cooldown_period = 0.4  # Seconds
         self.last_press = datetime.now()
 
         # GPIO setup
@@ -33,9 +36,9 @@ class GripperInterfaceNode():
         GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
 
     def callback(self, joy_msg):
-        
+
         Dpad = joy_msg.axes[7]
-        if Dpad != 0: # only handle non-zero messages, since the joy topic is spammed
+        if Dpad != 0:  # only handle non-zero messages, since the joy topic is spammed
 
             time_delta = datetime.now() - self.last_press
             if time_delta.total_seconds() > self.cooldown_period:
@@ -50,16 +53,17 @@ class GripperInterfaceNode():
                 elif Dpad == off and self.gripper_state == active:
                     GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
                     rospy.loginfo("Gripper deactivated!")
-                    
+
                     self.last_press = datetime.now()
                     self.gripper_state = inactive
 
     def shutdown(self):
         GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     node = GripperInterfaceNode()
-    
+
     while not rospy.is_shutdown():
         rospy.spin()
 

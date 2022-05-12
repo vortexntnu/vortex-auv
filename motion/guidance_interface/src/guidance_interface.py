@@ -93,7 +93,6 @@ class JoyGuidance:
     def action_server_callback(self, control_mode_goal):
         self.guidance_interface.stop_all_guidance()
 
-
         if self.activate_joystick(True):
             self.joystick_controlmode_server.set_succeeded()
         else:
@@ -101,10 +100,6 @@ class JoyGuidance:
 
     def stop(self):
         self.activate_joystick(False)
-
-
-
-
 
 
 class GuidanceInterface:

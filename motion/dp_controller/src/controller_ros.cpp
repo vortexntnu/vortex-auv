@@ -4,8 +4,7 @@
 
 #include "dp_controller/controller_ros.h"
 
-Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
-{
+Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   // Load rosparams
   std::string odometry_topic;
   std::string thrust_topic;
@@ -19,50 +18,47 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
   if (!nh.getParam("/thrust/thrust_topic", thrust_topic))
     thrust_topic = "/thrust/desired_forces";
 
-  if (!m_nh.getParam("/controllers/dp/velocity_gain", a))
-  {
+  if (!m_nh.getParam("/controllers/dp/velocity_gain", a)) {
     ROS_FATAL("Failed to read parameter velocity_gain.");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/controllers/dp/position_gain", b))
-  {
+  if (!m_nh.getParam("/controllers/dp/position_gain", b)) {
     ROS_FATAL("Failed to read parameter position_gain.");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/controllers/dp/attitude_gain", c))
-  {
+  if (!m_nh.getParam("/controllers/dp/attitude_gain", c)) {
     ROS_FATAL("Failed to read parameter attitude_gain.");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/controllers/dp/integral_gain", i))
-  {
+  if (!m_nh.getParam("/controllers/dp/integral_gain", i)) {
     ROS_FATAL("Failed to read parameter integral_gain.");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/physical/weight", W))
-  {
+  if (!m_nh.getParam("/physical/weight", W)) {
     ROS_FATAL("Failed to read parameter physical/weight. Shutting down node..");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/physical/buoyancy", B))
-  {
-    ROS_FATAL("Failed to read parameter physical/buoyancy. Shutting down node..");
+  if (!m_nh.getParam("/physical/buoyancy", B)) {
+    ROS_FATAL(
+        "Failed to read parameter physical/buoyancy. Shutting down node..");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/physical/center_of_mass", r_G_vec))
-  {
-    ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down node..");
+  if (!m_nh.getParam("/physical/center_of_mass", r_G_vec)) {
+    ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down "
+              "node..");
     ros::shutdown();
   }
-  if (!m_nh.getParam("/physical/center_of_buoyancy", r_B_vec))
-  {
-    ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting down node..");
+  if (!m_nh.getParam("/physical/center_of_buoyancy", r_B_vec)) {
+    ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting "
+              "down node..");
     ros::shutdown();
   }
 
   // calculate vectors to CG and CB in meters
-  Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]) / 1000;  // convert from mm to m
-  Eigen::Vector3d r_B = Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]) / 1000;
+  Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]) /
+                        1000; // convert from mm to m
+  Eigen::Vector3d r_B =
+      Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]) / 1000;
 
   // Initiate variables
   prev_control_mode = ControlModes::OPEN_LOOP;
@@ -72,7 +68,8 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
   velocity = Eigen::VectorXd::Zero(6);
 
   // Set up a dynamic reconfigure server
-  dynamic_reconfigure::Server<dp_controller::VortexControllerConfig>::CallbackType dr_cb;
+  dynamic_reconfigure::Server<
+      dp_controller::VortexControllerConfig>::CallbackType dr_cb;
   dr_cb = boost::bind(&Controller::configCallback, this, _1, _2);
   m_dr_srv.setCallback(dr_cb);
 
@@ -85,19 +82,19 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh)
   m_debug_pub = m_nh.advertise<vortex_msgs::Debug>("debug/controlstates", 10);
 
   // Subscribers
-  m_state_sub = m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
-  m_guidance_sub = m_nh.subscribe("dp_data", 1, &Controller::guidanceCallback, this);
+  m_state_sub =
+      m_nh.subscribe(odometry_topic, 1, &Controller::stateCallback, this);
+  m_guidance_sub =
+      m_nh.subscribe("dp_data", 1, &Controller::guidanceCallback, this);
 
   ROS_INFO("DP controller initialized");
 }
 
-ControlMode Controller::getControlMode(int mode)
-{
+ControlMode Controller::getControlMode(int mode) {
   return static_cast<ControlMode>(mode);
 }
 
-void Controller::stateCallback(const nav_msgs::Odometry& msg)
-{
+void Controller::stateCallback(const nav_msgs::Odometry &msg) {
   // Convert to eigen for computation
   Eigen::Vector3d position_tmp;
   Eigen::Quaterniond orientation_tmp;
@@ -106,14 +103,12 @@ void Controller::stateCallback(const nav_msgs::Odometry& msg)
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation_tmp);
   tf::twistMsgToEigen(msg.twist.twist, velocity_tmp);
 
-  bool orientation_invalid = (abs(orientation_tmp.norm() - 1) > c_max_quat_norm_deviation);
-  if (isFucked(position_tmp) || isFucked(velocity_tmp) || orientation_invalid)
-  {
+  bool orientation_invalid =
+      (abs(orientation_tmp.norm() - 1) > c_max_quat_norm_deviation);
+  if (isFucked(position_tmp) || isFucked(velocity_tmp) || orientation_invalid) {
     ROS_WARN_THROTTLE(1, "Invalid state estimate received, ignoring...");
     return;
-  }
-  else
-  {
+  } else {
     // Update local states position, orientation and velocity
     position = position_tmp;
     orientation = orientation_tmp;
@@ -122,18 +117,19 @@ void Controller::stateCallback(const nav_msgs::Odometry& msg)
   }
 }
 
-void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
-{
+void Controller::guidanceCallback(const vortex_msgs::DpSetpoint &msg) {
 
   // gets the newest state as Eigen
-  position_setpoint = Eigen::Vector3d{msg.setpoint.position.x, msg.setpoint.position.y, msg.setpoint.position.z};
-  orientation_setpoint = Eigen::Quaterniond{msg.setpoint.orientation.w, msg.setpoint.orientation.x,
-                                          msg.setpoint.orientation.y, msg.setpoint.orientation.z};
+  position_setpoint =
+      Eigen::Vector3d{msg.setpoint.position.x, msg.setpoint.position.y,
+                      msg.setpoint.position.z};
+  orientation_setpoint = Eigen::Quaterniond{
+      msg.setpoint.orientation.w, msg.setpoint.orientation.x,
+      msg.setpoint.orientation.y, msg.setpoint.orientation.z};
 
   // check control mode
   ControlMode control_mode = getControlMode(msg.control_mode);
-  if (control_mode != prev_control_mode)
-  {
+  if (control_mode != prev_control_mode) {
     prev_control_mode = control_mode;
 
     // If control mode is OPENLOOP, publish zero control force
@@ -154,25 +150,29 @@ void Controller::guidanceCallback(const vortex_msgs::DpSetpoint& msg)
     // Integral action reset
     m_controller.integral = Eigen::Vector6d::Zero();
 
-    ROS_INFO_STREAM("Changing mode to " << controlModeString(control_mode) << ".");
+    ROS_INFO_STREAM("Changing mode to " << controlModeString(control_mode)
+                                        << ".");
   }
 }
 
-void Controller::configCallback(const dp_controller::VortexControllerConfig& config, uint32_t level)
-{
+void Controller::configCallback(
+    const dp_controller::VortexControllerConfig &config, uint32_t level) {
   ROS_INFO("DP controller reconfigure:");
   ROS_INFO("\t velocity_gain: %2.4f", config.velocity_gain);
   ROS_INFO("\t position_gain: %2.4f", config.position_gain);
   ROS_INFO("\t attitude_gain: %2.4f", config.attitude_gain);
   ROS_INFO("\t integral_gain: %2.4f", config.integral_gain);
 
-  m_controller.setGains(config.velocity_gain, config.position_gain, config.attitude_gain, config.integral_gain);
+  m_controller.setGains(config.velocity_gain, config.position_gain,
+                        config.attitude_gain, config.integral_gain);
 }
 
-void Controller::publishDebugMsg(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
-                                 const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint,
-                                 const Eigen::Quaterniond& orientation_setpoint)
-{
+void Controller::publishDebugMsg(
+    const Eigen::Vector3d &position_state,
+    const Eigen::Quaterniond &orientation_state,
+    const Eigen::Vector6d &velocity_state,
+    const Eigen::Vector3d &position_setpoint,
+    const Eigen::Quaterniond &orientation_setpoint) {
   vortex_msgs::Debug dbg_msg;
 
   // Estimated position
@@ -196,8 +196,10 @@ void Controller::publishDebugMsg(const Eigen::Vector3d& position_state, const Ei
   dbg_msg.setpoint_position.z = position_setpoint[2];
 
   // Debub state euler orientation
-  Eigen::Vector3d dbg_state_orientation = orientation_state.toRotationMatrix().eulerAngles(2, 1, 0);
-  Eigen::Vector3d dbg_setpoint_orientation = orientation_setpoint.toRotationMatrix().eulerAngles(2, 1, 0);
+  Eigen::Vector3d dbg_state_orientation =
+      orientation_state.toRotationMatrix().eulerAngles(2, 1, 0);
+  Eigen::Vector3d dbg_setpoint_orientation =
+      orientation_setpoint.toRotationMatrix().eulerAngles(2, 1, 0);
 
   // Debug state orientation
   dbg_msg.state_yaw = dbg_state_orientation[0];
@@ -213,21 +215,25 @@ void Controller::publishDebugMsg(const Eigen::Vector3d& position_state, const Ei
   m_debug_pub.publish(dbg_msg);
 }
 
-Eigen::Vector6d Controller::depthHold(const Eigen::Vector3d& position_state,
-                                      const Eigen::Quaterniond& orientation_state,
-                                      const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d{0, 0, position_state[2]}, orientation_state, velocity_state,
-                                                 Eigen::Vector3d{0, 0, position_setpoint[2]}, orientation_state);
+Eigen::Vector6d
+Controller::depthHold(const Eigen::Vector3d &position_state,
+                      const Eigen::Quaterniond &orientation_state,
+                      const Eigen::Vector6d &velocity_state,
+                      const Eigen::Vector3d &position_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      Eigen::Vector3d{0, 0, position_state[2]}, orientation_state,
+      velocity_state, Eigen::Vector3d{0, 0, position_setpoint[2]},
+      orientation_state);
   return tau;
 }
 
-Eigen::Vector6d Controller::headingHold(const Eigen::Quaterniond& orientation_state,
-                                        const Eigen::Vector6d& velocity_state,
-                                        const Eigen::Quaterniond& orientation_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d::Zero(), orientation_state, velocity_state,
-                                                 Eigen::Vector3d::Zero(), orientation_setpoint);
+Eigen::Vector6d
+Controller::headingHold(const Eigen::Quaterniond &orientation_state,
+                        const Eigen::Vector6d &velocity_state,
+                        const Eigen::Quaterniond &orientation_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      Eigen::Vector3d::Zero(), orientation_state, velocity_state,
+      Eigen::Vector3d::Zero(), orientation_setpoint);
 
   // Allow only yaw feedback command
   tau(SURGE) = 0;
@@ -239,14 +245,15 @@ Eigen::Vector6d Controller::headingHold(const Eigen::Quaterniond& orientation_st
   return tau;
 }
 
-Eigen::Vector6d Controller::positionHold(const Eigen::Vector3d& position_state,
-                                         const Eigen::Quaterniond& orientation_state,
-                                         const Eigen::Vector6d& velocity_state,
-                                         const Eigen::Vector3d& position_setpoint,
-                                         const Eigen::Quaterniond& orientation_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(position_state, orientation_state, velocity_state, position_setpoint,
-                                                 orientation_setpoint);
+Eigen::Vector6d
+Controller::positionHold(const Eigen::Vector3d &position_state,
+                         const Eigen::Quaterniond &orientation_state,
+                         const Eigen::Vector6d &velocity_state,
+                         const Eigen::Vector3d &position_setpoint,
+                         const Eigen::Quaterniond &orientation_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      position_state, orientation_state, velocity_state, position_setpoint,
+      orientation_setpoint);
 
   // Allow only surge,sway,heave feedback command
   tau(ROLL) = 0;
@@ -256,14 +263,15 @@ Eigen::Vector6d Controller::positionHold(const Eigen::Vector3d& position_state,
   return tau;
 }
 
-Eigen::Vector6d Controller::positionHeadingHold(const Eigen::Vector3d& position_state,
-                                                const Eigen::Quaterniond& orientation_state,
-                                                const Eigen::Vector6d& velocity_state,
-                                                const Eigen::Vector3d& position_setpoint,
-                                                const Eigen::Quaterniond& orientation_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(position_state, orientation_state, velocity_state, position_setpoint,
-                                                 orientation_setpoint);
+Eigen::Vector6d Controller::positionHeadingHold(
+    const Eigen::Vector3d &position_state,
+    const Eigen::Quaterniond &orientation_state,
+    const Eigen::Vector6d &velocity_state,
+    const Eigen::Vector3d &position_setpoint,
+    const Eigen::Quaterniond &orientation_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      position_state, orientation_state, velocity_state, position_setpoint,
+      orientation_setpoint);
 
   tau(ROLL) = 0;
   tau(PITCH) = 0;
@@ -271,101 +279,118 @@ Eigen::Vector6d Controller::positionHeadingHold(const Eigen::Vector3d& position_
   return tau;
 }
 
-Eigen::Vector6d Controller::poseHold(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
-                                     const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint,
-                                     const Eigen::Quaterniond& orientation_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(position_state, orientation_state, velocity_state, position_setpoint,
-                                                 orientation_setpoint);
+Eigen::Vector6d
+Controller::poseHold(const Eigen::Vector3d &position_state,
+                     const Eigen::Quaterniond &orientation_state,
+                     const Eigen::Vector6d &velocity_state,
+                     const Eigen::Vector3d &position_setpoint,
+                     const Eigen::Quaterniond &orientation_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      position_state, orientation_state, velocity_state, position_setpoint,
+      orientation_setpoint);
   return tau;
 }
 
-Eigen::Vector6d Controller::orientationHold(const Eigen::Quaterniond& orientation_state,
-                                            const Eigen::Vector6d& velocity_state,
-                                            const Eigen::Quaterniond& orientation_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d::Zero(), orientation_state, velocity_state,
-                                                 Eigen::Vector3d::Zero(), orientation_setpoint);
+Eigen::Vector6d
+Controller::orientationHold(const Eigen::Quaterniond &orientation_state,
+                            const Eigen::Vector6d &velocity_state,
+                            const Eigen::Quaterniond &orientation_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      Eigen::Vector3d::Zero(), orientation_state, velocity_state,
+      Eigen::Vector3d::Zero(), orientation_setpoint);
   return tau;
 }
 
-Eigen::Vector6d Controller::orientationDepthHold(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
-                                     const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint,
-                                     const Eigen::Quaterniond& orientation_setpoint)
-{
-  Eigen::Vector6d tau = m_controller.getFeedback(Eigen::Vector3d{0, 0, position_state[2]}, orientation_state, velocity_state, 
-                                      Eigen::Vector3d{0, 0, position_setpoint[2]}, orientation_setpoint);
+Eigen::Vector6d Controller::orientationDepthHold(
+    const Eigen::Vector3d &position_state,
+    const Eigen::Quaterniond &orientation_state,
+    const Eigen::Vector6d &velocity_state,
+    const Eigen::Vector3d &position_setpoint,
+    const Eigen::Quaterniond &orientation_setpoint) {
+  Eigen::Vector6d tau = m_controller.getFeedback(
+      Eigen::Vector3d{0, 0, position_state[2]}, orientation_state,
+      velocity_state, Eigen::Vector3d{0, 0, position_setpoint[2]},
+      orientation_setpoint);
   return tau;
 }
 
-void Controller::spin(){
+void Controller::spin() {
   ros::Rate rate(10);
 
   // Declaration of general forces
   Eigen::Vector6d tau_command = Eigen::VectorXd::Zero(6);
   geometry_msgs::Wrench tau_msg;
 
-  while( ros::ok()){
+  while (ros::ok()) {
 
-    switch (prev_control_mode)
-    {
-      case ControlModes::OPEN_LOOP:
-        // let tau_command stay a zero vector
-        break;
+    switch (prev_control_mode) {
+    case ControlModes::OPEN_LOOP:
+      // let tau_command stay a zero vector
+      break;
 
-      case ControlModes::POSITION_HOLD:
-        tau_command = positionHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::POSITION_HOLD:
+      tau_command = positionHold(position, orientation, velocity,
+                                 position_setpoint, orientation_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      case ControlModes::DEPTH_HOLD:
-        tau_command = depthHold(position, orientation, velocity, position_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::DEPTH_HOLD:
+      tau_command =
+          depthHold(position, orientation, velocity, position_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      case ControlModes::POSITION_HEADING_HOLD:
-        tau_command = positionHeadingHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::POSITION_HEADING_HOLD:
+      tau_command =
+          positionHeadingHold(position, orientation, velocity,
+                              position_setpoint, orientation_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      case ControlModes::HEADING_HOLD:
-        tau_command = headingHold(orientation, velocity, orientation_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::HEADING_HOLD:
+      tau_command = headingHold(orientation, velocity, orientation_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      case ControlModes::POSE_HOLD:
-        tau_command = poseHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::POSE_HOLD:
+      tau_command = poseHold(position, orientation, velocity, position_setpoint,
+                             orientation_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      case ControlModes::DEPTH_HEADING_HOLD: {
-        Eigen::Vector6d tau_depthhold = depthHold(position, orientation, velocity, position_setpoint);
-        Eigen::Vector6d tau_headinghold = headingHold(orientation, velocity, orientation_setpoint);
-        tau_command = tau_depthhold + tau_headinghold;
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
-      }
+    case ControlModes::DEPTH_HEADING_HOLD: {
+      Eigen::Vector6d tau_depthhold =
+          depthHold(position, orientation, velocity, position_setpoint);
+      Eigen::Vector6d tau_headinghold =
+          headingHold(orientation, velocity, orientation_setpoint);
+      tau_command = tau_depthhold + tau_headinghold;
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
+    }
 
-      case ControlModes::ORIENTATION_HOLD:
-        tau_command = orientationHold(orientation, velocity, orientation_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::ORIENTATION_HOLD:
+      tau_command =
+          orientationHold(orientation, velocity, orientation_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      case ControlModes::ORIENTATION_DEPTH_HOLD:
-        tau_command = orientationDepthHold(position, orientation, velocity, position_setpoint, orientation_setpoint);
-        tf::wrenchEigenToMsg(tau_command, tau_msg);
-        m_wrench_pub.publish(tau_msg);
-        break;
+    case ControlModes::ORIENTATION_DEPTH_HOLD:
+      tau_command =
+          orientationDepthHold(position, orientation, velocity,
+                               position_setpoint, orientation_setpoint);
+      tf::wrenchEigenToMsg(tau_command, tau_msg);
+      m_wrench_pub.publish(tau_msg);
+      break;
 
-      default:
-        ROS_ERROR("Default control mode reached.");
+    default:
+      ROS_ERROR("Default control mode reached.");
     }
 
     ros::spinOnce();

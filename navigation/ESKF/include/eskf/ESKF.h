@@ -6,8 +6,6 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vector>
 
-
-
 namespace eskf
 {
 enum NominalStateMembers  //(16x1)
@@ -59,7 +57,9 @@ struct AdandGQGD
 struct StatesAndErrorCovariance
 {
   Eigen::Matrix<double, NOMINAL_STATE_SIZE, 1> X{ Eigen::Matrix<double, NOMINAL_STATE_SIZE, 1>::Zero() };
-  Eigen::Matrix<double, ERROR_STATE_SIZE, ERROR_STATE_SIZE> P{ Eigen::Matrix<double, ERROR_STATE_SIZE, ERROR_STATE_SIZE>::Zero() };
+  Eigen::Matrix<double, ERROR_STATE_SIZE, ERROR_STATE_SIZE> P{
+    Eigen::Matrix<double, ERROR_STATE_SIZE, ERROR_STATE_SIZE>::Zero()
+  };
 };
 
 struct InnovationPressureStates
@@ -124,62 +124,65 @@ struct parametersInESKF
   bool use_ENU;
 };
 
-
 struct StateAndCovariance_msg
 {
   double timeStamp_;
   Eigen::Matrix<double, NOMINAL_STATE_SIZE, 1> X_;
   Eigen::Matrix<double, ERROR_STATE_SIZE, ERROR_STATE_SIZE> P_;
-  StateAndCovariance_msg()
-  :timeStamp_{0}
+  StateAndCovariance_msg() : timeStamp_{ 0 }
   {
     X_.setZero();
     P_.setZero();
   }
-  StateAndCovariance_msg(const Eigen::Matrix<double,NOMINAL_STATE_SIZE,1>& XState, const Eigen::Matrix<double,ERROR_STATE_SIZE,ERROR_STATE_SIZE>& PState,const double& timeStamp)
-  :X_{XState},P_{PState},timeStamp_{timeStamp}
+  StateAndCovariance_msg(const Eigen::Matrix<double, NOMINAL_STATE_SIZE, 1>& XState,
+                         const Eigen::Matrix<double, ERROR_STATE_SIZE, ERROR_STATE_SIZE>& PState,
+                         const double& timeStamp)
+    : X_{ XState }, P_{ PState }, timeStamp_{ timeStamp }
   {
   }
-
 };
 
-struct IMUmessage 
+struct IMUmessage
 {
   bool predicted_msg_;
   double timeStamp_;
   double deltaIMU_;
   Eigen::Vector3d zAccMeasurement_;
   Eigen::Vector3d zGyroMeasurement_;
-  Eigen::Matrix<double,3,3> R_acc_;
-  Eigen::Matrix<double,3,3> R_gyro_;
-  IMUmessage()
-  :timeStamp_{0},deltaIMU_{0},predicted_msg_{false}
+  Eigen::Matrix<double, 3, 3> R_acc_;
+  Eigen::Matrix<double, 3, 3> R_gyro_;
+  IMUmessage() : timeStamp_{ 0 }, deltaIMU_{ 0 }, predicted_msg_{ false }
   {
     zAccMeasurement_.setZero();
     zGyroMeasurement_.setZero();
     R_acc_.setZero();
     R_gyro_.setZero();
   }
-  IMUmessage(const double& timeStamp,const double& deltaIMU, const Eigen::Vector3d& zAcc, const Eigen::Vector3d& zGyro, const Eigen::Matrix<double,3,3>& Racc, const Eigen::Matrix<double,3,3> Rgyro)
-  : timeStamp_{timeStamp},deltaIMU_{deltaIMU},zAccMeasurement_{zAcc},zGyroMeasurement_{zGyro},R_acc_{Racc},R_gyro_{Rgyro},predicted_msg_{false}
+  IMUmessage(const double& timeStamp, const double& deltaIMU, const Eigen::Vector3d& zAcc, const Eigen::Vector3d& zGyro,
+             const Eigen::Matrix<double, 3, 3>& Racc, const Eigen::Matrix<double, 3, 3> Rgyro)
+    : timeStamp_{ timeStamp }
+    , deltaIMU_{ deltaIMU }
+    , zAccMeasurement_{ zAcc }
+    , zGyroMeasurement_{ zGyro }
+    , R_acc_{ Racc }
+    , R_gyro_{ Rgyro }
+    , predicted_msg_{ false }
   {
   }
-
 };
 
 struct DVLmessage
 {
   double timeStamp_;
   Eigen::Vector3d zDVl_;
-  Eigen::Matrix<double,3,3> R_dvl_;
-  DVLmessage()
-  :timeStamp_{0}
+  Eigen::Matrix<double, 3, 3> R_dvl_;
+  DVLmessage() : timeStamp_{ 0 }
   {
     zDVl_.setZero();
     R_dvl_.setZero();
   }
-  DVLmessage(const double& timeStamp, const Eigen::Vector3d zDvl, const Eigen::Matrix<double,3,3> R_dvl)
-  :timeStamp_{timeStamp},zDVl_{zDvl},R_dvl_{R_dvl}
+  DVLmessage(const double& timeStamp, const Eigen::Vector3d zDvl, const Eigen::Matrix<double, 3, 3> R_dvl)
+    : timeStamp_{ timeStamp }, zDVl_{ zDvl }, R_dvl_{ R_dvl }
   {
   }
 };
@@ -188,14 +191,13 @@ struct PressureZmessage
 {
   double timeStamp_;
   double pressureZ_msg_;
-  Eigen::Matrix<double,1,1> R_pressureZ_;
-  PressureZmessage()
-  :timeStamp_{0}, pressureZ_msg_{0}
+  Eigen::Matrix<double, 1, 1> R_pressureZ_;
+  PressureZmessage() : timeStamp_{ 0 }, pressureZ_msg_{ 0 }
   {
     R_pressureZ_.setZero();
   }
-  PressureZmessage(const double& timeStamp, const double& pressureZ_msg, Eigen::Matrix<double,1,1> R_pressureZ)
-  :timeStamp_{timeStamp},pressureZ_msg_{pressureZ_msg},R_pressureZ_{R_pressureZ}
+  PressureZmessage(const double& timeStamp, const double& pressureZ_msg, Eigen::Matrix<double, 1, 1> R_pressureZ)
+    : timeStamp_{ timeStamp }, pressureZ_msg_{ pressureZ_msg }, R_pressureZ_{ R_pressureZ }
   {
   }
 };
@@ -205,20 +207,24 @@ class ESKF
 public:
   explicit ESKF(const parametersInESKF& parameters);
 
-  explicit ESKF(Eigen::Matrix3d Racc, Eigen::Matrix3d RaccBias, Eigen::Matrix3d Rgyro, Eigen::Matrix3d RgyroBias, double pgyroBias, double paccBias,
-                Eigen::Matrix3d Sa, Eigen::Matrix3d Sg, Eigen::Matrix3d Sdvl, Eigen::Matrix3d Sinc);
+  explicit ESKF(Eigen::Matrix3d Racc, Eigen::Matrix3d RaccBias, Eigen::Matrix3d Rgyro, Eigen::Matrix3d RgyroBias,
+                double pgyroBias, double paccBias, Eigen::Matrix3d Sa, Eigen::Matrix3d Sg, Eigen::Matrix3d Sdvl,
+                Eigen::Matrix3d Sinc);
   void predictWithBuffer();
   void predict(const Eigen::Vector3d& zAccMeasurements, const Eigen::Vector3d& zGyroMeasurements, const double& Ts,
-               const Eigen::Matrix3d& Racc, const Eigen::Matrix3d& Rgyro);           
+               const Eigen::Matrix3d& Racc, const Eigen::Matrix3d& Rgyro);
   void updateDVL(const Eigen::Vector3d& zDVLvel, const Eigen::Matrix3d& RDVL);
   void updatePressureZ(const double& zPressureZpos, const Eigen::MatrixXd& RpressureZ);
-  void bufferIMUMessages(const Eigen::Vector3d& zAccMeasurements, const Eigen::Vector3d& zGyroMeasurements, const double& timeStamp,const double& deltaIMU, const Eigen::Matrix3d& Racc, const Eigen::Matrix3d& Rgyro);
-  void bufferDVLMessages(const Eigen::Vector3d& zDvlMeasurements,const double timeStamp,const Eigen::Matrix3d& Rdvl);
-  void bufferPressureZMessages(const double& pressureZ,const double& timeStamp, Eigen::Matrix<double,1,1> R_pressureZ);
+  void bufferIMUMessages(const Eigen::Vector3d& zAccMeasurements, const Eigen::Vector3d& zGyroMeasurements,
+                         const double& timeStamp, const double& deltaIMU, const Eigen::Matrix3d& Racc,
+                         const Eigen::Matrix3d& Rgyro);
+  void bufferDVLMessages(const Eigen::Vector3d& zDvlMeasurements, const double timeStamp, const Eigen::Matrix3d& Rdvl);
+  void bufferPressureZMessages(const double& pressureZ, const double& timeStamp,
+                               Eigen::Matrix<double, 1, 1> R_pressureZ);
   void update();
   void UpdateOnlyWithPrediction();
-  //void updateDVL(const Eigen::Vector3d& zDVLvel, const Eigen::Matrix3d& RDVL);
-  //void updatePressureZ(const double& zPressureZpos, const Eigen::MatrixXd& RpressureZ);
+  // void updateDVL(const Eigen::Vector3d& zDVLvel, const Eigen::Matrix3d& RDVL);
+  // void updatePressureZ(const double& zPressureZpos, const Eigen::MatrixXd& RpressureZ);
   void updateDVLWithBuffer();
   void updatePressureZWithBuffer();
 
@@ -228,29 +234,27 @@ public:
     if (use_ENU_)
     {
       return Eigen::Quaterniond{ optimizationParameters_.X(StateMemberQw), optimizationParameters_.X(StateMemberQy),
-                          optimizationParameters_.X(StateMemberQx), -optimizationParameters_.X(StateMemberQz) };
+                                 optimizationParameters_.X(StateMemberQx), -optimizationParameters_.X(StateMemberQz) };
     }
     else  // use NED
     {
       return Eigen::Quaterniond{ optimizationParameters_.X(StateMemberQw), optimizationParameters_.X(StateMemberQx),
-                          optimizationParameters_.X(StateMemberQy), optimizationParameters_.X(StateMemberQz) };
+                                 optimizationParameters_.X(StateMemberQy), optimizationParameters_.X(StateMemberQz) };
     }
   }
 
   inline void setPositionAndQuaternion(Eigen::Vector3d position, Eigen::Vector4d quat)
   {
-
     optimizationParameters_.X.block<NOMINAL_POSITION_STATE_SIZE, 1>(NOMINAL_POSITION_STATE_OFFSET, 0) = position;
-    optimizationParameters_.X.block<NOMINAL_QUATERNION_STATE_SIZE,1>(NOMINAL_QUATERNION_STATE_OFFSET,0) = quat;
+    optimizationParameters_.X.block<NOMINAL_QUATERNION_STATE_SIZE, 1>(NOMINAL_QUATERNION_STATE_OFFSET, 0) = quat;
   }
 
-  
   inline Eigen::Vector3d getPosition() const
   {
     Eigen::Matrix3d R_ned_to_enu = Eigen::Matrix3d::Zero();
     Eigen::Vector3d position = Eigen::Vector3d::Zero();
 
-    R_ned_to_enu << 1, 0, 0, 0, -1, 0, 0, 0, 1; // TODO: Add correct transformation with EKF
+    R_ned_to_enu << 1, 0, 0, 0, -1, 0, 0, 0, 1;  // TODO: Add correct transformation with EKF
 
     position = optimizationParameters_.X.block<NOMINAL_POSITION_STATE_SIZE, 1>(NOMINAL_POSITION_STATE_OFFSET, 0);
 
@@ -301,15 +305,15 @@ public:
 
   inline Eigen::Vector3d getGyroBias() const
   {
-    return optimizationParameters_.X.block<NOMINAL_GYRO_BIAS_SIZE,1>(NOMINAL_GYRO_BIAS_STATE_OFFSET,0);
+    return optimizationParameters_.X.block<NOMINAL_GYRO_BIAS_SIZE, 1>(NOMINAL_GYRO_BIAS_STATE_OFFSET, 0);
   }
 
   inline Eigen::Vector3d getAccBias() const
   {
-    return optimizationParameters_.X.block<NOMINAL_ACC_BIAS_SIZE,1>(NOMINAL_ACC_BIAS_STATE_OFFSET,0);
+    return optimizationParameters_.X.block<NOMINAL_ACC_BIAS_SIZE, 1>(NOMINAL_ACC_BIAS_STATE_OFFSET, 0);
   }
 
-    inline double getNISPressureZ() const
+  inline double getNISPressureZ() const
   {
     return NISPressureZ_;
   }
@@ -321,34 +325,39 @@ public:
 
 private:
   Eigen::VectorXd predictNominal(const Eigen::VectorXd& xnominal, const Eigen::Vector3d& accRectifiedMeasurements,
-                          const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
+                                 const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
 
-  Eigen::MatrixXd predictCovariance(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P, const Eigen::Vector3d& accRectifiedMeasurements,
-                             const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts, const Eigen::Matrix3d& Racc,
-                             const Eigen::Matrix3d& Rgyro) const;
+  Eigen::MatrixXd predictCovariance(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P,
+                                    const Eigen::Vector3d& accRectifiedMeasurements,
+                                    const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts,
+                                    const Eigen::Matrix3d& Racc, const Eigen::Matrix3d& Rgyro) const;
 
   AdandGQGD discreteErrorMatrix(const Eigen::VectorXd& xnominal, const Eigen::Vector3d& accRectifiedMeasurements,
-                                const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts, const Eigen::Matrix3d& Racc,
-                                const Eigen::Matrix3d& Rgyro) const;
+                                const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts,
+                                const Eigen::Matrix3d& Racc, const Eigen::Matrix3d& Rgyro) const;
   // Lower computation time implementation
-  Eigen::MatrixXd AerrDiscretizedFirstOrder(const Eigen::VectorXd& xnominal, const Eigen::Vector3d& accRectifiedMeasurements,
-                                     const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
-  Eigen::MatrixXd AerrDiscretizedSecondOrder(const Eigen::VectorXd& xnominal, const Eigen::Vector3d& accRectifiedMeasurements,
-                                      const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
-  Eigen::MatrixXd AerrDiscretizedThirdOrder(const Eigen::VectorXd& xnominal, const Eigen::Vector3d& accRectifiedMeasurements,
-                                     const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
+  Eigen::MatrixXd AerrDiscretizedFirstOrder(const Eigen::VectorXd& xnominal,
+                                            const Eigen::Vector3d& accRectifiedMeasurements,
+                                            const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
+  Eigen::MatrixXd AerrDiscretizedSecondOrder(const Eigen::VectorXd& xnominal,
+                                             const Eigen::Vector3d& accRectifiedMeasurements,
+                                             const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
+  Eigen::MatrixXd AerrDiscretizedThirdOrder(const Eigen::VectorXd& xnominal,
+                                            const Eigen::Vector3d& accRectifiedMeasurements,
+                                            const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
 
   Eigen::Matrix3d AngularErrorMatrix(const Eigen::Vector3d& gyroRectifiedmeasurements, const double& Ts) const;
 
   Eigen::MatrixXd Aerr(const Eigen::VectorXd& xnominal, const Eigen::Vector3d& accRectifiedMeasurements,
-                const Eigen::Vector3d& gyroRectifiedmeasurements) const;
+                       const Eigen::Vector3d& gyroRectifiedmeasurements) const;
 
-  StatesAndErrorCovariance inject(const Eigen::VectorXd& xnominal, const Eigen::VectorXd& deltaX, const Eigen::MatrixXd& P) const;
+  StatesAndErrorCovariance inject(const Eigen::VectorXd& xnominal, const Eigen::VectorXd& deltaX,
+                                  const Eigen::MatrixXd& P) const;
 
-  InnovationParameters innovationDVL(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P, const Eigen::Vector3d& zDVLvel,
-                                     const Eigen::Matrix3d& RDVL) const;
-  InnovationParameters innovationDVLWithLeverArm(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P, const Eigen::Vector3d& zDVLvel,
-                                         const Eigen::Matrix3d& RDVL) const;
+  InnovationParameters innovationDVL(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P,
+                                     const Eigen::Vector3d& zDVLvel, const Eigen::Matrix3d& RDVL) const;
+  InnovationParameters innovationDVLWithLeverArm(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P,
+                                                 const Eigen::Vector3d& zDVLvel, const Eigen::Matrix3d& RDVL) const;
   static InnovationParameters innovationPressureZ(const Eigen::VectorXd& xnominal, const Eigen::MatrixXd& P,
                                                   const double& zPressureZpos, const Eigen::MatrixXd& RpressureZ);
 
@@ -365,15 +374,15 @@ private:
   Eigen::Matrix3d Rgyro_;      // Gyro measurements covariance (3x3)
   Eigen::Matrix3d RgyroBias_;  // Gyro bias driving noise covariance (3x3)
 
-  // Eigen::MatrixXd D_ {blk3x3Diag(Racc_, Rgyro_, RaccBias_, RgyroBias_)};  // Diagonal block Eigen::matrix with measurement
-  // covariances
+  // Eigen::MatrixXd D_ {blk3x3Diag(Racc_, Rgyro_, RaccBias_, RgyroBias_)};  // Diagonal block Eigen::matrix with
+  // measurement covariances
   Eigen::MatrixXd D_;
   // Correction matricies
   Eigen::Matrix3d Sa_{ Eigen::Matrix3d::Zero() };    // Accelerometer
   Eigen::Matrix3d Sg_{ Eigen::Matrix3d::Zero() };    // Gyro
   Eigen::Matrix3d Sdvl_{ Eigen::Matrix3d::Zero() };  // DVL
   Eigen::Matrix3d Sinc_{ Eigen::Matrix3d::Zero() };  // Inclinometer
-  double SpressureZ_{ 0 };             // Pressure
+  double SpressureZ_{ 0 };                           // Pressure
 
   StatesAndErrorCovariance optimizationParameters_{};
 
@@ -389,7 +398,7 @@ private:
   std::vector<DVLmessage> dvl_msg_buffer_;
   std::vector<PressureZmessage> pressureZ_msg_buffer_;
   std::vector<StateAndCovariance_msg> nominal_covariance_buffer_;
-  //void emptyBuffers();
+  // void emptyBuffers();
   void emptyIMUBuffer();
   void emptyDVLBuffer();
   void emptyPressureZBuffer();
@@ -401,8 +410,5 @@ private:
   // NIS Pressure sensor
   double NISPressureZ_;
   double NISDVL_;
-
-
-
 };
 }  // namespace eskf

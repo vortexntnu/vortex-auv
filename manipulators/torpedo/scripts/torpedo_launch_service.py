@@ -7,23 +7,24 @@ from vortex_msgs.srv import LaunchTorpedo, LaunchTorpedoResponse
 
 
 # How long to wait after a pin has been set to high
-FIRING_DURATION = 3 # in seconds
+FIRING_DURATION = 3  # in seconds
 
 # the two torpedos pin assignments. These have to be specified in a config file
 
 
-class TorpedoLaunch():
-
+class TorpedoLaunch:
     def __init__(self):
-######## Definig the node ########        
-        rospy.init_node('torpedo_node')
+        ######## Definig the node ########
+        rospy.init_node("torpedo_node")
 
-######## Defining the Service ########
-        self.torpedo_service = rospy.Service('manipulator/torpedo_launch', LaunchTorpedo, self.execute)
+        ######## Defining the Service ########
+        self.torpedo_service = rospy.Service(
+            "manipulator/torpedo_launch", LaunchTorpedo, self.execute
+        )
 
-######## GPIO Setup ########
+        ######## GPIO Setup ########
         self.mode = GPIO.LOW
-        self.torpedo_gpio_pin =  rospy.get_param('/torpedo/gpio_pin')
+        self.torpedo_gpio_pin = rospy.get_param("/torpedo/gpio_pin")
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.torpedo_gpio_pin, GPIO.OUT, initial=self.mode)
 
@@ -42,7 +43,6 @@ class TorpedoLaunch():
 
         return res
 
-        
 
 if __name__ == "__main__":
     node = TorpedoLaunch()

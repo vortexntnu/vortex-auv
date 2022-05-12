@@ -15,74 +15,83 @@ from Adafruit_BNO055 import BNO055
 
 class Bno055InterfaceNode(object):
     def __init__(self):
-        rospy.init_node('imu_node')
+        rospy.init_node("imu_node")
 
         self.pub_euler = rospy.Publisher(
-            'sensors/imu/euler',
-            Vector3Stamped,
-            queue_size=1)
+            "sensors/imu/euler", Vector3Stamped, queue_size=1
+        )
         self.pub_diagnostics = rospy.Publisher(
-            'sensors/imu/diagnostics',
-            DiagnosticStatus,
-            queue_size=1)
-        self.pub_imu = rospy.Publisher(
-            'sensors/imu/data',
-            Imu,
-            queue_size=1)
+            "sensors/imu/diagnostics", DiagnosticStatus, queue_size=1
+        )
+        self.pub_imu = rospy.Publisher("sensors/imu/data", Imu, queue_size=1)
 
         self.srv_save_calibration = rospy.Service(
-            'sensors/imu/save_calibration',
-            SaveImuCalibration,
-            self.save_calibration)
+            "sensors/imu/save_calibration", SaveImuCalibration, self.save_calibration
+        )
         self.srv_load_calibration = rospy.Service(
-            'sensors/imu/load_calibration',
-            LoadImuCalibration,
-            self.load_calibration)
+            "sensors/imu/load_calibration", LoadImuCalibration, self.load_calibration
+        )
 
         try:
-            mode_name = rospy.get_param('sensors/bno055/mode')
+            mode_name = rospy.get_param("sensors/bno055/mode")
         except KeyError:
-            rospy.logerr('Could not read mode parameter, defaulting to IMU mode.')
-            mode_name = 'IMU'
+            rospy.logerr("Could not read mode parameter, defaulting to IMU mode.")
+            mode_name = "IMU"
 
-        if mode_name == 'IMU':
+        if mode_name == "IMU":
             mode = BNO055.OPERATION_MODE_IMUPLUS
-        elif mode_name == 'NDOF':
+        elif mode_name == "NDOF":
             mode = BNO055.OPERATION_MODE_NDOF
         else:
-            rospy.logerr('Invalid mode parameter, defaulting to IMU mode.')
-            mode_name = 'IMU'
+            rospy.logerr("Invalid mode parameter, defaulting to IMU mode.")
+            mode_name = "IMU"
             mode = BNO055.OPERATION_MODE_IMUPLUS
 
         try:
-            self.bno = BNO055.BNO055(rst='P9_12')
+            self.bno = BNO055.BNO055(rst="P9_12")
         except RuntimeError:
-            rospy.logfatal('Unsupported hardware, intiating clean shutdown.')
-            rospy.signal_shutdown('')
+            rospy.logfatal("Unsupported hardware, intiating clean shutdown.")
+            rospy.signal_shutdown("")
             return
 
         if not self.bno.begin(mode):
-            rospy.logfatal('Failed to initialise BNO055! Is the sensor connected?')
-            raise rospy.ROSInitException('Failed to initialise BNO055! Is the sensor connected?')
+            rospy.logfatal("Failed to initialise BNO055! Is the sensor connected?")
+            raise rospy.ROSInitException(
+                "Failed to initialise BNO055! Is the sensor connected?"
+            )
 
         self.status, self.self_test, self.error = self.bno.get_system_status()
         rospy.logdebug("System status: %s", self.status)
         rospy.logdebug("Self test result (0x0F is normal): 0x%02X", self.self_test)
         if self.status == 0x01:
-            rospy.logwarn("System status: 0x%02X\n (see datasheet section 4.3.59).", self.status)
+            rospy.logwarn(
+                "System status: 0x%02X\n (see datasheet section 4.3.59).", self.status
+            )
 
-        self.sw_v, \
-            self.bootloader_v, \
-            self.accelerometer_id, \
-            self.magnetometer_id, \
-            self.gyro_id = self.bno.get_revision()
+        (
+            self.sw_v,
+            self.bootloader_v,
+            self.accelerometer_id,
+            self.magnetometer_id,
+            self.gyro_id,
+        ) = self.bno.get_revision()
 
-        rospy.logdebug(("Software version: %s\n" "Bootloader version: %s\n"
-                        "Accelerometer ID: 0x%02X\n" "Magnetometer ID: 0x%02X\n"
-                        "Gyroscope ID: 0x%02X\n"), self.sw_v,
-                       self.bootloader_v, self.accelerometer_id, self.accelerometer_id, self.gyro_id)
+        rospy.logdebug(
+            (
+                "Software version: %s\n"
+                "Bootloader version: %s\n"
+                "Accelerometer ID: 0x%02X\n"
+                "Magnetometer ID: 0x%02X\n"
+                "Gyroscope ID: 0x%02X\n"
+            ),
+            self.sw_v,
+            self.bootloader_v,
+            self.accelerometer_id,
+            self.accelerometer_id,
+            self.gyro_id,
+        )
 
-        rospy.loginfo('Initialized in %s mode.', mode_name)
+        rospy.loginfo("Initialized in %s mode.", mode_name)
 
         self.bno.set_axis_remap(
             BNO055.AXIS_REMAP_Y,
@@ -90,16 +99,21 @@ class Bno055InterfaceNode(object):
             BNO055.AXIS_REMAP_Z,
             BNO055.AXIS_REMAP_POSITIVE,
             BNO055.AXIS_REMAP_POSITIVE,
-            BNO055.AXIS_REMAP_POSITIVE
+            BNO055.AXIS_REMAP_POSITIVE,
         )
-        rospy.logdebug('IMU axis config is {0}'.format(self.bno.get_axis_remap()))
+        rospy.logdebug("IMU axis config is {0}".format(self.bno.get_axis_remap()))
 
         self.talker()
 
     def get_diagnostic(self):
         diag_msg = DiagnosticStatus()
 
-        sys_status, gyro_status, accel_status, mag_status = self.bno.get_calibration_status()
+        (
+            sys_status,
+            gyro_status,
+            accel_status,
+            mag_status,
+        ) = self.bno.get_calibration_status()
         sys = KeyValue("System status", str(sys_status))
         gyro = KeyValue("Gyro calibration status", str(gyro_status))
         accel = KeyValue("Accelerometer calibration status", str(accel_status))
@@ -153,8 +167,8 @@ class Bno055InterfaceNode(object):
 
     def save_calibration(self, req):
         values = self.bno.get_calibration()
-        path = rospkg.RosPack().get_path('sensor_interface') + "/calibration.csv"
-        with open(path, 'w') as outfile:
+        path = rospkg.RosPack().get_path("sensor_interface") + "/calibration.csv"
+        with open(path, "w") as outfile:
             writer = csv.writer(outfile)
             writer.writerow(values)
 
@@ -162,7 +176,7 @@ class Bno055InterfaceNode(object):
         return SaveImuCalibrationResponse()
 
     def load_calibration(self, req):
-        path = rospkg.RosPack().get_path('sensor_interface') + "/calibration.csv"
+        path = rospkg.RosPack().get_path("sensor_interface") + "/calibration.csv"
         try:
             with open(path) as infile:
                 reader = csv.reader(infile)
@@ -177,11 +191,11 @@ class Bno055InterfaceNode(object):
         return LoadImuCalibrationResponse()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         imu_node = Bno055InterfaceNode()
         rospy.spin()
     except IOError:
-        rospy.logerr('IOError caught, shutting down.')
+        rospy.logerr("IOError caught, shutting down.")
     except rospy.ROSInterruptException:
         pass

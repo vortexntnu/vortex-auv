@@ -1,7 +1,6 @@
 #include "thrust_merger/thrust_merger.h"
 
-ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
-{
+ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh) {
   // parameters
   std::string dp_topic;
   std::string los_topic;
@@ -21,8 +20,6 @@ ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
     joy_topic = "/thrust/joy";
   if (!nh.getParam("/thrust_merger/output_topic", output_topic))
     output_topic = "/thrust/combined";
-  
-  
 
   // init wrenches as zero
   dp_wrench = Eigen::Vector6d();
@@ -47,11 +44,9 @@ ThrustMerger::ThrustMerger(ros::NodeHandle nh) : nh(nh)
   ROS_INFO("thrust_merger initiated");
 }
 
-void ThrustMerger::spin()
-{
+void ThrustMerger::spin() {
   ros::Rate ros_rate(rate);
-  while (ros::ok())
-  {
+  while (ros::ok()) {
     // execute waiting callbacks
     ros::spinOnce();
 
@@ -86,26 +81,22 @@ void ThrustMerger::spin()
   }
 }
 
-void ThrustMerger::dpCallback(geometry_msgs::Wrench wrench_msgs)
-{
+void ThrustMerger::dpCallback(geometry_msgs::Wrench wrench_msgs) {
   tf::wrenchMsgToEigen(wrench_msgs, dp_wrench);
   dp_counter = 0;
 }
 
-void ThrustMerger::losCallback(geometry_msgs::Wrench wrench_msgs)
-{
+void ThrustMerger::losCallback(geometry_msgs::Wrench wrench_msgs) {
   tf::wrenchMsgToEigen(wrench_msgs, los_wrench);
   los_counter = 0;
 }
 
-void ThrustMerger::velCallback(geometry_msgs::Wrench wrench_msgs)
-{
+void ThrustMerger::velCallback(geometry_msgs::Wrench wrench_msgs) {
   tf::wrenchMsgToEigen(wrench_msgs, vel_wrench);
   vel_counter = 0;
 }
 
-void ThrustMerger::joyCallback(geometry_msgs::Wrench wrench_msgs)
-{
+void ThrustMerger::joyCallback(geometry_msgs::Wrench wrench_msgs) {
   tf::wrenchMsgToEigen(wrench_msgs, joy_wrench);
   joy_counter = 0;
 }

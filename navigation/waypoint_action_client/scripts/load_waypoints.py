@@ -11,57 +11,57 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose
 from tf.transformations import quaternion_from_euler
 
-        #   "atan2"
-        #            y 90
-        #     180    |     0         ^
-        #        <---*----> x   rot+ |
-        #    -180    |     0
-        #           -90
-        #
+#   "atan2"
+#            y 90
+#     180    |     0         ^
+#        <---*----> x   rot+ |
+#    -180    |     0
+#           -90
+#
+
 
 class PrepareWaypoints:
-
-    def __init__(self, inertial_frame_id='world'):
+    def __init__(self, inertial_frame_id="world"):
 
         # Waypoints INIT
-        assert inertial_frame_id in ['world', 'world_enu']
+        assert inertial_frame_id in ["world", "world_enu"]
         self._inertial_frame_id = inertial_frame_id
         self.waypoints = []
 
     def read_from_file(self, filename):
         if not os.path.isfile(filename):
-            print 'Invalid waypoint filename, file', filename
+            print("Invalid waypoint filename, file: " + str(filename))
             return False
         try:
-            with open(filename, 'r') as wp_file:
+            with open(filename, "r") as wp_file:
                 wps = yaml.load(wp_file)
 
                 # check if .yaml has a list
-                if isinstance(wps['waypoints'], list):
-                    
-                    # pick every waypoint an insert into array
-                    for wp in wps['waypoints']:
-                        x = wp['point'][0]
-                        y = wp['point'][1]
-                        z = wp['point'][2]
-                        #yaw = wp['R']
-                        #self.waypoints.append((x,y,z,yaw))
-                        R = wp['RPY'][0]
-                        P = wp['RPY'][1]
-                        Y = wp['RPY'][2]
-			self.waypoints.append((x,y,z,R,P,Y))			
-                    #print(self.waypoints)
+                if isinstance(wps["waypoints"], list):
 
-        except Exception, e:
-            print'Error when loading the waypoint file'
-            print str(e)
+                    # pick every waypoint an insert into array
+                    for wp in wps["waypoints"]:
+                        x = wp["point"][0]
+                        y = wp["point"][1]
+                        z = wp["point"][2]
+                        # yaw = wp['R']
+                        # self.waypoints.append((x,y,z,yaw))
+                        R = wp["RPY"][0]
+                        P = wp["RPY"][1]
+                        Y = wp["RPY"][2]
+            self.waypoints.append((x, y, z, R, P, Y))
+            # print(self.waypoints)
+
+        except Exception as e:
+            print("Error when loading the waypoint file" + str(e))
             return False
         return True
-        
-    def delete_waypoint(self,waypoints):
+
+    def delete_waypoint(self, waypoints):
         # pop first waypoint in list
         waypoints.pop(0)
-        
+
+
 """
 # ROS spin
 if __name__ == '__main__':

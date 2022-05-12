@@ -5,30 +5,28 @@
 #include <string>
 #include <vector>
 
-#include <ros/ros.h>
 #include <geometry_msgs/Wrench.h>
+#include <ros/ros.h>
 #include <std_msgs/Float32MultiArray.h>
 
 #include <eigen_conversions/eigen_msg.h>
 
-#include "vortex_allocator/eigen_typedefs.h"
 #include "vortex_allocator/eigen_helper.h"
+#include "vortex_allocator/eigen_typedefs.h"
 #include "vortex_allocator/pseudoinverse_allocator.h"
 
-
-class Allocator
-{
+class Allocator {
 public:
   explicit Allocator(ros::NodeHandle nh);
   void callback(const geometry_msgs::Wrench &msg) const;
   void thrusterForcesCb(const std_msgs::Float32MultiArray &thruster_forces_msg);
-  
+
 private:
   ros::NodeHandle m_nh;
 
   // for computing thruster forces from body forces
   ros::Subscriber m_sub;
-  ros::Publisher  m_pub;
+  ros::Publisher m_pub;
 
   // for publishing delivered thrust in body
   ros::Subscriber thruster_forces_sub;
@@ -47,4 +45,4 @@ private:
   Eigen::VectorXd rovForcesMsgToEigen(const geometry_msgs::Wrench &msg) const;
 };
 
-#endif  // VORTEX_ALLOCATOR_ALLOCATOR_ROS_H
+#endif // VORTEX_ALLOCATOR_ALLOCATOR_ROS_H

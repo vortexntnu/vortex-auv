@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+
+  auv:
+    container_name: auv
+    build: .
+    image: auv:latest
+    stdin_open: true
+    tty: true
+    network_mode: host
+
+  auv-dev:
+    container_name: auv-dev
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev
+    image: auv:dev
+    user: vortex
+    privileged: true
+    volumes:
+      - "../..:/home/vortex/auv_ws/src"
+      - "/dev:/dev"
+    environment:
+      DISPLAY: :0
+    stdin_open: true
+    tty: true
+    network_mode: host
