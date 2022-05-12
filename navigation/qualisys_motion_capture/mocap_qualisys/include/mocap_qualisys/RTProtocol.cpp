@@ -1591,8 +1591,9 @@ bool CRTProtocol::ReadCameraSystemSettings() {
         return false;
       }
       if (CompareNoCase(oXML.GetChildData(), "true")) {
-        *processingActions[i] = (EProcessingActions)(
-            *processingActions[i] + ProcessingExportMatlabFile);
+        *processingActions[i] =
+            (EProcessingActions)(*processingActions[i] +
+                                 ProcessingExportMatlabFile);
       }
 
       if (mnMajorVersion > 1 || mnMinorVersion > 11) {
