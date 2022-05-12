@@ -30,7 +30,6 @@ RUN apt update && \
     python3-osrf-pycommon \
     python3-openpyxl \
     python3-yaml \
-    python3-enum34 \
     python3-pip \
     python3-wheel \
     python3-catkin-tools \
@@ -49,7 +48,8 @@ RUN pip install \
     rospkg \
     pyquaternion \
     quadprog \
-    sklearn
+    sklearn \
+    enum34
 
 COPY . /vortex_ws/src/Vortex-AUV
 RUN cd /vortex_ws/src && git clone https://github.com/vortexntnu/robot_localization

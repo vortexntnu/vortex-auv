@@ -35,7 +35,6 @@ RUN apt update && \
     python3-osrf-pycommon \
     python3-openpyxl \
     python3-yaml \
-    python3-enum34 \
     python3-pip \
     python3-wheel \
     python3-catkin-tools \
@@ -54,8 +53,8 @@ RUN pip install \
     rospkg \
     pyquaternion \
     quadprog \
-    sklearn
-
+    sklearn \
+    enum34
 
 RUN echo "source /opt/ros/noetic/setup.bash" >> /home/vortex/.bashrc
 RUN echo "source /home/vortex/auv_ws/devel/setup.bash" >> /home/vortex/.bashrc
