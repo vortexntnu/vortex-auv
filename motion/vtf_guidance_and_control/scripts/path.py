@@ -1,5 +1,5 @@
 
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Aksel Kristoffersen
 # Documentation can be found in my master's thesis: Guidance and Control System for Dynamic Positioning and PathFollowing of an AUV exposed to Ocean Currents
 

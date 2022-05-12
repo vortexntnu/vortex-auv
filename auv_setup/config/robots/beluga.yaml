@@ -188,7 +188,7 @@ temperature:
 i2c:
   pca9685:
     address: 0x40
-    bus: 8
+    bus: 1
   psm:
     address_voltage: 0x6a
     address_current: 0x69

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Written by Jae Hyeong Hwang and O. Solbo
 # Copyright (c) 2021, Vortex NTNU.

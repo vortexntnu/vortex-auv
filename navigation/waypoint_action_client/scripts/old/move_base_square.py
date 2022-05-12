@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import roslib; roslib.load_manifest('waypoint_action_client')
 import rospy
