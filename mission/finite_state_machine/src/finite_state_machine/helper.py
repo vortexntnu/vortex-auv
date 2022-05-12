@@ -22,7 +22,6 @@ class ControlModeEnum(IntEnum):
     ORIENTATION_DEPTH_HOLD = 9
 
 
-
 def twist(X=0, Y=0, Z=0, K=0, M=0, N=0):
     new_twist = Twist()
     new_twist.linear.x = X

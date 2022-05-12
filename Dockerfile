@@ -1,6 +1,6 @@
-FROM ros:melodic
+FROM ros:noetic
 
-ARG distro=melodic
+ARG distro=noetic
 ENV DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"] 
 
@@ -27,14 +27,16 @@ RUN apt update && \
     ros-$distro-move-base \
     ros-$distro-smach-ros \
     ros-$distro-tf-conversions \
-    python-osrf-pycommon \
-    python-openpyxl \
-    python-yaml \
-    python-enum34 \
-    python-pip \
-    python-wheel \
-    python-catkin-tools \
-    python-vcstool \
+    python3-osrf-pycommon \
+    python3-openpyxl \
+    python3-yaml \
+    python3-enum34 \
+    python3-pip \
+    python3-wheel \
+    python3-catkin-tools \
+    python3-vcstool \
+    python3-pandas \
+    python3-scipy \
     libgeographic-dev \
     libeigen3-dev \
     libglfw3-dev \
@@ -46,9 +48,7 @@ RUN apt update && \
 RUN pip install \
     rospkg \
     pyquaternion \
-    pandas \
     quadprog \
-    scipy \
     sklearn
 
 COPY . /vortex_ws/src/Vortex-AUV

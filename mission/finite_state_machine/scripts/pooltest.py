@@ -29,10 +29,11 @@ def visit_waypoints():
             GoToState(pose2),
         ]
     )
-    introspection_server = IntrospectionServer(str(rospy.get_name()), sm, '/sm_root')
+    introspection_server = IntrospectionServer(str(rospy.get_name()), sm, "/sm_root")
 
     introspection_server.start()
     sm.execute()
+
 
 def test_restoring():
     twist = Twist()
@@ -40,19 +41,22 @@ def test_restoring():
     res = state.execute(None)
     rospy.loginfo(str(res))
 
+
 def test_vel():
     twist = Twist()
     twist.linear.x = 0.25
     twist.angular.x = 0.0
     states = [
         GoToState(pose(-1.5, 0, 0.7, 0, 0, 0)),
-        VelState(twist, dp_control_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD)
+        VelState(twist, dp_control_mode=ControlModeEnum.ORIENTATION_DEPTH_HOLD),
     ]
     return states
+
 
 def test_dp():
     test_pose = pose(0, 0, 0.7, 0, 0, 0)
     return DpState(test_pose)
+
 
 def test_los():
     goal_pos = Point()
