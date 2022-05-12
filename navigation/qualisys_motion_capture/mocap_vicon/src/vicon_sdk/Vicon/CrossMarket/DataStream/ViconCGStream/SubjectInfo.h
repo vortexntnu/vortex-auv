@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -31,15 +31,12 @@
 #include "SubjectInfoDetail.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains the static description of a single subject.
-class VSubjectInfo : public VItem
-{
+class VSubjectInfo : public VItem {
 public:
-
   /// Subject identifier
   ViconCGStreamType::UInt32 m_SubjectID;
 
@@ -47,58 +44,46 @@ public:
   std::string m_Name;
 
   /// Segments
-  std::vector< ViconCGStreamDetail::VSubjectInfo_Segment > m_Segments;
+  std::vector<ViconCGStreamDetail::VSubjectInfo_Segment> m_Segments;
 
   /// Markers
-  std::vector< ViconCGStreamDetail::VSubjectInfo_Marker > m_Markers;
+  std::vector<ViconCGStreamDetail::VSubjectInfo_Marker> m_Markers;
 
   /// Marker to segment attachments
-  std::vector< ViconCGStreamDetail::VSubjectInfo_Attachment > m_Attachments; 
+  std::vector<ViconCGStreamDetail::VSubjectInfo_Attachment> m_Attachments;
 
   /// Equality operator
-  bool operator == ( const VSubjectInfo& i_rOther ) const
-  {
-    return  ( m_SubjectID   == i_rOther.m_SubjectID ) &&
-            ( m_Name        == i_rOther.m_Name )      &&
-            ( m_Segments    == i_rOther.m_Segments )  &&
-            ( m_Markers     == i_rOther.m_Markers )   &&
-            ( m_Attachments == i_rOther.m_Attachments );
+  bool operator==(const VSubjectInfo &i_rOther) const {
+    return (m_SubjectID == i_rOther.m_SubjectID) &&
+           (m_Name == i_rOther.m_Name) && (m_Segments == i_rOther.m_Segments) &&
+           (m_Markers == i_rOther.m_Markers) &&
+           (m_Attachments == i_rOther.m_Attachments);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::SubjectInfo;
   }
-  
+
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_SubjectID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_SubjectID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_SubjectID ) &&
-           i_rBuffer.Read( m_Name ) &&
-           i_rBuffer.Read( m_Segments ) &&
-           i_rBuffer.Read( m_Markers ) &&
-           i_rBuffer.Read( m_Attachments );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_SubjectID) && i_rBuffer.Read(m_Name) &&
+           i_rBuffer.Read(m_Segments) && i_rBuffer.Read(m_Markers) &&
+           i_rBuffer.Read(m_Attachments);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_SubjectID );
-    i_rBuffer.Write( m_Name );
-    i_rBuffer.Write( m_Segments );
-    i_rBuffer.Write( m_Markers );
-    i_rBuffer.Write( m_Attachments );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_SubjectID);
+    i_rBuffer.Write(m_Name);
+    i_rBuffer.Write(m_Segments);
+    i_rBuffer.Write(m_Markers);
+    i_rBuffer.Write(m_Attachments);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,61 +25,53 @@
 #pragma once
 
 /// \file
-/// Contains the details declaration of the ViconCGStream::VUnlabeledRecons class.
+/// Contains the details declaration of the ViconCGStream::VUnlabeledRecons
+/// class.
 
 #include "Enum.h"
-#include <StreamCommon/Buffer.h>
 #include "IsEqual.h"
+#include <StreamCommon/Buffer.h>
 
-namespace ViconCGStreamDetail
-{
+namespace ViconCGStreamDetail {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains a single unlabeled recon.
-class VUnlabeledRecons_UnlabeledRecon
-{
+class VUnlabeledRecons_UnlabeledRecon {
 public:
   /// Recon radius
   ViconCGStreamType::Double m_Radius;
 
   /// Recon position
-  ViconCGStreamType::Double m_Position[ 3 ];
+  ViconCGStreamType::Double m_Position[3];
 
   /// Recon covariance matrix (row major format)
-  ViconCGStreamType::Double m_Covariance[ 9 ];
+  ViconCGStreamType::Double m_Covariance[9];
 
   /// Trajectory id
   ViconCGStreamType::UInt32 m_TrajectoryId;
 
   /// Equality operator
-  bool operator == ( const VUnlabeledRecons_UnlabeledRecon & i_rOther ) const
-  {
+  bool operator==(const VUnlabeledRecons_UnlabeledRecon &i_rOther) const {
     return m_Radius == i_rOther.m_Radius &&
-           IsEqual( m_Position, i_rOther.m_Position ) &&
-           IsEqual( m_Covariance, i_rOther.m_Covariance ) &&
+           IsEqual(m_Position, i_rOther.m_Position) &&
+           IsEqual(m_Covariance, i_rOther.m_Covariance) &&
            m_TrajectoryId == i_rOther.m_TrajectoryId;
   }
-  
+
   /// Read function.
-  bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_Radius ) &&
-           i_rBuffer.Read( m_Position ) &&
-           i_rBuffer.Read( m_Covariance ) && 
-           i_rBuffer.Read( m_TrajectoryId );
+  bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_Radius) && i_rBuffer.Read(m_Position) &&
+           i_rBuffer.Read(m_Covariance) && i_rBuffer.Read(m_TrajectoryId);
   }
-    
+
   /// Write function.
-  void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_Radius );
-    i_rBuffer.Write( m_Position );
-    i_rBuffer.Write( m_Covariance );
-    i_rBuffer.Write( m_TrajectoryId );
-  }    
+  void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_Radius);
+    i_rBuffer.Write(m_Position);
+    i_rBuffer.Write(m_Covariance);
+    i_rBuffer.Write(m_TrajectoryId);
+  }
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
-
+}; // namespace ViconCGStreamDetail

@@ -16,10 +16,10 @@
 #include <Eigen/Dense>
 #include <math.h>
 
-#include "ros/ros.h"
+#include "eigen_conversions/eigen_msg.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
-#include "eigen_conversions/eigen_msg.h"
+#include "ros/ros.h"
 #include "tf/tf.h"
 #include "tf_conversions/tf_eigen.h"
 
@@ -27,8 +27,7 @@
 
 using namespace Eigen;
 
-class ReferenceModel
-{
+class ReferenceModel {
 private:
   int prev_control_mode;
 
@@ -40,19 +39,21 @@ private:
   Eigen::Vector3d b_x;
 
   /* Positions */
-  Eigen::Vector3d x_d_prev;        /** Previous desired body position            */
-  Eigen::Vector3d x_d_prev_prev;   /** Previous previous desired body position   */
-  Eigen::Vector3d x_ref_prev;      /** Previous reference body position          */
-  Eigen::Vector3d x_ref_prev_prev; /** Previous previous reference body position */
+  Eigen::Vector3d x_d_prev; /** Previous desired body position            */
+  Eigen::Vector3d
+      x_d_prev_prev;          /** Previous previous desired body position   */
+  Eigen::Vector3d x_ref_prev; /** Previous reference body position          */
+  Eigen::Vector3d
+      x_ref_prev_prev; /** Previous previous reference body position */
 
   /**
    * @brief Calculate and publish the desired, smooth position
    * and orientation.
    *
    *
-   * @param setpoint_msg target setpoint 
+   * @param setpoint_msg target setpoint
    */
-  void setpoint_cb(const vortex_msgs::DpSetpoint& setpoint_msg);
+  void setpoint_cb(const vortex_msgs::DpSetpoint &setpoint_msg);
 
   /**
    * @brief Utility function that calculates a smooth trajectory from current
@@ -60,7 +61,7 @@ private:
    *
    * @param x_ref Reference used
    */
-  Eigen::Vector3d calculate_smooth(const Eigen::Vector3d& x_ref);
+  Eigen::Vector3d calculate_smooth(const Eigen::Vector3d &x_ref);
 
   /**
    * @brief Low pass filters the reference value
@@ -68,7 +69,7 @@ private:
    * @param x_ref reference value
    * @return x_d
    */
-  Eigen::Vector3d low_pass_filter(const Eigen::Vector3d& x_ref);
+  Eigen::Vector3d low_pass_filter(const Eigen::Vector3d &x_ref);
 
   /**
    * @brief Function that resets the private variables to @p pos
@@ -85,8 +86,9 @@ public:
    */
   ReferenceModel(ros::NodeHandle nh);
 
-  ros::Subscriber setpoint_sub; /* Subscriber for listening to the guidance node       */
-  ros::Publisher reference_pub; /* Publisher for the DP-controller                     */
+  ros::Subscriber
+      setpoint_sub; /* Subscriber for listening to the guidance node       */
+  ros::Publisher reference_pub; /* Publisher for the DP-controller */
 };
 
-#endif  // DP_REFERENCE_MODEL_H
+#endif // DP_REFERENCE_MODEL_H

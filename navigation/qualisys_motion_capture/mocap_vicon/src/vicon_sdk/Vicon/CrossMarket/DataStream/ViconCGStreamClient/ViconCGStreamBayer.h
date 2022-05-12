@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -24,10 +24,15 @@
 //////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-class VViconCGStreamBayer
-{
+class VViconCGStreamBayer {
 public:
-  static void BayerGBToBGR( unsigned int i_Width, unsigned int i_Height, const unsigned char * i_pBayerData, unsigned char * o_pBGRData );
-  static void BayerBGToBGR( unsigned int i_Width, unsigned int i_Height, const unsigned char * i_pBayerData, unsigned char * o_pBGRData );
-  static void BayerRGToBGR( unsigned int i_Width, unsigned int i_Height, const unsigned char * i_pBayerData, unsigned char * o_pBGRData );
+  static void BayerGBToBGR(unsigned int i_Width, unsigned int i_Height,
+                           const unsigned char *i_pBayerData,
+                           unsigned char *o_pBGRData);
+  static void BayerBGToBGR(unsigned int i_Width, unsigned int i_Height,
+                           const unsigned char *i_pBayerData,
+                           unsigned char *o_pBGRData);
+  static void BayerRGToBGR(unsigned int i_Width, unsigned int i_Height,
+                           const unsigned char *i_pBayerData,
+                           unsigned char *o_pBGRData);
 };

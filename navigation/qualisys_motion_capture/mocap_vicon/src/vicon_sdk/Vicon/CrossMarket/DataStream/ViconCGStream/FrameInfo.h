@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -29,50 +29,38 @@
 
 #include "Item.h"
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains the master frame number for the current frame of objects.
-class VFrameInfo : public VItem
-{
+class VFrameInfo : public VItem {
 public:
-
   /// Stream frame number
   ViconCGStreamType::UInt32 m_FrameID;
 
   /// Equality operator
-  bool operator == ( const VFrameInfo & i_rOther ) const
-  {
+  bool operator==(const VFrameInfo &i_rOther) const {
     return m_FrameID == i_rOther.m_FrameID;
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::FrameInfo;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return FILTER_NA;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return FILTER_NA; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_FrameID );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_FrameID);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_FrameID );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_FrameID);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

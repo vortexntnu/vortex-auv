@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,19 +27,17 @@
 /// \file
 /// Contains the declaration of the ViconCGStream::VEdgePairs class.
 
-#include "Item.h"
 #include "EdgePairsDetail.h"
+#include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains a frame of edge pairs, along with the camera identifier and frame number.
-class VEdgePairs : public VItem
-{
+/// Contains a frame of edge pairs, along with the camera identifier and frame
+/// number.
+class VEdgePairs : public VItem {
 public:
-
   /// Camera frame number
   ViconCGStreamType::UInt32 m_FrameID;
 
@@ -47,45 +45,35 @@ public:
   ViconCGStreamType::UInt32 m_CameraID;
 
   /// Edge pairs
-  std::vector< ViconCGStreamDetail::VEdgePairs_EdgePair > m_EdgePairs;
+  std::vector<ViconCGStreamDetail::VEdgePairs_EdgePair> m_EdgePairs;
 
-  bool operator == ( const VEdgePairs & i_rOther ) const
-  {
-    return m_FrameID   == i_rOther.m_FrameID  &&
-           m_CameraID  == i_rOther.m_CameraID &&
+  bool operator==(const VEdgePairs &i_rOther) const {
+    return m_FrameID == i_rOther.m_FrameID &&
+           m_CameraID == i_rOther.m_CameraID &&
            m_EdgePairs == i_rOther.m_EdgePairs;
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::EdgePairs;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_CameraID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_CameraID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_FrameID ) &&
-           i_rBuffer.Read( m_CameraID ) &&
-           i_rBuffer.Read( m_EdgePairs );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_FrameID) && i_rBuffer.Read(m_CameraID) &&
+           i_rBuffer.Read(m_EdgePairs);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_FrameID );
-    i_rBuffer.Write( m_CameraID );
-    i_rBuffer.Write( m_EdgePairs );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_FrameID);
+    i_rBuffer.Write(m_CameraID);
+    i_rBuffer.Write(m_EdgePairs);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

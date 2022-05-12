@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -30,40 +30,31 @@
 #include "Enum.h"
 #include <StreamCommon/Buffer.h>
 
-
-namespace ViconCGStreamDetail
-{
+namespace ViconCGStreamDetail {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains a wand point
-class VCameraWand2d_Point
-{
+class VCameraWand2d_Point {
 public:
-
   // Position
-  ViconCGStreamType::Double m_Position[ 2 ];
+  ViconCGStreamType::Double m_Position[2];
 
   /// Equality operator
-  bool operator == ( const VCameraWand2d_Point & i_rOther ) const
-  {
-    return m_Position[ 0 ] == i_rOther.m_Position[ 0 ] && 
-           m_Position[ 1 ] == i_rOther.m_Position[ 1 ];
+  bool operator==(const VCameraWand2d_Point &i_rOther) const {
+    return m_Position[0] == i_rOther.m_Position[0] &&
+           m_Position[1] == i_rOther.m_Position[1];
   }
-  
+
   /// Read function.
-  bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_Position );
+  bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_Position);
   }
 
   /// Write function.
-  void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_Position );
+  void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_Position);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStreamDetail

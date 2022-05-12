@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -29,50 +29,39 @@
 
 #include "Item.h"
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains the master frame period.
-class VStreamInfo : public VItem
-{
+class VStreamInfo : public VItem {
 public:
-
-  /// Stream frame period. Defined as the numbers of ticks per frame on a 135Mhz clock.
+  /// Stream frame period. Defined as the numbers of ticks per frame on a 135Mhz
+  /// clock.
   ViconCGStreamType::Int64 m_FramePeriod;
 
   /// Equality operator
-  bool operator == ( const VStreamInfo& i_rOther ) const
-  {
+  bool operator==(const VStreamInfo &i_rOther) const {
     return m_FramePeriod == i_rOther.m_FramePeriod;
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::StreamInfo;
   }
-  
+
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return FILTER_NA;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return FILTER_NA; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_FramePeriod );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_FramePeriod);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_FramePeriod );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_FramePeriod);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

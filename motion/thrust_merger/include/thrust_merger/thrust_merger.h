@@ -3,22 +3,20 @@
 
 #include <string>
 
-#include <ros/ros.h>
-#include <ros/console.h>
 #include <geometry_msgs/Wrench.h>
+#include <ros/console.h>
+#include <ros/ros.h>
 
 #include <eigen3/Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
 
 // These typdefs are lacking from the default eigen namespace
-namespace Eigen
-{
+namespace Eigen {
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
-}  // namespace Eigen
+} // namespace Eigen
 
-class ThrustMerger
-{
+class ThrustMerger {
 public:
   ThrustMerger(ros::NodeHandle nh);
   void spin();

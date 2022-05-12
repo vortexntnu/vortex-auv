@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,68 +25,54 @@
 #pragma once
 
 /// \file
-/// Contains the declaration of the ViconCGStream::VCameraCalibrationHealth class.
+/// Contains the declaration of the ViconCGStream::VCameraCalibrationHealth
+/// class.
 
-#include "Item.h"
 #include "CameraCalibrationHealthDetail.h"
+#include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains a overall system Camera calibration health indicator as well as an individual indicator for each camera
-/// Camera Health indicators vary from 0.0 (bad) to 1.0 (good)
-class VCameraCalibrationHealth : public VItem
-{
+/// Contains a overall system Camera calibration health indicator as well as an
+/// individual indicator for each camera Camera Health indicators vary from 0.0
+/// (bad) to 1.0 (good)
+class VCameraCalibrationHealth : public VItem {
 public:
-
   /// Calibration Health for entire system
   ViconCGStreamType::Double m_SystemHealth;
 
   /// Individual Calibration Health for cameras
-  std::vector< ViconCGStreamDetail::VCameraCalibrationHealth_Camera > m_Cameras;
+  std::vector<ViconCGStreamDetail::VCameraCalibrationHealth_Camera> m_Cameras;
 
-  VCameraCalibrationHealth()
-  : m_SystemHealth( 0.0 )
-  {
-  }
+  VCameraCalibrationHealth() : m_SystemHealth(0.0) {}
 
   /// Equality operator
-  bool operator == ( const VCameraCalibrationHealth & i_rOther ) const
-  {
+  bool operator==(const VCameraCalibrationHealth &i_rOther) const {
     return m_SystemHealth == i_rOther.m_SystemHealth &&
-           m_Cameras      == i_rOther.m_Cameras;
+           m_Cameras == i_rOther.m_Cameras;
   }
-  
+
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::CameraCalibrationHealth;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return FILTER_NA;
-  }
-  
+  virtual ViconCGStreamType::UInt32 FilterID() const { return FILTER_NA; }
+
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_SystemHealth ) && 
-           i_rBuffer.Read( m_Cameras );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_SystemHealth) && i_rBuffer.Read(m_Cameras);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_SystemHealth );
-    i_rBuffer.Write( m_Cameras );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_SystemHealth);
+    i_rBuffer.Write(m_Cameras);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

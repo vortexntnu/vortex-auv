@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,21 +25,19 @@
 #pragma once
 
 /// \file
-/// Contains the details declaration of the ViconCGStream::VCentroidTracks class.
+/// Contains the details declaration of the ViconCGStream::VCentroidTracks
+/// class.
 
 #include "Enum.h"
 #include <StreamCommon/Buffer.h>
 
-namespace ViconCGStreamDetail
-{
+namespace ViconCGStreamDetail {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains the centroid index, track id, track length and track quality.
-class VCentroidTracks_CentroidTrack
-{
+class VCentroidTracks_CentroidTrack {
 public:
-
-  /// Centroid index 
+  /// Centroid index
   ViconCGStreamType::UInt32 m_CentroidIndex;
 
   /// 64 bit track id.
@@ -50,35 +48,29 @@ public:
 
   /// Track quality.
   ViconCGStreamType::Float m_TrackQuality;
-    
+
   // Equality operator
-  bool operator == ( const VCentroidTracks_CentroidTrack & i_rOther ) const
-  {
+  bool operator==(const VCentroidTracks_CentroidTrack &i_rOther) const {
     return m_CentroidIndex == i_rOther.m_CentroidIndex &&
            m_TrackId == i_rOther.m_TrackId &&
            m_TrackLength == i_rOther.m_TrackLength &&
            m_TrackQuality == i_rOther.m_TrackQuality;
   }
-  
+
   /// Read function.
-  bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_CentroidIndex ) &&
-           i_rBuffer.Read( m_TrackId ) &&
-           i_rBuffer.Read( m_TrackLength ) &&
-           i_rBuffer.Read( m_TrackQuality );
+  bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_CentroidIndex) && i_rBuffer.Read(m_TrackId) &&
+           i_rBuffer.Read(m_TrackLength) && i_rBuffer.Read(m_TrackQuality);
   }
-    
+
   /// Write function.
-  void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_CentroidIndex );
-    i_rBuffer.Write( m_TrackId );
-    i_rBuffer.Write( m_TrackLength );
-    i_rBuffer.Write( m_TrackQuality );
+  void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_CentroidIndex);
+    i_rBuffer.Write(m_TrackId);
+    i_rBuffer.Write(m_TrackLength);
+    i_rBuffer.Write(m_TrackQuality);
   }
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStreamDetail

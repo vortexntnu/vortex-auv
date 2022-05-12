@@ -19,94 +19,89 @@
 #ifndef VICON_DRIVER_H
 #define VICON_DRIVER_H
 
-#include <cmath>
-#include <string>
-#include <set>
-#include <boost/thread.hpp>
-#include <ros/ros.h>
-#include <mocap_base/MoCapDriverBase.h>
 #include "ViconDataStreamSDK_CPP/DataStreamClient.h" // From Vicon's SDK
+#include <boost/thread.hpp>
+#include <cmath>
+#include <mocap_base/MoCapDriverBase.h>
+#include <ros/ros.h>
+#include <set>
+#include <string>
 
+namespace mocap {
 
-namespace mocap{
+class ViconDriver : public MoCapDriverBase {
 
-class ViconDriver: public MoCapDriverBase {
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  /*
+   * @brief Constructor
+   * @param nh Ros node
+   */
+  ViconDriver(const ros::NodeHandle &n)
+      : MoCapDriverBase(n), client(new ViconDataStreamSDK::CPP::Client()),
+        max_accel(10.0), frame_interval(0.01),
+        process_noise(Eigen::Matrix<double, 12, 12>::Zero()),
+        measurement_noise(Eigen::Matrix<double, 6, 6>::Zero()) {
+    return;
+  }
 
-  public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    /*
-     * @brief Constructor
-     * @param nh Ros node
-     */
-    ViconDriver(const ros::NodeHandle& n):
-      MoCapDriverBase   (n),
-      client            (new ViconDataStreamSDK::CPP::Client()),
-      max_accel         (10.0),
-      frame_interval    (0.01),
-      process_noise     (Eigen::Matrix<double, 12, 12>::Zero()),
-      measurement_noise (Eigen::Matrix<double, 6, 6>::Zero()) {
-      return;
-    }
+  /*
+   * @brief Destructor
+   */
+  ~ViconDriver() {
+    disconnect();
+    delete client;
+    return;
+  }
 
-    /*
-     * @brief Destructor
-     */
-    ~ViconDriver() {
-      disconnect();
-      delete client;
-      return;
-    }
+  /*
+   * @brief init Initialize the object
+   * @return True if successfully initialized
+   */
+  bool init();
 
-    /*
-     * @brief init Initialize the object
-     * @return True if successfully initialized
-     */
-    bool init();
+  /*
+   * @brief run Start acquiring data from the server
+   */
+  bool run();
 
-    /*
-     * @brief run Start acquiring data from the server
-     */
-    bool run();
+  /*
+   * @brief disconnect Disconnect to the server
+   * @Note The function is called automatically when the
+   *  destructor is called.
+   */
+  void disconnect();
 
-    /*
-     * @brief disconnect Disconnect to the server
-     * @Note The function is called automatically when the
-     *  destructor is called.
-     */
-    void disconnect();
+private:
+  // Disable the copy constructor and assign operator
+  ViconDriver(const ViconDriver &);
+  ViconDriver &operator=(const ViconDriver &);
 
-  private:
-    // Disable the copy constructor and assign operator
-    ViconDriver(const ViconDriver& );
-    ViconDriver& operator=(const ViconDriver& );
+  // Handle a frame which contains the info of all subjects
+  void handleFrame();
 
-    // Handle a frame which contains the info of all subjects
-    void handleFrame();
+  // Handle a the info of a single subject
+  void handleSubject(int sub_idx);
 
-    // Handle a the info of a single subject
-    void handleSubject(int sub_idx);
+  // Portal to communicate with the server
+  ViconDataStreamSDK::CPP::Client *client;
 
-    // Portal to communicate with the server
-    ViconDataStreamSDK::CPP::Client* client;
+  // Max acceleration
+  double max_accel;
 
-    // Max acceleration
-    double max_accel;
+  // Average time interval between two frames
+  double frame_interval;
 
-    // Average time interval between two frames
-    double frame_interval;
+  // A set to hold the model names
+  std::set<std::string> model_set;
 
-    // A set to hold the model names
-    std::set<std::string> model_set;
+  // Convariance matrices for initializing kalman filters
+  Eigen::Matrix<double, 12, 12> process_noise;
+  Eigen::Matrix<double, 6, 6> measurement_noise;
 
-    // Convariance matrices for initializing kalman filters
-    Eigen::Matrix<double, 12, 12> process_noise;
-    Eigen::Matrix<double,  6,  6> measurement_noise;
-
-    // For multi-threading
-    boost::shared_mutex mtx;
-
+  // For multi-threading
+  boost::shared_mutex mtx;
 };
-}
-
+} // namespace mocap
 
 #endif

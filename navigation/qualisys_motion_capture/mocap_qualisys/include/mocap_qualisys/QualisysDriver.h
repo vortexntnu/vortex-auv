@@ -19,117 +19,111 @@
 #ifndef QUALISYS_DRIVER_H
 #define QUALISYS_DRIVER_H
 
-#include <cmath>
-#include <string>
-#include <set>
-#include <vector>
 #include <boost/asio.hpp>
-#include <ros/ros.h>
+#include <cmath>
 #include <mocap_base/MoCapDriverBase.h>
 #include <mocap_qualisys/RTProtocol.h>
+#include <ros/ros.h>
+#include <set>
+#include <string>
+#include <vector>
 
+namespace mocap {
 
+class QualisysDriver : public MoCapDriverBase {
 
-namespace mocap{
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  /*
+   * @brief Constructor
+   * @param nh Ros node
+   */
+  QualisysDriver(const ros::NodeHandle &n)
+      : MoCapDriverBase(n), max_accel(10.0), frame_interval(0.01),
+        last_packet_time(0),
+        process_noise(Eigen::Matrix<double, 12, 12>::Zero()),
+        measurement_noise(Eigen::Matrix<double, 6, 6>::Zero()) {
+    return;
+  }
 
-class QualisysDriver: public MoCapDriverBase{
+  /*
+   * @brief Destructor
+   */
+  ~QualisysDriver() {
+    disconnect();
+    return;
+  }
 
-  public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    /*
-     * @brief Constructor
-     * @param nh Ros node
-     */
-    QualisysDriver(const ros::NodeHandle& n):
-      MoCapDriverBase   (n),
-      max_accel         (10.0),
-      frame_interval    (0.01),
-      last_packet_time  (0),
-      process_noise     (Eigen::Matrix<double, 12, 12>::Zero()),
-      measurement_noise (Eigen::Matrix<double, 6, 6>::Zero())
-      {
-      return;
-    }
+  /*
+   * @brief init Initialize the object
+   * @return True if successfully initialized
+   */
+  bool init();
 
-    /*
-     * @brief Destructor
-     */
-    ~QualisysDriver() {
-      disconnect();
-      return;
-    }
+  /*
+   * @brief run Start acquiring data from the server
+   */
+  bool run();
 
-    /*
-     * @brief init Initialize the object
-     * @return True if successfully initialized
-     */
-    bool init();
+  /*
+   * @brief disconnect Disconnect to the server
+   * @Note The function is called automatically when the
+   *  destructor is called.
+   */
+  void disconnect();
 
-    /*
-     * @brief run Start acquiring data from the server
-     */
-    bool run();
+private:
+  // Disable the copy constructor and assign operator
+  QualisysDriver(const QualisysDriver &);
+  QualisysDriver &operator=(const QualisysDriver &);
 
-    /*
-     * @brief disconnect Disconnect to the server
-     * @Note The function is called automatically when the
-     *  destructor is called.
-     */
-    void disconnect();
+  // Handle a frame which contains the info of all subjects
+  void handleFrame();
 
-  private:
-    // Disable the copy constructor and assign operator
-    QualisysDriver(const QualisysDriver& );
-    QualisysDriver& operator=(const QualisysDriver& );
+  // Handle a the info of a single subject
+  void handleSubject(int sub_idx);
+  // void handleSubject(int sub_idx);
 
-    // Handle a frame which contains the info of all subjects
-    void handleFrame();
+  // Unit converter
+  static double deg2rad;
 
-    // Handle a the info of a single subject
-    void handleSubject(int sub_idx);
-    // void handleSubject(int sub_idx);
+  // Port of the server to be connected
+  int base_port;
 
-    // Unit converter
-    static double deg2rad;
+  // Port that the server should stream UDP packets to.
+  // 0 indicates that TCP is used.
+  unsigned short udp_stream_port;
 
-    // Port of the server to be connected
-    int base_port;
+  // Minor version of the QTM protocol
+  int qtm_protocol_version;
 
-    // Port that the server should stream UDP packets to.
-    // 0 indicates that TCP is used.
-    unsigned short udp_stream_port;
+  // Protocol to connect to the server
+  CRTProtocol port_protocol;
 
-    // Minor version of the QTM protocol
-    int qtm_protocol_version;
+  // A pointer to the received packet
+  // (no need to initialize)
+  CRTPacket *prt_packet;
 
-    // Protocol to connect to the server
-    CRTProtocol port_protocol;
+  // A set to hold the model names
+  std::set<std::string> model_set;
 
-    // A pointer to the received packet
-    // (no need to initialize)
-    CRTPacket* prt_packet;
+  // Max acceleration
+  double max_accel;
 
-    // A set to hold the model names
-    std::set<std::string> model_set;
+  // Average time interval between two frames
+  double frame_interval;
 
-    // Max acceleration
-    double max_accel;
+  // time point for last frame
+  unsigned long last_packet_time;
 
-    // Average time interval between two frames
-    double frame_interval;
+  // Convariance matrices for initializing kalman filters
+  Eigen::Matrix<double, 12, 12> process_noise;
+  Eigen::Matrix<double, 6, 6> measurement_noise;
 
-    // time point for last frame
-    unsigned long last_packet_time;
-
-    // Convariance matrices for initializing kalman filters
-    Eigen::Matrix<double, 12, 12> process_noise;
-    Eigen::Matrix<double,  6,  6> measurement_noise;
-
-    // Timestamp stuff
-    double start_time_local_ = 0;
-    double start_time_packet_ = 0;
+  // Timestamp stuff
+  double start_time_local_ = 0;
+  double start_time_packet_ = 0;
 };
-}
-
+} // namespace mocap
 
 #endif

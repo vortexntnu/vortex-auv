@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,19 +27,17 @@
 #include "Item.h"
 #include <string>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains the camera identifier, frame period, name, 
-class VCameraInfo : public VItem
-{
+/// Contains the camera identifier, frame period, name,
+class VCameraInfo : public VItem {
 public:
-
   /// Camera identifier
   ViconCGStreamType::UInt32 m_CameraID;
 
-  /// Camera frame period. Defined as the numbers of ticks per frame on a 135Mhz clock.
+  /// Camera frame period. Defined as the numbers of ticks per frame on a 135Mhz
+  /// clock.
   ViconCGStreamType::UInt64 m_FramePeriod;
 
   /// Camera type
@@ -76,8 +74,7 @@ public:
   ViconCGStreamType::Double m_MarkerVelocity;
 
   /// Equality function
-  bool IsEqual( const VCameraInfo & i_rOther ) const
-  {
+  bool IsEqual(const VCameraInfo &i_rOther) const {
     return m_CameraID == i_rOther.m_CameraID &&
            m_FramePeriod == i_rOther.m_FramePeriod &&
            m_Type == i_rOther.m_Type &&
@@ -94,61 +91,47 @@ public:
   }
 
   /// Equality operator
-  bool operator == ( const VCameraInfo & i_rOther ) const
-  {
-    return IsEqual( i_rOther );
+  bool operator==(const VCameraInfo &i_rOther) const {
+    return IsEqual(i_rOther);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::CameraInfo;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_CameraID;
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_CameraID; }
+
+  /// Read function.
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_CameraID) && i_rBuffer.Read(m_FramePeriod) &&
+           i_rBuffer.Read(m_Type) && i_rBuffer.Read(m_DisplayType) &&
+           i_rBuffer.Read(m_Name) && i_rBuffer.Read(m_ResolutionX) &&
+           i_rBuffer.Read(m_ResolutionY) && i_rBuffer.Read(m_AspectRatio) &&
+           i_rBuffer.Read(m_CircularityThreshold) &&
+           i_rBuffer.Read(m_bCentroidTracking) &&
+           i_rBuffer.Read(m_bIsVideoCamera) && i_rBuffer.Read(m_UserID) &&
+           i_rBuffer.Read(m_MarkerVelocity);
   }
 
-  /// Read function.  
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_CameraID ) &&
-           i_rBuffer.Read( m_FramePeriod ) &&
-           i_rBuffer.Read( m_Type ) &&
-           i_rBuffer.Read( m_DisplayType ) &&
-           i_rBuffer.Read( m_Name ) &&
-           i_rBuffer.Read( m_ResolutionX ) &&
-           i_rBuffer.Read( m_ResolutionY ) &&
-           i_rBuffer.Read( m_AspectRatio ) &&
-           i_rBuffer.Read( m_CircularityThreshold ) &&
-           i_rBuffer.Read( m_bCentroidTracking ) &&
-           i_rBuffer.Read( m_bIsVideoCamera ) &&
-           i_rBuffer.Read( m_UserID ) &&
-           i_rBuffer.Read( m_MarkerVelocity );
+  /// Write function.
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_CameraID);
+    i_rBuffer.Write(m_FramePeriod);
+    i_rBuffer.Write(m_Type);
+    i_rBuffer.Write(m_DisplayType);
+    i_rBuffer.Write(m_Name);
+    i_rBuffer.Write(m_ResolutionX);
+    i_rBuffer.Write(m_ResolutionY);
+    i_rBuffer.Write(m_AspectRatio);
+    i_rBuffer.Write(m_CircularityThreshold);
+    i_rBuffer.Write(m_bCentroidTracking);
+    i_rBuffer.Write(m_bIsVideoCamera);
+    i_rBuffer.Write(m_UserID);
+    i_rBuffer.Write(m_MarkerVelocity);
   }
-
-  /// Write function.  
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_CameraID );
-    i_rBuffer.Write( m_FramePeriod );
-    i_rBuffer.Write( m_Type );
-    i_rBuffer.Write( m_DisplayType );
-    i_rBuffer.Write( m_Name );
-    i_rBuffer.Write( m_ResolutionX );
-    i_rBuffer.Write( m_ResolutionY );
-    i_rBuffer.Write( m_AspectRatio );
-    i_rBuffer.Write( m_CircularityThreshold );
-    i_rBuffer.Write( m_bCentroidTracking );
-    i_rBuffer.Write( m_bIsVideoCamera );
-    i_rBuffer.Write( m_UserID );
-    i_rBuffer.Write( m_MarkerVelocity );
-  }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

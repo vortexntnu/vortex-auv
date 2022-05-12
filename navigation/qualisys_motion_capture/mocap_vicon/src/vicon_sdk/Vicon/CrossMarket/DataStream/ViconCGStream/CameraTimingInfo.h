@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,68 +27,55 @@
 #include "Item.h"
 #include <string>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains the camera timing info.
-class VCameraTimingInfo : public VItem
-{
+class VCameraTimingInfo : public VItem {
 public:
-
   /// Camera identifier
   ViconCGStreamType::UInt32 m_CameraID;
 
-  /// Camera frame period. Defined as the numbers of ticks per frame on a 135Mhz clock.
+  /// Camera frame period. Defined as the numbers of ticks per frame on a 135Mhz
+  /// clock.
   ViconCGStreamType::UInt64 m_FramePeriod;
 
   /// Camera frame offset. Tick offset in time of frame zero.
   ViconCGStreamType::Int64 m_FrameOffset;
 
   /// Equality function
-  bool IsEqual( const VCameraTimingInfo & i_rOther ) const
-  {
+  bool IsEqual(const VCameraTimingInfo &i_rOther) const {
     return m_CameraID == i_rOther.m_CameraID &&
            m_FramePeriod == i_rOther.m_FramePeriod &&
            m_FrameOffset == i_rOther.m_FrameOffset;
   }
 
   /// Equality operator
-  bool operator == ( const VCameraTimingInfo & i_rOther ) const
-  {
-    return IsEqual( i_rOther );
+  bool operator==(const VCameraTimingInfo &i_rOther) const {
+    return IsEqual(i_rOther);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::CameraTimingInfo;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_CameraID;
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_CameraID; }
+
+  /// Read function.
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_CameraID) && i_rBuffer.Read(m_FramePeriod) &&
+           i_rBuffer.Read(m_FrameOffset);
   }
 
-  /// Read function.  
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_CameraID ) &&
-           i_rBuffer.Read( m_FramePeriod ) &&
-           i_rBuffer.Read( m_FrameOffset );
+  /// Write function.
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_CameraID);
+    i_rBuffer.Write(m_FramePeriod);
+    i_rBuffer.Write(m_FrameOffset);
   }
-
-  /// Write function.  
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_CameraID );
-    i_rBuffer.Write( m_FramePeriod );
-    i_rBuffer.Write( m_FrameOffset );
-  }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

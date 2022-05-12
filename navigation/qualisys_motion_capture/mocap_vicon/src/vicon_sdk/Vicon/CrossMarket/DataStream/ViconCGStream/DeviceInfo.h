@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -30,73 +30,59 @@
 #include "Item.h"
 #include <string>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains the device identifier, frame period, and name of a newly connected or updated device.
-class VDeviceInfo : public VItem
-{
+/// Contains the device identifier, frame period, and name of a newly connected
+/// or updated device.
+class VDeviceInfo : public VItem {
 public:
-
   /// Device identifier
   ViconCGStreamType::UInt32 m_DeviceID;
 
-  /// Device frame period. Defined as the numbers of ticks per frame on a 135Mhz clock.
+  /// Device frame period. Defined as the numbers of ticks per frame on a 135Mhz
+  /// clock.
   ViconCGStreamType::UInt64 m_FramePeriod;
 
   /// Device name
   std::string m_Name;
 
   /// Equality function
-  bool IsEqual( const VDeviceInfo & i_rOther ) const
-  {
+  bool IsEqual(const VDeviceInfo &i_rOther) const {
     return m_DeviceID == i_rOther.m_DeviceID &&
-           m_FramePeriod == i_rOther.m_FramePeriod &&
-           m_Name == i_rOther.m_Name;  
+           m_FramePeriod == i_rOther.m_FramePeriod && m_Name == i_rOther.m_Name;
   }
 
   /// Equality operator
-  bool operator == ( const VDeviceInfo & i_rOther ) const
-  {
-    return IsEqual( i_rOther );
+  bool operator==(const VDeviceInfo &i_rOther) const {
+    return IsEqual(i_rOther);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::DeviceInfo;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_DeviceID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_DeviceID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_DeviceID ) &&
-           i_rBuffer.Read( m_FramePeriod ) &&
-           i_rBuffer.Read( m_Name );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_DeviceID) && i_rBuffer.Read(m_FramePeriod) &&
+           i_rBuffer.Read(m_Name);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_DeviceID );
-    i_rBuffer.Write( m_FramePeriod );
-    i_rBuffer.Write( m_Name );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_DeviceID);
+    i_rBuffer.Write(m_FramePeriod);
+    i_rBuffer.Write(m_Name);
   }
-
 };
 
 /// Contains the device identifier, frame start tick.
-class VDeviceInfoExtra : public VItem
-{
+class VDeviceInfoExtra : public VItem {
 public:
-
   /// Device identifier
   ViconCGStreamType::UInt32 m_DeviceID;
 
@@ -104,46 +90,35 @@ public:
   ViconCGStreamType::UInt64 m_FrameStartTick;
 
   /// Equality function
-  bool IsEqual( const VDeviceInfoExtra & i_rOther ) const
-  {
+  bool IsEqual(const VDeviceInfoExtra &i_rOther) const {
     return m_DeviceID == i_rOther.m_DeviceID &&
            m_FrameStartTick == i_rOther.m_FrameStartTick;
   }
 
   /// Equality operator
-  bool operator == ( const VDeviceInfoExtra  & i_rOther ) const
-  {
-    return IsEqual( i_rOther );
+  bool operator==(const VDeviceInfoExtra &i_rOther) const {
+    return IsEqual(i_rOther);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::DeviceInfoExtra;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_DeviceID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_DeviceID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_DeviceID ) &&
-           i_rBuffer.Read( m_FrameStartTick );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_DeviceID) && i_rBuffer.Read(m_FrameStartTick);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_DeviceID );
-    i_rBuffer.Write( m_FrameStartTick );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_DeviceID);
+    i_rBuffer.Write(m_FrameStartTick);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

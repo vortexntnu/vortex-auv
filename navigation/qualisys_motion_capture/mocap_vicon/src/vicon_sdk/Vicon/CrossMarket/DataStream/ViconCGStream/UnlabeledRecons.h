@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -31,51 +31,40 @@
 #include "UnlabeledReconsDetail.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains a frame of unlabeled recons, consisting of radii, positions and covariances.
-class VUnlabeledRecons : public VItem
-{
+/// Contains a frame of unlabeled recons, consisting of radii, positions and
+/// covariances.
+class VUnlabeledRecons : public VItem {
 public:
-
   /// Unlabeled recons
-  std::vector< ViconCGStreamDetail::VUnlabeledRecons_UnlabeledRecon > m_UnlabeledRecons;
+  std::vector<ViconCGStreamDetail::VUnlabeledRecons_UnlabeledRecon>
+      m_UnlabeledRecons;
 
   /// Equality operator
-  bool operator == ( const VUnlabeledRecons & i_rOther ) const
-  {
+  bool operator==(const VUnlabeledRecons &i_rOther) const {
     return m_UnlabeledRecons == i_rOther.m_UnlabeledRecons;
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::UnlabeledRecons;
   }
-  
+
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return FILTER_NA;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return FILTER_NA; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_UnlabeledRecons );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_UnlabeledRecons);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_UnlabeledRecons );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_UnlabeledRecons);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
-
+}; // namespace ViconCGStream

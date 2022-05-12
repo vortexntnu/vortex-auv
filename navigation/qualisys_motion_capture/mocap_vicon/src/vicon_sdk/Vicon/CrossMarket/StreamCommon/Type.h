@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -28,13 +28,13 @@
 /// Contains the declaration of the ViconCGStreamType namespace.
 
 /**
- * This namespace defines the set of primitive types used by the protocol Readers and Writers, and
- * also by the objects defined in the ViconCGStream namespace.
- * 
+ * This namespace defines the set of primitive types used by the protocol
+ * Readers and Writers, and also by the objects defined in the ViconCGStream
+ * namespace.
+ *
  * See ViconCGStreamIO::VReader, ViconCGStreamIO::VWriter.
  */
-namespace ViconCGStreamType
-{
+namespace ViconCGStreamType {
 //-------------------------------------------------------------------------------------------------
 
 /// Single 8-bit character.
@@ -62,11 +62,10 @@ typedef float Float;
 /// 64-bit IEEE-format floating-point number.
 typedef double Double;
 
-/** This is a special type to distinguish members of the ViconCGStreamEnum namespace from other
-  * primitives in the stream.
-  */
+/** This is a special type to distinguish members of the ViconCGStreamEnum
+ * namespace from other primitives in the stream.
+ */
 typedef UInt32 Enum;
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStreamType

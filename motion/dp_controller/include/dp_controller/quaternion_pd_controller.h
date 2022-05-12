@@ -20,11 +20,11 @@
 #ifndef VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H
 #define VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H
 
-#include <math.h>
-#include <cstdlib>
 #include <Eigen/Dense>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
+#include <math.h>
 
 #include "eigen_typedefs.h"
 using namespace Eigen;
@@ -32,25 +32,24 @@ using namespace Eigen;
 /**
  * @brief A complete class foinitr the nonlinear PID controller
  */
-class QuaternionPdController
-{
+class QuaternionPdController {
 public:
-
   /**
    * @brief Controller class initiator
    *
    * @param a     Diagonal value for derivative gain matrix
    * @param b     Diagonal value for position gain matrix
    * @param c     Orientation gain
-   * @param i     Scalar for orientation integral gain and diagonal value for integral gain matrix
+   * @param i     Scalar for orientation integral gain and diagonal value for
+   * integral gain matrix
    * @param W     Weight of drone
    * @param B     Buoyancy of drone
    * @param r_G   Center of gravity, expressed in body frame
    * @param r_B   Center of buoyancy, expressed in body frame
    *
    */
-  void init(double a, double b, double c, double i, double W, double B, const Eigen::Vector3d& r_G,
-            const Eigen::Vector3d& r_B);
+  void init(double a, double b, double c, double i, double W, double B,
+            const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B);
 
   /**
    * @brief set the gains of the controller
@@ -58,7 +57,8 @@ public:
    * @param a     Diagonal value for derivative gain matrix
    * @param b     Diagonal value for position gain matrix
    * @param c     Orientation gain
-   * @param i     Scalar for orientation integral gain and diagonal value for integral gain matrix
+   * @param i     Scalar for orientation integral gain and diagonal value for
+   * integral gain matrix
    *
    */
   void setGains(double a, double b, double c, double i);
@@ -71,7 +71,7 @@ public:
    *
    * @return the restoring forces vector
    */
-  Eigen::Vector6d getRestoring(const Eigen::Quaterniond& q);
+  Eigen::Vector6d getRestoring(const Eigen::Quaterniond &q);
 
   /**
    * @brief a getter for the feedback vector
@@ -86,21 +86,27 @@ public:
    *
    * @return Control vector without restoring forces
    */
-  Eigen::Vector6d getFeedback(const Eigen::Vector3d& x, const Eigen::Quaterniond& q, const Eigen::Vector6d& nu,
-                              const Eigen::Vector3d& x_d, const Eigen::Quaterniond& q_d);
+  Eigen::Vector6d getFeedback(const Eigen::Vector3d &x,
+                              const Eigen::Quaterniond &q,
+                              const Eigen::Vector6d &nu,
+                              const Eigen::Vector3d &x_d,
+                              const Eigen::Quaterniond &q_d);
 
   /**
-   * @brief Utilize a calculated reference model to find next desired body position
+   * @brief Utilize a calculated reference model to find next desired body
+   * position
    *
    * @param x       The current body position, as a 3d vector
    * @param x_ref   The body position reference, as a 3d vector
    *
    * @return Next desired body position
    */
-  Eigen::Vector3d referenceModel(const Eigen::Vector3d& x, const Eigen::Vector3d& x_ref);
+  Eigen::Vector3d referenceModel(const Eigen::Vector3d &x,
+                                 const Eigen::Vector3d &x_ref);
 
   /**
-   * @brief Check if desired position is within a defined radius of the current position
+   * @brief Check if desired position is within a defined radius of the current
+   * position
    *
    * @param x     The current body position, as a 3d vector
    * @param x_d   The desired body position, as a 3d vector
@@ -108,13 +114,19 @@ public:
    *
    * @return true if inside circle of acceptance, false if not.
    */
-  bool circleOfAcceptance(const Eigen::Vector3d& x, const Eigen::Vector3d& x_d, float R);
+  bool circleOfAcceptance(const Eigen::Vector3d &x, const Eigen::Vector3d &x_d,
+                          float R);
 
-  Eigen::Vector6d integral = Eigen::Vector6d::Zero();        /** Integral error vector                     */
-  Eigen::Vector3d x_d_prev = Eigen::Vector3d::Zero();        /** Previous desired body position            */
-  Eigen::Vector3d x_d_prev_prev = Eigen::Vector3d::Zero();   /** Previous previous desired body position   */
-  Eigen::Vector3d x_ref_prev = Eigen::Vector3d::Zero();      /** Previous reference body position          */
-  Eigen::Vector3d x_ref_prev_prev = Eigen::Vector3d::Zero(); /** Previous previous reference body position */
+  Eigen::Vector6d integral =
+      Eigen::Vector6d::Zero(); /** Integral error vector                     */
+  Eigen::Vector3d x_d_prev =
+      Eigen::Vector3d::Zero(); /** Previous desired body position            */
+  Eigen::Vector3d x_d_prev_prev =
+      Eigen::Vector3d::Zero(); /** Previous previous desired body position   */
+  Eigen::Vector3d x_ref_prev =
+      Eigen::Vector3d::Zero(); /** Previous reference body position          */
+  Eigen::Vector3d x_ref_prev_prev =
+      Eigen::Vector3d::Zero(); /** Previous previous reference body position */
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -150,7 +162,7 @@ private:
    * @param att_lim     The maximum allowed attitude gain
    *
    */
-  void integralWindUp(Eigen::Vector6d& vec, double pose_lim, double att_lim);
+  void integralWindUp(Eigen::Vector6d &vec, double pose_lim, double att_lim);
 
   /**
    * @brief Calculate error vector.
@@ -167,8 +179,10 @@ private:
    *
    * @return a 6x1 vector consisting of the error in position and attitudes.
    */
-  Eigen::Vector6d errorVector(const Eigen::Vector3d& x, const Eigen::Vector3d& x_d, const Eigen::Quaterniond& q,
-                              const Eigen::Quaterniond& q_d);
+  Eigen::Vector6d errorVector(const Eigen::Vector3d &x,
+                              const Eigen::Vector3d &x_d,
+                              const Eigen::Quaterniond &q,
+                              const Eigen::Quaterniond &q_d);
 
   /**
    * @brief calculate the restoring force vector
@@ -201,4 +215,4 @@ private:
   double m_B;            /** [N] Buoyancy of drone                       */
 };
 
-#endif  // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H
+#endif // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H

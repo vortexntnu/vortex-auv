@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -31,48 +31,38 @@
 #include "LatencyInfoDetail.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains the latency samples taken
-class VLatencyInfo : public VItem
-{
+class VLatencyInfo : public VItem {
 public:
   /// Samples
-  std::vector< ViconCGStreamDetail::VLatencyInfo_Sample > m_Samples;
+  std::vector<ViconCGStreamDetail::VLatencyInfo_Sample> m_Samples;
 
   /// Equality operator
-  bool operator == ( const VLatencyInfo& i_rOther ) const
-  {
-    return  ( m_Samples == i_rOther.m_Samples );
+  bool operator==(const VLatencyInfo &i_rOther) const {
+    return (m_Samples == i_rOther.m_Samples);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::LatencyInfo;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return FILTER_NA;
-  }
-  
+  virtual ViconCGStreamType::UInt32 FilterID() const { return FILTER_NA; }
+
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_Samples );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_Samples);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_Samples );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_Samples);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
+}; // namespace ViconCGStream

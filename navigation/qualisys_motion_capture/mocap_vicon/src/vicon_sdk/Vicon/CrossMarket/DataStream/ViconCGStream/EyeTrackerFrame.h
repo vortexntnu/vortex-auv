@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -30,15 +30,13 @@
 #include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains a frame number, device identifiers and a frame of eye tracker samples.
-class VEyeTrackerFrame : public VItem
-{
+/// Contains a frame number, device identifiers and a frame of eye tracker
+/// samples.
+class VEyeTrackerFrame : public VItem {
 public:
-
   /// Device frame number
   ViconCGStreamType::UInt32 m_FrameID;
 
@@ -48,46 +46,36 @@ public:
   /// Gaze direction as a unit vector.
   /// In the eye coordinate system.
   /// See: ViconCGStream::VEyeTrackerInfo.
-  ViconCGStreamType::Float m_GazeVector[ 3 ];
+  ViconCGStreamType::Float m_GazeVector[3];
 
   /// Equality operator
-  bool operator == ( const VEyeTrackerFrame & i_rOther ) const
-  {
+  bool operator==(const VEyeTrackerFrame &i_rOther) const {
     return m_FrameID == i_rOther.m_FrameID &&
            m_DeviceID == i_rOther.m_DeviceID &&
-           ViconCGStreamDetail::IsEqual( m_GazeVector, i_rOther.m_GazeVector );
+           ViconCGStreamDetail::IsEqual(m_GazeVector, i_rOther.m_GazeVector);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::EyeTrackerFrame;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_DeviceID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_DeviceID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_FrameID ) &&
-           i_rBuffer.Read( m_DeviceID ) &&
-           i_rBuffer.Read( m_GazeVector );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_FrameID) && i_rBuffer.Read(m_DeviceID) &&
+           i_rBuffer.Read(m_GazeVector);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_FrameID );
-    i_rBuffer.Write( m_DeviceID );
-    i_rBuffer.Write( m_GazeVector );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_FrameID);
+    i_rBuffer.Write(m_DeviceID);
+    i_rBuffer.Write(m_GazeVector);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

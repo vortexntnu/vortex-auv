@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -29,28 +29,29 @@
 
 #include <StreamCommon/Type.h>
 
-/** 
- * This namespace holds the enumerated values used to identify the various types of object found
- * in the stream. Each packet consists of a header, followed by one or more object blocks. 
+/**
+ * This namespace holds the enumerated values used to identify the various types
+ * of object found in the stream. Each packet consists of a header, followed by
+ * one or more object blocks.
  *
- * The packet header comprises of the \c PacketID tag (with the value of ViconCGStreamEnum::Objects), 
- * followed by the \c PacketLength value. Both the \c PacketID and \c PacketLength fields are 
- * ViconCGStreamType::UInt32 values.
+ * The packet header comprises of the \c PacketID tag (with the value of
+ * ViconCGStreamEnum::Objects), followed by the \c PacketLength value. Both the
+ * \c PacketID and \c PacketLength fields are ViconCGStreamType::UInt32 values.
  *
- * Each object (stored after the \c PacketLength field) has a block header, followed by the data
- * specific to that object. The object header is similar to the packet header, in that it consists
- * of an \c ObjectID, and the \c ObjectLength. The \c ObjectID value uniquely identifies the kind of 
- * object present.
+ * Each object (stored after the \c PacketLength field) has a block header,
+ * followed by the data specific to that object. The object header is similar to
+ * the packet header, in that it consists of an \c ObjectID, and the \c
+ * ObjectLength. The \c ObjectID value uniquely identifies the kind of object
+ * present.
  */
-namespace ViconCGStreamEnum
-{
+namespace ViconCGStreamEnum {
 //-------------------------------------------------------------------------------------------------
 
 /// Explicitely invalid value (can be used for initialisation)
-const ViconCGStreamType::Enum Invalid = -1; 
+const ViconCGStreamType::Enum Invalid = -1;
 
 /// This value appears at the start of an object packet.
-const ViconCGStreamType::Enum Objects = 0x1a2b0001; 
+const ViconCGStreamType::Enum Objects = 0x1a2b0001;
 
 /// See ViconCGStream::VObjectEnums.
 const ViconCGStreamType::Enum ObjectEnums = 100001;
@@ -77,55 +78,55 @@ const ViconCGStreamType::Enum Filter = 100007;
 const ViconCGStreamType::Enum StreamInfo = 1;
 
 /// See ViconCGStream::VSubjectInfo.
-const ViconCGStreamType::Enum SubjectInfo = 2; 
+const ViconCGStreamType::Enum SubjectInfo = 2;
 
 /// See ViconCGStream::VSubjectHealth.
-const ViconCGStreamType::Enum SubjectHealth = 29; 
+const ViconCGStreamType::Enum SubjectHealth = 29;
 
 /// See ViconCGStream::VDeviceInfo.
-const ViconCGStreamType::Enum DeviceInfo = 3; 
+const ViconCGStreamType::Enum DeviceInfo = 3;
 
 /// See ViconCGStream::VChannelInfo.
-const ViconCGStreamType::Enum ChannelInfo = 4; 
+const ViconCGStreamType::Enum ChannelInfo = 4;
 
 /// See ViconCGStream::VFrameInfo.
-const ViconCGStreamType::Enum FrameInfo = 5; 
+const ViconCGStreamType::Enum FrameInfo = 5;
 
 /// See ViconCGStream::VLabeledRecons.
-const ViconCGStreamType::Enum LabeledRecons = 6; 
+const ViconCGStreamType::Enum LabeledRecons = 6;
 
 /// See ViconCGStream::VUnlabeledRecons.
-const ViconCGStreamType::Enum UnlabeledRecons = 7; 
+const ViconCGStreamType::Enum UnlabeledRecons = 7;
 
 /// See ViconCGStream::VLocalSegments.
-const ViconCGStreamType::Enum LocalSegments = 8; 
+const ViconCGStreamType::Enum LocalSegments = 8;
 
 /// See ViconCGStream::VLocalSegments.
-const ViconCGStreamType::Enum GlobalSegments = 9; 
+const ViconCGStreamType::Enum GlobalSegments = 9;
 
 /// See ViconCGStream::VForceFrame.
-const ViconCGStreamType::Enum ForceFrame = 10; 
+const ViconCGStreamType::Enum ForceFrame = 10;
 
 /// See ViconCGStream::VMomentFrame.
-const ViconCGStreamType::Enum MomentFrame = 11; 
+const ViconCGStreamType::Enum MomentFrame = 11;
 
 /// See ViconCGStream::VCentreOfPressureFrame.
-const ViconCGStreamType::Enum CentreOfPressureFrame = 12; 
+const ViconCGStreamType::Enum CentreOfPressureFrame = 12;
 
 /// See ViconCGStream::VVoltageFrame.
-const ViconCGStreamType::Enum VoltageFrame = 13; 
+const ViconCGStreamType::Enum VoltageFrame = 13;
 
 /// See ViconCGStream::VCameraInfo.
-const ViconCGStreamType::Enum CameraInfo = 14; 
+const ViconCGStreamType::Enum CameraInfo = 14;
 
 /// See ViconCGStream::VCameraInfo2.
-const ViconCGStreamType::Enum CameraTimingInfo = 65001; 
+const ViconCGStreamType::Enum CameraTimingInfo = 65001;
 
 /// See ViconCGStream::VCentroidTracks.
-const ViconCGStreamType::Enum CentroidTracks = 15; 
+const ViconCGStreamType::Enum CentroidTracks = 15;
 
 /// See ViconCGStream::VCentroids.
-const ViconCGStreamType::Enum Centroids = 16; 
+const ViconCGStreamType::Enum Centroids = 16;
 
 /// See ViconCGStream::VGreyScaleBlobs.
 const ViconCGStreamType::Enum GreyscaleBlobs = 17;
@@ -140,10 +141,10 @@ const ViconCGStreamType::Enum CameraCalibrationInfo = 19;
 const ViconCGStreamType::Enum ForcePlateInfo = 20;
 
 /// See ViconCGStream::VVideoFrame.
-const ViconCGStreamType::Enum VideoFrame = 22; 
+const ViconCGStreamType::Enum VideoFrame = 22;
 
 /// See ViconCGStream::VTimecode.
-const ViconCGStreamType::Enum Timecode = 23; 
+const ViconCGStreamType::Enum Timecode = 23;
 
 /// See ViconCGStream::VUnlabeledReconsRayAssignments
 const ViconCGStreamType::Enum UnlabeledReconRayAssignments = 24;
@@ -155,7 +156,7 @@ const ViconCGStreamType::Enum LabeledReconRayAssignments = 25;
 const ViconCGStreamType::Enum LatencyInfo = 26;
 
 /// See ViconCGStream::VCameraCalibrationHealth
-const ViconCGStreamType::Enum CameraCalibrationHealth = 27; 
+const ViconCGStreamType::Enum CameraCalibrationHealth = 27;
 
 /// See ViconCGStream::VSubjectTopology
 const ViconCGStreamType::Enum SubjectTopology = 28;
@@ -173,22 +174,22 @@ const ViconCGStreamType::Enum EyeTrackerFrame = 32;
 const ViconCGStreamType::Enum EyeTrackerInfo = 33;
 
 /// See ViconCGStream::VChannelInfoExtra.
-const ViconCGStreamType::Enum ChannelInfoExtra = 34; 
+const ViconCGStreamType::Enum ChannelInfoExtra = 34;
 
 /// See ViconCGStream::VApexHaptics.
 const ViconCGStreamType::Enum ApexHaptics = 35;
 
 /// See ViconCGStream::VHardwareFrameInfo.
-const ViconCGStreamType::Enum HardwareFrameInfo = 36; 
+const ViconCGStreamType::Enum HardwareFrameInfo = 36;
 
 /// See ViconCGStream::VApplicationInfo.
 const ViconCGStreamType::Enum ApplicationInfo = 37;
 
 /// See ViconCGStream::VDeviceInfoExtra.
-const ViconCGStreamType::Enum DeviceInfoExtra = 38; 
+const ViconCGStreamType::Enum DeviceInfoExtra = 38;
 
 /// See ViconCGStream::VDeviceInfoExtra.
-const ViconCGStreamType::Enum FrameRateInfo = 39; 
+const ViconCGStreamType::Enum FrameRateInfo = 39;
 
 /// See ViconCGStream::VObjectQuality.
 const ViconCGStreamType::Enum ObjectQuality = 40;
@@ -196,4 +197,4 @@ const ViconCGStreamType::Enum ObjectQuality = 40;
 /// See ViconCGStream::VObjectQuality.
 const ViconCGStreamType::Enum CentroidWeights = 41;
 //-------------------------------------------------------------------------------------------------
-};
+}; // namespace ViconCGStreamEnum

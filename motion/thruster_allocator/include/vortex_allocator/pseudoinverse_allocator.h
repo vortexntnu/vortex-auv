@@ -7,8 +7,7 @@
 
 #include <Eigen/Dense>
 
-class PseudoinverseAllocator
-{
+class PseudoinverseAllocator {
 public:
   explicit PseudoinverseAllocator(const Eigen::MatrixXd &T_pinv);
   Eigen::VectorXd compute(const Eigen::VectorXd &tau);
@@ -17,4 +16,4 @@ private:
   Eigen::MatrixXd T_pinv;
 };
 
-#endif  // VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_H
+#endif // VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_H

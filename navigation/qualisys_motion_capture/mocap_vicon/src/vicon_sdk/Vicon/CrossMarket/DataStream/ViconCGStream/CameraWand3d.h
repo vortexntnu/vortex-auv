@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,24 +27,21 @@
 /// \file
 /// Contains the declaration of the ViconCGStream::VCameraWand3d class.
 
-#include "Item.h"
 #include "CameraWand3dDetail.h"
+#include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains a 3d wand captured in a camera during a wand wave.
-class VCameraWand3d : public VItem
-{
+class VCameraWand3d : public VItem {
 public:
-
   /// Wand session
   ViconCGStreamType::UInt32 m_WaveSession;
-  
+
   /// Wand points
-  std::vector< ViconCGStreamDetail::VCameraWand3d_Point > m_WandPoints;
+  std::vector<ViconCGStreamDetail::VCameraWand3d_Point> m_WandPoints;
 
   /// Cameras with wand
   ViconCGStreamType::UInt32 m_CamerasWithWand;
@@ -53,46 +50,35 @@ public:
   bool m_bMoving;
 
   /// Equality operator
-  bool operator == ( const VCameraWand3d & i_rOther ) const
-  {
+  bool operator==(const VCameraWand3d &i_rOther) const {
     return m_WaveSession == i_rOther.m_WaveSession &&
            m_WandPoints == i_rOther.m_WandPoints &&
            m_CamerasWithWand == i_rOther.m_CamerasWithWand &&
            m_bMoving == i_rOther.m_bMoving;
   }
-  
+
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::CameraWand3d;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_WaveSession;
-  }
-  
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_WaveSession; }
+
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_WaveSession ) && 
-           i_rBuffer.Read( m_WandPoints ) && 
-           i_rBuffer.Read( m_CamerasWithWand ) && 
-           i_rBuffer.Read( m_bMoving );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_WaveSession) && i_rBuffer.Read(m_WandPoints) &&
+           i_rBuffer.Read(m_CamerasWithWand) && i_rBuffer.Read(m_bMoving);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_WaveSession );
-    i_rBuffer.Write( m_WandPoints );
-    i_rBuffer.Write( m_CamerasWithWand );
-    i_rBuffer.Write( m_bMoving );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_WaveSession);
+    i_rBuffer.Write(m_WandPoints);
+    i_rBuffer.Write(m_CamerasWithWand);
+    i_rBuffer.Write(m_bMoving);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -25,56 +25,45 @@
 #pragma once
 
 /// \file
-/// Contains the declaration of the ViconCGStream::VUnlabeledReconRayAssignments class.
+/// Contains the declaration of the ViconCGStream::VUnlabeledReconRayAssignments
+/// class.
 
 #include "Item.h"
 #include "ReconRayAssignmentsDetail.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Unlabeled ray assignments
-class VUnlabeledReconRayAssignments : public VItem
-{
+class VUnlabeledReconRayAssignments : public VItem {
 public:
-
   /// Recon ray assignments.
-  std::vector< ViconCGStreamDetail::VReconRayAssignments > m_ReconRayAssignments;
+  std::vector<ViconCGStreamDetail::VReconRayAssignments> m_ReconRayAssignments;
 
   /// Equality operator.
-  bool operator == ( const VUnlabeledReconRayAssignments & i_rOther )
-  {
+  bool operator==(const VUnlabeledReconRayAssignments &i_rOther) {
     return m_ReconRayAssignments == i_rOther.m_ReconRayAssignments;
   }
-  
+
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::UnlabeledReconRayAssignments;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return FILTER_NA;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return FILTER_NA; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_ReconRayAssignments );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_ReconRayAssignments);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_ReconRayAssignments );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_ReconRayAssignments);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-}
-
-
+} // namespace ViconCGStream

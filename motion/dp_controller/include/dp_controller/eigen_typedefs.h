@@ -3,10 +3,9 @@
 
 #include <Eigen/Dense>
 
-namespace Eigen
-{
+namespace Eigen {
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
-}
+} // namespace Eigen
 
-#endif  // VORTEX_EIGEN_TYPEDEFS_H
+#endif // VORTEX_EIGEN_TYPEDEFS_H

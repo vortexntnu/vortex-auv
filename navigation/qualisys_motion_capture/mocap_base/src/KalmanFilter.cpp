@@ -233,8 +233,8 @@ void KalmanFilter::update(const Eigen::Quaterniond &m_attitude,
 
   // cout << "Innovation: " << endl;
   // cout << "dat: " << Vector4d(dq.w(), dq.x(), dq.y(), dq.z()).transpose() <<
-  // endl; cout << "dpo: " << dx.segment<3>(3).transpose() << endl; cout << "dan:
-  // " << dx.segment<3>(6).transpose() << endl; cout << "dli: " <<
+  // endl; cout << "dpo: " << dx.segment<3>(3).transpose() << endl; cout <<
+  // "dan: " << dx.segment<3>(6).transpose() << endl; cout << "dli: " <<
   // dx.segment<3>(9).transpose() << endl;
 
   // cout << "Update: " << endl;

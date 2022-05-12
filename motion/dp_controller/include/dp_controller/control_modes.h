@@ -7,10 +7,8 @@
 
 #include <string>
 
-namespace ControlModes
-{
-enum ControlMode
-{
+namespace ControlModes {
+enum ControlMode {
   OPEN_LOOP = 0,
   POSITION_HOLD = 1,
   HEADING_HOLD = 2,
@@ -22,7 +20,7 @@ enum ControlMode
   ORIENTATION_HOLD = 8,
   ORIENTATION_DEPTH_HOLD = 9
 };
-}  // namespace ControlModes
+} // namespace ControlModes
 typedef ControlModes::ControlMode ControlMode;
 
 /**
@@ -31,52 +29,50 @@ typedef ControlModes::ControlMode ControlMode;
  * @param control_mode the control mode to be converted to a string
  *
  */
-inline std::string controlModeString(ControlMode control_mode)
-{
+inline std::string controlModeString(ControlMode control_mode) {
   std::string s;
-  switch (control_mode)
-  {
-    case ControlModes::OPEN_LOOP:
-      s = "OPEN LOOP";
-      break;
+  switch (control_mode) {
+  case ControlModes::OPEN_LOOP:
+    s = "OPEN LOOP";
+    break;
 
-    case ControlModes::POSITION_HOLD:
-      s = "POSITION HOLD";
-      break;
+  case ControlModes::POSITION_HOLD:
+    s = "POSITION HOLD";
+    break;
 
-    case ControlModes::HEADING_HOLD:
-      s = "HEADING HOLD";
-      break;
+  case ControlModes::HEADING_HOLD:
+    s = "HEADING HOLD";
+    break;
 
-    case ControlModes::DEPTH_HEADING_HOLD:
-      s = "DEPTH HEADING HOLD";
-      break;
+  case ControlModes::DEPTH_HEADING_HOLD:
+    s = "DEPTH HEADING HOLD";
+    break;
 
-    case ControlModes::DEPTH_HOLD:
-      s = "DEPTH HOLD";
-      break;
+  case ControlModes::DEPTH_HOLD:
+    s = "DEPTH HOLD";
+    break;
 
-    case ControlModes::POSITION_HEADING_HOLD:
-      s = "POSITION HEADING HOLD";
-      break;
-    
-    case ControlModes::POSE_HOLD:
-      s = "POSE HOLD";
-      break;
+  case ControlModes::POSITION_HEADING_HOLD:
+    s = "POSITION HEADING HOLD";
+    break;
 
-    case ControlModes::ORIENTATION_HOLD:
-      s = "ORIENTATION HOLD";
-      break;
+  case ControlModes::POSE_HOLD:
+    s = "POSE HOLD";
+    break;
 
-    case ControlModes::ORIENTATION_DEPTH_HOLD:
-      s = "ORIENTATION DEPTH HOLD";
-      break;
+  case ControlModes::ORIENTATION_HOLD:
+    s = "ORIENTATION HOLD";
+    break;
 
-    default:
-      s = "INVALID CONTROL MODE";
-      break;
+  case ControlModes::ORIENTATION_DEPTH_HOLD:
+    s = "ORIENTATION DEPTH HOLD";
+    break;
+
+  default:
+    s = "INVALID CONTROL MODE";
+    break;
   }
   return s;
 }
 
-#endif  // VORTEX_CONTROLLER_CONTROL_MODES_H
+#endif // VORTEX_CONTROLLER_CONTROL_MODES_H

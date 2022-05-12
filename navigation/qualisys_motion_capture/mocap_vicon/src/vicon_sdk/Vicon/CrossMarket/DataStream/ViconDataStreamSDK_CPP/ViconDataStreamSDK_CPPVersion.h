@@ -15,13 +15,17 @@
 #define VICONDATASTREAMSDK_CPP_FULL_VERSION_STRING "1.8.0.0"
 #define VICONDATASTREAMSDK_CPP_VERSION_STRING "1.8"
 #define VICONDATASTREAMSDK_CPP_COMPANY "Vicon Motion Systems Ltd"
-#define VICONDATASTREAMSDK_CPP_COPYRIGHT "Copyright \x00A9 2018 Vicon Motion Systems Ltd. All rights reserved."
-#define VICONDATASTREAMSDK_CPP_TRADEMARK "Vicon\x00AE is a registered trademark of OMG Plc."
+#define VICONDATASTREAMSDK_CPP_COPYRIGHT                                       \
+  "Copyright \x00A9 2018 Vicon Motion Systems Ltd. All rights reserved."
+#define VICONDATASTREAMSDK_CPP_TRADEMARK                                       \
+  "Vicon\x00AE is a registered trademark of OMG Plc."
 #define VICONDATASTREAMSDK_CPP_PROJECT_NAME "ViconDataStreamSDK_CPP"
 
 #define VICONDATASTREAMSDK_CPP_FULL_VERSION_STRING_L L"1.8.0.0"
 #define VICONDATASTREAMSDK_CPP_VERSION_STRING_L L"1.8"
 #define VICONDATASTREAMSDK_CPP_COMPANY_L L"Vicon Motion Systems Ltd"
-#define VICONDATASTREAMSDK_CPP_COPYRIGHT_L L"Copyright \x00A9 2018 Vicon Motion Systems Ltd. All rights reserved."
-#define VICONDATASTREAMSDK_CPP_TRADEMARK_L L"Vicon\x00AE is a registered trademark of OMG Plc."
+#define VICONDATASTREAMSDK_CPP_COPYRIGHT_L                                     \
+  L"Copyright \x00A9 2018 Vicon Motion Systems Ltd. All rights reserved."
+#define VICONDATASTREAMSDK_CPP_TRADEMARK_L                                     \
+  L"Vicon\x00AE is a registered trademark of OMG Plc."
 #define VICONDATASTREAMSDK_CPP_PROJECT_NAME_L L"ViconDataStreamSDK_CPP"

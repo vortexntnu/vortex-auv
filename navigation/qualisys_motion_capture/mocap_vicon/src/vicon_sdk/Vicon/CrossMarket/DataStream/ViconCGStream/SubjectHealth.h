@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -30,15 +30,12 @@
 #include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
 /// Contains a health estimate for a single subject.
-class VSubjectHealth : public VItem
-{
+class VSubjectHealth : public VItem {
 public:
-
   /// Subject identifier
   ViconCGStreamType::UInt32 m_SubjectID;
 
@@ -47,45 +44,35 @@ public:
 
   /// Health estimate from 0.0 (bad) to 1.0 (excellent).
   ViconCGStreamType::Double m_SubjectHealth;
-  
+
   /// Equality operator
-  bool operator == ( const VSubjectHealth& i_rOther ) const
-  {
-    return  ( m_SubjectID == i_rOther.m_SubjectID ) &&
-            ( m_MarkerError == i_rOther.m_MarkerError ) &&
-            ( m_SubjectHealth == i_rOther.m_SubjectHealth );
+  bool operator==(const VSubjectHealth &i_rOther) const {
+    return (m_SubjectID == i_rOther.m_SubjectID) &&
+           (m_MarkerError == i_rOther.m_MarkerError) &&
+           (m_SubjectHealth == i_rOther.m_SubjectHealth);
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::SubjectHealth;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_SubjectID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_SubjectID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_SubjectID ) &&
-           i_rBuffer.Read( m_MarkerError ) &&
-           i_rBuffer.Read( m_SubjectHealth );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_SubjectID) && i_rBuffer.Read(m_MarkerError) &&
+           i_rBuffer.Read(m_SubjectHealth);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_SubjectID );
-    i_rBuffer.Write( m_MarkerError );
-    i_rBuffer.Write( m_SubjectHealth );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_SubjectID);
+    i_rBuffer.Write(m_MarkerError);
+    i_rBuffer.Write(m_SubjectHealth);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

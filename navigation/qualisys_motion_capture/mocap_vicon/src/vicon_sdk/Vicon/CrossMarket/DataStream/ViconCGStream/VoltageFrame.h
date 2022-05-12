@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -30,15 +30,13 @@
 #include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains a frame number, device and channel identifiers, and a frame of voltages in component order (measured in V).
-class VVoltageFrame : public VItem
-{
+/// Contains a frame number, device and channel identifiers, and a frame of
+/// voltages in component order (measured in V).
+class VVoltageFrame : public VItem {
 public:
-
   /// Device frame number
   ViconCGStreamType::UInt32 m_FrameID;
 
@@ -49,11 +47,10 @@ public:
   ViconCGStreamType::UInt32 m_ChannelID;
 
   /// Voltage samples (in component order)
-  std::vector< ViconCGStreamType::Float > m_Samples;
+  std::vector<ViconCGStreamType::Float> m_Samples;
 
   /// Equality operator
-  bool operator == ( const VVoltageFrame & i_rOther ) const
-  {
+  bool operator==(const VVoltageFrame &i_rOther) const {
     return m_FrameID == i_rOther.m_FrameID &&
            m_DeviceID == i_rOther.m_DeviceID &&
            m_ChannelID == i_rOther.m_ChannelID &&
@@ -61,37 +58,27 @@ public:
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::VoltageFrame;
   }
 
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_DeviceID;
-  }
-  
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_DeviceID; }
+
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_FrameID ) &&
-           i_rBuffer.Read( m_DeviceID ) &&
-           i_rBuffer.Read( m_ChannelID ) &&
-           i_rBuffer.Read( m_Samples );
-  }
-  
-  /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_FrameID );
-    i_rBuffer.Write( m_DeviceID );
-    i_rBuffer.Write( m_ChannelID );
-    i_rBuffer.Write( m_Samples );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_FrameID) && i_rBuffer.Read(m_DeviceID) &&
+           i_rBuffer.Read(m_ChannelID) && i_rBuffer.Read(m_Samples);
   }
 
+  /// Write function.
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_FrameID);
+    i_rBuffer.Write(m_DeviceID);
+    i_rBuffer.Write(m_ChannelID);
+    i_rBuffer.Write(m_Samples);
+  }
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

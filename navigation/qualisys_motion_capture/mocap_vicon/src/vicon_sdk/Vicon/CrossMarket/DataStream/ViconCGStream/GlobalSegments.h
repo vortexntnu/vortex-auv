@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -27,59 +27,46 @@
 /// \file
 /// Contains the declaration of the ViconCGStream::VGlobalSegments class.
 
-#include "Item.h"
 #include "GlobalSegmentsDetail.h"
+#include "Item.h"
 #include <vector>
 
-namespace ViconCGStream
-{
+namespace ViconCGStream {
 //-------------------------------------------------------------------------------------------------
 
-/// Contains a vector of segment global poses for a single subject. 
-class VGlobalSegments : public VItem
-{
+/// Contains a vector of segment global poses for a single subject.
+class VGlobalSegments : public VItem {
 public:
-
   /// Subject identifier
   ViconCGStreamType::UInt32 m_SubjectID;
 
   /// Global segments
-  std::vector< ViconCGStreamDetail::VGlobalSegments_Segment > m_Segments;
+  std::vector<ViconCGStreamDetail::VGlobalSegments_Segment> m_Segments;
 
   // Equality operator
-  bool operator == ( const VGlobalSegments & i_rOther ) const
-  {
+  bool operator==(const VGlobalSegments &i_rOther) const {
     return m_Segments == i_rOther.m_Segments;
   }
 
   /// Object type enum.
-  virtual ViconCGStreamType::Enum TypeID() const
-  {
+  virtual ViconCGStreamType::Enum TypeID() const {
     return ViconCGStreamEnum::GlobalSegments;
   }
-  
+
   /// Filter ID
-  virtual ViconCGStreamType::UInt32 FilterID() const
-  {
-    return m_SubjectID;
-  }
+  virtual ViconCGStreamType::UInt32 FilterID() const { return m_SubjectID; }
 
   /// Read function.
-  virtual bool Read( const ViconCGStreamIO::VBuffer & i_rBuffer )
-  {
-    return i_rBuffer.Read( m_SubjectID ) &&
-           i_rBuffer.Read( m_Segments );
+  virtual bool Read(const ViconCGStreamIO::VBuffer &i_rBuffer) {
+    return i_rBuffer.Read(m_SubjectID) && i_rBuffer.Read(m_Segments);
   }
 
   /// Write function.
-  virtual void Write( ViconCGStreamIO::VBuffer & i_rBuffer ) const
-  {
-    i_rBuffer.Write( m_SubjectID );
-    i_rBuffer.Write( m_Segments );
+  virtual void Write(ViconCGStreamIO::VBuffer &i_rBuffer) const {
+    i_rBuffer.Write(m_SubjectID);
+    i_rBuffer.Write(m_Segments);
   }
-
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
+}; // namespace ViconCGStream

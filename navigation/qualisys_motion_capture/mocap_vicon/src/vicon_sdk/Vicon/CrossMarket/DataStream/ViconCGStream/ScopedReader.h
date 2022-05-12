@@ -11,8 +11,8 @@
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 //
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -24,40 +24,32 @@
 //////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
-#include <StreamCommon/Buffer.h>
 #include "Enum.h"
+#include <StreamCommon/Buffer.h>
 #include <string>
 #include <vector>
 
-namespace ViconCGStream
-{
-  class VItem;
+namespace ViconCGStream {
+class VItem;
 }
 
-namespace ViconCGStreamIO
-{
+namespace ViconCGStreamIO {
 //-------------------------------------------------------------------------------------------------
 
 /** \class VScopedReader
-This class provides functionality for reading nested blocks of data from a buffer.
-Each block has a header which contains a ViconCGStreamEnum identifier, and a block length.
+This class provides functionality for reading nested blocks of data from a
+buffer. Each block has a header which contains a ViconCGStreamEnum identifier,
+and a block length.
 **/
 
-class VScopedReader
-{
+class VScopedReader {
 public:
-  
   /// Constructor taking the underlying buffer to read from.
-  VScopedReader( VBuffer & i_rBuffer )
-  : m_rBuffer( i_rBuffer )
-  , m_Enum( 0 )
-  , m_Start( 0 )
-  , m_End( 0 )
-  {
+  VScopedReader(VBuffer &i_rBuffer)
+      : m_rBuffer(i_rBuffer), m_Enum(0), m_Start(0), m_End(0) {
     ViconCGStreamType::UInt32 Length;
 
-    if( !m_rBuffer.Read( m_Enum ) || !m_rBuffer.Read( Length ) )
-    {
+    if (!m_rBuffer.Read(m_Enum) || !m_rBuffer.Read(Length)) {
       return;
     }
 
@@ -66,43 +58,35 @@ public:
   }
 
   /// Destructor.
-  ~VScopedReader()
-  {
-    if( m_Start < m_End )
-    {
-      m_rBuffer.SetOffset( m_End );
+  ~VScopedReader() {
+    if (m_Start < m_End) {
+      m_rBuffer.SetOffset(m_End);
     }
   }
 
   /// Determine if the current buffer offset is valid.
-  bool Ok()
-  {
+  bool Ok() {
     ViconCGStreamType::UInt32 Offset = m_rBuffer.Offset();
     return Offset >= m_Start && Offset < m_End;
   }
 
   /// Get the Enum read from the block header.
   /// This function is used to determine the block type.
-  /// If the block is valid, then the value returned will be defined in the ViconCGStreamEnum namespace.
-  ViconCGStreamType::Enum Enum() const
-  {
-    return m_Enum;
-  }
+  /// If the block is valid, then the value returned will be defined in the
+  /// ViconCGStreamEnum namespace.
+  ViconCGStreamType::Enum Enum() const { return m_Enum; }
 
   /// Read a single item from the buffer.
-  bool Read( ViconCGStream::VItem & o_rItem ) const
-  {
-    return m_rBuffer.Read( o_rItem );
+  bool Read(ViconCGStream::VItem &o_rItem) const {
+    return m_rBuffer.Read(o_rItem);
   }
 
 private:
-  VBuffer&                  m_rBuffer;
-  ViconCGStreamType::Enum   m_Enum;
+  VBuffer &m_rBuffer;
+  ViconCGStreamType::Enum m_Enum;
   ViconCGStreamType::UInt32 m_Start;
   ViconCGStreamType::UInt32 m_End;
 };
 
 //-------------------------------------------------------------------------------------------------
-};
-
-
+}; // namespace ViconCGStreamIO

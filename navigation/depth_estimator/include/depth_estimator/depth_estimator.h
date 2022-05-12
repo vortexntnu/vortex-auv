@@ -3,13 +3,12 @@
 
 #include <string>
 
-#include <ros/ros.h>
 #include <ros/console.h>
-#include <std_msgs/Float32.h>
+#include <ros/ros.h>
 #include <sensor_msgs/FluidPressure.h>
+#include <std_msgs/Float32.h>
 
-class DepthEstimator
-{
+class DepthEstimator {
 public:
   DepthEstimator(ros::NodeHandle nh);
 
@@ -21,8 +20,8 @@ private:
   double atmospheric_pressure;
   double water_density;
   double earth_gravitation;
-  
-  void pressureCallback(const sensor_msgs::FluidPressure& msg);
+
+  void pressureCallback(const sensor_msgs::FluidPressure &msg);
 };
 
 #endif
