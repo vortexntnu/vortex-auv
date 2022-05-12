@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Aksel Kristoffersen
 
 import numpy as np
@@ -32,7 +32,6 @@ class DPControlSystem():
         J_target = J_from_eul([0, 0, eta[5]-eta_d[5]])
         nu_d = np.dot(J_target.T, nu_d)
         nu_error = (np.array(nu)-np.array(nu_d))
-        #nu_error[5] = -nu_error[5]
 
         self.publisher_.publish(nu_error[5])
         '''

@@ -1,6 +1,6 @@
 # Internal Status
 
-This package contains nodes for retrieving internal statuses like battery levels and temperature.
+This package contains nodes for retrieving internal statuses like battery levels and temperature. It also contains a monitoring script connected to an OLED screen which runs on boot on the Xavier, some error handling is explained at the bottom of this readme.
 
 #### Temperature
 High temperatures can be dangerous for any electronic device. Monitoring the temperature is therefore important. Temperature gets published to auv/temperature. Measured in celsius
@@ -33,3 +33,28 @@ In beluga.yaml
 * `temperature/logging/zones/` are the names of the zones which we want to monitor
 
 * `*/logging/interval` dictates how often the node updates the voltage/temperature, the time given is how many seconds between each update
+
+## OLED errors
+Xavier IP, Xavier voltage, system voltage and number of users should be displayed on an OLED screen while the Xavier is powered on.
+This is a script which runs on boot, seperate from ROS. 
+If the screen doesnt show anything, try manually running bootscripts/display_battery_IP.py.
+If you get an "remote IO" error, run the following terminal command:
+```
+i2cdetect -y -r 1
+```
+The expected output is:
+```
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- UU -- -- -- -- -- -- -- 
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+30: -- -- -- -- -- -- -- -- -- -- -- -- 3c -- -- -- 
+40: UU UU -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+70: -- -- -- -- 74 -- -- --                         
+```
+Any deviation from this output suggests that the pins are not connected right.
+For I2C-bus 1 the SDA and CLK pins should be connected to pin 27 and 28 respectively.
+Xavier pin layout (pin 1 is top right when looking at the Xavier):
+![Xavier pin layout](https://aws1.discourse-cdn.com/nvidia/original/2X/b/bf92a41569803336a14c2f18cab74ba2496d0cfa.png)

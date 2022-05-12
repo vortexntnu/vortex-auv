@@ -9,6 +9,7 @@ Panels:
         - /Odometry1/Shape1
         - /Path1
         - /Path1/Status1
+        - /TF1
         - /TF1/Frames1
         - /Odometry2
         - /Odometry2/Shape1
@@ -172,13 +173,31 @@ Visualization Manager:
           Value: false
         auv/thruster_7:
           Value: false
+        base_link:
+          Value: false
+        imu_0:
+          Value: false
         odom:
           Value: false
         odom_ned:
           Value: false
+        sonar_link:
+          Value: false
+        torpedo1:
+          Value: false
+        torpedo2:
+          Value: false
+        uns_link:
+          Value: false
+        uns_link_ahrs:
+          Value: false
+        vertical_camera:
+          Value: false
         world:
           Value: false
         world_ned:
+          Value: false
+        zed2_camera_center:
           Value: false
       Marker Scale: 1
       Name: TF
@@ -302,25 +321,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.143937587738037
+      Distance: 3.462951421737671
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.5386993288993835
-        Y: 0.2312241941690445
-        Z: -1.4871125221252441
+        X: 0.6549020409584045
+        Y: 0.46632519364356995
+        Z: -0.6543151140213013
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3053980767726898
+      Pitch: 0.5747965574264526
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.6004000902175903
+      Yaw: 4.6804327964782715
     Saved: ~
 Window Geometry:
   Displays:

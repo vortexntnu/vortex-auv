@@ -1,2 +1,2 @@
-string torpedo_selection    # LEFT or RIGHT
+bool fire    # True or False
 ---

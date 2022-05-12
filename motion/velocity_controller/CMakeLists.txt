@@ -9,6 +9,7 @@ add_compile_options(-std=c++14)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  dynamic_reconfigure
   nav_msgs
   std_msgs
   geometry_msgs
@@ -93,10 +94,9 @@ find_package(Eigen3 REQUIRED)
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/velocity_controller.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -142,6 +142,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node 
   src/velocity_controller.cpp
+  src/velocity_controller_node.cpp
   libs/MiniPID/MiniPID.cpp
 )
 

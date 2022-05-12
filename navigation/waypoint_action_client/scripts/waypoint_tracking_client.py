@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Kristoffer Rakstad Solberg, Student
 # Copyright (c) 2020 Manta AUV, Vortex NTNU.
 # All rights reserved.
@@ -101,7 +101,7 @@ class WaypointClient():
         if status == 2:
             rospy.loginfo("Goal pose "+str(self.goal_cnt)+" received a cancel request after it started executing, completed execution!")
 
-        # status SUCCEDED=3
+        # status SUCCEEDED=3
         if status == 3:
             rospy.loginfo("Goal pose "+str(self.goal_cnt)+" reached")
 

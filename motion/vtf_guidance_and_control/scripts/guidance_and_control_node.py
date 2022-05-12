@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Aksel Kristoffersen
 
 import rospy
@@ -12,18 +12,19 @@ from geometry_msgs.msg import Wrench, PoseStamped
 from path import Path as VTFPath
 from auv_model import AUVModel
 from control_allocation import ControlAllocationSystem
-from control_system import DPControlSystem
+from control_system import DPControlSystem, pid_pole_placement_algorithm
 from auv_simulator import AUVSimulator
 from virtual_target import VirtualTarget
 from current_estimator import CurrentEstimator
 from functions import inside_sphere_of_acceptence, ssa, ned_enu_conversion
+from control_system import PIDController
 
 class VtfGuidanceAndControlNode:
     def __init__(self):
 
         rospy.Subscriber(rospy.get_param("/controllers/vtf/odometry_topic"), Odometry, self.navigation_callback)
 
-        self.pub = rospy.Publisher(rospy.get_param("/thrust_merger/output_topic"), Wrench, queue_size=1)  
+        self.pub = rospy.Publisher(rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)  
         
         self.path_pub = rospy.Publisher('path', Path, queue_size=1) #Path publisher -> probably change that to path planner when that is created
 
@@ -103,6 +104,20 @@ class VtfGuidanceAndControlNode:
         '''TF listeners'''
         self.tf_buffer = tf2_ros.Buffer(rospy.Duration(1200.0)) #tf buffer length
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
+
+    def vtf_reconfigure(self, config, level):
+        # omega_b = np.array([config.omega_b_0, config.omega_b_1, config.omega_b_2, config.omega_b_3, config.omega_b_4, config.omega_b_5])
+        # zeta = [1 ,1, 1, 1, 1, 1]
+        # K_P = np.zeros((6,6))
+        # K_D = np.zeros((6,6))
+        # K_I = np.zeros((6,6))
+        # self.dp_control_system.integral_terms = np.zeros(6)
+        # k = [0, 0, 0, 0, 0, 0] # Placeholder. See control_system DPControlSystem()
+        # for i in range(6):
+        #     K_P[i][i], K_D[i][i], K_I[i][i] = \
+        #         pid_pole_placement_algorithm(self.dp_control_system.M[i][i], self.dp_control_system.D[i][i], k[i], omega_b[i], zeta[i])
+        # self.dp_control_system.controller = PIDController(K_P, K_D, K_I)
+        return config
 
     def navigation_callback(self, msg):
         if self.get_pose:
@@ -187,7 +202,7 @@ class VtfGuidanceAndControlNode:
                         (q[0], q[1], q[2], q[3]),
                         rospy.Time.now(),
                         "/virtual_target",
-                        "/odom_ned")
+                        "/odom")
         
         # Publish reference model frame
         p = eta_d[0][:3]
@@ -197,7 +212,7 @@ class VtfGuidanceAndControlNode:
                         (q[0], q[1], q[2], q[3]),
                         rospy.Time.now(),
                         "/reference_model",
-                        "/odom_ned")
+                        "/odom")
         
         # Publish control forces
         msg = create_wrench_msg(tau_c)
@@ -205,14 +220,14 @@ class VtfGuidanceAndControlNode:
     
     def publish_path_once(self,path):
         msg = Path()
-        msg.header.frame_id = '/odom_ned'
+        msg.header.frame_id = '/odom'
         for i in range(len(path.path)):
             for j in list(np.linspace(0, 1, 50)):
                 p = path.path[i](j)
                 psi = path.chi_p[i](j)
                 q = quaternion_from_euler(0, 0, psi)
                 pose = PoseStamped()
-                pose.header.frame_id = '/odom_ned'
+                pose.header.frame_id = '/odom'
                 pose.pose.position.x = p[0]
                 pose.pose.position.y = p[1]
                 pose.pose.position.z = p[2]
@@ -237,15 +252,14 @@ def extract_from_twist(twist):
     return [linear[0], linear[1], linear[2], angular[0], angular[1], angular[2]]
 
 
-#Convert back to ENU
 def create_wrench_msg(tau):
     msg = Wrench()
     msg.force.x = tau[0]
-    msg.force.y = -tau[1]
-    msg.force.z = -tau[2]
+    msg.force.y = tau[1]
+    msg.force.z = tau[2]
     msg.torque.x = tau[3]
-    msg.torque.y = -tau[4]
-    msg.torque.z = -tau[5]
+    msg.torque.y = tau[4]
+    msg.torque.z = tau[5]
     return msg
 
 

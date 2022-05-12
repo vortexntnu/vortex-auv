@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Written by Jae Hyeong Hwang and O. Solbo
 # Copyright (c) 2021, Vortex NTNU.
@@ -22,7 +22,7 @@ class JoystickGuidanceNode:
     def __init__(self):
 
         thrust_topic = rospy.get_param(
-            "/guidance/joy/thrust_topic", default="/thrust/desired_forces"
+            "/thrust/thrust_topic", default="/thrust/desired_forces"
         )
 
         self.sub = rospy.Subscriber(

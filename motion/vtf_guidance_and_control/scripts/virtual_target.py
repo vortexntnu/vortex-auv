@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # Written by Aksel Kristoffersen
 # Documentation can be found in my master's thesis, chapter __ and __
 

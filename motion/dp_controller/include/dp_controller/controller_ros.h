@@ -107,6 +107,8 @@ public:
 
   ros::ServiceServer control_mode_service_; /** Control mode service server */
 
+  void spin();
+
 private:
   ros::NodeHandle m_nh; /** Nodehandle          */
 
@@ -131,6 +133,9 @@ private:
   Eigen::Vector3d m_current_position;
   Eigen::Quaterniond m_current_orientation;
   Eigen::Vector6d m_current_velocity;
+
+  Eigen::Vector3d position_setpoint;
+  Eigen::Quaterniond orientation_setpoint;
 
   QuaternionPdController m_controller;
 
@@ -316,6 +321,7 @@ private:
   Eigen::Vector6d orientationDepthHold(const Eigen::Vector3d& position_state, const Eigen::Quaterniond& orientation_state,
                                       const Eigen::Vector6d& velocity_state, const Eigen::Vector3d& position_setpoint,
                                       const Eigen::Quaterniond& orientation_setpoint);
+
 
 protected:
   MoveBaseActionServer* mActionServer; /** Action server object */

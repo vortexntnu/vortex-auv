@@ -11,6 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  dynamic_reconfigure
+)
+generate_dynamic_reconfigure_options(
+  cfg/vtf_controller.cfg
 )
 
 catkin_package(

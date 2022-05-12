@@ -26,6 +26,7 @@ add_message_files(
   CameraObjectInfo.msg
   ObjectPosition.msg
   DpSetpoint.msg
+  Torpedo_msgs.msg
 )
 
 ## Generate services in the 'srv' folder
