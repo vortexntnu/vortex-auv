@@ -1,7 +1,6 @@
 #include "vortex_allocator/allocator_ros.h"
 
-Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh)
-{
+Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh) {
   // parameters
   if (!m_nh.getParam("/propulsion/dofs/num", m_num_degrees_of_freedom))
     ROS_FATAL("Failed to read parameter number of dofs.");
@@ -11,39 +10,44 @@ Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh)
     ROS_FATAL("Failed to read parameter which dofs.");
 
   // Read thrust config matrix
-  if (!getMatrixParam(m_nh, "/propulsion/thrusters/configuration_matrix", &thrust_configuration))
-  {
+  if (!getMatrixParam(m_nh, "/propulsion/thrusters/configuration_matrix",
+                      &thrust_configuration)) {
     ROS_FATAL("Failed to read parameter thrust config matrix. Killing node...");
     ros::shutdown();
   }
 
   // calculate pseudo inverse of thrust config matrix
   Eigen::MatrixXd thrust_configuration_pseudoinverse;
-  if (!pseudoinverse(thrust_configuration, &thrust_configuration_pseudoinverse))
-  {
-    ROS_FATAL("Failed to compute pseudoinverse of thrust config matrix. Killing node...");
+  if (!pseudoinverse(thrust_configuration,
+                     &thrust_configuration_pseudoinverse)) {
+    ROS_FATAL("Failed to compute pseudoinverse of thrust config matrix. "
+              "Killing node...");
     ros::shutdown();
   }
 
   // publishers and subscribers
-  m_sub = m_nh.subscribe("/thrust/desired_forces", 1, &Allocator::callback, this);
-  m_pub = m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
+  m_sub =
+      m_nh.subscribe("/thrust/desired_forces", 1, &Allocator::callback, this);
+  m_pub =
+      m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
 
-  delivered_forces_pub = m_nh.advertise<geometry_msgs::Wrench>("tau_delivered", 1);
-  thruster_forces_sub = m_nh.subscribe("/thrust/delivered_forces", 1, &Allocator::thrusterForcesCb, this);
+  delivered_forces_pub =
+      m_nh.advertise<geometry_msgs::Wrench>("tau_delivered", 1);
+  thruster_forces_sub = m_nh.subscribe("/thrust/delivered_forces", 1,
+                                       &Allocator::thrusterForcesCb, this);
 
-  m_pseudoinverse_allocator.reset(new PseudoinverseAllocator(thrust_configuration_pseudoinverse));
+  m_pseudoinverse_allocator.reset(
+      new PseudoinverseAllocator(thrust_configuration_pseudoinverse));
   ROS_INFO("Initialized.");
 }
 
-void Allocator::callback(const geometry_msgs::Wrench& msg_in) const
-{
+void Allocator::callback(const geometry_msgs::Wrench &msg_in) const {
   const Eigen::VectorXd rov_forces = rovForcesMsgToEigen(msg_in);
 
-  Eigen::VectorXd thruster_forces = m_pseudoinverse_allocator->compute(rov_forces);
+  Eigen::VectorXd thruster_forces =
+      m_pseudoinverse_allocator->compute(rov_forces);
 
-  if (isFucked(thruster_forces))
-  {
+  if (isFucked(thruster_forces)) {
     ROS_ERROR("Thruster forces vector invalid, ignoring.");
     return;
   }
@@ -54,8 +58,8 @@ void Allocator::callback(const geometry_msgs::Wrench& msg_in) const
   m_pub.publish(msg_out);
 }
 
-Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench& msg) const
-{
+Eigen::VectorXd
+Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench &msg) const {
   Eigen::VectorXd rov_forces(m_num_degrees_of_freedom);
   unsigned i = 0;
   if (m_active_degrees_of_freedom.at("surge"))
@@ -71,22 +75,21 @@ Eigen::VectorXd Allocator::rovForcesMsgToEigen(const geometry_msgs::Wrench& msg)
   if (m_active_degrees_of_freedom.at("yaw"))
     rov_forces(i++) = msg.torque.z;
 
-  if (i != m_num_degrees_of_freedom)
-  {
-    ROS_WARN_STREAM("Invalid length of rov_forces vector. Is " << i << ", should be " << m_num_degrees_of_freedom
-                                                               << ". Returning zero thrust vector.");
+  if (i != m_num_degrees_of_freedom) {
+    ROS_WARN_STREAM("Invalid length of rov_forces vector. Is "
+                    << i << ", should be " << m_num_degrees_of_freedom
+                    << ". Returning zero thrust vector.");
     return Eigen::VectorXd::Zero(m_num_degrees_of_freedom);
   }
 
   return rov_forces;
 }
 
-void Allocator::thrusterForcesCb(const std_msgs::Float32MultiArray& thruster_forces_msg)
-{
+void Allocator::thrusterForcesCb(
+    const std_msgs::Float32MultiArray &thruster_forces_msg) {
   // convert msg to eigen
   Eigen::Vector8d thruster_forces;
-  for (int i=0; i<8; i++)
-  {
+  for (int i = 0; i < 8; i++) {
     thruster_forces[i] = thruster_forces_msg.data[i];
   }
 

@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-#include <ros/ros.h>
 #include <mocap_vicon/ViconDriver.h>
+#include <ros/ros.h>
 
 int main(int argc, char *argv[]) {
 
@@ -25,14 +25,13 @@ int main(int argc, char *argv[]) {
   ros::NodeHandle nh("~");
 
   mocap::ViconDriver driver(nh);
-  if(!driver.init()) {
+  if (!driver.init()) {
     ROS_ERROR("Initialization of the Vicon driver failed");
     return -1;
   }
   ROS_INFO("Successfully initialize Vicon connection!");
 
-  while(ros::ok())
-  {
+  while (ros::ok()) {
     driver.run();
     ros::spinOnce();
   }

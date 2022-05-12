@@ -14,45 +14,43 @@
  * limitations under the License.
  */
 
-#include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TwistStamped.h>
-#include <eigen_conversions/eigen_msg.h>
-#include <mocap_base/MoCapDriverBase.h>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+#include <eigen_conversions/eigen_msg.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
+#include <mocap_base/MoCapDriverBase.h>
+#include <nav_msgs/Odometry.h>
+#include <ros/ros.h>
 
 using namespace std;
 using namespace Eigen;
 
 namespace mocap {
 
-Subject::Subject(ros::NodeHandle* nptr, const string& sub_name,
-    const std::string& p_frame):
-  name         (sub_name),
-  status       (LOST),
-  nh_ptr       (nptr),
-  parent_frame (p_frame){
+Subject::Subject(ros::NodeHandle *nptr, const string &sub_name,
+                 const std::string &p_frame)
+    : name(sub_name), status(LOST), nh_ptr(nptr), parent_frame(p_frame) {
 
-  pub_filter = nh_ptr->advertise<nav_msgs::Odometry>(name+"/odom", 1);
-  pub_raw = nh_ptr->advertise<geometry_msgs::PoseStamped>(name+"/pose", 1);
-  pub_vel = nh_ptr->advertise<geometry_msgs::TwistStamped>(name+"/velocity", 1);
+  pub_filter = nh_ptr->advertise<nav_msgs::Odometry>(name + "/odom", 1);
+  pub_raw = nh_ptr->advertise<geometry_msgs::PoseStamped>(name + "/pose", 1);
+  pub_vel =
+      nh_ptr->advertise<geometry_msgs::TwistStamped>(name + "/velocity", 1);
   return;
 }
 
 // Get and set name of the subject
-const string& Subject::getName() {
+const string &Subject::getName() {
   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
   return name;
 }
-void Subject::setName(const string& sub_name) {
+void Subject::setName(const string &sub_name) {
   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
   name = sub_name;
 }
 
 // Enable or diable the subject
-const Subject::Status& Subject::getStatus() {
+const Subject::Status &Subject::getStatus() {
   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
   return status;
 }
@@ -69,39 +67,37 @@ void Subject::disable() {
 }
 
 // Get the state of the subject
-const Quaterniond& Subject::getAttitude() {
+const Quaterniond &Subject::getAttitude() {
   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
   return kFilter.attitude;
 }
-const Vector3d& Subject::getPosition() {
+const Vector3d &Subject::getPosition() {
   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
   return kFilter.position;
 }
-const Vector3d& Subject::getAngularVel() {
+const Vector3d &Subject::getAngularVel() {
   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
   return kFilter.angular_vel;
 }
-const Vector3d& Subject::getLinearVel() {
+const Vector3d &Subject::getLinearVel() {
   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
   return kFilter.linear_vel;
 }
 
 // Set the noise parameter for the kalman filter
-bool Subject::setParameters(
-    const Matrix<double, 12, 12>& u_cov,
-    const Matrix<double, 6, 6>& m_cov,
-    const int& freq) {
+bool Subject::setParameters(const Matrix<double, 12, 12> &u_cov,
+                            const Matrix<double, 6, 6> &m_cov,
+                            const int &freq) {
   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
   return kFilter.init(u_cov, m_cov, freq);
 }
 
 // Process the new measurement
-void Subject::processNewMeasurement(
-    const double& time,
-    const Quaterniond& m_attitude,
-    const Vector3d& m_position) {
-  //ros::Time tbefore_filter = ros::Time::now();
-  
+void Subject::processNewMeasurement(const double &time,
+                                    const Quaterniond &m_attitude,
+                                    const Vector3d &m_position) {
+  // ros::Time tbefore_filter = ros::Time::now();
+
   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
 
   // Publish raw data from mocap system
@@ -112,7 +108,6 @@ void Subject::processNewMeasurement(
   tf::quaternionEigenToMsg(m_attitude, pose_raw.pose.orientation);
   tf::pointEigenToMsg(m_position, pose_raw.pose.position);
 
-  
   pub_raw.publish(pose_raw);
   if (!kFilter.isReady()) {
     status = INITIALIZING;
@@ -121,11 +116,12 @@ void Subject::processNewMeasurement(
   }
 
   // Transform matrix from parent to child frame
-  Isometry3d tf_parent2child = Isometry3d(Translation3d(m_position) * m_attitude);
+  Isometry3d tf_parent2child =
+      Isometry3d(Translation3d(m_position) * m_attitude);
 
   status = TRACKED;
   // Perfrom the kalman filter
-   
+
   kFilter.prediction(time);
   kFilter.update(m_attitude, m_position);
   // Publish the new state
@@ -136,11 +132,15 @@ void Subject::processNewMeasurement(
   tf::quaternionEigenToMsg(kFilter.attitude, odom_filter.pose.pose.orientation);
   tf::pointEigenToMsg(kFilter.position, odom_filter.pose.pose.position);
   // Transform twist to child frame
-  tf::vectorEigenToMsg(tf_parent2child.linear() * kFilter.angular_vel, odom_filter.twist.twist.angular);
-  tf::vectorEigenToMsg(tf_parent2child.linear() * kFilter.linear_vel, odom_filter.twist.twist.linear);
+  tf::vectorEigenToMsg(tf_parent2child.linear() * kFilter.angular_vel,
+                       odom_filter.twist.twist.angular);
+  tf::vectorEigenToMsg(tf_parent2child.linear() * kFilter.linear_vel,
+                       odom_filter.twist.twist.linear);
   // To be compatible with the covariance in ROS, we have to do some shifting
-  Map<Matrix<double, 6, 6, RowMajor> > pose_cov(odom_filter.pose.covariance.begin());
-  Map<Matrix<double, 6, 6, RowMajor> > vel_cov(odom_filter.twist.covariance.begin());
+  Map<Matrix<double, 6, 6, RowMajor>> pose_cov(
+      odom_filter.pose.covariance.begin());
+  Map<Matrix<double, 6, 6, RowMajor>> vel_cov(
+      odom_filter.twist.covariance.begin());
   pose_cov.topLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(3, 3);
   pose_cov.topRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(3, 0);
   pose_cov.bottomLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(0, 3);
@@ -150,12 +150,14 @@ void Subject::processNewMeasurement(
   vel_cov.bottomLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(6, 9);
   vel_cov.bottomRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(6, 6);
   // Transform the velocity cov to child frame
-  Matrix<double, 6, 6, RowMajor> r_vel = Matrix<double, 6, 6, RowMajor>::Zero();	//Zero initialized velocity cov matrix
+  Matrix<double, 6, 6, RowMajor> r_vel =
+      Matrix<double, 6, 6,
+             RowMajor>::Zero(); // Zero initialized velocity cov matrix
   r_vel.block<3, 3>(0, 0) = r_vel.block<3, 3>(3, 3) = tf_parent2child.linear();
   vel_cov = r_vel * vel_cov * r_vel.transpose();
 
   pub_filter.publish(odom_filter);
-  //ROS_INFO("filter time: %f", (ros::Time::now() - tbefore_filter).toSec());
+  // ROS_INFO("filter time: %f", (ros::Time::now() - tbefore_filter).toSec());
 
   // Publish velocity in parent frame
   geometry_msgs::TwistStamped vel;
@@ -169,4 +171,4 @@ void Subject::processNewMeasurement(
 
   return;
 }
-}
+} // namespace mocap

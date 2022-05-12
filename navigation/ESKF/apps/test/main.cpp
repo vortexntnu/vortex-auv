@@ -5,16 +5,15 @@ using namespace Eigen;
 
 int main(int argc, char *argv[])
 {
-    /*
-    ros::init(argc,argv,"eskf");
-    ros::NodeHandle nh;
-    ros::NodeHandle pnh("~");
-    ESKF_Node eskf_node(nh,pnh);
-    ros::spin();
-    return 0;
-    */
+  /*
+  ros::init(argc,argv,"eskf");
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
+  ESKF_Node eskf_node(nh,pnh);
+  ros::spin();
+  return 0;
+  */
 
-  
   // Matrix3d test = Matrix3d::Zero();
 
   // double* arraytesting= test.data();
@@ -92,30 +91,29 @@ int main(int argc, char *argv[])
   }
   auto end = std::chrono::steady_clock::now();
   auto diff = end - start;
-  std::cout << "predictnominal: " << std::chrono::duration<double, std::milli>(diff).count() << " ms"
-            << std::endl;
+  std::cout << "predictnominal: " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
 
-    // Execution time
-	//auto end = std::chrono::steady_clock::now();
+  // Execution time
+  // auto end = std::chrono::steady_clock::now();
 
-	//auto diff = end - start;
+  // auto diff = end - start;
 
-	//auto diff_in_ms = std::chrono::duration <double, std::milli> (diff).count();
+  // auto diff_in_ms = std::chrono::duration <double, std::milli> (diff).count();
 
-  //std::cout<<diff_in_ms<<std::endl;
+  // std::cout<<diff_in_ms<<std::endl;
   /*
-	if(execution_time_vector_.size() == 1000 && publish_execution_time_ == true)
-	{
-		std::cout<<"Max value: "<<maxOfVector(execution_time_vector_)<<std::endl;
-		std::cout<<"Mean: "<<meanOfVector(execution_time_vector_)<<std::endl;
-		std::cout<<"STD: "<<stanardDeviationOfVector(execution_time_vector_)<<std::endl;
-		publish_execution_time_ = false;
-	}
-	else
-	{
-		execution_time_vector_.push_back(diff_in_ms);
-	} 
-  */         
+  if(execution_time_vector_.size() == 1000 && publish_execution_time_ == true)
+  {
+    std::cout<<"Max value: "<<maxOfVector(execution_time_vector_)<<std::endl;
+    std::cout<<"Mean: "<<meanOfVector(execution_time_vector_)<<std::endl;
+    std::cout<<"STD: "<<stanardDeviationOfVector(execution_time_vector_)<<std::endl;
+    publish_execution_time_ = false;
+  }
+  else
+  {
+    execution_time_vector_.push_back(diff_in_ms);
+  }
+  */
   // pressureTesting = eskf.innovationPressureZ(xnominal, P, pressureValue, RpressureZ);
   // injectionPressureTesting = eskf.updatePressureZ(xnominal, P, pressureValue, RpressureZ);
   // dvlstatetesting = eskf.innovationDVL(xnominal, P, ZdvlValues, RDVL);
@@ -149,6 +147,6 @@ int main(int argc, char *argv[])
   // std::cout << eskf.predictCovariance(xnominal,P,accRectifiedMeasurements,gyroRectifiedMeasurements,Ts) <<std::endl;
   // std::cout << injectiontesting.xInject << std::endl;
   // std::cout << statetesting.xNominalPrediction << std::endl;
-  
+
   return 0;
 }

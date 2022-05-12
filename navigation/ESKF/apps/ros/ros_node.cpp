@@ -166,7 +166,7 @@ void ESKF_Node::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped::Con
   // Publish DVL - NIS
   nav_msgs::Odometry odom_msg;
   static size_t trace_id{ 0 };
-  odom_msg.header.frame_id = "/odom";// "/eskf_link";
+  odom_msg.header.frame_id = "/odom";  // "/eskf_link";
   odom_msg.header.seq = trace_id++;
   odom_msg.header.stamp = ros::Time::now();
   odom_msg.pose.pose.position.x = eskf_.getNISDVL();
@@ -176,9 +176,8 @@ void ESKF_Node::dvlCallback(const geometry_msgs::TwistWithCovarianceStamped::Con
 // PressureZ subscriber
 void ESKF_Node::pressureZCallback(const std_msgs::Float64::ConstPtr& depth_msg)
 {
-
   double mbar = depth_msg->data / 10.0;
-  double depth_mm = mbar * 10.197; // 10.197 is the constant to convert mbar to mmH2O
+  double depth_mm = mbar * 10.197;  // 10.197 is the constant to convert mbar to mmH2O
   TAC_z = depth_mm / 1000.0;
   Matrix<double, 1, 1> RpressureZ;
   const double raw_pressure_z = depth_msg->data;
@@ -208,7 +207,7 @@ void ESKF_Node::pressureZCallback(const std_msgs::Float64::ConstPtr& depth_msg)
   // Publish Pressure Z - NIS
   nav_msgs::Odometry odom_msg;
   static size_t trace_id{ 0 };
-  odom_msg.header.frame_id = "/odom";//"/eskf_link";
+  odom_msg.header.frame_id = "/odom";  //"/eskf_link";
   odom_msg.header.seq = trace_id++;
   odom_msg.header.stamp = ros::Time::now();
   odom_msg.pose.pose.position.x = eskf_.getNISPressureZ();
@@ -243,7 +242,7 @@ void ESKF_Node::publishPoseState(const ros::TimerEvent&)
   attitude_error_covariance.setZero();
   attitude_error_covariance = errorCovariance.block<3, 3>(6, 6);
 
-  imu_biases_and_gravity.header.frame_id = "/odom"; //"/eskf_link";
+  imu_biases_and_gravity.header.frame_id = "/odom";  //"/eskf_link";
   imu_biases_and_gravity.header.seq = trace_id++;
   imu_biases_and_gravity.header.stamp = ros::Time::now();
   imu_biases_and_gravity.pose.pose.position.x = accbias(0);
@@ -258,21 +257,21 @@ void ESKF_Node::publishPoseState(const ros::TimerEvent&)
 
   publishAccGyrobiasandGravity_.publish(imu_biases_and_gravity);
 
-  odom_msg.header.frame_id = "/odom"; // "/eskf_link";
+  odom_msg.header.frame_id = "/odom";  // "/eskf_link";
   odom_msg.header.seq = trace_id++;
   odom_msg.header.stamp = ros::Time::now();
   odom_msg.pose.pose.position.x = position(StateMemberX);  // NEDpose(StateMemberX);
   odom_msg.pose.pose.position.y = position(StateMemberY);  // NEDpose(StateMemberY)
-  //odom_msg.pose.pose.position.z = position(StateMemberZ);  // NEDpose(StateMemberZ);
+  // odom_msg.pose.pose.position.z = position(StateMemberZ);  // NEDpose(StateMemberZ);
   odom_msg.pose.pose.position.z = TAC_z;
-  odom_msg.twist.twist.linear.x = velocity(0);             // NEDpose(StateMemberVx);
-  odom_msg.twist.twist.linear.y = velocity(1);             // NEDpose(StateMemberVy);
-  odom_msg.twist.twist.linear.z = velocity(2);             // NEDpose(StateMemberVz);
+  odom_msg.twist.twist.linear.x = velocity(0);  // NEDpose(StateMemberVx);
+  odom_msg.twist.twist.linear.y = velocity(1);  // NEDpose(StateMemberVy);
+  odom_msg.twist.twist.linear.z = velocity(2);  // NEDpose(StateMemberVz);
   odom_msg.twist.twist.angular = angular_vel;
-  odom_msg.pose.pose.orientation.w = quaternion.w();       // pose(StateMemberQw);
-  odom_msg.pose.pose.orientation.x = quaternion.x();       // pose(StateMemberQx);
-  odom_msg.pose.pose.orientation.y = quaternion.y();       // pose(StateMemberQy);
-  odom_msg.pose.pose.orientation.z = quaternion.z();       // pose(StateMemberQz);
+  odom_msg.pose.pose.orientation.w = quaternion.w();  // pose(StateMemberQw);
+  odom_msg.pose.pose.orientation.x = quaternion.x();  // pose(StateMemberQx);
+  odom_msg.pose.pose.orientation.y = quaternion.y();  // pose(StateMemberQy);
+  odom_msg.pose.pose.orientation.z = quaternion.z();  // pose(StateMemberQz);
 
   // odom_msg.pose.covariance
 
