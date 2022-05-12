@@ -1,1 +1,0 @@
-If you modify Client.h, please modify the copy in ViconDataStreamSDK_CPPPlugins
