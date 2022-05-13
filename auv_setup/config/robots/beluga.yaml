@@ -45,7 +45,7 @@ propulsion:
 
     rate_of_change:
       max: 1 # Maximum rate of change in newton per second for a thruster
-    map:  [4, 5, 2, 3, 0, 1, 6, 7] # [0, 1, 2, 3, 4, 5, 6, 7]  
+    map:  [4, 5, 3, 2, 0, 1, 7, 6] # [0, 1, 2, 3, 4, 5, 6, 7]  
     direction: [-1, 1, -1, -1, 1, 1, 1, -1]
     offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
 
