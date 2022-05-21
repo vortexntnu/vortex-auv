@@ -10,6 +10,7 @@ from sensor_msgs.msg import Joy
 from vortex_msgs.msg import ControlModeAction, ControlModeGoal
 from geometry_msgs.msg import Wrench
 
+
 class ControlModeEnum(IntEnum):
     OPEN_LOOP = 0
     POSITION_HOLD = 1
@@ -72,7 +73,9 @@ class JoystickInterface:
             "/mission/control_mode", String, queue_size=1
         )
 
-        self.wrench_pub = rospy.Publisher("/thrust/desired_forces", Wrench, queue_size=1)
+        self.wrench_pub = rospy.Publisher(
+            "/thrust/desired_forces", Wrench, queue_size=1
+        )
 
         self.guidance_interface_client = actionlib.SimpleActionClient(
             "/guidance_interface/joystick_server", ControlModeAction
