@@ -6,7 +6,7 @@
 <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_UNS" args="0 0 -0.145 0 0 3.14159 base_link uns_link" />
 <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_UNS_ahrs" args="0 0 -0.145 0 0 3.14159 base_link uns_link_ahrs" />
 <!--Sonar-->
-<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_sonar" args="0.326 0 -0.180 0 0 3.14159 base_link sonar_link" /> <!--Check orientation-->
+<node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_sonar" args="0.38 0 -0.140 0 0 3.14159 base_link sonar_link" /> <!--Check orientation-->
 
 <!-- ZED 2 Camera -->
 <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.38013 0 0.014 0 0 0 base_link zed2_camera_center" /> <!-- Remap cameraview to base -->

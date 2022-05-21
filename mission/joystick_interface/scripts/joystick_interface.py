@@ -8,6 +8,7 @@ import actionlib
 from std_msgs.msg import String
 from sensor_msgs.msg import Joy
 from vortex_msgs.msg import ControlModeAction, ControlModeGoal
+from geometry_msgs.msg import Wrench
 
 
 class ControlModeEnum(IntEnum):
@@ -70,6 +71,10 @@ class JoystickInterface:
         self.joystick_pub = rospy.Publisher("/mission/joystick_data", Joy, queue_size=1)
         self.control_mode_pub = rospy.Publisher(
             "/mission/control_mode", String, queue_size=1
+        )
+
+        self.wrench_pub = rospy.Publisher(
+            "/thrust/desired_forces", Wrench, queue_size=1
         )
 
         self.guidance_interface_client = actionlib.SimpleActionClient(
@@ -135,6 +140,15 @@ class JoystickInterface:
         ]
 
         self.joystick_pub.publish(joystick_msg)
+
+        wrench_msg = Wrench()
+        wrench_msg.force.x = surge
+        wrench_msg.force.y = sway
+        wrench_msg.force.z = heave
+        wrench_msg.torque.x = roll
+        wrench_msg.torque.y = pitch
+        wrench_msg.torque.z = yaw
+        self.wrench_pub.publish(wrench_msg)
 
     def _abxy_pressed(self, buttons):
         pressed = -1
