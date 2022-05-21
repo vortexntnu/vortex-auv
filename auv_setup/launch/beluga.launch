@@ -46,5 +46,5 @@
 
   <!-- Joystick nodes for ROV missions -->
   <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
-
+ 
 </launch>
