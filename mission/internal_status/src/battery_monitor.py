@@ -20,7 +20,7 @@ class BatteryMonitor:
             default="/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input",
         )
         self.path_to_powersense = rospy.get_param(
-            "/battery/system/path", default="/dev/i2c-8"
+            "/battery/system/path", default="/dev/i2c-1"
         )
 
         self.i2c_address_powersense_voltage = rospy.get_param(
@@ -29,7 +29,7 @@ class BatteryMonitor:
         self.i2c_address_powersense_current = rospy.get_param(
             "/i2c/psm/address_current", default=0x69
         )
-        self.i2c_bus_number = rospy.get_param("/i2c/psm/bus_number", default=8)
+        self.i2c_bus_number = rospy.get_param("/i2c/psm/bus_number", default=1)
         rospy.loginfo(
             "PSM Voltage I2C address: '0x{:02x}'".format(
                 self.i2c_address_powersense_voltage
