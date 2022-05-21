@@ -5,7 +5,7 @@
     
       <group if="$(eval type == 'real')">
         <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
-          <rosparam command="load" file="$(find robot_localization)/params/beluga_auv_fusion_ekf.yaml" />
+          <rosparam command="load" file="$(find robot_localization)/params/beluga_auv_ekf.yaml" />
         </node>
       </group>
 
