@@ -16,7 +16,6 @@ from nav_msgs.msg import Odometry
 from fsm_helper import dp_move, los_move
 from vortex_msgs.srv import ControlMode  # , ControlModeRequest
 
-
 class ReachDepth(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
@@ -24,10 +23,19 @@ class ReachDepth(smach.State):
         self.vtf_client = actionlib.SimpleActionClient(
             vtf_action_server, VtfPathFollowingAction
         )
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
 
     def execute(self, userdata):
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [Point(0.1, 0, -1)]
+        position = Point()
+        position.x = self.odom.pose.pose.position.x + 0.1
+        position.y = self.odom.pose.pose.position.y
+        position.z = rospy.get_param("/fsm/operating_depth")
+        goal.waypoints = [position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
         self.vtf_client.wait_for_server()

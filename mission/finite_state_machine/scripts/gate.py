@@ -65,7 +65,7 @@ class GateSearch(smach.State):
         self.odom = msg
 
     def execute(self, userdata):
-        self.state_pub.publish("gate_search")
+        self.state_pub.publish("gate/search")
         rate = rospy.Rate(10)
 
         # RECOVERY
@@ -92,12 +92,25 @@ class GateSearch(smach.State):
         self.object.estimateFucked = False
         self.landmarks_pub.publish(self.object)
 
+        if rospy.get_param("/fsm/do_coinflip"):
+            goal = Pose()
+            goal.position = self.odom.pose.pose.position
+            goal.orientation = self.odom.pose.pose.orientation
+            goal = rotate_certain_angle(goal, 105)
+            vel_goal = Twist()
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
+            vel_goal.linear.z =-0.01 # should be ommited if drone is balanced and level underwater
+            vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
+            self.velocity_ctrl_client(vel_goal, True)
+            while (not within_acceptance_margins(goal, self.odom, True)):
+                rate.sleep()        
+
         while not self.object.isDetected:
 
             # SEARCH PATTERN
             goal = VtfPathFollowingGoal()
             goal.waypoints = [get_pose_in_front(self.odom.pose.pose, 1).position]
-            goal.waypoints[0].z = -1.1
+            goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
             goal.forward_speed = rospy.get_param("/fsm/medium_speed")
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
@@ -218,7 +231,7 @@ class GateConverge(smach.State):
         self.odom = msg
 
     def execute(self, userdata):
-        self.state_pub.publish("gate_converge")
+        self.state_pub.publish("gate/converge")
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("gate").object
