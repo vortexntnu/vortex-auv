@@ -14,6 +14,12 @@ from vortex_msgs.msg import (
     SetVelocityAction,
     DpSetpoint,
 )
+from fsm_helper import (
+    get_pose_in_front,
+    get_position_on_line,
+    rotate_certain_angle,
+    within_acceptance_margins,
+)
 
 from tf.transformations import quaternion_from_euler
 from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
@@ -33,8 +39,108 @@ class BuoySearch(smach.State):
         self.vtf_client = actionlib.SimpleActionClient(
             vtf_action_server, VtfPathFollowingAction
         )
+        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
+
 
     def execute(self, userdata):
+        rate = rospy.Rate(10)
+        self.state_pub.publish("buoy/search")
+        while not self.object.isDetected:
+
+            # SEARCH PATTERN
+            goal = VtfPathFollowingGoal()
+            goal.waypoints = [get_position_on_line(self.odom.pose.position, self.object.ObjectPose.position, 1)]
+            goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
+            goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+            goal.heading = "path_dependent_heading"
+            self.vtf_client.wait_for_server()
+            self.vtf_client.send_goal(goal)
+            while (
+                self.vtf_client.simple_state
+                != actionlib.simple_action_client.SimpleGoalState.DONE
+                and not self.object.isDetected
+            ):
+                self.object = self.landmarks_client("buoy").object
+                print("SEARCHING FOR GATE ...")
+                rate.sleep()
+            if self.object.isDetected:
+                break
+
+            goal = Pose()
+            goal.position = self.odom.pose.pose.position
+            goal.orientation = self.odom.pose.pose.orientation
+            goal = rotate_certain_angle(goal, 45)
+            vel_goal = Twist()
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
+            vel_goal.linear.z = (
+                -0.01
+            )  # should be ommited if drone is balanced and level underwater
+            vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
+            self.velocity_ctrl_client(vel_goal, True)
+            while (
+                not within_acceptance_margins(goal, self.odom, True)
+                and not self.object.isDetected
+            ):
+                self.object = self.landmarks_client("buoy").object
+                print("SEARCHING FOR GATE ...")
+                rate.sleep()
+            self.velocity_ctrl_client(vel_goal, False)
+            if self.object.isDetected:
+                break
+
+            goal.position = self.odom.pose.pose.position
+            goal.orientation = self.odom.pose.pose.orientation
+            goal = rotate_certain_angle(goal, -90)
+            vel_goal = Twist()
+            vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
+            vel_goal.linear.z = -0.01
+            vel_goal.linear.x = 0.01
+            self.velocity_ctrl_client(vel_goal, True)
+            while (
+                not within_acceptance_margins(goal, self.odom, True)
+                and not self.object.isDetected
+            ):
+                self.object = self.landmarks_client("buoy").object
+                print("SEARCHING FOR GATE ...")
+                rate.sleep()
+            self.velocity_ctrl_client(vel_goal, False)
+            if self.object.isDetected:
+                break
+
+            goal.position = self.odom.pose.pose.position
+            goal.orientation = self.odom.pose.pose.orientation
+            goal = rotate_certain_angle(goal, 45)
+            vel_goal = Twist()
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
+            vel_goal.linear.z = -0.01
+            vel_goal.linear.x = 0.01
+            self.velocity_ctrl_client(vel_goal, True)
+            while (
+                not within_acceptance_margins(goal, self.odom, True)
+                and not self.object.isDetected
+            ):
+                self.object = self.landmarks_client("buoy").object
+                print("SEARCHING FOR GATE ...")
+                rate.sleep()
+            self.velocity_ctrl_client(vel_goal, False)
+            if self.object.isDetected:
+                break
+
+            print("SEARCHING FOR GATE ...")
+            rospy.wait_for_service("send_positions")
+            self.object = self.landmarks_client("buoy").object
+            rate.sleep()
+
+        self.vtf_client.cancel_all_goals()
+
+        print(
+            "GATE POSITION DETECTED: "
+            + str(self.object.objectPose.pose.position.x)
+            + ", "
+            + str(self.object.objectPose.pose.position.y)
+            + ", "
+            + str(self.object.objectPose.pose.position.z)
+        )
         return "succeeded"
 
 
@@ -56,8 +162,11 @@ class BuoyConverge(smach.State):
         )
 
         self.dp_pub = rospy.Publisher("controllers/dp_data", DpSetpoint)
+        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
+
 
     def execute(self, userdata):
+        self.state_pub.publish("buoy/converge")
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("buoy").object

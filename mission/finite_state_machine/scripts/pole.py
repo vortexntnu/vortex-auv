@@ -56,7 +56,7 @@ class PoleSearch(smach.State):
         self.odom = msg
 
     def execute(self, userdata):
-        self.state_pub.publish("pole_search")
+        self.state_pub.publish("pole/search")
 
         rate = rospy.Rate(10)
         while not self.object.isDetected:
@@ -185,7 +185,7 @@ class PoleConverge(smach.State):
         self.odom = msg
 
     def execute(self, userdata):
-        self.state_pub.publish("pole_converge")
+        self.state_pub.publish("pole/converge")
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("pole").object

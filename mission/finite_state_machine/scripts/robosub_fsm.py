@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python2
 
 import rospy
 from smach import StateMachine
@@ -21,7 +21,7 @@ def main():
     robosub_state_machine = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
     with robosub_state_machine:
-        ##COIN FLIP
+        ##PREPARATION
         StateMachine.add(
             "ROBOSUB_PREPARE", ReachDepth(), transitions={"succeeded": "GATE_SM"}
         )

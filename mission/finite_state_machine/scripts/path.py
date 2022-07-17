@@ -35,12 +35,13 @@ class PathSearch(smach.State):
             vtf_action_server, VtfPathFollowingAction
         )
 
+
     # TODO: insert search pattern
     def execute(self, userdata):
-        self.state_pub.publish("path_search")
+        self.state_pub.publish("path/search")
 
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [Point(5, 0, -0.5)]
+        goal.waypoints = [Point(5, 0, rospy.get_param("/fsm/operating_depth"))]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
         self.vtf_client.wait_for_server()
@@ -76,6 +77,9 @@ class PathConverge(smach.State):
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("path").object
 
+        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
+
+
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(
             vtf_action_server, VtfPathFollowingAction
@@ -88,6 +92,7 @@ class PathConverge(smach.State):
         self.odom = msg
 
     def execute(self, userdata):
+        self.state_pub.publish("path/converge")
 
         goal = VtfPathFollowingGoal()
         goal.waypoints = [self.object.objectPose.pose.position]
