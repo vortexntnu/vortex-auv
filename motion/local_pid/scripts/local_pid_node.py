@@ -101,7 +101,7 @@ class LocalPIDNode:
         w.torque.z = tau[5]
 
         self.tau_pub.publish(w)
-        
+
     def local_error_cb(self, msg):
         
         tf_lookup_baselink = self.__tfBuffer.lookup_transform(self.parent_frame, self.self.child_frame, rospy.Time(), rospy.Duration(5))
@@ -128,6 +128,7 @@ class LocalPIDNode:
         error = np.array([error_x, error_y, error_z, error_roll, error_pitch, error_yaw])
 
         tau_body = - np.matmul(self.Kp, error)
+        self.publish_wrench(tau_body)
 
 
 
