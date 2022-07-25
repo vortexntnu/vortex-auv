@@ -11,4 +11,4 @@ echo "##Activate thruster##"
 ./activate_thrusters.sh & 
 sleep 10s
 echo "##Starting FSM##"
-roslaunch finite_state_machine robosub.launch
+roslaunch finite_state_machine robosub_fsm.launch

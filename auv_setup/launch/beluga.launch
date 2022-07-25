@@ -26,9 +26,9 @@
     <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
 
     <!-- DVL -->	
-    <node pkg="uns_driver" type="uns_ros_driver.py" name="uns_driver" output="screen">
-        <param name="uns_ip" value="$(arg dvl_ip)"/>
-    </node>  
+    <node pkg="nucleus1000_driver" type="nucleus_ros_driver.py" name="nucleus1000_driver" output="screen">
+        <param name="/dvl_ip" value="$(arg dvl_ip)"/>
+    </node>
 
     <!-- Driver for communication between Xavier and thrusters over PCA9685 board -->
     <node pkg="thruster_interface" type="thruster_interface_node.py" name="thruster_interface" output="screen" />

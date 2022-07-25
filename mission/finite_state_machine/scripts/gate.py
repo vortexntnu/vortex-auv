@@ -61,6 +61,8 @@ class GateSearch(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
+        self.init_pose = None
+
     def odom_cb(self, msg):
         self.odom = msg
 
@@ -105,11 +107,15 @@ class GateSearch(smach.State):
             while (not within_acceptance_margins(goal, self.odom, True)):
                 rate.sleep()        
 
+        self.init_pose = self.odom.pose.pose
+        
+        path_segment_counter = 1
         while not self.object.isDetected:
 
             # SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [get_pose_in_front(self.odom.pose.pose, 1).position]
+            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, 0).position]
+            path_segment_counter += 1
             goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
             goal.forward_speed = rospy.get_param("/fsm/medium_speed")
             goal.heading = "path_dependent_heading"
@@ -235,7 +241,7 @@ class GateConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("gate").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, 0.5, 0)
         print("get_pose_in_front returned:")
         print(goal_pose)
         goal.waypoints = [goal_pose.position]
@@ -319,7 +325,7 @@ class GateExecute(smach.State):
     def execute(self, userdata):
         self.state_pub.publish("gate_execute")
         goal = VtfPathFollowingGoal()
-        goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, -0.5)
+        goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, -0.5, 0)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"

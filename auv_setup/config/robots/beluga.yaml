@@ -90,8 +90,8 @@ controllers:
     desired_velocity_topic: "/controllers/velocity/desired_velocity"
     rate: 20
     odometry_topic: "/odometry/filtered"
-    P_gains: [40, 40, 75, 50, 10, 10]
-    I_gains: [1, 1, 1, 1.5, 0.015, 0.015]
+    P_gains: [40, 40, 150, 50, 10, 10]
+    I_gains: [1, 1, 2.5, 1.5, 0.015, 0.015]
     D_gains: [0.01, 0.01, 0.01, 0.12, 0.03, 0.03]
     F_gains: [50, 75, 75, 50, 10, 10]
     integral_windup_limit: 10        # in newton
@@ -163,12 +163,12 @@ joystick:
 fsm:
   landmark_topic: "/fsm/state"
   time_to_launch: 1 # seconds
-  do_coinflip: 1
+  do_coinflip: 0
   slow_speed: 0.1 # speeds used for slow tasks
   medium_speed: 0.2
   fast_speed: 0.7
   turn_speed: 0.2 # for search pattern turns
-  operating_depth: -1.0
+  operating_depth: -2.0
 
 battery:
   thresholds:

@@ -90,14 +90,14 @@ def rotate_certain_angle(pose, angle):
     return new_pose
 
 
-def get_pose_in_front(pose, distance):
+def get_pose_in_front(pose, distance, index):
     # returns pose that is distance meters in front of object pose
 
     orientation_object = R.from_quat(
         [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
     )
-    rotation_matrix = orientation_object.as_dcm()
-    x_vec = rotation_matrix[:, 0]
+    rotation_matrix = orientation_object.as_matrix()
+    x_vec = rotation_matrix[:, index]
     current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
     new_pose_vec = current_pos_vec + distance * x_vec
 
@@ -134,7 +134,7 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
     orientation_object = R.from_quat(
         [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
     )
-    rotation_matrix = orientation_object.as_dcm()
+    rotation_matrix = orientation_object.as_matrix()
     y_vec = rotation_matrix[:, 1]
     current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
     if chosen_side == True:
