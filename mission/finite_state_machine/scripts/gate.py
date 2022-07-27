@@ -322,6 +322,12 @@ class GateExecute(smach.State):
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
+
     def execute(self, userdata):
         self.state_pub.publish("gate_execute")
         goal = VtfPathFollowingGoal()
@@ -334,6 +340,8 @@ class GateExecute(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
+
+        # Move through gate
         while not rospy.is_shutdown():
             if (
                 self.vtf_client.simple_state
@@ -341,5 +349,22 @@ class GateExecute(smach.State):
             ):
                 break
             rate.sleep()
+
+        # Yaw 720 degrees
+        for i in range(4):
+            goal = Pose()
+            goal.position = self.odom.pose.pose.position
+            goal.orientation = self.odom.pose.pose.orientation
+            goal = rotate_certain_angle(goal, 180)
+            vel_goal = Twist()
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
+            vel_goal.linear.z = (
+                -0.01
+            )  # should be ommited if drone is balanced and level underwater
+            vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
+            self.velocity_ctrl_client(vel_goal, True)
+            while not within_acceptance_margins(goal, self.odom, check_yaw_only=True):
+                rate.sleep()
+
 
         return "succeeded"
