@@ -4,11 +4,13 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
+from reach_depth import ReachDepth
+
 from gate_choose_side import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
 from path import PathSearch, PathConverge, PathExecute
 from buoy import BuoySearch, BuoyConverge, BuoyExecute
-from reach_depth import ReachDepth
+from torpedo import TorpedoSearch, TorpedoConverge, TorpedoExecute
 
 
 def main():
@@ -45,29 +47,7 @@ def main():
 
             StateMachine.add("GATE_EXECUTE", GateExecute())
 
-        StateMachine.add("GATE_SM", gate_sm, transitions={"succeeded": "PATH_SM"})
-
-        ##PATH
-        path_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
-        with path_sm:
-            StateMachine.add(
-                "PATH_SEARCH", PathSearch(), transitions={"succeeded": "PATH_CONVERGE"}
-            )
-
-            StateMachine.add(
-                "PATH_CONVERGE",
-                PathConverge(),
-                transitions={"succeeded": "PATH_EXECUTE", "aborted": "PATH_SEARCH"},
-            )
-
-            StateMachine.add(
-                "PATH_EXECUTE",
-                PathExecute(),
-                remapping={"dir_next_task": "dir_next_task"},
-                transitions={"aborted": "PATH_SEARCH"},
-            )
-
-        StateMachine.add("PATH_SM", path_sm, transitions={"succeeded": "BUOY_SM"})
+        StateMachine.add("GATE_SM", gate_sm, transitions={"succeeded": "BUOY_SM"})
 
         ##BUOY
         buoy_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
@@ -86,13 +66,54 @@ def main():
 
             StateMachine.add("BUOY_EXECUTE", BuoyExecute())
 
-        StateMachine.add("BUOY_SM", buoy_sm)
+        StateMachine.add("BUOY_SM", buoy_sm, transitions={"succeeded": "TORPEDO_SM"})
 
         ##TORPEDO
+        torpedo_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
-        ##Octagon/Bins - undecided whether these will be performed for 2022
+        with torpedo_sm:
+            StateMachine.add(
+                "TORPEDO_SEARCH", TorpedoSearch(), transitions={"succeeded": "TORPEDO_CONVERGE"}
+            )
+
+            StateMachine.add(
+                "TORPEDO_CONVERGE",
+                TorpedoConverge(),
+                transitions={"succeeded": "TORPEDO_EXECUTE", "aborted": "TORPEDO_SEARCH"},
+                remapping={"torpedo_converge_output": "torpedo"},
+            )
+
+            StateMachine.add("TORPEDO_EXECUTE", TorpedoExecute())
+
+        StateMachine.add("TORPEDO_SM", torpedo_sm)
+
+
+        ##Octagon/Bins
 
         ##Resurface
+
+        ### Stored for later vvvvvvvvvvvvvvv
+        ##PATH
+        # path_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
+        # with path_sm:
+        #     StateMachine.add(
+        #         "PATH_SEARCH", PathSearch(), transitions={"succeeded": "PATH_CONVERGE"}
+        #     )
+
+        #     StateMachine.add(
+        #         "PATH_CONVERGE",
+        #         PathConverge(),
+        #         transitions={"succeeded": "PATH_EXECUTE", "aborted": "PATH_SEARCH"},
+        #     )
+
+        #     StateMachine.add(
+        #         "PATH_EXECUTE",
+        #         PathExecute(),
+        #         remapping={"dir_next_task": "dir_next_task"},
+        #         transitions={"aborted": "PATH_SEARCH"},
+        #     )
+
+        # StateMachine.add("PATH_SM", path_sm, transitions={"succeeded": "BUOY_SM"})
 
     intro_server = IntrospectionServer(
         str(rospy.get_name()), robosub_state_machine, "/SM_ROOT"
