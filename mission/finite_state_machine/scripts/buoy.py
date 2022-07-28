@@ -41,6 +41,11 @@ class BuoySearch(smach.State):
         )
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
 
     def execute(self, userdata):
         rate = rospy.Rate(10)
@@ -243,9 +248,37 @@ class BuoyExecute(smach.State):
             vtf_action_server, VtfPathFollowingAction
         )
 
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
+
     def execute(self, userdata):
+
+        # Touch the buoy
         goal = VtfPathFollowingGoal()
         goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, -0.5)
+        goal.waypoints = [goal_pose.position]
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+        goal.heading = "path_dependent_heading"
+
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        while not rospy.is_shutdown():
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
+                break
+            rate.sleep()
+
+        # Return to center
+        goal = VtfPathFollowingGoal()
+        goal_pose = self.odom
+        goal_pose.position.x = 0
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"

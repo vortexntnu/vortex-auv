@@ -6,7 +6,7 @@ from smach_ros import IntrospectionServer
 
 from reach_depth import ReachDepth
 
-from gate_choose_side import GateSearch, GateConverge, GateExecute
+from gate import GateSearch, GateConverge, GateExecute
 from pole import PoleSearch, PoleConverge, PoleExecute
 from path import PathSearch, PathConverge, PathExecute
 from buoy import BuoySearch, BuoyConverge, BuoyExecute
