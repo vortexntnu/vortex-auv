@@ -61,7 +61,7 @@ class BuoySearch(smach.State):
                 and not self.object.isDetected
             ):
                 self.object = self.landmarks_client("buoy").object
-                print("SEARCHING FOR GATE ...")
+                print("SEARCHING FOR BUOYS ...")
                 rate.sleep()
             if self.object.isDetected:
                 break
@@ -82,7 +82,7 @@ class BuoySearch(smach.State):
                 and not self.object.isDetected
             ):
                 self.object = self.landmarks_client("buoy").object
-                print("SEARCHING FOR GATE ...")
+                print("SEARCHING FOR BUOY ...")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
             if self.object.isDetected:
@@ -101,7 +101,7 @@ class BuoySearch(smach.State):
                 and not self.object.isDetected
             ):
                 self.object = self.landmarks_client("buoy").object
-                print("SEARCHING FOR GATE ...")
+                print("SEARCHING FOR BUOY ...")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
             if self.object.isDetected:
@@ -120,13 +120,13 @@ class BuoySearch(smach.State):
                 and not self.object.isDetected
             ):
                 self.object = self.landmarks_client("buoy").object
-                print("SEARCHING FOR GATE ...")
+                print("SEARCHING FOR BUOY ...")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
             if self.object.isDetected:
                 break
 
-            print("SEARCHING FOR GATE ...")
+            print("SEARCHING FOR BUOY ...")
             rospy.wait_for_service("send_positions")
             self.object = self.landmarks_client("buoy").object
             rate.sleep()
