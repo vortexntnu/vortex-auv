@@ -89,8 +89,8 @@ def rotate_certain_angle(pose, angle):
 
     return new_pose
 
-
-def get_pose_in_front(pose, distance, index):
+# TODO: What should the default argument be here?
+def get_pose_in_front(pose, distance, index=1):
     # returns pose that is distance meters in front of object pose
 
     orientation_object = R.from_quat(
