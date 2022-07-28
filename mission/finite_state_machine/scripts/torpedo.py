@@ -4,6 +4,7 @@ from smach import StateMachine, State
 from std_msgs.msg import Int32
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
+from nav_msgs.msg import Odometry
 from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
@@ -170,7 +171,7 @@ class TorpedoConverge(smach.State):
             vtf_action_server, VtfPathFollowingAction
         )
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint)
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
 

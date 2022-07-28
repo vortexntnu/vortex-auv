@@ -3,6 +3,7 @@ import smach
 from smach import StateMachine, State
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
+from nav_msgs.msg import Odometry
 from landmarks.srv import request_position
 import actionlib
 from actionlib_msgs.msg import GoalStatus
