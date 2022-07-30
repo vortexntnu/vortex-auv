@@ -205,7 +205,7 @@ class TorpedoConverge(smach.State):
 
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client("torpedo_target").object
+        self.object = self.landmarks_client("torpedo_poster").object
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -225,8 +225,9 @@ class TorpedoConverge(smach.State):
         self.state_pub.publish("torpedo/converge")
 
         goal = VtfPathFollowingGoal()
-        self.object = self.landmarks_client("torpedo_target").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
+        self.object = self.landmarks_client("torpedo_poster").object
+        rospy.loginfo(self.object.objectPose.pose)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -1.0, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -243,7 +244,7 @@ class TorpedoConverge(smach.State):
                 == actionlib.simple_action_client.SimpleGoalState.DONE
             ):
                 break
-            self.object = self.landmarks_client("torpedo_target").object
+            self.object = self.landmarks_client("torpedo_poster").object
             # goal.waypoints = [self.object.objectPose.pose.position]
             print(
                 "TORPEDO POSITION DETECTED: "
@@ -266,6 +267,11 @@ class TorpedoConverge(smach.State):
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7  # POSE_HOLD
         dp_goal.setpoint = self.odom.pose.pose
+
+
+        # At this point, we switch from converging on the torpedo_poster to the torpedo_target
+
+        self.object = self.landmarks_client("torpedo_target").object
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
             print("in dp hold")
@@ -342,6 +348,9 @@ class TorpedoExecute(smach.State):
         rospy.loginfo("FIRE 2!")
         self.fire.publish(Int32())
 
+        dp_goal = DpSetpoint()
+        dp_goal.control_mode = 0  # OPEN_LOOP
+        self.dp_pub.publish(dp_goal)
 
         rospy.loginfo("REALIGNING")
         goal = VtfPathFollowingGoal()

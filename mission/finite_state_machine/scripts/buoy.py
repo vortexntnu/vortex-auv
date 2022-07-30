@@ -227,7 +227,7 @@ class BuoyConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("buoy").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -1.0, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -327,7 +327,7 @@ class BuoyExecute(smach.State):
 
         rospy.loginfo("TOUCHING BUOY")
         goal = VtfPathFollowingGoal()
-        goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.5, forward_direction)
+        goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.1, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "point_dependent_heading"
@@ -338,12 +338,20 @@ class BuoyExecute(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
+        touching_threshold = 20 # seconds, TODO: tune
+        starting_time = rospy.Time.now().to_sec()
         while not rospy.is_shutdown():
             if (
                 self.vtf_client.simple_state
                 == actionlib.simple_action_client.SimpleGoalState.DONE
             ):
                 break
+
+            if (rospy.Time.now().to_sec() - starting_time) > touching_threshold:
+                rospy.loginfo("Touching buoy time threshold reached!")
+                # self.vtf_client.cancel_all_goals()
+                # break
+
             rate.sleep()
 
         rospy.loginfo("GOING BACK")
@@ -357,8 +365,6 @@ class BuoyExecute(smach.State):
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
-        rate.sleep()
-
         while not rospy.is_shutdown():
             if (
                 self.vtf_client.simple_state
