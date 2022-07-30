@@ -11,6 +11,7 @@ from pole import PoleSearch, PoleConverge, PoleExecute
 from path import PathSearch, PathConverge, PathExecute
 from buoy import BuoySearch, BuoyConverge, BuoyExecute
 from torpedo import TorpedoSearch, TorpedoConverge, TorpedoExecute
+from octagon import OctagonSearch, OctagonConverge, OctagonExecute
 
 
 def main():
@@ -85,12 +86,28 @@ def main():
 
             StateMachine.add("TORPEDO_EXECUTE", TorpedoExecute())
 
-        StateMachine.add("TORPEDO_SM", torpedo_sm)
+        StateMachine.add("TORPEDO_SM", torpedo_sm, transitions={"succeeded": "OCTAGON_SM"})
 
 
-        ##Octagon/Bins
+        ##RESURFACE IN OCTAGON
+        octagon_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
-        ##Resurface
+        with octagon_sm:
+            StateMachine.add(
+                "OCTAGON_SEARCH", OctagonSearch(), transitions={"succeeded": "OCTAGON_CONVERGE"}
+            )
+
+            StateMachine.add(
+                "OCTAGON_CONVERGE",
+                OctagonConverge(),
+                transitions={"succeeded": "OCTAGON_EXECUTE", "aborted": "OCTAGON_SEARCH"},
+                remapping={"octagon_converge_output": "octagon"},
+            )
+
+            StateMachine.add("OCTAGON_EXECUTE", OctagonExecute())
+
+        StateMachine.add("OCTAGON_SM", octagon_sm)
+
 
         ### Stored for later vvvvvvvvvvvvvvv
         ##PATH
