@@ -23,17 +23,16 @@ from fsm_helper import (
     within_acceptance_margins,
 )
 
-from tf.transformations import quaternion_from_euler
-from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
 from vortex_msgs.srv import ControlMode, SetVelocity
 
+forward_direction = 0 # 0 = x, 1 = y
 
 class TorpedoSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client("torpedo").object
+        self.object = self.landmarks_client("torpedo_poster").object
 
         self.recov_point = self.landmarks_client("recovery_point").object
 
@@ -100,7 +99,7 @@ class TorpedoSearch(smach.State):
 
             # SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, 0).position]
+            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, forward_direction).position]
             path_segment_counter += 1
             goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
             goal.forward_speed = rospy.get_param("/fsm/medium_speed")
@@ -133,7 +132,7 @@ class TorpedoSearch(smach.State):
                 not within_acceptance_margins(goal, self.odom, True)
                 and not self.object.isDetected
             ):
-                self.object = self.landmarks_client("torpedo").object
+                self.object = self.landmarks_client("torpedo_poster").object
                 print("SEARCHING FOR TORPEDO ...")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
@@ -152,7 +151,7 @@ class TorpedoSearch(smach.State):
                 not within_acceptance_margins(goal, self.odom, True)
                 and not self.object.isDetected
             ):
-                self.object = self.landmarks_client("torpedo").object
+                self.object = self.landmarks_client("torpedo_poster").object
                 print("SEARCHING FOR TORPEDO ...")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
@@ -171,7 +170,7 @@ class TorpedoSearch(smach.State):
                 not within_acceptance_margins(goal, self.odom, True)
                 and not self.object.isDetected
             ):
-                self.object = self.landmarks_client("torpedo").object
+                self.object = self.landmarks_client("torpedo_poster").object
                 print("SEARCHING FOR TORPEDO ...")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
@@ -180,7 +179,7 @@ class TorpedoSearch(smach.State):
 
             print("SEARCHING FOR TORPEDO ...")
             rospy.wait_for_service("send_positions")
-            self.object = self.landmarks_client("torpedo").object
+            self.object = self.landmarks_client("torpedo_poster").object
             rate.sleep()
 
         self.vtf_client.cancel_all_goals()
@@ -206,7 +205,7 @@ class TorpedoConverge(smach.State):
 
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client("torpedo").object
+        self.object = self.landmarks_client("torpedo_target").object
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -226,10 +225,8 @@ class TorpedoConverge(smach.State):
         self.state_pub.publish("torpedo/converge")
 
         goal = VtfPathFollowingGoal()
-        self.object = self.landmarks_client("torpedo").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, 0)
-        print("get_pose_in_front returned:")
-        print(goal_pose)
+        self.object = self.landmarks_client("torpedo_target").object
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -246,7 +243,7 @@ class TorpedoConverge(smach.State):
                 == actionlib.simple_action_client.SimpleGoalState.DONE
             ):
                 break
-            self.object = self.landmarks_client("torpedo").object
+            self.object = self.landmarks_client("torpedo_target").object
             # goal.waypoints = [self.object.objectPose.pose.position]
             print(
                 "TORPEDO POSITION DETECTED: "
@@ -272,7 +269,7 @@ class TorpedoConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
             print("in dp hold")
-            self.object = self.landmarks_client("torpedo").object
+            self.object = self.landmarks_client("torpedo_target").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0  # OPEN_LOOP
                 self.dp_pub.publish(dp_goal)
@@ -281,7 +278,7 @@ class TorpedoConverge(smach.State):
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 0  # OPEN_LOOP
         self.dp_pub.publish(dp_goal)
-        self.object = self.landmarks_client("torpedo").object
+        self.object = self.landmarks_client("torpedo_target").object
         userdata.torpedo_converge_output = self.object
         print(
             "TORPEDO POSITION ESTIMATE CONVERGED AT: "
@@ -318,8 +315,10 @@ class TorpedoExecute(smach.State):
 
     # TODO: Smoother transition to alignign
     def execute(self, userdata):
+        starting_pose = self.odom.pose.pose
+
         rospy.loginfo("ALIGNING WITH HOLE")
-        goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, 0.43) # 0.38 to torpedo, then a 5cm margin
+        goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, 0.43, forward_direction) # 0.38 to torpedo, then a 5cm margin
         goal_pose.position.z += 0.145 # This is the offset between BODY and torpedo center in z
 
         dp_goal = DpSetpoint()
@@ -342,5 +341,34 @@ class TorpedoExecute(smach.State):
         rospy.sleep(1)
         rospy.loginfo("FIRE 2!")
         self.fire.publish(Int32())
+
+
+        rospy.loginfo("REALIGNING")
+        goal = VtfPathFollowingGoal()
+        goal_pose = starting_pose
+        if forward_direction == 0:
+            goal_pose.position.y = 0
+            goal.heading_point.x = 100
+            goal.heading_point.y =  0
+        elif forward_direction == 1:
+            goal_pose.position.x = 0
+            goal.heading_point.x = 0
+            goal.heading_point.y = 100
+        goal.waypoints = [goal_pose.position]
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+        goal.heading = "point_dependent_heading"
+
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        while not rospy.is_shutdown():
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
+                break
+            rate.sleep()
+
 
         return "succeeded"

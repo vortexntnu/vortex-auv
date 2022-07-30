@@ -1,3 +1,4 @@
+from turtle import forward
 import rospy
 import smach
 from smach import StateMachine, State
@@ -23,10 +24,9 @@ from fsm_helper import (
     within_acceptance_margins,
 )
 
-from tf.transformations import quaternion_from_euler
-from fsm_helper import dp_move, get_pose_in_front, rotate_certain_angle
 from vortex_msgs.srv import ControlMode, SetVelocity
 
+forward_direction = 0 # 0 = x, 1 = y
 
 class BuoySearch(smach.State):
     def __init__(self):
@@ -100,7 +100,7 @@ class BuoySearch(smach.State):
 
             # SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, 0).position]
+            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, forward_direction).position]
             path_segment_counter += 1
             goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
             goal.forward_speed = rospy.get_param("/fsm/medium_speed")
@@ -227,9 +227,7 @@ class BuoyConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("buoy").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, 0)
-        print("get_pose_in_front returned:")
-        print(goal_pose)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -329,7 +327,7 @@ class BuoyExecute(smach.State):
 
         rospy.loginfo("TOUCHING BUOY")
         goal = VtfPathFollowingGoal()
-        goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.5)
+        goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.5, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "point_dependent_heading"
@@ -369,23 +367,32 @@ class BuoyExecute(smach.State):
                 break
             rate.sleep()
 
-        # RETURN TO ZERO POINT
-        # rate = rospy.Rate(10)
-        # rospy.loginfo("RETURNING TO ZERO POINT")
-        # goal = Pose()
-        # goal.position = self.odom.pose.pose.position
-        # goal.position.y = 0
-        # goal.orientation = Quaternion(0, 0, 0, 1)
-        # vel_goal = Twist()
-        # vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
-        # vel_goal.linear.z = (
-        #     -0.01
-        # )  # should be ommited if drone is balanced and level underwater
-        # vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
-        # self.velocity_ctrl_client(vel_goal, True)
-        # while (
-        #     not within_acceptance_margins(goal, self.odom)
-        # ):
-        #     rate.sleep()
+        rospy.loginfo("REALIGNING")
+        goal = VtfPathFollowingGoal()
+        goal_pose = starting_pose
+        if forward_direction == 0:
+            goal_pose.position.y = 0
+            goal.heading_point.x = 100
+            goal.heading_point.y =  0
+        elif forward_direction == 1:
+            goal_pose.position.x = 0
+            goal.heading_point.x = 0
+            goal.heading_point.y = 100
+        goal.waypoints = [goal_pose.position]
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+        goal.heading = "point_dependent_heading"
+
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        while not rospy.is_shutdown():
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
+                break
+            rate.sleep()
+
 
         return "succeeded"

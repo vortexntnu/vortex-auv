@@ -26,6 +26,7 @@ from fsm_helper import (
 )
 from vortex_msgs.srv import ControlMode, SetVelocity
 
+forward_direction = 0 # 0 = x, 1 = y
 
 class OctagonSearch(smach.State):
     def __init__(self):
@@ -114,7 +115,7 @@ class OctagonSearch(smach.State):
 
             # SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, 0).position]
+            goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, forward_direction).position]
             path_segment_counter += 1
             goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
             goal.forward_speed = rospy.get_param("/fsm/medium_speed")
@@ -241,9 +242,7 @@ class OctagonConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("octagon").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, 0)
-        print("get_pose_in_front returned:")
-        print(goal_pose)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
