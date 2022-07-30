@@ -359,17 +359,18 @@ class GateExecute(smach.State):
                 break
             rate.sleep()
 
-        # Yaw 720 degrees
-
-        # NOT WORKING RN!
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(50)
         rospy.loginfo("PERFORMING ACROBATICS")
         for i in range(8):
-            rospy.loginfo(f"{i} out of 4 turns!")
+            rospy.loginfo(f"{i+1} out of 8 90 degree turns!")
             goal = Pose()
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, 45)
+            # Cursed below, to ensure that the AUV rotates the full 720 degrees
+            angle = 90
+            if i == 7:
+                angle += 60
+            goal = rotate_certain_angle(goal, angle)
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             vel_goal.linear.z = (
@@ -380,7 +381,6 @@ class GateExecute(smach.State):
             while (
                 not within_acceptance_margins(goal, self.odom, True)
             ):
-                rospy.loginfo("SPINNING!")
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
 
