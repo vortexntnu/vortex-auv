@@ -284,7 +284,8 @@ class OctagonConverge(smach.State):
         dp_goal.setpoint = self.odom.pose.pose
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
-            print("in dp hold")
+            rospy.loginfo("WAITING FOR OCTAGON GMF TO CONVERGE")
+
             self.object = self.landmarks_client("octagon").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0  # OPEN_LOOP

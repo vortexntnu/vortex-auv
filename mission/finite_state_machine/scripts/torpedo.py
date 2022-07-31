@@ -26,6 +26,7 @@ from fsm_helper import (
 from vortex_msgs.srv import ControlMode, SetVelocity
 
 forward_direction = 0 # 0 = x, 1 = y
+z_compensation = -0.005
 
 class TorpedoSearch(smach.State):
     def __init__(self):
@@ -120,12 +121,10 @@ class TorpedoSearch(smach.State):
             goal = Pose()
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, 45)
+            goal = rotate_certain_angle(goal, 60)
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = (
-                -0.01
-            )  # should be ommited if drone is balanced and level underwater
+            vel_goal.linear.z = z_compensation # should be ommited if drone is balanced and level underwater
             vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -141,10 +140,10 @@ class TorpedoSearch(smach.State):
 
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, -90)
+            goal = rotate_certain_angle(goal, -120)
             vel_goal = Twist()
             vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = -0.01
+            vel_goal.linear.z = z_compensation
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -160,10 +159,10 @@ class TorpedoSearch(smach.State):
 
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, 45)
+            goal = rotate_certain_angle(goal, 60)
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = -0.01
+            vel_goal.linear.z = z_compensation
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -227,7 +226,7 @@ class TorpedoConverge(smach.State):
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("torpedo_poster").object
         rospy.loginfo(self.object.objectPose.pose)
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -1.0, forward_direction)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -274,7 +273,7 @@ class TorpedoConverge(smach.State):
         self.object = self.landmarks_client("torpedo_target").object
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
-            print("in dp hold")
+            rospy.loginfo("WAITING FOR TORPEDO GMF TO CONVERGE")
             self.object = self.landmarks_client("torpedo_target").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0  # OPEN_LOOP
@@ -324,7 +323,7 @@ class TorpedoExecute(smach.State):
         starting_pose = self.odom.pose.pose
 
         rospy.loginfo("ALIGNING WITH HOLE")
-        goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, 0.43, forward_direction) # 0.38 to torpedo, then a 5cm margin
+        goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, -0.43, forward_direction) # 0.38 to torpedo, then a 5cm margin
         goal_pose.position.z += 0.145 # This is the offset between BODY and torpedo center in z
 
         dp_goal = DpSetpoint()
