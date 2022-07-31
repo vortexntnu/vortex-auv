@@ -337,7 +337,7 @@ class GateExecute(smach.State):
         self.odom = msg
 
     def execute(self, userdata):
-        self.state_pub.publish("gate_execute")
+        self.state_pub.publish("gate/execute")
         goal = VtfPathFollowingGoal()
         goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, 0.5, forward_direction)
         goal_pose.position.z = rospy.get_param("/fsm/operating_depth")
