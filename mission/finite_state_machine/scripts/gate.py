@@ -159,7 +159,7 @@ class GateSearch(smach.State):
             goal = rotate_certain_angle(goal, -90)
             vel_goal = Twist()
             vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = -0.01
+            vel_goal.linear.z = z_compensation
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -242,6 +242,7 @@ class GateConverge(smach.State):
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("gate").object
         goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
+        goal_pose.position.z = rospy.get_param("/fsm/operating_depth")
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -339,6 +340,8 @@ class GateExecute(smach.State):
         self.state_pub.publish("gate_execute")
         goal = VtfPathFollowingGoal()
         goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, 0.5, forward_direction)
+        goal_pose.position.z = rospy.get_param("/fsm/operating_depth")
+
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
