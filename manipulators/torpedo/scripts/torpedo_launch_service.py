@@ -1,50 +1,35 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 import rospy
 import Jetson.GPIO as GPIO
-from vortex_msgs.srv import LaunchTorpedo, LaunchTorpedoResponse
+from std_msgs.msg import Int32
 
-
-# How long to wait after a pin has been set to high
-FIRING_DURATION = 3  # in seconds
-
-# the two torpedos pin assignments. These have to be specified in a config file
-
+PIN = 15
 
 class TorpedoLaunch:
     def __init__(self):
-        ######## Definig the node ########
         rospy.init_node("torpedo_node")
 
-        ######## Defining the Service ########
-        self.torpedo_service = rospy.Service(
-            "manipulator/torpedo_launch", LaunchTorpedo, self.execute
-        )
+        rospy.Subscriber("/torpedo", Int32, self.execute, queue_size=1)
 
-        ######## GPIO Setup ########
-        self.mode = GPIO.LOW
-        self.torpedo_gpio_pin = rospy.get_param("/torpedo/gpio_pin")
+        self.mode = GPIO.HIGH
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(self.torpedo_gpio_pin, GPIO.OUT, initial=self.mode)
+        GPIO.setup(PIN, GPIO.OUT, initial=self.mode)
 
-    def execute(self, req):
-        if req.fire == True and self.mode == GPIO.HIGH:
+    def execute(self, msg):
+        if self.mode == GPIO.HIGH:
             print("going to low")
-            GPIO.output(self.torpedo_gpio_pin, GPIO.LOW)
+            GPIO.output(PIN, GPIO.LOW)
             self.mode = GPIO.LOW
 
-        elif req.fire == True and self.mode == GPIO.LOW:
+        elif self.mode == GPIO.LOW:
             print("going to high")
-            GPIO.output(self.torpedo_gpio_pin, GPIO.HIGH)
+            GPIO.output(PIN, GPIO.HIGH)
             self.mode = GPIO.HIGH
 
-        res = LaunchTorpedoResponse()
-
-        return res
 
 
 if __name__ == "__main__":
     node = TorpedoLaunch()
-    while not rospy.is_shutdown():
-        rospy.spin()
+    rospy.spin()
