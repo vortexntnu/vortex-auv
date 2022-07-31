@@ -273,7 +273,7 @@ class TorpedoConverge(smach.State):
         self.object = self.landmarks_client("torpedo_target").object
         self.dp_pub.publish(dp_goal)
         while not rospy.is_shutdown() and not self.object.estimateConverged:
-            print("in dp hold")
+            rospy.loginfo("WAITING FOR TORPEDO GMF TO CONVERGE")
             self.object = self.landmarks_client("torpedo_target").object
             if self.object.estimateFucked:
                 dp_goal.control_mode = 0  # OPEN_LOOP
