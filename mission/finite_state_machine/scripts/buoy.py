@@ -27,6 +27,7 @@ from fsm_helper import (
 from vortex_msgs.srv import ControlMode, SetVelocity
 
 forward_direction = 0 # 0 = x, 1 = y
+z_compensation = -0.005
 
 class BuoySearch(smach.State):
     def __init__(self):
@@ -121,12 +122,10 @@ class BuoySearch(smach.State):
             goal = Pose()
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, 45)
+            goal = rotate_certain_angle(goal, 60)
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = (
-                -0.01
-            )  # should be ommited if drone is balanced and level underwater
+            vel_goal.linear.z = z_compensation  # should be ommited if drone is balanced and level underwater
             vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -142,10 +141,10 @@ class BuoySearch(smach.State):
 
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, -90)
+            goal = rotate_certain_angle(goal, -120)
             vel_goal = Twist()
             vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = -0.01
+            vel_goal.linear.z = z_compensation
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -161,10 +160,10 @@ class BuoySearch(smach.State):
 
             goal.position = self.odom.pose.pose.position
             goal.orientation = self.odom.pose.pose.orientation
-            goal = rotate_certain_angle(goal, 45)
+            goal = rotate_certain_angle(goal, 60)
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
-            vel_goal.linear.z = -0.01
+            vel_goal.linear.z = z_compensation
             vel_goal.linear.x = 0.01
             self.velocity_ctrl_client(vel_goal, True)
             while (
@@ -227,7 +226,7 @@ class BuoyConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("buoy").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -1.0, forward_direction)
+        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, forward_direction)
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -349,8 +348,8 @@ class BuoyExecute(smach.State):
 
             if (rospy.Time.now().to_sec() - starting_time) > touching_threshold:
                 rospy.loginfo("Touching buoy time threshold reached!")
-                # self.vtf_client.cancel_all_goals()
-                # break
+                self.vtf_client.cancel_all_goals()
+                break
 
             rate.sleep()
 

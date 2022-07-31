@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "##ARMING##";
-timeout 2s rostopic pub /thrust/desired_forces geometry_msgs/Wrench "force:
+rostopic pub /thrust/desired_forces geometry_msgs/Wrench "force:
   x: 0.0  
   y: 0.0  
   z: 0.0  

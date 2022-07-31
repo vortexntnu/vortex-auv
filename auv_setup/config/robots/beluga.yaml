@@ -51,7 +51,7 @@ propulsion:
 
 guidance:
   dp:
-    rate: 20
+    rate: 40
     acceptance_margins: [0.10, 0.10, 0.10, 0.15, 0.15, 0.15] # Order: x,y,z,roll,pitch,yaw
     action_server: "/guidance_interface/dp_server"
   LOS:
