@@ -1,20 +1,10 @@
 import rospy
 import smach
-from smach import StateMachine
-from geometry_msgs.msg import Pose, Point, Quaternion, Twist
-from std_msgs.msg import String
-from landmarks.srv import request_position
+from geometry_msgs.msg import Point
 
 import actionlib
-from actionlib_msgs.msg import GoalStatus
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
-from landmarks.srv import request_position
-from tf.transformations import quaternion_from_euler
-from vortex_msgs.srv import ControlMode  # , ControlModeRequest
-from fsm_helper import within_acceptance_margins
 from nav_msgs.msg import Odometry
-from fsm_helper import dp_move, los_move
-from vortex_msgs.srv import ControlMode  # , ControlModeRequest
 
 class ReachDepth(smach.State):
     def __init__(self):

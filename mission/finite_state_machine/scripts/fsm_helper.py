@@ -54,24 +54,6 @@ def dp_move(x, y, z=-0.5, yaw_rad=0):
     )
 
 
-def los_move(x, y, z=-0.5):
-
-    goal = LosPathFollowingGoal()
-    goal.next_waypoint = Point(x, y, z)
-    goal.forward_speed = rospy.get_param("~transit_speed", 0.3)
-    goal.sphereOfAcceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
-    goal.desired_depth = z
-    return SimpleActionState(
-        guidance_interface_los_action_server, LosPathFollowingAction, goal=goal
-    )
-
-
-def circle_move(target_point, direction):
-    goal = MoveGoal()
-
-    goal.guidance_type = ""
-
-
 def rotate_certain_angle(pose, angle):
     """Angle in degrees"""
 
@@ -89,8 +71,7 @@ def rotate_certain_angle(pose, angle):
 
     return new_pose
 
-# TODO: What should the default argument be here?
-def get_pose_in_front(pose, distance, index=1):
+def get_pose_in_front(pose, distance, index=0):
     # returns pose that is distance meters in front of object pose
 
     orientation_object = R.from_quat(

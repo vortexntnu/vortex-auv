@@ -4,14 +4,14 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
-from reach_depth import ReachDepth
+from tasks.reach_depth import ReachDepth
 
-from gate import GateSearch, GateConverge, GateExecute
-from pole import PoleSearch, PoleConverge, PoleExecute
-from path import PathSearch, PathConverge, PathExecute
-from buoy import BuoySearch, BuoyConverge, BuoyExecute
-from torpedo import TorpedoSearch, TorpedoConverge, TorpedoExecute
-from octagon import OctagonSearch, OctagonConverge, OctagonExecute
+from tasks.gate import GateSearch, GateConverge, GateExecute
+from tasks.pole import PoleSearch, PoleConverge, PoleExecute
+from tasks.path import PathSearch, PathConverge, PathExecute
+from tasks.buoy import BuoySearch, BuoyConverge, BuoyExecute
+from tasks.torpedo import TorpedoSearch, TorpedoConverge, TorpedoExecute
+from tasks.octagon import OctagonSearch, OctagonConverge, OctagonExecute
 
 
 def main():
