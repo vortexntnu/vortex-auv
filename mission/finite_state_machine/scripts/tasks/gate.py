@@ -16,7 +16,7 @@ from fsm_helper import (
     rotate_certain_angle,
     within_acceptance_margins,
 )
-from vortex_msgs.srv import ControlMode, SetVelocity
+from vortex_msgs.srv import SetVelocity
 
 from search.forward_sweep import ForwardSweepSearch
 
@@ -32,7 +32,6 @@ class GateSearch(smach.State):
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(self.task).object
-
 
         self.landmarks_pub = rospy.Publisher(
             "/fsm/object_positions_in", ObjectPosition, queue_size=1
@@ -91,7 +90,7 @@ class GateSearch(smach.State):
         object_found = self.search_pattern.run()
 
         if object_found:
-            print("GATE POSITION DETECTED:" 
+            print(f"{self.task} POSITION DETECTED:" 
                 f"{self.object.objectPose.pose.position.x}, "
                 f"{self.object.objectPose.pose.position.y}, "
                 f"{self.object.objectPose.pose.position.z}"
