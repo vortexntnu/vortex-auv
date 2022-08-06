@@ -27,7 +27,7 @@ from fsm_helper import (
 from vortex_msgs.srv import ControlMode, SetVelocity
 
 forward_direction = 0 # 0 = x, 1 = y
-z_compensation = -0.005
+z_compensation = -0.015
 
 class BuoySearch(smach.State):
     def __init__(self):
@@ -104,7 +104,7 @@ class BuoySearch(smach.State):
             goal.waypoints = [get_pose_in_front(self.init_pose, path_segment_counter, forward_direction).position]
             path_segment_counter += 1
             goal.waypoints[0].z = rospy.get_param("/fsm/operating_depth")
-            goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+            goal.forward_speed = rospy.get_param("/fsm/slow_speed")
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
@@ -226,7 +226,9 @@ class BuoyConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("buoy").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, forward_direction)
+        goal_pose = self.object.objectPose.pose
+        goal_pose.position.x -= 0.75
+
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -267,7 +269,17 @@ class BuoyConverge(smach.State):
         dp_goal.control_mode = 7  # POSE_HOLD
         dp_goal.setpoint = self.odom.pose.pose
         self.dp_pub.publish(dp_goal)
+        starting_time = rospy.Time.now().to_sec()
+        converging_threshold = 60
         while not rospy.is_shutdown() and not self.object.estimateConverged:
+
+            if (rospy.Time.now().to_sec() - starting_time) > converging_threshold:
+                rospy.loginfo("FAILED TO CONVERGE ON BUOY! TRYING EXECUTE!")
+                out = self.landmarks_client("buoy").object
+                out.objectPose = self.odom.pose.pose
+                userdata.buoy_converge_output = out
+                break
+
             rospy.loginfo("WAITING FOR BUOY GMF TO CONVERGE")
             self.object = self.landmarks_client("buoy").object
             if self.object.estimateFucked:
@@ -326,7 +338,10 @@ class BuoyExecute(smach.State):
 
         rospy.loginfo("TOUCHING BUOY")
         goal = VtfPathFollowingGoal()
-        goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.1, forward_direction)
+        #goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.1, forward_direction)
+        goal_pose = userdata.buoy.objectPose.pose
+        goal_pose.position.x += 0.05
+
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "point_dependent_heading"
@@ -337,7 +352,7 @@ class BuoyExecute(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
-        touching_threshold = 20 # seconds, TODO: tune
+        touching_threshold = 8 # seconds, TODO: tune
         starting_time = rospy.Time.now().to_sec()
         while not rospy.is_shutdown():
             if (

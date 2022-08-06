@@ -242,7 +242,10 @@ class OctagonConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("octagon").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
+        #goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
+        goal_pose = self.object.objectPose.pose
+        goal_pose.position.x -= 0.5
+
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"

@@ -164,10 +164,10 @@ fsm:
   landmark_topic: "/fsm/state"
   time_to_launch: 1 # seconds
   do_coinflip: 0
-  slow_speed: 0.1 # speeds used for slow tasks
-  medium_speed: 0.2
-  fast_speed: 0.7
-  turn_speed: 0.2 # for search pattern turns
+  slow_speed: 1 # speeds used for slow tasks
+  medium_speed: 2
+  fast_speed: 2
+  turn_speed: 2 # for search pattern turns
   operating_depth: -2.0
 
 battery:

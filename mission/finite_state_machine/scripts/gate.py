@@ -27,7 +27,7 @@ from fsm_helper import (
 from vortex_msgs.srv import ControlMode, SetVelocity
 
 forward_direction = 0 # 0 = x, 1 = y
-z_compensation = -0.005
+z_compensation = -0.01
 
 class GateSearch(smach.State):
     def __init__(self):
@@ -241,7 +241,8 @@ class GateConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("gate").object
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, forward_direction)
+        goal_pose = self.object.objectPose.pose
+        goal_pose.position.x -= 0.2
         goal_pose.position.z = rospy.get_param("/fsm/operating_depth")
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
@@ -339,9 +340,11 @@ class GateExecute(smach.State):
     def execute(self, userdata):
         self.state_pub.publish("gate/execute")
         goal = VtfPathFollowingGoal()
-        goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, 0.5, forward_direction)
+        #goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, 0.5, forward_direction)
+        goal_pose = userdata.gate.objectPose.pose
+        # AUV needs to be aligned with where we wish to go through
+        goal_pose.position.x += 0.5
         goal_pose.position.z = rospy.get_param("/fsm/operating_depth")
-
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
@@ -365,11 +368,6 @@ class GateExecute(smach.State):
 
         rate = rospy.Rate(100)
 
-        rospy.loginfo("DEPTH HOLD!")
-        dp_goal = DpSetpoint()
-        dp_goal.control_mode = 4  # DEPTH_HOLD
-        dp_goal.setpoint = self.odom.pose.pose
-        self.dp_pub.publish(dp_goal)
 
         rospy.loginfo("PERFORMING ACROBATICS")
         for i in range(8):
@@ -403,6 +401,7 @@ class GateExecute(smach.State):
         rospy.loginfo("REALIGNING")
         goal = VtfPathFollowingGoal()
         goal_pose = starting_pose
+        goal_pose.position.x += 0.3
         if forward_direction == 0:
             goal_pose.position.y = 0
             goal.heading_point.x = 100

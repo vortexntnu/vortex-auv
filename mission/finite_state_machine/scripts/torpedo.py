@@ -26,7 +26,7 @@ from fsm_helper import (
 from vortex_msgs.srv import ControlMode, SetVelocity
 
 forward_direction = 0 # 0 = x, 1 = y
-z_compensation = -0.005
+z_compensation = -0.0075
 
 class TorpedoSearch(smach.State):
     def __init__(self):
@@ -226,7 +226,9 @@ class TorpedoConverge(smach.State):
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("torpedo_poster").object
         rospy.loginfo(self.object.objectPose.pose)
-        goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, forward_direction)
+        #goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, forward_direction)
+        goal_pose = self.object.objectPose.pose
+        goal_pose.position.x -= 0.75
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading = "path_dependent_heading"
@@ -323,8 +325,10 @@ class TorpedoExecute(smach.State):
         starting_pose = self.odom.pose.pose
 
         rospy.loginfo("ALIGNING WITH HOLE")
-        goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, -0.43, forward_direction) # 0.38 to torpedo, then a 5cm margin
+        #goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, -0.43, forward_direction) # 0.38 to torpedo, then a 5cm margin
+        goal_pose = userdata.torpedo.objectPose.pose
         goal_pose.position.z += 0.145 # This is the offset between BODY and torpedo center in z
+        goal_pose.position.x -= 0.43
 
         dp_goal = DpSetpoint()
         dp_goal.control_mode = 7  # POSE_HOLD
