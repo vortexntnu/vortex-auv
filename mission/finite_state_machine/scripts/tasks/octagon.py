@@ -9,7 +9,10 @@ from vortex_msgs.msg import (
     DpSetpoint,
     ObjectPosition,
 )
+
+from vortex_msgs.srv import SetVelocity
 from landmarks.srv import request_position
+
 from fsm_helper import within_acceptance_margins
 from search.forward_sweep import ForwardSweepSearch
 

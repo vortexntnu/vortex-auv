@@ -20,9 +20,6 @@ from vortex_msgs.srv import SetVelocity
 
 from search.forward_sweep import ForwardSweepSearch
 
-forward_direction = 0 # 0 = x, 1 = y
-z_compensation = -0.01
-
 class GateSearch(smach.State):
     def __init__(self):
         self.task = "gate"
@@ -58,7 +55,6 @@ class GateSearch(smach.State):
         self.state_pub.publish(f"{self.task}/search")
         rate = rospy.Rate(10)
 
-
         # RECOVERY
         if self.recov_point.isDetected:
             print(f"No {self.task} found, recovering...")
@@ -90,12 +86,6 @@ class GateSearch(smach.State):
         object_found = self.search_pattern.run()
 
         if object_found:
-            print(f"{self.task} POSITION DETECTED:" 
-                f"{self.object.objectPose.pose.position.x}, "
-                f"{self.object.objectPose.pose.position.y}, "
-                f"{self.object.objectPose.pose.position.z}"
-            )
-
             return "succeeded"
         else:
             return "aborted"
@@ -153,14 +143,13 @@ class GateConverge(smach.State):
                 break
             self.object = self.landmarks_client("gate").object
             # goal.waypoints = [self.object.objectPose.pose.position]
-            print(
-                "GATE POSITION DETECTED: "
-                + str(goal.waypoints[0].x)
-                + ", "
-                + str(goal.waypoints[0].y)
-                + ", "
-                + str(goal.waypoints[0].z)
+
+            print("GATE POSITION DETECTED:" 
+                f"{goal.waypoints[0].x}, "
+                f"{goal.waypoints[0].y}, "
+                f"{goal.waypoints[0].z}"
             )
+
             # goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
             # self.vtf_client.send_goal(goal)
             userdata.gate_converge_output = self.object
@@ -188,13 +177,10 @@ class GateConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("gate").object
         userdata.gate_converge_output = self.object
-        print(
-            "GATE POSITION ESTIMATE CONVERGED AT: "
-            + str(self.object.objectPose.pose.position.x)
-            + "; "
-            + str(self.object.objectPose.pose.position.y)
-            + "; "
-            + str(self.object.objectPose.pose.position.z)
+        print("GATE POSITION ESTIMATE CONVERGED AT:" 
+            f"{self.object.objectPose.pose.position.x}, "
+            f"{self.object.objectPose.pose.position.y}, "
+            f"{self.object.objectPose.pose.position.z}"
         )
 
         return "succeeded"
@@ -245,7 +231,6 @@ class GateExecute(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
 
-        # Move through gate
         rospy.loginfo("MOVING THROUGH GATE")
         while not rospy.is_shutdown():
             if (
@@ -258,8 +243,6 @@ class GateExecute(smach.State):
         starting_pose = self.odom.pose.pose
 
         rate = rospy.Rate(100)
-
-
         rospy.loginfo("PERFORMING ACROBATICS")
         for i in range(8):
             rospy.loginfo(f"{i+1} out of 8 90 degree turns!")
@@ -272,7 +255,7 @@ class GateExecute(smach.State):
                 angle += 60
             goal = rotate_certain_angle(goal, angle)
             vel_goal = Twist()
-            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed") * 2
+            vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal, True)
 
             #vel_goal.linear.z = z_compensation  # should be ommited if drone is balanced and level underwater
