@@ -26,9 +26,10 @@ from fsm_helper import (
 
 import numpy as np
 
-class ForwardSweepSearch():
+
+class ForwardSweepSearch:
     def __init__(self, task):
-        self.task = task 
+        self.task = task
         self.odom = Odometry()
         self.rate = rospy.Rate(10)
 
@@ -40,17 +41,17 @@ class ForwardSweepSearch():
         desired_velocity_topic = rospy.get_param(
             "/controllers/velocity_controller/desired_velocity_topic"
         )
-        self.velocity_ctrl_client = rospy.ServiceProxy(desired_velocity_topic, SetVelocity)
+        self.velocity_ctrl_client = rospy.ServiceProxy(
+            desired_velocity_topic, SetVelocity
+        )
         rospy.wait_for_service(desired_velocity_topic)
-
 
         self.vtf_client = actionlib.SimpleActionClient(
             "/controllers/vtf_action_server", VtfPathFollowingAction
         )
-        
+
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
 
-        
     def odom_cb(self, msg):
         self.odom = msg
 
@@ -76,11 +77,9 @@ class ForwardSweepSearch():
         self.velocity_ctrl_client(vel_goal, False)
 
         return False
-        
 
     def run(self):
         # TODO: DP depth hold for the entire search pattern
-        
 
         path_segment_counter = 1
         goal = VtfPathFollowingGoal()
@@ -91,7 +90,9 @@ class ForwardSweepSearch():
 
         while not self.object.isDetected:
 
-            position_ahead = get_pose_in_front(initial_pose, path_segment_counter, 0).position
+            position_ahead = get_pose_in_front(
+                initial_pose, path_segment_counter, 0
+            ).position
             position_ahead.z = rospy.get_param("/fsm/operating_depth")
             goal.waypoints = [position_ahead]
             self.vtf_client.wait_for_server()
@@ -105,7 +106,6 @@ class ForwardSweepSearch():
                 if self.object.isDetected:
                     break
                 self.rate.sleep()
-
 
             detection = self.yaw_to_angle(45)
             if detection:
@@ -123,4 +123,3 @@ class ForwardSweepSearch():
 
         self.vtf_client.cancel_all_goals()
         return True
-  

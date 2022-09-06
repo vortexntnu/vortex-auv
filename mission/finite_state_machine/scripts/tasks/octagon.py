@@ -21,7 +21,7 @@ class OctagonSearch(smach.State):
     def __init__(self):
         self.task = "octagon"
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
-        
+
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(self.task).object
@@ -43,7 +43,6 @@ class OctagonSearch(smach.State):
         self.odom = Odometry()
 
         self.search_pattern = ForwardSweepSearch(self.task)
-
 
     def odom_cb(self, msg):
         self.odom = msg
@@ -73,14 +72,15 @@ class OctagonSearch(smach.State):
         self.landmarks_pub.publish(self.recov_point)
 
         self.object.estimateFucked = False
-        self.landmarks_pub.publish(self.object) 
+        self.landmarks_pub.publish(self.object)
 
         # This currently blocks until an object is detected. However, we should have a timeout
         # which will set object.isFucked to True and reset this.
         object_found = self.search_pattern.run()
 
         if object_found:
-            print(f"{self.task} POSITION DETECTED:" 
+            print(
+                f"{self.task} POSITION DETECTED:"
                 f"{self.object.objectPose.pose.position.x}, "
                 f"{self.object.objectPose.pose.position.y}, "
                 f"{self.object.objectPose.pose.position.z}"
@@ -89,6 +89,7 @@ class OctagonSearch(smach.State):
             return "succeeded"
         else:
             return "aborted"
+
 
 class OctagonConverge(smach.State):
     def __init__(self):
@@ -121,7 +122,7 @@ class OctagonConverge(smach.State):
 
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("octagon").object
-        #goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, 0)
+        # goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.5, 0)
         goal_pose = self.object.objectPose.pose
         goal_pose.position.x -= 0.5
 
@@ -213,7 +214,6 @@ class OctagonExecute(smach.State):
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
         self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
 
-
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
@@ -231,9 +231,7 @@ class OctagonExecute(smach.State):
         self.dp_pub.publish(dp_goal)
 
         rate = rospy.Rate(1)
-        while (
-            not within_acceptance_margins(goal, self.odom)
-        ):
+        while not within_acceptance_margins(goal, self.odom):
             rate.sleep()
 
         dp_goal = DpSetpoint()

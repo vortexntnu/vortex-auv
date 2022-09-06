@@ -14,14 +14,15 @@ from vortex_msgs.srv import SetVelocity
 
 from search.forward_sweep import ForwardSweepSearch
 
-forward_direction = 0 # 0 = x, 1 = y
+forward_direction = 0  # 0 = x, 1 = y
 z_compensation = -0.015
+
 
 class BuoySearch(smach.State):
     def __init__(self):
         self.task = "buoy"
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
-        
+
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(self.task).object
@@ -72,14 +73,15 @@ class BuoySearch(smach.State):
         self.landmarks_pub.publish(self.recov_point)
 
         self.object.estimateFucked = False
-        self.landmarks_pub.publish(self.object) 
+        self.landmarks_pub.publish(self.object)
 
         # This currently blocks until an object is detected. However, we should have a timeout
         # which will set object.isFucked to True and reset this.
         object_found = self.search_pattern.run()
 
         if object_found:
-            print(f"{self.task} POSITION DETECTED:" 
+            print(
+                f"{self.task} POSITION DETECTED:"
                 f"{self.object.objectPose.pose.position.x}, "
                 f"{self.object.objectPose.pose.position.y}, "
                 f"{self.object.objectPose.pose.position.z}"
@@ -198,6 +200,7 @@ class BuoyConverge(smach.State):
 
         return "succeeded"
 
+
 class BuoyExecute(smach.State):
     def __init__(self):
         smach.State.__init__(
@@ -225,15 +228,13 @@ class BuoyExecute(smach.State):
     def odom_cb(self, msg):
         self.odom = msg
 
-
     # TODO: Align orientation with DP
     def execute(self, userdata):
         starting_pose = self.odom.pose.pose
 
-
         rospy.loginfo("TOUCHING BUOY")
         goal = VtfPathFollowingGoal()
-        #goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.1, 0)
+        # goal_pose = get_pose_in_front(userdata.buoy.objectPose.pose, 0.1, 0)
         goal_pose = userdata.buoy.objectPose.pose
         goal_pose.position.x += 0.05
 
@@ -247,7 +248,7 @@ class BuoyExecute(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
-        touching_threshold = 8 # seconds, TODO: tune
+        touching_threshold = 8  # seconds, TODO: tune
         starting_time = rospy.Time.now().to_sec()
         while not rospy.is_shutdown():
             if (
@@ -287,7 +288,7 @@ class BuoyExecute(smach.State):
         goal_pose = starting_pose
         goal_pose.position.y = 0
         goal.heading_point.x = 100
-        goal.heading_point.y =  0
+        goal.heading_point.y = 0
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "point_dependent_heading"
@@ -303,6 +304,5 @@ class BuoyExecute(smach.State):
             ):
                 break
             rate.sleep()
-
 
         return "succeeded"

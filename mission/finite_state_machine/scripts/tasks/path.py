@@ -35,7 +35,6 @@ class PathSearch(smach.State):
             vtf_action_server, VtfPathFollowingAction
         )
 
-
     # TODO: insert search pattern
     def execute(self, userdata):
         self.state_pub.publish("path/search")
@@ -78,7 +77,6 @@ class PathConverge(smach.State):
         self.object = self.landmarks_client("path").object
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
-
 
         vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(

@@ -71,6 +71,7 @@ def rotate_certain_angle(pose, angle):
 
     return new_pose
 
+
 def get_pose_in_front(pose, distance, index=0):
     # returns pose that is distance meters in front of object pose
 
@@ -90,18 +91,19 @@ def get_pose_in_front(pose, distance, index=0):
 
     return new_pose
 
+
 def get_position_on_line(from_pos, to_pos, distance):
     # returns pose that is distance meters in front of object, along line
     p = Point()
-    p.x = (to_pos.x - from_pos.x)
-    p.y = (to_pos.y - from_pos.y) 
-    p.z = (to_pos.z - from_pos.z)
+    p.x = to_pos.x - from_pos.x
+    p.y = to_pos.y - from_pos.y
+    p.z = to_pos.z - from_pos.z
 
-    length = math.sqrt(p.x**2+p.y**2+p.z**2)    
+    length = math.sqrt(p.x**2 + p.y**2 + p.z**2)
 
-    p.x = distance/length * p.x + from_pos.x
-    p.y = distance/length * p.y + from_pos.y
-    p.z = distance/length * p.z + from_pos.z
+    p.x = distance / length * p.x + from_pos.x
+    p.y = distance / length * p.y + from_pos.y
+    p.z = distance / length * p.z + from_pos.z
 
     return p
 

@@ -4,9 +4,21 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
-from mission.finite_state_machine.scripts.tasks.gate import GateSearch, GateConverge, GateExecute
-from mission.finite_state_machine.scripts.tasks.pole import PoleSearch, PoleConverge, PoleExecute
-from mission.finite_state_machine.scripts.tasks.path import PathSearch, PathConverge, PathExecute
+from mission.finite_state_machine.scripts.tasks.gate import (
+    GateSearch,
+    GateConverge,
+    GateExecute,
+)
+from mission.finite_state_machine.scripts.tasks.pole import (
+    PoleSearch,
+    PoleConverge,
+    PoleExecute,
+)
+from mission.finite_state_machine.scripts.tasks.path import (
+    PathSearch,
+    PathConverge,
+    PathExecute,
+)
 from mission.finite_state_machine.scripts.tasks.reach_depth import ReachDepth
 
 

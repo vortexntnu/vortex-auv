@@ -98,7 +98,9 @@ class BatteryMonitor:
         self.system_battery_level_pub.publish(self.system_voltage)
 
         if self.system_voltage < self.critical_level:
-            rospy.logerr(f"Critical voltage: {self.system_voltage}V! Shutting down all active nodes!")
+            rospy.logerr(
+                f"Critical voltage: {self.system_voltage}V! Shutting down all active nodes!"
+            )
             os.system("rosnode kill -a")
 
         if not self.system_recieved:

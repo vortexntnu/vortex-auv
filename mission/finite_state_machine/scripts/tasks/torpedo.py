@@ -13,11 +13,12 @@ from landmarks.srv import request_position
 from fsm_helper import within_acceptance_margins
 from search.forward_sweep import ForwardSweepSearch
 
+
 class TorpedoSearch(smach.State):
     def __init__(self):
         self.task = "torpedo_poster"
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
-        
+
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(self.task).object
@@ -39,7 +40,6 @@ class TorpedoSearch(smach.State):
         self.odom = Odometry()
 
         self.search_pattern = ForwardSweepSearch(self.task)
-
 
     def odom_cb(self, msg):
         self.odom = msg
@@ -69,14 +69,15 @@ class TorpedoSearch(smach.State):
         self.landmarks_pub.publish(self.recov_point)
 
         self.object.estimateFucked = False
-        self.landmarks_pub.publish(self.object) 
+        self.landmarks_pub.publish(self.object)
 
         # This currently blocks until an object is detected. However, we should have a timeout
         # which will set object.isFucked to True and reset this.
         object_found = self.search_pattern.run()
 
         if object_found:
-            print(f"{self.task} POSITION DETECTED:" 
+            print(
+                f"{self.task} POSITION DETECTED:"
                 f"{self.object.objectPose.pose.position.x}, "
                 f"{self.object.objectPose.pose.position.y}, "
                 f"{self.object.objectPose.pose.position.z}"
@@ -119,7 +120,7 @@ class TorpedoConverge(smach.State):
         goal = VtfPathFollowingGoal()
         self.object = self.landmarks_client("torpedo_poster").object
         rospy.loginfo(self.object.objectPose.pose)
-        #goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, 0)
+        # goal_pose = get_pose_in_front(self.object.objectPose.pose, -0.75, 0)
         goal_pose = self.object.objectPose.pose
         goal_pose.position.x -= 0.75
         goal.waypoints = [goal_pose.position]
@@ -162,7 +163,6 @@ class TorpedoConverge(smach.State):
         dp_goal.control_mode = 7  # POSE_HOLD
         dp_goal.setpoint = self.odom.pose.pose
 
-
         # At this point, we switch from converging on the torpedo_poster to the torpedo_target
 
         self.object = self.landmarks_client("torpedo_target").object
@@ -191,6 +191,7 @@ class TorpedoConverge(smach.State):
 
         return "succeeded"
 
+
 class TorpedoExecute(smach.State):
     def __init__(self):
         smach.State.__init__(
@@ -212,15 +213,16 @@ class TorpedoExecute(smach.State):
     def odom_cb(self, msg):
         self.odom = msg
 
-
     # TODO: Smoother transition to alignign
     def execute(self, userdata):
         starting_pose = self.odom.pose.pose
 
         rospy.loginfo("ALIGNING WITH HOLE")
-        #goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, -0.43, 0) # 0.38 to torpedo, then a 5cm margin
+        # goal_pose = get_pose_in_front(userdata.torpedo.objectPose.pose, -0.43, 0) # 0.38 to torpedo, then a 5cm margin
         goal_pose = userdata.torpedo.objectPose.pose
-        goal_pose.position.z += 0.145 # This is the offset between BODY and torpedo center in z
+        goal_pose.position.z += (
+            0.145  # This is the offset between BODY and torpedo center in z
+        )
         goal_pose.position.x -= 0.43
 
         dp_goal = DpSetpoint()
@@ -229,14 +231,11 @@ class TorpedoExecute(smach.State):
         self.dp_pub.publish(dp_goal)
 
         rate = rospy.Rate(5)
-        while (
-            not within_acceptance_margins(goal_pose, self.odom)
-        ):
+        while not within_acceptance_margins(goal_pose, self.odom):
             rate.sleep()
 
-        rospy.sleep(10) # Allow controller oscillations to settle
+        rospy.sleep(10)  # Allow controller oscillations to settle
         rospy.loginfo("ALIGNED!")
-
 
         rospy.loginfo("FIRE 1!")
         self.fire.publish(Int32())
@@ -253,7 +252,7 @@ class TorpedoExecute(smach.State):
         goal_pose = starting_pose
         goal_pose.position.y = 0
         goal.heading_point.x = 100
-        goal.heading_point.y =  0
+        goal.heading_point.y = 0
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "point_dependent_heading"
@@ -269,6 +268,5 @@ class TorpedoExecute(smach.State):
             ):
                 break
             rate.sleep()
-
 
         return "succeeded"

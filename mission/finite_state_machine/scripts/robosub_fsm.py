@@ -74,40 +74,50 @@ def main():
 
         with torpedo_sm:
             StateMachine.add(
-                "TORPEDO_SEARCH", TorpedoSearch(), transitions={"succeeded": "TORPEDO_CONVERGE"}
+                "TORPEDO_SEARCH",
+                TorpedoSearch(),
+                transitions={"succeeded": "TORPEDO_CONVERGE"},
             )
 
             StateMachine.add(
                 "TORPEDO_CONVERGE",
                 TorpedoConverge(),
-                transitions={"succeeded": "TORPEDO_EXECUTE", "aborted": "TORPEDO_SEARCH"},
+                transitions={
+                    "succeeded": "TORPEDO_EXECUTE",
+                    "aborted": "TORPEDO_SEARCH",
+                },
                 remapping={"torpedo_converge_output": "torpedo"},
             )
 
             StateMachine.add("TORPEDO_EXECUTE", TorpedoExecute())
 
-        StateMachine.add("TORPEDO_SM", torpedo_sm, transitions={"succeeded": "OCTAGON_SM"})
-
+        StateMachine.add(
+            "TORPEDO_SM", torpedo_sm, transitions={"succeeded": "OCTAGON_SM"}
+        )
 
         ##RESURFACE IN OCTAGON
         octagon_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with octagon_sm:
             StateMachine.add(
-                "OCTAGON_SEARCH", OctagonSearch(), transitions={"succeeded": "OCTAGON_CONVERGE"}
+                "OCTAGON_SEARCH",
+                OctagonSearch(),
+                transitions={"succeeded": "OCTAGON_CONVERGE"},
             )
 
             StateMachine.add(
                 "OCTAGON_CONVERGE",
                 OctagonConverge(),
-                transitions={"succeeded": "OCTAGON_EXECUTE", "aborted": "OCTAGON_SEARCH"},
+                transitions={
+                    "succeeded": "OCTAGON_EXECUTE",
+                    "aborted": "OCTAGON_SEARCH",
+                },
                 remapping={"octagon_converge_output": "octagon"},
             )
 
             StateMachine.add("OCTAGON_EXECUTE", OctagonExecute())
 
         StateMachine.add("OCTAGON_SM", octagon_sm)
-
 
         ### Stored for later vvvvvvvvvvvvvvv
         ##PATH

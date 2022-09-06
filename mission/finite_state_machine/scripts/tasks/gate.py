@@ -20,6 +20,7 @@ from vortex_msgs.srv import SetVelocity
 
 from search.forward_sweep import ForwardSweepSearch
 
+
 class GateSearch(smach.State):
     def __init__(self):
         self.task = "gate"
@@ -79,7 +80,7 @@ class GateSearch(smach.State):
         self.landmarks_pub.publish(self.object)
 
         if rospy.get_param("/fsm/do_coinflip"):
-            pass   
+            pass
 
         # This currently blocks until an object is detected. However, we should have a timeout
         # which will set object.isFucked to True and reset this.
@@ -144,7 +145,8 @@ class GateConverge(smach.State):
             self.object = self.landmarks_client("gate").object
             # goal.waypoints = [self.object.objectPose.pose.position]
 
-            print("GATE POSITION DETECTED:" 
+            print(
+                "GATE POSITION DETECTED:"
                 f"{goal.waypoints[0].x}, "
                 f"{goal.waypoints[0].y}, "
                 f"{goal.waypoints[0].z}"
@@ -177,7 +179,8 @@ class GateConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("gate").object
         userdata.gate_converge_output = self.object
-        print("GATE POSITION ESTIMATE CONVERGED AT:" 
+        print(
+            "GATE POSITION ESTIMATE CONVERGED AT:"
             f"{self.object.objectPose.pose.position.x}, "
             f"{self.object.objectPose.pose.position.y}, "
             f"{self.object.objectPose.pose.position.z}"
@@ -217,7 +220,7 @@ class GateExecute(smach.State):
     def execute(self, userdata):
         self.state_pub.publish("gate/execute")
         goal = VtfPathFollowingGoal()
-        #goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, 0.5, 0)
+        # goal_pose = get_pose_in_front(userdata.gate.objectPose.pose, 0.5, 0)
         goal_pose = userdata.gate.objectPose.pose
         # AUV needs to be aligned with where we wish to go through
         goal_pose.position.x += 0.5
@@ -258,18 +261,15 @@ class GateExecute(smach.State):
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal, True)
 
-            #vel_goal.linear.z = z_compensation  # should be ommited if drone is balanced and level underwater
-            #vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
-            
-            while (
-                not within_acceptance_margins(goal, self.odom, True)
-            ):
+            # vel_goal.linear.z = z_compensation  # should be ommited if drone is balanced and level underwater
+            # vel_goal.linear.x = 0.01  # should be ommited if drone is balanced and level underwater. Same other places.
+
+            while not within_acceptance_margins(goal, self.odom, True):
                 rate.sleep()
             self.velocity_ctrl_client(vel_goal, False)
 
-
         dp_goal = DpSetpoint()
-        dp_goal.control_mode = 0 # OPEN_LOOP
+        dp_goal.control_mode = 0  # OPEN_LOOP
         self.dp_pub.publish(dp_goal)
 
         rospy.loginfo("REALIGNING")
@@ -278,7 +278,7 @@ class GateExecute(smach.State):
         goal_pose.position.x += 0.3
         goal_pose.position.y = 0
         goal.heading_point.x = 100
-        goal.heading_point.y =  0
+        goal.heading_point.y = 0
 
         goal.waypoints = [goal_pose.position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
@@ -295,6 +295,5 @@ class GateExecute(smach.State):
             ):
                 break
             rate.sleep()
-
 
         return "succeeded"

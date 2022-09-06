@@ -6,6 +6,7 @@ import actionlib
 from vortex_msgs.msg import VtfPathFollowingAction, VtfPathFollowingGoal
 from nav_msgs.msg import Odometry
 
+
 class ReachDepth(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])

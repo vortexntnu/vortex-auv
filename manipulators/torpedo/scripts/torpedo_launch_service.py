@@ -7,6 +7,7 @@ from std_msgs.msg import Int32
 
 PIN = 15
 
+
 class TorpedoLaunch:
     def __init__(self):
         rospy.init_node("torpedo_node")
@@ -27,7 +28,6 @@ class TorpedoLaunch:
             print("going to high")
             GPIO.output(PIN, GPIO.HIGH)
             self.mode = GPIO.HIGH
-
 
 
 if __name__ == "__main__":
