@@ -2,6 +2,7 @@
 # coding: UTF-8
 
 from enum import IntEnum
+from turtle import position
 
 import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState
@@ -53,24 +54,6 @@ def dp_move(x, y, z=-0.5, yaw_rad=0):
     )
 
 
-def los_move(x, y, z=-0.5):
-
-    goal = LosPathFollowingGoal()
-    goal.next_waypoint = Point(x, y, z)
-    goal.forward_speed = rospy.get_param("~transit_speed", 0.3)
-    goal.sphereOfAcceptance = rospy.get_param("~sphere_of_acceptance", 0.5)
-    goal.desired_depth = z
-    return SimpleActionState(
-        guidance_interface_los_action_server, LosPathFollowingAction, goal=goal
-    )
-
-
-def circle_move(target_point, direction):
-    goal = MoveGoal()
-
-    goal.guidance_type = ""
-
-
 def rotate_certain_angle(pose, angle):
     """Angle in degrees"""
 
@@ -89,14 +72,14 @@ def rotate_certain_angle(pose, angle):
     return new_pose
 
 
-def get_pose_in_front(pose, distance):
+def get_pose_in_front(pose, distance, index=0):
     # returns pose that is distance meters in front of object pose
 
     orientation_object = R.from_quat(
         [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
     )
-    rotation_matrix = orientation_object.as_dcm()
-    x_vec = rotation_matrix[:, 0]
+    rotation_matrix = orientation_object.as_matrix()
+    x_vec = rotation_matrix[:, index]
     current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
     new_pose_vec = current_pos_vec + distance * x_vec
 
@@ -109,6 +92,22 @@ def get_pose_in_front(pose, distance):
     return new_pose
 
 
+def get_position_on_line(from_pos, to_pos, distance):
+    # returns pose that is distance meters in front of object, along line
+    p = Point()
+    p.x = to_pos.x - from_pos.x
+    p.y = to_pos.y - from_pos.y
+    p.z = to_pos.z - from_pos.z
+
+    length = math.sqrt(p.x**2 + p.y**2 + p.z**2)
+
+    p.x = distance / length * p.x + from_pos.x
+    p.y = distance / length * p.y + from_pos.y
+    p.z = distance / length * p.z + from_pos.z
+
+    return p
+
+
 def get_pose_to_side(pose, unsigned_distance, chosen_side):
     # returns pose that is distance meters to one side of the gate
     # chosen_side is either Bootlegger or G-man
@@ -118,7 +117,7 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
     orientation_object = R.from_quat(
         [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
     )
-    rotation_matrix = orientation_object.as_dcm()
+    rotation_matrix = orientation_object.as_matrix()
     y_vec = rotation_matrix[:, 1]
     current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
     if chosen_side == True:

@@ -4,11 +4,14 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
-from gate_choose_side import GateSearch, GateConverge, GateExecute
-from pole import PoleSearch, PoleConverge, PoleExecute
-from path import PathSearch, PathConverge, PathExecute
-from buoy import BuoySearch, BuoyConverge, BuoyExecute
-from reach_depth import ReachDepth
+from tasks.reach_depth import ReachDepth
+
+from tasks.gate import GateSearch, GateConverge, GateExecute
+from tasks.pole import PoleSearch, PoleConverge, PoleExecute
+from tasks.path import PathSearch, PathConverge, PathExecute
+from tasks.buoy import BuoySearch, BuoyConverge, BuoyExecute
+from tasks.torpedo import TorpedoSearch, TorpedoConverge, TorpedoExecute
+from tasks.octagon import OctagonSearch, OctagonConverge, OctagonExecute
 
 
 def main():
@@ -21,7 +24,7 @@ def main():
     robosub_state_machine = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
     with robosub_state_machine:
-        ##COIN FLIP
+        ##PREPARATION
         StateMachine.add(
             "ROBOSUB_PREPARE", ReachDepth(), transitions={"succeeded": "GATE_SM"}
         )
@@ -45,29 +48,7 @@ def main():
 
             StateMachine.add("GATE_EXECUTE", GateExecute())
 
-        StateMachine.add("GATE_SM", gate_sm, transitions={"succeeded": "PATH_SM"})
-
-        ##PATH
-        path_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
-        with path_sm:
-            StateMachine.add(
-                "PATH_SEARCH", PathSearch(), transitions={"succeeded": "PATH_CONVERGE"}
-            )
-
-            StateMachine.add(
-                "PATH_CONVERGE",
-                PathConverge(),
-                transitions={"succeeded": "PATH_EXECUTE", "aborted": "PATH_SEARCH"},
-            )
-
-            StateMachine.add(
-                "PATH_EXECUTE",
-                PathExecute(),
-                remapping={"dir_next_task": "dir_next_task"},
-                transitions={"aborted": "PATH_SEARCH"},
-            )
-
-        StateMachine.add("PATH_SM", path_sm, transitions={"succeeded": "BUOY_SM"})
+        StateMachine.add("GATE_SM", gate_sm, transitions={"succeeded": "BUOY_SM"})
 
         ##BUOY
         buoy_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
@@ -86,13 +67,80 @@ def main():
 
             StateMachine.add("BUOY_EXECUTE", BuoyExecute())
 
-        StateMachine.add("BUOY_SM", buoy_sm)
+        StateMachine.add("BUOY_SM", buoy_sm, transitions={"succeeded": "TORPEDO_SM"})
 
         ##TORPEDO
+        torpedo_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
-        ##Octagon/Bins - undecided whether these will be performed for 2022
+        with torpedo_sm:
+            StateMachine.add(
+                "TORPEDO_SEARCH",
+                TorpedoSearch(),
+                transitions={"succeeded": "TORPEDO_CONVERGE"},
+            )
 
-        ##Resurface
+            StateMachine.add(
+                "TORPEDO_CONVERGE",
+                TorpedoConverge(),
+                transitions={
+                    "succeeded": "TORPEDO_EXECUTE",
+                    "aborted": "TORPEDO_SEARCH",
+                },
+                remapping={"torpedo_converge_output": "torpedo"},
+            )
+
+            StateMachine.add("TORPEDO_EXECUTE", TorpedoExecute())
+
+        StateMachine.add(
+            "TORPEDO_SM", torpedo_sm, transitions={"succeeded": "OCTAGON_SM"}
+        )
+
+        ##RESURFACE IN OCTAGON
+        octagon_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
+
+        with octagon_sm:
+            StateMachine.add(
+                "OCTAGON_SEARCH",
+                OctagonSearch(),
+                transitions={"succeeded": "OCTAGON_CONVERGE"},
+            )
+
+            StateMachine.add(
+                "OCTAGON_CONVERGE",
+                OctagonConverge(),
+                transitions={
+                    "succeeded": "OCTAGON_EXECUTE",
+                    "aborted": "OCTAGON_SEARCH",
+                },
+                remapping={"octagon_converge_output": "octagon"},
+            )
+
+            StateMachine.add("OCTAGON_EXECUTE", OctagonExecute())
+
+        StateMachine.add("OCTAGON_SM", octagon_sm)
+
+        ### Stored for later vvvvvvvvvvvvvvv
+        ##PATH
+        # path_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
+        # with path_sm:
+        #     StateMachine.add(
+        #         "PATH_SEARCH", PathSearch(), transitions={"succeeded": "PATH_CONVERGE"}
+        #     )
+
+        #     StateMachine.add(
+        #         "PATH_CONVERGE",
+        #         PathConverge(),
+        #         transitions={"succeeded": "PATH_EXECUTE", "aborted": "PATH_SEARCH"},
+        #     )
+
+        #     StateMachine.add(
+        #         "PATH_EXECUTE",
+        #         PathExecute(),
+        #         remapping={"dir_next_task": "dir_next_task"},
+        #         transitions={"aborted": "PATH_SEARCH"},
+        #     )
+
+        # StateMachine.add("PATH_SM", path_sm, transitions={"succeeded": "BUOY_SM"})
 
     intro_server = IntrospectionServer(
         str(rospy.get_name()), robosub_state_machine, "/SM_ROOT"

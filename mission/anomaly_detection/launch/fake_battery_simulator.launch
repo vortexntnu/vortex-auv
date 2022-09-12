@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-   <arg name="battery_runtime" default="120"/> 
-
-   <node pkg="anomaly_detection" name="battery_simulator" type="battery_simulator.py" clear_params="true">
-     <param name="rate" value="5" />
-     <param name="battery_runtime" value="$(arg battery_runtime)" />
-   </node>
-</launch>

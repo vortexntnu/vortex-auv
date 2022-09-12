@@ -10,9 +10,9 @@
         type="battery_monitor.py"
         name="battery_monitor"
         output="screen"/>
-        <node pkg="internal_status"
+        <!-- <node pkg="internal_status"
         type="temperature_monitor.py"
         name="temperature_monitor"
-        output="screen"/>
+        output="screen"/> -->
     </group>
 </launch>

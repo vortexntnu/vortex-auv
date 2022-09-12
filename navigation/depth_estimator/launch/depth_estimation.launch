@@ -1,4 +1,0 @@
-<launch>
-  <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
-  <node pkg="depth_estimator" type="depth_estimator_node" name="depth_estimator" output="screen" ns="localization" />
-</launch>
