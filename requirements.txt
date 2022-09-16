@@ -1,6 +1,0 @@
-rospkg
-pyquaternion
-vcstool
-pandas
-quadprog
-scipy
