@@ -19,6 +19,6 @@ jobs:
         uses: actions/checkout@v1
         
       - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag auv:ci-build
+        run: docker build . --file ./Docker/Dockerfile --tag auv:ci-build
       # Note that the Dockerfile contains a RUN that builds the catkin workspace. Running will however not work due to a cross-dep with another repo
       # For this reason, the image is also not uploaded to the registry
