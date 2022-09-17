@@ -51,7 +51,7 @@ RUN pip install \
     sklearn \
     enum34
 
-COPY . /vortex_ws/src/Vortex-AUV
+COPY .. /vortex_ws/src/vortex-auv
 RUN cd /vortex_ws/src && git clone https://github.com/vortexntnu/robot_localization
 RUN source /opt/ros/$distro/setup.bash && cd /vortex_ws && catkin build
 

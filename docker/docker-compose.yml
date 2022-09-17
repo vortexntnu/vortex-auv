@@ -18,7 +18,7 @@ services:
     user: vortex
     privileged: true
     volumes:
-      - "../..:/home/vortex/auv_ws/src"
+      - "..:/home/vortex/auv_ws/src"
       - "/dev:/dev"
     environment:
       DISPLAY: :0
