@@ -1,6 +1,0 @@
-# An action for sending control modes from the
-# joystick interface to the guidance interface
-
-uint32 controlModeIndex
----
----

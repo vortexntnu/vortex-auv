@@ -1,8 +1,0 @@
-float64[] P_gains
-float64[] I_gains
-float64[] D_gains
-float64[] F_gains
-float64 integral_windup_limit
-float64 setpoint_range
-float64 max_output_ramp_rate
----

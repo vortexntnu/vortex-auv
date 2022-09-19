@@ -1,4 +1,0 @@
-geometry_msgs/Twist desired_velocity
-uint32 control_mode
----
----
