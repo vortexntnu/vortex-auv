@@ -51,10 +51,14 @@ RUN pip install \
     sklearn \
     enum34
 
-COPY . /vortex_ws/src/Vortex-AUV
+# Here we assume that the root of vortex-auv is the context
+COPY . /vortex_ws/src/vortex-auv 
+
+# When the Docker image is eventually built by a GitHub action, this can be a COPY instead
 RUN cd /vortex_ws/src && git clone https://github.com/vortexntnu/robot_localization
+RUN cd /vortex_ws/src && git clone https://github.com/vortexntnu/vortex-msgs
 RUN source /opt/ros/$distro/setup.bash && cd /vortex_ws && catkin build
 
-COPY ./entrypoint.sh /
+COPY ./docker/entrypoint.sh /
 
 ENTRYPOINT ["/entrypoint.sh"]

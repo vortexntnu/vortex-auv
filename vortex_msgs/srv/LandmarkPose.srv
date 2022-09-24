@@ -1,4 +1,0 @@
-string landmark
----
-bool found
-geometry_msgs/Pose pose

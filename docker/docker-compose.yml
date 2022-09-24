@@ -3,7 +3,9 @@ services:
 
   auv:
     container_name: auv
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     image: auv:latest
     stdin_open: true
     tty: true
@@ -12,13 +14,13 @@ services:
   auv-dev:
     container_name: auv-dev
     build:
-      context: .
-      dockerfile: ./Dockerfile.dev
+      context: ..
+      dockerfile: docker/Dockerfile.dev
     image: auv:dev
     user: vortex
     privileged: true
     volumes:
-      - "../..:/home/vortex/auv_ws/src"
+      - "..:/home/vortex/auv_ws/src"
       - "/dev:/dev"
     environment:
       DISPLAY: :0
