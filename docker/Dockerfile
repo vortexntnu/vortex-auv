@@ -11,7 +11,6 @@ RUN apt update && \
     net-tools \     
     tcpdump \ 
     nano \
-    git \ 
     ros-$distro-roslint \
     ros-$distro-move-base-msgs \
     ros-$distro-tf \
@@ -51,14 +50,13 @@ RUN pip install \
     sklearn \
     enum34
 
-# Here we assume that the root of vortex-auv is the context
-COPY . /vortex_ws/src/vortex-auv 
+# Here we assume that the root contains vortex-auv, vortex-msgs and robot_localization
+COPY ./vortex-auv /vortex_ws/src/vortex-auv
+COPY ./vortex-msgs /vortex_ws/src/vortex-msgs 
+COPY ./robot_localization /vortex_ws/src/robot_localization
 
-# When the Docker image is eventually built by a GitHub action, this can be a COPY instead
-RUN cd /vortex_ws/src && git clone https://github.com/vortexntnu/robot_localization
-RUN cd /vortex_ws/src && git clone https://github.com/vortexntnu/vortex-msgs
 RUN source /opt/ros/$distro/setup.bash && cd /vortex_ws && catkin build
 
-COPY ./docker/entrypoint.sh /
+COPY ./vortex-auv/docker/entrypoint.sh /
 
 ENTRYPOINT ["/entrypoint.sh"]
