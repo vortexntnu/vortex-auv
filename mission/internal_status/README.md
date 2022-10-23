@@ -60,5 +60,8 @@ Xavier pin layout (pin 1 is top right when looking at the Xavier):
 ![Xavier pin layout](https://aws1.discourse-cdn.com/nvidia/original/2X/b/bf92a41569803336a14c2f18cab74ba2496d0cfa.png)
 
 ############################################################################################################################
-Current script 
-https://www.diyrobocars.com/2021/12/29/show-your-raspberrypi-ip-address-on-startup-with-an-oled/ crontab -e, choose editor, then write @reboot python3 <file path to script> to run python script on startup
+Adafruit library used to handle all OLED setup
+IP Address of Raspberry pi is correctly displayed, and updating
+To be tested:
+IP address of Xavier handled through ROS publisher in Xavier, subscriber in Raspberry pi, which overwrites IP file in Raspberry pi, display script accesses the file and prints.
+Voltage and current read function implemented, needs to be tested
