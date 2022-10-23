@@ -19,6 +19,7 @@ services:
     volumes:
       - "..:/home/vortex/auv_ws/src"
       - "/dev:/dev"
+      - "../../vortex-msgs:/home/vortex/auv_ws/src/vortex-msgs"
     environment:
       DISPLAY: :0
     stdin_open: true
