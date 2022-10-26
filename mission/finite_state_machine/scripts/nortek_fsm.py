@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
-from mission.finite_state_machine.scripts.showcases.circle import Circle
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
+from nortek_circle import Circle
 
-from mission.finite_state_machine.scripts.tasks.reach_depth import ReachDepth
-#from mission.finite_state_machine.scripts.tasks.pole import PoleExecute
-from . import Circle
+from nortek_reach_depth import ReachDepth
+
+from search.forward_sweep import ForwardSweepSearch
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     #) 
 
     nortek_fsm = StateMachine(
-        outcomes=["preempted", "succeded", "aborted"])
+        outcomes=["preempted", "succeeded", "aborted"])
 
 
     with nortek_fsm:

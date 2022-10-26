@@ -2,7 +2,6 @@
 # coding: UTF-8
 
 from enum import IntEnum
-from turtle import position
 
 import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState

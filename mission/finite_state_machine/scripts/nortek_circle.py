@@ -2,10 +2,9 @@
 
 import rospy
 import smach
-from smach import StateMachine
 
 import actionlib
-from actionlib_msgs.msg import GoalStatus
+#from actionlib_msgs.msg import GoalStatus
 from nav_msgs.msg import Odometry
 from std_msgs.msg import String
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
@@ -38,27 +37,18 @@ class Circle(smach.State):
 
         goal = VtfPathFollowingGoal()
         start = self.odom.pose.pose.position
-        print(userdata)
-        #centre = Point(
-        #    userdata.pole.objectPose.pose.position.x,
-        #    userdata.pole.objectPose.pose.position.y,
-        #    userdata.pole.objectPose.pose.position.z,
-        #)
         centre = Point(
-            self.odom.pose.pose.position.x + 3,
+            self.odom.pose.pose.position.x + 2,
             self.odom.pose.pose.position.y,
             self.odom.pose.pose.position.z,
         )
         goal.waypoints = create_circle_coordinates(start, centre, 330)
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
-        goal.heading_point.x = centre.x # ??
-        goal.heading_point.y = centre.y # ??
-        goal.heading_point.z = centre.z # ??
-        #goal.heading_point.x = userdata.pole.objectPose.pose.position.x
-        #goal.heading_point.y = userdata.pole.objectPose.pose.position.y
-        #goal.heading_point.z = userdata.pole.objectPose.pose.position.z
+        goal.heading_point.x = centre.x
+        goal.heading_point.y = centre.y
+        goal.heading_point.z = centre.z
 
-        goal.heading = "point_dependent_heading"
+        goal.heading = "path_dependent_heading" # path or point
 
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)
