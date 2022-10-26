@@ -10,18 +10,14 @@ services:
 
   auv-dev:
     container_name: auv-dev
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.dev
-    image: auv:dev
-    user: vortex
+    image: ghcr.io/vortexntnu/vortex-auv:development
     privileged: true
     volumes:
-      - "..:/home/vortex/auv_ws/src"
+      - "..:/vortex_ws/src/vortex-auv"
       - "/dev:/dev"
-      - "../../vortex-msgs:/home/vortex/auv_ws/src/vortex-msgs"
     environment:
       DISPLAY: :0
     stdin_open: true
     tty: true
     network_mode: host
+    entrypoint: ["/bin/bash", "-l"]
