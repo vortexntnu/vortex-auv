@@ -15,9 +15,6 @@ class BatteryMonitor:
         rospy.init_node("battery_monitor")
 
         # Parameters
-        """
-        # uncomment this when the adcs works again, not needed because we use an arduino nano as ADC
-        # not used
         self.path_to_powersense = rospy.get_param(
             "/battery/system/path", default="/dev/i2c-1"
         )
@@ -33,25 +30,6 @@ class BatteryMonitor:
             )
         )
         rospy.loginfo("PSM I2C bus number: '%d'", self.i2c_bus_number)
-        """
-
-        # ro red voltage and current from Arduino Nano through I2C
-        # for code on the arduino: 
-        self.nano_addr = 12              # I2C adress of nano (setted in software!)
-        self.voltage_reg_nano = 0       # value to send to arduino to get voltage read back
-        self.current_reg_nano = 1       # to get current measurement back
-       
-        # init of I2C bus with arduino nano conected
-        self.bus = smbus.SMBus(1)       
-        time.sleep(1)
-
-
-        # Calibration values for converting from raw digital binary form to decimal form
-        # Calibration values were manualy calibrated to +- 0.1V acuracy!
-        self.calVoltageA = 11
-        self.calVoltageB = 0.0
-        self.calCurrent = 37.8788
-        self.calCurrentOffset = 0.33
 
         self.critical_level = rospy.get_param(
             "/battery/thresholds/critical", default=13.5
@@ -66,13 +44,10 @@ class BatteryMonitor:
 
         # Local variables
         self.system_voltage = 0.0
-        self.system_current  = 0.0
         self.system_recieved = False
 
         self.is_PSM_fuckd_voltage = False
 
-        """
-        # uncomment this for use of external ADCs
         # Get I2C bus for power sense module
         self.bus = smbus.SMBus(self.i2c_bus_number)
         time.sleep(1)
@@ -84,7 +59,6 @@ class BatteryMonitor:
         except IOError:
             print(traceback.format_exc())
             self.is_PSM_fuckd_voltage = True
-        """
 
         if not self.is_PSM_fuckd_voltage:
             self.system_battery_level_pub = rospy.Publisher(
@@ -107,10 +81,9 @@ class BatteryMonitor:
         # MCP3425 address, 0x68(104)
         # Read data back from 0x00(00), 2 bytes, MSB first
         # raw_adc MSB, raw_adc LSB
-        #if self.is_PSM_fuckd_voltage:
-        #    return
+        if self.is_PSM_fuckd_voltage:
+            return
 
-        """
         voltage_msg = self.bus.read_i2c_block_data(
             self.i2c_address_powersense_voltage, 0x00, 2
         )
@@ -123,19 +96,13 @@ class BatteryMonitor:
         # PSM specific conversion ratio
         self.system_voltage = raw_adc_voltage * 0.011
         self.system_battery_level_pub.publish(self.system_voltage)
-        """
-
-        self.read_voltage()
-        self.system_battery_level_pub.publish(self.system_voltage)
-
-        self.read_current()
 
         if self.system_voltage < self.critical_level:
             rospy.logerr(
                 f"Critical voltage: {self.system_voltage}V! Shutting down all active nodes!"
             )
             os.system("rosnode kill -a")
-        
+
         if not self.system_recieved:
             self.system_recieved = True
 
@@ -156,38 +123,6 @@ class BatteryMonitor:
 
         else:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
-
-    def read_voltage(self):
-        # Sometimes an I/O timeout or error happens, it will run again when the error disappears
-        try:
-            # arduino is configure to send voltage data on "register" 0, current on 1
-            # data is sent in 2 bytes, because to big for one I2C message
-            voltage_msg = self.bus.read_i2c_block_data(self.nano_addr, 0, 2)
-
-            # conversion to get real voltage
-            # measurement up to 1023, so to big for 7bit I2C messages. Sends MSB first, then LSB, then remap to 0-5V
-            x = (((voltage_msg[0]&0x7) << 7) + voltage_msg[1]) * 5/1023.0
-            self.system_voltage = x * self.calVoltageA + self.calVoltageB
-            """
-            voltage_msg = self.bus.read_i2c_block_data(self.nano_addr, 0, 2)
-
-            # conversion to get real voltage
-            # measurement up to 1023, so to big for 7bit I2C messages. Sends MSB first, then LSB
-            self.system_voltage = float((((voltage_msg[0]&0x7) << 7) + voltage_msg[1])) * self.calVoltageA + self.calVoltageB
-            """
-        except IOError:
-            rospy.logwarn("Bus IOerror")
-
-    def read_current(self):
-        try:
-            current_msg = self.bus.read_i2c_block_data(self.nano_addr, 1, 2)
-
-            # conversion to get real voltage
-            x = float((((current_msg[0]&0x7) << 7) + current_msg[1])) * 5 / 1023.0
-            self.system_current = (x - self.calCurrentOffset) * self.calCurrent
-            #rospy.loginfo(f"Current : {self.system_current}A")
-        except IOError:
-            rospy.logwarn("BUS error")
 
     def shutdown(self):
         if not self.is_PSM_fuckd_voltage:
