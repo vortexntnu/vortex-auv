@@ -14,7 +14,7 @@ from fsm_helper import create_circle_coordinates
 
 
 class Circle(smach.State):
-    def __init__(self):
+    def __init__(self, anti_circle=False, is_path_dependent=True):
         smach.State.__init__(
             self, outcomes=["preempted", "succeeded", "aborted"]
         )
@@ -28,6 +28,9 @@ class Circle(smach.State):
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
+        
+        self.anti_circle=anti_circle
+        self.is_path_dependent=is_path_dependent
 
     def odom_cb(self, msg):
         self.odom = msg
@@ -38,17 +41,20 @@ class Circle(smach.State):
         goal = VtfPathFollowingGoal()
         start = self.odom.pose.pose.position
         centre = Point(
-            self.odom.pose.pose.position.x + 2,
+            self.odom.pose.pose.position.x + 1,
             self.odom.pose.pose.position.y,
             self.odom.pose.pose.position.z,
         )
-        goal.waypoints = create_circle_coordinates(start, centre, 330)
+        goal.waypoints = create_circle_coordinates(start, centre, 330, self.anti_circle)
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading_point.x = centre.x
         goal.heading_point.y = centre.y
         goal.heading_point.z = centre.z
 
-        goal.heading = "path_dependent_heading" # path or point
+        if self.is_path_dependent:
+            goal.heading = "path_dependent_heading" # path or point
+        else:
+            goal.heading = "point_dependent_heading" # path or point
 
         self.vtf_client.wait_for_server()
         self.vtf_client.send_goal(goal)

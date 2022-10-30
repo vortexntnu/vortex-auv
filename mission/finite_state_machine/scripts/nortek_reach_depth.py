@@ -25,7 +25,7 @@ class ReachDepth(smach.State):
         position = Point()
         position.x = self.odom.pose.pose.position.x + 0.1
         position.y = self.odom.pose.pose.position.y
-        position.z = -1.0
+        position.z = -0.5
         goal.waypoints = [position]
         goal.forward_speed = rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
