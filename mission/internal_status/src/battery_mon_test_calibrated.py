@@ -18,9 +18,9 @@ if __name__ == "__main__":
     bus = smbus.SMBus(1)
     time.sleep(1)
 
-    nano_addr = 12              # I2C adress of nano (setted in software!)
-    voltage_reg_nano = 0       # value to send to arduino to get voltage read back
-    current_reg_nano = 1       # to get current measurement back
+    nano_addr = 12  # I2C adress of nano (setted in software!)
+    voltage_reg_nano = 0  # value to send to arduino to get voltage read back
+    current_reg_nano = 1  # to get current measurement back
 
     while True:
         try:
@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
             # conversion to get real voltage
             # measurement up to 1023, so to big for 7bit I2C messages. Sends MSB first, then LSB
-            x = float((((voltage_msg[0]&0x7) << 7) + voltage_msg[1]))
+            x = float((((voltage_msg[0] & 0x7) << 7) + voltage_msg[1]))
             system_voltage = x * calVoltageA + calVoltageB
 
             # debug
@@ -41,11 +41,13 @@ if __name__ == "__main__":
             current_msg = bus.read_i2c_block_data(nano_addr, 1, 2)
 
             # conversion to get real voltage
-            system_current = float((((current_msg[0]&0x7) << 7) + current_msg[1])) * calCurrent
+            system_current = (
+                float((((current_msg[0] & 0x7) << 7) + current_msg[1])) * calCurrent
+            )
 
             # debug
             print("System current raw : " + str(current_msg))
             print("System current reconverted: " + str(system_current))
         except:
             print("BUS error")
-        time.sleep(1)    #sleep for 500 ms
+        time.sleep(1)  # sleep for 500 ms
