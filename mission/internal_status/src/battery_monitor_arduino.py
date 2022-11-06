@@ -65,14 +65,17 @@ class BatteryMonitor:
 
         # could be used to shut down system when reaching a certain value
         self.I2C_error_counter_voltage = 0
+
         self.I2C_error_counter_current = 0
 
         self.system_battery_level_pub = rospy.Publisher(
             "/auv/battery_level/system", Float32, queue_size=1
         )
 
-        self.esc1_current_level_pub = rospy.Publisher(  # Functions for publishing current data to ROS
-            "/auv/current_level/ESC1", Float32, queue_size=1
+        self.esc1_current_level_pub = (
+            rospy.Publisher(  # Functions for publishing current data to ROS
+                "/auv/current_level/ESC1", Float32, queue_size=1
+            )
         )
         self.esc2_current_level_pub = rospy.Publisher(
             "/auv/current_level/ESC2", Float32, queue_size=1
