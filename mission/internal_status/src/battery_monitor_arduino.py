@@ -36,7 +36,7 @@ class BatteryMonitor:
 
         # Calibration values for converting from the voltage values back to current
         # 11.75 mv = 1 A according to datasheet, not tested
-        self.calEscCurrent = 85.106383
+        self.calEscCurrent = 11.75
 
         # getting params in the ROS-config file (beluga.yaml)
         self.critical_level = rospy.get_param(
@@ -77,6 +77,7 @@ class BatteryMonitor:
                 "/auv/current_level/ESC1", Float32, queue_size=1
             )
         )
+
         self.esc2_current_level_pub = rospy.Publisher(
             "/auv/current_level/ESC2", Float32, queue_size=1
         )
@@ -196,7 +197,7 @@ class BatteryMonitor:
                 * 5
                 / 1023.0
             )
-            self.esc1current = x * self.calEscCurrent
+            self.esc1current = x / self.calEscCurrent
 
         except IOError:
             pass
@@ -212,7 +213,7 @@ class BatteryMonitor:
                 * 5
                 / 1023.0
             )
-            self.esc2current = x * self.calEscCurrent
+            self.esc2current = x / self.calEscCurrent
 
         except IOError:
             pass
