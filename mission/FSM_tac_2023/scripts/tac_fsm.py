@@ -5,6 +5,8 @@ from smach import StateMachine
 from smach_ros import IntrospectionServer
 
 from tasks.manual_mode import ManualMode
+from tasks.valve_horisontal import ValveSearch, ValveConverge
+
 def main():
     rospy.init_node("tac_fsm.py")
 
@@ -20,26 +22,33 @@ def main():
         #StateMAchine.add(...)
 
         ##Manual_Mode
-        manual_mode = StateMachine(outcomes=["GripperHorisontal", "GripperVertical"])
+        manual_mode = StateMachine(outcomes=["valve_h", "valve_v"])
         with manual_mode:
             StateMachine.add(
-                "ManualMode",
+                "MANUAL_MODE",
                 ManualMode(),
-                transitions = {"gripper_horisontal": "GripperHorisontal"},
-                transitions = {"gripper_vertical": "GripperVertical"}
+                transitions = {"valve_h": "VALVE_H_SM"},
+                transitions = {"valve_v": "VALVE_V_SM"}
                 )
             
 
-        # ##Gripper_Horisontal
-        # gripper_horisontal = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
-        # with manual_mode:
-        #     StateMachine.add(
-        #         "GripperHorisontal",
-        #         GripperHorisontal(),
-        #         transitions = {"preempted"},
-        #         transitions = {"succeeded"},
-        #         transitions = {"aborted"},
-        #         )
+        ##Valve_Manipulation_Horisontal
+        valve_h_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
+        with valve_h_sm:
+            StateMachine.add(
+                "VALVE_SEARCH",
+                ValveSearch(),
+                transitions = {"succeeded": "VALVE_CONVERGE", "aborted": "MANUAL_MODE"}
+                )
+            
+            StateMachine.add(
+                "VALVE_CONVERGE",
+                ValveConverge(),
+                transitions = {"succeeded", "aborted": "VALVE_SEARCH"}
+            )
+
+
+        StateMachine.add("VALVE_H_SM", valve_h_sm, transitions={"succeded": "MANUAL_MODE"})
 
         # ##Gripper_Vertical
         # gripper_vertical = StateMachine(outcomes=["gripper_horisontal", "gripper_vertical"])
