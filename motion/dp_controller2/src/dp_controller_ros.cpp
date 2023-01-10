@@ -44,7 +44,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 void Controller::spin() {
   ros::Rate rate(1);
   Eigen::Vector3d position_setpoint(0,0,0);
-  Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(0,0,1);
+  Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(1,1,0);
 
   Eigen::Vector3d position_test(0,0,0);
   Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);

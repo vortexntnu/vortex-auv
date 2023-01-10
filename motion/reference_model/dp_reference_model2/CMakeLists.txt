@@ -1,24 +1,20 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(dp_controller2)
+project(dp_reference_model2)
+
+
+# add_compile_options(-std=c++11)
 
 
 find_package(catkin REQUIRED COMPONENTS
-  actionlib
   eigen_conversions
   geometry_msgs
-  nav_msgs
   roscpp
-  std_msgs
+  tf
+  tf_conversions
   vortex_msgs
+
 )
 
-#find_package(Eigen3 REQUIRED)
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -37,53 +33,55 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   geometry_msgs#   nav_msgs#   std_msgs#   vortex_msgs
+#   geometry_msgs#   vortex_msgs
 # )
 
 
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES dp_controller2
-  CATKIN_DEPENDS 
-    actionlib
-    eigen_conversions
-    geometry_msgs
-    nav_msgs
-    roscpp 
-    std_msgs 
-    vortex_msgs
+  LIBRARIES dp_reference_model2
+  CATKIN_DEPENDS
+  eigen_conversions 
+  geometry_msgs 
+  roscpp 
+  tf 
+  tf_conversions 
+  vortex_msgs
+#  DEPENDS system_lib
 )
 
+
 include_directories(
-  include
+ include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN_INCLUDE_DIRS}
 )
 
 
-add_executable(${PROJECT_NAME}_node
- src/dp_controller_node.cpp
- src/dp_controller_ros.cpp
- src/quaternion_dp_controller.cpp
- )
+
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
-add_dependencies(${PROJECT_NAME}_node
- ${${PROJECT_NAME}_EXPORTED_TARGETS} 
- ${catkin_EXPORTED_TARGETS})
+ add_executable(${PROJECT_NAME}_node
+  src/dp_reference_model_node.cpp
+  src/reference_model.cpp
+)
 
 
-target_link_libraries(${PROJECT_NAME}_node
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
+ target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
 )
+
 
 #############
 ## Testing ##
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_dp_controller2.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_dp_reference_model2.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
