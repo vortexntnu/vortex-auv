@@ -5,7 +5,7 @@ from smach import StateMachine
 from smach_ros import IntrospectionServer
 
 from tasks.manual_mode import ManualMode
-from tasks.valve_horisontal import ValveSearch, ValveConverge
+from tasks.valve_horisontal import ValveSearch, ValveConverge, ValveExecute
 
 def main():
     rospy.init_node("tac_fsm.py")
@@ -43,7 +43,13 @@ def main():
             StateMachine.add(
                 "VALVE_CONVERGE",
                 ValveConverge(),
-                transitions = {"succeeded", "aborted": "VALVE_SEARCH"}
+                transitions = {"succeeded": "VALVE_EXECUTE", "aborted": "VALVE_SEARCH"}
+            )
+
+            StateMachine.add(
+                "VALVE_EXECUTE",
+                ValveExecute(),
+                transitions = {"succeeded": "MANUAL_MODE" , "aborted": "VALVE_CONVERGE"}
             )
 
 
