@@ -1,7 +1,7 @@
 #ifndef DP_REFERENCE_MODEL2_H
 #define DP_REFERENCE_MODEL2_H
 
-#include "dp_controller2/eigen_typedefs.h"
+#include "eigen_typedefs.h"
 
 #include <Eigen/Dense>
 #include <math.h>
@@ -9,6 +9,7 @@
 #include "eigen_conversions/eigen_msg.h"
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseArray.h"
 #include "ros/ros.h"
 // #include "tf/tf.h"
 // #include "tf_conversions/tf_eigen.h"
@@ -33,8 +34,8 @@ class ReferenceModel{
         /**
         * @brief Desired pose in quaternions.
         */
-        Eigen::Vector7d Eta_d;
-        Eigen::Vector7d Eta_dot_d;
+        Eigen::Vector7d eta_d;
+        Eigen::Vector7d eta_dot_d;
 
         //Eigen::Vector14d 
         void calculate_smooth(Eigen::Vector7d x_ref);
@@ -42,7 +43,7 @@ class ReferenceModel{
         /**
         * @brief Desires the rate of the reference model.
         */
-        double time_step = 1;
+        double time_step = 0.1;
 
 
     public:
@@ -56,6 +57,15 @@ class ReferenceModel{
         ros::Subscriber
             setpoint_sub; /* Subscriber for listening to (the guidance node ....)      */
         ros::Publisher reference_pub; /* Publisher for the DP-controller */
+
+         /**
+        * @brief Calculate and publish the desired, smooth position
+        * and orientation.
+        *
+        *
+        * @param setpoint_msg target setpoint
+        */
+        void setpoint_cb(const geometry_msgs::Pose &setpoint_msg);
 
         void spin();
 
