@@ -27,9 +27,8 @@ def main():
             StateMachine.add(
                 "MANUAL_MODE",
                 ManualMode(),
-                transitions = {"valve_h": "VALVE_H_SM"},
-                transitions = {"valve_v": "VALVE_V_SM"}
-                )
+                transitions = {"valve_h": "VALVE_H_SM","valve_v": "VALVE_V_SM"}
+            )
             
 
         ##Valve_Manipulation_Horisontal
@@ -39,7 +38,7 @@ def main():
                 "VALVE_SEARCH",
                 ValveSearch(),
                 transitions = {"succeeded": "VALVE_CONVERGE", "aborted": "MANUAL_MODE"}
-                )
+            )
             
             StateMachine.add(
                 "VALVE_CONVERGE",
