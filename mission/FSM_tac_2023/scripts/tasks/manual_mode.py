@@ -1,8 +1,9 @@
 import rospy
 import smach
 
+
 from std_msgs.msg import String
-from joystick_interface import JoystickInterface
+#from joystick_interface import JoystickInterface
 
 #Subscriber that listens for information about next state.
 def callback(data):
@@ -24,7 +25,7 @@ class ManualMode(smach.State):
         rospy.loginfo("Executing state ManualMode")
 
         try:
-            joystick_interface = JoystickInterface()
+            #joystick_interface = JoystickInterface()
 
             while not rospy.core.is_shutdown():
                 if listener()=="valve_h":
