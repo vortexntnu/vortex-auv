@@ -48,9 +48,9 @@ public:
   Eigen::Vector6d getFeedback(const Eigen::Vector3d &x,
                               const Eigen::Quaterniond &q,
                               const Eigen::Vector6d &nu,
-                              const Eigen::Matrix7d eta_dot_d,
-                              const Eigen::Vector3d &x_d,
-                              const Eigen::Quaterniond &q_d);
+                              const Eigen::Vector7d &eta_dot_d,
+                              const Eigen::Vector3d &eta_d_pos,
+                              const Eigen::Quaterniond &eta_d_ori);
 
   int sgn(double x);
   Eigen::Vector6d errorVector(const Eigen::Vector3d &x,

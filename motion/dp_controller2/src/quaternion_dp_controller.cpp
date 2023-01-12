@@ -42,28 +42,26 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
             -vec(1), vec(0), 0;
   return skew_mat;
 }
-
-Eigen::Vector6d QuaternionPIDController::getFeedback(
-    const Eigen::Vector3d &x, const Eigen::Quaterniond &q,
-    const Eigen::Vector6d &nu, const Eigen::Matrix7d eta_dot_d,
-    const Eigen::Vector3d &x_d,
-    const Eigen::Quaterniond &q_d) {
+ Eigen::Vector6d QuaternionPIDController::getFeedback(const Eigen::Vector3d &x,
+                              const Eigen::Quaterniond &q,
+                              const Eigen::Vector6d &nu,
+                              const Eigen::Vector7d &eta_dot_d,
+                              const Eigen::Vector3d &eta_d_pos,
+                              const Eigen::Quaterniond &eta_d_ori){
 
   //Rotate from inertial/world to body
 
   Eigen::Matrix3d R = q.toRotationMatrix();
   Eigen::Matrix6d K_p = proportionalGainMatrix(R);
-
   Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4,3);
   T << -q.vec().transpose(), 
         q.w()*Eigen::Matrix3d::Identity() + skew(q.vec());
   T = 0.5*T;
-
   Eigen::MatrixXd J_inv = Eigen::MatrixXd::Zero(6,7);
   J_inv << R.transpose(), Eigen::MatrixXd::Zero(3,4),
            Eigen::Matrix3d::Zero(), 4*T.transpose();
-
-  Eigen::Vector6d nu_tilde = nu - J_inv*eta_dot_d;
+  Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
+  nu_tilde = nu - J_inv*eta_dot_d;
 
   //Eigen::Matrix6d K_i = integralGainMatrix(R);
 
@@ -71,7 +69,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   // Eigen::Vector3d x_d_smooth = referenceModel(x, x_d);
 
   // Error Vector
-  Eigen::Vector6d z = errorVector(x, x_d, q, q_d);
+  Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);
 
   // Integral
   // double maxPoseGain = 4.0;

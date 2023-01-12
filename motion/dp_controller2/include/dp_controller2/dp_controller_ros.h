@@ -54,6 +54,9 @@ private:
   Eigen::Vector7d eta_d;
   Eigen::Vector7d eta_dot_d;
 
+  Eigen::Vector3d eta_d_pos;
+  Eigen::Quaterniond eta_d_ori;
+
   ros::NodeHandle m_nh; /** Nodehandle          */
 
   ros::Subscriber m_odometry_sub;    /** Odometry subscriber    */

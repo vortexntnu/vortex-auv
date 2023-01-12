@@ -26,9 +26,12 @@ return euler;
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
     // Load rosparams
   std::string odometry_topic;
+  std::string thrust_topic;
 
   if (!nh.getParam("/controllers/dp/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
+  if (!nh.getParam("/thrust/thrust_topic", thrust_topic))
+    thrust_topic = "/thrust/desired_forces";
 
   // Subscribers
   m_odometry_sub = m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
@@ -37,40 +40,45 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 
   //Publishers
   m_referencepoint_pub = m_nh.advertise<geometry_msgs::Pose>("/dp_data/reference_point", 1, this);
-
+  m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   //m_controller = QuaternionPIDController();
+
+  eta_d_pos = Eigen::Vector3d::Zero();
+  eta_d_ori = Eigen::Quaterniond::Identity();
+  eta_d = Eigen::Vector7d::Zero();
+  eta_dot_d = Eigen::Vector7d::Zero();
+
 
 }
 
 
 void Controller::spin() {
   ros::Rate rate(1);
-  Eigen::Vector3d position_setpoint(0,0,0);
+  Eigen::Vector3d position_setpoint(1,0,0);
   Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(0,0,0);
 
   Eigen::Vector3d position_test(0,0,0);
   Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);
-  Eigen::Vector6d velocity_test = Eigen::Vector6d::Zero();
+  Eigen::Vector6d nu = Eigen::Vector6d::Zero();
 
 
   while (ros::ok()) {
-    Eigen::Matrix6d nu_d = 
-    Eigen::Matrix6d nu_tilde = nu - nu_d; //
-
-    Eigen::Vector6d tau = m_controller.getFeedback(
-    position_test, orientation_test, nu_tilde, position_setpoint,
-    orientation_setpoint);
-    std::cout << "Tau:" << std::endl << tau << std::endl;
+    Eigen::Vector6d tau_command = m_controller.getFeedback(
+    position_test, orientation_test, nu, eta_dot_d, eta_d_pos,
+    eta_d_ori);
+    std::cout << "Tau:" << std::endl << tau_command << std::endl;
     
     geometry_msgs::Point position_setpoint_msg;
     geometry_msgs::Quaternion orientation_setpoint_msg;
     tf::pointEigenToMsg(position_setpoint, position_setpoint_msg);
     tf::quaternionEigenToMsg(orientation_setpoint, orientation_setpoint_msg);
-
     geometry_msgs::Pose setpoint_msg;
     setpoint_msg.position = position_setpoint_msg;
     setpoint_msg.orientation = orientation_setpoint_msg;
+    geometry_msgs::Wrench tau_msg;
+    tf::wrenchEigenToMsg(tau_command, tau_msg);
 
+    m_wrench_pub.publish(tau_msg);
     m_referencepoint_pub.publish(setpoint_msg);
 
 
@@ -91,8 +99,6 @@ void Controller::odometryCallback(const nav_msgs::Odometry &msg){
 
 
 void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_msg) {
-  Eigen::Vector3d eta_d_pos;
-  Eigen::Quaterniond eta_d_ori;
 
   Eigen::Vector3d eta_dot_d_pos;
   Eigen::Quaterniond eta_dot_d_ori;
