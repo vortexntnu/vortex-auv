@@ -54,8 +54,7 @@ class ReferenceModel{
          */
         ReferenceModel(ros::NodeHandle nh);
 
-        ros::Subscriber
-            setpoint_sub; /* Subscriber for listening to (the guidance node ....)      */
+        ros::Subscriber setpoint_sub; /* Subscriber for listening to (the guidance node ....)      */
         ros::Publisher reference_pub; /* Publisher for the DP-controller */
 
          /**
@@ -65,7 +64,7 @@ class ReferenceModel{
         *
         * @param setpoint_msg target setpoint
         */
-        void setpoint_cb(const geometry_msgs::Pose &setpoint_msg);
+        void setpointCallback(const geometry_msgs::Pose &setpoint_msg);
 
         void spin();
 

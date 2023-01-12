@@ -33,10 +33,12 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   // Subscribers
   m_odometry_sub = m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
   ROS_INFO("DP controller2 initialized");
+  m_desiredpoint_sub = m_nh.subscribe("/reference_model/output", 1, &Controller::desiredPointCallback, this);
+
+  //Publishers
+  m_referencepoint_pub = m_nh.advertise<geometry_msgs::Pose>("/dp_data/reference_point", 1, this);
 
   //m_controller = QuaternionPIDController();
-
-
 
 }
 
@@ -44,7 +46,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 void Controller::spin() {
   ros::Rate rate(1);
   Eigen::Vector3d position_setpoint(0,0,0);
-  Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(1,1,0);
+  Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(0,0,0);
 
   Eigen::Vector3d position_test(0,0,0);
   Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);
@@ -52,11 +54,26 @@ void Controller::spin() {
 
 
   while (ros::ok()) {
+    Eigen::Matrix6d nu_d = 
+    Eigen::Matrix6d nu_tilde = nu - nu_d; //
+
     Eigen::Vector6d tau = m_controller.getFeedback(
-    position_test, orientation_test, velocity_test, position_setpoint,
+    position_test, orientation_test, nu_tilde, position_setpoint,
     orientation_setpoint);
     std::cout << "Tau:" << std::endl << tau << std::endl;
     
+    geometry_msgs::Point position_setpoint_msg;
+    geometry_msgs::Quaternion orientation_setpoint_msg;
+    tf::pointEigenToMsg(position_setpoint, position_setpoint_msg);
+    tf::quaternionEigenToMsg(orientation_setpoint, orientation_setpoint_msg);
+
+    geometry_msgs::Pose setpoint_msg;
+    setpoint_msg.position = position_setpoint_msg;
+    setpoint_msg.orientation = orientation_setpoint_msg;
+
+    m_referencepoint_pub.publish(setpoint_msg);
+
+
     std::cout << "TESSSST" << std::endl;
     ros::spinOnce();
     rate.sleep();
@@ -72,4 +89,22 @@ void Controller::odometryCallback(const nav_msgs::Odometry &msg){
 }
 
 
+
+void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_msg) {
+  Eigen::Vector3d eta_d_pos;
+  Eigen::Quaterniond eta_d_ori;
+
+  Eigen::Vector3d eta_dot_d_pos;
+  Eigen::Quaterniond eta_dot_d_ori;
+
+  tf::pointMsgToEigen(desired_msg.poses[0].position, eta_d_pos);
+  tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_d_ori);
+
+  tf::pointMsgToEigen(desired_msg.poses[0].position, eta_dot_d_pos);
+  tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_dot_d_ori);
+
+  eta_d << eta_d_pos, eta_d_ori.w(), eta_d_ori.vec();
+  eta_dot_d << eta_dot_d_pos, eta_dot_d_ori.w(), eta_dot_d_ori.vec();
+
+}
 

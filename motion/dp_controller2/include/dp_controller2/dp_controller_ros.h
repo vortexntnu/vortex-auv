@@ -23,6 +23,7 @@
 #include <actionlib/server/simple_action_server.h>
 //#include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseArray.h>
 //#include <move_base_msgs/MoveBaseAction.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
@@ -45,6 +46,31 @@
  *
  */
 class Controller {
+private:
+
+  /**
+  * @brief Desired pose in quaternions.
+  */
+  Eigen::Vector7d eta_d;
+  Eigen::Vector7d eta_dot_d;
+
+  ros::NodeHandle m_nh; /** Nodehandle          */
+
+  ros::Subscriber m_odometry_sub;    /** Odometry subscriber    */
+
+  ros::Publisher m_wrench_pub; /** Wrench publisher    */
+
+  ros::Subscriber m_desiredpoint_sub; /* Subscriber for listening to (the guidance node ....)      */
+  ros::Publisher m_referencepoint_pub; /* Publisher for the DP-controller */
+
+  // EIGEN CONVERSION INITIALIZE
+  Eigen::Vector3d position;       /** Current position      */
+  Eigen::Quaterniond orientation; /** Current orientation   */
+  Eigen::Vector6d velocity;       /** Current velocity      */
+
+
+  QuaternionPIDController m_controller;
+  
 public:
 
   /**
@@ -60,26 +86,17 @@ public:
    * @param msg   A nav_msg::Odometry message containing state data about the
    * AUV.
    */
+
+
   void odometryCallback(const nav_msgs::Odometry &msg);
+  void desiredPointCallback(const geometry_msgs::PoseArray &desired_msg);
   Eigen::Quaterniond EulerToQuaternion(double roll, double pitch, double yaw);
   Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
   void spin();
 
-private:
-  ros::NodeHandle m_nh; /** Nodehandle          */
-
-  ros::Subscriber m_odometry_sub;    /** Odometry subscriber    */
-
-  ros::Publisher m_wrench_pub; /** Wrench publisher    */
-
-  // EIGEN CONVERSION INITIALIZE
-  Eigen::Vector3d position;       /** Current position      */
-  Eigen::Quaterniond orientation; /** Current orientation   */
-  Eigen::Vector6d velocity;       /** Current velocity      */
 
 
-  QuaternionPIDController m_controller;
-  
+
 
 };
 

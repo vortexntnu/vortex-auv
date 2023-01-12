@@ -69,7 +69,7 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) {
 
    // subs and pubs
   setpoint_sub =
-      nh.subscribe("/guidance/dp_data", 1, &ReferenceModel::setpoint_cb, this);
+      nh.subscribe("/dp_data/reference_point", 1, &ReferenceModel::setpointCallback, this);
   reference_pub =
       nh.advertise<geometry_msgs::PoseArray>("/reference_model/output", 1, this);
     
@@ -130,15 +130,15 @@ x_ref << position_setpoint, orientation_setpoint.w(), orientation_setpoint.vec()
 std::cout << x_ref << std::endl;
   while (ros::ok()) {
     std::cout << std::endl << "LOOP:" << std::endl;
-    calculate_smooth(x_ref);
-    std::cout << "eta_d: " << std::endl << eta_d << std::endl;
-    std::cout << "eta_dot_d" << std::endl << eta_dot_d << std::endl;
+    // calculate_smooth(x_ref);
+    // std::cout << "eta_d: " << std::endl << eta_d << std::endl;
+    // std::cout << "eta_dot_d" << std::endl << eta_dot_d << std::endl;
     ros::spinOnce();
     rate.sleep();
   }
 }
 
-void ReferenceModel::setpoint_cb(const geometry_msgs::Pose &setpoint_msg) {
+void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
   // parse msg
   Eigen::Vector7d x_ref = Eigen::Vector7d::Zero();

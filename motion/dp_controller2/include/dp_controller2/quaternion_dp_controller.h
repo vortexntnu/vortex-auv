@@ -48,6 +48,7 @@ public:
   Eigen::Vector6d getFeedback(const Eigen::Vector3d &x,
                               const Eigen::Quaterniond &q,
                               const Eigen::Vector6d &nu,
+                              const Eigen::Matrix7d eta_dot_d,
                               const Eigen::Vector3d &x_d,
                               const Eigen::Quaterniond &q_d);
 
