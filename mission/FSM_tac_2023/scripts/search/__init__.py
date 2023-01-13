@@ -1,1 +1,0 @@
-#Contains nessesary search patterns.
