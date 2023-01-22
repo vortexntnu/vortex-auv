@@ -1,10 +1,9 @@
 #goal definition
-int32 order
+geometry_msgs/Pose x_ref
+bool[] DOF
 ---
 #result definition
-int32[] sequence
+bool finished
 ---
 #feedback
-int32[] sequence
-bool[] test
-geometry_msgs/Pose pose_test
+float32[] error

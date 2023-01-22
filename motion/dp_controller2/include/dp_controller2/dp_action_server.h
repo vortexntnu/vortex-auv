@@ -8,16 +8,12 @@
  * @brief A ROS wrapper layer for the DP server
  *
  */
-#ifndef VORTEX_DP_SERVER_H
-#define VORTEX_DP_SERVER_H
 
 // #include <map>
 // #include <math.h>
 // #include <string>
 // #include <vector>
 
-// #include <Eigen/Dense>
-// #include <eigen_conversions/eigen_msg.h>
 
 // #include <actionlib/server/simple_action_server.h>
 // //#include <dynamic_reconfigure/server.h>
@@ -34,10 +30,6 @@
 // #include "dp_controller2/quaternion_dp_controller.h"
 
 
-#include <ros/ros.h>
-#include <actionlib/server/simple_action_server.h>
-#include <dp_controller2/dpAction.h>
-
 
 /**
  * @brief the Controller class
@@ -46,7 +38,7 @@
  * @see quaternion_pd_controller.h
  *
  */
-class FibonacciAction {
+// class FibonacciAction {
 // private:
 
 //   /**
@@ -75,17 +67,17 @@ class FibonacciAction {
 
 //   QuaternionPIDController m_controller;
   
-  protected:
-  // private:
+//   protected:
+//   // private:
 
-  ros::NodeHandle nh_;
-  actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
-  std::string action_name_;
-  // create messages that are used to published feedback/result
-  dp_controller2::dpFeedback feedback_;
-  dp_controller2::dpResult result_;
+//   ros::NodeHandle nh_;
+//   actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
+//   std::string action_name_;
+//   // create messages that are used to published feedback/result
+//   dp_controller2::dpFeedback feedback_;
+//   dp_controller2::dpResult result_;
 
-public:
+// public:
 
 
   // /**
@@ -110,13 +102,51 @@ public:
   // void spin();
 
 
-  FibonacciAction(std::string name);
+  // FibonacciAction(std::string name);
 
-  ~FibonacciAction(void){};
+  // ~FibonacciAction(void){};
 
-  void executeCB(const dp_controller2::dpGoalConstPtr &goal);
+  // void executeCB(const dp_controller2::dpGoalConstPtr &goal);
 
 
-};
+// };
+
+//---------------------------------------------------
+
+#ifndef VORTEX_DP_SERVER_H
+#define VORTEX_DP_SERVER_H
+
+
+#include <ros/ros.h>
+#include <actionlib/server/simple_action_server.h>
+#include <dp_controller2/dpAction.h>
+
+#include <Eigen/Dense>
+#include <eigen_conversions/eigen_msg.h>
+#include "eigen_typedefs.h"
+
+
+class DpAction {
+  private:
+
+    ros::NodeHandle nh_;
+    actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
+    std::string action_name_;
+    // create messages that are used to published feedback/result
+    dp_controller2::dpFeedback feedback_;
+    dp_controller2::dpResult result_;
+
+  public:
+    DpAction(std::string name);
+
+    ~DpAction(void){};
+
+    void executeCB(const dp_controller2::dpGoalConstPtr &goal);
+    
+    Eigen::Vector6d error;
+
+    dp_controller2::dpGoal goal_;
+
+  };
 
 #endif // VORTEX_DP_SERVER_H

@@ -8,7 +8,7 @@
 
 //Roll pitch and yaw in Radians
 //Euler To Quaternion
-Eigen::Quaterniond Controller::EulerToQuaternion(double roll, double pitch, double yaw){  
+Eigen::Quaterniond Controller::EulerToQuaterniond(double roll, double pitch, double yaw){  
   Eigen::Quaterniond q;
   q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
       * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY())
@@ -57,13 +57,14 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 void Controller::spin() {
   ros::Rate rate(1);
   Eigen::Vector3d position_setpoint(1,0,0);
-  Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(0,0,0);
+  Eigen::Quaterniond orientation_setpoint = EulerToQuaterniond(0,0,0);
 
   Eigen::Vector3d position_test(0,0,0);
-  Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);
+  Eigen::Quaterniond orientation_test = EulerToQuaterniond(0,0,0);
   Eigen::Vector6d nu = Eigen::Vector6d::Zero();
 
-  FibonacciAction fibonacci("fibonacci");
+  DpAction dp_server("DpAction");
+
 
   while (ros::ok()) {
     Eigen::Vector6d tau_command = m_controller.getFeedback(
@@ -80,9 +81,26 @@ void Controller::spin() {
     setpoint_msg.orientation = orientation_setpoint_msg;
     geometry_msgs::Wrench tau_msg;
     tf::wrenchEigenToMsg(tau_command, tau_msg);
+    
 
     m_wrench_pub.publish(tau_msg);
-    m_referencepoint_pub.publish(setpoint_msg);
+    m_referencepoint_pub.publish(dp_server.goal_.x_ref);        //??????
+
+    Eigen::Vector3d x_ref_pos;
+    Eigen::Quaterniond x_ref_ori;
+    tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
+    tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+    
+
+    Eigen::Vector3d error_pos = x_ref_pos - position_test;
+    std::cout << std::endl << "et eller annet piss" << std::endl;
+    std::cout << std::endl << x_ref_pos << std::endl;
+    std::cout << std::endl << position_test << std::endl;
+
+    Eigen::Vector3d error_ori = QuaterniondToEuler(x_ref_ori) - QuaterniondToEuler(orientation_test);
+
+    dp_server.error << error_pos, error_ori;
+
 
 
     std::cout << "TESSSST" << std::endl;

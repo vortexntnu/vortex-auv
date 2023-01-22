@@ -93,7 +93,7 @@ public:
 
   void odometryCallback(const nav_msgs::Odometry &msg);
   void desiredPointCallback(const geometry_msgs::PoseArray &desired_msg);
-  Eigen::Quaterniond EulerToQuaternion(double roll, double pitch, double yaw);
+  Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw);
   Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
   void spin();
 
