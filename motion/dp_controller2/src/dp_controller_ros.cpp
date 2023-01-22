@@ -3,6 +3,7 @@
      All rights reserved. */
 
 #include "dp_controller2/dp_controller_ros.h"
+#include "dp_controller2/dp_action_server.h"
 
 
 //Roll pitch and yaw in Radians
@@ -49,6 +50,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   eta_dot_d = Eigen::Vector7d::Zero();
 
 
+
 }
 
 
@@ -61,6 +63,7 @@ void Controller::spin() {
   Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);
   Eigen::Vector6d nu = Eigen::Vector6d::Zero();
 
+  FibonacciAction fibonacci("fibonacci");
 
   while (ros::ok()) {
     Eigen::Vector6d tau_command = m_controller.getFeedback(
@@ -94,6 +97,7 @@ void Controller::odometryCallback(const nav_msgs::Odometry &msg){
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
   tf::twistMsgToEigen(msg.twist.twist, velocity);
   ROS_DEBUG("position, orientation and velocity states updated");
+  
 }
 
 
