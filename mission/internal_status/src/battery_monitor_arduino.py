@@ -27,8 +27,8 @@ class BatteryMonitor:
 
         # Calibration values for converting from raw digital binary form to decimal form
         # Calibration values were manualy calibrated to +- 0.1V acuracy!
-        self.calVoltageA = 11*4
-        self.calVoltageB = 0.2
+        self.calVoltageA = 56.2711
+        self.calVoltageB = -2.3345
         # needs to be changed
         self.calCurrent = 37.8788
         self.calCurrentOffset = 0.33
