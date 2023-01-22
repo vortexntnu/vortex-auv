@@ -89,9 +89,9 @@ current_reg_nano = 1  # to get current measurement back
 
 # Calibration values for converting from raw digital binary form to decimal form
 # Calibration values were manualy calibrated to +- 0.1V acuracy!
-calVoltageA = 11 * 4
-calVoltageB = 0.2
-calCurrent = 37.8788
+calVoltageA = 56.2711  # 12 * 4
+calVoltageB = -2.3345
+calCurrent = 37.8788  # 1
 calCurrentOffset = 0.33
 
 
@@ -108,10 +108,10 @@ func = 1
 
 def func_check(func):
     if func == 1:
-        draw.text((x, top + 16), "Wellness: Phase 1 ", font=font, fill=255)
+        draw.text((x, top + 24), "Wellness: Phase 1 ", font=font, fill=255)
         return 0
     else:
-        draw.text((x, top + 16), "Wellness: Phase 2", font=font, fill=255)
+        draw.text((x, top + 24), "Wellness: Phase 2", font=font, fill=255)
         return 1
 
 
@@ -124,7 +124,8 @@ def read_voltage():
 
         # conversion to get real voltage
         # measurement up to 1023, so to big for 7bit I2C messages. Sends MSB first, then LSB, then remap to 0-5V
-        x = (((voltage_msg[0] & 0x7) << 7) + voltage_msg[1]) * 5 / 1023.0
+        x = (((voltage_msg[0] & 0x7) << 7) + voltage_msg[1]) * (5 / 1024.0)
+
         system_voltage = x * calVoltageA + calVoltageB
 
         return system_voltage
@@ -138,9 +139,11 @@ def read_current():
         current_msg = bus.read_i2c_block_data(nano_addr, 1, 2)
 
         # conversion to get real voltage
-        x = float((((current_msg[0] & 0x7) << 7) + current_msg[1])) * 5 / 1023.0
-        system_current = (x - calCurrentOffset) * calCurrent
-        # rospy.loginfo(f"Current : {system_current}A")
+        x = (((current_msg[0] & 0x7) << 7) + current_msg[1]) * (5 / 1024.0)
+
+        system_current = calCurrent * (x - calCurrentOffset)
+
+        return system_current
     except IOError:
         print("BUS error")
 
@@ -160,7 +163,9 @@ while True:
     #    xavier_IP = f.readlines()
 
     system_voltage = round(read_voltage(), 2)
-    # read_current()
+    print("Voltage: " + str(system_voltage))
+    system_current = round(read_current(), 2)
+    # print(system_current)
 
     func = func_check(func)
 
@@ -169,6 +174,7 @@ while True:
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
     draw.text((x, top + 8), "Voltage: " + str(system_voltage), font=font, fill=255)
+    draw.text((x, top + 16), "Current: " + str(system_current), font=font, fill=255)
 
     # Display image.
     disp.image(image)
