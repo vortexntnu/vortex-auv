@@ -143,7 +143,7 @@ class DpAction {
 
     void executeCB(const dp_controller2::dpGoalConstPtr &goal);
     
-    Eigen::Vector6d error;
+    Eigen::Vector6d pose;
 
     dp_controller2::dpGoal goal_;
 

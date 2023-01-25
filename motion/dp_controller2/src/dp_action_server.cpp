@@ -189,11 +189,18 @@
 
 //-------------------------------------------------------//
 
+//Quaternion to Euler
+Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q){
+Eigen::Vector3d euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
+return euler;
+}
+
+
+
+
 DpAction::DpAction(std::string name) : as_(nh_, name, boost::bind(&DpAction::executeCB, this, _1), false),
   action_name_(name)
 {
-  error = Eigen::Vector6d::Zero();
-  std::cout << "HEISANN3" << std::endl;
   as_.start();
   std::cout << "HEISANN2" << std::endl;
 }
@@ -212,9 +219,27 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
   float test_radius = 1;
   float test_deg = 20;
 
+  Eigen::Vector6d error = Eigen::Vector6d::Zero();
+
   while(!as_.isPreemptRequested() && ros::ok()){
     
     feedback_.error.clear();
+
+    Eigen::Vector3d x_ref_pos;
+    Eigen::Quaterniond x_ref_ori;
+    tf::pointMsgToEigen(goal_.x_ref.position, x_ref_pos);
+    tf::quaternionMsgToEigen(goal_.x_ref.orientation, x_ref_ori);
+
+    Eigen::Vector3d error_pos = x_ref_pos - pose.segment(0,3);
+    std::cout << std::endl << "et eller annet piss" << std::endl;
+    std::cout << std::endl << x_ref_pos << std::endl;
+    std::cout << std::endl << pose.segment(0,3) << std::endl;
+
+    Eigen::Vector3d error_ori = QuaterniondToEuler(x_ref_ori) - pose.segment(3,3);
+
+    error << error_pos, error_ori;
+
+
 
     for (int i = 0; i < 6; i++){
       feedback_.error.push_back(error[i]);
@@ -227,21 +252,13 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
     std::cout << std::endl << "avstand fra målet:" << std::endl <<distance_from_goal << std::endl;
     std::cout << std::endl << "feil:" << std::endl << error << std::endl;
     Eigen::Vector3d error_ori_deg = error.segment(3,3)*180/M_PI;
-    if(distance_from_goal < test_radius && error_ori_deg[0] < test_deg && error_ori_deg[1] < test_deg && error_ori_deg[2] < test_deg){
+    if(distance_from_goal < test_radius && abs(error_ori_deg[0]) < test_deg   && abs(error_ori_deg[1]) < test_deg && abs(error_ori_deg[2]) < test_deg && success == false){
       success = true;
+      result_.finished = true;
+      ROS_INFO("%s: Succeeded", action_name_.c_str());
+      // set the action state to succeeded
+      as_.setSucceeded(result_);
     }
-
-
-    if(success)
-  {
-    result_.finished = true;
-    ROS_INFO("%s: Succeeded", action_name_.c_str());
-    // set the action state to succeeded
-    as_.setSucceeded(result_);
-  }
-
-
-
 
     r.sleep();
 

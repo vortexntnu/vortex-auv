@@ -71,7 +71,10 @@ void Controller::spin() {
     position_test, orientation_test, nu, eta_dot_d, eta_d_pos,
     eta_d_ori);
     std::cout << "Tau:" << std::endl << tau_command << std::endl;
-    
+
+    position_test = eta_d_pos;
+    orientation_test = eta_d_ori;
+
     geometry_msgs::Point position_setpoint_msg;
     geometry_msgs::Quaternion orientation_setpoint_msg;
     tf::pointEigenToMsg(position_setpoint, position_setpoint_msg);
@@ -91,16 +94,9 @@ void Controller::spin() {
     tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
     tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
     
-
-    Eigen::Vector3d error_pos = x_ref_pos - position_test;
-    std::cout << std::endl << "et eller annet piss" << std::endl;
-    std::cout << std::endl << x_ref_pos << std::endl;
-    std::cout << std::endl << position_test << std::endl;
-
-    Eigen::Vector3d error_ori = QuaterniondToEuler(x_ref_ori) - QuaterniondToEuler(orientation_test);
-
-    dp_server.error << error_pos, error_ori;
-
+    
+    Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation_test);       
+    dp_server.pose << position_test, orientation_euler;
 
 
     std::cout << "TESSSST" << std::endl;
