@@ -67,11 +67,13 @@ void Controller::spin() {
 
 
   while (ros::ok()) {
-    Eigen::Vector6d tau_command = m_controller.getFeedback(
+    Eigen::Vector6d tau = m_controller.getFeedback(
     position_test, orientation_test, nu, eta_dot_d, eta_d_pos,
     eta_d_ori);
-    std::cout << "Tau:" << std::endl << tau_command << std::endl;
+    std::cout << "Tau:" << std::endl << tau << std::endl;
 
+    std::cout << std::endl << "eta_d_pos:" << eta_d_pos << std::endl;
+    std::cout << std::endl << "eta_d_ori:" << QuaterniondToEuler(eta_d_ori) << std::endl;
     position_test = eta_d_pos;
     orientation_test = eta_d_ori;
 
@@ -83,11 +85,27 @@ void Controller::spin() {
     setpoint_msg.position = position_setpoint_msg;
     setpoint_msg.orientation = orientation_setpoint_msg;
     geometry_msgs::Wrench tau_msg;
-    tf::wrenchEigenToMsg(tau_command, tau_msg);
+    tf::wrenchEigenToMsg(tau, tau_msg);
     
+    Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
+    // std::cout << "DOF:" << std::endl << dp_server.goal_.DOF << std::endl;
+    int i = 0;    //
+    std::cout << std::endl << "----------------_TAU!_------------" << std::endl;
+    for (int j : dp_server.goal_.DOF){
+      // std::cout << "DOF:" << i << std::endl;
+      tau(i) *= j;
+      std::cout << "tau:" << tau(i) << std::endl;
+      DOF(i) = dp_server.goal_.DOF[i];
+      i++;
+    }
+    std::cout << std::endl << "----------------------------" << std::endl;
+    // std::cout << "DOF:" << std::endl << DOF << std::endl;
+    // tau = tau.cwiseProduct(DOF);
+    // std::cout << "tau fixed:" << std::endl << tau << std::endl;
 
     m_wrench_pub.publish(tau_msg);
     m_referencepoint_pub.publish(dp_server.goal_.x_ref);        //??????
+
 
     Eigen::Vector3d x_ref_pos;
     Eigen::Quaterniond x_ref_ori;
@@ -124,8 +142,8 @@ void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_ms
   tf::pointMsgToEigen(desired_msg.poses[0].position, eta_d_pos);
   tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_d_ori);
 
-  tf::pointMsgToEigen(desired_msg.poses[0].position, eta_dot_d_pos);
-  tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_dot_d_ori);
+  tf::pointMsgToEigen(desired_msg.poses[1].position, eta_dot_d_pos);
+  tf::quaternionMsgToEigen(desired_msg.poses[1].orientation, eta_dot_d_ori);
 
   eta_d << eta_d_pos, eta_d_ori.w(), eta_d_ori.vec();
   eta_dot_d << eta_dot_d_pos, eta_dot_d_ori.w(), eta_dot_d_ori.vec();

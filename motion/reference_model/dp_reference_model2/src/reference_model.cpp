@@ -116,27 +116,27 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref){
 }
 
 
-void ReferenceModel::spin() {
-  ros::Rate rate(1);
-  Eigen::Vector3d position_setpoint(1,0,0);
-  Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(0,0,0);
+// void ReferenceModel::spin() {
+//   ros::Rate rate(1);
+//   Eigen::Vector3d position_setpoint(1,0,0);
+//   Eigen::Quaterniond orientation_setpoint = EulerToQuaternion(0,0,0);
 
-  Eigen::Vector3d position_test(0,0,0);
-  Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);
-//   Eigen::Vector6d velocity_test = Eigen::Vector6d::Zero();
+//   Eigen::Vector3d position_test(0,0,0);
+//   Eigen::Quaterniond orientation_test = EulerToQuaternion(0,0,0);
+// //   Eigen::Vector6d velocity_test = Eigen::Vector6d::Zero();
 
-Eigen::Vector7d x_ref;
-x_ref << position_setpoint, orientation_setpoint.w(), orientation_setpoint.vec();
-std::cout << x_ref << std::endl;
-  while (ros::ok()) {
-    std::cout << std::endl << "LOOP:" << std::endl;
-    // calculate_smooth(x_ref);
-    // std::cout << "eta_d: " << std::endl << eta_d << std::endl;
-    // std::cout << "eta_dot_d" << std::endl << eta_dot_d << std::endl;
-    ros::spinOnce();
-    rate.sleep();
-  }
-}
+// Eigen::Vector7d x_ref;
+// x_ref << position_setpoint, orientation_setpoint.w(), orientation_setpoint.vec();
+// std::cout << x_ref << std::endl;
+//   while (ros::ok()) {
+//     std::cout << std::endl << "LOOP:" << std::endl;
+//     // calculate_smooth(x_ref);
+//     // std::cout << "eta_d: " << std::endl << eta_d << std::endl;
+//     // std::cout << "eta_dot_d" << std::endl << eta_dot_d << std::endl;
+//     ros::spinOnce();
+//     rate.sleep();
+//   }
+// }
 
 void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
@@ -150,31 +150,31 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
   calculate_smooth(x_ref);
 
   // convert and publish smooth setpoint
-  geometry_msgs::Pose x_d_pose1;
-  geometry_msgs::Pose x_d_pose2;
-  x_d_pose1.position.x = eta_d(0);
-  x_d_pose1.position.y = eta_d(1);
-  x_d_pose1.position.z = eta_d(2);
-  x_d_pose1.orientation.w = eta_d(3);
-  x_d_pose1.orientation.x = eta_d(4);
-  x_d_pose1.orientation.y = eta_d(5);
-  x_d_pose1.orientation.z = eta_d(6);
+  geometry_msgs::Pose x_d_pose;
+  geometry_msgs::Pose x_d_velocity;
+  x_d_pose.position.x = eta_d(0);
+  x_d_pose.position.y = eta_d(1);
+  x_d_pose.position.z = eta_d(2);
+  x_d_pose.orientation.w = eta_d(3);
+  x_d_pose.orientation.x = eta_d(4);
+  x_d_pose.orientation.y = eta_d(5);
+  x_d_pose.orientation.z = eta_d(6);
 
-  x_d_pose2.position.x = eta_dot_d(0);
-  x_d_pose2.position.y = eta_dot_d(1);
-  x_d_pose2.position.z = eta_dot_d(2);
-  x_d_pose2.orientation.w = eta_dot_d(3);
-  x_d_pose2.orientation.x = eta_dot_d(4);
-  x_d_pose2.orientation.y = eta_dot_d(5);
-  x_d_pose2.orientation.z = eta_dot_d(6);
+  x_d_velocity.position.x = eta_dot_d(0);
+  x_d_velocity.position.y = eta_dot_d(1);
+  x_d_velocity.position.z = eta_dot_d(2);
+  x_d_velocity.orientation.w = eta_dot_d(3);
+  x_d_velocity.orientation.x = eta_dot_d(4);
+  x_d_velocity.orientation.y = eta_dot_d(5);
+  x_d_velocity.orientation.z = eta_dot_d(6);
 
   geometry_msgs::PoseArray  posearray;
   posearray.header.stamp = ros::Time::now(); // timestamp of creation of the msg
   posearray.header.frame_id = "ReferenceFrame"; // frame id in which the array is published
 
   // push in array (in C++ a vector, in python a list)
-  posearray.poses.push_back(x_d_pose1);
-  posearray.poses.push_back(x_d_pose2);
+  posearray.poses.push_back(x_d_pose);
+  posearray.poses.push_back(x_d_velocity);
 
 
   reference_pub.publish(posearray);

@@ -62,6 +62,9 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
            Eigen::Matrix3d::Zero(), 4*T.transpose();
   Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
   nu_tilde = nu - J_inv*eta_dot_d;
+  // std::cout << std::endl << "nu:" << std::endl << nu << std::endl;
+  // std::cout << std::endl << "J_inv:" << std::endl << J_inv << std::endl;
+  // std::cout << std::endl << "eta_dot_d:" << std::endl << eta_dot_d << std::endl;
 
   //Eigen::Matrix6d K_i = integralGainMatrix(R);
 
@@ -70,6 +73,8 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
 
   // Error Vector
   Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);
+  std::cout << std::endl << "z:" << std::endl << z << std::endl;
+
 
   // Integral
   // double maxPoseGain = 4.0;
@@ -81,6 +86,10 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
 
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z;
-  
+  // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
+  // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
+  // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
+
+
   return (Eigen::Vector6d() << gain).finished();
 }
