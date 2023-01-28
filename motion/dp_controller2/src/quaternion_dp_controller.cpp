@@ -2,7 +2,12 @@
 #include "dp_controller2/quaternion_dp_controller.h"
 #include <math.h>
 
-QuaternionPIDController::QuaternionPIDController(){};
+QuaternionPIDController::QuaternionPIDController(){//float W, float B, Eigen::Vector3d r_G, Eigen::Vector3d r_B){
+  m_B = 23*9.81;
+  m_W = 24*9.81;
+  m_r_G = Eigen::Vector3d::Zero();
+  m_r_B = Eigen::Vector3d::Zero();
+};
 
 int QuaternionPIDController::sgn(double x) {
   if (x < 0)
@@ -26,13 +31,14 @@ Eigen::Vector6d QuaternionPIDController::errorVector(
 }
 
 Eigen::Matrix6d QuaternionPIDController::proportionalGainMatrix(const Eigen::Matrix3d R) {
-  double m_c = 4;
-  double b = 6;
-  Eigen::Matrix3d m_K_x = b * Eigen::Matrix3d::Identity();
+  Eigen::Matrix3d m_c = Eigen::Matrix3d::Zero();
+  m_c.diagonal() << 1,1,1;
+  Eigen::Matrix3d m_K_x = Eigen::Matrix3d::Zero();
+  m_K_x.diagonal() << 1,1,1;
   return (Eigen::Matrix6d() << R.transpose() * m_K_x,
           Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd::Zero(3, 3),
-          m_c * Eigen::MatrixXd::Identity(3, 3))
-      .finished();
+      m_c).finished();
+          //m_c //* Eigen::MatrixXd::Identity(3, 3))
 }
 
 Eigen::Matrix3d skew(Eigen::Vector3d vec){
@@ -81,15 +87,24 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   // double maxAttGain = 0.05;
   // integral += K_i * z;
   // integralWindUp(integral, maxPoseGain, maxAttGain);
-  int a = 2;
-  Eigen::Matrix6d m_K_d = a * Eigen::Matrix6d::Identity();
 
+  Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
+  m_K_d.diagonal() << 1,1,1,1,1,1;
+  Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
   // gain
-  Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z;
+  Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
   // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
   // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
 
 
   return (Eigen::Vector6d() << gain).finished();
+}
+
+
+Eigen::Vector6d QuaternionPIDController::restoringForceVector(const Eigen::Matrix3d R) {
+  Eigen::Vector3d f_G = R.transpose() * Eigen::Vector3d(0, 0, m_W);
+  Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, -m_B);
+  return (Eigen::Vector6d() << f_G + f_B, m_r_G.cross(f_G) + m_r_B.cross(f_B))
+      .finished();
 }

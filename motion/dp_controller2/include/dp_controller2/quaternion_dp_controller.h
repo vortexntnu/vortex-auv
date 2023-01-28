@@ -29,9 +29,16 @@
 #include "eigen_typedefs.h"
 
 class QuaternionPIDController{
+private:
+  float m_W;
+  float m_B;
+  Eigen::Vector3d m_r_B;
+  Eigen::Vector3d m_r_G;
+
+
 public:
 
-  explicit QuaternionPIDController();
+  explicit QuaternionPIDController();//float W, float B, Eigen::Vector3d r_G, Eigen::Vector3d r_B);
   /**
    * @brief a getter for the feedback vector
    *
@@ -59,6 +66,8 @@ public:
                                                        const Eigen::Quaterniond &q_d);
   
   Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d R);
+
+  Eigen::Vector6d restoringForceVector(const Eigen::Matrix3d R);
 };
 
 

@@ -6,6 +6,7 @@
 #include "dp_controller2/dp_action_server.h"
 
 
+
 //Roll pitch and yaw in Radians
 //Euler To Quaternion
 Eigen::Quaterniond Controller::EulerToQuaterniond(double roll, double pitch, double yaw){  
@@ -29,11 +30,35 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   std::string odometry_topic;
   std::string thrust_topic;
 
+  float W;
+  float B;
+  Eigen::Vector3d r_B;
+  Eigen::Vector3d r_G;
+
   if (!nh.getParam("/controllers/dp/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
   if (!nh.getParam("/thrust/thrust_topic", thrust_topic))
     thrust_topic = "/thrust/desired_forces";
-
+  
+  // if (!m_nh.getParam("/physical/weight", W)) {
+  //   ROS_FATAL("Failed to read parameter physical/weight. Shutting down node..");
+  //   ros::shutdown();
+  // }
+  // if (!m_nh.getParam("/physical/buoyancy", B)) {
+  //   ROS_FATAL(
+  //       "Failed to read parameter physical/buoyancy. Shutting down node..");
+  //   ros::shutdown();
+  // }
+  // if (!m_nh.getParam("/physical/center_of_mass", r_G)) {
+  //   ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down "
+  //             "node..");
+  //   ros::shutdown();
+  // }
+  // if (!m_nh.getParam("/physical/center_of_buoyancy", r_B)) {
+  //   ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting "
+  //             "down node..");
+  //   ros::shutdown();
+  // }
   // Subscribers
   m_odometry_sub = m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
   ROS_INFO("DP controller2 initialized");
@@ -42,8 +67,10 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   //Publishers
   m_referencepoint_pub = m_nh.advertise<geometry_msgs::Pose>("/dp_data/reference_point", 1, this);
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
-  //m_controller = QuaternionPIDController();
 
+
+  // m_controller = QuaternionPIDController(2.0);
+  // m_controller = QuaternionPIDController(W, B, r_G, r_B);
   eta_d_pos = Eigen::Vector3d::Zero();
   eta_d_ori = Eigen::Quaterniond::Identity();
   eta_d = Eigen::Vector7d::Zero();
@@ -68,14 +95,15 @@ void Controller::spin() {
 
   while (ros::ok()) {
     Eigen::Vector6d tau = m_controller.getFeedback(
-    position_test, orientation_test, nu, eta_dot_d, eta_d_pos,
+    position, orientation, nu, eta_dot_d, eta_d_pos,
     eta_d_ori);
+
     std::cout << "Tau:" << std::endl << tau << std::endl;
 
     std::cout << std::endl << "eta_d_pos:" << eta_d_pos << std::endl;
     std::cout << std::endl << "eta_d_ori:" << QuaterniondToEuler(eta_d_ori) << std::endl;
-    position_test = eta_d_pos;
-    orientation_test = eta_d_ori;
+    // position_test = eta_d_pos;
+    // orientation_test = eta_d_ori;
 
     geometry_msgs::Point position_setpoint_msg;
     geometry_msgs::Quaternion orientation_setpoint_msg;
@@ -113,8 +141,8 @@ void Controller::spin() {
     tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
     
     
-    Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation_test);       
-    dp_server.pose << position_test, orientation_euler;
+    Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);       
+    dp_server.pose << position, orientation_euler;
 
 
     std::cout << "TESSSST" << std::endl;

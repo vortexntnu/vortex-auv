@@ -123,8 +123,8 @@ class DpActionClient{
   void send_goal()
   {
     dpGoal goal_;
-    Eigen::Vector3d x_ref_pos(2,4,6);
-    Eigen::Quaterniond x_ref_ori = EulerToQuaterniond(1,2,3);
+    Eigen::Vector3d x_ref_pos(0,0,0.5);
+    Eigen::Quaterniond x_ref_ori = EulerToQuaterniond(0,0,0);
     tf::pointEigenToMsg(x_ref_pos, goal_.x_ref.position);
     std::cout << std::endl << "et eller annet piss 2" << std::endl;
     std::cout << std::endl << goal_.x_ref.position << std::endl;
@@ -132,12 +132,12 @@ class DpActionClient{
     
     // std::cout << std::endl << "----------------_DOF!_------------" << std::endl;
     //Desired DOF
-    Eigen::VectorXd DOF_div(6,1);
-    DOF_div << 0,0,1,1,0,1;
+    Eigen::VectorXd DOF_desired(6,1);
+    DOF_desired << 0,0,1,0,0,0;
 
     for(int i = 0; i < 6; i++){
-      goal_.DOF.push_back(DOF_div(i));
-      std::cout << DOF_div(i) << std::endl;
+      goal_.DOF.push_back(DOF_desired(i));
+      std::cout << DOF_desired(i) << std::endl;
     }
     // std::cout << std::endl << "----------------------------" << std::endl;
 
