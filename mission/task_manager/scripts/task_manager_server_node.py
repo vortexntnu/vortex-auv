@@ -3,26 +3,27 @@ import rospy
 
 from dynamic_reconfigure.server import Server
 from task_manager.cfg import BelugaFSMConfig
+
+from task_manager_defines import defines
+
 import test_1_node
 import test_2_node
 
 
 def callback(config, level):
     rospy.loginfo("""State change request: {Tac_states}""".format(**config))
-    test_1: int = 0
-    test_2: int = 1
 
 
-    if config["Tac_states"] == test_1:
+    if config["Tac_states"] == defines.Tasks.test_1.name:
         # Stop all other nodes from last state.
         rospy.set_param("/tasks/taks_2", False)
         # Start the node here
         rospy.set_param("/tasks/task_1", True)
 
         param = rospy.get_param("tasks/task_1")
-        rospy.loginfo("Test 1 started, ", param)
+        rospy.loginfo("Test 1 started, %s", param)
     
-    if config["Tac_states"] == test_2:
+    if config["Tac_states"] == defines.Tasks.test_2.name:
         # Stop all other nodes from last state.
         rospy.set_param("/tasks/task_1", False)
         # Start the node here
