@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 import rospy
 import dynamic_reconfigure.client
@@ -9,10 +9,10 @@ def callback(config):
 
 
 if __name__ == "__main__":
-    rospy.init_node("CME_client")
+    rospy.init_node("task_manager_client")
 
-    CME_client = dynamic_reconfigure.client.Client(
-        "CME_client", timeout=30, config_callback=callback
+    task_manager_client = dynamic_reconfigure.client.Client(
+        "task_manager_client", timeout=30, config_callback=callback
     )
 
     while not rospy.is_shutdown():

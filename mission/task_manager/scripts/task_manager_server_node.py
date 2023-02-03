@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 import rospy
 
 from dynamic_reconfigure.server import Server
-from CME.cfg import BelugaFSMConfig
+from task_manager.cfg import BelugaFSMConfig
 import test_1_node
 import test_2_node
 
@@ -47,7 +47,7 @@ def callback(config, level):
 
 
 if __name__ == "__main__":
-    rospy.init_node("CME_server", anonymous=False)
+    rospy.init_node("task_manager_server", anonymous=False)
 
     srv = Server(BelugaFSMConfig, callback)
     rospy.spin()
