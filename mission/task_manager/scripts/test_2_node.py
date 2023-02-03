@@ -20,4 +20,3 @@ if __name__ == "__main__":
     rospy.init_node("test_2_node")
     my_node_2 = MyNode2()
     my_node_2.spin()
-

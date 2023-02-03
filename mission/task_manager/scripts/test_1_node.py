@@ -12,7 +12,7 @@ class MyNode1:
 
             if self.enabled:
                 rospy.loginfo("test 1; Inside callback")
-            
+
             rospy.sleep(0.1)
 
 
