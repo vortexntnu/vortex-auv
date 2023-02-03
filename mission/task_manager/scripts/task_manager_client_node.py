@@ -12,8 +12,7 @@ if __name__ == "__main__":
     rospy.init_node("task_manager_client")
 
     task_manager_client = dynamic_reconfigure.client.Client(
-        "task_manager_client", timeout=30, config_callback=callback
+        "/task_manager/server", timeout=3, config_callback=callback
     )
 
-    while not rospy.is_shutdown():
-        rospy.spin()
+    rospy.spin()
