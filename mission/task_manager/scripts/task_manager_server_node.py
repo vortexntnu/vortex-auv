@@ -13,7 +13,6 @@ import test_2_node
 def callback(config, level):
     rospy.loginfo("""State change request: {Tac_states}""".format(**config))
 
-
     if config["Tac_states"] == defines.Tasks.test_1.name:
         # Stop all other nodes from last state.
         rospy.set_param("/tasks/taks_2", False)
@@ -22,7 +21,7 @@ def callback(config, level):
 
         param = rospy.get_param("tasks/task_1")
         rospy.loginfo("Test 1 started, %s", param)
-    
+
     if config["Tac_states"] == defines.Tasks.test_2.name:
         # Stop all other nodes from last state.
         rospy.set_param("/tasks/task_1", False)
@@ -35,16 +34,15 @@ def callback(config, level):
     #     # Stop all other nodes from last state.
 
     #     # Start the node here
-        
+
     #     rospy.loginfo("")
     # if config["horisontal_gripper"]:
     #     # Stop all other nodes from last state.
 
     #     # Start the node here
     #     rospy.loginfo("")
-    
-    return config
 
+    return config
 
 
 if __name__ == "__main__":

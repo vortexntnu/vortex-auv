@@ -2,10 +2,12 @@
 
 from dataclasses import dataclass
 
+
 @dataclass
 class Task:
     id: int
     name: str
+
 
 class Tasks:
     test_1 = Task(id=0, name="test_1")
