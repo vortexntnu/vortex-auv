@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>CME</name>
+  <name>task_manager</name>
   <version>0.0.0</version>
   <description>The CME package</description>
 
