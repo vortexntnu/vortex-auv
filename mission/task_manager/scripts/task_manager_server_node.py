@@ -13,20 +13,20 @@ import test_2_node
 def callback(config, level):
     rospy.loginfo("""State change request: {Tac_states}""".format(**config))
 
-    if config["Tac_states"] == defines.Tasks.test_1.name:
+    if config["Tac_states"] == defines.Tasks.test_1.id:
         # Stop all other nodes from last state.
-        rospy.set_param("/tasks/taks_2", False)
+        rospy.set_param("/tasks/task_2", False)
         # Start the node here
         rospy.set_param("/tasks/task_1", True)
 
-        param = rospy.get_param("tasks/task_1")
+        param = rospy.get_param("/tasks/task_1")
         rospy.loginfo("Test 1 started, %s", param)
 
-    if config["Tac_states"] == defines.Tasks.test_2.name:
+    if config["Tac_states"] == defines.Tasks.test_2.id:
         # Stop all other nodes from last state.
         rospy.set_param("/tasks/task_1", False)
         # Start the node here
-        rospy.set_param("/tasks/taks_2", True)
+        rospy.set_param("/tasks/task_2", True)
 
         rospy.loginfo("Test 2 started")
 
