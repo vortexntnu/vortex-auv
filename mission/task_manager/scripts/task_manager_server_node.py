@@ -51,10 +51,9 @@ def callback(config, level):
 
         param = rospy.get_param("/tasks/joystick")
         rospy.loginfo("joystick mode started, %s", param)
-        
 
     if config["Tac_states"] == defines.Tasks.valve_vertical:
-       # Stop all other nodes from last state.
+        # Stop all other nodes from last state.
         rospy.set_param("/tasks/task_1", False)
         rospy.set_param("/tasks/task_2", False)
         rospy.set_param("/tasks/joystick", False)
@@ -67,7 +66,7 @@ def callback(config, level):
         rospy.loginfo("valve_vertical mode started, %s", param)
 
     if config["Tac_states"] == defines.Tasks.valve_horisontal:
-       # Stop all other nodes from last state.
+        # Stop all other nodes from last state.
         rospy.set_param("/tasks/task_1", False)
         rospy.set_param("/tasks/task_2", False)
         rospy.set_param("/tasks/joystick", False)
@@ -75,13 +74,12 @@ def callback(config, level):
         rospy.set_param("/tasks/pipeline_inspection", False)
         # Start the node here
         rospy.set_param("/tasks/valve_horisontal", True)
-        
 
         param = rospy.get_param("/tasks/valve_horisontal")
         rospy.loginfo("valve_horisontal mode started, %s", param)
 
     if config["Tac_states"] == defines.Tasks.pipeline_inspection:
-       # Stop all other nodes from last state.
+        # Stop all other nodes from last state.
         rospy.set_param("/tasks/task_1", False)
         rospy.set_param("/tasks/task_2", False)
         rospy.set_param("/tasks/joystick", False)
