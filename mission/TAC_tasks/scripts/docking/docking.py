@@ -1,8 +1,20 @@
 import rospy
 import smach
+import actionlib
+from geometry_msgs.msg import Pose, Point, Quaternion
+from tf.transformations import quaternion_from_euler
+from landmarks.srv import request_position
+
+from vortex_msgs.msg import (
+    
+)
+
 
 
 class DockingSearch(smach.State):
+
+    # TODO: Wait for docking_point from landmark server
+
     def __init__(self):
         pass
 
@@ -29,8 +41,16 @@ class DockingConverge(smach.State):
     def execute(self, userdata):
         self.state_pub.publish("docking/converge")
 
+        dp_action_server = ""
+        self.dp_client(actionlib.SimpleActionClient(
+            dp_action_server, 
+        ))
+
         
 class DockingExecute(smach.State):
+
+    # TODO: stay docked and pull out when ready
+
     def __init__(self):
         pass
 
