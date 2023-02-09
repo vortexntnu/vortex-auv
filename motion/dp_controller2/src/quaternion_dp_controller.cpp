@@ -32,9 +32,12 @@ Eigen::Vector6d QuaternionPIDController::errorVector(
 
 Eigen::Matrix6d QuaternionPIDController::proportionalGainMatrix(const Eigen::Matrix3d R) {
   Eigen::Matrix3d m_c = Eigen::Matrix3d::Zero();
-  m_c.diagonal() << 1,1,1;
+  m_c.diagonal() << m_p_gain.segment(0,3);
+  std::cout << std::endl << "P_gain: " << m_p_gain.segment(0,3) << std::endl;
   Eigen::Matrix3d m_K_x = Eigen::Matrix3d::Zero();
-  m_K_x.diagonal() << 1,1,1;
+  std::cout << "DEBUG1" << std::endl;
+  m_K_x.diagonal() << m_p_gain.segment(3,3);
+  std::cout << "DEBUG2" << std::endl;
   return (Eigen::Matrix6d() << R.transpose() * m_K_x,
           Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd::Zero(3, 3),
       m_c).finished();
@@ -81,6 +84,8 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);
   std::cout << std::endl << "z:" << std::endl << z << std::endl;
 
+  std::cout << "DEBUG3" << std::endl;
+
 
   // Integral
   // double maxPoseGain = 4.0;
@@ -89,7 +94,10 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   // integralWindUp(integral, maxPoseGain, maxAttGain);
 
   Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
-  m_K_d.diagonal() << 1,1,1,1,1,1;
+  std::cout << "DEBUG4" << std::endl;
+  m_K_d.diagonal() << m_d_gain;
+  std::cout << "DEBUG5" << std::endl;
+  std::cout << std::endl << "D_gain: " << m_d_gain.segment(0,3) << std::endl;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
@@ -107,4 +115,17 @@ Eigen::Vector6d QuaternionPIDController::restoringForceVector(const Eigen::Matri
   Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, -m_B);
   return (Eigen::Vector6d() << f_G + f_B, m_r_G.cross(f_G) + m_r_B.cross(f_B))
       .finished();
+}
+
+void QuaternionPIDController::init(const double W,const double B, const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B){
+  m_W = W;
+  m_B = B;
+  m_r_G = r_G;
+  m_r_B = r_B;
+}
+
+void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d d_gain){
+  m_p_gain = p_gain;
+  m_d_gain = d_gain;
+
 }

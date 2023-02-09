@@ -34,6 +34,8 @@ private:
   float m_B;
   Eigen::Vector3d m_r_B;
   Eigen::Vector3d m_r_G;
+  Eigen::Vector6d m_p_gain;
+  Eigen::Vector6d m_d_gain;
 
 
 public:
@@ -68,6 +70,9 @@ public:
   Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d R);
 
   Eigen::Vector6d restoringForceVector(const Eigen::Matrix3d R);
+
+  void init(const double W,const double B, const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B);
+  void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d d_gain);
 };
 
 

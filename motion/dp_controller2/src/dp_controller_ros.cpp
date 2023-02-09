@@ -32,33 +32,55 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 
   float W;
   float B;
-  Eigen::Vector3d r_B;
-  Eigen::Vector3d r_G;
+  std::vector<double> r_G_vec, r_B_vec;
+   std::vector<double> p_gain_vec, d_gain_vec;
 
   if (!nh.getParam("/controllers/dp/odometry_topic", odometry_topic))
     odometry_topic = "/odometry/filtered";
   if (!nh.getParam("/thrust/thrust_topic", thrust_topic))
     thrust_topic = "/thrust/desired_forces";
   
-  // if (!m_nh.getParam("/physical/weight", W)) {
-  //   ROS_FATAL("Failed to read parameter physical/weight. Shutting down node..");
-  //   ros::shutdown();
-  // }
-  // if (!m_nh.getParam("/physical/buoyancy", B)) {
-  //   ROS_FATAL(
-  //       "Failed to read parameter physical/buoyancy. Shutting down node..");
-  //   ros::shutdown();
-  // }
-  // if (!m_nh.getParam("/physical/center_of_mass", r_G)) {
-  //   ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down "
-  //             "node..");
-  //   ros::shutdown();
-  // }
-  // if (!m_nh.getParam("/physical/center_of_buoyancy", r_B)) {
-  //   ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting "
-  //             "down node..");
-  //   ros::shutdown();
-  // }
+  if (!m_nh.getParam("/physical/weight", W)) {
+    ROS_FATAL("Failed to read parameter physical/weight. Shutting down node..");
+    ros::shutdown();
+  }
+  if (!m_nh.getParam("/physical/buoyancy", B)) {
+    ROS_FATAL(
+        "Failed to read parameter physical/buoyancy. Shutting down node..");
+    ros::shutdown();
+  }
+  if (!m_nh.getParam("/physical/center_of_mass", r_G_vec)) {
+    ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down "
+              "node..");
+    ros::shutdown();
+  }
+  if (!m_nh.getParam("/physical/center_of_buoyancy", r_B_vec)) {
+    ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting "
+              "down node..");
+    ros::shutdown();
+  }
+    if (!m_nh.getParam("/PID/P", p_gain_vec)) {
+      ROS_FATAL("Failed to read parameter PID/P. Shutting down node..");
+      ros::shutdown();
+  }
+    if (!m_nh.getParam("/PID/D", d_gain_vec)) {
+      ROS_FATAL(
+          "Failed to read parameter PID/D. Shutting down node..");
+      ros::shutdown();
+  }
+
+  Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]);
+  Eigen::Vector3d r_B = Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]);
+
+  Eigen::Vector6d p_gain = Eigen::Vector6d::Zero();
+  Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
+  
+  p_gain << p_gain_vec[0], p_gain_vec[1], p_gain_vec[2], p_gain_vec[3], p_gain_vec[4], p_gain_vec[5];
+  d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3], d_gain_vec[4], d_gain_vec[5];
+
+  m_controller.update_gain(p_gain, d_gain);
+
+
   // Subscribers
   m_odometry_sub = m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
   ROS_INFO("DP controller2 initialized");
@@ -69,14 +91,16 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
 
 
-  // m_controller = QuaternionPIDController(2.0);
+  //m_controller = QuaternionPIDController(2.0);
   // m_controller = QuaternionPIDController(W, B, r_G, r_B);
+  //m_controller()
   eta_d_pos = Eigen::Vector3d::Zero();
   eta_d_ori = Eigen::Quaterniond::Identity();
   eta_d = Eigen::Vector7d::Zero();
   eta_dot_d = Eigen::Vector7d::Zero();
 
 
+  m_controller.init(W, B, r_G, r_B);
 
 }
 
@@ -92,64 +116,106 @@ void Controller::spin() {
 
   DpAction dp_server("DpAction");
 
-
+  bool was_active = false;
+  geometry_msgs::Wrench tau_msg;
   while (ros::ok()) {
-    Eigen::Vector6d tau = m_controller.getFeedback(
-    position, orientation, nu, eta_dot_d, eta_d_pos,
-    eta_d_ori);
-
-    std::cout << "Tau:" << std::endl << tau << std::endl;
-
-    std::cout << std::endl << "eta_d_pos:" << eta_d_pos << std::endl;
-    std::cout << std::endl << "eta_d_ori:" << QuaterniondToEuler(eta_d_ori) << std::endl;
-    // position_test = eta_d_pos;
-    // orientation_test = eta_d_ori;
-
-    geometry_msgs::Point position_setpoint_msg;
-    geometry_msgs::Quaternion orientation_setpoint_msg;
-    tf::pointEigenToMsg(position_setpoint, position_setpoint_msg);
-    tf::quaternionEigenToMsg(orientation_setpoint, orientation_setpoint_msg);
-    geometry_msgs::Pose setpoint_msg;
-    setpoint_msg.position = position_setpoint_msg;
-    setpoint_msg.orientation = orientation_setpoint_msg;
-    geometry_msgs::Wrench tau_msg;
-    tf::wrenchEigenToMsg(tau, tau_msg);
+    std::cout << std::endl << "----------Heisann-Hoppsann-----" << std::endl;
     
-    Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
-    // std::cout << "DOF:" << std::endl << dp_server.goal_.DOF << std::endl;
-    int i = 0;    //
-    std::cout << std::endl << "----------------_TAU!_------------" << std::endl;
-    for (int j : dp_server.goal_.DOF){
-      // std::cout << "DOF:" << i << std::endl;
-      tau(i) *= j;
-      std::cout << "tau:" << tau(i) << std::endl;
-      DOF(i) = dp_server.goal_.DOF[i];
-      i++;
+    if (dp_server.run_controller){ 
+      was_active = true;
+      std::cout << std::endl << "Heisann-Hoppsann" << std::endl;
+    
+      std::cout << "DEBUG6" << std::endl;
+      Eigen::Vector6d tau = m_controller.getFeedback(
+      position, orientation, nu, eta_dot_d, eta_d_pos,
+      eta_d_ori);
+
+      std::cout << "Tau:" << std::endl << tau << std::endl;
+
+      std::cout << std::endl << "eta_d_pos:" << eta_d_pos << std::endl;
+      std::cout << std::endl << "eta_d_ori:" << QuaterniondToEuler(eta_d_ori) << std::endl;
+      // position_test = eta_d_pos;
+      // orientation_test = eta_d_ori;
+
+      geometry_msgs::Point position_setpoint_msg;
+      geometry_msgs::Quaternion orientation_setpoint_msg;
+      tf::pointEigenToMsg(position_setpoint, position_setpoint_msg);
+      tf::quaternionEigenToMsg(orientation_setpoint, orientation_setpoint_msg);
+      geometry_msgs::Pose setpoint_msg;
+      setpoint_msg.position = position_setpoint_msg;
+      setpoint_msg.orientation = orientation_setpoint_msg;
+      // geometry_msgs::Wrench tau_msg;
+    
+      
+      Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
+      // std::cout << "DOF:" << std::endl << dp_server.goal_.DOF << std::endl;
+      int i = 0;    //
+      std::cout << std::endl << "----------------_TAU!_------------" << std::endl;
+      for (int j : dp_server.goal_.DOF){
+        // std::cout << "DOF:" << i << std::endl;
+        tau(i) *= j;
+        std::cout << "tau:" << tau(i) << std::endl;
+        DOF(i) = dp_server.goal_.DOF[i];
+        i++;
+      }
+      tf::wrenchEigenToMsg(tau, tau_msg);
+    
+      std::cout << std::endl << "----------------------------" << std::endl;
+      // std::cout << "DOF:" << std::endl << DOF << std::endl;
+      // tau = tau.cwiseProduct(DOF);
+      // std::cout << "tau fixed:" << std::endl << tau << std::endl;
+
+      m_wrench_pub.publish(tau_msg);
+      m_referencepoint_pub.publish(dp_server.goal_.x_ref);        //??????
+
+
+      Eigen::Vector3d x_ref_pos;
+      Eigen::Quaterniond x_ref_ori;
+      tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
+      tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+      
+    
+      std::vector<double> p_gain_vec, d_gain_vec;
+      
+      if (!m_nh.getParam("/PID/P", p_gain_vec)) {
+        ROS_FATAL("Failed to read parameter PID/P. Shutting down node..");
+        ros::shutdown();
+      }
+      if (!m_nh.getParam("/PID/D", d_gain_vec)) {
+        ROS_FATAL(
+            "Failed to read parameter PID/D. Shutting down node..");
+        ros::shutdown();
+      }
+    
+
+      Eigen::Vector6d p_gain = Eigen::Vector6d::Zero();
+      Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
+      
+      p_gain << p_gain_vec[0], p_gain_vec[1], p_gain_vec[2], p_gain_vec[3], p_gain_vec[4], p_gain_vec[5];
+      d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3], d_gain_vec[4], d_gain_vec[5];
+
+      m_controller.update_gain(p_gain, d_gain);
+      
+
+      std::cout << "TESSSST5" << std::endl;
     }
-    std::cout << std::endl << "----------------------------" << std::endl;
-    // std::cout << "DOF:" << std::endl << DOF << std::endl;
-    // tau = tau.cwiseProduct(DOF);
-    // std::cout << "tau fixed:" << std::endl << tau << std::endl;
+  
+      Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);       
+      dp_server.pose << position, orientation_euler;
 
+  if (was_active && !dp_server.run_controller){
+    Eigen::VectorXd tau_zero = Eigen::VectorXd::Zero(6,1);
+    tf::wrenchEigenToMsg(tau_zero, tau_msg);
     m_wrench_pub.publish(tau_msg);
-    m_referencepoint_pub.publish(dp_server.goal_.x_ref);        //??????
+    was_active = false;
+  }
 
 
-    Eigen::Vector3d x_ref_pos;
-    Eigen::Quaterniond x_ref_ori;
-    tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
-    tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
-    
-    
-    Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);       
-    dp_server.pose << position, orientation_euler;
-
-
-    std::cout << "TESSSST" << std::endl;
     ros::spinOnce();
     rate.sleep();
   }
 }
+
 
 void Controller::odometryCallback(const nav_msgs::Odometry &msg){
     // Convert to eigen for computation

@@ -222,7 +222,7 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
   Eigen::Vector6d error = Eigen::Vector6d::Zero();
 
   while(!as_.isPreemptRequested() && ros::ok()){
-    
+    run_controller = true;
     feedback_.error.clear();
 
     Eigen::Vector3d x_ref_pos;
@@ -249,7 +249,7 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
     as_.publishFeedback(feedback_);
 
     double distance_from_goal = error.segment(0,3).norm();
-    std::cout << std::endl << "avstand fra målet:" << std::endl <<distance_from_goal << std::endl;
+    std::cout << std::endl << "avstand fra målet:" << std::endl << distance_from_goal << std::endl;
     std::cout << std::endl << "feil:" << std::endl << error << std::endl;
     Eigen::Vector3d error_ori_deg = error.segment(3,3)*180/M_PI;
     if(distance_from_goal < test_radius && abs(error_ori_deg[0]) < test_deg   && abs(error_ori_deg[1]) < test_deg && abs(error_ori_deg[2]) < test_deg && success == false){
@@ -266,7 +266,7 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
 
   if(!success) as_.setPreempted();
 
-
+  run_controller = false;
 
   // feedback_.sequence.clear();
   // feedback_.sequence.push_back(0);

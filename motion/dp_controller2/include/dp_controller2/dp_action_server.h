@@ -130,7 +130,6 @@ class DpAction {
   private:
 
     ros::NodeHandle nh_;
-    actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
     std::string action_name_;
     // create messages that are used to published feedback/result
     dp_controller2::dpFeedback feedback_;
@@ -146,6 +145,10 @@ class DpAction {
     Eigen::Vector6d pose;
 
     dp_controller2::dpGoal goal_;
+
+    actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
+
+    bool run_controller = false;
 
   };
 
