@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 
+import time
 import rospy
 import smach
+import actionlib
 from landmarks.srv import request_position
 from vortex_msgs.msg import (
+    VtfPathFollowingAction,
+    VtfPathFollowingGoal,
     ObjectPosition,
     DpSetpoint
 )
@@ -29,17 +33,26 @@ class PipelineConverge(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
-        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        smach.State.__init__(self, outcomes=["succeeded"])
 
     # Callback function for the position subscriber
     def odom_cb(self, msg):
         self.odom = msg
 
     def execute(self, userdata):
-        
+
+        rospy.loginfo("hello world %s")
         # Feedback of the current state in state machine
         self.state_pub.publish(f"{self.task}/converge")
 
+        # Converge to correct height above pipeline and heading
+        #dp_goal = DpSetpoint()
+        #dp_goal.control_mode = 7  # POSE_HOLD
+        #dp_goal.setpoint = self.object.objectPose
+        #self.dp_pub.publish(dp_goal)
+
+        time.sleep(1)
+        return "succeeded"
 
 class PipelineExecute(smach.State):
     def __init__(self):
@@ -48,9 +61,30 @@ class PipelineExecute(smach.State):
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        rospy.wait_for_service("send_positions")
+        self.object = self.landmarks_client(f"{self.task}").object
+        
+        vtf_action_server = "/controllers/vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
+
+        smach.State.__init__(self, outcomes=["aborted"])
 
     def execute(self, userdata):
 
         # Feedback of the current state in state machine
         self.state_pub.publish(f"{self.task}/execute")
+
+        goal = VtfPathFollowingGoal()
+        goal.waypoints = [self.object.objectPose.pose.position]
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+        goal.heading = "path_dependent_heading"
+
+        self.vtf_client.wait_for_server()
+        self.vtf_client.send_goal(goal)
+        rate = rospy.Rate(1)
+        rate.sleep()
+        
+        return "aborted"
