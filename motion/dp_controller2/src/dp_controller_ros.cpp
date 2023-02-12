@@ -169,10 +169,10 @@ void Controller::spin() {
       m_referencepoint_pub.publish(dp_server.goal_.x_ref);        //??????
 
 
-      Eigen::Vector3d x_ref_pos;
-      Eigen::Quaterniond x_ref_ori;
-      tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
-      tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+      // Eigen::Vector3d x_ref_pos;
+      // Eigen::Quaterniond x_ref_ori;
+      // tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
+      // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
       
     
       std::vector<double> p_gain_vec, d_gain_vec;

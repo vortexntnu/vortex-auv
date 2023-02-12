@@ -36,7 +36,6 @@ class DpActionClient{
        ros::Rate rate(1);
        std::vector<double> goal_position_vec, goal_orientation_vec;
        std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff;
-
       while (ros::ok()) {
 
         if (!m_nh.getParam("/setpoint/position", goal_position_vec)) {
@@ -50,7 +49,28 @@ class DpActionClient{
         // m_nh.getParam("/setpoint/position", goal_position_vec);
         // m_nh.getParam("/setpoint/orientation", goal_orientation_vec);
         
+          actionlib::SimpleClientGoalState state = ac_.getState();
+          ROS_INFO("Action finished: %s", state.toString().c_str());
+
         if(goal_position_vec != goal_position_vec_buff || goal_orientation_vec != goal_orientation_vec_buff){
+          ac_.cancelAllGoals();
+          ros::Duration(2).sleep();
+          // while (ac_.getState() == actionlib::SimpleClientGoalState::ACTIVE) {
+          //   ros::Duration(0.5).sleep();
+          //   std::cout << std::endl << "Trying to cancel:" << std::endl; 
+          // }
+          //  while (ac_.getGoalHandle().getCommState().getPendingGoals().size() > 0) {
+          //   ros::Duration(0.1).sleep();
+          // }
+          actionlib::SimpleClientGoalState state = ac_.getState();
+          ROS_INFO("Action finished2: %s", state.toString().c_str());
+          while (state == actionlib::SimpleClientGoalState::ACTIVE ||
+            state == actionlib::SimpleClientGoalState::PENDING) {
+            ros::Duration(0.1).sleep();
+            state = ac_.getState();
+            std::cout << "TESSSST4" << std::endl;
+          }
+          
           goal_position_vec_buff = goal_position_vec;
           goal_orientation_vec_buff = goal_orientation_vec;
           Eigen::Vector3d goal_postion = Eigen::Vector3d(goal_position_vec[0], goal_position_vec[1], goal_position_vec[2]);
@@ -77,7 +97,7 @@ class DpActionClient{
     
       ROS_INFO("Finished in state [%s]", state.toString().c_str());
       ROS_INFO("Answer: %i", result->finished);
-      ros::shutdown();                // MAYBE REMOVE THIS LINE
+      // ros::shutdown();                // MAYBE REMOVE THIS LINE
     }
 
 
