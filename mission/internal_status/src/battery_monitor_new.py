@@ -136,8 +136,8 @@ class BatteryMonitor:
                 )
 
                 self.I2C_error_counter_voltage = (
-                    0
-                )  # no bus error if it reaches that line
+                    0  # no bus error if it reaches that line
+                )
                 if self.system_voltage_state != "Received":
                     self.system_voltage_state = "Received"
 

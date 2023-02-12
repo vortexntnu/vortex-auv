@@ -72,10 +72,8 @@ class BatteryMonitor:
             "/auv/battery_level/system", Float32, queue_size=1
         )
 
-        self.esc1_current_level_pub = (
-            rospy.Publisher(  # Functions for publishing current data to ROS
-                "/auv/current_level/ESC1", Float32, queue_size=1
-            )
+        self.esc1_current_level_pub = rospy.Publisher(  # Functions for publishing current data to ROS
+            "/auv/current_level/ESC1", Float32, queue_size=1
         )
 
         self.esc2_current_level_pub = rospy.Publisher(
