@@ -149,7 +149,6 @@ def read_current():
 
 
 while True:
-
     cmd = "hostname -I | cut -d' ' -f1"
 
     # Draw a black filled box to clear the image.

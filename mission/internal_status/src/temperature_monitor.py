@@ -11,7 +11,6 @@ from std_msgs.msg import Int32
 
 class TemperatureMonitor:
     def __init__(self):
-
         rospy.init_node("temperature_monitor")
 
         # Settings
@@ -34,13 +33,11 @@ class TemperatureMonitor:
         )
 
     def measure_temp(self):
-
         # Record output from temperature meter command, decode from bytes object to string, convert from string to integer
 
         stats = self.process.stdout.readlines()[-1].decode("utf-8")
 
         if stats != "":
-
             cpu_search = re.search("CPU@(" + self.temperature_template + ")C", stats)
             gpu_search = re.search("GPU@(" + self.temperature_template + ")C", stats)
 
@@ -50,7 +47,6 @@ class TemperatureMonitor:
     def spin(self):
         # Main loop
         while not rospy.is_shutdown():
-
             self.measure_temp()
             self.cpu_temperature_pub.publish(self.cpu_temperature)
             self.gpu_temperature_pub.publish(self.gpu_temperature)
@@ -59,6 +55,5 @@ class TemperatureMonitor:
 
 
 if __name__ == "__main__":
-
     tm = TemperatureMonitor()
     tm.spin()

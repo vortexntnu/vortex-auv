@@ -31,7 +31,6 @@ class LightsInterfaceNode:
         self.last_press = datetime.now()
 
     def callback(self, joy_msg):
-
         button = joy_msg.buttons[7]
 
         if (
@@ -39,7 +38,6 @@ class LightsInterfaceNode:
         ):  # only handle non-zero messages, since the joy topic is spammed
             time_delta = datetime.now() - self.last_press
             if time_delta.total_seconds() > self.cooldown_period:
-
                 if self.light_state != active:
                     rospy.loginfo("Lights on!")
                     self.publish_pwm_msg(PWM_HIGH)

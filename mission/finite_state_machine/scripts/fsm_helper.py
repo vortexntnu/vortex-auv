@@ -42,7 +42,6 @@ class ControlModeEnum(IntEnum):
 
 
 def dp_move(x, y, z=-0.5, yaw_rad=0):
-
     goal = MoveBaseGoal()
     goal.target_pose.pose.position = Point(x, y, z)
     goal.target_pose.pose.orientation = Quaternion(
@@ -136,14 +135,12 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
 
 
 def patrol_sequence(action_states):
-
     sm = Sequence(
         outcomes=["preempted", "succeeded", "aborted"], connector_outcome="succeeded"
     )
     counter = 0
 
     with sm:
-
         for state in action_states:
             counter = counter + 1
             sm.add("State-%d" % counter, state)
@@ -187,7 +184,6 @@ def allign_with_target(target):
     )
 
     with allignment_attempt:
-
         Concurrence.add(
             "CIRCLE_GATE",
             SimpleActionState("controller/move", MoveAction, goal=move_goal),  # TODO

@@ -8,7 +8,6 @@ from geometry_msgs.msg import Twist
 
 
 def callback(config, level):
-
     velocity_server = rospy.get_param(
         "/controllers/velocity_controller/desired_velocity_topic"
     )

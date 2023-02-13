@@ -104,7 +104,6 @@ class JoyGuidance:
 
 class GuidanceInterface:
     def __init__(self):
-
         self.joy_guidance = JoyGuidance(
             guidance_interface=self,
             action_server_name="/guidance_interface/joystick_server",

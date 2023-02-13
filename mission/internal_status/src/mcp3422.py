@@ -4,8 +4,9 @@ import busio
 
 i2c = busio.I2C(board.SCL, board.SDA)
 
+
 class MCP3422:
-    RESOLUTION_BITS = 0b11 # Resolution = 18 bits
+    RESOLUTION_BITS = 0b11  # Resolution = 18 bits
     CHANNEL_ARRAY = {0: 0b00, 1: 0b01}
     GAIN_BITS = 0b00  # Gain == 1
     ADDRESS = 0x69
@@ -38,8 +39,8 @@ class MCP3422:
         number = (result[0] & 0b1) << 16 | result[1] << 8 | result[2]
         if result[0] & 0b10 == 1:
             number = -1 * number
-        number = number * 15.625 
-        return number 
+        number = number * 15.625
+        return number
 
     def get_voltage_from_reading(self) -> float:
         """get the analog voltage from reading
