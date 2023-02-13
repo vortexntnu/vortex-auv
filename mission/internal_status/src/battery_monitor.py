@@ -7,8 +7,10 @@ import glob
 import logging
 import rospy
 import smbus
-from MCP342x import MCP342x
+import board
 from std_msgs.msg import Float32
+
+from mcp3422 import MCP3422
 
 
 class BatteryMonitor:
@@ -18,29 +20,18 @@ class BatteryMonitor:
 
         # Parameters
         # to read voltage and current from ADC on PDB through I2C
-        self.I2C_Adress = 0x69
+        self.i2c_adress = 0x69
 
         # init of I2C bus communication
         self.bus = smbus.SMBus(1)
-        self.channel_Volatage = MCP342x(
-            self.bus, self.I2C_Adress, channel=0, resolution=18
-        )  # voltage
-        self.channel_Current = MCP342x(
-            self.bus, self.I2C_Adress, channel=1, resolution=18
-        )  # current
+        self.channel_voltage = MCP3422(channel=0)  # voltage
+        self.channel_current = MCP3422(channel=1)  # current
         time.sleep(1)
 
-        # Calibration values for converting from raw digital binary form to decimal form
-        # Calibration values were manualy calibrated to +- 0.1V acuracy!
-        self.ADC_convertionRatio = 1.636579823702253
-        self.ADC_ofset = 0.04321161085945153
-        self.IIR_filter_coeff = 10
-
         # these 4 needs to be changed
-        self.calVoltageScaleFactor = 1.0
-        self.calVoltageOffset = 0.0
-        self.calCurrentScaleFactor = 0.011
-        self.calCurrentOffset = 0.0
+        self.psm_to_battery_voltage = 11.0 # V/V
+        self.psm_to_battery_current_scale_factor = 37.8788 # A/V
+        self.psm_to_battery_current_offset = 0.330 # V
 
         # getting params in the ROS-config file (beluga.yaml)
         self.critical_level = rospy.get_param(
@@ -87,6 +78,7 @@ class BatteryMonitor:
         """Read voltage of system from bootleg ADC."""
 
         self.read_voltage()
+
         self.system_battery_level_pub.publish(self.system_voltage)
 
         self.read_PSM_current()
@@ -104,7 +96,7 @@ class BatteryMonitor:
             self.log_voltage(self.system_voltage, "system")
         if self.system_voltage_state == "Error":
             rospy.logwarn(
-                f"I2C Bus IOerror. Voltage error counter : {self.I2C_error_counter_voltage}"
+                f"I2C Bus IOerror"
             )
         if self.system_voltage_state == "No receive":
             rospy.loginfo("No voltage recieved from system yet.")
@@ -123,55 +115,30 @@ class BatteryMonitor:
 
     def read_voltage(self):
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
-        voltage_buffer = 0
-        for i in range(self.IIR_filter_coeff):
-            try:
-                ADC_voltage_measured = (
-                    self.channel_Volatage.convert_and_read() * self.ADC_convertionRatio
-                    - self.ADC_ofset
-                )
-                voltage_buffer += (
-                    ADC_voltage_measured * self.calVoltageScaleFactor
-                    + self.calVoltageOffset
-                )
+        try:
+            self.system_voltage = self.channel_voltage.get_voltage_from_reading() * self.psm_to_battery_voltage
 
-                self.I2C_error_counter_voltage = (
-                    0  # no bus error if it reaches that line
-                )
-                if self.system_voltage_state != "Received":
-                    self.system_voltage_state = "Received"
+            if self.system_voltage_state != "Received":
+                self.system_voltage_state = "Received"
 
-            except IOError:
-                self.I2C_error_counter_voltage += 1
-                self.system_voltage_state = "Error"
-                rospy.logwarn(
-                    f"I2C Bus IOerror. Voltage error counter : {self.I2C_error_counter_voltage}"
-                )  # for debug
-
-        self.system_voltage = round(voltage_buffer / self.IIR_filter_coeff, 3)
+        except IOError:
+            self.I2C_error_counter_voltage += 1
+            self.system_voltage_state = "Error"
+            rospy.logwarn(
+                f"I2C Bus IOerror"
+            )  # for debug
 
     def read_PSM_current(self):
-        current_buffer = 0
-        for i in range(self.IIR_filter_coeff):
-            try:
-                ADC_current_measured = (
-                    self.channel_Current.convert_and_read() * self.ADC_convertionRatio
-                    - self.ADC_ofset
-                )
-                current_buffer += (
-                    ADC_current_measured * self.calCurrentScaleFactor
-                    + self.calCurrentOffset
-                )
+        try:
+            self.system_current = (self.channel_current.get_voltage_from_reading() + self.psm_to_battery_current_offset) * self.psm_to_battery_current_scale_factor
 
-                if self.system_current_state != "Received":
-                    self.system_current_state = "Received"
+            if self.system_current_state != "Received":
+                self.system_current_state = "Received"
 
-            except IOError:
-                self.I2C_error_counter_current += 1
-                self.system_current_state = "Error"
-                # rospy.logwarn(f"I2C Bus IOerror. Voltage error counter : {self.I2C_error_counter_current}")
-
-        self.system_current = round(current_buffer / self.IIR_filter_coeff, 3)
+        except IOError:
+            self.I2C_error_counter_current += 1
+            self.system_current_state = "Error"
+            # rospy.logwarn(f"I2C Bus IOerror. Voltage error counter : {self.I2C_error_counter_current}")
 
     def shutdown(self):
         self.system_timer.shutdown()

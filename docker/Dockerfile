@@ -48,7 +48,8 @@ RUN pip install \
     pyquaternion \
     quadprog \
     sklearn \
-    MCP342x \
+    board \
+    busio \
     enum34
 
 # Here we assume that the root contains vortex-auv, vortex-msgs and robot_localization
