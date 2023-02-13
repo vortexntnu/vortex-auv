@@ -28,7 +28,7 @@ class BatteryMonitor:
         self.channel_current = MCP3422(channel=1)  # current
         time.sleep(1)
 
-        # these 4 needs to be changed
+        # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
         self.psm_to_battery_voltage = 11.0 # V/V
         self.psm_to_battery_current_scale_factor = 37.8788 # A/V
         self.psm_to_battery_current_offset = 0.330 # V
