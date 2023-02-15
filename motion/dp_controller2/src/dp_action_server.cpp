@@ -6,13 +6,30 @@
 
 
 
+
+
+ Eigen::Vector3d SmallestAngle(Eigen::Vector3d euler_angles){
+    Eigen::Vector3d smallest_euler_angles = Eigen::Vector3d::Zero();
+    for (int i = 0; i < euler_angles.size(); i++){
+        if (euler_angles(i) > M_PI){
+            smallest_euler_angles(i) = euler_angles(i) - 2*M_PI;
+        }
+        else if (euler_angles(i) < -M_PI){
+            smallest_euler_angles(i) = euler_angles(i) + 2*M_PI;
+        }
+        else {
+            smallest_euler_angles(i) = euler_angles(i);
+        }
+    }
+    
+    return smallest_euler_angles;
+}
+
 //Quaternion to Euler
 Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q){
 Eigen::Vector3d euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
 return euler;
 }
-
-
 
 
 DpAction::DpAction(std::string name) : as_(nh_, name, boost::bind(&DpAction::executeCB, this, _1), false),
@@ -38,7 +55,7 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
 
   Eigen::Vector6d error = Eigen::Vector6d::Zero();
 
-  while(!as_.isPreemptRequested() && ros::ok()){
+  while(!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable()){
     run_controller = true;
     feedback_.error.clear();
 
@@ -60,6 +77,11 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
 
     for (int i = 0; i < 6; i++){
       feedback_.error.push_back(error[i]);
+    }
+
+    std::cout << std::endl << "check for new goal" << std::endl;
+    if (as_.isNewGoalAvailable()){
+      std::cout << std::endl << "new goal" << std::endl;
     }
 
      // publish the feedback
@@ -89,7 +111,7 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
 
   //if(!success) as_.setPreempted();
   as_.setPreempted();
-  run_controller = false;
+  // run_controller = false;
 
   // feedback_.sequence.clear();
   // feedback_.sequence.push_back(0);

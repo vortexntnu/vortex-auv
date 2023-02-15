@@ -4,6 +4,8 @@ setpoint:
 
   orientation: [0, 0, 0]
 
+  DOF: [1, 1, 0, 0, 0, 0]
+
 
 
 # changing position in terminal with: rosparam set /setpoint/position [1,2,3]

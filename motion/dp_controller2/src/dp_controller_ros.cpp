@@ -194,6 +194,8 @@ void Controller::spin() {
       p_gain << p_gain_vec[0], p_gain_vec[1], p_gain_vec[2], p_gain_vec[3], p_gain_vec[4], p_gain_vec[5];
       d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3], d_gain_vec[4], d_gain_vec[5];
 
+      std::cout << std::endl << "p_gain: " << p_gain << std::endl;
+
       m_controller.update_gain(p_gain, d_gain);
       
 

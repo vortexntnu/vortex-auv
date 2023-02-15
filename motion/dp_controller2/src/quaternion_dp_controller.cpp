@@ -16,8 +16,6 @@ int QuaternionPIDController::sgn(double x) {
 }
 
 
-
-
 Eigen::Vector6d QuaternionPIDController::errorVector(
     const Eigen::Vector3d &x, const Eigen::Vector3d &x_d,
     const Eigen::Quaterniond &q, const Eigen::Quaterniond &q_d) {
@@ -32,11 +30,11 @@ Eigen::Vector6d QuaternionPIDController::errorVector(
 
 Eigen::Matrix6d QuaternionPIDController::proportionalGainMatrix(const Eigen::Matrix3d R) {
   Eigen::Matrix3d m_c = Eigen::Matrix3d::Zero();
-  m_c.diagonal() << m_p_gain.segment(0,3);
+  m_c.diagonal() << m_p_gain.segment(3,3);
   std::cout << std::endl << "P_gain: " << m_p_gain.segment(0,3) << std::endl;
   Eigen::Matrix3d m_K_x = Eigen::Matrix3d::Zero();
   std::cout << "DEBUG1" << std::endl;
-  m_K_x.diagonal() << m_p_gain.segment(3,3);
+  m_K_x.diagonal() << m_p_gain.segment(0,3);
   std::cout << "DEBUG2" << std::endl;
   return (Eigen::Matrix6d() << R.transpose() * m_K_x,
           Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd::Zero(3, 3),
