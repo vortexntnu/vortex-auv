@@ -11,7 +11,7 @@ class MCP3422:
     CHANNEL_ARRAY = {0: 0b00, 1: 0b01}
     GAIN_BITS = 0b00  # Gain == 1
     ADDRESS = 0x69
-    CONFIGURING_DELAY = 0.3 # A small delay to make sure we dont take in old i2c channel data while we are stil reconfiguring i2c buss
+    CONFIGURING_DELAY = 0.3 # A small delay to make sure we dont take in old i2c channel data while we are still reconfiguring i2c buss
 
     def __init__(self, channel):
         self.channel = channel

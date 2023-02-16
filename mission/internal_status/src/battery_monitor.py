@@ -76,7 +76,7 @@ class BatteryMonitor:
     def system_cb(self, event):
         """Read voltage of system from bootleg ADC."""
 
-        self.read_voltage()
+        self.read_PSM_voltage()
 
         self.system_battery_level_pub.publish(self.system_voltage)
 
@@ -110,7 +110,7 @@ class BatteryMonitor:
         else:
             rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
 
-    def read_voltage(self):
+    def read_PSM_voltage(self):
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
         try:
             self.system_voltage = (
