@@ -13,7 +13,6 @@ from mcp3422 import MCP3422
 
 class BatteryMonitor:
     def __init__(self):
-
         # Parameters
         # to read voltage and current from ADC on PDB through I2C
         self.i2c_adress = 0x69
@@ -31,11 +30,11 @@ class BatteryMonitor:
         # Local variables
         self.system_voltage = 0.0
         self.system_current = 0.0
-        
+
     def print_voltage_test(self):
         self._read_voltage()
         self._read_PSM_current()
-        
+
         print(f">Voltage : {self.system_voltage} V")
         print(f">Current : {self.system_current} A")
         print()
@@ -48,7 +47,6 @@ class BatteryMonitor:
                 * self.psm_to_battery_voltage
             )
 
-
         except IOError:
             self.I2C_error_counter_voltage += 1
 
@@ -58,7 +56,6 @@ class BatteryMonitor:
                 self.channel_current.get_voltage_from_reading()
                 + self.psm_to_battery_current_offset
             ) * self.psm_to_battery_current_scale_factor
-
 
         except IOError:
             self.I2C_error_counter_current += 1
@@ -71,8 +68,7 @@ class BatteryMonitor:
 
 if __name__ == "__main__":
     bm = BatteryMonitor()
-    
+
     while True:
         bm.print_voltage_test()
         time.sleep(1)
-   
