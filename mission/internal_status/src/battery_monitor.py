@@ -55,11 +55,14 @@ class BatteryMonitor:
             "No receive"  # should only be "No receive", "Error", "Received"
         )
 
-        self.system_battery_level_pub = rospy.Publisher(
+        # Create ROS publishers
+        self.system_voltage_level_pub = rospy.Publisher(
             "/auv/battery_level/system", Float32, queue_size=1
         )
 
-        # create current ROS publisher here, if needed
+        self.system_current_level_pub = rospy.Publisher(
+            "/auv/current_level/system", Float32, queue_size=1
+        )
 
         # set up callbacks
         self.log_timer = rospy.Timer(
@@ -74,14 +77,11 @@ class BatteryMonitor:
         rospy.loginfo("BatteryMonitor initialized")
 
     def system_cb(self, event):
-        """Read voltage of system from bootleg ADC."""
-
         self.read_PSM_voltage()
-
-        self.system_battery_level_pub.publish(self.system_voltage)
-
         self.read_PSM_current()
-        # publish current here if needed
+
+        self.system_voltage_level_pub.publish(self.system_voltage)
+        self.system_current_level_pub.publish(self.system_current)
 
         if self.system_voltage < self.critical_level:
             rospy.logerr(
@@ -98,17 +98,28 @@ class BatteryMonitor:
         if self.system_voltage_state == "No receive":
             rospy.loginfo("No voltage recieved from system yet.")
 
-        # if needed for current, same structure
+        if self.system_current_state == "Received":
+            self.log_current(self.system_current, "system")
+        if self.system_current_state == "Error":
+            rospy.logwarn(f"I2C Bus IOerror")
+        if self.system_current_state == "No receive":
+            rospy.loginfo("No current recieved from system yet.")
 
     def log_voltage(self, voltage, title):
         if voltage == 0:
             rospy.loginfo("Voltage is zero. Killswitch is probably off.")
 
         elif voltage <= self.warning_level:
-            rospy.logwarn("%s voltage: %.3fV" % (title, voltage))
+            rospy.logwarn("%s voltage: %.3f V" % (title, voltage))
 
         else:
-            rospy.loginfo("%s voltage: %.3fV" % (title, voltage))
+            rospy.loginfo("%s voltage: %.3f V" % (title, voltage))
+
+    def log_current(self, current, title):
+        if current <= 0:
+            rospy.loginfo("No current draw...")
+        else:
+            rospy.loginfo("%s current: %.3f A" % (title, current))
 
     def read_PSM_voltage(self):
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
