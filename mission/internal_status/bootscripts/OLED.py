@@ -1,7 +1,6 @@
 # NOTE! Read Wortex Wiki for uses
 # URL: http://vortex.a2hosted.com/index.php/Beluga_User_Interface_(OLED)
 #!/usr/bin/python3
-
 import time
 import smbus
 import subprocess
@@ -19,11 +18,22 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-sys.path.append(
-    "/home/ubuntu/vortex_ws/src/Vortex-AUV/mission/internal_status/src/"
-)  # Import ADC i2c driver from different folder
-print(sys.path)
-from mcp3422 import MCP3422
+"""
+Set path for libraries outside of range
+- Go to parent directory
+- Go into other folder and import different library from the same parent but different child
+- Visualized:
+
+internal_status/
+    bootscripts/
+        OLED.py
+    src/
+        battery_monitor.py
+        mcp3422.py   <---  (We are getting this file)
+"""
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+from src.mcp3422 import MCP3422
 
 
 # Raspberry Pi pin configuration:
