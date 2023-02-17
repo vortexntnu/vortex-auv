@@ -11,7 +11,7 @@ class MCP3422:
     CHANNEL_ARRAY = {0: 0b00, 1: 0b01}
     GAIN_BITS = 0b00  # Gain == 1
     ADDRESS = 0x69
-    CONFIGURING_DELAY = 0.3 # 0.3 s
+    CONFIGURING_DELAY = 0.3  # 0.3 s
 
     def __init__(self, channel):
         self.channel = channel
@@ -36,7 +36,9 @@ class MCP3422:
         while not i2c.try_lock():
             pass
         self._set_adc_channel()
-        time.sleep(MCP3422.CONFIGURING_DELAY) # A small delay to make sure we dont take in old i2c channel data while we are still reconfiguring i2c buss
+        time.sleep(
+            MCP3422.CONFIGURING_DELAY
+        )  # A small delay to make sure we dont take in old i2c channel data while we are still reconfiguring i2c buss
 
         # Read PSM values from ADC
         number = 0
