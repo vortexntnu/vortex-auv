@@ -114,6 +114,10 @@ psm_to_battery_voltage = 11.0  # V/V
 psm_to_battery_current_scale_factor = 37.8788  # A/V
 psm_to_battery_current_offset = 0.330  # V
 
+# Variable to take average of voltage to make signal more stable
+average_of = 10
+
+# Variables that will show up on the screen
 xavier_IP = ""
 system_voltage = 0
 system_current = 0
@@ -131,26 +135,37 @@ def func_check(func):
 
 
 def read_PSM_voltage():
-    # Sometimes an I/O timeout or error happens, it will run again when the error disappears
-    try:
-        voltage = channel_voltage.get_voltage_from_reading() * psm_to_battery_voltage
+    # Read ADC values a set amount and take average to make signal more stable
+    voltage = 0
+    for i in range(average_of):
+        # Sometimes an I/O timeout or error happens, it will run again when the error disappears
+        try:
+            voltage += (
+                channel_voltage.get_voltage_from_reading() * psm_to_battery_voltage
+            )
 
-    except IOError:
-        voltage = 0
+        except IOError:
+            voltage = 0
+            break
 
-    return voltage
+    return voltage / average_of
 
 
 def read_PSM_current():
-    try:
-        current = (
-            channel_current.get_voltage_from_reading() + psm_to_battery_current_offset
-        ) * psm_to_battery_current_scale_factor
+    # Read ADC values a set amount and take average to make signal more stable
+    current = 0
+    for i in range(average_of):
+        try:
+            current += (
+                channel_current.get_voltage_from_reading()
+                + psm_to_battery_current_offset
+            ) * psm_to_battery_current_scale_factor
 
-    except IOError:
-        current = 0
+        except IOError:
+            current = 0
+            break
 
-    return current
+    return current / average_of
 
 
 while True:
