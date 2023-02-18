@@ -15,19 +15,13 @@ def main():
         StateMachine.add(
             "DOCKING_SEARCH",
             DockingSearch(),
-            transitions = {"succeeded": "DOCKING_CONVERGE", "aborted": "MANUAL_MODE"}
-        )
-
-        StateMachine.add(
-            "DOCKING_CONVERGE",
-            DockingConverge(),
-            transitions = {"succeeded": "DOCKING_EXECUTE", "aborted": "DOCKING_SEARCH"}
+            transitions = {"succeeded": "DOCKING_EXECUTE", "aborted": "MANUAL_MODE"}
         )
 
         StateMachine.add(
             "DOCKING_EXECUTE",
             DockingExecute(),
-            transitions = {"succeeded": "MANUAL_MODE" , "aborted": "VALVE_CONVERGE"}
+            transitions = {"succeeded": "MANUAL_MODE" , "aborted": "DOCKING_SEARCH"}
         )
 
 
