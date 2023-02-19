@@ -4,7 +4,7 @@
 
 #include "dp_controller2/dp_controller_ros.h"
 #include "dp_controller2/dp_action_server.h"
-
+#include <std_msgs/Float32.h>
 
 
 //Roll pitch and yaw in Radians
@@ -20,8 +20,25 @@ Eigen::Quaterniond Controller::EulerToQuaterniond(double roll, double pitch, dou
 
 //Quaternion to Euler
 Eigen::Vector3d Controller::QuaterniondToEuler(Eigen::Quaterniond q){
-Eigen::Vector3d euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
-return euler;
+ // Compute roll (x-axis rotation)
+    double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
+    double cosr_cosp = 1 - 2 * (q.x() * q.x() + q.y() * q.y());
+    double roll = std::atan2(sinr_cosp, cosr_cosp);
+
+    // Compute pitch (y-axis rotation)
+    double sinp = 2 * (q.w() * q.y() - q.z() * q.x());
+    double pitch;
+    if (std::abs(sinp) >= 1)
+        pitch = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+    else
+        pitch = std::asin(sinp);
+
+    // Compute yaw (z-axis rotation)
+    double siny_cosp = 2 * (q.w() * q.z() + q.x() * q.y());
+    double cosy_cosp = 1 - 2 * (q.y() * q.y() + q.z() * q.z());
+    double yaw = std::atan2(siny_cosp, cosy_cosp);
+
+    return Eigen::Vector3d(roll, pitch, yaw);
 }
 
 
@@ -89,7 +106,8 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   //Publishers
   m_referencepoint_pub = m_nh.advertise<geometry_msgs::Pose>("/dp_data/reference_point", 1, this);
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
-
+  m_reference_return_DEBUG_pub = m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG", 1, this);
+  m_reference_return_DEBUG2_pub = m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG2", 1, this);
 
   //m_controller = QuaternionPIDController(2.0);
   // m_controller = QuaternionPIDController(W, B, r_G, r_B);
@@ -201,7 +219,9 @@ void Controller::spin() {
 
       std::cout << "TESSSST5" << std::endl;
     }
-  
+      std::cout << std::endl << "Orientation:" << std::endl << orientation.coeffs() << std::endl;
+      std::cout << std::endl << QuaterniondToEuler(orientation) << std::endl;
+
       Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);       
       dp_server.pose << position, orientation_euler;
 
@@ -238,11 +258,25 @@ void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_ms
   tf::pointMsgToEigen(desired_msg.poses[0].position, eta_d_pos);
   tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_d_ori);
 
+  Eigen::Vector3d euler_d_buff = QuaterniondToEuler(eta_d_ori);
+  eta_d_ori = EulerToQuaterniond(euler_d_buff(0)/10.0,euler_d_buff(1)/10.0, euler_d_buff(2)/10.0); 
+
+
   tf::pointMsgToEigen(desired_msg.poses[1].position, eta_dot_d_pos);
   tf::quaternionMsgToEigen(desired_msg.poses[1].orientation, eta_dot_d_ori);
 
   eta_d << eta_d_pos, eta_d_ori.w(), eta_d_ori.vec();
   eta_dot_d << eta_dot_d_pos, eta_dot_d_ori.w(), eta_dot_d_ori.vec();
+  std_msgs::Float32 debug_msg;
+  Eigen::Vector3d Debug_vec = QuaterniondToEuler(eta_d_ori);
+  debug_msg.data = Debug_vec(2)*180/M_PI;
+  m_reference_return_DEBUG_pub.publish(debug_msg);
+
+  Eigen::Quaterniond q_tilde = eta_d_ori.conjugate() * orientation;
+  std_msgs::Float32 debug2_msg;
+  debug2_msg.data = QuaterniondToEuler(q_tilde)(2)*180/M_PI;
+  m_reference_return_DEBUG2_pub.publish(debug2_msg); 
+
 
 }
 

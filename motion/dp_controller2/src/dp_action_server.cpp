@@ -7,7 +7,6 @@
 
 
 
-
  Eigen::Vector3d SmallestAngle(Eigen::Vector3d euler_angles){
     Eigen::Vector3d smallest_euler_angles = Eigen::Vector3d::Zero();
     for (int i = 0; i < euler_angles.size(); i++){
@@ -27,8 +26,25 @@
 
 //Quaternion to Euler
 Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q){
-Eigen::Vector3d euler = q.toRotationMatrix().eulerAngles(0, 1, 2);
-return euler;
+ // Compute roll (x-axis rotation)
+    double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
+    double cosr_cosp = 1 - 2 * (q.x() * q.x() + q.y() * q.y());
+    double roll = std::atan2(sinr_cosp, cosr_cosp);
+
+    // Compute pitch (y-axis rotation)
+    double sinp = 2 * (q.w() * q.y() - q.z() * q.x());
+    double pitch;
+    if (std::abs(sinp) >= 1)
+        pitch = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+    else
+        pitch = std::asin(sinp);
+
+    // Compute yaw (z-axis rotation)
+    double siny_cosp = 2 * (q.w() * q.z() + q.x() * q.y());
+    double cosy_cosp = 1 - 2 * (q.y() * q.y() + q.z() * q.z());
+    double yaw = std::atan2(siny_cosp, cosy_cosp);
+
+    return Eigen::Vector3d(roll, pitch, yaw);
 }
 
 
@@ -69,23 +85,15 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
     std::cout << std::endl << x_ref_pos << std::endl;
     std::cout << std::endl << pose.segment(0,3) << std::endl;
 
+
     Eigen::Vector3d error_ori = QuaterniondToEuler(x_ref_ori) - pose.segment(3,3);
+    std::cout << std::endl << "error ori:" << std::endl << error_ori << std::endl;
+    std::cout << std::endl << SmallestAngle(error_ori) << std::endl;
+    std::cout << std::endl << x_ref_ori.coeffs() << std::endl;
+    std::cout << std::endl << QuaterniondToEuler(x_ref_ori) << std::endl;
+    std::cout << std::endl <<  pose.segment(3,3) << std::endl;
+    error << error_pos, SmallestAngle(error_ori);
 
-    error << error_pos, error_ori;
-
-
-
-    for (int i = 0; i < 6; i++){
-      feedback_.error.push_back(error[i]);
-    }
-
-    std::cout << std::endl << "check for new goal" << std::endl;
-    if (as_.isNewGoalAvailable()){
-      std::cout << std::endl << "new goal" << std::endl;
-    }
-
-     // publish the feedback
-    as_.publishFeedback(feedback_);
     Eigen::VectorXd DOF = Eigen::VectorXd::Zero(6,1);
     for (int i = 0; i < 6; i++){
         // std::cout << "DOF:" << i << std::endl;
@@ -93,6 +101,20 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal)
       }
     std::cout << "DOF:" << DOF << std::endl;
     error = DOF.cwiseProduct(error);
+
+
+    for (int i = 0; i < 6; i++){
+      feedback_.error.push_back(error[i]);
+    }
+
+    // std::cout << std::endl << "check for new goal" << std::endl;
+    // if (as_.isNewGoalAvailable()){
+    //   std::cout << std::endl << "new goal" << std::endl;
+    // }
+
+     // publish the feedback
+    as_.publishFeedback(feedback_);
+
     double distance_from_goal = error.segment(0,3).norm();
     std::cout << std::endl << "avstand fra målet:" << std::endl << distance_from_goal << std::endl;
     std::cout << std::endl << "feil:" << std::endl << error << std::endl;

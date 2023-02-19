@@ -101,6 +101,12 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref){
     eta_d = x_d.segment(0,7);
 
     eta_dot_d = x_d.segment(7,7);
+    Eigen::VectorXd saturation_vec = Eigen::VectorXd::Zero(7);
+    saturation_vec << 1.0, 1.0, 1.0, 1.0/6.0, 1.0/6.0, 1.0/6.0, 1.0/6.0;
+    double vel_sat = 1.0;
+    for (int i = 0; i < 7; i++){
+      eta_dot_d(i) = std::max(std::min(eta_dot_d(i), saturation_vec(i)), -saturation_vec(i));
+    }
 
     // Normalizing desired quaternion
     Eigen::Quaterniond quat_d(eta_d(3), eta_d(4), eta_d(5), eta_d(6));
