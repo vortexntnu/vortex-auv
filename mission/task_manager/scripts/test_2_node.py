@@ -4,11 +4,11 @@ import rospy
 
 class MyNode2:
     def __init__(self):
-        self.enabled = rospy.get_param("/tasks/task_1")
+        self.enabled = rospy.get_param("/tasks/task_2")
 
     def spin(self):
         while not rospy.is_shutdown():
-            self.enabled = rospy.get_param("/tasks/task_1")
+            self.enabled = rospy.get_param("/tasks/task_2")
 
             if self.enabled:
                 rospy.loginfo("test 2; Inside callback")
