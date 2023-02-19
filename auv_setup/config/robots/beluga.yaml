@@ -229,8 +229,6 @@ torpedo:
   gpio_pin: 15
 
 tasks:
-  task_1: False
-  task_2: False
   joystick: True
   valve_vertical: False
   valve_horisontal: False

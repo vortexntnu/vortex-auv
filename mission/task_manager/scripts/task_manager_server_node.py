@@ -6,90 +6,22 @@ from task_manager.cfg import BelugaFSMConfig
 
 from task_manager_defines import defines
 
-import test_1_node
-import test_2_node
-
 
 def callback(config, level):
     rospy.loginfo("""State change request: {Tac_states}""".format(**config))
+    active_task_id = config["Tac_states"]
 
-    if config["Tac_states"] == defines.Tasks.test_1.id:
-        # Stop all other nodes from last state.
-        rospy.set_param("/tasks/task_2", False)
-        rospy.set_param("/tasks/joystick", False)
-        rospy.set_param("/tasks/valve_vertical", False)
-        rospy.set_param("/tasks/valve_horisontal", False)
-        rospy.set_param("/tasks/pipeline_inspection", False)
-        # Start the node here
-        rospy.set_param("/tasks/task_1", True)
+    for task in defines.Tasks.tasks:
+        rospy.set_param(f"/tasks/{task.name}", False)
 
-        param = rospy.get_param("/tasks/task_1")
-        rospy.loginfo("Test 1 started, %s", param)
+        # param = rospy.get_param(f"/tasks/{task.name}")
+        # rospy.loginfo(f"Inactive task name: {task.name}, true/false: {param}")
 
-    if config["Tac_states"] == defines.Tasks.test_2.id:
-        # Stop all other nodes from last state.
-        rospy.set_param("/tasks/task_1", False)
-        rospy.set_param("/tasks/joystick", False)
-        rospy.set_param("/tasks/valve_vertical", False)
-        rospy.set_param("/tasks/valve_horisontal", False)
-        rospy.set_param("/tasks/pipeline_inspection", False)
-        # Start the node here
-        rospy.set_param("/tasks/task_2", True)
+        if task.id == active_task_id:
+            rospy.set_param(f"/tasks/{task.name}", True)
 
-        param = rospy.get_param("/tasks/task_2")
-        rospy.loginfo("Test 2 started, %s", param)
-
-    if config["Tac_states"] == defines.Tasks.joystick:
-        # Stop all other nodes from last state.
-        rospy.set_param("/tasks/task_1", False)
-        rospy.set_param("/tasks/task_2", False)
-        rospy.set_param("/tasks/valve_vertical", False)
-        rospy.set_param("/tasks/valve_horisontal", False)
-        rospy.set_param("/tasks/pipeline_inspection", False)
-        # Start the node here
-        rospy.set_param("/tasks/joystick", True)
-
-        param = rospy.get_param("/tasks/joystick")
-        rospy.loginfo("joystick mode started, %s", param)
-
-    if config["Tac_states"] == defines.Tasks.valve_vertical:
-        # Stop all other nodes from last state.
-        rospy.set_param("/tasks/task_1", False)
-        rospy.set_param("/tasks/task_2", False)
-        rospy.set_param("/tasks/joystick", False)
-        rospy.set_param("/tasks/valve_horisontal", False)
-        rospy.set_param("/tasks/pipeline_inspection", False)
-        # Start the node here
-        rospy.set_param("/tasks/valve_vertical", True)
-
-        param = rospy.get_param("/tasks/valve_vertical")
-        rospy.loginfo("valve_vertical mode started, %s", param)
-
-    if config["Tac_states"] == defines.Tasks.valve_horisontal:
-        # Stop all other nodes from last state.
-        rospy.set_param("/tasks/task_1", False)
-        rospy.set_param("/tasks/task_2", False)
-        rospy.set_param("/tasks/joystick", False)
-        rospy.set_param("/tasks/valve_vertical", False)
-        rospy.set_param("/tasks/pipeline_inspection", False)
-        # Start the node here
-        rospy.set_param("/tasks/valve_horisontal", True)
-
-        param = rospy.get_param("/tasks/valve_horisontal")
-        rospy.loginfo("valve_horisontal mode started, %s", param)
-
-    if config["Tac_states"] == defines.Tasks.pipeline_inspection:
-        # Stop all other nodes from last state.
-        rospy.set_param("/tasks/task_1", False)
-        rospy.set_param("/tasks/task_2", False)
-        rospy.set_param("/tasks/joystick", False)
-        rospy.set_param("/tasks/valve_vertical", False)
-        rospy.set_param("/tasks/valve_horisontal", False)
-        # Start the node here
-        rospy.set_param("/tasks/pipeline_inspection", True)
-
-        param = rospy.get_param("/tasks/pipeline_inspection")
-        rospy.loginfo("pipeline_inspection started, %s", param)
+            # param = rospy.get_param(f"/tasks/{task.name}")
+            # rospy.loginfo(f"Active task name: {task.name}, true/false: {param}")
 
     return config
 

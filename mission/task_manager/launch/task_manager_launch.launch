@@ -6,8 +6,6 @@
     <group ns="task_manager">
         <node name="client"         pkg ="task_manager"    type="task_manager_client_node.py"   output="screen"/>
         <node name="server"         pkg ="task_manager"    type="task_manager_server_node.py"   output="screen"/>
-        <node name="test_task_1"    pkg ="task_manager"    type="test_1_node.py"           output="screen"/>
-        <node name="test_task_2"    pkg ="task_manager"    type="test_2_node.py"           output="screen"/>
     </group>
 
 </launch>
