@@ -235,4 +235,5 @@ tasks:
   valve_vertical: False
   valve_horisontal: False
   pipeline_inspection: False
+  docking: False
 
