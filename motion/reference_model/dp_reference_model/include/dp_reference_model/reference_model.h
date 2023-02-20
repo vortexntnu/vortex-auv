@@ -40,8 +40,7 @@ private:
 
   /* Positions */
   Eigen::Vector3d x_d_prev; /** Previous desired body position            */
-  Eigen::Vector3d
-      x_d_prev_prev;          /** Previous previous desired body position   */
+  Eigen::Vector3d x_d_prev_prev; /** Previous previous desired body position */
   Eigen::Vector3d x_ref_prev; /** Previous reference body position          */
   Eigen::Vector3d
       x_ref_prev_prev; /** Previous previous reference body position */
