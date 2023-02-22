@@ -68,7 +68,9 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   J_inv << R.transpose(), Eigen::MatrixXd::Zero(3,4),
            Eigen::Matrix3d::Zero(), 4*T.transpose();
   Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
-  nu_tilde = nu - J_inv*eta_dot_d;
+  Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
+  remove_ori << 1,1,1,0,0,0;
+  nu_tilde = nu - (J_inv*eta_dot_d).cwiseProduct(remove_ori);
   // std::cout << std::endl << "nu:" << std::endl << nu << std::endl;
   // std::cout << std::endl << "J_inv:" << std::endl << J_inv << std::endl;
   // std::cout << std::endl << "eta_dot_d:" << std::endl << eta_dot_d << std::endl;

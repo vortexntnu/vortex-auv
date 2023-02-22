@@ -136,6 +136,7 @@ void Controller::spin() {
 
   bool was_active = false;
   geometry_msgs::Wrench tau_msg;
+  Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
     std::cout << std::endl << "----------Heisann-Hoppsann-----" << std::endl;
     
@@ -144,9 +145,10 @@ void Controller::spin() {
       std::cout << std::endl << "Heisann-Hoppsann" << std::endl;
     
       std::cout << "DEBUG6" << std::endl;
+       tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
       Eigen::Vector6d tau = m_controller.getFeedback(
       position, orientation, nu, eta_dot_d, eta_d_pos,
-      eta_d_ori);
+      x_ref_ori);
 
       std::cout << "Tau:" << std::endl << tau << std::endl;
 
@@ -188,9 +190,8 @@ void Controller::spin() {
 
 
       // Eigen::Vector3d x_ref_pos;
-      // Eigen::Quaterniond x_ref_ori;
+
       // tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
-      // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
       
     
       std::vector<double> p_gain_vec, d_gain_vec;
@@ -259,7 +260,7 @@ void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_ms
   tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_d_ori);
 
   Eigen::Vector3d euler_d_buff = QuaterniondToEuler(eta_d_ori);
-  eta_d_ori = EulerToQuaterniond(euler_d_buff(0)/10.0,euler_d_buff(1)/10.0, euler_d_buff(2)/10.0); 
+  eta_d_ori = EulerToQuaterniond(euler_d_buff(0),  euler_d_buff(1), euler_d_buff(2)); 
 
 
   tf::pointMsgToEigen(desired_msg.poses[1].position, eta_dot_d_pos);
