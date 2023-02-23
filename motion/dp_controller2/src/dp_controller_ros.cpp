@@ -108,6 +108,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
   m_reference_return_DEBUG_pub = m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG", 1, this);
   m_reference_return_DEBUG2_pub = m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG2", 1, this);
+  m_reference_return_q_tilde_print_pub = m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_print", 1, this);
 
   //m_controller = QuaternionPIDController(2.0);
   // m_controller = QuaternionPIDController(W, B, r_G, r_B);
@@ -249,6 +250,11 @@ void Controller::odometryCallback(const nav_msgs::Odometry &msg){
   
 }
 
+int sgn(double x) {
+  if (x < 0)
+    return -1;
+  return 1;
+}
 
 
 void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_msg) {
@@ -270,14 +276,21 @@ void Controller::desiredPointCallback(const geometry_msgs::PoseArray &desired_ms
   eta_dot_d << eta_dot_d_pos, eta_dot_d_ori.w(), eta_dot_d_ori.vec();
   std_msgs::Float32 debug_msg;
   Eigen::Vector3d Debug_vec = QuaterniondToEuler(eta_d_ori);
-  debug_msg.data = Debug_vec(2)*180/M_PI;
+  debug_msg.data = Debug_vec(0)*180/M_PI;
   m_reference_return_DEBUG_pub.publish(debug_msg);
+
 
   Eigen::Quaterniond q_tilde = eta_d_ori.conjugate() * orientation;
   std_msgs::Float32 debug2_msg;
-  debug2_msg.data = QuaterniondToEuler(q_tilde)(2)*180/M_PI;
+  debug2_msg.data = QuaterniondToEuler(q_tilde)(0)*180/M_PI;
   m_reference_return_DEBUG2_pub.publish(debug2_msg); 
 
+  std_msgs::Float32 q_tilde_print;
+  q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
+  m_reference_return_q_tilde_print_pub.publish(q_tilde_print); 
 
 }
+
+
+
 

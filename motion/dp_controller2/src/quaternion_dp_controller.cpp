@@ -99,8 +99,10 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   std::cout << "DEBUG5" << std::endl;
   std::cout << std::endl << "D_gain: " << m_d_gain.segment(0,3) << std::endl;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
+  std::cout << "G VECTOR:" << std::endl << g << std::endl; 
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
+  gain = - K_p * z;
   // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
   // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
   // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
@@ -113,6 +115,7 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
 Eigen::Vector6d QuaternionPIDController::restoringForceVector(const Eigen::Matrix3d R) {
   Eigen::Vector3d f_G = R.transpose() * Eigen::Vector3d(0, 0, m_W);
   Eigen::Vector3d f_B = R.transpose() * Eigen::Vector3d(0, 0, -m_B);
+  Eigen::Vector6d g = Eigen::Vector6d::Zero();
   return (Eigen::Vector6d() << f_G + f_B, m_r_G.cross(f_G) + m_r_B.cross(f_B))
       .finished();
 }
