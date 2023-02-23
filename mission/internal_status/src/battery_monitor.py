@@ -9,6 +9,7 @@ import smbus
 from MCP342x import MCP342x
 from std_msgs.msg import Float32
 
+
 class BatteryMonitor:
     def __init__(self):
         rospy.init_node("battery_monitor")
@@ -125,8 +126,7 @@ class BatteryMonitor:
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
         try:
             self.system_voltage = (
-                self.channel_voltage.convert_and_read()
-                * self.psm_to_battery_voltage
+                self.channel_voltage.convert_and_read() * self.psm_to_battery_voltage
             )
 
             if self.system_voltage_state != "Received":

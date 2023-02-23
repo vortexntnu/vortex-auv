@@ -86,12 +86,8 @@ i2c_adress = 0x69
 
 # init of I2C bus communication
 bus = smbus.SMBus(1)
-channel_voltage = MCP342x(
-    bus, i2c_adress, channel=0, resolution=18
-)  # voltage
-channel_current = MCP342x(
-    bus, i2c_adress, channel=1, resolution=18
-)  # current
+channel_voltage = MCP342x(bus, i2c_adress, channel=0, resolution=18)  # voltage
+channel_current = MCP342x(bus, i2c_adress, channel=1, resolution=18)  # current
 time.sleep(1)
 
 # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
@@ -160,7 +156,7 @@ while True:
     # Write two lines of text.
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
-    draw.text((x, top + 8),  "Volt: " + str(system_voltage), font=font, fill=255)
+    draw.text((x, top + 8), "Volt: " + str(system_voltage), font=font, fill=255)
     draw.text((x, top + 16), "Amp:  " + str(system_current), font=font, fill=255)
 
     # Display image.
