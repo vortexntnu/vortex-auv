@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import os
 import time
 import traceback
@@ -7,11 +6,8 @@ import glob
 import logging
 import rospy
 import smbus
-import board
+from MCP342x import MCP342x
 from std_msgs.msg import Float32
-
-from mcp3422 import MCP3422
-
 
 class BatteryMonitor:
     def __init__(self):
@@ -23,8 +19,12 @@ class BatteryMonitor:
 
         # init of I2C bus communication
         self.bus = smbus.SMBus(1)
-        self.channel_voltage = MCP3422(channel=0)  # voltage
-        self.channel_current = MCP3422(channel=1)  # current
+        self.channel_voltage = MCP342x(
+            self.bus, self.i2c_adress, channel=0, resolution=18
+        )  # voltage
+        self.channel_current = MCP342x(
+            self.bus, self.i2c_adress, channel=1, resolution=18
+        )  # current
         time.sleep(1)
 
         # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
@@ -125,7 +125,7 @@ class BatteryMonitor:
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
         try:
             self.system_voltage = (
-                self.channel_voltage.get_voltage_from_reading()
+                self.channel_voltage.convert_and_read()
                 * self.psm_to_battery_voltage
             )
 
@@ -140,8 +140,8 @@ class BatteryMonitor:
     def read_PSM_current(self):
         try:
             self.system_current = (
-                self.channel_current.get_voltage_from_reading()
-                + self.psm_to_battery_current_offset
+                self.channel_current.convert_and_read()
+                - self.psm_to_battery_current_offset
             ) * self.psm_to_battery_current_scale_factor
 
             if self.system_current_state != "Received":

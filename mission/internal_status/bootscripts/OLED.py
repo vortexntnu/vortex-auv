@@ -1,5 +1,3 @@
-# NOTE! Read Wortex Wiki for uses
-# URL: http://vortex.a2hosted.com/index.php/Beluga_User_Interface_(OLED)
 #!/usr/bin/python3
 import time
 import smbus
@@ -18,22 +16,7 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-"""
-Set path for libraries outside of range
-- Go to parent directory
-- Go into other folder and import different library from the same parent but different child
-- Visualized:
-
-internal_status/
-    bootscripts/
-        OLED.py
-    src/
-        battery_monitor.py
-        mcp3422.py   <---  (We are getting this file)
-"""
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(SCRIPT_DIR))
-from src.mcp3422 import MCP3422
+from MCP342x import MCP342x
 
 
 # Raspberry Pi pin configuration:
@@ -57,10 +40,8 @@ while disp == 0:
         disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=1, gpio=1)
     except:
         print("Could not establish disp")
-bus = smbus.SMBus(1)
 
 # Initialize library.
-
 disp.begin()
 
 disp.clear()
@@ -105,8 +86,12 @@ i2c_adress = 0x69
 
 # init of I2C bus communication
 bus = smbus.SMBus(1)
-channel_voltage = MCP3422(channel=0)  # voltage
-channel_current = MCP3422(channel=1)  # current
+channel_voltage = MCP342x(
+    bus, i2c_adress, channel=0, resolution=18
+)  # voltage
+channel_current = MCP342x(
+    bus, i2c_adress, channel=1, resolution=18
+)  # current
 time.sleep(1)
 
 # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
@@ -114,10 +99,6 @@ psm_to_battery_voltage = 11.0  # V/V
 psm_to_battery_current_scale_factor = 37.8788  # A/V
 psm_to_battery_current_offset = 0.330  # V
 
-# Variable to take average of voltage to make signal more stable
-average_of = 10
-
-# Variables that will show up on the screen
 xavier_IP = ""
 system_voltage = 0
 system_current = 0
@@ -135,37 +116,26 @@ def func_check(func):
 
 
 def read_PSM_voltage():
-    # Read ADC values a set amount and take average to make signal more stable
-    voltage = 0
-    for i in range(average_of):
-        # Sometimes an I/O timeout or error happens, it will run again when the error disappears
-        try:
-            voltage += (
-                channel_voltage.get_voltage_from_reading() * psm_to_battery_voltage
-            )
+    # Sometimes an I/O timeout or error happens, it will run again when the error disappears
+    try:
+        voltage = channel_voltage.convert_and_read() * psm_to_battery_voltage
 
-        except IOError:
-            voltage = 0
-            break
+    except IOError:
+        voltage = 0
 
-    return voltage / average_of
+    return voltage
 
 
 def read_PSM_current():
-    # Read ADC values a set amount and take average to make signal more stable
-    current = 0
-    for i in range(average_of):
-        try:
-            current += (
-                channel_current.get_voltage_from_reading()
-                + psm_to_battery_current_offset
-            ) * psm_to_battery_current_scale_factor
+    try:
+        current = (
+            channel_current.convert_and_read() - psm_to_battery_current_offset
+        ) * psm_to_battery_current_scale_factor
 
-        except IOError:
-            current = 0
-            break
+    except IOError:
+        current = 0
 
-    return current / average_of
+    return current
 
 
 while True:
@@ -190,8 +160,8 @@ while True:
     # Write two lines of text.
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
-    draw.text((x, top + 8), "Voltage: " + str(system_voltage), font=font, fill=255)
-    draw.text((x, top + 16), "Current: " + str(system_current), font=font, fill=255)
+    draw.text((x, top + 8),  "Volt: " + str(system_voltage), font=font, fill=255)
+    draw.text((x, top + 16), "Amp:  " + str(system_current), font=font, fill=255)
 
     # Display image.
     disp.image(image)
