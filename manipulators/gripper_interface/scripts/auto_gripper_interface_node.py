@@ -8,11 +8,10 @@ import Jetson.GPIO as GPIO
 
 # Note: is currently hardware dependent
 
-on = -1.0
-off = 1.0
-active = 1
-inactive = 0
-
+ON = -1.0
+OFF = 1.0
+ACTIVE = 1
+INACTIVE = 0
 
 class GripperInterface:
     def __init__(self):
