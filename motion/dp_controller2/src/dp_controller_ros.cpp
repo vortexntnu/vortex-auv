@@ -125,7 +125,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 
 
 void Controller::spin() {
-  ros::Rate rate(1);
+  ros::Rate rate(10);
   Eigen::Vector3d position_setpoint(1,0,0);
   Eigen::Quaterniond orientation_setpoint = EulerToQuaterniond(0,0,0);
 

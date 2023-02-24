@@ -5,13 +5,13 @@
 
 ReferenceModel::ReferenceModel(ros::NodeHandle nh) {
   if (!nh.getParam("dp_rm/zeta_1", zeta_1)) {
-    zeta_1 = 1;
+    zeta_1 = 1.5;
   }
   if (!nh.getParam("dp_rm/zeta_1", zeta_2)) {
-    zeta_2 = 1;
+    zeta_2 = 1.5;
   }
   if (!nh.getParam("dp_rm/zeta_1", zeta_3)) {
-    zeta_3 = 1;
+    zeta_3 = 1.5;
   }
   if (!nh.getParam("dp_rm/zeta_1", zeta_4)) {
     zeta_4 = 1;
@@ -26,13 +26,13 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) {
     zeta_7 = 1;
   }
   if (!nh.getParam("dp_rm/zeta_1", omega_1)) {
-    omega_1 = 1;
+    omega_1 = 0.4;
   }
   if (!nh.getParam("dp_rm/zeta_1", omega_2)) {
-    omega_2 = 1;
+    omega_2 = 0.4;
   }
   if (!nh.getParam("dp_rm/zeta_1", omega_3)) {
-    omega_3 = 1;
+    omega_3 = 0.4;
   }
   if (!nh.getParam("dp_rm/zeta_1", omega_4)) {
     omega_4 = 1;

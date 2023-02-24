@@ -1,16 +1,16 @@
 # Parameters used for the DP-reference model
 dp_rm:
-  zeta_1: 1.0
-  zeta_2: 1.0
-  zeta_3: 1.0
+  zeta_1: 1.5
+  zeta_2: 1.5
+  zeta_3: 1.5
   zeta_4: 1.0
   zeta_5: 1.0
   zeta_6: 1.0
   zeta_7: 1.0
 
-  omega_1: 1.0
-  omega_2: 1.0
-  omega_3: 1.0
+  omega_1: 0.01
+  omega_2: 0.01
+  omega_3: 0.01
   omega_4: 1.0
   omega_5: 1.0
   omega_6: 1.0

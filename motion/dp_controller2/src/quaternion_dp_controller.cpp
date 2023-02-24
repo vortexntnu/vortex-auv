@@ -100,10 +100,12 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   std::cout << std::endl << "D_gain: " << m_d_gain.segment(0,3) << std::endl;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
   std::cout << "G VECTOR:" << std::endl << g << std::endl; 
+  
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
-  gain = - K_p * z;
-  // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
+  Eigen::Vector6d scale_g = Eigen::Vector6d::Zero();
+  scale_g << 0.9,0.9,0.9,0.3,0.3,0.3; 
+  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g);  // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
   // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
   // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
 
