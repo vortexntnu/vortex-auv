@@ -28,7 +28,7 @@ class GripperInterface:
         GPIO.setup(self.gripper_gpio_pin, GPIO.OUT)
         GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
 
-    def OpenGripper(self):
+    def open_gripper(self):
 
         time_delta = datetime.now() - self.last_press
         if time_delta.total_seconds() > self.cooldown_period and self.gripper_state != active:
@@ -38,7 +38,8 @@ class GripperInterface:
             self.last_press = datetime.now()
             self.gripper_state = active
 
-    def CloseGripper(self):
+    def close_gripper(self):
+
 
         time_delta = datetime.now() - self.last_press
         if time_delta.total_seconds() > self.cooldown_period and self.gripper_state == active:
