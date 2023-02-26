@@ -61,7 +61,6 @@ class AUVSimulator:
 
         # Simulate the AUV
         for i, t in enumerate(list(np.linspace(t, t + h * N, N))):
-
             J = J_from_eul(self.eta[3:])
             nu_c = np.dot(J.T, dot_eta_c)
             dot_v_c = np.dot(-skew([0, 0, self.nu[5]]), nu_c[:3])

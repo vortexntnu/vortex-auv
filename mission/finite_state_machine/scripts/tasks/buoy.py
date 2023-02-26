@@ -169,7 +169,6 @@ class BuoyConverge(smach.State):
         starting_time = rospy.Time.now().to_sec()
         converging_threshold = 60
         while not rospy.is_shutdown() and not self.object.estimateConverged:
-
             if (rospy.Time.now().to_sec() - starting_time) > converging_threshold:
                 rospy.loginfo("FAILED TO CONVERGE ON BUOY! TRYING EXECUTE!")
                 out = self.landmarks_client("buoy").object

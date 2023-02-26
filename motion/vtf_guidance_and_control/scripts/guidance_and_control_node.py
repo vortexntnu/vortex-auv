@@ -22,7 +22,6 @@ from control_system import PIDController
 
 class VtfGuidanceAndControlNode:
     def __init__(self):
-
         rospy.Subscriber(
             rospy.get_param("/controllers/vtf/odometry_topic"),
             Odometry,
@@ -227,7 +226,6 @@ class VtfGuidanceAndControlNode:
         )  # Publishes path -> probably move to pathplanner node once that is created
 
     def update_path(self, speed, heading, heading_point):
-
         self.waypoints[0] = [
             self.eta_r[0],
             self.eta_r[1],

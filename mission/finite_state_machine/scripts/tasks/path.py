@@ -48,7 +48,6 @@ class PathSearch(smach.State):
         rate = rospy.Rate(10)
 
         while not self.object.isDetected:
-
             print("SEARCHING FOR PATH ...")
             print(self.object.objectPose.pose.position)
             rospy.wait_for_service("send_positions")
