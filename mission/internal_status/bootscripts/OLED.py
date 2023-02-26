@@ -117,7 +117,7 @@ def read_PSM_voltage():
         voltage = channel_voltage.convert_and_read() * psm_to_battery_voltage
 
     except IOError:
-        voltage = 0
+        voltage = -1
 
     return voltage
 
@@ -129,7 +129,7 @@ def read_PSM_current():
         ) * psm_to_battery_current_scale_factor
 
     except IOError:
-        current = 0
+        current = -1
 
     return current
 
