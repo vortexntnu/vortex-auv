@@ -27,7 +27,7 @@ def main():
 
         StateMachine.add(
             "PIPELINE_STANDBY",
-            PipelineStandby(),
+            PipelineStandby()
         )
 
     #intro_server = IntrospectionServer(
