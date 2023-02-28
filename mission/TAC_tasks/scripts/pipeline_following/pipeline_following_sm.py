@@ -3,7 +3,7 @@
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
-from pipeline_following import PipelineConverge, PipelineExecute
+from pipeline_following import PipelineConverge, PipelineExecute, PipelineStandby
 
 def main():
     rospy.init_node("tac_fsm")
@@ -22,7 +22,12 @@ def main():
         StateMachine.add(
             "PIPELINE_EXECUTE",
             PipelineExecute(),
-            transitions = {"aborted": "PIPELINE_CONVERGE"}
+            transitions = {"aborted": "PIPELINE_STANDBY"}
+        )
+
+        StateMachine.add(
+            "PIPELINE_STANDBY",
+            PipelineStandby(),
         )
 
     #intro_server = IntrospectionServer(
@@ -33,7 +38,7 @@ def main():
     try:
         #Execute SMACH plan
         pipeline_following_sm.execute()
-        rospy.loginfo("hello world %s")
+        rospy.loginfo("Exiting Pipeline Following")
         #intro_server.stop()
 
     except Exception as e:
@@ -41,4 +46,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    while not rospy.is_shutdown():
+        enabled = True #rospy.get_param("/tasks/pipeline_inspection")
+        if enabled:
+            main()
