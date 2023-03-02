@@ -58,7 +58,7 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_d_gain = Eigen::Vector6d::Zero();
   m_integral = Eigen::Vector6d::Zero();
 
-  double maxPosGain = 0.5;
+  double maxPosGain = 1.5;
   double maxAttGain = 0.05;
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,

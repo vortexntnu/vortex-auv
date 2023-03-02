@@ -70,6 +70,7 @@ class DockingExecute(smach.State):
         dp_action_server = "DpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
                                                       dpAction)
+        self.dp_client.wait_for_server()
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -102,10 +103,10 @@ class DockingExecute(smach.State):
 
     def find_relative_to_mass_centre(self, offsetFromMC):
         tf_quaternion = [
-            self.odom.pose.pose.orientation.x,
-            self.odom.pose.pose.orientation.y,
-            self.odom.pose.pose.orientation.z,
-            self.odom.pose.pose.orientation.w
+            self.object.objectPose.pose.orientation.x,
+            self.object.objectPose.pose.orientation.y,
+            self.object.objectPose.pose.orientation.z,
+            self.object.objectPose.pose.orientation.w
         ]
 
         rotationMatrix = quaternion_rotation_matrix(tf_quaternion)
@@ -142,8 +143,8 @@ class DockingExecute(smach.State):
 
         # Shifts DP goal from Docking_point to center of mass
         offsetPoint = self.find_relative_to_mass_centre(powerPuckOffset)
-        goal.x_ref.position.x = goal.x_ref.position.x - offsetPoint.x
-        goal.x_ref.position.y = goal.x_ref.position.y - offsetPoint.y
+        goal.x_ref.position.x = goal.x_ref.position.x + offsetPoint.x
+        goal.x_ref.position.y = goal.x_ref.position.y + offsetPoint.y
         goal.x_ref.position.z = self.odom.pose.pose.position.z
 
         goal.DOF = [True, True, True, False, False, True]
@@ -163,9 +164,9 @@ class DockingExecute(smach.State):
             goal.x_ref = self.object.objectPose.pose
 
             offsetPoint = self.find_relative_to_mass_centre(powerPuckOffset)
-            goal.x_ref.position.x = goal.x_ref.position.x - offsetPoint.x
-            goal.x_ref.position.y = goal.x_ref.position.y - offsetPoint.y
-            goal.x_ref.position.z = goal.x_ref.position.z - offsetPoint.z
+            goal.x_ref.position.x = goal.x_ref.position.x + offsetPoint.x
+            goal.x_ref.position.y = goal.x_ref.position.y + offsetPoint.y
+            goal.x_ref.position.z = goal.x_ref.position.z + offsetPoint.z
 
             if not self.above_docking_point():
                 goal.x_ref.position.z = self.odom.pose.pose.position.z
@@ -178,6 +179,7 @@ class DockingExecute(smach.State):
             if self.should_send_new_goal():
                 self.dp_client.wait_for_server()
                 self.dp_client.send_goal(goal)
+                rospy.loginfo("Sending DP goal")
                 self.current_goal_pose = goal.x_ref
 
             sending_rate.sleep()
@@ -191,6 +193,11 @@ class DockingExecute(smach.State):
                       str(self.object.objectPose.pose.position.y) + "; " +
                       str(self.object.objectPose.pose.position.z))
 
+        rospy.loginfo("BELUGA AT: " +
+                      str(self.odom.pose.pose.position.x) + "; " +
+                      str(self.odom.pose.pose.position.y) + "; " +
+                      str(self.odom.pose.pose.position.z))
+        
         docking_duration = 15.0
         finished_docking_time = rospy.Time.now().to_sec() + docking_duration
 
@@ -229,6 +236,7 @@ class DockingStandby(smach.State):
         dp_action_server = "DpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
                                                       dpAction)
+        self.dp_client.wait_for_server()
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
