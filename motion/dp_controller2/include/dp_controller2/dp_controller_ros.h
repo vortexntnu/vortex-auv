@@ -34,10 +34,6 @@
 
 #include "dp_controller2/quaternion_dp_controller.h"
 
-
-
-
-
 /**
  * @brief the Controller class
  *
@@ -47,10 +43,9 @@
  */
 class Controller {
 private:
-
   /**
-  * @brief Desired pose in quaternions.
-  */
+   * @brief Desired pose in quaternions.
+   */
   Eigen::Vector7d eta_d;
   Eigen::Vector7d eta_dot_d;
 
@@ -59,7 +54,7 @@ private:
 
   ros::NodeHandle m_nh; /** Nodehandle          */
 
-  ros::Subscriber m_odometry_sub;    /** Odometry subscriber    */
+  ros::Subscriber m_odometry_sub; /** Odometry subscriber    */
 
   ros::Publisher m_wrench_pub; /** Wrench publisher    */
 
@@ -67,7 +62,8 @@ private:
   ros::Publisher m_reference_return_DEBUG2_pub;
   ros::Publisher m_reference_return_q_tilde_print_pub;
 
-  ros::Subscriber m_desiredpoint_sub; /* Subscriber for listening to (the guidance node ....)      */
+  ros::Subscriber m_desiredpoint_sub;  /* Subscriber for listening to (the
+                                          guidance node ....)      */
   ros::Publisher m_referencepoint_pub; /* Publisher for the DP-controller */
 
   // EIGEN CONVERSION INITIALIZE
@@ -75,12 +71,9 @@ private:
   Eigen::Quaterniond orientation; /** Current orientation   */
   Eigen::Vector6d velocity;       /** Current velocity      */
 
-
   QuaternionPIDController m_controller;
 
-  
 public:
-
   /**
    * @brief Controller class constructor
    *
@@ -95,17 +88,11 @@ public:
    * AUV.
    */
 
-
   void odometryCallback(const nav_msgs::Odometry &msg);
   void desiredPointCallback(const geometry_msgs::PoseArray &desired_msg);
   Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw);
   Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
   void spin();
-
-
-
-
-
 };
 
 #endif // VORTEX_CONTROLLER_CONTROLLER_ROS_H
