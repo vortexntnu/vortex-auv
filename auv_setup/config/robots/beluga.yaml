@@ -32,6 +32,8 @@ propulsion:
       pitch: true
       yaw:   true
   thrusters:
+    thrusters_operational_voltage_range: [1.0, 18.0] # Volts # If less or more than set Voltage -> thrusters shut down
+
     num: 8
     configuration_matrix:
 
@@ -48,6 +50,9 @@ propulsion:
     map:       [ 4, 5,  3, 2, 0, 1,  7, 6] # [0, 1, 2, 3, 4, 5, 6, 7]  
     direction: [-1, -1, -1, -1, 1, 1, -1, 1]
     offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
+    thrust_limit_reverse: [1220, 1220, 1220, 1220, 1220, 1220, 1220, 1220] # min 1100 PWM
+    thrust_limit_forward: [1780, 1780, 1780, 1780, 1780, 1780, 1780, 1780] # max 1900 PWM
+
 
 guidance:
   dp:
