@@ -23,8 +23,10 @@ from tf.transformations import (
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 
-guidance_interface_dp_action_server = rospy.get_param("/guidance/dp/action_server")
-guidance_interface_los_action_server = rospy.get_param("/guidance/LOS/action_server")
+guidance_interface_dp_action_server = rospy.get_param(
+    "/guidance/dp/action_server")
+guidance_interface_los_action_server = rospy.get_param(
+    "/guidance/LOS/action_server")
 
 
 # DP control modes
@@ -46,20 +48,20 @@ def dp_move(x, y, z=-0.5, yaw_rad=0):
     goal = MoveBaseGoal()
     goal.target_pose.pose.position = Point(x, y, z)
     goal.target_pose.pose.orientation = Quaternion(
-        *quaternion_from_euler(0, 0, yaw_rad)
-    )
+        *quaternion_from_euler(0, 0, yaw_rad))
 
-    return SimpleActionState(
-        guidance_interface_dp_action_server, MoveBaseAction, goal=goal
-    )
+    return SimpleActionState(guidance_interface_dp_action_server,
+                             MoveBaseAction,
+                             goal=goal)
 
 
 def rotate_certain_angle(pose, angle):
     """Angle in degrees"""
 
-    orientation = R.from_quat(
-        [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
-    )
+    orientation = R.from_quat([
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    ])
     rotation = R.from_rotvec(angle * math.pi / 180 * np.array([0, 0, 1]))
     new_orientation = R.as_quat(orientation * rotation)
     new_pose = Pose()
@@ -75,12 +77,14 @@ def rotate_certain_angle(pose, angle):
 def get_pose_in_front(pose, distance, index=0):
     # returns pose that is distance meters in front of object pose
 
-    orientation_object = R.from_quat(
-        [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
-    )
+    orientation_object = R.from_quat([
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    ])
     rotation_matrix = orientation_object.as_matrix()
     x_vec = rotation_matrix[:, index]
-    current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
+    current_pos_vec = np.array(
+        [pose.position.x, pose.position.y, pose.position.z])
     new_pose_vec = current_pos_vec + distance * x_vec
 
     new_pose = Pose()
@@ -114,12 +118,14 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
     # Bootlegger (False) = right
     # G-man (True) = left
 
-    orientation_object = R.from_quat(
-        [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
-    )
+    orientation_object = R.from_quat([
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    ])
     rotation_matrix = orientation_object.as_matrix()
     y_vec = rotation_matrix[:, 1]
-    current_pos_vec = np.array([pose.position.x, pose.position.y, pose.position.z])
+    current_pos_vec = np.array(
+        [pose.position.x, pose.position.y, pose.position.z])
     if chosen_side == True:
         new_pose_vec = current_pos_vec + unsigned_distance * y_vec
 
@@ -137,9 +143,8 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
 
 def patrol_sequence(action_states):
 
-    sm = Sequence(
-        outcomes=["preempted", "succeeded", "aborted"], connector_outcome="succeeded"
-    )
+    sm = Sequence(outcomes=["preempted", "succeeded", "aborted"],
+                  connector_outcome="succeeded")
     counter = 0
 
     with sm:
@@ -179,8 +184,12 @@ def allign_with_target(target):
     allignment_attempt = Concurrence(
         outcomes=["succeeded", "preempted", "wrong_direction"],
         outcome_map={
-            "succeeded": {"ALLIGNMENT_CHECKER": "alligned"},
-            "wrong_direction": {"ALLIGNMENT_CHECKER": "wrong_direction"},
+            "succeeded": {
+                "ALLIGNMENT_CHECKER": "alligned"
+            },
+            "wrong_direction": {
+                "ALLIGNMENT_CHECKER": "wrong_direction"
+            },
         },
         default_outcome=["preempted"],
         child_termination_cb=None,  # TODO: should allways terminate
@@ -190,7 +199,8 @@ def allign_with_target(target):
 
         Concurrence.add(
             "CIRCLE_GATE",
-            SimpleActionState("controller/move", MoveAction, goal=move_goal),  # TODO
+            SimpleActionState("controller/move", MoveAction,
+                              goal=move_goal),  # TODO
         )
         Concurrence.add("ALLIGNMENT_CHECKER", CBState(allignment_checker))
 
@@ -198,7 +208,8 @@ def allign_with_target(target):
 def create_circle_coordinates(start, centre, angle, counterclockwise=True):
     resolution = 0.1  # distance between points
     coordinates = []
-    radius = math.sqrt(abs((start.x - centre.x) ** 2) + abs((centre.y - start.y) ** 2))
+    radius = math.sqrt(
+        abs((start.x - centre.x)**2) + abs((centre.y - start.y)**2))
     circumference = 2 * radius * math.pi
     number_of_points = int(math.ceil(circumference / resolution))
     angle_to_add = angle / number_of_points
@@ -224,12 +235,11 @@ def within_acceptance_margins(setpoint, odom_msg, check_yaw_only=False):
         acceptance_velocities = [100, 100, 100, 100, 100, 100]
 
     else:
-        acceptance_margins = rospy.get_param(
-            "/guidance/dp/acceptance_margins", [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
-        )
+        acceptance_margins = rospy.get_param("/guidance/dp/acceptance_margins",
+                                             [0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         acceptance_velocities = rospy.get_param(
-            "/guidance/dp/acceptance_velocities", [0.01, 0.01, 0.01, 0.01, 0.01, 0.001]
-        )
+            "/guidance/dp/acceptance_velocities",
+            [0.01, 0.01, 0.01, 0.01, 0.01, 0.001])
 
     current_pose = odom_msg.pose.pose
 

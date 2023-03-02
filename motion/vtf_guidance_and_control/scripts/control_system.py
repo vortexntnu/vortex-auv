@@ -29,14 +29,18 @@ class DPControlSystem:
         ]  # Placeholder. Find spring coefficient for roll and pitch if it's desired to regulate these.
         for i in range(6):
             K_P[i][i], K_D[i][i], K_I[i][i] = pid_pole_placement_algorithm(
-                M[i][i], D[i][i], k[i], omega_b[i], zeta[i]
-            )
+                M[i][i], D[i][i], k[i], omega_b[i], zeta[i])
         self.controller = PIDController(K_P, K_D, K_I)
         self.publisher_ = rospy.Publisher("yaw_error", Float32, queue_size=1)
 
-    def pid_regulate(
-        self, eta, nu, eta_d, nu_d, dot_nu_d, t, dot_eta_c=[0, 0, 0, 0, 0, 0]
-    ):
+    def pid_regulate(self,
+                     eta,
+                     nu,
+                     eta_d,
+                     nu_d,
+                     dot_nu_d,
+                     t,
+                     dot_eta_c=[0, 0, 0, 0, 0, 0]):
         eta_error = np.array(eta) - np.array(eta_d)
         J = J_from_eul([0, 0, eta[5]])
         eta_error_body = np.dot(J.T, eta_error)
@@ -56,17 +60,21 @@ class DPControlSystem:
         for i in range(6):
             if i >= 3:
                 eta_error_body[i] = ssa(eta_error_body[i])
-            tau_rff[i] = (
-                self.M[i][i] * dot_nu_d[i] + self.D[i][i] * nu_d[i] + self.gvect[i]
-            )
+            tau_rff[i] = (self.M[i][i] * dot_nu_d[i] + self.D[i][i] * nu_d[i] +
+                          self.gvect[i])
             tau_cff[i] = -self.M[i][i] * dot_nu_c[i] - self.D[i][i] * nu_c[i]
         tau_pid, integral_terms = self.controller.pid_regulate(
-            eta_error_body, nu_error, t
-        )
+            eta_error_body, nu_error, t)
         self.integral_terms = -np.array(integral_terms) + tau_cff
         return tau_cff + tau_rff + tau_pid
 
-    def pd_regulate(self, eta, nu, eta_d, nu_d, dot_nu_d, dot_eta_c=[0, 0, 0, 0, 0, 0]):
+    def pd_regulate(self,
+                    eta,
+                    nu,
+                    eta_d,
+                    nu_d,
+                    dot_nu_d,
+                    dot_eta_c=[0, 0, 0, 0, 0, 0]):
         eta_error = np.array(eta) - np.array(eta_d)
         J = J_from_eul([0, 0, eta[5]])
         eta_error_body = np.dot(J.T, eta_error)
@@ -83,11 +91,8 @@ class DPControlSystem:
         for i in range(6):
             if i >= 3:
                 eta_error_body[i] = ssa(eta_error_body[i])
-            tau_ff[i] = (
-                self.M[i][i] * (dot_nu_d[i] - dot_nu_c[i])
-                + self.D[i][i] * (nu_d[i] - nu_c[i])
-                + self.gvect[i]
-            )
+            tau_ff[i] = (self.M[i][i] * (dot_nu_d[i] - dot_nu_c[i]) +
+                         self.D[i][i] * (nu_d[i] - nu_c[i]) + self.gvect[i])
         tau_pd = self.controller.pd_regulate(eta_error_body, nu_error)
         return tau_ff + tau_pd
 
@@ -119,18 +124,16 @@ class PIDController:
         dt = t - self.prev_t
         if self.prev_t > 0.0 and dt > 0.0:
             self.integral += np.array(x_err) * dt
-        u_unsat = -(
-            np.dot(self.K_P, x_err)
-            + np.dot(self.K_D, dot_x_err)
-            + np.dot(self.K_I, self.integral)
-        )
+        u_unsat = -(np.dot(self.K_P, x_err) + np.dot(self.K_D, dot_x_err) +
+                    np.dot(self.K_I, self.integral))
         self.prev_t = t
         u = np.zeros(len(u_unsat))
         for i in range(len(u_unsat)):
             if abs(u_unsat[i]) > self.u_max:
                 # Anti-wind-up
                 u[i] = np.sign(u_unsat[i]) * self.u_max
-                self.integral[i] += -(dt / self.K_I[i][i]) * (u[i] - u_unsat[i])
+                self.integral[i] += -(dt / self.K_I[i][i]) * (u[i] -
+                                                              u_unsat[i])
             else:
                 u[i] = u_unsat[i]
         return u, (np.dot(self.K_I, self.integral))
@@ -140,9 +143,8 @@ class PIDController:
 
 
 def pid_pole_placement_algorithm(m, d, k, omega_b, zeta):
-    omega_n = omega_b / np.sqrt(
-        1 - 2 * zeta**2 + np.sqrt(4 * zeta**4 - 4 * zeta**2 + 2)
-    )
+    omega_n = omega_b / np.sqrt(1 - 2 * zeta**2 +
+                                np.sqrt(4 * zeta**4 - 4 * zeta**2 + 2))
     k_p = m * omega_n**2 - k
     k_d = 2 * zeta * omega_n * m - d
     k_i = omega_n * k_p / 7

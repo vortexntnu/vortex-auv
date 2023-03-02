@@ -12,6 +12,7 @@ from std_msgs.msg import Float32
 
 
 class BatteryMonitor:
+
     def __init__(self):
 
         rospy.init_node("battery_monitor")
@@ -22,12 +23,14 @@ class BatteryMonitor:
 
         # init of I2C bus communication
         self.bus = smbus.SMBus(1)
-        self.channel_Volatage = MCP342x(
-            self.bus, self.I2C_Adress, channel=0, resolution=18
-        )  # voltage
-        self.channel_Current = MCP342x(
-            self.bus, self.I2C_Adress, channel=1, resolution=18
-        )  # current
+        self.channel_Volatage = MCP342x(self.bus,
+                                        self.I2C_Adress,
+                                        channel=0,
+                                        resolution=18)  # voltage
+        self.channel_Current = MCP342x(self.bus,
+                                       self.I2C_Adress,
+                                       channel=1,
+                                       resolution=18)  # current
         time.sleep(1)
 
         # Calibration values for converting from raw digital binary form to decimal form
@@ -43,12 +46,10 @@ class BatteryMonitor:
         self.calCurrentOffset = 0.0
 
         # getting params in the ROS-config file (beluga.yaml)
-        self.critical_level = rospy.get_param(
-            "/battery/thresholds/critical", default=13.5
-        )
-        self.warning_level = rospy.get_param(
-            "/battery/thresholds/warning", default=14.5
-        )
+        self.critical_level = rospy.get_param("/battery/thresholds/critical",
+                                              default=13.5)
+        self.warning_level = rospy.get_param("/battery/thresholds/warning",
+                                             default=14.5)
 
         # Polling intervals in seconds delay
         system_interval = rospy.get_param("/battery/system/interval", 1)
@@ -66,15 +67,14 @@ class BatteryMonitor:
         )
 
         self.system_battery_level_pub = rospy.Publisher(
-            "/auv/battery_level/system", Float32, queue_size=1
-        )
+            "/auv/battery_level/system", Float32, queue_size=1)
 
         # create current ROS publisher here, if needed
 
         # set up callbacks
         self.log_timer = rospy.Timer(
-            rospy.Duration(secs=logging_interval), self.log_cb
-        )  # for logging on ROS terminal
+            rospy.Duration(secs=logging_interval),
+            self.log_cb)  # for logging on ROS terminal
 
         self.system_timer = rospy.Timer(
             rospy.Duration(secs=system_interval),
@@ -127,13 +127,11 @@ class BatteryMonitor:
         for i in range(self.IIR_filter_coeff):
             try:
                 ADC_voltage_measured = (
-                    self.channel_Volatage.convert_and_read() * self.ADC_convertionRatio
-                    - self.ADC_ofset
-                )
+                    self.channel_Volatage.convert_and_read() *
+                    self.ADC_convertionRatio - self.ADC_ofset)
                 voltage_buffer += (
-                    ADC_voltage_measured * self.calVoltageScaleFactor
-                    + self.calVoltageOffset
-                )
+                    ADC_voltage_measured * self.calVoltageScaleFactor +
+                    self.calVoltageOffset)
 
                 self.I2C_error_counter_voltage = (
                     0  # no bus error if it reaches that line
@@ -155,13 +153,11 @@ class BatteryMonitor:
         for i in range(self.IIR_filter_coeff):
             try:
                 ADC_current_measured = (
-                    self.channel_Current.convert_and_read() * self.ADC_convertionRatio
-                    - self.ADC_ofset
-                )
+                    self.channel_Current.convert_and_read() *
+                    self.ADC_convertionRatio - self.ADC_ofset)
                 current_buffer += (
-                    ADC_current_measured * self.calCurrentScaleFactor
-                    + self.calCurrentOffset
-                )
+                    ADC_current_measured * self.calCurrentScaleFactor +
+                    self.calCurrentOffset)
 
                 if self.system_current_state != "Received":
                     self.system_current_state = "Received"

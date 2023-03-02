@@ -10,8 +10,7 @@ from geometry_msgs.msg import Twist
 def callback(config, level):
 
     velocity_server = rospy.get_param(
-        "/controllers/velocity_controller/desired_velocity_topic"
-    )
+        "/controllers/velocity_controller/desired_velocity_topic")
 
     rospy.wait_for_service(velocity_server)
     set_velocity = rospy.ServiceProxy(velocity_server, SetVelocity)

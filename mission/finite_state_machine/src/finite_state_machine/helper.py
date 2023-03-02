@@ -59,7 +59,9 @@ def point(x, y, z):
     return new_point
 
 
-def create_sequence(list_of_states, connector_outcome="succeeded", state_names=[]):
+def create_sequence(list_of_states,
+                    connector_outcome="succeeded",
+                    state_names=[]):
     """Creates a Sequence (container type) that connects the provided states.
     The first state in the list will also be the first state in the sequence, and so on.
     All states in list_of_states must have the outcomes ["preempted", "succeeded", "aborted"].
