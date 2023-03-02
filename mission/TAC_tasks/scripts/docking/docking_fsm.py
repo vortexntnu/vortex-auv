@@ -46,6 +46,7 @@ def main():
 
 if __name__ == "__main__":
     while not rospy.is_shutdown():
-        enabled = rospy.get_param("/tasks/docking")
-        if enabled == True:
-            main()
+        main()
+        # enabled = rospy.get_param("/tasks/docking")
+        # if enabled == True:
+        #     main()
