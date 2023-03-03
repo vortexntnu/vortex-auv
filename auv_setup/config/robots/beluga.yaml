@@ -32,7 +32,7 @@ propulsion:
       pitch: true
       yaw:   true
   thrusters:
-    thrusters_operational_voltage_range: [14.0, 17.0] # Volts # If less or more than set Voltage -> thrusters shut down
+    thrusters_operational_voltage_range: [14.2, 17.0] # Volts # If less or more than set Voltage -> thrusters shut down
 
     num: 8
     configuration_matrix:
@@ -49,8 +49,8 @@ propulsion:
       max: 1 # Maximum rate of change in newton per second for a thruster
     map:       [ 4, 5,  3, 2, 0, 1,  7, 6] # [0, 1, 2, 3, 4, 5, 6, 7]  
     direction: [-1, -1, -1, -1, 1, 1, -1, 1]
-    offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
-    thrust_range: [-0.7, 0.7] # 1.0 | 0 | 1.0 [1220, 1780]
+    offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest # WARNING!: To big offset will crash the system
+    thrust_range: [-0.7, 0.7] # range in percentage -1.0 to 1.0 # NOTE!: Thrust_range moves with offset
 
 guidance:
   dp:
