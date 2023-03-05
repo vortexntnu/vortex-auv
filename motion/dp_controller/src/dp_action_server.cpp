@@ -1,4 +1,4 @@
-#include "dp_controller2/dp_action_server.h"
+#include "dp_controller/dp_action_server.h"
 #include <geometry_msgs/Pose.h>
 #include <math.h>
 #include <std_msgs/Float32.h>
@@ -48,7 +48,7 @@ DpAction::DpAction(std::string name)
   std::cout << "HEISANN2" << std::endl;
 }
 
-void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal) {
+void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
   goal_.x_ref = goal->x_ref;
   goal_.DOF = goal->DOF;
   std::cout << std::endl << "-------------" << std::endl;
@@ -64,6 +64,7 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal) {
   Eigen::Vector6d error = Eigen::Vector6d::Zero();
 
   while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable()) {
+    ROS_INFO("Action finished: %d", as_.isPreemptRequested() );
     run_controller = true;
     feedback_.error.clear();
 
@@ -127,8 +128,15 @@ void DpAction::executeCB(const dp_controller2::dpGoalConstPtr &goal) {
     r.sleep();
   }
 
-  // if(!success) as_.setPreempted();
-  as_.setPreempted();
+  // ROS_INFO("Action finished ekte1");
+  // r.sleep();
+  // r.sleep();
+  // r.sleep();
+  // r.sleep();
+  // r.sleep();
+  if(!success) as_.setPreempted();
+  // as_.setPreempted();
+  ROS_INFO("Action finished ekte");
   // run_controller = false;
 
   // feedback_.sequence.clear();

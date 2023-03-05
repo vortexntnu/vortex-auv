@@ -1,5 +1,5 @@
 //#include "quaternion_dp_controller.h"
-#include "dp_controller2/quaternion_dp_controller.h"
+#include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
 
 QuaternionPIDController::QuaternionPIDController() { // float W, float B,

@@ -2,8 +2,8 @@
      Copyright (c) 2019 Manta AUV, Vortex NTNU.
      All rights reserved. */
 
-#include "dp_controller2/dp_controller_ros.h"
-#include "dp_controller2/dp_action_server.h"
+#include "dp_controller/dp_controller_ros.h"
+#include "dp_controller/dp_action_server.h"
 #include <std_msgs/Float32.h>
 
 // Roll pitch and yaw in Radians
@@ -100,7 +100,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   // Subscribers
   m_odometry_sub =
       m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
-  ROS_INFO("DP controller2 initialized");
+  ROS_INFO("DP controller initialized");
   m_desiredpoint_sub = m_nh.subscribe("/reference_model/output", 1,
                                       &Controller::desiredPointCallback, this);
 
@@ -127,7 +127,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 }
 
 void Controller::spin() {
-  ros::Rate rate(10);
+  ros::Rate rate(1);
   Eigen::Vector3d position_setpoint(1, 0, 0);
   Eigen::Quaterniond orientation_setpoint = EulerToQuaterniond(0, 0, 0);
 

@@ -32,7 +32,7 @@
 
 #include "eigen_typedefs.h"
 
-#include "dp_controller2/quaternion_dp_controller.h"
+#include "dp_controller/quaternion_dp_controller.h"
 
 /**
  * @brief the Controller class

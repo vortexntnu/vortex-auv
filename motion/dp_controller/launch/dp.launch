@@ -6,12 +6,14 @@
   <arg name="launch_beluga" default="false"/>
   <arg name="type" default="simulator"/>
 
-  <rosparam command="load" file="$(find dp_controller2)/config/dp_Client.yaml"/>
-  <rosparam command="load" file="$(find dp_controller2)/config/dp_PID.yaml"/>
+  <rosparam command="load" file="$(find dp_controller)/config/dp_Client.yaml"/>
+  <rosparam command="load" file="$(find dp_controller)/config/dp_PID.yaml"/>
+  <rosparam command="load" file="$(find dp_reference_model2)/config/reference_model.yaml"/>
+
 
   <!-- Controller nodes -->
   <!-- <group ns="$(arg ns_controller)"> -->
-    <node pkg="dp_controller2"       type="dp_controller2_node"         name="dp_controller2"        output="screen"/>
+    <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
     
     <node pkg="dp_reference_model2"       type="dp_reference_model2_node"         name="dp_reference_model2"        output="screen" />
     

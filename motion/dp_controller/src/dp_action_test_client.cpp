@@ -1,13 +1,14 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
-#include <dp_controller2/dpAction.h>
+// #include <dp_controller2/dpAction.h>
+#include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
 
 #include <Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
 
-using namespace dp_controller2;
-typedef actionlib::SimpleActionClient<dpAction> Client;
+// using namespace dp_controller2;
+typedef actionlib::SimpleActionClient<vortex_msgs::dpAction> Client;
 
 // Euler To Quaternion
 Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw) {
@@ -30,6 +31,7 @@ public:
     std::vector<double> goal_position_vec, goal_orientation_vec, goal_DOF_vec;
     std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff,
         goal_DOF_vec_buff;
+    int time = 0;
     while (ros::ok()) {
 
       if (!m_nh.getParam("/setpoint/position", goal_position_vec)) {
@@ -51,6 +53,7 @@ public:
       actionlib::SimpleClientGoalState state = ac_.getState();
       ROS_INFO("Action finished: %s", state.toString().c_str());
 
+      // Check if goal has has changed
       if (goal_position_vec != goal_position_vec_buff ||
           goal_orientation_vec != goal_orientation_vec_buff ||
           goal_DOF_vec != goal_DOF_vec_buff) {
@@ -82,13 +85,18 @@ public:
         // goal_orientation_vec_buff << std::endl;
       }
 
+      // if(time>7){
+      //   ac_.cancelGoal();
+      //   ROS_INFO("Canceling");
+      // }
+      time ++;
       ros::spinOnce();
       rate.sleep();
     }
   }
 
   void doneCallback(const actionlib::SimpleClientGoalState &state,
-                    const dpResultConstPtr &result) {
+                    const vortex_msgs::dpResultConstPtr &result) {
 
     ROS_INFO("Finished in state [%s]", state.toString().c_str());
     ROS_INFO("Answer: %i", result->finished);
@@ -102,7 +110,7 @@ public:
 
   void send_goal(Eigen::Vector3d goal_position,
                  Eigen::Vector3d goal_orientation, Eigen::VectorXd goal_DOF) {
-    dpGoal goal_;
+    vortex_msgs::dpGoal goal_;
     Eigen::Quaterniond goal_quad = EulerToQuaterniond(
         goal_orientation(0), goal_orientation(1), goal_orientation(2));
     tf::pointEigenToMsg(goal_position, goal_.x_ref.position);
@@ -122,7 +130,7 @@ public:
                  boost::bind(&DpActionClient::feedbackCallback, this, _1));
   }
 
-  void feedbackCallback(const dpFeedbackConstPtr &feedback) {
+  void feedbackCallback(const vortex_msgs::dpFeedbackConstPtr &feedback) {
     ROS_INFO("Got Feedback %f %f %f %f %f %f", feedback->error[0],
              feedback->error[1], feedback->error[2], feedback->error[3],
              feedback->error[4], feedback->error[5]);

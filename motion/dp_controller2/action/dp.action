@@ -1,9 +1,0 @@
-#goal definition
-geometry_msgs/Pose x_ref
-bool[] DOF
----
-#result definition
-bool finished
----
-#feedback
-float32[] error

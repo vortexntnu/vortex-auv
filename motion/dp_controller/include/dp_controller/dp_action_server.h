@@ -111,7 +111,7 @@
 #define VORTEX_DP_SERVER_H
 
 #include <actionlib/server/simple_action_server.h>
-#include <dp_controller2/dpAction.h>
+#include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
 
 #include "eigen_typedefs.h"
@@ -123,21 +123,21 @@ private:
   ros::NodeHandle nh_;
   std::string action_name_;
   // create messages that are used to published feedback/result
-  dp_controller2::dpFeedback feedback_;
-  dp_controller2::dpResult result_;
+  vortex_msgs::dpFeedback feedback_;
+  vortex_msgs::dpResult result_;
 
 public:
   DpAction(std::string name);
 
   ~DpAction(void){};
 
-  void executeCB(const dp_controller2::dpGoalConstPtr &goal);
+  void executeCB(const vortex_msgs::dpGoalConstPtr &goal);
 
   Eigen::Vector6d pose;
 
-  dp_controller2::dpGoal goal_;
+  vortex_msgs::dpGoal goal_;
 
-  actionlib::SimpleActionServer<dp_controller2::dpAction>
+  actionlib::SimpleActionServer<vortex_msgs::dpAction>
       as_; // NodeHandle instance must be created before this line. Otherwise
            // strange error occurs.
 
