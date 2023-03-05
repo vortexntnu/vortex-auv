@@ -111,8 +111,8 @@
 #define VORTEX_DP_SERVER_H
 
 #include <actionlib/server/simple_action_server.h>
-#include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
+#include <vortex_msgs/dpAction.h>
 
 #include "eigen_typedefs.h"
 #include <Eigen/Dense>

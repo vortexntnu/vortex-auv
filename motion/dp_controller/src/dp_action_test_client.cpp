@@ -1,8 +1,8 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 // #include <dp_controller2/dpAction.h>
-#include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
+#include <vortex_msgs/dpAction.h>
 
 #include <Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
@@ -89,7 +89,7 @@ public:
       //   ac_.cancelGoal();
       //   ROS_INFO("Canceling");
       // }
-      time ++;
+      time++;
       ros::spinOnce();
       rate.sleep();
     }

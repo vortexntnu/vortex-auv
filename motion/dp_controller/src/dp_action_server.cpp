@@ -64,7 +64,7 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
   Eigen::Vector6d error = Eigen::Vector6d::Zero();
 
   while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable()) {
-    ROS_INFO("Action finished: %d", as_.isPreemptRequested() );
+    ROS_INFO("Action finished: %d", as_.isPreemptRequested());
     run_controller = true;
     feedback_.error.clear();
 
@@ -134,7 +134,8 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
   // r.sleep();
   // r.sleep();
   // r.sleep();
-  if(!success) as_.setPreempted();
+  if (!success)
+    as_.setPreempted();
   // as_.setPreempted();
   ROS_INFO("Action finished ekte");
   // run_controller = false;

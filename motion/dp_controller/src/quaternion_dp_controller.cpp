@@ -102,14 +102,17 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   Eigen::Vector6d scale_g = Eigen::Vector6d::Zero();
-  scale_g << 0.9,0.9,0.9,0.3,0.3,0.3; 
-  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g);  // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
-  // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
-  // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
+  scale_g << 0.9, 0.9, 0.9, 0.3, 0.3, 0.3;
+  gain = -m_K_d * nu_tilde - K_p * z +
+         g.cwiseProduct(scale_g); // std::cout << std::endl << "m_K_d:" <<
+                                  // std::endl << m_K_d << std::endl;
+  // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde <<
+  // std::endl; std::cout << std::endl << "K_p:" << std::endl << K_p <<
+  // std::endl;
 
   // Rounding gain to remove super small values
   int num_decimals = 3;
-  gain = (gain * pow(10,num_decimals)).array().round()/ pow(10,num_decimals);
+  gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
   return (Eigen::Vector6d() << gain).finished();
 }
 

@@ -228,8 +228,7 @@ void Controller::spin() {
     Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);
     dp_server.pose << position, orientation_euler;
 
-
-  // Makes sure DP always ends by sending 0 thrust 
+    // Makes sure DP always ends by sending 0 thrust
     if (was_active && !dp_server.run_controller) {
       Eigen::VectorXd tau_zero = Eigen::VectorXd::Zero(6, 1);
       tf::wrenchEigenToMsg(tau_zero, tau_msg);
