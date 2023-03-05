@@ -25,6 +25,7 @@ class ControlModeEnum(IntEnum):
 
 
 class JoystickInterface:
+
     def __init__(self):
         """
         Define constants used in the joystick mapping, and any ros
@@ -33,11 +34,14 @@ class JoystickInterface:
 
         rospy.init_node("joystick_interface")
 
-        self.joystick_surge_scaling = rospy.get_param("/joystick/scaling/surge")
+        self.joystick_surge_scaling = rospy.get_param(
+            "/joystick/scaling/surge")
         self.joystick_sway_scaling = rospy.get_param("/joystick/scaling/sway")
-        self.joystick_heave_scaling = rospy.get_param("/joystick/scaling/heave")
+        self.joystick_heave_scaling = rospy.get_param(
+            "/joystick/scaling/heave")
         self.joystick_roll_scaling = rospy.get_param("/joystick/scaling/roll")
-        self.joystick_pitch_scaling = rospy.get_param("/joystick/scaling/pitch")
+        self.joystick_pitch_scaling = rospy.get_param(
+            "/joystick/scaling/pitch")
         self.joystick_yaw_scaling = rospy.get_param("/joystick/scaling/yaw")
 
         self.joystick_buttons_map = [
@@ -65,21 +69,23 @@ class JoystickInterface:
             "dpad_vertical",
         ]
 
-        self.joystick_sub = rospy.Subscriber(
-            "/joystick/joy", Joy, self.joystick_cb, queue_size=1
-        )
-        self.joystick_pub = rospy.Publisher("/mission/joystick_data", Joy, queue_size=1)
-        self.control_mode_pub = rospy.Publisher(
-            "/mission/control_mode", String, queue_size=1
-        )
+        self.joystick_sub = rospy.Subscriber("/joystick/joy",
+                                             Joy,
+                                             self.joystick_cb,
+                                             queue_size=1)
+        self.joystick_pub = rospy.Publisher("/mission/joystick_data",
+                                            Joy,
+                                            queue_size=1)
+        self.control_mode_pub = rospy.Publisher("/mission/control_mode",
+                                                String,
+                                                queue_size=1)
 
-        self.wrench_pub = rospy.Publisher(
-            "/thrust/desired_forces", Wrench, queue_size=1
-        )
+        self.wrench_pub = rospy.Publisher("/thrust/desired_forces",
+                                          Wrench,
+                                          queue_size=1)
 
         self.guidance_interface_client = actionlib.SimpleActionClient(
-            "/guidance_interface/joystick_server", ControlModeAction
-        )
+            "/guidance_interface/joystick_server", ControlModeAction)
 
         rospy.loginfo("Joystick interface is up and running")
 
@@ -115,13 +121,15 @@ class JoystickInterface:
                 control_mode_msg.data = "unknown control mode"
             self.control_mode_pub.publish(control_mode_msg)
 
-            rospy.sleep(rospy.Duration(0.25))  # Sleep to avoid aggressie switching
+            rospy.sleep(
+                rospy.Duration(0.25))  # Sleep to avoid aggressie switching
 
         surge = axes["vertical_axis_left_stick"] * self.joystick_surge_scaling
         sway = axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling
         heave = (axes["RT"] - axes["LT"]) / 2 * self.joystick_heave_scaling
         roll = (buttons["RB"] - buttons["LB"]) * self.joystick_roll_scaling
-        pitch = axes["vertical_axis_right_stick"] * self.joystick_pitch_scaling * (-1)
+        pitch = axes[
+            "vertical_axis_right_stick"] * self.joystick_pitch_scaling * (-1)
         yaw = axes["horizontal_axis_right_stick"] * self.joystick_yaw_scaling
 
         dpad_lights = axes["dpad_horizontal"]

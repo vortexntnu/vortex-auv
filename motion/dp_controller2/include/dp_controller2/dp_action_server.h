@@ -14,7 +14,6 @@
 // #include <string>
 // #include <vector>
 
-
 // #include <actionlib/server/simple_action_server.h>
 // //#include <dynamic_reconfigure/server.h>
 // #include <geometry_msgs/Pose.h>
@@ -28,8 +27,6 @@
 // #include "eigen_typedefs.h"
 
 // #include "dp_controller2/quaternion_dp_controller.h"
-
-
 
 /**
  * @brief the Controller class
@@ -56,22 +53,23 @@
 
 //   ros::Publisher m_wrench_pub; /** Wrench publisher    */
 
-//   ros::Subscriber m_desiredpoint_sub; /* Subscriber for listening to (the guidance node ....)      */
-//   ros::Publisher m_referencepoint_pub; /* Publisher for the DP-controller */
+//   ros::Subscriber m_desiredpoint_sub; /* Subscriber for listening to (the
+//   guidance node ....)      */ ros::Publisher m_referencepoint_pub; /*
+//   Publisher for the DP-controller */
 
 //   // EIGEN CONVERSION INITIALIZE
 //   Eigen::Vector3d position;       /** Current position      */
 //   Eigen::Quaterniond orientation; /** Current orientation   */
 //   Eigen::Vector6d velocity;       /** Current velocity      */
 
-
 //   QuaternionPIDController m_controller;
-  
+
 //   protected:
 //   // private:
 
 //   ros::NodeHandle nh_;
-//   actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
+//   actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle
+//   instance must be created before this line. Otherwise strange error occurs.
 //   std::string action_name_;
 //   // create messages that are used to published feedback/result
 //   dp_controller2::dpFeedback feedback_;
@@ -79,35 +77,31 @@
 
 // public:
 
+// /**
+//  * @brief Controller class constructor
+//  *
+//  * @param nh ROS nodehandle
+//  */
+// explicit Controller(ros::NodeHandle nh);
 
-  // /**
-  //  * @brief Controller class constructor
-  //  *
-  //  * @param nh ROS nodehandle
-  //  */
-  // explicit Controller(ros::NodeHandle nh);
+// /**
+//  * @brief Callback for the odometry subscriber
+//  *
+//  * @param msg   A nav_msg::Odometry message containing state data about the
+//  * AUV.
+//  */
 
-  // /**
-  //  * @brief Callback for the odometry subscriber
-  //  *
-  //  * @param msg   A nav_msg::Odometry message containing state data about the
-  //  * AUV.
-  //  */
+// void odometryCallback(const nav_msgs::Odometry &msg);
+// void desiredPointCallback(const geometry_msgs::PoseArray &desired_msg);
+// Eigen::Quaterniond EulerToQuaternion(double roll, double pitch, double yaw);
+// Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
+// void spin();
 
+// FibonacciAction(std::string name);
 
-  // void odometryCallback(const nav_msgs::Odometry &msg);
-  // void desiredPointCallback(const geometry_msgs::PoseArray &desired_msg);
-  // Eigen::Quaterniond EulerToQuaternion(double roll, double pitch, double yaw);
-  // Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
-  // void spin();
+// ~FibonacciAction(void){};
 
-
-  // FibonacciAction(std::string name);
-
-  // ~FibonacciAction(void){};
-
-  // void executeCB(const dp_controller2::dpGoalConstPtr &goal);
-
+// void executeCB(const dp_controller2::dpGoalConstPtr &goal);
 
 // };
 
@@ -116,40 +110,38 @@
 #ifndef VORTEX_DP_SERVER_H
 #define VORTEX_DP_SERVER_H
 
-
-#include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
 #include <dp_controller2/dpAction.h>
+#include <ros/ros.h>
 
+#include "eigen_typedefs.h"
 #include <Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
-#include "eigen_typedefs.h"
-
 
 class DpAction {
-  private:
+private:
+  ros::NodeHandle nh_;
+  std::string action_name_;
+  // create messages that are used to published feedback/result
+  dp_controller2::dpFeedback feedback_;
+  dp_controller2::dpResult result_;
 
-    ros::NodeHandle nh_;
-    std::string action_name_;
-    // create messages that are used to published feedback/result
-    dp_controller2::dpFeedback feedback_;
-    dp_controller2::dpResult result_;
+public:
+  DpAction(std::string name);
 
-  public:
-    DpAction(std::string name);
+  ~DpAction(void){};
 
-    ~DpAction(void){};
+  void executeCB(const dp_controller2::dpGoalConstPtr &goal);
 
-    void executeCB(const dp_controller2::dpGoalConstPtr &goal);
-    
-    Eigen::Vector6d pose;
+  Eigen::Vector6d pose;
 
-    dp_controller2::dpGoal goal_;
+  dp_controller2::dpGoal goal_;
 
-    actionlib::SimpleActionServer<dp_controller2::dpAction> as_; // NodeHandle instance must be created before this line. Otherwise strange error occurs.
+  actionlib::SimpleActionServer<dp_controller2::dpAction>
+      as_; // NodeHandle instance must be created before this line. Otherwise
+           // strange error occurs.
 
-    bool run_controller = false;
-
-  };
+  bool run_controller = false;
+};
 
 #endif // VORTEX_DP_SERVER_H

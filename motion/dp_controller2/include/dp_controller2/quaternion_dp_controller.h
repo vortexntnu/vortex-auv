@@ -28,7 +28,7 @@
 
 #include "eigen_typedefs.h"
 
-class QuaternionPIDController{
+class QuaternionPIDController {
 private:
   float m_W;
   float m_B;
@@ -37,10 +37,9 @@ private:
   Eigen::Vector6d m_p_gain;
   Eigen::Vector6d m_d_gain;
 
-
 public:
-
-  explicit QuaternionPIDController();//float W, float B, Eigen::Vector3d r_G, Eigen::Vector3d r_B);
+  explicit QuaternionPIDController(); // float W, float B, Eigen::Vector3d r_G,
+                                      // Eigen::Vector3d r_B);
   /**
    * @brief a getter for the feedback vector
    *
@@ -63,21 +62,17 @@ public:
 
   int sgn(double x);
   Eigen::Vector6d errorVector(const Eigen::Vector3d &x,
-                                                       const Eigen::Vector3d &x_d,
-                                                       const Eigen::Quaterniond &q, 
-                                                       const Eigen::Quaterniond &q_d);
-  
+                              const Eigen::Vector3d &x_d,
+                              const Eigen::Quaterniond &q,
+                              const Eigen::Quaterniond &q_d);
+
   Eigen::Matrix6d proportionalGainMatrix(const Eigen::Matrix3d R);
 
   Eigen::Vector6d restoringForceVector(const Eigen::Matrix3d R);
 
-  void init(const double W,const double B, const Eigen::Vector3d &r_G, const Eigen::Vector3d &r_B);
+  void init(const double W, const double B, const Eigen::Vector3d &r_G,
+            const Eigen::Vector3d &r_B);
   void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d d_gain);
 };
 
-
 #endif // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H
-
-
-
-
