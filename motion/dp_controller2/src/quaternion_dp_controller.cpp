@@ -109,7 +109,9 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec){
   // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
   // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
 
-
+  // Rounding gain to remove super small values
+  int num_decimals = 3;
+  gain = (gain * pow(10,num_decimals)).array().round()/ pow(10,num_decimals);
   return (Eigen::Vector6d() << gain).finished();
 }
 
