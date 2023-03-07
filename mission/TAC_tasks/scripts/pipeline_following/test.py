@@ -28,10 +28,12 @@ class test():
     def execute(self):
 
         goal = VtfPathFollowingGoal()
-        goal.waypoints = [Point(6, 0, 0)]
-        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+        goal.waypoints = [Point(0, 10, -1)]
+        goal.forward_speed = 0.2 #rospy.get_param("/fsm/medium_speed")
         goal.heading = "path_dependent_heading"
+        print('1')
         self.vtf_client.wait_for_server()
+        print('2')
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(10)
         rate.sleep()
@@ -40,9 +42,8 @@ class test():
         self.vtf_client.cancel_all_goals()
 
 if __name__ == "__main__":
-    #print('hello')
+
     test = test()
     while True:
-        print('hello')
-        test.stop()
+        test.execute()
         
