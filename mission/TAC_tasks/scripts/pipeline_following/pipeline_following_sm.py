@@ -27,8 +27,12 @@ def main():
 
         StateMachine.add(
             "PIPELINE_STANDBY",
+<<<<<<< HEAD
             PipelineStandby(),
             transitions = {"aborted": "done"}
+=======
+            PipelineStandby()
+>>>>>>> 78b31a91bdd9853fbf7e220b74e2ecba2193df67
         )
 
     #intro_server = IntrospectionServer(
