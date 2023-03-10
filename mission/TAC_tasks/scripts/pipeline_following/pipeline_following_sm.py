@@ -10,7 +10,7 @@ def main():
     # rospy.wait_for_message()
     # rospy.wait_for_service()
 
-    pipeline_following_sm = StateMachine(outcomes=["succeeded", "aborted"])
+    pipeline_following_sm = StateMachine(outcomes=["done"])
     with pipeline_following_sm:
         
         StateMachine.add(
@@ -28,6 +28,7 @@ def main():
         StateMachine.add(
             "PIPELINE_STANDBY",
             PipelineStandby(),
+            transitions = {"aborted": "done"}
         )
 
     #intro_server = IntrospectionServer(
@@ -50,3 +51,4 @@ if __name__ == "__main__":
         enabled = True #rospy.get_param("/tasks/pipeline_inspection")
         if enabled:
             main()
+            rospy.loginfo('Hello World')

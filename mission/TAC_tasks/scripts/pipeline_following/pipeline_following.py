@@ -51,7 +51,7 @@ class PipelineConverge(smach.State):
         #dp_goal.setpoint = self.object.objectPose
         #self.dp_pub.publish(dp_goal)
 
-        time.sleep(1)
+        time.sleep(3)
         return "succeeded"
 
 class PipelineExecute(smach.State):
@@ -78,7 +78,13 @@ class PipelineExecute(smach.State):
         # Feedback of the current state in state machine
         self.state_pub.publish(f"{self.task}/execute")
 
-        while self.object.isDetected:
+        # constant vtf parameters
+        goal = VtfPathFollowingGoal()
+        goal.forward_speed = rospy.get_param("/fsm/medium_speed")
+        goal.heading = "path_dependent_heading"
+
+        rate = rospy.Rate(10)
+        while self.object.isDetected and rospy.get_param("/tasks/pipeline_inspection"):
             print(
                 "PATH POSITION DETECTED: "
                 + str(self.object.objectPose.pose.position.x)
@@ -90,15 +96,12 @@ class PipelineExecute(smach.State):
                 + str(self.object.isDetected)
             )
 
-            goal = VtfPathFollowingGoal()
-            goal.waypoints = [self.object.objectPose.pose.position]
-            goal.forward_speed = rospy.get_param("/fsm/medium_speed")
-            goal.heading = "path_dependent_heading"
+            # TODO: should have an if statement that maintain altitude above pipeline??
 
+            goal.waypoints = [self.object.objectPose.pose.position]
             self.vtf_client.wait_for_server()
-            rospy.loginfo("Hellow")
+            rospy.loginfo("Connection with vtf server")
             self.vtf_client.send_goal(goal)
-            rate = rospy.Rate(1)
             rate.sleep()
         
         return "aborted"
@@ -117,7 +120,8 @@ class PipelineStandby(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
 
-        smach.State.__init__(self)
+        #smach.State.__init__(self)
+        smach.State.__init__(self, outcomes=["aborted"])
 
     # Callback function for the position subscriber
     def odom_cb(self, msg):
@@ -130,11 +134,15 @@ class PipelineStandby(smach.State):
         self.state_pub.publish(f"{self.task}/standby")
 
         # hold current position
-        dp_goal = DpSetpoint()
-        dp_goal.control_mode = 7  # POSE_HOLD
-        dp_goal.setpoint = self.odom.pose.pose
-        self.dp_pub.publish(dp_goal)
-        while():
+        # dp_goal = DpSetpoint()
+        # dp_goal.control_mode = 7  # POSE_HOLD
+        # dp_goal.setpoint = self.odom.pose.pose
+        # self.dp_pub.publish(dp_goal)
+
+        rate = rospy.Rate(10)
+        while(): #rospy.get_param("/tasks/pipeline_inspection")
             rospy.loginfo("Standby")
-            rate = rospy.Rate(1)
             rate.sleep()
+        
+        self.request_preempt()
+        return "aborted"
