@@ -11,7 +11,6 @@ from std_msgs.msg import Float32
 
 class BatteryMonitor:
     def __init__(self):
-
         rospy.init_node("battery_monitor")
 
         # Parameters
@@ -107,14 +106,12 @@ class BatteryMonitor:
             self.system_recieved = True
 
     def log_cb(self, event):
-
         if self.system_recieved:
             self.log_voltage(self.system_voltage, "system")
         else:
             rospy.loginfo("No voltage recieved from system yet.")
 
     def log_voltage(self, voltage, title):
-
         if voltage == 0:
             rospy.loginfo("Voltage is zero. Killswitch is probably off.")
 

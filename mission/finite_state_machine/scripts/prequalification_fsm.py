@@ -36,7 +36,6 @@ def main():
     )
 
     with prequalification_state_machine:
-
         StateMachine.add(
             "PREQUAL_PREPARE", ReachDepth(), transitions={"succeeded": "GATE_SM"}
         )
@@ -44,7 +43,6 @@ def main():
         gate_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with gate_sm:
-
             StateMachine.add(
                 "GATE_SEARCH", GateSearch(), transitions={"succeeded": "GATE_CONVERGE"}
             )
@@ -63,7 +61,6 @@ def main():
         pole_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with pole_sm:
-
             StateMachine.add(
                 "POLE_SEARCH", PoleSearch(), transitions={"succeeded": "POLE_CONVERGE"}
             )
@@ -82,7 +79,6 @@ def main():
         gate_sm_back = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with gate_sm_back:
-
             StateMachine.add(
                 "GATE_SEARCH", GateSearch(), transitions={"succeeded": "GATE_CONVERGE"}
             )

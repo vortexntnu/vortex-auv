@@ -11,7 +11,6 @@ from std_msgs.msg import Float32
 
 class BatteryMonitor:
     def __init__(self):
-
         rospy.init_node("battery_monitor")
 
         # Parameters

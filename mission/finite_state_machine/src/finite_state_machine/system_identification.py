@@ -54,7 +54,6 @@ class Monitor(State):
         timer = rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
 
         while not rospy.is_shutdown():
-
             if not self.within_bounds():
                 rospy.loginfo("[Monitor] Drone is out if bounds")
                 return "succeeded"
