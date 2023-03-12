@@ -15,26 +15,28 @@ from search.forward_sweep import ForwardSweepSearch
 
 
 class TorpedoSearch(smach.State):
+
     def __init__(self):
         self.task = "torpedo_poster"
-        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        smach.State.__init__(self,
+                             outcomes=["preempted", "succeeded", "aborted"])
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(self.task).object
 
-        self.landmarks_pub = rospy.Publisher(
-            "/fsm/object_positions_in", ObjectPosition, queue_size=1
-        )
+        self.landmarks_pub = rospy.Publisher("/fsm/object_positions_in",
+                                             ObjectPosition,
+                                             queue_size=1)
 
         self.recov_point = self.landmarks_client("recovery_point").object
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -58,10 +60,8 @@ class TorpedoSearch(smach.State):
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
 
-            while (
-                self.vtf_client.simple_state
-                != actionlib.simple_action_client.SimpleGoalState.DONE
-            ):
+            while (self.vtf_client.simple_state !=
+                   actionlib.simple_action_client.SimpleGoalState.DONE):
                 rate.sleep()
 
         self.recov_point.objectPose.pose.position = self.odom.pose.pose.position
@@ -76,12 +76,10 @@ class TorpedoSearch(smach.State):
         object_found = self.search_pattern.run()
 
         if object_found:
-            print(
-                f"{self.task} POSITION DETECTED:"
-                f"{self.object.objectPose.pose.position.x}, "
-                f"{self.object.objectPose.pose.position.y}, "
-                f"{self.object.objectPose.pose.position.z}"
-            )
+            print(f"{self.task} POSITION DETECTED:"
+                  f"{self.object.objectPose.pose.position.x}, "
+                  f"{self.object.objectPose.pose.position.y}, "
+                  f"{self.object.objectPose.pose.position.z}")
 
             return "succeeded"
         else:
@@ -89,6 +87,7 @@ class TorpedoSearch(smach.State):
 
 
 class TorpedoConverge(smach.State):
+
     def __init__(self):
         smach.State.__init__(
             self,
@@ -96,17 +95,19 @@ class TorpedoConverge(smach.State):
             output_keys=["torpedo_converge_output"],
         )
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("torpedo_poster").object
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+        self.dp_pub = rospy.Publisher("/controllers/dp_data",
+                                      DpSetpoint,
+                                      queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -134,21 +135,14 @@ class TorpedoConverge(smach.State):
         # TODO: The commented out code below should be there.
         # However, the VTF action server prematurely finishes when it is. Investigate this.
         while not rospy.is_shutdown():
-            if (
-                self.vtf_client.simple_state
-                == actionlib.simple_action_client.SimpleGoalState.DONE
-            ):
+            if (self.vtf_client.simple_state ==
+                    actionlib.simple_action_client.SimpleGoalState.DONE):
                 break
             self.object = self.landmarks_client("torpedo_poster").object
             # goal.waypoints = [self.object.objectPose.pose.position]
-            print(
-                "TORPEDO POSITION DETECTED: "
-                + str(goal.waypoints[0].x)
-                + ", "
-                + str(goal.waypoints[0].y)
-                + ", "
-                + str(goal.waypoints[0].z)
-            )
+            print("TORPEDO POSITION DETECTED: " + str(goal.waypoints[0].x) +
+                  ", " + str(goal.waypoints[0].y) + ", " +
+                  str(goal.waypoints[0].z))
             # goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
             # self.vtf_client.send_goal(goal)
             userdata.torpedo_converge_output = self.object
@@ -180,30 +174,28 @@ class TorpedoConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("torpedo_target").object
         userdata.torpedo_converge_output = self.object
-        print(
-            "TORPEDO POSITION ESTIMATE CONVERGED AT: "
-            + str(self.object.objectPose.pose.position.x)
-            + "; "
-            + str(self.object.objectPose.pose.position.y)
-            + "; "
-            + str(self.object.objectPose.pose.position.z)
-        )
+        print("TORPEDO POSITION ESTIMATE CONVERGED AT: " +
+              str(self.object.objectPose.pose.position.x) + "; " +
+              str(self.object.objectPose.pose.position.y) + "; " +
+              str(self.object.objectPose.pose.position.z))
 
         return "succeeded"
 
 
 class TorpedoExecute(smach.State):
-    def __init__(self):
-        smach.State.__init__(
-            self, outcomes=["preempted", "succeeded", "aborted"], input_keys=["torpedo"]
-        )
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+    def __init__(self):
+        smach.State.__init__(self,
+                             outcomes=["preempted", "succeeded", "aborted"],
+                             input_keys=["torpedo"])
+
+        self.dp_pub = rospy.Publisher("/controllers/dp_data",
+                                      DpSetpoint,
+                                      queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         self.fire = rospy.Publisher("/torpedo", Int32, queue_size=1)
 
@@ -262,10 +254,8 @@ class TorpedoExecute(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if (
-                self.vtf_client.simple_state
-                == actionlib.simple_action_client.SimpleGoalState.DONE
-            ):
+            if (self.vtf_client.simple_state ==
+                    actionlib.simple_action_client.SimpleGoalState.DONE):
                 break
             rate.sleep()
 

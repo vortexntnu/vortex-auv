@@ -16,6 +16,7 @@ from helper import create_sequence, point, pose, twist, ControlModeEnum
 
 
 class Monitor(State):
+
     def __init__(
         self,
         max_duration,
@@ -40,7 +41,8 @@ class Monitor(State):
 
         self.goal_pose = goal_pose
         self.odom = Odometry()
-        self.odom_sub = rospy.Subscriber(odom_topic, Odometry, self.update_odom)
+        self.odom_sub = rospy.Subscriber(odom_topic, Odometry,
+                                         self.update_odom)
 
         self.x_min, self.x_max = pool_bounds[0]
         self.y_min, self.y_max = pool_bounds[1]
@@ -51,7 +53,9 @@ class Monitor(State):
     def execute(self, ud):
         # start timer
         self.timeout = False
-        timer = rospy.Timer(rospy.Duration(self.duration), self.timer_cb, oneshot=True)
+        timer = rospy.Timer(rospy.Duration(self.duration),
+                            self.timer_cb,
+                            oneshot=True)
 
         while not rospy.is_shutdown():
             if not self.within_bounds():
@@ -128,6 +132,7 @@ class Monitor(State):
 
 
 class SingleTest(State):
+
     def __init__(
         self,
         twist,
@@ -175,7 +180,9 @@ class SingleTest(State):
 
 
 def surge_tests():
+
     class SurgeTest(SingleTest):
+
         def __init__(self, velocity, orientation, end_pose=None):
             SingleTest.__init__(
                 self,
@@ -203,7 +210,9 @@ def surge_tests():
 
 
 def sway_tests():
+
     class SwayTest(SingleTest):
+
         def __init__(self, velocity, orientation, end_pose=None):
             SingleTest.__init__(
                 self,
@@ -243,7 +252,9 @@ def roll_tests():
 
 
 def yaw_tests():
+
     class YawTest(SingleTest):
+
         def __init__(self, yaw_vel):
             SingleTest.__init__(
                 self,
@@ -276,7 +287,9 @@ def yaw_tests():
 
 
 def surge_sway_tests():
+
     class SurgeSwayTest(SingleTest):
+
         def __init__(self, surge_vel, sway_vel, initial_angle, end_pose=None):
             SingleTest.__init__(
                 self,
@@ -318,7 +331,9 @@ def surge_sway_tests():
 
 
 def heave_tests():
+
     class HeaveTest(SingleTest):
+
         def __init__(self, velocity, start_depth, end_pose=None):
             SingleTest.__init__(
                 self,
@@ -340,10 +355,15 @@ def heave_tests():
 
 
 def heave_surge_tests():
+
     class HeaveSurgeTest(SingleTest):
-        def __init__(
-            self, heave_vel, surge_vel, initial_angle, initial_depth, end_pose=None
-        ):
+
+        def __init__(self,
+                     heave_vel,
+                     surge_vel,
+                     initial_angle,
+                     initial_depth,
+                     end_pose=None):
             SingleTest.__init__(
                 self,
                 twist(surge_vel, 0, heave_vel, 0, 0, 0),

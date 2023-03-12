@@ -27,27 +27,29 @@ from nav_msgs.msg import Odometry
 
 
 class PoleSearch(smach.State):
-    def __init__(self):
-        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+    def __init__(self):
+        smach.State.__init__(self,
+                             outcomes=["preempted", "succeeded", "aborted"])
+
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         self.object = self.landmarks_client("gate").object
 
         desired_velocity_topic = rospy.get_param(
-            "/controllers/velocity_controller/desired_velocity_topic"
-        )
-        self.velocity_ctrl_client = rospy.ServiceProxy(
-            desired_velocity_topic, SetVelocity
-        )
+            "/controllers/velocity_controller/desired_velocity_topic")
+        self.velocity_ctrl_client = rospy.ServiceProxy(desired_velocity_topic,
+                                                       SetVelocity)
         rospy.wait_for_service(desired_velocity_topic)
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+        self.dp_pub = rospy.Publisher("/controllers/dp_data",
+                                      DpSetpoint,
+                                      queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -62,16 +64,16 @@ class PoleSearch(smach.State):
         while not self.object.isDetected:
             # SEARCH PATTERN
             goal = VtfPathFollowingGoal()
-            goal.waypoints = [get_pose_in_front(self.odom.pose.pose, 1).position]
+            goal.waypoints = [
+                get_pose_in_front(self.odom.pose.pose, 1).position
+            ]
             goal.forward_speed = rospy.get_param("/fsm/medium_speed")
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
-            while (
-                self.vtf_client.simple_state
-                != actionlib.simple_action_client.SimpleGoalState.DONE
-                and not self.object.isDetected
-            ):
+            while (self.vtf_client.simple_state !=
+                   actionlib.simple_action_client.SimpleGoalState.DONE
+                   and not self.object.isDetected):
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
                 print(self.object.objectPose.pose.position)
@@ -86,10 +88,8 @@ class PoleSearch(smach.State):
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal, True)
-            while (
-                not within_acceptance_margins(goal, self.odom, True)
-                and not self.object.isDetected
-            ):
+            while (not within_acceptance_margins(goal, self.odom, True)
+                   and not self.object.isDetected):
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
                 print(self.object.objectPose.pose.position)
@@ -104,10 +104,8 @@ class PoleSearch(smach.State):
             vel_goal = Twist()
             vel_goal.angular.z = -rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal, True)
-            while (
-                not within_acceptance_margins(goal, self.odom, True)
-                and not self.object.isDetected
-            ):
+            while (not within_acceptance_margins(goal, self.odom, True)
+                   and not self.object.isDetected):
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
                 print(self.object.objectPose.pose.position)
@@ -122,10 +120,8 @@ class PoleSearch(smach.State):
             vel_goal = Twist()
             vel_goal.angular.z = rospy.get_param("/fsm/turn_speed")
             self.velocity_ctrl_client(vel_goal, True)
-            while (
-                not within_acceptance_margins(goal, self.odom, True)
-                and not self.object.isDetected
-            ):
+            while (not within_acceptance_margins(goal, self.odom, True)
+                   and not self.object.isDetected):
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
                 print(self.object.objectPose.pose.position)
@@ -142,18 +138,15 @@ class PoleSearch(smach.State):
 
         self.vtf_client.cancel_all_goals()
 
-        print(
-            "POLE POSITION DETECTED: "
-            + str(self.object.objectPose.pose.position.x)
-            + ", "
-            + str(self.object.objectPose.pose.position.y)
-            + ", "
-            + str(self.object.objectPose.pose.position.z)
-        )
+        print("POLE POSITION DETECTED: " +
+              str(self.object.objectPose.pose.position.x) + ", " +
+              str(self.object.objectPose.pose.position.y) + ", " +
+              str(self.object.objectPose.pose.position.z))
         return "succeeded"
 
 
 class PoleConverge(smach.State):
+
     def __init__(self):
         smach.State.__init__(
             self,
@@ -161,22 +154,23 @@ class PoleConverge(smach.State):
             output_keys=["pole_converge_output"],
         )
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("pole").object
 
         dp_guidance_action_server = "/guidance_interface/dp_server"
         self.action_client = actionlib.SimpleActionClient(
-            dp_guidance_action_server, MoveBaseAction
-        )
+            dp_guidance_action_server, MoveBaseAction)
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
+        self.dp_pub = rospy.Publisher("/controllers/dp_data",
+                                      DpSetpoint,
+                                      queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -204,22 +198,15 @@ class PoleConverge(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if (
-                self.vtf_client.simple_state
-                == actionlib.simple_action_client.SimpleGoalState.DONE
-            ):
+            if (self.vtf_client.simple_state ==
+                    actionlib.simple_action_client.SimpleGoalState.DONE):
                 break
             self.object = self.landmarks_client("pole").object
 
             # goal.waypoints = [self.object.objectPose.pose.position]
-            print(
-                "POLE POSITION DETECTED: "
-                + str(goal.waypoints[0].x)
-                + ", "
-                + str(goal.waypoints[0].y)
-                + ", "
-                + str(goal.waypoints[0].z)
-            )
+            print("POLE POSITION DETECTED: " + str(goal.waypoints[0].x) +
+                  ", " + str(goal.waypoints[0].y) + ", " +
+                  str(goal.waypoints[0].z))
 
             # goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
 
@@ -247,28 +234,24 @@ class PoleConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("pole").object
         userdata.pole_converge_output = self.object
-        print(
-            "POLE POSITION ESTIMATE CONVERGED AT: "
-            + str(self.object.objectPose.pose.position.x)
-            + "; "
-            + str(self.object.objectPose.pose.position.y)
-            + "; "
-            + str(self.object.objectPose.pose.position.z)
-        )
+        print("POLE POSITION ESTIMATE CONVERGED AT: " +
+              str(self.object.objectPose.pose.position.x) + "; " +
+              str(self.object.objectPose.pose.position.y) + "; " +
+              str(self.object.objectPose.pose.position.z))
 
         return "succeeded"
 
 
 class PoleExecute(smach.State):
+
     def __init__(self):
-        smach.State.__init__(
-            self, outcomes=["preempted", "succeeded", "aborted"], input_keys=["pole"]
-        )
+        smach.State.__init__(self,
+                             outcomes=["preempted", "succeeded", "aborted"],
+                             input_keys=["pole"])
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
@@ -302,10 +285,8 @@ class PoleExecute(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if (
-                self.vtf_client.simple_state
-                == actionlib.simple_action_client.SimpleGoalState.DONE
-            ):
+            if (self.vtf_client.simple_state ==
+                    actionlib.simple_action_client.SimpleGoalState.DONE):
                 break
             rate.sleep()
         return "succeeded"
