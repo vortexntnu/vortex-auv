@@ -27,6 +27,7 @@ def within_acceptance_margins(self, goal):
 
 class DockingSearch(smach.State):
     def __init__(self):
+        smach.State.__init__(self, outcomes=["preempted", "succeeded"])
 
         # Wait for docking_point from landmark server
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
@@ -40,11 +41,11 @@ class DockingExecute(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
 
+        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
+
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("docking").object
-
-        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         # TODO: name dp_action_server
         dp_action_server = ""
@@ -156,6 +157,7 @@ class DockingExecute(smach.State):
 
 class DockingStandby(smach.State):
     def __init__(self):
+        smach.State.__init__(self, outcomes=["succeded"])
 
         # TODO: name dp_action_server
         dp_action_server = ""
@@ -183,5 +185,6 @@ class DockingStandby(smach.State):
             rate.sleep()
         
         self.dp_client.cancel_all_goals()
+
         return "succeded"
         
