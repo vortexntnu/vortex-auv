@@ -32,7 +32,7 @@ class DockingSearch(smach.State):
         rospy.wait_for_service("send_positions")
 
     def execute(self):
-        pass
+        return "succeeded"
     
 
 class DockingExecute(smach.State):
@@ -47,9 +47,7 @@ class DockingExecute(smach.State):
 
         # TODO: name dp_action_server
         dp_action_server = ""
-        self.dp_client(actionlib.SimpleActionClient(
-            dp_action_server, DpAction
-        ))
+        self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -83,6 +81,7 @@ class DockingExecute(smach.State):
             not rospy.is_shutdown()
             and not self.dp_client.simple_state
             == actionlib.simple_action_client.SimpleGoalState.DONE
+            and rospy.get_param("/tasks/docking")
         ):
             
             self.object = self.landmarks_client("docking").object
@@ -109,6 +108,8 @@ class DockingExecute(smach.State):
                 goal.x_ref = self.odom.pose.pose
                 self.dp_client.send_goal(goal)
                 return "aborted"
+        if (not rospy.get_param("/tasks/docking")):
+            return "done"
 
         self.object = self.landmarks_client("docking").object
         print(
@@ -123,8 +124,8 @@ class DockingExecute(smach.State):
         starting_time = rospy.Time.now().to_sec()
         docking_duration = rospy.Duration.from_sec(15)
         while((starting_time + docking_duration) > rospy.Time.now().to_sec()):
-            # Do something
-            pass
+            if (not rospy.get_param("/tasks/docking")):
+                return "done"
 
         undocking_pose = self.odom.pose.pose
         undocking_pose.Point.z = undocking_pose.Point.z + 0.5
@@ -138,7 +139,10 @@ class DockingExecute(smach.State):
             not rospy.is_shutdown()
             and not self.dp_client.simple_state
             == actionlib.simple_action_client.SimpleGoalState.DONE
+            and rospy.get_param("/tasks/docking")
         ):
             rate.sleep()
+
+        self.dp_client.cancel_all_goals()
         
-        return "succeeded"
+        return "done"

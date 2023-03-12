@@ -3,29 +3,26 @@
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
-from docking import DockingSearch, DockingConverge, DockingExecute 
+from docking import DockingSearch, DockingExecute 
 
 
 def main():
     rospy.init_node("tac_docking_fsm")
 
-    docking_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
+    docking_sm = StateMachine(outcomes=["done"])
     with docking_sm:
 
         StateMachine.add(
             "DOCKING_SEARCH",
             DockingSearch(),
-            transitions = {"succeeded": "DOCKING_EXECUTE", "aborted": "MANUAL_MODE"}
+            transitions = {"succeeded": "DOCKING_EXECUTE"}
         )
 
         StateMachine.add(
             "DOCKING_EXECUTE",
             DockingExecute(),
-            transitions = {"succeeded": "MANUAL_MODE" , "aborted": "DOCKING_SEARCH"}
+            transitions = {"done": "MANUAL_MODE" , "aborted": "DOCKING_SEARCH"}
         )
-
-
-    StateMachine.add("DOCKING_FSM", docking_sm, transitions={"succeded": "MANUAL_MODE"})
 
 
     intro_server = IntrospectionServer(
@@ -47,3 +44,4 @@ if __name__ == "__main__":
         enabled = rospy.get_param("/tasks/docking")
         if enabled == True:
             main()
+-
