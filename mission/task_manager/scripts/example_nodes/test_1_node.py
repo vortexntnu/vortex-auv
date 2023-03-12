@@ -3,6 +3,7 @@ import rospy
 
 
 class MyNode1:
+
     def __init__(self):
         self.enabled = rospy.get_param("/tasks/task_1")
 

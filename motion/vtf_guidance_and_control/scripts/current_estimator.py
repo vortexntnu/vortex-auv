@@ -7,6 +7,7 @@ from functions import ssa
 
 
 class CurrentEstimator:
+
     def __init__(self, delta_psi, X_u, Y_v):
         self.delta_psi = delta_psi
         self.X_u = X_u
@@ -34,9 +35,8 @@ class CurrentEstimator:
         self.online = True
 
     def check_steady_state(self, eta, t):
-        if (np.linalg.norm(eta - np.array(self.eta_r)) < self.tol_error) and (
-            t - self.prev_t > self.tol_sec
-        ):
+        if (np.linalg.norm(eta - np.array(self.eta_r)) <
+                self.tol_error) and (t - self.prev_t > self.tol_sec):
             self.prev_t = t
             result = True
         elif np.linalg.norm(eta - np.array(self.eta_r)) < self.tol_error:
@@ -52,24 +52,16 @@ class CurrentEstimator:
                 delta_int_x = int_x - self.prev_int_x
                 delta_int_y = int_y - self.prev_int_y
                 new_U_c = (1 / (2 * np.sin(self.delta_psi / 2))) * np.sqrt(
-                    (delta_int_x / (self.X_u)) ** 2 + (delta_int_y / (self.Y_v)) ** 2
-                )
+                    (delta_int_x / (self.X_u))**2 + (delta_int_y /
+                                                     (self.Y_v))**2)
                 self.U_c = (self.U_c * (self.i - 1) + new_U_c) / self.i
                 sign = -np.sign(delta_int_x) * np.sign(self.delta_psi)
-                new_chi_c = ssa(
-                    sign
-                    * np.arccos(
-                        (delta_int_y / (self.Y_v))
-                        / (
-                            np.sqrt(
-                                (delta_int_x / (self.X_u)) ** 2
-                                + (delta_int_y / (self.Y_v)) ** 2
-                            )
-                        )
-                    )
-                    + self.eta_r[5]
-                    - self.delta_psi / 2
-                )
+                new_chi_c = ssa(sign * np.arccos((delta_int_y / (self.Y_v)) /
+                                                 (np.sqrt((delta_int_x /
+                                                           (self.X_u))**2 +
+                                                          (delta_int_y /
+                                                           (self.Y_v))**2))) +
+                                self.eta_r[5] - self.delta_psi / 2)
                 self.chi_c = (self.chi_c * (self.i - 1) + new_chi_c) / self.i
             self.prev_int_x = int_x
             self.prev_int_y = int_y

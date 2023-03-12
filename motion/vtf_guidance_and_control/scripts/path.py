@@ -8,6 +8,7 @@ from functions import R_z, ssa
 
 
 class Path:
+
     def __init__(self):
         self.path = []
         self.chi_p = []
@@ -51,20 +52,22 @@ class Path:
             # v2_v = v2[2]*np.linalg.norm(v2[:2])
             # alpha_v = (np.arctan2(v1_v[0]*v2_v[1]-v1_v[1]*v2_v[0], v1_v[0]*v2_v[0]-v1_v[1]*v2_v[1]))/2
             cut_h = r_h / np.tan(alpha_h)
-            tot_cut = np.sqrt(cut_h**2 + (cut_h * np.sin(gamma_0)) ** 2)
+            tot_cut = np.sqrt(cut_h**2 + (cut_h * np.sin(gamma_0))**2)
             l_1 = np.linalg.norm(v1) - tot_cut
 
             self.straight_line_path_segment(wp_0, l_1, chi_0, gamma_0)
 
             wp_1 = self.path[-1](1)
-            c = wp_1 + np.sign(ssa(chi_1 - chi_0)) * np.dot(R_z(chi_0), [0, r_h, 0])
+            c = wp_1 + np.sign(ssa(chi_1 - chi_0)) * np.dot(
+                R_z(chi_0), [0, r_h, 0])
             c_v = wp_1[2] - np.sign(gamma_1 - gamma_0) * np.cos(gamma_0) * r_v
             c[2] = waypoints[i + 1][2]
             # print(c[0]+np.sin(chi_1)*r_h)
             # print(c[1]-np.cos(chi_1)*r_h)
             # print(c)
 
-            self.curved_path_segment(c, r_h, r_v, chi_0, chi_1, gamma_0, gamma_1)
+            self.curved_path_segment(c, r_h, r_v, chi_0, chi_1, gamma_0,
+                                     gamma_1)
 
             if i == len(waypoints) - 2 - 1:
                 wp_2 = self.path[-1](1)
@@ -73,13 +76,11 @@ class Path:
             wp_0 = self.path[-1](1)
 
     def straight_line_path_segment(self, p_0, l, chi_l, gamma_l):
-        self.path.append(
-            lambda varpi: [
-                p_0[0] + l * varpi * np.cos(chi_l) * np.cos(gamma_l),
-                p_0[1] + l * varpi * np.sin(chi_l) * np.cos(gamma_l),
-                p_0[2] - l * varpi * np.sin(gamma_l),
-            ]
-        )
+        self.path.append(lambda varpi: [
+            p_0[0] + l * varpi * np.cos(chi_l) * np.cos(gamma_l),
+            p_0[1] + l * varpi * np.sin(chi_l) * np.cos(gamma_l),
+            p_0[2] - l * varpi * np.sin(gamma_l),
+        ])
         self.chi_p.append(lambda varpi: chi_l)
         self.gamma_p.append(lambda varpi: gamma_l)
         self.kappa_h.append(lambda varpi: 0)
@@ -89,31 +90,24 @@ class Path:
     def curved_path_segment(self, c, r_h, r_v, chi_0, chi_1, gamma_0, gamma_1):
         l_1 = abs(r_h * ssa(chi_1 - chi_0) * np.sin(gamma_0)) / 2
         l_2 = abs(r_h * ssa(chi_1 - chi_0) * np.sin(gamma_1)) / 2
-        self.path.append(
-            lambda varpi: [
-                c[0]
-                - np.sign(ssa(chi_0 - chi_1))
-                * r_h
-                * np.sin(chi_0 + varpi * (ssa(chi_1 - chi_0))),
-                c[1]
-                + np.sign(ssa(chi_0 - chi_1))
-                * r_h
-                * np.cos(chi_0 + varpi * (ssa(chi_1 - chi_0))),
-                c[2]
-                + (
-                    -np.sign(gamma_0) * l_1 * (varpi - 0.5) * 2
-                    if varpi < 0.5
-                    else -np.sign(gamma_1) * l_2 * (varpi - 0.5) * 2
-                ),
-            ]
-        )
-        self.chi_p.append(lambda varpi: ssa(chi_0 + varpi * (ssa(chi_1 - chi_0))))
-        self.gamma_p.append(lambda varpi: (gamma_0 if varpi < 0.5 else gamma_1))
-        self.kappa_h.append(lambda varpi: np.sign(ssa(chi_1 - chi_0)) * 1 / r_h)
+        self.path.append(lambda varpi: [
+            c[0] - np.sign(ssa(chi_0 - chi_1)) * r_h * np.sin(chi_0 + varpi * (
+                ssa(chi_1 - chi_0))),
+            c[1] + np.sign(ssa(chi_0 - chi_1)) * r_h * np.cos(chi_0 + varpi * (
+                ssa(chi_1 - chi_0))),
+            c[2] + (-np.sign(gamma_0) * l_1 * (varpi - 0.5) * 2 if varpi < 0.5
+                    else -np.sign(gamma_1) * l_2 * (varpi - 0.5) * 2),
+        ])
+        self.chi_p.append(lambda varpi: ssa(chi_0 + varpi *
+                                            (ssa(chi_1 - chi_0))))
+        self.gamma_p.append(lambda varpi: (gamma_0
+                                           if varpi < 0.5 else gamma_1))
+        self.kappa_h.append(
+            lambda varpi: np.sign(ssa(chi_1 - chi_0)) * 1 / r_h)
         self.kappa_v.append(lambda varpi: 0)
-        length = np.sqrt((abs(r_h * ssa(chi_1 - chi_0)) / 2) ** 2 + l_1**2) + np.sqrt(
-            (abs(r_h * ssa(chi_1 - chi_0)) / 2) ** 2 + l_2**2
-        )
+        length = np.sqrt((abs(r_h * ssa(chi_1 - chi_0)) / 2)**2 +
+                         l_1**2) + np.sqrt(
+                             (abs(r_h * ssa(chi_1 - chi_0)) / 2)**2 + l_2**2)
         self.length.append(length)
 
 
