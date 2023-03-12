@@ -51,7 +51,7 @@ class PipelineConverge(smach.State):
         #dp_goal.setpoint = self.object.objectPose
         #self.dp_pub.publish(dp_goal)
 
-        time.sleep(3)
+        time.sleep(1)
         return "succeeded"
 
 class PipelineExecute(smach.State):
@@ -84,7 +84,7 @@ class PipelineExecute(smach.State):
         goal.heading = "path_dependent_heading"
 
         rate = rospy.Rate(10)
-        while self.object.isDetected and rospy.get_param("/tasks/pipeline_inspection"):
+        while not rospy.is_shutdown() and self.object.isDetected: # and rospy.get_param("/tasks/pipeline_inspection"):
             print(
                 "PATH POSITION DETECTED: "
                 + str(self.object.objectPose.pose.position.x)
@@ -102,6 +102,7 @@ class PipelineExecute(smach.State):
             self.vtf_client.wait_for_server()
             rospy.loginfo("Connection with vtf server")
             self.vtf_client.send_goal(goal)
+            self.object = self.landmarks_client(f"{self.task}").object # requesting new points
             rate.sleep()
         
         return "aborted"
