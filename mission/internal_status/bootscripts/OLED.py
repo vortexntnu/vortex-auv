@@ -1,8 +1,13 @@
 #!/usr/bin/python3
-
-import readline
-from telnetlib import IP
 import time
+import smbus
+import subprocess
+import readline
+import re
+import sys
+import os
+
+from telnetlib import IP
 
 import Adafruit_GPIO.SPI as SPI
 import Adafruit_SSD1306
@@ -11,11 +16,7 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-import re
-
-import subprocess
-import smbus
-
+from MCP342x import MCP342x
 
 # Raspberry Pi pin configuration:
 RST = None  # on the PiOLED this pin isnt used
@@ -38,10 +39,8 @@ while disp == 0:
         disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=1, gpio=1)
     except:
         print("Could not establish disp")
-bus = smbus.SMBus(1)
 
 # Initialize library.
-
 disp.begin()
 
 disp.clear()
@@ -72,32 +71,26 @@ bottom = height - padding
 # Move left to right keeping track of the current x position for drawing shapes.
 x = 0
 
-
 # Load default font.
 font = ImageFont.load_default()
-
 
 IP_prev = "No IP"
 IP_filt = ""
 
+# Parameters
+# to read voltage and current from ADC on PDB through I2C
+i2c_adress = 0x69
 
-# ro red voltage and current from Arduino Nano through I2C
-# for code on the arduino:
-nano_addr = 12  # I2C adress of nano (setted in software!)
-voltage_reg_nano = 0  # value to send to arduino to get voltage read back
-current_reg_nano = 1  # to get current measurement back
-
-# Calibration values for converting from raw digital binary form to decimal form
-# Calibration values were manualy calibrated to +- 0.1V acuracy!
-calVoltageA = 56.2711  # 12 * 4
-calVoltageB = -2.3345
-calCurrent = 37.8788  # 1
-calCurrentOffset = 0.33
-
-
-# init of I2C bus with arduino nano conected
-
+# init of I2C bus communication
 bus = smbus.SMBus(1)
+channel_voltage = MCP342x(bus, i2c_adress, channel=0, resolution=18)  # voltage
+channel_current = MCP342x(bus, i2c_adress, channel=1, resolution=18)  # current
+time.sleep(1)
+
+# Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
+psm_to_battery_voltage = 11.0  # V/V
+psm_to_battery_current_scale_factor = 37.8788  # A/V
+psm_to_battery_current_offset = 0.330  # V
 
 xavier_IP = ""
 system_voltage = 0
@@ -115,41 +108,30 @@ def func_check(func):
         return 1
 
 
-def read_voltage():
+def read_PSM_voltage():
     # Sometimes an I/O timeout or error happens, it will run again when the error disappears
     try:
-        # arduino is configure to send voltage data on "register" 0, current on 1
-        # data is sent in 2 bytes, because to big for one I2C message
-        voltage_msg = bus.read_i2c_block_data(nano_addr, 0, 2)
-
-        # conversion to get real voltage
-        # measurement up to 1023, so to big for 7bit I2C messages. Sends MSB first, then LSB, then remap to 0-5V
-        x = (((voltage_msg[0] & 0x7) << 7) + voltage_msg[1]) * (5 / 1024.0)
-
-        system_voltage = x * calVoltageA + calVoltageB
-
-        return system_voltage
+        voltage = channel_voltage.convert_and_read() * psm_to_battery_voltage
 
     except IOError:
-        print("Bus IOerror")
+        voltage = -1
+
+    return voltage
 
 
-def read_current():
+def read_PSM_current():
     try:
-        current_msg = bus.read_i2c_block_data(nano_addr, 1, 2)
+        current = (channel_current.convert_and_read() -
+                   psm_to_battery_current_offset
+                   ) * psm_to_battery_current_scale_factor
 
-        # conversion to get real voltage
-        x = (((current_msg[0] & 0x7) << 7) + current_msg[1]) * (5 / 1024.0)
-
-        system_current = calCurrent * (x - calCurrentOffset)
-
-        return system_current
     except IOError:
-        print("BUS error")
+        current = -1
+
+    return current
 
 
 while True:
-
     cmd = "hostname -I | cut -d' ' -f1"
 
     # Draw a black filled box to clear the image.
@@ -162,10 +144,8 @@ while True:
     # with open("xavier_IP.txt", "r") as f:
     #    xavier_IP = f.readlines()
 
-    system_voltage = round(read_voltage(), 2)
-    print("Voltage: " + str(system_voltage))
-    system_current = round(read_current(), 2)
-    # print(system_current)
+    system_voltage = round(read_PSM_voltage(), 2)
+    system_current = round(read_PSM_current(), 2)
 
     func = func_check(func)
 
@@ -173,8 +153,14 @@ while True:
     # Write two lines of text.
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
-    draw.text((x, top + 8), "Voltage: " + str(system_voltage), font=font, fill=255)
-    draw.text((x, top + 16), "Current: " + str(system_current), font=font, fill=255)
+    draw.text((x, top + 8),
+              "Volt: " + str(system_voltage),
+              font=font,
+              fill=255)
+    draw.text((x, top + 16),
+              "Amp:  " + str(system_current),
+              font=font,
+              fill=255)
 
     # Display image.
     disp.image(image)

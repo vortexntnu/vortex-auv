@@ -6,6 +6,12 @@ plans.
 The current system contains:
 
 * finite_state_machine
+    * Made for Robosub
+    * SMACH-based fsm that determines how tasks are to be executed
+    * Closely linked to the guidance interface
+
+* finite_state_machine
+    * Made for tac challenge 2023
     * SMACH-based fsm that determines how tasks are to be executed
     * Closely linked to the guidance interface
 
