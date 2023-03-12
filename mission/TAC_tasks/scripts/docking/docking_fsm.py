@@ -9,19 +9,25 @@ from docking import DockingSearch, DockingExecute
 def main():
     rospy.init_node("tac_docking_fsm")
 
-    docking_sm = StateMachine(outcomes=["done"])
+    docking_sm = StateMachine(outcomes=["succeded", "preempted"])
     with docking_sm:
 
         StateMachine.add(
             "DOCKING_SEARCH",
             DockingSearch(),
-            transitions = {"succeeded": "DOCKING_EXECUTE"}
+            transitions = {"succeeded": "DOCKING_EXECUTE", "preempted": "MANUAL_MODE"}
         )
 
         StateMachine.add(
             "DOCKING_EXECUTE",
             DockingExecute(),
-            transitions = {"done": "MANUAL_MODE" , "aborted": "DOCKING_SEARCH"}
+            transitions = {"succeded": "DOCKING_STANDBY" , "aborted": "DOCKING_SEARCH", "preempted": "MANUAL_MODE"}
+        )
+
+        StateMachine.add(
+            "DOCKING_STANDBY",
+            DockingExecute(),
+            transitions = {"succeded": "MANUAL_MODE"}
         )
 
 

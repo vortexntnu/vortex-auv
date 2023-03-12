@@ -27,6 +27,7 @@ def within_acceptance_margins(self, goal):
 
 class DockingSearch(smach.State):
     def __init__(self):
+
         # Wait for docking_point from landmark server
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
@@ -108,8 +109,10 @@ class DockingExecute(smach.State):
                 goal.x_ref = self.odom.pose.pose
                 self.dp_client.send_goal(goal)
                 return "aborted"
+        
         if (not rospy.get_param("/tasks/docking")):
-            return "done"
+            self.dp_client.cancel_all_goals()
+            return "preempted"
 
         self.object = self.landmarks_client("docking").object
         print(
@@ -123,9 +126,11 @@ class DockingExecute(smach.State):
 
         starting_time = rospy.Time.now().to_sec()
         docking_duration = rospy.Duration.from_sec(15)
+
         while((starting_time + docking_duration) > rospy.Time.now().to_sec()):
             if (not rospy.get_param("/tasks/docking")):
-                return "done"
+                self.dp_client.cancel_all_goals()
+                return "preempted"
 
         undocking_pose = self.odom.pose.pose
         undocking_pose.Point.z = undocking_pose.Point.z + 0.5
@@ -142,7 +147,41 @@ class DockingExecute(smach.State):
             and rospy.get_param("/tasks/docking")
         ):
             rate.sleep()
+      
+        if (not rospy.get_param("/tasks/docking")):
+            self.dp_client.cancel_all_goals()
+            return "preempted"
+    
+        return "succeded"
 
-        self.dp_client.cancel_all_goals()
+class DockingStandby(smach.State):
+    def __init__(self):
+
+        # TODO: name dp_action_server
+        dp_action_server = ""
+        self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
+
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
+        self.odom = Odometry()
+
+    def odom_cb(self, msg):
+        self.odom = msg
+
+    def execute(self):
+        undocking_pose = self.odom.pose.pose
+        goal.x_ref = undocking_pose
+        self.dp_client.send_goal(goal)
+
+        rate = rospy.Rate(1)
         
-        return "done"
+        while (
+            not rospy.is_shutdown()
+            and not self.dp_client.simple_state
+            == actionlib.simple_action_client.SimpleGoalState.DONE
+            and rospy.get_param("/tasks/docking")
+        ):
+            rate.sleep()
+        
+        self.dp_client.cancel_all_goals()
+        return "succeded"
+        
