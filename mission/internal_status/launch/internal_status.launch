@@ -7,7 +7,7 @@
     <!-- Monitoring nodes -->
     <group ns="$(arg ns_monitor)">
         <node pkg="internal_status"
-        type="battery_monitor_arduino.py"
+        type="battery_monitor.py"
         name="battery_monitor"
         output="screen"/>
         <!-- <node pkg="internal_status"
