@@ -95,7 +95,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
 
   // Rounding gain to remove super small values
   int num_decimals = 3;
-  gain = (gain * pow(10,num_decimals)).array().round()/ pow(10,num_decimals);
+  gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
   return (Eigen::Vector6d() << gain).finished();
 }
 

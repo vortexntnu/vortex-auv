@@ -7,6 +7,7 @@
 #include <actionlib/client/terminal_state.h>
 #include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
+#include <vortex_msgs/dpAction.h>
 
 #include <Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
