@@ -18,7 +18,7 @@ class DpAction {
 private:
   ros::NodeHandle nh_;
   std::string action_name_;
-  
+
   // create messages that are used to published feedback/result
   vortex_msgs::dpFeedback feedback_;
   vortex_msgs::dpResult result_;

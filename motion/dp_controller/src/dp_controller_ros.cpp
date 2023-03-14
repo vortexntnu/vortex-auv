@@ -42,11 +42,11 @@ Eigen::Vector3d Controller::QuaterniondToEuler(Eigen::Quaterniond q) {
   return Eigen::Vector3d(roll, pitch, yaw);
 }
 
-
-template<typename T> 
+template <typename T>
 void Controller::getParameters(std::string param_name, T &param_variable) {
   if (!m_nh.getParam(param_name, param_variable)) {
-    ROS_FATAL("Failed to read parameter %s.  Shutting down node..", param_name.c_str());
+    ROS_FATAL("Failed to read parameter %s.  Shutting down node..",
+              param_name.c_str());
     ros::shutdown();
   }
 }
@@ -56,7 +56,7 @@ void Controller::getParameters(std::string param_name, T &param_variable) {
 //   config_msg->getGroupNames("Gains", param_names);
 //   std::cout << "param_names: " << std::endl << param_names;
 // }
-   
+
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   // Load rosparams
   std::string odometry_topic;
@@ -67,11 +67,11 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   std::vector<double> r_G_vec, r_B_vec;
   std::vector<double> p_gain_vec, i_gain_vec, d_gain_vec;
 
-  //import paramteres
+  // import paramteres
   Controller::getParameters("/controllers/dp/odometry_topic", odometry_topic);
-  Controller::getParameters("/thrust/thrust_topic",thrust_topic);
+  Controller::getParameters("/thrust/thrust_topic", thrust_topic);
   Controller::getParameters("/physical/weight", W);
-  Controller::getParameters("/physical/buoyancy",B);
+  Controller::getParameters("/physical/buoyancy", B);
   Controller::getParameters("/physical/center_of_mass", r_G_vec);
   Controller::getParameters("/physical/center_of_buoyancy", r_B_vec);
   Controller::getParameters("/PID/P", p_gain_vec);
@@ -87,7 +87,8 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 
   p_gain << p_gain_vec[0], p_gain_vec[1], p_gain_vec[2], p_gain_vec[3],
       p_gain_vec[4], p_gain_vec[5];
-  i_gain << i_gain_vec[0], i_gain_vec[1], i_gain_vec[2], i_gain_vec[3], i_gain_vec[4], i_gain_vec[5];
+  i_gain << i_gain_vec[0], i_gain_vec[1], i_gain_vec[2], i_gain_vec[3],
+      i_gain_vec[4], i_gain_vec[5];
   d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3],
       d_gain_vec[4], d_gain_vec[5];
 
@@ -112,7 +113,8 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
       m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_print", 1, this);
 
   // Set up dynamic reconfigure server
-  dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType f;
+  dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType
+      f;
   f = boost::bind(&Controller::cfgCallback, this, _1, _2);
   m_cfg_server.setCallback(f);
 
@@ -142,7 +144,7 @@ void Controller::spin() {
           position, orientation, velocity, eta_dot_d, eta_d_pos, x_ref_ori);
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
-      int i = 0; 
+      int i = 0;
       for (int j : dp_server.goal_.DOF) {
         tau(i) *= j;
         DOF(i) = dp_server.goal_.DOF[i];
@@ -151,13 +153,13 @@ void Controller::spin() {
       tf::wrenchEigenToMsg(tau, tau_msg);
 
       m_wrench_pub.publish(tau_msg);
-      m_referencepoint_pub.publish(dp_server.goal_.x_ref); 
+      m_referencepoint_pub.publish(dp_server.goal_.x_ref);
     }
 
     Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);
     dp_server.pose << position, orientation_euler;
 
-  // Makes sure DP always ends by sending 0 thrust 
+    // Makes sure DP always ends by sending 0 thrust
     if (was_active && !dp_server.run_controller) {
       Eigen::VectorXd tau_zero = Eigen::VectorXd::Zero(6, 1);
       tf::wrenchEigenToMsg(tau_zero, tau_msg);
@@ -216,7 +218,8 @@ void Controller::desiredPointCallback(
   m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
 }
 
-void Controller::cfgCallback(dp_controller::DpControllerConfig &config, uint32_t level) {
+void Controller::cfgCallback(dp_controller::DpControllerConfig &config,
+                             uint32_t level) {
   ROS_INFO("Reconfigure Request P.x: %f", config.P_gain_x);
   ROS_INFO("Reconfigure Request P.y: %f", config.P_gain_y);
 
@@ -224,10 +227,11 @@ void Controller::cfgCallback(dp_controller::DpControllerConfig &config, uint32_t
   Eigen::Vector6d p_gain = Eigen::Vector6d::Zero();
   Eigen::Vector6d i_gain = Eigen::Vector6d::Zero();
   Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
-  p_gain << config.P_gain_x, config.P_gain_y, config.P_gain_z, config.P_gain_roll, config.P_gain_pitch, config.P_gain_yaw;
-  i_gain << config.I_gain_x, config.I_gain_y, config.I_gain_z, config.I_gain_roll, config.I_gain_pitch, config.I_gain_yaw;
-  d_gain << config.D_gain_x, config.D_gain_y, config.D_gain_z, config.D_gain_roll, config.D_gain_pitch, config.D_gain_yaw;
+  p_gain << config.P_gain_x, config.P_gain_y, config.P_gain_z,
+      config.P_gain_roll, config.P_gain_pitch, config.P_gain_yaw;
+  i_gain << config.I_gain_x, config.I_gain_y, config.I_gain_z,
+      config.I_gain_roll, config.I_gain_pitch, config.I_gain_yaw;
+  d_gain << config.D_gain_x, config.D_gain_y, config.D_gain_z,
+      config.D_gain_roll, config.D_gain_pitch, config.D_gain_yaw;
   m_controller.update_gain(p_gain, i_gain, d_gain);
 }
-
-

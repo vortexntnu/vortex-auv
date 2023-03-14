@@ -58,28 +58,28 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
   ros::Rate r(1);
   bool success = false;
 
-
   Eigen::Vector6d error = Eigen::Vector6d::Zero();
 
-  //gets the goal-pose from the action_client.
-  Eigen::Vector3d x_ref_pos;    
+  // gets the goal-pose from the action_client.
+  Eigen::Vector3d x_ref_pos;
   Eigen::Quaterniond x_ref_ori;
   tf::pointMsgToEigen(goal_.x_ref.position, x_ref_pos);
   tf::quaternionMsgToEigen(goal_.x_ref.orientation, x_ref_ori);
 
-  //gets desired DOF from the action_client.
+  // gets desired DOF from the action_client.
   Eigen::VectorXd DOF = Eigen::VectorXd::Zero(6, 1);
   for (int i = 0; i < 6; i++) {
     DOF(i) = goal_.DOF[i];
   }
-  //Checks if either the goal is cancelled or a new goal is available.
+  // Checks if either the goal is cancelled or a new goal is available.
   while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable()) {
     run_controller = true;
-    
-    //calculating error.
+
+    // calculating error.
     feedback_.error.clear();
     Eigen::Vector3d error_pos = x_ref_pos - pose.segment(0, 3);
-    Eigen::Vector3d error_ori = QuaterniondToEuler(x_ref_ori) - pose.segment(3, 3);
+    Eigen::Vector3d error_ori =
+        QuaterniondToEuler(x_ref_ori) - pose.segment(3, 3);
     error << error_pos, SmallestAngle(error_ori);
     error = DOF.cwiseProduct(error);
 
@@ -90,24 +90,26 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
     // publish the feedback
     as_.publishFeedback(feedback_);
 
-    //Checks if the goal is achieved.
-    float accepted_radius = 1;      //!!!!!!!!!!!!!!!!!!!!!change
+    // Checks if the goal is achieved.
+    float accepted_radius = 1; //!!!!!!!!!!!!!!!!!!!!!change
     float accepted_deg = 20;
     double distance_from_goal = error.segment(0, 3).norm();
     Eigen::Vector3d error_ori_deg = error.segment(3, 3) * 180 / M_PI;
-    if (distance_from_goal < accepted_radius && abs(error_ori_deg[0]) < accepted_deg &&
-        abs(error_ori_deg[1]) < accepted_deg && abs(error_ori_deg[2]) < accepted_deg &&
-        success == false) {
+    if (distance_from_goal < accepted_radius &&
+        abs(error_ori_deg[0]) < accepted_deg &&
+        abs(error_ori_deg[1]) < accepted_deg &&
+        abs(error_ori_deg[2]) < accepted_deg && success == false) {
       success = true;
       result_.finished = true;
-      
+
       // set the action state to succeeded
       as_.setSucceeded(result_);
     }
 
     r.sleep();
   }
-  
-  if(!success) as_.setPreempted();
+
+  if (!success)
+    as_.setPreempted();
   run_controller = false;
 }
