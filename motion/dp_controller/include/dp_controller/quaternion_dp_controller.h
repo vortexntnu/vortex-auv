@@ -1,7 +1,6 @@
-/*   Written by Kristoffer Rakstad Solberg, Student
-     Documentation written by Jae Hyeong Hwang and
-     copied to Doxygen format by Christopher Strøm
-     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+/*   Written by Kevin Strandenes and Anders Slåkvik, Student
+     Documentation written by Kevin Strandenes and Anders Slåkvik
+     Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
 /**
@@ -35,7 +34,9 @@ private:
   Eigen::Vector3d m_r_B;
   Eigen::Vector3d m_r_G;
   Eigen::Vector6d m_p_gain;
+  Eigen::Matrix6d m_i_gain = Eigen::Matrix6d::Zero();
   Eigen::Vector6d m_d_gain;
+  Eigen::Vector6d integral = Eigen::Vector6d::Zero();
 
 public:
   explicit QuaternionPIDController(); // float W, float B, Eigen::Vector3d r_G,
@@ -72,7 +73,7 @@ public:
 
   void init(const double W, const double B, const Eigen::Vector3d &r_G,
             const Eigen::Vector3d &r_B);
-  void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d d_gain);
+  void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d i_gain, Eigen::Vector6d d_gain);
 };
 
 #endif // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H

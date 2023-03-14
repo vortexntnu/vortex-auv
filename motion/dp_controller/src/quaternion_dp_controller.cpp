@@ -1,4 +1,8 @@
-//#include "quaternion_dp_controller.h"
+/*   Written by Kevin Strandenes and Anders Slåkvik, Student
+     Documentation written by Kevin Strandenes and Anders Slåkvik
+     Copyright (c) 2023 Beluga AUV, Vortex NTNU.
+     All rights reserved. */
+
 #include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
 
@@ -33,15 +37,11 @@ Eigen::Matrix6d
 QuaternionPIDController::proportionalGainMatrix(const Eigen::Matrix3d R) {
   Eigen::Matrix3d m_c = Eigen::Matrix3d::Zero();
   m_c.diagonal() << m_p_gain.segment(3, 3);
-  std::cout << std::endl << "P_gain: " << m_p_gain.segment(0, 3) << std::endl;
   Eigen::Matrix3d m_K_x = Eigen::Matrix3d::Zero();
-  std::cout << "DEBUG1" << std::endl;
   m_K_x.diagonal() << m_p_gain.segment(0, 3);
-  std::cout << "DEBUG2" << std::endl;
   return (Eigen::Matrix6d() << R.transpose() * m_K_x,
           Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd::Zero(3, 3), m_c)
       .finished();
-  // m_c //* Eigen::MatrixXd::Identity(3, 3))
 }
 
 Eigen::Matrix3d skew(Eigen::Vector3d vec) {
@@ -69,43 +69,29 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
   remove_ori << 1, 1, 1, 0, 0, 0;
   nu_tilde = nu - (J_inv * eta_dot_d).cwiseProduct(remove_ori);
-  // std::cout << std::endl << "nu:" << std::endl << nu << std::endl;
-  // std::cout << std::endl << "J_inv:" << std::endl << J_inv << std::endl;
-  // std::cout << std::endl << "eta_dot_d:" << std::endl << eta_dot_d <<
-  // std::endl;
-
-  // Eigen::Matrix6d K_i = integralGainMatrix(R);
-
-  // Reference model
-  // Eigen::Vector3d x_d_smooth = referenceModel(x, x_d);
 
   // Error Vector
   Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);
-  std::cout << std::endl << "z:" << std::endl << z << std::endl;
-
-  std::cout << "DEBUG3" << std::endl;
 
   // Integral
-  // double maxPoseGain = 4.0;
-  // double maxAttGain = 0.05;
-  // integral += K_i * z;
-  // integralWindUp(integral, maxPoseGain, maxAttGain);
+  double maxPosGain = 4.0;
+  double maxAttGain = 0.05;
+  Eigen::Vector6d IntegralAntiWindup = Eigen::Vector6d::Zero();
+  IntegralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain, maxAttGain, maxAttGain;
+
+  integral += m_i_gain * z;
+  integral = integral.cwiseMin(IntegralAntiWindup).cwiseMax(-IntegralAntiWindup);
 
   Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
-  std::cout << "DEBUG4" << std::endl;
   m_K_d.diagonal() << m_d_gain;
-  std::cout << "DEBUG5" << std::endl;
-  std::cout << std::endl << "D_gain: " << m_d_gain.segment(0, 3) << std::endl;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
-  std::cout << "G VECTOR:" << std::endl << g << std::endl;
 
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   Eigen::Vector6d scale_g = Eigen::Vector6d::Zero();
   scale_g << 0.9,0.9,0.9,0.3,0.3,0.3; 
-  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g);  // std::cout << std::endl << "m_K_d:" << std::endl << m_K_d << std::endl;
-  // std::cout << std::endl << "nu_tilde:" << std::endl << nu_tilde << std::endl;
-  // std::cout << std::endl << "K_p:" << std::endl << K_p << std::endl;
+  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g) + integral;
+ 
 
   // Rounding gain to remove super small values
   int num_decimals = 3;
@@ -131,8 +117,9 @@ void QuaternionPIDController::init(const double W, const double B,
   m_r_B = r_B;
 }
 
-void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
+void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d i_gain,
                                           Eigen::Vector6d d_gain) {
   m_p_gain = p_gain;
+  m_i_gain.diagonal() << i_gain;
   m_d_gain = d_gain;
 }

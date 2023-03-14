@@ -111,7 +111,6 @@ target_link_libraries(${PROJECT_NAME}_node
 #  ${catkin_EXPORTED_TARGETS})
  
  
- 
 # DP test client
 add_executable(${PROJECT_NAME}_test_client
  src/dp_action_test_client.cpp
@@ -127,20 +126,19 @@ ${catkin_EXPORTED_TARGETS}
 )
 
 
-
 # CFG server
-add_executable(${PROJECT_NAME}_cfg_server
- src/cfg_server.cpp
-)
+#add_executable(${PROJECT_NAME}_cfg_server
+ #src/cfg_server.cpp
+#)
 
-target_link_libraries(${PROJECT_NAME}_cfg_server
+#target_link_libraries(${PROJECT_NAME}_cfg_server
 #${${PROJECT_NAME}_EXPORTED_TARGETS}
-${catkin_LIBRARIES}
-)
-add_dependencies(${PROJECT_NAME}_cfg_server
-${${PROJECT_NAME}_EXPORTED_TARGETS} 
-${catkin_EXPORTED_TARGETS}
-)
+#${catkin_LIBRARIES}
+#)
+#add_dependencies(${PROJECT_NAME}_cfg_server
+#${${PROJECT_NAME}_EXPORTED_TARGETS} 
+#${catkin_EXPORTED_TARGETS}
+#)
 
 
 # install(

@@ -1,13 +1,16 @@
+/*   Written by Kevin Strandenes and Anders Slåkvik, Student
+     Documentation written by Kevin Strandenes and Anders Slåkvik
+     Copyright (c) 2023 Beluga AUV, Vortex NTNU.
+     All rights reserved. */
+
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
-// #include <dp_controller2/dpAction.h>
 #include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
 
 #include <Eigen/Dense>
 #include <eigen_conversions/eigen_msg.h>
 
-// using namespace dp_controller2;
 typedef actionlib::SimpleActionClient<vortex_msgs::dpAction> Client;
 
 // Euler To Quaternion
@@ -26,30 +29,26 @@ private:
   ros::NodeHandle m_nh; /** Nodehandle          */
 
 public:
+
+  void getParameters(std::string param_name, std::vector<double> &param_variable){
+     if (!m_nh.getParam(param_name, param_variable)) {
+        ROS_FATAL("Failed to read parameter %s.  Shutting down node..", param_name.c_str());
+        ros::shutdown();
+      }
+  }
+
   void spin() {
     ros::Rate rate(1);
     std::vector<double> goal_position_vec, goal_orientation_vec, goal_DOF_vec;
     std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff,
         goal_DOF_vec_buff;
-    int time = 0;
     while (ros::ok()) {
 
-      if (!m_nh.getParam("/setpoint/position", goal_position_vec)) {
-        ROS_FATAL(
-            "Failed to read parameter setpoint/position. Shutting down node..");
-        ros::shutdown();
-      }
-      if (!m_nh.getParam("/setpoint/orientation", goal_orientation_vec)) {
-        ROS_FATAL("Failed to read parameter setpoint/orientation. Shutting "
-                  "down node..");
-        ros::shutdown();
-      }
-      if (!m_nh.getParam("/setpoint/DOF", goal_DOF_vec)) {
-        ROS_FATAL(
-            "Failed to read parameter setpoint/DOF. Shutting down node..");
-        ros::shutdown();
-      }
-
+      //get ROS parameters
+      getParameters("/setpoint/position", goal_position_vec);
+      getParameters("/setpoint/orientation", goal_orientation_vec);
+      getParameters("/setpoint/DOF", goal_DOF_vec);
+      
       actionlib::SimpleClientGoalState state = ac_.getState();
       ROS_INFO("Action finished: %s", state.toString().c_str());
 
@@ -69,32 +68,16 @@ public:
         goal_DOF << goal_DOF_vec[0], goal_DOF_vec[1], goal_DOF_vec[2],
             goal_DOF_vec[3], goal_DOF_vec[4], goal_DOF_vec[5];
 
+        //sending new goal to action server
         send_goal(goal_postion, goal_orientation, goal_DOF);
-        // std::cout << std::endl << "goal_DOF_vec:" << std::endl <<
-        // goal_DOF_vec << std::endl; std::cout << std::endl <<
-        // "goal_DOF_vec_buff:" << std::endl << goal_DOF_vec_buff << std::endl;
-
-        // std::cout << std::endl << "goal_position_vec:" << std::endl <<
-        // goal_position_vec << std::endl; std::cout << std::endl <<
-        // "goal_position_vec_buff:" << std::endl << goal_position_vec_buff <<
-        // std::endl;
-
-        // std::cout << std::endl << "goal_orientation_vec:" << std::endl <<
-        // goal_orientation_vec << std::endl; std::cout << std::endl <<
-        // "goal_orientation_vec_buff:" << std::endl <<
-        // goal_orientation_vec_buff << std::endl;
       }
 
-      // if(time>7){
-      //   ac_.cancelGoal();
-      //   ROS_INFO("Canceling");
-      // }
-      time ++;
       ros::spinOnce();
       rate.sleep();
     }
   }
 
+  //reached desired goal
   void doneCallback(const actionlib::SimpleClientGoalState &state,
                     const vortex_msgs::dpResultConstPtr &result) {
 
@@ -114,14 +97,10 @@ public:
     Eigen::Quaterniond goal_quad = EulerToQuaterniond(
         goal_orientation(0), goal_orientation(1), goal_orientation(2));
     tf::pointEigenToMsg(goal_position, goal_.x_ref.position);
-    std::cout << std::endl << "et eller annet piss 2" << std::endl;
-    std::cout << std::endl << goal_.x_ref.position << std::endl;
     tf::quaternionEigenToMsg(goal_quad, goal_.x_ref.orientation);
-    std::cout << std::endl << "goal_position:" << goal_position << std::endl;
 
     for (int i = 0; i < 6; i++) {
       goal_.DOF.push_back(goal_DOF(i));
-      std::cout << goal_DOF(i) << std::endl;
     }
 
     ac_.sendGoal(goal_,
@@ -147,3 +126,5 @@ int main(int argc, char **argv) {
   my_Client.spin();
   return 0;
 }
+
+

@@ -25,7 +25,6 @@
   <build_depend>vortex_msgs</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
 
-  <!--  maybe add message_generation --> 
   <build_export_depend>actionlib</build_export_depend>
   <build_export_depend>actionlib_msgs</build_export_depend>
   <build_export_depend>message_generation</build_export_depend>

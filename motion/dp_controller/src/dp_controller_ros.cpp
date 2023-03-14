@@ -1,5 +1,6 @@
-/*   Written by Kristoffer Rakstad Solberg, Student
-     Copyright (c) 2019 Manta AUV, Vortex NTNU.
+/*   Written by Kevin Strandenes and Anders Slåkvik, Student
+     Documentation written by Kevin Strandenes and Anders Slåkvik
+     Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
 #include "dp_controller/dp_controller_ros.h"
@@ -41,6 +42,21 @@ Eigen::Vector3d Controller::QuaterniondToEuler(Eigen::Quaterniond q) {
   return Eigen::Vector3d(roll, pitch, yaw);
 }
 
+
+template<typename T> 
+void Controller::getParameters(std::string param_name, T &param_variable) {
+  if (!m_nh.getParam(param_name, param_variable)) {
+    ROS_FATAL("Failed to read parameter %s.  Shutting down node..", param_name.c_str());
+    ros::shutdown();
+  }
+}
+
+// void printGroup(const dynamic_reconfigure::Config::ConstPtr& config_msg){
+//   std::vector<std::string> param_names;
+//   config_msg->getGroupNames("Gains", param_names);
+//   std::cout << "param_names: " << std::endl << param_names;
+// }
+   
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   // Load rosparams
   std::string odometry_topic;
@@ -49,53 +65,33 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   float W;
   float B;
   std::vector<double> r_G_vec, r_B_vec;
-  std::vector<double> p_gain_vec, d_gain_vec;
+  std::vector<double> p_gain_vec, i_gain_vec, d_gain_vec;
 
-  if (!nh.getParam("/controllers/dp/odometry_topic", odometry_topic))
-    odometry_topic = "/odometry/filtered";
-  if (!nh.getParam("/thrust/thrust_topic", thrust_topic))
-    thrust_topic = "/thrust/desired_forces";
-
-  if (!m_nh.getParam("/physical/weight", W)) {
-    ROS_FATAL("Failed to read parameter physical/weight. Shutting down node..");
-    ros::shutdown();
-  }
-  if (!m_nh.getParam("/physical/buoyancy", B)) {
-    ROS_FATAL(
-        "Failed to read parameter physical/buoyancy. Shutting down node..");
-    ros::shutdown();
-  }
-  if (!m_nh.getParam("/physical/center_of_mass", r_G_vec)) {
-    ROS_FATAL("Failed to read parameter physical/center_of_mass. Shutting down "
-              "node..");
-    ros::shutdown();
-  }
-  if (!m_nh.getParam("/physical/center_of_buoyancy", r_B_vec)) {
-    ROS_FATAL("Failed to read parameter physical/center_of_buoyancy. Shutting "
-              "down node..");
-    ros::shutdown();
-  }
-  if (!m_nh.getParam("/PID/P", p_gain_vec)) {
-    ROS_FATAL("Failed to read parameter PID/P. Shutting down node..");
-    ros::shutdown();
-  }
-  if (!m_nh.getParam("/PID/D", d_gain_vec)) {
-    ROS_FATAL("Failed to read parameter PID/D. Shutting down node..");
-    ros::shutdown();
-  }
+  //import paramteres
+  Controller::getParameters("/controllers/dp/odometry_topic", odometry_topic);
+  Controller::getParameters("/thrust/thrust_topic",thrust_topic);
+  Controller::getParameters("/physical/weight", W);
+  Controller::getParameters("/physical/buoyancy",B);
+  Controller::getParameters("/physical/center_of_mass", r_G_vec);
+  Controller::getParameters("/physical/center_of_buoyancy", r_B_vec);
+  Controller::getParameters("/PID/P", p_gain_vec);
+  Controller::getParameters("/PID/I", i_gain_vec);
+  Controller::getParameters("/PID/D", d_gain_vec);
 
   Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]);
   Eigen::Vector3d r_B = Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]);
 
   Eigen::Vector6d p_gain = Eigen::Vector6d::Zero();
+  Eigen::Vector6d i_gain = Eigen::Vector6d::Zero();
   Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
 
   p_gain << p_gain_vec[0], p_gain_vec[1], p_gain_vec[2], p_gain_vec[3],
       p_gain_vec[4], p_gain_vec[5];
+  i_gain << i_gain_vec[0], i_gain_vec[1], i_gain_vec[2], i_gain_vec[3], i_gain_vec[4], i_gain_vec[5];
   d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3],
       d_gain_vec[4], d_gain_vec[5];
 
-  m_controller.update_gain(p_gain, d_gain);
+  m_controller.update_gain(p_gain, i_gain, d_gain);
 
   // Subscribers
   m_odometry_sub =
@@ -115,9 +111,11 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_reference_return_q_tilde_print_pub =
       m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_print", 1, this);
 
-  // m_controller = QuaternionPIDController(2.0);
-  //  m_controller = QuaternionPIDController(W, B, r_G, r_B);
-  // m_controller()
+  // Set up dynamic reconfigure server
+  dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType f;
+  f = boost::bind(&Controller::cfgCallback, this, _1, _2);
+  m_cfg_server.setCallback(f);
+
   eta_d_pos = Eigen::Vector3d::Zero();
   eta_d_ori = Eigen::Quaterniond::Identity();
   eta_d = Eigen::Vector7d::Zero();
@@ -128,12 +126,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 
 void Controller::spin() {
   ros::Rate rate(1);
-  Eigen::Vector3d position_setpoint(1, 0, 0);
-  Eigen::Quaterniond orientation_setpoint = EulerToQuaterniond(0, 0, 0);
-
-  Eigen::Vector3d position_test(0, 0, 0);
-  Eigen::Quaterniond orientation_test = EulerToQuaterniond(0, 0, 0);
-  Eigen::Vector6d nu = Eigen::Vector6d::Zero();
 
   DpAction dp_server("DpAction");
 
@@ -141,93 +133,29 @@ void Controller::spin() {
   geometry_msgs::Wrench tau_msg;
   Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
-    std::cout << std::endl << "----------Heisann-Hoppsann-----" << std::endl;
 
     if (dp_server.run_controller) {
       was_active = true;
-      std::cout << std::endl << "Heisann-Hoppsann" << std::endl;
 
-      std::cout << "DEBUG6" << std::endl;
       tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
       Eigen::Vector6d tau = m_controller.getFeedback(
-          position, orientation, nu, eta_dot_d, eta_d_pos, x_ref_ori);
-
-      std::cout << "Tau:" << std::endl << tau << std::endl;
-
-      std::cout << std::endl << "eta_d_pos:" << eta_d_pos << std::endl;
-      std::cout << std::endl
-                << "eta_d_ori:" << QuaterniondToEuler(eta_d_ori) << std::endl;
-      // position_test = eta_d_pos;
-      // orientation_test = eta_d_ori;
-
-      geometry_msgs::Point position_setpoint_msg;
-      geometry_msgs::Quaternion orientation_setpoint_msg;
-      tf::pointEigenToMsg(position_setpoint, position_setpoint_msg);
-      tf::quaternionEigenToMsg(orientation_setpoint, orientation_setpoint_msg);
-      geometry_msgs::Pose setpoint_msg;
-      setpoint_msg.position = position_setpoint_msg;
-      setpoint_msg.orientation = orientation_setpoint_msg;
-      // geometry_msgs::Wrench tau_msg;
+          position, orientation, velocity, eta_dot_d, eta_d_pos, x_ref_ori);
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
-      // std::cout << "DOF:" << std::endl << dp_server.goal_.DOF << std::endl;
-      int i = 0; //
-      std::cout << std::endl
-                << "----------------_TAU!_------------" << std::endl;
+      int i = 0; 
       for (int j : dp_server.goal_.DOF) {
-        // std::cout << "DOF:" << i << std::endl;
         tau(i) *= j;
-        std::cout << "tau:" << tau(i) << std::endl;
         DOF(i) = dp_server.goal_.DOF[i];
         i++;
       }
       tf::wrenchEigenToMsg(tau, tau_msg);
 
-      std::cout << std::endl << "----------------------------" << std::endl;
-      // std::cout << "DOF:" << std::endl << DOF << std::endl;
-      // tau = tau.cwiseProduct(DOF);
-      // std::cout << "tau fixed:" << std::endl << tau << std::endl;
-
       m_wrench_pub.publish(tau_msg);
-      m_referencepoint_pub.publish(dp_server.goal_.x_ref); //??????
-
-      // Eigen::Vector3d x_ref_pos;
-
-      // tf::pointMsgToEigen(dp_server.goal_.x_ref.position, x_ref_pos);
-
-      std::vector<double> p_gain_vec, d_gain_vec;
-
-      if (!m_nh.getParam("/PID/P", p_gain_vec)) {
-        ROS_FATAL("Failed to read parameter PID/P. Shutting down node..");
-        ros::shutdown();
-      }
-      if (!m_nh.getParam("/PID/D", d_gain_vec)) {
-        ROS_FATAL("Failed to read parameter PID/D. Shutting down node..");
-        ros::shutdown();
-      }
-
-      Eigen::Vector6d p_gain = Eigen::Vector6d::Zero();
-      Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
-
-      p_gain << p_gain_vec[0], p_gain_vec[1], p_gain_vec[2], p_gain_vec[3],
-          p_gain_vec[4], p_gain_vec[5];
-      d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3],
-          d_gain_vec[4], d_gain_vec[5];
-
-      std::cout << std::endl << "p_gain: " << p_gain << std::endl;
-
-      m_controller.update_gain(p_gain, d_gain);
-
-      std::cout << "TESSSST5" << std::endl;
+      m_referencepoint_pub.publish(dp_server.goal_.x_ref); 
     }
-    std::cout << std::endl
-              << "Orientation:" << std::endl
-              << orientation.coeffs() << std::endl;
-    std::cout << std::endl << QuaterniondToEuler(orientation) << std::endl;
 
     Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);
     dp_server.pose << position, orientation_euler;
-
 
   // Makes sure DP always ends by sending 0 thrust 
     if (was_active && !dp_server.run_controller) {
@@ -247,7 +175,6 @@ void Controller::odometryCallback(const nav_msgs::Odometry &msg) {
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
   tf::twistMsgToEigen(msg.twist.twist, velocity);
-  ROS_DEBUG("position, orientation and velocity states updated");
 }
 
 int sgn(double x) {
@@ -288,3 +215,19 @@ void Controller::desiredPointCallback(
   q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
   m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
 }
+
+void Controller::cfgCallback(dp_controller::DpControllerConfig &config, uint32_t level) {
+  ROS_INFO("Reconfigure Request P.x: %f", config.P_gain_x);
+  ROS_INFO("Reconfigure Request P.y: %f", config.P_gain_y);
+
+  // gets the different gains form Controller.cfg
+  Eigen::Vector6d p_gain = Eigen::Vector6d::Zero();
+  Eigen::Vector6d i_gain = Eigen::Vector6d::Zero();
+  Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
+  p_gain << config.P_gain_x, config.P_gain_y, config.P_gain_z, config.P_gain_roll, config.P_gain_pitch, config.P_gain_yaw;
+  i_gain << config.I_gain_x, config.I_gain_y, config.I_gain_z, config.I_gain_roll, config.I_gain_pitch, config.I_gain_yaw;
+  d_gain << config.D_gain_x, config.D_gain_y, config.D_gain_z, config.D_gain_roll, config.D_gain_pitch, config.D_gain_yaw;
+  m_controller.update_gain(p_gain, i_gain, d_gain);
+}
+
+
