@@ -41,16 +41,17 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh): m_nh(nh) {
 
   std::vector<double> max_vel_buff;
   ReferenceModel::getParameters("dp_rm/max_vel", max_vel_buff);
-  max_vel << max_vel_buff[0], max_vel_buff[1], max_vel_buff[2], max_vel_buff[3], max_vel_buff[4], max_vel_buff[5], max_vel_buff[6];
+  max_vel << max_vel_buff[0], max_vel_buff[1], max_vel_buff[2], max_vel_buff[3],
+      max_vel_buff[4], max_vel_buff[5], max_vel_buff[6];
   // Set up dynamic reconfigure server
-  dynamic_reconfigure::Server<dp_reference_model::DpReferenceModelConfig>::CallbackType f;
+  dynamic_reconfigure::Server<
+      dp_reference_model::DpReferenceModelConfig>::CallbackType f;
   f = boost::bind(&ReferenceModel::cfgCallback, this, _1, _2);
   m_cfg_server.setCallback(f);
 
- 
   // initialize desired eta and eta_dot as zero
   eta_d = Eigen::Vector7d::Zero();
-  eta_d(3) = 1; //the real value of quaternions 
+  eta_d(3) = 1; // the real value of quaternions
   eta_dot_d = Eigen::Vector7d::Zero();
 
 
@@ -66,13 +67,13 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh): m_nh(nh) {
   Delta = Eigen::Matrix7d::Zero();
   Omega = Eigen::Matrix7d::Zero();
   Delta.diagonal() << zeta_1, zeta_2, zeta_3, zeta_4, zeta_5, zeta_6, zeta_7;
-  Omega.diagonal() << omega_1, omega_2, omega_3, omega_4, omega_5, omega_6, omega_7;
+  Omega.diagonal() << omega_1, omega_2, omega_3, omega_4, omega_5, omega_6,
+      omega_7;
 
   A_d << Eigen::Matrix7d::Zero(), Eigen::Matrix7d::Identity(), -Omega * Omega,
       -2 * Delta * Omega;
-      
-  B_d << Eigen::Matrix7d::Zero(), Omega * Omega;
 
+  B_d << Eigen::Matrix7d::Zero(), Omega * Omega;
 }
 
 Eigen::Quaterniond EulerToQuaternion(double roll, double pitch, double yaw) {
@@ -100,7 +101,6 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
   quat_d.normalize();
   Eigen::Vector4d quat_d_vec(quat_d.w(), quat_d.x(), quat_d.y(), quat_d.z());
   eta_d.segment(3, 4) = quat_d_vec;
-
 }
 
 void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
@@ -166,20 +166,25 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
   reference_pub.publish(posearray);
 }
 
-template<typename T> void ReferenceModel::getParameters(std::string param_name, T &param_variable) {
+template <typename T>
+void ReferenceModel::getParameters(std::string param_name, T &param_variable) {
   if (!m_nh.getParam(param_name, param_variable)) {
-    ROS_FATAL("Failed to read parameter %s.  Shutting down node..", param_name.c_str());
+    ROS_FATAL("Failed to read parameter %s.  Shutting down node..",
+              param_name.c_str());
     ros::shutdown();
   }
 }
 
-void ReferenceModel::cfgCallback(dp_reference_model::DpReferenceModelConfig &config, uint32_t level) {
+void ReferenceModel::cfgCallback(
+    dp_reference_model::DpReferenceModelConfig &config, uint32_t level) {
 
   // gets the different gains form ReferenceModel.cfg
   Delta = Eigen::Matrix7d::Zero();
   Omega = Eigen::Matrix7d::Zero();
-  Delta.diagonal() << config.zeta_1, config.zeta_2, config.zeta_3, config.zeta_4, config.zeta_5, config.zeta_6, config.zeta_7;
-  Omega.diagonal() << config.omega_1, config.omega_2, config.omega_3, config.omega_4, config.omega_5, config.omega_6, config.omega_7;
+  Delta.diagonal() << config.zeta_1, config.zeta_2, config.zeta_3,
+      config.zeta_4, config.zeta_5, config.zeta_6, config.zeta_7;
+  Omega.diagonal() << config.omega_1, config.omega_2, config.omega_3,
+      config.omega_4, config.omega_5, config.omega_6, config.omega_7;
 
   A_d << Eigen::Matrix7d::Zero(), Eigen::Matrix7d::Identity(), -Omega * Omega,
       -2 * Delta * Omega;

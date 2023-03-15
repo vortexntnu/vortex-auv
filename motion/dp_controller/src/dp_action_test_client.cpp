@@ -5,7 +5,6 @@
 
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
-#include <vortex_msgs/dpAction.h>
 #include <ros/ros.h>
 #include <vortex_msgs/dpAction.h>
 
@@ -30,12 +29,13 @@ private:
   ros::NodeHandle m_nh; /** Nodehandle          */
 
 public:
-
-  void getParameters(std::string param_name, std::vector<double> &param_variable){
-     if (!m_nh.getParam(param_name, param_variable)) {
-        ROS_FATAL("Failed to read parameter %s.  Shutting down node..", param_name.c_str());
-        ros::shutdown();
-      }
+  void getParameters(std::string param_name,
+                     std::vector<double> &param_variable) {
+    if (!m_nh.getParam(param_name, param_variable)) {
+      ROS_FATAL("Failed to read parameter %s.  Shutting down node..",
+                param_name.c_str());
+      ros::shutdown();
+    }
   }
 
   void spin() {
@@ -45,11 +45,11 @@ public:
         goal_DOF_vec_buff;
     while (ros::ok()) {
 
-      //get ROS parameters
+      // get ROS parameters
       getParameters("/setpoint/position", goal_position_vec);
       getParameters("/setpoint/orientation", goal_orientation_vec);
       getParameters("/setpoint/DOF", goal_DOF_vec);
-      
+
       actionlib::SimpleClientGoalState state = ac_.getState();
       ROS_INFO("Action finished: %s", state.toString().c_str());
 
@@ -69,7 +69,7 @@ public:
         goal_DOF << goal_DOF_vec[0], goal_DOF_vec[1], goal_DOF_vec[2],
             goal_DOF_vec[3], goal_DOF_vec[4], goal_DOF_vec[5];
 
-        //sending new goal to action server
+        // sending new goal to action server
         send_goal(goal_postion, goal_orientation, goal_DOF);
       }
 
@@ -78,7 +78,7 @@ public:
     }
   }
 
-  //reached desired goal
+  // reached desired goal
   void doneCallback(const actionlib::SimpleClientGoalState &state,
                     const vortex_msgs::dpResultConstPtr &result) {
 
@@ -127,5 +127,3 @@ int main(int argc, char **argv) {
   my_Client.spin();
   return 0;
 }
-
-

@@ -77,10 +77,12 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   double maxPosGain = 0.5;
   double maxAttGain = 0.05;
   Eigen::Vector6d IntegralAntiWindup = Eigen::Vector6d::Zero();
-  IntegralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain, maxAttGain, maxAttGain;
+  IntegralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
+      maxAttGain, maxAttGain;
 
   integral += m_i_gain * z;
-  integral = integral.cwiseMin(IntegralAntiWindup).cwiseMax(-IntegralAntiWindup);
+  integral =
+      integral.cwiseMin(IntegralAntiWindup).cwiseMax(-IntegralAntiWindup);
 
 
   Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
@@ -124,7 +126,8 @@ void QuaternionPIDController::init(const double W, const double B,
   m_r_B = r_B;
 }
 
-void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d i_gain,
+void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
+                                          Eigen::Vector6d i_gain,
                                           Eigen::Vector6d d_gain) {
   m_p_gain = p_gain;
   m_i_gain.diagonal() << i_gain;

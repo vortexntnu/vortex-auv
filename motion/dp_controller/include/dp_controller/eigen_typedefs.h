@@ -12,6 +12,6 @@ typedef Eigen::Matrix<double, 7, 1> Vector7d;
 
 typedef Eigen::Matrix<double, 14, 1> Vector14d;
 
-} 
+} // namespace Eigen
 
 #endif // VORTEX_EIGEN_TYPEDEFS_H
