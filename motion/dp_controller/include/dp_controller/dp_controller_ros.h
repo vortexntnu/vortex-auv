@@ -65,7 +65,7 @@ private:
   ros::Publisher m_reference_return_q_tilde_print_pub;
 
   //----------------
-  ros::Publisher  m_dp_P_debug_pub;
+  ros::Publisher m_dp_P_debug_pub;
   ros::Publisher m_dp_I_debug_pub;
   ros::Publisher m_dp_D_debug_pub;
   //---------------
