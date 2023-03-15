@@ -74,6 +74,11 @@ public:
   void init(const double W, const double B, const Eigen::Vector3d &r_G,
             const Eigen::Vector3d &r_B);
   void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d i_gain, Eigen::Vector6d d_gain);
+
+  Eigen::Vector6d P_debug = Eigen::Vector6d::Zero();
+  Eigen::Vector6d I_debug = Eigen::Vector6d::Zero();
+  Eigen::Vector6d D_debug = Eigen::Vector6d::Zero();
+
 };
 
 #endif // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H

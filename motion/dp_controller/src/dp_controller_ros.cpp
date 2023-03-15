@@ -110,6 +110,17 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
       m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG2", 1, this);
   m_reference_return_q_tilde_print_pub =
       m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_print", 1, this);
+    
+  //----------------- DEBUG ------------------
+    m_dp_P_debug_pub =
+      m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/P_debug", 1, this);
+    m_dp_I_debug_pub =
+      m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/I_debug", 1, this);
+    m_dp_D_debug_pub =
+      m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/D_debug", 1, this);
+
+  //------------------ END DEBUG -------------
+
 
   // Set up dynamic reconfigure server
   dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType f;
@@ -152,6 +163,26 @@ void Controller::spin() {
 
       m_wrench_pub.publish(tau_msg);
       m_referencepoint_pub.publish(dp_server.goal_.x_ref); 
+
+
+      //----------------- DEBUG -------------------
+
+      std_msgs::Float64MultiArray P_debug_msg;
+      std_msgs::Float64MultiArray I_debug_msg;
+      std_msgs::Float64MultiArray D_debug_msg;
+      for (int i = 0; i < 6; i++){
+        P_debug_msg.data.push_back(m_controller.P_debug(i));
+        I_debug_msg.data.push_back(m_controller.I_debug(i));
+        D_debug_msg.data.push_back(m_controller.D_debug(i));
+      }
+
+      m_dp_P_debug_pub.publish(P_debug_msg);
+      m_dp_I_debug_pub.publish(I_debug_msg);
+      m_dp_D_debug_pub.publish(D_debug_msg);
+
+    //-------------------- END DEBUG -------------------
+
+
     }
 
     Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);
@@ -201,6 +232,9 @@ void Controller::desiredPointCallback(
 
   eta_d << eta_d_pos, eta_d_ori.w(), eta_d_ori.vec();
   eta_dot_d << eta_dot_d_pos, eta_dot_d_ori.w(), eta_dot_d_ori.vec();
+
+
+  // --------------------------- DEBUG ----------------------
   std_msgs::Float32 debug_msg;
   Eigen::Vector3d Debug_vec = QuaterniondToEuler(eta_d_ori);
   debug_msg.data = Debug_vec(0) * 180 / M_PI;
@@ -214,6 +248,7 @@ void Controller::desiredPointCallback(
   std_msgs::Float32 q_tilde_print;
   q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
   m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
+  // ----------------------------- END DEBUG ---------------------------------
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config, uint32_t level) {
@@ -228,6 +263,7 @@ void Controller::cfgCallback(dp_controller::DpControllerConfig &config, uint32_t
   i_gain << config.I_gain_x, config.I_gain_y, config.I_gain_z, config.I_gain_roll, config.I_gain_pitch, config.I_gain_yaw;
   d_gain << config.D_gain_x, config.D_gain_y, config.D_gain_z, config.D_gain_roll, config.D_gain_pitch, config.D_gain_yaw;
   m_controller.update_gain(p_gain, i_gain, d_gain);
+  std::cout << "I-leddet er her!XD" << std::endl << i_gain << std::endl;
 }
 
 

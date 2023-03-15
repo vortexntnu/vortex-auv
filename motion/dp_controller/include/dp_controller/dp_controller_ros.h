@@ -65,6 +65,12 @@ private:
   ros::Publisher m_reference_return_DEBUG2_pub;
   ros::Publisher m_reference_return_q_tilde_print_pub;
 
+  //----------------
+  ros::Publisher  m_dp_P_debug_pub;
+  ros::Publisher m_dp_I_debug_pub;
+  ros::Publisher m_dp_D_debug_pub;
+  //---------------
+
   ros::Subscriber m_desiredpoint_sub;  /* Subscriber for listening to (the
                                           guidance node ....)      */
   ros::Publisher m_referencepoint_pub; /* Publisher for the DP-controller */

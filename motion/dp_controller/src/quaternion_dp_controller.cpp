@@ -74,13 +74,14 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);
 
   // Integral
-  double maxPosGain = 4.0;
+  double maxPosGain = 0.5;
   double maxAttGain = 0.05;
   Eigen::Vector6d IntegralAntiWindup = Eigen::Vector6d::Zero();
   IntegralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain, maxAttGain, maxAttGain;
 
   integral += m_i_gain * z;
   integral = integral.cwiseMin(IntegralAntiWindup).cwiseMax(-IntegralAntiWindup);
+
 
   Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
   m_K_d.diagonal() << m_d_gain;
@@ -90,8 +91,14 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   Eigen::Vector6d scale_g = Eigen::Vector6d::Zero();
   scale_g << 0.9,0.9,0.9,0.3,0.3,0.3; 
-  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g) + integral;
+  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g) - integral;
  
+  //----------
+  P_debug = K_p * z;
+  I_debug = integral;
+  D_debug = m_K_d * nu_tilde;
+
+  //-----------
 
   // Rounding gain to remove super small values
   int num_decimals = 3;
@@ -121,5 +128,10 @@ void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain, Eigen::Vector6
                                           Eigen::Vector6d d_gain) {
   m_p_gain = p_gain;
   m_i_gain.diagonal() << i_gain;
+  for (int i = 0; i < 6; i++){ 
+    if (i_gain(i) == 0){
+      integral(i) = 0;
+    }
+  }
   m_d_gain = d_gain;
 }
