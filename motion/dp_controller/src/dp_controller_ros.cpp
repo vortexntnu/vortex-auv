@@ -51,12 +51,6 @@ void Controller::getParameters(std::string param_name, T &param_variable) {
   }
 }
 
-// void printGroup(const dynamic_reconfigure::Config::ConstPtr& config_msg){
-//   std::vector<std::string> param_names;
-//   config_msg->getGroupNames("Gains", param_names);
-//   std::cout << "param_names: " << std::endl << param_names;
-// }
-
 Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   // Load rosparams
   std::string odometry_topic;
@@ -98,7 +92,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_odometry_sub =
       m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
   ROS_INFO("DP controller initialized");
-  m_desiredpoint_sub = m_nh.subscribe("/reference_model/output", 1,
+  m_desiredpoint_sub = m_nh.subscribe("/reference_model/Odometry_d", 1,
                                       &Controller::desiredPointCallback, this);
 
   // Publishers
@@ -133,26 +127,27 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   eta_d_ori = Eigen::Quaterniond::Identity();
   eta_d = Eigen::Vector7d::Zero();
   eta_dot_d = Eigen::Vector7d::Zero();
+  nu_d = Eigen::Vector6d::Zero();
 
   m_controller.init(W, B, r_G, r_B);
 }
 
 void Controller::spin() {
-  ros::Rate rate(1);
+  ros::Rate rate(10);
 
   DpAction dp_server("DpAction");
 
   bool was_active = false;
   geometry_msgs::Wrench tau_msg;
-  Eigen::Quaterniond x_ref_ori;
+  //Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
 
     if (dp_server.run_controller) {
       was_active = true;
 
-      tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+      //tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
       Eigen::Vector6d tau = m_controller.getFeedback(
-          position, orientation, velocity, eta_dot_d, eta_d_pos, x_ref_ori);
+          position, orientation, velocity, nu_d, eta_d_pos, eta_d_ori);
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
       int i = 0;
@@ -217,40 +212,29 @@ int sgn(double x) {
 }
 
 void Controller::desiredPointCallback(
-    const geometry_msgs::PoseArray &desired_msg) {
-
-  Eigen::Vector3d eta_dot_d_pos;
-  Eigen::Quaterniond eta_dot_d_ori;
-
-  tf::pointMsgToEigen(desired_msg.poses[0].position, eta_d_pos);
-  tf::quaternionMsgToEigen(desired_msg.poses[0].orientation, eta_d_ori);
-
-  Eigen::Vector3d euler_d_buff = QuaterniondToEuler(eta_d_ori);
-  eta_d_ori =
-      EulerToQuaterniond(euler_d_buff(0), euler_d_buff(1), euler_d_buff(2));
-
-  tf::pointMsgToEigen(desired_msg.poses[1].position, eta_dot_d_pos);
-  tf::quaternionMsgToEigen(desired_msg.poses[1].orientation, eta_dot_d_ori);
-
-  eta_d << eta_d_pos, eta_d_ori.w(), eta_d_ori.vec();
-  eta_dot_d << eta_dot_d_pos, eta_dot_d_ori.w(), eta_dot_d_ori.vec();
+    const nav_msgs::Odometry &desired_msg) {
 
 
-  // --------------------------- DEBUG ----------------------
-  std_msgs::Float32 debug_msg;
-  Eigen::Vector3d Debug_vec = QuaterniondToEuler(eta_d_ori);
-  debug_msg.data = Debug_vec(0) * 180 / M_PI;
-  m_reference_return_DEBUG_pub.publish(debug_msg);
+   // Convert to eigen for computation
+  tf::pointMsgToEigen(desired_msg.pose.pose.position, eta_d_pos);
+  tf::quaternionMsgToEigen(desired_msg.pose.pose.orientation, eta_d_ori);
+  tf::twistMsgToEigen(desired_msg.twist.twist, nu_d);
 
-  Eigen::Quaterniond q_tilde = eta_d_ori.conjugate() * orientation;
-  std_msgs::Float32 debug2_msg;
-  debug2_msg.data = QuaterniondToEuler(q_tilde)(0) * 180 / M_PI;
-  m_reference_return_DEBUG2_pub.publish(debug2_msg);
+  // // --------------------------- DEBUG ----------------------
+  // std_msgs::Float32 debug_msg;
+  // Eigen::Vector3d Debug_vec = QuaterniondToEuler(eta_d_ori);
+  // debug_msg.data = Debug_vec(0) * 180 / M_PI;
+  // m_reference_return_DEBUG_pub.publish(debug_msg);
 
-  std_msgs::Float32 q_tilde_print;
-  q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
-  m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
-  // ----------------------------- END DEBUG ---------------------------------
+  // Eigen::Quaterniond q_tilde = eta_d_ori.conjugate() * orientation;
+  // std_msgs::Float32 debug2_msg;
+  // debug2_msg.data = QuaterniondToEuler(q_tilde)(0) * 180 / M_PI;
+  // m_reference_return_DEBUG2_pub.publish(debug2_msg);
+
+  // std_msgs::Float32 q_tilde_print;
+  // q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
+  // m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
+  // // ----------------------------- END DEBUG ---------------------------------
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,

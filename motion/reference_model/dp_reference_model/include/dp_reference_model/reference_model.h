@@ -68,6 +68,8 @@ private:
   dynamic_reconfigure::Server<dp_reference_model::DpReferenceModelConfig>
       m_cfg_server;
 
+  ros::Time last_time;
+
 public:
   /**
    * @brief Constructor

@@ -51,7 +51,7 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec) {
 }
 Eigen::Vector6d QuaternionPIDController::getFeedback(
     const Eigen::Vector3d &x, const Eigen::Quaterniond &q,
-    const Eigen::Vector6d &nu, const Eigen::Vector7d &eta_dot_d,
+    const Eigen::Vector6d &nu, const Eigen::Vector6d &nu_d,
     const Eigen::Vector3d &eta_d_pos, const Eigen::Quaterniond &eta_d_ori) {
 
   // Rotate from inertial/world to body
@@ -68,7 +68,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
   Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
   remove_ori << 1, 1, 1, 0, 0, 0;
-  nu_tilde = nu - (J_inv * eta_dot_d).cwiseProduct(remove_ori);
+  nu_tilde = nu - nu_d.cwiseProduct(remove_ori);
 
   // Error Vector
   Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);

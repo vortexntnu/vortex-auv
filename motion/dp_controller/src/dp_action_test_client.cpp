@@ -50,6 +50,9 @@ public:
       getParameters("/setpoint/orientation", goal_orientation_vec);
       getParameters("/setpoint/DOF", goal_DOF_vec);
 
+      // Add dp shutdown
+      // ----
+
       actionlib::SimpleClientGoalState state = ac_.getState();
       ROS_INFO("Action finished: %s", state.toString().c_str());
 

@@ -48,11 +48,14 @@ private:
   /**
    * @brief Desired pose in quaternions.
    */
+  //We may remove these:
   Eigen::Vector7d eta_d;
   Eigen::Vector7d eta_dot_d;
+  //-----------------
 
   Eigen::Vector3d eta_d_pos;
   Eigen::Quaterniond eta_d_ori;
+  Eigen::Vector6d nu_d;
 
   ros::NodeHandle m_nh; /** Nodehandle          */
 
@@ -103,7 +106,7 @@ public:
    */
 
   void odometryCallback(const nav_msgs::Odometry &msg);
-  void desiredPointCallback(const geometry_msgs::PoseArray &desired_msg);
+  void desiredPointCallback(const nav_msgs::Odometry &desired_msg);
   Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw);
   Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
   void spin();

@@ -58,8 +58,8 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh): m_nh(nh) {
   // subs and pubs
   setpoint_sub = nh.subscribe("/dp_data/reference_point", 1,
                               &ReferenceModel::setpointCallback, this);
-  reference_pub = nh.advertise<geometry_msgs::PoseArray>(
-      "/reference_model/output", 1, this);
+  reference_pub = nh.advertise<nav_msgs::Odometry>(
+      "/reference_model/Odometry_d", 1, this);
   m_odometry_sub =
       m_nh.subscribe(odometry_topic, 1, &ReferenceModel::odometryCallback, this);
 
@@ -89,6 +89,10 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
   Eigen::Vector14d x_d;
   x_d << eta_d, eta_dot_d;
 
+  ros::Time current_time = ros::Time::now();
+  double time_step = (current_time - last_time).toSec(); // calculate time difference in seconds
+  last_time = current_time;
+
   Eigen::Vector14d x_dot_d = A_d * x_d + B_d * x_ref;
   x_d = x_d + time_step * x_dot_d;
   eta_d = x_d.segment(0, 7);
@@ -112,58 +116,56 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
       setpoint_msg.orientation.x, setpoint_msg.orientation.y,
       setpoint_msg.orientation.z;
   // std::cout << "Hei på deg din gamle kalosj3!" << std::endl;
+  Eigen::Matrix3d R = orientation.toRotationMatrix();
+  Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
 
-  if(!x_ref.isApprox(x_ref_buff)){
+  T << -orientation.vec().transpose(),
+  orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
+  T = 0.5 * T;
+
+  Eigen::MatrixXd J_inv = Eigen::MatrixXd::Zero(6, 7);
+  J_inv << R.transpose(), Eigen::MatrixXd::Zero(3, 4), Eigen::Matrix3d::Zero(),
+      4 * T.transpose();
+
+  if(!x_ref.isApprox(x_ref_buff) || (ros::Time::now() - last_time).toSec() > 5){
     
-    Eigen::Matrix3d R = orientation.toRotationMatrix();
-    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
-
-    T << -orientation.vec().transpose(),
-    orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
-    T = 0.5 * T;
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
     J << R, Eigen::Matrix3d::Zero(), 
         Eigen::MatrixXd::Zero(4,3), T;
 
     eta_d << position, orientation.w(), orientation.vec();
     eta_dot_d << J * velocity;
+    
+    last_time = ros::Time::now();
 
   }
+
+
+
   x_ref = x_ref_buff;
-  // std::cout << "Hei på deg din gamle kalosj!3" << std::endl;
 
   // calculate smooth setpoint
   calculate_smooth(x_ref);
 
   // convert and publish smooth setpoint
-  geometry_msgs::Pose x_d_pose;
-  geometry_msgs::Pose x_d_velocity;
-  x_d_pose.position.x = eta_d(0);
-  x_d_pose.position.y = eta_d(1);
-  x_d_pose.position.z = eta_d(2);
-  x_d_pose.orientation.w = eta_d(3);
-  x_d_pose.orientation.x = eta_d(4);
-  x_d_pose.orientation.y = eta_d(5);
-  x_d_pose.orientation.z = eta_d(6);
+  nav_msgs::Odometry odometry_d_msg;
+  geometry_msgs::Twist nu_d_msg;
 
-  x_d_velocity.position.x = eta_dot_d(0);
-  x_d_velocity.position.y = eta_dot_d(1);
-  x_d_velocity.position.z = eta_dot_d(2);
-  x_d_velocity.orientation.w = eta_dot_d(3);
-  x_d_velocity.orientation.x = eta_dot_d(4);
-  x_d_velocity.orientation.y = eta_dot_d(5);
-  x_d_velocity.orientation.z = eta_dot_d(6);
+  // Fill up the header
+  odometry_d_msg.header.frame_id = "ReferenceFrame";
+  odometry_d_msg.child_frame_id = "";
+  odometry_d_msg.header.stamp = ros::Time::now();
 
-  geometry_msgs::PoseArray posearray;
-  posearray.header.stamp = ros::Time::now(); // timestamp of creation of the msg
-  posearray.header.frame_id =
-      "ReferenceFrame"; // frame id in which the array is published
+  Eigen::Quaterniond eta_d_quat(eta_d(3), eta_d(4), eta_d(5), eta_d(6)); 
+  Eigen::Vector6d nu_d = J_inv * eta_dot_d;
 
-  // push in array (in C++ a vector, in python a list)
-  posearray.poses.push_back(x_d_pose);
-  posearray.poses.push_back(x_d_velocity);
+  //Transformation of eta_d to odometry-pose-msg and nu_d to odometry-twist-msg
+  tf::pointEigenToMsg(eta_d.segment(0,3), odometry_d_msg.pose.pose.position);
+  tf::quaternionEigenToMsg(eta_d_quat, odometry_d_msg.pose.pose.orientation);
 
-  reference_pub.publish(posearray);
+  tf::twistEigenToMsg(nu_d, odometry_d_msg.twist.twist);
+
+  reference_pub.publish(odometry_d_msg);
 }
 
 template <typename T>
@@ -193,12 +195,8 @@ void ReferenceModel::cfgCallback(
 }
 
 void ReferenceModel::odometryCallback(const nav_msgs::Odometry &msg) {
-  std::cout << "Hei på deg din gamle kalosj!6" << std::endl;
   // Convert to eigen for computation
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
   tf::twistMsgToEigen(msg.twist.twist, velocity);
-
-  std::cout << "Hei på deg din gamle kalosj!7" << std::endl;
-
 }
