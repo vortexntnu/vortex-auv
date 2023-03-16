@@ -84,7 +84,6 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   integral =
       integral.cwiseMin(IntegralAntiWindup).cwiseMax(-IntegralAntiWindup);
 
-
   Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
   m_K_d.diagonal() << m_d_gain;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
@@ -92,9 +91,9 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   Eigen::Vector6d scale_g = Eigen::Vector6d::Zero();
-  scale_g << 0.9,0.9,0.9,0.3,0.3,0.3; 
+  scale_g << 0.9, 0.9, 0.9, 0.3, 0.3, 0.3;
   gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g) - integral;
- 
+
   //----------
   P_debug = K_p * z;
   I_debug = integral;
@@ -131,8 +130,8 @@ void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
                                           Eigen::Vector6d d_gain) {
   m_p_gain = p_gain;
   m_i_gain.diagonal() << i_gain;
-  for (int i = 0; i < 6; i++){ 
-    if (i_gain(i) == 0){
+  for (int i = 0; i < 6; i++) {
+    if (i_gain(i) == 0) {
       integral(i) = 0;
     }
   }

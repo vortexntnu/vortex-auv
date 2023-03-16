@@ -105,17 +105,16 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
       m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG2", 1, this);
   m_reference_return_q_tilde_print_pub =
       m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_print", 1, this);
-    
+
   //----------------- DEBUG ------------------
-    m_dp_P_debug_pub =
+  m_dp_P_debug_pub =
       m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/P_debug", 1, this);
-    m_dp_I_debug_pub =
+  m_dp_I_debug_pub =
       m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/I_debug", 1, this);
-    m_dp_D_debug_pub =
+  m_dp_D_debug_pub =
       m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/D_debug", 1, this);
 
   //------------------ END DEBUG -------------
-
 
   // Set up dynamic reconfigure server
   dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType
@@ -159,15 +158,14 @@ void Controller::spin() {
       tf::wrenchEigenToMsg(tau, tau_msg);
 
       m_wrench_pub.publish(tau_msg);
-      m_referencepoint_pub.publish(dp_server.goal_.x_ref); 
-
+      m_referencepoint_pub.publish(dp_server.goal_.x_ref);
 
       //----------------- DEBUG -------------------
 
       std_msgs::Float64MultiArray P_debug_msg;
       std_msgs::Float64MultiArray I_debug_msg;
       std_msgs::Float64MultiArray D_debug_msg;
-      for (int i = 0; i < 6; i++){
+      for (int i = 0; i < 6; i++) {
         P_debug_msg.data.push_back(m_controller.P_debug(i));
         I_debug_msg.data.push_back(m_controller.I_debug(i));
         D_debug_msg.data.push_back(m_controller.D_debug(i));
@@ -177,9 +175,7 @@ void Controller::spin() {
       m_dp_I_debug_pub.publish(I_debug_msg);
       m_dp_D_debug_pub.publish(D_debug_msg);
 
-    //-------------------- END DEBUG -------------------
-
-
+      //-------------------- END DEBUG -------------------
     }
 
     Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);

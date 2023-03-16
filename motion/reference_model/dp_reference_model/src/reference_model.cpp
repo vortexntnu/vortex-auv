@@ -8,16 +8,15 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 
-
 Eigen::Matrix3d skew(Eigen::Vector3d vec) {
   Eigen::Matrix3d skew_mat = Eigen::Matrix3d::Zero();
   skew_mat << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
   return skew_mat;
 }
 
-ReferenceModel::ReferenceModel(ros::NodeHandle nh): m_nh(nh) {
+ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
 
-   std::string odometry_topic;
+  std::string odometry_topic;
 
   // Import parameters
   ReferenceModel::getParameters("dp_rm/zeta_1", zeta_1);
@@ -36,8 +35,8 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh): m_nh(nh) {
   ReferenceModel::getParameters("dp_rm/omega_6", omega_6);
   ReferenceModel::getParameters("dp_rm/omega_7", omega_7);
 
-  ReferenceModel::getParameters("/controllers/dp/odometry_topic", odometry_topic);
-
+  ReferenceModel::getParameters("/controllers/dp/odometry_topic",
+                                odometry_topic);
 
   std::vector<double> max_vel_buff;
   ReferenceModel::getParameters("dp_rm/max_vel", max_vel_buff);
@@ -53,7 +52,6 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh): m_nh(nh) {
   eta_d = Eigen::Vector7d::Zero();
   eta_d(3) = 1; // the real value of quaternions
   eta_dot_d = Eigen::Vector7d::Zero();
-
 
   // subs and pubs
   setpoint_sub = nh.subscribe("/dp_data/reference_point", 1,
@@ -119,6 +117,7 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
   Eigen::Matrix3d R = orientation.toRotationMatrix();
   Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
 
+<<<<<<< HEAD
   T << -orientation.vec().transpose(),
   orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
   T = 0.5 * T;
@@ -129,15 +128,27 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
   if(!x_ref.isApprox(x_ref_buff) || (ros::Time::now() - last_time).toSec() > 5){
     
+=======
+  if (!x_ref.isApprox(x_ref_buff)) {
+
+    Eigen::Matrix3d R = orientation.toRotationMatrix();
+    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
+
+    T << -orientation.vec().transpose(),
+        orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
+    T = 0.5 * T;
+>>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
-    J << R, Eigen::Matrix3d::Zero(), 
-        Eigen::MatrixXd::Zero(4,3), T;
+    J << R, Eigen::Matrix3d::Zero(), Eigen::MatrixXd::Zero(4, 3), T;
 
     eta_d << position, orientation.w(), orientation.vec();
     eta_dot_d << J * velocity;
+<<<<<<< HEAD
     
     last_time = ros::Time::now();
 
+=======
+>>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
   }
 
 
@@ -199,4 +210,9 @@ void ReferenceModel::odometryCallback(const nav_msgs::Odometry &msg) {
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
   tf::twistMsgToEigen(msg.twist.twist, velocity);
+<<<<<<< HEAD
+=======
+
+  std::cout << "Hei på deg din gamle kalosj!7" << std::endl;
+>>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
 }
