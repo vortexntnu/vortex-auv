@@ -56,11 +56,10 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
   // subs and pubs
   setpoint_sub = nh.subscribe("/dp_data/reference_point", 1,
                               &ReferenceModel::setpointCallback, this);
-  reference_pub = nh.advertise<nav_msgs::Odometry>(
-      "/reference_model/Odometry_d", 1, this);
-  m_odometry_sub =
-      m_nh.subscribe(odometry_topic, 1, &ReferenceModel::odometryCallback, this);
-
+  reference_pub =
+      nh.advertise<nav_msgs::Odometry>("/reference_model/Odometry_d", 1, this);
+  m_odometry_sub = m_nh.subscribe(odometry_topic, 1,
+                                  &ReferenceModel::odometryCallback, this);
 
   Delta = Eigen::Matrix7d::Zero();
   Omega = Eigen::Matrix7d::Zero();
@@ -88,7 +87,8 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
   x_d << eta_d, eta_dot_d;
 
   ros::Time current_time = ros::Time::now();
-  double time_step = (current_time - last_time).toSec(); // calculate time difference in seconds
+  double time_step = (current_time - last_time)
+                         .toSec(); // calculate time difference in seconds
   last_time = current_time;
 
   Eigen::Vector14d x_dot_d = A_d * x_d + B_d * x_ref;
@@ -119,14 +119,15 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
 <<<<<<< HEAD
   T << -orientation.vec().transpose(),
-  orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
+      orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
   T = 0.5 * T;
 
   Eigen::MatrixXd J_inv = Eigen::MatrixXd::Zero(6, 7);
   J_inv << R.transpose(), Eigen::MatrixXd::Zero(3, 4), Eigen::Matrix3d::Zero(),
       4 * T.transpose();
 
-  if(!x_ref.isApprox(x_ref_buff) || (ros::Time::now() - last_time).toSec() > 5){
+  if (!x_ref.isApprox(x_ref_buff) ||
+      (ros::Time::now() - last_time).toSec() > 5) {
     
 =======
   if (!x_ref.isApprox(x_ref_buff)) {
@@ -144,14 +145,12 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
     eta_d << position, orientation.w(), orientation.vec();
     eta_dot_d << J * velocity;
 <<<<<<< HEAD
-    
+
     last_time = ros::Time::now();
 
 =======
 >>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
   }
-
-
 
   x_ref = x_ref_buff;
 
@@ -167,11 +166,11 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
   odometry_d_msg.child_frame_id = "";
   odometry_d_msg.header.stamp = ros::Time::now();
 
-  Eigen::Quaterniond eta_d_quat(eta_d(3), eta_d(4), eta_d(5), eta_d(6)); 
+  Eigen::Quaterniond eta_d_quat(eta_d(3), eta_d(4), eta_d(5), eta_d(6));
   Eigen::Vector6d nu_d = J_inv * eta_dot_d;
 
-  //Transformation of eta_d to odometry-pose-msg and nu_d to odometry-twist-msg
-  tf::pointEigenToMsg(eta_d.segment(0,3), odometry_d_msg.pose.pose.position);
+  // Transformation of eta_d to odometry-pose-msg and nu_d to odometry-twist-msg
+  tf::pointEigenToMsg(eta_d.segment(0, 3), odometry_d_msg.pose.pose.position);
   tf::quaternionEigenToMsg(eta_d_quat, odometry_d_msg.pose.pose.orientation);
 
   tf::twistEigenToMsg(nu_d, odometry_d_msg.twist.twist);

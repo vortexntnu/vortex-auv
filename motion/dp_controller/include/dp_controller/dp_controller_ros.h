@@ -48,7 +48,7 @@ private:
   /**
    * @brief Desired pose in quaternions.
    */
-  //We may remove these:
+  // We may remove these:
   Eigen::Vector7d eta_d;
   Eigen::Vector7d eta_dot_d;
   //-----------------
