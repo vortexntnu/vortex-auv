@@ -48,8 +48,11 @@ RUN pip install \
     pyquaternion \
     quadprog \
     sklearn \
-    MCP342x \
-    enum34
+    board \
+#     busio \
+    adafruit-blinka \
+    enum34 \
+    MCP342x
 
 # Here we assume that the root contains vortex-auv, vortex-msgs and robot_localization
 COPY ./vortex-auv /vortex_ws/src/vortex-auv

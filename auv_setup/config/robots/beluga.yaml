@@ -227,3 +227,10 @@ ping360_node:
 
 torpedo:
   gpio_pin: 15
+
+tasks:
+  joystick: True
+  valve_vertical: False
+  valve_horisontal: False
+  pipeline_inspection: False
+  docking: False

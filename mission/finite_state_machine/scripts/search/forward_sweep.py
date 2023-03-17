@@ -89,7 +89,6 @@ class ForwardSweepSearch:
         initial_pose = self.odom.pose.pose
 
         while not self.object.isDetected:
-
             position_ahead = get_pose_in_front(initial_pose,
                                                path_segment_counter,
                                                0).position

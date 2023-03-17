@@ -177,7 +177,6 @@ class JoystickInterface:
 
 
 if __name__ == "__main__":
-
     try:
         joystick_interface = JoystickInterface()
         rospy.spin()

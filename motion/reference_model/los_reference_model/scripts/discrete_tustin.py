@@ -40,7 +40,6 @@ class ReferenceModel:
         self.x_d_dot_dot = 0
 
     def resetFilter(self, x):
-
         # set intial values
         self.x_ref_prev_prev = x  # 2nd-to-last raw input value
         self.x_ref_prev = x  # last raw input value
@@ -76,7 +75,6 @@ class ReferenceModel:
         return x_output
 
     def discreteTustinMSD(self, x_ref):
-
         self.x_ref = x_ref
 
         # new set point
@@ -97,7 +95,6 @@ class ReferenceModel:
 
 
 if __name__ == "__main__":
-
     x = np.array((0.5, 0.0))
     x_ref = np.array((2.0, 1.57))
 

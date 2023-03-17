@@ -18,7 +18,6 @@ class LocalPIDNode:
     """
 
     def __init__(self):
-
         rospy.init_node("local_pid_node")
 
         self.parent_frame = "odom"
@@ -134,7 +133,6 @@ class LocalPIDNode:
         self.tau_pub.publish(w)
 
     def local_error_cb(self, msg):
-
         tf_lookup_baselink = self.__tfBuffer.lookup_transform(
             self.parent_frame, self.self.child_frame, rospy.Time(),
             rospy.Duration(5))
@@ -170,7 +168,6 @@ class LocalPIDNode:
 
 
 if __name__ == "__main__":
-
     while not rospy.is_shutdown():
         try:
             local_pid = LocalPIDNode()
