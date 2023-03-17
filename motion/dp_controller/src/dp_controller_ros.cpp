@@ -71,6 +71,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   Controller::getParameters("/PID/P", p_gain_vec);
   Controller::getParameters("/PID/I", i_gain_vec);
   Controller::getParameters("/PID/D", d_gain_vec);
+  Controller::getParameters("/PID/Enable", enable_PID);
 
   Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]);
   Eigen::Vector3d r_B = Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]);
@@ -86,7 +87,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3],
       d_gain_vec[4], d_gain_vec[5];
 
-  m_controller.update_gain(p_gain, i_gain, d_gain);
+  m_controller.update_gain(p_gain*enable_PID[0], i_gain*enable_PID[1], d_gain*enable_PID[2]);
 
   // Subscribers
   m_odometry_sub =
@@ -248,6 +249,5 @@ void Controller::cfgCallback(dp_controller::DpControllerConfig &config,
       config.I_gain_roll, config.I_gain_pitch, config.I_gain_yaw;
   d_gain << config.D_gain_x, config.D_gain_y, config.D_gain_z,
       config.D_gain_roll, config.D_gain_pitch, config.D_gain_yaw;
-  m_controller.update_gain(p_gain, i_gain, d_gain);
-  std::cout << "I-leddet er her!XD" << std::endl << i_gain << std::endl;
+  m_controller.update_gain(p_gain*config.P_enable, i_gain*config.I_enable, d_gain*config.D_enable);
 }

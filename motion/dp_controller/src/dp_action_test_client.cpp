@@ -19,7 +19,6 @@ Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw) {
   q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
       Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
       Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-  std::cout << "Quaternion" << std::endl << q.coeffs() << std::endl;
   return q;
 }
 
@@ -29,8 +28,8 @@ private:
   ros::NodeHandle m_nh; /** Nodehandle          */
 
 public:
-  void getParameters(std::string param_name,
-                     std::vector<double> &param_variable) {
+  template <typename T>
+  void getParameters(std::string param_name, T &param_variable) {
     if (!m_nh.getParam(param_name, param_variable)) {
       ROS_FATAL("Failed to read parameter %s.  Shutting down node..",
                 param_name.c_str());
@@ -38,42 +37,67 @@ public:
     }
   }
 
+
   void spin() {
     ros::Rate rate(1);
     std::vector<double> goal_position_vec, goal_orientation_vec, goal_DOF_vec;
-    std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff,
-        goal_DOF_vec_buff;
+    std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff, goal_DOF_vec_buff;
+    bool enable;
+    bool enable_buff = false;
+        
     while (ros::ok()) {
 
       // get ROS parameters
       getParameters("/setpoint/position", goal_position_vec);
       getParameters("/setpoint/orientation", goal_orientation_vec);
       getParameters("/setpoint/DOF", goal_DOF_vec);
+      getParameters("/setpoint/enable", enable);
 
-      // Add dp shutdown
-      // ----
+      Eigen::Vector3d goal_postion = Eigen::Vector3d(
+          goal_position_vec[0], goal_position_vec[1], goal_position_vec[2]);
+      Eigen::Vector3d goal_orientation =
+          Eigen::Vector3d(goal_orientation_vec[0], goal_orientation_vec[1],
+                          goal_orientation_vec[2]);
+      Eigen::VectorXd goal_DOF = Eigen::VectorXd::Zero(6);
+      goal_DOF << goal_DOF_vec[0], goal_DOF_vec[1], goal_DOF_vec[2],
+          goal_DOF_vec[3], goal_DOF_vec[4], goal_DOF_vec[5];
 
+     
+      //---------------DEBUG-----
       actionlib::SimpleClientGoalState state = ac_.getState();
       ROS_INFO("Action finished: %s", state.toString().c_str());
+      //----------------------------
 
-      // Check if goal has has changed
-      if (goal_position_vec != goal_position_vec_buff ||
-          goal_orientation_vec != goal_orientation_vec_buff ||
-          goal_DOF_vec != goal_DOF_vec_buff) {
-        goal_position_vec_buff = goal_position_vec;
-        goal_orientation_vec_buff = goal_orientation_vec;
-        goal_DOF_vec_buff = goal_DOF_vec;
-        Eigen::Vector3d goal_postion = Eigen::Vector3d(
-            goal_position_vec[0], goal_position_vec[1], goal_position_vec[2]);
-        Eigen::Vector3d goal_orientation =
-            Eigen::Vector3d(goal_orientation_vec[0], goal_orientation_vec[1],
-                            goal_orientation_vec[2]);
-        Eigen::VectorXd goal_DOF = Eigen::VectorXd::Zero(6);
-        goal_DOF << goal_DOF_vec[0], goal_DOF_vec[1], goal_DOF_vec[2],
-            goal_DOF_vec[3], goal_DOF_vec[4], goal_DOF_vec[5];
+      //Checks if enable (from dp_Client.yaml) is enabled.
+      //This will start the DP.
+      if (enable){
+        //Checks if the DP was disabled earlier, and enables the DP
+        if(enable != enable_buff){
+          send_goal(goal_postion, goal_orientation, goal_DOF);
+           enable_buff = enable;
+        }
 
-        // sending new goal to action server
-        send_goal(goal_postion, goal_orientation, goal_DOF);
+         // Check if goal has has changed
+        else if (goal_position_vec != goal_position_vec_buff ||
+            goal_orientation_vec != goal_orientation_vec_buff ||
+            goal_DOF_vec != goal_DOF_vec_buff) {
+          goal_position_vec_buff = goal_position_vec;
+          goal_orientation_vec_buff = goal_orientation_vec;
+          goal_DOF_vec_buff = goal_DOF_vec;
+
+          // sending new goal to action server
+          send_goal(goal_postion, goal_orientation, goal_DOF);
+        }
+      }
+      // else if (state.toString() != "LOST" a){
+      //   ac_.cancelGoal();
+      //   enable_buff = enable;
+      // } 
+
+      else if(enable_buff != enable)
+      {
+        ac_.cancelGoal();
+        enable_buff = enable;
       }
 
       ros::spinOnce();
@@ -94,7 +118,7 @@ public:
     ac_.waitForServer();
     ROS_INFO("Action server started, sending goal.");
   }
-
+  // Sends the goal to action server
   void send_goal(Eigen::Vector3d goal_position,
                  Eigen::Vector3d goal_orientation, Eigen::VectorXd goal_DOF) {
     vortex_msgs::dpGoal goal_;
@@ -112,13 +136,13 @@ public:
                  boost::bind(&DpActionClient::activeCallback, this),
                  boost::bind(&DpActionClient::feedbackCallback, this, _1));
   }
-
+  // Gets the error in pose from the action server
   void feedbackCallback(const vortex_msgs::dpFeedbackConstPtr &feedback) {
     ROS_INFO("Got Feedback %f %f %f %f %f %f", feedback->error[0],
              feedback->error[1], feedback->error[2], feedback->error[3],
              feedback->error[4], feedback->error[5]);
   }
-
+  // Sends a message when a goal is active.
   void activeCallback() { ROS_INFO("Goal just went active"); }
 };
 

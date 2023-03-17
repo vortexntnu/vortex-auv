@@ -117,7 +117,6 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
   Eigen::Matrix3d R = orientation.toRotationMatrix();
   Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
 
-<<<<<<< HEAD
   T << -orientation.vec().transpose(),
   orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
   T = 0.5 * T;
@@ -128,27 +127,14 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
   if(!x_ref.isApprox(x_ref_buff) || (ros::Time::now() - last_time).toSec() > 5){
     
-=======
-  if (!x_ref.isApprox(x_ref_buff)) {
-
-    Eigen::Matrix3d R = orientation.toRotationMatrix();
-    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
-
-    T << -orientation.vec().transpose(),
-        orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
-    T = 0.5 * T;
->>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
     J << R, Eigen::Matrix3d::Zero(), Eigen::MatrixXd::Zero(4, 3), T;
 
     eta_d << position, orientation.w(), orientation.vec();
     eta_dot_d << J * velocity;
-<<<<<<< HEAD
     
     last_time = ros::Time::now();
 
-=======
->>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
   }
 
 
@@ -210,9 +196,4 @@ void ReferenceModel::odometryCallback(const nav_msgs::Odometry &msg) {
   tf::pointMsgToEigen(msg.pose.pose.position, position);
   tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
   tf::twistMsgToEigen(msg.twist.twist, velocity);
-<<<<<<< HEAD
-=======
-
-  std::cout << "Hei på deg din gamle kalosj!7" << std::endl;
->>>>>>> 5b22310592f7be9474b821fe8f4d15a8fefa41e6
 }
