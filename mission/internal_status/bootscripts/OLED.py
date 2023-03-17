@@ -16,7 +16,6 @@ import re
 import subprocess
 import smbus
 
-
 # Raspberry Pi pin configuration:
 RST = None  # on the PiOLED this pin isnt used
 # Note the following are only used with SPI:
@@ -72,14 +71,11 @@ bottom = height - padding
 # Move left to right keeping track of the current x position for drawing shapes.
 x = 0
 
-
 # Load default font.
 font = ImageFont.load_default()
 
-
 IP_prev = "No IP"
 IP_filt = ""
-
 
 # ro red voltage and current from Arduino Nano through I2C
 # for code on the arduino:
@@ -93,7 +89,6 @@ calVoltageA = 56.2711  # 12 * 4
 calVoltageB = -2.3345
 calCurrent = 37.8788  # 1
 calCurrentOffset = 0.33
-
 
 # init of I2C bus with arduino nano conected
 
@@ -173,8 +168,14 @@ while True:
     # Write two lines of text.
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
-    draw.text((x, top + 8), "Voltage: " + str(system_voltage), font=font, fill=255)
-    draw.text((x, top + 16), "Current: " + str(system_current), font=font, fill=255)
+    draw.text((x, top + 8),
+              "Voltage: " + str(system_voltage),
+              font=font,
+              fill=255)
+    draw.text((x, top + 16),
+              "Current: " + str(system_current),
+              font=font,
+              fill=255)
 
     # Display image.
     disp.image(image)
