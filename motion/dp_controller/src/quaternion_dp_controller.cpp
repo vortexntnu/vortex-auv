@@ -54,7 +54,6 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
     const Eigen::Vector6d &nu, const Eigen::Vector6d &nu_d,
     const Eigen::Vector3d &eta_d_pos, const Eigen::Quaterniond &eta_d_ori) {
 
-
   // Rotate from inertial/world to body
   Eigen::Matrix3d R = q.toRotationMatrix();
   Eigen::Matrix6d K_p = proportionalGainMatrix(R);

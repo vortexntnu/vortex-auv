@@ -37,14 +37,14 @@ public:
     }
   }
 
-
   void spin() {
     ros::Rate rate(1);
     std::vector<double> goal_position_vec, goal_orientation_vec, goal_DOF_vec;
-    std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff, goal_DOF_vec_buff;
+    std::vector<double> goal_position_vec_buff, goal_orientation_vec_buff,
+        goal_DOF_vec_buff;
     bool enable;
     bool enable_buff = false;
-        
+
     while (ros::ok()) {
 
       // get ROS parameters
@@ -62,25 +62,24 @@ public:
       goal_DOF << goal_DOF_vec[0], goal_DOF_vec[1], goal_DOF_vec[2],
           goal_DOF_vec[3], goal_DOF_vec[4], goal_DOF_vec[5];
 
-     
       //---------------DEBUG-----
       actionlib::SimpleClientGoalState state = ac_.getState();
       ROS_INFO("Action finished: %s", state.toString().c_str());
       //----------------------------
 
-      //Checks if enable (from dp_Client.yaml) is enabled.
-      //This will start the DP.
-      if (enable){
-        //Checks if the DP was disabled earlier, and enables the DP
-        if(enable != enable_buff){
+      // Checks if enable (from dp_Client.yaml) is enabled.
+      // This will start the DP.
+      if (enable) {
+        // Checks if the DP was disabled earlier, and enables the DP
+        if (enable != enable_buff) {
           send_goal(goal_postion, goal_orientation, goal_DOF);
-           enable_buff = enable;
+          enable_buff = enable;
         }
 
-         // Check if goal has has changed
+        // Check if goal has has changed
         else if (goal_position_vec != goal_position_vec_buff ||
-            goal_orientation_vec != goal_orientation_vec_buff ||
-            goal_DOF_vec != goal_DOF_vec_buff) {
+                 goal_orientation_vec != goal_orientation_vec_buff ||
+                 goal_DOF_vec != goal_DOF_vec_buff) {
           goal_position_vec_buff = goal_position_vec;
           goal_orientation_vec_buff = goal_orientation_vec;
           goal_DOF_vec_buff = goal_DOF_vec;
@@ -92,10 +91,9 @@ public:
       // else if (state.toString() != "LOST" a){
       //   ac_.cancelGoal();
       //   enable_buff = enable;
-      // } 
+      // }
 
-      else if(enable_buff != enable)
-      {
+      else if (enable_buff != enable) {
         ac_.cancelGoal();
         enable_buff = enable;
       }

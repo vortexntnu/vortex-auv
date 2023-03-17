@@ -127,7 +127,7 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
   if (!x_ref.isApprox(x_ref_buff) ||
       (ros::Time::now() - last_time).toSec() > 5) {
-    
+
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
     J << R, Eigen::Matrix3d::Zero(), Eigen::MatrixXd::Zero(4, 3), T;
 
@@ -135,7 +135,6 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
     eta_dot_d << J * velocity;
 
     last_time = ros::Time::now();
-
   }
 
   x_ref = x_ref_buff;
