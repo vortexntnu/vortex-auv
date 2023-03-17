@@ -139,13 +139,13 @@ void Controller::spin() {
 
   bool was_active = false;
   geometry_msgs::Wrench tau_msg;
-  //Eigen::Quaterniond x_ref_ori;
+  // Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
 
     if (dp_server.run_controller) {
       was_active = true;
 
-      //tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+      // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
       Eigen::Vector6d tau = m_controller.getFeedback(
           position, orientation, velocity, nu_d, eta_d_pos, eta_d_ori);
 
@@ -208,11 +208,9 @@ int sgn(double x) {
   return 1;
 }
 
-void Controller::desiredPointCallback(
-    const nav_msgs::Odometry &desired_msg) {
+void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
 
-
-   // Convert to eigen for computation
+  // Convert to eigen for computation
   tf::pointMsgToEigen(desired_msg.pose.pose.position, eta_d_pos);
   tf::quaternionMsgToEigen(desired_msg.pose.pose.orientation, eta_d_ori);
   tf::twistMsgToEigen(desired_msg.twist.twist, nu_d);
@@ -231,7 +229,8 @@ void Controller::desiredPointCallback(
   // std_msgs::Float32 q_tilde_print;
   // q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
   // m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
-  // // ----------------------------- END DEBUG ---------------------------------
+  // // ----------------------------- END DEBUG
+  // ---------------------------------
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,
