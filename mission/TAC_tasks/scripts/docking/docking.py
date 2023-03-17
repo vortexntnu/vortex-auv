@@ -20,8 +20,11 @@ def find_relative_to_mass_centre(self, offsetFromMC):
     return rotationMatrix.dot(offsetFromMC)
 
 def within_acceptance_margins(self, goal):
-    error = np.sqrt(pow(self.odom.pose.pose.position.x,2)+pow(self.odom.pose.pose.position.y,2))
-    if(error < 0.1):
+
+    # Checks if above docking station within the error radius margin
+    max_error = 0.1
+    error = np.sqrt(pow(self.odom.pose.pose.position.x - self.object.pose.x,2)+pow(self.odom.pose.pose.position.y - self.object.pose.y,2))
+    if(error < max_error):
         return True
     return False
 
@@ -29,11 +32,25 @@ class DockingSearch(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=["preempted", "succeeded"])
 
+        # TODO: name dp_action_server
+        dp_action_server = ""
+        self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
+
         # Wait for docking_point from landmark server
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
-        rospy.wait_for_service("send_positions")
+
+    def odom_cb(self, msg):
+        self.odom = msg
 
     def execute(self):
+        goal = DpGoal()
+
+        goal.x_ref = self.odom.pose.pose
+        goal.DOF = [1,1,1,1,1,1]
+        self.dp_client.wait_for_server()
+        self.dp_client.send_goal(goal)
+
+        rospy.wait_for_service("send_positions")
         return "succeeded"
     
 
@@ -60,7 +77,7 @@ class DockingExecute(smach.State):
     def execute(self):
         self.state_pub.publish("docking/execute")
 
-        # Power puck relative to the center of mass
+        # Power puck relative to the center of mass (temporary until we get static transform)
         powerPuckOffset = [0,0,0.6] 
 
         goal = DpGoal()
@@ -88,7 +105,6 @@ class DockingExecute(smach.State):
             
             self.object = self.landmarks_client("docking").object
 
-            
             goal.x_ref = self.object.pose   
             goal.x_ref.position = goal.x_ref.position - find_relative_to_mass_centre(powerPuckOffset, self.odom.pose.pose.orientation)
 
