@@ -9,10 +9,10 @@ from std_msgs.msg import String
 from tf.transformations import quaternion_from_euler, quaternion_matrix
 from landmarks.srv import request_position
 
-from vortex_msgs.msg import (
-    DpAction,
-    DpGoal
-)
+# from vortex_msgs.msg import (
+#     DpAction,
+#     DpGoal
+# )
 
 
 def find_relative_to_mass_centre(self, offsetFromMC):
@@ -30,61 +30,62 @@ def within_acceptance_margins(self):
 
 class DockingSearch(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["preempted", "succeeded"])
-        print("DockingSearch init start")
-
-        rate = rospy.Rate(1)
-        rate.sleep()
 
         # dp_action_server = "DpAction"
         # self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
 
         # # Wait for docking_point from landmark server
-        # self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
-        print("DockingSearch init end")
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        rospy.wait_for_service("send_positions")
+        self.object = self.landmarks_client("docking_point").object
+
+        smach.State.__init__(self, outcomes=["succeeded"])
 
     # def odom_cb(self, msg):
     #     self.odom = msg
 
-    def execute(self):
+    def execute(self, userdata):
+        rate = rospy.Rate(10)   
+
         # goal = DpGoal()
-        print("DockingSearch execute start")
-        rate = rospy.Rate(1)
-        rate.sleep()
         # goal.x_ref = self.odom.pose.pose
         # goal.DOF = [1,1,1,1,1,1]
         # self.dp_client.wait_for_server()
         # self.dp_client.send_goal(goal)
 
-        # rospy.wait_for_service("send_positions")
-        print("DockingSearch execute end")
+        # Wait until we find the docking point
+        while not self.object.isDetected:
+            self.object = self.landmarks_client("docking_point").object
+            if (not rospy.get_param("/tasks/docking")):
+                self.dp_client.cancel_all_goals()
+                return "preempted"
+    
+            rate.sleep()
+
         return "succeeded"
     
 
 class DockingExecute(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
-        print("DockingExecute init start")
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client("docking").object
+        self.object = self.landmarks_client("docking_point").object
 
         # dp_action_server = "DpAction"
         # self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
 
         # rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         # self.odom = Odometry()
-        print("DockingExecute init end")
+        smach.State.__init__(self, outcomes=["succeeded"])
 
     def odom_cb(self, msg):
         self.odom = msg
 
-    def execute(self):
+    def execute(self, userdata):
         self.state_pub.publish("docking/execute")
-        print("DockingExecute execute start")
 
         # # Power puck relative to the center of mass (temporary until we get static transform)
         # powerPuckOffset = [0,0,0.6] 
@@ -101,17 +102,8 @@ class DockingExecute(smach.State):
 
         # self.dp_client.wait_for_server()
         # self.dp_client.send_goal(goal)
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(10)
         rate.sleep()
-
-        print(
-            "DOCKING POINT DETECTED: "
-            + str(self.object.objectPose.pose.position.x)
-            + ", "
-            + str(self.object.objectPose.pose.position.y)
-            + ", "
-            + str(self.object.objectPose.pose.position.z)
-        )
 
         # while (
         #     not rospy.is_shutdown()
@@ -120,7 +112,7 @@ class DockingExecute(smach.State):
         #     and rospy.get_param("/tasks/docking")
         # ):
         #     # TODO: avoid too many updates of dp and discard if isDetected == false
-        #     self.object = self.landmarks_client("docking").object
+        #     self.object = self.landmarks_client("docking_point").object
 
         #     goal.x_ref = self.object.pose   
         #     goal.x_ref.position = goal.x_ref.position - find_relative_to_mass_centre(powerPuckOffset, self.odom.pose.pose.orientation)
@@ -148,7 +140,7 @@ class DockingExecute(smach.State):
         #     self.dp_client.cancel_all_goals()
         #     return "preempted"
 
-        # self.object = self.landmarks_client("docking").object
+        # self.object = self.landmarks_client("docking_point").object
         # print(
         #     "DOCKING POINT ESTIMATE CONVERGED AT: "
         #     + str(self.object.objectPose.pose.position.x)
@@ -185,14 +177,16 @@ class DockingExecute(smach.State):
         # if (not rospy.get_param("/tasks/docking")):
         #     self.dp_client.cancel_all_goals()
         #     return "preempted"
-        print("DockingExecute execute end")
+
+        if self.object.estimateFucked:
+            goal.x_ref = self.odom.pose.pose
+            self.dp_client.send_goal(goal)
+            return "aborted"
     
-        return "succeded"
+        return "succeeded"
 
 class DockingStandby(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=["succeded"])
-        print("DockingStandby_init")
 
         # dp_action_server = "DpAction"
         # self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
@@ -200,15 +194,16 @@ class DockingStandby(smach.State):
         # rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         # self.odom = Odometry()
 
+        smach.State.__init__(self, outcomes=["succeeded"])
+
     def odom_cb(self, msg):
         self.odom = msg
 
-    def execute(self):
+    def execute(self, userdata):
         # undocking_pose = self.odom.pose.pose
         # goal.x_ref = undocking_pose
         # self.dp_client.send_goal(goal)
-        print("DockingStandby_execute_start")
-        rate = rospy.Rate(1)
+        rate = rospy.Rate(10)
         rate.sleep()
         
         # while (
@@ -217,7 +212,6 @@ class DockingStandby(smach.State):
         #     rate.sleep()
         
         # self.dp_client.cancel_all_goals()
-        
-        print("DockingStandby_execute_end")
-        return "succeded"
+
+        return "succeeded"
         
