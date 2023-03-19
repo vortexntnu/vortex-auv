@@ -56,9 +56,9 @@ class DockingSearch(smach.State):
         # Wait until we find the docking point
         while not self.object.isDetected:
             self.object = self.landmarks_client("docking_point").object
-            if (not rospy.get_param("/tasks/docking")):
-                self.dp_client.cancel_all_goals()
-                return "preempted"
+            # if (not rospy.get_param("/tasks/docking")):
+            #     self.dp_client.cancel_all_goals()
+            #     return "preempted"
     
             rate.sleep()
 
@@ -81,8 +81,8 @@ class DockingExecute(smach.State):
         # self.odom = Odometry()
         smach.State.__init__(self, outcomes=["succeeded"])
 
-    def odom_cb(self, msg):
-        self.odom = msg
+    # def odom_cb(self, msg):
+    #     self.odom = msg
 
     def execute(self, userdata):
         self.state_pub.publish("docking/execute")
@@ -178,10 +178,10 @@ class DockingExecute(smach.State):
         #     self.dp_client.cancel_all_goals()
         #     return "preempted"
 
-        if self.object.estimateFucked:
-            goal.x_ref = self.odom.pose.pose
-            self.dp_client.send_goal(goal)
-            return "aborted"
+        # if self.object.estimateFucked:
+        #     # goal.x_ref = self.odom.pose.pose
+        #     # self.dp_client.send_goal(goal)
+        #     return "aborted"
     
         return "succeeded"
 
@@ -196,8 +196,8 @@ class DockingStandby(smach.State):
 
         smach.State.__init__(self, outcomes=["succeeded"])
 
-    def odom_cb(self, msg):
-        self.odom = msg
+    # def odom_cb(self, msg):
+    #     self.odom = msg
 
     def execute(self, userdata):
         # undocking_pose = self.odom.pose.pose

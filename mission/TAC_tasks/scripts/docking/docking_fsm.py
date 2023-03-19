@@ -21,7 +21,7 @@ def main():
         StateMachine.add(
             "DOCKING_EXECUTE",
             DockingExecute(),
-            transitions = {"succeeded": "DOCKING_STANDBY", "aborted": "DOCKING_SEARCH"} 
+            transitions = {"succeeded": "DOCKING_STANDBY"} 
         )
 
         StateMachine.add(
