@@ -3,7 +3,7 @@
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
-from docking import DockingSearch, DockingExecute 
+from docking import DockingSearch, DockingExecute
 
 
 def main():
@@ -12,12 +12,11 @@ def main():
     docking_sm = StateMachine(outcomes=["done"])
     with docking_sm:
 
-        StateMachine.add(
-            "DOCKING_SEARCH",
-            DockingSearch(),
-            transitions = {"succeeded": "DOCKING_EXECUTE"}
-        )
+        StateMachine.add("DOCKING_SEARCH",
+                         DockingSearch(),
+                         transitions={"succeeded": "DOCKING_EXECUTE"})
 
+<<<<<<< HEAD
         StateMachine.add(
             "DOCKING_EXECUTE",
             DockingExecute(),
@@ -29,7 +28,18 @@ def main():
             DockingExecute(),
             transitions = {"succeeded": "done"}
         )
+=======
+        StateMachine.add("DOCKING_EXECUTE",
+                         DockingExecute(),
+                         transitions={
+                             "succeeded": "DOCKING_STANDBY",
+                             "aborted": "DOCKING_SEARCH"
+                         })
+>>>>>>> ce9740781c7c14ec325ee1a1b6d1cb595701c107
 
+        StateMachine.add("DOCKING_STANDBY",
+                         DockingExecute(),
+                         transitions={"succeeded": "done"})
 
     # intro_server = IntrospectionServer(
     #     str(rospy.get_name()), docking_sm, "/SM_ROOT"
