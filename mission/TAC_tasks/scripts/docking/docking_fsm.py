@@ -12,24 +12,24 @@ def main():
     docking_sm = StateMachine(outcomes=['done'])
     with docking_sm:
 
-        StateMachine.add(
-            "DOCKING_SEARCH",
-            DockingSearch(),
-            transitions={'succeeded': 'DOCKING_EXECUTE', 'preempted': 'done'}
-        )
+        StateMachine.add("DOCKING_SEARCH",
+                         DockingSearch(),
+                         transitions={
+                             'succeeded': 'DOCKING_EXECUTE',
+                             'preempted': 'done'
+                         })
 
-        StateMachine.add(
-            "DOCKING_EXECUTE",
-            DockingExecute(),
-            transitions = {'succeeded': 'DOCKING_STANDBY', 'aborted': 'DOCKING_SEARCH', 'preempted': 'done'} 
-        )
+        StateMachine.add("DOCKING_EXECUTE",
+                         DockingExecute(),
+                         transitions={
+                             'succeeded': 'DOCKING_STANDBY',
+                             'aborted': 'DOCKING_SEARCH',
+                             'preempted': 'done'
+                         })
 
-        StateMachine.add(
-            "DOCKING_STANDBY",
-            DockingStandby(),
-            transitions = {'succeeded': 'done'}
-        )
-
+        StateMachine.add("DOCKING_STANDBY",
+                         DockingStandby(),
+                         transitions={'succeeded': 'done'})
 
     # intro_server = IntrospectionServer(
     #     str(rospy.get_name()), docking_sm, "/SM_ROOT"

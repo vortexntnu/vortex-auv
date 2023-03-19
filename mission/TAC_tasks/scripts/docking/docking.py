@@ -69,7 +69,7 @@ class DockingSearch(smach.State):
             # if (not rospy.get_param("/tasks/docking")):
             #     self.dp_client.cancel_all_goals()
             #     return 'preempted'
-    
+
             rate.sleep()
 
         return 'succeeded'
@@ -91,7 +91,8 @@ class DockingExecute(smach.State):
 
         # rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         # self.odom = Odometry()
-        smach.State.__init__(self, outcomes=['succeeded', 'aborted', 'preempted'])
+        smach.State.__init__(self,
+                             outcomes=['succeeded', 'aborted', 'preempted'])
 
     # def odom_cb(self, msg):
     #     self.odom = msg
@@ -196,7 +197,7 @@ class DockingExecute(smach.State):
         #     return 'aborted'
         # elif self.object.estimateConverged:
         #     return 'preempted'
-    
+
         return 'succeeded'
 
 
