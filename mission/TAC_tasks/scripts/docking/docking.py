@@ -16,30 +16,36 @@ def find_relative_to_mass_centre(self, offsetFromMC):
     rotationMatrix = quaternion_matrix(self.odom.pose.pose.orientation)
     return rotationMatrix.dot(offsetFromMC)
 
+
 # Checks if we are above docking station within the accepted error radius
 def within_acceptance_margins(self):
     max_error = 0.2
     error = np.sqrt(
-        pow(self.odom.pose.pose.position.x -self.object.objectPose.pose.position.x, 2) 
-        + pow(self.odom.pose.pose.position.y - self.object.objectPose.pose.position.y, 2))
+        pow(
+            self.odom.pose.pose.position.x -
+            self.object.objectPose.pose.position.x, 2) + pow(
+                self.odom.pose.pose.position.y -
+                self.object.objectPose.pose.position.y, 2))
     if (error < max_error):
         return True
     return False
 
 
 class DockingSearch(smach.State):
-    
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
-      
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("docking_point").object
 
         dp_action_server = "DpAction"
-        self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
+        self.dp_client(actionlib.SimpleActionClient(dp_action_server,
+                                                    DpAction))
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -74,16 +80,19 @@ class DockingSearch(smach.State):
 class DockingExecute(smach.State):
 
     def __init__(self):
-        smach.State.__init__(self, outcomes=['succeeded', 'aborted', 'preempted'])
+        smach.State.__init__(self,
+                             outcomes=['succeeded', 'aborted', 'preempted'])
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("docking_point").object
 
         dp_action_server = "DpAction"
-        self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
+        self.dp_client(actionlib.SimpleActionClient(dp_action_server,
+                                                    DpAction))
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -125,10 +134,10 @@ class DockingExecute(smach.State):
             if not within_acceptance_margins():
                 goal.x_ref.position.z = self.odom.pose.pose.position.z
 
-            rospy.loginfo("DOCKING POINT DETECTED: " 
-                + str(goal.x_ref.Point.x) + ", " 
-                + str(goal.x_ref.Point.y) + ", " 
-                + str(goal.x_ref.Point.z))
+            rospy.loginfo("DOCKING POINT DETECTED: " +
+                          str(goal.x_ref.Point.x) + ", " +
+                          str(goal.x_ref.Point.y) + ", " +
+                          str(goal.x_ref.Point.z))
 
             self.dp_client.send_goal(goal)
 
@@ -146,9 +155,9 @@ class DockingExecute(smach.State):
         self.object = self.landmarks_client("docking_point").object
 
         rospy.loginfo("DOCKING POINT ESTIMATE CONVERGED AT: " +
-              str(self.object.objectPose.pose.position.x) + "; " +
-              str(self.object.objectPose.pose.position.y) + "; " +
-              str(self.object.objectPose.pose.position.z))
+                      str(self.object.objectPose.pose.position.x) + "; " +
+                      str(self.object.objectPose.pose.position.y) + "; " +
+                      str(self.object.objectPose.pose.position.z))
 
         starting_time = rospy.Time.now().to_sec()
         docking_duration = rospy.Duration.from_sec(15)
@@ -186,7 +195,8 @@ class DockingStandby(smach.State):
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         dp_action_server = "DpAction"
-        self.dp_client(actionlib.SimpleActionClient(dp_action_server, DpAction))
+        self.dp_client(actionlib.SimpleActionClient(dp_action_server,
+                                                    DpAction))
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
