@@ -18,7 +18,6 @@ from PIL import ImageFont
 
 from MCP342x import MCP342x
 
-
 # Raspberry Pi pin configuration:
 RST = None  # on the PiOLED this pin isnt used
 # Note the following are only used with SPI:
@@ -72,10 +71,8 @@ bottom = height - padding
 # Move left to right keeping track of the current x position for drawing shapes.
 x = 0
 
-
 # Load default font.
 font = ImageFont.load_default()
-
 
 IP_prev = "No IP"
 IP_filt = ""
@@ -124,9 +121,9 @@ def read_PSM_voltage():
 
 def read_PSM_current():
     try:
-        current = (
-            channel_current.convert_and_read() - psm_to_battery_current_offset
-        ) * psm_to_battery_current_scale_factor
+        current = (channel_current.convert_and_read() -
+                   psm_to_battery_current_offset
+                   ) * psm_to_battery_current_scale_factor
 
     except IOError:
         current = -1
@@ -156,8 +153,14 @@ while True:
     # Write two lines of text.
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
-    draw.text((x, top + 8), "Volt: " + str(system_voltage), font=font, fill=255)
-    draw.text((x, top + 16), "Amp:  " + str(system_current), font=font, fill=255)
+    draw.text((x, top + 8),
+              "Volt: " + str(system_voltage),
+              font=font,
+              fill=255)
+    draw.text((x, top + 16),
+              "Amp:  " + str(system_current),
+              font=font,
+              fill=255)
 
     # Display image.
     disp.image(image)

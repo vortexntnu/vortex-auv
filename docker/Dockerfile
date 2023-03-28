@@ -49,7 +49,8 @@ RUN pip install \
     quadprog \
     sklearn \
     board \
-    busio \
+#     busio \
+    adafruit-blinka \
     enum34 \
     MCP342x
 

@@ -227,6 +227,3 @@ ping360_node:
   maxAngle: 400 
   minAngle: 0 
   oscillate: False 
-
-torpedo:
-  gpio_pin: 15

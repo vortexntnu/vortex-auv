@@ -18,11 +18,13 @@ inactive = 0
 
 
 class GripperInterfaceNode:
+
     def __init__(self):
         rospy.init_node("gripper_interface")
-        self.joystick_sub = rospy.Subscriber(
-            "/mission/joystick_data", Joy, self.callback, queue_size=1
-        )
+        self.joystick_sub = rospy.Subscriber("/mission/joystick_data",
+                                             Joy,
+                                             self.callback,
+                                             queue_size=1)
 
         self.gripper_state = inactive
 
