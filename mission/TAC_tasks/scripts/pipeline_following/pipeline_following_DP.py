@@ -16,14 +16,15 @@ class PipelineExecute(smach.State):
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
 
         self.dp_pub = rospy.Publisher("/controllers/dp_data",
                                       DpSetpoint,
                                       queue_size=1)
-        
+
         # Information about the current pose of Beluga
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
@@ -59,7 +60,8 @@ class PipelineExecute(smach.State):
             goal.setpoint = [self.object.objectPose.pose]
             goal.setpoint.position.z = self.odom.pose.pose.position.z
             self.dp_pub.publish(goal)
-            self.object = self.landmarks_client(f"{self.task}").object  # requesting new points
+            self.object = self.landmarks_client(
+                f"{self.task}").object  # requesting new points
             rate.sleep()
 
         return "aborted"
@@ -105,11 +107,13 @@ class PipelineStandby(smach.State):
         self.dp_pub.publish(dp_goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown():# and rospy.get_param("/tasks/pipeline_inspection"):
+        while not rospy.is_shutdown(
+        ):  # and rospy.get_param("/tasks/pipeline_inspection"):
             rospy.loginfo("Standby")
-            self.object = self.landmarks_client(f"{self.task}").object  # requesting update on the object
+            self.object = self.landmarks_client(
+                f"{self.task}").object  # requesting update on the object
             if self.object.isDetected:
-                    return "succeeded"
+                return "succeeded"
             rate.sleep()
 
         return "aborted"
