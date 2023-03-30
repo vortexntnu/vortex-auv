@@ -34,7 +34,7 @@ class PipelineExecute(smach.State):
     def odom_cb(self, msg):
         self.odom = msg
 
-    def execute(self,userdata):
+    def execute(self, userdata):
         rospy.loginfo("Entering PipelineExecute")
 
         self.object = self.landmarks_client(f"{self.task}").object
@@ -44,7 +44,7 @@ class PipelineExecute(smach.State):
 
         # constant vtf parameters
         goal = DpSetpoint()
-        goal.control_mode = 5 # POSITION_HEADING_HOLD
+        goal.control_mode = 5  # POSITION_HEADING_HOLD
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown(
@@ -72,7 +72,8 @@ class PipelineStandby(smach.State):
     def __init__(self):
         self.task = "pipeline"
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
 
@@ -94,7 +95,7 @@ class PipelineStandby(smach.State):
     def odom_cb(self, msg):
         self.odom = msg
 
-    def execute(self,userdata):
+    def execute(self, userdata):
 
         rospy.loginfo("Standby")
         # Feedback of the current state in state machine

@@ -14,7 +14,9 @@ class test():
         "send_positions"
         ) """
 
-        self.pub = rospy.Publisher("/odometry/filtered", Odometry,queue_size=1)
+        self.pub = rospy.Publisher("/odometry/filtered",
+                                   Odometry,
+                                   queue_size=1)
 
     def execute(self):
 
@@ -22,6 +24,7 @@ class test():
         self.pub.publish(goal)
         rate = rospy.Rate(10)
         rate.sleep()
+
 
 if __name__ == "__main__":
 
