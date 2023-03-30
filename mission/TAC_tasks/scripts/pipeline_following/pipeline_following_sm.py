@@ -6,7 +6,7 @@ from smach_ros import IntrospectionServer
 from pipeline_following import PipelineConverge, PipelineExecute, PipelineStandby
 
 def main():
-    rospy.init_node("tac_fsm")
+    rospy.init_node("tac_pipeline_fsm")
     # rospy.wait_for_message()
     # rospy.wait_for_service()
 
