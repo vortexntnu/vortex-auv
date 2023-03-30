@@ -3,7 +3,7 @@
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
-from pipeline_following import PipelineConverge, PipelineExecute, PipelineStandby
+from pipeline_following_vtf import PipelineConverge, PipelineExecute, PipelineStandby
 
 def main():
     rospy.init_node("tac_pipeline_fsm")
