@@ -5,7 +5,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 from time import sleep
 from datetime import datetime
-import Jetson.GPIO as GPIO
+import RPi.GPIO as GPIO
 
 # TODO: Need different nodes/topics/modes for ROV and AUV operations
 # Note: is currently hardware dependent; replace GPIO calls with ros publish at some point,
@@ -32,8 +32,8 @@ class GripperInterfaceNode:
         self.last_press = datetime.now()
 
         # GPIO setup
-        self.gripper_gpio_pin = 7
-        GPIO.setmode(GPIO.BOARD)
+        self.gripper_gpio_pin = 6
+        GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gripper_gpio_pin, GPIO.OUT)
         GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
 
