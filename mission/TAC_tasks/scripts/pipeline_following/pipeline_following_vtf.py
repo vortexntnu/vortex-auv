@@ -5,8 +5,7 @@ import rospy
 import smach
 import actionlib
 from landmarks.srv import request_position
-from vortex_msgs.msg import (VtfPathFollowingAction, 
-                             VtfPathFollowingGoal, 
+from vortex_msgs.msg import (VtfPathFollowingAction, VtfPathFollowingGoal,
                              DpSetpoint)
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
@@ -103,11 +102,13 @@ class PipelineStandby(smach.State):
         self.dp_pub.publish(dp_goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown():# and rospy.get_param("/tasks/pipeline_inspection"):
+        while not rospy.is_shutdown(
+        ):  # and rospy.get_param("/tasks/pipeline_inspection"):
             rospy.loginfo("Standby")
-            self.object = self.landmarks_client(f"{self.task}").object  # requesting update on the object
+            self.object = self.landmarks_client(
+                f"{self.task}").object  # requesting update on the object
             if self.object.isDetected:
-                    return "succeeded"
+                return "succeeded"
             rate.sleep()
 
         return "aborted"

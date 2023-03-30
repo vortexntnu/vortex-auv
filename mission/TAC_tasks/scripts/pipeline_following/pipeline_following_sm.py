@@ -16,7 +16,10 @@ def main():
 
         StateMachine.add("PIPELINE_STANDBY",
                          PipelineStandby(),
-                         transitions={"aborted": "done", "succeeded": "PIPELINE EXECUTE"})
+                         transitions={
+                             "aborted": "done",
+                             "succeeded": "PIPELINE EXECUTE"
+                         })
 
         StateMachine.add("PIPELINE_EXECUTE",
                          PipelineExecute(),
