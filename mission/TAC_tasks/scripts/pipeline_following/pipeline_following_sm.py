@@ -14,17 +14,13 @@ def main():
     pipeline_following_sm = StateMachine(outcomes=["done"])
     with pipeline_following_sm:
 
-        StateMachine.add("PIPELINE_CONVERGE",
-                         PipelineConverge(),
-                         transitions={"succeeded": "PIPELINE_EXECUTE"})
+        StateMachine.add("PIPELINE_STANDBY",
+                         PipelineStandby(),
+                         transitions={"aborted": "done", "succeeded": "PIPELINE EXECUTE"})
 
         StateMachine.add("PIPELINE_EXECUTE",
                          PipelineExecute(),
                          transitions={"aborted": "PIPELINE_STANDBY"})
-
-        StateMachine.add("PIPELINE_STANDBY",
-                         PipelineStandby(),
-                         transitions={"aborted": "done"})
 
     #intro_server = IntrospectionServer(
     #    str(rospy.get_name()), pipeline_following_sm, "/SM_ROOT"
