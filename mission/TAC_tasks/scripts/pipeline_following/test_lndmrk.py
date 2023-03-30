@@ -5,12 +5,16 @@ from geometry_msgs.msg import Point
 import actionlib
 from vortex_msgs.msg import ObjectPosition
 
+
 class test():
+
     def __init__(self):
 
         rospy.init_node("test")
 
-        self.wpPub = rospy.Publisher('/object_positions_in', ObjectPosition, queue_size=1)
+        self.wpPub = rospy.Publisher('/object_positions_in',
+                                     ObjectPosition,
+                                     queue_size=1)
 
     def execute(self):
         print('hellow')
@@ -26,7 +30,7 @@ class test():
         # p.objectPose.pose.orientation.z = 0
         # p.objectPose.pose.orientation.w = 1
 
-        p.isDetected            = True
+        p.isDetected = True
 
         print('hellow2')
         rate = rospy.Rate(10)
@@ -39,7 +43,6 @@ class test():
             rate.sleep()
             print('hellow3')
 
-        
 
 if __name__ == "__main__":
 
