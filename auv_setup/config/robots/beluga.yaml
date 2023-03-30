@@ -32,6 +32,8 @@ propulsion:
       pitch: true
       yaw:   true
   thrusters:
+    thrusters_operational_voltage_range: [14.2, 17.0] # Volts # If less or more than set Voltage -> thrusters shut down
+
     num: 8
     configuration_matrix:
 
@@ -45,9 +47,10 @@ propulsion:
 
     rate_of_change:
       max: 1 # Maximum rate of change in newton per second for a thruster
-    map:       [ 4, 5,  3, 2, 0, 1,  7, 6] # [0, 1, 2, 3, 4, 5, 6, 7]  
-    direction: [-1, -1, -1, -1, 1, 1, -1, 1]
-    offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
+    map:       [  4,  6,  7,  0,  3,  1,  2,  5 ] # [ 0, 1, 2, 3, 4, 5, 6, 7 ]  
+    direction: [  1, -1,  1,  1, -1,  1,  1, -1 ]
+    offset:    [ 80, 80, 80, 80, 80, 80, 80, 80 ] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest
+    thrust_range: [-0.7, 0.7] # range in percentage -1.0 to 1.0 # NOTE!: thrust_range moves with the offset, if the offset is too big e.g., ± ~400 the thrust range will go out of bounds 
 
 guidance:
   dp:
@@ -227,10 +230,3 @@ ping360_node:
 
 torpedo:
   gpio_pin: 15
-
-tasks:
-  joystick: True
-  valve_vertical: False
-  valve_horisontal: False
-  pipeline_inspection: False
-  docking: False
