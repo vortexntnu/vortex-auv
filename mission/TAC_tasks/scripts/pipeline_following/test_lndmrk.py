@@ -30,18 +30,20 @@ class test():
         # p.objectPose.pose.orientation.z = 0
         # p.objectPose.pose.orientation.w = 1
 
-        p.isDetected = True
-
-        print('hellow2')
         rate = rospy.Rate(10)
         t_start = rospy.get_rostime()
-        while not rospy.is_shutdown():
+        t = rospy.get_rostime()
+        while not rospy.is_shutdown() and t_start.secs + 10 > t.secs:
             t = rospy.get_rostime()
+
             if t_start.secs + 5 <= t.secs:
+                p.isDetected = True
+                print('isDetected = True')
+            else:
                 p.isDetected = False
+                print('isDetected = False')
             self.wpPub.publish(p)
             rate.sleep()
-            print('hellow3')
 
 
 if __name__ == "__main__":

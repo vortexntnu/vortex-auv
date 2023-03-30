@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import time
 import rospy
 import smach
 import actionlib
@@ -20,8 +19,7 @@ class PipelineExecute(smach.State):
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
 
@@ -31,8 +29,11 @@ class PipelineExecute(smach.State):
 
         smach.State.__init__(self, outcomes=["aborted"])
 
-    def execute(self):
+    def execute(self, userdata):
         rospy.loginfo("Entering PipelineExecute")
+        
+        self.object = self.landmarks_client(
+                f"{self.task}").object
 
         # Feedback of the current state in state machine
         self.state_pub.publish(f"{self.task}/execute")
@@ -43,8 +44,7 @@ class PipelineExecute(smach.State):
         goal.heading = "path_dependent_heading"
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown(
-        ) and self.object.isDetected:  # and rospy.get_param("/tasks/pipeline_inspection"):
+        while not rospy.is_shutdown() and self.object.isDetected:  # and rospy.get_param("/tasks/pipeline_inspection"):
             print("PATH POSITION DETECTED: " +
                   str(self.object.objectPose.pose.position.x) + ", " +
                   str(self.object.objectPose.pose.position.y) + ", " +
@@ -56,6 +56,7 @@ class PipelineExecute(smach.State):
             goal.waypoints = [self.object.objectPose.pose.position]
             self.vtf_client.wait_for_server()
             rospy.loginfo("Connection with vtf server")
+            self.vtf_client.cancel_all_goals()
             self.vtf_client.send_goal(goal)
             self.object = self.landmarks_client(
                 f"{self.task}").object  # requesting new points
@@ -69,6 +70,7 @@ class PipelineStandby(smach.State):
     def __init__(self):
         self.task = "pipeline"
 
+        self.landmarks_client = rospy.ServiceProxy("send_positions",request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
 
@@ -90,7 +92,7 @@ class PipelineStandby(smach.State):
     def odom_cb(self, msg):
         self.odom = msg
 
-    def execute(self):
+    def execute(self,userdata):
 
         rospy.loginfo("Standby")
         # Feedback of the current state in state machine

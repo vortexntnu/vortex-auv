@@ -3,7 +3,7 @@
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
-from pipeline_following_vtf import PipelineConverge, PipelineExecute, PipelineStandby
+from pipeline_following_DP import PipelineExecute, PipelineStandby
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
 
         StateMachine.add("PIPELINE_STANDBY",
                          PipelineStandby(),
-                         transitions={"aborted": "done", "succeeded": "PIPELINE EXECUTE"})
+                         transitions={"aborted": "done", "succeeded": "PIPELINE_EXECUTE"}),
 
         StateMachine.add("PIPELINE_EXECUTE",
                          PipelineExecute(),
@@ -41,5 +41,6 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         enabled = True  #rospy.get_param("/tasks/pipeline_inspection")
         if enabled:
+            rospy.loginfo('STARTING STATE MACHINE')
             main()
-            rospy.loginfo('Hello World')
+            rospy.loginfo('STATEMACHIN ENDED')
