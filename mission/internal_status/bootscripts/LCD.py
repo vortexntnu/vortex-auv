@@ -59,16 +59,6 @@ xavier_IP = ""
 system_voltage = 0
 system_current = 0
 
-func = 1
-
-
-def func_check(func):
-    if func == 1:
-        lcd.write_string("Wellness: Phase 1")
-        return 0
-    else:
-        lcd.write_string("Wellness: Phase 2")
-        return 1
 
 
 def read_PSM_voltage():
@@ -93,23 +83,24 @@ def read_PSM_current():
 
     return current
 
-
 while True:
+    # Get IP
     cmd = "hostname -I | cut -d' ' -f1"
-
-    # Clear LCD
-    lcd.clear()
 
     IP_bytes = subprocess.check_output(cmd, shell=True)
     IP_str = IP_bytes.decode("utf-8")
 
-    system_voltage = round(read_PSM_voltage(), 2)
-    system_current = round(read_PSM_current(), 2)
-
-    func = func_check(func)
-
-    # Display image.
-    lcd.write_string("IP: " + IP_str + "\r\n")
-    lcd.write_string("Volt: " + str(system_voltage) + "V ")
-    lcd.write_string("Amp: " + str(system_current) + "A ")
-    time.sleep(1)
+    # Display IP
+    lcd.clear()
+    lcd.write_string("IP:" + "\r\n")
+    lcd.write_string(IP_str)
+    time.sleep(5)
+    
+    # Display Voltage/Current
+    for i in range(50):
+        system_voltage = round(read_PSM_voltage(), 2)
+        system_current = round(read_PSM_current(), 2)
+        lcd.clear()
+        lcd.write_string("V:" + str(system_voltage) + "\r\n")
+        lcd.write_string("A:" + str(system_current))
+        time.sleep(0.2)
