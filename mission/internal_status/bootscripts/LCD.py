@@ -3,7 +3,7 @@ import time
 import subprocess
 import smbus
 
-import sys 
+import sys
 import os
 import readline
 import re
@@ -30,8 +30,12 @@ IP_filt = ""
 
 # Initialize LCD
 
-lcd = CharLCD(i2c_expander='PCF8574', address=0x27, port=1,
-              cols=16, rows=2, dotsize=8,
+lcd = CharLCD(i2c_expander='PCF8574',
+              address=0x27,
+              port=1,
+              cols=16,
+              rows=2,
+              dotsize=8,
               charmap='A02',
               auto_linebreaks=True,
               backlight_enabled=True)
@@ -56,6 +60,7 @@ system_voltage = 0
 system_current = 0
 
 func = 1
+
 
 def func_check(func):
     if func == 1:
