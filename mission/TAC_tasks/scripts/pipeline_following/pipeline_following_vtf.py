@@ -5,27 +5,28 @@ import rospy
 import smach
 import actionlib
 from landmarks.srv import request_position
-from vortex_msgs.msg import (
-    VtfPathFollowingAction,
-    VtfPathFollowingGoal,
-    ObjectPosition,
-    DpSetpoint
-)
+from vortex_msgs.msg import (VtfPathFollowingAction, VtfPathFollowingGoal,
+                             ObjectPosition, DpSetpoint)
 from geometry_msgs.msg import Pose, Twist
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 
+
 class PipelineConverge(smach.State):
+
     def __init__(self):
         self.task = "pipeline"
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
 
         # TODO meldingstype for DP er ikke bestemt enda
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
-        
+        self.dp_pub = rospy.Publisher("/controllers/dp_data",
+                                      DpSetpoint,
+                                      queue_size=1)
+
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
@@ -54,21 +55,23 @@ class PipelineConverge(smach.State):
         time.sleep(1)
         return "succeeded"
 
+
 class PipelineExecute(smach.State):
+
     def __init__(self):
         self.task = "pipeline"
 
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions",
+                                                   request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
-        
+
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(
-            vtf_action_server, VtfPathFollowingAction
-        )
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
 
         smach.State.__init__(self, outcomes=["aborted"])
 
@@ -84,17 +87,13 @@ class PipelineExecute(smach.State):
         goal.heading = "path_dependent_heading"
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown() and self.object.isDetected: # and rospy.get_param("/tasks/pipeline_inspection"):
-            print(
-                "PATH POSITION DETECTED: "
-                + str(self.object.objectPose.pose.position.x)
-                + ", "
-                + str(self.object.objectPose.pose.position.y)
-                + ", "
-                + str(self.object.objectPose.pose.position.z)
-                + " isDetected: "
-                + str(self.object.isDetected)
-            )
+        while not rospy.is_shutdown(
+        ) and self.object.isDetected:  # and rospy.get_param("/tasks/pipeline_inspection"):
+            print("PATH POSITION DETECTED: " +
+                  str(self.object.objectPose.pose.position.x) + ", " +
+                  str(self.object.objectPose.pose.position.y) + ", " +
+                  str(self.object.objectPose.pose.position.z) +
+                  " isDetected: " + str(self.object.isDetected))
 
             # TODO: should have an if statement that maintain altitude above pipeline??
 
@@ -102,18 +101,23 @@ class PipelineExecute(smach.State):
             self.vtf_client.wait_for_server()
             rospy.loginfo("Connection with vtf server")
             self.vtf_client.send_goal(goal)
-            self.object = self.landmarks_client(f"{self.task}").object # requesting new points
+            self.object = self.landmarks_client(
+                f"{self.task}").object  # requesting new points
             rate.sleep()
-        
+
         return "aborted"
 
+
 class PipelineStandby(smach.State):
+
     def __init__(self):
         self.task = "pipeline"
 
         # TODO meldingstype for DP er ikke bestemt enda
-        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
-        
+        self.dp_pub = rospy.Publisher("/controllers/dp_data",
+                                      DpSetpoint,
+                                      queue_size=1)
+
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
@@ -141,9 +145,9 @@ class PipelineStandby(smach.State):
         # self.dp_pub.publish(dp_goal)
 
         rate = rospy.Rate(10)
-        while(): #rospy.get_param("/tasks/pipeline_inspection")
+        while ():  #rospy.get_param("/tasks/pipeline_inspection")
             rospy.loginfo("Standby")
             rate.sleep()
-        
+
         self.request_preempt()
         return "aborted"
