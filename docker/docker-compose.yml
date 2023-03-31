@@ -13,7 +13,7 @@ services:
     image: ghcr.io/vortexntnu/vortex-auv:development
     privileged: true
     volumes:
-      - "..:/vortex_ws/src/vortex-auv"
+      - "../..:/vortex_ws/src"
       - "/dev:/dev"
     environment:
       DISPLAY: :0

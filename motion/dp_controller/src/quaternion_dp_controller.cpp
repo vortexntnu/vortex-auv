@@ -9,10 +9,27 @@
 QuaternionPIDController::QuaternionPIDController() { // float W, float B,
                                                      // Eigen::Vector3d r_G,
                                                      // Eigen::Vector3d r_B){
-  m_B = 23 * 9.81;
-  m_W = 24 * 9.81;
+  m_B = 0;
+  m_W = 0;
   m_r_G = Eigen::Vector3d::Zero();
   m_r_B = Eigen::Vector3d::Zero();
+  m_p_gain = Eigen::Vector6d::Zero();
+  m_i_gain = Eigen::Matrix6d::Zero();
+  m_d_gain = Eigen::Vector6d::Zero();
+  m_integral = Eigen::Vector6d::Zero();
+
+
+  double maxPosGain = 0.5;
+  double maxAttGain = 0.05;
+  m_integralAntiWindup = Eigen::Vector6d::Zero();
+  m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
+      maxAttGain, maxAttGain;
+
+  //The AUV is to stable in orientation, therefore the scaling of 0.3. The reason of 0.9 scaling in position, is beacause the g-vector may not be equal to the real value.
+  m_scale_g = Eigen::Vector6d::Zero();
+  m_scale_g << 0.95, 0.95, 0.95, 0.0, 0.0, 0.0;
+
+
 };
 
 int QuaternionPIDController::sgn(double x) {
@@ -65,6 +82,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   J_inv << R.transpose(), Eigen::MatrixXd::Zero(3, 4), Eigen::Matrix3d::Zero(),
       4 * T.transpose();
   Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
+
   Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
   remove_ori << 1, 1, 1, 0, 0, 0;
   nu_tilde = nu - nu_d.cwiseProduct(remove_ori);
@@ -72,15 +90,10 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   // Error Vector
   Eigen::Vector6d z = errorVector(x, eta_d_pos, q, eta_d_ori);
 
-  // Integral (change Antiwindup to a more advanced one)
-  double maxPosGain = 0.5;
-  double maxAttGain = 0.05;
-  Eigen::Vector6d IntegralAntiWindup = Eigen::Vector6d::Zero();
-  IntegralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
-      maxAttGain, maxAttGain;
-  integral += m_i_gain * z;
-  integral =
-      integral.cwiseMin(IntegralAntiWindup).cwiseMax(-IntegralAntiWindup);
+  // Integral (TODO:change Antiwindup to a more advanced one)
+  m_integral += m_i_gain * z;
+  m_integral =
+      m_integral.cwiseMin(m_integralAntiWindup).cwiseMax(-m_integralAntiWindup);
 
   Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
   m_K_d.diagonal() << m_d_gain;
@@ -88,14 +101,13 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
 
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
-  Eigen::Vector6d scale_g = Eigen::Vector6d::Zero();
-  scale_g << 0.9, 0.9, 0.9, 0.3, 0.3, 0.3;
-  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(scale_g) - integral;
+  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(m_scale_g) - m_integral;
 
   //------ Debug ----
   P_debug = K_p * z;
-  I_debug = integral;
+  I_debug = m_integral;
   D_debug = m_K_d * nu_tilde;
+  g_debug = g;
   //-----------------
 
   // Rounding gain to remove super small values
@@ -129,7 +141,7 @@ void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
   m_i_gain.diagonal() << i_gain;
   for (int i = 0; i < 6; i++) {
     if (i_gain(i) == 0) {
-      integral(i) = 0;
+      m_integral(i) = 0;
     }
   }
   m_d_gain = d_gain;

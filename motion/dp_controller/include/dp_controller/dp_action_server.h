@@ -16,15 +16,17 @@
 
 class DpAction {
 private:
-  ros::NodeHandle nh_;
-  std::string action_name_;
+  ros::NodeHandle m_nh;
+  std::string m_action_name;
+  std::vector<double> m_acceptance_margins;
 
   // create messages that are used to published feedback/result
-  vortex_msgs::dpFeedback feedback_;
-  vortex_msgs::dpResult result_;
+  vortex_msgs::dpFeedback m_feedback;
+  vortex_msgs::dpResult m_result;
+
 
 public:
-  DpAction(std::string name);
+  DpAction(std::string name, std::vector<double> acceptance_margins);
 
   ~DpAction(void){};
 
