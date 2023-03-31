@@ -18,18 +18,17 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_d_gain = Eigen::Vector6d::Zero();
   m_integral = Eigen::Vector6d::Zero();
 
-
   double maxPosGain = 0.5;
   double maxAttGain = 0.05;
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
 
-  //The AUV is to stable in orientation, therefore the scaling of 0.3. The reason of 0.9 scaling in position, is beacause the g-vector may not be equal to the real value.
+  // The AUV is to stable in orientation, therefore the scaling of 0.3. The
+  // reason of 0.9 scaling in position, is beacause the g-vector may not be
+  // equal to the real value.
   m_scale_g = Eigen::Vector6d::Zero();
   m_scale_g << 0.95, 0.95, 0.95, 0.0, 0.0, 0.0;
-
-
 };
 
 int QuaternionPIDController::sgn(double x) {

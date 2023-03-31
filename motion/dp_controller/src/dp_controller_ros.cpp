@@ -7,7 +7,6 @@
 #include "dp_controller/dp_action_server.h"
 #include <std_msgs/Float32.h>
 
-
 // Quaternion to Euler
 Eigen::Vector3d Controller::quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
@@ -81,8 +80,8 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_controller.update_gain(p_gain * m_enable_PID[0], i_gain * m_enable_PID[1],
                            d_gain * m_enable_PID[2]);
 
-  float gravity = 1; //9.81;                         
-  m_controller.init(W*gravity, B*gravity, r_G, r_B);
+  float gravity = 1; // 9.81;
+  m_controller.init(W * gravity, B * gravity, r_G, r_B);
 
   // Subscribers
   m_odometry_sub =
@@ -96,7 +95,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
       m_nh.advertise<geometry_msgs::Pose>("/dp_data/reference_point", 1, this);
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
 
-
   // Set up dynamic reconfigure server
   dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType
       f;
@@ -108,15 +106,15 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_nu_d = Eigen::Vector6d::Zero();
 
   //----------------- DEBUG ------------------
-  if (m_debug){
-    m_dp_P_debug_pub =
-        m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/P_debug", 1, this);
-    m_dp_I_debug_pub =
-        m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/I_debug", 1, this);
-    m_dp_D_debug_pub =
-        m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/D_debug", 1, this);
-    m_dp_g_debug_pub =
-        m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/g_debug", 1, this);    
+  if (m_debug) {
+    m_dp_P_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/P_debug", 1, this);
+    m_dp_I_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/I_debug", 1, this);
+    m_dp_D_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/D_debug", 1, this);
+    m_dp_g_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/g_debug", 1, this);
   }
   //------------------ END DEBUG -------------
 }
@@ -135,8 +133,9 @@ void Controller::spin() {
       is_active = true;
 
       // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
-      Eigen::Vector6d tau = m_controller.getFeedback(
-          m_position, m_orientation, m_velocity, m_nu_d, m_eta_d_pos, m_eta_d_ori);
+      Eigen::Vector6d tau =
+          m_controller.getFeedback(m_position, m_orientation, m_velocity,
+                                   m_nu_d, m_eta_d_pos, m_eta_d_ori);
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
       int i = 0;
@@ -151,7 +150,7 @@ void Controller::spin() {
       m_referencepoint_pub.publish(dp_server.goal_.x_ref);
 
       //----------------- DEBUG -------------------
-      if (m_debug){
+      if (m_debug) {
         std_msgs::Float64MultiArray P_debug_msg;
         std_msgs::Float64MultiArray I_debug_msg;
         std_msgs::Float64MultiArray D_debug_msg;
@@ -206,7 +205,6 @@ void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
   tf::pointMsgToEigen(desired_msg.pose.pose.position, m_eta_d_pos);
   tf::quaternionMsgToEigen(desired_msg.pose.pose.orientation, m_eta_d_ori);
   tf::twistMsgToEigen(desired_msg.twist.twist, m_nu_d);
-
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,

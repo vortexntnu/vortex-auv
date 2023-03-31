@@ -14,7 +14,6 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec) {
   return skew_mat;
 }
 
-
 ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
 
   std::string odometry_topic;
@@ -23,9 +22,8 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
   // Import parameters
   getParameters("dp_rm/zeta", zeta);
   getParameters("dp_rm/omega", omega);
-  
-  getParameters("/controllers/dp/odometry_topic",
-                                odometry_topic);
+
+  getParameters("/controllers/dp/odometry_topic", odometry_topic);
 
   std::vector<double> max_vel_buff;
   getParameters("dp_rm/max_vel", max_vel_buff);
@@ -52,9 +50,10 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
 
   Delta = Eigen::Matrix7d::Zero();
   Omega = Eigen::Matrix7d::Zero();
-  Delta.diagonal() << zeta[1], zeta[2], zeta[3], zeta[4], zeta[5], zeta[6], zeta[7];
-  Omega.diagonal() << omega[1], omega[2], omega[3], omega[4], omega[5], omega[6],
-      omega[7];
+  Delta.diagonal() << zeta[1], zeta[2], zeta[3], zeta[4], zeta[5], zeta[6],
+      zeta[7];
+  Omega.diagonal() << omega[1], omega[2], omega[3], omega[4], omega[5],
+      omega[6], omega[7];
 
   A_d << Eigen::Matrix7d::Zero(), Eigen::Matrix7d::Identity(), -Omega * Omega,
       -2 * Delta * Omega;

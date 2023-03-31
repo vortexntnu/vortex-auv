@@ -24,7 +24,6 @@ private:
   vortex_msgs::dpFeedback m_feedback;
   vortex_msgs::dpResult m_result;
 
-
 public:
   DpAction(std::string name, std::vector<double> acceptance_margins);
 

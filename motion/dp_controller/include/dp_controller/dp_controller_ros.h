@@ -48,13 +48,13 @@ private:
   /**
    * @brief Desired pose in quaternions.
    */
- 
+
   Eigen::Vector3d m_eta_d_pos;
   Eigen::Quaterniond m_eta_d_ori;
   Eigen::Vector6d m_nu_d;
 
   double m_rate;
-   std::vector<double> m_acceptance_margins_vec;
+  std::vector<double> m_acceptance_margins_vec;
 
   ros::NodeHandle m_nh; /** Nodehandle          */
 
