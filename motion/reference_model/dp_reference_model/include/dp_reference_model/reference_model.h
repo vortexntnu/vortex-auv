@@ -24,8 +24,6 @@ private:
   /**
    * @brief
    */
-  double zeta_1, zeta_2, zeta_3, zeta_4, zeta_5, zeta_6, zeta_7;
-  double omega_1, omega_2, omega_3, omega_4, omega_5, omega_6, omega_7;
 
   Eigen::Vector7d max_vel = Eigen::Vector7d::Zero();
 

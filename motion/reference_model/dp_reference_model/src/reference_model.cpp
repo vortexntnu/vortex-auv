@@ -17,29 +17,16 @@ Eigen::Matrix3d skew(Eigen::Vector3d vec) {
 ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
 
   std::string odometry_topic;
+  std::vector<double> zeta, omega;
 
   // Import parameters
-  ReferenceModel::getParameters("dp_rm/zeta_1", zeta_1);
-  ReferenceModel::getParameters("dp_rm/zeta_2", zeta_2);
-  ReferenceModel::getParameters("dp_rm/zeta_3", zeta_3);
-  ReferenceModel::getParameters("dp_rm/zeta_4", zeta_4);
-  ReferenceModel::getParameters("dp_rm/zeta_5", zeta_5);
-  ReferenceModel::getParameters("dp_rm/zeta_6", zeta_6);
-  ReferenceModel::getParameters("dp_rm/zeta_7", zeta_7);
+  getParameters("dp_rm/zeta", zeta);
+  getParameters("dp_rm/omega", omega);
 
-  ReferenceModel::getParameters("dp_rm/omega_1", omega_1);
-  ReferenceModel::getParameters("dp_rm/omega_2", omega_2);
-  ReferenceModel::getParameters("dp_rm/omega_3", omega_3);
-  ReferenceModel::getParameters("dp_rm/omega_4", omega_4);
-  ReferenceModel::getParameters("dp_rm/omega_5", omega_5);
-  ReferenceModel::getParameters("dp_rm/omega_6", omega_6);
-  ReferenceModel::getParameters("dp_rm/omega_7", omega_7);
-
-  ReferenceModel::getParameters("/controllers/dp/odometry_topic",
-                                odometry_topic);
+  getParameters("/controllers/dp/odometry_topic", odometry_topic);
 
   std::vector<double> max_vel_buff;
-  ReferenceModel::getParameters("dp_rm/max_vel", max_vel_buff);
+  getParameters("dp_rm/max_vel", max_vel_buff);
   max_vel << max_vel_buff[0], max_vel_buff[1], max_vel_buff[2], max_vel_buff[3],
       max_vel_buff[4], max_vel_buff[5], max_vel_buff[6];
   // Set up dynamic reconfigure server
@@ -63,22 +50,15 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
 
   Delta = Eigen::Matrix7d::Zero();
   Omega = Eigen::Matrix7d::Zero();
-  Delta.diagonal() << zeta_1, zeta_2, zeta_3, zeta_4, zeta_5, zeta_6, zeta_7;
-  Omega.diagonal() << omega_1, omega_2, omega_3, omega_4, omega_5, omega_6,
-      omega_7;
+  Delta.diagonal() << zeta[1], zeta[2], zeta[3], zeta[4], zeta[5], zeta[6],
+      zeta[7];
+  Omega.diagonal() << omega[1], omega[2], omega[3], omega[4], omega[5],
+      omega[6], omega[7];
 
   A_d << Eigen::Matrix7d::Zero(), Eigen::Matrix7d::Identity(), -Omega * Omega,
       -2 * Delta * Omega;
 
   B_d << Eigen::Matrix7d::Zero(), Omega * Omega;
-}
-
-Eigen::Quaterniond EulerToQuaternion(double roll, double pitch, double yaw) {
-  Eigen::Quaterniond q;
-  q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-      Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-      Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-  return q;
 }
 
 // Eigen::Vector14d
@@ -113,7 +93,6 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
       setpoint_msg.position.z, setpoint_msg.orientation.w,
       setpoint_msg.orientation.x, setpoint_msg.orientation.y,
       setpoint_msg.orientation.z;
-  // std::cout << "Hei på deg din gamle kalosj3!" << std::endl;
   Eigen::Matrix3d R = orientation.toRotationMatrix();
   Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
 

@@ -34,9 +34,12 @@ private:
   Eigen::Vector3d m_r_B;
   Eigen::Vector3d m_r_G;
   Eigen::Vector6d m_p_gain;
-  Eigen::Matrix6d m_i_gain = Eigen::Matrix6d::Zero();
+  Eigen::Matrix6d m_i_gain;
   Eigen::Vector6d m_d_gain;
-  Eigen::Vector6d integral = Eigen::Vector6d::Zero();
+  Eigen::Vector6d m_integral;
+  Eigen::Vector6d m_scale_g;
+
+  Eigen::Vector6d m_integralAntiWindup;
 
 public:
   explicit QuaternionPIDController(); // float W, float B, Eigen::Vector3d r_G,
@@ -79,6 +82,7 @@ public:
   Eigen::Vector6d P_debug = Eigen::Vector6d::Zero();
   Eigen::Vector6d I_debug = Eigen::Vector6d::Zero();
   Eigen::Vector6d D_debug = Eigen::Vector6d::Zero();
+  Eigen::Vector6d g_debug = Eigen::Vector6d::Zero();
 };
 
 #endif // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H

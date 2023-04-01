@@ -14,7 +14,7 @@
 typedef actionlib::SimpleActionClient<vortex_msgs::dpAction> Client;
 
 // Euler To Quaternion
-Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw) {
+Eigen::Quaterniond eulerToQuaterniond(double roll, double pitch, double yaw) {
   Eigen::Quaterniond q;
   q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
       Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
@@ -120,7 +120,7 @@ public:
   void send_goal(Eigen::Vector3d goal_position,
                  Eigen::Vector3d goal_orientation, Eigen::VectorXd goal_DOF) {
     vortex_msgs::dpGoal goal_;
-    Eigen::Quaterniond goal_quad = EulerToQuaterniond(
+    Eigen::Quaterniond goal_quad = eulerToQuaterniond(
         goal_orientation(0), goal_orientation(1), goal_orientation(2));
     tf::pointEigenToMsg(goal_position, goal_.x_ref.position);
     tf::quaternionEigenToMsg(goal_quad, goal_.x_ref.orientation);
