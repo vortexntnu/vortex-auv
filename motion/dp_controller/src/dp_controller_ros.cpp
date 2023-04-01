@@ -4,7 +4,7 @@
      All rights reserved. */
 
 #include "dp_controller/dp_controller_ros.h"
-#include "dp_controller/dp_action_server.h"
+
 #include <std_msgs/Float32.h>
 
 // Quaternion to Euler
@@ -39,7 +39,7 @@ void Controller::getParameters(std::string param_name, T &param_variable) {
   }
 }
 
-Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
+Controller::Controller(ros::NodeHandle nh, std::string as_name ) : m_nh(nh), dp_server(as_name){
   // Load rosparams
   std::string odometry_topic;
   std::string thrust_topic;
@@ -83,6 +83,14 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   float gravity = 1; // 9.81;
   m_controller.init(W * gravity, B * gravity, r_G, r_B);
 
+
+  Eigen::Vector6d acceptance_margin = Eigen::Vector6d::Zero();
+  acceptance_margin << m_acceptance_margins_vec[0], m_acceptance_margins_vec[1],m_acceptance_margins_vec[2], 
+      m_acceptance_margins_vec[3],m_acceptance_margins_vec[4],m_acceptance_margins_vec[5];
+
+  dp_server.update_acceptance_margin(acceptance_margin);
+
+
   // Subscribers
   m_odometry_sub =
       m_nh.subscribe(odometry_topic, 1, &Controller::odometryCallback, this);
@@ -121,8 +129,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
 
 void Controller::spin() {
   ros::Rate rate(m_rate);
-
-  DpAction dp_server("DpAction", m_acceptance_margins_vec);
 
   bool is_active = false;
   geometry_msgs::Wrench tau_msg;
@@ -224,4 +230,9 @@ void Controller::cfgCallback(dp_controller::DpControllerConfig &config,
       config.D_gain_roll, config.D_gain_pitch, config.D_gain_yaw;
   m_controller.update_gain(p_gain * config.P_enable, i_gain * config.I_enable,
                            d_gain * config.D_enable);
+
+  Eigen::Vector6d acceptance_margin = Eigen::Vector6d::Zero();
+  acceptance_margin << config.Margin_x, config.Margin_y, config.Margin_z, config.Margin_roll, config.Margin_pitch, config.Margin_yaw;
+  dp_server.update_acceptance_margin(acceptance_margin);
+
 }

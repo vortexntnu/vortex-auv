@@ -18,18 +18,19 @@ class DpAction {
 private:
   ros::NodeHandle m_nh;
   std::string m_action_name;
-  std::vector<double> m_acceptance_margins;
+  Eigen::Vector6d m_acceptance_margins;
 
   // create messages that are used to published feedback/result
   vortex_msgs::dpFeedback m_feedback;
   vortex_msgs::dpResult m_result;
 
 public:
-  DpAction(std::string name, std::vector<double> acceptance_margins);
+  DpAction(std::string name);
 
   ~DpAction(void){};
 
   void executeCB(const vortex_msgs::dpGoalConstPtr &goal);
+  void update_acceptance_margin(Eigen::Vector6d acceptance_margin);
 
   Eigen::Vector6d pose;
 
