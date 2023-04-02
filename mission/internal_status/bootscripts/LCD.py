@@ -59,6 +59,8 @@ xavier_IP = ""
 system_voltage = 0
 system_current = 0
 
+func = 1
+
 
 def read_PSM_voltage():
     # Sometimes an I/O timeout or error happens, it will run again when the error disappears
