@@ -22,6 +22,21 @@ Eigen::Quaterniond eulerToQuaterniond(double roll, double pitch, double yaw) {
   return q;
 }
 
+Eigen::Vector3d smallestAngle(Eigen::Vector3d euler_angles) {
+  Eigen::Vector3d smallest_euler_angles = Eigen::Vector3d::Zero();
+  for (int i = 0; i < euler_angles.size(); i++) {
+    if (euler_angles(i) > M_PI) {
+      smallest_euler_angles(i) = euler_angles(i) - 2 * M_PI;
+    } else if (euler_angles(i) < -M_PI) {
+      smallest_euler_angles(i) = euler_angles(i) + 2 * M_PI;
+    } else {
+      smallest_euler_angles(i) = euler_angles(i);
+    }
+  }
+
+  return smallest_euler_angles;
+}
+
 class DpActionClient {
 private:
   Client ac_;
@@ -58,6 +73,7 @@ public:
       Eigen::Vector3d goal_orientation =
           Eigen::Vector3d(goal_orientation_vec[0], goal_orientation_vec[1],
                           goal_orientation_vec[2]);
+      // goal_orientation = smallestAngle(goal_orientation);
       Eigen::VectorXd goal_DOF = Eigen::VectorXd::Zero(6);
       goal_DOF << goal_DOF_vec[0], goal_DOF_vec[1], goal_DOF_vec[2],
           goal_DOF_vec[3], goal_DOF_vec[4], goal_DOF_vec[5];
