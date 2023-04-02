@@ -48,8 +48,8 @@ def within_acceptance_margins(self):
 #         self.object = self.landmarks_client("docking_point").object
 
 #         dp_action_server = "dpAction"
-#         self.dp_client(actionlib.SimpleActionClient(dp_action_server,
-#                                                     dpAction))
+#         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
+#                                                       dpAction))
 
 #         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
 #         self.odom = Odometry()
@@ -87,7 +87,6 @@ class DockingExecute(smach.State):
         smach.State.__init__(self,
                              outcomes=['succeeded', 'preempted'])
         
-
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         self.landmarks_client = rospy.ServiceProxy("send_positions",
