@@ -15,8 +15,9 @@ on = -1.0
 off = 1.0
 active = 1
 inactive = 0
- 
+
 GRIPPER_PIN = 6
+
 
 class GripperInterfaceNode:
 
