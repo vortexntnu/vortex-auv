@@ -16,6 +16,8 @@ off = 1.0
 active = 1
 inactive = 0
 
+GRIPPER_PIN = 6
+
 
 class GripperInterfaceNode:
 
@@ -32,7 +34,7 @@ class GripperInterfaceNode:
         self.last_press = datetime.now()
 
         # GPIO setup
-        self.gripper_gpio_pin = 6
+        self.gripper_gpio_pin = GRIPPER_PIN
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gripper_gpio_pin, GPIO.OUT)
         GPIO.output(self.gripper_gpio_pin, GPIO.LOW)

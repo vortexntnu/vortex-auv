@@ -7,7 +7,6 @@ from std_msgs.msg import Int32
 
 PIN = 13
 
-
 class TorpedoLaunch:
 
     def __init__(self):
