@@ -80,7 +80,7 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
 
   // Normalizing desired quaternion
   Eigen::Quaterniond quat_d(eta_d(3), eta_d(4), eta_d(5), eta_d(6));
-  quat_d.w() = sqrt(1 - std::min(1.0, quat_d.vec().squaredNorm()) );
+  quat_d.w() = sqrt(1 - std::min(1.0, quat_d.vec().squaredNorm()));
   quat_d.normalize();
   Eigen::Vector4d quat_d_vec(quat_d.w(), quat_d.x(), quat_d.y(), quat_d.z());
   eta_d.segment(3, 4) = quat_d_vec;
@@ -106,7 +106,8 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
       4 * T.transpose();
 
   if (!x_ref.isApprox(x_ref_buff) ||
-      (ros::Time::now() - last_time).toSec() > 5 || (position.segment(0,3) - eta_d.segment(0,3)).norm() > 0.5 ) {
+      (ros::Time::now() - last_time).toSec() > 5 ||
+      (position.segment(0, 3) - eta_d.segment(0, 3)).norm() > 0.5) {
 
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
     J << R, Eigen::Matrix3d::Zero(), Eigen::MatrixXd::Zero(4, 3), T;
