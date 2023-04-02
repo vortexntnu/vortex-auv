@@ -9,11 +9,7 @@ from std_msgs.msg import String
 from tf.transformations import quaternion_from_euler, quaternion_matrix
 from landmarks.srv import request_position
 
-from vortex_msgs.msg import (
-    dpAction, 
-    dpGoal,
-    ObjectPosition
-)
+from vortex_msgs.msg import (dpAction, dpGoal, ObjectPosition)
 
 
 def find_relative_to_mass_centre(self, offsetFromMC):
@@ -93,10 +89,10 @@ class DockingExecute(smach.State):
                                                    request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("docking_point").object
- 
+
         dp_action_server = "dpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
-                                                    dpAction)
+                                                      dpAction)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -195,7 +191,7 @@ class DockingStandby(smach.State):
 
         dp_action_server = "dpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
-                                                    dpAction)
+                                                      dpAction)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
