@@ -6,6 +6,7 @@ from task_manager.cfg import BelugaFSMConfig
 
 from task_manager_defines import defines
 
+
 def callback(config, level):
     rospy.loginfo("""State change request: {Tac_states}""".format(**config))
     active_task_id = config["Tac_states"]
