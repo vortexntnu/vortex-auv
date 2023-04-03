@@ -69,7 +69,7 @@ def within_acceptance_margins(self):
 #             self.object = self.landmarks_client("docking_point").object
 
 #             if (not rospy.get_param("/tasks/docking")):
-#                 self.dp_client.cancel_all_goals()
+#                 rospy.set_param("/DP/Enabled", False)
 #                 return 'preempted'
 
 #             rate.sleep()
@@ -80,6 +80,10 @@ def within_acceptance_margins(self):
 class DockingExecute(smach.State):
 
     def __init__(self):
+
+        # Enable Dp
+        rospy.set_param("/DP/Enabled", True)
+
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -143,7 +147,7 @@ class DockingExecute(smach.State):
             rate.sleep()
 
         if (not rospy.get_param("/tasks/docking")):
-            self.dp_client.cancel_all_goals()
+            rospy.set_param("/DP/Enabled", False)
             return 'preempted'
 
         self.object = self.landmarks_client("docking_point").object
@@ -161,7 +165,7 @@ class DockingExecute(smach.State):
         while ((starting_time + docking_duration) > rospy.Time.now().to_sec()):
             rospy.loginfo("Waiting")
             if (not rospy.get_param("/tasks/docking")):
-                self.dp_client.cancel_all_goals()
+                rospy.set_param("/DP/Enabled", False)
                 return 'preempted'
             rate.sleep()
 
@@ -180,7 +184,7 @@ class DockingExecute(smach.State):
             rate.sleep()
 
         if (not rospy.get_param("/tasks/docking")):
-            self.dp_client.cancel_all_goals()
+            rospy.set_param("/DP/Enabled", False)
             return 'preempted'
 
         return 'succeeded'
@@ -217,6 +221,6 @@ class DockingStandby(smach.State):
         while (not rospy.is_shutdown() and rospy.get_param("/tasks/docking")):
             rate.sleep()
 
-        self.dp_client.cancel_all_goals()
+        rospy.set_param("/DP/Enabled", False)
 
         return 'succeeded'
