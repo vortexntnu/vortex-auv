@@ -106,7 +106,7 @@ void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
       4 * T.transpose();
 
   if (!x_ref.isApprox(x_ref_buff) ||
-      (ros::Time::now() - last_time).toSec() > 5 ) {
+      (ros::Time::now() - last_time).toSec() > 5) {
 
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
     J << R, Eigen::Matrix3d::Zero(), Eigen::MatrixXd::Zero(4, 3), T;
