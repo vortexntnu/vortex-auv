@@ -116,15 +116,14 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
     m_dp_g_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
         "/dp_data/g_debug", 1, this);
 
-
-    m_eta_d_deg_pub = m_nh.advertise<std_msgs::Float32>(
-        "/dp_data/eta_d_deg", 1, this);
-    m_q_tilde_pub = m_nh.advertise<std_msgs::Float32>(
-        "/dp_data/q_tilde_deg", 1, this);
-    m_q_tilde_sgn_pub = m_nh.advertise<std_msgs::Float32>(
-        "/dp_data/q_tilde_sgn_deg", 1, this);
-    m_q_tilde_sgn2_pub = m_nh.advertise<std_msgs::Float32>(
-      "/dp_data/q_tilde_sgn2_deg", 1, this);
+    m_eta_d_deg_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/eta_d_deg", 1, this);
+    m_q_tilde_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_deg", 1, this);
+    m_q_tilde_sgn_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_sgn_deg", 1, this);
+    m_q_tilde_sgn2_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_sgn2_deg", 1, this);
   }
   //------------------ END DEBUG -------------
 }
@@ -141,7 +140,7 @@ void Controller::spin() {
 
     getParameters("/DP/Enable", m_enable_dp);
     dp_server.enable = m_enable_dp;
-    
+
     if (m_enable_dp) {
       is_active = true;
 
@@ -155,7 +154,7 @@ void Controller::spin() {
 
       Eigen::Vector6d tau =
           m_controller.getFeedback_euler(m_position, m_orientation, m_velocity,
-                                   m_nu_d, m_eta_d_pos, x_ref_ori);
+                                         m_nu_d, m_eta_d_pos, x_ref_ori);
 
       // tau(5) = -tau(5);
       // ROS_INFO("DEBUG");
@@ -233,8 +232,7 @@ void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
   tf::twistMsgToEigen(desired_msg.twist.twist, m_nu_d);
 
   // --- DEBUG ----------------
-  if (m_debug)
-  {
+  if (m_debug) {
     std_msgs::Float32 eta_d_deg_msg;
     Eigen::Vector3d eta_d_deg_vec = quaterniondToEuler(m_eta_d_ori);
     eta_d_deg_msg.data = eta_d_deg_vec(2) * 180 / M_PI;
@@ -246,16 +244,15 @@ void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
     m_q_tilde_pub.publish(q_tilde_msg);
 
     std_msgs::Float32 q_tilde_sgn_msg;
-    q_tilde_sgn_msg.data = tanh(100*q_tilde.w()) * q_tilde_msg.data ;
+    q_tilde_sgn_msg.data = tanh(100 * q_tilde.w()) * q_tilde_msg.data;
     m_q_tilde_sgn_pub.publish(q_tilde_sgn_msg);
 
     std_msgs::Float32 q_tilde_sgn2_msg;
-    q_tilde_sgn2_msg.data = 2/M_PI *q_tilde.z() * (q_tilde.w() + 1e-6) ;
+    q_tilde_sgn2_msg.data = 2 / M_PI * q_tilde.z() * (q_tilde.w() + 1e-6);
     m_q_tilde_sgn2_pub.publish(q_tilde_sgn2_msg);
   }
 
   // ----- END DEBUG
-
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,

@@ -72,7 +72,8 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
     DOF(i) = goal_.DOF[i];
   }
   // Checks if either the goal is cancelled or a new goal is available.
-  while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable() && enable) {
+  while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable() &&
+         enable) {
     // run_controller = true;
 
     // calculating error.

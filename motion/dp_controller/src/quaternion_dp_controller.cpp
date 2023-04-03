@@ -6,9 +6,9 @@
 #include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
 
-
 // Quaternion to Euler
-Eigen::Vector3d QuaternionPIDController::quaterniondToEuler(Eigen::Quaterniond q) {
+Eigen::Vector3d
+QuaternionPIDController::quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
   double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
   double cosr_cosp = 1 - 2 * (q.x() * q.x() + q.y() * q.y());
@@ -30,8 +30,8 @@ Eigen::Vector3d QuaternionPIDController::quaterniondToEuler(Eigen::Quaterniond q
   return Eigen::Vector3d(roll, pitch, yaw);
 }
 
-
-Eigen::Vector3d QuaternionPIDController::smallestAngle(Eigen::Vector3d euler_angles) {
+Eigen::Vector3d
+QuaternionPIDController::smallestAngle(Eigen::Vector3d euler_angles) {
   Eigen::Vector3d smallest_euler_angles = Eigen::Vector3d::Zero();
   for (int i = 0; i < euler_angles.size(); i++) {
     if (euler_angles(i) > M_PI) {
@@ -45,11 +45,6 @@ Eigen::Vector3d QuaternionPIDController::smallestAngle(Eigen::Vector3d euler_ang
 
   return smallest_euler_angles;
 }
-
-
-
-
-
 
 QuaternionPIDController::QuaternionPIDController() { // float W, float B,
                                                      // Eigen::Vector3d r_G,
@@ -82,8 +77,6 @@ int QuaternionPIDController::sgn(double x) {
   return 1;
 }
 
-
-
 Eigen::Vector6d QuaternionPIDController::errorVector(
     const Eigen::Vector3d &x, const Eigen::Vector3d &x_d,
     const Eigen::Quaterniond &q, const Eigen::Quaterniond &q_d) {
@@ -92,7 +85,8 @@ Eigen::Vector6d QuaternionPIDController::errorVector(
   q_tilde.normalize();
 
   Eigen::Vector3d error_body = x - x_d;
-  return (Eigen::Vector6d() << error_body, tanh(100*q_tilde.w()) * q_tilde.vec())
+  return (Eigen::Vector6d() << error_body,
+          tanh(100 * q_tilde.w()) * q_tilde.vec())
       .finished();
   // return (Eigen::Vector6d() << error_body, sgn(q_tilde.w()) * q_tilde.vec())
   //     .finished();
@@ -150,7 +144,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(m_scale_g) - m_integral;
-  gain = -m_K_d * nu_tilde - K_p * z  - m_integral;
+  gain = -m_K_d * nu_tilde - K_p * z - m_integral;
 
   //------ Debug ----
   P_debug = K_p * z;
@@ -164,8 +158,6 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
   return (Eigen::Vector6d() << gain).finished();
 }
-
-
 
 //  BACKUP METHOD
 Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
@@ -190,9 +182,10 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   nu_tilde = nu - nu_d.cwiseProduct(remove_ori);
 
   // Error Vector
-  
+
   Eigen::Vector6d z = Eigen::Vector6d::Zero();
-  z << x-eta_d_pos, smallestAngle(quaterniondToEuler(q) - quaterniondToEuler(eta_d_ori));
+  z << x - eta_d_pos,
+      smallestAngle(quaterniondToEuler(q) - quaterniondToEuler(eta_d_ori));
 
   // Integral (TODO:change Antiwindup to a more advanced one)
   m_integral += m_i_gain * z;
@@ -219,8 +212,6 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
   return (Eigen::Vector6d() << gain).finished();
 }
-
-
 
 Eigen::Vector6d
 QuaternionPIDController::restoringForceVector(const Eigen::Matrix3d R) {
@@ -252,6 +243,3 @@ void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
   }
   m_d_gain = d_gain;
 }
-
-
-
