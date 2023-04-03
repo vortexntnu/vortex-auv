@@ -60,6 +60,7 @@ Controller::Controller(ros::NodeHandle nh, std::string as_name ) : m_nh(nh), dp_
   getParameters("/PID/I", i_gain_vec);
   getParameters("/PID/D", d_gain_vec);
   getParameters("/PID/Enable", m_enable_PID);
+  getParameters("/DP/Enable", m_enable_dp);
   getParameters("/guidance/dp/rate", m_rate);
   getParameters("/guidance/dp/acceptance_margins", m_acceptance_margins_vec);
 
@@ -134,8 +135,10 @@ void Controller::spin() {
   geometry_msgs::Wrench tau_msg;
   // Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
+    getParameters("/DP/Enable", m_enable_dp);
+    dp_server.enable = m_enable_dp;
 
-    if (dp_server.run_controller) {
+    if (m_enable_dp) {
       is_active = true;
 
       // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
@@ -180,7 +183,7 @@ void Controller::spin() {
     dp_server.pose << m_position, orientation_euler;
 
     // Makes sure DP always ends by sending 0 thrust
-    if (is_active && !dp_server.run_controller) {
+    if (is_active && !m_enable_dp) {
       Eigen::VectorXd tau_zero = Eigen::VectorXd::Zero(6, 1);
       tf::wrenchEigenToMsg(tau_zero, tau_msg);
       m_wrench_pub.publish(tau_msg);

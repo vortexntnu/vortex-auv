@@ -66,7 +66,7 @@ public:
       getParameters("/setpoint/position", goal_position_vec);
       getParameters("/setpoint/orientation", goal_orientation_vec);
       getParameters("/setpoint/DOF", goal_DOF_vec);
-      getParameters("/setpoint/enable", enable);
+      getParameters("/DP/Enable", enable);
 
       Eigen::Vector3d goal_postion = Eigen::Vector3d(
           goal_position_vec[0], goal_position_vec[1], goal_position_vec[2]);
@@ -104,15 +104,17 @@ public:
           send_goal(goal_postion, goal_orientation, goal_DOF);
         }
       }
+
+      enable_buff = enable;
       // else if (state.toString() != "LOST" a){
       //   ac_.cancelGoal();
       //   enable_buff = enable;
       // }
 
-      else if (enable_buff != enable) {
-        ac_.cancelGoal();
-        enable_buff = enable;
-      }
+      // else if (enable_buff != enable) {
+      //   ac_.cancelGoal();
+      //   enable_buff = enable;
+      // }
 
       ros::spinOnce();
       rate.sleep();

@@ -73,6 +73,7 @@ private:
   //----------------------
 
   std::vector<int> m_enable_PID;
+  bool m_enable_dp;
 
   ros::Subscriber m_desiredpoint_sub;  /* Subscriber for listening to (the
                                           guidance node ....)      */
