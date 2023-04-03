@@ -80,7 +80,7 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_controller.update_gain(p_gain * m_enable_PID[0], i_gain * m_enable_PID[1],
                            d_gain * m_enable_PID[2]);
 
-  float gravity = 1; // 9.81;
+  float gravity = 9.81;
   m_controller.init(W * gravity, B * gravity, r_G, r_B);
 
   // Subscribers
@@ -115,6 +115,16 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
         "/dp_data/D_debug", 1, this);
     m_dp_g_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
         "/dp_data/g_debug", 1, this);
+
+
+    m_eta_d_deg_pub = m_nh.advertise<std_msgs::Float32>(
+        "/dp_data/eta_d_deg", 1, this);
+    m_q_tilde_pub = m_nh.advertise<std_msgs::Float32>(
+        "/dp_data/q_tilde_deg", 1, this);
+    m_q_tilde_sgn_pub = m_nh.advertise<std_msgs::Float32>(
+        "/dp_data/q_tilde_sgn_deg", 1, this);
+    m_q_tilde_sgn2_pub = m_nh.advertise<std_msgs::Float32>(
+      "/dp_data/q_tilde_sgn2_deg", 1, this);
   }
   //------------------ END DEBUG -------------
 }
@@ -129,13 +139,29 @@ void Controller::spin() {
   // Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
 
-    if (dp_server.run_controller) {
+    getParameters("/DP/Enable", m_enable_dp);
+    dp_server.enable = m_enable_dp;
+    
+    if (m_enable_dp) {
       is_active = true;
 
       // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+      // Eigen::Vector6d tau =
+      //     m_controller.getFeedback(m_position, m_orientation, m_velocity,
+      //                              m_nu_d, m_eta_d_pos, m_eta_d_ori);
+
+      Eigen::Quaterniond x_ref_ori;
+      tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+
       Eigen::Vector6d tau =
-          m_controller.getFeedback(m_position, m_orientation, m_velocity,
-                                   m_nu_d, m_eta_d_pos, m_eta_d_ori);
+          m_controller.getFeedback_euler(m_position, m_orientation, m_velocity,
+                                   m_nu_d, m_eta_d_pos, x_ref_ori);
+
+      // tau(5) = -tau(5);
+      // ROS_INFO("DEBUG");
+
+      // std::cout << "DEBUG1:" << tau(5) << std::endl << -tau(5) << std::endl;
+      tau(2) *= -1;
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
       int i = 0;
@@ -174,7 +200,7 @@ void Controller::spin() {
     dp_server.pose << m_position, orientation_euler;
 
     // Makes sure DP always ends by sending 0 thrust
-    if (is_active && !dp_server.run_controller) {
+    if (is_active && !m_enable_dp) {
       Eigen::VectorXd tau_zero = Eigen::VectorXd::Zero(6, 1);
       tf::wrenchEigenToMsg(tau_zero, tau_msg);
       m_wrench_pub.publish(tau_msg);
@@ -205,6 +231,31 @@ void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
   tf::pointMsgToEigen(desired_msg.pose.pose.position, m_eta_d_pos);
   tf::quaternionMsgToEigen(desired_msg.pose.pose.orientation, m_eta_d_ori);
   tf::twistMsgToEigen(desired_msg.twist.twist, m_nu_d);
+
+  // --- DEBUG ----------------
+  if (m_debug)
+  {
+    std_msgs::Float32 eta_d_deg_msg;
+    Eigen::Vector3d eta_d_deg_vec = quaterniondToEuler(m_eta_d_ori);
+    eta_d_deg_msg.data = eta_d_deg_vec(2) * 180 / M_PI;
+    m_eta_d_deg_pub.publish(eta_d_deg_msg);
+
+    Eigen::Quaterniond q_tilde = m_eta_d_ori.conjugate() * m_orientation;
+    std_msgs::Float32 q_tilde_msg;
+    q_tilde_msg.data = quaterniondToEuler(q_tilde)(2) * 180 / M_PI;
+    m_q_tilde_pub.publish(q_tilde_msg);
+
+    std_msgs::Float32 q_tilde_sgn_msg;
+    q_tilde_sgn_msg.data = tanh(100*q_tilde.w()) * q_tilde_msg.data ;
+    m_q_tilde_sgn_pub.publish(q_tilde_sgn_msg);
+
+    std_msgs::Float32 q_tilde_sgn2_msg;
+    q_tilde_sgn2_msg.data = 2/M_PI *q_tilde.z() * (q_tilde.w() + 1e-6) ;
+    m_q_tilde_sgn2_pub.publish(q_tilde_sgn2_msg);
+  }
+
+  // ----- END DEBUG
+
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,
