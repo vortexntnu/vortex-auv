@@ -80,9 +80,8 @@ def within_acceptance_margins(self):
 class DockingExecute(smach.State):
 
     def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=['succeeded', 'preempted'])
-        
+        smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
+
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         self.landmarks_client = rospy.ServiceProxy("send_positions",
