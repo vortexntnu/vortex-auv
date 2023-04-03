@@ -157,11 +157,16 @@ class DockingExecute(smach.State):
         starting_time = rospy.Time.now().to_sec()
         docking_duration = rospy.Duration.from_sec(15)
 
+        rospy.loginfo("Docked to station")
+
         while ((starting_time + docking_duration) > rospy.Time.now().to_sec()):
+            rospy.loginfo("Waiting")
             if (not rospy.get_param("/tasks/docking")):
                 self.dp_client.cancel_all_goals()
                 return 'preempted'
             rate.sleep()
+
+        rospy.loginfo("Leaving docking station")
 
         undocking_pose = self.odom.pose.pose
         undocking_pose.Point.z = undocking_pose.Point.z + 0.5
