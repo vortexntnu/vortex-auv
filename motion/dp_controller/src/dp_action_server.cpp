@@ -113,8 +113,6 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
   // run_controller = false;
 }
 
-
-
-void DpAction::update_acceptance_margin(Eigen::Vector6d acceptance_margin){
+void DpAction::update_acceptance_margin(Eigen::Vector6d acceptance_margin) {
   m_acceptance_margins = acceptance_margin;
 }
