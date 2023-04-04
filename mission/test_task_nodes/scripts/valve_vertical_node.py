@@ -4,12 +4,13 @@ import rospy
 import dynamic_reconfigure.client
 from task_manager_defines import defines
 
+
 class ValveVertical:
+
     def __init__(self):
         rospy.init_node("valve_vertical")
 
         self.isEnabled = False
-
 
     def callback(self, config):
         rospy.loginfo("""Client: state change request: {Tac_states}""".format(**config))

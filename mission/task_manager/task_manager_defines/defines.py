@@ -8,6 +8,7 @@ class Task:
     id: int
     name: str
 
+
 class Tasks:
     joystick = Task(id=0, name="joystick")
     valve_vertical = Task(id=1, name="valve_vertical")

@@ -5,6 +5,7 @@ from dynamic_reconfigure.server import Server
 from task_manager.cfg import TacStatesConfig
 
 
+
 def callback(config, level):
     rospy.loginfo("""task manager server: state change request: {Tac_states}""".format(**config))
     return config
