@@ -10,10 +10,7 @@ from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_from_euler, quaternion_matrix
 from landmarks.srv import request_position
 
-
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
-
-
 
 # class DockingSearch(smach.State):
 
@@ -58,7 +55,8 @@ from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 #             rate.sleep()
 
 #         return 'succeeded'
- 
+
+
 def quaternion_rotation_matrix(Q):
     """
     Covert a quaternion into a full three-dimensional rotation matrix.
@@ -76,34 +74,32 @@ def quaternion_rotation_matrix(Q):
     q1 = Q[1]
     q2 = Q[2]
     q3 = Q[3]
-     
+
     # First row of the rotation matrix
     r00 = 2 * (q0 * q0 + q1 * q1) - 1
     r01 = 2 * (q1 * q2 - q0 * q3)
     r02 = 2 * (q1 * q3 + q0 * q2)
-     
+
     # Second row of the rotation matrix
     r10 = 2 * (q1 * q2 + q0 * q3)
     r11 = 2 * (q0 * q0 + q2 * q2) - 1
     r12 = 2 * (q2 * q3 - q0 * q1)
-     
+
     # Third row of the rotation matrix
     r20 = 2 * (q1 * q3 - q0 * q2)
     r21 = 2 * (q2 * q3 + q0 * q1)
     r22 = 2 * (q0 * q0 + q3 * q3) - 1
-     
+
     # 3x3 rotation matrix
-    rot_matrix = np.array([[r00, r01, r02],
-                           [r10, r11, r12],
-                           [r20, r21, r22]])
-                            
+    rot_matrix = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
+
     return rot_matrix
 
 
 class DockingExecute(smach.State):
 
     def __init__(self):
-        
+
         # Enable Dp
         rospy.set_param("/DP/Enabled", True)
 
@@ -119,19 +115,17 @@ class DockingExecute(smach.State):
         dp_action_server = "DpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
                                                       dpAction)
-        
-        
+
         rospy.loginfo("after dp")
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
-        
-        rospy.loginfo("after odom")
 
+        rospy.loginfo("after odom")
 
     def odom_cb(self, msg):
         self.odom = msg
-    
+
     # Checks if we are above docking station within the accepted error radius
     def within_acceptance_margins(self):
         max_error = 0.2
@@ -146,11 +140,13 @@ class DockingExecute(smach.State):
         return False
 
     def find_relative_to_mass_centre(self, offsetFromMC):
-        tf_quaternion = [self.odom.pose.pose.orientation.x, 
-                         self.odom.pose.pose.orientation.y, 
-                         self.odom.pose.pose.orientation.z, 
-                         self.odom.pose.pose.orientation.w]
-        
+        tf_quaternion = [
+            self.odom.pose.pose.orientation.x,
+            self.odom.pose.pose.orientation.y,
+            self.odom.pose.pose.orientation.z,
+            self.odom.pose.pose.orientation.w
+        ]
+
         rotationMatrix = quaternion_rotation_matrix(tf_quaternion)
         offsetArray = rotationMatrix.dot(offsetFromMC)
 
@@ -158,19 +154,19 @@ class DockingExecute(smach.State):
         offsetPoint.x = offsetArray[0]
         offsetPoint.y = offsetArray[1]
         offsetPoint.z = offsetArray[2]
-        
+
         return offsetPoint
 
     def execute(self, userdata):
-        
+
         rate = rospy.Rate(2)
-        
+
         # rospy.loginfo("10 seconds to start")
 
         # rospy.sleep(10.)
-        
+
         # rospy.loginfo("Starting")
-        
+
         self.state_pub.publish("docking/execute")
 
         # # Power puck relative to the center of mass (temporary until we get static transform)
@@ -178,7 +174,6 @@ class DockingExecute(smach.State):
 
         goal = dpGoal()
         goal.x_ref = self.object.objectPose.pose
-        
 
         # Shifts DP goal from Docking_point to center of mass
         offsetPoint = self.find_relative_to_mass_centre(powerPuckOffset)
@@ -190,15 +185,15 @@ class DockingExecute(smach.State):
 
         self.dp_client.send_goal(goal)
         rate.sleep()
-        
-        while (not rospy.is_shutdown() #and not self.dp_client.simple_state
-        #        == actionlib.simple_action_client.SimpleGoalState.DONE
+
+        while (not rospy.is_shutdown()  #and not self.dp_client.simple_state
+               #        == actionlib.simple_action_client.SimpleGoalState.DONE
                and rospy.get_param("/tasks/docking")):
 
             self.object = self.landmarks_client("docking_point").object
 
             goal.x_ref = self.object.objectPose.pose
-            
+
             offsetPoint = self.find_relative_to_mass_centre(powerPuckOffset)
             goal.x_ref.position.x = goal.x_ref.position.x - offsetPoint.x
             goal.x_ref.position.y = goal.x_ref.position.y - offsetPoint.y
@@ -247,7 +242,7 @@ class DockingExecute(smach.State):
 
         goal.x_ref = undocking_pose
         self.dp_client.send_goal(goal)
-        
+
         rospy.loginfo("test")
 
         while (not rospy.is_shutdown() and not self.dp_client.simple_state
