@@ -40,6 +40,7 @@ public:
            // strange error occurs.
 
   bool run_controller = false;
+  bool enable = false;
 };
 
 #endif // VORTEX_DP_SERVER_H
