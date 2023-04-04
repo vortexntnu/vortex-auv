@@ -41,6 +41,6 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         enabled = True  #rospy.get_param("/tasks/pipeline_inspection")
         if enabled:
-            rospy.loginfo('STARTING STATE MACHINE')
+            rospy.loginfo('STARTING PIPELINE FOLLOWING')
             main()
-            rospy.loginfo('STATEMACHIN ENDED')
+            rospy.loginfo('PIPELINE FOLLOWING ENDED')
