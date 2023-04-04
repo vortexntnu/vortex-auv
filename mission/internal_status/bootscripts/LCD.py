@@ -61,6 +61,7 @@ system_current = 0
 
 func = 1
 
+
 def read_PSM_voltage():
     # Sometimes an I/O timeout or error happens, it will run again when the error disappears
     try:
@@ -96,7 +97,7 @@ while True:
     lcd.write_string("IP:" + "\r\n")
     lcd.write_string(IP_str)
     time.sleep(5)
-    
+
     # Display Voltage/Current
     for i in range(50):
         system_voltage = round(read_PSM_voltage(), 2)
