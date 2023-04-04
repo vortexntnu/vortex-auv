@@ -34,9 +34,12 @@ private:
   Eigen::Vector3d m_r_B;
   Eigen::Vector3d m_r_G;
   Eigen::Vector6d m_p_gain;
-  Eigen::Matrix6d m_i_gain = Eigen::Matrix6d::Zero();
+  Eigen::Matrix6d m_i_gain;
   Eigen::Vector6d m_d_gain;
-  Eigen::Vector6d integral = Eigen::Vector6d::Zero();
+  Eigen::Vector6d m_integral;
+  Eigen::Vector6d m_scale_g;
+
+  Eigen::Vector6d m_integralAntiWindup;
 
 public:
   explicit QuaternionPIDController(); // float W, float B, Eigen::Vector3d r_G,
@@ -61,6 +64,13 @@ public:
                               const Eigen::Vector3d &eta_d_pos,
                               const Eigen::Quaterniond &eta_d_ori);
 
+  Eigen::Vector6d getFeedback_euler(const Eigen::Vector3d &x,
+                                    const Eigen::Quaterniond &q,
+                                    const Eigen::Vector6d &nu,
+                                    const Eigen::Vector6d &nu_d,
+                                    const Eigen::Vector3d &eta_d_pos,
+                                    const Eigen::Quaterniond &eta_d_ori);
+
   int sgn(double x);
   Eigen::Vector6d errorVector(const Eigen::Vector3d &x,
                               const Eigen::Vector3d &x_d,
@@ -76,9 +86,13 @@ public:
   void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d i_gain,
                    Eigen::Vector6d d_gain);
 
+  Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q);
+  Eigen::Vector3d smallestAngle(Eigen::Vector3d euler_angles);
+
   Eigen::Vector6d P_debug = Eigen::Vector6d::Zero();
   Eigen::Vector6d I_debug = Eigen::Vector6d::Zero();
   Eigen::Vector6d D_debug = Eigen::Vector6d::Zero();
+  Eigen::Vector6d g_debug = Eigen::Vector6d::Zero();
 };
 
 #endif // VORTEX_CONTROLLER_QUATERNION_PD_CONTROLLER_H

@@ -14,7 +14,7 @@
 typedef actionlib::SimpleActionClient<vortex_msgs::dpAction> Client;
 
 // Euler To Quaternion
-Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw) {
+Eigen::Quaterniond eulerToQuaterniond(double roll, double pitch, double yaw) {
   Eigen::Quaterniond q;
   q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
       Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
@@ -51,7 +51,8 @@ public:
       getParameters("/setpoint/position", goal_position_vec);
       getParameters("/setpoint/orientation", goal_orientation_vec);
       getParameters("/setpoint/DOF", goal_DOF_vec);
-      getParameters("/setpoint/enable", enable);
+      // getParameters("/setpoint/enable", enable);
+      getParameters("/DP/Enable", enable);
 
       Eigen::Vector3d goal_postion = Eigen::Vector3d(
           goal_position_vec[0], goal_position_vec[1], goal_position_vec[2]);
@@ -64,7 +65,7 @@ public:
 
       //---------------DEBUG-----
       actionlib::SimpleClientGoalState state = ac_.getState();
-      ROS_INFO("Action finished: %s", state.toString().c_str());
+      ROS_INFO("Action finished!!: %s", state.toString().c_str());
       //----------------------------
 
       // Checks if enable (from dp_Client.yaml) is enabled.
@@ -88,15 +89,17 @@ public:
           send_goal(goal_postion, goal_orientation, goal_DOF);
         }
       }
+
+      enable_buff = enable;
       // else if (state.toString() != "LOST" a){
       //   ac_.cancelGoal();
       //   enable_buff = enable;
       // }
 
-      else if (enable_buff != enable) {
-        ac_.cancelGoal();
-        enable_buff = enable;
-      }
+      // else if (enable_buff != enable) {
+      //   ac_.cancelGoal();
+      //   enable_buff = enable;
+      // }
 
       ros::spinOnce();
       rate.sleep();
@@ -120,7 +123,7 @@ public:
   void send_goal(Eigen::Vector3d goal_position,
                  Eigen::Vector3d goal_orientation, Eigen::VectorXd goal_DOF) {
     vortex_msgs::dpGoal goal_;
-    Eigen::Quaterniond goal_quad = EulerToQuaterniond(
+    Eigen::Quaterniond goal_quad = eulerToQuaterniond(
         goal_orientation(0), goal_orientation(1), goal_orientation(2));
     tf::pointEigenToMsg(goal_position, goal_.x_ref.position);
     tf::quaternionEigenToMsg(goal_quad, goal_.x_ref.orientation);

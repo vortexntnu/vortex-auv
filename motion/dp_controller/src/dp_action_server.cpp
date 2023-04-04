@@ -8,7 +8,7 @@
 #include <math.h>
 #include <std_msgs/Float32.h>
 
-Eigen::Vector3d SmallestAngle(Eigen::Vector3d euler_angles) {
+Eigen::Vector3d smallestAngle(Eigen::Vector3d euler_angles) {
   Eigen::Vector3d smallest_euler_angles = Eigen::Vector3d::Zero();
   for (int i = 0; i < euler_angles.size(); i++) {
     if (euler_angles(i) > M_PI) {
@@ -24,7 +24,7 @@ Eigen::Vector3d SmallestAngle(Eigen::Vector3d euler_angles) {
 }
 
 // Quaternion to Euler
-Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q) {
+Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
   double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
   double cosr_cosp = 1 - 2 * (q.x() * q.x() + q.y() * q.y());
@@ -46,9 +46,9 @@ Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q) {
   return Eigen::Vector3d(roll, pitch, yaw);
 }
 
-DpAction::DpAction(std::string name)
-    : as_(nh_, name, boost::bind(&DpAction::executeCB, this, _1), false),
-      action_name_(name) {
+DpAction::DpAction(std::string name, std::vector<double> acceptance_margins)
+    : as_(m_nh, name, boost::bind(&DpAction::executeCB, this, _1), false),
+      m_action_name(name), m_acceptance_margins(acceptance_margins) {
   as_.start();
 }
 
@@ -72,38 +72,38 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
     DOF(i) = goal_.DOF[i];
   }
   // Checks if either the goal is cancelled or a new goal is available.
-  while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable()) {
-    run_controller = true;
+  while (!as_.isPreemptRequested() && ros::ok() && !as_.isNewGoalAvailable() &&
+         enable) {
+    // run_controller = true;
 
     // calculating error.
-    feedback_.error.clear();
+    m_feedback.error.clear();
     Eigen::Vector3d error_pos = x_ref_pos - pose.segment(0, 3);
     Eigen::Vector3d error_ori =
-        QuaterniondToEuler(x_ref_ori) - pose.segment(3, 3);
-    error << error_pos, SmallestAngle(error_ori);
+        quaterniondToEuler(x_ref_ori) - pose.segment(3, 3);
+    error << error_pos, smallestAngle(error_ori);
     error = DOF.cwiseProduct(error);
 
     for (int i = 0; i < 6; i++) {
-      feedback_.error.push_back(error[i]);
+      m_feedback.error.push_back(error[i]);
     }
 
     // publish the feedback
-    as_.publishFeedback(feedback_);
+    as_.publishFeedback(m_feedback);
 
     // Checks if the goal is achieved.
-    float accepted_radius = 1; //!!!!!!!!!!!!!!!!!!!!!change
-    float accepted_deg = 20;
-    double distance_from_goal = error.segment(0, 3).norm();
     Eigen::Vector3d error_ori_deg = error.segment(3, 3) * 180 / M_PI;
-    if (distance_from_goal < accepted_radius &&
-        abs(error_ori_deg[0]) < accepted_deg &&
-        abs(error_ori_deg[1]) < accepted_deg &&
-        abs(error_ori_deg[2]) < accepted_deg && success == false) {
+    if (abs(error[0]) < m_acceptance_margins[0] &&
+        abs(error[1]) < m_acceptance_margins[1] &&
+        abs(error[2]) < m_acceptance_margins[2] &&
+        abs(error_ori_deg[0]) < m_acceptance_margins[3] &&
+        abs(error_ori_deg[1]) < m_acceptance_margins[4] &&
+        abs(error_ori_deg[2]) < m_acceptance_margins[5] && success == false) {
       success = true;
-      result_.finished = true;
+      m_result.finished = true;
 
       // set the action state to succeeded
-      as_.setSucceeded(result_);
+      as_.setSucceeded(m_result);
     }
 
     r.sleep();
@@ -111,5 +111,5 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
 
   if (!success)
     as_.setPreempted();
-  run_controller = false;
+  // run_controller = false;
 }

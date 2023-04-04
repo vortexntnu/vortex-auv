@@ -7,20 +7,8 @@
 #include "dp_controller/dp_action_server.h"
 #include <std_msgs/Float32.h>
 
-// Roll pitch and yaw in Radians
-// Euler To Quaternion
-Eigen::Quaterniond Controller::EulerToQuaterniond(double roll, double pitch,
-                                                  double yaw) {
-  Eigen::Quaterniond q;
-  q = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-      Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-      Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-  std::cout << "Quaternion" << std::endl << q.coeffs() << std::endl;
-  return q;
-}
-
 // Quaternion to Euler
-Eigen::Vector3d Controller::QuaterniondToEuler(Eigen::Quaterniond q) {
+Eigen::Vector3d Controller::quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
   double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
   double cosr_cosp = 1 - 2 * (q.x() * q.x() + q.y() * q.y());
@@ -62,16 +50,18 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   std::vector<double> p_gain_vec, i_gain_vec, d_gain_vec;
 
   // import paramteres
-  Controller::getParameters("/controllers/dp/odometry_topic", odometry_topic);
-  Controller::getParameters("/thrust/thrust_topic", thrust_topic);
-  Controller::getParameters("/physical/weight", W);
-  Controller::getParameters("/physical/buoyancy", B);
-  Controller::getParameters("/physical/center_of_mass", r_G_vec);
-  Controller::getParameters("/physical/center_of_buoyancy", r_B_vec);
-  Controller::getParameters("/PID/P", p_gain_vec);
-  Controller::getParameters("/PID/I", i_gain_vec);
-  Controller::getParameters("/PID/D", d_gain_vec);
-  Controller::getParameters("/PID/Enable", enable_PID);
+  getParameters("/controllers/dp/odometry_topic", odometry_topic);
+  getParameters("/thrust/thrust_topic", thrust_topic);
+  getParameters("/physical/weight", W);
+  getParameters("/physical/buoyancy", B);
+  getParameters("/physical/center_of_mass", r_G_vec);
+  getParameters("/physical/center_of_buoyancy", r_B_vec);
+  getParameters("/PID/P", p_gain_vec);
+  getParameters("/PID/I", i_gain_vec);
+  getParameters("/PID/D", d_gain_vec);
+  getParameters("/PID/Enable", m_enable_PID);
+  getParameters("/guidance/dp/rate", m_rate);
+  getParameters("/guidance/dp/acceptance_margins", m_acceptance_margins_vec);
 
   Eigen::Vector3d r_G = Eigen::Vector3d(r_G_vec[0], r_G_vec[1], r_G_vec[2]);
   Eigen::Vector3d r_B = Eigen::Vector3d(r_B_vec[0], r_B_vec[1], r_B_vec[2]);
@@ -87,8 +77,11 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   d_gain << d_gain_vec[0], d_gain_vec[1], d_gain_vec[2], d_gain_vec[3],
       d_gain_vec[4], d_gain_vec[5];
 
-  m_controller.update_gain(p_gain * enable_PID[0], i_gain * enable_PID[1],
-                           d_gain * enable_PID[2]);
+  m_controller.update_gain(p_gain * m_enable_PID[0], i_gain * m_enable_PID[1],
+                           d_gain * m_enable_PID[2]);
+
+  float gravity = 9.81;
+  m_controller.init(W * gravity, B * gravity, r_G, r_B);
 
   // Subscribers
   m_odometry_sub =
@@ -101,22 +94,6 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   m_referencepoint_pub =
       m_nh.advertise<geometry_msgs::Pose>("/dp_data/reference_point", 1, this);
   m_wrench_pub = m_nh.advertise<geometry_msgs::Wrench>(thrust_topic, 1);
-  m_reference_return_DEBUG_pub =
-      m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG", 1, this);
-  m_reference_return_DEBUG2_pub =
-      m_nh.advertise<std_msgs::Float32>("/dp_data/DEBUG2", 1, this);
-  m_reference_return_q_tilde_print_pub =
-      m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_print", 1, this);
-
-  //----------------- DEBUG ------------------
-  m_dp_P_debug_pub =
-      m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/P_debug", 1, this);
-  m_dp_I_debug_pub =
-      m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/I_debug", 1, this);
-  m_dp_D_debug_pub =
-      m_nh.advertise<std_msgs::Float64MultiArray>("/dp_data/D_debug", 1, this);
-
-  //------------------ END DEBUG -------------
 
   // Set up dynamic reconfigure server
   dynamic_reconfigure::Server<dp_controller::DpControllerConfig>::CallbackType
@@ -124,31 +101,66 @@ Controller::Controller(ros::NodeHandle nh) : m_nh(nh) {
   f = boost::bind(&Controller::cfgCallback, this, _1, _2);
   m_cfg_server.setCallback(f);
 
-  eta_d_pos = Eigen::Vector3d::Zero();
-  eta_d_ori = Eigen::Quaterniond::Identity();
-  eta_d = Eigen::Vector7d::Zero();
-  eta_dot_d = Eigen::Vector7d::Zero();
-  nu_d = Eigen::Vector6d::Zero();
+  m_eta_d_pos = Eigen::Vector3d::Zero();
+  m_eta_d_ori = Eigen::Quaterniond::Identity();
+  m_nu_d = Eigen::Vector6d::Zero();
 
-  m_controller.init(W, B, r_G, r_B);
+  //----------------- DEBUG ------------------
+  if (m_debug) {
+    m_dp_P_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/P_debug", 1, this);
+    m_dp_I_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/I_debug", 1, this);
+    m_dp_D_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/D_debug", 1, this);
+    m_dp_g_debug_pub = m_nh.advertise<std_msgs::Float64MultiArray>(
+        "/dp_data/g_debug", 1, this);
+
+    m_eta_d_deg_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/eta_d_deg", 1, this);
+    m_q_tilde_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_deg", 1, this);
+    m_q_tilde_sgn_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_sgn_deg", 1, this);
+    m_q_tilde_sgn2_pub =
+        m_nh.advertise<std_msgs::Float32>("/dp_data/q_tilde_sgn2_deg", 1, this);
+  }
+  //------------------ END DEBUG -------------
 }
 
 void Controller::spin() {
-  ros::Rate rate(10);
+  ros::Rate rate(m_rate);
 
-  DpAction dp_server("DpAction");
+  DpAction dp_server("DpAction", m_acceptance_margins_vec);
 
-  bool was_active = false;
+  bool is_active = false;
   geometry_msgs::Wrench tau_msg;
   // Eigen::Quaterniond x_ref_ori;
   while (ros::ok()) {
 
-    if (dp_server.run_controller) {
-      was_active = true;
+    getParameters("/DP/Enable", m_enable_dp);
+    dp_server.enable = m_enable_dp;
+
+    if (m_enable_dp) {
+      is_active = true;
 
       // tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
-      Eigen::Vector6d tau = m_controller.getFeedback(
-          position, orientation, velocity, nu_d, eta_d_pos, eta_d_ori);
+      // Eigen::Vector6d tau =
+      //     m_controller.getFeedback(m_position, m_orientation, m_velocity,
+      //                              m_nu_d, m_eta_d_pos, m_eta_d_ori);
+
+      Eigen::Quaterniond x_ref_ori;
+      tf::quaternionMsgToEigen(dp_server.goal_.x_ref.orientation, x_ref_ori);
+
+      Eigen::Vector6d tau =
+          m_controller.getFeedback_euler(m_position, m_orientation, m_velocity,
+                                         m_nu_d, m_eta_d_pos, x_ref_ori);
+
+      // tau(5) = -tau(5);
+      // ROS_INFO("DEBUG");
+
+      // std::cout << "DEBUG1:" << tau(5) << std::endl << -tau(5) << std::endl;
+      tau(2) *= -1;
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
       int i = 0;
@@ -163,32 +175,35 @@ void Controller::spin() {
       m_referencepoint_pub.publish(dp_server.goal_.x_ref);
 
       //----------------- DEBUG -------------------
+      if (m_debug) {
+        std_msgs::Float64MultiArray P_debug_msg;
+        std_msgs::Float64MultiArray I_debug_msg;
+        std_msgs::Float64MultiArray D_debug_msg;
+        std_msgs::Float64MultiArray g_debug_msg;
+        for (int i = 0; i < 6; i++) {
+          P_debug_msg.data.push_back(m_controller.P_debug(i));
+          I_debug_msg.data.push_back(m_controller.I_debug(i));
+          D_debug_msg.data.push_back(m_controller.D_debug(i));
+          g_debug_msg.data.push_back(m_controller.g_debug(i));
+        }
 
-      std_msgs::Float64MultiArray P_debug_msg;
-      std_msgs::Float64MultiArray I_debug_msg;
-      std_msgs::Float64MultiArray D_debug_msg;
-      for (int i = 0; i < 6; i++) {
-        P_debug_msg.data.push_back(m_controller.P_debug(i));
-        I_debug_msg.data.push_back(m_controller.I_debug(i));
-        D_debug_msg.data.push_back(m_controller.D_debug(i));
+        m_dp_P_debug_pub.publish(P_debug_msg);
+        m_dp_I_debug_pub.publish(I_debug_msg);
+        m_dp_D_debug_pub.publish(D_debug_msg);
+        m_dp_g_debug_pub.publish(g_debug_msg);
       }
-
-      m_dp_P_debug_pub.publish(P_debug_msg);
-      m_dp_I_debug_pub.publish(I_debug_msg);
-      m_dp_D_debug_pub.publish(D_debug_msg);
-
       //-------------------- END DEBUG -------------------
     }
 
-    Eigen::Vector3d orientation_euler = QuaterniondToEuler(orientation);
-    dp_server.pose << position, orientation_euler;
+    Eigen::Vector3d orientation_euler = quaterniondToEuler(m_orientation);
+    dp_server.pose << m_position, orientation_euler;
 
     // Makes sure DP always ends by sending 0 thrust
-    if (was_active && !dp_server.run_controller) {
+    if (is_active && !m_enable_dp) {
       Eigen::VectorXd tau_zero = Eigen::VectorXd::Zero(6, 1);
       tf::wrenchEigenToMsg(tau_zero, tau_msg);
       m_wrench_pub.publish(tau_msg);
-      was_active = false;
+      is_active = false;
     }
 
     ros::spinOnce();
@@ -198,9 +213,9 @@ void Controller::spin() {
 
 void Controller::odometryCallback(const nav_msgs::Odometry &msg) {
   // Convert to eigen for computation
-  tf::pointMsgToEigen(msg.pose.pose.position, position);
-  tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
-  tf::twistMsgToEigen(msg.twist.twist, velocity);
+  tf::pointMsgToEigen(msg.pose.pose.position, m_position);
+  tf::quaternionMsgToEigen(msg.pose.pose.orientation, m_orientation);
+  tf::twistMsgToEigen(msg.twist.twist, m_velocity);
 }
 
 int sgn(double x) {
@@ -212,26 +227,32 @@ int sgn(double x) {
 void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
 
   // Convert to eigen for computation
-  tf::pointMsgToEigen(desired_msg.pose.pose.position, eta_d_pos);
-  tf::quaternionMsgToEigen(desired_msg.pose.pose.orientation, eta_d_ori);
-  tf::twistMsgToEigen(desired_msg.twist.twist, nu_d);
+  tf::pointMsgToEigen(desired_msg.pose.pose.position, m_eta_d_pos);
+  tf::quaternionMsgToEigen(desired_msg.pose.pose.orientation, m_eta_d_ori);
+  tf::twistMsgToEigen(desired_msg.twist.twist, m_nu_d);
 
-  // // --------------------------- DEBUG ----------------------
-  // std_msgs::Float32 debug_msg;
-  // Eigen::Vector3d Debug_vec = QuaterniondToEuler(eta_d_ori);
-  // debug_msg.data = Debug_vec(0) * 180 / M_PI;
-  // m_reference_return_DEBUG_pub.publish(debug_msg);
+  // --- DEBUG ----------------
+  if (m_debug) {
+    std_msgs::Float32 eta_d_deg_msg;
+    Eigen::Vector3d eta_d_deg_vec = quaterniondToEuler(m_eta_d_ori);
+    eta_d_deg_msg.data = eta_d_deg_vec(2) * 180 / M_PI;
+    m_eta_d_deg_pub.publish(eta_d_deg_msg);
 
-  // Eigen::Quaterniond q_tilde = eta_d_ori.conjugate() * orientation;
-  // std_msgs::Float32 debug2_msg;
-  // debug2_msg.data = QuaterniondToEuler(q_tilde)(0) * 180 / M_PI;
-  // m_reference_return_DEBUG2_pub.publish(debug2_msg);
+    Eigen::Quaterniond q_tilde = m_eta_d_ori.conjugate() * m_orientation;
+    std_msgs::Float32 q_tilde_msg;
+    q_tilde_msg.data = quaterniondToEuler(q_tilde)(2) * 180 / M_PI;
+    m_q_tilde_pub.publish(q_tilde_msg);
 
-  // std_msgs::Float32 q_tilde_print;
-  // q_tilde_print.data = sgn(q_tilde.w()) * q_tilde.x();
-  // m_reference_return_q_tilde_print_pub.publish(q_tilde_print);
-  // // ----------------------------- END DEBUG
-  // ---------------------------------
+    std_msgs::Float32 q_tilde_sgn_msg;
+    q_tilde_sgn_msg.data = tanh(100 * q_tilde.w()) * q_tilde_msg.data;
+    m_q_tilde_sgn_pub.publish(q_tilde_sgn_msg);
+
+    std_msgs::Float32 q_tilde_sgn2_msg;
+    q_tilde_sgn2_msg.data = 2 / M_PI * q_tilde.z() * (q_tilde.w() + 1e-6);
+    m_q_tilde_sgn2_pub.publish(q_tilde_sgn2_msg);
+  }
+
+  // ----- END DEBUG
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,

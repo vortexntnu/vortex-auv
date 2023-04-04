@@ -48,14 +48,13 @@ private:
   /**
    * @brief Desired pose in quaternions.
    */
-  // We may remove these:
-  Eigen::Vector7d eta_d;
-  Eigen::Vector7d eta_dot_d;
-  //-----------------
 
-  Eigen::Vector3d eta_d_pos;
-  Eigen::Quaterniond eta_d_ori;
-  Eigen::Vector6d nu_d;
+  Eigen::Vector3d m_eta_d_pos;
+  Eigen::Quaterniond m_eta_d_ori;
+  Eigen::Vector6d m_nu_d;
+
+  double m_rate;
+  std::vector<double> m_acceptance_margins_vec;
 
   ros::NodeHandle m_nh; /** Nodehandle          */
 
@@ -63,17 +62,20 @@ private:
 
   ros::Publisher m_wrench_pub; /** Wrench publisher    */
 
-  ros::Publisher m_reference_return_DEBUG_pub;
-  ros::Publisher m_reference_return_DEBUG2_pub;
-  ros::Publisher m_reference_return_q_tilde_print_pub;
-
   //---------Debug -------
+  bool m_debug = true;
   ros::Publisher m_dp_P_debug_pub;
   ros::Publisher m_dp_I_debug_pub;
   ros::Publisher m_dp_D_debug_pub;
+  ros::Publisher m_dp_g_debug_pub;
+  ros::Publisher m_eta_d_deg_pub;
+  ros::Publisher m_q_tilde_pub;
+  ros::Publisher m_q_tilde_sgn_pub;
+  ros::Publisher m_q_tilde_sgn2_pub;
   //----------------------
 
-  std::vector<int> enable_PID;
+  std::vector<int> m_enable_PID;
+  bool m_enable_dp = false;
 
   ros::Subscriber m_desiredpoint_sub;  /* Subscriber for listening to (the
                                           guidance node ....)      */
@@ -83,9 +85,9 @@ private:
   dynamic_reconfigure::Server<dp_controller::DpControllerConfig> m_cfg_server;
 
   // EIGEN CONVERSION INITIALIZE
-  Eigen::Vector3d position;       /** Current position      */
-  Eigen::Quaterniond orientation; /** Current orientation   */
-  Eigen::Vector6d velocity;       /** Current velocity      */
+  Eigen::Vector3d m_position;       /** Current position      */
+  Eigen::Quaterniond m_orientation; /** Current orientation   */
+  Eigen::Vector6d m_velocity;       /** Current velocity      */
 
   QuaternionPIDController m_controller;
 
@@ -109,8 +111,7 @@ public:
 
   void odometryCallback(const nav_msgs::Odometry &msg);
   void desiredPointCallback(const nav_msgs::Odometry &desired_msg);
-  Eigen::Quaterniond EulerToQuaterniond(double roll, double pitch, double yaw);
-  Eigen::Vector3d QuaterniondToEuler(Eigen::Quaterniond q);
+  Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q);
   void spin();
 };
 
