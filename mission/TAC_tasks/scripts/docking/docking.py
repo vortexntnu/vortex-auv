@@ -58,17 +58,9 @@ from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
 
 def quaternion_rotation_matrix(Q):
-    """
-    Covert a quaternion into a full three-dimensional rotation matrix.
+    
+    # Convert a quaternion into a full three-dimensional rotation matrix.
  
-    Input
-    :param Q: A 4 element array representing the quaternion (q0,q1,q2,q3) 
- 
-    Output
-    :return: A 3x3 element matrix representing the full 3D rotation matrix. 
-             This rotation matrix converts a point in the local reference 
-             frame to a point in the global reference frame.
-    """
     # Extract the values from Q
     q0 = Q[0]
     q1 = Q[1]
@@ -101,7 +93,7 @@ class DockingExecute(smach.State):
     def __init__(self):
 
         # Enable Dp
-        rospy.set_param("/DP/Enabled", True)
+        rospy.set_param("/DP/Enable", True)
 
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
@@ -121,14 +113,22 @@ class DockingExecute(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
+        rospy.Subscriber("/DpAction/result", Odometry, self.dp_goal_cb)
+        self.odom = Odometry()
+
         rospy.loginfo("after odom")
 
     def odom_cb(self, msg):
         self.odom = msg
+    
+    def dp_goal_cb(self, msg):
+        if(msg.result.finished):
+            rospy.loginfo("Reached goal")
+
 
     # Checks if we are above docking station within the accepted error radius
     def within_acceptance_margins(self):
-        max_error = 0.2
+        max_error = 1.0
         error = np.sqrt(
             pow(
                 self.odom.pose.pose.position.x -
@@ -159,8 +159,6 @@ class DockingExecute(smach.State):
 
     def execute(self, userdata):
 
-        rate = rospy.Rate(2)
-
         # rospy.loginfo("10 seconds to start")
 
         # rospy.sleep(10.)
@@ -181,9 +179,11 @@ class DockingExecute(smach.State):
         goal.x_ref.position.y = goal.x_ref.position.y - offsetPoint.y
         goal.x_ref.position.z = self.odom.pose.pose.position.z
 
-        goal.DOF = [True, True, True, True, True, True]
+        goal.DOF = [True, True, True, False, False, True]
 
         self.dp_client.send_goal(goal)
+
+        rate = rospy.Rate(.2)
         rate.sleep()
 
         while (not rospy.is_shutdown()  #and not self.dp_client.simple_state
@@ -212,7 +212,7 @@ class DockingExecute(smach.State):
             rate.sleep()
 
         if (not rospy.get_param("/tasks/docking")):
-            rospy.set_param("/DP/Enabled", False)
+            rospy.set_param("/DP/Enable", False)
             return 'preempted'
 
         self.object = self.landmarks_client("docking_point").object
@@ -222,17 +222,17 @@ class DockingExecute(smach.State):
                       str(self.object.objectPose.pose.position.y) + "; " +
                       str(self.object.objectPose.pose.position.z))
 
-        # starting_time = rospy.Time.now().to_sec()
-        # docking_duration = rospy.Duration.from_sec(15)
+        docking_duration = 15.0
+        finished_docking_time = rospy.Time.now().to_sec() + docking_duration
 
         rospy.loginfo("Docked to station")
 
-        # while ((starting_time + docking_duration) > rospy.Time.now().to_sec()):
-        #     rospy.loginfo("Waiting")
-        #     if (not rospy.get_param("/tasks/docking")):
-        #         rospy.set_param("/DP/Enabled", False)
-        #         return 'preempted'
-        #     rate.sleep()
+        while (finished_docking_time > rospy.Time.now().to_sec()):
+            rospy.loginfo("Waiting")
+            if (not rospy.get_param("/tasks/docking")):
+                rospy.set_param("/DP/Enable", False)
+                return 'preempted'
+            rate.sleep()
 
         rospy.loginfo("Leaving docking station")
 
@@ -251,7 +251,7 @@ class DockingExecute(smach.State):
             rate.sleep()
 
         if (not rospy.get_param("/tasks/docking")):
-            rospy.set_param("/DP/Enabled", False)
+            rospy.set_param("/DP/Enable", False)
             return 'preempted'
 
         return 'succeeded'
@@ -279,7 +279,7 @@ class DockingStandby(smach.State):
 
         goal = dpGoal()
         goal.x_ref = self.odom.pose.pose
-        goal.DOF = [True, True, True, True, True, True]
+        goal.DOF = [True, True, True, False, False, True]
         self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)
@@ -288,6 +288,6 @@ class DockingStandby(smach.State):
         while (not rospy.is_shutdown() and rospy.get_param("/tasks/docking")):
             rate.sleep()
 
-        rospy.set_param("/DP/Enabled", False)
+        rospy.set_param("/DP/Enable", False)
 
         return 'succeeded'

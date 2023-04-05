@@ -68,7 +68,7 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   // reason of 0.9 scaling in position, is beacause the g-vector may not be
   // equal to the real value.
   m_scale_g = Eigen::Vector6d::Zero();
-  m_scale_g << 0.95, 0.95, 0.95, 0.0, 0.0, 0.0;
+  m_scale_g << 0, 0, 0.5, 0.0, 0.0, 0.0;
 };
 
 int QuaternionPIDController::sgn(double x) {
@@ -178,7 +178,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
 
   Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
-  remove_ori << 0, 0, 0.5, 0, 0, 0;
+  remove_ori << 1, 1, 1, 0, 0, 0;
   nu_tilde = nu - nu_d.cwiseProduct(remove_ori);
 
   // Error Vector
@@ -204,7 +204,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   P_debug = K_p * z;
   I_debug = m_integral;
   D_debug = m_K_d * nu_tilde;
-  g_debug = g;
+  g_debug = g.cwiseProduct(m_scale_g);
   //-----------------
 
   // Rounding gain to remove super small values
