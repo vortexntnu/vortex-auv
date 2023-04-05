@@ -160,7 +160,7 @@ void Controller::spin() {
       // ROS_INFO("DEBUG");
 
       // std::cout << "DEBUG1:" << tau(5) << std::endl << -tau(5) << std::endl;
-      //tau(2) *= -1;
+      // tau(2) *= -1;
 
       Eigen::Vector6d DOF = Eigen::Vector6d::Zero();
       int i = 0;
