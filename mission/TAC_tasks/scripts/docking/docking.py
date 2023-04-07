@@ -4,7 +4,7 @@ import rospy
 import smach
 import actionlib
 import numpy as np
-import math 
+import math
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
@@ -13,10 +13,11 @@ from landmarks.srv import request_position
 
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
+
 def quaternion_rotation_matrix(Q):
-    
+
     # Convert a quaternion into a full three-dimensional rotation matrix.
- 
+
     # Extract the values from Q
     q0 = Q[0]
     q1 = Q[1]
@@ -42,6 +43,7 @@ def quaternion_rotation_matrix(Q):
     rot_matrix = np.array([[r00, r01, r02], [r10, r11, r12], [r20, r21, r22]])
 
     return rot_matrix
+
 
 def distance_between_points(p1, p2):
     return math.dist([p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z])
@@ -80,9 +82,9 @@ class DockingExecute(smach.State):
 
     def odom_cb(self, msg):
         self.odom = msg
-    
+
     def dp_goal_cb(self, msg):
-        if(msg.result.finished):
+        if (msg.result.finished):
             self.reached_dp_goal = True
 
     # Checks if we are above docking station within the accepted error radius
@@ -115,12 +117,15 @@ class DockingExecute(smach.State):
         offsetPoint.z = offsetArray[2]
 
         return offsetPoint
-    
+
     def should_send_new_goal(self):
-        error = distance_between_points(self.object.objectPose.pose.position, self.current_goal_pose.position)
+        error = distance_between_points(self.object.objectPose.pose.position,
+                                        self.current_goal_pose.position)
         a = 0.04
         b = 0.02
-        error_limit = a * distance_between_points(self.odom.pose.pose.position, self.object.objectPose.pose.position) + b
+        error_limit = a * distance_between_points(
+            self.odom.pose.pose.position,
+            self.object.objectPose.pose.position) + b
         if error > error_limit:
             return True
         return False
@@ -177,7 +182,7 @@ class DockingExecute(smach.State):
                 self.current_goal_pose = goal.x_ref
 
             sending_rate.sleep()
-        
+
         self.reached_dp_goal = False
 
         self.object = self.landmarks_client("docking_point").object
