@@ -4,6 +4,7 @@ import rospy
 import smach
 import actionlib
 import numpy as np
+import math 
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
@@ -11,51 +12,6 @@ from tf.transformations import quaternion_from_euler, quaternion_matrix
 from landmarks.srv import request_position
 
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
-
-# class DockingSearch(smach.State):
-
-#     def __init__(self):
-#         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
-
-#         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
-
-#         self.landmarks_client = rospy.ServiceProxy("send_positions",
-#                                                    request_position)
-#         rospy.wait_for_service("send_positions")
-#         self.object = self.landmarks_client("docking_point").object
-
-#         dp_action_server = "DpAction"
-#         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
-#                                                       dpAction))
-
-#         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
-#         self.odom = Odometry()
-
-#     def odom_cb(self, msg):
-#         self.odom = msg
-
-#     def execute(self, userdata):
-#         self.state_pub.publish("docking/search")
-
-#         rate = rospy.Rate(10)
-
-#         goal = dpGoal()
-#         goal.x_ref = self.odom.pose.pose
-#         goal.DOF = [1, 1, 1, 1, 1, 1]
-#         self.dp_client.send_goal(goal)
-
-#         # Wait until we find the docking point
-#         while not self.object.isDetected:
-#             self.object = self.landmarks_client("docking_point").object
-
-#             if (not rospy.get_param("/tasks/docking")):
-#                 rospy.set_param("/DP/Enabled", False)
-#                 return 'preempted'
-
-#             rate.sleep()
-
-#         return 'succeeded'
-
 
 def quaternion_rotation_matrix(Q):
     
@@ -87,10 +43,15 @@ def quaternion_rotation_matrix(Q):
 
     return rot_matrix
 
+def distance_between_points(p1, p2):
+    return math.dist([p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z])
+
 
 class DockingExecute(smach.State):
 
     def __init__(self):
+
+        self.task = "docking"
 
         # Enable Dp
         rospy.set_param("/DP/Enable", True)
@@ -108,27 +69,25 @@ class DockingExecute(smach.State):
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
                                                       dpAction)
 
-        rospy.loginfo("after dp")
-
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
         rospy.Subscriber("/DpAction/result", Odometry, self.dp_goal_cb)
         self.odom = Odometry()
 
-        rospy.loginfo("after odom")
+        self.reached_dp_goal = False
+        self.current_goal_pose = Pose()
 
     def odom_cb(self, msg):
         self.odom = msg
     
     def dp_goal_cb(self, msg):
         if(msg.result.finished):
-            rospy.loginfo("Reached goal")
-
+            self.reached_dp_goal = True
 
     # Checks if we are above docking station within the accepted error radius
-    def within_acceptance_margins(self):
-        max_error = 1.0
+    def above_docking_point(self):
+        max_error = 0.5
         error = np.sqrt(
             pow(
                 self.odom.pose.pose.position.x -
@@ -156,14 +115,17 @@ class DockingExecute(smach.State):
         offsetPoint.z = offsetArray[2]
 
         return offsetPoint
+    
+    def should_send_new_goal(self):
+        error = distance_between_points(self.object.objectPose.pose.position, self.current_goal_pose.position)
+        a = 0.04
+        b = 0.02
+        error_limit = a * distance_between_points(self.odom.pose.pose.position, self.object.objectPose.pose.position) + b
+        if error > error_limit:
+            return True
+        return False
 
     def execute(self, userdata):
-
-        # rospy.loginfo("10 seconds to start")
-
-        # rospy.sleep(10.)
-
-        # rospy.loginfo("Starting")
 
         self.state_pub.publish("docking/execute")
 
@@ -181,13 +143,15 @@ class DockingExecute(smach.State):
 
         goal.DOF = [True, True, True, False, False, True]
 
+        self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
+        self.current_goal_pose = goal.x_ref
 
-        rate = rospy.Rate(.2)
-        rate.sleep()
+        rate = rospy.Rate(10)
+        sending_rate = rospy.Rate(1)
+        sending_rate.sleep()
 
-        while (not rospy.is_shutdown()  #and not self.dp_client.simple_state
-               #        == actionlib.simple_action_client.SimpleGoalState.DONE
+        while (not rospy.is_shutdown() and not self.reached_dp_goal
                and rospy.get_param("/tasks/docking")):
 
             self.object = self.landmarks_client("docking_point").object
@@ -199,21 +163,22 @@ class DockingExecute(smach.State):
             goal.x_ref.position.y = goal.x_ref.position.y - offsetPoint.y
             goal.x_ref.position.z = goal.x_ref.position.z - offsetPoint.z
 
-            if not self.within_acceptance_margins():
+            if not self.above_docking_point():
                 goal.x_ref.position.z = self.odom.pose.pose.position.z
+                rospy.loginfo("Converging above docking point")
 
             rospy.loginfo("DOCKING POINT DETECTED: " +
-                          str(goal.x_ref.position.x) + ", " +
-                          str(goal.x_ref.position.y) + ", " +
-                          str(goal.x_ref.position.z))
+                          str(self.object.objectPose.pose.position.x) + ", " +
+                          str(self.object.objectPose.pose.position.y) + ", " +
+                          str(self.object.objectPose.pose.position.z))
+            if self.should_send_new_goal():
+                self.dp_client.wait_for_server()
+                self.dp_client.send_goal(goal)
+                self.current_goal_pose = goal.x_ref
 
-            self.dp_client.send_goal(goal)
-
-            rate.sleep()
-
-        if (not rospy.get_param("/tasks/docking")):
-            rospy.set_param("/DP/Enable", False)
-            return 'preempted'
+            sending_rate.sleep()
+        
+        self.reached_dp_goal = False
 
         self.object = self.landmarks_client("docking_point").object
 
@@ -229,30 +194,20 @@ class DockingExecute(smach.State):
 
         while (finished_docking_time > rospy.Time.now().to_sec()):
             rospy.loginfo("Waiting")
-            if (not rospy.get_param("/tasks/docking")):
-                rospy.set_param("/DP/Enable", False)
-                return 'preempted'
             rate.sleep()
 
         rospy.loginfo("Leaving docking station")
 
         undocking_pose = self.odom.pose.pose
         undocking_pose.position.z = undocking_pose.position.z + 0.5
-        # undocking_pose.orientation = quaternion_from_euler(0, 0, 0)
 
         goal.x_ref = undocking_pose
+        self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
 
-        rospy.loginfo("test")
-
-        while (not rospy.is_shutdown() and not self.dp_client.simple_state
-               == actionlib.simple_action_client.SimpleGoalState.DONE
+        while (not rospy.is_shutdown() and not self.reached_dp_goal
                and rospy.get_param("/tasks/docking")):
             rate.sleep()
-
-        if (not rospy.get_param("/tasks/docking")):
-            rospy.set_param("/DP/Enable", False)
-            return 'preempted'
 
         return 'succeeded'
 
@@ -260,6 +215,8 @@ class DockingExecute(smach.State):
 class DockingStandby(smach.State):
 
     def __init__(self):
+        self.task = "docking"
+
         smach.State.__init__(self, outcomes=['succeeded'])
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -280,6 +237,7 @@ class DockingStandby(smach.State):
         goal = dpGoal()
         goal.x_ref = self.odom.pose.pose
         goal.DOF = [True, True, True, False, False, True]
+        self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)

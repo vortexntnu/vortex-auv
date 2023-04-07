@@ -12,13 +12,6 @@ def main():
     docking_sm = StateMachine(outcomes=['done'])
     with docking_sm:
 
-        # StateMachine.add("DOCKING_SEARCH",
-        #                  DockingSearch(),
-        #                  transitions={
-        #                      'succeeded': 'DOCKING_EXECUTE',
-        #                      'preempted': 'done'
-        #                  })
-
         StateMachine.add("DOCKING_EXECUTE",
                          DockingExecute(),
                          transitions={
@@ -47,6 +40,4 @@ def main():
 if __name__ == "__main__":
     while not rospy.is_shutdown():
         main()
-        # enabled = rospy.get_param("/tasks/docking")
-        # if enabled == True:
-        #     main()
+
