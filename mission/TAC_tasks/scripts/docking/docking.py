@@ -156,8 +156,7 @@ class DockingExecute(smach.State):
         sending_rate = rospy.Rate(1)
         sending_rate.sleep()
 
-        while (not rospy.is_shutdown() and not self.reached_dp_goal
-               and rospy.get_param("/tasks/docking")):
+        while (not rospy.is_shutdown() and not self.reached_dp_goal):
 
             self.object = self.landmarks_client("docking_point").object
 
@@ -196,9 +195,11 @@ class DockingExecute(smach.State):
         finished_docking_time = rospy.Time.now().to_sec() + docking_duration
 
         rospy.loginfo("Docked to station")
-
+        
+        i = 0
         while (finished_docking_time > rospy.Time.now().to_sec()):
-            rospy.loginfo("Waiting")
+            i = i + 1
+            rospy.loginfo("Waiting " + str(i))
             rate.sleep()
 
         rospy.loginfo("Leaving docking station")
@@ -210,8 +211,7 @@ class DockingExecute(smach.State):
         self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
 
-        while (not rospy.is_shutdown() and not self.reached_dp_goal
-               and rospy.get_param("/tasks/docking")):
+        while (not rospy.is_shutdown() and not self.reached_dp_goal):
             rate.sleep()
 
         return 'succeeded'
@@ -248,7 +248,7 @@ class DockingStandby(smach.State):
         rate = rospy.Rate(10)
         rate.sleep()
 
-        while (not rospy.is_shutdown() and rospy.get_param("/tasks/docking")):
+        while not rospy.is_shutdown():
             rate.sleep()
 
         rospy.set_param("/DP/Enable", False)
