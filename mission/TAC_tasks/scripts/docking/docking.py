@@ -195,7 +195,7 @@ class DockingExecute(smach.State):
         finished_docking_time = rospy.Time.now().to_sec() + docking_duration
 
         rospy.loginfo("Docked to station")
-        
+
         i = 0
         while (finished_docking_time > rospy.Time.now().to_sec()):
             i = i + 1
