@@ -58,8 +58,8 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_d_gain = Eigen::Vector6d::Zero();
   m_integral = Eigen::Vector6d::Zero();
 
-  double maxPosGain = 1.5;
-  double maxAttGain = 0.05;
+  double maxPosGain = 3;
+  double maxAttGain = 0.2;
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
@@ -68,7 +68,7 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   // reason of 0.9 scaling in position, is beacause the g-vector may not be
   // equal to the real value.
   m_scale_g = Eigen::Vector6d::Zero();
-  m_scale_g << 0, 0, 0.5, 0.0, 0.0, 0.0;
+  m_scale_g << 0, 0, 0.25, 0.0, 0.0, 0.0;
 };
 
 int QuaternionPIDController::sgn(double x) {
@@ -189,6 +189,8 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
 
   // Integral (TODO:change Antiwindup to a more advanced one)
   m_integral += m_i_gain * z;
+  m_integral(1) -= 2*(m_i_gain*z)(1);
+  m_integral(2) -= 2*(m_i_gain*z)(2);
   m_integral =
       m_integral.cwiseMin(m_integralAntiWindup).cwiseMax(-m_integralAntiWindup);
 

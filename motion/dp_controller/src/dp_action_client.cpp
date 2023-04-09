@@ -65,7 +65,7 @@ public:
 
       //---------------DEBUG-----
       actionlib::SimpleClientGoalState state = ac_.getState();
-      ROS_INFO("Action finished!!: %s", state.toString().c_str());
+      ROS_INFO("Action finished!: %s", state.toString().c_str());
       //----------------------------
 
       // Checks if enable (from dp_Client.yaml) is enabled.
