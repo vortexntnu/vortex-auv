@@ -189,8 +189,8 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
 
   // Integral (TODO:change Antiwindup to a more advanced one)
   m_integral += m_i_gain * z;
-  m_integral(1) -= 2*(m_i_gain*z)(1);
-  m_integral(2) -= 2*(m_i_gain*z)(2);
+  m_integral(1) -= 2 * (m_i_gain * z)(1);
+  m_integral(2) -= 2 * (m_i_gain * z)(2);
   m_integral =
       m_integral.cwiseMin(m_integralAntiWindup).cwiseMax(-m_integralAntiWindup);
 
