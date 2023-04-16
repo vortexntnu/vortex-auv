@@ -5,12 +5,13 @@ import smach
 import actionlib
 import numpy as np
 import math
-from geometry_msgs.msg import Pose, Point, Quaternion, Twist
+import dynamic_reconfigure.client
+from geometry_msgs.msg import Pose, Point, Wrench, Quaternion, Twist
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from tf.transformations import quaternion_from_euler, quaternion_matrix
 from landmarks.srv import request_position
-
+from task_manager_defines import defines
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
 
@@ -52,13 +53,13 @@ def distance_between_points(p1, p2):
 class DockingExecute(smach.State):
 
     def __init__(self):
+        smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         self.task = "docking"
+        task_manager_client = dynamic_reconfigure.client.Client("/task_manager/server", timeout=3, config_callback=self.task_manager_cb)
 
         # Enable Dp
         rospy.set_param("/DP/Enable", True)
-
-        smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
@@ -81,7 +82,23 @@ class DockingExecute(smach.State):
         self.reached_dp_goal = False
         self.current_goal_pose = Pose()
 
+        self.thrust_pub = rospy.Publisher(rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
+
+        # Height to converge above the docking station
         self.convergence_height = 2
+
+    def task_manager_cb(self, config):
+        rospy.loginfo(
+            """Client: state change request: {Tac_states}""".format(**config))
+        activated_task_id = config["Tac_states"]
+
+        if defines.Tasks.valve_vertical.id == activated_task_id:
+            self.isEnabled = True
+        else:
+            self.isEnabled = False
+        print(f"isEnabled: {self.isEnabled} ")
+
+        return config
 
     def odom_cb(self, msg):
         self.odom = msg
@@ -159,7 +176,7 @@ class DockingExecute(smach.State):
         sending_rate = rospy.Rate(1)
         sending_rate.sleep()
 
-        while (not rospy.is_shutdown() and not self.reached_dp_goal):
+        while (not rospy.is_shutdown() and self.isEnabled and not self.reached_dp_goal):
 
             self.object = self.landmarks_client("docking_point").object
 
@@ -188,6 +205,9 @@ class DockingExecute(smach.State):
 
         self.reached_dp_goal = False
 
+        if not self.isEnabled:
+            return 'preempted'
+
         self.object = self.landmarks_client("docking_point").object
 
         rospy.loginfo("DOCKING POINT ESTIMATE CONVERGED AT: " +
@@ -200,7 +220,14 @@ class DockingExecute(smach.State):
                       str(self.odom.pose.pose.position.y) + "; " +
                       str(self.odom.pose.pose.position.z))
         
-        docking_duration = 15.0
+        rospy.set_param("/DP/Enable", False)
+
+        downward_trust = 60         # Max limit for joystick heave
+        thrust_vector = Wrench()
+        thrust_vector.force.z = - downward_trust
+        self.thrust_pub.publish(thrust_vector)
+        
+        docking_duration = 25.0
         finished_docking_time = rospy.Time.now().to_sec() + docking_duration
 
         rospy.loginfo("Docked to station")
@@ -210,8 +237,17 @@ class DockingExecute(smach.State):
             i = i + 1
             rospy.loginfo("Waiting " + str(i))
             rate.sleep()
+            if not self.isEnabled:
+                thrust_vector = Wrench()
+                self.thrust_pub.publish(thrust_vector)
+                return 'preempted'
 
         rospy.loginfo("Leaving docking station")
+
+        thrust_vector = Wrench()
+        self.thrust_pub.publish(thrust_vector)
+
+        rospy.set_param("/DP/Enable", True)
 
         undocking_pose = self.odom.pose.pose
         undocking_pose.position.z = undocking_pose.position.z + 0.5
@@ -220,8 +256,11 @@ class DockingExecute(smach.State):
         self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
 
-        while (not rospy.is_shutdown() and not self.reached_dp_goal):
+        while (not rospy.is_shutdown() and self.isEnabled and not self.reached_dp_goal):
             rate.sleep()
+
+        if not self.isEnabled:
+            return 'preempted'
 
         return 'succeeded'
 
@@ -229,9 +268,11 @@ class DockingExecute(smach.State):
 class DockingStandby(smach.State):
 
     def __init__(self):
-        self.task = "docking"
-
         smach.State.__init__(self, outcomes=['succeeded'])
+
+        self.task = "docking"
+        
+        task_manager_client = dynamic_reconfigure.client.Client("/task_manager/server", timeout=3, config_callback=self.task_manager_cb)
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
@@ -242,6 +283,19 @@ class DockingStandby(smach.State):
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
+
+    def task_manager_cb(self, config):
+        rospy.loginfo(
+            """Client: state change request: {Tac_states}""".format(**config))
+        activated_task_id = config["Tac_states"]
+
+        if defines.Tasks.valve_vertical.id == activated_task_id:
+            self.isEnabled = True
+        else:
+            self.isEnabled = False
+        print(f"isEnabled: {self.isEnabled} ")
+
+        return config
 
     def odom_cb(self, msg):
         self.odom = msg
@@ -258,7 +312,7 @@ class DockingStandby(smach.State):
         rate = rospy.Rate(10)
         rate.sleep()
 
-        while not rospy.is_shutdown():
+        while not rospy.is_shutdown() and self.isEnabled:
             rate.sleep()
 
         rospy.set_param("/DP/Enable", False)
