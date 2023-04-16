@@ -56,7 +56,10 @@ class DockingExecute(smach.State):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         self.task = "docking"
-        task_manager_client = dynamic_reconfigure.client.Client("/task_manager/server", timeout=3, config_callback=self.task_manager_cb)
+        task_manager_client = dynamic_reconfigure.client.Client(
+            "/task_manager/server",
+            timeout=3,
+            config_callback=self.task_manager_cb)
 
         # Enable Dp
         rospy.set_param("/DP/Enable", True)
@@ -82,7 +85,8 @@ class DockingExecute(smach.State):
         self.reached_dp_goal = False
         self.current_goal_pose = Pose()
 
-        self.thrust_pub = rospy.Publisher(rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
+        self.thrust_pub = rospy.Publisher(
+            rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
 
         # Height to converge above the docking station
         self.convergence_height = 2
@@ -176,7 +180,8 @@ class DockingExecute(smach.State):
         sending_rate = rospy.Rate(1)
         sending_rate.sleep()
 
-        while (not rospy.is_shutdown() and self.isEnabled and not self.reached_dp_goal):
+        while (not rospy.is_shutdown() and self.isEnabled
+               and not self.reached_dp_goal):
 
             self.object = self.landmarks_client("docking_point").object
 
@@ -215,18 +220,17 @@ class DockingExecute(smach.State):
                       str(self.object.objectPose.pose.position.y) + "; " +
                       str(self.object.objectPose.pose.position.z))
 
-        rospy.loginfo("BELUGA AT: " +
-                      str(self.odom.pose.pose.position.x) + "; " +
-                      str(self.odom.pose.pose.position.y) + "; " +
+        rospy.loginfo("BELUGA AT: " + str(self.odom.pose.pose.position.x) +
+                      "; " + str(self.odom.pose.pose.position.y) + "; " +
                       str(self.odom.pose.pose.position.z))
-        
+
         rospy.set_param("/DP/Enable", False)
 
-        downward_trust = 60         # Max limit for joystick heave
+        downward_trust = 60  # Max limit for joystick heave
         thrust_vector = Wrench()
-        thrust_vector.force.z = - downward_trust
+        thrust_vector.force.z = -downward_trust
         self.thrust_pub.publish(thrust_vector)
-        
+
         docking_duration = 25.0
         finished_docking_time = rospy.Time.now().to_sec() + docking_duration
 
@@ -256,7 +260,8 @@ class DockingExecute(smach.State):
         self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
 
-        while (not rospy.is_shutdown() and self.isEnabled and not self.reached_dp_goal):
+        while (not rospy.is_shutdown() and self.isEnabled
+               and not self.reached_dp_goal):
             rate.sleep()
 
         if not self.isEnabled:
@@ -271,8 +276,11 @@ class DockingStandby(smach.State):
         smach.State.__init__(self, outcomes=['succeeded'])
 
         self.task = "docking"
-        
-        task_manager_client = dynamic_reconfigure.client.Client("/task_manager/server", timeout=3, config_callback=self.task_manager_cb)
+
+        task_manager_client = dynamic_reconfigure.client.Client(
+            "/task_manager/server",
+            timeout=3,
+            config_callback=self.task_manager_cb)
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
