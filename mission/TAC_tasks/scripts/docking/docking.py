@@ -81,6 +81,8 @@ class DockingExecute(smach.State):
         self.reached_dp_goal = False
         self.current_goal_pose = Pose()
 
+        self.convergence_height = 2
+
     def odom_cb(self, msg):
         self.odom = msg
 
@@ -169,7 +171,7 @@ class DockingExecute(smach.State):
             goal.x_ref.position.z = goal.x_ref.position.z + offsetPoint.z
 
             if not self.above_docking_point():
-                goal.x_ref.position.z = self.odom.pose.pose.position.z
+                goal.x_ref.position.z = goal.x_ref.position.z + self.convergence_height
                 rospy.loginfo("Converging above docking point")
 
             rospy.loginfo("DOCKING POINT DETECTED: " +
