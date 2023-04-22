@@ -71,8 +71,8 @@ class PoleSearch(smach.State):
             goal.heading = "path_dependent_heading"
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
-            while (self.vtf_client.simple_state !=
-                   actionlib.simple_action_client.SimpleGoalState.DONE
+            while (self.vtf_client.simple_state
+                   != actionlib.simple_action_client.SimpleGoalState.DONE
                    and not self.object.isDetected):
                 self.object = self.landmarks_client("pole").object
                 print("SEARCHING FOR POLE ...")
