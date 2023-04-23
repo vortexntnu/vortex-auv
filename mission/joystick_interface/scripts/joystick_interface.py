@@ -4,6 +4,8 @@ from enum import IntEnum
 
 import rospy
 import actionlib
+import dynamic_reconfigure.client
+from task_manager_defines import defines
 
 from std_msgs.msg import String
 from sensor_msgs.msg import Joy
@@ -183,3 +185,40 @@ if __name__ == "__main__":
 
     except rospy.ROSInterruptException:
         pass
+
+
+
+#-------------------------------------------
+
+class Joystick2:
+
+    def __init__(self):
+            rospy.init_node("joystick2")
+
+            self.isEnabled = False
+
+            task_manager_client = dynamic_reconfigure.client.Client(
+                "task_manager/task_manager_server",
+                timeout=5,
+                config_callback=self.callback)
+
+    def callback(self, config):
+            rospy.loginfo(
+                """Client: state change request: {Tac_states}""".format(**config))
+            activated_task_id = config["Tac_states"]
+
+            if defines.Tasks.joystick.id == activated_task_id:
+                self.isEnabled = True
+            else:
+                self.isEnabled = False
+            print(f"isEnabled: {self.isEnabled} ")
+
+            return config
+
+
+if __name__ == "__main__":
+    joystick2 = Joystick2()
+    if joystick2.isEnabled == True:
+        ##
+        rospy.spin()
+
