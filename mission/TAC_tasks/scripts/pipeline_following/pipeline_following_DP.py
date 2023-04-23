@@ -23,6 +23,8 @@ class PipelineExecute(smach.State):
         self.object = self.landmarks_client(f"{self.task}").object
         self.isDetected = self.object.isDetected
 
+        # Enable Dp
+        rospy.set_param("/DP/Enabled", True)
         self.dp_client = actionlib.SimpleActionClient("DpAction", dpAction)
 
         # Information about the current pose of Beluga
