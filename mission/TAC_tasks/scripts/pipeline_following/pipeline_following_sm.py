@@ -4,6 +4,8 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 from pipeline_following_DP import PipelineExecute, PipelineStandby
+import dynamic_reconfigure.client
+from task_manager_defines import defines
 
 
 def main():
@@ -38,6 +40,20 @@ def main():
 
     except Exception as e:
         rospy.loginfo("State machine failed: %s" % e)
+
+
+def callback(self, config):
+    rospy.loginfo(
+        """Client: state change request: {Tac_states}""".format(**config))
+    activated_task_id = config["Tac_states"]
+
+    if defines.Tasks.valve_vertical.id == activated_task_id:
+        self.isEnabled = True
+    else:
+        self.isEnabled = False
+    print(f"isEnabled: {self.isEnabled} ")
+
+    return config
 
 
 if __name__ == "__main__":

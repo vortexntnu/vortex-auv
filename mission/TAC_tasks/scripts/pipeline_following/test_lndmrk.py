@@ -22,7 +22,7 @@ class test():
         #p.pose.header[]
         p.objectID = 'pipeline'
 
-        p.objectPose.pose.position.x = 5
+        p.objectPose.pose.position.x = -1
         p.objectPose.pose.position.y = 0
         p.objectPose.pose.position.z = -2
         # p.objectPose.pose.orientation.x = 0
@@ -36,7 +36,7 @@ class test():
         while not rospy.is_shutdown() and t_start.secs + 10 > t.secs:
             t = rospy.get_rostime()
 
-            if t_start.secs + 5 <= t.secs:
+            if t_start.secs + 7 <= t.secs:
                 p.isDetected = True
                 print('isDetected = True')
             else:

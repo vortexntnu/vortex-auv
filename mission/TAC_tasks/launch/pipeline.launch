@@ -5,6 +5,4 @@
     </node>
     <node pkg="landmarks" type="landmarks" name="landmarks" output="screen">
     </node>
-    <node pkg="vtf_guidance_and_control" type="vtf_server.py" name="vtf" output="screen">
-    </node>
 </launch>

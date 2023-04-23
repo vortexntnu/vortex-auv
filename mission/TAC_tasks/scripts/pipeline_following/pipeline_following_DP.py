@@ -3,9 +3,10 @@
 import rospy
 import smach
 from landmarks.srv import request_position
-from vortex_msgs.msg import DpSetpoint
+from vortex_msgs.msg import dpAction, dpGoal, dpResult
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
+import actionlib
 
 
 class PipelineExecute(smach.State):
@@ -20,48 +21,59 @@ class PipelineExecute(smach.State):
                                                    request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
+        self.isDetected = self.object.isDetected
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data",
-                                      DpSetpoint,
-                                      queue_size=1)
+        self.dp_client = actionlib.SimpleActionClient("DpAction", dpAction)
 
         # Information about the current pose of Beluga
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
+
+        rospy.Subscriber("/DpAction/result", Odometry, self.dp_goal_cb)
+        self.reached_goal = False
 
         smach.State.__init__(self, outcomes=["aborted"])
 
     def odom_cb(self, msg):
         self.odom = msg
 
+    def dp_goal_cb(self, msg):
+        self.reached_goal = msg.result.finished
+
     def execute(self, userdata):
         rospy.loginfo("Entering PipelineExecute")
 
         self.object = self.landmarks_client(f"{self.task}").object
+        self.isDetected = self.object.isDetected
 
         # Feedback of the current state in state machine
         self.state_pub.publish(f"{self.task}/execute")
 
         # constant vtf parameters
-        goal = DpSetpoint()
-        goal.control_mode = 5  # POSITION_HEADING_HOLD
+        goal = dpGoal()
+        goal.DOF = [True, True, True, False, False, True]
+        goal.x_ref = self.object.objectPose.pose
+        goal.x_ref.position.z = self.odom.pose.pose.position.z
+        self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown(
-        ) and self.object.isDetected:  # and rospy.get_param("/tasks/pipeline_inspection"):
+        ) and self.isDetected:  # and rospy.get_param("/tasks/pipeline_inspection"):
             print("PATH POSITION DETECTED: " +
                   str(self.object.objectPose.pose.position.x) + ", " +
                   str(self.object.objectPose.pose.position.y) + ", " +
                   str(self.object.objectPose.pose.position.z) +
-                  " isDetected: " + str(self.object.isDetected))
+                  " isDetected: " + str(self.isDetected))
 
             # TODO: should have an if statement that maintain altitude above pipeline??
 
-            goal.setpoint = [self.object.objectPose.pose]
-            goal.setpoint.position.z = self.odom.pose.pose.position.z
-            self.dp_pub.publish(goal)
+            goal.x_ref = self.object.objectPose.pose
+            goal.x_ref.position.z = self.odom.pose.pose.position.z
+            if self.reached_goal:
+                self.dp_client.send_goal(goal)
             self.object = self.landmarks_client(
-                f"{self.task}").object  # requesting new points
+                f"{self.task}").object  # requesting new point
+            self.isDetected = self.object.isDetected
             rate.sleep()
 
         return "aborted"
@@ -76,10 +88,9 @@ class PipelineStandby(smach.State):
                                                    request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(f"{self.task}").object
+        self.isDetected = self.object.isDetected
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data",
-                                      DpSetpoint,
-                                      queue_size=1)
+        self.dp_client = actionlib.SimpleActionClient("DpAction", dpAction)
 
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -102,10 +113,10 @@ class PipelineStandby(smach.State):
         self.state_pub.publish(f"{self.task}/standby")
 
         # hold current position
-        dp_goal = DpSetpoint()
-        dp_goal.control_mode = 7  # POSE HOLD
-        dp_goal.setpoint = self.odom.pose.pose
-        self.dp_pub.publish(dp_goal)
+        dp_goal = dpGoal()
+        dp_goal.DOF = [True, True, True, False, False, True]
+        dp_goal.x_ref = self.odom.pose.pose
+        self.dp_client.send_goal(dp_goal)
 
         rate = rospy.Rate(10)
         while not rospy.is_shutdown(
@@ -113,7 +124,8 @@ class PipelineStandby(smach.State):
             rospy.loginfo("Standby")
             self.object = self.landmarks_client(
                 f"{self.task}").object  # requesting update on the object
-            if self.object.isDetected:
+            self.isDetected = self.object.isDetected
+            if self.isDetected:
                 return "succeeded"
             rate.sleep()
 
