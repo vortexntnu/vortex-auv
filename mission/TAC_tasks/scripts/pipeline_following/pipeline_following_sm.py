@@ -7,6 +7,7 @@ from pipeline_following import PipelineExecute, PipelineStandby
 from task_manager_defines import defines
 import dynamic_reconfigure.client
 
+
 def task_manager_cb(config):
     rospy.loginfo(
         """Client: state change request: {Tac_states}""".format(**config))
@@ -17,6 +18,7 @@ def task_manager_cb(config):
     else:
         isEnabled = False
     print(f"isEnabled: {isEnabled} ")
+
 
 def main():
     rospy.init_node("tac_pipeline_fsm")
@@ -51,10 +53,11 @@ def main():
     except Exception as e:
         rospy.loginfo("State machine failed: %s" % e)
 
+
 if __name__ == "__main__":
     while not rospy.is_shutdown():
         # task manager
-        isEnabled = False 
+        isEnabled = False
         task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,

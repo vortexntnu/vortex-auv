@@ -10,13 +10,14 @@ import actionlib
 from task_manager_defines import defines
 import dynamic_reconfigure.client
 
+
 class PipelineExecute(smach.State):
 
     def __init__(self):
         self.task = "pipeline"
 
         # task manager
-        self.isEnabled = False 
+        self.isEnabled = False
         task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,
@@ -83,8 +84,7 @@ class PipelineExecute(smach.State):
         self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown(
-        ) and self.isDetected and self.isEnabled:
+        while not rospy.is_shutdown() and self.isDetected and self.isEnabled:
             print("PATH POSITION DETECTED: " +
                   str(self.object.objectPose.pose.position.x) + ", " +
                   str(self.object.objectPose.pose.position.y) + ", " +
@@ -96,7 +96,7 @@ class PipelineExecute(smach.State):
             # send new goal only if previous goal is reached
             if self.reached_goal:
                 self.dp_client.send_goal(goal)
-            
+
             # Update DP goal
             self.object = self.landmarks_client(
                 f"{self.task}").object  # requesting new point
@@ -153,7 +153,7 @@ class PipelineStandby(smach.State):
         print(f"isEnabled: {self.isEnabled} ")
 
         return config
-    
+
     def odom_cb(self, msg):
         self.odom = msg
 
@@ -172,8 +172,7 @@ class PipelineStandby(smach.State):
         self.dp_client.send_goal(dp_goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown(
-        ) and self.isEnabled:
+        while not rospy.is_shutdown() and self.isEnabled:
             rospy.loginfo("Standby")
             self.object = self.landmarks_client(
                 f"{self.task}").object  # requesting update on the object
