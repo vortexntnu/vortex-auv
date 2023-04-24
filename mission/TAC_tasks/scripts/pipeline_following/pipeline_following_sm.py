@@ -3,10 +3,20 @@
 import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
-from pipeline_following_DP import PipelineExecute, PipelineStandby
-import dynamic_reconfigure.client
+from pipeline_following import PipelineExecute, PipelineStandby
 from task_manager_defines import defines
+import dynamic_reconfigure.client
 
+def task_manager_cb(config):
+    rospy.loginfo(
+        """Client: state change request: {Tac_states}""".format(**config))
+    activated_task_id = config["Tac_states"]
+
+    if defines.Tasks.valve_vertical.id == activated_task_id:
+        isEnabled = True
+    else:
+        isEnabled = False
+    print(f"isEnabled: {isEnabled} ")
 
 def main():
     rospy.init_node("tac_pipeline_fsm")
@@ -41,25 +51,15 @@ def main():
     except Exception as e:
         rospy.loginfo("State machine failed: %s" % e)
 
-
-def callback(self, config):
-    rospy.loginfo(
-        """Client: state change request: {Tac_states}""".format(**config))
-    activated_task_id = config["Tac_states"]
-
-    if defines.Tasks.valve_vertical.id == activated_task_id:
-        self.isEnabled = True
-    else:
-        self.isEnabled = False
-    print(f"isEnabled: {self.isEnabled} ")
-
-    return config
-
-
 if __name__ == "__main__":
     while not rospy.is_shutdown():
-        enabled = True  #rospy.get_param("/tasks/pipeline_inspection")
-        if enabled:
+        # task manager
+        isEnabled = False 
+        task_manager_client = dynamic_reconfigure.client.Client(
+            "task_manager/task_manager_server",
+            timeout=5,
+            config_callback=task_manager_cb)
+        while not rospy.is_shutdown() and isEnabled:
             rospy.loginfo('STARTING PIPELINE FOLLOWING')
             main()
             rospy.loginfo('PIPELINE FOLLOWING ENDED')
