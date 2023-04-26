@@ -25,7 +25,10 @@ class DockingExecute(smach.State):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         self.task = "docking"
-        self.task_manager_client = dynamic_reconfigure.client.Client("/task_manager/server", timeout=3, config_callback=self.task_manager_cb)
+        self.task_manager_client = dynamic_reconfigure.client.Client(
+            "/task_manager/server",
+            timeout=3,
+            config_callback=self.task_manager_cb)
         self.isEnabled = rospy.get_param("/tasks/docking")
 
         # Enable Dp
@@ -241,8 +244,11 @@ class DockingStandby(smach.State):
         smach.State.__init__(self, outcomes=['succeeded'])
 
         self.task = "docking"
-        
-        self.task_manager_client = dynamic_reconfigure.client.Client("/task_manager/server", timeout=3, config_callback=self.task_manager_cb)
+
+        self.task_manager_client = dynamic_reconfigure.client.Client(
+            "/task_manager/server",
+            timeout=3,
+            config_callback=self.task_manager_cb)
         self.isEnabled = rospy.get_param("/tasks/docking")
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
