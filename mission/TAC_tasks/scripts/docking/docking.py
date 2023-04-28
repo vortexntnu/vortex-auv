@@ -126,7 +126,7 @@ class DockingExecute(smach.State):
 
         self.state_pub.publish("docking/execute")
 
-        # # Power puck relative to the center of mass (temporary until we get static transform)
+        # Power puck relative to the center of mass (temporary until we get static transform)
         powerPuckOffset = [0, 0, -0.6]
 
         goal = dpGoal()
@@ -177,6 +177,7 @@ class DockingExecute(smach.State):
             sending_rate.sleep()
 
         self.reached_dp_goal = False
+        rospy.set_param("/DP/Enable", False)
 
         if not self.isEnabled:
             return 'preempted'
@@ -191,8 +192,6 @@ class DockingExecute(smach.State):
         rospy.loginfo("BELUGA AT: " + str(self.odom.pose.pose.position.x) +
                       "; " + str(self.odom.pose.pose.position.y) + "; " +
                       str(self.odom.pose.pose.position.z))
-
-        rospy.set_param("/DP/Enable", False)
 
         downward_trust = 60  # Max limit for joystick heave
         thrust_vector = Wrench()
@@ -233,6 +232,7 @@ class DockingExecute(smach.State):
             rate.sleep()
 
         if not self.isEnabled:
+            rospy.set_param("/DP/Enable", False)
             return 'preempted'
 
         return 'succeeded'
