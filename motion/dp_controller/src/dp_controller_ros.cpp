@@ -163,7 +163,7 @@ void Controller::spin() {
       Eigen::Vector6d tau =
           m_controller.getFeedback_euler(m_position, m_orientation, m_velocity,
                                          m_nu_d, m_eta_d_pos, x_ref_ori);
-      if (launch_type == "real"){
+      if (launch_type == "real") {
         // Flipping the z-axis for Beluga IRL (not simulator).
         tau(2) *= -1;
       }
@@ -259,7 +259,6 @@ void Controller::desiredPointCallback(const nav_msgs::Odometry &desired_msg) {
   }
 
   // ----- END DEBUG
-
 }
 
 void Controller::cfgCallback(dp_controller::DpControllerConfig &config,

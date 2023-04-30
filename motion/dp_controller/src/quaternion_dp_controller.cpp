@@ -190,7 +190,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   // Integral (TODO:change Antiwindup to a more advanced one)
   m_integral += m_i_gain * z;
 
-  if (launch_type == "real"){
+  if (launch_type == "real") {
     m_integral(1) -= 2 * (m_i_gain * z)(1);
     m_integral(2) -= 2 * (m_i_gain * z)(2);
   }
@@ -202,9 +202,8 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   m_K_d.diagonal() << m_d_gain;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
 
-
-  if (launch_type == "simulator"){
-    m_scale_g << 0,0,0.1,0,0,0;
+  if (launch_type == "simulator") {
+    m_scale_g << 0, 0, 0.1, 0, 0, 0;
   }
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
