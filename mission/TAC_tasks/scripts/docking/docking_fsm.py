@@ -23,15 +23,8 @@ def main():
                          DockingStandby(),
                          transitions={'succeeded': 'done'})
 
-    # intro_server = IntrospectionServer(
-    #     str(rospy.get_name()), docking_sm, "/SM_ROOT"
-    # )
-    # intro_server.start()
-
     try:
-        #Execute SMACH plan
         docking_sm.execute()
-        # intro_server.stop()
 
     except Exception as e:
         rospy.loginfo("State machine failed: %s" % e)
