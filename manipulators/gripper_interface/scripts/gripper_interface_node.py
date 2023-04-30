@@ -17,12 +17,6 @@ off = 1.0
 active = 1
 inactive = 0
 
-GRIPPER_PIN1 = rospy.get_param("/gripper_pins/gripper_1")
-print(GRIPPER_PIN1)
-GRIPPER_PIN2 = rospy.get_param("/gripper_pins/gripper_2")
-print(GRIPPER_PIN2)
-
-
 class GripperInterfaceNode:
 
     def __init__(self):
@@ -44,13 +38,17 @@ class GripperInterfaceNode:
         self.last_press = datetime.now()
 
         # GPIO setup
-        self.gripper_GPIO_pin1 = GRIPPER_PIN1
-        self.gripper_GPIO_pin2 = GRIPPER_PIN2
+        self.gripper_GPIO_pin1 = rospy.get_param("/gripper_pins/gripper_1")
+        self.gripper_GPIO_pin2 = rospy.get_param("/gripper_pins/gripper_2")
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gripper_GPIO_pin1, GPIO.OUT)
         GPIO.setup(self.gripper_GPIO_pin2, GPIO.OUT)
         GPIO.output(self.gripper_GPIO_pin1, GPIO.HIGH)
         GPIO.output(self.gripper_GPIO_pin2, GPIO.HIGH)
+
+        rospy.logwarn(f"\nGripper interface has been initialized sucessfully.\
+                        \nUsing GPIO pins {self.gripper_GPIO_pin1} and {self.gripper_GPIO_pin2} for down and front grippers, respectively.")
 
     def callbackJoy(self, joy_msg):
         Dpad = joy_msg.axes[7]
