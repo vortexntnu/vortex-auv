@@ -42,6 +42,9 @@ private:
   Eigen::Vector6d m_integralAntiWindup;
 
 public:
+
+  std::string launch_type;
+
   explicit QuaternionPIDController(); // float W, float B, Eigen::Vector3d r_G,
                                       // Eigen::Vector3d r_B);
   /**
@@ -63,6 +66,13 @@ public:
                               const Eigen::Vector6d &nu_d,
                               const Eigen::Vector3d &eta_d_pos,
                               const Eigen::Quaterniond &eta_d_ori);
+  
+  Eigen::Vector6d getFeedback_euler(const Eigen::Vector3d &x,
+                              const Eigen::Quaterniond &q,
+                              const Eigen::Vector6d &nu,
+                              const Eigen::Vector6d &nu_d,
+                              const Eigen::Vector3d &eta_d_pos,
+                              const Eigen::Quaterniond &eta_d_ori);
 
   int sgn(double x);
   Eigen::Vector6d errorVector(const Eigen::Vector3d &x,
@@ -78,6 +88,12 @@ public:
             const Eigen::Vector3d &r_B);
   void update_gain(Eigen::Vector6d p_gain, Eigen::Vector6d i_gain,
                    Eigen::Vector6d d_gain);
+  
+ 
+  Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q);
+  Eigen::Vector3d smallestAngle(Eigen::Vector3d euler_angles);
+ 
+
 
   Eigen::Vector6d P_debug = Eigen::Vector6d::Zero();
   Eigen::Vector6d I_debug = Eigen::Vector6d::Zero();

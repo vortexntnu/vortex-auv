@@ -70,10 +70,15 @@ private:
   ros::Publisher m_dp_I_debug_pub;
   ros::Publisher m_dp_D_debug_pub;
   ros::Publisher m_dp_g_debug_pub;
+
+  ros::Publisher m_eta_d_deg_pub;
+  ros::Publisher m_q_tilde_pub;
+  ros::Publisher m_q_tilde_sgn_pub;
+  ros::Publisher m_q_tilde_sgn2_pub;
   //----------------------
 
   std::vector<int> m_enable_PID;
-  bool m_enable_dp;
+  bool m_enable_dp = false;
 
   ros::Subscriber m_desiredpoint_sub;  /* Subscriber for listening to (the
                                           guidance node ....)      */

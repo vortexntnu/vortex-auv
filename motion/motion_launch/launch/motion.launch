@@ -34,7 +34,9 @@
   <rosparam command="load" file="$(find dp_controller)/config/dp_Client.yaml"/>
   <rosparam command="load" file="$(find dp_controller)/config/dp_PID.yaml"/>
   <rosparam command="load" file="$(find dp_reference_model)/config/reference_model.yaml"/>
-  <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
+  <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen">
+    <param name="launch_type" value="$(arg type)" />
+  </node>
   <node pkg="dp_reference_model"       type="dp_reference_model_node"         name="dp_reference_model"        output="screen" />
 
   <group ns="$(arg ns_controller)">
