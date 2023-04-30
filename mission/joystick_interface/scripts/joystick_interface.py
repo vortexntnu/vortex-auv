@@ -178,21 +178,19 @@ class JoystickInterface:
         return pressed
 
 
-if __name__ == "__main__":
-    try:
-        joystick_interface = JoystickInterface()
-        rospy.spin()
 
-    except rospy.ROSInterruptException:
-        pass
+
+        
+
+
 
 #-------------------------------------------
 
 
-class Joystick2:
+class JoystickEnable:
 
     def __init__(self):
-        rospy.init_node("joystick2")
+        rospy.init_node("JoystickEnable")
 
         self.isEnabled = False
 
@@ -200,6 +198,7 @@ class Joystick2:
             "task_manager/task_manager_server",
             timeout=5,
             config_callback=self.callback)
+         
 
     def callback(self, config):
         rospy.loginfo(
@@ -216,7 +215,12 @@ class Joystick2:
 
 
 if __name__ == "__main__":
-    joystick2 = Joystick2()
-    if joystick2.isEnabled == True:
-        ##
+    joystickEnable = JoystickEnable()
+    if joystickEnable.isEnabled == True:
+        try:
+            joystick_interface = JoystickInterface()
+            rospy.spin()
+
+        except rospy.ROSInterruptException:
+             pass
         rospy.spin()
