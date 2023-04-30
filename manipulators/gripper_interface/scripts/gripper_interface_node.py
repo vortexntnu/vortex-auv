@@ -22,6 +22,7 @@ print(GRIPPER_PIN1)
 GRIPPER_PIN2 = rospy.get_param("/gripper_pins/gripper_2")
 print(GRIPPER_PIN2)
 
+
 class GripperInterfaceNode:
 
     def __init__(self):
@@ -77,23 +78,22 @@ class GripperInterfaceNode:
                 self.last_press = datetime.now()
 
     def callbackGrip(self, gripper_msg):
-        if(gripper_msg.bool[0] == True):
+        if (gripper_msg.bool[0] == True):
             GPIO.output(self.gripper_gpio_pin1, GPIO.LOW)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 1 activated!")
-        elif(gripper_msg.bool[0] == False):
+        elif (gripper_msg.bool[0] == False):
             GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 1 deactivated!")
-        if(gripper_msg.bool[1] == True):
+        if (gripper_msg.bool[1] == True):
             GPIO.output(self.gripper_gpio_pin1, GPIO.LOW)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 2 activated!")
-        elif(gripper_msg.bool[1] == False):
+        elif (gripper_msg.bool[1] == False):
             GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 2 deactivated!")
-    
 
     def shutdown(self):
         GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
