@@ -15,7 +15,7 @@ from vortex_msgs.msg import GripperStatuses
 on = -1.0
 off = 1.0
 active = 1
-inactive = 0    
+inactive = 0
 
 GRIPPER_PIN1 = 6
 GRIPPER_PIN2 = 5
@@ -29,11 +29,11 @@ class GripperInterfaceNode:
                                              Joy,
                                              self.callbackJoy,
                                              queue_size=1)
-        
+
         self.gripper_sub = rospy.Subscriber("/gripper_status",
-                                             GripperStatuses,
-                                             self.callbackGrip,
-                                             queue_size=1)
+                                            GripperStatuses,
+                                            self.callbackGrip,
+                                            queue_size=1)
 
         self.gripper_state1 = inactive
         self.gripper_state2 = inactive
@@ -76,23 +76,22 @@ class GripperInterfaceNode:
                 self.last_press = datetime.now()
 
     def callbackGrip(self, gripper_msg):
-        if(gripper_msg.bool[0] == True):
+        if (gripper_msg.bool[0] == True):
             GPIO.output(self.gripper_gpio_pin1, GPIO.LOW)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 1 activated!")
-        elif(gripper_msg.bool[0] == False):
+        elif (gripper_msg.bool[0] == False):
             GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 1 deactivated!")
-        if(gripper_msg.bool[1] == True):
+        if (gripper_msg.bool[1] == True):
             GPIO.output(self.gripper_gpio_pin1, GPIO.LOW)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 2 activated!")
-        elif(gripper_msg.bool[1] == False):
+        elif (gripper_msg.bool[1] == False):
             GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
             self.gripper_state1 = active
             rospy.loginfo("Gripper 2 deactivated!")
-    
 
     def shutdown(self):
         GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
