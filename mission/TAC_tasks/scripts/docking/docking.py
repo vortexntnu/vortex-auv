@@ -288,7 +288,7 @@ class DockingStandby(smach.State):
 
     def task_manager_cb(self, config):
         activated_task_id = config["Tac_states"]
-    
+
         if defines.Tasks.docking.id == activated_task_id:
             self.isEnabled = True
         else:
