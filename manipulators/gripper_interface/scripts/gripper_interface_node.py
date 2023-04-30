@@ -16,7 +16,8 @@ off = 1.0
 active = 1
 inactive = 0
 
-GRIPPER_PIN = 6
+GRIPPER_PIN1 = 6
+GRIPPER_PIN2 = 5
 
 
 class GripperInterfaceNode:
@@ -34,10 +35,13 @@ class GripperInterfaceNode:
         self.last_press = datetime.now()
 
         # GPIO setup
-        self.gripper_gpio_pin = GRIPPER_PIN
+        self.gripper_gpio_pin1 = GRIPPER_PIN1
+        self.gripper_gpio_pin2 = GRIPPER_PIN2
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.gripper_gpio_pin, GPIO.OUT)
-        GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
+        GPIO.setup(self.gripper_gpio_pin1, GPIO.OUT)
+        GPIO.setup(self.gripper_gpio_pin2, GPIO.OUT)
+        GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
+        GPIO.output(self.gripper_gpio_pin2, GPIO.HIGH)
 
     def callback(self, joy_msg):
         Dpad = joy_msg.axes[7]
@@ -45,21 +49,24 @@ class GripperInterfaceNode:
             time_delta = datetime.now() - self.last_press
             if time_delta.total_seconds() > self.cooldown_period:
                 if Dpad == on and self.gripper_state != active:
-                    GPIO.output(self.gripper_gpio_pin, GPIO.HIGH)
+                    GPIO.output(self.gripper_gpio_pin1, GPIO.LOW)
+                    GPIO.output(self.gripper_gpio_pin2, GPIO.LOW)
                     rospy.loginfo("Gripper activated!")
 
                     self.last_press = datetime.now()
                     self.gripper_state = active
 
                 elif Dpad == off and self.gripper_state == active:
-                    GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
+                    GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
+                    GPIO.output(self.gripper_gpio_pin2, GPIO.HIGH)
                     rospy.loginfo("Gripper deactivated!")
 
                     self.last_press = datetime.now()
                     self.gripper_state = inactive
 
     def shutdown(self):
-        GPIO.output(self.gripper_gpio_pin, GPIO.LOW)
+        GPIO.output(self.gripper_gpio_pin1, GPIO.HIGH)
+        GPIO.output(self.gripper_gpio_pin2, GPIO.HIGH)
 
 
 if __name__ == "__main__":
