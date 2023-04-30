@@ -315,7 +315,7 @@ class DockingStandby(smach.State):
         rate.sleep()
 
         rospy.set_param("/DP/Enable", True)
-        
+
         # Stays in standby mode until Task manager deactivates the docking task
         while not rospy.is_shutdown() and self.isEnabled:
             rate.sleep()
