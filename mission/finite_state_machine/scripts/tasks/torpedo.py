@@ -60,8 +60,8 @@ class TorpedoSearch(smach.State):
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
 
-            while (self.vtf_client.simple_state !=
-                   actionlib.simple_action_client.SimpleGoalState.DONE):
+            while (self.vtf_client.simple_state
+                   != actionlib.simple_action_client.SimpleGoalState.DONE):
                 rate.sleep()
 
         self.recov_point.objectPose.pose.position = self.odom.pose.pose.position
