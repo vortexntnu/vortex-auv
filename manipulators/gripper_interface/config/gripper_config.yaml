@@ -1,0 +1,3 @@
+gripper_pins:
+  gripper_1: 6
+  gripper_2: 5
