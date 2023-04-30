@@ -97,8 +97,8 @@ class ForwardSweepSearch:
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
 
-            while (self.vtf_client.simple_state !=
-                   actionlib.simple_action_client.SimpleGoalState.DONE):
+            while (self.vtf_client.simple_state
+                   != actionlib.simple_action_client.SimpleGoalState.DONE):
                 self.object = self.landmarks_client(self.task).object
                 if self.object.isDetected:
                     break

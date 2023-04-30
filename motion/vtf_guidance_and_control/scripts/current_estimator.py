@@ -35,8 +35,8 @@ class CurrentEstimator:
         self.online = True
 
     def check_steady_state(self, eta, t):
-        if (np.linalg.norm(eta - np.array(self.eta_r)) <
-                self.tol_error) and (t - self.prev_t > self.tol_sec):
+        if (np.linalg.norm(eta - np.array(self.eta_r))
+                < self.tol_error) and (t - self.prev_t > self.tol_sec):
             self.prev_t = t
             result = True
         elif np.linalg.norm(eta - np.array(self.eta_r)) < self.tol_error:
