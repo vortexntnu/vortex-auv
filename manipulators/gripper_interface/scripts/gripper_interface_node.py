@@ -22,6 +22,7 @@ print(GRIPPER_PIN1)
 GRIPPER_PIN2 = rospy.get_param("/gripper_pins/gripper_2")
 print(GRIPPER_PIN2)
 
+
 class GripperInterfaceNode:
 
     def __init__(self):
