@@ -17,6 +17,7 @@ off = 1.0
 active = 1
 inactive = 0
 
+
 class GripperInterfaceNode:
 
     def __init__(self):
@@ -48,7 +49,8 @@ class GripperInterfaceNode:
         GPIO.output(self.gripper_GPIO_pin2, GPIO.HIGH)
 
         rospy.logwarn(f"\nGripper interface has been initialized sucessfully.\
-                        \nUsing GPIO pins {self.gripper_GPIO_pin1} and {self.gripper_GPIO_pin2} for down and front grippers, respectively.")
+                        \nUsing GPIO pins {self.gripper_GPIO_pin1} and {self.gripper_GPIO_pin2} for down and front grippers, respectively."
+                      )
 
     def callbackJoy(self, joy_msg):
         Dpad = joy_msg.axes[7]
