@@ -178,12 +178,6 @@ class JoystickInterface:
         return pressed
 
 
-
-
-        
-
-
-
 #-------------------------------------------
 
 
@@ -198,7 +192,6 @@ class JoystickEnable:
             "task_manager/task_manager_server",
             timeout=5,
             config_callback=self.callback)
-         
 
     def callback(self, config):
         rospy.loginfo(
@@ -222,5 +215,5 @@ if __name__ == "__main__":
             rospy.spin()
 
         except rospy.ROSInterruptException:
-             pass
+            pass
         rospy.spin()
