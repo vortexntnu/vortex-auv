@@ -59,10 +59,12 @@ class DockingExecute(smach.State):
             rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
 
         # Height to converge above the docking station
-        self.convergence_height = rospy.get_param("/tac/docking/convergence_height")
+        self.convergence_height = rospy.get_param(
+            "/tac/docking/convergence_height")
 
         #Height where we turn off DP for heave for quick docking to minimize issues with drift
-        self.final_descent_height = rospy.get_param("/tac/docking/final_descent_height")
+        self.final_descent_height = rospy.get_param(
+            "/tac/docking/final_descent_height")
 
     def task_manager_cb(self, config):
         activated_task_id = config["Tac_states"]
@@ -118,7 +120,7 @@ class DockingExecute(smach.State):
     def should_send_new_goal(self):
         error = distance_between_points(self.object.objectPose.pose.position,
                                         self.current_goal_pose.position)
-        
+
         error_coefficients = rospy.get_param("/tac/docking/error_coefficients")
         a, b = error_coefficients['a'], error_coefficients['b']
         error_limit = a * distance_between_points(
@@ -132,7 +134,7 @@ class DockingExecute(smach.State):
 
         self.state_pub.publish("docking/execute")
 
-        # Power puck relative to the center of mass (temporary until we get static transform)  
+        # Power puck relative to the center of mass (temporary until we get static transform)
         powerPuckOffset = rospy.get_param("/tac/docking/powerpuck_offset")
         # TODO: replace with Power puck location as soon as it is available
 
@@ -174,12 +176,14 @@ class DockingExecute(smach.State):
                 rospy.loginfo("Converging above docking point")
 
             # If reached final descent height for the first time...
-            elif((self.odom.pose.pose.position.z - goal.x_ref.position.z) < self.final_descent_height):
-                #Turn off DP 
+            elif ((self.odom.pose.pose.position.z - goal.x_ref.position.z)
+                  < self.final_descent_height):
+                #Turn off DP
                 rospy.set_param("/DP/Enable", False)
 
                 # Start trusters pushing downwards
-                downward_trust = rospy.get_param("/joystick/scaling/heave")  # Max limit for joystick heave
+                downward_trust = rospy.get_param(
+                    "/joystick/scaling/heave")  # Max limit for joystick heave
                 thrust_vector = Wrench()
                 thrust_vector.force.z = -downward_trust
                 self.thrust_pub.publish(thrust_vector)
@@ -191,7 +195,7 @@ class DockingExecute(smach.State):
                           str(self.object.objectPose.pose.position.x) + ", " +
                           str(self.object.objectPose.pose.position.y) + ", " +
                           str(self.object.objectPose.pose.position.z))
-            
+
             if self.should_send_new_goal():
                 self.dp_client.wait_for_server()
                 self.dp_client.send_goal(goal)
@@ -216,7 +220,7 @@ class DockingExecute(smach.State):
         rospy.loginfo("BELUGA AT: " + str(self.odom.pose.pose.position.x) +
                       "; " + str(self.odom.pose.pose.position.y) + "; " +
                       str(self.odom.pose.pose.position.z))
-        
+
         rospy.loginfo("Docked to station")
 
         # Finds time 'docking_diration' seconds into the future and stays docked until that time
