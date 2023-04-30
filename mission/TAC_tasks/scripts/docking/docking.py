@@ -287,10 +287,8 @@ class DockingStandby(smach.State):
         self.odom = Odometry()
 
     def task_manager_cb(self, config):
-        rospy.loginfo(
-            """Client: state change request: {Tac_states}""".format(**config))
         activated_task_id = config["Tac_states"]
-
+    
         if defines.Tasks.docking.id == activated_task_id:
             self.isEnabled = True
         else:
