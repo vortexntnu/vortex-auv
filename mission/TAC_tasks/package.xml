@@ -4,6 +4,7 @@
   <version>0.0.0</version>
   <description>The TAC_tasks package</description>
   <maintainer email="lassemg@todo.todo">lassemg</maintainer>
+  <maintainer email="aleksander.klu@hotmail.com">alekskl01</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>

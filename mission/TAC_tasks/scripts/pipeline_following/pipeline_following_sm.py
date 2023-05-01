@@ -62,7 +62,7 @@ class PipelineFollowing():
 
 
 if __name__ == "__main__":
-    execute = PipelineFollowing()
-    execute.main()
+    executer = PipelineFollowing()
+    executer.main()
     rospy.loginfo('PIPELINE FOLLOWING ENDED')
     rospy.spin()
