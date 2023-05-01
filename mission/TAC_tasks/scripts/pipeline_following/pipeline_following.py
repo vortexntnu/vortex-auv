@@ -80,7 +80,8 @@ class PipelineExecute(smach.State):
         goal = dpGoal()
         goal.DOF = [True, True, True, False, False, True]
         goal.x_ref = self.object.objectPose.pose
-        goal.x_ref.position.z = self.odom.pose.pose.position.z
+        z_position = self.odom.pose.pose.position.z
+        goal.x_ref.position.z = z_position
         self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)
@@ -102,7 +103,7 @@ class PipelineExecute(smach.State):
                 f"{self.task}").object  # requesting new point
             self.isDetected = self.object.isDetected
             goal.x_ref = self.object.objectPose.pose
-            goal.x_ref.position.z = self.odom.pose.pose.position.z
+            goal.x_ref.position.z = z_position
 
             rate.sleep()
 
