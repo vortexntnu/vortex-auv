@@ -50,7 +50,7 @@ class PipelineExecute(smach.State):
             """Client: state change request: {Tac_states}""".format(**config))
         activated_task_id = config["Tac_states"]
 
-        if defines.Tasks.valve_vertical.id == activated_task_id:
+        if defines.Tasks.pipeline_inspection.id == activated_task_id:
             self.isEnabled = True
         else:
             self.isEnabled = False
@@ -145,7 +145,7 @@ class PipelineStandby(smach.State):
             """Client: state change request: {Tac_states}""".format(**config))
         activated_task_id = config["Tac_states"]
 
-        if defines.Tasks.valve_vertical.id == activated_task_id:
+        if defines.Tasks.pipeline_inspection.id == activated_task_id:
             self.isEnabled = True
         else:
             self.isEnabled = False

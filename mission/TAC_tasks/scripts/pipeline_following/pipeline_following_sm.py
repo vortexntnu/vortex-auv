@@ -13,7 +13,7 @@ def task_manager_cb(config):
         """Client: state change request: {Tac_states}""".format(**config))
     activated_task_id = config["Tac_states"]
 
-    if defines.Tasks.valve_vertical.id == activated_task_id:
+    if defines.Tasks.pipeline_inspection.id == activated_task_id:
         isEnabled = True
     else:
         isEnabled = False
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             "task_manager/task_manager_server",
             timeout=5,
             config_callback=task_manager_cb)
-        while not rospy.is_shutdown() and isEnabled:
+        if isEnabled:
             rospy.loginfo('STARTING PIPELINE FOLLOWING')
             main()
             rospy.loginfo('PIPELINE FOLLOWING ENDED')
