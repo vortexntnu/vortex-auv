@@ -15,10 +15,10 @@
 #
 
 physical:
-  weight: 24.00     # kg
-  buoyancy: 23.00   # kg
-  center_of_mass: [0.0, 0.0, 0.0]        # mm (x,y,z)
-  center_of_buoyancy: [0.0, 0.0, 0.0]   # mm (x,y,z)
+  weight: 35.0  #24.00     # kg
+  buoyancy: 36.6 #37.522  #25    # kg (pho*V)
+  center_of_mass: [0.0, 0.0, -0.08]        # m (x,y,z)
+  center_of_buoyancy: [0.0, 0.0, 0.5]   # m (x,y,z)
 
 
 propulsion:
@@ -54,8 +54,8 @@ propulsion:
 
 guidance:
   dp:
-    rate: 40
-    acceptance_margins: [0.10, 0.10, 0.10, 0.15, 0.15, 0.15] # Order: x,y,z,roll,pitch,yaw
+    rate: 20
+    acceptance_margins: [0.10, 0.10, 0.10, 10, 10, 10] # Order: x,y,z,roll,pitch,yaw
     action_server: "/guidance_interface/dp_server"
   LOS:
     rate: 20
@@ -230,3 +230,15 @@ ping360_node:
 
 torpedo:
   gpio_pin: 15
+
+tac:
+  docking:
+    convergence_height: 2
+    final_descent_height: 0.5
+    docking_duration: 25.0
+    standby_height: 0.5
+    radius_of_acceptance: 0.5
+    error_coefficients:
+      a: 0.04
+      b: 0.02
+    powerpuck_offset: [-0.1, 0, -0.05]

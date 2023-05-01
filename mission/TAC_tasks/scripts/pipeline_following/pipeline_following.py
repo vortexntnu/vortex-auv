@@ -13,15 +13,16 @@ import dynamic_reconfigure.client
 
 class PipelineExecute(smach.State):
 
-    def __init__(self):
+    def __init__(self, userdata):
         self.task = "pipeline"
 
+        smach.State.__init__(self, outcomes=["aborted"], input_keys=['isEnabled'], output_keys=['isEnabled'])
+
         # task manager
-        self.isEnabled = False
-        task_manager_client = dynamic_reconfigure.client.Client(
+        self.task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,
-            config_callback=self.task_manager_cb)
+            config_callback=lambda config: self.task_manager_cb(config, userdata))
 
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -43,18 +44,17 @@ class PipelineExecute(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
 
-        smach.State.__init__(self, outcomes=["aborted"])
 
-    def task_manager_cb(self, config):
+    def task_manager_cb(self, config, userdata):
         rospy.loginfo(
             """Client: state change request: {Tac_states}""".format(**config))
         activated_task_id = config["Tac_states"]
 
         if defines.Tasks.pipeline_inspection.id == activated_task_id:
-            self.isEnabled = True
+            userdata.isEnabled = True
         else:
-            self.isEnabled = False
-        print(f"isEnabled: {self.isEnabled} ")
+            userdata.isEnabled = False
+        print(f"isEnabled: {userdata.isEnabled} ")
 
         return config
 
@@ -69,7 +69,7 @@ class PipelineExecute(smach.State):
         # Feedback of the current state
         self.state_pub.publish(f"{self.task}/execute")
 
-        if self.isEnabled == False:
+        if userdata.isEnabled == False:
             return "aborted"
 
         # object request
@@ -85,7 +85,7 @@ class PipelineExecute(smach.State):
         self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown() and self.isDetected and self.isEnabled:
+        while not rospy.is_shutdown() and self.isDetected and userdata.isEnabled:
             print("PATH POSITION DETECTED: " +
                   str(self.object.objectPose.pose.position.x) + ", " +
                   str(self.object.objectPose.pose.position.y) + ", " +
@@ -112,14 +112,16 @@ class PipelineExecute(smach.State):
 
 class PipelineStandby(smach.State):
 
-    def __init__(self):
+    def __init__(self, userdata):
         self.task = "pipeline"
 
+        smach.State.__init__(self, outcomes=["aborted", "succeeded"], input_keys=['isEnabled'], output_keys=['isEnabled'])
+
         # task manager
-        task_manager_client = dynamic_reconfigure.client.Client(
+        self.task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,
-            config_callback=self.task_manager_cb)
+            config_callback=lambda config: self.task_manager_cb(config, userdata))
 
         # landmark server
         self.landmarks_client = rospy.ServiceProxy("send_positions",
@@ -139,18 +141,16 @@ class PipelineStandby(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
 
-        smach.State.__init__(self, outcomes=["aborted", "succeeded"])
-
-    def task_manager_cb(self, config):
+    def task_manager_cb(self, config, userdata):
         rospy.loginfo(
             """Client: state change request: {Tac_states}""".format(**config))
         activated_task_id = config["Tac_states"]
 
         if defines.Tasks.pipeline_inspection.id == activated_task_id:
-            self.isEnabled = True
+            userdata.isEnabled = True
         else:
-            self.isEnabled = False
-        print(f"isEnabled: {self.isEnabled} ")
+            userdata.isEnabled = False
+        print(f"isEnabled: {userdata.isEnabled} ")
 
         return config
 
@@ -159,10 +159,12 @@ class PipelineStandby(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo("Standby")
+
         # Feedback of the current state in state machine
         self.state_pub.publish(f"{self.task}/standby")
 
-        if self.isEnabled == False:
+        if userdata.isEnabled != True:
+            rospy.loginfo('PIPELINE FOLLOWING ENDED')
             return "aborted"
 
         # hold current position
@@ -172,7 +174,7 @@ class PipelineStandby(smach.State):
         self.dp_client.send_goal(dp_goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown() and self.isEnabled:
+        while not rospy.is_shutdown() and userdata.isEnabled:
             rospy.loginfo("Standby")
             self.object = self.landmarks_client(
                 self.task).object  # requesting update on the object
@@ -181,4 +183,5 @@ class PipelineStandby(smach.State):
                 return "succeeded"
             rate.sleep()
 
+        rospy.loginfo('PIPELINE FOLLOWING ENDED')
         return "aborted"

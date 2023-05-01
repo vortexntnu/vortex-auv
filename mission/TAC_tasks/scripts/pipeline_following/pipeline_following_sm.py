@@ -15,7 +15,7 @@ class PipelineFollowing():
 
         # initializing task manager client
         self.isEnabled = False
-        task_manager_client = dynamic_reconfigure.client.Client(
+        self.task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,
             config_callback=self.task_manager_cb)
@@ -40,19 +40,24 @@ class PipelineFollowing():
 
         rospy.loginfo('STARTING PIPELINE FOLLOWING')
 
-        pipeline_following_sm = StateMachine(outcomes=["done"])
+        pipeline_following_sm = StateMachine(outcomes=["done"], input_keys=['isEnabled'], output_keys=['isEnabled'])
+
+        userdata = pipeline_following_sm.userdata
+        userdata.isEnabled = self.isEnabled
+
         with pipeline_following_sm:
 
             StateMachine.add("PIPELINE_STANDBY",
-                             PipelineStandby(),
+                             PipelineStandby(userdata),
                              transitions={
                                  "aborted": "done",
-                                 "succeeded": "PIPELINE_EXECUTE"
-                             }),
+                                 "succeeded": "PIPELINE_EXECUTE"},
+                             remapping={'isEnabled': 'isEnabled'})
 
             StateMachine.add("PIPELINE_EXECUTE",
-                             PipelineExecute(),
-                             transitions={"aborted": "PIPELINE_STANDBY"})
+                             PipelineExecute(userdata),
+                             transitions={"aborted": "PIPELINE_STANDBY"},
+                             remapping={'isEnabled': 'isEnabled'})
 
         try:
             #Execute SMACH plan
@@ -65,6 +70,5 @@ class PipelineFollowing():
 
 if __name__ == "__main__":
     executer = PipelineFollowing()
-    executer.main()
-    rospy.loginfo('PIPELINE FOLLOWING ENDED')
-    rospy.spin()
+    while not rospy.is_shutdown():
+        executer.main()
