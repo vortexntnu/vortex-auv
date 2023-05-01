@@ -241,4 +241,4 @@ tac:
     error_coefficients:
       a: 0.04
       b: 0.02
-    powerpuck_offset: [0, 0, -0.6]
+    powerpuck_offset: [-0.1, 0, -0.05]
