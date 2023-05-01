@@ -1,0 +1,3 @@
+gripper_pins:
+  gripper_1: 6  #Down gripper
+  gripper_2: 13 #Forward gripper
