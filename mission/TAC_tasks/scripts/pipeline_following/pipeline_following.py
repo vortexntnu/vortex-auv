@@ -30,7 +30,7 @@ class PipelineExecute(smach.State):
         self.landmarks_client = rospy.ServiceProxy("send_positions",
                                                    request_position)
         rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client(f"{self.task}").object
+        self.object = self.landmarks_client(self.task).object
         self.isDetected = self.object.isDetected
 
         # Enable Dp
@@ -73,7 +73,7 @@ class PipelineExecute(smach.State):
             return "aborted"
 
         # object request
-        self.object = self.landmarks_client(f"{self.task}").object
+        self.object = self.landmarks_client(self.task).object
         self.isDetected = self.object.isDetected
 
         # DP goal setup
@@ -99,8 +99,7 @@ class PipelineExecute(smach.State):
                 self.dp_client.send_goal(goal)
 
             # Update DP goal
-            self.object = self.landmarks_client(
-                f"{self.task}").object  # requesting new point
+            self.object = self.landmarks_client(self.task).object  # requesting new point
             self.isDetected = self.object.isDetected
             goal.x_ref = self.object.objectPose.pose
             goal.x_ref.position.z = z_position
@@ -125,7 +124,7 @@ class PipelineStandby(smach.State):
         self.landmarks_client = rospy.ServiceProxy("send_positions",
                                                    request_position)
         rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client(f"{self.task}").object
+        self.object = self.landmarks_client(self.task).object
         self.isDetected = self.object.isDetected
 
         # Enable Dp
@@ -174,8 +173,7 @@ class PipelineStandby(smach.State):
         rate = rospy.Rate(10)
         while not rospy.is_shutdown() and self.isEnabled:
             rospy.loginfo("Standby")
-            self.object = self.landmarks_client(
-                f"{self.task}").object  # requesting update on the object
+            self.object = self.landmarks_client(self.task).object # requesting update on the object
             self.isDetected = self.object.isDetected
             if self.isDetected:
                 return "succeeded"
