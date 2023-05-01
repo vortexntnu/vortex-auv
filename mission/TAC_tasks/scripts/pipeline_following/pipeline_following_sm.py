@@ -40,7 +40,9 @@ class PipelineFollowing():
 
         rospy.loginfo('STARTING PIPELINE FOLLOWING')
 
-        pipeline_following_sm = StateMachine(outcomes=["done"], input_keys=['isEnabled'], output_keys=['isEnabled'])
+        pipeline_following_sm = StateMachine(outcomes=["done"],
+                                             input_keys=['isEnabled'],
+                                             output_keys=['isEnabled'])
 
         userdata = pipeline_following_sm.userdata
         userdata.isEnabled = self.isEnabled
@@ -51,7 +53,8 @@ class PipelineFollowing():
                              PipelineStandby(userdata),
                              transitions={
                                  "aborted": "done",
-                                 "succeeded": "PIPELINE_EXECUTE"},
+                                 "succeeded": "PIPELINE_EXECUTE"
+                             },
                              remapping={'isEnabled': 'isEnabled'})
 
             StateMachine.add("PIPELINE_EXECUTE",

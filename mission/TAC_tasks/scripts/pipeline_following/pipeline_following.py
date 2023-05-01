@@ -16,13 +16,17 @@ class PipelineExecute(smach.State):
     def __init__(self, userdata):
         self.task = "pipeline"
 
-        smach.State.__init__(self, outcomes=["aborted"], input_keys=['isEnabled'], output_keys=['isEnabled'])
+        smach.State.__init__(self,
+                             outcomes=["aborted"],
+                             input_keys=['isEnabled'],
+                             output_keys=['isEnabled'])
 
         # task manager
         self.task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,
-            config_callback=lambda config: self.task_manager_cb(config, userdata))
+            config_callback=lambda config: self.task_manager_cb(
+                config, userdata))
 
         # state information
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -43,7 +47,6 @@ class PipelineExecute(smach.State):
         # Information about the current pose of Beluga
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
-
 
     def task_manager_cb(self, config, userdata):
         rospy.loginfo(
@@ -85,7 +88,8 @@ class PipelineExecute(smach.State):
         self.dp_client.send_goal(goal)
 
         rate = rospy.Rate(10)
-        while not rospy.is_shutdown() and self.isDetected and userdata.isEnabled:
+        while not rospy.is_shutdown(
+        ) and self.isDetected and userdata.isEnabled:
             print("PATH POSITION DETECTED: " +
                   str(self.object.objectPose.pose.position.x) + ", " +
                   str(self.object.objectPose.pose.position.y) + ", " +
@@ -115,13 +119,17 @@ class PipelineStandby(smach.State):
     def __init__(self, userdata):
         self.task = "pipeline"
 
-        smach.State.__init__(self, outcomes=["aborted", "succeeded"], input_keys=['isEnabled'], output_keys=['isEnabled'])
+        smach.State.__init__(self,
+                             outcomes=["aborted", "succeeded"],
+                             input_keys=['isEnabled'],
+                             output_keys=['isEnabled'])
 
         # task manager
         self.task_manager_client = dynamic_reconfigure.client.Client(
             "task_manager/task_manager_server",
             timeout=5,
-            config_callback=lambda config: self.task_manager_cb(config, userdata))
+            config_callback=lambda config: self.task_manager_cb(
+                config, userdata))
 
         # landmark server
         self.landmarks_client = rospy.ServiceProxy("send_positions",
