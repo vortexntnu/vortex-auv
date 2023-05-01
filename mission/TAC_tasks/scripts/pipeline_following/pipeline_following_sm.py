@@ -22,8 +22,6 @@ def task_manager_cb(config):
 
 def main():
     rospy.init_node("tac_pipeline_fsm")
-    # rospy.wait_for_message()
-    # rospy.wait_for_service()
 
     pipeline_following_sm = StateMachine(outcomes=["done"])
     with pipeline_following_sm:
@@ -39,16 +37,10 @@ def main():
                          PipelineExecute(),
                          transitions={"aborted": "PIPELINE_STANDBY"})
 
-    #intro_server = IntrospectionServer(
-    #    str(rospy.get_name()), pipeline_following_sm, "/SM_ROOT"
-    #)
-    #intro_server.start()
-
     try:
         #Execute SMACH plan
         pipeline_following_sm.execute()
         rospy.loginfo("Exiting Pipeline Following")
-        #intro_server.stop()
 
     except Exception as e:
         rospy.loginfo("State machine failed: %s" % e)

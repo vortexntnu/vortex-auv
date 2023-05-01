@@ -138,7 +138,6 @@ class PipelineStandby(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry
 
-        #smach.State.__init__(self)
         smach.State.__init__(self, outcomes=["aborted", "succeeded"])
 
     def task_manager_cb(self, config):
