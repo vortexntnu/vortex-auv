@@ -29,7 +29,7 @@ class DockingExecute(smach.State):
             "/task_manager/server",
             timeout=3,
             config_callback=self.task_manager_cb)
-        self.isEnabled = rospy.get_param("/tasks/docking")
+        self.isEnabled = True
         self.task = "docking"
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -106,6 +106,7 @@ class DockingExecute(smach.State):
             self.object.objectPose.pose.orientation.w
         ]
 
+        # TODO: make sure transform works properly
         rotationMatrix = quaternion_matrix(tf_quaternion)
         offsetArray = rotationMatrix.dot(offsetFromCO)
 
@@ -168,7 +169,7 @@ class DockingExecute(smach.State):
             offsetPoint = self.find_relative_to_mass_centre(powerPuckOffset)
             goal.x_ref.position.x = goal.x_ref.position.x + offsetPoint.x
             goal.x_ref.position.y = goal.x_ref.position.y + offsetPoint.y
-            goal.x_ref.position.z = goal.x_ref.position.z + offsetPoint.z
+            goal.x_ref.position.z = goal.x_ref.position.z - offsetPoint.z
 
             # If we are not above the doking station, we converge towards a point above it first
             if not self.above_docking_point():
@@ -182,10 +183,9 @@ class DockingExecute(smach.State):
                 rospy.set_param("/DP/Enable", False)
 
                 # Start trusters pushing downwards
-                downward_trust = rospy.get_param(
-                    "/joystick/scaling/heave")  # Max limit for joystick heave
+                downward_trust = rospy.get_param("/joystick/scaling/heave")  # Max limit for joystick heave
                 thrust_vector = Wrench()
-                thrust_vector.force.z = -downward_trust
+                thrust_vector.force.z = -downward_trust * 0.5
                 self.thrust_pub.publish(thrust_vector)
 
             if self.above_docking_point():
@@ -220,6 +220,11 @@ class DockingExecute(smach.State):
         rospy.loginfo("BELUGA AT: " + str(self.odom.pose.pose.position.x) +
                       "; " + str(self.odom.pose.pose.position.y) + "; " +
                       str(self.odom.pose.pose.position.z))
+        
+        downward_trust = rospy.get_param("/joystick/scaling/heave")  # Max limit for joystick heave
+        thrust_vector = Wrench()
+        thrust_vector.force.z = -downward_trust
+        self.thrust_pub.publish(thrust_vector)
 
         rospy.loginfo("Docked to station")
 
@@ -274,7 +279,7 @@ class DockingStandby(smach.State):
             "/task_manager/server",
             timeout=3,
             config_callback=self.task_manager_cb)
-        self.isEnabled = rospy.get_param("/tasks/docking")
+        self.isEnabled = True
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 

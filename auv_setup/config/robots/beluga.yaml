@@ -236,7 +236,7 @@ tac:
     convergence_height: 2
     final_descent_height: 0.5
     docking_duration: 25.0
-    standby_height: 0.5
+    standby_height: 0.15
     radius_of_acceptance: 0.5
     error_coefficients:
       a: 0.04

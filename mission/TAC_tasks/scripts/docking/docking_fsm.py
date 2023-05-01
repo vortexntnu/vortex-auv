@@ -30,8 +30,9 @@ def main():
         rospy.loginfo("State machine failed: %s" % e)
 
 
+# TODO: fix task manager blocking here
 if __name__ == "__main__":
     while not rospy.is_shutdown():
-        enabled = rospy.get_param("/tasks/docking")
+        enabled = True
         if enabled:
             main()
