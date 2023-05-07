@@ -98,13 +98,13 @@ while True:
 
     # Display pressure [ca 5 s]
     for i in range(25):
-        system_pressure = round(read_internal_pressure(), 1)
+        system_pressure = round(read_internal_pressure(), 2)
         lcd.clear()
         lcd.write_string("hPa:" + str(system_pressure))
         time.sleep(0.2)
 
     # Display Voltage/Current [ca 10 s]
-    for i in range(50):
+    for i in range(40):
         system_voltage = round(read_PSM_voltage(), 2)
         system_current = round(read_PSM_current(), 2)
         lcd.clear()
