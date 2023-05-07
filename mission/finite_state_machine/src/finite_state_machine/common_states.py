@@ -19,6 +19,7 @@ from helper import create_sequence, ControlModeEnum
 
 
 class DpState(SimpleActionState):
+
     def __init__(self, pose, action_server="/guidance_interface/dp_server"):
         """A SimpleActionState that travels to a goal pose using our DP guidance.
         Only use when in close proximity of goal pose.
@@ -36,6 +37,7 @@ class DpState(SimpleActionState):
 
 
 class LosState(SimpleActionState):
+
     def __init__(
         self,
         goal_positon,
@@ -61,10 +63,12 @@ class LosState(SimpleActionState):
         goal.desired_depth = goal_positon.z
         goal.sphereOfAcceptance = sphere_of_acceptance
 
-        SimpleActionState.__init__(self, action_server, LosPathFollowingAction, goal)
+        SimpleActionState.__init__(self, action_server, LosPathFollowingAction,
+                                   goal)
 
 
 class VelState(SimpleActionState):
+
     def __init__(
         self,
         twist,
@@ -81,10 +85,12 @@ class VelState(SimpleActionState):
         goal = SetVelocityGoal()
         goal.desired_velocity = twist
         goal.control_mode = dp_control_mode.value
-        SimpleActionState.__init__(self, action_server, SetVelocityAction, goal)
+        SimpleActionState.__init__(self, action_server, SetVelocityAction,
+                                   goal)
 
 
 class GoToState(State):
+
     def __init__(self, goal_pose):
         """State that moves to a goal pose by first using LOS guindace for traveling
         potentially long distances and then DP guidance for fine tuned positioning.
@@ -96,9 +102,8 @@ class GoToState(State):
         self.goal_pose = goal_pose
         self.los_state = LosState(self.goal_pose.position)
         self.dp_state = DpState(self.goal_pose)
-        self.sm = create_sequence(
-            [self.los_state, self.dp_state], state_names=["los_state", "dp_state"]
-        )
+        self.sm = create_sequence([self.los_state, self.dp_state],
+                                  state_names=["los_state", "dp_state"])
 
     def execute(self, ud):
         res = self.sm.execute()

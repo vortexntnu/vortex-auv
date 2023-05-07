@@ -19,15 +19,18 @@ inactive = 0
 
 
 class GripperInterfaceNode:
+
     def __init__(self):
         rospy.init_node("gripper_interface")
-        self.joystick_sub = rospy.Subscriber(
-            "/mission/joystick_data", Joy, self.callbackJoy, queue_size=1
-        )
+        self.joystick_sub = rospy.Subscriber("/mission/joystick_data",
+                                             Joy,
+                                             self.callbackJoy,
+                                             queue_size=1)
 
-        self.gripper_sub = rospy.Subscriber(
-            "/gripper_cmd", GripperStatuses, self.callbackGrip, queue_size=1
-        )
+        self.gripper_sub = rospy.Subscriber("/gripper_cmd",
+                                            GripperStatuses,
+                                            self.callbackGrip,
+                                            queue_size=1)
 
         self.gripper_state1 = inactive
         self.gripper_state2 = inactive
@@ -45,10 +48,9 @@ class GripperInterfaceNode:
         GPIO.output(self.gripper_GPIO_pin1, GPIO.HIGH)
         GPIO.output(self.gripper_GPIO_pin2, GPIO.HIGH)
 
-        rospy.logwarn(
-            f"\nGripper interface has been initialized sucessfully.\
+        rospy.logwarn(f"\nGripper interface has been initialized sucessfully.\
                         \nUsing GPIO pins {self.gripper_GPIO_pin1} and {self.gripper_GPIO_pin2} for down and front grippers, respectively."
-        )
+                      )
 
     def callbackJoy(self, joy_msg):
         Dpad = joy_msg.axes[7]
