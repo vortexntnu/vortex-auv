@@ -9,7 +9,6 @@ import time
 
 
 class ReferenceModel:
-
     def __init__(self, x, h):
         """
         x = []
@@ -65,22 +64,28 @@ class ReferenceModel:
         self.x_d_dot_prev = self.x_d_dot
 
         # [u_d, u_d_dot, psi_d, r_d, r_d_dot]
-        x_output = np.array((
-            self.x_d[0],
-            self.x_d_dot[0],
-            self.x_d[1],
-            self.x_d_dot[1],
-            self.x_d_dot_dot[1],
-        ))
+        x_output = np.array(
+            (
+                self.x_d[0],
+                self.x_d_dot[0],
+                self.x_d[1],
+                self.x_d_dot[1],
+                self.x_d_dot_dot[1],
+            )
+        )
         return x_output
 
     def discreteTustinMSD(self, x_ref):
         self.x_ref = x_ref
 
         # new set point
-        self.x_d = (self.b0 * self.x_ref + self.b1 * self.x_ref_prev +
-                    self.b2 * self.x_ref_prev_prev - self.a1 * self.x_d_prev -
-                    self.a2 * self.x_d_prev_prev)
+        self.x_d = (
+            self.b0 * self.x_ref
+            + self.b1 * self.x_ref_prev
+            + self.b2 * self.x_ref_prev_prev
+            - self.a1 * self.x_d_prev
+            - self.a2 * self.x_d_prev_prev
+        )
 
         # include velocities and accelerations
         self.x_output = self.computeDerivatives()

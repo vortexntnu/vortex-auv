@@ -32,15 +32,14 @@ class LOSReferenceModelNode:
         rospy.init_node("rm_los")
 
         # Subscribers
-        self.guidance_data_sub = rospy.Subscriber("/guidance/los_data",
-                                                  GuidanceData,
-                                                  self.guidanceDataCallback,
-                                                  queue_size=1)
+        self.guidance_data_sub = rospy.Subscriber(
+            "/guidance/los_data", GuidanceData, self.guidanceDataCallback, queue_size=1
+        )
 
         # Publishers
-        self.rm_los_data_pub = rospy.Publisher("/reference_model/los_data",
-                                               GuidanceData,
-                                               queue_size=1)
+        self.rm_los_data_pub = rospy.Publisher(
+            "/reference_model/los_data", GuidanceData, queue_size=1
+        )
 
         # RM object
         self.reference_model = ReferenceModel(np.array((0, 0)), self.h)
@@ -61,21 +60,18 @@ class LOSReferenceModelNode:
             psi_ref = psi_ref + 2 * math.pi
 
         # Reference Model
-        x_d = self.reference_model.discreteTustinMSD(np.array(
-            (speed, psi_ref)))
+        x_d = self.reference_model.discreteTustinMSD(np.array((speed, psi_ref)))
         psi_d = x_d[2]
 
         e = psi - psi_d
         if e > math.pi:
             psi_d = psi_d - 2 * math.pi
             self.reference_model = ReferenceModel(np.array((u, psi)), self.h)
-            x_d = self.reference_model.discreteTustinMSD(
-                np.array((speed, psi_d)))
+            x_d = self.reference_model.discreteTustinMSD(np.array((speed, psi_d)))
         if e < -math.pi:
             psi_d = psi_d + 2 * math.pi
             self.reference_model = ReferenceModel(np.array((u, psi)), self.h)
-            x_d = self.reference_model.discreteTustinMSD(
-                np.array((speed, psi_d)))
+            x_d = self.reference_model.discreteTustinMSD(np.array((speed, psi_d)))
         return x_d
 
     def guidanceDataCallback(self, msg):

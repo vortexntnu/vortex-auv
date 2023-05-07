@@ -16,14 +16,12 @@ PWM_HIGH = 1900
 
 
 class LightsInterfaceNode:
-
     def __init__(self):
         rospy.init_node("lights_interface")
 
-        self.js_sub = rospy.Subscriber("/joystick/joy",
-                                       Joy,
-                                       self.callback,
-                                       queue_size=1)
+        self.js_sub = rospy.Subscriber(
+            "/joystick/joy", Joy, self.callback, queue_size=1
+        )
         self.pwm_pub = rospy.Publisher("/pwm", Pwm, queue_size=1)
 
         self.pwm_pin = 8
@@ -35,8 +33,9 @@ class LightsInterfaceNode:
     def callback(self, joy_msg):
         button = joy_msg.buttons[7]
 
-        if (button == pressed
-            ):  # only handle non-zero messages, since the joy topic is spammed
+        if (
+            button == pressed
+        ):  # only handle non-zero messages, since the joy topic is spammed
             time_delta = datetime.now() - self.last_press
             if time_delta.total_seconds() > self.cooldown_period:
                 if self.light_state != active:

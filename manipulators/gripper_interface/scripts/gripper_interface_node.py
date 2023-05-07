@@ -19,18 +19,15 @@ inactive = 0
 
 
 class GripperInterfaceNode:
-
     def __init__(self):
         rospy.init_node("gripper_interface")
-        self.joystick_sub = rospy.Subscriber("/mission/joystick_data",
-                                             Joy,
-                                             self.callbackJoy,
-                                             queue_size=1)
+        self.joystick_sub = rospy.Subscriber(
+            "/mission/joystick_data", Joy, self.callbackJoy, queue_size=1
+        )
 
-        self.gripper_sub = rospy.Subscriber("/gripper_cmd",
-                                            GripperStatuses,
-                                            self.callbackGrip,
-                                            queue_size=1)
+        self.gripper_sub = rospy.Subscriber(
+            "/gripper_cmd", GripperStatuses, self.callbackGrip, queue_size=1
+        )
 
         self.gripper_state1 = inactive
         self.gripper_state2 = inactive
@@ -48,9 +45,10 @@ class GripperInterfaceNode:
         GPIO.output(self.gripper_GPIO_pin1, GPIO.HIGH)
         GPIO.output(self.gripper_GPIO_pin2, GPIO.HIGH)
 
-        rospy.logwarn(f"\nGripper interface has been initialized sucessfully.\
+        rospy.logwarn(
+            f"\nGripper interface has been initialized sucessfully.\
                         \nUsing GPIO pins {self.gripper_GPIO_pin1} and {self.gripper_GPIO_pin2} for down and front grippers, respectively."
-                      )
+        )
 
     def callbackJoy(self, joy_msg):
         Dpad = joy_msg.axes[7]
@@ -81,24 +79,20 @@ class GripperInterfaceNode:
         time_delta = datetime.now() - self.last_press
 
         if time_delta.total_seconds() > self.cooldown_period:
-            if (gripper_msg.bool[0] == True
-                    and self.gripper_state1 == inactive):
+            if gripper_msg.bool[0] == True and self.gripper_state1 == inactive:
                 GPIO.output(self.gripper_GPIO_pin1, GPIO.LOW)
                 self.gripper_state1 = active
                 rospy.loginfo("Gripper 1 activated!")
-            elif (gripper_msg.bool[0] == False
-                  and self.gripper_state1 == active):
+            elif gripper_msg.bool[0] == False and self.gripper_state1 == active:
                 GPIO.output(self.gripper_GPIO_pin1, GPIO.HIGH)
                 self.gripper_state1 = inactive
                 rospy.loginfo("Gripper 1 deactivated!")
 
-            if (gripper_msg.bool[1] == True
-                    and self.gripper_state2 == inactive):
+            if gripper_msg.bool[1] == True and self.gripper_state2 == inactive:
                 GPIO.output(self.gripper_GPIO_pin2, GPIO.LOW)
                 self.gripper_state2 = active
                 rospy.loginfo("Gripper 2 activated!")
-            elif (gripper_msg.bool[1] == False
-                  and self.gripper_state2 == active):
+            elif gripper_msg.bool[1] == False and self.gripper_state2 == active:
                 GPIO.output(self.gripper_GPIO_pin2, GPIO.HIGH)
                 self.gripper_state2 = inactive
                 rospy.loginfo("Gripper 2 deactivated!")

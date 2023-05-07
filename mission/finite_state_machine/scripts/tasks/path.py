@@ -22,20 +22,18 @@ from nav_msgs.msg import Odometry
 
 
 class PathSearch(smach.State):
-
     def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=["preempted", "succeeded", "aborted"])
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
+        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("path").object
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
 
     # TODO: insert search pattern
     def execute(self, userdata):
@@ -58,29 +56,31 @@ class PathSearch(smach.State):
 
         self.vtf_client.cancel_all_goals()
 
-        print("PATH POSITION DETECTED: " +
-              str(self.object.objectPose.pose.position.x) + ", " +
-              str(self.object.objectPose.pose.position.y) + ", " +
-              str(self.object.objectPose.pose.position.z))
+        print(
+            "PATH POSITION DETECTED: "
+            + str(self.object.objectPose.pose.position.x)
+            + ", "
+            + str(self.object.objectPose.pose.position.y)
+            + ", "
+            + str(self.object.objectPose.pose.position.z)
+        )
         return "succeeded"
 
 
 class PathConverge(smach.State):
-
     def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=["preempted", "succeeded", "aborted"])
+        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("path").object
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -100,13 +100,21 @@ class PathConverge(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         rate.sleep()
-        while (not rospy.is_shutdown() and not self.vtf_client.simple_state
-               == actionlib.simple_action_client.SimpleGoalState.DONE):
+        while (
+            not rospy.is_shutdown()
+            and not self.vtf_client.simple_state
+            == actionlib.simple_action_client.SimpleGoalState.DONE
+        ):
             self.object = self.landmarks_client("path").object
             goal.waypoints = [self.object.objectPose.pose.position]
-            print("PATH POSITION DETECTED: " + str(goal.waypoints[0].x) +
-                  ", " + str(goal.waypoints[0].y) + ", " +
-                  str(goal.waypoints[0].z))
+            print(
+                "PATH POSITION DETECTED: "
+                + str(goal.waypoints[0].x)
+                + ", "
+                + str(goal.waypoints[0].y)
+                + ", "
+                + str(goal.waypoints[0].z)
+            )
             self.vtf_client.send_goal(goal)
             rate.sleep()
             if self.object.estimateFucked:
@@ -115,15 +123,18 @@ class PathConverge(smach.State):
         self.vtf_client.cancel_all_goals()
 
         self.object = self.landmarks_client("path").object
-        print("PATH POSITION ESTIMATE CONVERGED AT: " +
-              str(self.object.objectPose.pose.position.x) + "; " +
-              str(self.object.objectPose.pose.position.y) + "; " +
-              str(self.object.objectPose.pose.position.z))
+        print(
+            "PATH POSITION ESTIMATE CONVERGED AT: "
+            + str(self.object.objectPose.pose.position.x)
+            + "; "
+            + str(self.object.objectPose.pose.position.y)
+            + "; "
+            + str(self.object.objectPose.pose.position.z)
+        )
         return "succeeded"
 
 
 class PathExecute(smach.State):
-
     def __init__(self):
         smach.State.__init__(
             self,
@@ -131,14 +142,14 @@ class PathExecute(smach.State):
             output_keys=["dir_next_task"],
         )
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("path").object
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
 
         self.dp_pub = rospy.Publisher("controllers/dp_data", DpSetpoint)
 

@@ -18,16 +18,16 @@ def main():
     rospy.init_node("robosub_fsm")
 
     rospy.wait_for_service(
-        "send_positions")  # consider moving into individual state functions
+        "send_positions"
+    )  # consider moving into individual state functions
 
-    robosub_state_machine = StateMachine(
-        outcomes=["preempted", "succeeded", "aborted"])
+    robosub_state_machine = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
     with robosub_state_machine:
         ##PREPARATION
-        StateMachine.add("ROBOSUB_PREPARE",
-                         ReachDepth(),
-                         transitions={"succeeded": "GATE_SM"})
+        StateMachine.add(
+            "ROBOSUB_PREPARE", ReachDepth(), transitions={"succeeded": "GATE_SM"}
+        )
 
         ##GATE
         gate_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
@@ -42,46 +42,35 @@ def main():
             StateMachine.add(
                 "GATE_CONVERGE",
                 GateConverge(),
-                transitions={
-                    "succeeded": "GATE_EXECUTE",
-                    "aborted": "GATE_SEARCH"
-                },
+                transitions={"succeeded": "GATE_EXECUTE", "aborted": "GATE_SEARCH"},
                 remapping={"gate_converge_output": "gate"},
             )
 
             StateMachine.add("GATE_EXECUTE", GateExecute())
 
-        StateMachine.add("GATE_SM",
-                         gate_sm,
-                         transitions={"succeeded": "BUOY_SM"})
+        StateMachine.add("GATE_SM", gate_sm, transitions={"succeeded": "BUOY_SM"})
 
         ##BUOY
         buoy_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with buoy_sm:
-            StateMachine.add("BUOY_SEARCH",
-                             BuoySearch(),
-                             transitions={"succeeded": "BUOY_CONVERGE"})
+            StateMachine.add(
+                "BUOY_SEARCH", BuoySearch(), transitions={"succeeded": "BUOY_CONVERGE"}
+            )
 
             StateMachine.add(
                 "BUOY_CONVERGE",
                 BuoyConverge(),
-                transitions={
-                    "succeeded": "BUOY_EXECUTE",
-                    "aborted": "BUOY_SEARCH"
-                },
+                transitions={"succeeded": "BUOY_EXECUTE", "aborted": "BUOY_SEARCH"},
                 remapping={"buoy_converge_output": "buoy"},
             )
 
             StateMachine.add("BUOY_EXECUTE", BuoyExecute())
 
-        StateMachine.add("BUOY_SM",
-                         buoy_sm,
-                         transitions={"succeeded": "TORPEDO_SM"})
+        StateMachine.add("BUOY_SM", buoy_sm, transitions={"succeeded": "TORPEDO_SM"})
 
         ##TORPEDO
-        torpedo_sm = StateMachine(
-            outcomes=["preempted", "succeeded", "aborted"])
+        torpedo_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with torpedo_sm:
             StateMachine.add(
@@ -102,13 +91,12 @@ def main():
 
             StateMachine.add("TORPEDO_EXECUTE", TorpedoExecute())
 
-        StateMachine.add("TORPEDO_SM",
-                         torpedo_sm,
-                         transitions={"succeeded": "OCTAGON_SM"})
+        StateMachine.add(
+            "TORPEDO_SM", torpedo_sm, transitions={"succeeded": "OCTAGON_SM"}
+        )
 
         ##RESURFACE IN OCTAGON
-        octagon_sm = StateMachine(
-            outcomes=["preempted", "succeeded", "aborted"])
+        octagon_sm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
         with octagon_sm:
             StateMachine.add(
@@ -154,8 +142,9 @@ def main():
 
         # StateMachine.add("PATH_SM", path_sm, transitions={"succeeded": "BUOY_SM"})
 
-    intro_server = IntrospectionServer(str(rospy.get_name()),
-                                       robosub_state_machine, "/SM_ROOT")
+    intro_server = IntrospectionServer(
+        str(rospy.get_name()), robosub_state_machine, "/SM_ROOT"
+    )
     intro_server.start()
 
     try:

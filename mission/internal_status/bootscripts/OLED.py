@@ -121,9 +121,9 @@ def read_PSM_voltage():
 
 def read_PSM_current():
     try:
-        current = (channel_current.convert_and_read() -
-                   psm_to_battery_current_offset
-                   ) * psm_to_battery_current_scale_factor
+        current = (
+            channel_current.convert_and_read() - psm_to_battery_current_offset
+        ) * psm_to_battery_current_scale_factor
 
     except IOError:
         current = -1
@@ -153,14 +153,8 @@ while True:
     # Write two lines of text.
 
     draw.text((x, top), "IP: " + IP_str, font=font, fill=255)
-    draw.text((x, top + 8),
-              "Volt: " + str(system_voltage),
-              font=font,
-              fill=255)
-    draw.text((x, top + 16),
-              "Amp:  " + str(system_current),
-              font=font,
-              fill=255)
+    draw.text((x, top + 8), "Volt: " + str(system_voltage), font=font, fill=255)
+    draw.text((x, top + 16), "Amp:  " + str(system_current), font=font, fill=255)
 
     # Display image.
     disp.image(image)

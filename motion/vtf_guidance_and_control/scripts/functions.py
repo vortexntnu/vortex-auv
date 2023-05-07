@@ -21,7 +21,7 @@ def get_M_RB(m, r_g, inertia):
     M_11 = m * np.eye(3)
     M_12 = -m * skew(r_g)
     M_21 = m * skew(r_g)
-    M_22 = np.array(inertia) - m * skew(r_g)**2
+    M_22 = np.array(inertia) - m * skew(r_g) ** 2
     return np.block([[M_11, M_12], [M_21, M_22]])
 
 
@@ -30,18 +30,21 @@ def skew(v):
 
 
 def R_x(rot):
-    return np.array([[1, 0, 0], [0, np.cos(rot), -np.sin(rot)],
-                     [0, np.sin(rot), np.cos(rot)]])
+    return np.array(
+        [[1, 0, 0], [0, np.cos(rot), -np.sin(rot)], [0, np.sin(rot), np.cos(rot)]]
+    )
 
 
 def R_y(rot):
-    return np.array([[np.cos(rot), 0, np.sin(rot)], [0, 1, 0],
-                     [-np.sin(rot), 0, np.cos(rot)]])
+    return np.array(
+        [[np.cos(rot), 0, np.sin(rot)], [0, 1, 0], [-np.sin(rot), 0, np.cos(rot)]]
+    )
 
 
 def R_z(rot):
-    return np.array([[np.cos(rot), -np.sin(rot), 0],
-                     [np.sin(rot), np.cos(rot), 0], [0, 0, 1]])
+    return np.array(
+        [[np.cos(rot), -np.sin(rot), 0], [np.sin(rot), np.cos(rot), 0], [0, 0, 1]]
+    )
 
 
 def R_path(chi_p, gamma_p):
@@ -49,43 +52,45 @@ def R_path(chi_p, gamma_p):
 
 
 def R_from_eul(eul):
-    return np.array([
+    return np.array(
         [
-            np.cos(eul[2]) * np.cos(eul[1]),
-            -np.sin(eul[2]) * np.cos(eul[0]) +
-            np.cos(eul[2]) * np.sin(eul[1]) * np.sin(eul[0]),
-            np.sin(eul[2]) * np.sin(eul[0]) +
-            np.cos(eul[2]) * np.cos(eul[0]) * np.sin(eul[1]),
-        ],
-        [
-            np.sin(eul[2]) * np.cos(eul[1]),
-            np.cos(eul[2]) * np.cos(eul[0]) +
-            np.sin(eul[0]) * np.sin(eul[1]) * np.sin(eul[2]),
-            -np.cos(eul[2]) * np.sin(eul[0]) +
-            np.sin(eul[1]) * np.sin(eul[2]) * np.cos(eul[0]),
-        ],
-        [
-            -np.sin(eul[1]),
-            np.cos(eul[1]) * np.sin(eul[0]),
-            np.cos(eul[1]) * np.cos(eul[0]),
-        ],
-    ])
+            [
+                np.cos(eul[2]) * np.cos(eul[1]),
+                -np.sin(eul[2]) * np.cos(eul[0])
+                + np.cos(eul[2]) * np.sin(eul[1]) * np.sin(eul[0]),
+                np.sin(eul[2]) * np.sin(eul[0])
+                + np.cos(eul[2]) * np.cos(eul[0]) * np.sin(eul[1]),
+            ],
+            [
+                np.sin(eul[2]) * np.cos(eul[1]),
+                np.cos(eul[2]) * np.cos(eul[0])
+                + np.sin(eul[0]) * np.sin(eul[1]) * np.sin(eul[2]),
+                -np.cos(eul[2]) * np.sin(eul[0])
+                + np.sin(eul[1]) * np.sin(eul[2]) * np.cos(eul[0]),
+            ],
+            [
+                -np.sin(eul[1]),
+                np.cos(eul[1]) * np.sin(eul[0]),
+                np.cos(eul[1]) * np.cos(eul[0]),
+            ],
+        ]
+    )
 
 
 def T_from_eul(eul):
-    return np.array([
-        [1,
-         np.sin(eul[0]) * np.tan(eul[1]),
-         np.cos(eul[0]) * np.tan(eul[1])],
-        [0, np.cos(eul[0]), -np.sin(eul[0])],
-        [0, np.sin(eul[0]) / np.cos(eul[1]),
-         np.cos(eul[0])] / np.cos(eul[1]),
-    ])
+    return np.array(
+        [
+            [1, np.sin(eul[0]) * np.tan(eul[1]), np.cos(eul[0]) * np.tan(eul[1])],
+            [0, np.cos(eul[0]), -np.sin(eul[0])],
+            [0, np.sin(eul[0]) / np.cos(eul[1]), np.cos(eul[0])] / np.cos(eul[1]),
+        ]
+    )
 
 
 def J_from_eul(eul):
-    return np.block([[R_from_eul(eul), np.zeros((3, 3))],
-                     [np.zeros((3, 3)), T_from_eul(eul)]])
+    return np.block(
+        [[R_from_eul(eul), np.zeros((3, 3))], [np.zeros((3, 3)), T_from_eul(eul)]]
+    )
 
 
 def euler2(dot_x, x, h):

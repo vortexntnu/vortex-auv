@@ -19,15 +19,17 @@ IP_prev = "No IP"
 IP_filt = ""
 
 # Initialize LCD
-lcd = CharLCD(i2c_expander='PCF8574',
-              address=0x27,
-              port=1,
-              cols=16,
-              rows=2,
-              dotsize=8,
-              charmap='A02',
-              auto_linebreaks=True,
-              backlight_enabled=True)
+lcd = CharLCD(
+    i2c_expander="PCF8574",
+    address=0x27,
+    port=1,
+    cols=16,
+    rows=2,
+    dotsize=8,
+    charmap="A02",
+    auto_linebreaks=True,
+    backlight_enabled=True,
+)
 
 # Parameters
 i2c_adress_PSM = 0x69  # Reads voltage and current from ADC on PDB through I2C
@@ -35,16 +37,16 @@ i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
 
 # init of I2C bus communication
 i2c_bus = smbus.SMBus(1)
-channel_voltage = MCP342x(i2c_bus, i2c_adress_PSM, channel=0,
-                          resolution=18)  # voltage
-channel_current = MCP342x(i2c_bus, i2c_adress_PSM, channel=1,
-                          resolution=18)  # current
-channel_pressure = adafruit_mprls.MPRLS(board.I2C(),
-                                        addr=i2c_adress_MPRLS,
-                                        reset_pin=None,
-                                        eoc_pin=None,
-                                        psi_min=0,
-                                        psi_max=25)  # Pressure
+channel_voltage = MCP342x(i2c_bus, i2c_adress_PSM, channel=0, resolution=18)  # voltage
+channel_current = MCP342x(i2c_bus, i2c_adress_PSM, channel=1, resolution=18)  # current
+channel_pressure = adafruit_mprls.MPRLS(
+    board.I2C(),
+    addr=i2c_adress_MPRLS,
+    reset_pin=None,
+    eoc_pin=None,
+    psi_min=0,
+    psi_max=25,
+)  # Pressure
 time.sleep(1)
 
 # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
@@ -69,9 +71,9 @@ def read_PSM_voltage():
 
 def read_PSM_current():
     try:
-        current = (channel_current.convert_and_read() -
-                   psm_to_battery_current_offset
-                   ) * psm_to_battery_current_scale_factor
+        current = (
+            channel_current.convert_and_read() - psm_to_battery_current_offset
+        ) * psm_to_battery_current_scale_factor
 
     except IOError:
         current = -1

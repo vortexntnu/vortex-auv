@@ -19,28 +19,26 @@ z_compensation = -0.015
 
 
 class BuoySearch(smach.State):
-
     def __init__(self):
         self.task = "buoy"
-        smach.State.__init__(self,
-                             outcomes=["preempted", "succeeded", "aborted"])
+        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client(self.task).object
 
-        self.landmarks_pub = rospy.Publisher("/fsm/object_positions_in",
-                                             ObjectPosition,
-                                             queue_size=1)
+        self.landmarks_pub = rospy.Publisher(
+            "/fsm/object_positions_in", ObjectPosition, queue_size=1
+        )
 
         self.recov_point = self.landmarks_client("recovery_point").object
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -64,8 +62,10 @@ class BuoySearch(smach.State):
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
 
-            while (self.vtf_client.simple_state
-                   != actionlib.simple_action_client.SimpleGoalState.DONE):
+            while (
+                self.vtf_client.simple_state
+                != actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 rate.sleep()
 
         self.recov_point.objectPose.pose.position = self.odom.pose.pose.position
@@ -80,10 +80,12 @@ class BuoySearch(smach.State):
         object_found = self.search_pattern.run()
 
         if object_found:
-            print(f"{self.task} POSITION DETECTED:"
-                  f"{self.object.objectPose.pose.position.x}, "
-                  f"{self.object.objectPose.pose.position.y}, "
-                  f"{self.object.objectPose.pose.position.z}")
+            print(
+                f"{self.task} POSITION DETECTED:"
+                f"{self.object.objectPose.pose.position.x}, "
+                f"{self.object.objectPose.pose.position.y}, "
+                f"{self.object.objectPose.pose.position.z}"
+            )
 
             return "succeeded"
         else:
@@ -91,7 +93,6 @@ class BuoySearch(smach.State):
 
 
 class BuoyConverge(smach.State):
-
     def __init__(self):
         smach.State.__init__(
             self,
@@ -99,19 +100,17 @@ class BuoyConverge(smach.State):
             output_keys=["buoy_converge_output"],
         )
 
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
+        self.landmarks_client = rospy.ServiceProxy("send_positions", request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("buoy").object
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data",
-                                      DpSetpoint,
-                                      queue_size=1)
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
@@ -138,14 +137,21 @@ class BuoyConverge(smach.State):
         # TODO: The commented out code below should be there.
         # However, the VTF action server prematurely finishes when it is. Investigate this.
         while not rospy.is_shutdown():
-            if (self.vtf_client.simple_state ==
-                    actionlib.simple_action_client.SimpleGoalState.DONE):
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 break
             self.object = self.landmarks_client("buoy").object
             # goal.waypoints = [self.object.objectPose.pose.position]
-            print("BUOY POSITION DETECTED: " + str(goal.waypoints[0].x) +
-                  ", " + str(goal.waypoints[0].y) + ", " +
-                  str(goal.waypoints[0].z))
+            print(
+                "BUOY POSITION DETECTED: "
+                + str(goal.waypoints[0].x)
+                + ", "
+                + str(goal.waypoints[0].y)
+                + ", "
+                + str(goal.waypoints[0].z)
+            )
             # goal.waypoints[0] = get_pose_in_front(self.object.objectPose.pose, 0.5).position
             # self.vtf_client.send_goal(goal)
             userdata.buoy_converge_output = self.object
@@ -163,8 +169,7 @@ class BuoyConverge(smach.State):
         starting_time = rospy.Time.now().to_sec()
         converging_threshold = 60
         while not rospy.is_shutdown() and not self.object.estimateConverged:
-            if (rospy.Time.now().to_sec() -
-                    starting_time) > converging_threshold:
+            if (rospy.Time.now().to_sec() - starting_time) > converging_threshold:
                 rospy.loginfo("FAILED TO CONVERGE ON BUOY! TRYING EXECUTE!")
                 out = self.landmarks_client("buoy").object
                 out.objectPose = self.odom.pose.pose
@@ -183,33 +188,37 @@ class BuoyConverge(smach.State):
         self.dp_pub.publish(dp_goal)
         self.object = self.landmarks_client("buoy").object
         userdata.buoy_converge_output = self.object
-        print("BUOY POSITION ESTIMATE CONVERGED AT: " +
-              str(self.object.objectPose.pose.position.x) + "; " +
-              str(self.object.objectPose.pose.position.y) + "; " +
-              str(self.object.objectPose.pose.position.z))
+        print(
+            "BUOY POSITION ESTIMATE CONVERGED AT: "
+            + str(self.object.objectPose.pose.position.x)
+            + "; "
+            + str(self.object.objectPose.pose.position.y)
+            + "; "
+            + str(self.object.objectPose.pose.position.z)
+        )
 
         return "succeeded"
 
 
 class BuoyExecute(smach.State):
-
     def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=["preempted", "succeeded", "aborted"],
-                             input_keys=["buoy"])
+        smach.State.__init__(
+            self, outcomes=["preempted", "succeeded", "aborted"], input_keys=["buoy"]
+        )
 
-        self.dp_pub = rospy.Publisher("/controllers/dp_data",
-                                      DpSetpoint,
-                                      queue_size=1)
+        self.dp_pub = rospy.Publisher("/controllers/dp_data", DpSetpoint, queue_size=1)
 
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
 
         desired_velocity_topic = rospy.get_param(
-            "/controllers/velocity_controller/desired_velocity_topic")
-        self.velocity_ctrl_client = rospy.ServiceProxy(desired_velocity_topic,
-                                                       SetVelocity)
+            "/controllers/velocity_controller/desired_velocity_topic"
+        )
+        self.velocity_ctrl_client = rospy.ServiceProxy(
+            desired_velocity_topic, SetVelocity
+        )
         rospy.wait_for_service(desired_velocity_topic)
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
@@ -241,12 +250,13 @@ class BuoyExecute(smach.State):
         touching_threshold = 8  # seconds, TODO: tune
         starting_time = rospy.Time.now().to_sec()
         while not rospy.is_shutdown():
-            if (self.vtf_client.simple_state ==
-                    actionlib.simple_action_client.SimpleGoalState.DONE):
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 break
 
-            if (rospy.Time.now().to_sec() -
-                    starting_time) > touching_threshold:
+            if (rospy.Time.now().to_sec() - starting_time) > touching_threshold:
                 rospy.loginfo("Touching buoy time threshold reached!")
                 self.vtf_client.cancel_all_goals()
                 break
@@ -265,8 +275,10 @@ class BuoyExecute(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(1)
         while not rospy.is_shutdown():
-            if (self.vtf_client.simple_state ==
-                    actionlib.simple_action_client.SimpleGoalState.DONE):
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 break
             rate.sleep()
 
@@ -285,8 +297,10 @@ class BuoyExecute(smach.State):
         rate = rospy.Rate(1)
         rate.sleep()
         while not rospy.is_shutdown():
-            if (self.vtf_client.simple_state ==
-                    actionlib.simple_action_client.SimpleGoalState.DONE):
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 break
             rate.sleep()
 

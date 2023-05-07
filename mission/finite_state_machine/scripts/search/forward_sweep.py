@@ -28,26 +28,27 @@ import numpy as np
 
 
 class ForwardSweepSearch:
-
     def __init__(self, task):
         self.task = task
         self.odom = Odometry()
         self.rate = rospy.Rate(10)
 
         landmark_client = "send_positions"
-        self.landmarks_client = rospy.ServiceProxy(landmark_client,
-                                                   request_position)
+        self.landmarks_client = rospy.ServiceProxy(landmark_client, request_position)
         self.object = self.landmarks_client(self.task).object
         rospy.wait_for_service(landmark_client)
 
         desired_velocity_topic = rospy.get_param(
-            "/controllers/velocity_controller/desired_velocity_topic")
-        self.velocity_ctrl_client = rospy.ServiceProxy(desired_velocity_topic,
-                                                       SetVelocity)
+            "/controllers/velocity_controller/desired_velocity_topic"
+        )
+        self.velocity_ctrl_client = rospy.ServiceProxy(
+            desired_velocity_topic, SetVelocity
+        )
         rospy.wait_for_service(desired_velocity_topic)
 
         self.vtf_client = actionlib.SimpleActionClient(
-            "/controllers/vtf_action_server", VtfPathFollowingAction)
+            "/controllers/vtf_action_server", VtfPathFollowingAction
+        )
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
 
@@ -61,8 +62,7 @@ class ForwardSweepSearch:
         goal = rotate_certain_angle(goal, angle)
 
         vel_goal = Twist()
-        vel_goal.angular.z = np.sign(angle) * rospy.get_param(
-            "/fsm/turn_speed")
+        vel_goal.angular.z = np.sign(angle) * rospy.get_param("/fsm/turn_speed")
         vel_goal.linear.z = -0.01
         vel_goal.linear.x = 0.01
 
@@ -89,16 +89,18 @@ class ForwardSweepSearch:
         initial_pose = self.odom.pose.pose
 
         while not self.object.isDetected:
-            position_ahead = get_pose_in_front(initial_pose,
-                                               path_segment_counter,
-                                               0).position
+            position_ahead = get_pose_in_front(
+                initial_pose, path_segment_counter, 0
+            ).position
             position_ahead.z = rospy.get_param("/fsm/operating_depth")
             goal.waypoints = [position_ahead]
             self.vtf_client.wait_for_server()
             self.vtf_client.send_goal(goal)
 
-            while (self.vtf_client.simple_state
-                   != actionlib.simple_action_client.SimpleGoalState.DONE):
+            while (
+                self.vtf_client.simple_state
+                != actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 self.object = self.landmarks_client(self.task).object
                 if self.object.isDetected:
                     break

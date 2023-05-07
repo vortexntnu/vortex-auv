@@ -8,13 +8,12 @@ from nav_msgs.msg import Odometry
 
 
 class ReachDepth(smach.State):
-
     def __init__(self):
-        smach.State.__init__(self,
-                             outcomes=["preempted", "succeeded", "aborted"])
+        smach.State.__init__(self, outcomes=["preempted", "succeeded", "aborted"])
         vtf_action_server = "/controllers/vtf_action_server"
-        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
-                                                       VtfPathFollowingAction)
+        self.vtf_client = actionlib.SimpleActionClient(
+            vtf_action_server, VtfPathFollowingAction
+        )
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
 
@@ -34,8 +33,10 @@ class ReachDepth(smach.State):
         self.vtf_client.send_goal(goal)
         rate = rospy.Rate(10)
         while not rospy.is_shutdown():
-            if (self.vtf_client.simple_state ==
-                    actionlib.simple_action_client.SimpleGoalState.DONE):
+            if (
+                self.vtf_client.simple_state
+                == actionlib.simple_action_client.SimpleGoalState.DONE
+            ):
                 print("ReachDepth succeeded")
                 break
             rate.sleep()

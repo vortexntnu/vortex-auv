@@ -9,7 +9,6 @@ PIN = 13
 
 
 class TorpedoLaunch:
-
     def __init__(self):
         rospy.init_node("torpedo_node")
 

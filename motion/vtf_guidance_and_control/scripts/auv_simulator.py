@@ -10,7 +10,6 @@ from functions import euler2, J_from_eul, skew
 
 
 class AUVSimulator:
-
     def __init__(
         self,
         AUVModel,
@@ -31,12 +30,9 @@ class AUVSimulator:
         self.t = 0
         self.online = False
 
-    def set_initial_conditions(self,
-                               eta,
-                               nu,
-                               t,
-                               dot_nu=[0, 0, 0, 0, 0, 0],
-                               tau=[0, 0, 0, 0, 0, 0]):
+    def set_initial_conditions(
+        self, eta, nu, t, dot_nu=[0, 0, 0, 0, 0, 0], tau=[0, 0, 0, 0, 0, 0]
+    ):
         eta[3] = 0
         eta[4] = 0
         nu[3] = 0
@@ -73,28 +69,29 @@ class AUVSimulator:
 
             # Simulator control law
             tau_unb = self.dp_control_system.pd_regulate(
-                self.eta, self.nu, eta_ref, nu_ref, dot_nu_ref, dot_eta_c)
+                self.eta, self.nu, eta_ref, nu_ref, dot_nu_ref, dot_eta_c
+            )
             tau_b = self.control_allocation_system.program_feasible_control_forces(
-                tau_unb)
+                tau_unb
+            )
             tau_b[3] = 0  # Ensuring no actuation in roll or pitch
             tau_b[4] = 0
 
             # Simulate the actuator dynamics
             dot_tau = (tau_b - self.tau) / (
-                self.control_allocation_system.rotor_time_constant * 2)
+                self.control_allocation_system.rotor_time_constant * 2
+            )
             self.tau = euler2(dot_tau, self.tau, h)
 
             # Simulate the AUV dynamics
             self.dot_nu = dot_nu_c + np.dot(
                 np.linalg.inv(self.auv_model.M),
-                self.tau - np.dot(self.auv_model.D, nu_r) -
-                self.auv_model.gvect,
+                self.tau - np.dot(self.auv_model.D, nu_r) - self.auv_model.gvect,
             )
             self.nu = euler2(self.dot_nu, self.nu, h)
 
             # Obey relative linear velocity limits
-            abs_rel_vel = np.linalg.norm(
-                np.array(self.nu[:3]) - np.array(nu_c[:3]))
+            abs_rel_vel = np.linalg.norm(np.array(self.nu[:3]) - np.array(nu_c[:3]))
             if abs_rel_vel > self.absolute_relative_velocity_limit:
                 gain = abs_rel_vel / self.absolute_relative_velocity_limit
                 for i, v in enumerate(self.nu[:3]):
@@ -179,13 +176,11 @@ if __name__ == "__main__":
     rotor_time_constant = 0.2
     u_max = 31.5
     u_min = -31.5
-    actuator_model = ActuatorModel(input_matrix, rotor_time_constant, u_max,
-                                   u_min)
+    actuator_model = ActuatorModel(input_matrix, rotor_time_constant, u_max, u_min)
 
     omega_b = [1, 1, 1, 1, 1, 1]
     zeta = [1, 1, 1, 1, 1, 1]
-    dp_control_system = DPControlSystem(auv_model.M, auv_model.D, omega_b,
-                                        zeta)
+    dp_control_system = DPControlSystem(auv_model.M, auv_model.D, omega_b, zeta)
 
     auv_simulator = AUVSimulator(auv_model, actuator_model, dp_control_system)
 
@@ -199,5 +194,4 @@ if __name__ == "__main__":
     N = 50 * 5
     h = 0.02
     eta_ref = [1, 0, 0, 0, 0, 0]
-    eta_d, nu_d, dot_nu_d = auv_simulator.generate_trajectory_for_dp(
-        t, N, h, eta_ref)
+    eta_d, nu_d, dot_nu_d = auv_simulator.generate_trajectory_for_dp(t, N, h, eta_ref)

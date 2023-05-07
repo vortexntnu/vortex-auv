@@ -10,7 +10,6 @@ import yaml
 
 
 class ControlAllocationSystem:
-
     def __init__(
         self,
         thruster_positions,
@@ -20,21 +19,24 @@ class ControlAllocationSystem:
         u_min,
         w,
     ):
-        self.input_matrix = compute_input_matrix(thruster_positions,
-                                                 thruster_orientations)
+        self.input_matrix = compute_input_matrix(
+            thruster_positions, thruster_orientations
+        )
         self.rotor_time_constant = rotor_time_constant
         self.u_max = np.array(u_max)
         self.u_min = np.array(u_min)
-        self.pseudo_inv_input_matrix = moore_penrose_pseudo_inverse(
-            self.input_matrix)
+        self.pseudo_inv_input_matrix = moore_penrose_pseudo_inverse(self.input_matrix)
         W = np.diag(w)
-        self.P = np.block([[W * 1.000001, -W], [-W, W * 1.000001]
-                           ])  # Small cheat to make P positive definite
+        self.P = np.block(
+            [[W * 1.000001, -W], [-W, W * 1.000001]]
+        )  # Small cheat to make P positive definite
         self.c = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        self.A = np.block([
-            [self.pseudo_inv_input_matrix, -self.pseudo_inv_input_matrix],
-            [-self.pseudo_inv_input_matrix, self.pseudo_inv_input_matrix],
-        ])
+        self.A = np.block(
+            [
+                [self.pseudo_inv_input_matrix, -self.pseudo_inv_input_matrix],
+                [-self.pseudo_inv_input_matrix, self.pseudo_inv_input_matrix],
+            ]
+        )
         self.tau = np.array([0, 0, 0, 0, 0, 0])
 
     def compute_control_inputs(self, tau_c):
@@ -66,15 +68,13 @@ class ControlAllocationSystem:
 
 def moore_penrose_pseudo_inverse(matrix):
     return np.dot(
-        np.array(matrix).T,
-        np.linalg.inv(np.dot(np.array(matrix),
-                             np.array(matrix).T)))
+        np.array(matrix).T, np.linalg.inv(np.dot(np.array(matrix), np.array(matrix).T))
+    )
 
 
-def compute_input_matrix(thruster_positions,
-                         thruster_orientations,
-                         location_frame="ENU",
-                         output_frame="NED"):
+def compute_input_matrix(
+    thruster_positions, thruster_orientations, location_frame="ENU", output_frame="NED"
+):
     r = len(thruster_positions)
     input_matrix = np.zeros((6, r))
     F_p = np.array([1, 0, 0])
@@ -124,10 +124,9 @@ if __name__ == "__main__":
 
     u_max = 10.5
     u_min = -10.5
-    control_allocation = ControlAllocationSystem(thruster_positions,
-                                                 thruster_orientations,
-                                                 rotor_time_constant, u_max,
-                                                 u_min, W)
+    control_allocation = ControlAllocationSystem(
+        thruster_positions, thruster_orientations, rotor_time_constant, u_max, u_min, W
+    )
     tau_unb = [50, 20, 10, 0, 0, 10]
     u_unb = control_allocation.compute_control_inputs(tau_unb)
     u_sat = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
