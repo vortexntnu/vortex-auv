@@ -8,6 +8,7 @@ from std_msgs.msg import Float32
 
 
 class BatteryMonitor:
+
     def __init__(self):
         rospy.init_node("battery_monitor")
 
@@ -17,12 +18,14 @@ class BatteryMonitor:
 
         # init of I2C bus communication
         self.bus = smbus.SMBus(1)
-        self.channel_voltage = MCP342x(
-            self.bus, self.i2c_adress, channel=0, resolution=18
-        )  # voltage
-        self.channel_current = MCP342x(
-            self.bus, self.i2c_adress, channel=1, resolution=18
-        )  # current
+        self.channel_voltage = MCP342x(self.bus,
+                                       self.i2c_adress,
+                                       channel=0,
+                                       resolution=18)  # voltage
+        self.channel_current = MCP342x(self.bus,
+                                       self.i2c_adress,
+                                       channel=1,
+                                       resolution=18)  # current
         time.sleep(1)
 
         # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
@@ -31,12 +34,10 @@ class BatteryMonitor:
         self.psm_to_battery_current_offset = 0.330  # V
 
         # getting params in the ROS-config file (beluga.yaml)
-        self.critical_level = rospy.get_param(
-            "/battery/thresholds/critical", default=13.5
-        )
-        self.warning_level = rospy.get_param(
-            "/battery/thresholds/warning", default=14.5
-        )
+        self.critical_level = rospy.get_param("/battery/thresholds/critical",
+                                              default=13.5)
+        self.warning_level = rospy.get_param("/battery/thresholds/warning",
+                                             default=14.5)
 
         # Polling intervals in seconds delay
         system_interval = rospy.get_param("/battery/system/interval", 1)
@@ -55,17 +56,15 @@ class BatteryMonitor:
 
         # Create ROS publishers
         self.system_voltage_level_pub = rospy.Publisher(
-            "/auv/battery_level/system", Float32, queue_size=1
-        )
+            "/auv/battery_level/system", Float32, queue_size=1)
 
         self.system_current_level_pub = rospy.Publisher(
-            "/auv/current_level/system", Float32, queue_size=1
-        )
+            "/auv/current_level/system", Float32, queue_size=1)
 
         # set up callbacks
         self.log_timer = rospy.Timer(
-            rospy.Duration(secs=logging_interval), self.log_cb
-        )  # for logging on ROS terminal
+            rospy.Duration(secs=logging_interval),
+            self.log_cb)  # for logging on ROS terminal
 
         self.system_timer = rospy.Timer(
             rospy.Duration(secs=system_interval),
@@ -122,9 +121,8 @@ class BatteryMonitor:
     def read_PSM_voltage(self):
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
         try:
-            self.system_voltage = (
-                self.channel_voltage.convert_and_read() * self.psm_to_battery_voltage
-            )
+            self.system_voltage = (self.channel_voltage.convert_and_read() *
+                                   self.psm_to_battery_voltage)
 
             if self.system_voltage_state != "Received":
                 self.system_voltage_state = "Received"
@@ -136,10 +134,9 @@ class BatteryMonitor:
 
     def read_PSM_current(self):
         try:
-            self.system_current = (
-                self.channel_current.convert_and_read()
-                - self.psm_to_battery_current_offset
-            ) * self.psm_to_battery_current_scale_factor
+            self.system_current = (self.channel_current.convert_and_read() -
+                                   self.psm_to_battery_current_offset
+                                   ) * self.psm_to_battery_current_scale_factor
 
             if self.system_current_state != "Received":
                 self.system_current_state = "Received"

@@ -52,17 +52,16 @@ class GoalStatusEnum(Enum):
 
 
 class JoyGuidance:
-    def __init__(
-        self, guidance_interface, action_server_name, activate_joystick_service_name
-    ):
+
+    def __init__(self, guidance_interface, action_server_name,
+                 activate_joystick_service_name):
         self.guidance_interface = guidance_interface
 
         # set up servers and clients
         rospy.logdebug("Waiting for joystick activation service..")
         rospy.wait_for_service(activate_joystick_service_name)
         self.activate_joystick_service = rospy.ServiceProxy(
-            activate_joystick_service_name, SetBool
-        )
+            activate_joystick_service_name, SetBool)
         self.joystick_controlmode_server = actionlib.SimpleActionServer(
             action_server_name,
             ControlModeAction,
@@ -86,8 +85,8 @@ class JoyGuidance:
             return True
         except rospy.ServiceException as exc:
             rospy.logerr(
-                "Joystick activation service did not process request: " + str(exc)
-            )
+                "Joystick activation service did not process request: " +
+                str(exc))
             return False
 
     def action_server_callback(self, control_mode_goal):
@@ -103,11 +102,13 @@ class JoyGuidance:
 
 
 class GuidanceInterface:
+
     def __init__(self):
         self.joy_guidance = JoyGuidance(
             guidance_interface=self,
             action_server_name="/guidance_interface/joystick_server",
-            activate_joystick_service_name="/joystick_guidance/activate_joystick_control",
+            activate_joystick_service_name=
+            "/joystick_guidance/activate_joystick_control",
         )
 
         rospy.logdebug("GuidanceInterface initialized")

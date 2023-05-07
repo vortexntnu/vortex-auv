@@ -37,8 +37,10 @@ i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
 
 # init of I2C bus communication
 i2c_bus = smbus.SMBus(1)
-channel_voltage = MCP342x(i2c_bus, i2c_adress_PSM, channel=0, resolution=18)  # voltage
-channel_current = MCP342x(i2c_bus, i2c_adress_PSM, channel=1, resolution=18)  # current
+channel_voltage = MCP342x(i2c_bus, i2c_adress_PSM, channel=0,
+                          resolution=18)  # voltage
+channel_current = MCP342x(i2c_bus, i2c_adress_PSM, channel=1,
+                          resolution=18)  # current
 channel_pressure = adafruit_mprls.MPRLS(
     board.I2C(),
     addr=i2c_adress_MPRLS,
@@ -71,9 +73,9 @@ def read_PSM_voltage():
 
 def read_PSM_current():
     try:
-        current = (
-            channel_current.convert_and_read() - psm_to_battery_current_offset
-        ) * psm_to_battery_current_scale_factor
+        current = (channel_current.convert_and_read() -
+                   psm_to_battery_current_offset
+                   ) * psm_to_battery_current_scale_factor
 
     except IOError:
         current = -1

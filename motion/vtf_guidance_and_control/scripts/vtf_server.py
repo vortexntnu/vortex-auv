@@ -62,9 +62,8 @@ class VtfPathFollowing(object):
         )
         self.action_server.register_goal_callback(self.goal_cb)
         self.action_server.start()
-        self.vtf_reconfigure_srv = Server(
-            vtf_controllerConfig, self.vtf.vtf_reconfigure
-        )
+        self.vtf_reconfigure_srv = Server(vtf_controllerConfig,
+                                          self.vtf.vtf_reconfigure)
 
         rospy.loginfo("vtf guidance initiated")
 
@@ -96,7 +95,8 @@ class VtfPathFollowing(object):
             self._result.terminalSector = True
             self.publish_guidance_data = False
             self.vtf.goal_reached = False
-            self.action_server.set_succeeded(self._result, text="goal completed")
+            self.action_server.set_succeeded(self._result,
+                                             text="goal completed")
             msg = create_wrench_msg([0, 0, 0, 0, 0, 0])
             self.vtf.pub.publish(msg)
 
