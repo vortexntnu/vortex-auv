@@ -11,10 +11,6 @@ import adafruit_mprls
 
 class PressureMonitor:
     def __init__(self):
-        """
-        Before we can set upp anything we need to kill a task and execute it again
-        """
-
         # Sensor setup
         i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
         self.channel_pressure = adafruit_mprls.MPRLS(
