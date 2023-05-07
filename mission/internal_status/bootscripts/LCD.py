@@ -43,12 +43,14 @@ lcd = CharLCD(i2c_expander='PCF8574',
               backlight_enabled=True)
 
 # Parameters
-i2c_adress_PSM = 0x69 # to read voltage and current from ADC on PDB through I2C
+i2c_adress_PSM = 0x69  # to read voltage and current from ADC on PDB through I2C
 
 # init of I2C bus communication
 bus = smbus.SMBus(1)
-channel_voltage = MCP342x(bus, i2c_adress_PSM, channel=0, resolution=18)  # voltage
-channel_current = MCP342x(bus, i2c_adress_PSM, channel=1, resolution=18)  # current
+channel_voltage = MCP342x(bus, i2c_adress_PSM, channel=0,
+                          resolution=18)  # voltage
+channel_current = MCP342x(bus, i2c_adress_PSM, channel=1,
+                          resolution=18)  # current
 time.sleep(1)
 
 # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
