@@ -43,18 +43,14 @@ class PressureMonitor:
         system_interval = rospy.get_param("/pressure/system/interval",
                                           default=1)
         # will update and publish measurements to ROS
-        self.system_timer = rospy.Timer(
-            rospy.Duration(secs=system_interval),
-            self.system_call_back  
-        )
+        self.system_timer = rospy.Timer(rospy.Duration(secs=system_interval),
+                                        self.system_call_back)
 
         # Set up time interval for loging errors
         loger_interval = rospy.get_param("/pressure/loger/interval", default=5)
-         # will monitor for any pressure errors and display it on screen
-        self.loger_timer = rospy.Timer(
-            rospy.Duration(secs=loger_interval),
-            self.loger_call_back 
-        )
+        # will monitor for any pressure errors and display it on screen
+        self.loger_timer = rospy.Timer(rospy.Duration(secs=loger_interval),
+                                       self.loger_call_back)
 
     def measure_pressure(self):
         try:
