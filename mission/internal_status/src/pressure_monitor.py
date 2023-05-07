@@ -28,7 +28,7 @@ class PressureMonitor:
         rospy.init_node("pressure_monitor")
 
         # Variables for publishing data
-        self.pressure = 0
+        self.pressure = -1
 
         # Create ROS publishers
         self.pressure_monitor_pub = rospy.Publisher("/auv/internal_pressure",
@@ -42,18 +42,18 @@ class PressureMonitor:
         # Set up time interval for publishing pressure data so that we dont spam ROS
         system_interval = rospy.get_param("/pressure/system/interval",
                                           default=1)
+        # will update and publish measurements to ROS
         self.system_timer = rospy.Timer(
             rospy.Duration(secs=system_interval),
-            self.
-            system_call_back,  # will update and publish measurements to ROS
+            self.system_call_back  
         )
 
         # Set up time interval for loging errors
         loger_interval = rospy.get_param("/pressure/loger/interval", default=5)
+         # will monitor for any pressure errors and display it on screen
         self.loger_timer = rospy.Timer(
             rospy.Duration(secs=loger_interval),
-            self.
-            loger_call_back,  # will monitor for any pressure errors and display it on screen
+            self.loger_call_back 
         )
 
     def measure_pressure(self):
