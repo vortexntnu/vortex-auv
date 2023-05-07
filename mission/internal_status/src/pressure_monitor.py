@@ -9,6 +9,7 @@ import adafruit_mprls
 
 
 class PressureMonitor:
+
     def __init__(self):
         # Sensor setup
         i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
@@ -30,7 +31,7 @@ class PressureMonitor:
         self.pressure_monitor_pub = rospy.Publisher("/auv/internal_pressure",
                                                     Float32,
                                                     queue_size=1)
-        
+
         # Getting params in the ROS-config file (beluga.yaml)
         self.critical_level = rospy.get_param("/pressure/thresholds/critical",
                                               default=1013.25)
@@ -40,7 +41,8 @@ class PressureMonitor:
                                           default=1)
         self.system_timer = rospy.Timer(
             rospy.Duration(secs=system_interval),
-            self.system_call_back,  # will update and publish measurements to ROS
+            self.
+            system_call_back,  # will update and publish measurements to ROS
         )
 
     def measure_pressure(self):
@@ -52,7 +54,9 @@ class PressureMonitor:
         self.pressure_monitor_pub.publish(self.pressure)
 
         if self.pressure > self.critical_level:
-            rospy.logerr(f"The internal pressure to HIGH: {self.pressure} hPa! Drone might be leaking!")
+            rospy.logerr(
+                f"The internal pressure to HIGH: {self.pressure} hPa! Drone might be leaking!"
+            )
 
     def shutdown(self):
         pass
