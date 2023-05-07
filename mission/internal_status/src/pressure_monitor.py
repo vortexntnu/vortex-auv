@@ -1,43 +1,58 @@
 #!/usr/bin/python3
+import time
 
-# python imports
-import subprocess
-import re
-
-# ros imports
 import rospy
 from std_msgs.msg import Float32
 
 import board
 import adafruit_mprls
 
-i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
-
 
 class PressureMonitor:
-
     def __init__(self):
-        rospy.init_node("pressure_monitor")
-
-        # Publisher
-        self.pressure_monitor_pub = rospy.Publisher("/auv/internal_pressure",
-                                                    Float32,
-                                                    queue_size=1)
-
+        # Sensor setup
+        i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
         self.channel_pressure = adafruit_mprls.MPRLS(board.I2C(),
                                                      addr=i2c_adress_MPRLS,
                                                      reset_pin=None,
                                                      eoc_pin=None,
                                                      psi_min=0,
                                                      psi_max=25)  # Pressure
+        time.sleep(1)
+
+        # ROS setup
+        rospy.init_node("pressure_monitor")
+
+        # Variables for publishing data
+        self.pressure = 0
+
+        # Create ROS publishers
+        self.pressure_monitor_pub = rospy.Publisher("/auv/internal_pressure",
+                                                    Float32,
+                                                    queue_size=1)
+        
+        # Getting params in the ROS-config file (beluga.yaml)
+        self.critical_level = rospy.get_param("/pressure/thresholds/critical",
+                                              default=1013.25)
+
+        # Set up time interval for publishing pressure data so that we dont spam ROS
+        system_interval = rospy.get_param("/pressure/system/interval",
+                                          default=1)
+        self.system_timer = rospy.Timer(
+            rospy.Duration(secs=system_interval),
+            self.system_call_back,  # will update and publish measurements to ROS
+        )
 
     def measure_pressure(self):
-        return self.channel_pressure.pressure
+        self.pressure = self.channel_pressure.pressure
 
-    def spin(self):
-        # Main loop
-        while not rospy.is_shutdown():
-            self.pressure_monitor_pub.publish(self.measure_pressure())
+    def system_call_back(self):
+        self.measure_pressure()
+
+        self.pressure_monitor_pub.publish(self.pressure)
+
+        if self.pressure > self.critical_level:
+            rospy.logerr(f"The internal pressure to HIGH: {self.pressure} hPa! Drone might be leaking!")
 
     def shutdown(self):
         pass
