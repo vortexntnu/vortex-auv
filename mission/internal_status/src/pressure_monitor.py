@@ -30,10 +30,6 @@ class PressureMonitor:
         # Variables for publishing data
         self.pressure = 0
 
-        # Variables for message handling
-        self.buffer = 0
-        self.buffer_max = 100
-
         # Create ROS publishers
         self.pressure_monitor_pub = rospy.Publisher("/auv/internal_pressure",
                                                     Float32,
