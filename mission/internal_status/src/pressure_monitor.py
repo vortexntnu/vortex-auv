@@ -15,7 +15,7 @@ class PressureMonitor:
         """
         Before we can set upp anything we need to kill a task and execute it again
         """
-        
+
         # Sensor setup
         i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
         self.channel_pressure = adafruit_mprls.MPRLS(board.I2C(),
@@ -31,7 +31,7 @@ class PressureMonitor:
 
         # Variables for publishing data
         self.pressure = 0
-        
+
         # Variables for message handling
         self.buffer = 0
         self.buffer_max = 100
@@ -50,15 +50,16 @@ class PressureMonitor:
                                           default=1)
         self.system_timer = rospy.Timer(
             rospy.Duration(secs=system_interval),
-            self.system_call_back,  # will update and publish measurements to ROS
+            self.
+            system_call_back,  # will update and publish measurements to ROS
         )
-        
+
         # Set up time interval for loging errors
-        loger_interval = rospy.get_param("/pressure/loger/interval",
-                                          default=5)
+        loger_interval = rospy.get_param("/pressure/loger/interval", default=5)
         self.loger_timer = rospy.Timer(
             rospy.Duration(secs=loger_interval),
-            self.loger_call_back,  # will monitor for any pressure errors and display it on screen
+            self.
+            loger_call_back,  # will monitor for any pressure errors and display it on screen
         )
 
     def measure_pressure(self):
@@ -71,10 +72,12 @@ class PressureMonitor:
         self.measure_pressure()
 
         self.pressure_monitor_pub.publish(self.pressure)
-                
+
     def loger_call_back(self, event):
         if self.pressure > self.critical_level:
-            rospy.logerr(f"The internal pressure to HIGH: {self.pressure} hPa! Drone might be leaking!")
+            rospy.logerr(
+                f"The internal pressure to HIGH: {self.pressure} hPa! Drone might be leaking!"
+            )
 
     def shutdown(self):
         pass
