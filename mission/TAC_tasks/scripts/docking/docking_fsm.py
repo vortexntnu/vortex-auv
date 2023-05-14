@@ -7,7 +7,9 @@ from docking import DockingExecute, DockingStandby
 from task_manager_defines import defines
 import dynamic_reconfigure.client
 
+
 class Docking():
+
     def __init__(self):
         rospy.init_node("tac_docking_fsm")
 
@@ -36,21 +38,23 @@ class Docking():
 
         rospy.loginfo('STARTING DOCKING')
 
-        docking_sm = StateMachine(outcomes=['done'], input_keys=['isEnabled'], output_keys=['isEnabled'])
+        docking_sm = StateMachine(outcomes=['done'],
+                                  input_keys=['isEnabled'],
+                                  output_keys=['isEnabled'])
         with docking_sm:
 
             StateMachine.add("DOCKING_EXECUTE",
-                            DockingExecute(),
-                            transitions={
-                                'succeeded': 'DOCKING_STANDBY',
-                                'preempted': 'done'
-                            },
-                            remapping={'isEnabled': 'isEnabled'})
+                             DockingExecute(),
+                             transitions={
+                                 'succeeded': 'DOCKING_STANDBY',
+                                 'preempted': 'done'
+                             },
+                             remapping={'isEnabled': 'isEnabled'})
 
             StateMachine.add("DOCKING_STANDBY",
-                            DockingStandby(),
-                            transitions={'succeeded': 'done'},
-                            remapping={'isEnabled': 'isEnabled'})
+                             DockingStandby(),
+                             transitions={'succeeded': 'done'},
+                             remapping={'isEnabled': 'isEnabled'})
 
         try:
             docking_sm.execute()

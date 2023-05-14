@@ -183,7 +183,9 @@ class DockingExecute(smach.State):
                 rospy.set_param("/DP/Enable", False)
 
                 # Start trusters pushing downwards
-                downward_trust = rospy.get_param("/joystick/scaling/heave") * 0.5  # Half of max limit for joystick heave
+                downward_trust = rospy.get_param(
+                    "/joystick/scaling/heave"
+                ) * 0.5  # Half of max limit for joystick heave
                 thrust_vector = Wrench()
                 thrust_vector.force.z = -downward_trust * 0.5
                 self.thrust_pub.publish(thrust_vector)
@@ -220,8 +222,9 @@ class DockingExecute(smach.State):
         rospy.loginfo("BELUGA AT: " + str(self.odom.pose.pose.position.x) +
                       "; " + str(self.odom.pose.pose.position.y) + "; " +
                       str(self.odom.pose.pose.position.z))
-        
-        downward_trust = rospy.get_param("/joystick/scaling/heave")  # Max limit for joystick heave
+
+        downward_trust = rospy.get_param(
+            "/joystick/scaling/heave")  # Max limit for joystick heave
         thrust_vector = Wrench()
         thrust_vector.force.z = -downward_trust
         self.thrust_pub.publish(thrust_vector)
