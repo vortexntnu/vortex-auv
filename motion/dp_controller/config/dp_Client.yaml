@@ -1,0 +1,13 @@
+setpoint:
+
+  position: [0, 0, 0]
+
+  orientation: [0, 0, 0]
+
+  DOF: [1, 1, 0, 0, 0, 1]
+
+  enable: False
+
+
+
+# changing position in terminal with: rosparam set /setpoint/position [1,2,3]
