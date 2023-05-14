@@ -1,11 +1,8 @@
 #!/usr/bin/python3
-import os
 import time
-import traceback
-import glob
-import logging
 import rospy
 import smbus
+
 from MCP342x import MCP342x
 from std_msgs.msg import Float32
 
