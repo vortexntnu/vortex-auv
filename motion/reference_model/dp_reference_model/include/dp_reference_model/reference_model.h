@@ -17,7 +17,8 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_datatypes.h>
 
-// TODO: Add relevant literature or math write up (minimally a link to Vortex Wiki).
+// TODO: Add relevant literature or math write up (minimally a link to Vortex
+// Wiki).
 
 using namespace Eigen;
 

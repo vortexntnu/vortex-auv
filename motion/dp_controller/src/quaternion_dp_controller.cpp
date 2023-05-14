@@ -217,7 +217,8 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   //-----------------
 
   // Rounding gain to remove super small values
-  // TODO: Is this the best way to round to a fixed number of decimals? gain.array().round(num_decimals) ?
+  // TODO: Is this the best way to round to a fixed number of decimals?
+  // gain.array().round(num_decimals) ?
   int num_decimals = 3;
   gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
   return (Eigen::Vector6d() << gain).finished();
