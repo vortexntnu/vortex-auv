@@ -8,6 +8,7 @@
 #include <std_msgs/Float32.h>
 
 // Quaternion to Euler
+// TODO: Change this to boiler-plate code from a library. See https://eigen.tuxfamily.org/dox/classEigen_1_1QuaternionBase.html
 Eigen::Vector3d Controller::quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
   double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());

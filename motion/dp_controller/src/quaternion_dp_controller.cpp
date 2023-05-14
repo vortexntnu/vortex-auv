@@ -3,6 +3,8 @@
      Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
+// TODO: The controller does not work for the 3 rot DOFs, and only functions as intended for yaw. Should be looked into in the future.
+
 #include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
 
@@ -58,8 +60,10 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_d_gain = Eigen::Vector6d::Zero();
   m_integral = Eigen::Vector6d::Zero();
 
+  // TODO: Should be made into ROS params
   double maxPosGain = 0.5;
   double maxAttGain = 0.05;
+
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
@@ -67,6 +71,7 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   // The AUV is to stable in orientation, therefore the scaling of 0.3. The
   // reason of 0.9 scaling in position, is beacause the g-vector may not be
   // equal to the real value.
+  // TODO: Should be made into ROS params
   m_scale_g = Eigen::Vector6d::Zero();
   m_scale_g << 0, 0, 0.25, 0.0, 0.0, 0.0;
 };
@@ -242,6 +247,7 @@ void QuaternionPIDController::init(const double W, const double B,
   m_r_B = r_B;
 }
 
+// TODO: is the for-loop required?
 void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
                                           Eigen::Vector6d i_gain,
                                           Eigen::Vector6d d_gain) {

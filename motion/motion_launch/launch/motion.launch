@@ -44,8 +44,8 @@
       <param name="/thrust/thrust_topic" value="/auv/thruster_manager/input"/>
     </group>
 
-    <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/>
-    <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>  
+    <!-- <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/> -->
+    <!-- <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>   -->
   </group>
 
   <!-- Thrust nodes -->
