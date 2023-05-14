@@ -3,7 +3,8 @@
      Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
-// TODO: The controller does not work for the 3 rot DOFs, and only functions as intended for yaw. Should be looked into in the future.
+// TODO: The controller does not work for the 3 rot DOFs, and only functions as
+// intended for yaw. Should be looked into in the future.
 
 #include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
