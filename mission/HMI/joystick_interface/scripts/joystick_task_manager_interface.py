@@ -32,11 +32,9 @@ class JoystickEnable:
 
 
 if __name__ == "__main__":
-    joystickEnable = JoystickEnable()
-    if joystickEnable.isEnabled == True:
-        try:
-            joystick_interface = JoystickInterface()
-            rospy.spin()
+    try:
+        joystickEnable = JoystickEnable()
+        rospy.spin()
 
-        except rospy.ROSInterruptException:
-            pass
+    except rospy.ROSInterruptException:
+        pass

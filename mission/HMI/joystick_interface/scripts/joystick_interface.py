@@ -8,8 +8,9 @@ import actionlib
 
 from std_msgs.msg import String
 from sensor_msgs.msg import Joy
-from vortex_msgs.msg import ControlModeAction, ControlModeGoal
-from geometry_msgs.msg import Wrench
+from vortex_msgs.msg import dpAction, dpGoal, dpResult
+from geometry_msgs.msg import Wrench, Pose
+from nav_msgs.msg import Odometry
 
 from libjoystick.JoystickControlModes import *
 from libjoystick.ControlModeHandling import ControlModeHandling
@@ -33,6 +34,8 @@ class JoystickInterface:
         self.roll   = 0.0
         self.pitch  = 0.0
         self.yaw    = 0.0
+
+        self.odom_pose = Pose()
 
         self.control_mode_handler = ControlModeHandling()
 
@@ -77,6 +80,12 @@ class JoystickInterface:
                                              Joy,
                                              self.joystick_cb,
                                              queue_size=1)
+        
+        self.odom_sub = rospy.Subscriber("/odometry/filtered",
+                                             Odometry,
+                                             self.odom_cb,
+                                             queue_size=1)
+        
         self.joystick_pub = rospy.Publisher("/mission/joystick_data",
                                             Joy,
                                             queue_size=1)
@@ -84,40 +93,28 @@ class JoystickInterface:
         self.wrench_pub = rospy.Publisher("/thrust/desired_forces",
                                           Wrench,
                                           queue_size=1)
+        
+        # DP server and client
+        dp_action_server = "DpAction"
+        self.dp_client = actionlib.SimpleActionClient(dp_action_server,
+                                                      dpAction)
 
-        # Services and actions
-        self.guidance_interface_client = actionlib.SimpleActionClient(
-            "/guidance_interface/joystick_server", ControlModeAction)
+        # rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
 
+        # Initialization
         rospy.loginfo("Waiting for joystick input...")
         rospy.wait_for_message("/joy", Joy)
         rospy.loginfo("Joystick interface is up and running")
-
-    def spin(self):
-        while not rospy.is_shutdown():
-            if self.buttons != {}:
-                self.control_mode_handler.control_mode_change(self.buttons, self.wrench_pub)
-            
-            self.surge   = self.axes["vertical_axis_left_stick"] * self.joystick_surge_scaling
-            self.sway    = self.axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling
-            self.heave   = -(self.axes["RT"] - self.axes["LT"]) / 2 * self.joystick_heave_scaling
-            self.roll    = (self.buttons["RB"] - self.buttons["LB"]) * self.joystick_roll_scaling
-            self.pitch   = self.axes["vertical_axis_right_stick"] * self.joystick_pitch_scaling * (-1)
-            self.yaw     = self.axes["horizontal_axis_right_stick"] * self.joystick_yaw_scaling
-
-            self.dpad_hor = self.axes["dpad_horizontal"]
-            self.dpad_ver = self.axes["dpad_vertical"]
-
-            self.publish_joystick_data()
-
-            self.ros_rate.sleep()
 
     def joystick_cb(self, msg):
         try:
             self.buttons = {self.joystick_buttons_map[i]: msg.buttons[i] for i in range(len(msg.buttons))}
             self.axes = {self.joystick_axes_map[i]: msg.axes[i] for i in range(len(msg.axes))}
         except Exception as e:
-            rospy.logerr(f"Error in joystick_cb: {e}")   
+            rospy.logerr(f"Error in joystick_cb: {e}")
+
+    def odom_cb(self, msg):
+        self.odom_pose = msg.pose.pose
 
     def publish_joystick_data(self):
         # Publish joystick and wrench data
@@ -143,6 +140,25 @@ class JoystickInterface:
             wrench_msg.torque.y = self.pitch
             wrench_msg.torque.z = self.yaw
             self.wrench_pub.publish(wrench_msg)
+
+    def spin(self):
+        while not rospy.is_shutdown():
+            if self.buttons != {}:
+                self.control_mode_handler.control_mode_change(self.buttons, self.wrench_pub, self.dp_client, self.odom_pose)
+            
+            self.surge   = self.axes["vertical_axis_left_stick"] * self.joystick_surge_scaling
+            self.sway    = self.axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling
+            self.heave   = -(self.axes["RT"] - self.axes["LT"]) / 2 * self.joystick_heave_scaling
+            self.roll    = (self.buttons["RB"] - self.buttons["LB"]) * self.joystick_roll_scaling
+            self.pitch   = self.axes["vertical_axis_right_stick"] * self.joystick_pitch_scaling * (-1)
+            self.yaw     = self.axes["horizontal_axis_right_stick"] * self.joystick_yaw_scaling
+
+            self.dpad_hor = self.axes["dpad_horizontal"]
+            self.dpad_ver = self.axes["dpad_vertical"]
+
+            self.publish_joystick_data()
+
+            self.ros_rate.sleep()
 
 if __name__ == "__main__":
     try:
