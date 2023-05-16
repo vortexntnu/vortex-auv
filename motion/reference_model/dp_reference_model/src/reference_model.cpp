@@ -3,6 +3,8 @@
      Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
+// TODO: refactor member variables to have "m_" prefix for readability
+
 #include "dp_reference_model/reference_model.h"
 #include "dp_reference_model/eigen_typedefs.h"
 #include <eigen3/Eigen/Dense>
@@ -80,6 +82,9 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
 
   // Normalizing desired quaternion
   Eigen::Quaterniond quat_d(eta_d(3), eta_d(4), eta_d(5), eta_d(6));
+  // Maybe remove this. This is to only use referene model on three of the
+  // quaternions and calculate the real value.
+  quat_d.w() = sqrt(1 - std::min(1.0, quat_d.vec().squaredNorm()));
   quat_d.normalize();
   Eigen::Vector4d quat_d_vec(quat_d.w(), quat_d.x(), quat_d.y(), quat_d.z());
   eta_d.segment(3, 4) = quat_d_vec;

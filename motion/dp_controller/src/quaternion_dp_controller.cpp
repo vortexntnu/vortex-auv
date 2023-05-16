@@ -3,6 +3,9 @@
      Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
+// TODO: The controller does not work for the 3 rot DOFs, and only functions as
+// intended for yaw. Should be looked into in the future.
+
 #include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
 
@@ -58,8 +61,10 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_d_gain = Eigen::Vector6d::Zero();
   m_integral = Eigen::Vector6d::Zero();
 
+  // TODO: Should be made into ROS params
   double maxPosGain = 0.5;
   double maxAttGain = 0.05;
+
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
@@ -67,8 +72,9 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   // The AUV is to stable in orientation, therefore the scaling of 0.3. The
   // reason of 0.9 scaling in position, is beacause the g-vector may not be
   // equal to the real value.
+  // TODO: Should be made into ROS params
   m_scale_g = Eigen::Vector6d::Zero();
-  m_scale_g << 0, 0, 0.5, 0.0, 0.0, 0.0;
+  m_scale_g << 0, 0, 0.25, 0.0, 0.0, 0.0;
 };
 
 int QuaternionPIDController::sgn(double x) {
@@ -199,6 +205,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(m_scale_g) - m_integral;
+  gain = -m_K_d * nu_tilde - K_p * z - m_integral;
 
   //------ Debug ----
   P_debug = K_p * z;
@@ -213,6 +220,71 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   return (Eigen::Vector6d() << gain).finished();
 }
 
+//  BACKUP METHOD
+Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
+    const Eigen::Vector3d &x, const Eigen::Quaterniond &q,
+    const Eigen::Vector6d &nu, const Eigen::Vector6d &nu_d,
+    const Eigen::Vector3d &eta_d_pos, const Eigen::Quaterniond &eta_d_ori) {
+
+  // Rotate from inertial/world to body
+  Eigen::Matrix3d R = q.toRotationMatrix();
+  Eigen::Matrix6d K_p = proportionalGainMatrix(R);
+  Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
+  T << -q.vec().transpose(),
+      q.w() * Eigen::Matrix3d::Identity() + skew(q.vec());
+  T = 0.5 * T;
+  Eigen::MatrixXd J_inv = Eigen::MatrixXd::Zero(6, 7);
+  J_inv << R.transpose(), Eigen::MatrixXd::Zero(3, 4), Eigen::Matrix3d::Zero(),
+      4 * T.transpose();
+  Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
+
+  Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
+  remove_ori << 1, 1, 1, 0, 0, 0;
+  nu_tilde = nu - nu_d.cwiseProduct(remove_ori);
+
+  // Error Vector
+
+  Eigen::Vector6d z = Eigen::Vector6d::Zero();
+  z << x - eta_d_pos,
+      smallestAngle(quaterniondToEuler(q) - quaterniondToEuler(eta_d_ori));
+
+  // Integral (TODO:change Antiwindup to a more advanced one)
+  m_integral += m_i_gain * z;
+
+  if (launch_type == "real") {
+    m_integral(1) -= 2 * (m_i_gain * z)(1);
+    m_integral(2) -= 2 * (m_i_gain * z)(2);
+  }
+
+  m_integral =
+      m_integral.cwiseMin(m_integralAntiWindup).cwiseMax(-m_integralAntiWindup);
+
+  Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
+  m_K_d.diagonal() << m_d_gain;
+  Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
+
+  if (launch_type == "simulator") {
+    m_scale_g << 0, 0, 0.1, 0, 0, 0;
+  }
+  // gain
+  Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
+  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(m_scale_g) - m_integral;
+
+  //------ Debug ----
+  P_debug = K_p * z;
+  I_debug = m_integral;
+  D_debug = m_K_d * nu_tilde;
+  g_debug = g.cwiseProduct(m_scale_g);
+  //-----------------
+
+  // Rounding gain to remove super small values
+  // TODO: Is this the best way to round to a fixed number of decimals?
+  // gain.array().round(num_decimals) ?
+  int num_decimals = 3;
+  gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
+  return (Eigen::Vector6d() << gain).finished();
+}
+
 Eigen::Vector6d
 QuaternionPIDController::restoringForceVector(const Eigen::Matrix3d R) {
   Eigen::Vector3d f_G = R.transpose() * Eigen::Vector3d(0, 0, m_W);
@@ -222,6 +294,7 @@ QuaternionPIDController::restoringForceVector(const Eigen::Matrix3d R) {
       .finished();
 }
 
+// TODO: Move this code to the ctor.
 void QuaternionPIDController::init(const double W, const double B,
                                    const Eigen::Vector3d &r_G,
                                    const Eigen::Vector3d &r_B) {
@@ -231,6 +304,7 @@ void QuaternionPIDController::init(const double W, const double B,
   m_r_B = r_B;
 }
 
+// TODO: is the for-loop required?
 void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
                                           Eigen::Vector6d i_gain,
                                           Eigen::Vector6d d_gain) {

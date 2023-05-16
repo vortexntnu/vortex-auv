@@ -21,6 +21,7 @@
 
     <!-- For launching the manipulator (gripper, torpedo, lights) nodes -->
     <!-- <include file="$(find manipulators_launch)/launch/manipulators.launch" pass_all_args="true"/> -->
+    <include file="$(find gripper_interface)/launch/gripper_interface.launch"/>
 
     <!-- IMU -->
     <node pkg="driver_stim300" type="stim300_driver_node" name="driver_stim300"/>
@@ -36,6 +37,9 @@
 
     <!-- ZED2 camera node -->
     <!-- <include file="$(find zed_wrapper)/launch/zed2.launch" /> -->
+
+    <!-- UDFC node -->
+    <include file="$(find udfc_wrapper_node)/launch/udfc_wrapper_node.launch" />
    
   </group> <!-- end drivers -->
 
