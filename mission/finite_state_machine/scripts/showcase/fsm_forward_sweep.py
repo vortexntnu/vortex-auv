@@ -15,24 +15,20 @@ def main():
 
     #rospy.wait_for_service(
     #    "send_positions"
-    #) 
+    #)
 
-    nortek_fsm = StateMachine(
-        outcomes=["preempted", "succeeded", "aborted"])
-
+    nortek_fsm = StateMachine(outcomes=["preempted", "succeeded", "aborted"])
 
     with nortek_fsm:
 
-        StateMachine.add(
-            "REACH_DEPTH", ReachDepth(), transitions={"succeeded": "SEARCH"}
-        )
+        StateMachine.add("REACH_DEPTH",
+                         ReachDepth(),
+                         transitions={"succeeded": "SEARCH"})
 
         StateMachine.add("SEARCH", ForwardSweepSearch())
 
-
-    intro_server = IntrospectionServer(
-        str(rospy.get_name()), nortek_fsm, "/SM_ROOT"
-    )
+    intro_server = IntrospectionServer(str(rospy.get_name()), nortek_fsm,
+                                       "/SM_ROOT")
     intro_server.start()
 
     try:
@@ -43,19 +39,5 @@ def main():
         rospy.loginfo("Prequalification test failed: %s" % e)
 
 
-
-
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-

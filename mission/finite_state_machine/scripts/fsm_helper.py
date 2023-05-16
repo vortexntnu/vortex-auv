@@ -27,6 +27,7 @@ guidance_interface_dp_action_server = rospy.get_param(
 guidance_interface_los_action_server = rospy.get_param(
     "/guidance/LOS/action_server")
 
+
 # Enumeration for different control modes
 class ControlModeEnum(IntEnum):
     OPEN_LOOP = 0
@@ -40,6 +41,7 @@ class ControlModeEnum(IntEnum):
     ORIENTATION_HOLD = 8
     ORIENTATION_DEPTH_HOLD = 9
 
+
 def dp_move(x, y, z=-0.5, yaw_rad=0):
     """ Function to create a move goal with the specified parameters and returns a SimpleActionState
     Args:
@@ -50,9 +52,13 @@ def dp_move(x, y, z=-0.5, yaw_rad=0):
     """
     goal = MoveBaseGoal()
     goal.target_pose.pose.position = Point(x, y, z)
-    goal.target_pose.pose.orientation = Quaternion(*quaternion_from_euler(0, 0, yaw_rad))
+    goal.target_pose.pose.orientation = Quaternion(
+        *quaternion_from_euler(0, 0, yaw_rad))
 
-    return SimpleActionState(guidance_interface_dp_action_server, MoveBaseAction, goal=goal)
+    return SimpleActionState(guidance_interface_dp_action_server,
+                             MoveBaseAction,
+                             goal=goal)
+
 
 def rotate_certain_angle(pose, angle):
     """ Function to rotate a pose by a certain angle
@@ -62,7 +68,10 @@ def rotate_certain_angle(pose, angle):
     Returns:
         New pose after rotation
     """
-    orientation = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
+    orientation = R.from_quat([
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    ])
     rotation = R.from_rotvec(angle * math.pi / 180 * np.array([0, 0, 1]))
     new_orientation = R.as_quat(orientation * rotation)
     new_pose = Pose()
@@ -74,6 +83,7 @@ def rotate_certain_angle(pose, angle):
 
     return new_pose
 
+
 def get_pose_in_front(pose, distance, index=0):
     """ Function to get a pose that is a certain distance in front of a given pose
     Args:
@@ -83,7 +93,10 @@ def get_pose_in_front(pose, distance, index=0):
     Returns:
         The new pose
     """
-    orientation_object = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
+    orientation_object = R.from_quat([
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    ])
     rotation_matrix = orientation_object.as_matrix()
     x_vec = rotation_matrix[:, index]
     current_pos_vec = np.array(
@@ -97,6 +110,7 @@ def get_pose_in_front(pose, distance, index=0):
     new_pose.orientation = pose.orientation
 
     return new_pose
+
 
 def get_position_on_line(from_pos, to_pos, distance):
     """ Function to get a position on a line a certain distance from the from_pos
@@ -120,6 +134,7 @@ def get_position_on_line(from_pos, to_pos, distance):
 
     return p
 
+
 def get_pose_to_side(pose, unsigned_distance, chosen_side):
     """ Function to get a pose that is a certain distance to the side of a given pose
     Args:
@@ -129,7 +144,10 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
     Returns:
         The new pose
     """
-    orientation_object = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
+    orientation_object = R.from_quat([
+        pose.orientation.x, pose.orientation.y, pose.orientation.z,
+        pose.orientation.w
+    ])
     rotation_matrix = orientation_object.as_matrix()
     y_vec = rotation_matrix[:, 1]
     current_pos_vec = np.array(
@@ -146,6 +164,7 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
     new_pose.orientation = pose.orientation
 
     return new_pose
+
 
 def patrol_sequence(action_states):
     sm = Sequence(outcomes=["preempted", "succeeded", "aborted"],
