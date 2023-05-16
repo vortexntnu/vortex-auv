@@ -13,9 +13,6 @@ Anything related to how the AUV physically moves in located in this folder, name
 * velocity_controller
     * A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces.
 
-* velocity_controller
-    * A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces.
-
 * vtf_guidance_and_control
     * Virtual Target Following guidance and control module which sets up a target which follows a given path. The system will then follow the target's reference model using a MIMO DP controller.
 
