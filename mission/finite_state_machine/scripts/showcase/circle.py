@@ -14,7 +14,7 @@ from fsm_helper import create_circle_coordinates
 
 
 class Circle(smach.State):
-    def __init__(self, anti_circle=False, is_path_dependent=True):
+    def __init__(self, ccw=False, is_path_dependent=True):
         smach.State.__init__(
             self, outcomes=["preempted", "succeeded", "aborted"]
         )
@@ -29,7 +29,7 @@ class Circle(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
         
-        self.anti_circle=anti_circle
+        self.ccw=ccw
         self.is_path_dependent=is_path_dependent
 
     def odom_cb(self, msg):
@@ -45,7 +45,7 @@ class Circle(smach.State):
             self.odom.pose.pose.position.y,
             self.odom.pose.pose.position.z,
         )
-        goal.waypoints = create_circle_coordinates(start, centre, 330, self.anti_circle)
+        goal.waypoints = create_circle_coordinates(start, centre, 330, self.ccw)
         goal.forward_speed = rospy.get_param("/fsm/fast_speed")
         goal.heading_point.x = centre.x
         goal.heading_point.y = centre.y

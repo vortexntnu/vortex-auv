@@ -4,7 +4,7 @@ import rospy
 from smach import StateMachine
 from smach_ros import IntrospectionServer
 
-from nortek_reach_depth import ReachDepth
+from reach_depth import ReachDepth
 from search.forward_sweep import ForwardSweepSearch
 
 
