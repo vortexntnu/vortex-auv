@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Namespace arguments -->
+  <!-- <arg name="ns_controller" default="controllers"/> -->
+  <arg name="launch_beluga" default="false"/>
+  <arg name="type" default="simulator"/>
+
+  <rosparam command="load" file="$(find dp_controller)/config/dp_Client.yaml"/>
+  <rosparam command="load" file="$(find dp_controller)/config/dp_PID.yaml"/>
+  <rosparam command="load" file="$(find dp_reference_model)/config/reference_model.yaml"/>
+
+
+  <!-- Controller nodes -->
+  <!-- <group ns="$(arg ns_controller)"> -->
+    <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
+    
+    <node pkg="dp_reference_model"       type="dp_reference_model_node"         name="dp_reference_model"        output="screen" />
+    
+    <group if="$(eval launch_beluga)">
+        <include file="$(find auv_setup)/launch/beluga.launch">
+            <arg name="type" value="$(arg type)" />
+        </include>
+    </group>
+               
+
+  <!-- </group> -->
+
+
+</launch>

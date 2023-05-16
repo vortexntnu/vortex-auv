@@ -29,20 +29,23 @@
    <!-- <node pkg="joystick_guidance"  type="joystick_guidance.py"    name="joystick"     output="screen"/>
  --> </group>
 
-  <!-- Reference model nodes (please review syntax)-->
-  <group ns="$(arg ns_rm)">
-    <!-- <node pkg="dp_reference_model"  type="dp_reference_model_node"      name="dp_reference_model"   output="screen"/> -->
-  </group>
 
   <!-- Controller nodes -->
+  <rosparam command="load" file="$(find dp_controller)/config/dp_Client.yaml"/>
+  <rosparam command="load" file="$(find dp_controller)/config/dp_PID.yaml"/>
+  <rosparam command="load" file="$(find dp_reference_model)/config/reference_model.yaml"/>
+  <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen">
+    <param name="launch_type" value="$(arg type)" />
+  </node>
+  <node pkg="dp_reference_model"       type="dp_reference_model_node"         name="dp_reference_model"        output="screen" />
+
   <group ns="$(arg ns_controller)">
     <group if="$(eval type == 'simulator')">
       <param name="/thrust/thrust_topic" value="/auv/thruster_manager/input"/>
     </group>
 
-    <node pkg="dp_controller"       type="dp_controller_node"         name="dp_controller"        output="screen"/>
-    <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/>
-    <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>  
+    <!-- <node pkg="velocity_controller" type="velocity_controller_node"   name="velocity_controller"  output="screen"/> -->
+    <!-- <node pkg="vtf_guidance_and_control" type="vtf_server.py"     name="vtf_server"   output="screen"/>   -->
   </group>
 
   <!-- Thrust nodes -->

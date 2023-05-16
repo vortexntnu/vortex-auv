@@ -1,102 +1,181 @@
-/*   Written by Jae Hyeong Hwang and Christopher Strøm
-     Modified by Øystein Solbø
-     Copyright (c) 2021 Vortex NTNU.
+/*   Written by Kevin Strandenes and Anders Slåkvik, Student
+     Documentation written by Kevin Strandenes and Anders Slåkvik
+     Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
+// TODO: refactor member variables to have "m_" prefix for readability
+
 #include "dp_reference_model/reference_model.h"
+#include "dp_reference_model/eigen_typedefs.h"
+#include <eigen3/Eigen/Dense>
+#include <iostream>
 
-ReferenceModel::ReferenceModel(ros::NodeHandle nh) {
-  // get params
-  double a1, a2, a3;
-  double b1, b2, b3;
-  std::vector<double> beta_temp;
+Eigen::Matrix3d skew(Eigen::Vector3d vec) {
+  Eigen::Matrix3d skew_mat = Eigen::Matrix3d::Zero();
+  skew_mat << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
+  return skew_mat;
+}
 
-  if (!nh.getParam("dp_rm/a1", a1))
-    a1 = 1;
-  if (!nh.getParam("dp_rm/a2", a2))
-    a2 = -1.990024937655860;
-  if (!nh.getParam("dp_rm/a3", a3))
-    a3 = 0.990049813123053;
-  if (!nh.getParam("dp_rm/b1", b1))
-    b1 = 6.218866798092052e-06;
-  if (!nh.getParam("dp_rm/b2", b2))
-    b2 = 1.243773359618410e-05;
-  if (!nh.getParam("dp_rm/b3", b3))
-    b3 = 6.218866798092052e-06;
-  if (!nh.getParam("/reference_model/dp/beta", beta_temp))
-    beta_temp = {0.025, 0.025, 0.0025};
+ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
 
-  a_x = Eigen::Vector3d(a1, a2, a3);
-  b_x = Eigen::Vector3d(b1, b2, b3);
-  beta = Eigen::Vector3d(beta_temp[0], beta_temp[1], beta_temp[2]);
+  std::string odometry_topic;
+  std::vector<double> zeta, omega;
 
-  // initiate local variables
-  prev_control_mode = 0; // OPEN LOOP
-  x_d_prev = Eigen::Vector3d::Zero();
-  x_d_prev_prev = Eigen::Vector3d::Zero();
-  x_ref_prev = Eigen::Vector3d::Zero();
-  x_ref_prev_prev = Eigen::Vector3d::Zero();
+  // Import parameters
+  getParameters("dp_rm/zeta", zeta);
+  getParameters("dp_rm/omega", omega);
+
+  getParameters("/controllers/dp/odometry_topic", odometry_topic);
+
+  std::vector<double> max_vel_buff;
+  getParameters("dp_rm/max_vel", max_vel_buff);
+  max_vel << max_vel_buff[0], max_vel_buff[1], max_vel_buff[2], max_vel_buff[3],
+      max_vel_buff[4], max_vel_buff[5], max_vel_buff[6];
+  // Set up dynamic reconfigure server
+  dynamic_reconfigure::Server<
+      dp_reference_model::DpReferenceModelConfig>::CallbackType f;
+  f = boost::bind(&ReferenceModel::cfgCallback, this, _1, _2);
+  m_cfg_server.setCallback(f);
+
+  // initialize desired eta and eta_dot as zero
+  eta_d = Eigen::Vector7d::Zero();
+  eta_d(3) = 1; // the real value of quaternions
+  eta_dot_d = Eigen::Vector7d::Zero();
 
   // subs and pubs
-  setpoint_sub =
-      nh.subscribe("/guidance/dp_data", 1, &ReferenceModel::setpoint_cb, this);
+  setpoint_sub = nh.subscribe("/dp_data/reference_point", 1,
+                              &ReferenceModel::setpointCallback, this);
   reference_pub =
-      nh.advertise<vortex_msgs::DpSetpoint>("/reference_model/output", 1, this);
+      nh.advertise<nav_msgs::Odometry>("/reference_model/Odometry_d", 1, this);
+  m_odometry_sub = m_nh.subscribe(odometry_topic, 1,
+                                  &ReferenceModel::odometryCallback, this);
+
+  Delta = Eigen::Matrix7d::Zero();
+  Omega = Eigen::Matrix7d::Zero();
+  Delta.diagonal() << zeta[1], zeta[2], zeta[3], zeta[4], zeta[5], zeta[6],
+      zeta[7];
+  Omega.diagonal() << omega[1], omega[2], omega[3], omega[4], omega[5],
+      omega[6], omega[7];
+
+  A_d << Eigen::Matrix7d::Zero(), Eigen::Matrix7d::Identity(), -Omega * Omega,
+      -2 * Delta * Omega;
+
+  B_d << Eigen::Matrix7d::Zero(), Omega * Omega;
 }
 
-void ReferenceModel::setpoint_cb(const vortex_msgs::DpSetpoint &setpoint_msg) {
+// Eigen::Vector14d
+void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
+  Eigen::Vector14d x_d;
+  x_d << eta_d, eta_dot_d;
+
+  ros::Time current_time = ros::Time::now();
+  double time_step = (current_time - last_time)
+                         .toSec(); // calculate time difference in seconds
+  last_time = current_time;
+
+  Eigen::Vector14d x_dot_d = A_d * x_d + B_d * x_ref;
+  x_d = x_d + time_step * x_dot_d;
+  eta_d = x_d.segment(0, 7);
+
+  eta_dot_d = x_d.segment(7, 7);
+  eta_dot_d = eta_dot_d.cwiseMin(max_vel).cwiseMax(-max_vel);
+
+  // Normalizing desired quaternion
+  Eigen::Quaterniond quat_d(eta_d(3), eta_d(4), eta_d(5), eta_d(6));
+  // Maybe remove this. This is to only use referene model on three of the
+  // quaternions and calculate the real value.
+  quat_d.w() = sqrt(1 - std::min(1.0, quat_d.vec().squaredNorm()));
+  quat_d.normalize();
+  Eigen::Vector4d quat_d_vec(quat_d.w(), quat_d.x(), quat_d.y(), quat_d.z());
+  eta_d.segment(3, 4) = quat_d_vec;
+}
+
+void ReferenceModel::setpointCallback(const geometry_msgs::Pose &setpoint_msg) {
 
   // parse msg
-  Eigen::Vector3d x_ref{setpoint_msg.setpoint.position.x,
-                        setpoint_msg.setpoint.position.y,
-                        setpoint_msg.setpoint.position.z};
+  Eigen::Vector7d x_ref_buff = Eigen::Vector7d::Zero();
+  x_ref_buff << setpoint_msg.position.x, setpoint_msg.position.y,
+      setpoint_msg.position.z, setpoint_msg.orientation.w,
+      setpoint_msg.orientation.x, setpoint_msg.orientation.y,
+      setpoint_msg.orientation.z;
+  Eigen::Matrix3d R = orientation.toRotationMatrix();
+  Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
 
-  // check if control mode has changed
-  if (setpoint_msg.control_mode != prev_control_mode) {
-    reset(x_ref); // reset prev values to current target position
-    prev_control_mode = setpoint_msg.control_mode;
-    ROS_DEBUG("DP reference model reset");
+  T << -orientation.vec().transpose(),
+      orientation.w() * Eigen::Matrix3d::Identity() + skew(orientation.vec());
+  T = 0.5 * T;
+
+  Eigen::MatrixXd J_inv = Eigen::MatrixXd::Zero(6, 7);
+  J_inv << R.transpose(), Eigen::MatrixXd::Zero(3, 4), Eigen::Matrix3d::Zero(),
+      4 * T.transpose();
+
+  if (!x_ref.isApprox(x_ref_buff) ||
+      (ros::Time::now() - last_time).toSec() > 5) {
+
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(7, 6);
+    J << R, Eigen::Matrix3d::Zero(), Eigen::MatrixXd::Zero(4, 3), T;
+
+    eta_d << position, orientation.w(), orientation.vec();
+    eta_dot_d << J * velocity;
+
+    last_time = ros::Time::now();
   }
+
+  x_ref = x_ref_buff;
 
   // calculate smooth setpoint
-  Eigen::Vector3d x_d = calculate_smooth(x_ref);
+  calculate_smooth(x_ref);
 
   // convert and publish smooth setpoint
-  geometry_msgs::Point x_d_point;
-  tf::pointEigenToMsg(x_d, x_d_point);
+  nav_msgs::Odometry odometry_d_msg;
+  geometry_msgs::Twist nu_d_msg;
 
-  vortex_msgs::DpSetpoint dp_setpoint;
-  dp_setpoint.setpoint.position = x_d_point;
-  dp_setpoint.setpoint.orientation = setpoint_msg.setpoint.orientation;
-  dp_setpoint.control_mode = setpoint_msg.control_mode;
+  // Fill up the header
+  odometry_d_msg.header.frame_id = "ReferenceFrame";
+  odometry_d_msg.child_frame_id = "";
+  odometry_d_msg.header.stamp = ros::Time::now();
 
-  reference_pub.publish(dp_setpoint);
+  Eigen::Quaterniond eta_d_quat(eta_d(3), eta_d(4), eta_d(5), eta_d(6));
+  Eigen::Vector6d nu_d = J_inv * eta_dot_d;
+
+  // Transformation of eta_d to odometry-pose-msg and nu_d to odometry-twist-msg
+  tf::pointEigenToMsg(eta_d.segment(0, 3), odometry_d_msg.pose.pose.position);
+  tf::quaternionEigenToMsg(eta_d_quat, odometry_d_msg.pose.pose.orientation);
+
+  tf::twistEigenToMsg(nu_d, odometry_d_msg.twist.twist);
+
+  reference_pub.publish(odometry_d_msg);
 }
 
-Eigen::Vector3d ReferenceModel::low_pass_filter(const Eigen::Vector3d &x_ref) {
-  Eigen::Vector3d x_d;
-  for (int i = 0; i < 3; i++) {
-    x_d[i] = x_d_prev[i] - beta[i] * (x_d_prev[i] - x_ref[i]);
+template <typename T>
+void ReferenceModel::getParameters(std::string param_name, T &param_variable) {
+  if (!m_nh.getParam(param_name, param_variable)) {
+    ROS_FATAL("Failed to read parameter %s.  Shutting down node..",
+              param_name.c_str());
+    ros::shutdown();
   }
-  return x_d;
 }
 
-Eigen::Vector3d ReferenceModel::calculate_smooth(const Eigen::Vector3d &x_ref) {
-  Eigen::Vector3d x_d;
-  x_d = b_x(0) * x_ref + b_x(1) * x_ref_prev + b_x(2) * x_ref_prev_prev -
-        a_x(1) * x_d_prev - a_x(2) * x_d_prev_prev;
+void ReferenceModel::cfgCallback(
+    dp_reference_model::DpReferenceModelConfig &config, uint32_t level) {
 
-  x_ref_prev_prev = x_ref_prev;
-  x_ref_prev = x_ref;
-  x_d_prev_prev = x_d_prev;
-  x_d_prev = x_d;
+  // gets the different gains form ReferenceModel.cfg
+  Delta = Eigen::Matrix7d::Zero();
+  Omega = Eigen::Matrix7d::Zero();
+  Delta.diagonal() << config.zeta_1, config.zeta_2, config.zeta_3,
+      config.zeta_4, config.zeta_5, config.zeta_6, config.zeta_7;
+  Omega.diagonal() << config.omega_1, config.omega_2, config.omega_3,
+      config.omega_4, config.omega_5, config.omega_6, config.omega_7;
 
-  return x_d;
+  A_d << Eigen::Matrix7d::Zero(), Eigen::Matrix7d::Identity(), -Omega * Omega,
+      -2 * Delta * Omega;
+
+  B_d << Eigen::Matrix7d::Zero(), Omega * Omega;
 }
 
-void ReferenceModel::reset(Eigen::Vector3d pos) {
-  x_d_prev = pos;
-  x_d_prev_prev = pos;
-  x_ref_prev = pos;
-  x_ref_prev_prev = pos;
+void ReferenceModel::odometryCallback(const nav_msgs::Odometry &msg) {
+  // Convert to eigen for computation
+  tf::pointMsgToEigen(msg.pose.pose.position, position);
+  tf::quaternionMsgToEigen(msg.pose.pose.orientation, orientation);
+  tf::twistMsgToEigen(msg.twist.twist, velocity);
 }
