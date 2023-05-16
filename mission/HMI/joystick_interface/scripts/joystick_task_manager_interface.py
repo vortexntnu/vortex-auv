@@ -5,6 +5,7 @@ import rospy
 import dynamic_reconfigure.client
 from task_manager_defines import defines
 
+
 class JoystickEnable:
 
     def __init__(self):
