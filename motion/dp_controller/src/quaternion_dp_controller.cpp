@@ -62,8 +62,8 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_integral = Eigen::Vector6d::Zero();
 
   // TODO: Should be made into ROS params
-  double maxPosGain = 0.5;
-  double maxAttGain = 0.05;
+  double maxPosGain = 3;
+  double maxAttGain = 0.2;
 
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
