@@ -15,7 +15,8 @@ class ControlModeHandling:
     def __init__(self):
         self.control_mode = JoystickControlModes(0)
 
-    def control_mode_change(self, buttons, wrench_publisher_handle, dp_client_handle, odom_pose):
+    def control_mode_change(self, buttons, wrench_publisher_handle,
+                            dp_client_handle, odom_pose):
         pressed = -1
 
         if buttons["stick_button_left"] and buttons[
@@ -23,7 +24,7 @@ class ControlModeHandling:
             pressed = JoystickControlModes.KILLSWITCH.value
             self.control_mode = pressed
             ControlModeHandling.killswitch(wrench_publisher_handle)
-        
+
         if buttons["start"]:
             pressed = JoystickControlModes.EMERGENCY_STOP.value
             self.control_mode = pressed
@@ -63,13 +64,15 @@ class ControlModeHandling:
     @staticmethod
     def killswitch(wrench_publisher_handle):
         rospy.logwarn("KILLSWITCH ENABLED!")
-        
+
         for i in range(10):
             wrench_publisher_handle.publish(Wrench())
             rospy.sleep(rospy.Duration(0.1))
 
         nodes = rosnode.get_node_names()
-        nodes_to_kill = ["/dp_controller", "/thruster_interface", "/pca9685_ros_driver"]
+        nodes_to_kill = [
+            "/dp_controller", "/thruster_interface", "/pca9685_ros_driver"
+        ]
         for node in nodes_to_kill:
             if node in nodes:
                 ControlModeHandling.kill_node(node)
@@ -91,35 +94,37 @@ class ControlModeHandling:
     @staticmethod
     def pose3_hold(dp_client, odom_pose):
         dp_pos, dp_q = ControlModeHandling.set_dp_pose(odom_pose)
-        ControlModeHandling.send_dp_goal(dp_client, False, odom_pose, dp_pos, dp_q)
+        ControlModeHandling.send_dp_goal(dp_client, False, odom_pose, dp_pos,
+                                         dp_q)
 
     @staticmethod
     def pose4_hold(dp_client, odom_pose):
         dp_pos, dp_q = ControlModeHandling.set_dp_pose(odom_pose)
-        ControlModeHandling.send_dp_goal(dp_client, True, odom_pose, dp_pos, dp_q)
+        ControlModeHandling.send_dp_goal(dp_client, True, odom_pose, dp_pos,
+                                         dp_q)
 
     @staticmethod
     def set_dp_pose(odom_pose):
 
-        dp_pos  = [odom_pose.position.x, odom_pose.position.y, odom_pose.position.z]
-        dp_q    = (odom_pose.orientation.x,
-                   odom_pose.orientation.y,
-                   odom_pose.orientation.z,
-                   odom_pose.orientation.w)
-        
+        dp_pos = [
+            odom_pose.position.x, odom_pose.position.y, odom_pose.position.z
+        ]
+        dp_q = (odom_pose.orientation.x, odom_pose.orientation.y,
+                odom_pose.orientation.z, odom_pose.orientation.w)
+
         return dp_pos, dp_q
 
     @staticmethod
     def send_dp_goal(dp_client, init_z, dp_pose, dp_pos, dp_q):
         rospy.set_param("/DP/Enable", True)
         if init_z:
-            rospy.set_param("/setpoint/DOF", [1,1,1,0,0,1])
+            rospy.set_param("/setpoint/DOF", [1, 1, 1, 0, 0, 1])
         else:
-            rospy.set_param("/setpoint/DOF", [1,1,0,0,0,1])
-        
+            rospy.set_param("/setpoint/DOF", [1, 1, 0, 0, 0, 1])
+
         dp_rot = euler_from_quaternion(dp_q)
         dp_server_status = dp_client.wait_for_server(rospy.Duration(1))
-        
+
         if not dp_server_status:
             rospy.logwarn("DP Server could not be reached...")
             return
@@ -130,14 +135,13 @@ class ControlModeHandling:
             dp_goal.DOF = [1, 1, 1, 0, 0, 1]
         else:
             dp_goal.DOF = [1, 1, 0, 0, 0, 1]
-        
+
         dp_client.send_goal(dp_goal)
 
-        rospy.set_param("/setpoint/position", [
-            float(dp_pos[0]),
-            float(dp_pos[1]),
-            float(dp_pos[2])
-        ])
+        rospy.set_param("/setpoint/position",
+                        [float(dp_pos[0]),
+                         float(dp_pos[1]),
+                         float(dp_pos[2])])
         rospy.set_param("/setpoint/orientation", dp_rot)
         rospy.loginfo("Holding pose...")
 
