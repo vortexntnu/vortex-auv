@@ -9,14 +9,17 @@ from vortex_msgs.msg import dpAction, dpGoal, dpResult
 
 from libjoystick.JoystickControlModes import *
 
+
 class ControlModeHandling:
+
     def __init__(self):
         self.control_mode = JoystickControlModes(0)
 
     def control_mode_change(self, buttons, wrench_publisher_handle, dp_client_handle, odom_pose):
         pressed = -1
 
-        if buttons["stick_button_left"] and buttons["stick_button_right"] and buttons["RB"] and buttons["LB"]:
+        if buttons["stick_button_left"] and buttons[
+                "stick_button_right"] and buttons["RB"] and buttons["LB"]:
             pressed = JoystickControlModes.KILLSWITCH.value
             self.control_mode = pressed
             ControlModeHandling.killswitch(wrench_publisher_handle)
@@ -47,9 +50,12 @@ class ControlModeHandling:
             rospy.logwarn("DP_CMD MODE NOT IMPLEMENTED")
 
         if pressed != -1:
-            rospy.loginfo(f"Control mode changed by joystick: {get_joystick_control_mode_name(pressed)}")
-            rospy.sleep(rospy.Duration(0.25))  # Sleep to avoid aggressive switching
-    
+            rospy.loginfo(
+                f"Control mode changed by joystick: {get_joystick_control_mode_name(pressed)}"
+            )
+            rospy.sleep(
+                rospy.Duration(0.25))  # Sleep to avoid aggressive switching
+
     @staticmethod
     def open_loop(dp_dlient_handler):
         rospy.set_param("/DP/Enable", False)
