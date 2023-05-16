@@ -15,10 +15,10 @@
 #
 
 physical:
-  weight: 24.00     # kg
-  buoyancy: 23.00   # kg
-  center_of_mass: [0.0, 0.0, 0.0]        # mm (x,y,z)
-  center_of_buoyancy: [0.0, 0.0, 0.0]   # mm (x,y,z)
+  weight: 35.0  #24.00     # kg
+  buoyancy: 36.6 #37.522  #25    # kg (pho*V)
+  center_of_mass: [0.0, 0.0, -0.08]        # m (x,y,z)
+  center_of_buoyancy: [0.0, 0.0, 0.5]   # m (x,y,z)
 
 
 propulsion:
@@ -32,6 +32,8 @@ propulsion:
       pitch: true
       yaw:   true
   thrusters:
+    thrusters_operational_voltage_range: [14.2, 17.0] # Volts # If less or more than set Voltage -> thrusters shut down
+
     num: 8
     configuration_matrix:
 
@@ -45,14 +47,15 @@ propulsion:
 
     rate_of_change:
       max: 1 # Maximum rate of change in newton per second for a thruster
-    map:       [ 4, 5,  3, 2, 0, 1,  7, 6] # [0, 1, 2, 3, 4, 5, 6, 7]  
-    direction: [-1, -1, -1, -1, 1, 1, -1, 1]
-    offset: [80, 80, 80, 80, 80, 80, 80, 80] # Offset IN PWM!
+    map:       [  4,  6,  7,  0,  3,  1,  2,  5 ] # [ 0, 1, 2, 3, 4, 5, 6, 7 ]  
+    direction: [  1, -1,  1,  1, -1,  1,  1, -1 ]
+    offset:    [ 80, 80, 80, 80, 80, 80, 80, 80 ] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest
+    thrust_range: [-0.7, 0.7] # range in percentage -1.0 to 1.0 # NOTE!: thrust_range moves with the offset, if the offset is too big e.g., ± ~400 the thrust range will go out of bounds 
 
 guidance:
   dp:
     rate: 40
-    acceptance_margins: [0.10, 0.10, 0.10, 0.15, 0.15, 0.15] # Order: x,y,z,roll,pitch,yaw
+    acceptance_margins: [0.10, 0.10, 0.10, 10, 10, 10] # Order: x,y,z,roll,pitch,yaw
     action_server: "/guidance_interface/dp_server"
   LOS:
     rate: 20
@@ -182,6 +185,14 @@ battery:
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
   logging:
     interval: 10   # Seconds
+
+pressure:
+  thresholds: 
+    critical: 1013.25 # hPa
+  system:
+    interval: 0.5 # seconds
+  loger:
+    interval: 10 # seconds
 
 temperature:
   logging:

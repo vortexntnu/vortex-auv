@@ -2,20 +2,21 @@
 # coding: UTF-8
 
 import rospy
-import Jetson.GPIO as GPIO
+import RPi.GPIO as GPIO
 from std_msgs.msg import Int32
 
-PIN = 15
+PIN = 13
 
 
 class TorpedoLaunch:
+
     def __init__(self):
         rospy.init_node("torpedo_node")
 
         rospy.Subscriber("/torpedo", Int32, self.execute, queue_size=1)
 
         self.mode = GPIO.HIGH
-        GPIO.setmode(GPIO.BOARD)
+        GPIO.setmode(GPIO.BCM)
         GPIO.setup(PIN, GPIO.OUT, initial=self.mode)
 
     def execute(self, msg):

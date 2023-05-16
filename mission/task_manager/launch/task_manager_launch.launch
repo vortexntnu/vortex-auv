@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+    <group ns="task_manager">
+        <node name="task_manager_server"         pkg ="task_manager"    type="task_manager_server_node.py"   output="screen"/>
+    </group>
+
+</launch>
+

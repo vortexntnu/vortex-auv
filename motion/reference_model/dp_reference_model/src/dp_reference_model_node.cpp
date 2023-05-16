@@ -1,4 +1,3 @@
-
 #include "dp_reference_model/reference_model.h"
 
 int main(int argc, char *argv[]) {
