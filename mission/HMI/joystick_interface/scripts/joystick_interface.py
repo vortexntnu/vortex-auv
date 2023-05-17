@@ -135,6 +135,9 @@ class JoystickInterface:
             wrench_msg.torque.y = self.pitch
             wrench_msg.torque.z = self.yaw
             self.wrench_pub.publish(wrench_msg)
+        
+        elif self.control_mode_handler.control_mode == JoystickControlModes.DP_CMD.value:
+            self.control_mode_handler.dp_cmd_mode(self.axes)
 
     def spin(self):
         while not rospy.is_shutdown():
