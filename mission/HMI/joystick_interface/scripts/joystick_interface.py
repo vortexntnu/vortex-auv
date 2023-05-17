@@ -7,9 +7,11 @@ from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Wrench, Pose
 from nav_msgs.msg import Odometry
 
+from task_manager_defines import defines
+
 from libjoystick.JoystickControlModes import *
 from libjoystick.ControlModeHandling import ControlModeHandling
-
+from libjoystick.TaskManagerClient import TaskManagerClient
 
 class JoystickInterface:
     """
@@ -48,8 +50,14 @@ class JoystickInterface:
         self.pitch = 0.0
         self.yaw = 0.0
 
+        # Control Mode Handler
         self.control_mode_handler = ControlModeHandling()
+        
+        # Task Manager ID for joystick
+        self.task_manager_client = TaskManagerClient(defines.Tasks.joystick.id)
+        self.task_manager_client.is_enabled = True # Enable joystick by default
 
+        # Joystick mappings
         self.joystick_buttons_map = [
             "A",
             "B",
@@ -177,6 +185,15 @@ class JoystickInterface:
         All control mode logic is handled in the function 'control_mode_change'.
         """
         while not rospy.is_shutdown():
+            if not self.task_manager_client.is_enabled:
+                # Handles an edge case where joystick control latches
+                if self.task_manager_client.was_enabled:
+                    self.wrench_pub.publish(Wrench())
+                    self.task_manager_client.was_enabled = False
+                rospy.logwarn_throttle(10, "Joystick is disabled in the task manager!")
+                self.ros_rate.sleep()
+                continue
+
             if self.buttons != {}:
                 self.control_mode_handler.control_mode_change(
                     self.buttons, self.wrench_pub)
