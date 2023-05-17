@@ -120,7 +120,7 @@ class ControlModeHandling:
             ControlModeHandling.kill_node(node)
         else:
             rospy.loginfo(node + " is not running...")
-        
+
         wrench_publisher_handle.publish(Wrench())
         rospy.sleep(rospy.Duration(1.0))
 
