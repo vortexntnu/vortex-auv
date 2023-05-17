@@ -12,11 +12,27 @@ from libjoystick.ControlModeHandling import ControlModeHandling
 
 
 class JoystickInterface:
+    """
+    The JoystickInterface class provides an interface for a joystick to control a robot.
+
+    Attributes:
+        buttons (dict): Current state of the joystick buttons.
+        axes    (dict): Current state of the joystick axes.
+        surge   (float): Scaled surge command from the joystick.
+        sway    (float): Scaled sway command from the joystick.
+        heave   (float): Scaled heave command from the joystick.
+        roll    (float): Scaled roll command from the joystick.
+        pitch   (float): Scaled pitch command from the joystick.
+        yaw     (float): Scaled yaw command from the joystick.
+        
+        control_mode_handler (ControlModeHandling): The control mode handler.
+    """
 
     def __init__(self):
         """
+        Initialize the JoystickInterface class.
         Define constants used in the joystick mapping, and any ros
-        specifics
+        specifics.
         """
         rospy.init_node("joystick_interface")
         self.ros_rate = rospy.Rate(50.0)
@@ -94,9 +110,15 @@ class JoystickInterface:
         # Initialization
         rospy.loginfo("Waiting for joystick input...")
         rospy.wait_for_message("/joystick/joy", Joy)
-        rospy.loginfo("Joystick interface is up and running")
+        rospy.loginfo("Joystick interface is up and running!")
 
     def joystick_cb(self, msg):
+        """
+        Callback function for joystick messages.
+
+        Args:
+            msg (Joy): The joystick message.
+        """
         try:
             self.buttons = {
                 self.joystick_buttons_map[i]: msg.buttons[i]
@@ -110,9 +132,18 @@ class JoystickInterface:
             rospy.logerr(f"Error in joystick_cb: {e}")
 
     def odom_cb(self, msg):
+        """
+        Callback function for odometry messages.
+
+        Args:
+            msg (Odometry): The odometry message.
+        """
         self.control_mode_handler.odom_pose = msg.pose.pose
 
     def publish_joystick_data(self):
+        """
+        Publish the joystick data. DP control mode is handled in the function 'dp_cmd_mode'.
+        """
         # Publish joystick and wrench data
         joystick_msg = Joy()
         joystick_msg.axes = [
@@ -141,11 +172,16 @@ class JoystickInterface:
             self.control_mode_handler.dp_cmd_mode(self.axes)
 
     def spin(self):
+        """
+        Run the main loop, processing joystick input and updating the robot's control commands.
+        All control mode logic is handled in the function 'control_mode_change'.
+        """
         while not rospy.is_shutdown():
             if self.buttons != {}:
                 self.control_mode_handler.control_mode_change(
                     self.buttons, self.wrench_pub)
 
+            # Scale the joystick commands
             self.surge = self.axes[
                 "vertical_axis_left_stick"] * self.joystick_surge_scaling
             self.sway = self.axes[

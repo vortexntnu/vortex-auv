@@ -14,20 +14,45 @@ from libjoystick.JoystickControlModes import *
 
 
 class ControlModeHandling:
+    """
+    Class for handling control mode changes using joystick inputs.
+
+    Attributes:
+        control_mode    (IntEnum): Current control mode setting.
+        odom_pose       (Pose): Drone pose in the odom frame. 
+        prev_time       (float): Previously noted time. Used in dp_cmd_mode only.
+
+        dp_client       (SimpleActionClient): DP controller action client.
+        refmodel_client (ServiceProxy): DP reference model service client.
+        refmodel_req    (SetBoolRequest): SetBool service request object. Used for the DP reference model client.
+    """
 
     def __init__(self):
-        self.control_mode = JoystickControlModes(0)
-        self.odom_pose = Pose()
-        self.prev_time = 0.0
+        """
+        Initializes the control mode handler - attributes and ROS.
+        """
+        self.control_mode = JoystickControlModes(0)  # Initial control mode
+        self.odom_pose = Pose()  # Pose from odometry
+        self.prev_time = 0.0  # Used for time interval calculations
         
-        # DP client
-        self.dp_client = actionlib.SimpleActionClient("/DpAction", # Server name
-                                                      dpAction)
+        # Initialize dynamic positioning (DP) client
+        self.dp_client = actionlib.SimpleActionClient("/DpAction", dpAction)
+        
+        # Initialize reference model service client
         self.refmodel_client = rospy.ServiceProxy('/dp_reference_model/enable_x_ref_filter', SetBool)
+        
+        # Initialize reference model service request
         self.refmodel_req = SetBoolRequest()
-        self.refmodel_req.data = True
+        self.refmodel_req.data = True  # Enable reference model by default
 
     def control_mode_change(self, buttons, wrench_publisher_handle):
+        """
+        Changes the control mode based on joystick button inputs.
+
+        Args:
+            buttons (dict): A dictionary mapping buttons to their state.
+            wrench_publisher_handle: Publisher to publish Wrench messages.
+        """
         pressed = -1
 
         if buttons["stick_button_left"] and buttons[
@@ -95,6 +120,13 @@ class ControlModeHandling:
 
     @staticmethod
     def killswitch(wrench_publisher_handle):
+        """
+        Activates the killswitch. Currently limited to just killing ROS nodes that are required to move the drone.
+        Publishes empty Wrench messages to stop all motion.
+
+        Args:
+            wrench_publisher_handle: Publisher to publish Wrench messages.
+        """
         rospy.logwarn("KILLSWITCH ENABLED!")
 
         for i in range(10):
@@ -113,6 +145,12 @@ class ControlModeHandling:
 
     @staticmethod
     def emergency_stop(wrench_publisher_handle):
+        """
+        Activates the emergency stop. Kills the dynamic positioning controller.
+
+        Args:
+            wrench_publisher_handle: Publisher to publish Wrench messages.
+        """
         rospy.logwarn("EMERGENCY STOP ENABLED!")
         nodes = rosnode.get_node_names()
         node = "/dp_controller"
@@ -125,6 +163,9 @@ class ControlModeHandling:
         rospy.sleep(rospy.Duration(1.0))
 
     def open_loop(self):
+        """
+        Enables open loop control. Sends goal to dynamic positioning action server.
+        """
         dp_goal = dpGoal()
         dp_goal.x_ref = self.odom_pose
         dp_goal.DOF = [0, 0, 0, 0, 0, 0]
@@ -132,14 +173,26 @@ class ControlModeHandling:
         rospy.set_param("/DP/Enable", False)
 
     def pose3_hold(self):
+        """
+        Enables pose hold in 3 degrees of freedom: x, y, psi
+        """
         rospy.set_param("/DP/Enable", True)
         self.send_dp_goal(False)
 
     def pose4_hold(self):
+        """
+        Enables pose hold in 4 degrees of freedom: x, y, z, psi
+        """
         rospy.set_param("/DP/Enable", True)
         self.send_dp_goal(True)
     
     def dp_cmd_mode(self, axes):
+        """
+        Enables dynamic positioning command mode.
+
+        Args:
+            axes (dict): A dictionary mapping joystick axes to their state.
+        """
         wait_time = 0.2
         current_time = rospy.get_time()
 
@@ -179,6 +232,13 @@ class ControlModeHandling:
         self.prev_time = rospy.get_time()
 
     def send_dp_goal(self, init_z, target_pose=None):
+        """
+        Sends a goal to the dynamic positioning action server.
+
+        Args:
+            init_z (bool): Initialize z-axis control.
+            target_pose (Pose, optional): Target pose for the dynamic positioning controller.
+        """
         dp_server_status = self.dp_client.wait_for_server(rospy.Duration(1))
 
         if not dp_server_status:
@@ -198,8 +258,13 @@ class ControlModeHandling:
 
         self.dp_client.send_goal(dp_goal)
 
-    # Function to kill a ROS node
     @staticmethod
     def kill_node(node_name):
+        """
+        Kills a ROS node.
+
+        Args:
+            node_name (str): Name of the ROS node to kill.
+        """
         command = ['rosnode', 'kill', node_name]
         subprocess.call(command)
