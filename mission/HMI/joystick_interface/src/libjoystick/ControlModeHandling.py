@@ -8,7 +8,7 @@ import numpy as np
 
 from geometry_msgs.msg import Wrench, Pose
 from vortex_msgs.msg import dpAction, dpGoal, dpResult
-from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse 
+from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
 
 from libjoystick.JoystickControlModes import *
 
@@ -34,13 +34,14 @@ class ControlModeHandling:
         self.control_mode = JoystickControlModes(0)  # Initial control mode
         self.odom_pose = Pose()  # Pose from odometry
         self.prev_time = 0.0  # Used for time interval calculations
-        
+
         # Initialize dynamic positioning (DP) client
         self.dp_client = actionlib.SimpleActionClient("/DpAction", dpAction)
-        
+
         # Initialize reference model service client
-        self.refmodel_client = rospy.ServiceProxy('/dp_reference_model/enable_x_ref_filter', SetBool)
-        
+        self.refmodel_client = rospy.ServiceProxy(
+            '/dp_reference_model/enable_x_ref_filter', SetBool)
+
         # Initialize reference model service request
         self.refmodel_req = SetBoolRequest()
         self.refmodel_req.data = True  # Enable reference model by default
@@ -100,12 +101,16 @@ class ControlModeHandling:
                 res = self.refmodel_client(self.refmodel_req.data)
                 if (res.success): rospy.loginfo("Enabling DP command mode...")
                 else:
-                    rospy.logwarn("Could not contact DP reference model... Enabling manual control.")
+                    rospy.logwarn(
+                        "Could not contact DP reference model... Enabling manual control."
+                    )
                     pressed = JoystickControlModes.OPEN_LOOP.value
                     self.control_mode = pressed
                     self.open_loop()
             except Exception:
-                rospy.logwarn("Could not contact DP reference model... Enabling manual control.")
+                rospy.logwarn(
+                    "Could not contact DP reference model... Enabling manual control."
+                )
                 pressed = JoystickControlModes.OPEN_LOOP.value
                 self.control_mode = pressed
                 self.open_loop()
@@ -185,7 +190,7 @@ class ControlModeHandling:
         """
         rospy.set_param("/DP/Enable", True)
         self.send_dp_goal(True)
-    
+
     def dp_cmd_mode(self, axes):
         """
         Enables dynamic positioning command mode.
@@ -201,7 +206,7 @@ class ControlModeHandling:
 
         x = axes["vertical_axis_left_stick"]
         y = axes["horizontal_axis_left_stick"]
-        z = -(axes["RT"]-axes["LT"]) / 2
+        z = -(axes["RT"] - axes["LT"]) / 2
         psi = axes["horizontal_axis_right_stick"]
 
         # Rotation
@@ -226,7 +231,7 @@ class ControlModeHandling:
         dp_cmd_pose = Pose()
         dp_cmd_pose.position = pos
         dp_cmd_pose.orientation = q
-        
+
         self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
 
         self.prev_time = rospy.get_time()
@@ -250,7 +255,7 @@ class ControlModeHandling:
             dp_goal.x_ref = self.odom_pose
         else:
             dp_goal.x_ref = target_pose
-        
+
         if init_z:
             dp_goal.DOF = [1, 1, 1, 0, 0, 1]
         else:
