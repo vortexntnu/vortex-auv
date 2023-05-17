@@ -100,7 +100,7 @@ class JoystickInterface:
                                           queue_size=1)
 
         # DP server and client
-        dp_action_server = "DpAction"
+        dp_action_server = "/DpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
                                                       dpAction)
 

@@ -33,7 +33,7 @@ class ControlModeHandling:
         elif buttons["A"]:
             pressed = JoystickControlModes.OPEN_LOOP.value
             self.control_mode = pressed
-            ControlModeHandling.open_loop(dp_client_handle)
+            ControlModeHandling.open_loop()
 
         elif buttons["B"]:
             pressed = JoystickControlModes.POSE3_HOLD.value
@@ -58,7 +58,7 @@ class ControlModeHandling:
                 rospy.Duration(0.25))  # Sleep to avoid aggressive switching
 
     @staticmethod
-    def open_loop(dp_dlient_handler):
+    def open_loop():
         rospy.set_param("/DP/Enable", False)
 
     @staticmethod
@@ -93,36 +93,16 @@ class ControlModeHandling:
 
     @staticmethod
     def pose3_hold(dp_client, odom_pose):
-        dp_pos, dp_q = ControlModeHandling.set_dp_pose(odom_pose)
-        ControlModeHandling.send_dp_goal(dp_client, False, odom_pose, dp_pos,
-                                         dp_q)
+        ControlModeHandling.send_dp_goal(dp_client, False, odom_pose)
 
     @staticmethod
     def pose4_hold(dp_client, odom_pose):
-        dp_pos, dp_q = ControlModeHandling.set_dp_pose(odom_pose)
-        ControlModeHandling.send_dp_goal(dp_client, True, odom_pose, dp_pos,
-                                         dp_q)
+        ControlModeHandling.send_dp_goal(dp_client, True, odom_pose)
 
     @staticmethod
-    def set_dp_pose(odom_pose):
-
-        dp_pos = [
-            odom_pose.position.x, odom_pose.position.y, odom_pose.position.z
-        ]
-        dp_q = (odom_pose.orientation.x, odom_pose.orientation.y,
-                odom_pose.orientation.z, odom_pose.orientation.w)
-
-        return dp_pos, dp_q
-
-    @staticmethod
-    def send_dp_goal(dp_client, init_z, dp_pose, dp_pos, dp_q):
+    def send_dp_goal(dp_client, init_z, dp_pose):
         rospy.set_param("/DP/Enable", True)
-        if init_z:
-            rospy.set_param("/setpoint/DOF", [1, 1, 1, 0, 0, 1])
-        else:
-            rospy.set_param("/setpoint/DOF", [1, 1, 0, 0, 0, 1])
 
-        dp_rot = euler_from_quaternion(dp_q)
         dp_server_status = dp_client.wait_for_server(rospy.Duration(1))
 
         if not dp_server_status:
@@ -138,11 +118,6 @@ class ControlModeHandling:
 
         dp_client.send_goal(dp_goal)
 
-        rospy.set_param("/setpoint/position",
-                        [float(dp_pos[0]),
-                         float(dp_pos[1]),
-                         float(dp_pos[2])])
-        rospy.set_param("/setpoint/orientation", dp_rot)
         rospy.loginfo("Holding pose...")
 
     # Function to kill a ROS node
