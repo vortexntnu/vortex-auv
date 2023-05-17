@@ -41,20 +41,6 @@ class JoystickInterface:
 
         self.control_mode_handler = ControlModeHandling()
 
-        # ROS params
-        self.joystick_surge_scaling = rospy.get_param(
-            "/joystick/scaling/surge", 60)
-        self.joystick_sway_scaling = rospy.get_param("/joystick/scaling/sway",
-                                                     60)
-        self.joystick_heave_scaling = rospy.get_param(
-            "/joystick/scaling/heave", 60)
-        self.joystick_roll_scaling = rospy.get_param("/joystick/scaling/roll",
-                                                     35)
-        self.joystick_pitch_scaling = rospy.get_param(
-            "/joystick/scaling/pitch", -30)
-        self.joystick_yaw_scaling = rospy.get_param("/joystick/scaling/yaw",
-                                                    20)
-
         self.joystick_buttons_map = [
             "A",
             "B",
@@ -80,8 +66,22 @@ class JoystickInterface:
             "dpad_vertical",
         ]
 
+        # ROS params
+        self.joystick_surge_scaling = rospy.get_param(
+            "/joystick/scaling/surge", 60)
+        self.joystick_sway_scaling = rospy.get_param("/joystick/scaling/sway",
+                                                     60)
+        self.joystick_heave_scaling = rospy.get_param(
+            "/joystick/scaling/heave", 60)
+        self.joystick_roll_scaling = rospy.get_param("/joystick/scaling/roll",
+                                                     35)
+        self.joystick_pitch_scaling = rospy.get_param(
+            "/joystick/scaling/pitch", -30)
+        self.joystick_yaw_scaling = rospy.get_param("/joystick/scaling/yaw",
+                                                    20)
+
         # Subscribers and publishers
-        self.joystick_sub = rospy.Subscriber("/joy",
+        self.joystick_sub = rospy.Subscriber("/joystick/joy",
                                              Joy,
                                              self.joystick_cb,
                                              queue_size=1)
@@ -95,7 +95,7 @@ class JoystickInterface:
                                             Joy,
                                             queue_size=1)
 
-        self.wrench_pub = rospy.Publisher("/thrust/desired_forces",
+        self.wrench_pub = rospy.Publisher(rospy.get_param("/thrust/thrust_topic"),
                                           Wrench,
                                           queue_size=1)
         
@@ -108,7 +108,7 @@ class JoystickInterface:
 
         # Initialization
         rospy.loginfo("Waiting for joystick input...")
-        rospy.wait_for_message("/joy", Joy)
+        rospy.wait_for_message("/joystick/joy", Joy)
         rospy.loginfo("Joystick interface is up and running")
 
     def joystick_cb(self, msg):
