@@ -95,9 +95,8 @@ class JoystickInterface:
                                             Joy,
                                             queue_size=1)
 
-        self.wrench_pub = rospy.Publisher(rospy.get_param("/thrust/thrust_topic"),
-                                          Wrench,
-                                          queue_size=1)
+        self.wrench_pub = rospy.Publisher(
+            rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
 
         # DP server and client
         dp_action_server = "DpAction"
