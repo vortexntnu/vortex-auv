@@ -10,6 +10,7 @@ from nav_msgs.msg import Odometry
 from libjoystick.JoystickControlModes import *
 from libjoystick.ControlModeHandling import ControlModeHandling
 
+
 class JoystickInterface:
 
     def __init__(self):
@@ -139,7 +140,8 @@ class JoystickInterface:
     def spin(self):
         while not rospy.is_shutdown():
             if self.buttons != {}:
-                self.control_mode_handler.control_mode_change(self.buttons, self.wrench_pub)
+                self.control_mode_handler.control_mode_change(
+                    self.buttons, self.wrench_pub)
 
             self.surge = self.axes[
                 "vertical_axis_left_stick"] * self.joystick_surge_scaling

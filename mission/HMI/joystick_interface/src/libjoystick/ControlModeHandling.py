@@ -14,7 +14,7 @@ class ControlModeHandling:
     def __init__(self):
         self.control_mode = JoystickControlModes(0)
         self.odom_pose = Pose()
-        
+
         # DP server and client
         dp_action_server = "/DpAction"
         self.dp_client = actionlib.SimpleActionClient(dp_action_server,
@@ -98,7 +98,7 @@ class ControlModeHandling:
             ControlModeHandling.kill_node(node)
         else:
             rospy.loginfo(node + " is not running...")
-        
+
         wrench_publisher_handle.publish(Wrench())
         rospy.sleep(rospy.Duration(1.0))
 
