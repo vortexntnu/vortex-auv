@@ -38,8 +38,10 @@ ReferenceModel::ReferenceModel(ros::NodeHandle nh) : m_nh(nh) {
   m_cfg_server.setCallback(f);
 
   // Set up a service for xref filter toggle
-  m_xref_service = nh.advertiseService("/dp_reference_model/enable_x_ref_filter", &ReferenceModel::xrefToggleCallback, this);
-  
+  m_xref_service =
+      nh.advertiseService("/dp_reference_model/enable_x_ref_filter",
+                          &ReferenceModel::xrefToggleCallback, this);
+
   // initialize desired eta and eta_dot as zero
   eta_d = Eigen::Vector7d::Zero();
   eta_d(3) = 1; // the real value of quaternions
@@ -78,7 +80,7 @@ void ReferenceModel::calculate_smooth(Eigen::Vector7d x_ref) {
 
   Eigen::Vector14d x_dot_d = A_d * x_d + B_d * x_ref;
   x_d = x_d + time_step * x_dot_d;
-  
+
   if (m_x_ref_filter_enabled) {
     eta_d = x_d.segment(0, 7);
   } else {
@@ -187,13 +189,13 @@ void ReferenceModel::odometryCallback(const nav_msgs::Odometry &msg) {
   tf::twistMsgToEigen(msg.twist.twist, velocity);
 }
 
-bool ReferenceModel::xrefToggleCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
-{
-    m_x_ref_filter_enabled = req.data;
+bool ReferenceModel::xrefToggleCallback(std_srvs::SetBool::Request &req,
+                                        std_srvs::SetBool::Response &res) {
+  m_x_ref_filter_enabled = req.data;
 
-    // Set the response value if required
-    res.success = true;
-    res.message = "Service call succeeded";
+  // Set the response value if required
+  res.success = true;
+  res.message = "Service call succeeded";
 
-    return true;
+  return true;
 }
