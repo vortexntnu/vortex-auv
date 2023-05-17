@@ -1,20 +1,14 @@
 #!/usr/bin/python3
 # type: ignore
 
-from enum import IntEnum
-
 import rospy
-import actionlib
 
-from std_msgs.msg import String
 from sensor_msgs.msg import Joy
-from vortex_msgs.msg import dpAction, dpGoal, dpResult
 from geometry_msgs.msg import Wrench, Pose
 from nav_msgs.msg import Odometry
 
 from libjoystick.JoystickControlModes import *
 from libjoystick.ControlModeHandling import ControlModeHandling
-
 
 class JoystickInterface:
 
@@ -36,8 +30,6 @@ class JoystickInterface:
         self.roll = 0.0
         self.pitch = 0.0
         self.yaw = 0.0
-
-        self.odom_pose = Pose()
 
         self.control_mode_handler = ControlModeHandling()
 
@@ -98,13 +90,6 @@ class JoystickInterface:
         self.wrench_pub = rospy.Publisher(
             rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
 
-        # DP server and client
-        dp_action_server = "/DpAction"
-        self.dp_client = actionlib.SimpleActionClient(dp_action_server,
-                                                      dpAction)
-
-        # rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
-
         # Initialization
         rospy.loginfo("Waiting for joystick input...")
         rospy.wait_for_message("/joystick/joy", Joy)
@@ -124,7 +109,7 @@ class JoystickInterface:
             rospy.logerr(f"Error in joystick_cb: {e}")
 
     def odom_cb(self, msg):
-        self.odom_pose = msg.pose.pose
+        self.control_mode_handler.odom_pose = msg.pose.pose
 
     def publish_joystick_data(self):
         # Publish joystick and wrench data
@@ -154,9 +139,7 @@ class JoystickInterface:
     def spin(self):
         while not rospy.is_shutdown():
             if self.buttons != {}:
-                self.control_mode_handler.control_mode_change(
-                    self.buttons, self.wrench_pub, self.dp_client,
-                    self.odom_pose)
+                self.control_mode_handler.control_mode_change(self.buttons, self.wrench_pub)
 
             self.surge = self.axes[
                 "vertical_axis_left_stick"] * self.joystick_surge_scaling

@@ -1,8 +1,7 @@
 import rospy
 import rosnode
+import actionlib
 import subprocess
-
-from tf.transformations import euler_from_quaternion
 
 from geometry_msgs.msg import Wrench, Pose
 from vortex_msgs.msg import dpAction, dpGoal, dpResult
@@ -14,9 +13,16 @@ class ControlModeHandling:
 
     def __init__(self):
         self.control_mode = JoystickControlModes(0)
+        self.odom_pose = Pose()
+        
+        # DP server and client
+        dp_action_server = "/DpAction"
+        self.dp_client = actionlib.SimpleActionClient(dp_action_server,
+                                                      dpAction)
 
-    def control_mode_change(self, buttons, wrench_publisher_handle,
-                            dp_client_handle, odom_pose):
+        # self.dp_result = rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
+
+    def control_mode_change(self, buttons, wrench_publisher_handle):
         pressed = -1
 
         if buttons["stick_button_left"] and buttons[
@@ -33,21 +39,22 @@ class ControlModeHandling:
         elif buttons["A"]:
             pressed = JoystickControlModes.OPEN_LOOP.value
             self.control_mode = pressed
-            ControlModeHandling.open_loop()
+            self.open_loop()
 
         elif buttons["B"]:
             pressed = JoystickControlModes.POSE3_HOLD.value
             self.control_mode = pressed
-            ControlModeHandling.pose3_hold(dp_client_handle, odom_pose)
+            self.pose3_hold()
 
         elif buttons["X"]:
             pressed = JoystickControlModes.POSE4_HOLD.value
             self.control_mode = pressed
-            ControlModeHandling.pose4_hold(dp_client_handle, odom_pose)
+            self.pose4_hold()
 
         elif buttons["Y"]:
             pressed = JoystickControlModes.DP_CMD.value
             self.control_mode = pressed
+            rospy.set_param("/DP/Enable", False)
             rospy.logwarn("DP_CMD MODE NOT IMPLEMENTED")
 
         if pressed != -1:
@@ -57,8 +64,11 @@ class ControlModeHandling:
             rospy.sleep(
                 rospy.Duration(0.25))  # Sleep to avoid aggressive switching
 
-    @staticmethod
-    def open_loop():
+    def open_loop(self):
+        dp_goal = dpGoal()
+        dp_goal.x_ref = self.odom_pose
+        dp_goal.DOF = [0, 0, 0, 0, 0, 0]
+        self.dp_client.send_goal(dp_goal)
         rospy.set_param("/DP/Enable", False)
 
     @staticmethod
@@ -88,35 +98,33 @@ class ControlModeHandling:
             ControlModeHandling.kill_node(node)
         else:
             rospy.loginfo(node + " is not running...")
+        
         wrench_publisher_handle.publish(Wrench())
         rospy.sleep(rospy.Duration(1.0))
 
-    @staticmethod
-    def pose3_hold(dp_client, odom_pose):
-        ControlModeHandling.send_dp_goal(dp_client, False, odom_pose)
+    def pose3_hold(self):
+        self.send_dp_goal(False)
 
-    @staticmethod
-    def pose4_hold(dp_client, odom_pose):
-        ControlModeHandling.send_dp_goal(dp_client, True, odom_pose)
+    def pose4_hold(self):
+        self.send_dp_goal(True)
 
-    @staticmethod
-    def send_dp_goal(dp_client, init_z, dp_pose):
+    def send_dp_goal(self, init_z):
         rospy.set_param("/DP/Enable", True)
 
-        dp_server_status = dp_client.wait_for_server(rospy.Duration(1))
+        dp_server_status = self.dp_client.wait_for_server(rospy.Duration(1))
 
         if not dp_server_status:
             rospy.logwarn("DP Server could not be reached...")
             return
 
         dp_goal = dpGoal()
-        dp_goal.x_ref = dp_pose
+        dp_goal.x_ref = self.odom_pose
         if init_z:
             dp_goal.DOF = [1, 1, 1, 0, 0, 1]
         else:
             dp_goal.DOF = [1, 1, 0, 0, 0, 1]
 
-        dp_client.send_goal(dp_goal)
+        self.dp_client.send_goal(dp_goal)
 
         rospy.loginfo("Holding pose...")
 
