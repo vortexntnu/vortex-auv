@@ -195,61 +195,6 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
 
   // Integral (TODO:change Antiwindup to a more advanced one)
   m_integral += m_i_gain * z;
-  m_integral =
-      m_integral.cwiseMin(m_integralAntiWindup).cwiseMax(-m_integralAntiWindup);
-
-  Eigen::Matrix6d m_K_d = Eigen::Matrix6d::Zero();
-  m_K_d.diagonal() << m_d_gain;
-  Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
-
-  // gain
-  Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
-  gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(m_scale_g) - m_integral;
-  gain = -m_K_d * nu_tilde - K_p * z - m_integral;
-
-  //------ Debug ----
-  P_debug = K_p * z;
-  I_debug = m_integral;
-  D_debug = m_K_d * nu_tilde;
-  g_debug = g;
-  //-----------------
-
-  // Rounding gain to remove super small values
-  int num_decimals = 3;
-  gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
-  return (Eigen::Vector6d() << gain).finished();
-}
-
-//  BACKUP METHOD
-Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
-    const Eigen::Vector3d &x, const Eigen::Quaterniond &q,
-    const Eigen::Vector6d &nu, const Eigen::Vector6d &nu_d,
-    const Eigen::Vector3d &eta_d_pos, const Eigen::Quaterniond &eta_d_ori) {
-
-  // Rotate from inertial/world to body
-  Eigen::Matrix3d R = q.toRotationMatrix();
-  Eigen::Matrix6d K_p = proportionalGainMatrix(R);
-  Eigen::MatrixXd T = Eigen::MatrixXd::Zero(4, 3);
-  T << -q.vec().transpose(),
-      q.w() * Eigen::Matrix3d::Identity() + skew(q.vec());
-  T = 0.5 * T;
-  Eigen::MatrixXd J_inv = Eigen::MatrixXd::Zero(6, 7);
-  J_inv << R.transpose(), Eigen::MatrixXd::Zero(3, 4), Eigen::Matrix3d::Zero(),
-      4 * T.transpose();
-  Eigen::Vector6d nu_tilde = Eigen::Vector6d::Zero();
-
-  Eigen::Vector6d remove_ori = Eigen::Vector6d::Zero();
-  remove_ori << 1, 1, 1, 0, 0, 0;
-  nu_tilde = nu - nu_d.cwiseProduct(remove_ori);
-
-  // Error Vector
-
-  Eigen::Vector6d z = Eigen::Vector6d::Zero();
-  z << x - eta_d_pos,
-      smallestAngle(quaterniondToEuler(q) - quaterniondToEuler(eta_d_ori));
-
-  // Integral (TODO:change Antiwindup to a more advanced one)
-  m_integral += m_i_gain * z;
 
   if (launch_type == "real") {
     m_integral(1) -= 2 * (m_i_gain * z)(1);
