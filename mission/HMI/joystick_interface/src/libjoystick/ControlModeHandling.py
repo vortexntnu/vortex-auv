@@ -8,6 +8,7 @@ import numpy as np
 
 from geometry_msgs.msg import Wrench, Pose
 from vortex_msgs.msg import dpAction, dpGoal, dpResult
+from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse 
 
 from libjoystick.JoystickControlModes import *
 
@@ -19,12 +20,12 @@ class ControlModeHandling:
         self.odom_pose = Pose()
         self.prev_time = 0.0
         
-        # DP server and client
-        dp_action_server = "/DpAction"
-        self.dp_client = actionlib.SimpleActionClient(dp_action_server,
+        # DP client
+        self.dp_client = actionlib.SimpleActionClient("/DpAction", # Server name
                                                       dpAction)
-
-        # self.dp_result = rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
+        self.refmodel_client = rospy.ServiceProxy('/dp_reference_model/enable_x_ref_filter', SetBool)
+        self.refmodel_req = SetBoolRequest()
+        self.refmodel_req.data = True
 
     def control_mode_change(self, buttons, wrench_publisher_handle):
         pressed = -1
@@ -43,22 +44,47 @@ class ControlModeHandling:
         elif buttons["A"]:
             pressed = JoystickControlModes.OPEN_LOOP.value
             self.control_mode = pressed
+            if not self.refmodel_req.data:
+                self.refmodel_req.data = True
+                res = self.refmodel_client(self.refmodel_req.data)
             self.open_loop()
 
         elif buttons["B"]:
             pressed = JoystickControlModes.POSE3_HOLD.value
             self.control_mode = pressed
+            if not self.refmodel_req.data:
+                self.refmodel_req.data = True
+                res = self.refmodel_client(self.refmodel_req.data)
             self.pose3_hold()
 
         elif buttons["X"]:
             pressed = JoystickControlModes.POSE4_HOLD.value
             self.control_mode = pressed
+            if not self.refmodel_req.data:
+                self.refmodel_req.data = True
+                res = self.refmodel_client(self.refmodel_req.data)
             self.pose4_hold()
 
         elif buttons["Y"]:
             pressed = JoystickControlModes.DP_CMD.value
             self.control_mode = pressed
             self.pose4_hold()
+
+            self.refmodel_req.data = False
+            try:
+                res = self.refmodel_client(self.refmodel_req.data)
+                if (res.success): rospy.loginfo("Enabling DP command mode...")
+                else:
+                    rospy.logwarn("Could not contact DP reference model... Enabling manual control.")
+                    pressed = JoystickControlModes.OPEN_LOOP.value
+                    self.control_mode = pressed
+                    self.open_loop()
+            except Exception:
+                rospy.logwarn("Could not contact DP reference model... Enabling manual control.")
+                pressed = JoystickControlModes.OPEN_LOOP.value
+                self.control_mode = pressed
+                self.open_loop()
+                self.refmodel_req.data = True
 
         if pressed != -1:
             rospy.loginfo(

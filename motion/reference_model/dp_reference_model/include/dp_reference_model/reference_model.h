@@ -16,6 +16,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_datatypes.h>
+#include "std_srvs/SetBool.h"
 
 // TODO: Add relevant literature or math write up (minimally a link to Vortex
 // Wiki).
@@ -48,6 +49,8 @@ private:
 
   Eigen::Vector7d x_ref = Eigen::Vector7d::Zero();
 
+  bool m_x_ref_filter_enabled = true;
+
   // Eigen::Vector14d
   void calculate_smooth(Eigen::Vector7d x_ref);
 
@@ -66,6 +69,9 @@ private:
                    uint32_t level);
   dynamic_reconfigure::Server<dp_reference_model::DpReferenceModelConfig>
       m_cfg_server;
+  
+  bool xrefToggleCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res);
+  ros::ServiceServer m_xref_service;
 
   ros::Time last_time;
 
