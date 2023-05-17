@@ -13,6 +13,7 @@ from libjoystick.JoystickControlModes import *
 from libjoystick.ControlModeHandling import ControlModeHandling
 from libjoystick.TaskManagerClient import TaskManagerClient
 
+
 class JoystickInterface:
     """
     The JoystickInterface class provides an interface for a joystick to control a robot.
@@ -52,10 +53,10 @@ class JoystickInterface:
 
         # Control Mode Handler
         self.control_mode_handler = ControlModeHandling()
-        
+
         # Task Manager ID for joystick
         self.task_manager_client = TaskManagerClient(defines.Tasks.joystick.id)
-        self.task_manager_client.is_enabled = True # Enable joystick by default
+        self.task_manager_client.is_enabled = True  # Enable joystick by default
 
         # Joystick mappings
         self.joystick_buttons_map = [
@@ -190,7 +191,8 @@ class JoystickInterface:
                 if self.task_manager_client.was_enabled:
                     self.wrench_pub.publish(Wrench())
                     self.task_manager_client.was_enabled = False
-                rospy.logwarn_throttle(10, "Joystick is disabled in the task manager!")
+                rospy.logwarn_throttle(
+                    10, "Joystick is disabled in the task manager!")
                 self.ros_rate.sleep()
                 continue
 
