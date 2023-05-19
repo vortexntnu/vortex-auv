@@ -186,6 +186,14 @@ battery:
   logging:
     interval: 10   # Seconds
 
+pressure:
+  thresholds: 
+    critical: 1013.25 # hPa
+  system:
+    interval: 0.5 # seconds
+  loger:
+    interval: 10 # seconds
+
 temperature:
   logging:
     interval: 10    # Seconds

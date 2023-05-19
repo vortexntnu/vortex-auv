@@ -24,6 +24,8 @@ Eigen::Vector3d smallestAngle(Eigen::Vector3d euler_angles) {
 }
 
 // Quaternion to Euler
+// TODO: Change this code to boiler-plate code from a library. See
+// https://eigen.tuxfamily.org/dox/classEigen_1_1QuaternionBase.html
 Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
   double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());
@@ -46,9 +48,9 @@ Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q) {
   return Eigen::Vector3d(roll, pitch, yaw);
 }
 
-DpAction::DpAction(std::string name, std::vector<double> acceptance_margins)
+DpAction::DpAction(std::string name)
     : as_(m_nh, name, boost::bind(&DpAction::executeCB, this, _1), false),
-      m_action_name(name), m_acceptance_margins(acceptance_margins) {
+      m_action_name(name) {
   as_.start();
 }
 
@@ -93,12 +95,12 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
 
     // Checks if the goal is achieved.
     Eigen::Vector3d error_ori_deg = error.segment(3, 3) * 180 / M_PI;
-    if (abs(error[0]) < m_acceptance_margins[0] &&
-        abs(error[1]) < m_acceptance_margins[1] &&
-        abs(error[2]) < m_acceptance_margins[2] &&
-        abs(error_ori_deg[0]) < m_acceptance_margins[3] &&
-        abs(error_ori_deg[1]) < m_acceptance_margins[4] &&
-        abs(error_ori_deg[2]) < m_acceptance_margins[5] && success == false) {
+    if (abs(error[0]) < m_acceptance_margins(0) &&
+        abs(error[1]) < m_acceptance_margins(1) &&
+        abs(error[2]) < m_acceptance_margins(2) &&
+        abs(error_ori_deg[0]) < m_acceptance_margins(3) &&
+        abs(error_ori_deg[1]) < m_acceptance_margins(4) &&
+        abs(error_ori_deg[2]) < m_acceptance_margins(5) && success == false) {
       success = true;
       m_result.finished = true;
 
@@ -112,4 +114,8 @@ void DpAction::executeCB(const vortex_msgs::dpGoalConstPtr &goal) {
   if (!success)
     as_.setPreempted();
   // run_controller = false;
+}
+
+void DpAction::update_acceptance_margin(Eigen::Vector6d acceptance_margin) {
+  m_acceptance_margins = acceptance_margin;
 }

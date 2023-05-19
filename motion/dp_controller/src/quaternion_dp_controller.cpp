@@ -3,6 +3,9 @@
      Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
+// TODO: The controller does not work for the 3 rot DOFs, and only functions as
+// intended for yaw. Should be looked into in the future.
+
 #include "dp_controller/quaternion_dp_controller.h"
 #include <math.h>
 
@@ -58,8 +61,10 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_d_gain = Eigen::Vector6d::Zero();
   m_integral = Eigen::Vector6d::Zero();
 
-  double maxPosGain = 3;
-  double maxAttGain = 0.2;
+  // TODO: Should be made into ROS params
+  double maxPosGain = 0.5;
+  double maxAttGain = 0.05;
+
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
@@ -67,6 +72,7 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   // The AUV is to stable in orientation, therefore the scaling of 0.3. The
   // reason of 0.9 scaling in position, is beacause the g-vector may not be
   // equal to the real value.
+  // TODO: Should be made into ROS params
   m_scale_g = Eigen::Vector6d::Zero();
   m_scale_g << 0, 0, 0.25, 0.0, 0.0, 0.0;
 };
@@ -189,8 +195,12 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
 
   // Integral (TODO:change Antiwindup to a more advanced one)
   m_integral += m_i_gain * z;
-  m_integral(1) -= 2 * (m_i_gain * z)(1);
-  m_integral(2) -= 2 * (m_i_gain * z)(2);
+
+  if (launch_type == "real") {
+    m_integral(1) -= 2 * (m_i_gain * z)(1);
+    m_integral(2) -= 2 * (m_i_gain * z)(2);
+  }
+
   m_integral =
       m_integral.cwiseMin(m_integralAntiWindup).cwiseMax(-m_integralAntiWindup);
 
@@ -198,6 +208,9 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   m_K_d.diagonal() << m_d_gain;
   Eigen::Vector6d g = QuaternionPIDController::restoringForceVector(R);
 
+  if (launch_type == "simulator") {
+    m_scale_g << 0, 0, 0.1, 0, 0, 0;
+  }
   // gain
   Eigen::Vector6d gain = -m_K_d * nu_tilde - K_p * z + g;
   gain = -m_K_d * nu_tilde - K_p * z + g.cwiseProduct(m_scale_g) - m_integral;
@@ -210,6 +223,8 @@ Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
   //-----------------
 
   // Rounding gain to remove super small values
+  // TODO: Is this the best way to round to a fixed number of decimals?
+  // gain.array().round(num_decimals) ?
   int num_decimals = 3;
   gain = (gain * pow(10, num_decimals)).array().round() / pow(10, num_decimals);
   return (Eigen::Vector6d() << gain).finished();
@@ -224,6 +239,7 @@ QuaternionPIDController::restoringForceVector(const Eigen::Matrix3d R) {
       .finished();
 }
 
+// TODO: Move this code to the ctor.
 void QuaternionPIDController::init(const double W, const double B,
                                    const Eigen::Vector3d &r_G,
                                    const Eigen::Vector3d &r_B) {
@@ -233,6 +249,7 @@ void QuaternionPIDController::init(const double W, const double B,
   m_r_B = r_B;
 }
 
+// TODO: is the for-loop required?
 void QuaternionPIDController::update_gain(Eigen::Vector6d p_gain,
                                           Eigen::Vector6d i_gain,
                                           Eigen::Vector6d d_gain) {

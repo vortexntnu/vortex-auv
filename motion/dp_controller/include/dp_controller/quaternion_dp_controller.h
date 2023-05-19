@@ -42,6 +42,8 @@ private:
   Eigen::Vector6d m_integralAntiWindup;
 
 public:
+  std::string launch_type;
+
   explicit QuaternionPIDController(); // float W, float B, Eigen::Vector3d r_G,
                                       // Eigen::Vector3d r_B);
   /**
