@@ -8,6 +8,7 @@ from geometry_msgs.msg import PoseStamped
 
 from libwaypointinterface.DPClient import DPClient
 
+
 class WaypointInterface:
     """
     The WaypointInterface class processes incoming waypoints from operator interfaces,
@@ -51,7 +52,7 @@ class WaypointInterface:
         """
         if not self.dp_client.get_enabled_status:
             self.dp_client.enable()
-        
+
         self.dp_client.goal.DOF = [1, 1, 0, 0, 0, 1]
 
         try:
