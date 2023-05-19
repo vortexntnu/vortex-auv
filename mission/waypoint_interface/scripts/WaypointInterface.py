@@ -9,7 +9,9 @@ from nav_msgs.msg import Odometry
 
 from DPClient import DPClient
 
+
 class WaypointInterface:
+
     def __init__(self):
         rospy.init_node('waypoint_interface', anonymous=False)
 
@@ -57,13 +59,13 @@ class WaypointInterface:
                 tf.ExtrapolationException):
             rospy.logwarn("Could not retreive transform to 'odom' frame...")
             return False
-        
+
         if enable_z or self.init_z:
             self.dp_client.DOF = [1, 1, 1, 0, 0, 1]
             self.init_z = True
 
             self.dp_client.goal_pose.position.z = self.nav_goal_z
-        
+
         return True
 
     def nav_goal_cb(self, posestamped_msg):

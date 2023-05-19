@@ -8,7 +8,9 @@ import actionlib
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, dpFeedback)
 from geometry_msgs.msg import Pose
 
+
 class DPClient:
+
     def __init__(self):
 
         # Attributes
@@ -17,10 +19,10 @@ class DPClient:
         self._goal = dpGoal()
         self.DOF = self._goal.DOF
         self.goal_pose = self._goal.x_ref
-        
+
         # DP client
-        self.client_handle = actionlib.SimpleActionClient("/DpAction",
-                                                          dpAction)
+        self.client_handle = actionlib.SimpleActionClient(
+            "/DpAction", dpAction)
         rospy.loginfo("Waiting for DP Server...")
         self.client_handle.wait_for_server()
 
@@ -40,7 +42,7 @@ class DPClient:
     def enable(self):
         rospy.set_param("/DP/Enable", True)
         self.is_enabled = True
-    
+
     def disable(self):
         rospy.set_param("/DP/Enable", False)
         self.is_enabled = False
