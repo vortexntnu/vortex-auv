@@ -69,8 +69,8 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
 
-  // The AUV is to stable in orientation, therefore the scaling of should be small. 
-  // Scaling in position may be bigger because the g-vector may not be
+  // The AUV is to stable in orientation, therefore the scaling of should be
+  // small. Scaling in position may be bigger because the g-vector may not be
   // equal to the real value.
   // TODO: Should be made into ROS params
   m_scale_g = Eigen::Vector6d::Zero();
