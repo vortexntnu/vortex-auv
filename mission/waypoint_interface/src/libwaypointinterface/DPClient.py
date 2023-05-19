@@ -40,7 +40,6 @@ class DPClient:
 
         self.get_enabled_status()
 
-
     def get_enabled_status(self):
         """
         Retrieves the current status of the DP system.
@@ -77,7 +76,8 @@ class DPClient:
             bool: True if the goal was sent successfully, False otherwise.
         """
 
-        is_server = self.client_handle.wait_for_server(timeout=rospy.Duration(3))
+        is_server = self.client_handle.wait_for_server(
+            timeout=rospy.Duration(3))
         if not is_server:
             rospy.logwarn("Could not reach DP server...")
             return False

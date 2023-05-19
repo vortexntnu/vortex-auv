@@ -14,11 +14,12 @@ class WaypointInterface:
     The WaypointInterface class processes incoming waypoints from operator interfaces,
     such as RViz and FoxGlove-Studio, and sends navigational goals to a guidance module (DP currently). 
     """
+
     def __init__(self):
         rospy.init_node('waypoint_interface', anonymous=False)
 
         # Attributes
-        self.init_z = False # If Z-DOF is initiated, keep it so
+        self.init_z = False  # If Z-DOF is initiated, keep it so
 
         self.nav_goal = PoseStamped()
         self.nav_goal_z = 0.0
