@@ -8,7 +8,6 @@ import actionlib
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, dpFeedback)
 from geometry_msgs.msg import Pose
 
-
 class DPClient:
 
     def __init__(self):
@@ -16,9 +15,7 @@ class DPClient:
         # Attributes
         self.is_enabled = False
 
-        self._goal = dpGoal()
-        self.DOF = self._goal.DOF
-        self.goal_pose = self._goal.x_ref
+        self.goal = dpGoal()
 
         # DP client
         self.client_handle = actionlib.SimpleActionClient(
@@ -48,16 +45,24 @@ class DPClient:
         self.is_enabled = False
 
     def send_goal(self):
-        try:
-            self.client_handle.wait_for_server(timeout=3)
-        except Exception:
+        is_server = self.client_handle.wait_for_server(timeout=rospy.Duration(3))
+        if not is_server:
             rospy.logwarn("Could not reach DP server...")
             return False
-        self.client_handle.send_goal(self._goal)
+        
+        # Error-handling
+        if not (hasattr(self.goal.DOF, '__iter__') and hasattr(self.goal.DOF, '__len__')):
+            raise ValueError("Attribute 'DOF' has to be an array-like structure.")
+        elif not len(self.goal.DOF) == 6:
+            raise ValueError("Attribute 'DOF' has to be of length 6.")
+        elif not isinstance(self.goal.x_ref, Pose):
+            raise ValueError("Attribute 'goal_pose' has to be an an instance of Pose.")
+        rospy.loginfo(self.goal)
+        self.client_handle.send_goal(self.goal)
         return True
 
     def result_cb(self, msg_bool):
-        self.result = msg_bool.data
+        self.result = msg_bool
 
     def feedback_cb(self, float32_arr_msg):
         self.feedback = float32_arr_msg.data

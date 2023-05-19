@@ -18,6 +18,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+catkin_python_setup()
+
 catkin_install_python(PROGRAMS
   scripts/waypoint_interface_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

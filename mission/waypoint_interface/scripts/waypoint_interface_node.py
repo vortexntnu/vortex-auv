@@ -2,7 +2,7 @@
 
 import rospy
 
-from WaypointInterface import WaypointInterface
+from libwaypointinterface.WaypointInterface import WaypointInterface
 
 if __name__ == '__main__':
     wp_interface = WaypointInterface()

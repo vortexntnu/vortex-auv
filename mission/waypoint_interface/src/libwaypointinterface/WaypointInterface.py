@@ -4,11 +4,9 @@ import rospy
 import tf
 
 from std_msgs.msg import Float32
-from geometry_msgs.msg import Pose, PoseStamped
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseStamped
 
-from DPClient import DPClient
-
+from libwaypointinterface.DPClient import DPClient
 
 class WaypointInterface:
 
@@ -33,10 +31,6 @@ class WaypointInterface:
                          Float32,
                          self.nav_goal_z_cb,
                          queue_size=1)
-        rospy.Subscriber("/odometry/filtered",
-                         Odometry,
-                         self.odom_cb,
-                         queue_size=1)
 
         self.dp_client = DPClient()
 
@@ -45,15 +39,15 @@ class WaypointInterface:
     def nav_goal_to_dp_goal(self, enable_z=False):
         if not self.dp_client.get_enabled_status:
             self.dp_client.enable()
-
-            self.dp_client.DOF = [1, 1, 0, 0, 0, 1]
+        
+        self.dp_client.goal.DOF = [1, 1, 0, 0, 0, 1]
 
         try:
             self.tf_listener.waitForTransform('odom',
                                               self.nav_goal.header.frame_id,
                                               rospy.Time(),
                                               rospy.Duration(4.0))
-            self.dp_client.goal_pose = self.tf_listener.transformPose(
+            self.dp_client.goal.x_ref = self.tf_listener.transformPose(
                 'odom', self.nav_goal).pose
         except (tf.LookupException, tf.ConnectivityException,
                 tf.ExtrapolationException):
@@ -61,10 +55,10 @@ class WaypointInterface:
             return False
 
         if enable_z or self.init_z:
-            self.dp_client.DOF = [1, 1, 1, 0, 0, 1]
+            self.dp_client.goal.DOF = [1, 1, 1, 0, 0, 1]
             self.init_z = True
 
-            self.dp_client.goal_pose.position.z = self.nav_goal_z
+            self.dp_client.goal.x_ref.position.z = self.nav_goal_z
 
         return True
 
