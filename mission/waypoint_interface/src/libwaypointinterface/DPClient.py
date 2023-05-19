@@ -8,6 +8,7 @@ import actionlib
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, dpFeedback)
 from geometry_msgs.msg import Pose
 
+
 class DPClient:
 
     def __init__(self):
@@ -45,18 +46,22 @@ class DPClient:
         self.is_enabled = False
 
     def send_goal(self):
-        is_server = self.client_handle.wait_for_server(timeout=rospy.Duration(3))
+        is_server = self.client_handle.wait_for_server(
+            timeout=rospy.Duration(3))
         if not is_server:
             rospy.logwarn("Could not reach DP server...")
             return False
-        
+
         # Error-handling
-        if not (hasattr(self.goal.DOF, '__iter__') and hasattr(self.goal.DOF, '__len__')):
-            raise ValueError("Attribute 'DOF' has to be an array-like structure.")
+        if not (hasattr(self.goal.DOF, '__iter__')
+                and hasattr(self.goal.DOF, '__len__')):
+            raise ValueError(
+                "Attribute 'DOF' has to be an array-like structure.")
         elif not len(self.goal.DOF) == 6:
             raise ValueError("Attribute 'DOF' has to be of length 6.")
         elif not isinstance(self.goal.x_ref, Pose):
-            raise ValueError("Attribute 'goal_pose' has to be an an instance of Pose.")
+            raise ValueError(
+                "Attribute 'goal_pose' has to be an an instance of Pose.")
         rospy.loginfo(self.goal)
         self.client_handle.send_goal(self.goal)
         return True
