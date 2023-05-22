@@ -20,7 +20,8 @@ public:
    * The callback function for the op_sub-subscriber.
    * @param objPose is the message received on the ROS-topic, containing the
    * object ID and the pose. They are stored in the objectPositions map.
-   * The message received is further published on the object_positions_out topic.
+   * The message received is further published on the object_positions_out
+   * topic.
    */
   void callback(vortex_msgs::ObjectPosition objPose);
   /**
