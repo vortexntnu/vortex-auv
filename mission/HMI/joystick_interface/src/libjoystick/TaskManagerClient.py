@@ -25,7 +25,7 @@ class TaskManagerClient:
         try:
             self.task_manager_client = dynamic_reconfigure.client.Client(
                 "/task_manager/task_manager_server",
-                timeout=5,
+                timeout=1,
                 config_callback=self.callback)
         except rospy.exceptions.ROSException:
             rospy.logwarn("Could not connect to the task manager...")
