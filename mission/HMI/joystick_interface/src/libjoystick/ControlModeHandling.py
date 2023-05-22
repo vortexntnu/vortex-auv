@@ -33,6 +33,7 @@ class ControlModeHandling:
         """
         self.control_mode = JoystickControlModes(0)  # Initial control mode
         self.odom_pose = Pose()  # Pose from odometry
+        self.prev_dp_cmd_pose = Pose() # Pose from prev DP command
         self.prev_time = 0.0  # Used for time interval calculations
 
         # Initialize dynamic positioning (DP) client
@@ -209,6 +210,14 @@ class ControlModeHandling:
         z = -(axes["RT"] - axes["LT"]) / 2
         psi = axes["horizontal_axis_right_stick"]
 
+        # If no new goal, hold previous pose goal
+        k = 0.05
+        if (x<k and x>-k) and (y<k and y>-k) and (z<k and z>-k) and (psi<k and psi>-k):
+            rospy.loginfo(self.prev_dp_cmd_pose)
+            self.send_dp_goal(init_z=True, target_pose=self.prev_dp_cmd_pose)
+            self.prev_time = rospy.get_time()
+            return
+        
         # Rotation
         q = self.odom_pose.orientation
         euler = np.array(euler_from_quaternion((q.x, q.y, q.z, q.w)))
@@ -232,8 +241,15 @@ class ControlModeHandling:
         dp_cmd_pose.position = pos
         dp_cmd_pose.orientation = q
 
-        self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
+        # If no new psi goal, hold previous psi goal
+        if (psi<k and psi>-k):
+            dp_cmd_pose.orientation = self.prev_dp_cmd_pose.orientation
+            self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
 
+        else:
+            self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
+
+        self.prev_dp_cmd_pose = dp_cmd_pose
         self.prev_time = rospy.get_time()
 
     def send_dp_goal(self, init_z, target_pose=None):
@@ -252,6 +268,7 @@ class ControlModeHandling:
 
         dp_goal = dpGoal()
         if target_pose is None:
+            self.prev_dp_cmd_pose = self.odom_pose
             dp_goal.x_ref = self.odom_pose
         else:
             dp_goal.x_ref = target_pose
