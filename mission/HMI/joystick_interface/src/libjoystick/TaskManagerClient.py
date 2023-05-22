@@ -22,10 +22,13 @@ class TaskManagerClient:
         self.is_enabled = False
         self.task_id = task_id
 
-        self.task_manager_client = dynamic_reconfigure.client.Client(
-            "/task_manager/task_manager_server",
-            timeout=5,
-            config_callback=self.callback)
+        try:
+            self.task_manager_client = dynamic_reconfigure.client.Client(
+                "/task_manager/task_manager_server",
+                timeout=5,
+                config_callback=self.callback)
+        except rospy.exceptions.ROSException:
+            rospy.logwarn("Could not connect to the task manager...")
 
     def callback(self, config):
         activated_task_id = config["Tac_states"]
