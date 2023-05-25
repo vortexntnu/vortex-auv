@@ -14,40 +14,27 @@ from landmarks.srv import request_position
 from task_manager_defines import defines
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
+from task_manager_defines import defines
+from task_manager_client.TaskManagerClient import TaskManagerClient # type: ignore
+
 
 class DockingStandby(smach.State):
 
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded'])
 
-        self.task = "docking"
-
-        self.task_manager_client = dynamic_reconfigure.client.Client(
-            "/task_manager/server",
-            timeout=3,
-            config_callback=self.task_manager_cb)
-        self.isEnabled = True
+        # Task Manager client for docking
+        self.task_manager_client = TaskManagerClient(defines.Tasks.docking.id)
+        self.task_manager_client.is_enabled = False
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        dp_action_server = "DpAction"
-        self.dp_client = actionlib.SimpleActionClient(dp_action_server,
+        self.dp_client = actionlib.SimpleActionClient("/DpAction",
                                                       dpAction)
         self.dp_client.wait_for_server()
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
-
-    def task_manager_cb(self, config):
-        activated_task_id = config["Tac_states"]
-
-        if defines.Tasks.docking.id == activated_task_id:
-            self.isEnabled = True
-        else:
-            self.isEnabled = False
-        rospy.logwarn(f"isEnabled: {self.isEnabled} ")
-
-        return config
 
     def odom_cb(self, msg):
         self.odom = msg

@@ -5,73 +5,75 @@ import numpy as np
 import rospy
 import smach
 import actionlib
+import tf
 
-from geometry_msgs.msg import Pose, Point, Wrench, Quaternion, Twist
+from geometry_msgs.msg import Pose, Wrench
 from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from landmarks.srv import request_position
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
-import tf
-
-from task_manager_defines import defines
-
 import dynamic_reconfigure.client
 
+from task_manager_defines import defines
+from task_manager_client.TaskManagerClient import TaskManagerClient # type: ignore
+
+from dp_client_py.DPClient import DPClient
 
 class DockingExecute(smach.State):
-
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
-        # TODO: Needs to be cleaned up and made into proper OOP code
+        
+        # =====[Attributes]===== #
+        self.odom_pose = Pose()
+        self.SPP_pose = Pose()
 
-        # Client to communicate with the task manager
-        self.task_manager_client = dynamic_reconfigure.client.Client(
-            "/task_manager/server",
-            timeout=3,
-            config_callback=self.task_manager_cb)
 
-        self.isEnabled = False  # Needs to default to standby
-        self.task = "docking"
+        # =====[Params]===== #
+        # Height to converge above the docking station
+        self.convergence_height = rospy.get_param(
+            "/tac/docking/convergence_height")
 
-        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
+        # Height where the DP is turned off to minimize issues because of drift close to platform
+        self.final_descent_height = rospy.get_param(
+            "/tac/docking/final_descent_height")
 
+
+        # =====[Services, clients, handles]===== #
+        # DP action client
+        self.dp_client = DPClient()
+        self.current_goal_pose = Pose()
+
+        # Task Manager client
+        self.task_manager_client = TaskManagerClient(defines.Tasks.docking.id)
+        self.task_manager_client.is_enabled = False
+
+        # Landmarks client
         self.landmarks_client = rospy.ServiceProxy("send_positions",
                                                    request_position)
         rospy.wait_for_service("send_positions")
         self.object = self.landmarks_client("docking_point").object
 
-        # Get TF from body to SPP
+        # TF listener to get TF from body to SPP
         tf_listener = tf.TransformListener()
         rospy.loginfo("Waiting for TF...")
         tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
                                      rospy.Duration(1.0))
 
-        # Enable Dp
-        rospy.set_param("/DP/Enable", True)
-        self.dp_client = actionlib.SimpleActionClient("/DpAction", dpAction)
-        self.dp_client.wait_for_server()
 
-        rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
-        self.reached_dp_goal = False
-        self.current_goal_pose = Pose()
-
-        # Odometry
-        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_pose_cb)
-        self.odom_pose = Pose()
-        self.SPP_pose = Pose()
+        # =====[Publishers]===== #
+        # Current state of the FSM
+        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
         # Direct publisher to thrust for anchoring to the docking station
         self.thrust_pub = rospy.Publisher(
             rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
+        
 
-        # Height to converge above the docking station
-        self.convergence_height = rospy.get_param(
-            "/tac/docking/convergence_height")
+        # =====[Subscribers]===== #
+        # Odometry
+        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_pose_cb)
 
-        # Height where we turn off DP for heave for quick docking to minimize issues with drift
-        self.final_descent_height = rospy.get_param(
-            "/tac/docking/final_descent_height")
 
     def execute(self, userdata):
         self.state_pub.publish("docking/execute")
@@ -206,18 +208,7 @@ class DockingExecute(smach.State):
 
         return 'succeeded'
 
-    def task_manager_cb(self, config):
-        activated_task_id = config["Tac_states"]
-
-        if defines.Tasks.docking.id == activated_task_id:
-            self.isEnabled = True
-        else:
-            self.isEnabled = False
-        rospy.logwarn(f"Docking Enabled: {self.isEnabled} ")
-
-        return config
-
-    def odom_cb(self, msg):
+    def odom_pose_cb(self, msg):
         self.odom_pose = msg.pose.pose
 
     def dp_goal_cb(self, msg):
