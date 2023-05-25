@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="task_manager_config",
+    name="task_manager_defines",
     version="0.0.0",
     description="Defines for the task manager",
     author="Ronja Kræmer",
