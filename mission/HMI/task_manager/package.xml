@@ -3,7 +3,10 @@
   <name>task_manager</name>
   <version>0.0.0</version>
   <description>The task_manager package</description>
-
+  
+  <author>Ronja Kræmer</author>
+  <author>Benjaminas Visockis</author>
+  
   <maintainer email="sigurdvb@stud.ntnu.no">sigurdvb</maintainer>
   <license>MIT</license>
 

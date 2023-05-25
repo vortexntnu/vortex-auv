@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
-from setuptools import setup, find_packages
+from distutils.core import setup
+from catkin_pkg.python_setup import generate_distutils_setup
 
-setup(
-    name="task_manager_defines",
-    version="0.0.0",
-    description="Defines for the task manager",
-    author="Ronja Kræmer",
-    author_email="ronjak@stud.ntnu.no",
-    packages=find_packages(),
-)
+d = generate_distutils_setup(packages=['task_manager_defines', 'task_manager_client'],
+                             author='Ronja Kræmer, Benjaminas Visockis',
+                             author_email=['ronjak@stud.ntnu.no','benjamin.visockis@gmail.com'],
+                             package_dir={'': 'src'})
+
+setup(**d)
