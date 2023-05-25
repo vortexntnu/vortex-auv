@@ -13,6 +13,7 @@ import dynamic_reconfigure.client
 
 
 class Docking():
+
     def __init__(self):
         rospy.init_node("docking_fsm")
 

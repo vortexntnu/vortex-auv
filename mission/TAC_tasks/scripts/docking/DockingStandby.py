@@ -14,6 +14,7 @@ from landmarks.srv import request_position
 from task_manager_defines import defines
 from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
+
 class DockingStandby(smach.State):
 
     def __init__(self):
