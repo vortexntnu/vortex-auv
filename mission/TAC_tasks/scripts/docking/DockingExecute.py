@@ -20,6 +20,7 @@ import dynamic_reconfigure.client
 
 
 class DockingExecute(smach.State):
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
         # TODO: Needs to be cleaned up and made into proper OOP code
@@ -30,7 +31,7 @@ class DockingExecute(smach.State):
             timeout=3,
             config_callback=self.task_manager_cb)
 
-        self.isEnabled = False # Needs to default to standby
+        self.isEnabled = False  # Needs to default to standby
         self.task = "docking"
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -43,12 +44,12 @@ class DockingExecute(smach.State):
         # Get TF from body to SPP
         tf_listener = tf.TransformListener()
         rospy.loginfo("Waiting for TF...")
-        tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(), rospy.Duration(1.0))
+        tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
+                                     rospy.Duration(1.0))
 
         # Enable Dp
         rospy.set_param("/DP/Enable", True)
-        self.dp_client = actionlib.SimpleActionClient("/DpAction",
-                                                      dpAction)
+        self.dp_client = actionlib.SimpleActionClient("/DpAction", dpAction)
         self.dp_client.wait_for_server()
 
         rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
@@ -59,7 +60,6 @@ class DockingExecute(smach.State):
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_pose_cb)
         self.odom_pose = Pose()
         self.SPP_pose = Pose()
-        
 
         # Direct publisher to thrust for anchoring to the docking station
         self.thrust_pub = rospy.Publisher(
@@ -155,8 +155,8 @@ class DockingExecute(smach.State):
                       str(self.object.objectPose.pose.position.y) + "; " +
                       str(self.object.objectPose.pose.position.z))
 
-        rospy.loginfo("BELUGA AT: " + str(self.odom_pose.position.x) +
-                      "; " + str(self.odom_pose.position.y) + "; " +
+        rospy.loginfo("BELUGA AT: " + str(self.odom_pose.position.x) + "; " +
+                      str(self.odom_pose.position.y) + "; " +
                       str(self.odom_pose.position.z))
 
         downward_trust = rospy.get_param(
