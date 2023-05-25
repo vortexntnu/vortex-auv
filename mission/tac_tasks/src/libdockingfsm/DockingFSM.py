@@ -9,6 +9,7 @@ from libdockingfsm.DockingStandby import DockingStandby
 
 from task_manager_defines import defines
 
+
 class DockingFSM():
 
     def __init__(self):

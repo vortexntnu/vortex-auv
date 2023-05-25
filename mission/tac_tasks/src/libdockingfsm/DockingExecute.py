@@ -16,18 +16,19 @@ from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 import dynamic_reconfigure.client
 
 from task_manager_defines import defines
-from task_manager_client.TaskManagerClient import TaskManagerClient # type: ignore
+from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
 
 from dp_client_py.DPClient import DPClient
 
+
 class DockingExecute(smach.State):
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
-        
+
         # =====[Attributes]===== #
         self.odom_pose = Pose()
         self.SPP_pose = Pose()
-
 
         # =====[Params]===== #
         # Height to converge above the docking station
@@ -37,7 +38,6 @@ class DockingExecute(smach.State):
         # Height where the DP is turned off to minimize issues because of drift close to platform
         self.final_descent_height = rospy.get_param(
             "/tac/docking/final_descent_height")
-
 
         # =====[Services, clients, handles]===== #
         # DP action client
@@ -60,7 +60,6 @@ class DockingExecute(smach.State):
         tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
                                      rospy.Duration(1.0))
 
-
         # =====[Publishers]===== #
         # Current state of the FSM
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
@@ -68,12 +67,10 @@ class DockingExecute(smach.State):
         # Direct publisher to thrust for anchoring to the docking station
         self.thrust_pub = rospy.Publisher(
             rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
-        
 
         # =====[Subscribers]===== #
         # Odometry
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_pose_cb)
-
 
     def execute(self, userdata):
         self.state_pub.publish("docking/execute")
