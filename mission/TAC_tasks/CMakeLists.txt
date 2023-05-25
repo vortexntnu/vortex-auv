@@ -17,6 +17,8 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+catkin_python_setup()
+
 install(PROGRAMS
   scripts/docking_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

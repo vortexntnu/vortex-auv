@@ -4,8 +4,8 @@ import rospy
 
 from smach import StateMachine
 
-from mission.TAC_tasks.scripts.docking.DockingExecute import DockingExecute
-from mission.TAC_tasks.scripts.docking.DockingStandby import DockingStandby
+from libdockingfsm.DockingExecute import DockingExecute
+from libdockingfsm.DockingStandby import DockingStandby
 
 from task_manager_defines import defines
 
@@ -27,27 +27,19 @@ class Docking():
         # task manager
         if self.isEnabled == False:
             return
-
         rospy.loginfo('STARTING DOCKING')
 
-        docking_sm = StateMachine(outcomes=['done'],
-                                  input_keys=['isEnabled'],
-                                  output_keys=['isEnabled'])
+        docking_sm = StateMachine(outcomes=['done'])
         with docking_sm:
-
             StateMachine.add("DOCKING_EXECUTE",
                              DockingExecute(),
                              transitions={
                                  'succeeded': 'DOCKING_STANDBY',
-                                 'preempted': 'done'
-                             },
-                             remapping={'isEnabled': 'isEnabled'})
+                                 'preempted': 'done'})
 
             StateMachine.add("DOCKING_STANDBY",
                              DockingStandby(),
-                             transitions={'succeeded': 'done'},
-                             remapping={'isEnabled': 'isEnabled'})
-
+                             transitions={'succeeded': 'done'})
         try:
             docking_sm.execute()
 
