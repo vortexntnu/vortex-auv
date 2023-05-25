@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
     <node pkg="TAC_tasks" type="docking_node.py" name="TAC_tasks" output="screen"/>
     <node pkg="landmarks" type="landmarks" name="landmarks" output="screen"/>
 </launch>
