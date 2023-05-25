@@ -1,7 +1,5 @@
 #! /usr/bin/env python3
 
-# TODO: Move to the task manager pkg.
-
 import rospy
 
 import dynamic_reconfigure.client
