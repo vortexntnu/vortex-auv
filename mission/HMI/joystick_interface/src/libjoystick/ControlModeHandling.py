@@ -214,7 +214,6 @@ class ControlModeHandling:
         k = 0.05
         if (x < k and x > -k) and (y < k and y > -k) and (
                 z < k and z > -k) and (psi < k and psi > -k):
-            rospy.loginfo(self.prev_dp_cmd_pose)
             self.send_dp_goal(init_z=True, target_pose=self.prev_dp_cmd_pose)
             self.prev_time = rospy.get_time()
             return
