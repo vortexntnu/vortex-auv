@@ -6,6 +6,7 @@
   <arg name="type" default="real"/> <!-- real | simulator -->
   <arg name="localization" default="ekf"/> <!-- ekf | eskf-->
   <arg name="dvl_ip" default="169.254.15.123"/>
+
   <!-- PARAMETERS -->
   <rosparam command="load" file="$(find auv_setup)/config/environments/trondheim_freshwater.yaml"/>
   <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
@@ -40,12 +41,16 @@
 
     <!-- UDFC node -->
     <include file="$(find udfc_wrapper_node)/launch/udfc_wrapper_node.launch" />
-   
+
   </group> <!-- end drivers -->
 
-
-  <!-- INCLUDES -->
+  <!-- Motion -->
   <include file="$(find motion_launch)/launch/motion.launch"            pass_all_args="true"/>
+  
+  <!-- Navigation -->
   <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
+
+  <!-- Task Manager -->
+  <include file="$(find task_manager)/launch/task_manager.launch"/>
 
 </launch>
