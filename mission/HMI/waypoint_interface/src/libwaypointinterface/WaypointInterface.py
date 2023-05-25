@@ -6,7 +6,7 @@ import tf
 from std_msgs.msg import Float32
 from geometry_msgs.msg import PoseStamped
 
-from libwaypointinterface.DPClient import DPClient
+from dp_client_py.DPClient import DPClient
 
 
 class WaypointInterface:
