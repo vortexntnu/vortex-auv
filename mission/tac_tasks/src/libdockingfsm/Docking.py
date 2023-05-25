@@ -35,7 +35,8 @@ class Docking():
                              DockingExecute(),
                              transitions={
                                  'succeeded': 'DOCKING_STANDBY',
-                                 'preempted': 'done'})
+                                 'preempted': 'done'
+                             })
 
             StateMachine.add("DOCKING_STANDBY",
                              DockingStandby(),
