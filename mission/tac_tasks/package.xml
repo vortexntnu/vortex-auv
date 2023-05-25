@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>TAC_tasks</name>
+  <name>tac_tasks</name>
   <version>0.0.0</version>
-  <description>The TAC_tasks package</description>
+  <description>The package for finite state machines for the TAC Challenge.</description>
   <author>Lasse Moen Guttormsen</author>
   <author>Aleksander Klund</author>
   <author>Benjaminas Visockis</author>

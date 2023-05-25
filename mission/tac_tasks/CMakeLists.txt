@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(TAC_tasks)
+project(tac_tasks)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
