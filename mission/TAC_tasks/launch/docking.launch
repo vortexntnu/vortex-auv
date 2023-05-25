@@ -2,7 +2,5 @@
 <launch>
     <rosparam command="load" file="$(find auv_setup)/config/robots/beluga.yaml"/>
     <node pkg="TAC_tasks" type="docking_fsm.py" name="TAC_tasks" output="screen">
-    </node>
     <node pkg="landmarks" type="landmarks" name="landmarks" output="screen">
-    </node>
 </launch>
