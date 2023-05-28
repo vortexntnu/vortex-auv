@@ -11,6 +11,7 @@ from task_manager_defines import defines
 
 from dp_client_py.DPClient import DPClient
 
+
 class DockingFSM():
 
     def __init__(self):

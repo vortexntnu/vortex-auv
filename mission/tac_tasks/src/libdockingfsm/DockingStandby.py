@@ -19,6 +19,7 @@ from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ign
 
 from dp_client_py.DPClient import DPClient
 
+
 class DockingStandby(smach.State):
 
     def __init__(self, dp_client_handle):
