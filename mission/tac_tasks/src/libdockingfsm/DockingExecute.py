@@ -23,7 +23,7 @@ from dp_client_py.DPClient import DPClient
 
 class DockingExecute(smach.State):
 
-    def __init__(self):
+    def __init__(self, dp_client_handle):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
         # =====[Attributes]===== #
@@ -41,7 +41,7 @@ class DockingExecute(smach.State):
 
         # =====[Services, clients, handles]===== #
         # DP action client
-        self.dp_client = DPClient()
+        self.dp_client = dp_client_handle
         self.current_goal_pose = Pose()
 
         # Task Manager client
@@ -78,15 +78,9 @@ class DockingExecute(smach.State):
         goal = dpGoal()
         goal.x_ref = self.object.objectPose.pose
 
-        # Shifts DP goal from Docking_point to center of mass
-        goal.x_ref.position.x = goal.x_ref.position.x + offsetPoint.x
-        goal.x_ref.position.y = goal.x_ref.position.y + offsetPoint.y
-        goal.x_ref.position.z = self.odom_pose.position.z
-
         # Set active degrees of freedom for DP
         goal.DOF = [True, True, True, False, False, True]
 
-        self.dp_client.wait_for_server()
         self.dp_client.send_goal(goal)
         self.current_goal_pose = goal.x_ref
 
@@ -99,12 +93,6 @@ class DockingExecute(smach.State):
 
             self.object = self.landmarks_client("docking_point").object
             goal.x_ref = self.object.objectPose.pose
-
-            # Shift DP setpoint to account for position of powerpuck relative to origin in world frame
-            offsetPoint = self.find_relative_to_mass_centre(powerPuckOffset)
-            goal.x_ref.position.x = goal.x_ref.position.x + offsetPoint.x
-            goal.x_ref.position.y = goal.x_ref.position.y + offsetPoint.y
-            goal.x_ref.position.z = goal.x_ref.position.z - offsetPoint.z
 
             # If we are not above the doking station, we converge towards a point above it first
             if not self.above_docking_point():

@@ -17,10 +17,11 @@ from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 from task_manager_defines import defines
 from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
 
+from dp_client_py.DPClient import DPClient
 
 class DockingStandby(smach.State):
 
-    def __init__(self):
+    def __init__(self, dp_client_handle):
         smach.State.__init__(self, outcomes=['succeeded'])
 
         # Task Manager client for docking
@@ -29,8 +30,9 @@ class DockingStandby(smach.State):
 
         self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
 
-        self.dp_client = actionlib.SimpleActionClient("/DpAction", dpAction)
-        self.dp_client.wait_for_server()
+        # DP action client
+        self.dp_client = dp_client_handle
+        self.current_goal_pose = Pose()
 
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
         self.odom = Odometry()
