@@ -27,8 +27,9 @@ class DPClient:
         # DP client handle
         self.client_handle = actionlib.SimpleActionClient(
             "/DpAction", dpAction)
-        rospy.loginfo("Waiting for DP Server...")
+        rospy.loginfo(f"{rospy.get_name()}: Waiting for DP Server...")
         self.client_handle.wait_for_server()
+        rospy.loginfo(f"{rospy.get_name()}: Connected to DP Server!")
 
         rospy.Subscriber("/DpAction/result", dpResult, self.result_cb)
         self.result = False
@@ -111,4 +112,4 @@ class DPClient:
         Args:
             float32_arr_msg (Float32[6]): The received Float32[6] message.
         """
-        self.feedback = float32_arr_msg.data
+        self.feedback = float32_arr_msg
