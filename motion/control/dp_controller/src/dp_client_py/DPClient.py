@@ -91,7 +91,6 @@ class DPClient:
         elif not isinstance(self.goal.x_ref, Pose):
             raise ValueError(
                 "Attribute 'goal_pose' has to be an an instance of Pose.")
-        rospy.loginfo(self.goal)
         self.client_handle.send_goal(self.goal)
         return True
 

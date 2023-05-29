@@ -12,6 +12,7 @@ from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
 
 from libjoystick.JoystickControlModes import *
 
+from dp_client_py.DPClient import DPClient
 
 class ControlModeHandling:
     """
@@ -37,7 +38,7 @@ class ControlModeHandling:
         self.prev_time = 0.0  # Used for time interval calculations
 
         # Initialize dynamic positioning (DP) client
-        self.dp_client = actionlib.SimpleActionClient("/DpAction", dpAction)
+        self.dp_client = DPClient()
 
         # Initialize reference model service client
         self.refmodel_client = rospy.ServiceProxy(
@@ -104,6 +105,7 @@ class ControlModeHandling:
             self.control_mode = JoystickControlModes.DP_CMD.value
             self.pose4_hold()
 
+            # Toggle reference model
             self.refmodel_req.data = False
             try:
                 res = self.refmodel_client(self.refmodel_req.data)
@@ -124,7 +126,7 @@ class ControlModeHandling:
                 self.open_loop()
                 self.refmodel_req.data = True
 
-        if is_pressed == True:
+        if is_pressed:
             rospy.loginfo(
                 f"Control mode changed by joystick: {get_joystick_control_mode_name(self.control_mode)}"
             )
@@ -179,24 +181,24 @@ class ControlModeHandling:
         """
         Enables open loop control. Sends goal to dynamic positioning action server.
         """
-        dp_goal = dpGoal()
-        dp_goal.x_ref = self.odom_pose
-        dp_goal.DOF = [0, 0, 0, 0, 0, 0]
-        self.dp_client.send_goal(dp_goal)
-        rospy.set_param("/DP/Enable", False)
+        if self.dp_client.get_enabled_status():
+            self.dp_client.goal.x_ref = self.odom_pose
+            self.dp_client.goal.DOF = [0, 0, 0, 0, 0, 0]
+            self.dp_client.send_goal()
+            self.dp_client.disable()
 
     def pose3_hold(self):
         """
         Enables pose hold in 3 degrees of freedom: x, y, psi
         """
-        rospy.set_param("/DP/Enable", True)
+        self.dp_client.enable()
         self.send_dp_goal(False)
 
     def pose4_hold(self):
         """
         Enables pose hold in 4 degrees of freedom: x, y, z, psi
         """
-        rospy.set_param("/DP/Enable", True)
+        self.dp_client.enable()
         self.send_dp_goal(True)
 
     def dp_cmd_mode(self, axes):
@@ -278,25 +280,18 @@ class ControlModeHandling:
             init_z (bool): Initialize z-axis control.
             target_pose (Pose, optional): Target pose for the dynamic positioning controller.
         """
-        dp_server_status = self.dp_client.wait_for_server(rospy.Duration(1))
-
-        if not dp_server_status:
-            rospy.logwarn("DP Server could not be reached...")
-            return
-
-        dp_goal = dpGoal()
         if target_pose is None:
             self.prev_dp_cmd_pose = self.odom_pose
-            dp_goal.x_ref = self.odom_pose
+            self.dp_client.goal.x_ref = self.odom_pose
         else:
-            dp_goal.x_ref = target_pose
+            self.dp_client.goal.x_ref = target_pose
 
         if init_z:
-            dp_goal.DOF = [1, 1, 1, 0, 0, 1]
+            self.dp_client.goal.DOF = [1, 1, 1, 0, 0, 1]
         else:
-            dp_goal.DOF = [1, 1, 0, 0, 0, 1]
+            self.dp_client.goal.DOF = [1, 1, 0, 0, 0, 1]
 
-        self.dp_client.send_goal(dp_goal)
+        self.dp_client.send_goal()
 
     @staticmethod
     def kill_node(node_name):
