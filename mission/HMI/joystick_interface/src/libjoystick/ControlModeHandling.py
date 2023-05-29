@@ -208,6 +208,7 @@ class ControlModeHandling:
         """
         wait_time = 0.2
         current_time = rospy.get_time()
+        threshold = 0.05
 
         if current_time - self.prev_time < wait_time:
             return
@@ -218,9 +219,8 @@ class ControlModeHandling:
         psi = axes["horizontal_axis_right_stick"]
 
         # If no new goal, hold previous pose goal
-        k = 0.05
-        if (x < k and x > -k) and (y < k and y > -k) and (
-                z < k and z > -k) and (psi < k and psi > -k):
+        if (x < threshold and x > -threshold) and (y < threshold and y > -threshold) and (
+                z < threshold and z > -threshold) and (psi < threshold and psi > -threshold):
             self.send_dp_goal(init_z=True, target_pose=self.prev_dp_cmd_pose)
             self.prev_time = rospy.get_time()
             return
@@ -249,13 +249,21 @@ class ControlModeHandling:
         dp_cmd_pose.orientation = q
 
         # If no new psi goal, hold previous psi goal
-        if (psi < k and psi > -k):
+        if (psi < threshold and psi > -threshold):
             dp_cmd_pose.orientation = self.prev_dp_cmd_pose.orientation
-            self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
 
-        else:
-            self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
+        # If no new x,y goal, hold previous x,y goal
+        if (x < threshold and x > -threshold) and (y < threshold and y > -threshold):
+            dp_cmd_pose.position.x = self.prev_dp_cmd_pose.position.x
+            dp_cmd_pose.position.y = self.prev_dp_cmd_pose.position.y
 
+        # If no new z goal, hold previous z goal
+        if (z < threshold and z > -threshold):
+            dp_cmd_pose.position.z = self.prev_dp_cmd_pose.position.z
+
+        self.send_dp_goal(init_z=True, target_pose=dp_cmd_pose)
+
+        # Save current DP goal and time for next iter
         self.prev_dp_cmd_pose = dp_cmd_pose
         self.prev_time = rospy.get_time()
 
