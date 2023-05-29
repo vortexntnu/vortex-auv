@@ -62,15 +62,15 @@ QuaternionPIDController::QuaternionPIDController() { // float W, float B,
   m_integral = Eigen::Vector6d::Zero();
 
   // TODO: Should be made into ROS params
-  double maxPosGain = 0.5;
-  double maxAttGain = 0.05;
+  double maxPosGain = 3;
+  double maxAttGain = 0.2;
 
   m_integralAntiWindup = Eigen::Vector6d::Zero();
   m_integralAntiWindup << maxPosGain, maxPosGain, maxPosGain, maxAttGain,
       maxAttGain, maxAttGain;
 
-  // The AUV is to stable in orientation, therefore the scaling of 0.3. The
-  // reason of 0.9 scaling in position, is beacause the g-vector may not be
+  // The AUV is to stable in orientation, therefore the scaling of should be
+  // small. Scaling in position may be bigger because the g-vector may not be
   // equal to the real value.
   // TODO: Should be made into ROS params
   m_scale_g = Eigen::Vector6d::Zero();
@@ -165,7 +165,7 @@ Eigen::Vector6d QuaternionPIDController::getFeedback(
   return (Eigen::Vector6d() << gain).finished();
 }
 
-//  BACKUP METHOD
+// Euler angles feedback for orientation
 Eigen::Vector6d QuaternionPIDController::getFeedback_euler(
     const Eigen::Vector3d &x, const Eigen::Quaterniond &q,
     const Eigen::Vector6d &nu, const Eigen::Vector6d &nu_d,
