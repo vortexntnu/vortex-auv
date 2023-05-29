@@ -98,7 +98,7 @@ class ControlModeHandling:
                 res = self.refmodel_client(self.refmodel_req.data)
             self.pose4_hold()
 
-        # Handles DP control mode - control drone using DP from joystick 
+        # Handles DP control mode - control drone using DP from joystick
         elif buttons["Y"]:
             is_pressed = True
             self.control_mode = JoystickControlModes.DP_CMD.value
