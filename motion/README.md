@@ -3,57 +3,38 @@ Anything related to how the AUV physically moves in located in this folder, name
 
 
 ### Controllers
-<details>
-<summary>The currently implemented controllers:</summary>
-
-* los_controller
-    * An integral backstepping controller used by the los_guidance system
-
+#### Compensates and stabilizes a system
 * dp_controller
-    * The dynamic positioning controller, which is implemented as a nonlinear PID controller.
+    * The dynamic positioning controller, which is implemented as a linear PID controller.
 
-* veloctiy_controller
-    * A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces. 
+* local_pid
+    * A pole-placement PID controller meant to be used with a setpoint in a local frame e.g. camera, body, etc.
+  
+* velocity_controller
+    * A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces.
 
-</details>
+* vtf_guidance_and_control
+    * Virtual Target Following guidance and control module which sets up a target which follows a given path. The system will then follow the target's reference model using a MIMO DP controller.
+
 
 ### Guidance
-<details>
-<summary>The currently implemented guidance modules:</summary>
+#### Provides directional instructions to controllers
 
-* interface
+* guidance_interface
     * The interface for all the different guidance modules that the state machine uses to steer the AUV
 
-* los_guidance
-    * A straight-line guidance module
-
-* dp_guidance
-    * The state machine technically can reference the dp controller directly, but this module is in place to fully separate the controllers and state machine.
-
-* vel_guidance
-    * A velocity controller using six one-dimensional PIDs with feed-forward term and integral windup protection. The control law includes compensation for restoring forces. 
-
-</details>
-
+* reference_model
+    * Model for filtering the reference input for more optimal LOS and DP control.
 
 
 ### Others
-<details>
-<summary>Interfaces to physical units and misc:</summary>
+#### Interfaces to physical units and misc
 
-* reference_model
-    * Reference model calculation used in the LOS guidance system.
-    
-* mcu_interface
-    * The interface between the ROS system and a multi-purpose MicroController Unit (MCU) in the AUV.
+* thrust_merger
+    * Linearly combines forces from multiple sources for multi-control-law operation 
 
-* thruster_interface
-    * The interface between the control system and the ESCs, i.e. a board that can produce PWM signals.
-
-* vortex_allocator
+* thruster_allocator
     * Calculates the specific thruster forces from a given thrust vector
 
 * motion_launch
     * A container for the launch file that launches every required motion node. 
-
-</details>
