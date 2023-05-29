@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>joystick_interface</name>
-  <version>0.0.0</version>
+  <version>1.0.0</version>
   <description>The joystick_interface package</description>
   
   <maintainer email="chstr@stud.ntnu.no">Christopher Strøm</maintainer>
+  <maintainer email="benjamin.visockis@gmail.com">Benjaminas Visockis</maintainer>
 
   <license>MIT</license>
 
