@@ -5,7 +5,6 @@ PID:
   D: [1.5,1,1,0,0,2]
 
   Enable: [1,1,1]
-  
 
 DP:
   Enable: False
