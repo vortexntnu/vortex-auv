@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # coding: UTF-8
 
+# TODO: make into python module
+
 from enum import IntEnum
-from turtle import position
 
 import rospy
 from smach import StateMachine, Sequence, Concurrence, cb_interface, CBState
@@ -10,10 +11,8 @@ from smach_ros import SimpleActionState
 from geometry_msgs.msg import Point, Quaternion, Pose
 from tf.transformations import quaternion_from_euler
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from vortex_msgs.msg import LosPathFollowingAction, LosPathFollowingGoal
 
 import math
-from vortex_msgs.srv import ControlMode
 import actionlib
 from tf.transformations import (
     euler_from_quaternion,
@@ -29,7 +28,7 @@ guidance_interface_los_action_server = rospy.get_param(
     "/guidance/LOS/action_server")
 
 
-# DP control modes
+# Enumeration for different control modes
 class ControlModeEnum(IntEnum):
     OPEN_LOOP = 0
     POSITION_HOLD = 1
@@ -44,6 +43,13 @@ class ControlModeEnum(IntEnum):
 
 
 def dp_move(x, y, z=-0.5, yaw_rad=0):
+    """ Function to create a move goal with the specified parameters and returns a SimpleActionState
+    Args:
+        x, y, z: Coordinates for the move goal
+        yaw_rad: Orientation of the goal in radians
+    Returns:
+        SimpleActionState with the goal
+    """
     goal = MoveBaseGoal()
     goal.target_pose.pose.position = Point(x, y, z)
     goal.target_pose.pose.orientation = Quaternion(
@@ -55,8 +61,13 @@ def dp_move(x, y, z=-0.5, yaw_rad=0):
 
 
 def rotate_certain_angle(pose, angle):
-    """Angle in degrees"""
-
+    """ Function to rotate a pose by a certain angle
+    Args:
+        pose: Original pose
+        angle: Angle to rotate by in degrees
+    Returns:
+        New pose after rotation
+    """
     orientation = R.from_quat([
         pose.orientation.x, pose.orientation.y, pose.orientation.z,
         pose.orientation.w
@@ -74,8 +85,14 @@ def rotate_certain_angle(pose, angle):
 
 
 def get_pose_in_front(pose, distance, index=0):
-    # returns pose that is distance meters in front of object pose
-
+    """ Function to get a pose that is a certain distance in front of a given pose
+    Args:
+        pose: The original pose
+        distance: Distance in meters to the desired pose
+        index: Index for rotation matrix column selection
+    Returns:
+        The new pose
+    """
     orientation_object = R.from_quat([
         pose.orientation.x, pose.orientation.y, pose.orientation.z,
         pose.orientation.w
@@ -96,7 +113,14 @@ def get_pose_in_front(pose, distance, index=0):
 
 
 def get_position_on_line(from_pos, to_pos, distance):
-    # returns pose that is distance meters in front of object, along line
+    """ Function to get a position on a line a certain distance from the from_pos
+    Args:
+        from_pos: Starting position
+        to_pos: End position
+        distance: Distance from the starting position
+    Returns:
+        New position
+    """
     p = Point()
     p.x = to_pos.x - from_pos.x
     p.y = to_pos.y - from_pos.y
@@ -112,11 +136,14 @@ def get_position_on_line(from_pos, to_pos, distance):
 
 
 def get_pose_to_side(pose, unsigned_distance, chosen_side):
-    # returns pose that is distance meters to one side of the gate
-    # chosen_side is either Bootlegger or G-man
-    # Bootlegger (False) = right
-    # G-man (True) = left
-
+    """ Function to get a pose that is a certain distance to the side of a given pose
+    Args:
+        pose: The original pose
+        unsigned_distance: Distance in meters to the desired pose
+        chosen_side: True for left, False for right
+    Returns:
+        The new pose
+    """
     orientation_object = R.from_quat([
         pose.orientation.x, pose.orientation.y, pose.orientation.z,
         pose.orientation.w
@@ -127,7 +154,6 @@ def get_pose_to_side(pose, unsigned_distance, chosen_side):
         [pose.position.x, pose.position.y, pose.position.z])
     if chosen_side == True:
         new_pose_vec = current_pos_vec + unsigned_distance * y_vec
-
     else:
         new_pose_vec = current_pos_vec - unsigned_distance * y_vec
 
