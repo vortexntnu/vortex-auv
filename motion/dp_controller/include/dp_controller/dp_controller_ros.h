@@ -70,7 +70,6 @@ private:
   ros::Publisher m_dp_I_debug_pub;
   ros::Publisher m_dp_D_debug_pub;
   ros::Publisher m_dp_g_debug_pub;
-
   ros::Publisher m_eta_d_deg_pub;
   ros::Publisher m_q_tilde_pub;
   ros::Publisher m_q_tilde_sgn_pub;
