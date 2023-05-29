@@ -80,7 +80,7 @@ public:
 
       //---------------DEBUG-----
       actionlib::SimpleClientGoalState state = ac_.getState();
-      
+
       ROS_INFO("Action finished: %s", state.toString().c_str());
       //----------------------------
 
