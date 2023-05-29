@@ -219,8 +219,10 @@ class ControlModeHandling:
         psi = axes["horizontal_axis_right_stick"]
 
         # If no new goal, hold previous pose goal
-        if (x < threshold and x > -threshold) and (y < threshold and y > -threshold) and (
-                z < threshold and z > -threshold) and (psi < threshold and psi > -threshold):
+        if (x < threshold and x
+                > -threshold) and (y < threshold and y > -threshold) and (
+                    z < threshold and z > -threshold) and (psi < threshold and
+                                                           psi > -threshold):
             self.send_dp_goal(init_z=True, target_pose=self.prev_dp_cmd_pose)
             self.prev_time = rospy.get_time()
             return
@@ -253,7 +255,8 @@ class ControlModeHandling:
             dp_cmd_pose.orientation = self.prev_dp_cmd_pose.orientation
 
         # If no new x,y goal, hold previous x,y goal
-        if (x < threshold and x > -threshold) and (y < threshold and y > -threshold):
+        if (x < threshold and x > -threshold) and (y < threshold
+                                                   and y > -threshold):
             dp_cmd_pose.position.x = self.prev_dp_cmd_pose.position.x
             dp_cmd_pose.position.y = self.prev_dp_cmd_pose.position.y
 
