@@ -55,46 +55,53 @@ class ControlModeHandling:
             buttons (dict): A dictionary mapping buttons to their state.
             wrench_publisher_handle: Publisher to publish Wrench messages.
         """
-        pressed = -1
+        # Checks if a control mode changing button has been pressed
+        is_pressed = False
 
+        # Handles killswitch mode
         if buttons["stick_button_left"] and buttons[
                 "stick_button_right"] and buttons["RB"] and buttons["LB"]:
-            pressed = JoystickControlModes.KILLSWITCH.value
-            self.control_mode = pressed
+            is_pressed = True
+            self.control_mode = JoystickControlModes.KILLSWITCH.value
             ControlModeHandling.killswitch(wrench_publisher_handle)
 
+        # Handles emergency stop
         if buttons["start"]:
-            pressed = JoystickControlModes.EMERGENCY_STOP.value
-            self.control_mode = pressed
+            is_pressed = True
+            self.control_mode = JoystickControlModes.EMERGENCY_STOP.value
             ControlModeHandling.emergency_stop(wrench_publisher_handle)
 
+        # Handles open-loop mode
         elif buttons["A"]:
-            pressed = JoystickControlModes.OPEN_LOOP.value
-            self.control_mode = pressed
+            is_pressed = True
+            self.control_mode = JoystickControlModes.OPEN_LOOP.value
             if not self.refmodel_req.data:
                 self.refmodel_req.data = True
                 res = self.refmodel_client(self.refmodel_req.data)
             self.open_loop()
 
+        # Handles DP hold in x, y, and yaw
         elif buttons["B"]:
-            pressed = JoystickControlModes.POSE3_HOLD.value
-            self.control_mode = pressed
+            is_pressed = True
+            self.control_mode = JoystickControlModes.POSE3_HOLD.value
             if not self.refmodel_req.data:
                 self.refmodel_req.data = True
                 res = self.refmodel_client(self.refmodel_req.data)
             self.pose3_hold()
 
+        # Handles DP hold in x, y, z, and yaw
         elif buttons["X"]:
-            pressed = JoystickControlModes.POSE4_HOLD.value
-            self.control_mode = pressed
+            is_pressed = JoystickControlModes.POSE4_HOLD.value
+            self.control_mode = is_pressed
             if not self.refmodel_req.data:
                 self.refmodel_req.data = True
                 res = self.refmodel_client(self.refmodel_req.data)
             self.pose4_hold()
 
+        # Handles DP control mode - control drone using DP from joystick 
         elif buttons["Y"]:
-            pressed = JoystickControlModes.DP_CMD.value
-            self.control_mode = pressed
+            is_pressed = True
+            self.control_mode = JoystickControlModes.DP_CMD.value
             self.pose4_hold()
 
             self.refmodel_req.data = False
@@ -105,21 +112,21 @@ class ControlModeHandling:
                     rospy.logwarn(
                         "Could not contact DP reference model... Enabling manual control."
                     )
-                    pressed = JoystickControlModes.OPEN_LOOP.value
-                    self.control_mode = pressed
+                    is_pressed = JoystickControlModes.OPEN_LOOP.value
+                    self.control_mode = is_pressed
                     self.open_loop()
             except Exception:
                 rospy.logwarn(
                     "Could not contact DP reference model... Enabling manual control."
                 )
-                pressed = JoystickControlModes.OPEN_LOOP.value
-                self.control_mode = pressed
+                is_pressed = JoystickControlModes.OPEN_LOOP.value
+                self.control_mode = is_pressed
                 self.open_loop()
                 self.refmodel_req.data = True
 
-        if pressed != -1:
+        if is_pressed == True:
             rospy.loginfo(
-                f"Control mode changed by joystick: {get_joystick_control_mode_name(pressed)}"
+                f"Control mode changed by joystick: {get_joystick_control_mode_name(self.control_mode)}"
             )
             rospy.sleep(
                 rospy.Duration(0.25))  # Sleep to avoid aggressive switching
