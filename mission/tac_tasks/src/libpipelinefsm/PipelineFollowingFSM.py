@@ -12,6 +12,7 @@ from task_manager_defines import defines
 
 
 class PipelineFollowingFSM():
+
     def __init__(self):
         rospy.init_node("tac_pipeline_fsm")
 

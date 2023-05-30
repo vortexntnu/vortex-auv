@@ -10,7 +10,9 @@ import actionlib
 from task_manager_defines import defines
 import dynamic_reconfigure.client
 
+
 class PipelineExecute(smach.State):
+
     def __init__(self, userdata):
         self.task = "pipeline"
 
