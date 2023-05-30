@@ -13,9 +13,6 @@ from dp_client_py.DPClient import DPClient
 from task_manager_defines import defines  # type: ignore
 from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
 
-import dynamic_reconfigure
-
-
 class Docking:
 
     def __init__(self):
@@ -24,16 +21,13 @@ class Docking:
         self.sending_rate = rospy.Rate(1)
 
         self.odom_pose = Pose()
-        self.SPP_pose = Pose()
 
         # =====[Params]===== #
-
         # Height where the DP is turned off to minimize issues because of drift close to platform
         self.final_descent_height = rospy.get_param(
             "/tac/docking/final_descent_height")
 
         self.coeff_a = rospy.get_param("/tac/docking/error_coefficients/a")
-
         self.coeff_b = rospy.get_param("/tac/docking/error_coefficients/b")
 
         # =====[Services, clients, handles]===== #
@@ -60,6 +54,7 @@ class Docking:
         tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
                                      rospy.Duration(1.0))
         rospy.loginfo(f"{rospy.get_name()}: Received base link to SPP TF!")
+        self.SPP_offset, _ = tf_listener.lookupTransform('SPP_link', 'base_link', rospy.Time(0))
 
         # =====[Publishers]===== #
         # Current state of the FSM
@@ -74,4 +69,8 @@ class Docking:
         rospy.Subscriber("/odometry/filtered", Odometry, self.odom_pose_cb)
 
     def odom_pose_cb(self, msg):
-        self.odom_pose = msg.pose.pose
+        body_pose = msg.pose.pose
+        
+        self.odom_pose.position.x = body_pose.position.x + self.SPP_offset[0]
+        self.odom_pose.position.y = body_pose.position.y + self.SPP_offset[1]
+        self.odom_pose.position.z = body_pose.position.z + self.SPP_offset[2]

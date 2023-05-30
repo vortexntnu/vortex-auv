@@ -1,6 +1,5 @@
 import rospy
 import rosnode
-import actionlib
 import subprocess
 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler, euler_matrix
