@@ -8,6 +8,7 @@ from geometry_msgs.msg import Pose, Wrench
 from libdockingfsm.Docking import Docking
 from libdockingfsm.Helpers import distance_between_points
 
+
 class DockingExecute(smach.State):
 
     def __init__(self, is_enabled=False):
@@ -16,15 +17,14 @@ class DockingExecute(smach.State):
         self.docking = Docking()
 
         # Duration for docking
-        self.docking_duration = rospy.get_param("/tac/docking/docking_duration")
+        self.docking_duration = rospy.get_param(
+            "/tac/docking/docking_duration")
 
-        self.force_z = rospy.get_param(
-                "/joystick/scaling/heave"
-            )
-        
+        self.force_z = rospy.get_param("/joystick/scaling/heave")
+
         self.wrench_pub = rospy.Publisher(
             rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
-        
+
         self.is_logged = False
         self.docking.task_manager_client.is_enabled = is_enabled
 
@@ -39,7 +39,8 @@ class DockingExecute(smach.State):
                 if self.docking.task_manager_client.was_enabled:
                     rospy.loginfo("STOPPING DOCKING EXECUTE!")
                     self.is_logged = False
-                    self.docking.dp_client.set_acceptance_margins([0.01,0.01,0.01,0.0,0.0,10.0])
+                    self.docking.dp_client.set_acceptance_margins(
+                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
                     self.docking.dp_client.goal.x_ref = self.docking.odom_pose
                     self.docking.dp_client.send_goal()
                     self.docking.task_manager_client.was_enabled = False
@@ -50,7 +51,8 @@ class DockingExecute(smach.State):
                 rospy.loginfo("STARTING DOCKING EXECUTE!")
                 rospy.sleep(rospy.Duration(1))
                 self.docking.dp_client.disable()
-                self.finished_docking_time = rospy.get_time() + self.docking_duration
+                self.finished_docking_time = rospy.get_time(
+                ) + self.docking_duration
                 self.is_logged = True
 
             wrench_msg = Wrench()
@@ -63,11 +65,12 @@ class DockingExecute(smach.State):
 
             self.docking.task_manager_client.was_enabled = True
             self.docking.rate.sleep()
-    
+
     def on_shutdown(self):
         wrench_msg = Wrench()
         self.wrench_pub.publish(wrench_msg)
 
-        self.docking.dp_client.set_acceptance_margins([0.01,0.01,0.01,0.0,0.0,10.0])
+        self.docking.dp_client.set_acceptance_margins(
+            [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
         self.docking.dp_client.goal.x_ref = self.docking.odom_pose
         self.docking.dp_client.send_goal()
