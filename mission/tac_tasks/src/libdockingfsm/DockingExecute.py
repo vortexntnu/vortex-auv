@@ -4,91 +4,36 @@ import numpy as np
 
 import rospy
 import smach
-import actionlib
 import tf
 
 from geometry_msgs.msg import Pose, Wrench
-from std_msgs.msg import String
-from nav_msgs.msg import Odometry
-from landmarks.srv import request_position
-from vortex_msgs.msg import (dpAction, dpGoal, dpResult, ObjectPosition)
 
-import dynamic_reconfigure.client
-
-from task_manager_defines import defines
-from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
-
-from dp_client_py.DPClient import DPClient
+from libdockingfsm.Docking import Docking
 
 
 class DockingExecute(smach.State):
 
-    def __init__(self, dp_client_handle):
+    def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
-        # =====[Attributes]===== #
-        self.odom_pose = Pose()
-        self.SPP_pose = Pose()
-
-        # =====[Params]===== #
-        # Height to converge above the docking station
-        self.convergence_height = rospy.get_param(
-            "/tac/docking/convergence_height")
-
-        # Height where the DP is turned off to minimize issues because of drift close to platform
-        self.final_descent_height = rospy.get_param(
-            "/tac/docking/final_descent_height")
-
-        # =====[Services, clients, handles]===== #
-        # DP action client
-        self.dp_client = dp_client_handle
-        self.current_goal_pose = Pose()
-
-        # Task Manager client
-        self.task_manager_client = TaskManagerClient(defines.Tasks.docking.id)
-        self.task_manager_client.is_enabled = False
-
-        # Landmarks client
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
-        rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client("docking_point").object
-
-        # TF listener to get TF from body to SPP
-        tf_listener = tf.TransformListener()
-        rospy.loginfo("Waiting for TF...")
-        tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
-                                     rospy.Duration(1.0))
-
-        # =====[Publishers]===== #
-        # Current state of the FSM
-        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
-
-        # Direct publisher to thrust for anchoring to the docking station
-        self.thrust_pub = rospy.Publisher(
-            rospy.get_param("/thrust/thrust_topic"), Wrench, queue_size=1)
-
-        # =====[Subscribers]===== #
-        # Odometry
-        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_pose_cb)
+        self.docking = Docking()
 
     def execute(self, userdata):
-        self.state_pub.publish("docking/execute")
+        self.docking.state_pub.publish("docking/execute")
 
-        goal = dpGoal()
-        goal.x_ref = self.object.objectPose.pose
+        self.docking.dp_client.goal.x_ref = self.object.objectPose.pose
 
         # Set active degrees of freedom for DP
-        goal.DOF = [True, True, True, False, False, True]
+        self.docking.dp_client.goal.DOF = [True, True, True, False, False, True]
 
-        self.dp_client.send_goal(goal)
-        self.current_goal_pose = goal.x_ref
+        self.docking.dp_client.send_goal()
+        self.docking.current_goal_pose = self.docking.dp_client.goal.x_ref
 
         rate = rospy.Rate(10)
         sending_rate = rospy.Rate(1)
         sending_rate.sleep()
 
-        while (not rospy.is_shutdown() and self.isEnabled
+        while (not rospy.is_shutdown() and self.docking.task_manager_client.is_enabled
                and not self.reached_dp_goal):
 
             self.object = self.landmarks_client("docking_point").object
@@ -193,9 +138,3 @@ class DockingExecute(smach.State):
 
         return 'succeeded'
 
-    def odom_pose_cb(self, msg):
-        self.odom_pose = msg.pose.pose
-
-    def dp_goal_cb(self, msg):
-        if (msg.result.finished):
-            self.reached_dp_goal = True
