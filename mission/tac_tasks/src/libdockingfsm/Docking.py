@@ -13,6 +13,7 @@ from dp_client_py.DPClient import DPClient
 from task_manager_defines import defines  # type: ignore
 from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
 
+
 class Docking:
 
     def __init__(self):
@@ -54,7 +55,8 @@ class Docking:
         tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
                                      rospy.Duration(1.0))
         rospy.loginfo(f"{rospy.get_name()}: Received base link to SPP TF!")
-        self.SPP_offset, _ = tf_listener.lookupTransform('SPP_link', 'base_link', rospy.Time(0))
+        self.SPP_offset, _ = tf_listener.lookupTransform(
+            'SPP_link', 'base_link', rospy.Time(0))
 
         # =====[Publishers]===== #
         # Current state of the FSM
@@ -70,7 +72,7 @@ class Docking:
 
     def odom_pose_cb(self, msg):
         body_pose = msg.pose.pose
-        
+
         self.odom_pose.position.x = body_pose.position.x + self.SPP_offset[0]
         self.odom_pose.position.y = body_pose.position.y + self.SPP_offset[1]
         self.odom_pose.position.z = body_pose.position.z + self.SPP_offset[2]
