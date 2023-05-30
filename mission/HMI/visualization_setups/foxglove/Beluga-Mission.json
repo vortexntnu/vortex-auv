@@ -1,0 +1,154 @@
+{
+  "configById": {
+    "ImageViewPanel!2m76kw6": {
+      "cameraTopic": "/zed2/zed_node/rgb/image_rect_color/compressed",
+      "enabledMarkerTopics": [],
+      "mode": "fit",
+      "pan": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0,
+      "synchronize": false,
+      "transformMarkers": false,
+      "zoom": 1
+    },
+    "ImageViewPanel!15cjmy": {
+      "cameraTopic": "/udfc/wrapper/camera_rect",
+      "enabledMarkerTopics": [],
+      "mode": "fit",
+      "pan": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0,
+      "synchronize": false,
+      "transformMarkers": false,
+      "zoom": 1
+    },
+    "Plot!b5ibxc": {
+      "title": "Plot",
+      "paths": [
+        {
+          "value": "/dvl/altitude",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "RosOut!20z1p7e": {
+      "searchTerms": [],
+      "minLogLevel": 1
+    },
+    "RawMessages!1c5f8dv": {
+      "autoExpandMode": "auto",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/object_positions_out"
+    },
+    "RawMessages!1hwh5l7": {
+      "autoExpandMode": "auto",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/DpAction/feedback.feedback.error[:]"
+    },
+    "Plot!3h9fqkk": {
+      "title": "Plot",
+      "paths": [
+        {
+          "value": "/auv/battery_status/voltage",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    },
+    "Tab!17oj9jv": {
+      "activeTabIdx": 0,
+      "tabs": [
+        {
+          "title": "1",
+          "layout": {
+            "first": {
+              "first": {
+                "first": "ImageViewPanel!2m76kw6",
+                "second": "ImageViewPanel!15cjmy",
+                "direction": "row"
+              },
+              "second": {
+                "first": "Plot!b5ibxc",
+                "second": "Plot!1kcr9ud",
+                "direction": "row"
+              },
+              "direction": "column",
+              "splitPercentage": 58.16326530612245
+            },
+            "second": {
+              "first": {
+                "first": {
+                  "first": "RosOut!20z1p7e",
+                  "second": "RawMessages!1c5f8dv",
+                  "direction": "column",
+                  "splitPercentage": 59.75
+                },
+                "second": "RawMessages!1hwh5l7",
+                "direction": "column",
+                "splitPercentage": 77.59456838021337
+              },
+              "second": "Plot!3h9fqkk",
+              "direction": "column",
+              "splitPercentage": 75.14577259475219
+            },
+            "direction": "row",
+            "splitPercentage": 72.71008865118324
+          }
+        }
+      ]
+    },
+    "Plot!1kcr9ud": {
+      "title": "Plot",
+      "paths": [
+        {
+          "value": "/dvl/ahrs/z",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "floating",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "linkedGlobalVariables": [],
+  "playbackConfig": {
+    "speed": 1,
+    "messageOrder": "receiveTime"
+  },
+  "layout": "Tab!17oj9jv"
+}
