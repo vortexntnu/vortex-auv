@@ -24,7 +24,9 @@ class DockingExecute(smach.State):
         self.docking.dp_client.goal.x_ref = self.object.objectPose.pose
 
         # Set active degrees of freedom for DP
-        self.docking.dp_client.goal.DOF = [True, True, True, False, False, True]
+        self.docking.dp_client.goal.DOF = [
+            True, True, True, False, False, True
+        ]
 
         self.docking.dp_client.send_goal()
         self.docking.current_goal_pose = self.docking.dp_client.goal.x_ref
@@ -33,7 +35,8 @@ class DockingExecute(smach.State):
         sending_rate = rospy.Rate(1)
         sending_rate.sleep()
 
-        while (not rospy.is_shutdown() and self.docking.task_manager_client.is_enabled
+        while (not rospy.is_shutdown()
+               and self.docking.task_manager_client.is_enabled
                and not self.reached_dp_goal):
 
             self.object = self.landmarks_client("docking_point").object
@@ -137,4 +140,3 @@ class DockingExecute(smach.State):
             return 'preempted'
 
         return 'succeeded'
-

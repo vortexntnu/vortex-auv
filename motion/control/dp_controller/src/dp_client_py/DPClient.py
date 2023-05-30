@@ -26,7 +26,7 @@ class DPClient:
 
         self.acceptance_margins = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
         self.current_goal_id = ""
-        
+
         self.goal = dpGoal()
 
         # DP client handle
@@ -36,7 +36,8 @@ class DPClient:
         self.client_handle.wait_for_server()
         rospy.loginfo(f"{rospy.get_name()}: Connected to DP Server!")
 
-        self.rcfg_client = dynamic_reconfigure.client.Client("/dp_controller", timeout=1)
+        self.rcfg_client = dynamic_reconfigure.client.Client("/dp_controller",
+                                                             timeout=1)
 
         rospy.Subscriber("/DpAction/result", dpResult, self.result_cb)
         self.result = False
@@ -77,9 +78,11 @@ class DPClient:
 
     def get_acceptance_margins(self):
         config_map = self.rcfg_client.get_configuration()
-        self.acceptance_margins = [config_map["Margin_x"], config_map["Margin_y"], config_map["Margin_z"],
-                                   config_map["Margin_roll"], config_map["Margin_pitch"], config_map["Margin_yaw"]
-                                  ]
+        self.acceptance_margins = [
+            config_map["Margin_x"], config_map["Margin_y"],
+            config_map["Margin_z"], config_map["Margin_roll"],
+            config_map["Margin_pitch"], config_map["Margin_yaw"]
+        ]
         return self.acceptance_margins
 
     def set_acceptance_margins(self, DOF_array):
@@ -88,18 +91,25 @@ class DPClient:
             if DOF == 0.0 or DOF == -1.0:
                 pass
             new_acceptance_margins[i] = DOF
-        self.rcfg_client.update_configuration({"Margin_x":new_acceptance_margins[0], 
-                                               "Margin_y":new_acceptance_margins[1], 
-                                               "Margin_z":new_acceptance_margins[2], 
-                                               "Margin_roll":new_acceptance_margins[3], 
-                                               "Margin_pitch":new_acceptance_margins[4], 
-                                               "Margin_yaw":new_acceptance_margins[5], 
-                                               })
+        self.rcfg_client.update_configuration({
+            "Margin_x":
+            new_acceptance_margins[0],
+            "Margin_y":
+            new_acceptance_margins[1],
+            "Margin_z":
+            new_acceptance_margins[2],
+            "Margin_roll":
+            new_acceptance_margins[3],
+            "Margin_pitch":
+            new_acceptance_margins[4],
+            "Margin_yaw":
+            new_acceptance_margins[5],
+        })
         self.acceptance_margins = new_acceptance_margins
         rospy.loginfo(f"{rospy.get_name()}: Updated DP acceptance margins!")
 
         return True
-    
+
     def has_reached_goal(self):
         margins = self.get_acceptance_margins()
         for i, margin in enumerate(margins):

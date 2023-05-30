@@ -14,6 +14,7 @@ from libdockingfsm.Helpers import distance_between_points
 
 
 class DockingConverge(smach.State):
+
     def __init__(self):
         smach.State.__init__(self, outcomes=['succeeded', 'preempted'])
 
@@ -32,7 +33,8 @@ class DockingConverge(smach.State):
                 if self.docking.task_manager_client.was_enabled:
                     rospy.loginfo("STOPPING DOCKING CONVERGE!")
                     self.is_logged = False
-                    self.docking.dp_client.set_acceptance_margins([0.01,0.01,0.01,0.0,0.0,10.0])
+                    self.docking.dp_client.set_acceptance_margins(
+                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
                     self.docking.dp_client.goal.x_ref = self.docking.odom_pose
                     self.docking.dp_client.send_goal()
                     self.docking.task_manager_client.was_enabled = False
@@ -43,16 +45,22 @@ class DockingConverge(smach.State):
             object_rot = object.objectPose.pose.orientation
 
             # Handle LM server bug where it sends 0 values if there is no object pose yet
-            if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(object_pos.z) == 0.0:
-                rospy.loginfo(f"{rospy.get_name()}: No viable docking point yet...")
+            if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(
+                    object_pos.z) == 0.0:
+                rospy.loginfo(
+                    f"{rospy.get_name()}: No viable docking point yet...")
                 self.docking.sending_rate.sleep()
                 continue
-            
-            if 0.02 < distance_between_points(object_pos, self.docking.dp_client.goal.x_ref.position, self.docking.convergence_height) or not self.docking.task_manager_client.was_enabled:
-                self.docking.dp_client.set_acceptance_margins([0.5,0.5,0.5,0.0,0.0,10.0])
-                self.docking.dp_client.goal.x_ref.position.x  = object_pos.x
-                self.docking.dp_client.goal.x_ref.position.y  = object_pos.y
-                self.docking.dp_client.goal.x_ref.position.z  = object_pos.z + self.docking.convergence_height
+
+            if 0.02 < distance_between_points(
+                    object_pos, self.docking.dp_client.goal.x_ref.position,
+                    self.docking.convergence_height
+            ) or not self.docking.task_manager_client.was_enabled:
+                self.docking.dp_client.set_acceptance_margins(
+                    [0.5, 0.5, 0.5, 0.0, 0.0, 10.0])
+                self.docking.dp_client.goal.x_ref.position.x = object_pos.x
+                self.docking.dp_client.goal.x_ref.position.y = object_pos.y
+                self.docking.dp_client.goal.x_ref.position.z = object_pos.z + self.docking.convergence_height
                 self.docking.dp_client.goal.x_ref.orientation = object_rot
                 if not self.docking.dp_client.get_enabled_status():
                     self.docking.dp_client.enable()
@@ -65,8 +73,10 @@ class DockingConverge(smach.State):
                 rospy.sleep(rospy.Duration(1))
                 self.is_logged = True
 
-            if self.docking.dp_client.has_reached_goal() and self.docking.task_manager_client.was_enabled:
-                rospy.loginfo(f"{rospy.get_name()}: Converged above docking point!")
+            if self.docking.dp_client.has_reached_goal(
+            ) and self.docking.task_manager_client.was_enabled:
+                rospy.loginfo(
+                    f"{rospy.get_name()}: Converged above docking point!")
                 return 'succeeded'
-            
+
             self.docking.sending_rate.sleep()

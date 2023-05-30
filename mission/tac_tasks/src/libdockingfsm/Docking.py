@@ -10,12 +10,14 @@ from landmarks.srv import request_position
 
 from dp_client_py.DPClient import DPClient
 
-from task_manager_defines import defines # type: ignore
+from task_manager_defines import defines  # type: ignore
 from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
 
 import dynamic_reconfigure
 
+
 class Docking:
+
     def __init__(self):
         # =====[Attributes]===== #
         self.rate = rospy.Rate(10)
@@ -32,17 +34,15 @@ class Docking:
         # Height where the DP is turned off to minimize issues because of drift close to platform
         self.final_descent_height = rospy.get_param(
             "/tac/docking/final_descent_height")
-        
-        self.coeff_a = rospy.get_param(
-            "/tac/docking/error_coefficients/a")
-        
-        self.coeff_b = rospy.get_param(
-            "/tac/docking/error_coefficients/b")
+
+        self.coeff_a = rospy.get_param("/tac/docking/error_coefficients/a")
+
+        self.coeff_b = rospy.get_param("/tac/docking/error_coefficients/b")
 
         # =====[Services, clients, handles]===== #
         # DP action client
         self.dp_client = DPClient()
-        self.dp_client.goal.DOF = [1,1,1,0,0,1]
+        self.dp_client.goal.DOF = [1, 1, 1, 0, 0, 1]
 
         # Task Manager client
         self.task_manager_client = TaskManagerClient(defines.Tasks.docking.id)
@@ -58,7 +58,8 @@ class Docking:
 
         # TF listener to get TF from body to SPP
         tf_listener = tf.TransformListener()
-        rospy.loginfo(f"{rospy.get_name()}: Waiting for base link to SPP TF...")
+        rospy.loginfo(
+            f"{rospy.get_name()}: Waiting for base link to SPP TF...")
         tf_listener.waitForTransform('SPP_link', 'base_link', rospy.Time(),
                                      rospy.Duration(1.0))
         rospy.loginfo(f"{rospy.get_name()}: Received base link to SPP TF!")
