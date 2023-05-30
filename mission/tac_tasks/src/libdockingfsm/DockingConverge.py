@@ -31,7 +31,8 @@ class DockingConverge(smach.State):
                 if self.docking.task_manager_client.was_enabled:
                     rospy.loginfo(f"STOPPING DOCKING CONVERGE TO HEIGHT {self.convergence_height}!")
                     self.is_logged = False
-                    self.docking.dp_client.set_acceptance_margins([0.01,0.01,0.01,0.0,0.0,10.0])
+                    self.docking.dp_client.set_acceptance_margins(
+                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
                     self.docking.dp_client.goal.x_ref = self.docking.odom_pose
                     self.docking.dp_client.send_goal()
                     self.docking.task_manager_client.was_enabled = False
@@ -42,8 +43,10 @@ class DockingConverge(smach.State):
             object_rot = object.objectPose.pose.orientation
 
             # Handle LM server bug where it sends 0 values if there is no object pose yet
-            if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(object_pos.z) == 0.0:
-                rospy.loginfo(f"{rospy.get_name()}: No viable docking point yet...")
+            if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(
+                    object_pos.z) == 0.0:
+                rospy.loginfo(
+                    f"{rospy.get_name()}: No viable docking point yet...")
                 self.docking.sending_rate.sleep()
                 continue
             
