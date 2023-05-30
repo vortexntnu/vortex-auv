@@ -3,6 +3,8 @@
      Copyright (c) 2023 Beluga AUV, Vortex NTNU.
      All rights reserved. */
 
+// TODO: refactor member variables to have "m_" prefix for readability
+
 #include "dp_reference_model/reference_model.h"
 #include "dp_reference_model/eigen_typedefs.h"
 #include <eigen3/Eigen/Dense>

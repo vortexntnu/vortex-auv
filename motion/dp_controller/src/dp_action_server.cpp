@@ -24,6 +24,8 @@ Eigen::Vector3d smallestAngle(Eigen::Vector3d euler_angles) {
 }
 
 // Quaternion to Euler
+// TODO: Change this code to boiler-plate code from a library. See
+// https://eigen.tuxfamily.org/dox/classEigen_1_1QuaternionBase.html
 Eigen::Vector3d quaterniondToEuler(Eigen::Quaterniond q) {
   // Compute roll (x-axis rotation)
   double sinr_cosp = 2 * (q.w() * q.x() + q.y() * q.z());

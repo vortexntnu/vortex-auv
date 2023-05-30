@@ -54,7 +54,7 @@ propulsion:
 
 guidance:
   dp:
-    rate: 20
+    rate: 40
     acceptance_margins: [0.10, 0.10, 0.10, 10, 10, 10] # Order: x,y,z,roll,pitch,yaw
     action_server: "/guidance_interface/dp_server"
   LOS:
@@ -185,6 +185,14 @@ battery:
     path: "/sys/bus/i2c/drivers/ina3221x/1-0040/iio:device0/in_voltage0_input" # Path to monitor
   logging:
     interval: 10   # Seconds
+
+pressure:
+  thresholds: 
+    critical: 1013.25 # hPa
+  system:
+    interval: 0.5 # seconds
+  loger:
+    interval: 10 # seconds
 
 temperature:
   logging:
