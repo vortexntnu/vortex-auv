@@ -14,6 +14,7 @@ from libjoystick.JoystickControlModes import *
 
 from dp_client_py.DPClient import DPClient
 
+
 class ControlModeHandling:
     """
     Class for handling control mode changes using joystick inputs.
