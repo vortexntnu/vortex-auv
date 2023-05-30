@@ -21,5 +21,6 @@ catkin_python_setup()
 
 install(PROGRAMS
   scripts/docking_node.py
+  scripts/pipeline_following_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
