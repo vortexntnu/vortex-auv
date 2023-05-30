@@ -16,21 +16,30 @@ class DockingFSM():
     def main(self):
         docking_sm = StateMachine(outcomes=['done'])
         with docking_sm:
-            StateMachine.add("DOCKING_CONVERGE",
-                             DockingConverge(),
+            StateMachine.add("DOCKING_CONVERGE_1",
+                             DockingConverge(1.0, 0.5),
+                             transitions={
+                                 'succeeded': 'DOCKING_CONVERGE_2',
+                                 'preempted': 'done'
+                             })
+            StateMachine.add("DOCKING_CONVERGE_2",
+                             DockingConverge(0.15, 0.05, True),
+                             transitions={
+                                 'succeeded': 'DOCKING_EXECUTE',
+                                 'preempted': 'done'
+                             })
+            StateMachine.add("DOCKING_EXECUTE",
+                             DockingExecute(True),
+                             transitions={
+                                 'succeeded': 'DOCKING_CONVERGE_3',
+                                 'preempted': 'done'
+                             })
+            StateMachine.add("DOCKING_CONVERGE_3",
+                             DockingConverge(1.0, 0.1, True),
                              transitions={
                                  'succeeded': 'done',
                                  'preempted': 'done'
                              })
-            # StateMachine.add("DOCKING_EXECUTE",
-            #                  DockingExecute(),
-            #                  transitions={
-            #                      'succeeded': 'DOCKING_STANDBY',
-            #                      'preempted': 'done'
-            #                  })
-            # StateMachine.add("DOCKING_STANDBY",
-            #                  DockingStandby(),
-            #                  transitions={'succeeded': 'done'})
         try:
             docking_sm.execute()
 

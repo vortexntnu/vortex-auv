@@ -25,9 +25,6 @@ class Docking:
         self.SPP_pose = Pose()
 
         # =====[Params]===== #
-        # Height to converge above the docking station
-        self.convergence_height = rospy.get_param(
-            "/tac/docking/convergence_height")
 
         # Height where the DP is turned off to minimize issues because of drift close to platform
         self.final_descent_height = rospy.get_param(
