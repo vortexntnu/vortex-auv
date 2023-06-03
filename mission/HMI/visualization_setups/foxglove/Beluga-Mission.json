@@ -75,10 +75,10 @@
     "Plot!1kcr9ud": {
       "paths": [
         {
-          "value": "/odometry/filtered.pose.pose.position.y",
+          "value": "/odometry/filtered.pose.pose.position.x",
           "enabled": true,
           "timestampMethod": "receiveTime",
-          "color": "#34d518"
+          "color": "#ffffff"
         }
       ],
       "showXAxisLabels": true,
@@ -87,13 +87,38 @@
       "legendDisplay": "none",
       "showPlotValuesInLegend": false,
       "isSynced": true,
-      "xAxisVal": "custom",
+      "xAxisVal": "timestamp",
       "sidebarDimension": 240,
-      "foxglovePanelTitle": "Position 2D",
+      "foxglovePanelTitle": "X",
       "xAxisPath": {
         "value": "/odometry/filtered.pose.pose.position.x"
       },
-      "title": "Plot"
+      "title": "Plot",
+      "followingViewWidth": 30
+    },
+    "Plot!3dkn5uc": {
+      "paths": [
+        {
+          "value": "/odometry/filtered.pose.pose.position.y",
+          "enabled": true,
+          "timestampMethod": "receiveTime",
+          "color": "#ffffff"
+        }
+      ],
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": true,
+      "legendDisplay": "none",
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarDimension": 240,
+      "foxglovePanelTitle": "Y",
+      "xAxisPath": {
+        "value": "/odometry/filtered.pose.pose.position.x"
+      },
+      "title": "Plot",
+      "followingViewWidth": 30
     },
     "RosOut!20z1p7e": {
       "searchTerms": [],
@@ -113,7 +138,15 @@
       "diffMethod": "custom",
       "diffTopicPath": "",
       "showFullMessageForDiff": false,
-      "topicPath": "/object_positions_out"
+      "topicPath": "/object_positions_out.objectID"
+    },
+    "RawMessages!2rc0eza": {
+      "autoExpandMode": "auto",
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/object_positions_out.objectPose.pose.position"
     },
     "RawMessages!1hwh5l7": {
       "autoExpandMode": "auto",
@@ -146,6 +179,34 @@
       "followingViewWidth": 600,
       "title": "Plot"
     },
+    "ImageViewPanel!22g4vr6": {
+      "cameraTopic": "/zed2/zed_node/depth/depth_registered",
+      "enabledMarkerTopics": [],
+      "mode": "fit",
+      "pan": {
+        "x": 0,
+        "y": 0
+      },
+      "rotation": 0,
+      "synchronize": false,
+      "transformMarkers": false,
+      "zoom": 1,
+      "minValue": 0
+    },
+    "Publish!20ugwnp": {
+      "topicName": "/object_positions_in",
+      "datatype": "vortex_msgs/ObjectPosition",
+      "buttonText": "Publish",
+      "buttonTooltip": "",
+      "buttonColor": "#00A871",
+      "advancedView": true,
+      "value": "{\n  \"objectID\": \"docking_point\",\n  \"objectPose\": {\n    \"header\": {\n      \"seq\": 0,\n      \"stamp\": {\n        \"sec\": 0,\n        \"nsec\": 0\n      },\n      \"frame_id\": \"\"\n    },\n    \"pose\": {\n      \"position\": {\n        \"x\": 1,\n        \"y\": 0,\n        \"z\": -2\n      },\n      \"orientation\": {\n        \"x\": 0,\n        \"y\": 0,\n        \"z\": 0,\n        \"w\": 0\n      }\n    }\n  },\n  \"isDetected\": false,\n  \"estimateConverged\": false,\n  \"estimateFucked\": false\n}"
+    },
+    "RosOut!1d66hs3": {
+      "searchTerms": [],
+      "minLogLevel": 1,
+      "topicToRender": "/rosout_agg"
+    },
     "Tab!17oj9jv": {
       "activeTabIdx": 0,
       "tabs": [
@@ -164,7 +225,11 @@
                   "second": "Plot!16i81eb",
                   "direction": "row"
                 },
-                "second": "Plot!1kcr9ud",
+                "second": {
+                  "first": "Plot!1kcr9ud",
+                  "second": "Plot!3dkn5uc",
+                  "direction": "row"
+                },
                 "direction": "row"
               },
               "direction": "column",
@@ -179,7 +244,11 @@
                     "direction": "column",
                     "splitPercentage": 58.077709611451944
                   },
-                  "second": "RawMessages!1c5f8dv",
+                  "second": {
+                    "first": "RawMessages!1c5f8dv",
+                    "second": "RawMessages!2rc0eza",
+                    "direction": "row"
+                  },
                   "direction": "column",
                   "splitPercentage": 78.3653846153846
                 },
@@ -193,6 +262,19 @@
             },
             "direction": "row",
             "splitPercentage": 72.71008865118324
+          }
+        },
+        {
+          "title": "Depth Image",
+          "layout": "ImageViewPanel!22g4vr6"
+        },
+        {
+          "title": "Publish",
+          "layout": {
+            "first": "Publish!20ugwnp",
+            "second": "RosOut!1d66hs3",
+            "direction": "row",
+            "splitPercentage": 64.19332879509871
           }
         }
       ]
