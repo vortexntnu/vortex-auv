@@ -13,6 +13,7 @@ class PipelineFollowingFSM():
         rospy.init_node("tac_pipeline_fsm")
 
         self.follow_depth = 0.0
+        self.margin = 0.3
 
     def main(self):
         pipeline_following_sm = StateMachine(outcomes=["done"])
@@ -24,7 +25,7 @@ class PipelineFollowingFSM():
                                  "succeeded": "PIPELINE_EXECUTE"
                              })
             StateMachine.add("PIPELINE_EXECUTE",
-                             PipelineExecute(self.follow_depth),
+                             PipelineExecute(self.follow_depth, self.margin),
                              transitions={
                                  "preempted": "PIPELINE_CONVERGE",
                                  "succeeded": "done"

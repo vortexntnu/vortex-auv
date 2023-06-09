@@ -10,7 +10,7 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 class PipelineConverge(smach.State):
     def __init__(self, follow_depth):
-        smach.State.__init__(self, outcomes=["aborted", "succeeded"])
+        smach.State.__init__(self, outcomes=["preempted", "succeeded"])
 
         self.pipeline = PipelineFollowing()
         self.pipeline.sending_rate = rospy.Rate(1)
@@ -38,6 +38,7 @@ class PipelineConverge(smach.State):
                     self.pipeline.dp_client.send_goal()
                     self.pipeline.task_manager_client.was_enabled = False
                 continue
+            rospy.loginfo("STARTING PIPELINE CONVERGE!")
 
             object = self.pipeline.landmarks_client("pipeline").object
             object_pos = object.objectPose.pose.position
@@ -53,9 +54,7 @@ class PipelineConverge(smach.State):
 
             elif self.object.isDetected:
                 self.follow_depth = self.pipeline.odom_pose.position.z
+                rospy.loginfo(f"PIPELINE CONVERGED AT {self.follow_depth} DEPTH!")
                 return 'succeeded'
 
         self.pipeline.sending_rate.sleep()
-
-        rospy.loginfo('PIPELINE FOLLOWING ENDED')
-        return "aborted"
