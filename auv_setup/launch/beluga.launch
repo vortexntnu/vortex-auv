@@ -50,7 +50,4 @@
   <!-- Navigation -->
   <include file="$(find navigation_launch)/launch/navigation.launch"    pass_all_args="true"/>
 
-  <!-- Task Manager -->
-  <include file="$(find task_manager)/launch/task_manager.launch"/>
-
 </launch>
