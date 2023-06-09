@@ -15,7 +15,6 @@ class PipelineExecute(smach.State):
 
     def __init__(self, userdata):
         self.task = "pipeline"
-
         smach.State.__init__(self,
                              outcomes=["aborted"],
                              input_keys=['isEnabled'],
