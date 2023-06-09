@@ -9,7 +9,7 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineConverge(smach.State):
-    def __init__(self):
+    def __init__(self, follow_depth):
         smach.State.__init__(self, outcomes=["aborted", "succeeded"])
 
         self.pipeline = PipelineFollowing()
@@ -17,26 +17,45 @@ class PipelineConverge(smach.State):
 
         self.last_pose = Pose()
         self.is_logged = False
-        self.pipeline.task_manager_client.is_enabled = is_enabled
+        self.pipeline.task_manager_client.is_enabled = True
+
+        self.follow_depth = follow_depth
 
     def execute(self, userdata):
-        self.pipeline.state_pub.publish("docking/standby")
+        self.pipeline.state_pub.publish("pipeline/standby")
 
-        # hold current position
-        dp_goal = dpGoal()
-        dp_goal.DOF = [True, True, True, False, False, True]
-        dp_goal.x_ref = self.odom.pose.pose
-        self.dp_client.send_goal(dp_goal)
+        while not rospy.is_shutdown():
+            if not self.pipeline.task_manager_client.is_enabled:
+                # Handles task change
+                if self.pipeline.task_manager_client.was_enabled:
+                    rospy.loginfo(
+                        f"STOPPING PIPELINE CONVERGE!"
+                    )
+                    self.is_logged = False
+                    self.pipeline.dp_client.set_acceptance_margins(
+                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
+                    self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
+                    self.pipeline.dp_client.send_goal()
+                    self.pipeline.task_manager_client.was_enabled = False
+                continue
 
-        rate = rospy.Rate(10)
-        while not rospy.is_shutdown() and userdata.isEnabled:
-            rospy.loginfo("Standby")
-            self.object = self.landmarks_client(
-                self.task).object  # requesting update on the object
-            self.isDetected = self.object.isDetected
-            if self.isDetected:
-                return "succeeded"
-            rate.sleep()
+            object = self.pipeline.landmarks_client("pipeline").object
+            object_pos = object.objectPose.pose.position
+            object_rot = object.objectPose.pose.orientation
+
+            # Handle LM server bug where it sends 0 values if there is no object pose yet
+            if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(
+                    object_pos.z) == 0.0:
+                rospy.loginfo(
+                    f"{rospy.get_name()}: No viable object pose yet...")
+                self.pipeline.sending_rate.sleep()
+                continue
+
+            elif self.object.isDetected:
+                self.follow_depth = self.pipeline.odom_pose.position.z
+                return 'succeeded'
+
+        self.pipeline.sending_rate.sleep()
 
         rospy.loginfo('PIPELINE FOLLOWING ENDED')
         return "aborted"
