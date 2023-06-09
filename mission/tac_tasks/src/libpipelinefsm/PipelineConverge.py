@@ -9,6 +9,7 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineConverge(smach.State):
+
     def __init__(self, follow_depth):
         smach.State.__init__(self, outcomes=["preempted", "succeeded"])
 
@@ -28,9 +29,7 @@ class PipelineConverge(smach.State):
             if not self.pipeline.task_manager_client.is_enabled:
                 # Handles task change
                 if self.pipeline.task_manager_client.was_enabled:
-                    rospy.loginfo(
-                        f"STOPPING PIPELINE CONVERGE!"
-                    )
+                    rospy.loginfo(f"STOPPING PIPELINE CONVERGE!")
                     self.is_logged = False
                     self.pipeline.dp_client.set_acceptance_margins(
                         [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
