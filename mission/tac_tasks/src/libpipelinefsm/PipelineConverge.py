@@ -53,7 +53,8 @@ class PipelineConverge(smach.State):
 
             elif self.object.isDetected:
                 self.follow_depth = self.pipeline.odom_pose.position.z
-                rospy.loginfo(f"PIPELINE CONVERGED AT {self.follow_depth} DEPTH!")
+                rospy.loginfo(
+                    f"PIPELINE CONVERGED AT {self.follow_depth} DEPTH!")
                 return 'succeeded'
 
         self.pipeline.sending_rate.sleep()

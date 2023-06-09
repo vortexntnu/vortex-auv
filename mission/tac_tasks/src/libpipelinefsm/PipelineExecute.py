@@ -9,6 +9,7 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineExecute(smach.State):
+
     def __init__(self, follow_depth, margin):
         smach.State.__init__(self, outcomes=["preempted", "succeeded"])
 
@@ -24,7 +25,6 @@ class PipelineExecute(smach.State):
 
         self.following_enabled = False
         self.false_detection_count = 0
-        
 
     def execute(self, userdata):
         self.docking.state_pub.publish("docking/execute")
@@ -33,15 +33,14 @@ class PipelineExecute(smach.State):
             if not self.pipeline.task_manager_client.is_enabled:
                 # Handles task change
                 if self.pipeline.task_manager_client.was_enabled:
-                    rospy.loginfo(
-                        f"STOPPING PIPELINE EXECUTE!")
+                    rospy.loginfo(f"STOPPING PIPELINE EXECUTE!")
                     self.is_logged = False
                     self.pipeline.dp_client.set_acceptance_margins(
                         [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
                     self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
                     self.pipeline.dp_client.send_goal()
                     self.pipeline.task_manager_client.was_enabled = False
-                
+
                 #self.pipeline.sending_rate.sleep() # TODO: REMOVE THIS COMMENT AFTER CONFIRMING THAT EVERYTHING ELSE WORKS!!!!!!!
                 continue
 
@@ -86,6 +85,6 @@ class PipelineExecute(smach.State):
                 rospy.loginfo(f"STARTING PIPELINE EXECUTE!")
                 rospy.sleep(rospy.Duration(1))
                 self.is_logged = True
-    
+
             self.pipeline.task_manager_client.was_enabled = True
             self.pipeline.sending_rate.sleep()
