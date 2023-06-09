@@ -15,10 +15,11 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
 )
 
+catkin_python_setup()
+
 generate_dynamic_reconfigure_options(
   cfg/Controller.cfg
 )
-
 
 catkin_package(
   INCLUDE_DIRS include
@@ -52,18 +53,14 @@ add_executable(${PROJECT_NAME}_node
  src/dp_action_server.cpp
  )
 
-
 add_dependencies(${PROJECT_NAME}_node
  ${${PROJECT_NAME}_EXPORTED_TARGETS} 
  ${catkin_EXPORTED_TARGETS})
-
 
 target_link_libraries(${PROJECT_NAME}_node
   #${${PROJECT_NAME}_EXPORTED_TARGETS}    #does not want to build with this
   ${catkin_LIBRARIES}
 )
-
- 
  
 # DP test client
 add_executable(${PROJECT_NAME}_client

@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="tac_tasks" type="pipeline_following_node.py" name="tac_tasks" output="screen"/>
+    <node pkg="landmarks" type="landmarks" name="landmarks" output="screen"/>
+</launch>

@@ -11,7 +11,7 @@ from task_manager_defines import defines
 
 from libjoystick.JoystickControlModes import *
 from libjoystick.ControlModeHandling import ControlModeHandling
-from libjoystick.TaskManagerClient import TaskManagerClient
+from task_manager_client.TaskManagerClient import TaskManagerClient
 
 
 class JoystickInterface:
