@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>topside_launch</name>
+  <version>1.0.0</version>
+  <description>The topside_launch package</description>
+
+  <maintainer email="benjamin.visockis@gmail.com">Benjaminas Visockis</maintainer>
+
+  <license>MIT</license>
+
+  <author email="benjamin.visockis@gmail.com">Benjaminas Visockis</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>joystick_interface</exec_depend>
+  <exec_depend>task_manager</exec_depend>
+  <exec_depend>waypoint_interface</exec_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- TODO: Change the ns to topside. Needs to be changed globally where it is subscribed to. -->
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
+  <arg name="ns_joystick"   default="joystick"/>
+
+  <!-- Joystick nodes -->
+  <group ns="$(arg ns_joystick)">
+    <node pkg="joy"                name="joystick_driver"    type="joy_node"              output="screen" args="_deadzone:=0.15 _autorepeat_rate:=100"/>
+    <node pkg="joystick_interface" type="joystick_interface.py" name="joystick_interface" output="screen"/>
+  </group>
+
+  <!-- Topside interface -->
+  <node pkg="waypoint_interface" type="Waypointinterface.py" name="waypoint_interface" output="screen"/>
+
+  <!-- Task Manager -->
+  <include file="$(find task_manager)/launch/task_manager.launch"/>
+
+</launch>
