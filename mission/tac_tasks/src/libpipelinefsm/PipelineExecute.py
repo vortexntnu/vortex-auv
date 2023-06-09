@@ -67,8 +67,12 @@ class PipelineExecute(smach.State):
                 if not self.pipeline.dp_client.get_enabled_status():
                     self.pipeline.dp_client.enable()
                 self.pipeline.dp_client.send_goal()
+                # Following has been initialized flag
                 if not self.following_enabled:
                     self.following_enabled = True
+                
+                # Reset false counter if new measurement has been received
+                self.false_detection_count = 0
                 rospy.loginfo("Following next pipeline waypoint...")
 
             # After not detecting pipeline for some time, assume completed task
