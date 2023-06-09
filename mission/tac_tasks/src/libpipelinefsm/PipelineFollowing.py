@@ -15,6 +15,7 @@ from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ign
 
 
 class PipelineFollowing:
+
     def __init__(self):
         # =====[Attributes]===== #
         self.rate = rospy.Rate(10)
