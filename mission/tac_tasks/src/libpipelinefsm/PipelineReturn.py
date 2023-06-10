@@ -31,8 +31,9 @@ class PipelineReturn(smach.State):
                 if self.pipeline.task_manager_client.was_enabled:
                     rospy.loginfo(f"STOPPING PIPELINE RETURN!")
                     self.is_logged = False
-                    self.pipeline.dp_client.set_acceptance_margins(
-                        [self.margin, self.margin, self.margin, 0.0, 0.0, 10.0])
+                    self.pipeline.dp_client.set_acceptance_margins([
+                        self.margin, self.margin, self.margin, 0.0, 0.0, 10.0
+                    ])
                     self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
                     self.pipeline.dp_client.send_goal()
                     self.pipeline.task_manager_client.was_enabled = False
@@ -44,7 +45,7 @@ class PipelineReturn(smach.State):
                 self.pipeline.dp_client.goal.x_ref.position.x = self.odom.position.x
                 self.pipeline.dp_client.goal.x_ref.position.y = self.odom.position.y
                 self.pipeline.dp_client.goal.x_ref.position.z = self.return_depth
-                self.pipeline.dp_client.goal.x_ref.orientation = self.odom.orientation #TODO: transform this correct
+                self.pipeline.dp_client.goal.x_ref.orientation = self.odom.orientation  #TODO: transform this correct
                 if not self.pipeline.dp_client.get_enabled_status():
                     self.pipeline.dp_client.enable()
                 self.pipeline.dp_client.send_goal()
@@ -61,4 +62,3 @@ class PipelineReturn(smach.State):
                 self.is_logged = True
 
             self.pipeline.sending_rate.sleep()
-
