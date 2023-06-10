@@ -34,10 +34,8 @@ class PipelineFollowingFSM():
                              })
             StateMachine.add("PIPELINE_RETURN",
                              PipelineReturn(self.return_depth, self.margin),
-                             transitions={
-                                 "succeeded": "done"
-                             })
-            
+                             transitions={"succeeded": "done"})
+
         try:
             #Execute SMACH plan
             pipeline_following_sm.execute()
