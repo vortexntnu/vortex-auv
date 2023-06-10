@@ -36,7 +36,7 @@ class PipelineReturn(smach.State):
                     self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
                     self.pipeline.dp_client.send_goal()
                     self.pipeline.task_manager_client.was_enabled = False
-                continue
+                    return "succeeded"
 
             if self.is_logged:
                 self.pipeline.dp_client.set_acceptance_margins(
