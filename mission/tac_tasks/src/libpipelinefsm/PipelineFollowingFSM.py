@@ -34,8 +34,7 @@ class PipelineFollowingFSM():
                              })
             StateMachine.add("PIPELINE_RETURN",
                              PipelineReturn(self.return_depth, self.margin),
-                             transitions={
-                                 "succeeded": "PIPELINE_CONVERGE"})
+                             transitions={"succeeded": "PIPELINE_CONVERGE"})
 
         try:
             #Execute SMACH plan
