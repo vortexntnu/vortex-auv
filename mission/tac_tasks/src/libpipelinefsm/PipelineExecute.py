@@ -2,113 +2,89 @@
 
 import rospy
 import smach
-from landmarks.srv import request_position
-from vortex_msgs.msg import dpAction, dpGoal, dpResult
-from std_msgs.msg import String
-from nav_msgs.msg import Odometry
-import actionlib
-from task_manager_defines import defines
-import dynamic_reconfigure.client
+
+from geometry_msgs.msg import Pose
+
+from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineExecute(smach.State):
 
-    def __init__(self, userdata):
-        self.task = "pipeline"
+    def __init__(self, follow_depth, margin):
+        smach.State.__init__(self, outcomes=["preempted", "succeeded"])
 
-        smach.State.__init__(self,
-                             outcomes=["aborted"],
-                             input_keys=['isEnabled'],
-                             output_keys=['isEnabled'])
+        self.pipeline = PipelineFollowing()
+        self.pipeline.sending_rate = rospy.Rate(1)
 
-        # task manager
-        self.task_manager_client = dynamic_reconfigure.client.Client(
-            "task_manager/task_manager_server",
-            timeout=5,
-            config_callback=lambda config: self.task_manager_cb(
-                config, userdata))
+        self.last_pose = Pose()
+        self.is_logged = False
+        self.pipeline.task_manager_client.is_enabled = True
 
-        # state information
-        self.state_pub = rospy.Publisher("/fsm/state", String, queue_size=1)
+        self.follow_depth = follow_depth
+        self.margin = margin
 
-        # landmark server
-        self.landmarks_client = rospy.ServiceProxy("send_positions",
-                                                   request_position)
-        rospy.wait_for_service("send_positions")
-        self.object = self.landmarks_client(self.task).object
-        self.isDetected = self.object.isDetected
-
-        # Enable Dp
-        rospy.set_param("/DP/Enabled", True)
-        self.dp_client = actionlib.SimpleActionClient("DpAction", dpAction)
-        rospy.Subscriber("/DpAction/result", dpResult, self.dp_goal_cb)
-        self.reached_goal = False
-
-        # Information about the current pose of Beluga
-        rospy.Subscriber("/odometry/filtered", Odometry, self.odom_cb)
-        self.odom = Odometry
-
-    def task_manager_cb(self, config, userdata):
-        rospy.loginfo(
-            """Client: state change request: {Tac_states}""".format(**config))
-        activated_task_id = config["Tac_states"]
-
-        if defines.Tasks.pipeline_inspection.id == activated_task_id:
-            userdata.isEnabled = True
-        else:
-            userdata.isEnabled = False
-        print(f"isEnabled: {userdata.isEnabled} ")
-
-        return config
-
-    def odom_cb(self, msg):
-        self.odom = msg
-
-    def dp_goal_cb(self, msg):
-        self.reached_goal = msg.result.finished
+        self.following_enabled = False
+        self.false_detection_count = 0
 
     def execute(self, userdata):
-        rospy.loginfo("Entering PipelineExecute")
-        # Feedback of the current state
-        self.state_pub.publish(f"{self.task}/execute")
+        self.docking.state_pub.publish("docking/execute")
 
-        if userdata.isEnabled == False:
-            return "aborted"
+        while not rospy.is_shutdown():
+            if not self.pipeline.task_manager_client.is_enabled:
+                # Handles task change
+                if self.pipeline.task_manager_client.was_enabled:
+                    rospy.loginfo(f"STOPPING PIPELINE EXECUTE!")
+                    self.is_logged = False
+                    self.pipeline.dp_client.set_acceptance_margins(
+                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
+                    self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
+                    self.pipeline.dp_client.send_goal()
+                    self.pipeline.task_manager_client.was_enabled = False
 
-        # object request
-        self.object = self.landmarks_client(self.task).object
-        self.isDetected = self.object.isDetected
+                #self.pipeline.sending_rate.sleep() # TODO: REMOVE THIS COMMENT AFTER CONFIRMING THAT EVERYTHING ELSE WORKS!!!!!!!
+                continue
 
-        # DP goal setup
-        goal = dpGoal()
-        goal.DOF = [True, True, True, False, False, True]
-        goal.x_ref = self.object.objectPose.pose
-        z_position = self.odom.pose.pose.position.z
-        goal.x_ref.position.z = z_position
-        self.dp_client.send_goal(goal)
+            object = self.pipeline.landmarks_client("pipeline").object
+            object_pos = object.objectPose.pose.position
+            object_rot = object.objectPose.pose.orientation
 
-        rate = rospy.Rate(10)
-        while not rospy.is_shutdown(
-        ) and self.isDetected and userdata.isEnabled:
-            print("PATH POSITION DETECTED: " +
-                  str(self.object.objectPose.pose.position.x) + ", " +
-                  str(self.object.objectPose.pose.position.y) + ", " +
-                  str(self.object.objectPose.pose.position.z) +
-                  " isDetected: " + str(self.isDetected))
+            # Handle LM server bug where it sends 0 values if there is no object pose yet
+            if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(
+                    object_pos.z) == 0.0:
+                rospy.loginfo(
+                    f"{rospy.get_name()}: No viable object pose yet...")
+                self.pipeline.sending_rate.sleep()
+                continue
 
-            # TODO: should have an if statement that maintain altitude above pipeline??
+            elif self.object.isDetected or not self.pipeline.task_manager_client.was_enabled:
+                self.pipeline.dp_client.set_acceptance_margins(
+                    [self.margin, self.margin, self.margin, 0.0, 0.0, 10.0])
+                self.pipeline.dp_client.goal.x_ref.position.x = object_pos.x
+                self.pipeline.dp_client.goal.x_ref.position.y = object_pos.y
+                self.pipeline.dp_client.goal.x_ref.position.z = self.follow_depth
+                self.pipeline.dp_client.goal.x_ref.orientation = object_rot
+                if not self.pipeline.dp_client.get_enabled_status():
+                    self.pipeline.dp_client.enable()
+                self.pipeline.dp_client.send_goal()
+                # Following has been initialized flag
+                if not self.following_enabled:
+                    self.following_enabled = True
 
-            # send new goal only if previous goal is reached
-            if self.reached_goal:
-                self.dp_client.send_goal(goal)
+                # Reset false counter if new measurement has been received
+                self.false_detection_count = 0
+                rospy.loginfo("Following next pipeline waypoint...")
 
-            # Update DP goal
-            self.object = self.landmarks_client(
-                self.task).object  # requesting new point
-            self.isDetected = self.object.isDetected
-            goal.x_ref = self.object.objectPose.pose
-            goal.x_ref.position.z = z_position
+            # After not detecting pipeline for some time, assume completed task
+            elif self.following_enabled and not self.object.isDetected:
+                self.false_detection_count += 1
+                if self.false_detection_count >= 10:
+                    return "succeeded"
 
-            rate.sleep()
+            if not self.is_logged:
+                self.pipeline.task_manager_client.was_enabled = True
+                rospy.loginfo(f"STARTING PIPELINE EXECUTE!")
+                rospy.sleep(rospy.Duration(1))
+                self.is_logged = True
 
-        return "aborted"
+            self.pipeline.task_manager_client.was_enabled = True
+            self.pipeline.sending_rate.sleep()
