@@ -10,7 +10,12 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineReturn(smach.State):
+<<<<<<< HEAD
     def __init__(self, return_depth, margin):
+=======
+
+    def __init__(self):
+>>>>>>> 4f0751316056378e98863e346a836b18f12cf866
         smach.State.__init__(self, outcomes=["succeeded"])
 
         self.pipeline = PipelineFollowing()
