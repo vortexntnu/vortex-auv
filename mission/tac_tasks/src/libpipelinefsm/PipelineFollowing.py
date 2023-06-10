@@ -34,7 +34,7 @@ class PipelineFollowing:
         self.dp_client.goal.DOF = [1, 1, 1, 0, 0, 1]
 
         # Task Manager client
-        self.task_manager_client = TaskManagerClient(defines.Tasks.pipeline.id)
+        self.task_manager_client = TaskManagerClient(defines.Tasks.pipeline_inspection.id)
         self.task_manager_client.is_enabled = False
 
         # Landmarks client

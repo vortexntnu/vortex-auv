@@ -27,7 +27,7 @@ class PipelineExecute(smach.State):
         self.false_detection_count = 0
 
     def execute(self, userdata):
-        self.docking.state_pub.publish("docking/execute")
+        self.pipeline.state_pub.publish("pipeline/execute")
 
         while not rospy.is_shutdown():
             if not self.pipeline.task_manager_client.is_enabled:
@@ -56,7 +56,7 @@ class PipelineExecute(smach.State):
                 self.pipeline.sending_rate.sleep()
                 continue
 
-            elif self.object.isDetected or not self.pipeline.task_manager_client.was_enabled:
+            elif object.isDetected or not self.pipeline.task_manager_client.was_enabled:
                 self.pipeline.dp_client.set_acceptance_margins(
                     [self.margin, self.margin, self.margin, 0.0, 0.0, 10.0])
                 self.pipeline.dp_client.goal.x_ref.position.x = object_pos.x
@@ -75,7 +75,7 @@ class PipelineExecute(smach.State):
                 rospy.loginfo("Following next pipeline waypoint...")
 
             # After not detecting pipeline for some time, assume completed task
-            elif self.following_enabled and not self.object.isDetected:
+            elif self.following_enabled and not object.isDetected:
                 self.false_detection_count += 1
                 if self.false_detection_count >= 10:
                     return "succeeded"

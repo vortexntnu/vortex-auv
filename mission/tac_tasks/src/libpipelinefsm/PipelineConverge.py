@@ -18,7 +18,7 @@ class PipelineConverge(smach.State):
 
         self.last_pose = Pose()
         self.is_logged = False
-        self.pipeline.task_manager_client.is_enabled = True
+        self.pipeline.task_manager_client.is_enabled = False
 
         self.follow_depth = follow_depth
 
@@ -51,7 +51,7 @@ class PipelineConverge(smach.State):
                 self.pipeline.sending_rate.sleep()
                 continue
 
-            elif self.object.isDetected:
+            elif object.isDetected:
                 self.follow_depth = self.pipeline.odom_pose.position.z
                 rospy.loginfo(
                     f"PIPELINE CONVERGED AT {self.follow_depth} DEPTH!")
