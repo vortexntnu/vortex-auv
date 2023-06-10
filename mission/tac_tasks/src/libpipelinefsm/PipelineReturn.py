@@ -10,6 +10,7 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineReturn(smach.State):
+
     def __init__(self):
         smach.State.__init__(self, outcomes=["succeeded"])
 
@@ -23,7 +24,7 @@ class PipelineReturn(smach.State):
         # hold current position
         dp_goal = dpGoal()
         dp_goal.DOF = [True, True, True, False, False, True]
-        dp_goal.x_ref = None #position is return area (0,0,-2)? yaw needs to be calculated.
+        dp_goal.x_ref = None  #position is return area (0,0,-2)? yaw needs to be calculated.
         self.dp_client.send_goal(dp_goal)
 
         while not rospy.is_shutdown() and userdata.isEnabled:
