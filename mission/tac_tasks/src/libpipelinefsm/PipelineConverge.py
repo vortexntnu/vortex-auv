@@ -45,7 +45,7 @@ class PipelineConverge(smach.State):
 
             # Handle LM server bug where it sends 0 values if there is no object pose yet
             if abs(object_pos.x) == 0.0 and abs(object_pos.y) == 0.0 and abs(
-                    object_pos.z) == 0.0:
+                    object_pos.z) == 0.0 or not object.isDetected:
                 rospy.loginfo(
                     f"{rospy.get_name()}: No viable object pose yet...")
                 self.pipeline.sending_rate.sleep()

@@ -5,6 +5,7 @@ from smach import StateMachine
 
 from libpipelinefsm.PipelineExecute import PipelineExecute
 from libpipelinefsm.PipelineConverge import PipelineConverge
+from libpipelinefsm.PipelineReturn import PipelineReturn
 
 
 class PipelineFollowingFSM():
@@ -13,6 +14,7 @@ class PipelineFollowingFSM():
         rospy.init_node("tac_pipeline_fsm")
 
         self.follow_depth = 0.0
+        self.return_depth = -1
         self.margin = 0.3
 
     def main(self):
@@ -28,8 +30,14 @@ class PipelineFollowingFSM():
                              PipelineExecute(self.follow_depth, self.margin),
                              transitions={
                                  "preempted": "PIPELINE_CONVERGE",
+                                 "succeeded": "PIPELINE_RETURN"
+                             })
+            StateMachine.add("PIPELINE_RETURN",
+                             PipelineReturn(self.return_depth, self.margin),
+                             transitions={
                                  "succeeded": "done"
                              })
+            
         try:
             #Execute SMACH plan
             pipeline_following_sm.execute()

@@ -10,24 +10,54 @@ from libpipelinefsm.PipelineFollowing import PipelineFollowing
 
 
 class PipelineReturn(smach.State):
-    def __init__(self):
+    def __init__(self, return_depth, margin):
         smach.State.__init__(self, outcomes=["succeeded"])
 
         self.pipeline = PipelineFollowing()
-        self.pipeline.task_manager_client.is_enabled = is_enabled
-        self.odom = self.pipeline
+        self.odom = self.pipeline.odom_pose
+        self.return_depth = return_depth
+        self.margin = margin
+
+        self.is_logged = False
+        self.following_enabled = False
 
     def execute(self, userdata):
         self.pipeline.state_pub.publish("pipeline/return")
 
-        # hold current position
-        dp_goal = dpGoal()
-        dp_goal.DOF = [True, True, True, False, False, True]
-        dp_goal.x_ref = None #position is return area (0,0,-2)? yaw needs to be calculated.
-        self.dp_client.send_goal(dp_goal)
+        while not rospy.is_shutdown():
+            if not self.pipeline.task_manager_client.is_enabled:
+                # Handles task change
+                if self.pipeline.task_manager_client.was_enabled:
+                    rospy.loginfo(f"STOPPING PIPELINE RETURN!")
+                    self.is_logged = False
+                    self.pipeline.dp_client.set_acceptance_margins(
+                        [self.margin, self.margin, self.margin, 0.0, 0.0, 10.0])
+                    self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
+                    self.pipeline.dp_client.send_goal()
+                    self.pipeline.task_manager_client.was_enabled = False
+                continue
 
-        while not rospy.is_shutdown() and userdata.isEnabled:
-            rospy.loginfo("RETURNING")
-            if self.reached_goal:
-                rospy.loginfo("RETURNED")
-                return "succeded"
+            if self.is_logged:
+                self.pipeline.dp_client.set_acceptance_margins(
+                    [self.margin, self.margin, self.margin, 0.0, 0.0, 10.0])
+                self.pipeline.dp_client.goal.x_ref.position.x = self.odom.position.x
+                self.pipeline.dp_client.goal.x_ref.position.y = self.odom.position.y
+                self.pipeline.dp_client.goal.x_ref.position.z = self.return_depth
+                self.pipeline.dp_client.goal.x_ref.orientation = self.odom.orientation #TODO: transform this correct
+                if not self.pipeline.dp_client.get_enabled_status():
+                    self.pipeline.dp_client.enable()
+                self.pipeline.dp_client.send_goal()
+                # Following has been initialized flag
+                if not self.following_enabled:
+                    self.following_enabled = True
+
+                rospy.loginfo("I'm coming home!")
+
+            elif not self.is_logged:
+                self.pipeline.task_manager_client.was_enabled = True
+                rospy.loginfo(f"STARTING PIPELINE RETURN!")
+                rospy.sleep(rospy.Duration(1))
+                self.is_logged = True
+
+            self.pipeline.sending_rate.sleep()
+

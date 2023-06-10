@@ -70,6 +70,7 @@ class PipelineFollowing:
     def odom_pose_cb(self, msg):
         body_pose = msg.pose.pose
 
+        self.odom_pose.orientation = body_pose.orientation
         self.odom_pose.position.x = body_pose.position.x + self.UDFC_offset[0]
         self.odom_pose.position.y = body_pose.position.y + self.UDFC_offset[1]
         self.odom_pose.position.z = body_pose.position.z + self.UDFC_offset[2]
