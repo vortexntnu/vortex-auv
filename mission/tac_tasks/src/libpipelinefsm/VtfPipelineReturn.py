@@ -38,7 +38,7 @@ class PipelineReturn(smach.State):
             home.y = 0
             home.z = self.return_depth
 
-            if self.is_logged:
+            if self.is_logged and not self.following_enabled:
                 self.pipeline.vtf_client.cancel_all_goals()
                 goal = self.pipeline.goal
                 goal.waypoints = [home]
