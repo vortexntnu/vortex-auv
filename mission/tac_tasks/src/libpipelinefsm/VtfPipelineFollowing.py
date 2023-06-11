@@ -12,7 +12,7 @@ import actionlib
 from vortex_msgs.msg import (
     VtfPathFollowingAction,
     VtfPathFollowingGoal,
-    )
+)
 
 from task_manager_defines import defines  # type: ignore
 from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
