@@ -3,9 +3,9 @@
 import rospy
 from smach import StateMachine
 
-from libpipelinefsm.PipelineExecute import PipelineExecute
-from libpipelinefsm.PipelineConverge import PipelineConverge
-from libpipelinefsm.PipelineReturn import PipelineReturn
+from libpipelinefsm.VtfPipelineExecute import PipelineExecute
+from libpipelinefsm.VtfPipelineConverge import PipelineConverge
+from libpipelinefsm.VtfPipelineReturn import PipelineReturn
 
 
 class PipelineFollowingFSM():
