@@ -26,8 +26,8 @@ Allocator::Allocator(ros::NodeHandle nh) : m_nh(nh) {
   }
 
   // publishers and subscribers
-  m_sub =
-      m_nh.subscribe("/thrust/desired_forces/flipped", 1, &Allocator::callback, this);
+  m_sub = m_nh.subscribe("/thrust/desired_forces/flipped", 1,
+                         &Allocator::callback, this);
   m_pub =
       m_nh.advertise<std_msgs::Float32MultiArray>("/thrust/thruster_forces", 1);
 
