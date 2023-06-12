@@ -1,4 +1,4 @@
 <launch>
   <node name="vtf_server" pkg="vtf_guidance_and_control" type="vtf_server.py" output="screen" />
-  <node name="vtf_guidance_and_control" pkg="vtf_guidance_and_control" type="guidance_and_control_node.py" ns="$(arg namespace)" output="screen" />
+  <node name="vtf_guidance_and_control" pkg="vtf_guidance_and_control" type="guidance_and_control_node.py" output="screen" />
 </launch>
