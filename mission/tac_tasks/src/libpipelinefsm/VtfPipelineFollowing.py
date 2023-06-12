@@ -35,7 +35,7 @@ class PipelineFollowing:
         # =====[Services, clients, handles]===== #
         # VTF client
         self.goal = VtfPathFollowingGoal()
-        vtf_action_server = "vtf_action_server"
+        vtf_action_server = "/controllers/vtf_action_server"
         self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
                                                        VtfPathFollowingAction)
         rospy.loginfo(f"{rospy.get_name()}: Waiting for VTF Server...")
