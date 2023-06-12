@@ -8,7 +8,11 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from landmarks.srv import request_position
 
-from dp_client_py.DPClient import DPClient
+import actionlib
+from vortex_msgs.msg import (
+    VtfPathFollowingAction,
+    VtfPathFollowingGoal,
+)
 
 from task_manager_defines import defines  # type: ignore
 from task_manager_client.TaskManagerClient import TaskManagerClient  # type: ignore
@@ -29,9 +33,14 @@ class PipelineFollowing:
         #     "/tac/pipeline/following_height")
 
         # =====[Services, clients, handles]===== #
-        # DP action client
-        self.dp_client = DPClient()
-        self.dp_client.goal.DOF = [1, 1, 1, 0, 0, 1]
+        # VTF client
+        self.goal = VtfPathFollowingGoal()
+        vtf_action_server = "vtf_action_server"
+        self.vtf_client = actionlib.SimpleActionClient(vtf_action_server,
+                                                       VtfPathFollowingAction)
+        rospy.loginfo(f"{rospy.get_name()}: Waiting for VTF Server...")
+        self.vtf_client.wait_for_server()
+        rospy.loginfo(f"{rospy.get_name()}: Connected to VTF Server!")
 
         # Task Manager client
         self.task_manager_client = TaskManagerClient(

@@ -5,7 +5,7 @@ import smach
 
 from geometry_msgs.msg import Pose
 
-from libpipelinefsm.PipelineFollowing import PipelineFollowing
+from libpipelinefsm.VtfPipelineFollowing import PipelineFollowing
 
 
 class PipelineExecute(smach.State):
@@ -35,13 +35,7 @@ class PipelineExecute(smach.State):
                 if self.pipeline.task_manager_client.was_enabled:
                     rospy.loginfo(f"STOPPING PIPELINE EXECUTE!")
                     self.is_logged = False
-                    self.pipeline.dp_client.set_acceptance_margins(
-                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
-                    self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
-                    self.pipeline.dp_client.send_goal()
                     self.pipeline.task_manager_client.was_enabled = False
-
-                #self.pipeline.sending_rate.sleep() # TODO: REMOVE THIS COMMENT AFTER CONFIRMING THAT EVERYTHING ELSE WORKS!!!!!!!
                 continue
 
             object = self.pipeline.landmarks_client("pipeline").object
@@ -57,15 +51,12 @@ class PipelineExecute(smach.State):
                 continue
 
             elif object.isDetected or not self.pipeline.task_manager_client.was_enabled:
-                self.pipeline.dp_client.set_acceptance_margins(
-                    [self.margin, self.margin, self.margin, 0.0, 0.0, 10.0])
-                self.pipeline.dp_client.goal.x_ref.position.x = object_pos.x
-                self.pipeline.dp_client.goal.x_ref.position.y = object_pos.y
-                self.pipeline.dp_client.goal.x_ref.position.z = self.follow_depth
-                self.pipeline.dp_client.goal.x_ref.orientation = object_rot
-                if not self.pipeline.dp_client.get_enabled_status():
-                    self.pipeline.dp_client.enable()
-                self.pipeline.dp_client.send_goal()
+                self.pipeline.vtf_client.cancel_all_goals()
+                goal = self.pipeline.goal
+                goal.waypoints = [object.objectPose.pose.position]
+                goal.forward_speed = 0.2
+                goal.heading = "path_dependent_heading"
+                self.pipeline.vtf_client.send_goal(goal)
                 # Following has been initialized flag
                 if not self.following_enabled:
                     self.following_enabled = True

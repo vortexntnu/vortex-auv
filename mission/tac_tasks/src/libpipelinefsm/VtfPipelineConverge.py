@@ -5,7 +5,7 @@ import smach
 
 from geometry_msgs.msg import Pose
 
-from libpipelinefsm.PipelineFollowing import PipelineFollowing
+from libpipelinefsm.VtfPipelineFollowing import PipelineFollowing
 
 
 class PipelineConverge(smach.State):
@@ -31,12 +31,9 @@ class PipelineConverge(smach.State):
                 if self.pipeline.task_manager_client.was_enabled:
                     rospy.loginfo(f"STOPPING PIPELINE CONVERGE!")
                     self.is_logged = False
-                    self.pipeline.dp_client.set_acceptance_margins(
-                        [0.01, 0.01, 0.01, 0.0, 0.0, 10.0])
-                    self.pipeline.dp_client.goal.x_ref = self.pipeline.odom_pose
-                    self.pipeline.dp_client.send_goal()
                     self.pipeline.task_manager_client.was_enabled = False
                 continue
+
             rospy.loginfo("STARTING PIPELINE CONVERGE!")
 
             object = self.pipeline.landmarks_client("pipeline").object
