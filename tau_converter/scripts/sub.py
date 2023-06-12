@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import Wrench
 
+
 class TauSub():
     """
     Node for printing output forces from flipped tau
@@ -16,10 +17,10 @@ class TauSub():
     def tau_sub_callback(self, msg):
         rospy.loginfo(msg)
 
+
 if __name__ == '__main__':
     try:
-        tau_sub_node = TauSub(
-            topic='/thrust/desired_forces/flipped')
+        tau_sub_node = TauSub(topic='/thrust/desired_forces/flipped')
         rospy.spin()
 
     except rospy.ROSInterruptException:
