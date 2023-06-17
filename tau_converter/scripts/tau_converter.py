@@ -28,6 +28,7 @@ class TauRepublisher():
         tau_cmd_msg.force.z = tau_cmd_msg.force.z * (-1)
         self.tauPub.publish(tau_cmd_msg)
 
+
 if __name__ == '__main__':
     try:
         tau_repub_node = TauRepublisher(topic='/thrust/desired_forces')
