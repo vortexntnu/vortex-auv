@@ -1,8 +1,0 @@
-<launch>
-  <env name="ROSCONSOLE_FORMAT" value="[${severity}] [${time}] [${node}]: ${message}" />
-
-  <rosparam command="load" file="$(find gripper_interface)/config/gripper_config.yaml"/>
-
-  <node pkg="gripper_interface"  type="gripper_interface_node.py" name="gripper_interface"  output="screen"/>
-</launch>
-
