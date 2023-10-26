@@ -10,7 +10,6 @@
 #define pwm_full_duty 1860
 #define pwm_zero_duty 1060
 
-
 uint16_t control_val = 0;
 unsigned long dc_motor_pwm_timer = 0;
 uint16_t duty = 0;
@@ -20,7 +19,6 @@ uint16_t duty = 0;
 
 void dc_motor_pwm_control(int duty);
 void check_initial_duty();
-
 
 void setup() {
   // put your setup code here, to run once:
@@ -50,7 +48,7 @@ bool KS_not_triggered() {
 }
 */
 void dc_motor_pwm_control(int duty) {
-if (dc_motor_pwm_timer + duty + 1060 > micros())
+  if (dc_motor_pwm_timer + duty + 1060 > micros())
 }
 
 void check_initial_duty() {
