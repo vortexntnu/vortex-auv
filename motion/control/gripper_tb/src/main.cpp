@@ -12,11 +12,11 @@
 #define pwm_full_duty 1860
 #define pwm_zero_duty 1060
 
-// global variables 
+// global variables
 uint16_t control_val = 0;
 unsigned long dc_motor_pwm_timer = 0;
 uint16_t duty_cycle = 0;
-const float adc_to_percent = 100/1023;
+const float adc_to_percent = 100 / 1023;
 bool ks_off = 1;
 
 // function declarations
@@ -42,23 +42,23 @@ void loop() {
   ks_off = digitalRead(ks_pin);
   if (ks_off == 1) {
     control_val = analogRead(pot_pin);
-    dc_motor_pwm_control(duty_percent_to_period(adc_to_duty_percent(control_val)));
-  }
-  else {
+    dc_motor_pwm_control(
+        duty_percent_to_period(adc_to_duty_percent(control_val)));
+  } else {
     check_duty_low();
   }
 }
 
 /*
-* 
-*/
+ *
+ */
 uint8_t adc_to_duty_percent(int adc_val) {
-  uint8_t duty_percent = adc_val*(adc_to_percent);
+  uint8_t duty_percent = adc_val * (adc_to_percent);
   return duty_percent;
 }
 
 uint16_t duty_percent_to_period(uint8_t duty_percent) {
-  uint16_t duty = duty_percent*8;
+  uint16_t duty = duty_percent * 8;
   return duty;
 }
 
