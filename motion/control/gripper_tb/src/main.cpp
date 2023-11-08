@@ -17,7 +17,7 @@ SoftwareSerial testPort(1,0);
 unsigned long pwm_full_duty = 1860;
 unsigned long pwm_zero_duty = 1040;
 
-// global variables 
+// global variables
 uint16_t control_val = 0;
 unsigned long dc_motor_pwm_count = 0;
 uint16_t duty_cycle = 0;
