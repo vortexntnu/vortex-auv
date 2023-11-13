@@ -26,7 +26,9 @@ class Docking:
 
         # =====[Publishers]===== #
         # Current state of the FSM
-        self.obj_pub = rospy.Publisher("/object_positions_in", ObjectPosition, queue_size=1)
+        self.obj_pub = rospy.Publisher("/object_positions_in",
+                                       ObjectPosition,
+                                       queue_size=1)
 
         # Direct publisher to thrust for anchoring to the docking station
         self.thrust_pub = rospy.Publisher(
@@ -42,13 +44,12 @@ class Docking:
 
         rospy.loginfo(
             f"{rospy.get_name()}: Waiting for base link to SPP TF...")
-        self.tf_listener.waitForTransform('aruco_udfc_link', 'odom', rospy.Time(),
-                                     rospy.Duration(1.0))
+        self.tf_listener.waitForTransform('aruco_udfc_link', 'odom',
+                                          rospy.Time(), rospy.Duration(1.0))
         rospy.loginfo(f"{rospy.get_name()}: Received base link to SPP TF!")
         self.SPP_offset, _ = self.tf_listener.lookupTransform(
             'SPP_link', 'base_link', rospy.Time(0))
-        
-        
+
         self.odom_pose.position.x = body_pose.position.x + self.SPP_offset[0]
         self.odom_pose.position.y = body_pose.position.y + self.SPP_offset[1]
         self.odom_pose.position.z = body_pose.position.z + self.SPP_offset[2]
