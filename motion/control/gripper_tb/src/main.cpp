@@ -9,12 +9,12 @@
 #define red_led 9
 #define pot_pin A1
 
-// Setup for serial to pc
-SoftwareSerial testPort(1, 0);
+// Setup for serial to pc for testing of code
+// SoftwareSerial testPort(1, 0);
 
 // defining constants f
-unsigned long pwm_full_duty = 1860;
-unsigned long pwm_zero_duty = 1040;
+const unsigned long pwm_full_duty = 1860;
+const unsigned long pwm_zero_duty = 1040;
 
 // global variables
 uint16_t control_val = 0;
@@ -32,16 +32,16 @@ void arm_esc();
 
 void setup() {
   /*
+   * Code for testing the code via serial comunications
   Serial.begin(9600);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-
   // Start each software serial port
   testPort.begin(9600);
   testPort.listen();
-  */
   // Serial.println(adc_to_duty);
+  */
   //  Setup pins for inn and output
   pinMode(green_led, OUTPUT);
   pinMode(red_led, OUTPUT);
@@ -91,8 +91,8 @@ uint16_t adc_to_duty_percent(int adc_val) {
   return duty_percent;
 }
 
+
 void dc_motor_pwm_control(uint16_t duty_cycle) {
-  // digitalWrite(red_led, HIGH);
   unsigned long dc_duty = duty_cycle + pwm_zero_duty;
   if (dc_motor_pwm_count + dc_duty <= micros()) {
     digitalWrite(dc_motor_pwm_pin, LOW);
