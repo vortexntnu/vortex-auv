@@ -41,7 +41,7 @@ class BatteryMonitor:
 
         # Polling intervals in seconds delay
         system_interval = rospy.get_param("/battery/system/interval", 1)
-        logging_interval = rospy.get_param("/battery/logging/interval", 5)
+        logging_interval = rospy.get_param("/battery/logging/interval", 5)  # Change back to 5 
 
         # Local variables
         self.system_voltage = 0.0
