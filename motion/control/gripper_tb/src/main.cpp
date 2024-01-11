@@ -91,7 +91,6 @@ uint16_t adc_to_duty_percent(int adc_val) {
   return duty_percent;
 }
 
-
 void dc_motor_pwm_control(uint16_t duty_cycle) {
   unsigned long dc_duty = duty_cycle + pwm_zero_duty;
   if (dc_motor_pwm_count + dc_duty <= micros()) {
