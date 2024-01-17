@@ -2,6 +2,7 @@
 import time
 import rospy
 import smbus
+import csv
 
 from MCP342x import MCP342x
 from std_msgs.msg import Float32
@@ -71,6 +72,12 @@ class BatteryMonitor:
             self.system_cb,  # will update and publish measurements to ROS
         )
 
+        # Initialize the CSV file
+        self.csv_file = open('voltage_current_log.csv', mode='w', newline='')
+        self.csv_writer = csv.writer(self.csv_file)
+        self.csv_writer.writerow(['Time', 'Voltage (V)', 'Current (A)'])  # Define CSV header
+
+
         rospy.loginfo("BatteryMonitor initialized")
 
     def system_cb(self, event):
@@ -79,6 +86,11 @@ class BatteryMonitor:
 
         self.system_voltage_level_pub.publish(self.system_voltage)
         self.system_current_level_pub.publish(self.system_current)
+
+        # Write voltage to CSV file
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        self.csv_writer.writerow([current_time, self.system_voltage, self.system_current])  # 'None' for current placeholder
+
 
         if self.system_voltage < self.critical_level:
             rospy.logerr(
@@ -147,6 +159,7 @@ class BatteryMonitor:
             # rospy.logwarn(f"I2C Bus IOerror. Voltage error counter : {self.I2C_error_counter_current}")
 
     def shutdown(self):
+        self.csv_file.close()
         self.system_timer.shutdown()
         self.log_timer.shutdown()
         self.bus.close()
