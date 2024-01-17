@@ -42,7 +42,8 @@ class BatteryMonitor:
 
         # Polling intervals in seconds delay
         system_interval = rospy.get_param("/battery/system/interval", 1)
-        logging_interval = rospy.get_param("/battery/logging/interval", 5)  # Change back to 5 
+        logging_interval = rospy.get_param("/battery/logging/interval",
+                                           5)  # Change back to 5
 
         # Local variables
         self.system_voltage = 0.0
@@ -75,8 +76,8 @@ class BatteryMonitor:
         # Initialize the CSV file
         self.csv_file = open('voltage_current_log.csv', mode='w', newline='')
         self.csv_writer = csv.writer(self.csv_file)
-        self.csv_writer.writerow(['Time', 'Voltage (V)', 'Current (A)'])  # Define CSV header
-
+        self.csv_writer.writerow(['Time', 'Voltage (V)',
+                                  'Current (A)'])  # Define CSV header
 
         rospy.loginfo("BatteryMonitor initialized")
 
@@ -89,8 +90,9 @@ class BatteryMonitor:
 
         # Write voltage to CSV file
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        self.csv_writer.writerow([current_time, self.system_voltage, self.system_current])  # 'None' for current placeholder
-
+        self.csv_writer.writerow(
+            [current_time, self.system_voltage,
+             self.system_current])  # 'None' for current placeholder
 
         if self.system_voltage < self.critical_level:
             rospy.logerr(
