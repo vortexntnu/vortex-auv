@@ -12,42 +12,6 @@
 
 This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS Melodic framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
 
-## Overview
-Provided below is a brief summary how the software stack is divided.
-| Folder           |  Contents  |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| auv_setup        | Provides a wrapper for drone parameters and any other physical parameters, as well as the launchfiles for each specific drone. |
-| manipulators     | Contains code related to drone manipulators, such as grippers. |
-| mission          | Contains the state machine that dictates drone behavior. |
-| motion           | Anything related to physical motion of the drone, such as guidance and control systems. |
-| navigation       | This folder contains localization, mapping and path planning packages. | 
-| object_detection | Contains packages for visually detecting known objects, and estimating their pose. |
-
-
-A more detailed description of the system can be found [here](https://miro.com/app/board/o9J_lV3eIZc=/)
-
-## Usage
-Instructions for installation can be found [here](https://github.com/vortexntnu/Vortex-AUV/wiki/Software-installation)
-
-This guide is supposed to be used when you launch the drone with the  *physical setup*. If you wish to run the simulator, check out step 2 in [this file](https://github.com/vortexntnu/Vortex-Simulator)  
-
-To launch a drone you will first need to to prepare it for operation:
-```
-roslaunch auv_setup <drone>.launch
-```
-
-Next, you have two choices:
-
-For autonomous operation, execute the desired mission script:
- ```
-roslaunch finite_state_machine <mission_script>.launch
-```
-
-For manual operation, execute the joystick nodes on the topside computer connected to the drone:
-```
-roslaunch auv_setup pc.launch
-```
-Refer to the guide in [this README](./auv_setup/README.md) for how to set up the joystick and the topside pc.
 
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.

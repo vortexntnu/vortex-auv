@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-    <node name="local_pid_node"    pkg="local_pid"     type="local_pid_node.py"    output="screen"/>
-
-</launch>

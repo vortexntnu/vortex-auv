@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-
-  <arg name="fsm_ns" default="fsm"/>
-
-  <group ns="$(arg fsm_ns)">
-    <node name="landmarks"    pkg="landmarks"    type="landmarks"    output="screen"/>
-  </group>
-</launch>
