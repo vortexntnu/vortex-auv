@@ -10,7 +10,7 @@ The config folder contains physical parameters related to the AUV and the enviro
 * thrusters: Thruster configs for different thruster types
 
 ### Launch
-This package contains a launchfile for each specific AUV. Additionally the pc.launch file is to
+This package contains a launchfile for each specific AUV. Additionally the topside.launch file is to
 be used on the topside computer that the joystick is connected to, for ROV operations.
 
 For the AUV launchfiles, the following parameters can be used:
