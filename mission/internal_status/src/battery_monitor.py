@@ -90,9 +90,12 @@ class BatteryMonitor:
 
         # Write voltage to CSV file
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        self.csv_writer.writerow(
-            [current_time, self.system_voltage,
-             self.system_current])  # 'None' for current placeholder
+        self.buffer.append([current_time, self.system_voltage, self.system_current])  # 'None' for current placeholder
+
+        if len(self.buffer) >= 100:
+            for data in self.buffer:
+                self.csv_writer.writerow(data)
+            self.buffer.clear()
 
         if self.system_voltage < self.critical_level:
             rospy.logerr(
