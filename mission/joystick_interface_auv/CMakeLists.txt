@@ -10,7 +10,7 @@ find_package(rclpy REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-ament_python_install_package(scripts)
+ament_python_install_package(joystick_interface_auv)
 
 install(DIRECTORY
   launch
@@ -19,7 +19,7 @@ install(DIRECTORY
 )
 
 install(PROGRAMS
-  scripts/joystick_interface_auv.py
+  joystick_interface_auv/joystick_interface_auv.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -32,7 +32,6 @@ if(BUILD_TESTING)
     get_filename_component(_test_name ${_test_path} NAME_WE)
     ament_add_pytest_test(${_test_name} ${_test_path}
       APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}
-      TIMEOUT 60
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
   endforeach()
