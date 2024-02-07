@@ -80,11 +80,13 @@ class BatteryMonitor:
         os.makedirs(log_folder, exist_ok=True)
 
         current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-        log_file_path = os.path.join(log_folder, f'voltage_current_log_{current_time}.csv')
+        log_file_path = os.path.join(
+            log_folder, f'voltage_current_log_{current_time}.csv')
 
         self.csv_file = open(log_file_path, mode='w', newline='')
         self.csv_writer = csv.writer(self.csv_file)
-        self.csv_writer.writerow(['Time', 'Voltage (V)', 'Current (A)'])  # Define CSV header
+        self.csv_writer.writerow(['Time', 'Voltage (V)',
+                                  'Current (A)'])  # Define CSV header
 
         rospy.loginfo("BatteryMonitor initialized")
 
