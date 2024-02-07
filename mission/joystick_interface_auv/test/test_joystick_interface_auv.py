@@ -1,20 +1,15 @@
-<<<<<<< HEAD
 from scripts.joystick_interface_auv import JoystickInterface 
 from scripts.joystick_interface_auv import States
-=======
-from joystick_interface_auv.joystick_interface_auv import JoystickInterface
-from joystick_interface_auv.joystick_interface_auv import States
->>>>>>> refs/remotes/origin/feature/joystick_interface_in_ros2
 import rclpy
 from sensor_msgs.msg import Joy
 from sensor_msgs.msg import Joy
 
 
 class TestJoystickInterface:
-    #test that the 2d wrench msg is created successfully
-    def test_2d_wrench_msg(self):
+    #test that the wrench msg is created successfully
+    def test_wrench_msg(self):
         rclpy.init()
-        msg = JoystickInterface().create_2d_wrench_message(
+        msg = JoystickInterface().create_wrench_message(
             2.0, 3.0, 4.0, 5.0, 6.0, 7.0)
         assert msg.force.x == 2.0
         assert msg.force.y == 3.0

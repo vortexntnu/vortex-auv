@@ -93,15 +93,15 @@ class JoystickInterface(Node):
         self.enable_controller_publisher_ = self.create_publisher(
             Bool, "controller/lqr/enable", 10)
 
-    def create_2d_wrench_message(self, surge: float, sway: float, heave: float,
+    def create_wrench_message(self, surge: float, sway: float, heave: float,
                                  roll: float, pitch: float,
                                  yaw: float) -> Wrench:
         """
         Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
         Args:
-            x (float): The x component of the force vector.
-            y (float): The y component of the force vector.
+            surge (float): The x component of the force vector.
+            sway (float): The y component of the force vector.
             heave (float): The z component of the force vector.
             roll (float): The x component of the torque vector.
             pitch (float): The y component of the torque vector.
@@ -131,13 +131,13 @@ class JoystickInterface(Node):
         """
         Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
         """
-        wrench_msg = self.create_2d_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
+        wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
                                                    0.0)
         self.wrench_publisher_.publish(wrench_msg)
         self.operational_mode_signal_publisher_.publish(Bool(data=False))
         self.state_ = States.AUTONOMOUS_MODE
 
-    def joystick_cb(self, msg: Joy):
+    def joystick_cb(self, msg: Joy) -> Wrench:
         """
         Callback function that receives joy messages and converts them into
         wrench messages to be sent to the thruster allocation node. 
@@ -205,14 +205,14 @@ class JoystickInterface(Node):
             # Turn off controller in sw killswitch
             self.enable_controller_publisher_.publish(Bool(data=False))
             # Publish a zero wrench message when sw killing
-            wrench_msg = self.create_2d_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
+            wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
                                                        0.0)
             self.wrench_publisher_.publish(wrench_msg)
             self.state_ = States.NO_GO
             return wrench_msg
 
         #Msg published from joystick_interface to thrust allocation
-        wrench_msg = self.create_2d_wrench_message(surge, sway, heave, roll,
+        wrench_msg = self.create_wrench_message(surge, sway, heave, roll,
                                                    pitch, yaw)
 
         if self.state_ == States.XBOX_MODE:
