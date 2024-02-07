@@ -6,6 +6,8 @@ import csv
 
 from MCP342x import MCP342x
 from std_msgs.msg import Float32
+import datetime
+import os
 
 
 class BatteryMonitor:
@@ -74,10 +76,15 @@ class BatteryMonitor:
         )
 
         # Initialize the CSV file
-        self.csv_file = open('voltage_current_log.csv', mode='w', newline='')
+        log_folder = os.path.join(os.path.dirname(__file__), '..', '..', 'log')
+        os.makedirs(log_folder, exist_ok=True)
+
+        current_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+        log_file_path = os.path.join(log_folder, f'voltage_current_log_{current_time}.csv')
+
+        self.csv_file = open(log_file_path, mode='w', newline='')
         self.csv_writer = csv.writer(self.csv_file)
-        self.csv_writer.writerow(['Time', 'Voltage (V)',
-                                  'Current (A)'])  # Define CSV header
+        self.csv_writer.writerow(['Time', 'Voltage (V)', 'Current (A)'])  # Define CSV header
 
         rospy.loginfo("BatteryMonitor initialized")
 
