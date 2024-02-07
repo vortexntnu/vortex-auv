@@ -21,8 +21,8 @@ class JoystickInterface(Node):
         )
 
         self.last_button_press_time_ = 0
-        self.debounce_duration_   = 0.25
-        self.state_       = States.NO_GO
+        self.debounce_duration_ = 0.25
+        self.state_ = States.NO_GO
 
         self.joystick_buttons_map_ = [
             "A",
@@ -170,11 +170,10 @@ class JoystickInterface(Node):
         left_shoulder = buttons["LB"]
         right_shoulder = buttons["RB"]
 
-        surge = axes[
-            "vertical_axis_left_stick"] * self.joystick_surge_scaling_
-        sway = axes[
-            "horizontal_axis_left_stick"] * self.joystick_sway_scaling_
-        heave = -(left_trigger - right_trigger)/2 * self.joystick_heave_scaling_
+        surge = axes["vertical_axis_left_stick"] * self.joystick_surge_scaling_
+        sway = axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling_
+        heave = -(left_trigger -
+                  right_trigger) / 2 * self.joystick_heave_scaling_
         roll = (right_shoulder - left_shoulder) * self.joystick_roll_scaling_
         pitch = -axes[
             "vertical_axis_right_stick"] * self.joystick_pitch_scaling_
