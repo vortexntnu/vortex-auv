@@ -1,0 +1,15 @@
+# This file defines parameters specific to Beluga
+#
+# When looking at the AUV from above, the thruster placement is:   
+#
+#        front
+#       |======|
+#  |=7↗=|      |=0↖=|
+#  |    |      |    |
+#  | 6• |      | 1• |
+#  |    |      |    |
+#  |    |      |    |
+#  | 5• |      | 2• |
+#  |    |      |    |
+#  |=4↖=|==||==|=3↗=|
+#
