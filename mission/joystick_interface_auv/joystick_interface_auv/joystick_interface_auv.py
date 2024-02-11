@@ -4,6 +4,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
+from std_msgs.msg import String
 
 
 class States:
@@ -78,20 +79,17 @@ class JoystickInterface(Node):
 
         #Killswitch publisher
         self.software_killswitch_signal_publisher_ = self.create_publisher(
-            Bool, "softWareKillSwitch", 10)
+            Bool, "softwareKillSwitch", 10)
         self.software_killswitch_signal_publisher_.publish(
-            Bool(data=False))  #Killswitch is not active
+            Bool(data=True))  #Killswitch is active
 
         #Operational mode publisher
         self.operational_mode_signal_publisher_ = self.create_publisher(
-            Bool, "softWareOperationMode", 10)
+            String, "softwareOperationMode", 10)
 
-        # Signal that we are not in autonomous mode
-        self.operational_mode_signal_publisher_.publish(Bool(data=True))
+        # Signal that we are in XBOX mode
+        self.operational_mode_signal_publisher_.publish("XBOX mode")
 
-        #Controller publisher
-        self.enable_controller_publisher_ = self.create_publisher(
-            Bool, "controller/lqr/enable", 10)
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
                                  roll: float, pitch: float,
@@ -123,8 +121,7 @@ class JoystickInterface(Node):
         """
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
-        self.enable_controller_publisher_.publish(Bool(data=False))
-        self.operational_mode_signal_publisher_.publish(Bool(data=True))
+        self.operational_mode_signal_publisher_.publish("XBOX mode")
         self.state_ = States.XBOX_MODE
 
     def transition_to_autonomous_mode(self):
@@ -134,7 +131,7 @@ class JoystickInterface(Node):
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
                                                    0.0)
         self.wrench_publisher_.publish(wrench_msg)
-        self.operational_mode_signal_publisher_.publish(Bool(data=False))
+        self.operational_mode_signal_publisher_.publish("Autonomous mode")
         self.state_ = States.AUTONOMOUS_MODE
 
     def joystick_cb(self, msg: Joy) -> Wrench:
@@ -191,25 +188,25 @@ class JoystickInterface(Node):
             self.last_button_press_time_ = current_time
 
         # Toggle ks on and off
-        if self.state_ == States.NO_GO and software_killswitch_button:
-            # signal that killswitch is not blocking
-            self.software_killswitch_signal_publisher_.publish(Bool(data=True))
-            self.transition_to_xbox_mode()
-            return
-
         if software_killswitch_button:
-            self.get_logger().info("SW killswitch", throttle_duration_sec=1)
-            # signal that killswitch is blocking
-            self.software_killswitch_signal_publisher_.publish(
-                Bool(data=False))
-            # Turn off controller in sw killswitch
-            self.enable_controller_publisher_.publish(Bool(data=False))
-            # Publish a zero wrench message when sw killing
-            wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
-                                                       0.0)
-            self.wrench_publisher_.publish(wrench_msg)
-            self.state_ = States.NO_GO
-            return wrench_msg
+            if self.state_ == States.NO_GO:
+                # signal that killswitch is not blocking
+                self.software_killswitch_signal_publisher_.publish(Bool(data=False))
+                self.transition_to_xbox_mode()
+                return
+            
+            else:
+                self.get_logger().info("SW killswitch", throttle_duration_sec=1)
+                # signal that killswitch is blocking
+                self.software_killswitch_signal_publisher_.publish(
+                    Bool(data=False))
+
+                # Publish a zero wrench message when sw killing
+                wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
+                                                        0.0)
+                self.wrench_publisher_.publish(wrench_msg)
+                self.state_ = States.NO_GO
+                return wrench_msg
 
         #Msg published from joystick_interface to thrust allocation
         wrench_msg = self.create_wrench_message(surge, sway, heave, roll,
