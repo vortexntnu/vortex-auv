@@ -88,7 +88,7 @@ class JoystickInterface(Node):
             String, "softwareOperationMode", 10)
 
         # Signal that we are in XBOX mode
-        self.operational_mode_signal_publisher_.publish(String(data="XBOX mode"))
+        self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
                               roll: float, pitch: float, yaw: float) -> Wrench:
@@ -119,7 +119,7 @@ class JoystickInterface(Node):
         """
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
-        self.operational_mode_signal_publisher_.publish(String(data="XBOX mode"))
+        self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
 
     def transition_to_autonomous_mode(self):
@@ -128,7 +128,7 @@ class JoystickInterface(Node):
         """
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
-        self.operational_mode_signal_publisher_.publish(String(data="Autonomous mode"))
+        self.operational_mode_signal_publisher_.publish(String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
     def joystick_cb(self, msg: Joy) -> Wrench:
@@ -196,7 +196,7 @@ class JoystickInterface(Node):
                                        throttle_duration_sec=1)
                 # signal that killswitch is blocking
                 self.software_killswitch_signal_publisher_.publish(
-                    Bool(data=False))
+                    Bool(data=True))
 
                 # Publish a zero wrench message when sw killing
                 wrench_msg = self.create_wrench_message(
@@ -210,7 +210,7 @@ class JoystickInterface(Node):
                                                 pitch, yaw)
 
         if self.state_ == States.XBOX_MODE:
-            self.get_logger().info("XBOX mode", throttle_duration_sec=1)
+            self.get_logger().info("XBOX", throttle_duration_sec=1)
             self.wrench_publisher_.publish(wrench_msg)
 
             if software_control_mode_button:
