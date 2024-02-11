@@ -43,9 +43,9 @@ class JoystickInterface(Node):
             "vertical_axis_left_stick",  #Surge
             "LT",  #Heave down
             "horizontal_axis_right_stick",  #Yaw
-            "vertical_axis_right_stick",   #Pitch
+            "vertical_axis_right_stick",  #Pitch
             "RT",  #Heave up
-            "dpad_horizontal",  
+            "dpad_horizontal",
             "dpad_vertical",
         ]
 
