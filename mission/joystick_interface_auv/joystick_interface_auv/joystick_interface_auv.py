@@ -128,7 +128,8 @@ class JoystickInterface(Node):
         """
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
-        self.operational_mode_signal_publisher_.publish(String(data="autonomous mode"))
+        self.operational_mode_signal_publisher_.publish(
+            String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
     def joystick_cb(self, msg: Joy) -> Wrench:
