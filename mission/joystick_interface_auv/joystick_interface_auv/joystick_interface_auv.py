@@ -56,12 +56,12 @@ class JoystickInterface(Node):
                                                        "thrust/wrench_input",
                                                        1)
 
-        self.declare_parameter('surge_scale_factor', 0.0)
-        self.declare_parameter('sway_scale_factor', 0.0)
-        self.declare_parameter('yaw_scale_factor', 0.0)
-        self.declare_parameter('heave_scale_factor', 0.0)
-        self.declare_parameter('roll_scale_factor', 0.0)
-        self.declare_parameter('pitch_scale_factor', 0.0)
+        self.declare_parameter('surge_scale_factor', 60.0)
+        self.declare_parameter('sway_scale_factor', 60.0)
+        self.declare_parameter('yaw_scale_factor', 60.0)
+        self.declare_parameter('heave_scale_factor', 17.5)
+        self.declare_parameter('roll_scale_factor', 30.0)
+        self.declare_parameter('pitch_scale_factor', 20.0)
 
         #Gets the scaling factors from the yaml file
         self.joystick_surge_scaling_ = self.get_parameter(
@@ -88,7 +88,7 @@ class JoystickInterface(Node):
             String, "softwareOperationMode", 10)
 
         # Signal that we are in XBOX mode
-        self.operational_mode_signal_publisher_.publish("XBOX mode")
+        self.operational_mode_signal_publisher_.publish(String(data="XBOX mode"))
 
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
@@ -120,7 +120,7 @@ class JoystickInterface(Node):
         """
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
-        self.operational_mode_signal_publisher_.publish("XBOX mode")
+        self.operational_mode_signal_publisher_.publish(String(data="XBOX mode"))
         self.state_ = States.XBOX_MODE
 
     def transition_to_autonomous_mode(self):
@@ -129,7 +129,7 @@ class JoystickInterface(Node):
         """
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
-        self.operational_mode_signal_publisher_.publish("Autonomous mode")
+        self.operational_mode_signal_publisher_.publish(String(data="Autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
     def joystick_cb(self, msg: Joy) -> Wrench:

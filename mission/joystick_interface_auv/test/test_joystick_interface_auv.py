@@ -28,7 +28,7 @@ class TestJoystickInterface():
         wrench_msg = JoystickInterface().joystick_cb(joy_msg)
         assert wrench_msg.force.x == -1.0 * JoystickInterface(
         ).joystick_surge_scaling_
-        assert wrench_msg.force.y == -1.0 * JoystickInterface(
+        assert wrench_msg.force.y == 1.0 * JoystickInterface(
         ).joystick_sway_scaling_
         assert wrench_msg.force.z == 0.0
         assert wrench_msg.torque.x == 0.0
@@ -64,7 +64,7 @@ class TestJoystickInterface():
         wrench_msg = joystick.joystick_cb(joy_msg)
         assert wrench_msg.force.x == -1.0 * JoystickInterface(
         ).joystick_surge_scaling_
-        assert wrench_msg.force.y == -1.0 * JoystickInterface(
+        assert wrench_msg.force.y == 1.0 * JoystickInterface(
         ).joystick_sway_scaling_
         assert wrench_msg.force.z == 0.0
         assert wrench_msg.torque.x == 0.0
