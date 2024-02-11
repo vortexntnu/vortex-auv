@@ -21,8 +21,8 @@ class JoystickInterface(Node):
         )
 
         self.last_button_press_time_ = 0
-        self.debounce_duration_   = 0.25
-        self.state_       = States.NO_GO
+        self.debounce_duration_ = 0.25
+        self.state_ = States.NO_GO
 
         self.joystick_buttons_map_ = [
             "A",
@@ -94,8 +94,7 @@ class JoystickInterface(Node):
             Bool, "controller/lqr/enable", 10)
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
-                                 roll: float, pitch: float,
-                                 yaw: float) -> Wrench:
+                              roll: float, pitch: float, yaw: float) -> Wrench:
         """
         Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
@@ -131,8 +130,7 @@ class JoystickInterface(Node):
         """
         Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
         """
-        wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
-                                                   0.0)
+        wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
         self.operational_mode_signal_publisher_.publish(Bool(data=False))
         self.state_ = States.AUTONOMOUS_MODE
@@ -170,10 +168,8 @@ class JoystickInterface(Node):
         left_shoulder = buttons["LB"]
         right_shoulder = buttons["RB"]
 
-        surge = axes[
-            "vertical_axis_left_stick"] * self.joystick_surge_scaling_
-        sway = - axes[
-            "horizontal_axis_left_stick"] * self.joystick_sway_scaling_
+        surge = axes["vertical_axis_left_stick"] * self.joystick_surge_scaling_
+        sway = -axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling_
         heave = (left_trigger - right_trigger) * self.joystick_heave_scaling_
         roll = (right_shoulder - left_shoulder) * self.joystick_roll_scaling_
         pitch = -axes[
@@ -206,14 +202,14 @@ class JoystickInterface(Node):
             self.enable_controller_publisher_.publish(Bool(data=False))
             # Publish a zero wrench message when sw killing
             wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
-                                                       0.0)
+                                                    0.0)
             self.wrench_publisher_.publish(wrench_msg)
             self.state_ = States.NO_GO
             return wrench_msg
 
         #Msg published from joystick_interface to thrust allocation
         wrench_msg = self.create_wrench_message(surge, sway, heave, roll,
-                                                   pitch, yaw)
+                                                pitch, yaw)
 
         if self.state_ == States.XBOX_MODE:
             self.get_logger().info("XBOX mode", throttle_duration_sec=1)
