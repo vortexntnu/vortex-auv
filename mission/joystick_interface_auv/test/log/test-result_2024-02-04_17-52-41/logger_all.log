@@ -1,4 +1,0 @@
-[0.192s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'test-result', '--all']
-[0.192s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='test-result', test_result_base='build', all=True, result_files_only=False, verbose=False, delete=False, delete_yes=False, verb_parser=<colcon_defaults.argument_parser.defaults.DefaultArgumentsDecorator object at 0x7f2323185930>, verb_extension=<colcon_test_result.verb.test_result.TestResultVerb object at 0x7f232399a260>, main=<bound method TestResultVerb.main of <colcon_test_result.verb.test_result.TestResultVerb object at 0x7f232399a260>>)
-[0.194s] Level 1:colcon.colcon_test_result.test_result:get_test_results(ctest)
-[0.195s] Level 1:colcon.colcon_test_result.test_result:get_test_results(xunit)
