@@ -90,7 +90,6 @@ class JoystickInterface(Node):
         # Signal that we are in XBOX mode
         self.operational_mode_signal_publisher_.publish("XBOX mode")
 
-
     def create_wrench_message(self, surge: float, sway: float, heave: float,
                               roll: float, pitch: float, yaw: float) -> Wrench:
         """
@@ -187,19 +186,21 @@ class JoystickInterface(Node):
         if software_killswitch_button:
             if self.state_ == States.NO_GO:
                 # signal that killswitch is not blocking
-                self.software_killswitch_signal_publisher_.publish(Bool(data=False))
+                self.software_killswitch_signal_publisher_.publish(
+                    Bool(data=False))
                 self.transition_to_xbox_mode()
                 return
-            
+
             else:
-                self.get_logger().info("SW killswitch", throttle_duration_sec=1)
+                self.get_logger().info("SW killswitch",
+                                       throttle_duration_sec=1)
                 # signal that killswitch is blocking
                 self.software_killswitch_signal_publisher_.publish(
                     Bool(data=False))
 
                 # Publish a zero wrench message when sw killing
-                wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0,
-                                                        0.0)
+                wrench_msg = self.create_wrench_message(
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
                 self.wrench_publisher_.publish(wrench_msg)
                 self.state_ = States.NO_GO
                 return wrench_msg
