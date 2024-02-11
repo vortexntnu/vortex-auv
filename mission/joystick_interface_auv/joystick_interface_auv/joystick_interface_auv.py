@@ -39,13 +39,13 @@ class JoystickInterface(Node):
         ]
 
         self.joystick_axes_map_ = [
-            "horizontal_axis_left_stick",  #Translation (Left and Right)
-            "vertical_axis_left_stick",  #Translation (Forwards and Backwards)
-            "LT",  #Negative thrust/torque multiplier
-            "horizontal_axis_right_stick",  #Rotation
-            "vertical_axis_right_stick",
-            "RT",  #Positive thrust/torque multiplier
-            "dpad_horizontal",
+            "horizontal_axis_left_stick",  #Sway 
+            "vertical_axis_left_stick",  #Surge
+            "LT",  #Heave down
+            "horizontal_axis_right_stick",  #Yaw
+            "vertical_axis_right_stick",   #Pitch
+            "RT",  #Heave up
+            "dpad_horizontal",  
             "dpad_vertical",
         ]
 
@@ -88,10 +88,6 @@ class JoystickInterface(Node):
 
         # Signal that we are not in autonomous mode
         self.operational_mode_signal_publisher_.publish(Bool(data=True))
-
-        #Controller publisher
-        self.enable_controller_publisher_ = self.create_publisher(
-            Bool, "controller/lqr/enable", 10)
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
                               roll: float, pitch: float, yaw: float) -> Wrench:
