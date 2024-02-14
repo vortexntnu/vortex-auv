@@ -1,12 +1,14 @@
+/**
+ * @file thruster_allocator_ros.hpp
+ * @brief Contains the Ros logic for the thruster allocator node.
+ */
+
 #ifndef VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
 #define VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
 
 #include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
-<<<<<<< HEAD
 #include "thruster_allocator_auv/eigen_typedefs.hpp"
-    =======
 #include "thruster_allocator_auv/thruster_allocator_utils.hpp"
-    >>>>>>> fd49a378da993c6bc294661bbf715160d6c91b21
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -22,7 +24,7 @@ public:
    * between min and max values and publishes the thruster forces to the topic
    * "thrust/thruster_forces".
    */
-  void timer_callback();
+  void calculate_thrust_timer_cb();
 
 private:
   Eigen::MatrixXd thrust_configuration;
@@ -33,14 +35,14 @@ private:
    * and stores them in the body_frame_forces_ Eigen vector.
    * @param msg The received geometry_msgs::msg::Wrench message.
    */
-  void wrench_callback(const geometry_msgs::msg::Wrench &msg);
+  void wrench_cb(const geometry_msgs::msg::Wrench &msg);
 
   /**
    * @brief Checks if the given Eigen vector contains any NaN or Inf values
    * @param v The Eigen vector to check.
    * @return True if the vector is healthy, false otherwise.
    */
-  bool healthyWrench(const Eigen::VectorXd &v) const;
+  bool healthy_wrench(const Eigen::VectorXd &v) const;
 
   rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr publisher_;
   rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr subscription_;

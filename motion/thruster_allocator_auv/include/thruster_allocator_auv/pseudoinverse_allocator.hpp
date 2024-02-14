@@ -30,7 +30,7 @@ public:
    * @param tau The input torques as a vector.
    * @return The allocated thrust as a vector.
    */
-  Eigen::VectorXd calculateAllocatedThrust(const Eigen::VectorXd &tau);
+  Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd &tau);
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Eigen::MatrixXd T_pinv;

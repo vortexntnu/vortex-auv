@@ -1,3 +1,8 @@
+/**
+ * @file eigen_typedefs.hpp
+ * @brief Contains the typedef for a 6x1 Eigen vector.
+ */
+
 #ifndef VORTEX_EIGEN_TYPEDEFS_H
 #define VORTEX_EIGEN_TYPEDEFS_H
 
