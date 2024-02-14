@@ -55,7 +55,8 @@ inline Eigen::MatrixXd calculate_right_pseudoinverse(const Eigen::MatrixXd &T) {
  * @return True if all vector values are within the given range, false
  * otherwise.
  */
-inline bool saturate_vector_values(Eigen::VectorXd &vec, double min, double max) {
+inline bool saturate_vector_values(Eigen::VectorXd &vec, double min,
+                                   double max) {
   bool all_values_in_range =
       std::all_of(vec.begin(), vec.end(),
                   [min, max](double val) { return val >= min && val <= max; });
@@ -76,7 +77,7 @@ inline bool saturate_vector_values(Eigen::VectorXd &vec, double min, double max)
  * converted values.
  */
 inline void array_eigen_to_msg(const Eigen::VectorXd &u,
-                            vortex_msgs::msg::ThrusterForces &msg) {
+                               vortex_msgs::msg::ThrusterForces &msg) {
   int r = u.size();
   std::vector<double> u_vec(r);
   std::copy_n(u.begin(), r, u_vec.begin());
@@ -93,7 +94,7 @@ inline void array_eigen_to_msg(const Eigen::VectorXd &u,
  */
 inline Eigen::MatrixXd
 double_array_to_eigen_matrix(const std::vector<double> &matrix, int rows,
-                         int cols) {
+                             int cols) {
   return Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
                                         Eigen::RowMajor>>(matrix.data(), rows,
                                                           cols);

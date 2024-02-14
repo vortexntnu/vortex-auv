@@ -6,15 +6,15 @@
 #ifndef VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
 #define VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
 
-#include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thruster_allocator_auv/eigen_typedefs.hpp"
+#include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thruster_allocator_auv/thruster_allocator_utils.hpp"
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 
-    class ThrusterAllocator : public rclcpp::Node {
+class ThrusterAllocator : public rclcpp::Node {
 public:
   explicit ThrusterAllocator();
 

@@ -29,8 +29,7 @@ ThrusterAllocator::ThrusterAllocator()
 
   subscription_ = this->create_subscription<geometry_msgs::msg::Wrench>(
       "thrust/wrench_input", 1,
-      std::bind(&ThrusterAllocator::wrench_cb, this,
-                std::placeholders::_1));
+      std::bind(&ThrusterAllocator::wrench_cb, this, std::placeholders::_1));
 
   publisher_ = this->create_publisher<vortex_msgs::msg::ThrusterForces>(
       "thrust/thruster_forces", 1);
