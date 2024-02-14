@@ -3,6 +3,7 @@
 
 #include "thruster_allocator_auv/thruster_allocator_utils.hpp"
 #include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
+#include "thruster_allocator_auv/eigen_typedefs.hpp"
 #include <eigen3/Eigen/Eigen>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/wrench.hpp>
@@ -41,13 +42,12 @@ private:
   rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr publisher_;
   rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr subscription_;
   rclcpp::TimerBase::SharedPtr timer_;
-
   size_t count_;
   int num_dof_;
   int num_thrusters_;
   int min_thrust_;
   int max_thrust_;
-  Eigen::VectorXd body_frame_forces_;
+  Eigen::Vector6d body_frame_forces_;
   std::vector<int64_t> direction_;
   PseudoinverseAllocator pseudoinverse_allocator_;
 };

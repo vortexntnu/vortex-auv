@@ -59,14 +59,11 @@ void ThrusterAllocator::timer_callback() {
 
   vortex_msgs::msg::ThrusterForces msg_out;
   arrayEigenToMsg(thruster_forces, msg_out);
-  std::transform(msg_out.thrust.begin(), msg_out.thrust.end(),
-                 direction_.begin(), msg_out.thrust.begin(),
-                 std::multiplies<>());
   publisher_->publish(msg_out);
 }
 
 void ThrusterAllocator::wrench_callback(const geometry_msgs::msg::Wrench &msg) {
-  Eigen::VectorXd msg_vector;
+  Eigen::Vector6d msg_vector;
   msg_vector(0) = msg.force.x;  // surge
   msg_vector(1) = msg.force.y;  // sway
   msg_vector(2) = msg.force.z;  // heave
