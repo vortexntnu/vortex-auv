@@ -1,6 +1,6 @@
 #include "thruster_allocator_auv/thruster_allocator_ros.hpp"
-#include "thruster_allocator_auv/thruster_allocator_utils.hpp"
 #include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
+#include "thruster_allocator_auv/thruster_allocator_utils.hpp"
 #include <vortex_msgs/msg/thruster_forces.hpp>
 
 #include <chrono>
@@ -11,37 +11,37 @@ using namespace std::chrono_literals;
 ThrusterAllocator::ThrusterAllocator()
     : Node("thruster_allocator_node"),
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
-          declare_parameter("propulsion.dofs.num", 6);
-          declare_parameter("propulsion.thrusters.num", 8);
-          declare_parameter("propulsion.thrusters.min", -100);
-          declare_parameter("propulsion.thrusters.max", 100);
-          declare_parameter("propulsion.thrusters.configuration_matrix",
+  declare_parameter("propulsion.dofs.num", 6);
+  declare_parameter("propulsion.thrusters.num", 8);
+  declare_parameter("propulsion.thrusters.min", -100);
+  declare_parameter("propulsion.thrusters.max", 100);
+  declare_parameter("propulsion.thrusters.configuration_matrix",
                     std::vector<double>{0});
 
-          num_dof_ = get_parameter("propulsion.dofs.num").as_int();
-          num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
-          min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
-          max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
-          thrust_configuration = doubleArrayToEigenMatrix(
-            get_parameter("propulsion.thrusters.configuration_matrix")
-                .as_double_array(),
-            num_dof_, num_thrusters_);
+  num_dof_ = get_parameter("propulsion.dofs.num").as_int();
+  num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
+  min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
+  max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
+  thrust_configuration = doubleArrayToEigenMatrix(
+      get_parameter("propulsion.thrusters.configuration_matrix")
+          .as_double_array(),
+      num_dof_, num_thrusters_);
 
-          subscription_ = this->create_subscription<geometry_msgs::msg::Wrench>(
-            "thrust/wrench_input", 1,
-            std::bind(&ThrusterAllocator::wrench_callback, this,
-                      std::placeholders::_1));
+  subscription_ = this->create_subscription<geometry_msgs::msg::Wrench>(
+      "thrust/wrench_input", 1,
+      std::bind(&ThrusterAllocator::wrench_callback, this,
+                std::placeholders::_1));
 
-          publisher_ = this->create_publisher<vortex_msgs::msg::ThrusterForces>(
-            "thrust/thruster_forces", 1);
+  publisher_ = this->create_publisher<vortex_msgs::msg::ThrusterForces>(
+      "thrust/thruster_forces", 1);
 
-          timer_ = this->create_wall_timer(
-            100ms, std::bind(&ThrusterAllocator::timer_callback, this));
+  timer_ = this->create_wall_timer(
+      100ms, std::bind(&ThrusterAllocator::timer_callback, this));
 
-          pseudoinverse_allocator_.T_pinv =
-            calculateRightPseudoinverse(thrust_configuration);
+  pseudoinverse_allocator_.T_pinv =
+      calculateRightPseudoinverse(thrust_configuration);
 
-          body_frame_forces_.setZero();
+  body_frame_forces_.setZero();
 }
 
 void ThrusterAllocator::timer_callback() {
@@ -88,6 +88,3 @@ bool ThrusterAllocator::healthyWrench(const Eigen::VectorXd &v) const {
 
   return within_max_thrust;
 }
-
-
-
