@@ -1,5 +1,5 @@
 /**
- * @file eigen_typedefs.hpp
+ * @file eigen_vector6d_typedef.hpp
  * @brief Contains the typedef for a 6x1 Eigen vector.
  */
 

@@ -6,7 +6,7 @@
 #ifndef VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
 #define VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
 
-#include "thruster_allocator_auv/eigen_typedefs.hpp"
+#include "thruster_allocator_auv/eigen_vector6d_typedef.hpp"
 #include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thruster_allocator_auv/thruster_allocator_utils.hpp"
 #include <eigen3/Eigen/Eigen>
@@ -31,7 +31,7 @@ private:
 
   /**
    * @brief Callback function for the wrench input subscription. Extracts the
-   * surge, sway and yaw values from the received wrench msg
+   * surge, sway, heave, roll, pitch and yaw values from the received wrench msg
    * and stores them in the body_frame_forces_ Eigen vector.
    * @param msg The received geometry_msgs::msg::Wrench message.
    */
@@ -44,16 +44,15 @@ private:
    */
   bool healthy_wrench(const Eigen::VectorXd &v) const;
 
-  rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr publisher_;
-  rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr subscription_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr thruster_forces_publisher_;
+  rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr wrench_subscriber_;
+  rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
   size_t count_;
   int num_dof_;
   int num_thrusters_;
   int min_thrust_;
   int max_thrust_;
   Eigen::Vector6d body_frame_forces_;
-  std::vector<int64_t> direction_;
   PseudoinverseAllocator pseudoinverse_allocator_;
 };
 

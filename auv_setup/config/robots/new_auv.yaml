@@ -19,13 +19,6 @@
     propulsion:
       dofs:
         num: 6
-        which:
-          surge: true
-          sway:  true
-          heave: true
-          roll:  true
-          pitch: true
-          yaw:   true
       thrusters:
         num: 8
         min: -100

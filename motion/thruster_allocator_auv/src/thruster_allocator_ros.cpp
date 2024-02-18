@@ -27,14 +27,14 @@ ThrusterAllocator::ThrusterAllocator()
           .as_double_array(),
       num_dof_, num_thrusters_);
 
-  subscription_ = this->create_subscription<geometry_msgs::msg::Wrench>(
+  wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
       "thrust/wrench_input", 1,
       std::bind(&ThrusterAllocator::wrench_cb, this, std::placeholders::_1));
 
-  publisher_ = this->create_publisher<vortex_msgs::msg::ThrusterForces>(
+  thruster_forces_publisher_ = this->create_publisher<vortex_msgs::msg::ThrusterForces>(
       "thrust/thruster_forces", 1);
 
-  timer_ = this->create_wall_timer(
+  calculate_thrust_timer_ = this->create_wall_timer(
       100ms, std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
 
   pseudoinverse_allocator_.T_pinv =
@@ -58,7 +58,7 @@ void ThrusterAllocator::calculate_thrust_timer_cb() {
 
   vortex_msgs::msg::ThrusterForces msg_out;
   array_eigen_to_msg(thruster_forces, msg_out);
-  publisher_->publish(msg_out);
+  thruster_forces_publisher_->publish(msg_out);
 }
 
 void ThrusterAllocator::wrench_cb(const geometry_msgs::msg::Wrench &msg) {

@@ -37,7 +37,6 @@ inline bool is_invalid_matrix(const Eigen::MatrixBase<Derived> &M) {
  */
 inline Eigen::MatrixXd calculate_right_pseudoinverse(const Eigen::MatrixXd &T) {
   Eigen::MatrixXd pseudoinverse = T.transpose() * (T * T.transpose()).inverse();
-  // pseudoinverse.completeOrthogonalDecomposition().pseudoInverse();
   if (is_invalid_matrix(pseudoinverse)) {
     throw std::runtime_error("Invalid Psuedoinverse Calculated");
   }
