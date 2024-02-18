@@ -1,6 +1,6 @@
 /**
  * @file thruster_allocator_ros.hpp
- * @brief Contains the Ros logic for the thruster allocator node.
+ * @brief Contains the ROS logic for the thruster allocator node.
  */
 
 #ifndef VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP

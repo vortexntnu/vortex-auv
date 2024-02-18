@@ -1,6 +1,5 @@
 /**
- * @file thruster_
- * allocator_utils.hpp
+ * @file thruster_allocator_utils.hpp
  * @brief This file contains utility functions for the thruster allocator
  * module.
  */
