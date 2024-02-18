@@ -44,8 +44,10 @@ private:
    */
   bool healthy_wrench(const Eigen::VectorXd &v) const;
 
-  rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr thruster_forces_publisher_;
-  rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr wrench_subscriber_;
+  rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
+      thruster_forces_publisher_;
+  rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr
+      wrench_subscriber_;
   rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
   size_t count_;
   int num_dof_;

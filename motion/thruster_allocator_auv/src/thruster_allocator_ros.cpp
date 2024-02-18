@@ -31,8 +31,9 @@ ThrusterAllocator::ThrusterAllocator()
       "thrust/wrench_input", 1,
       std::bind(&ThrusterAllocator::wrench_cb, this, std::placeholders::_1));
 
-  thruster_forces_publisher_ = this->create_publisher<vortex_msgs::msg::ThrusterForces>(
-      "thrust/thruster_forces", 1);
+  thruster_forces_publisher_ =
+      this->create_publisher<vortex_msgs::msg::ThrusterForces>(
+          "thrust/thruster_forces", 1);
 
   calculate_thrust_timer_ = this->create_wall_timer(
       100ms, std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
