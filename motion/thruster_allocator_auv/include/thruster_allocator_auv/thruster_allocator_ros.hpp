@@ -3,8 +3,8 @@
  * @brief Contains the ROS logic for the thruster allocator node.
  */
 
-#ifndef VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
-#define VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
+#ifndef VORTEX_ALLOCATOR_ROS_HPP
+#define VORTEX_ALLOCATOR_ROS_HPP
 
 #include "thruster_allocator_auv/eigen_vector6d_typedef.hpp"
 #include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
@@ -58,4 +58,4 @@ private:
   PseudoinverseAllocator pseudoinverse_allocator_;
 };
 
-#endif // VORTEX_ALLOCATOR_ALLOCATOR_ROS_HPP
+#endif // VORTEX_ALLOCATOR_ROS_HPP

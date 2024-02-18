@@ -4,8 +4,8 @@
  * module.
  */
 
-#ifndef VORTEX_ALLOCATOR_ALLOCATOR_UTILS_HPP
-#define VORTEX_ALLOCATOR_ALLOCATOR_UTILS_HPP
+#ifndef VORTEX_ALLOCATOR_UTILS_HPP
+#define VORTEX_ALLOCATOR_UTILS_HPP
 
 #include <eigen3/Eigen/Eigen>
 #include <rclcpp/rclcpp.hpp>
@@ -98,4 +98,4 @@ double_array_to_eigen_matrix(const std::vector<double> &matrix, int rows,
                                                           cols);
 }
 
-#endif // VORTEX_ALLOCATOR_ALLOCATOR_UTILS_HPP
+#endif // VORTEX_ALLOCATOR_UTILS_HPP
