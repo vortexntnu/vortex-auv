@@ -16,16 +16,14 @@ setup(
         # Include all CSV files dynamically found in the resources directory
         ('share/' + package_name + '/resources', csv_files),
         # Include launch file
-        ('share/' + package_name + '/launch',
-         ['launch/thruster_interface_auv.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/thruster_interface_auv.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='vortex',
     maintainer_email='vortex.git@vortexntnu.no',
-    description=
-    'Thruster interface to control thrusters through PCA9685 Module',
-    license='TMIT',
+    description='Thruster interface to control thrusters through PCA9685 Module',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
