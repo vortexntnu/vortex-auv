@@ -11,21 +11,18 @@ setup(
     version='1.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
-        ('share/ament_index/resource_index/packages',
-         ['resource/' + package_name]),
+        # Include the package.xml file
         ('share/' + package_name, ['package.xml']),
-        # Include all CSV files
+        # Include all CSV files dynamically found in the resources directory
         ('share/' + package_name + '/resources', csv_files),
         # Include launch file
-        ('share/' + package_name + '/launch',
-         ['launch/thruster_interface_auv.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/thruster_interface_auv.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='vortex',
     maintainer_email='vortex.git@vortexntnu.no',
-    description=
-    'Thruster interface to controll thrusters through PCA9685 Module',
+    description='Thruster interface to control thrusters through PCA9685 Module',
     license='TMIT',
     tests_require=['pytest'],
     entry_points={
