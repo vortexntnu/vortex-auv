@@ -33,7 +33,7 @@ ThrusterAllocator::ThrusterAllocator()
 
   thruster_forces_publisher_ =
       this->create_publisher<vortex_msgs::msg::ThrusterForces>(
-          "thrust/thruster_forces", 1);
+          "thrust/thruster_forces", 5);
 
   calculate_thrust_timer_ = this->create_wall_timer(
       100ms, std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
