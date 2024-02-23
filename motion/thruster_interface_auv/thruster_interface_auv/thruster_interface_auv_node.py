@@ -8,7 +8,9 @@ from ament_index_python.packages import get_package_share_directory
 from vortex_msgs.msg import ThrusterForces
 from thruster_interface_auv.thruster_interface_auv_driver_lib import ThrusterInterfaceAUVDriver
 
+
 class ThrusterInterfaceAUVNode(Node):
+
     def __init__(self):
         # Initialize and name the node process running
         super().__init__("thruster_interface_auv_node")
@@ -17,29 +19,31 @@ class ThrusterInterfaceAUVNode(Node):
         # Then convert this Forces into PWM signals and control the thrusters
         # Publish PWM values as deebuging feature
         self.thruster_forces_subscriber = self.create_subscription(
-            ThrusterForces,
-            "thrust/thruster_forces",
-            self._thruster_forces_callback,
-            10)
-        self.thruster_pwm_publisher = self.create_publisher(Int16MultiArray, 'pwm', 10)
+            ThrusterForces, "thrust/thruster_forces",
+            self._thruster_forces_callback, 10)
+        self.thruster_pwm_publisher = self.create_publisher(
+            Int16MultiArray, 'pwm', 10)
 
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
-            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = get_package_share_directory("thruster_interface_auv")
-        )
+            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=
+            get_package_share_directory("thruster_interface_auv"))
 
-        self.get_logger().info('"thruster_interface_auv_node" has been started :)))')
+        self.get_logger().info(
+            '"thruster_interface_auv_node" has been started :)))')
 
     def _thruster_forces_callback(self, msg):
         # Send thruster forces to be converted into PWM signal and sent to control the thrusters
         # PWM signal gets saved and is published in the "/pwm" topic as a debuging feature to see if everything is alright with the PWM signal
         thruster_forces_array = msg.thrust
-        thruster_pwm_array = self.thruster_driver.drive_thrusters(thruster_forces_array)
+        thruster_pwm_array = self.thruster_driver.drive_thrusters(
+            thruster_forces_array)
 
         pwm_message = Int16MultiArray()
         pwm_message.data = thruster_pwm_array
         self.thruster_pwm_publisher.publish(pwm_message)
         self.get_logger().info(f'pwm: {thruster_pwm_array}')
+
 
 def main(args=None):
     # Initialize
@@ -52,6 +56,7 @@ def main(args=None):
     # Shutdown
     thruster_interface_auv_node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
