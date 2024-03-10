@@ -31,3 +31,9 @@
             0.04243,  0.16500,  0.16500, -0.04243,  0.04243, -0.16500, -0.16500, -0.04243,  # Roll
             0.04243, -0.28500,  0.38000,  0.04243,  0.04243,  0.38000, -0.28500,  0.04243,  # Pitch 
            -0.42073,  0.00000,  0.00000, -0.47730,  0.47730,  0.00000,  0.00000,  0.42073 ] # Yaw
+        rate_of_change:
+          max: 1 # Maximum rate of change in newton per second for a thruster
+        map:       [ 7,  6,  5,  4,  3,  2,  1,  0 ] # [ 0, 1, 2, 3, 4, 5, 6, 7 ]  
+        direction: [ 1,  1,  1,  1,  1,  1,  1,  1 ]
+        offset:    [ 80, 80, 80, 80, 80, 80, 80, 80 ] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest
+        thrust_range: [-0.7, 0.7] # range in percentage -1.0 to 1.0 # NOTE!: thrust_range moves with the offset, if the offset is too big e.g., ± ~400 the thrust range will go out of bounds 
