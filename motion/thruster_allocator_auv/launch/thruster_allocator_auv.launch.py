@@ -11,7 +11,7 @@ def generate_launch_description():
         name='thruster_allocator_auv_node',
         parameters=[
             os.path.join(get_package_share_directory('auv_setup'), 'config',
-                         'robots', 'new_auv.yaml')
+                         'robots', 'orca.yaml')
         ],
         output='screen',
     )
