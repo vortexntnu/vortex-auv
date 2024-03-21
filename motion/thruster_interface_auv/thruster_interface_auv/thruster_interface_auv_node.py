@@ -26,13 +26,19 @@ class ThrusterInterfaceAUVNode(Node):
             Int16MultiArray, 'pwm', 10)
 
         # Get thruster mapping, direction and offset parameters
-        self.declare_parameter('propulsion.thrusters.map', [7, 6, 5, 4, 3, 2, 1, 0])
-        self.declare_parameter('propulsion.thrusters.direction', [1, 1, 1, 1, 1, 1, 1, 1])
-        self.declare_parameter('propulsion.thrusters.offset', [80, 80, 80, 80, 80, 80, 80, 80])
+        self.declare_parameter('propulsion.thrusters.map',
+                               [7, 6, 5, 4, 3, 2, 1, 0])
+        self.declare_parameter('propulsion.thrusters.direction',
+                               [1, 1, 1, 1, 1, 1, 1, 1])
+        self.declare_parameter('propulsion.thrusters.offset',
+                               [80, 80, 80, 80, 80, 80, 80, 80])
 
-        self.thruster_mapping = self.get_parameter('propulsion.thrusters.map').value
-        self.thruster_direction = self.get_parameter('propulsion.thrusters.direction').value
-        self.thruster_offset = self.get_parameter('propulsion.thrusters.offset').value
+        self.thruster_mapping = self.get_parameter(
+            'propulsion.thrusters.map').value
+        self.thruster_direction = self.get_parameter(
+            'propulsion.thrusters.direction').value
+        self.thruster_offset = self.get_parameter(
+            'propulsion.thrusters.offset').value
 
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(

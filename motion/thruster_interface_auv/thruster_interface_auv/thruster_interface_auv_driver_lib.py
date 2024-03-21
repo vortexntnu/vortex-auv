@@ -7,18 +7,16 @@ import numpy
 
 class ThrusterInterfaceAUVDriver:
 
-    def __init__(
-        self,
-        PCA9685_FREQUENCY=60,
-        PWM_MIN=1100,
-        PWM_MAX=1900,
-        STARTING_PLACE_FOR_PWM=0,
-        SYSTEM_OPERATIONAL_VOLTAGE=16.0,
-        ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET="",
-        THRUSTER_MAPPING=[7, 6, 5, 4, 3, 2, 1, 0],
-        THRUSTER_DIRECTION=[1, 1, 1, 1, 1, 1, 1, 1],
-        THRUSTER_OFFSET=[80, 80, 80, 80, 80, 80, 80, 80]
-    ):
+    def __init__(self,
+                 PCA9685_FREQUENCY=60,
+                 PWM_MIN=1100,
+                 PWM_MAX=1900,
+                 STARTING_PLACE_FOR_PWM=0,
+                 SYSTEM_OPERATIONAL_VOLTAGE=16.0,
+                 ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET="",
+                 THRUSTER_MAPPING=[7, 6, 5, 4, 3, 2, 1, 0],
+                 THRUSTER_DIRECTION=[1, 1, 1, 1, 1, 1, 1, 1],
+                 THRUSTER_OFFSET=[80, 80, 80, 80, 80, 80, 80, 80]):
         # Initialice the PCA9685 PCB
         self.PCA9685_Module = Adafruit_PCA9685.PCA9685()
         self.PCA9685_Module.set_pwm_freq(PCA9685_FREQUENCY)
@@ -102,13 +100,15 @@ class ThrusterInterfaceAUVDriver:
         """
 
         # Apply thruster mapping and direction
-        thruster_forces_array = [thruster_forces_array[i] * self.THRUSTER_DIRECTION[i]
-                                 for i in self.THRUSTER_MAPPING]
+        thruster_forces_array = [
+            thruster_forces_array[i] * self.THRUSTER_DIRECTION[i]
+            for i in self.THRUSTER_MAPPING
+        ]
 
         # Convert Forces to PWM
         thruster_pwm_array = self._interpolate_forces_to_pwm(
             thruster_forces_array)
-        
+
         # Apply thruster offset
         for i, thruster_pwm in enumerate(thruster_pwm_array):
             thruster_pwm_array[i] = thruster_pwm + self.THRUSTER_OFFSET[i]
