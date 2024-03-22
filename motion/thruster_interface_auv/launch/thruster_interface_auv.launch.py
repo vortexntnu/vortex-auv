@@ -3,6 +3,7 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 from os import path
 
+
 def generate_launch_description():
     thruster_interface_auv_node = Node(
         package='thruster_interface_auv',
@@ -10,7 +11,8 @@ def generate_launch_description():
         name='thruster_interface_auv_node',
         output='screen',
         emulate_tty=True,
-        parameters=[path.join(get_package_share_directory('auv_setup'), 'config',
-                    'robots', 'orca.yaml')]
-    )
+        parameters=[
+            path.join(get_package_share_directory('auv_setup'), 'config',
+                      'robots', 'orca.yaml')
+        ])
     return LaunchDescription([thruster_interface_auv_node])
