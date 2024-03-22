@@ -25,10 +25,28 @@ class ThrusterInterfaceAUVNode(Node):
         self.thruster_pwm_publisher = self.create_publisher(
             Int16MultiArray, 'pwm', 10)
 
+        # Get thruster mapping, direction and offset parameters
+        self.declare_parameter('propulsion.thrusters.map',
+                               [7, 6, 5, 4, 3, 2, 1, 0])
+        self.declare_parameter('propulsion.thrusters.direction',
+                               [1, 1, 1, 1, 1, 1, 1, 1])
+        self.declare_parameter('propulsion.thrusters.offset',
+                               [80, 80, 80, 80, 80, 80, 80, 80])
+
+        self.thruster_mapping = self.get_parameter(
+            'propulsion.thrusters.map').value
+        self.thruster_direction = self.get_parameter(
+            'propulsion.thrusters.direction').value
+        self.thruster_offset = self.get_parameter(
+            'propulsion.thrusters.offset').value
+
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
             ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=
-            get_package_share_directory("thruster_interface_auv"))
+            get_package_share_directory("thruster_interface_auv"),
+            THRUSTER_MAPPING=self.thruster_mapping,
+            THRUSTER_DIRECTION=self.thruster_direction,
+            THRUSTER_OFFSET=self.thruster_offset)
 
         self.get_logger().info(
             '"thruster_interface_auv_node" has been started')
@@ -49,7 +67,7 @@ def main(args=None):
     # Initialize
     rclpy.init(args=args)
 
-    # Runing
+    # Running
     thruster_interface_auv_node = ThrusterInterfaceAUVNode()
     rclpy.spin(thruster_interface_auv_node)
 
