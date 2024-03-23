@@ -8,8 +8,8 @@ import numpy
 class ThrusterInterfaceAUVDriver:
 
     def __init__(self,
-                 I2C_BUS = 1,
-                 PICO_I2C_ADDRESS = 0x21,
+                 I2C_BUS=1,
+                 PICO_I2C_ADDRESS=0x21,
                  PWM_MIN=1100,
                  PWM_MAX=1900,
                  STARTING_PLACE_FOR_PWM=0,
@@ -117,7 +117,8 @@ class ThrusterInterfaceAUVDriver:
         data_to_send = bytes[thruster_pwm_array]
 
         try:
-            self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0, list(data_to_send))
+            self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0,
+                                          list(data_to_send))
         except Exception as e:
             print(f"Failed to send PWM values: {e}")
 
