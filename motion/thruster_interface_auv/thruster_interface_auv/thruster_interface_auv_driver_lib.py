@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Import libraries
-import Adafruit_PCA9685
+import smbus2
 import pandas
 import numpy
 
@@ -8,7 +8,8 @@ import numpy
 class ThrusterInterfaceAUVDriver:
 
     def __init__(self,
-                 PCA9685_FREQUENCY=60,
+                 I2C_BUS = 1,
+                 PICO_I2C_ADDRESS = 0x21,
                  PWM_MIN=1100,
                  PWM_MAX=1900,
                  STARTING_PLACE_FOR_PWM=0,
@@ -18,8 +19,8 @@ class ThrusterInterfaceAUVDriver:
                  THRUSTER_DIRECTION=[1, 1, 1, 1, 1, 1, 1, 1],
                  THRUSTER_OFFSET=[80, 80, 80, 80, 80, 80, 80, 80]):
         # Initialice the PCA9685 PCB
-        self.PCA9685_Module = Adafruit_PCA9685.PCA9685()
-        self.PCA9685_Module.set_pwm_freq(PCA9685_FREQUENCY)
+        self.bus = smbus2.SMBus(I2C_BUS)
+        self.PICO_I2C_ADDRESS = PICO_I2C_ADDRESS
 
         # Set variables for the object to controll PCA9685 PCB
         self.PWM_MIN = PWM_MIN
@@ -113,16 +114,11 @@ class ThrusterInterfaceAUVDriver:
         for i, thruster_pwm in enumerate(thruster_pwm_array):
             thruster_pwm_array[i] = thruster_pwm + self.THRUSTER_OFFSET[i]
 
-        # Drive thrusters with the specific PWM desired with the help of PCA9685 Module that sends PWM signals to ESCS
-        for ESC_channel, ESC_pwm in enumerate(thruster_pwm_array):
-            # Clamping pwm signal in case it is out of range
-            if (ESC_pwm < self.PWM_MIN):  # To small
-                ESC_pwm = self.PWM_MIN
-            elif (ESC_pwm > self.PWM_MAX):  # To big
-                ESC_pwm = self.PWM_MAX
+        data_to_send = bytes[thruster_pwm_array]
 
-            # Send PWM signal to the PCA9685 PCB through I2C that will then be sent to the individual ESCs and run the thrusters
-            self.PCA9685_Module.set_pwm(ESC_channel,
-                                        self.STARTING_PLACE_FOR_PWM, ESC_pwm)
+        try:
+            self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0, list(data_to_send))
+        except Exception as e:
+            print(f"Failed to send PWM values: {e}")
 
         return thruster_pwm_array
