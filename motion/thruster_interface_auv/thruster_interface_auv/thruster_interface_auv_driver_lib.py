@@ -18,6 +18,7 @@ class ThrusterInterfaceAUVDriver:
                  PWM_MIN=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
                  PWM_MAX=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]):
         # Initialice the I2C comunication
+        self.bus = None
         try:
             self.bus = smbus2.SMBus(I2C_BUS)
         except Exception as errorCode:
