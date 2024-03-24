@@ -37,6 +37,7 @@ class JoystickInterface(Node):
             "power",
             "stick_button_left",
             "stick_button_right",
+            "mysterry_button",
         ]
 
         self.joystick_axes_map_ = [
@@ -51,10 +52,10 @@ class JoystickInterface(Node):
         ]
 
         self.joy_subscriber_ = self.create_subscription(
-            Joy, "joystick/joy", self.joystick_cb, 1)
+            Joy, "joystick/joy", self.joystick_cb, 5)
         self.wrench_publisher_ = self.create_publisher(Wrench,
                                                        "thrust/wrench_input",
-                                                       1)
+                                                       5)
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -151,27 +152,36 @@ class JoystickInterface(Node):
         buttons = {}
         axes = {}
 
-        for i in range(len(msg.buttons)):
-            buttons[self.joystick_buttons_map_[i]] = msg.buttons[i]
+        # Populate buttons dictionary
+        for i, button_name in enumerate(self.joystick_buttons_map_):
+            if i < len(msg.buttons):
+                buttons[button_name] = msg.buttons[i]
+            else:
+                buttons[button_name] = 0  # Assuming default value if button is not present
 
-        for i in range(len(msg.axes)):
-            axes[self.joystick_axes_map_[i]] = msg.axes[i]
+        # Populate axes dictionary
+        for i, axis_name in enumerate(self.joystick_axes_map_):
+            if i < len(msg.axes):
+                axes[axis_name] = msg.axes[i]
+            else:
+                axes[axis_name] = 0.0  # Assuming default value if axis is not present
 
-        xbox_control_mode_button = buttons["A"]
-        software_killswitch_button = buttons["B"]
-        software_control_mode_button = buttons["X"]
-        left_trigger = axes["RT"]
-        right_trigger = axes["LT"]
-        left_shoulder = buttons["LB"]
-        right_shoulder = buttons["RB"]
+        # Extract button values
+        xbox_control_mode_button = buttons.get("A", 0)
+        software_killswitch_button = buttons.get("B", 0)
+        software_control_mode_button = buttons.get("X", 0)
+        left_trigger = axes.get("RT", 0.0)
+        right_trigger = axes.get("LT", 0.0)
+        left_shoulder = buttons.get("LB", 0)
+        right_shoulder = buttons.get("RB", 0)
 
-        surge = axes["vertical_axis_left_stick"] * self.joystick_surge_scaling_
-        sway = -axes["horizontal_axis_left_stick"] * self.joystick_sway_scaling_
+        # Extract axis values
+        surge = axes.get("vertical_axis_left_stick", 0.0) * self.joystick_surge_scaling_
+        sway = -axes.get("horizontal_axis_left_stick", 0.0) * self.joystick_sway_scaling_
         heave = (left_trigger - right_trigger) * self.joystick_heave_scaling_
         roll = (right_shoulder - left_shoulder) * self.joystick_roll_scaling_
-        pitch = -axes[
-            "vertical_axis_right_stick"] * self.joystick_pitch_scaling_
-        yaw = -axes["horizontal_axis_right_stick"] * self.joystick_yaw_scaling_
+        pitch = -axes.get("vertical_axis_right_stick", 0.0) * self.joystick_pitch_scaling_
+        yaw = -axes.get("horizontal_axis_right_stick", 0.0) * self.joystick_yaw_scaling_
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -183,10 +193,10 @@ class JoystickInterface(Node):
         if software_control_mode_button or xbox_control_mode_button or software_killswitch_button:
             self.last_button_press_time_ = current_time
 
-        # Toggle ks on and off
+        # Toggle killswitch on and off
         if software_killswitch_button:
             if self.state_ == States.NO_GO:
-                # signal that killswitch is not blocking
+                # Signal that killswitch is not blocking
                 self.software_killswitch_signal_publisher_.publish(
                     Bool(data=False))
                 self.transition_to_xbox_mode()
@@ -194,19 +204,19 @@ class JoystickInterface(Node):
 
             else:
                 self.get_logger().info("SW killswitch",
-                                       throttle_duration_sec=1)
-                # signal that killswitch is blocking
+                                    throttle_duration_sec=1)
+                # Signal that killswitch is blocking
                 self.software_killswitch_signal_publisher_.publish(
                     Bool(data=True))
 
-                # Publish a zero wrench message when sw killing
+                # Publish a zero wrench message when killswitch is activated
                 wrench_msg = self.create_wrench_message(
                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
                 self.wrench_publisher_.publish(wrench_msg)
                 self.state_ = States.NO_GO
                 return wrench_msg
 
-        #Msg published from joystick_interface to thrust allocation
+        # Publish wrench message from joystick_interface to thrust allocation
         wrench_msg = self.create_wrench_message(surge, sway, heave, roll,
                                                 pitch, yaw)
 
