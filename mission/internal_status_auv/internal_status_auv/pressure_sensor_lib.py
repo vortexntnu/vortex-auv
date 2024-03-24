@@ -4,9 +4,11 @@ import time
 
 # Pressure sensor Libraries
 import board
-import adafruit_mprls # ! NOTE: sudo pip3 install adafruit-circuitpython-mprls
+import adafruit_mprls  # ! NOTE: sudo pip3 install adafruit-circuitpython-mprls
+
 
 class PressureSensor:
+
     def __init__(self):
         # Pressure Sensor Setup
         i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
@@ -20,7 +22,7 @@ class PressureSensor:
                 eoc_pin=None,
                 psi_min=0,
                 psi_max=25,
-            ) 
+            )
         except Exception as error:
             print(f"ERROR: Couldn't connect to Pressure Sensor: {error}")
 

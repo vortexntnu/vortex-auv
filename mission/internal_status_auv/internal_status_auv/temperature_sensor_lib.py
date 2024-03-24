@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 """
 ! NOTE: 
 ! For now we don't have a external sensor to measure internal temerature
@@ -10,7 +9,9 @@
 # Python Libraries
 import subprocess
 
+
 class TemperatureSensor:
+
     def __init__(self):
         # Temperature Sensor Setup
         self.temperature_sensor_file_location = "/sys/class/thermal/thermal_zone0/temp"
@@ -18,18 +19,21 @@ class TemperatureSensor:
     def get_temperature(self):
         try:
             # Read internal temperature on the computer
-            result = subprocess.run(["cat", self.temperature_sensor_file_location], capture_output=True, text=True)
-            
+            result = subprocess.run(
+                ["cat", self.temperature_sensor_file_location],
+                capture_output=True,
+                text=True)
+
             # Decode and strip to get rid of possible newline characters
             temperature_str = result.stdout.strip()
 
             # Convert data to float
-            temperature = int(temperature_str) 
+            temperature = int(temperature_str)
 
             # We get values in milli°C (thousandths of a Celsius), so we convert it to Celsius
             temperature = temperature / 1000
 
-            return temperature # In Celsius
+            return temperature  # In Celsius
         except Exception as error:
             print(f"ERROR: Failed to get temperature: {error}")
-            return 0.0 # In Celsius
+            return 0.0  # In Celsius

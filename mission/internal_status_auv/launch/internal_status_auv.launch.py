@@ -1,7 +1,8 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node 
+from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
+
 
 def generate_launch_description():
     # Path to the YAML file
@@ -38,8 +39,7 @@ def generate_launch_description():
 
     # Launch Nodes
     return LaunchDescription([
-        power_sense_module_node, 
+        power_sense_module_node,
         pressure_sensor_node,
         temperature_sensor_node,
     ])
-
