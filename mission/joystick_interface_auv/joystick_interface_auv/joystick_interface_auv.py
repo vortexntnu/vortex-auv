@@ -157,14 +157,16 @@ class JoystickInterface(Node):
             if i < len(msg.buttons):
                 buttons[button_name] = msg.buttons[i]
             else:
-                buttons[button_name] = 0  # Assuming default value if button is not present
+                buttons[
+                    button_name] = 0  # Assuming default value if button is not present
 
         # Populate axes dictionary
         for i, axis_name in enumerate(self.joystick_axes_map_):
             if i < len(msg.axes):
                 axes[axis_name] = msg.axes[i]
             else:
-                axes[axis_name] = 0.0  # Assuming default value if axis is not present
+                axes[
+                    axis_name] = 0.0  # Assuming default value if axis is not present
 
         # Extract button values
         xbox_control_mode_button = buttons.get("A", 0)
@@ -176,12 +178,16 @@ class JoystickInterface(Node):
         right_shoulder = buttons.get("RB", 0)
 
         # Extract axis values
-        surge = axes.get("vertical_axis_left_stick", 0.0) * self.joystick_surge_scaling_
-        sway = -axes.get("horizontal_axis_left_stick", 0.0) * self.joystick_sway_scaling_
+        surge = axes.get("vertical_axis_left_stick",
+                         0.0) * self.joystick_surge_scaling_
+        sway = -axes.get("horizontal_axis_left_stick",
+                         0.0) * self.joystick_sway_scaling_
         heave = (left_trigger - right_trigger) * self.joystick_heave_scaling_
         roll = (right_shoulder - left_shoulder) * self.joystick_roll_scaling_
-        pitch = -axes.get("vertical_axis_right_stick", 0.0) * self.joystick_pitch_scaling_
-        yaw = -axes.get("horizontal_axis_right_stick", 0.0) * self.joystick_yaw_scaling_
+        pitch = -axes.get("vertical_axis_right_stick",
+                          0.0) * self.joystick_pitch_scaling_
+        yaw = -axes.get("horizontal_axis_right_stick",
+                        0.0) * self.joystick_yaw_scaling_
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -204,7 +210,7 @@ class JoystickInterface(Node):
 
             else:
                 self.get_logger().info("SW killswitch",
-                                    throttle_duration_sec=1)
+                                       throttle_duration_sec=1)
                 # Signal that killswitch is blocking
                 self.software_killswitch_signal_publisher_.publish(
                     Bool(data=True))
