@@ -22,7 +22,9 @@ class ThrusterInterfaceAUVDriver:
         try:
             self.bus = smbus2.SMBus(I2C_BUS)
         except Exception as errorCode:
-            print(f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}")
+            print(
+                f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}"
+            )
         self.PICO_I2C_ADDRESS = PICO_I2C_ADDRESS
 
         # Set mapping, direction and offset for the thrusters
