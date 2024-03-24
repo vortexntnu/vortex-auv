@@ -18,12 +18,11 @@ class ThrusterInterfaceAUVDriver:
                  PWM_MIN=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
                  PWM_MAX=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]):
         # Initialice the I2C comunication
+        self.bus = None
         try:
             self.bus = smbus2.SMBus(I2C_BUS)
         except Exception as errorCode:
-            print(
-                f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}"
-            )
+            print(f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}")
         self.PICO_I2C_ADDRESS = PICO_I2C_ADDRESS
 
         # Set mapping, direction and offset for the thrusters
