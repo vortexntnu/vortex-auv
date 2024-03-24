@@ -6,6 +6,7 @@ import numpy
 
 
 class ThrusterInterfaceAUVDriver:
+
     def __init__(self,
                  I2C_BUS=1,
                  PICO_I2C_ADDRESS=0x21,
@@ -20,7 +21,9 @@ class ThrusterInterfaceAUVDriver:
         try:
             self.bus = smbus2.SMBus(I2C_BUS)
         except Exception as errorCode:
-            print(f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}")
+            print(
+                f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}"
+            )
         self.PICO_I2C_ADDRESS = PICO_I2C_ADDRESS
 
         # Set mapping, direction and offset for the thrusters
@@ -125,14 +128,18 @@ class ThrusterInterfaceAUVDriver:
 
         # Apply thruster offset
         for ESC_channel, thruster_pwm in enumerate(thruster_pwm_array):
-            thruster_pwm_array[ESC_channel] = thruster_pwm + self.THRUSTER_PWM_OFFSET[ESC_channel]
+            thruster_pwm_array[
+                ESC_channel] = thruster_pwm + self.THRUSTER_PWM_OFFSET[
+                    ESC_channel]
 
         # Apply thruster offset and limit PWM if needed
         for ESC_channel in range(len(thruster_pwm_array)):
             # Clamping pwm signal in case it is out of range
-            if (thruster_pwm_array[ESC_channel] < self.PWM_MIN[ESC_channel]):  # To small
+            if (thruster_pwm_array[ESC_channel]
+                    < self.PWM_MIN[ESC_channel]):  # To small
                 thruster_pwm_array[ESC_channel] = self.PWM_MIN[ESC_channel]
-            elif (thruster_pwm_array[ESC_channel] > self.PWM_MAX[ESC_channel]):  # To big
+            elif (thruster_pwm_array[ESC_channel]
+                  > self.PWM_MAX[ESC_channel]):  # To big
                 thruster_pwm_array[ESC_channel] = self.PWM_MAX[ESC_channel]
 
         # Send data through I2C to the microcontroller that then controls the ESC and extention the thrusters

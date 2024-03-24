@@ -32,10 +32,12 @@ class ThrusterInterfaceAUVNode(Node):
                                [1, 1, 1, 1, 1, 1, 1, 1])
         self.declare_parameter('propulsion.thrusters.thruster_PWM_offset',
                                [0, 0, 0, 0, 0, 0, 0, 0])
-        self.declare_parameter('propulsion.thrusters.thruster_PWM_min',
-                               [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100])
-        self.declare_parameter('propulsion.thrusters.thruster_PWM_max',
-                               [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900])
+        self.declare_parameter(
+            'propulsion.thrusters.thruster_PWM_min',
+            [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100])
+        self.declare_parameter(
+            'propulsion.thrusters.thruster_PWM_max',
+            [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900])
 
         self.thruster_mapping = self.get_parameter(
             'propulsion.thrusters.thruster_to_pin_mapping').value
@@ -57,7 +59,7 @@ class ThrusterInterfaceAUVNode(Node):
             THRUSTER_PWM_OFFSET=self.thruster_PWM_offset,
             PWM_MIN=self.thruster_PWM_min,
             PWM_MAX=self.thruster_PWM_max)
-        
+
         # Start clock timer for driving thrusters every 0.2 seconds
         # Declare "self.thruster_forces_array" in case no topic comes in at the first possible second
         self.thruster_forces_array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -70,16 +72,16 @@ class ThrusterInterfaceAUVNode(Node):
     def _thruster_forces_callback(self, msg):
         # Get data of the forces published
         self.thruster_forces_array = msg.thrust
-        
+
     def _timer_callback(self):
         # Send thruster forces to be converted into PWM signal and sent to control the thrusters
         # PWM signal gets saved and is published in the "/pwm" topic as a debuging feature to see if everything is alright with the PWM signal
-        thruster_pwm_array = self.thruster_driver.drive_thrusters(self.thruster_forces_array)
+        thruster_pwm_array = self.thruster_driver.drive_thrusters(
+            self.thruster_forces_array)
 
         pwm_message = Int16MultiArray()
         pwm_message.data = thruster_pwm_array
         self.thruster_pwm_publisher.publish(pwm_message)
-
 
 
 def main(args=None):
