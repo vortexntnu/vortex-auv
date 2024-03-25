@@ -1,0 +1,21 @@
+[Unit]
+Description=Launch LCD Screen
+After=network.target
+
+[Service]
+# Use the wrapper script for ExecStart
+# DONT CHANGE THIS LINE!!!!
+# Use vortex-auv/scripts/add_LCD_service_file_to_bootup_sequence.sh to automaticaly set everything up
+ExecStart=/bin/bash -c 'python3 <pathToThisFile>../sources/LCD.py'
+WorkingDirectory=/home/vortex/
+StandardOutput=journal+console
+User=vortex
+Group=vortex
+Restart=no
+RestartSec=2
+# DONT CHANGE THIS LINE!!!!
+# Use vortex-auv/scripts/add_LCD_service_file_to_bootup_sequence.sh to automaticaly set everything up
+Environment="PYTHONPATH=/usr/local/lib/<PythonVersion>/dist-packages:$PYTHONPATH"
+
+[Install]
+WantedBy=multi-user.target
