@@ -2,7 +2,9 @@
 # Python Libraries
 import subprocess
 
+
 class IPDriver:
+
     def __init__(self):
         self.cmd = "hostname -I | cut -d' ' -f1"
 

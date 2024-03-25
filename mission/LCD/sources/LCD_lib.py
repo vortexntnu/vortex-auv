@@ -5,7 +5,9 @@ from time import sleep
 # LCD Libraries
 from RPLCD.i2c import CharLCD
 
+
 class LCDScreenDriver:
+
     def __init__(self):
         # Initialize LCD Screen
         lcd_i2c_address = 0x27
@@ -22,7 +24,7 @@ class LCDScreenDriver:
             backlight_enabled=True,
         )
 
-    def write_to_screen(self, line1: str="", line2: str=""):
+    def write_to_screen(self, line1: str = "", line2: str = ""):
         self._LCD.clear()
 
         # limit line size as to big of a line destroys the view
@@ -35,17 +37,20 @@ class LCDScreenDriver:
 
     def fancy_animation(self, animation_speed=0.4):
         # Calculate the apropriate animation speed
-        animation_speed = 1/animation_speed
+        animation_speed = 1 / animation_speed
 
         # Custom characters ----------
         char_pacman_left_open = [
-            [0x0E, 0x1F, 0x1F, 0x1E, 0x1C, 0x1F, 0x1F, 0x0E],  # Pac-Man with mouth open
+            [0x0E, 0x1F, 0x1F, 0x1E, 0x1C, 0x1F, 0x1F,
+             0x0E],  # Pac-Man with mouth open
         ]
         char_pacman_right_open = [
-            [0x0E, 0x1F, 0x1F, 0x0F, 0x07, 0x1F, 0x1F, 0x0E],  # Pac-Man with mouth open facing right
+            [0x0E, 0x1F, 0x1F, 0x0F, 0x07, 0x1F, 0x1F,
+             0x0E],  # Pac-Man with mouth open facing right
         ]
         char_pacman_closed = [
-            [0x0E, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x0E],  # Pac-Man with mouth closed
+            [0x0E, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F,
+             0x0E],  # Pac-Man with mouth closed
         ]
         char_ghost = [
             [0x0E, 0x1F, 0x1F, 0x15, 0x1F, 0x1F, 0x0E, 0x00],  # Ghost
@@ -59,7 +64,9 @@ class LCDScreenDriver:
 
         # Display sequence
         steps = 20
-        for a in range(steps):  # Increase range to allow characters to exit screen completely
+        for a in range(
+                steps
+        ):  # Increase range to allow characters to exit screen completely
             self._LCD.clear()
 
             # Pac-Man position and animation
@@ -87,7 +94,9 @@ class LCDScreenDriver:
 
         # Display sequence
         steps = 26
-        for a in range(steps + 4):  # Adjusted range to ensure all characters exit screen
+        for a in range(
+                steps +
+                4):  # Adjusted range to ensure all characters exit screen
             self._LCD.clear()
 
             # Ghost position and animation
