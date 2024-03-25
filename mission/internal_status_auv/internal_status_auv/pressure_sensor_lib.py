@@ -15,12 +15,13 @@ class PressureSensor:
         self.channel_pressure = None
 
         try:
+            I2CBuss = board.I2C()
             self.channel_pressure = adafruit_mprls.MPRLS(
-                board.I2C(),
+                i2c_bus = I2CBuss,
                 addr=i2c_adress_MPRLS,
                 reset_pin=None,
                 eoc_pin=None,
-                psi_min=0,
+                psi_min=0, 
                 psi_max=25,
             )
         except Exception as error:

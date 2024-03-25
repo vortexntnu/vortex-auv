@@ -47,7 +47,7 @@
       power_sense_module_warning_rate: 0.1 # Warnings/second in case something goes bad you have a warning, Recomended: 0.1
       
       pressure_read_rate: 1.0 # Readings/second, Recomended: 1.0
-      pressure_critical_level: 1000.0 # [hPa] If the pressure is over this amount there might be a leakage, Recomended: <1013.25
+      pressure_critical_level: 900.0 # [hPa] If the pressure is over this amount there might be a leakage, Recomended: <1013.25
       pressure_warning_rate: 0.1 # Warnings/second in case something goes bad you have a warning, Recomended: 0.1
       
       temperature_read_rate: 0.1 # Readings/second, Recomended: 0.1
