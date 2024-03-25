@@ -21,6 +21,9 @@ sed -i "s|<pathToThisFile>|$SCRIPT_DIR$SERVICE_FILE_PATH|g" $SERVICE_FILE_NAME
 # Place in the correct python dependency for the scripts that service file executes
 sed -i "s|<PythonVersion>|$PYTHON_VERSION|g" $SERVICE_FILE_NAME
 
+# Kill the systems service file if it exists
+sudo systemctl kill $SERVICE_FILE_NAME
+
 # Copy the modified .service file to the systemd directory
 # Note: You might need sudo permission to copy to /etc/systemd/system
 sudo cp $SERVICE_FILE_NAME $SYSTEMD_PATH
