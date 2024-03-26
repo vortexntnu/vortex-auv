@@ -1,0 +1,19 @@
+## Balackbox
+
+Logs data of all the important topics such as:
+/auv/power_sense_module/current
+/auv/power_sense_module/voltage
+/auv/pressure
+/auv/temperature
+/thrust/thruster_forces
+/pwm
+
+
+## Service file bootup
+
+To start the blackbox loging automaticaly every time on bootup just run this command:
+```
+./vortex-auv/add_service_files_to_bootup_sequence.sh
+```
+
+Enjoy :)

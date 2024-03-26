@@ -1,21 +1,17 @@
 [Unit]
-Description=Launch LCD Screen
+Description=Launch internal status node
 After=network.target
 
 [Service]
 # Use the wrapper script for ExecStart
 # DONT CHANGE THIS LINE!!!!
 # Use ./vortex-auv/add_service_files_to_bootup_sequence.sh to automaticaly set everything up
-ExecStart=/bin/bash -c 'python3 <pathToThisFile>../sources/LCD.py'
+ExecStart=/bin/bash '<pathToThisFile>internal_status_auv.sh'
 WorkingDirectory=/home/vortex/
 StandardOutput=journal+console
 User=vortex
-Group=vortex
 Restart=no
 RestartSec=2
-# DONT CHANGE THIS LINE!!!!
-# Use ./vortex-auv/add_service_files_to_bootup_sequence.sh to automaticaly set everything up
-Environment="PYTHONPATH=/usr/local/lib/<PythonVersion>/dist-packages:$PYTHONPATH"
 
 [Install]
 WantedBy=multi-user.target
