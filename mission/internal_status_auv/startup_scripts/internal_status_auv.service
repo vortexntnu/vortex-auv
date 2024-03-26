@@ -12,6 +12,9 @@ StandardOutput=journal+console
 User=vortex
 Restart=no
 RestartSec=2
+# DONT CHANGE THIS LINE!!!!
+# Use ./vortex-auv/add_service_files_to_bootup_sequence.sh to automaticaly set everything up
+Environment="PYTHONPATH=/usr/local/lib/<PythonVersion>/dist-packages:$PYTHONPATH"
 
 [Install]
 WantedBy=multi-user.target

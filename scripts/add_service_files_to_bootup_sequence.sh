@@ -36,6 +36,7 @@ sed -i "s|<pathToThisFile>|$SCRIPT_DIR$SERVICE_FILE_PATH_BLACKBOX|g" $SERVICE_FI
 
 # Place in the correct python dependency for the scripts that service file executes
 sed -i "s|<PythonVersion>|$PYTHON_VERSION|g" $SERVICE_FILE_NAME_LCD
+sed -i "s|<PythonVersion>|$PYTHON_VERSION|g" $SERVICE_FILE_NAME_INTERNAL_STATUS_AUV
 
 # Kill the systems service file if it exists
 sudo systemctl kill $SERVICE_FILE_NAME_LCD # LCD
