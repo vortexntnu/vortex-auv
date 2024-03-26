@@ -3,14 +3,14 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
 
+
 def generate_launch_description():
     # Path to the YAML file
     yaml_file_path = os.path.join(
         get_package_share_directory("blackbox"),
         "../../../../",  # Go to the workspace
-        "src/vortex-auv/auv_setup/config/robots/", # Go inside where yamal files are located at
-        'orca.yaml'
-    )
+        "src/vortex-auv/auv_setup/config/robots/",  # Go inside where yamal files are located at
+        'orca.yaml')
 
     return LaunchDescription([
         Node(
