@@ -53,7 +53,9 @@
       temperature_read_rate: 0.1 # Readings/second, Recomended: 0.1
       temperature_critical_level: 90.0 # [*C] If temperature is over this amount the electrical housing might be overheating, Recomended: 90.0
       temperature_warning_rate: 0.1 # Warnings/second in case something goes bad you have a warning, Recomended: 0.1
-      
+    
+    blackbox:
+      data_logging_rate: 5.0 # [logings/second], Recomended: 5.0 logings per second
 
       
 
