@@ -56,7 +56,7 @@ class BlackBoxLogData:
     # Methods for inside use of the class ----------
     def manage_csv_files(
         self,
-        max_file_age_in_days=1,
+        max_file_age_in_days=7,
         max_size_kb=3_000_000
     ):  #adjust the max size before you start deleting old files (1 000 000 kb = 1 000 mb = 1 gb)
         current_time = datetime.now()
