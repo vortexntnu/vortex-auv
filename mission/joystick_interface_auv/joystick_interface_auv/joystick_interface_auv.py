@@ -12,6 +12,63 @@ class States:
     AUTONOMOUS_MODE = 2
     NO_GO = 3
 
+class Wired:
+    joystick_buttons_map_ = [
+            "A",
+            "B",
+            "X",
+            "Y",
+            "LB",
+            "RB",
+            "back",
+            "start",
+            "power",
+            "stick_button_left",
+            "stick_button_right",
+            "share_button",
+        ]
+
+    joystick_axes_map_ = [
+            "horizontal_axis_left_stick",  #Sway
+            "vertical_axis_left_stick",    #Surge
+            "LT",                          #Negative thrust/torque multiplier
+            "horizontal_axis_right_stick", #Yaw
+            "vertical_axis_right_stick",
+            "RT",                          #Positive thrust/torque multiplier
+            "dpad_horizontal",
+            "dpad_vertical",
+        ]
+
+class WirelessXboxSeriesX:
+    joystick_buttons_map_ = [
+            "A",
+            "B",
+            "0",
+            "X",
+            "Y",
+            "0",
+            "LB",
+            "RB",
+            "0",
+            "0",
+            "back",
+            "start",
+            "power",
+            "stick_button_left",
+            "stick_button_right",
+            "share_button",
+        ]
+
+    joystick_axes_map_ = [
+            "horizontal_axis_left_stick",  #Sway
+            "vertical_axis_left_stick",    #Surge
+            "horizontal_axis_right_stick", #Yaw
+            "vertical_axis_right_stick",
+            "RT",                          #Positive thrust/torque multiplier
+            "LT",                          #Negative thrust/torque multiplier
+            "dpad_horizontal",
+            "dpad_vertical",
+        ]
 
 class JoystickInterface(Node):
 
@@ -25,31 +82,9 @@ class JoystickInterface(Node):
         self.debounce_duration_ = 0.25
         self.state_ = States.NO_GO
 
-        self.joystick_buttons_map_ = [
-            "A",
-            "B",
-            "X",
-            "Y",
-            "LB",
-            "RB",
-            "back",
-            "start",
-            "power",
-            "stick_button_left",
-            "stick_button_right",
-            "mysterry_button",
-        ]
+        self.joystick_buttons_map_ = []
 
-        self.joystick_axes_map_ = [
-            "horizontal_axis_left_stick",  #Sway 
-            "vertical_axis_left_stick",  #Surge
-            "LT",  #Heave down
-            "horizontal_axis_right_stick",  #Yaw
-            "vertical_axis_right_stick",  #Pitch
-            "RT",  #Heave up
-            "dpad_horizontal",
-            "dpad_vertical",
-        ]
+        self.joystick_axes_map_ = []
 
         self.joy_subscriber_ = self.create_subscription(
             Joy, "joystick/joy", self.joystick_cb, 5)
@@ -152,21 +187,29 @@ class JoystickInterface(Node):
         buttons = {}
         axes = {}
 
+        # Check if the controller is wireless (has 16 buttons) or wired
+        if len(msg.buttons) == 16:
+            self.joystick_buttons_map_ = WirelessXboxSeriesX.joystick_buttons_map_
+            self.joystick_axes_map_ = WirelessXboxSeriesX.joystick_axes_map_
+        else:
+            self.joystick_buttons_map_ = Wired.joystick_buttons_map_
+            self.joystick_axes_map_ = Wired.joystick_axes_map_
+
         # Populate buttons dictionary
         for i, button_name in enumerate(self.joystick_buttons_map_):
             if i < len(msg.buttons):
                 buttons[button_name] = msg.buttons[i]
             else:
-                buttons[
-                    button_name] = 0  # Assuming default value if button is not present
-
+                # Assuming default value if button is not present
+                buttons[button_name] = 0
+                
         # Populate axes dictionary
         for i, axis_name in enumerate(self.joystick_axes_map_):
             if i < len(msg.axes):
                 axes[axis_name] = msg.axes[i]
             else:
-                axes[
-                    axis_name] = 0.0  # Assuming default value if axis is not present
+                # Assuming default value if axis is not present
+                axes[axis_name] = 0.0  
 
         # Extract button values
         xbox_control_mode_button = buttons.get("A", 0)
