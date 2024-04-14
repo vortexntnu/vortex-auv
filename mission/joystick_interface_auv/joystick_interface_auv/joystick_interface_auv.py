@@ -12,63 +12,66 @@ class States:
     AUTONOMOUS_MODE = 2
     NO_GO = 3
 
+
 class Wired:
     joystick_buttons_map_ = [
-            "A",
-            "B",
-            "X",
-            "Y",
-            "LB",
-            "RB",
-            "back",
-            "start",
-            "power",
-            "stick_button_left",
-            "stick_button_right",
-            "share_button",
-        ]
+        "A",
+        "B",
+        "X",
+        "Y",
+        "LB",
+        "RB",
+        "back",
+        "start",
+        "power",
+        "stick_button_left",
+        "stick_button_right",
+        "share_button",
+    ]
 
     joystick_axes_map_ = [
-            "horizontal_axis_left_stick",  #Sway
-            "vertical_axis_left_stick",    #Surge
-            "LT",                          #Negative thrust/torque multiplier
-            "horizontal_axis_right_stick", #Yaw
-            "vertical_axis_right_stick",
-            "RT",                          #Positive thrust/torque multiplier
-            "dpad_horizontal",
-            "dpad_vertical",
-        ]
+        "horizontal_axis_left_stick",  #Sway
+        "vertical_axis_left_stick",  #Surge
+        "LT",  #Negative thrust/torque multiplier
+        "horizontal_axis_right_stick",  #Yaw
+        "vertical_axis_right_stick",
+        "RT",  #Positive thrust/torque multiplier
+        "dpad_horizontal",
+        "dpad_vertical",
+    ]
+
 
 class WirelessXboxSeriesX:
     joystick_buttons_map_ = [
-            "A",
-            "B",
-            "0",
-            "X",
-            "Y",
-            "0",
-            "LB",
-            "RB",
-            "0",
-            "0",
-            "back",
-            "start",
-            "power",
-            "stick_button_left",
-            "stick_button_right",
-            "share_button",
-        ]
+        "A",
+        "B",
+        "0",
+        "X",
+        "Y",
+        "0",
+        "LB",
+        "RB",
+        "0",
+        "0",
+        "back",
+        "start",
+        "power",
+        "stick_button_left",
+        "stick_button_right",
+        "share_button",
+    ]
 
     joystick_axes_map_ = [
-            "horizontal_axis_left_stick",  #Sway
-            "vertical_axis_left_stick",    #Surge
-            "horizontal_axis_right_stick", #Yaw
-            "vertical_axis_right_stick",
-            "RT",                          #Positive thrust/torque multiplier
-            "LT",                          #Negative thrust/torque multiplier
-            "dpad_horizontal",
-            "dpad_vertical",
-        ]
+        "horizontal_axis_left_stick",  #Sway
+        "vertical_axis_left_stick",  #Surge
+        "horizontal_axis_right_stick",  #Yaw
+        "vertical_axis_right_stick",
+        "RT",  #Positive thrust/torque multiplier
+        "LT",  #Negative thrust/torque multiplier
+        "dpad_horizontal",
+        "dpad_vertical",
+    ]
+
 
 class JoystickInterface(Node):
 
@@ -202,14 +205,14 @@ class JoystickInterface(Node):
             else:
                 # Assuming default value if button is not present
                 buttons[button_name] = 0
-                
+
         # Populate axes dictionary
         for i, axis_name in enumerate(self.joystick_axes_map_):
             if i < len(msg.axes):
                 axes[axis_name] = msg.axes[i]
             else:
                 # Assuming default value if axis is not present
-                axes[axis_name] = 0.0  
+                axes[axis_name] = 0.0
 
         # Extract button values
         xbox_control_mode_button = buttons.get("A", 0)
