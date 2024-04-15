@@ -1,7 +1,7 @@
 #include "thruster_allocator_auv/thruster_allocator_ros.hpp"
 #include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thruster_allocator_auv/thruster_allocator_utils.hpp"
-#include <vortex_msgs/msg/thruster_forces.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
 
 #include <chrono>
 #include <functional>
@@ -22,6 +22,7 @@ ThrusterAllocator::ThrusterAllocator()
   num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
   min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
   max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
+
   thrust_configuration = double_array_to_eigen_matrix(
       get_parameter("propulsion.thrusters.configuration_matrix")
           .as_double_array(),
@@ -32,7 +33,7 @@ ThrusterAllocator::ThrusterAllocator()
       std::bind(&ThrusterAllocator::wrench_cb, this, std::placeholders::_1));
 
   thruster_forces_publisher_ =
-      this->create_publisher<vortex_msgs::msg::ThrusterForces>(
+      this->create_publisher<std_msgs::msg::Float32MultiArray>(
           "thrust/thruster_forces", 5);
 
   calculate_thrust_timer_ = this->create_wall_timer(
@@ -57,7 +58,7 @@ void ThrusterAllocator::calculate_thrust_timer_cb() {
     RCLCPP_WARN(get_logger(), "Thruster forces vector required saturation.");
   }
 
-  vortex_msgs::msg::ThrusterForces msg_out;
+  std_msgs::msg::Float32MultiArray msg_out;
   array_eigen_to_msg(thruster_forces, msg_out);
   thruster_forces_publisher_->publish(msg_out);
 }
@@ -70,21 +71,15 @@ void ThrusterAllocator::wrench_cb(const geometry_msgs::msg::Wrench &msg) {
   msg_vector(3) = msg.torque.x; // roll
   msg_vector(4) = msg.torque.y; // pitch
   msg_vector(5) = msg.torque.z; // yaw
-
-  if (!healthy_wrench(msg_vector)) {
+  if (is_invalid_matrix(msg_vector)) {
     RCLCPP_ERROR(get_logger(), "ASV wrench vector invalid, ignoring.");
     return;
   }
+
+  Eigen::VectorXd saturated_vector = msg_vector;
+  if (!saturate_vector_values(saturated_vector, min_thrust_, max_thrust_)) {
+    RCLCPP_WARN(get_logger(), "ASV wrench vector required saturation.");
+  }
+  msg_vector = saturated_vector;
   std::swap(msg_vector, body_frame_forces_);
-}
-
-bool ThrusterAllocator::healthy_wrench(const Eigen::VectorXd &v) const {
-  if (is_invalid_matrix(v))
-    return false;
-
-  bool within_max_thrust = std::none_of(v.begin(), v.end(), [this](double val) {
-    return std::abs(val) > max_thrust_;
-  });
-
-  return within_max_thrust;
 }

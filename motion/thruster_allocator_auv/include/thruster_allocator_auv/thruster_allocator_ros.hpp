@@ -12,7 +12,7 @@
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <vortex_msgs/msg/thruster_forces.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
 
 class ThrusterAllocator : public rclcpp::Node {
 public:
@@ -37,14 +37,7 @@ private:
    */
   void wrench_cb(const geometry_msgs::msg::Wrench &msg);
 
-  /**
-   * @brief Checks if the given Eigen vector contains any NaN or Inf values
-   * @param v The Eigen vector to check.
-   * @return True if the vector is healthy, false otherwise.
-   */
-  bool healthy_wrench(const Eigen::VectorXd &v) const;
-
-  rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr
       thruster_forces_publisher_;
   rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr
       wrench_subscriber_;
