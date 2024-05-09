@@ -5,4 +5,4 @@ This is the code for the on board LCD screen to show status of different things 
 There is a startup scipt that should run every time. If it doesnet try going to:
 vortex-auv/scripts/
 and execute script that adds our LCD screen srit into the bootup sequence:
-add_LCD_service_file_to_bootup_sequence.sh
+./vortex-auv/add_service_files_to_bootup_sequence.sh
