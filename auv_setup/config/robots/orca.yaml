@@ -34,9 +34,9 @@
         rate_of_change:
           max: 1 # Maximum rate of change in newton per second for a thruster
         
-        thruster_to_pin_mapping: [7,  6,  5,  4,  3,  2,  1,  0] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
-        thruster_direction: [1,  1,  1,  1,  1,  1,  1,  1]  # Disclose during thruster mapping (+/- 1)
-        thruster_PWM_offset: [-28, -28, -28, -28, -28, -28, -28, -28] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest
+        thruster_to_pin_mapping: [5, 6, 0, 2, 4, 7, 3, 1] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
+        thruster_direction: [1, -1, 1, -1, 1, 1, 1, -1]  # Disclose during thruster mapping (+/- 1)
+        thruster_PWM_offset: [0, 0, 0, 0, 0, 0, 0, 0] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest
         thruster_PWM_min: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100] # Minimum PWM value, Recomended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
         thruster_PWM_max: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900] # Maximum PWM value, Recomended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
     
