@@ -24,20 +24,18 @@ ThrusterAllocator::ThrusterAllocator()
   min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
   max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
   center_of_mass_ = get_parameter("physical.center_of_mass").as_double_array();
-  
+
   thruster_force_direction_ = double_array_to_eigen_matrix(
       get_parameter("propulsion.thrusters.thruster_force_direction")
           .as_double_array(),
       num_dimensions_, num_thrusters_);
 
   thruster_position_ = double_array_to_eigen_matrix(
-      get_parameter("propulsion.thrusters.thruster_position")
-          .as_double_array(),
+      get_parameter("propulsion.thrusters.thruster_position").as_double_array(),
       num_dimensions_, num_thrusters_);
 
-  thrust_configuration_ = calculate_thrust_allocation_matrix(thruster_position_,
-                                                            thruster_force_direction_,
-                                                            center_of_mass_);
+  thrust_configuration_ = calculate_thrust_allocation_matrix(
+      thruster_position_, thruster_force_direction_, center_of_mass_);
 
   wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
       "thrust/wrench_input", 1,
