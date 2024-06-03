@@ -23,7 +23,7 @@ class ThrusterInterfaceAUVNode(Node):
             ThrusterForces, "thrust/thruster_forces",
             self._thruster_forces_callback, 10)
         self.thruster_pwm_publisher = self.create_publisher(
-            Int16MultiArray, 'pwm', 10)
+            Int16MultiArray, 'pwm', 100)
 
         # Get thruster mapping, direction, offset and clamping parameters
         self.declare_parameter('propulsion.thrusters.thruster_to_pin_mapping',
@@ -63,7 +63,7 @@ class ThrusterInterfaceAUVNode(Node):
         # Start clock timer for driving thrusters every 0.2 seconds
         # Declare "self.thruster_forces_array" in case no topic comes in at the first possible second
         self.thruster_forces_array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.timer = self.create_timer(0.2, self._timer_callback)
+        self.timer = self.create_timer(0.01, self._timer_callback)
 
         # Debugging
         self.get_logger().info(
