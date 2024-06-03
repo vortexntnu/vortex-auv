@@ -36,7 +36,7 @@ ThrusterAllocator::ThrusterAllocator()
           "thrust/thruster_forces", 5);
 
   calculate_thrust_timer_ = this->create_wall_timer(
-      100ms, std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
+      10ms, std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
 
   pseudoinverse_allocator_.T_pinv =
       calculate_right_pseudoinverse(thrust_configuration);
