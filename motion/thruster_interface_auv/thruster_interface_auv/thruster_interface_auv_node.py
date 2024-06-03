@@ -23,7 +23,7 @@ class ThrusterInterfaceAUVNode(Node):
             ThrusterForces, "thrust/thruster_forces",
             self._thruster_forces_callback, 10)
         self.thruster_pwm_publisher = self.create_publisher(
-            Int16MultiArray, 'pwm', 100)
+            Int16MultiArray, 'pwm', 10)
 
         # Get thruster mapping, direction, offset and clamping parameters
         self.declare_parameter('propulsion.thrusters.thruster_to_pin_mapping',
