@@ -28,6 +28,27 @@ inline bool is_invalid_matrix(const Eigen::MatrixBase<Derived> &M) {
   return has_nan || has_inf;
 }
 
+inline Eigen::MatrixXd calculate_thrust_allocation_matrix(const Eigen::MatrixXd &thruster_force_direction, const Eigen::MatrixXd &thruster_position, const Eigen::Vector3d &center_of_mass) {
+  // Initialize thrust allocation matrix
+  Eigen::MatrixXd thrust_allocation_matrix = Eigen::MatrixXd::Zero(6, 8);
+
+  // Calculate thrust and moment contributions from each thruster
+  for (int i = 0; i < thruster_position.cols(); i++) {
+    Eigen::Vector3d pos = thruster_position.col(i);  // Thrust vector in body frame
+    Eigen::Vector3d F = thruster_force_direction.col(i);  // Position vector in body frame
+
+    // Calculate position vector relative to the center of mass
+    pos -= center_of_mass;
+
+    // Fill in the thrust allocation matrix
+    thrust_allocation_matrix.block<3, 1>(0, i) = F;
+    thrust_allocation_matrix.block<3, 1>(3, i) = pos.cross(F);
+  }
+
+  thrust_allocation_matrix = thrust_allocation_matrix.array().round(5);
+  return thrust_allocation_matrix;
+}
+
 /**
  * @brief Calculates the right pseudoinverse of the given matrix.
  *
