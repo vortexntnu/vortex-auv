@@ -36,9 +36,8 @@ ThrusterAllocator::ThrusterAllocator()
       get_parameter("propulsion.thrusters.thruster_position").as_double_array(),
       num_dimensions_, num_thrusters_);
 
-  thrust_configuration_ = calculate_thrust_allocation_matrix(thruster_force_direction_,
-                                                            thruster_position_,
-                                                            center_of_mass_);
+  thrust_configuration_ = calculate_thrust_allocation_matrix(
+      thruster_force_direction_, thruster_position_, center_of_mass_);
 
   wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
       "thrust/wrench_input", 1,
