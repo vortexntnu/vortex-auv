@@ -11,19 +11,21 @@ using namespace std::chrono_literals;
 ThrusterAllocator::ThrusterAllocator()
     : Node("thruster_allocator_node"),
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
+  declare_parameter("physical.center_of_mass", std::vector<double>{0});
   declare_parameter("propulsion.dimensions.num", 3);
   declare_parameter("propulsion.thrusters.num", 8);
   declare_parameter("propulsion.thrusters.min", -100);
   declare_parameter("propulsion.thrusters.max", 100);
-  declare_parameter("physical.center_of_mass", std::vector<double>{0});
-  declare_parameter("propulsion.thrusters.configuration_matrix",
+  declare_parameter("propulsion.thrusters.thruster_force_direction",
+                    std::vector<double>{0});
+  declare_parameter("propulsion.thrusters.thruster_position",
                     std::vector<double>{0});
 
+  center_of_mass_ = get_parameter("physical.center_of_mass").as_double_array();
   num_dimensions_ = get_parameter("propulsion.dimensions.num").as_int();
   num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
   min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
   max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
-  center_of_mass_ = get_parameter("physical.center_of_mass").as_double_array();
   
   thruster_force_direction_ = double_array_to_eigen_matrix(
       get_parameter("propulsion.thrusters.thruster_force_direction")
@@ -35,8 +37,8 @@ ThrusterAllocator::ThrusterAllocator()
           .as_double_array(),
       num_dimensions_, num_thrusters_);
 
-  thrust_configuration_ = calculate_thrust_allocation_matrix(thruster_position_,
-                                                            thruster_force_direction_,
+  thrust_configuration_ = calculate_thrust_allocation_matrix(thruster_force_direction_,
+                                                            thruster_position_,
                                                             center_of_mass_);
 
   wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
