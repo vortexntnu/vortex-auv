@@ -17,7 +17,7 @@
 /**:
   ros__parameters:
     physical:
-      center_of_mass: [0, 0, 0.035] # m (x,y,z)
+      center_of_mass: [0.0, 0.0, 0.035] # m (x,y,z)
 
     propulsion:
       dofs:
