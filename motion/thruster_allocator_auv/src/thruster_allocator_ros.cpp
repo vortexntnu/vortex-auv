@@ -26,15 +26,14 @@ ThrusterAllocator::ThrusterAllocator()
   num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
   min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
   max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
-  
+
   thruster_force_direction_ = double_array_to_eigen_matrix(
       get_parameter("propulsion.thrusters.thruster_force_direction")
           .as_double_array(),
       num_dimensions_, num_thrusters_);
 
   thruster_position_ = double_array_to_eigen_matrix(
-      get_parameter("propulsion.thrusters.thruster_position")
-          .as_double_array(),
+      get_parameter("propulsion.thrusters.thruster_position").as_double_array(),
       num_dimensions_, num_thrusters_);
 
   thrust_configuration_ = calculate_thrust_allocation_matrix(thruster_force_direction_,
