@@ -17,8 +17,8 @@ ThrusterAllocator::ThrusterAllocator()
   declare_parameter("propulsion.thrusters.min", -100);
   declare_parameter("propulsion.thrusters.max", 100);
   declare_parameter("propulsion.thrusters.thrust_update_rate", 10.0)
-  declare_parameter("propulsion.thrusters.thruster_force_direction",
-                    std::vector<double>{0});
+      declare_parameter("propulsion.thrusters.thruster_force_direction",
+                        std::vector<double>{0});
   declare_parameter("propulsion.thrusters.thruster_position",
                     std::vector<double>{0});
 
@@ -27,7 +27,9 @@ ThrusterAllocator::ThrusterAllocator()
   num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
   min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
   max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
-  thrust_update_period_ = std::chrono::milliseconds(1000 / get_parameter("propulsion.thrusters.thrust_update_rate").as_double());
+  thrust_update_period_ = std::chrono::milliseconds(
+      1000 /
+      get_parameter("propulsion.thrusters.thrust_update_rate").as_double());
 
   thruster_force_direction_ = double_array_to_eigen_matrix(
       get_parameter("propulsion.thrusters.thruster_force_direction")
@@ -50,7 +52,8 @@ ThrusterAllocator::ThrusterAllocator()
           "thrust/thruster_forces", 5);
 
   calculate_thrust_timer_ = this->create_wall_timer(
-      thrust_update_period_, std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
+      thrust_update_period_,
+      std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
 
   pseudoinverse_allocator_.T_pinv =
       calculate_right_pseudoinverse(thrust_configuration);
