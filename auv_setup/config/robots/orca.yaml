@@ -39,7 +39,7 @@
         rate_of_change:
           max: 1 # Maximum rate of change in newton per second for a thruster
       
-        thrust_update_rate: 50.0 # [Hz]
+        thrust_update_rate: 10.0 # [Hz]
         
         thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
         thruster_direction: [1, -1, 1, -1, 1, 1, 1, -1]  # Disclose during thruster mapping (+/- 1)
