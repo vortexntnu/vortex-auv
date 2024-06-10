@@ -49,11 +49,20 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr
       wrench_subscriber_;
   rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
+
   size_t count_;
-  int num_dof_;
+  Eigen::Matrix3d center_of_mass_;
+  int num_dimensions_;
   int num_thrusters_;
   int min_thrust_;
   int max_thrust_;
+
+  std::chrono::milliseconds thrust_update_period_;
+
+  Eigen::MatrixXd thruster_force_direction_;
+  Eigen::MatrixXd thruster_position_;
+  Eigen::MatrixXd thrust_configuration_;
+
   Eigen::Vector6d body_frame_forces_;
   PseudoinverseAllocator pseudoinverse_allocator_;
 };
