@@ -17,18 +17,21 @@ ThrusterAllocator::ThrusterAllocator()
   declare_parameter("propulsion.thrusters.min", -100);
   declare_parameter("propulsion.thrusters.max", 100);
   declare_parameter("propulsion.thrusters.thrust_update_rate", 10.0);
-      declare_parameter("propulsion.thrusters.thruster_force_direction",
-                        std::vector<double>{0});
+  declare_parameter("propulsion.thrusters.thruster_force_direction",
+                    std::vector<double>{0});
   declare_parameter("propulsion.thrusters.thruster_position",
                     std::vector<double>{0});
 
-  center_of_mass_ = double_array_to_eigen_vector3d(get_parameter("physical.center_of_mass").as_double_array());
+  center_of_mass_ = double_array_to_eigen_vector3d(
+      get_parameter("physical.center_of_mass").as_double_array());
 
   num_dimensions_ = get_parameter("propulsion.dimensions.num").as_int();
   num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
   min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
   max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
-  thrust_update_period_ = std::chrono::milliseconds(static_cast<int>(1000 / get_parameter("propulsion.thrusters.thrust_update_rate").as_double()));
+  thrust_update_period_ = std::chrono::milliseconds(static_cast<int>(
+      1000 /
+      get_parameter("propulsion.thrusters.thrust_update_rate").as_double()));
 
   thruster_force_direction_ = double_array_to_eigen_matrix(
       get_parameter("propulsion.thrusters.thruster_force_direction")
