@@ -227,17 +227,19 @@ class JoystickInterface(Node):
         right_shoulder = buttons.get("RB", 0)
 
         # Extract axis values
-        surge = axes.get("vertical_axis_left_stick",
-                         0.0) * self.joystick_surge_scaling_ * self.scale_factor
+        surge = axes.get(
+            "vertical_axis_left_stick",
+            0.0) * self.joystick_surge_scaling_ * self.scale_factor
         sway = -axes.get("horizontal_axis_left_stick",
                          0.0) * self.joystick_sway_scaling_ * self.scale_factor
-        heave = (left_trigger - right_trigger) * self.joystick_heave_scaling_ * self.scale_factor
-        roll = (right_shoulder - left_shoulder) * self.joystick_roll_scaling_ * self.scale_factor
-        pitch = -axes.get("vertical_axis_right_stick",
-                          0.0) * self.joystick_pitch_scaling_ * self.scale_factor
+        heave = (left_trigger - right_trigger
+                 ) * self.joystick_heave_scaling_ * self.scale_factor
+        roll = (right_shoulder - left_shoulder
+                ) * self.joystick_roll_scaling_ * self.scale_factor
+        pitch = -axes.get("vertical_axis_right_stick", 0.0
+                          ) * self.joystick_pitch_scaling_ * self.scale_factor
         yaw = -axes.get("horizontal_axis_right_stick",
                         0.0) * self.joystick_yaw_scaling_ * self.scale_factor
-
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
