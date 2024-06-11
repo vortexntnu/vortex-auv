@@ -278,12 +278,9 @@ class JoystickInterface(Node):
         # Toggle precise maneuvering mode on and off
         if precise_manuevering_mode_button:
             self.precise_manuevering_mode_ = not self.precise_manuevering_mode_
-            mode = "enabled" if self.precise_manuevering_mode_ else "disabled"
+            mode = "ENABLED" if self.precise_manuevering_mode_ else "DISABLED"
             self.get_logger().info(f"Precise maneuvering mode {mode}.")
-
             self.scale_factor = 0.5 if self.precise_manuevering_mode_ else 1.0
-        else:
-            self.scale_factor = 1.0
 
         # Publish wrench message from joystick_interface to thrust allocation
         wrench_msg = self.create_wrench_message(surge, sway, heave, roll,
