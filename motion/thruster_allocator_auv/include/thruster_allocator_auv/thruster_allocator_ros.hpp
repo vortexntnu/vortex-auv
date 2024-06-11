@@ -51,7 +51,7 @@ private:
   rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
 
   size_t count_;
-  Eigen::Matrix3d center_of_mass_;
+  Eigen::Vector3d center_of_mass_;
   int num_dimensions_;
   int num_thrusters_;
   int min_thrust_;
