@@ -124,14 +124,15 @@ double_array_to_eigen_matrix(const std::vector<double> &matrix, int rows,
                                                           cols);
 }
 
-inline Eigen::Vector3d double_array_to_eigen_vector3d(const std::vector<double> &vector) {
-    // Ensure the input vector has exactly three elements
-    if (vector.size() != 3) {
-        throw std::invalid_argument("Input vector must have exactly 3 elements");
-    }
+inline Eigen::Vector3d
+double_array_to_eigen_vector3d(const std::vector<double> &vector) {
+  // Ensure the input vector has exactly three elements
+  if (vector.size() != 3) {
+    throw std::invalid_argument("Input vector must have exactly 3 elements");
+  }
 
-    // Map the vector to Eigen::Vector3d
-    return Eigen::Map<const Eigen::Vector3d>(vector.data());
+  // Map the vector to Eigen::Vector3d
+  return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
 #endif // VORTEX_ALLOCATOR_UTILS_HPP
