@@ -228,18 +228,23 @@ class JoystickInterface(Node):
 
         # Extract axis values
         surge = axes.get(
-            "vertical_axis_left_stick",
-            0.0) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
-        sway = -axes.get("horizontal_axis_left_stick",
-                         0.0) * self.joystick_sway_scaling_ * self.precise_manuevering_scaling_
-        heave = (left_trigger - right_trigger
-                 ) * self.joystick_heave_scaling_ * self.precise_manuevering_scaling_
-        roll = (right_shoulder - left_shoulder
-                ) * self.joystick_roll_scaling_ * self.precise_manuevering_scaling_
-        pitch = -axes.get("vertical_axis_right_stick", 0.0
-                          ) * self.joystick_pitch_scaling_ * self.precise_manuevering_scaling_
-        yaw = -axes.get("horizontal_axis_right_stick",
-                        0.0) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
+            "vertical_axis_left_stick", 0.0
+        ) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
+        sway = -axes.get(
+            "horizontal_axis_left_stick", 0.0
+        ) * self.joystick_sway_scaling_ * self.precise_manuevering_scaling_
+        heave = (
+            left_trigger - right_trigger
+        ) * self.joystick_heave_scaling_ * self.precise_manuevering_scaling_
+        roll = (
+            right_shoulder - left_shoulder
+        ) * self.joystick_roll_scaling_ * self.precise_manuevering_scaling_
+        pitch = -axes.get(
+            "vertical_axis_right_stick", 0.0
+        ) * self.joystick_pitch_scaling_ * self.precise_manuevering_scaling_
+        yaw = -axes.get(
+            "horizontal_axis_right_stick", 0.0
+        ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
