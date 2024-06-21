@@ -16,23 +16,31 @@
 
 /**:
   ros__parameters:
+    physical:
+      center_of_mass: [0.0, 0.0, 0.035] # m (x,y,z)
+
     propulsion:
       dofs:
         num: 6
+      dimensions:
+        num: 3
       thrusters:
         num: 8
         min: -100
         max: 100
-        configuration_matrix: #NED
+        thruster_force_direction:
           [ 0.70711,  0.00000,  0.00000,  0.70711,  0.70711,  0.00000,  0.00000,  0.70711,  # Surge
            -0.70711,  0.00000,  0.00000,  0.70711, -0.70711,  0.00000,  0.00000,  0.70711,  # Sway
-            0.00000,  1.00000,  1.00000,  0.00000,  0.00000,  1.00000,  1.00000,  0.00000,  # Heave
+            0.00000,  1.00000,  1.00000,  0.00000,  0.00000,  1.00000,  1.00000,  0.00000 ] # Heave
+        thruster_position:
+          [ 0.41500,  0.28400, -0.31800, -0.44900, -0.44900, -0.31800,  0.28400,  0.41500,  # x-position of thrusters
+            0.16900,  0.16300,  0.16300,  0.16900, -0.16900, -0.16300, -0.16300, -0.16900,  # y-position of thrusters
+            0.07600,  0.08200,  0.08200,  0.07600,  0.07600,  0.08200,  0.08200,  0.07600 ] # z-position of thrusters         
 
-            0.02899, 0.16300, 0.16300, -0.02899,  0.02899,  -0.16300,  -0.16300, -0.02899,  # Roll
-            0.02899, -0.28400,  0.31800,  0.02899,  0.02899,  0.31800, -0.28400,  0.02899,  # Pitch 
-           -0.413,  0.00000,  0.00000, -0.437,  0.437, -0.00000,  0.00000,  0.413 ] # Yaw           
         rate_of_change:
           max: 1 # Maximum rate of change in newton per second for a thruster
+      
+        thrust_update_rate: 10.0 # [Hz]
         
         thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
         thruster_direction: [1, -1, 1, -1, 1, 1, 1, -1]  # Disclose during thruster mapping (+/- 1)

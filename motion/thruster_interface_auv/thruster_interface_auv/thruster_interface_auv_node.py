@@ -39,6 +39,8 @@ class ThrusterInterfaceAUVNode(Node):
             'propulsion.thrusters.thruster_PWM_max',
             [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900])
 
+        self.declare_parameter('propulsion.thrusters.thrust_update_rate', 10.0)
+
         self.thruster_mapping = self.get_parameter(
             'propulsion.thrusters.thruster_to_pin_mapping').value
         self.thruster_direction = self.get_parameter(
@@ -49,6 +51,8 @@ class ThrusterInterfaceAUVNode(Node):
             'propulsion.thrusters.thruster_PWM_min').value
         self.thruster_PWM_max = self.get_parameter(
             'propulsion.thrusters.thruster_PWM_max').value
+        self.thrust_timer_period = 1.0 / self.get_parameter(
+            'propulsion.thrusters.thrust_update_rate').value
 
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
@@ -63,7 +67,9 @@ class ThrusterInterfaceAUVNode(Node):
         # Start clock timer for driving thrusters every 0.2 seconds
         # Declare "self.thruster_forces_array" in case no topic comes in at the first possible second
         self.thruster_forces_array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.timer = self.create_timer(0.01, self._timer_callback)
+
+        self.timer = self.create_timer(self.thrust_timer_period,
+                                       self._timer_callback)
 
         # Debugging
         self.get_logger().info(

@@ -28,6 +28,32 @@ inline bool is_invalid_matrix(const Eigen::MatrixBase<Derived> &M) {
   return has_nan || has_inf;
 }
 
+inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
+    const Eigen::MatrixXd &thruster_force_direction,
+    const Eigen::MatrixXd &thruster_position,
+    const Eigen::Vector3d &center_of_mass) {
+  // Initialize thrust allocation matrix
+  Eigen::MatrixXd thrust_allocation_matrix = Eigen::MatrixXd::Zero(6, 8);
+
+  // Calculate thrust and moment contributions from each thruster
+  for (int i = 0; i < thruster_position.cols(); i++) {
+    Eigen::Vector3d pos =
+        thruster_position.col(i); // Thrust vector in body frame
+    Eigen::Vector3d F =
+        thruster_force_direction.col(i); // Position vector in body frame
+
+    // Calculate position vector relative to the center of mass
+    pos -= center_of_mass;
+
+    // Fill in the thrust allocation matrix
+    thrust_allocation_matrix.block<3, 1>(0, i) = F;
+    thrust_allocation_matrix.block<3, 1>(3, i) = pos.cross(F);
+  }
+
+  thrust_allocation_matrix = thrust_allocation_matrix.array();
+  return thrust_allocation_matrix;
+}
+
 /**
  * @brief Calculates the right pseudoinverse of the given matrix.
  *
@@ -96,6 +122,17 @@ double_array_to_eigen_matrix(const std::vector<double> &matrix, int rows,
   return Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
                                         Eigen::RowMajor>>(matrix.data(), rows,
                                                           cols);
+}
+
+inline Eigen::Vector3d
+double_array_to_eigen_vector3d(const std::vector<double> &vector) {
+  // Ensure the input vector has exactly three elements
+  if (vector.size() != 3) {
+    throw std::invalid_argument("Input vector must have exactly 3 elements");
+  }
+
+  // Map the vector to Eigen::Vector3d
+  return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
 #endif // VORTEX_ALLOCATOR_UTILS_HPP
