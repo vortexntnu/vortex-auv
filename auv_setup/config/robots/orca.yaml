@@ -64,6 +64,20 @@
     
     blackbox:
       data_logging_rate: 5.0 # [logings/second], Recomended: 5.0 logings per second
+    
+    acoustics:
+      frequencies_of_interest: # MUST be 20 elements [FREQUENCY [Hz], FREQUENCY_VARIANCE [Hz]...] Recomended: Frequency 1 000 - 50 000 Hz, Variance 1 000 - 10 000 Hz
+       [10000, 1000,
+        50000, 3000,
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0,
+        0, 0]
+      data_logging_rate: 1.0 # [logings/second], Recomended: 1.0 logings per second
 
       
 

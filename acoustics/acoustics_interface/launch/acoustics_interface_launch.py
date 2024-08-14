@@ -7,10 +7,10 @@ import os
 def generate_launch_description():
     # Path to the YAML file
     yaml_file_path = os.path.join(
-        get_package_share_directory("blackbox"),
+        get_package_share_directory("acoustics_interface"),
         "../../../../",  # Go to the workspace
-        "src/vortex-asv/asv_setup/config/robots/",  # Go inside where yamal files are located at
-        'freya.yaml')
+        "src/vortex-auv/auv_setup/config/robots/",  # Go inside where yamal files are located at
+        'orca.yaml')
 
     return LaunchDescription([
         Node(

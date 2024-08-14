@@ -85,7 +85,7 @@ class AcousticsDataRecordNode(Node):
         ros2_package_directory_location = get_package_share_directory(
             "acoustics_data_record")
         ros2_package_directory_location = ros2_package_directory_location + "/../../../../"  # go back to workspace
-        ros2_package_directory_location = ros2_package_directory_location + "src/vortex-asv/acoustics/acoustics_data_record/"  # Navigate to this package
+        ros2_package_directory_location = ros2_package_directory_location + "src/vortex-auv/acoustics/acoustics_data_record/"  # Navigate to this package
 
         # Make blackbox loging file
         self.acoustics_data_record = AcousticsDataRecordLib(
