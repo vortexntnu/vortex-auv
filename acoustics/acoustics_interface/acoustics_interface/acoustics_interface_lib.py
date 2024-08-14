@@ -77,15 +77,17 @@ class TeensyCommunicationUDP:
     }
 
     @classmethod
-    def init_communication(cls, frequenciesOfInterest: list[tuple[int, int]]) -> None:
+    def init_communication(
+            cls, frequenciesOfInterest: list[tuple[int, int]]) -> None:
         """
             Sets up communication with teensy
 
             Parameters:
                 frequenciesOfInterest (list[tuple[int, int]]): List of frequencies to look for
         """
-        assert len(frequenciesOfInterest) == 10, "Frequency list has to have exactly 10 entries"
-        
+        assert len(frequenciesOfInterest
+                   ) == 10, "Frequency list has to have exactly 10 entries"
+
         _frequenciesOfInterest = frequenciesOfInterest
 
         cls.MY_IP = cls._get_ip()
@@ -102,9 +104,11 @@ class TeensyCommunicationUDP:
         while not cls._check_if_available():
             print("Did not receive READY signal. Will wait.")
             time.sleep(1)
-            
+
             if time.time() - timeStart > cls._timeoutMax:
-                print("Gave up on receiving READY. Sending acknowledge signal again")
+                print(
+                    "Gave up on receiving READY. Sending acknowledge signal again"
+                )
                 # Start over
                 timeStart = time.time()
                 cls._send_acknowledge_signal()
@@ -121,7 +125,7 @@ class TeensyCommunicationUDP:
 
         while True:
             data = cls._get_raw_data()
-            
+
             if data == None:
                 return
 
@@ -149,12 +153,12 @@ class TeensyCommunicationUDP:
         else:
             data = cls._parse_data_string(is_float=False)
 
-        if data == None: 
+        if data == None:
             cls._data_string = ""
             return
 
         cls.acoustics_data[cls._data_target] = data
-        
+
         cls._data_string = ""
 
     @classmethod
@@ -166,17 +170,19 @@ class TeensyCommunicationUDP:
                 The message in the UDP buffer if there is one
         """
         try:
-            rec_data, _ = cls._clientSocket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
+            rec_data, _ = cls._clientSocket.recvfrom(
+                cls._MAX_PACKAGE_SIZE_RECEIVED)
             messageReceived = rec_data.decode()
             return messageReceived
-        except error as e: # `error` is really `socket.error`
+        except error as e:  # `error` is really `socket.error`
             if e.errno == errno.EWOULDBLOCK:
                 pass
             else:
                 print("Socket error: ", e)
 
     @classmethod
-    def _parse_data_string(cls, is_float: bool) -> list[float] | list[int] | None:
+    def _parse_data_string(cls,
+                           is_float: bool) -> list[float] | list[int] | None:
         """
             Converts _data_string to a list
 
@@ -187,7 +193,7 @@ class TeensyCommunicationUDP:
                 The converted list
         """
         if cls._data_string == '': return
-        
+
         try:
             # Format data from CSV string to floats, ignore last value
             if is_float:
@@ -195,7 +201,9 @@ class TeensyCommunicationUDP:
             else:
                 return list(map(int, cls._data_string.split(",")[:-1]))
         except Exception as e:
-            print(f"The string '{cls._data_string}' caused an error when parsing")
+            print(
+                f"The string '{cls._data_string}' caused an error when parsing"
+            )
             print(f"The exception was: {e}")
 
     # stackoverflow <3
@@ -215,16 +223,17 @@ class TeensyCommunicationUDP:
             IP = '127.0.0.1'
         finally:
             s.close()
-        
+
         return IP
 
     @classmethod
-    def _send_acknowledge_signal(cls) -> None:   
+    def _send_acknowledge_signal(cls) -> None:
         """
             Sends "HELLO :D to teensy
-        """     
+        """
         try:
-            cls._clientSocket.sendto(cls._INITIALIZATION_MESSAGE.encode(), cls._address)
+            cls._clientSocket.sendto(cls._INITIALIZATION_MESSAGE.encode(),
+                                     cls._address)
             print("DEBUGING: Sent acknowledge package")
         except Exception as e:
             print("Error from send_acknowledge_signal")
@@ -251,7 +260,7 @@ class TeensyCommunicationUDP:
                 # Check if correct signal was sent
                 if message == "READY":
                     return True
-                
+
                 i += 1
 
                 if i > 200:
@@ -263,25 +272,27 @@ class TeensyCommunicationUDP:
             return False
 
     @classmethod
-    def _send_frequencies_of_interest(cls, frequenciesOfInterest: list[tuple[float, float]]) -> None:
+    def _send_frequencies_of_interest(
+            cls, frequenciesOfInterest: list[tuple[float, float]]) -> None:
         """
             Sends the list of frequencies with variance to teensy
 
             Parameters:
                 frequenciesOfInterest (list[tuple[float, float]]): The list of frequencies w/ variance
-        """ 
+        """
         try:
 
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
-            assert len(frequenciesOfInterest) == 10, "List of frequencies has to be ten entries long!"
+            assert len(
+                frequenciesOfInterest
+            ) == 10, "List of frequencies has to be ten entries long!"
 
             # ten messages in total, one message for each entry to work around the max packet size
             for (frequency, variance) in frequenciesOfInterest:
                 frequency_variance_msg = f"{str(frequency)},{str(variance)},"
 
                 # print(self.address);
-                cls._clientSocket.sendto(frequency_variance_msg.encode(), cls._address)
+                cls._clientSocket.sendto(frequency_variance_msg.encode(),
+                                         cls._address)
         except:
             print("Couldn't send Frequency data")
-
-
