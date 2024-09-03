@@ -4,7 +4,7 @@
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   auto allocator = std::make_shared<ThrustAllocator>();
-  RCLCPP_INFO(allocator->get_logger(), "Thruster allocator initiated");
+  RCLCPP_INFO(allocator->get_logger(), "Thrust allocator initiated");
   rclcpp::spin(allocator);
   rclcpp::shutdown();
   return 0;
