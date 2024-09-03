@@ -27,7 +27,6 @@ public:
   void calculate_thrust_timer_cb();
 
 private:
-
   /**
    * @brief Callback function for the wrench input subscription. Extracts the
    * surge, sway, heave, roll, pitch and yaw values from the received wrench msg
