@@ -58,7 +58,7 @@ ThrusterAllocator::ThrusterAllocator()
       std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
 
   pseudoinverse_allocator_.T_pinv =
-      calculate_right_pseudoinverse(thrust_configuration);
+      calculate_right_pseudoinverse(thrust_configuration_);
 
   body_frame_forces_.setZero();
 }

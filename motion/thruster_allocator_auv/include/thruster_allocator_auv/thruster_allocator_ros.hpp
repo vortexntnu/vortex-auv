@@ -27,7 +27,6 @@ public:
   void calculate_thrust_timer_cb();
 
 private:
-  Eigen::MatrixXd thrust_configuration;
 
   /**
    * @brief Callback function for the wrench input subscription. Extracts the
