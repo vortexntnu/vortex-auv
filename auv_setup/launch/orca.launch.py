@@ -13,10 +13,10 @@ def generate_launch_description():
         value='[${severity}] [${time}] [${node}]: ${message}')
 
     # Thruster Allocator launch
-    thruster_allocator_launch = IncludeLaunchDescription(
+    thrust_allocator_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('thruster_allocator_auv'),
-                         'launch', 'thruster_allocator_auv.launch.py')))
+            os.path.join(get_package_share_directory('thrust_allocator_auv'),
+                         'launch', 'thrust_allocator_auv.launch.py')))
 
     #Thruster Interface launch
     thruster_interface_launch = IncludeLaunchDescription(
@@ -26,4 +26,4 @@ def generate_launch_description():
 
     # Return launch description
     return LaunchDescription(
-        [set_env_var, thruster_allocator_launch, thruster_interface_launch])
+        [set_env_var, thrust_allocator_launch, thruster_interface_launch])

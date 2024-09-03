@@ -1,6 +1,6 @@
-#include "thruster_allocator_auv/thruster_allocator_ros.hpp"
-#include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
-#include "thruster_allocator_auv/thruster_allocator_utils.hpp"
+#include "thrust_allocator_auv/thrust_allocator_ros.hpp"
+#include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
+#include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 #include <vortex_msgs/msg/thruster_forces.hpp>
 
 #include <chrono>
@@ -8,8 +8,8 @@
 
 using namespace std::chrono_literals;
 
-ThrusterAllocator::ThrusterAllocator()
-    : Node("thruster_allocator_node"),
+ThrustAllocator::ThrustAllocator()
+    : Node("thrust_allocator_node"),
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
   declare_parameter("physical.center_of_mass", std::vector<double>{0});
   declare_parameter("propulsion.dimensions.num", 3);
@@ -47,7 +47,7 @@ ThrusterAllocator::ThrusterAllocator()
 
   wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
       "thrust/wrench_input", 1,
-      std::bind(&ThrusterAllocator::wrench_cb, this, std::placeholders::_1));
+      std::bind(&ThrustAllocator::wrench_cb, this, std::placeholders::_1));
 
   thruster_forces_publisher_ =
       this->create_publisher<vortex_msgs::msg::ThrusterForces>(
@@ -55,15 +55,15 @@ ThrusterAllocator::ThrusterAllocator()
 
   calculate_thrust_timer_ = this->create_wall_timer(
       thrust_update_period_,
-      std::bind(&ThrusterAllocator::calculate_thrust_timer_cb, this));
+      std::bind(&ThrustAllocator::calculate_thrust_timer_cb, this));
 
   pseudoinverse_allocator_.T_pinv =
-      calculate_right_pseudoinverse(thrust_configuration);
+      calculate_right_pseudoinverse(thrust_configuration_);
 
   body_frame_forces_.setZero();
 }
 
-void ThrusterAllocator::calculate_thrust_timer_cb() {
+void ThrustAllocator::calculate_thrust_timer_cb() {
   Eigen::VectorXd thruster_forces =
       pseudoinverse_allocator_.calculate_allocated_thrust(body_frame_forces_);
 
@@ -81,7 +81,7 @@ void ThrusterAllocator::calculate_thrust_timer_cb() {
   thruster_forces_publisher_->publish(msg_out);
 }
 
-void ThrusterAllocator::wrench_cb(const geometry_msgs::msg::Wrench &msg) {
+void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench &msg) {
   Eigen::Vector6d msg_vector;
   msg_vector(0) = msg.force.x;  // surge
   msg_vector(1) = msg.force.y;  // sway
@@ -97,7 +97,7 @@ void ThrusterAllocator::wrench_cb(const geometry_msgs::msg::Wrench &msg) {
   std::swap(msg_vector, body_frame_forces_);
 }
 
-bool ThrusterAllocator::healthy_wrench(const Eigen::VectorXd &v) const {
+bool ThrustAllocator::healthy_wrench(const Eigen::VectorXd &v) const {
   if (is_invalid_matrix(v))
     return false;
 
