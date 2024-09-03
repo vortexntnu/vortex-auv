@@ -5,14 +5,14 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    thruster_allocator_auv_node = Node(
-        package='thruster_allocator_auv',
-        executable='thruster_allocator_auv_node',
-        name='thruster_allocator_auv_node',
+    thrust_allocator_auv_node = Node(
+        package='thrust_allocator_auv',
+        executable='thrust_allocator_auv_node',
+        name='thrust_allocator_auv_node',
         parameters=[
             path.join(get_package_share_directory('auv_setup'), 'config',
                       'robots', 'orca.yaml')
         ],
         output='screen',
     )
-    return LaunchDescription([thruster_allocator_auv_node])
+    return LaunchDescription([thrust_allocator_auv_node])

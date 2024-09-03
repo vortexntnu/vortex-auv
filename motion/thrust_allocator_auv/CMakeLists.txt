@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(thruster_allocator_auv)
+project(thrust_allocator_auv)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -20,8 +20,8 @@ find_package(Eigen3 REQUIRED)
 include_directories(include)
 
 add_executable(${PROJECT_NAME}_node 
-  src/thruster_allocator_auv_node.cpp 
-  src/thruster_allocator_ros.cpp 
+  src/thrust_allocator_auv_node.cpp 
+  src/thrust_allocator_ros.cpp 
   src/pseudoinverse_allocator.cpp
 )
 

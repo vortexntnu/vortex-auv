@@ -1,22 +1,22 @@
 /**
- * @file thruster_allocator_ros.hpp
+ * @file thrust_allocator_ros.hpp
  * @brief Contains the ROS logic for the thruster allocator node.
  */
 
 #ifndef VORTEX_ALLOCATOR_ROS_HPP
 #define VORTEX_ALLOCATOR_ROS_HPP
 
-#include "thruster_allocator_auv/eigen_vector6d_typedef.hpp"
-#include "thruster_allocator_auv/pseudoinverse_allocator.hpp"
-#include "thruster_allocator_auv/thruster_allocator_utils.hpp"
+#include "thrust_allocator_auv/eigen_vector6d_typedef.hpp"
+#include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
+#include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 
-class ThrusterAllocator : public rclcpp::Node {
+class ThrustAllocator : public rclcpp::Node {
 public:
-  explicit ThrusterAllocator();
+  explicit ThrustAllocator();
 
   /**
    * @brief Calculates the allocated
