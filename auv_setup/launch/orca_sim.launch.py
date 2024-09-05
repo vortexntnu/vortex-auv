@@ -16,7 +16,7 @@ def generate_launch_description():
 
 
     # Thruster Allocator launch
-    thruster_allocator_launch = IncludeLaunchDescription(
+    thrust_allocator_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             path.join(get_package_share_directory('thrust_allocator_auv'), 'launch', 'thrust_allocator_auv.launch.py')
         )
@@ -54,7 +54,7 @@ def generate_launch_description():
     # Return launch description
     return LaunchDescription([
         set_env_var,
-        thruster_allocator_launch,
+        thrust_allocator_launch,
         joy_node,
         joystick_interface_launch,
         vortex_sim_interface_launch, 
