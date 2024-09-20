@@ -1,28 +1,44 @@
-name: flake8 Lint
+name: Python Linter
 
 on:
-    pull_request:
-    workflow_run:
-        workflows: ["Run black Formatter"]
-        types:
-            - completed
+  workflow_dispatch:
+
 jobs:
-    flake8-lint:
-        runs-on: ubuntu-22.04
-        name: Lint
-        steps:
-            - name: Check out source repo
-              uses: actions/checkout@v3
+  lint:
 
-            - name: Set up Python environment
-              uses: actions/setup-python@v4
-              with:
-                python-version: "3.11"
+    runs-on: ubuntu-latest
 
-            - name: flake8 Lint
-              uses: py-actions/flake8@v2
-              with:
-                ignore: |
-                    W503
-                    E203
-                max-line-length: "200"
+    steps:
+    # Step 1: Check out the current repository so that the files are available to the workflow
+    - uses: actions/checkout@v2
+    
+    # Step 2: Set up Python version 3.8 for the workflow environment
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    
+    # Step 3: Install `flake8`, a Python linter, by upgrading pip and then installing `flake8`
+    - name: Install flake8
+      run: |
+        python -m pip install --upgrade pip  # Upgrade pip to the latest version
+        pip install flake8  # Install flake8 linter
+    
+    # Step 4: Set up flake8 annotations (this is optional, to annotate lint issues in the pull request)
+    - name: Setup flake8 annotations
+      uses: rbialon/flake8-annotations@v1
+    
+    # Step 5: Run flake8 linter with two sets of rules
+    - name: Lint with flake8
+      run: |
+        # First run: Focus on catching critical errors related to syntax and undefined names
+        # This command checks for Python syntax errors (E9) and issues related to undefined names (F63, F7, F82)
+        # The build will stop and fail if any of these critical errors are found.
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+        # Second run: Check for general linting issues but ignore some rules
+        # --ignore=C901: Ignore complexity-related issues
+        # --ignore=W503: Ignore line break before binary operator
+        # --ignore=E203: Ignore whitespace before ':'
+        # This will fail the build if there are other linting issues, except the ignored ones.
+        flake8 . --count --max-complexity=10 --max-line-length=150 --ignore=C901,W503,E203 --statistics
