@@ -24,6 +24,5 @@ jobs:
               with:
                 ignore: |
                     W503
-                    W504
                     E203
                 max-line-length: "200"
