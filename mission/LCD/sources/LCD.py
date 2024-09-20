@@ -29,7 +29,7 @@ def format_line(value: str, unit: str):
     if emptySpaceLenght < 0:
         emptySpaceLenght = 0
 
-    formatedString = value[0: (spacesAvailable - unitLenght)]
+    formatedString = value[0 : (spacesAvailable - unitLenght)]
     formatedString += " " * emptySpaceLenght
     formatedString += " " + unit
 
