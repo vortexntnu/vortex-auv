@@ -22,4 +22,6 @@ jobs:
             - name: flake8 Lint
               uses: py-actions/flake8@v2
               with:
+                ignore: |
+                    "W504"
                 max-line-length: "200"
