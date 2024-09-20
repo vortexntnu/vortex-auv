@@ -1,8 +1,12 @@
 name: Format python code
-on: 
+on:
+  pull_request:
+    paths:
+      - '**/*.py'  # Run the workflow for any changes to Python files in pull requests
   push:
     paths:
-    - '**.py'
+      - '**/*.py'  # Run the workflow for any pushes that include Python files
+
 jobs:
   autoyapf:
     runs-on: ubuntu-latest
