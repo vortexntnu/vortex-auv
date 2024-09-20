@@ -85,8 +85,7 @@ class BlackBoxLogData:
                                               '%Y-%m-%d_%H:%M:%S')
             except ValueError as e:
                 print(
-                    f'Error parsing file timestamp, skipping file: {csv_file}. Error: {e}'
-                )
+                    f'Error parsing file timestamp, skipping file: {csv_file}. Error: {e}')
                 continue
 
             if file_time < older_than_time:
