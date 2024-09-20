@@ -1,7 +1,6 @@
 name: Python-formatter
 
-on:
-  workflow_dispatch:
+on: [push, pull_request]
 
 jobs:
   linter_name:
