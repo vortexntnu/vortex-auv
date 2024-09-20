@@ -44,7 +44,9 @@ class PowerSenseModule:
         # Sometimes an I/O timeout or error happens, it will run again when the
         # error disappears
         try:
-            system_voltage = (self.channel_voltage.convert_and_read() * self.psm_to_battery_voltage)
+            system_voltage = (
+                self.channel_voltage.convert_and_read() *
+                self.psm_to_battery_voltage)
             return system_voltage
         except Exception as error:
             print(f"ERROR: Failed retrieving voltage from PSM: {error}")
@@ -52,7 +54,8 @@ class PowerSenseModule:
 
     def get_current(self):
         try:
-            system_current = (self.channel_current.convert_and_read() - self.psm_to_battery_current_offset) * self.psm_to_battery_current_scale_factor
+            system_current = (self.channel_current.convert_and_read(
+            ) - self.psm_to_battery_current_offset) * self.psm_to_battery_current_scale_factor
             return system_current
         except Exception as error:
             print(f"ERROR: Failed retrieving current from PSM: {error}")

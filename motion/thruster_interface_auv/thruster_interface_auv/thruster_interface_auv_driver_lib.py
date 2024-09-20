@@ -139,7 +139,8 @@ class ThrusterInterfaceAUVDriver:
         # Apply thruster offset and limit PWM if needed
         for ESC_channel in range(len(thruster_pwm_array)):
             # Clamping pwm signal in case it is out of range
-            if (thruster_pwm_array[ESC_channel] < self.PWM_MIN[ESC_channel]):  # To small
+            if (thruster_pwm_array[ESC_channel] <
+                    self.PWM_MIN[ESC_channel]):  # To small
                 thruster_pwm_array[ESC_channel] = self.PWM_MIN[ESC_channel]
             elif (thruster_pwm_array[ESC_channel] > self.PWM_MAX[ESC_channel]):  # To big
                 thruster_pwm_array[ESC_channel] = self.PWM_MAX[ESC_channel]
