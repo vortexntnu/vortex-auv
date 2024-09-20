@@ -70,7 +70,8 @@ PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ACOUSTICS_CSV_FILE_DIR = PACKAGE_DIR + "/acoustics_data"
 
 # List of all the acoustic files
-acousticsCSVFiles = csv_files = glob.glob(ACOUSTICS_CSV_FILE_DIR + "/acoustics_data_" + "*.csv")
+acousticsCSVFiles = csv_files = glob.glob(ACOUSTICS_CSV_FILE_DIR +
+                                          "/acoustics_data_" + "*.csv")
 
 # Get the latest csv file name for acoustics data
 acousticsCSVFile = max(acousticsCSVFiles, key=os.path.getctime)
