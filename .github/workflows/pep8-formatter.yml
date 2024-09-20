@@ -1,30 +1,34 @@
-name: Format python code
-on:
-  push:
-    paths:
-      - '**/*.py'  # Run the workflow for any pushes that include Python files
+name: Run autopep8 Formatter
+
+on: [push, pull_request]
 
 jobs:
-  autoyapf:
+  format:
     runs-on: ubuntu-latest
-    name: Python formatter
+
     steps:
-      - uses: actions/checkout@master
-        with: 
-          ref: ${{ github.head_ref }}
-      - name: autoyapf
-        id: autoyapf
-        uses: mritunjaysharma394/autoyapf@v2
-        with: 
-          args: --style pep8 --recursive --in-place .
-      - name: Check for modified files
-        id: git-check
-        run: echo ::set-output name=modified::$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)
-      - name: Push changes
-        if: steps.git-check.outputs.modified == 'true'
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-          git remote set-url origin https://x-access-token:$${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git commit -am "Automated autoyapf fixes"
-          git push
+    # Step 1: Checkout the repository
+    - uses: actions/checkout@v2
+
+    # Step 2: Set up Python environment (since autopep8 is a Python tool)
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    # Step 3: Install autopep8
+    - name: Install autopep8
+      run: pip install autopep8
+
+    # Step 4: Run autopep8 formatter with aggressive mode on all files recursively
+    - name: Run autopep8
+      run: autopep8 --in-place --recursive --aggressive --aggressive .
+
+    # Step 5: Commit changes made by autopep8
+    - uses: EndBug/add-and-commit@v4
+      with:
+        author_name: 'Autopep8 Robot'
+        author_email: 'robot@example.com'
+        message: 'Committing autopep8 formatting changes'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
