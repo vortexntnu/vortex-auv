@@ -1,9 +1,10 @@
 name: flake8 Lint
 
 on:
-    push:
-        branches:
-            - '*'
+    workflow_run:
+        workflows: ["Format python code"]
+        types:
+            - completed
 jobs:
     flake8-lint:
         runs-on: ubuntu-22.04
@@ -20,4 +21,10 @@ jobs:
             - name: flake8 Lint
               uses: py-actions/flake8@v2
               with:
+                ignore: |
+                    "W504"
+                    "E123"
+                    "W503"
+                    "W292"
+                    "E251"
                 max-line-length: "200"
