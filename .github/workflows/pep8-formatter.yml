@@ -1,8 +1,5 @@
 name: Format python code
 on:
-  pull_request:
-    paths:
-      - '**/*.py'  # Run the workflow for any changes to Python files in pull requests
   push:
     paths:
       - '**/*.py'  # Run the workflow for any pushes that include Python files
