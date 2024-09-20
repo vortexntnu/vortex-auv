@@ -1,4 +1,4 @@
-name: Python-formatter
+name: Python formatter
 
 on: [push, pull_request]
 
@@ -27,3 +27,7 @@ jobs:
           message: 'Committing Black formatter changes'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # Optional: Add a workflow output so the next workflow knows if formatting changes were made
+    outputs:
+      formatted: ${{ steps.action_black.outputs.is_formatted }}
