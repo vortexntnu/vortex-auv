@@ -11,7 +11,7 @@ class AcousticsInterfaceNode(Node):
     """
         Publishes Acoustics data to ROS2
 
-        Methods: 
+        Methods:
             data_update() -> None:
                 calls fetch_data() from acoustics_interface
             data_publisher(self) -> None:
@@ -48,9 +48,8 @@ class AcousticsInterfaceNode(Node):
             Float32MultiArray, '/acoustics/position', 5)
 
         # Logs all the newest data
-        self.declare_parameter(
-            "acoustics.data_logging_rate", 1.0
-        )  # Providing a default value 1.0 => 1 samplings per second, verry slow
+        # Providing a default value 1.0 => 1 samplings per second, verry slow
+        self.declare_parameter("acoustics.data_logging_rate", 1.0)
         DATA_LOGING_RATE = self.get_parameter(
             "acoustics.data_logging_rate").get_parameter_value().double_value
         timer_period = 1.0 / DATA_LOGING_RATE
@@ -65,7 +64,7 @@ class AcousticsInterfaceNode(Node):
         self.declare_parameter("acoustics.frequencies_of_interest", [0] * 20)
         FREQUENCIES_OF_INTEREST_PARAMETERS = self.get_parameter(
             "acoustics.frequencies_of_interest").get_parameter_value(
-            ).integer_array_value
+        ).integer_array_value
 
         frequenciesOfInterest = []
         for i in range(0, len(FREQUENCIES_OF_INTEREST_PARAMETERS), 2):

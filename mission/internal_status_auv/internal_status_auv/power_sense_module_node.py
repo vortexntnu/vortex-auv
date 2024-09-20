@@ -74,9 +74,9 @@ class PowerSenseModulePublisher(Node):
         voltage_msg.data = self.voltage
 
         self.publisher_current.publish(
-            current_msg)  #publish current value to the "current topic"
+            current_msg)  # publish current value to the "current topic"
         self.publisher_voltage.publish(
-            voltage_msg)  #publish voltage value to the "voltge topic"
+            voltage_msg)  # publish voltage value to the "voltge topic"
 
     def warning_timer_callback(self):
         # Check if Voltage is abnormal and if so print a warning

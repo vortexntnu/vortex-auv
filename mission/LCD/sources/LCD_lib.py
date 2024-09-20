@@ -95,8 +95,7 @@ class LCDScreenDriver:
         # Display sequence
         steps = 26
         for a in range(
-                steps +
-                4):  # Adjusted range to ensure all characters exit screen
+                steps + 4):  # Adjusted range to ensure all characters exit screen
             self._LCD.clear()
 
             # Ghost position and animation
@@ -107,7 +106,8 @@ class LCDScreenDriver:
                 self._LCD.write_string(chr(2))
 
             # Pac-Man position and animation
-            pac_man_start_pos = ghost_start_pos + 4  # Starts 4 positions to the right of the ghost initially
+            # Starts 4 positions to the right of the ghost initially
+            pac_man_start_pos = ghost_start_pos + 4
             pac_man_current_pos = pac_man_start_pos - a
             if 0 <= pac_man_current_pos < 16:
                 self._LCD.cursor_pos = (1, pac_man_current_pos)

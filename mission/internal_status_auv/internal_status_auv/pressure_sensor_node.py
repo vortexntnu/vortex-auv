@@ -41,12 +41,12 @@ class PressurePublisher(Node):
                                1000.0)
         self.pressureCriticalLevel = self.get_parameter(
             "internal_status.pressure_critical_level").get_parameter_value(
-            ).double_value
+        ).double_value
 
         self.declare_parameter("internal_status.pressure_warning_rate", 0.1)
         warning_rate = self.get_parameter(
             "internal_status.pressure_warning_rate").get_parameter_value(
-            ).double_value
+        ).double_value
         warning_timer_period = 1.0 / warning_rate
         self.warning_timer = self.create_timer(warning_timer_period,
                                                self.warning_timer_callback)

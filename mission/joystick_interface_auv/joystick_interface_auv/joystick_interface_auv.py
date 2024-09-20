@@ -30,12 +30,12 @@ class Wired:
     ]
 
     joystick_axes_map_ = [
-        "horizontal_axis_left_stick",  #Sway
-        "vertical_axis_left_stick",  #Surge
-        "LT",  #Negative thrust/torque multiplier
-        "horizontal_axis_right_stick",  #Yaw
+        "horizontal_axis_left_stick",  # Sway
+        "vertical_axis_left_stick",  # Surge
+        "LT",  # Negative thrust/torque multiplier
+        "horizontal_axis_right_stick",  # Yaw
         "vertical_axis_right_stick",
-        "RT",  #Positive thrust/torque multiplier
+        "RT",  # Positive thrust/torque multiplier
         "dpad_horizontal",
         "dpad_vertical",
     ]
@@ -62,12 +62,12 @@ class WirelessXboxSeriesX:
     ]
 
     joystick_axes_map_ = [
-        "horizontal_axis_left_stick",  #Sway
-        "vertical_axis_left_stick",  #Surge
-        "horizontal_axis_right_stick",  #Yaw
+        "horizontal_axis_left_stick",  # Sway
+        "vertical_axis_left_stick",  # Surge
+        "horizontal_axis_right_stick",  # Yaw
         "vertical_axis_right_stick",
-        "RT",  #Positive thrust/torque multiplier
-        "LT",  #Negative thrust/torque multiplier
+        "RT",  # Positive thrust/torque multiplier
+        "LT",  # Negative thrust/torque multiplier
         "dpad_horizontal",
         "dpad_vertical",
     ]
@@ -104,7 +104,7 @@ class JoystickInterface(Node):
         self.declare_parameter('roll_scale_factor', 30.0)
         self.declare_parameter('pitch_scale_factor', 20.0)
 
-        #Gets the scaling factors from the yaml file
+        # Gets the scaling factors from the yaml file
         self.joystick_surge_scaling_ = self.get_parameter(
             'surge_scale_factor').value
         self.joystick_sway_scaling_ = self.get_parameter(
@@ -118,13 +118,13 @@ class JoystickInterface(Node):
         self.joystick_pitch_scaling_ = self.get_parameter(
             'pitch_scale_factor').value
 
-        #Killswitch publisher
+        # Killswitch publisher
         self.software_killswitch_signal_publisher_ = self.create_publisher(
             Bool, "softwareKillSwitch", 10)
         self.software_killswitch_signal_publisher_.publish(
-            Bool(data=True))  #Killswitch is active
+            Bool(data=True))  # Killswitch is active
 
-        #Operational mode publisher
+        # Operational mode publisher
         self.operational_mode_signal_publisher_ = self.create_publisher(
             String, "softwareOperationMode", 10)
 
@@ -176,7 +176,7 @@ class JoystickInterface(Node):
     def joystick_cb(self, msg: Joy) -> Wrench:
         """
         Callback function that receives joy messages and converts them into
-        wrench messages to be sent to the thruster allocation node. 
+        wrench messages to be sent to the thruster allocation node.
         Handles software killswitch and control mode buttons,
         and transitions between different states of operation.
 

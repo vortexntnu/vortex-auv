@@ -34,16 +34,17 @@ class PowerSenseModule:
         except Exception as error:
             print(f"ERROR: Failed connecting to PSM: {error}")
 
-        # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
+        # Convertion ratios taken from PSM datasheet at:
+        # https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
         self.psm_to_battery_voltage = 11.0  # V/V
         self.psm_to_battery_current_scale_factor = 37.8788  # A/V
         self.psm_to_battery_current_offset = 0.330  # V
 
     def get_voltage(self):
-        # Sometimes an I/O timeout or error happens, it will run again when the error disappears
+        # Sometimes an I/O timeout or error happens, it will run again when the
+        # error disappears
         try:
-            system_voltage = (self.channel_voltage.convert_and_read() *
-                              self.psm_to_battery_voltage)
+            system_voltage = (self.channel_voltage.convert_and_read() * self.psm_to_battery_voltage)
             return system_voltage
         except Exception as error:
             print(f"ERROR: Failed retrieving voltage from PSM: {error}")
@@ -51,9 +52,7 @@ class PowerSenseModule:
 
     def get_current(self):
         try:
-            system_current = (self.channel_current.convert_and_read() -
-                              self.psm_to_battery_current_offset
-                              ) * self.psm_to_battery_current_scale_factor
+            system_current = (self.channel_current.convert_and_read() - self.psm_to_battery_current_offset) * self.psm_to_battery_current_scale_factor
             return system_current
         except Exception as error:
             print(f"ERROR: Failed retrieving current from PSM: {error}")

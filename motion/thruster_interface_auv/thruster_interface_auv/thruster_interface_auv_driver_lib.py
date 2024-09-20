@@ -35,7 +35,8 @@ class ThrusterInterfaceAUVDriver:
         self.PWM_MAX = PWM_MAX
 
         # Convert SYSTEM_OPERATIONAL_VOLTAGE to a whole even number to work with
-        # This is because we have multiple files for the behavious of the thrusters depending on the voltage of the drone
+        # This is because we have multiple files for the behavious of the
+        # thrusters depending on the voltage of the drone
         if (SYSTEM_OPERATIONAL_VOLTAGE < 11.0):
             self.SYSTEM_OPERATIONAL_VOLTAGE = 10
         elif (SYSTEM_OPERATIONAL_VOLTAGE < 13.0):
@@ -80,7 +81,8 @@ class ThrusterInterfaceAUVDriver:
                                         thrusterDatasheetFileForces,
                                         thrusterDatasheetFileDataPWM)
 
-        # Convert PWM signal to integers as they are interpolated and can have floats
+        # Convert PWM signal to integers as they are interpolated and can have
+        # floats
         interpolated_pwm = [int(pwm) for pwm in interpolated_pwm]
 
         return interpolated_pwm
@@ -97,7 +99,8 @@ class ThrusterInterfaceAUVDriver:
             i2c_data_array.extend([msb, lsb])
 
         # Send the whole array through I2C
-        # OBS!: Python adds an extra byte at the start that the Microcotroller that is receiving this has to handle
+        # OBS!: Python adds an extra byte at the start that the Microcotroller
+        # that is receiving this has to handle
         self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0, i2c_data_array)
 
     def drive_thrusters(self, thruster_forces_array):
@@ -136,14 +139,13 @@ class ThrusterInterfaceAUVDriver:
         # Apply thruster offset and limit PWM if needed
         for ESC_channel in range(len(thruster_pwm_array)):
             # Clamping pwm signal in case it is out of range
-            if (thruster_pwm_array[ESC_channel]
-                    < self.PWM_MIN[ESC_channel]):  # To small
+            if (thruster_pwm_array[ESC_channel] < self.PWM_MIN[ESC_channel]):  # To small
                 thruster_pwm_array[ESC_channel] = self.PWM_MIN[ESC_channel]
-            elif (thruster_pwm_array[ESC_channel]
-                  > self.PWM_MAX[ESC_channel]):  # To big
+            elif (thruster_pwm_array[ESC_channel] > self.PWM_MAX[ESC_channel]):  # To big
                 thruster_pwm_array[ESC_channel] = self.PWM_MAX[ESC_channel]
 
-        # Send data through I2C to the microcontroller that then controls the ESC and extention the thrusters
+        # Send data through I2C to the microcontroller that then controls the
+        # ESC and extention the thrusters
         try:
             self._send_data_to_escs(thruster_pwm_array)
         except Exception as errorCode:

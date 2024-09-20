@@ -26,9 +26,8 @@ class TemperaturePublisher(Node):
         # Data gathering cycle ----------
         self.temperature = 0.0
 
-        self.declare_parameter(
-            "internal_status.temperature_read_rate", 0.1
-        )  # Providing a default value 0.1 => 10 second delay per data gathering
+        # Providing a default value 0.1 => 10 second delay per data gathering
+        self.declare_parameter("internal_status.temperature_read_rate", 0.1)
         read_rate = self.get_parameter("internal_status.temperature_read_rate"
                                        ).get_parameter_value().double_value
         timer_period = 1.0 / read_rate
@@ -41,12 +40,12 @@ class TemperaturePublisher(Node):
                                90.0)
         self.temperatureCriticalLevel = self.get_parameter(
             "internal_status.temperature_critical_level").get_parameter_value(
-            ).double_value
+        ).double_value
 
         self.declare_parameter("internal_status.temperature_warning_rate", 0.1)
         warning_rate = self.get_parameter(
             "internal_status.temperature_warning_rate").get_parameter_value(
-            ).double_value
+        ).double_value
         warning_timer_period = 1.0 / warning_rate
         self.warning_timer = self.create_timer(warning_timer_period,
                                                self.warning_timer_callback)
