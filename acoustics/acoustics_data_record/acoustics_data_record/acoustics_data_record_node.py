@@ -17,11 +17,13 @@ class AcousticsDataRecordNode(Node):
 
     def __init__(self):
         # Variables for seting upp loging correctly
-        hydrophoneDataSize = (
-            2**10
-        ) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
-        DSPDataSize = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
-        TDOADataSize = 5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
+        # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers
+        # full of this data
+        hydrophoneDataSize = (2**10) * 3
+        # DSP (Digital Signal Processing) has 2^10 long data
+        DSPDataSize = 2**10
+        # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
+        TDOADataSize = 5
         positionDataSize = 3  # position only has X, Y, Z basicaly 3 elements
 
         # Initialize ROS2 node
@@ -84,17 +86,18 @@ class AcousticsDataRecordNode(Node):
         # Get package directory location
         ros2_package_directory_location = get_package_share_directory(
             "acoustics_data_record")
-        ros2_package_directory_location = ros2_package_directory_location + "/../../../../"  # go back to workspace
-        ros2_package_directory_location = ros2_package_directory_location + "src/vortex-auv/acoustics/acoustics_data_record/"  # Navigate to this package
+        ros2_package_directory_location = ros2_package_directory_location + \
+            "/../../../../"  # go back to workspace
+        ros2_package_directory_location = ros2_package_directory_location + \
+            "src/vortex-auv/acoustics/acoustics_data_record/"  # Navigate to this package
 
         # Make blackbox loging file
         self.acoustics_data_record = AcousticsDataRecordLib(
             ROS2_PACKAGE_DIRECTORY=ros2_package_directory_location)
 
         # Logs all the newest data 1 time(s) per second
-        self.declare_parameter(
-            "acoustics.data_logging_rate", 1.0
-        )  # Providing a default value 1.0 => 1 samplings per second, verry slow
+        # Providing a default value 1.0 => 1 samplings per second, verry slow
+        self.declare_parameter("acoustics.data_logging_rate", 1.0)
         DATA_LOGING_RATE = self.get_parameter(
             "acoustics.data_logging_rate").get_parameter_value().double_value
         timer_period = 1.0 / DATA_LOGING_RATE

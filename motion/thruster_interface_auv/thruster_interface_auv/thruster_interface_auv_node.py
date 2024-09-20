@@ -65,7 +65,8 @@ class ThrusterInterfaceAUVNode(Node):
             PWM_MAX=self.thruster_PWM_max)
 
         # Start clock timer for driving thrusters every 0.2 seconds
-        # Declare "self.thruster_forces_array" in case no topic comes in at the first possible second
+        # Declare "self.thruster_forces_array" in case no topic comes in at the
+        # first possible second
         self.thruster_forces_array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         self.timer = self.create_timer(self.thrust_timer_period,
@@ -81,7 +82,8 @@ class ThrusterInterfaceAUVNode(Node):
 
     def _timer_callback(self):
         # Send thruster forces to be converted into PWM signal and sent to control the thrusters
-        # PWM signal gets saved and is published in the "/pwm" topic as a debuging feature to see if everything is alright with the PWM signal
+        # PWM signal gets saved and is published in the "/pwm" topic as a
+        # debuging feature to see if everything is alright with the PWM signal
         thruster_pwm_array = self.thruster_driver.drive_thrusters(
             self.thruster_forces_array)
 

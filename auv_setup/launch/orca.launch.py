@@ -1,6 +1,5 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
 from launch.actions import SetEnvironmentVariable, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
@@ -18,7 +17,7 @@ def generate_launch_description():
             os.path.join(get_package_share_directory('thrust_allocator_auv'),
                          'launch', 'thrust_allocator_auv.launch.py')))
 
-    #Thruster Interface launch
+    # Thruster Interface launch
     thruster_interface_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(get_package_share_directory('thruster_interface_auv'),

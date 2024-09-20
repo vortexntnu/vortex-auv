@@ -2,14 +2,10 @@
 
 # Libraries for file manipulation
 import os
-import sys
-import ast
 import glob
 
 # Libraries for handling data structures
 import pandas as pd
-import numpy as np
-import array
 
 # Libraries for anmation
 import matplotlib.animation as animation
@@ -17,11 +13,12 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 
 # Variables for seting upp data structures correctly
-hydrophoneDataSize = (
-    2**10
-) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
+# 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers
+# full of this data
+hydrophoneDataSize = (2**10) * 3
 DSPDataSize = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
-TDOADataSize = 5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
+# TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
+TDOADataSize = 5
 positionDataSize = 3  # position only has X, Y, Z basicaly 3 elements
 
 # Important variables for later processing of data
@@ -38,7 +35,8 @@ gs_hydrophone = gridspec.GridSpecFromSubplotSpec(5,
                                                  1,
                                                  subplot_spec=outer_gs[0],
                                                  hspace=0.1)
-# Create an inner GridSpec for the second column, with height ratios for the 70%/30% split
+# Create an inner GridSpec for the second column, with height ratios for
+# the 70%/30% split
 gs_dsp = gridspec.GridSpecFromSubplotSpec(2,
                                           1,
                                           subplot_spec=outer_gs[1],
@@ -152,7 +150,7 @@ def getAcousticsData():
         tdoaData = convertPandasObjectToFloatArray(latestAcousticsData["TDOA"])
         positonData = convertPandasObjectToFloatArray(
             latestAcousticsData["Position"])
-    except:
+    except BaseException:
         print("ERROR: Coulden't read acoustics data")
 
     # Post process DSP data to desired scale and amount ----------
@@ -179,7 +177,7 @@ def getAcousticsData():
 
         peaksAmplitudeData = tempAmplitude
         peaksFrequencyData = tempFrequency
-    except:
+    except BaseException:
         print("ERROR processing DSP data")
 
     # return processed data ----------

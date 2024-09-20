@@ -1,16 +1,12 @@
 # Setting up libraries
-import os
-import sys
-from socket import *
-import netifaces as ni
-from enum import Enum
+from socket import socket, AF_INET, SOCK_DGRAM, error
 import errno
 import time
 
 
 class TeensyCommunicationUDP:
     """
-        This class is responsible for the RPI side of teensy-RPI UDP communication. It is 
+        This class is responsible for the RPI side of teensy-RPI UDP communication. It is
         implemented with a singleton pattern for convenience.
 
         Note: Private members are denoted by _member_name
@@ -27,7 +23,7 @@ class TeensyCommunicationUDP:
             _data_string (str): buffer for received teensy data
             _data_target (str): the field of `acoustics_data` that is written to
             acoustics_data (dict[str, list[int]]): containter for data from teensy
-        
+
         Methods:
         --------
             init_communication(frequenciesOfInterest: list[tuple[int, int]]) -> None:
@@ -40,13 +36,13 @@ class TeensyCommunicationUDP:
                 Converts _data_string into a list of either floats or integers
             _get_ip() -> None:
                 Gets the IP address of the device
-            _send_acknowledge_signal() -> None:        
+            _send_acknowledge_signal() -> None:
                 Sends the _INITIALIZATION_MESSAGE to teensy
             _check_if_available() -> None:
                 Checks the UDP message buffer for a READY message
             _send_frequencies_of_interest(frequenciesOfInterest: list[tuple[float, float]]) -> None:
                 Sends the list of frequencies and variances to teensy
-            
+
     """
     # Teensy networking Setup
     _TEENSY_IP = "10.0.0.111"
@@ -56,7 +52,9 @@ class TeensyCommunicationUDP:
     _TIMEOUT = 1
     _address = (_TEENSY_IP, _TEENSY_PORT)
 
-    _INITIALIZATION_MESSAGE = "HELLO :D"  # This is a message only sent once to establish 2 way communication between Teensy and client
+    # This is a message only sent once to establish 2 way communication
+    # between Teensy and client
+    _INITIALIZATION_MESSAGE = "HELLO :D"
 
     _clientSocket = socket(AF_INET, SOCK_DGRAM)
 
@@ -87,8 +85,6 @@ class TeensyCommunicationUDP:
         """
         assert len(frequenciesOfInterest
                    ) == 10, "Frequency list has to have exactly 10 entries"
-
-        _frequenciesOfInterest = frequenciesOfInterest
 
         cls.MY_IP = cls._get_ip()
 
@@ -126,7 +122,7 @@ class TeensyCommunicationUDP:
         while True:
             data = cls._get_raw_data()
 
-            if data == None:
+            if data is None:
                 return
 
             if data not in cls.acoustics_data.keys():
@@ -153,7 +149,7 @@ class TeensyCommunicationUDP:
         else:
             data = cls._parse_data_string(is_float=False)
 
-        if data == None:
+        if data is None:
             cls._data_string = ""
             return
 
@@ -189,10 +185,11 @@ class TeensyCommunicationUDP:
             Parameters:
                 is_float (bool): whether _data_string should be seen as a list of floats or ints
 
-            Returns: 
+            Returns:
                 The converted list
         """
-        if cls._data_string == '': return
+        if cls._data_string == '':
+            return
 
         try:
             # Format data from CSV string to floats, ignore last value
@@ -245,7 +242,7 @@ class TeensyCommunicationUDP:
         """
             Checks if READY has been received
 
-            Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all* 
+            Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all*
             the data in the UDP buffer is read out when waiting for ready signal, to avoid strange bugs
         """
         try:
@@ -254,7 +251,7 @@ class TeensyCommunicationUDP:
                 # Read data
                 message = cls._get_raw_data()
                 # Check if there is no more data left
-                if message == None:
+                if message is None:
                     return False
 
                 # Check if correct signal was sent
@@ -282,17 +279,19 @@ class TeensyCommunicationUDP:
         """
         try:
 
-            # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
+            # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then
+            # variances)
             assert len(
                 frequenciesOfInterest
             ) == 10, "List of frequencies has to be ten entries long!"
 
-            # ten messages in total, one message for each entry to work around the max packet size
+            # ten messages in total, one message for each entry to work around
+            # the max packet size
             for (frequency, variance) in frequenciesOfInterest:
                 frequency_variance_msg = f"{str(frequency)},{str(variance)},"
 
                 # print(self.address);
                 cls._clientSocket.sendto(frequency_variance_msg.encode(),
                                          cls._address)
-        except:
+        except BaseException:
             print("Couldn't send Frequency data")
