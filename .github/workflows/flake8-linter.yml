@@ -1,6 +1,7 @@
 name: flake8 Lint
 
 on:
+    pull_request:
     workflow_run:
         workflows: ["Format python code"]
         types:
