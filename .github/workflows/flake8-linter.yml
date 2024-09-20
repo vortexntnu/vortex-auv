@@ -27,4 +27,3 @@ jobs:
                     "F403"
                     "F405"
                 max-line-length: "200"
-                path: "src"
