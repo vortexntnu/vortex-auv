@@ -10,7 +10,6 @@ import internal_status_auv.pressure_sensor_lib
 
 
 class PressurePublisher(Node):
-
     def __init__(self):
         # Pressure sensor setup ----------
         self.Pressure = internal_status_auv.pressure_sensor_lib.PressureSensor()

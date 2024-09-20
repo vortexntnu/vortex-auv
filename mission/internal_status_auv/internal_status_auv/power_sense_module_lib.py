@@ -5,7 +5,6 @@ from MCP342x import MCP342x
 
 
 class PowerSenseModule:
-
     def __init__(self):
         # Parameters
         # to read voltage and current from ADC on PDB through I2C

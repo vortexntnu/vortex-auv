@@ -273,7 +273,6 @@ class TeensyCommunicationUDP:
             frequenciesOfInterest (list[tuple[float, float]]): The list of frequencies w/ variance
         """
         try:
-
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then
             # variances)
             assert (

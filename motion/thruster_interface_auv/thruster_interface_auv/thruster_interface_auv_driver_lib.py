@@ -6,7 +6,6 @@ import numpy
 
 
 class ThrusterInterfaceAUVDriver:
-
     def __init__(
         self,
         I2C_BUS=1,

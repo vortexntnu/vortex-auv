@@ -15,7 +15,6 @@ from blackbox.blackbox_log_data import BlackBoxLogData
 
 
 class BlackBoxNode(Node):
-
     def __init__(self):
         # Start the ROS2 Node ----------
         super().__init__("blackbox_node")

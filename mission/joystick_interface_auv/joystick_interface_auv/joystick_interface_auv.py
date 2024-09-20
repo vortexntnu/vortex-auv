@@ -74,7 +74,6 @@ class WirelessXboxSeriesX:
 
 
 class JoystickInterface(Node):
-
     def __init__(self):
         super().__init__("joystick_interface_node")
         self.get_logger().info(

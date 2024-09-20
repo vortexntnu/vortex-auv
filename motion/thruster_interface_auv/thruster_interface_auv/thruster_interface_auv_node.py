@@ -13,7 +13,6 @@ from thruster_interface_auv.thruster_interface_auv_driver_lib import (
 
 
 class ThrusterInterfaceAUVNode(Node):
-
     def __init__(self):
         # Initialize and name the node process running
         super().__init__("thruster_interface_auv_node")

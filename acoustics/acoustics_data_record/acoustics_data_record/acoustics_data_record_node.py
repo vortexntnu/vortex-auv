@@ -14,7 +14,6 @@ from acoustics_data_record_lib import AcousticsDataRecordLib
 
 
 class AcousticsDataRecordNode(Node):
-
     def __init__(self):
         # Variables for seting upp loging correctly
         # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers

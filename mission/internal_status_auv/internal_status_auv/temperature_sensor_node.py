@@ -10,7 +10,6 @@ import internal_status_auv.temperature_sensor_lib
 
 
 class TemperaturePublisher(Node):
-
     def __init__(self):
         # Pressure sensor setup ----------
         self.Temperature = (

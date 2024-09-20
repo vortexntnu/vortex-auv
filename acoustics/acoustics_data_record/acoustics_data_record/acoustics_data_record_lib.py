@@ -5,7 +5,6 @@ from datetime import datetime
 
 
 class AcousticsDataRecordLib:
-
     def __init__(self, ROS2_PACKAGE_DIRECTORY=""):
         # Global variables for .csv file manipulation ----------
         # Get the path for the directory where we will store our data

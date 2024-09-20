@@ -10,7 +10,6 @@ import internal_status_auv.power_sense_module_lib
 
 
 class PowerSenseModulePublisher(Node):
-
     def __init__(self):
         # Node setup ----------
         super().__init__("power_sense_module_publisher")

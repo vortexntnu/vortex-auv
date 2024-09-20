@@ -11,7 +11,6 @@ import subprocess
 
 
 class TemperatureSensor:
-
     def __init__(self):
         # Temperature Sensor Setup
         self.temperature_sensor_file_location = "/sys/class/thermal/thermal_zone0/temp"

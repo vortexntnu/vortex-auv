@@ -7,7 +7,6 @@ from RPLCD.i2c import CharLCD
 
 
 class LCDScreenDriver:
-
     def __init__(self):
         # Initialize LCD Screen
         lcd_i2c_address = 0x27
