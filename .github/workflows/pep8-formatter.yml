@@ -1,4 +1,4 @@
-name: Run autopep8 Formatter
+name: Run black Formatter
 
 on: [push, pull_request]
 
@@ -10,25 +10,25 @@ jobs:
     # Step 1: Checkout the repository
     - uses: actions/checkout@v3
 
-    # Step 2: Set up Python environment (since autopep8 is a Python tool)
+    # Step 2: Set up Python environment
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
 
-    # Step 3: Install autopep8
-    - name: Install autopep8
-      run: pip install autopep8
+    # Step 3: Install black
+    - name: Install black
+      run: pip install black
 
-    # Step 4: Run autopep8 formatter with aggressive mode on all files recursively
-    - name: Run autopep8
-      run: autopep8 --in-place --recursive --aggressive --aggressive .
+    # Step 4: Run black formatter
+    - name: Run black
+      run: black .
 
-    # Step 5: Commit changes made by autopep8
+    # Step 5: Commit changes made by black
     - uses: EndBug/add-and-commit@v4
       with:
-        author_name: 'Autopep8 Robot'
+        author_name: 'Black Formatter Robot'
         author_email: 'robot@example.com'
-        message: 'Committing autopep8 formatting changes'
+        message: 'Committing black formatting changes'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

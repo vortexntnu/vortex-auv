@@ -3,7 +3,7 @@ name: flake8 Lint
 on:
     pull_request:
     workflow_run:
-        workflows: ["Run autopep8 Formatter"]
+        workflows: ["Run black Formatter"]
         types:
             - completed
 jobs:
