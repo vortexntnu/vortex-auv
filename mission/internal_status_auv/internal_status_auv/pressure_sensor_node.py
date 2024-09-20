@@ -66,9 +66,7 @@ class PressurePublisher(Node):
     def warning_timer_callback(self):
         # Check if Pressure is abnormaly to high, if so print a warning
         if (self.pressure > self.pressureCriticalLevel):
-            self.logger.fatal(
-                f"WARNING: Internal pressure to HIGH: {
-                    self.pressure} hPa! Drone might be LEAKING!")
+            self.logger.fatal(f"WARNING: Internal pressure to HIGH: {self.pressure} hPa! Drone might be LEAKING!")
 
 
 def main(args=None):
