@@ -67,8 +67,7 @@ class TemperaturePublisher(Node):
         # Check if Temperature is abnormal and if so print a warning
         if (self.temperature > self.temperatureCriticalLevel):
             self.logger.fatal(
-                f"WARNING: Temperature inside the Drone to HIGH: {
-                    self.temperature} *C! Drone might be overheating!")
+                f"WARNING: Temperature inside the Drone to HIGH: {self.temperature} *C! Drone might be overheating!")
 
 
 def main(args=None):

@@ -95,8 +95,7 @@ class LCDScreenDriver:
         # Display sequence
         steps = 26
         for a in range(
-                steps +
-                4):  # Adjusted range to ensure all characters exit screen
+                steps + 4):  # Adjusted range to ensure all characters exit screen
             self._LCD.clear()
 
             # Ghost position and animation
