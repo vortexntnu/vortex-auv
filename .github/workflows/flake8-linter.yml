@@ -1,10 +1,11 @@
 name: flake8 Lint
 
 on:
-    workflow_run:
-        workflows: ["Format python code"]
-        types:
-            - completed
+    workflow_dispatch:
+    #workflow_run:
+    #    workflows: ["Format python code"]
+    #    types:
+    #        - completed
 jobs:
     flake8-lint:
         runs-on: ubuntu-22.04
@@ -16,11 +17,11 @@ jobs:
             - name: Set up Python environment
               uses: actions/setup-python@v4
               with:
-                python-version: 3
+                python-version: "3.11"
 
-            - name: Install flake8
-              run: pip --disable-pip-version-check install flake8
-
-            - name: Lint with flake8
-              run: flake8 --count
-              continue-on-error: false
+            - name: flake8 Lint
+              uses: py-actions/flake8@v2
+              with:
+                ignore: "F401"
+                max-line-length: "200"
+                path: "src"
