@@ -1,11 +1,10 @@
 name: flake8 Lint
 
 on:
-    push:
-    #workflow_run:
-    #    workflows: ["Format python code"]
-    #    types:
-    #        - completed
+    workflow_run:
+        workflows: ["Format python code"]
+        types:
+            - completed
 jobs:
     flake8-lint:
         runs-on: ubuntu-22.04
