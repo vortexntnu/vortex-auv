@@ -5,7 +5,6 @@ from MCP342x import MCP342x
 
 
 class PowerSenseModule:
-
     def __init__(self):
         # Parameters
         # to read voltage and current from ADC on PDB through I2C
@@ -23,14 +22,12 @@ class PowerSenseModule:
         self.channel_voltage = None
         self.channel_current = None
         try:
-            self.channel_voltage = MCP342x(self.bus,
-                                           self.i2c_adress,
-                                           channel=1,
-                                           resolution=18)  # voltage
-            self.channel_current = MCP342x(self.bus,
-                                           self.i2c_adress,
-                                           channel=0,
-                                           resolution=18)  # current
+            self.channel_voltage = MCP342x(
+                self.bus, self.i2c_adress, channel=1, resolution=18
+            )  # voltage
+            self.channel_current = MCP342x(
+                self.bus, self.i2c_adress, channel=0, resolution=18
+            )  # current
         except Exception as error:
             print(f"ERROR: Failed connecting to PSM: {error}")
 
@@ -45,8 +42,8 @@ class PowerSenseModule:
         # error disappears
         try:
             system_voltage = (
-                self.channel_voltage.convert_and_read() *
-                self.psm_to_battery_voltage)
+                self.channel_voltage.convert_and_read() * self.psm_to_battery_voltage
+            )
             return system_voltage
         except Exception as error:
             print(f"ERROR: Failed retrieving voltage from PSM: {error}")
@@ -54,8 +51,10 @@ class PowerSenseModule:
 
     def get_current(self):
         try:
-            system_current = (self.channel_current.convert_and_read(
-            ) - self.psm_to_battery_current_offset) * self.psm_to_battery_current_scale_factor
+            system_current = (
+                self.channel_current.convert_and_read()
+                - self.psm_to_battery_current_offset
+            ) * self.psm_to_battery_current_scale_factor
             return system_current
         except Exception as error:
             print(f"ERROR: Failed retrieving current from PSM: {error}")

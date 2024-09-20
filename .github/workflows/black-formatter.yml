@@ -1,0 +1,29 @@
+name: Python-formatter
+
+on: [push, pull_request]
+
+jobs:
+  linter_name:
+    name: runner / black
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code from the repository
+      - uses: actions/checkout@v4
+
+      # Step 2: Run the Black formatter on the code
+      - name: Check files using the black formatter
+        uses: rickstaa/action-black@v1
+        id: action_black
+        with:
+          black_args: "."
+
+      # Step 3: Commit changes if Black made any formatting updates
+      - name: Commit changes if code is formatted
+        if: steps.action_black.outputs.is_formatted == 'true'
+        uses: EndBug/add-and-commit@v4
+        with:
+          author_name: Black Formatter
+          author_email: black-formatter@example.com
+          message: 'Committing Black formatter changes'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

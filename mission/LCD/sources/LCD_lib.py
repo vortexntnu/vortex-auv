@@ -7,7 +7,6 @@ from RPLCD.i2c import CharLCD
 
 
 class LCDScreenDriver:
-
     def __init__(self):
         # Initialize LCD Screen
         lcd_i2c_address = 0x27
@@ -41,16 +40,31 @@ class LCDScreenDriver:
 
         # Custom characters ----------
         char_pacman_left_open = [
-            [0x0E, 0x1F, 0x1F, 0x1E, 0x1C, 0x1F, 0x1F,
-             0x0E],  # Pac-Man with mouth open
+            [0x0E, 0x1F, 0x1F, 0x1E, 0x1C, 0x1F, 0x1F, 0x0E],  # Pac-Man with mouth open
         ]
         char_pacman_right_open = [
-            [0x0E, 0x1F, 0x1F, 0x0F, 0x07, 0x1F, 0x1F,
-             0x0E],  # Pac-Man with mouth open facing right
+            [
+                0x0E,
+                0x1F,
+                0x1F,
+                0x0F,
+                0x07,
+                0x1F,
+                0x1F,
+                0x0E,
+            ],  # Pac-Man with mouth open facing right
         ]
         char_pacman_closed = [
-            [0x0E, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F,
-             0x0E],  # Pac-Man with mouth closed
+            [
+                0x0E,
+                0x1F,
+                0x1F,
+                0x1F,
+                0x1F,
+                0x1F,
+                0x1F,
+                0x0E,
+            ],  # Pac-Man with mouth closed
         ]
         char_ghost = [
             [0x0E, 0x1F, 0x1F, 0x15, 0x1F, 0x1F, 0x0E, 0x00],  # Ghost
@@ -65,7 +79,7 @@ class LCDScreenDriver:
         # Display sequence
         steps = 20
         for a in range(
-                steps
+            steps
         ):  # Increase range to allow characters to exit screen completely
             self._LCD.clear()
 
@@ -79,7 +93,9 @@ class LCDScreenDriver:
                     self._LCD.write_string(chr(1))  # Mouth closed
 
             # Ghost position and animation
-            if 3 < a < steps + 4:  # Start later and continue until the ghost is off-screen
+            if (
+                3 < a < steps + 4
+            ):  # Start later and continue until the ghost is off-screen
                 ghost_pos = (0, a - 4)  # Maintain spacing
                 self._LCD.cursor_pos = ghost_pos
                 self._LCD.write_string(chr(2))
@@ -95,7 +111,8 @@ class LCDScreenDriver:
         # Display sequence
         steps = 26
         for a in range(
-                steps + 4):  # Adjusted range to ensure all characters exit screen
+            steps + 4
+        ):  # Adjusted range to ensure all characters exit screen
             self._LCD.clear()
 
             # Ghost position and animation
