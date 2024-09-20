@@ -11,15 +11,18 @@ def generate_launch_description():
         "../../../../",  # Go to the workspace
         "src/vortex-auv/auv_setup/config/robots/",
         # Go inside where yamal files are located at
-        'orca.yaml')
+        "orca.yaml",
+    )
 
-    return LaunchDescription([
-        Node(
-            package='acoustics_data_record',
-            namespace='acoustics_data_record',
-            executable='acoustics_data_record_node.py',
-            name='acoustics_data_record_node',
-            output='screen',
-            parameters=[yaml_file_path],
-        ),
-    ])
+    return LaunchDescription(
+        [
+            Node(
+                package="acoustics_data_record",
+                namespace="acoustics_data_record",
+                executable="acoustics_data_record_node.py",
+                name="acoustics_data_record_node",
+                output="screen",
+                parameters=[yaml_file_path],
+            ),
+        ]
+    )
