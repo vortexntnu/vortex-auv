@@ -1,0 +1,25 @@
+name: flake8 Lint
+
+on:
+    push:
+    #workflow_run:
+    #    workflows: ["Format python code"]
+    #    types:
+    #        - completed
+jobs:
+    flake8-lint:
+        runs-on: ubuntu-22.04
+        name: Lint
+        steps:
+            - name: Check out source repo
+              uses: actions/checkout@v3
+
+            - name: Set up Python environment
+              uses: actions/setup-python@v4
+              with:
+                python-version: "3.11"
+
+            - name: flake8 Lint
+              uses: py-actions/flake8@v2
+              with:
+                max-line-length: "200"
