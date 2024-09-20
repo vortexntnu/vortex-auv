@@ -64,7 +64,7 @@ class AcousticsInterfaceNode(Node):
         self.declare_parameter("acoustics.frequencies_of_interest", [0] * 20)
         FREQUENCIES_OF_INTEREST_PARAMETERS = self.get_parameter(
             "acoustics.frequencies_of_interest").get_parameter_value(
-            ).integer_array_value
+        ).integer_array_value
 
         frequenciesOfInterest = []
         for i in range(0, len(FREQUENCIES_OF_INTEREST_PARAMETERS), 2):

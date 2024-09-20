@@ -56,8 +56,7 @@ class ThrusterInterfaceAUVNode(Node):
 
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
-            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=
-            get_package_share_directory("thruster_interface_auv"),
+            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=get_package_share_directory("thruster_interface_auv"),
             THRUSTER_MAPPING=self.thruster_mapping,
             THRUSTER_DIRECTION=self.thruster_direction,
             THRUSTER_PWM_OFFSET=self.thruster_PWM_offset,

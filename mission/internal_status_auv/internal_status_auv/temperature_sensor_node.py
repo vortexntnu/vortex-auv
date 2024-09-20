@@ -40,12 +40,12 @@ class TemperaturePublisher(Node):
                                90.0)
         self.temperatureCriticalLevel = self.get_parameter(
             "internal_status.temperature_critical_level").get_parameter_value(
-            ).double_value
+        ).double_value
 
         self.declare_parameter("internal_status.temperature_warning_rate", 0.1)
         warning_rate = self.get_parameter(
             "internal_status.temperature_warning_rate").get_parameter_value(
-            ).double_value
+        ).double_value
         warning_timer_period = 1.0 / warning_rate
         self.warning_timer = self.create_timer(warning_timer_period,
                                                self.warning_timer_callback)
@@ -67,8 +67,8 @@ class TemperaturePublisher(Node):
         # Check if Temperature is abnormal and if so print a warning
         if (self.temperature > self.temperatureCriticalLevel):
             self.logger.fatal(
-                f"WARNING: Temperature inside the Drone to HIGH: {self.temperature} *C! Drone might be overheating!"
-            )
+                f"WARNING: Temperature inside the Drone to HIGH: {
+                    self.temperature} *C! Drone might be overheating!")
 
 
 def main(args=None):
