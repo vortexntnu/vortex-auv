@@ -4,11 +4,11 @@ on: [push, pull_request]
 
 jobs:
   format:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     # Step 1: Checkout the repository
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     # Step 2: Set up Python environment (since autopep8 is a Python tool)
     - name: Set up Python

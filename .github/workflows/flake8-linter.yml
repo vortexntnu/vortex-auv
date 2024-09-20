@@ -23,5 +23,7 @@ jobs:
               uses: py-actions/flake8@v2
               with:
                 ignore: |
-                    "W504"
+                    W503
+                    W504
+                    E203
                 max-line-length: "200"
