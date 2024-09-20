@@ -100,10 +100,8 @@ class BlackBoxLogData:
             for f in os.listdir(self.blackbox_data_directory)
             if f.endswith('.csv')) / 1024
 
-        csv_files = [
-            f for f in os.listdir(self.blackbox_data_directory)
-            if f.endswith('.csv') and f.startswith('blackbox_data_') and pattern.match(f)
-        ]
+        csv_files = [f for f in os.listdir(self.blackbox_data_directory) if f.endswith(
+            '.csv') and f.startswith('blackbox_data_') and pattern.match(f)]
         # Delete oldest files if total size exceeds max_size_kb
         while total_size_kb > max_size_kb:
             # Sort .csv files by timestamp (oldest first)
