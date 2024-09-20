@@ -58,11 +58,12 @@ class BlackBoxLogData:
         self,
         max_file_age_in_days=7,
         max_size_kb=3_000_000
-    ):  #adjust the max size before you start deleting old files (1 000 000 kb = 1 000 mb = 1 gb)
+    ):  # adjust the max size before you start deleting old files (1 000 000 kb = 1 000 mb = 1 gb)
         current_time = datetime.now()
         older_than_time = current_time - timedelta(days=max_file_age_in_days)
 
-        # Compile a regular expression pattern for matching the expected filename format
+        # Compile a regular expression pattern for matching the expected
+        # filename format
         pattern = re.compile(
             r'blackbox_data_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})\.csv')
 

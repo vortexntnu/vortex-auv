@@ -26,9 +26,8 @@ class TemperaturePublisher(Node):
         # Data gathering cycle ----------
         self.temperature = 0.0
 
-        self.declare_parameter(
-            "internal_status.temperature_read_rate", 0.1
-        )  # Providing a default value 0.1 => 10 second delay per data gathering
+        # Providing a default value 0.1 => 10 second delay per data gathering
+        self.declare_parameter("internal_status.temperature_read_rate", 0.1)
         read_rate = self.get_parameter("internal_status.temperature_read_rate"
                                        ).get_parameter_value().double_value
         timer_period = 1.0 / read_rate

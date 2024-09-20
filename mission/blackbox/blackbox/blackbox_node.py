@@ -53,17 +53,18 @@ class BlackBoxNode(Node):
         # Get package directory location
         ros2_package_directory_location = get_package_share_directory(
             "blackbox")
-        ros2_package_directory_location = ros2_package_directory_location + "/../../../../"  # go back to workspace
-        ros2_package_directory_location = ros2_package_directory_location + "src/vortex-auv/mission/blackbox/"  # Navigate to this package
+        ros2_package_directory_location = ros2_package_directory_location + \
+            "/../../../../"  # go back to workspace
+        ros2_package_directory_location = ros2_package_directory_location + \
+            "src/vortex-auv/mission/blackbox/"  # Navigate to this package
 
         # Make blackbox loging file
         self.blackbox_log_data = BlackBoxLogData(
             ROS2_PACKAGE_DIRECTORY=ros2_package_directory_location)
 
         # Logs all the newest data 10 times per second
-        self.declare_parameter(
-            "blackbox.data_logging_rate", 1.0
-        )  # Providing a default value 1.0 => 1 samplings per second, verry slow
+        # Providing a default value 1.0 => 1 samplings per second, verry slow
+        self.declare_parameter("blackbox.data_logging_rate", 1.0)
         DATA_LOGING_RATE = self.get_parameter(
             "blackbox.data_logging_rate").get_parameter_value().double_value
         timer_period = 1.0 / DATA_LOGING_RATE
