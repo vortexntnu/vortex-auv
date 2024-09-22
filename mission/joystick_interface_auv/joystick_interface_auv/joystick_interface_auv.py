@@ -5,12 +5,13 @@ from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 from std_msgs.msg import String
-
+from geometry_msgs.msg import PoseStamped
 
 class States:
     XBOX_MODE = 1
     AUTONOMOUS_MODE = 2
     NO_GO = 3
+    REFERNCE_MODE = 4 #Not implemented yet
 
 
 class Wired:
@@ -94,8 +95,10 @@ class JoystickInterface(Node):
         self.joy_subscriber_ = self.create_subscription(
             Joy, "joystick/joy", self.joystick_cb, 5)
         self.wrench_publisher_ = self.create_publisher(Wrench,
-                                                       "thrust/wrench_input",
-                                                       5)
+                                                       "joystick/wrench",
+                                                       10) # Publishes the wrench message every 10 seconds 
+        self.pose_publisher = self.create_publisher(PoseStamped, "joystick/guidance", 10) #Publishes the current pose of the drone every 10 seconds 
+        self.current_pose = PoseStamped()
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -304,7 +307,10 @@ class JoystickInterface(Node):
             if xbox_control_mode_button:
                 self.transition_to_xbox_mode()
 
-        return wrench_msg
+        # return wrench_msg
+
+    def timer_cb(self):
+        pass
 
 
 def main():
