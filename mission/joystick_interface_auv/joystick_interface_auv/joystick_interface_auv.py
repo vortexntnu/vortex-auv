@@ -98,7 +98,9 @@ class JoystickInterface(Node):
                                                        "joystick/wrench",
                                                        10) # Publishes the wrench message every 10 seconds 
         self.pose_publisher = self.create_publisher(PoseStamped, "joystick/guidance", 10) #Publishes the current pose of the drone every 10 seconds 
+        self.timer_ = self.create_timer(0.1, self.timer_cb)
         self.current_pose = PoseStamped()
+
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
