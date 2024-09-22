@@ -13,7 +13,7 @@ jobs:
         source: '.'
         exclude: './lib'
         extensions: 'h,cpp,c'
-        clangFormatVersion: 20
+        clangFormatVersion: 18
         inplace: True
     - uses: EndBug/add-and-commit@v9
       with:
