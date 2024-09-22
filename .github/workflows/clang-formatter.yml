@@ -1,6 +1,6 @@
 name: Run clang-format Linter
 
-on: [push]
+on: [pull_request]
 
 jobs:
   build:
@@ -8,14 +8,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: DoozyX/clang-format-lint-action@v0.14
+    - uses: DoozyX/clang-format-lint-action@v0.18.1
       with:
         source: '.'
         exclude: './lib'
-        extensions: 'h,hpp,cpp,c'
-        clangFormatVersion: 14
+        extensions: 'h,cpp,c'
+        clangFormatVersion: 18
         inplace: True
-    - uses: EndBug/add-and-commit@v4
+    - uses: EndBug/add-and-commit@v9
       with:
         author_name: Clang Robot
         author_email: robot@example.com
