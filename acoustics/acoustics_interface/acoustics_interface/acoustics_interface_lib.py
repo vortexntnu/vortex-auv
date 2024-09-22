@@ -10,44 +10,45 @@ import time
 
 class TeensyCommunicationUDP:
     """
-        This class is responsible for the RPI side of teensy-RPI UDP communication. It is 
-        implemented with a singleton pattern for convenience.
+    This class is responsible for the RPI side of teensy-RPI UDP communication. It is
+    implemented with a singleton pattern for convenience.
 
-        Note: Private members are denoted by _member_name
+    Note: Private members are denoted by _member_name
 
-        Attributes:
-        -----------
-            _TEENSY_IP (string): self-explanatory
-            _TEENSY_PORT (int): teensy's data port
-            _MY_PORT (int): the device's data port
-            _MAX_PACKAGE_SIZE_RECEIVED (int): max size (in bytes) of UDP receive buffer
-            _TIMEOUT (int): socket timeout when reading data
-            _clientSocket (socket): UDP socket for teensy communication
-            _timeoutMax (int): time to wait before retrying handshake
-            _data_string (str): buffer for received teensy data
-            _data_target (str): the field of `acoustics_data` that is written to
-            acoustics_data (dict[str, list[int]]): containter for data from teensy
-        
-        Methods:
-        --------
-            init_communication(frequenciesOfInterest: list[tuple[int, int]]) -> None:
-                Sets up socket for communication with teensy and waits for handshake
-            fetch_data() -> None:
-                Reads a full data message from teensy and saves it
-            _write_to_target() -> None:
-                Writes _data_string to the correct field of acoustics_data
-            _parse_data_string(is_float: bool) -> list[float] | list[int] | None:
-                Converts _data_string into a list of either floats or integers
-            _get_ip() -> None:
-                Gets the IP address of the device
-            _send_acknowledge_signal() -> None:        
-                Sends the _INITIALIZATION_MESSAGE to teensy
-            _check_if_available() -> None:
-                Checks the UDP message buffer for a READY message
-            _send_frequencies_of_interest(frequenciesOfInterest: list[tuple[float, float]]) -> None:
-                Sends the list of frequencies and variances to teensy
-            
+    Attributes:
+    -----------
+        _TEENSY_IP (string): self-explanatory
+        _TEENSY_PORT (int): teensy's data port
+        _MY_PORT (int): the device's data port
+        _MAX_PACKAGE_SIZE_RECEIVED (int): max size (in bytes) of UDP receive buffer
+        _TIMEOUT (int): socket timeout when reading data
+        _clientSocket (socket): UDP socket for teensy communication
+        _timeoutMax (int): time to wait before retrying handshake
+        _data_string (str): buffer for received teensy data
+        _data_target (str): the field of `acoustics_data` that is written to
+        acoustics_data (dict[str, list[int]]): containter for data from teensy
+
+    Methods:
+    --------
+        init_communication(frequenciesOfInterest: list[tuple[int, int]]) -> None:
+            Sets up socket for communication with teensy and waits for handshake
+        fetch_data() -> None:
+            Reads a full data message from teensy and saves it
+        _write_to_target() -> None:
+            Writes _data_string to the correct field of acoustics_data
+        _parse_data_string(is_float: bool) -> list[float] | list[int] | None:
+            Converts _data_string into a list of either floats or integers
+        _get_ip() -> None:
+            Gets the IP address of the device
+        _send_acknowledge_signal() -> None:
+            Sends the _INITIALIZATION_MESSAGE to teensy
+        _check_if_available() -> None:
+            Checks the UDP message buffer for a READY message
+        _send_frequencies_of_interest(frequenciesOfInterest: list[tuple[float, float]]) -> None:
+            Sends the list of frequencies and variances to teensy
+
     """
+
     # Teensy networking Setup
     _TEENSY_IP = "10.0.0.111"
     _TEENSY_PORT = 8888
@@ -73,20 +74,20 @@ class TeensyCommunicationUDP:
         "FFT": [0],
         "PEAK": [0],
         "TDOA": [0],
-        "LOCATION": [0]
+        "LOCATION": [0],
     }
 
     @classmethod
-    def init_communication(
-            cls, frequenciesOfInterest: list[tuple[int, int]]) -> None:
+    def init_communication(cls, frequenciesOfInterest: list[tuple[int, int]]) -> None:
         """
-            Sets up communication with teensy
+        Sets up communication with teensy
 
-            Parameters:
-                frequenciesOfInterest (list[tuple[int, int]]): List of frequencies to look for
+        Parameters:
+            frequenciesOfInterest (list[tuple[int, int]]): List of frequencies to look for
         """
-        assert len(frequenciesOfInterest
-                   ) == 10, "Frequency list has to have exactly 10 entries"
+        assert (
+            len(frequenciesOfInterest) == 10
+        ), "Frequency list has to have exactly 10 entries"
 
         _frequenciesOfInterest = frequenciesOfInterest
 
@@ -106,9 +107,7 @@ class TeensyCommunicationUDP:
             time.sleep(1)
 
             if time.time() - timeStart > cls._timeoutMax:
-                print(
-                    "Gave up on receiving READY. Sending acknowledge signal again"
-                )
+                print("Gave up on receiving READY. Sending acknowledge signal again")
                 # Start over
                 timeStart = time.time()
                 cls._send_acknowledge_signal()
@@ -119,7 +118,7 @@ class TeensyCommunicationUDP:
     @classmethod
     def fetch_data(cls) -> None:
         """
-            Gets data from teensy and stores it in `acoustics_data`
+        Gets data from teensy and stores it in `acoustics_data`
         """
         i = 0
 
@@ -146,7 +145,7 @@ class TeensyCommunicationUDP:
     @classmethod
     def _write_to_target(cls) -> None:
         """
-            Writes to the current target in `acoustics_data` and clears the data string
+        Writes to the current target in `acoustics_data` and clears the data string
         """
         if cls._data_target == "TDOA" or cls._data_target == "LOCATION":
             data = cls._parse_data_string(is_float=True)
@@ -164,14 +163,13 @@ class TeensyCommunicationUDP:
     @classmethod
     def _get_raw_data(cls) -> str | None:
         """
-            Gets a message from teensy
+        Gets a message from teensy
 
-            Returns:
-                The message in the UDP buffer if there is one
+        Returns:
+            The message in the UDP buffer if there is one
         """
         try:
-            rec_data, _ = cls._clientSocket.recvfrom(
-                cls._MAX_PACKAGE_SIZE_RECEIVED)
+            rec_data, _ = cls._clientSocket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
             messageReceived = rec_data.decode()
             return messageReceived
         except error as e:  # `error` is really `socket.error`
@@ -181,18 +179,18 @@ class TeensyCommunicationUDP:
                 print("Socket error: ", e)
 
     @classmethod
-    def _parse_data_string(cls,
-                           is_float: bool) -> list[float] | list[int] | None:
+    def _parse_data_string(cls, is_float: bool) -> list[float] | list[int] | None:
         """
-            Converts _data_string to a list
+        Converts _data_string to a list
 
-            Parameters:
-                is_float (bool): whether _data_string should be seen as a list of floats or ints
+        Parameters:
+            is_float (bool): whether _data_string should be seen as a list of floats or ints
 
-            Returns: 
-                The converted list
+        Returns:
+            The converted list
         """
-        if cls._data_string == '': return
+        if cls._data_string == "":
+            return
 
         try:
             # Format data from CSV string to floats, ignore last value
@@ -201,9 +199,7 @@ class TeensyCommunicationUDP:
             else:
                 return list(map(int, cls._data_string.split(",")[:-1]))
         except Exception as e:
-            print(
-                f"The string '{cls._data_string}' caused an error when parsing"
-            )
+            print(f"The string '{cls._data_string}' caused an error when parsing")
             print(f"The exception was: {e}")
 
     # stackoverflow <3
@@ -211,7 +207,7 @@ class TeensyCommunicationUDP:
     @classmethod
     def _get_ip(cls) -> None:
         """
-            Gets the device's IP address
+        Gets the device's IP address
         """
         s = socket(AF_INET, SOCK_DGRAM)
         s.settimeout(0)
@@ -220,7 +216,7 @@ class TeensyCommunicationUDP:
             s.connect((cls._TEENSY_IP, 1))
             IP = s.getsockname()[0]
         except Exception:
-            IP = '127.0.0.1'
+            IP = "127.0.0.1"
         finally:
             s.close()
 
@@ -229,11 +225,10 @@ class TeensyCommunicationUDP:
     @classmethod
     def _send_acknowledge_signal(cls) -> None:
         """
-            Sends "HELLO :D to teensy
+        Sends "HELLO :D to teensy
         """
         try:
-            cls._clientSocket.sendto(cls._INITIALIZATION_MESSAGE.encode(),
-                                     cls._address)
+            cls._clientSocket.sendto(cls._INITIALIZATION_MESSAGE.encode(), cls._address)
             print("DEBUGING: Sent acknowledge package")
         except Exception as e:
             print("Error from send_acknowledge_signal")
@@ -243,10 +238,10 @@ class TeensyCommunicationUDP:
     @classmethod
     def _check_if_available(cls) -> None:
         """
-            Checks if READY has been received
+        Checks if READY has been received
 
-            Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all* 
-            the data in the UDP buffer is read out when waiting for ready signal, to avoid strange bugs
+        Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all*
+        the data in the UDP buffer is read out when waiting for ready signal, to avoid strange bugs
         """
         try:
             i = 0
@@ -273,26 +268,25 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _send_frequencies_of_interest(
-            cls, frequenciesOfInterest: list[tuple[float, float]]) -> None:
+        cls, frequenciesOfInterest: list[tuple[float, float]]
+    ) -> None:
         """
-            Sends the list of frequencies with variance to teensy
+        Sends the list of frequencies with variance to teensy
 
-            Parameters:
-                frequenciesOfInterest (list[tuple[float, float]]): The list of frequencies w/ variance
+        Parameters:
+            frequenciesOfInterest (list[tuple[float, float]]): The list of frequencies w/ variance
         """
         try:
-
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
-            assert len(
-                frequenciesOfInterest
-            ) == 10, "List of frequencies has to be ten entries long!"
+            assert (
+                len(frequenciesOfInterest) == 10
+            ), "List of frequencies has to be ten entries long!"
 
             # ten messages in total, one message for each entry to work around the max packet size
-            for (frequency, variance) in frequenciesOfInterest:
+            for frequency, variance in frequenciesOfInterest:
                 frequency_variance_msg = f"{str(frequency)},{str(variance)},"
 
                 # print(self.address);
-                cls._clientSocket.sendto(frequency_variance_msg.encode(),
-                                         cls._address)
+                cls._clientSocket.sendto(frequency_variance_msg.encode(), cls._address)
         except:
             print("Couldn't send Frequency data")

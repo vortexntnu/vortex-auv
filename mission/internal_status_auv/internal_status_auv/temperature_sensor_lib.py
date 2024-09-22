@@ -11,7 +11,6 @@ import subprocess
 
 
 class TemperatureSensor:
-
     def __init__(self):
         # Temperature Sensor Setup
         self.temperature_sensor_file_location = "/sys/class/thermal/thermal_zone0/temp"
@@ -22,7 +21,8 @@ class TemperatureSensor:
             result = subprocess.run(
                 ["cat", self.temperature_sensor_file_location],
                 capture_output=True,
-                text=True)
+                text=True,
+            )
 
             # Decode and strip to get rid of possible newline characters
             temperature_str = result.stdout.strip()

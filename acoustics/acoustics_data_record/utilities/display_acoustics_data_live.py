@@ -34,23 +34,21 @@ fig = plt.figure()
 # Create an outer GridSpec for the two columns
 outer_gs = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 1])
 # Create an inner GridSpec for the first column
-gs_hydrophone = gridspec.GridSpecFromSubplotSpec(5,
-                                                 1,
-                                                 subplot_spec=outer_gs[0],
-                                                 hspace=0.1)
+gs_hydrophone = gridspec.GridSpecFromSubplotSpec(
+    5, 1, subplot_spec=outer_gs[0], hspace=0.1
+)
 # Create an inner GridSpec for the second column, with height ratios for the 70%/30% split
-gs_dsp = gridspec.GridSpecFromSubplotSpec(2,
-                                          1,
-                                          subplot_spec=outer_gs[1],
-                                          height_ratios=[7, 3],
-                                          hspace=0.3)
+gs_dsp = gridspec.GridSpecFromSubplotSpec(
+    2, 1, subplot_spec=outer_gs[1], height_ratios=[7, 3], hspace=0.3
+)
 
 hydrophoneAxis = [None] * 5
 
 # Add subplots in the first column for hydrophone data
 for i in range(5):
     hydrophoneAxis[i] = fig.add_subplot(
-        gs_hydrophone[i, 0], sharex=hydrophoneAxis[0] if i else None)
+        gs_hydrophone[i, 0], sharex=hydrophoneAxis[0] if i else None
+    )
     hydrophoneAxis[i].label_outer()
 fig.text(0.25, 0.965, "Hydrophone Data", ha="center")
 
@@ -72,27 +70,24 @@ PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ACOUSTICS_CSV_FILE_DIR = PACKAGE_DIR + "/acoustics_data"
 
 # List of all the acoustic files
-acousticsCSVFiles = csv_files = glob.glob(ACOUSTICS_CSV_FILE_DIR +
-                                          "/acoustics_data_" + "*.csv")
+acousticsCSVFiles = csv_files = glob.glob(
+    ACOUSTICS_CSV_FILE_DIR + "/acoustics_data_" + "*.csv"
+)
 
 # Get the latest csv file name for acoustics data
 acousticsCSVFile = max(acousticsCSVFiles, key=os.path.getctime)
 
 
 def convertPandasObjectToIntArray(pandasObject):
-    pandasString = pandasObject.iloc[0].strip("array('i', ").rstrip(')')
-    pandasIntArray = [
-        int(x.strip()) for x in pandasString.strip('[]').split(',')
-    ]
+    pandasString = pandasObject.iloc[0].strip("array('i', ").rstrip(")")
+    pandasIntArray = [int(x.strip()) for x in pandasString.strip("[]").split(",")]
 
     return pandasIntArray
 
 
 def convertPandasObjectToFloatArray(pandasObject):
-    pandasString = pandasObject.iloc[0].strip("array('f', ").rstrip(')')
-    pandasFloatArray = [
-        float(x.strip()) for x in pandasString.strip('[]').split(',')
-    ]
+    pandasString = pandasObject.iloc[0].strip("array('f', ").rstrip(")")
+    pandasFloatArray = [float(x.strip()) for x in pandasString.strip("[]").split(",")]
 
     return pandasFloatArray
 
@@ -123,16 +118,11 @@ def getAcousticsData():
 
     try:
         # Get latest hydrophone data
-        hydrophone1 = convertPandasObjectToIntArray(
-            latestAcousticsData["Hydrophone1"])
-        hydrophone2 = convertPandasObjectToIntArray(
-            latestAcousticsData["Hydrophone2"])
-        hydrophone3 = convertPandasObjectToIntArray(
-            latestAcousticsData["Hydrophone3"])
-        hydrophone4 = convertPandasObjectToIntArray(
-            latestAcousticsData["Hydrophone4"])
-        hydrophone5 = convertPandasObjectToIntArray(
-            latestAcousticsData["Hydrophone5"])
+        hydrophone1 = convertPandasObjectToIntArray(latestAcousticsData["Hydrophone1"])
+        hydrophone2 = convertPandasObjectToIntArray(latestAcousticsData["Hydrophone2"])
+        hydrophone3 = convertPandasObjectToIntArray(latestAcousticsData["Hydrophone3"])
+        hydrophone4 = convertPandasObjectToIntArray(latestAcousticsData["Hydrophone4"])
+        hydrophone5 = convertPandasObjectToIntArray(latestAcousticsData["Hydrophone5"])
 
         # Unfiltered data is special as it is the same as Hydrohone 1 first 1024 values
         # This is because Acoustics PCB uses Hydrophone 1 to perform DSP
@@ -150,8 +140,7 @@ def getAcousticsData():
 
         # Get multilateration data
         tdoaData = convertPandasObjectToFloatArray(latestAcousticsData["TDOA"])
-        positonData = convertPandasObjectToFloatArray(
-            latestAcousticsData["Position"])
+        positonData = convertPandasObjectToFloatArray(latestAcousticsData["Position"])
     except:
         print("ERROR: Coulden't read acoustics data")
 
@@ -163,8 +152,7 @@ def getAcousticsData():
     maxFrequencyIndex = int(MAX_FREQUENCY_TO_SHOW * sampleLength / SAMPLE_RATE)
 
     FFTAmplitudeData = FFTData[0:maxFrequencyIndex]
-    FFTFrequencyData = [(i * (SAMPLE_RATE / sampleLength))
-                        for i in range(sampleLength)]
+    FFTFrequencyData = [(i * (SAMPLE_RATE / sampleLength)) for i in range(sampleLength)]
     FFTFrequencyData = FFTFrequencyData[0:maxFrequencyIndex]
 
     # Peaks data is special as each peak data value is a array of [Amplitude, Frequency, Phase] of the peak
@@ -242,16 +230,10 @@ def display_live_data(frame):
     xFilter = list(range(len(filterData)))
     filterAxis.clear()
     filterAxis.set_title("Filter response")
-    filterAxis.plot(xRaw,
-                    unfilteredData,
-                    label="Raw",
-                    color=colorSoftBlue,
-                    alpha=0.5)
-    filterAxis.plot(xFilter,
-                    filterData,
-                    label="Filter",
-                    color=colorSoftGreen,
-                    alpha=0.7)
+    filterAxis.plot(xRaw, unfilteredData, label="Raw", color=colorSoftBlue, alpha=0.5)
+    filterAxis.plot(
+        xFilter, filterData, label="Filter", color=colorSoftGreen, alpha=0.7
+    )
     filterAxis.legend(loc="upper right", fontsize="xx-small")
 
     # Plot FFT data

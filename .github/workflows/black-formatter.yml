@@ -1,0 +1,28 @@
+name: Run black-format Linter
+
+on: [pull_request]
+
+jobs:
+  black_format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            ref: ${{ github.head_ref }}
+
+      - name: Check files using the black formatter
+        uses: rickstaa/action-black@v1
+        id: action_black
+        with:
+          black_args: "."
+
+      - name: Commit changes if code is formatted
+        if: steps.action_black.outputs.is_formatted == 'true'
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: Black Robot
+          author_email: black-robot@example.com
+          message: 'Committing black-format changes'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -8,7 +8,6 @@ import adafruit_mprls  # ! NOTE: sudo pip3 install adafruit-circuitpython-mprls
 
 
 class PressureSensor:
-
     def __init__(self):
         # Pressure Sensor Setup
         i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
