@@ -218,10 +218,12 @@ class JoystickInterface(Node):
             self.joystick_buttons_map_ = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
 
-        if self.state == States.REFERNCE_SIGNAL_MODE:
+        if self.state == States.REFERENCE_SIGNAL_MODE:
+            self.get_logger().info("Reference signal mode")
             #Publish reference signal 
-            pose_msg = PoseStamped()
-            pose_msg.head
+            current_pose = self.get_current_pose()
+            pose_msg = self.create_pose_message(current_pose)
+            self.pose_publisher_.publish(pose_msg)
 
         # Populate buttons dictionary
         for i, button_name in enumerate(self.joystick_buttons_map_):
@@ -250,22 +252,24 @@ class JoystickInterface(Node):
         right_shoulder = buttons.get("RB", 0)
 
         # Extract axis values
-        surge = axes.get(
+
+        #KAN JEG BRUKE DISSE TIL REFEREANSE VERDIEN??? 
+        self.surge = axes.get(
             "vertical_axis_left_stick", 0.0
         ) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
-        sway = -axes.get(
+        self.sway = -axes.get(
             "horizontal_axis_left_stick", 0.0
         ) * self.joystick_sway_scaling_ * self.precise_manuevering_scaling_
-        heave = (
+        self.heave = (
             left_trigger - right_trigger
         ) * self.joystick_heave_scaling_ * self.precise_manuevering_scaling_
-        roll = (
+        self.roll = (
             right_shoulder - left_shoulder
         ) * self.joystick_roll_scaling_ * self.precise_manuevering_scaling_
-        pitch = -axes.get(
+        self.pitch = -axes.get(
             "vertical_axis_right_stick", 0.0
         ) * self.joystick_pitch_scaling_ * self.precise_manuevering_scaling_
-        yaw = -axes.get(
+        self.yaw = -axes.get(
             "horizontal_axis_right_stick", 0.0
         ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
 
