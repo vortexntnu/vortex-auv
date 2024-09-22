@@ -134,6 +134,11 @@ class JoystickInterface(Node):
 
         # Signal that we are in XBOX mode
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
+    def create_pose_message(self, current_pose): 
+        pose_msg = PoseStamped()
+        pose_msg.header.stamp = self.get_clock().now().to_msg()
+        pose_msg.header.frame_id = "base_link"
+        return pose_msg
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
                               roll: float, pitch: float, yaw: float) -> Wrench:
@@ -171,7 +176,7 @@ class JoystickInterface(Node):
         """
         Publishes a zero force wrench message and signals that the system is turning on reference mode.
         """
-        self.state = States.REFERENCE_MODE
+        self.state = States.REFERENCE_SIGNAL_MODE
         self.get_logger().info("Transitioning to reference mode")
 
     def transition_to_autonomous_mode(self):
@@ -183,13 +188,7 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(
             String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
-
-
-    def create_pose_message(self, current_pose): 
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = "base_link"
-        return pose_msg
+   
    
     def joystick_cb(self, msg: Joy) -> Wrench:
         """
@@ -221,9 +220,8 @@ class JoystickInterface(Node):
         if self.state == States.REFERENCE_SIGNAL_MODE:
             self.get_logger().info("Reference signal mode")
             #Publish reference signal 
-            current_pose = self.get_current_pose()
-            pose_msg = self.create_pose_message(current_pose)
-            self.pose_publisher_.publish(pose_msg)
+            pose_msg = self.create_pose_message(self.current_pose)
+            self.pose_publisher.publish(pose_msg)
 
         # Populate buttons dictionary
         for i, button_name in enumerate(self.joystick_buttons_map_):
@@ -253,7 +251,7 @@ class JoystickInterface(Node):
 
         # Extract axis values
 
-        #KAN JEG BRUKE DISSE TIL REFEREANSE VERDIEN??? 
+        #KAN JEG BRUKE DISSE TIL REFERANSE VERDIEN?
         self.surge = axes.get(
             "vertical_axis_left_stick", 0.0
         ) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
