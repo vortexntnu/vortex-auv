@@ -10,15 +10,18 @@ def generate_launch_description():
         get_package_share_directory("blackbox"),
         "../../../../",  # Go to the workspace
         "src/vortex-auv/auv_setup/config/robots/",  # Go inside where yamal files are located at
-        'orca.yaml')
+        "orca.yaml",
+    )
 
-    return LaunchDescription([
-        Node(
-            package='blackbox',
-            namespace='blackbox',
-            executable='blackbox_node.py',
-            name='blackbox_node',
-            output='screen',
-            parameters=[yaml_file_path],
-        ),
-    ])
+    return LaunchDescription(
+        [
+            Node(
+                package="blackbox",
+                namespace="blackbox",
+                executable="blackbox_node.py",
+                name="blackbox_node",
+                output="screen",
+                parameters=[yaml_file_path],
+            ),
+        ]
+    )

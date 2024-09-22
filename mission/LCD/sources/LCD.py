@@ -21,14 +21,15 @@ Temperature = TemperatureSensor()
 def format_line(value: str, unit: str):
     spacesAvailable = 16
     valueLenght = len(value)
-    unitLenght = len(
-        unit) + 1  # +1 to make sure there is spacing between value and unit
+    unitLenght = (
+        len(unit) + 1
+    )  # +1 to make sure there is spacing between value and unit
 
     emptySpaceLenght = spacesAvailable - (valueLenght + unitLenght)
-    if (emptySpaceLenght < 0):
+    if emptySpaceLenght < 0:
         emptySpaceLenght = 0
 
-    formatedString = value[0:(spacesAvailable - unitLenght)]
+    formatedString = value[0 : (spacesAvailable - unitLenght)]
     formatedString += " " * emptySpaceLenght
     formatedString += " " + unit
 
