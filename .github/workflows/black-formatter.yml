@@ -1,9 +1,15 @@
-name: Python-formatter
+name: Python formatter and linter
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '**'
 
 jobs:
-  linter_name:
+  formatter:
     name: runner / black
     runs-on: ubuntu-latest
     steps:
@@ -27,3 +33,35 @@ jobs:
           message: 'Committing Black formatter changes'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint:
+    name: runner / flake8
+    runs-on: ubuntu-latest
+    needs: formatter
+    steps:
+    # Step 1: Check out the current repository so that the files are available to the workflow
+    - uses: actions/checkout@v4
+    
+    # Step 2: Install `flake8`
+    - name: Install flake8
+      run: |
+        pip install flake8  # Install flake8 linter
+    
+    # Step 3: Set up flake8 annotations (this is optional, to annotate lint issues in the pull request)
+    - name: Setup flake8 annotations
+      uses: rbialon/flake8-annotations@v1
+    
+    # Step 4: Run flake8 linter with two sets of rules
+    - name: Lint with flake8
+      run: |
+        # First run: Focus on catching critical errors related to syntax and undefined names
+        # This command checks for Python syntax errors (E9) and issues related to undefined names (F63, F7, F82)
+        # The build will stop and fail if any of these critical errors are found.
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+        # Second run: Check for general linting issues but ignore some rules
+        # --ignore=C901: Ignore complexity-related issues
+        # --ignore=W503: Ignore line break before binary operator
+        # --ignore=E203: Ignore whitespace before ':'
+        # This will fail the build if there are other linting issues, except the ignored ones.
+        flake8 . --count --max-complexity=10 --max-line-length=150 --ignore=C901,W503,E203 --statistics
