@@ -98,9 +98,8 @@ class JoystickInterface(Node):
                                                        "joystick/wrench",
                                                        10) # Publishes the wrench message every 10 seconds 
         self.pose_publisher = self.create_publisher(PoseStamped, "joystick/guidance", 10) #Publishes the current pose of the drone every 10 seconds 
-        self.timer_ = self.create_timer(0.1, self.timer_cb)
-        self.current_pose = PoseStamped()
-
+        self.timer_ = self.create_timer(0.1, self.timer_cb) 
+        self.current_pose = PoseStamped() #Current pose of the drone
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -168,6 +167,13 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
 
+    def transition_to_reference_mode(self):
+        """
+        Publishes a zero force wrench message and signals that the system is turning on reference mode.
+        """
+        self.state = States.REFERENCE_MODE
+        self.get_logger().info("Transitioning to reference mode")
+
     def transition_to_autonomous_mode(self):
         """
         Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
@@ -178,6 +184,7 @@ class JoystickInterface(Node):
             String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
+  
     def joystick_cb(self, msg: Joy) -> Wrench:
         """
         Callback function that receives joy messages and converts them into
@@ -191,7 +198,7 @@ class JoystickInterface(Node):
         Returns:
             A ROS message containing the wrench data that was sent to the thruster allocation node.
         """
-
+        
         current_time = self.get_clock().now().to_msg()._sec
 
         buttons = {}
