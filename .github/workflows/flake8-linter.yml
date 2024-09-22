@@ -2,9 +2,9 @@ name: Python Linter
 
 on:
   workflow_run:
-    workflows: ["Python formatter"]  
+    workflows: ["Python formatter"] # Run only after the 'Python Formatter' workflow completes
     types:
-      - completed  
+      - completed # Trigger when the formatter workflow finishes
 
 jobs:
   lint:
@@ -13,13 +13,13 @@ jobs:
 
     steps:
     # Step 1: Check out the current repository so that the files are available to the workflow
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     
-    # Step 2: Set up Python version 3.8 for the workflow environment
-    - name: Set up Python 3.8
+    # Step 2: Set up Python version 3.x for the workflow environment
+    - name: Set up Python 3.x
       uses: actions/setup-python@v1
       with:
-        python-version: 3.8
+        python-version: 3.x
     
     # Step 3: Install `flake8`, a Python linter, by upgrading pip and then installing `flake8`
     - name: Install flake8
