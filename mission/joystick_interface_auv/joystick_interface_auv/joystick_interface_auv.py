@@ -184,7 +184,13 @@ class JoystickInterface(Node):
             String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
-  
+
+    def create_pose_message(self, current_pose): 
+        pose_msg = PoseStamped()
+        pose_msg.header.stamp = self.get_clock().now().to_msg()
+        pose_msg.header.frame_id = "base_link"
+        return pose_msg
+   
     def joystick_cb(self, msg: Joy) -> Wrench:
         """
         Callback function that receives joy messages and converts them into
@@ -198,7 +204,7 @@ class JoystickInterface(Node):
         Returns:
             A ROS message containing the wrench data that was sent to the thruster allocation node.
         """
-        
+
         current_time = self.get_clock().now().to_msg()._sec
 
         buttons = {}
@@ -211,6 +217,11 @@ class JoystickInterface(Node):
         else:
             self.joystick_buttons_map_ = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
+
+        if self.state == States.REFERNCE_SIGNAL_MODE:
+            #Publish reference signal 
+            pose_msg = PoseStamped()
+            pose_msg.head
 
         # Populate buttons dictionary
         for i, button_name in enumerate(self.joystick_buttons_map_):
