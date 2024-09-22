@@ -17,5 +17,6 @@ jobs:
         with:
           extra_plugins: |
             @semantic-release/git
+            @semantic-release/github
             @semantic-release/exec
             @semantic-release/changelog
