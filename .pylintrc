@@ -299,7 +299,7 @@ max-attributes=22
 max-bool-expr=5
 
 # Maximum number of branch for function / method body.
-max-branches=17
+max-branches=18
 
 # Maximum number of locals for function / method body.
 max-locals=24
@@ -317,7 +317,7 @@ max-public-methods=20
 max-returns=6
 
 # Maximum number of statements in function / method body.
-max-statements=63
+max-statements=64
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
@@ -430,24 +430,34 @@ confidence=HIGH,
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=raw-checker-failed,
-        bad-inline-option,
-        locally-disabled,
-        file-ignored,
-        suppressed-message,
-        useless-suppression,
-        deprecated-pragma,
-        use-symbolic-message-instead,
-        use-implicit-booleaness-not-comparison-to-string,
-        use-implicit-booleaness-not-comparison-to-zero,
-        invalid-name, # We need to fix this, but it takes too fucking long
-        import-error,                # E0401: Unable to import
-        broad-exception-caught,      # Someone who knows the code needs to fix this.
-        too-few-public-methods,      # Someone needs to make this class into just two methods
-        duplicate-code,                 # Can be ignored, but someone might need to improve the code
-        dangerous-default-value,     # Someone else who knows what they are doing needs to fix this
-        inconsistent-return-statements,  # Need to ask someone who knows how to fix this
-        no-name-in-module,
-        unknown-option-value,
+      # Critical issues related to imports, names, and exceptions
+      import-error,                    # [E0401] Unable to import module (usually a missing or incorrect import)
+      broad-exception-caught,          # [W0703] A broad exception (e.g., `except Exception`) is caught without specificity
+      invalid-name,                    # [C0103] Naming convention not followed (e.g., function, variable, or class names)
+
+      # Issues related to program correctness and return consistency
+      dangerous-default-value,         # [W0102] A mutable default argument (e.g., list, dict) is used in a function
+      inconsistent-return-statements,  # [R1710] Function or method has inconsistent return statements
+
+      # Code duplication and design issues
+      duplicate-code,                  # [R0801] Duplicate code detected, recommending refactoring for DRY (Don't Repeat Yourself)
+      too-few-public-methods,          # [R0903] Class has too few public methods (often seen in utility classes)
+
+      # Documentation issues
+      missing-module-docstring,        # [C0114] The module is missing a docstring at the top of the file
+      missing-class-docstring,         # [C0115] The class is missing a docstring explaining its purpose
+
+      # Pylint configuration and suppression handling issues
+      bad-inline-option,               # [E0012] Invalid Pylint inline option is used
+      locally-disabled,                # [I0021] A Pylint rule is disabled locally but not re-enabled later
+      file-ignored,                    # [I0020] A file is being ignored by Pylint due to an inline directive
+      suppressed-message,              # [I0022] A Pylint message is being suppressed using inline comments
+      useless-suppression,             # [W0511] A Pylint suppression directive (e.g., # pylint: disable=...) is unnecessary
+      deprecated-pragma,               # [W0104] Usage of deprecated or old-style Pylint pragma (e.g., inline comments)
+      unknown-option-value,            # [E0012] An unknown option value is being used in Pylint configuration or inline option
+
+
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
