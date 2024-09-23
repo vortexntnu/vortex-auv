@@ -229,12 +229,9 @@ def getAcousticsData():
     ]
 
 
-def display_live_data(frame):
+def display_live_data():
     """
     Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
-
-    Args:
-        frame: The current frame for the live display (not used in the function).
 
     Retrieves the latest acoustics data and separates it into hydrophone data, unfiltered data,
     filtered data, FFT amplitude and frequency data, and peak amplitude and frequency data.
