@@ -145,7 +145,7 @@ class TeensyCommunicationUDP:
         """
         Writes to the current target in `acoustics_data` and clears the data string
         """
-        if cls._data_target == "TDOA" or cls._data_target == "LOCATION":
+        if cls._data_target in {"TDOA", "LOCATION"}:
             data = cls._parse_data_string(is_float=True)
         else:
             data = cls._parse_data_string(is_float=False)
