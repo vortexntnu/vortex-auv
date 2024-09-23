@@ -103,6 +103,17 @@ class ThrusterInterfaceAUVNode(Node):
 
 
 def main(args=None):
+    """
+    Entry point for the thruster interface AUV node.
+
+    This function initializes the ROS 2 client library, creates an instance of the
+    ThrusterInterfaceAUVNode, and starts spinning the node to process callbacks.
+    Upon shutdown, it destroys the node and shuts down the ROS 2 client library.
+
+    Args:
+        args (list, optional): Command line arguments passed to the ROS 2 client library.
+                               Defaults to None.
+    """
     # Initialize
     rclpy.init(args=args)
 

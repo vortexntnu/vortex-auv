@@ -24,6 +24,19 @@ class LCDScreenDriver:
         )
 
     def write_to_screen(self, line1: str = "", line2: str = ""):
+        """
+        Writes two lines of text to the LCD screen.
+
+        This method clears the LCD screen and then writes the provided text
+        to the screen. Each line of text is truncated to a maximum of 16
+        characters to ensure it fits on the screen.
+
+        Args:
+            line1 (str): The text to display on the first line of the LCD screen.
+                 Defaults to an empty string.
+            line2 (str): The text to display on the second line of the LCD screen.
+                 Defaults to an empty string.
+        """
         self._LCD.clear()
 
         # limit line size as to big of a line destroys the view
@@ -35,6 +48,23 @@ class LCDScreenDriver:
         self._LCD.write_string(line2)
 
     def fancy_animation(self, animation_speed=0.4):
+        """
+        Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
+
+        Args:
+            animation_speed (float): Speed of the animation. Default is 0.4. The actual speed is calculated as 1 / animation_speed.
+
+        The animation consists of two sequences:
+        1. Ghost chasing Pac-Man from left to right.
+        2. Pac-Man chasing the ghost from right to left.
+
+        Custom characters used:
+            - Pac-Man with mouth open (left and right facing)
+            - Pac-Man with mouth closed
+            - Ghost
+
+        The animation is displayed in two rows of the LCD screen.
+        """
         # Calculate the apropriate animation speed
         animation_speed = 1 / animation_speed
 

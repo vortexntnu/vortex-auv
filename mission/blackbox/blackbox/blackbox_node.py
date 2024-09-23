@@ -92,24 +92,100 @@ class BlackBoxNode(Node):
 
     # Callback Methods ----------
     def psm_current_callback(self, msg):
+        """
+        Callback function for the power sense module (PSM) current topic.
+
+        This function is called whenever a new message is received on the
+        "/auv/power_sense_module/current" topic. It updates the internal
+        state with the latest current data.
+
+        Args:
+            msg (std_msgs.msg.Float32): The message containing the current data.
+        """
         self.psm_current_data = msg.data
 
     def psm_voltage_callback(self, msg):
+        """
+        Callback function for the power sense module (PSM) voltage topic.
+
+        This function is called whenever a new message is received on the
+        "/auv/power_sense_module/voltage" topic. It updates the internal
+        state with the latest voltage data.
+
+        Args:
+            msg (std_msgs.msg.Float32): The message containing the voltage data.
+        """
         self.psm_voltage_data = msg.data
 
     def pressure_callback(self, msg):
+        """
+        Callback function for the internal pressure topic.
+
+        This function is called whenever a new message is received on the
+        "/auv/pressure" topic. It updates the internal state with the latest
+        pressure data.
+
+        Args:
+            msg (std_msgs.msg.Float32): The message containing the pressure data.
+        """
         self.pressure_data = msg.data
 
     def temperature_callback(self, msg):
+        """
+        Callback function for the ambient temperature topic.
+
+        This function is called whenever a new message is received on the
+        "/auv/temperature" topic. It updates the internal state with the latest
+        temperature data.
+
+        Args:
+            msg (std_msgs.msg.Float32): The message containing the temperature data.
+        """
         self.temperature_data = msg.data
 
     def thruster_forces_callback(self, msg):
+        """
+        Callback function for the thruster forces topic.
+
+        This function is called whenever a new message is received on the
+        "/thrust/thruster_forces" topic. It updates the internal state with the
+        latest thruster forces data.
+
+        Args:
+            msg (vortex_msgs.msg.ThrusterForces): The message containing the thruster forces data.
+        """
         self.thruster_forces_data = msg.thrust
 
     def pwm_callback(self, msg):
+        """
+        Callback function for the PWM signals topic.
+
+        This function is called whenever a new message is received on the
+        "/pwm" topic. It updates the internal state with the latest PWM signals data.
+
+        Args:
+            msg (std_msgs.msg.Int16MultiArray): The message containing the PWM signals data.
+        """
         self.pwm_data = msg.data
 
     def logger(self):
+        """
+        Logs various sensor and actuator data to a CSV file.
+
+        This method collects data from multiple sensors and actuators, including
+        power system module (PSM) current and voltage, internal pressure, ambient
+        temperature, thruster forces, and pulse-width modulation (PWM) signals.
+        It then logs this data to a CSV file using the `log_data_to_csv_file` method
+        of the `blackbox_log_data` object.
+
+        The data logged includes:
+        - psm_current: Current data from the power system module.
+        - psm_voltage: Voltage data from the power system module.
+        - pressure_internal: Internal pressure data.
+        - temperature_ambient: Ambient temperature data.
+        - thruster_forces_1 to thruster_forces_8: Forces data from eight thrusters.
+        - pwm_1 to pwm_8: PWM signal data for eight channels.
+        """
         self.blackbox_log_data.log_data_to_csv_file(
             psm_current=self.psm_current_data,
             psm_voltage=self.psm_voltage_data,
@@ -135,6 +211,16 @@ class BlackBoxNode(Node):
 
 
 def main(args=None):
+    """
+    Entry point for the blackbox_node.
+
+    This function initializes the ROS2 environment, starts the BlackBoxNode,
+    and keeps it spinning until ROS2 is shut down. Once ROS2 ends, it destroys
+    the node and shuts down the ROS2 environment.
+
+    Args:
+        args (list, optional): Command-line arguments passed to the ROS2 initialization.
+    """
     # Initialize ROS2
     rclpy.init(args=args)
 

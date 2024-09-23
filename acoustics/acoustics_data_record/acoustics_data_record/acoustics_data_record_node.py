@@ -133,39 +133,104 @@ class AcousticsDataRecordNode(Node):
             "/acoustics/position [Float32MultiArray] \n"
         )
 
-    # Callback methods for diffrenet topics
+    # Callback methods for different topics
     def hydrophone1_callback(self, msg):
+        """
+        Callback method for hydrophone1 topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing hydrophone1 data.
+        """
         self.hydropone1Data = msg.data
 
     def hydrophone2_callback(self, msg):
+        """
+        Callback method for hydrophone2 topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing hydrophone2 data.
+        """
         self.hydropone2Data = msg.data
 
     def hydrophone3_callback(self, msg):
+        """
+        Callback method for hydrophone3 topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing hydrophone3 data.
+        """
         self.hydropone3Data = msg.data
 
     def hydrophone4_callback(self, msg):
+        """
+        Callback method for hydrophone4 topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing hydrophone4 data.
+        """
         self.hydropone4Data = msg.data
 
     def hydrophone5_callback(self, msg):
+        """
+        Callback method for hydrophone5 topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing hydrophone5 data.
+        """
         self.hydropone5Data = msg.data
 
     def filter_response_callback(self, msg):
+        """
+        Callback method for filter_response topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing filter response data.
+        """
         self.filterResponseData = msg.data
 
     def fft_callback(self, msg):
+        """
+        Callback method for fft topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing FFT data.
+        """
         self.FFTData = msg.data
 
     def peaks_callback(self, msg):
+        """
+        Callback method for peaks topic.
+
+        Args:
+            msg (Int32MultiArray): Message containing peaks data.
+        """
         self.peaksData = msg.data
 
     def tdoa_callback(self, msg):
+        """
+        Callback method for time_difference_of_arrival topic.
+
+        Args:
+            msg (Float32MultiArray): Message containing TDOA data.
+        """
         self.TDOAData = msg.data
 
     def position_callback(self, msg):
+        """
+        Callback method for position topic.
+
+        Args:
+            msg (Float32MultiArray): Message containing position data.
+        """
         self.positionData = msg.data
 
     # The logger that logs all the data
     def logger(self):
+        """
+        Logs all the data to a CSV file using the AcousticsDataRecordLib.
+
+        This method is called periodically based on the data logging rate.
+        """
         self.acoustics_data_record.log_data_to_csv_file(
             hydrophone1=self.hydropone1Data,
             hydrophone2=self.hydropone2Data,
@@ -181,6 +246,19 @@ class AcousticsDataRecordNode(Node):
 
 
 def main():
+    """
+    Main function to initialize and run the ROS2 node for acoustics data recording.
+
+    This function performs the following steps:
+    1. Initializes the ROS2 communication.
+    2. Creates an instance of the AcousticsDataRecordNode.
+    3. Spins the node to keep it running until an external shutdown signal is received.
+    4. Destroys the node explicitly once ROS2 stops running.
+    5. Shuts down the ROS2 communication.
+
+    Returns:
+        None
+    """
     # Initialize ROS2
     rclpy.init()
 

@@ -16,6 +16,17 @@ class TemperatureSensor:
         self.temperature_sensor_file_location = "/sys/class/thermal/thermal_zone0/temp"
 
     def get_temperature(self):
+        """
+        Gets the current temperature from the internal computer's sensor.
+
+        This method reads the temperature value from the internal sensor file, which is in milli°C,
+        converts it into Celsius, and returns the result.
+
+        Returns:
+        --------
+        float
+            The current temperature in Celsius. If an error occurs, it returns 0.0.
+        """
         try:
             # Read internal temperature on the computer
             result = subprocess.run(

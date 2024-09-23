@@ -59,6 +59,12 @@ class PressurePublisher(Node):
         self.get_logger().info('"pressure_sensor_publisher" has been started')
 
     def timer_callback(self):
+        """
+        Callback function triggered by the main timer.
+
+        This function retrieves the pressure data from the sensor
+        and publishes it to the "/auv/pressure" topic.
+        """
         # Get pressure data
         self.pressure = self.Pressure.get_pressure()
 
@@ -68,7 +74,12 @@ class PressurePublisher(Node):
         self.publisher_pressure.publish(pressure_msg)
 
     def warning_timer_callback(self):
-        # Check if Pressure is abnormaly to high, if so print a warning
+        """
+        Callback function triggered by the warning timer.
+
+        This function checks if the pressure exceeds the critical level.
+        If so, a fatal warning is logged indicating a possible leak in the AUV.
+        """
         if self.pressure > self.pressureCriticalLevel:
             self.logger.fatal(
                 f"WARNING: Internal pressure to HIGH: {self.pressure} hPa! Drone might be LEAKING!"
@@ -76,6 +87,18 @@ class PressurePublisher(Node):
 
 
 def main(args=None):
+    """
+    Main function to initialize and spin the ROS2 node.
+
+    This function initializes the rclpy library, creates an instance of
+    the PressurePublisher node, and starts spinning to keep the node
+    running and publishing pressure data.
+
+    Args:
+    -----
+    args : list, optional
+        Arguments passed to the node. Default is None.
+    """
     rclpy.init(args=args)
 
     pressure_publisher = PressurePublisher()

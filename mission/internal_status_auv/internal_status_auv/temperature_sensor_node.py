@@ -63,6 +63,12 @@ class TemperaturePublisher(Node):
         self.get_logger().info('"temperature_sensor_publisher" has been started')
 
     def timer_callback(self):
+        """
+        Callback function triggered by the main timer.
+
+        This function retrieves the temperature data from the sensor
+        and publishes it to the "/auv/temperature" topic.
+        """
         # Get temperature data
         self.temperature = self.Temperature.get_temperature()
 
@@ -72,7 +78,12 @@ class TemperaturePublisher(Node):
         self.publisher_temperature.publish(temperature_msg)
 
     def warning_timer_callback(self):
-        # Check if Temperature is abnormal and if so print a warning
+        """
+        Callback function triggered by the warning timer.
+
+        This function checks if the temperature exceeds the critical level.
+        If so, a fatal warning is logged indicating a possible overheating situation.
+        """
         if self.temperature > self.temperatureCriticalLevel:
             self.logger.fatal(
                 f"WARNING: Temperature inside the Drone to HIGH: {self.temperature} *C! Drone might be overheating!"
@@ -80,6 +91,18 @@ class TemperaturePublisher(Node):
 
 
 def main(args=None):
+    """
+    Main function to initialize and spin the ROS2 node.
+
+    This function initializes the rclpy library, creates an instance of the
+    TemperaturePublisher node, and starts spinning to keep the node running
+    and publishing temperature data.
+
+    Args:
+    -----
+    args : list, optional
+        Arguments passed to the node. Default is None.
+    """
     rclpy.init(args=args)
 
     temperature_publisher = TemperaturePublisher()

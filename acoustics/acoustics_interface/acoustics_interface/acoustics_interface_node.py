@@ -102,6 +102,12 @@ class AcousticsInterfaceNode(Node):
         self.get_logger().info("Sucsefully connected to Acoustics PCB MCU :D")
 
     def data_update(self) -> None:
+        """
+        Fetches data using the TeensyCommunicationUDP class.
+
+        This method calls the fetch_data method from the TeensyCommunicationUDP class
+        to update the data.
+        """
         TeensyCommunicationUDP.fetch_data()
 
     def data_publisher(self) -> None:
@@ -143,6 +149,16 @@ class AcousticsInterfaceNode(Node):
 
 
 def main(args=None):
+    """
+    Entry point for the acoustics interface node.
+
+    This function initializes the ROS 2 Python client library, creates an instance
+    of the AcousticsInterfaceNode, and starts spinning the node to process callbacks.
+    Once the node is shut down, it destroys the node and shuts down the ROS 2 client library.
+
+    Args:
+        args (list, optional): Command line arguments passed to the ROS 2 client library. Defaults to None.
+    """
     rclpy.init(args=args)
 
     node = AcousticsInterfaceNode()

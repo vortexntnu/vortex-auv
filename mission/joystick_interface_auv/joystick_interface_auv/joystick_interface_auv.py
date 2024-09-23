@@ -323,6 +323,13 @@ class JoystickInterface(Node):
 
 
 def main():
+    """
+    Initializes the ROS 2 client library, creates an instance of the JoystickInterface node,
+    and starts spinning the node to process callbacks. Once the node is shut down, it destroys
+    the node and shuts down the ROS 2 client library.
+
+    This function is the entry point for the joystick interface application.
+    """
     rclpy.init()
     joystick_interface = JoystickInterface()
     rclpy.spin(joystick_interface)

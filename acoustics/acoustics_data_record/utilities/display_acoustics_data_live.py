@@ -79,6 +79,15 @@ acousticsCSVFile = max(acousticsCSVFiles, key=os.path.getctime)
 
 
 def convertPandasObjectToIntArray(pandasObject):
+    """
+    Convert a pandas object containing a string representation of an integer array to a list of integers.
+
+    Args:
+        pandasObject (pandas.Series): A pandas Series object containing a string representation of an integer array.
+
+    Returns:
+        list: A list of integers extracted from the pandas object.
+    """
     pandasString = pandasObject.iloc[0].strip("array('i', ").rstrip(")")
     pandasIntArray = [int(x.strip()) for x in pandasString.strip("[]").split(",")]
 
@@ -86,6 +95,15 @@ def convertPandasObjectToIntArray(pandasObject):
 
 
 def convertPandasObjectToFloatArray(pandasObject):
+    """
+    Convert a pandas object containing a string representation of a float array to a list of floats.
+
+    Args:
+        pandasObject (pandas.Series): A pandas Series object containing a string representation of a float array.
+
+    Returns:
+        list: A list of floats extracted from the pandas object.
+    """
     pandasString = pandasObject.iloc[0].strip("array('f', ").rstrip(")")
     pandasFloatArray = [float(x.strip()) for x in pandasString.strip("[]").split(",")]
 
@@ -93,6 +111,32 @@ def convertPandasObjectToFloatArray(pandasObject):
 
 
 def getAcousticsData():
+    """
+    Retrieves and processes the latest acoustics data from a CSV file.
+
+    This function reads the latest acoustics data from a specified CSV file and processes it to extract various
+    data points including hydrophone data, unfiltered data, filtered data, FFT data, peaks data, TDOA data, and
+    position data. The processed data is then returned in a structured format.
+
+    Returns:
+        list: A list containing the following processed data:
+            - hydrophone1 (list of int): Data from Hydrophone 1.
+            - hydrophone2 (list of int): Data from Hydrophone 2.
+            - hydrophone3 (list of int): Data from Hydrophone 3.
+            - hydrophone4 (list of int): Data from Hydrophone 4.
+            - hydrophone5 (list of int): Data from Hydrophone 5.
+            - unfilteredData (list of int): Unfiltered data, same as the first 1024 values of Hydrophone 1.
+            - filteredData (list of int): Filtered response data.
+            - FFTAmplitudeData (list of int): Amplitude data from FFT.
+            - FFTFrequencyData (list of float): Frequency data corresponding to FFT amplitudes.
+            - peaksAmplitudeData (list of int): Amplitude data of peaks.
+            - peaksFrequencyData (list of int): Frequency data of peaks.
+            - tdoaData (list of float): Time Difference of Arrival (TDOA) data.
+            - positonData (list of float): Position data.
+
+    Raises:
+        Exception: If there is an error reading the acoustics data or processing the DSP data.
+    """
     # Variables that will be filled with latest acoustics data ----------
     hydrophone1 = [0] * hydrophoneDataSize
     hydrophone2 = [0] * hydrophoneDataSize
@@ -189,6 +233,32 @@ def getAcousticsData():
 
 
 def display_live_data(frame):
+    """
+    Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
+
+    Args:
+        frame: The current frame for the live display (not used in the function).
+
+    Retrieves the latest acoustics data and separates it into hydrophone data, unfiltered data,
+    filtered data, FFT amplitude and frequency data, and peak amplitude and frequency data.
+    Plots the hydrophone data, filter response, and FFT data using predefined axes and colors.
+    Also prints out unused multilateration data (TDOA and position data).
+
+    Acoustics data structure:
+        - acousticsData[0-4]: Hydrophone data for hydrophones 1 to 5
+        - acousticsData[5]: Unfiltered data
+        - acousticsData[6]: Filtered data
+        - acousticsData[7]: FFT amplitude data
+        - acousticsData[8]: FFT frequency data
+        - acousticsData[9]: Peaks amplitude data
+        - acousticsData[10]: Peaks frequency data
+        - acousticsData[11]: TDOA data (currently not in use)
+        - acousticsData[12]: Position data (currently not in use)
+
+    Note:
+        This function assumes that `getAcousticsData`, `hydrophoneAxis`, `filterAxis`, `FFTAxis`,
+        `colorSoftBlue`, `colorSoftGreen`, and `colorSoftPurple` are defined elsewhere in the code.
+    """
     # Get latest acoustics data
     acousticsData = getAcousticsData()
 
