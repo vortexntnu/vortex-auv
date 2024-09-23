@@ -5,8 +5,8 @@ import glob
 import os
 
 # Libraries for anmation
-import matplotlib.animation as animation
-import matplotlib.gridspec as gridspec
+from matplotlib import animation
+from matplotlib import gridspec
 import matplotlib.pyplot as plt
 # Libraries for handling data structures
 import pandas as pd
