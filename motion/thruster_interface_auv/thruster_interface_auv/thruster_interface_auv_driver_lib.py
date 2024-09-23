@@ -93,7 +93,7 @@ class ThrusterInterfaceAUVDriver:
         # Divide data into bytes as I2C only sends bytes
         # We have 8 values of 16 bits
         # Convert them to 16 values of 8 bits (ie 1 byte)
-        for i in range(len(thruster_pwm_array)):
+        for i in enumerate(thruster_pwm_array):
             msb = (thruster_pwm_array[i] >> 8) & 0xFF
             lsb = (thruster_pwm_array[i]) & 0xFF
             i2c_data_array.extend([msb, lsb])
@@ -135,7 +135,7 @@ class ThrusterInterfaceAUVDriver:
             )
 
         # Apply thruster offset and limit PWM if needed
-        for ESC_channel in range(len(thruster_pwm_array)):
+        for ESC_channel in enumerate(thruster_pwm_array):
             # Clamping pwm signal in case it is out of range
             if thruster_pwm_array[ESC_channel] < self.PWM_MIN[ESC_channel]:  # To small
                 thruster_pwm_array[ESC_channel] = self.PWM_MIN[ESC_channel]

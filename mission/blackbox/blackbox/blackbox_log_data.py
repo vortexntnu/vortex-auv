@@ -59,7 +59,7 @@ class BlackBoxLogData:
 
         Args:
             max_file_age_in_days (int, optional): The maximum age of files in days before they are deleted. Defaults to 7 days.
-            max_size_kb (int, optional): The maximum total size of all CSV files in kilobytes before the oldest files are deleted. Defaults to 3,000,000 KB (3 GB).
+            max_size_kb (int, optional): The maximum total size of all CSV files in kilobytes before the oldest files are deleted. 
 
         Returns:
             None
