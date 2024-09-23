@@ -187,7 +187,7 @@ class JoystickInterface(Node):
             A ROS message containing the wrench data that was sent to the thruster allocation node.
         """
 
-        current_time = self.get_clock().now().to_msg()._sec
+        current_time = self.get_clock().now().to_msg().sec
 
         buttons = {}
         axes = {}
