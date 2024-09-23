@@ -1,12 +1,9 @@
 # Setting up libraries
 import errno
-import os
-import sys
 import time
-from enum import Enum
-from socket import *
+from socket import socket, AF_INET, SOCK_DGRAM, error
 
-import netifaces as ni
+
 
 
 class TeensyCommunicationUDP:
