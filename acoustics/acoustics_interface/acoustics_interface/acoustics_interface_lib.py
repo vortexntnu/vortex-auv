@@ -197,8 +197,7 @@ class TeensyCommunicationUDP:
             # Format data from CSV string to floats, ignore last value
             if is_float:
                 return list(map(float, cls._data_string.split(",")[:-1]))
-            else:
-                return list(map(int, cls._data_string.split(",")[:-1]))
+            return list(map(int, cls._data_string.split(",")[:-1]))
         except Exception as e:
             print(f"The string '{cls._data_string}' caused an error when parsing")
             print(f"The exception was: {e}")

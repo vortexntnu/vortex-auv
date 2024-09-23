@@ -282,16 +282,15 @@ class JoystickInterface(Node):
                 self.transition_to_xbox_mode()
                 return
 
-            else:
-                self.get_logger().info("SW killswitch", throttle_duration_sec=1)
-                # Signal that killswitch is blocking
-                self.software_killswitch_signal_publisher_.publish(Bool(data=True))
+            self.get_logger().info("SW killswitch", throttle_duration_sec=1)
+            # Signal that killswitch is blocking
+            self.software_killswitch_signal_publisher_.publish(Bool(data=True))
 
-                # Publish a zero wrench message when killswitch is activated
-                wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-                self.wrench_publisher_.publish(wrench_msg)
-                self.state_ = States.NO_GO
-                return wrench_msg
+            # Publish a zero wrench message when killswitch is activated
+            wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            self.wrench_publisher_.publish(wrench_msg)
+            self.state_ = States.NO_GO
+            return wrench_msg
 
         # Toggle precise maneuvering mode on and off
         if precise_manuevering_mode_button:
