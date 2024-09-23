@@ -22,6 +22,7 @@ class TemperatureSensor:
                 ["cat", self.temperature_sensor_file_location],
                 capture_output=True,
                 text=True,
+                check=False,
             )
 
             # Decode and strip to get rid of possible newline characters
