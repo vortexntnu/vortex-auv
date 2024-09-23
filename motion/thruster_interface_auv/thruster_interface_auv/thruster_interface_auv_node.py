@@ -20,21 +20,13 @@ class ThrusterInterfaceAUVNode(Node):
         # Create a subscriber that takes data from thruster forces
         # Then convert this Forces into PWM signals and control the thrusters
         # Publish PWM values as deebuging feature
-        self.thruster_forces_subscriber = self.create_subscription(
-            ThrusterForces, "thrust/thruster_forces", self._thruster_forces_callback, 10
-        )
+        self.thruster_forces_subscriber = self.create_subscription(ThrusterForces, "thrust/thruster_forces", self._thruster_forces_callback, 10)
         self.thruster_pwm_publisher = self.create_publisher(Int16MultiArray, "pwm", 10)
 
         # Get thruster mapping, direction, offset and clamping parameters
-        self.declare_parameter(
-            "propulsion.thrusters.thruster_to_pin_mapping", [7, 6, 5, 4, 3, 2, 1, 0]
-        )
-        self.declare_parameter(
-            "propulsion.thrusters.thruster_direction", [1, 1, 1, 1, 1, 1, 1, 1]
-        )
-        self.declare_parameter(
-            "propulsion.thrusters.thruster_PWM_offset", [0, 0, 0, 0, 0, 0, 0, 0]
-        )
+        self.declare_parameter("propulsion.thrusters.thruster_to_pin_mapping", [7, 6, 5, 4, 3, 2, 1, 0])
+        self.declare_parameter("propulsion.thrusters.thruster_direction", [1, 1, 1, 1, 1, 1, 1, 1])
+        self.declare_parameter("propulsion.thrusters.thruster_PWM_offset", [0, 0, 0, 0, 0, 0, 0, 0])
         self.declare_parameter(
             "propulsion.thrusters.thruster_PWM_min",
             [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
@@ -46,35 +38,21 @@ class ThrusterInterfaceAUVNode(Node):
 
         self.declare_parameter("propulsion.thrusters.thrust_update_rate", 10.0)
 
-        self.thruster_mapping = self.get_parameter(
-            "propulsion.thrusters.thruster_to_pin_mapping"
-        ).value
-        self.thruster_direction = self.get_parameter(
-            "propulsion.thrusters.thruster_direction"
-        ).value
-        self.thruster_PWM_offset = self.get_parameter(
-            "propulsion.thrusters.thruster_PWM_offset"
-        ).value
-        self.thruster_PWM_min = self.get_parameter(
-            "propulsion.thrusters.thruster_PWM_min"
-        ).value
-        self.thruster_PWM_max = self.get_parameter(
-            "propulsion.thrusters.thruster_PWM_max"
-        ).value
-        self.thrust_timer_period = (
-            1.0 / self.get_parameter("propulsion.thrusters.thrust_update_rate").value
-        )
+        self.thruster_mapping = self.get_parameter("propulsion.thrusters.thruster_to_pin_mapping").value
+        self.thruster_direction = self.get_parameter("propulsion.thrusters.thruster_direction").value
+        self.thruster_pwm_offset = self.get_parameter("propulsion.thrusters.thruster_PWM_offset").value
+        self.thruster_pwm_min = self.get_parameter("propulsion.thrusters.thruster_PWM_min").value
+        self.thruster_pwm_max = self.get_parameter("propulsion.thrusters.thruster_PWM_max").value
+        self.thrust_timer_period = 1.0 / self.get_parameter("propulsion.thrusters.thrust_update_rate").value
 
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
-            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=get_package_share_directory(
-                "thruster_interface_auv"
-            ),
-            THRUSTER_MAPPING=self.thruster_mapping,
-            THRUSTER_DIRECTION=self.thruster_direction,
-            THRUSTER_PWM_OFFSET=self.thruster_PWM_offset,
-            PWM_MIN=self.thruster_PWM_min,
-            PWM_MAX=self.thruster_PWM_max,
+            ros2_package_name_for_thruster_datasheet=get_package_share_directory("thruster_interface_auv"),
+            thruster_mapping=self.thruster_mapping,
+            thruster_direction=self.thruster_direction,
+            thruster_pwm_offset=self.thruster_pwm_offset,
+            pwm_min=self.thruster_pwm_min,
+            pwm_max=self.thruster_pwm_max,
         )
 
         # Start clock timer for driving thrusters every 0.2 seconds
@@ -93,9 +71,7 @@ class ThrusterInterfaceAUVNode(Node):
     def _timer_callback(self):
         # Send thruster forces to be converted into PWM signal and sent to control the thrusters
         # PWM signal gets saved and is published in the "/pwm" topic as a debuging feature to see if everything is alright with the PWM signal
-        thruster_pwm_array = self.thruster_driver.drive_thrusters(
-            self.thruster_forces_array
-        )
+        thruster_pwm_array = self.thruster_driver.drive_thrusters(self.thruster_forces_array)
 
         pwm_message = Int16MultiArray()
         pwm_message.data = thruster_pwm_array

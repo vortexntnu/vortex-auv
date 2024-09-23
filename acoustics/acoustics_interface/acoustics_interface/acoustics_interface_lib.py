@@ -74,18 +74,16 @@ class TeensyCommunicationUDP:
     }
 
     @classmethod
-    def init_communication(cls, frequenciesOfInterest: list[tuple[int, int]]) -> None:
+    def init_communication(cls, frequencies_of_interest: list[tuple[int, int]]) -> None:
         """
         Sets up communication with teensy
 
         Parameters:
             frequenciesOfInterest (list[tuple[int, int]]): List of frequencies to look for
         """
-        assert (
-            len(frequenciesOfInterest) == 10
-        ), "Frequency list has to have exactly 10 entries"
+        assert len(frequencies_of_interest) == 10, "Frequency list has to have exactly 10 entries"
 
-        _frequenciesOfInterest = frequenciesOfInterest
+        _frequencies_of_interest = frequencies_of_interest
 
         cls.MY_IP = cls._get_ip()
 
@@ -95,21 +93,21 @@ class TeensyCommunicationUDP:
         cls._clientSocket.setblocking(False)
 
         cls._send_acknowledge_signal()
-        timeStart = time.time()
+        time_start = time.time()
 
         # Wait for READY signal
         while not cls._check_if_available():
             print("Did not receive READY signal. Will wait.")
             time.sleep(1)
 
-            if time.time() - timeStart > cls._timeoutMax:
+            if time.time() - time_start > cls._timeoutMax:
                 print("Gave up on receiving READY. Sending acknowledge signal again")
                 # Start over
-                timeStart = time.time()
+                time_start = time.time()
                 cls._send_acknowledge_signal()
 
         print("READY signal received, sending frequencies...")
-        cls._send_frequencies_of_interest(frequenciesOfInterest)
+        cls._send_frequencies_of_interest(frequencies_of_interest)
 
     @classmethod
     def fetch_data(cls) -> None:
@@ -166,8 +164,8 @@ class TeensyCommunicationUDP:
         """
         try:
             rec_data, _ = cls._clientSocket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
-            messageReceived = rec_data.decode()
-            return messageReceived
+            message_received = rec_data.decode()
+            return message_received
         except error as e:  # `error` is really `socket.error`
             if e.errno == errno.EWOULDBLOCK:
                 pass
@@ -209,13 +207,13 @@ class TeensyCommunicationUDP:
         try:
             # doesn't even have to be reachable
             s.connect((cls._TEENSY_IP, 1))
-            IP = s.getsockname()[0]
+            ip = s.getsockname()[0]
         except Exception:
-            IP = "127.0.0.1"
+            ip = "127.0.0.1"
         finally:
             s.close()
 
-        return IP
+        return ip
 
     @classmethod
     def _send_acknowledge_signal(cls) -> None:
@@ -261,9 +259,7 @@ class TeensyCommunicationUDP:
             return False
 
     @classmethod
-    def _send_frequencies_of_interest(
-        cls, frequenciesOfInterest: list[tuple[float, float]]
-    ) -> None:
+    def _send_frequencies_of_interest(cls, frequencies_of_interest: list[tuple[float, float]]) -> None:
         """
         Sends the list of frequencies with variance to teensy
 
@@ -272,12 +268,10 @@ class TeensyCommunicationUDP:
         """
         try:
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
-            assert (
-                len(frequenciesOfInterest) == 10
-            ), "List of frequencies has to be ten entries long!"
+            assert len(frequencies_of_interest) == 10, "List of frequencies has to be ten entries long!"
 
             # ten messages in total, one message for each entry to work around the max packet size
-            for frequency, variance in frequenciesOfInterest:
+            for frequency, variance in frequencies_of_interest:
                 frequency_variance_msg = f"{str(frequency)},{str(variance)},"
 
                 # print(self.address);

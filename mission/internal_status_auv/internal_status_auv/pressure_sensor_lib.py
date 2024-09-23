@@ -11,14 +11,14 @@ import board
 class PressureSensor:
     def __init__(self):
         # Pressure Sensor Setup
-        i2c_adress_MPRLS = 0x18  # Reads pressure from MPRLS Adafruit sensor
+        i2c_adress_mprls = 0x18  # Reads pressure from MPRLS Adafruit sensor
         self.channel_pressure = None
 
         try:
-            I2CBuss = board.I2C()
+            i2c_bus = board.I2C()
             self.channel_pressure = adafruit_mprls.MPRLS(
-                i2c_bus=I2CBuss,
-                addr=i2c_adress_MPRLS,
+                i2c_bus=i2c_bus,
+                addr=i2c_adress_mprls,
                 reset_pin=None,
                 eoc_pin=None,
                 psi_min=0,

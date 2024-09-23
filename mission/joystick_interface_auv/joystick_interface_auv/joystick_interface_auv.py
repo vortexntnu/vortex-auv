@@ -89,9 +89,7 @@ class JoystickInterface(Node):
 
         self.joystick_axes_map_ = []
 
-        self.joy_subscriber_ = self.create_subscription(
-            Joy, "joystick/joy", self.joystick_cb, 5
-        )
+        self.joy_subscriber_ = self.create_subscription(Joy, "joystick/joy", self.joystick_cb, 5)
         self.wrench_publisher_ = self.create_publisher(Wrench, "thrust/wrench_input", 5)
 
         self.declare_parameter("surge_scale_factor", 60.0)
@@ -110,17 +108,11 @@ class JoystickInterface(Node):
         self.joystick_pitch_scaling_ = self.get_parameter("pitch_scale_factor").value
 
         # Killswitch publisher
-        self.software_killswitch_signal_publisher_ = self.create_publisher(
-            Bool, "softwareKillSwitch", 10
-        )
-        self.software_killswitch_signal_publisher_.publish(
-            Bool(data=True)
-        )  # Killswitch is active
+        self.software_killswitch_signal_publisher_ = self.create_publisher(Bool, "softwareKillSwitch", 10)
+        self.software_killswitch_signal_publisher_.publish(Bool(data=True))  # Killswitch is active
 
         # Operational mode publisher
-        self.operational_mode_signal_publisher_ = self.create_publisher(
-            String, "softwareOperationMode", 10
-        )
+        self.operational_mode_signal_publisher_ = self.create_publisher(String, "softwareOperationMode", 10)
 
         # Signal that we are in XBOX mode
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
@@ -227,36 +219,12 @@ class JoystickInterface(Node):
         right_shoulder = buttons.get("RB", 0)
 
         # Extract axis values
-        surge = (
-            axes.get("vertical_axis_left_stick", 0.0)
-            * self.joystick_surge_scaling_
-            * self.precise_manuevering_scaling_
-        )
-        sway = (
-            -axes.get("horizontal_axis_left_stick", 0.0)
-            * self.joystick_sway_scaling_
-            * self.precise_manuevering_scaling_
-        )
-        heave = (
-            (left_trigger - right_trigger)
-            * self.joystick_heave_scaling_
-            * self.precise_manuevering_scaling_
-        )
-        roll = (
-            (right_shoulder - left_shoulder)
-            * self.joystick_roll_scaling_
-            * self.precise_manuevering_scaling_
-        )
-        pitch = (
-            -axes.get("vertical_axis_right_stick", 0.0)
-            * self.joystick_pitch_scaling_
-            * self.precise_manuevering_scaling_
-        )
-        yaw = (
-            -axes.get("horizontal_axis_right_stick", 0.0)
-            * self.joystick_yaw_scaling_
-            * self.precise_manuevering_scaling_
-        )
+        surge = axes.get("vertical_axis_left_stick", 0.0) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
+        sway = -axes.get("horizontal_axis_left_stick", 0.0) * self.joystick_sway_scaling_ * self.precise_manuevering_scaling_
+        heave = (left_trigger - right_trigger) * self.joystick_heave_scaling_ * self.precise_manuevering_scaling_
+        roll = (right_shoulder - left_shoulder) * self.joystick_roll_scaling_ * self.precise_manuevering_scaling_
+        pitch = -axes.get("vertical_axis_right_stick", 0.0) * self.joystick_pitch_scaling_ * self.precise_manuevering_scaling_
+        yaw = -axes.get("horizontal_axis_right_stick", 0.0) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -266,12 +234,7 @@ class JoystickInterface(Node):
             precise_manuevering_mode_button = False
 
         # If any button is pressed, update the last button press time
-        if (
-            software_control_mode_button
-            or xbox_control_mode_button
-            or software_killswitch_button
-            or precise_manuevering_mode_button
-        ):
+        if software_control_mode_button or xbox_control_mode_button or software_killswitch_button or precise_manuevering_mode_button:
             self.last_button_press_time_ = current_time
 
         # Toggle killswitch on and off
@@ -297,9 +260,7 @@ class JoystickInterface(Node):
             self.precise_manuevering_mode_ = not self.precise_manuevering_mode_
             mode = "ENABLED" if self.precise_manuevering_mode_ else "DISABLED"
             self.get_logger().info(f"Precise maneuvering mode {mode}.")
-            self.precise_manuevering_scaling_ = (
-                0.5 if self.precise_manuevering_mode_ else 1.0
-            )
+            self.precise_manuevering_scaling_ = 0.5 if self.precise_manuevering_mode_ else 1.0
 
         # Publish wrench message from joystick_interface to thrust allocation
         wrench_msg = self.create_wrench_message(surge, sway, heave, roll, pitch, yaw)

@@ -5,10 +5,10 @@ from datetime import datetime
 
 
 class AcousticsDataRecordLib:
-    def __init__(self, ROS2_PACKAGE_DIRECTORY=""):
+    def __init__(self, ros2_package_directory=""):
         # Global variables for .csv file manipulation ----------
         # Get the path for the directory where we will store our data
-        self.acoustics_data_directory = ROS2_PACKAGE_DIRECTORY + "acoustics_data/"
+        self.acoustics_data_directory = ros2_package_directory + "acoustics_data/"
 
         timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
         data_file_name = "acoustics_data_" + timestamp + ".csv"
@@ -29,9 +29,7 @@ class AcousticsDataRecordLib:
         ]
 
         # Make new .csv file for loging blackbox data ----------
-        with open(
-            self.data_file_location, mode="w", newline="", encoding="utf-8"
-        ) as csv_file:
+        with open(self.data_file_location, mode="w", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(self.csv_headers)
 
@@ -71,9 +69,7 @@ class AcousticsDataRecordLib:
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file
-        with open(
-            self.data_file_location, mode="a", newline="", encoding="utf-8"
-        ) as csv_file:
+        with open(self.data_file_location, mode="a", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
                 [

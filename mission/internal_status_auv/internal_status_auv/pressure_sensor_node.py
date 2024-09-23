@@ -11,7 +11,7 @@ from std_msgs.msg import Float32
 class PressurePublisher(Node):
     def __init__(self):
         # Pressure sensor setup ----------
-        self.Pressure = internal_status_auv.pressure_sensor_lib.PressureSensor()
+        self.pressure = internal_status_auv.pressure_sensor_lib.PressureSensor()
 
         # Node setup ----------
         super().__init__("pressure_sensor_publisher")
@@ -22,14 +22,8 @@ class PressurePublisher(Node):
         # Data gathering cycle ----------
         self.pressure = 0.0
 
-        self.declare_parameter(
-            "internal_status.pressure_read_rate", 1.0
-        )  # Providing a default value 1.0 => 1 second delay per data gathering
-        read_rate = (
-            self.get_parameter("internal_status.pressure_read_rate")
-            .get_parameter_value()
-            .double_value
-        )
+        self.declare_parameter("internal_status.pressure_read_rate", 1.0)  # Providing a default value 1.0 => 1 second delay per data gathering
+        read_rate = self.get_parameter("internal_status.pressure_read_rate").get_parameter_value().double_value
         timer_period = 1.0 / read_rate
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
@@ -37,22 +31,12 @@ class PressurePublisher(Node):
         self.logger = get_logger("pressure_sensor")
 
         self.declare_parameter("internal_status.pressure_critical_level", 1000.0)
-        self.pressureCriticalLevel = (
-            self.get_parameter("internal_status.pressure_critical_level")
-            .get_parameter_value()
-            .double_value
-        )
+        self.pressure_critical_level = self.get_parameter("internal_status.pressure_critical_level").get_parameter_value().double_value
 
         self.declare_parameter("internal_status.pressure_warning_rate", 0.1)
-        warning_rate = (
-            self.get_parameter("internal_status.pressure_warning_rate")
-            .get_parameter_value()
-            .double_value
-        )
+        warning_rate = self.get_parameter("internal_status.pressure_warning_rate").get_parameter_value().double_value
         warning_timer_period = 1.0 / warning_rate
-        self.warning_timer = self.create_timer(
-            warning_timer_period, self.warning_timer_callback
-        )
+        self.warning_timer = self.create_timer(warning_timer_period, self.warning_timer_callback)
 
         # Debuging ----------
         self.get_logger().info('"pressure_sensor_publisher" has been started')
@@ -65,7 +49,7 @@ class PressurePublisher(Node):
         and publishes it to the "/auv/pressure" topic.
         """
         # Get pressure data
-        self.pressure = self.Pressure.get_pressure()
+        self.pressure = self.pressure.get_pressure()
 
         # Publish pressure data
         pressure_msg = Float32()
@@ -79,10 +63,8 @@ class PressurePublisher(Node):
         This function checks if the pressure exceeds the critical level.
         If so, a fatal warning is logged indicating a possible leak in the AUV.
         """
-        if self.pressure > self.pressureCriticalLevel:
-            self.logger.fatal(
-                f"WARNING: Internal pressure to HIGH: {self.pressure} hPa! Drone might be LEAKING!"
-            )
+        if self.pressure > self.pressure_critical_level:
+            self.logger.fatal(f"WARNING: Internal pressure to HIGH: {self.pressure} hPa! Drone might be LEAKING!")
 
 
 def main(args=None):

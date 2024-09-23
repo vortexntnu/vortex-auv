@@ -30,20 +30,18 @@ def format_line(value: str, unit: str):
     Returns:
         str: A formatted string that fits within a 16-character limit, with the unit appended.
     """
-    spacesAvailable = 16
-    valueLenght = len(value)
-    unitLenght = (
-        len(unit) + 1
-    )  # +1 to make sure there is spacing between value and unit
+    spaces_available = 16
+    value_length = len(value)
+    unit_length = len(unit) + 1  # +1 to make sure there is spacing between value and unit
 
-    emptySpaceLenght = spacesAvailable - (valueLenght + unitLenght)
-    emptySpaceLenght = max(emptySpaceLenght, 0)
+    empty_space_length = spaces_available - (value_length + unit_length)
+    empty_space_length = max(empty_space_length, 0)
 
-    formatedString = value[0 : (spacesAvailable - unitLenght)]
-    formatedString += " " * emptySpaceLenght
-    formatedString += " " + unit
+    formated_string = value[0 : (spaces_available - unit_length)]
+    formated_string += " " * empty_space_length
+    formated_string += " " + unit
 
-    return formatedString
+    return formated_string
 
 
 # Fancy animation at the start
@@ -52,28 +50,28 @@ LCD.fancy_animation(animation_speed=3.0)
 # Display information on the LDC Screen
 while True:
     # IP ----------
-    timeDispaying = 5
-    updatesPerSecond = 1
-    for i in range(timeDispaying * updatesPerSecond):
-        line1 = "IP: "
-        line2 = str(IP.get_IP())
-        LCD.write_to_screen(line1, line2)
-        sleep(1 / updatesPerSecond)
+    TIME_DISPLAYING = 5
+    UPDATES_PER_SECOND = 1
+    for i in range(TIME_DISPLAYING * UPDATES_PER_SECOND):
+        LINE_1 = "IP: "
+        LINE_2 = str(IP.get_ip())
+        LCD.write_to_screen(LINE_1, LINE_2)
+        sleep(1 / UPDATES_PER_SECOND)
 
     # Voltage and Current ----------
-    timeDispaying = 5
-    updatesPerSecond = 2
-    for i in range(timeDispaying * updatesPerSecond):
-        line1 = format_line(str(round(PSM.get_voltage(), 3)), "V")
-        line2 = format_line(str(round(PSM.get_current(), 3)), "A")
-        LCD.write_to_screen(line1, line2)
-        sleep(1 / updatesPerSecond)
+    TIME_DISPLAYING = 5
+    UPDATES_PER_SECOND = 2
+    for i in range(TIME_DISPLAYING * UPDATES_PER_SECOND):
+        LINE_1 = format_line(str(round(PSM.get_voltage(), 3)), "V")
+        LINE_2 = format_line(str(round(PSM.get_current(), 3)), "A")
+        LCD.write_to_screen(LINE_1, LINE_2)
+        sleep(1 / UPDATES_PER_SECOND)
 
     # Pressure and Temperature ----------
-    timeDispaying = 5
-    updatesPerSecond = 1
-    for i in range(timeDispaying * updatesPerSecond):
-        line1 = format_line(str(round(Pressure.get_pressure(), 1)), "hPa")
-        line2 = format_line(str(round(Temperature.get_temperature(), 1)), "*C")
-        LCD.write_to_screen(line1, line2)
-        sleep(1 / updatesPerSecond)
+    TIME_DISPLAYING = 5
+    UPDATES_PER_SECOND = 1
+    for i in range(TIME_DISPLAYING * UPDATES_PER_SECOND):
+        LINE_1 = format_line(str(round(Pressure.get_pressure(), 1)), "hPa")
+        LINE_2 = format_line(str(round(Temperature.get_temperature(), 1)), "*C")
+        LCD.write_to_screen(LINE_1, LINE_2)
+        sleep(1 / UPDATES_PER_SECOND)

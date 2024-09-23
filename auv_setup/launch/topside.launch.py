@@ -20,9 +20,7 @@ def generate_launch_description():
         variable setting, joystick node, and joystick interface launch.
     """
     # Set environment variable
-    set_env_var = SetEnvironmentVariable(
-        name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}"
-    )
+    set_env_var = SetEnvironmentVariable(name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}")
 
     # Joystick node
     joy_node = Node(
