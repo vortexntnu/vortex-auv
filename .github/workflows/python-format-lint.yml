@@ -1,0 +1,61 @@
+name: Run Python formatters and linters
+
+on: [push]
+
+jobs:
+  black_format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            ref: ${{ github.head_ref }}
+
+      - name: Check files using the black formatter
+        uses: rickstaa/action-black@v1
+        id: action_black
+        with:
+          black_args: "."
+
+      - name: Commit changes if code is formatted
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: Black Robot
+          author_email: black-robot@example.com
+          message: 'Committing black-format changes'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  isort_format:
+    runs-on: ubuntu-latest
+    needs: black_format  
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Run isort to sort imports
+        run: isort .
+
+      - name: Commit isort changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: Isort Robot
+          author_email: isort-robot@example.com
+          message: 'Committing isort changes'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pylint_check:
+    runs-on: ubuntu-latest
+    needs: isort_format  
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Run pylint
+        run: |
+          pylint .
