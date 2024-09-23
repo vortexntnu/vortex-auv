@@ -1,6 +1,6 @@
 name: Run Python formatters and linters
 
-on: [push]
+on: [pull_request]
 
 jobs:
   isort_format:
