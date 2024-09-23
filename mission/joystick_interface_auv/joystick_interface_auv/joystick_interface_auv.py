@@ -97,6 +97,8 @@ class JoystickInterface(Node):
         self.pitch = 0.0
         self.yaw = 0.0
         self.joystick_buttons_map_ = []
+        self.mode_published = False 
+
 
         self.joystick_axes_map_ = []
 
@@ -140,17 +142,13 @@ class JoystickInterface(Node):
         #Operational mode publisher
         self.operational_mode_signal_publisher_ = self.create_publisher(
             String, "softwareOperationMode", 10)
-
-        # Signal that we are in XBOX mode
-        self.mode_published = False 
-        if not self.mode_published:
-            self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
-            self.mode_published = True
+        self.publish_operational_mode()
 
     def create_pose_message(self, current_pose): 
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
         pose_msg.header.frame_id = "base_link"
+        pose_msg.pose = current_pose.pose
         return pose_msg
 
     def create_wrench_message(self, surge: float, sway: float, heave: float,
@@ -182,8 +180,10 @@ class JoystickInterface(Node):
         """
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
-        self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
-        self.state_ = States.XBOX_MODE
+        if self.state_ != States.XBOX_MODE:  # Sjekk om vi allerede er i XBOX mode
+            self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
+            self.state_ = States.XBOX_MODE
+            self.get_logger().info("Transitioned to XBOX mode.")
 
     def transition_to_reference_mode(self):
         """
