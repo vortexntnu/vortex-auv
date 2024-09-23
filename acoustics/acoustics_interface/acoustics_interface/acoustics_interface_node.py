@@ -167,7 +167,6 @@ def main(args=None):
 
     node.destroy_node()
     rclpy.shutdown()
-    pass
 
 
 if __name__ == "__main__":

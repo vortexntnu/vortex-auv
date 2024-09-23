@@ -230,7 +230,6 @@ class TeensyCommunicationUDP:
         except Exception as e:
             print("Error from send_acknowledge_signal")
             print(e)
-            pass
 
     @classmethod
     def _check_if_available(cls) -> None:
