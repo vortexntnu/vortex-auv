@@ -48,7 +48,9 @@ class BlackBoxLogData:
         self.manage_csv_files()
 
         # Make new .csv file for loging blackbox data ----------
-        with open(self.data_file_location, mode="w", newline="", encoding="utf-8") as csv_file:
+        with open(
+            self.data_file_location, mode="w", newline="", encoding="utf-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(self.csv_headers)
 
@@ -59,7 +61,7 @@ class BlackBoxLogData:
 
         Args:
             max_file_age_in_days (int, optional): The maximum age of files in days before they are deleted. Defaults to 7 days.
-            max_size_kb (int, optional): The maximum total size of all CSV files in kilobytes before the oldest files are deleted. 
+            max_size_kb (int, optional): The maximum total size of all CSV files in kilobytes before the oldest files are deleted.
 
         Returns:
             None
@@ -212,7 +214,9 @@ class BlackBoxLogData:
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file
-        with open(self.data_file_location, mode="a", newline="", encoding="utf-8") as csv_file:
+        with open(
+            self.data_file_location, mode="a", newline="", encoding="utf-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
                 [

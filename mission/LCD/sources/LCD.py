@@ -3,6 +3,7 @@
 from time import sleep
 
 from IP_lib import IPDriver
+
 # Custom Libraries
 from LCD_lib import LCDScreenDriver
 from power_sense_module_lib import PowerSenseModule
@@ -37,7 +38,6 @@ def format_line(value: str, unit: str):
 
     emptySpaceLenght = spacesAvailable - (valueLenght + unitLenght)
     emptySpaceLenght = max(emptySpaceLenght, 0)
-
 
     formatedString = value[0 : (spacesAvailable - unitLenght)]
     formatedString += " " * emptySpaceLenght

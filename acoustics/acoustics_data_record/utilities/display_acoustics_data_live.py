@@ -8,6 +8,7 @@ import os
 from matplotlib import animation
 from matplotlib import gridspec
 import matplotlib.pyplot as plt
+
 # Libraries for handling data structures
 import pandas as pd
 
@@ -183,7 +184,6 @@ def getAcousticsData():
     except Exception as e:
         print(f"ERROR: Couldn't read acoustics data. Exception: {e}")
 
-
     # Post process DSP data to desired scale and amount ----------
     # 1. Convert FFTData to its corresponding frequency amount
     # 2. Cut out big FFT frequencies out as they are not relevant
@@ -209,7 +209,6 @@ def getAcousticsData():
         peaksFrequencyData = tempFrequency
     except Exception as e:
         print(f"ERROR processing DSP data. Exception: {e}")
-
 
     # return processed data ----------
     return [

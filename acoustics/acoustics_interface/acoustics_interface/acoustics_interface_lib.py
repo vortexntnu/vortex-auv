@@ -4,8 +4,6 @@ import time
 from socket import socket, AF_INET, SOCK_DGRAM, error
 
 
-
-
 class TeensyCommunicationUDP:
     """
     This class is responsible for the RPI side of teensy-RPI UDP communication. It is
