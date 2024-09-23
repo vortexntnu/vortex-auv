@@ -4,13 +4,11 @@
 import glob
 import os
 
-# Libraries for anmation
-from matplotlib import animation
-from matplotlib import gridspec
 import matplotlib.pyplot as plt
-
 # Libraries for handling data structures
 import pandas as pd
+# Libraries for anmation
+from matplotlib import animation, gridspec
 
 # Variables for seting upp data structures correctly
 hydrophoneDataSize = (

@@ -3,7 +3,6 @@
 from time import sleep
 
 from IP_lib import IPDriver
-
 # Custom Libraries
 from LCD_lib import LCDScreenDriver
 from power_sense_module_lib import PowerSenseModule
