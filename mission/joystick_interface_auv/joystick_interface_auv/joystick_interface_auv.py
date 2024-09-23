@@ -13,7 +13,7 @@ class States:
     XBOX_MODE = 1
     AUTONOMOUS_MODE = 2
     NO_GO = 3
-    REFERNCE_MODE = 4 #Not implemented yet
+    REFERNCE_MODE = 4  #Not implemented yet
 
 
 class Wired:
@@ -89,7 +89,7 @@ class JoystickInterface(Node):
         self.state_ = States.NO_GO
         self.precise_manuevering_mode_ = False
         self.precise_manuevering_scaling_ = 1.0
-        self.reference_mode = False 
+        self.reference_mode = False
         self.surge = 0.0
         self.sway = 0.0
         self.heave = 0.0
@@ -97,20 +97,20 @@ class JoystickInterface(Node):
         self.pitch = 0.0
         self.yaw = 0.0
         self.joystick_buttons_map_ = []
-        self.mode_published = False 
-
+        self.mode_published = False
 
         self.joystick_axes_map_ = []
 
         self.joy_subscriber_ = self.create_subscription(
             Joy, "joystick/joy", self.joystick_cb, 5)
-        self.wrench_publisher_ = self.create_publisher(Wrench,
-                                                       "joystick/wrench",
-                                                       10) # Publishes the wrench message every 10 seconds 
-        self.pose_publisher = self.create_publisher(PoseStamped, "joystick/guidance", 10) #Publishes the current pose of the drone every 10 seconds 
-        self.timer_ = self.create_timer(0.1, self.timer_cb) 
-        self.current_pose = PoseStamped() #Current pose of the drone
-
+        self.wrench_publisher_ = self.create_publisher(
+            Wrench, "joystick/wrench",
+            10)  # Publishes the wrench message every 10 seconds
+        self.pose_publisher = self.create_publisher(
+            PoseStamped, "joystick/guidance",
+            10)  #Publishes the current pose of the drone every 10 seconds
+        self.timer_ = self.create_timer(0.1, self.timer_cb)
+        self.current_pose = PoseStamped()  #Current pose of the drone
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -144,7 +144,7 @@ class JoystickInterface(Node):
             String, "softwareOperationMode", 10)
         self.publish_operational_mode()
 
-    def create_pose_message(self, current_pose): 
+    def create_pose_message(self, current_pose):
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
         pose_msg.header.frame_id = "base_link"
@@ -181,7 +181,8 @@ class JoystickInterface(Node):
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
         if self.state_ != States.XBOX_MODE:  # Sjekk om vi allerede er i XBOX mode
-            self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
+            self.operational_mode_signal_publisher_.publish(
+                String(data="XBOX"))
             self.state_ = States.XBOX_MODE
             self.get_logger().info("Transitioned to XBOX mode.")
 
@@ -192,10 +193,10 @@ class JoystickInterface(Node):
         current_pose = self.get_current_pose()
         pose_msg = self.create_pose_message(current_pose)
         self.reference_signal_publisher_.publish(pose_msg)
-        self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
+        self.operational_mode_signal_publisher_.publish(
+            String(data="Reference mode"))
         self.state = States.REFERENCE_MODE
         self.get_logger().info("Transitioning to reference mode")
-
 
     def transition_to_autonomous_mode(self):
         """
@@ -206,8 +207,7 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(
             String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
-   
-   
+
     def joystick_cb(self, msg: Joy) -> Wrench:
         """
         Callback function that receives joy messages and converts them into
@@ -265,7 +265,7 @@ class JoystickInterface(Node):
         if xbox_control_mode_button:
             self.reference_mode = not self.reference_mode
 
-        # Extract axis values   
+        # Extract axis values
         self.surge = axes.get(
             "vertical_axis_left_stick", 0.0
         ) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
@@ -284,8 +284,6 @@ class JoystickInterface(Node):
         self.yaw = -axes.get(
             "horizontal_axis_right_stick", 0.0
         ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
-
-
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -329,7 +327,8 @@ class JoystickInterface(Node):
             self.precise_manuevering_scaling_ = 0.5 if self.precise_manuevering_mode_ else 1.0
 
         # Publish wrench message from joystick_interface to thrust allocation
-        wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, self.roll,
+        wrench_msg = self.create_wrench_message(self.surge, self.sway,
+                                                self.heave, self.roll,
                                                 self.pitch, self.yaw)
 
         if self.state_ == States.XBOX_MODE:
@@ -356,14 +355,14 @@ class JoystickInterface(Node):
             #Convert roll, pitch, and yaw to quaternion
             quaternion = quaternion_from_euler(self.roll, self.pitch, self.yaw)
             self.current_pose.pose.orientation.x = quaternion[0]
-            self.current_pose.pose.orientation.y = quaternion[1]         
+            self.current_pose.pose.orientation.y = quaternion[1]
             self.current_pose.pose.orientation.z = quaternion[2]
             self.current_pose.pose.orientation.w = quaternion[3]
             self.pose_publisher.publish(self.current_pose)
 
     def timer_cb(self):
         self.reference_pose()
-        msg = self.create_pose_message(self.current_pose)  
+        msg = self.create_pose_message(self.current_pose)
         self.pose_publisher.publish(msg)
 
 
