@@ -189,8 +189,13 @@ class JoystickInterface(Node):
         """
         Publishes a zero force wrench message and signals that the system is turning on reference mode.
         """
+        current_pose = self.get_current_pose()
+        pose_msg = self.create_pose_message(current_pose)
+        self.reference_signal_publisher_.publish(pose_msg)
+        self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
         self.state = States.REFERENCE_MODE
         self.get_logger().info("Transitioning to reference mode")
+
 
     def transition_to_autonomous_mode(self):
         """
@@ -281,18 +286,6 @@ class JoystickInterface(Node):
         ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
 
 
-        if self.reference_mode:
-            self.current_pose.pose.position.x += self.surge
-            self.current_pose.pose.position.y += self.sway
-            self.current_pose.pose.position.z += self.heave
-
-            #Convert roll, pitch, and yaw to quaternion
-            quaternion = quaternion_from_euler(self.roll, self.pitch, self.yaw)
-            self.current_pose.pose.orientation.x = quaternion[0]
-            self.current_pose.pose.orientation.y = quaternion[1]
-            self.current_pose.pose.orientation.z = quaternion[2]
-            self.current_pose.pose.orientation.w = quaternion[3]
-            self.pose_publisher.publish(self.current_pose)
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -354,7 +347,22 @@ class JoystickInterface(Node):
 
         # return wrench_msg
 
+    def reference_pose(self):
+        if self.reference_mode:
+            self.current_pose.pose.position.x += self.surge
+            self.current_pose.pose.position.y += self.sway
+            self.current_pose.pose.position.z += self.heave
+
+            #Convert roll, pitch, and yaw to quaternion
+            quaternion = quaternion_from_euler(self.roll, self.pitch, self.yaw)
+            self.current_pose.pose.orientation.x = quaternion[0]
+            self.current_pose.pose.orientation.y = quaternion[1]         
+            self.current_pose.pose.orientation.z = quaternion[2]
+            self.current_pose.pose.orientation.w = quaternion[3]
+            self.pose_publisher.publish(self.current_pose)
+
     def timer_cb(self):
+        self.reference_pose()
         msg = self.create_pose_message(self.current_pose)  
         self.pose_publisher.publish(msg)
 
