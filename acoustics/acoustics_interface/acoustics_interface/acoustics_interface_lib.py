@@ -285,5 +285,5 @@ class TeensyCommunicationUDP:
 
                 # print(self.address);
                 cls._clientSocket.sendto(frequency_variance_msg.encode(), cls._address)
-        except:
-            print("Couldn't send Frequency data")
+        except Exception as e:  
+            print(f"Unexpected error while sending frequency data: {e}")

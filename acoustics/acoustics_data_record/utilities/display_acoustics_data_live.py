@@ -180,8 +180,9 @@ def getAcousticsData():
         # Get multilateration data
         tdoaData = convertPandasObjectToFloatArray(latestAcousticsData["TDOA"])
         positonData = convertPandasObjectToFloatArray(latestAcousticsData["Position"])
-    except:
-        print("ERROR: Coulden't read acoustics data")
+    except Exception as e:
+        print(f"ERROR: Couldn't read acoustics data. Exception: {e}")
+
 
     # Post process DSP data to desired scale and amount ----------
     # 1. Convert FFTData to its corresponding frequency amount
@@ -206,8 +207,9 @@ def getAcousticsData():
 
         peaksAmplitudeData = tempAmplitude
         peaksFrequencyData = tempFrequency
-    except:
-        print("ERROR processing DSP data")
+    except Exception as e:
+        print(f"ERROR processing DSP data. Exception: {e}")
+
 
     # return processed data ----------
     return [
