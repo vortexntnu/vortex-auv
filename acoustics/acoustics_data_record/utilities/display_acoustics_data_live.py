@@ -200,10 +200,10 @@ def getAcousticsData():
     try:
         tempAmplitude = []
         tempFrequency = []
-        for i in range(1, len(peaksData), 3):
-            if peaksData[i] < MAX_FREQUENCY_TO_SHOW:
-                tempAmplitude += [peaksData[i - 1]]
-                tempFrequency += [peaksData[i]]
+        for peak_index in range(1, len(peaksData), 3):
+            if peaksData[peak_index] < MAX_FREQUENCY_TO_SHOW:
+                tempAmplitude += [peaksData[peak_index - 1]]
+                tempFrequency += [peaksData[peak_index]]
 
         peaksAmplitudeData = tempAmplitude
         peaksFrequencyData = tempFrequency
@@ -277,17 +277,17 @@ def display_live_data():
     positionData = acousticsData[12]  # Currently not in use
 
     # Plot hydrophone data
-    for i in range(5):
-        xHydrophone = list(range(len(hydrophoneData[i][::])))
-        hydrophoneAxis[i].clear()
-        hydrophoneAxis[i].plot(
+    for hydrophone_index in range(5):
+        xHydrophone = list(range(len(hydrophoneData[hydrophone_index][::])))
+        hydrophoneAxis[hydrophone_index].clear()
+        hydrophoneAxis[hydrophone_index].plot(
             xHydrophone,
-            hydrophoneData[i],
-            label=f"Hydrophone {i + 1}",
+            hydrophoneData[hydrophone_index],
+            label=f"Hydrophone {hydrophone_index + 1}",
             color=colorSoftBlue,
             alpha=1,
         )
-        hydrophoneAxis[i].legend(loc="upper right", fontsize="xx-small")
+        hydrophoneAxis[hydrophone_index].legend(loc="upper right", fontsize="xx-small")
 
     # Plot Filter response
     xRaw = list(range(len(unfilteredData)))
