@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 import rclpy
-from rclpy.node import Node
 import rclpy.logging
-from std_msgs.msg import Int32MultiArray, Float32MultiArray
 from acoustics_interface.acoustics_interface_lib import TeensyCommunicationUDP
+from rclpy.node import Node
+from std_msgs.msg import Float32MultiArray, Int32MultiArray
 
 
 class AcousticsInterfaceNode(Node):

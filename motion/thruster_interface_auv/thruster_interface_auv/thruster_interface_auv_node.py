@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 # ROS2 Libraries
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from std_msgs.msg import Int16MultiArray
-from ament_index_python.packages import get_package_share_directory
-
+from thruster_interface_auv.thruster_interface_auv_driver_lib import \
+    ThrusterInterfaceAUVDriver
 # Custom libraries
 from vortex_msgs.msg import ThrusterForces
-from thruster_interface_auv.thruster_interface_auv_driver_lib import (
-    ThrusterInterfaceAUVDriver,
-)
 
 
 class ThrusterInterfaceAUVNode(Node):

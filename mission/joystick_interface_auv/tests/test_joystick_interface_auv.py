@@ -1,7 +1,6 @@
-from joystick_interface_auv.joystick_interface_auv import JoystickInterface
-from joystick_interface_auv.joystick_interface_auv import States
 import rclpy
-from sensor_msgs.msg import Joy
+from joystick_interface_auv.joystick_interface_auv import (JoystickInterface,
+                                                           States)
 from sensor_msgs.msg import Joy
 
 

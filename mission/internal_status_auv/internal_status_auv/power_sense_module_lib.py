@@ -1,5 +1,6 @@
 # Libraies for Power Sense Module
 import time
+
 import smbus
 from MCP342x import MCP342x
 

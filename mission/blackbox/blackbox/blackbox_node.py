@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
 # ROS2 Libraries
-import rclpy
 import array
-from rclpy.node import Node
-from ament_index_python.packages import get_package_share_directory
 
+import rclpy
+from ament_index_python.packages import get_package_share_directory
+from blackbox.blackbox_log_data import BlackBoxLogData
+from rclpy.node import Node
 # ROS2 Topic Libraries
 from std_msgs.msg import Float32, Int16MultiArray
-
 # Custom Libraries
 from vortex_msgs.msg import ThrusterForces
-from blackbox.blackbox_log_data import BlackBoxLogData
 
 
 class BlackBoxNode(Node):

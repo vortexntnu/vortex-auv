@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Import libraries
-import smbus2
-import pandas
 import numpy
+import pandas
+import smbus2
 
 
 class ThrusterInterfaceAUVDriver:

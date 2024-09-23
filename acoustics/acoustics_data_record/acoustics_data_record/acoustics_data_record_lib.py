@@ -1,6 +1,6 @@
 # Python Libraries
-import time
 import csv
+import time
 from datetime import datetime
 
 

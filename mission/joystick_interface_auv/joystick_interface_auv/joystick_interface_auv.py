@@ -1,10 +1,9 @@
 #!/usr/bin/python3
 import rclpy
-from rclpy.node import Node
 from geometry_msgs.msg import Wrench
+from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
 
 
 class States:

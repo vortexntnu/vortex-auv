@@ -2,9 +2,9 @@
 # Python Libraries
 from time import sleep
 
+from IP_lib import IPDriver
 # Custom Libraries
 from LCD_lib import LCDScreenDriver
-from IP_lib import IPDriver
 from power_sense_module_lib import PowerSenseModule
 from pressure_sensor_lib import PressureSensor
 from temperature_sensor_lib import TemperatureSensor

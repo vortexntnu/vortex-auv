@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
 # Libraries for file manipulation
-import os
-import sys
+import array
 import ast
 import glob
-
-# Libraries for handling data structures
-import pandas as pd
-import numpy as np
-import array
+import os
+import sys
 
 # Libraries for anmation
 import matplotlib.animation as animation
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
+import numpy as np
+# Libraries for handling data structures
+import pandas as pd
 
 # Variables for seting upp data structures correctly
 hydrophoneDataSize = (
