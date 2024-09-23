@@ -48,7 +48,7 @@ class BlackBoxLogData:
         self.manage_csv_files()
 
         # Make new .csv file for loging blackbox data ----------
-        with open(self.data_file_location, mode="w", newline="") as csv_file:
+        with open(self.data_file_location, mode="w", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(self.csv_headers)
 
@@ -212,7 +212,7 @@ class BlackBoxLogData:
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file
-        with open(self.data_file_location, mode="a", newline="") as csv_file:
+        with open(self.data_file_location, mode="a", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
                 [
