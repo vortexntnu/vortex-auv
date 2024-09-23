@@ -126,7 +126,7 @@ class TeensyCommunicationUDP:
             if data is None:
                 return
 
-            if data not in cls.acoustics_data.keys():
+            if data not in cls.acoustics_data:
                 cls._data_string += data
             else:
                 cls._write_to_target()
