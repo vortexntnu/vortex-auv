@@ -5,8 +5,10 @@ import glob
 import os
 
 import matplotlib.pyplot as plt
+
 # Libraries for handling data structures
 import pandas as pd
+
 # Libraries for anmation
 from matplotlib import animation, gridspec
 
