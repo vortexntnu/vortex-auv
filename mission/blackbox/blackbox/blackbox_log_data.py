@@ -47,7 +47,7 @@ class BlackBoxLogData:
         # If .csv files take up to much space => Delete oldest ones
         self.manage_csv_files()
 
-        # Make new .csv file for loging blackbox data ----------
+        # Make new .csv file for logging blackbox data ----------
         with open(self.data_file_location, mode="w", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(self.csv_headers)

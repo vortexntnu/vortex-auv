@@ -157,7 +157,7 @@ def get_acoustics_data():
         # Unfiltered data is special as it is the same as Hydrohone 1 first 1024 values
         # This is because Acoustics PCB uses Hydrophone 1 to perform DSP
         # Hydrohones have a ring buffer the size of 3 buffers each containing 1024 values (2^10)
-        # We always use the first ring buffer of Hydrophone 1 to performe DSP
+        # We always use the first ring buffer of Hydrophone 1 to perform DSP
         # That is why unfiltered data is the same as Hydrphne 1 first buffer
         unfiltered_data = hydrophone1[0:1024]
 
@@ -245,7 +245,7 @@ def display_live_data():
     # Get latest acoustics data
     acoustics_data = get_acoustics_data()
 
-    # Set the lates acoustics data in appropriate variables
+    # Set the latest acoustics data in appropriate variables
     hydrophone_data = [
         acoustics_data[0],  # Hydrophone 1
         acoustics_data[1],  # Hydrophone 2

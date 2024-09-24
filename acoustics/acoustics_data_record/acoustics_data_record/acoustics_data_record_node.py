@@ -15,7 +15,7 @@ from std_msgs.msg import Float32MultiArray, Int32MultiArray
 
 class AcousticsDataRecordNode(Node):
     def __init__(self):
-        # Variables for setting upp loging correctly
+        # Variables for setting upp logging correctly
         hydrophone_data_size = (2**10) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
         dsp_data_size = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
         tdoa_data_size = 5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
@@ -76,7 +76,7 @@ class AcousticsDataRecordNode(Node):
             ros2_package_directory_location + "src/vortex-auv/acoustics/acoustics_data_record/"
         )  # Navigate to this package
 
-        # Make blackbox loging file
+        # Make blackbox logging file
         self.acoustics_data_record = AcousticsDataRecordLib(ros2_package_directory=ros2_package_directory_location)
 
         # Logs all the newest data 1 time(s) per second
@@ -233,7 +233,7 @@ def main():
     acoustics_data_record_node = AcousticsDataRecordNode()
     rclpy.spin(acoustics_data_record_node)
 
-    # Destroy the node explicitly once ROS2 stops runing
+    # Destroy the node explicitly once ROS2 stops running
     acoustics_data_record_node.destroy_node()
     rclpy.shutdown()
 

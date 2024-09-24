@@ -34,7 +34,7 @@ class ThrusterInterfaceAUVDriver:
         self.pwm_max = pwm_max
 
         # Convert SYSTEM_OPERATIONAL_VOLTAGE to a whole even number to work with
-        # This is because we have multiple files for the behavious of the thrusters depending on the voltage of the drone
+        # This is because we have multiple files for the behaviours of the thrusters depending on the voltage of the drone
         if system_operational_voltage < 11.0:
             self.system_operational_voltage = 10
         elif system_operational_voltage < 13.0:

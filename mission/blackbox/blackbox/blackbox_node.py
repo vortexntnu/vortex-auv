@@ -45,7 +45,7 @@ class BlackBoxNode(Node):
         ros2_package_directory_location = ros2_package_directory_location + "/../../../../"  # go back to workspace
         ros2_package_directory_location = ros2_package_directory_location + "src/vortex-auv/mission/blackbox/"  # Navigate to this package
 
-        # Make blackbox loging file
+        # Make blackbox logging file
         self.blackbox_log_data = BlackBoxLogData(ros2_package_directory=ros2_package_directory_location)
 
         # Logs all the newest data 10 times per second
