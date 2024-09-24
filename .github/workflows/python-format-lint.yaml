@@ -1,4 +1,4 @@
-name: isort_black_pylint
+name: Python Format and Lint (isort, black, pylint)
 
 on: [pull_request]
 
