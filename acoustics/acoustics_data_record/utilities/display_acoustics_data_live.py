@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # Libraries for handling data structures
 import pandas as pd
 
-# Libraries for anmation
+# Libraries for animation
 from matplotlib import animation, gridspec
 
 # Variables for setting upp data structures correctly

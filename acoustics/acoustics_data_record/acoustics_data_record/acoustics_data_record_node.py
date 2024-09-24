@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-# ROS2 libraries
-# Python libraries
+# Python Libraries
 import array
 
+# ROS2 Libraries
 import rclpy
-
-# Custom libraries
 from acoustics_data_record_lib import AcousticsDataRecordLib
 from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
