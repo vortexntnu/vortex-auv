@@ -154,7 +154,7 @@ def get_acoustics_data():
         hydrophone4 = convert_pandas_object_to_int_array(latest_acoustics_data["Hydrophone4"])
         hydrophone5 = convert_pandas_object_to_int_array(latest_acoustics_data["Hydrophone5"])
 
-        # Unfiltered data is special as it is the same as Hydrohone 1 first 1024 values
+        # Unfiltered data is spcial as it is the same as Hydrohone 1 first 1024 values
         # This is because Acoustics PCB uses Hydrophone 1 to perform DSP
         # Hydrohones have a ring buffer the size of 3 buffers each containing 1024 values (2^10)
         # We always use the first ring buffer of Hydrophone 1 to perform DSP
