@@ -25,19 +25,19 @@ class AcousticsDataRecordNode(Node):
         # Initialize Subscribers ----------
         # Start listening to Hydrophone data
         self.subscriber_hydrophone1 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone1", self.hydrophone1_callback, 5)
-        self.hydropone1_data = array.array("i", [0] * hydrophone_data_size)
+        self.hydrophone1_data = array.array("i", [0] * hydrophone_data_size)
 
         self.subscriber_hydrophone2 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone2", self.hydrophone2_callback, 5)
-        self.hydropone2_data = array.array("i", [0] * hydrophone_data_size)
+        self.hydrophone2_data = array.array("i", [0] * hydrophone_data_size)
 
         self.subscriber_hydrophone3 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone3", self.hydrophone3_callback, 5)
-        self.hydropone3_data = array.array("i", [0] * hydrophone_data_size)
+        self.hydrophone3_data = array.array("i", [0] * hydrophone_data_size)
 
         self.subscriber_hydrophone4 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone4", self.hydrophone4_callback, 5)
-        self.hydropone4_data = array.array("i", [0] * hydrophone_data_size)
+        self.hydrophone4_data = array.array("i", [0] * hydrophone_data_size)
 
         self.subscriber_hydrophone5 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone5", self.hydrophone5_callback, 5)
-        self.hydropone5_data = array.array("i", [0] * hydrophone_data_size)
+        self.hydrophone5_data = array.array("i", [0] * hydrophone_data_size)
 
         # Start listening to DSP (Digital Signal Processing) data
         self.subscriber_filter_response = self.create_subscription(
@@ -106,7 +106,7 @@ class AcousticsDataRecordNode(Node):
         Args:
             msg (Int32MultiArray): Message containing hydrophone1 data.
         """
-        self.hydropone1_data = msg.data
+        self.hydrophone1_data = msg.data
 
     def hydrophone2_callback(self, msg):
         """
@@ -115,7 +115,7 @@ class AcousticsDataRecordNode(Node):
         Args:
             msg (Int32MultiArray): Message containing hydrophone2 data.
         """
-        self.hydropone2_data = msg.data
+        self.hydrophone2_data = msg.data
 
     def hydrophone3_callback(self, msg):
         """
@@ -124,7 +124,7 @@ class AcousticsDataRecordNode(Node):
         Args:
             msg (Int32MultiArray): Message containing hydrophone3 data.
         """
-        self.hydropone3_data = msg.data
+        self.hydrophone3_data = msg.data
 
     def hydrophone4_callback(self, msg):
         """
@@ -133,7 +133,7 @@ class AcousticsDataRecordNode(Node):
         Args:
             msg (Int32MultiArray): Message containing hydrophone4 data.
         """
-        self.hydropone4_data = msg.data
+        self.hydrophone4_data = msg.data
 
     def hydrophone5_callback(self, msg):
         """
@@ -142,7 +142,7 @@ class AcousticsDataRecordNode(Node):
         Args:
             msg (Int32MultiArray): Message containing hydrophone5 data.
         """
-        self.hydropone5_data = msg.data
+        self.hydrophone5_data = msg.data
 
     def filter_response_callback(self, msg):
         """
@@ -197,11 +197,11 @@ class AcousticsDataRecordNode(Node):
         This method is called periodically based on the data logging rate.
         """
         self.acoustics_data_record.log_data_to_csv_file(
-            hydrophone1=self.hydropone1_data,
-            hydrophone2=self.hydropone2_data,
-            hydrophone3=self.hydropone3_data,
-            hydrophone4=self.hydropone4_data,
-            hydrophone5=self.hydropone5_data,
+            hydrophone1=self.hydrophone1_data,
+            hydrophone2=self.hydrophone2_data,
+            hydrophone3=self.hydrophone3_data,
+            hydrophone4=self.hydrophone4_data,
+            hydrophone5=self.hydrophone5_data,
             filter_response=self.filter_response_data,
             fft=self.fft_data,
             peaks=self.peaks_data,

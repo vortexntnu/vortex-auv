@@ -67,7 +67,7 @@ class AcousticsInterfaceNode(Node):
 
         TeensyCommunicationUDP.init_communication(frequencies_of_interest)
 
-        self.get_logger().info("Sucsefully connected to Acoustics PCB MCU :D")
+        self.get_logger().info("Successfully connected to Acoustics PCB MCU :D")
 
     def data_update(self) -> None:
         """
