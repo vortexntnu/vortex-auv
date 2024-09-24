@@ -19,6 +19,7 @@ jobs:
       - name: Run codespell to fix spelling mistakes
         run: |
           codespell -w .
+        continue-on-error: true
 
       - name: Commit codespell changes
         uses: EndBug/add-and-commit@v9
