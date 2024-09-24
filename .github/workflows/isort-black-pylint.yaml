@@ -1,9 +1,9 @@
-name: Run Python formatters and linters
+name: isort_black_pylint
 
 on: [pull_request]
 
 jobs:
-  isort_format:
+  isort:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  black_format:
+  black:
     runs-on: ubuntu-latest
-    needs: isort_format  
+    needs: isort  
 
     steps:
       - uses: actions/checkout@v4
@@ -47,9 +47,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  pylint_check:
+  pylint:
     runs-on: ubuntu-latest
-    needs: black_format
+    needs: black
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
