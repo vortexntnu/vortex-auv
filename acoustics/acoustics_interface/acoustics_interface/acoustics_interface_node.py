@@ -38,7 +38,7 @@ class AcousticsInterfaceNode(Node):
         self._position_publisher = self.create_publisher(Float32MultiArray, "/acoustics/position", 5)
 
         # Logs all the newest data
-        self.declare_parameter("acoustics.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, verry slow
+        self.declare_parameter("acoustics.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, very slow
         data_logging_rate = self.get_parameter("acoustics.data_logging_rate").get_parameter_value().double_value
         timer_period = 1.0 / data_logging_rate
 
@@ -60,8 +60,8 @@ class AcousticsInterfaceNode(Node):
                 )
             ]
 
-        # Initialize comunication with Acoustics PCB
-        self.get_logger().info("Initializing comunication with Acoustics")
+        # Initialize communication with Acoustics PCB
+        self.get_logger().info("Initializing communication with Acoustics")
         self.get_logger().info("Acoustics PCB MCU IP: 10.0.0.111")
         self.get_logger().info("Trying to connect...")
 

@@ -18,12 +18,12 @@ class ThrusterInterfaceAUVDriver:
         pwm_min=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
         pwm_max=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
     ):
-        # Initialice the I2C comunication
+        # Initialice the I2C communication
         self.bus = None
         try:
             self.bus = smbus2.SMBus(i2c_bus)
         except Exception as error_code:
-            print(f"ERROR: Failed connection I2C buss nr {self.bus}: {error_code}")
+            print(f"ERROR: Failed connection I2C bus nr {self.bus}: {error_code}")
         self.pico_i2c_address = pico_i2c_address
 
         # Set mapping, direction and offset for the thrusters
@@ -110,7 +110,7 @@ class ThrusterInterfaceAUVDriver:
         PWM signals sent to PCA9685 module through I2C
         PCA9685 Module sends electrical PWM signals to the individual thruster ESCs
         The ESCs send corecponding electrical power to the Thrustres
-        Thrusters then generate thrust acordingly to the Forces sent to this driver
+        Thrusters then generate thrust accordingly to the Forces sent to this driver
 
         Returns an Array of PWM signal for debugging purposes
         Gives out 8 ints in form of:
@@ -135,7 +135,7 @@ class ThrusterInterfaceAUVDriver:
             elif thruster_pwm_array[esc_channel] > self.pwm_max[esc_channel]:  # To big
                 thruster_pwm_array[esc_channel] = self.pwm_max[esc_channel]
 
-        # Send data through I2C to the microcontroller that then controls the ESC and extention the thrusters
+        # Send data through I2C to the microcontroller that then controls the ESC and extension the thrusters
         try:
             self._send_data_to_escs(thruster_pwm_array)
         except Exception as error_code:

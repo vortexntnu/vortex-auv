@@ -102,7 +102,7 @@ guidance:
       
 computer: 'odroid'
 
-torpedos:       # TODO: decide what pins to use for torpedo
+torpedoes:       # TODO: decide what pins to use for torpedo
   left_pin: 23  # both given in BCM scheme
   right_pin: 24 
 

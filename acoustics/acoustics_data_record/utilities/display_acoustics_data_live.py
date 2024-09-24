@@ -12,11 +12,11 @@ import pandas as pd
 # Libraries for anmation
 from matplotlib import animation, gridspec
 
-# Variables for seting upp data structures correctly
+# Variables for setting upp data structures correctly
 HYDROPHONE_DATA_SIZE = (2**10) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
 DSP_DATA_SIZE = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
 TDOA_DATA_SIZE = 5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
-POSITION_DATA_SIZE = 3  # position only has X, Y, Z basicaly 3 elements
+POSITION_DATA_SIZE = 3  # position only has X, Y, Z basically 3 elements
 
 # Important variables for later processing of data
 SAMPLE_RATE = 430_000  # 430 kHz
@@ -245,7 +245,7 @@ def display_live_data():
     # Get latest acoustics data
     acoustics_data = get_acoustics_data()
 
-    # Set the lates acoustics data in apropriate variables
+    # Set the lates acoustics data in appropriate variables
     hydrophone_data = [
         acoustics_data[0],  # Hydrophone 1
         acoustics_data[1],  # Hydrophone 2

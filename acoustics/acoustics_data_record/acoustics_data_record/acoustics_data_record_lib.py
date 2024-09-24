@@ -65,7 +65,7 @@ class AcousticsDataRecordLib:
 
         Writes the current time and provided data to a CSV file located at self.data_file_location.
         """
-        # Get current time in hours, minutes, seconds and miliseconds
+        # Get current time in hours, minutes, seconds and milliseconds
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file

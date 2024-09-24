@@ -1,4 +1,4 @@
-# Libraies for Power Sense Module
+# Libraries for Power Sense Module
 import time
 
 import smbus
@@ -17,7 +17,7 @@ class PowerSenseModule:
             self.bus = smbus.SMBus(1)
         except Exception as error:
             print(f"ERROR: Failed to connect to the I2C: {error}")
-        time.sleep(1)  # A short pause because sometimes I2C is slow to conect
+        time.sleep(1)  # A short pause because sometimes I2C is slow to connect
 
         # Connect to the PSM through I2C
         self.channel_voltage = None
@@ -28,7 +28,7 @@ class PowerSenseModule:
         except Exception as error:
             print(f"ERROR: Failed connecting to PSM: {error}")
 
-        # Convertion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
+        # Conversion ratios taken from PSM datasheet at: https://bluerobotics.com/store/comm-control-power/control/psm-asm-r2-rp/
         self.psm_to_battery_voltage = 11.0  # V/V
         self.psm_to_battery_current_scale_factor = 37.8788  # A/V
         self.psm_to_battery_current_offset = 0.330  # V

@@ -10,7 +10,7 @@ from power_sense_module_lib import PowerSenseModule
 from pressure_sensor_lib import PressureSensor
 from temperature_sensor_lib import TemperatureSensor
 
-# Initialize all necesarry drivers/libraries for the display and functionality
+# Initialize all necessary drivers/libraries for the display and functionality
 LCD = LCDScreenDriver()
 IP = IPDriver()
 PSM = PowerSenseModule()
@@ -18,7 +18,7 @@ Pressure = PressureSensor()
 Temperature = TemperatureSensor()
 
 
-# Formating function for nices LCD screen layout
+# Formatting function for nices LCD screen layout
 def format_line(value: str, unit: str):
     """
     Formats a string to fit within a 16-character display, appending a unit with spacing.

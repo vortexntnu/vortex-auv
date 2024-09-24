@@ -15,11 +15,11 @@ from std_msgs.msg import Float32MultiArray, Int32MultiArray
 
 class AcousticsDataRecordNode(Node):
     def __init__(self):
-        # Variables for seting upp loging correctly
+        # Variables for setting upp loging correctly
         hydrophone_data_size = (2**10) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
         dsp_data_size = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
         tdoa_data_size = 5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
-        position_data_size = 3  # position only has X, Y, Z basicaly 3 elements
+        position_data_size = 3  # position only has X, Y, Z basically 3 elements
 
         # Initialize ROS2 node
         super().__init__("acoustics_data_record_node")
@@ -80,12 +80,12 @@ class AcousticsDataRecordNode(Node):
         self.acoustics_data_record = AcousticsDataRecordLib(ros2_package_directory=ros2_package_directory_location)
 
         # Logs all the newest data 1 time(s) per second
-        self.declare_parameter("acoustics.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, verry slow
+        self.declare_parameter("acoustics.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, very slow
         data_loging_rate = self.get_parameter("acoustics.data_logging_rate").get_parameter_value().double_value
         timer_period = 1.0 / data_loging_rate
         self.logger_timer = self.create_timer(timer_period, self.logger)
 
-        # Debuging ----------
+        # Debugging ----------
         self.get_logger().info(
             "Started logging data for topics: \n"
             "/acoustics/hydrophone1 [Int32MultiArray] \n"

@@ -65,7 +65,7 @@ class LCDScreenDriver:
 
         The animation is displayed in two rows of the LCD screen.
         """
-        # Calculate the apropriate animation speed
+        # Calculate the appropriate animation speed
         animation_speed = 1 / animation_speed
 
         # Custom characters ----------

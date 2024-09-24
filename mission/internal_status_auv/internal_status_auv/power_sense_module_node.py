@@ -43,7 +43,7 @@ class PowerSenseModulePublisher(Node):
         warning_timer_period = 1.0 / warning_rate
         self.warning_timer = self.create_timer(warning_timer_period, self.warning_timer_callback)
 
-        # Debuging ----------
+        # Debugging ----------
         self.get_logger().info('"power_sense_module_publisher" has been started')
 
     def read_timer_callback(self):

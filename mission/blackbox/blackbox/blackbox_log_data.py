@@ -43,8 +43,8 @@ class BlackBoxLogData:
         ]
 
         # Manage csv files for blackbox data ----------
-        # If there are stale old .csv files => Delete oldes ones
-        # If .csv files take up to much space => Delte oldest ones
+        # If there are stale old .csv files => Delete oldest ones
+        # If .csv files take up to much space => Delete oldest ones
         self.manage_csv_files()
 
         # Make new .csv file for loging blackbox data ----------
@@ -190,7 +190,7 @@ class BlackBoxLogData:
         This method appends a new row to the CSV file specified by `self.data_file_location`.
         The row contains the current time and the provided data values.
         """
-        # Get current time in hours, minutes, seconds and miliseconds
+        # Get current time in hours, minutes, seconds and milliseconds
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file

@@ -49,12 +49,12 @@ class BlackBoxNode(Node):
         self.blackbox_log_data = BlackBoxLogData(ros2_package_directory=ros2_package_directory_location)
 
         # Logs all the newest data 10 times per second
-        self.declare_parameter("blackbox.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, verry slow
+        self.declare_parameter("blackbox.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, very slow
         data_logging_rate = self.get_parameter("blackbox.data_logging_rate").get_parameter_value().double_value
         timer_period = 1.0 / data_logging_rate
         self.logger_timer = self.create_timer(timer_period, self.logger)
 
-        # Debuging ----------
+        # Debugging ----------
         self.get_logger().info(
             "Started logging data for topics: \n"
             "/auv/power_sense_module/current [Float32] \n"
