@@ -9,7 +9,7 @@ from std_msgs.msg import Float32
 
 
 class PowerSenseModulePublisher(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Node setup ----------
         super().__init__("power_sense_module_publisher")
         self.psm = internal_status_auv.power_sense_module_lib.PowerSenseModule()
@@ -46,7 +46,7 @@ class PowerSenseModulePublisher(Node):
         # Debugging ----------
         self.get_logger().info('"power_sense_module_publisher" has been started')
 
-    def read_timer_callback(self):
+    def read_timer_callback(self) -> None:
         """
         Callback function triggered by the read timer.
 
@@ -67,7 +67,7 @@ class PowerSenseModulePublisher(Node):
         self.publisher_current.publish(current_msg)  # publish current value to the "current topic"
         self.publisher_voltage.publish(voltage_msg)  # publish voltage value to the "voltge topic"
 
-    def warning_timer_callback(self):
+    def warning_timer_callback(self) -> None:
         """
         Callback function triggered by the warning timer.
 
@@ -80,7 +80,7 @@ class PowerSenseModulePublisher(Node):
             self.logger.fatal(f"WARNING: Battery Voltage to HIGH at {self.voltage} V")
 
 
-def main(args=None):
+def main(args: list=None) -> None:
     """
     Main function to initialize and spin the ROS2 node.
 

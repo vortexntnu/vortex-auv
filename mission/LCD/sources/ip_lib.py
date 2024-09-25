@@ -4,10 +4,10 @@ import subprocess
 
 
 class IPDriver:
-    def __init__(self):
+    def __init__(self) -> None:
         self.cmd = "hostname -I | cut -d' ' -f1"
 
-    def get_ip(self):
+    def get_ip(self) -> str:
         """
         Executes a shell command to retrieve the IP address.
 

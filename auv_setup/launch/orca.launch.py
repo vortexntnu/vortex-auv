@@ -6,7 +6,7 @@ from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
-def generate_launch_description():
+def generate_launch_description() -> LaunchDescription:
     """
     Generates a launch description for the ORCA AUV setup.
 

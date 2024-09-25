@@ -5,7 +5,7 @@ from sensor_msgs.msg import Joy
 
 class TestJoystickInterface:
     # test that the wrench msg is created successfully
-    def test_wrench_msg(self):
+    def test_wrench_msg(self) -> None:
         """
         Test the creation of a Wrench message using the JoystickInterface.
 
@@ -33,7 +33,7 @@ class TestJoystickInterface:
         rclpy.shutdown()
 
     # Test that the callback function will be able to interpret the joy msg
-    def test_input_from_controller_into_wrench_msg(self):
+    def test_input_from_controller_into_wrench_msg(self) -> None:
         """
         Test the conversion of joystick input to wrench message.
 
@@ -69,7 +69,7 @@ class TestJoystickInterface:
         rclpy.shutdown()
 
     # When the killswitch button is activated in the buttons list, it should output a wrench msg with only zeros
-    def test_killswitch_button(self):
+    def test_killswitch_button(self) -> None:
         """
         Test the killswitch button functionality of the JoystickInterface.
 
@@ -105,7 +105,7 @@ class TestJoystickInterface:
         rclpy.shutdown()
 
     # When we move into XBOX mode it should still be able to return this wrench message
-    def test_moving_in_of_xbox_mode(self):
+    def test_moving_in_of_xbox_mode(self) -> None:
         """
         Test the joystick callback function in XBOX mode.
 

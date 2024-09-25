@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # Import libraries
+from typing import List
+
 import numpy
 import pandas
 import smbus2
@@ -8,16 +10,16 @@ import smbus2
 class ThrusterInterfaceAUVDriver:
     def __init__(
         self,
-        i2c_bus=1,
-        pico_i2c_address=0x21,
-        system_operational_voltage=16.0,
-        ros2_package_name_for_thruster_datasheet="",
-        thruster_mapping=[7, 6, 5, 4, 3, 2, 1, 0],
-        thruster_direction=[1, 1, 1, 1, 1, 1, 1, 1],
-        thruster_pwm_offset=[0, 0, 0, 0, 0, 0, 0, 0],
-        pwm_min=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
-        pwm_max=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
-    ):
+        i2c_bus: int = 1,
+        pico_i2c_address: int = 0x21,
+        system_operational_voltage: float = 16.0,
+        ros2_package_name_for_thruster_datasheet: str = "",
+        thruster_mapping: List[int] = [7, 6, 5, 4, 3, 2, 1, 0],
+        thruster_direction: List[int] = [1, 1, 1, 1, 1, 1, 1, 1],
+        thruster_pwm_offset: List[int] = [0, 0, 0, 0, 0, 0, 0, 0],
+        pwm_min: List[int] = [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
+        pwm_max: List[int] = [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
+    ) -> None:
         # Initialice the I2C communication
         self.bus = None
         try:
@@ -51,7 +53,7 @@ class ThrusterInterfaceAUVDriver:
         # Get the full path to the ROS2 package this file is located at
         self.ros2_package_name_for_thruster_datasheet = ros2_package_name_for_thruster_datasheet
 
-    def _interpolate_forces_to_pwm(self, thruster_forces_array):
+    def _interpolate_forces_to_pwm(self, thruster_forces_array: list) -> list:
         """
         Takes in Array of forces in Newtosn [N]
         takes 8 floats in form of:
@@ -85,7 +87,7 @@ class ThrusterInterfaceAUVDriver:
 
         return interpolated_pwm
 
-    def _send_data_to_escs(self, thruster_pwm_array):
+    def _send_data_to_escs(self, thruster_pwm_array: list) -> None:
         i2c_data_array = []
 
         # Divide data into bytes as I2C only sends bytes
@@ -100,7 +102,7 @@ class ThrusterInterfaceAUVDriver:
         # OBS!: Python adds an extra byte at the start that the Microcotroller that is receiving this has to handle
         self.bus.write_i2c_block_data(self.pico_i2c_address, 0, i2c_data_array)
 
-    def drive_thrusters(self, thruster_forces_array):
+    def drive_thrusters(self, thruster_forces_array: list) -> list:
         """
         Takes in Array of forces in Newtosn [N]
         takes 8 floats in form of:

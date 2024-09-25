@@ -16,7 +16,7 @@ from vortex_msgs.msg import ThrusterForces
 
 
 class BlackBoxNode(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Start the ROS2 Node ----------
         super().__init__("blackbox_node")
 
@@ -66,7 +66,7 @@ class BlackBoxNode(Node):
         )
 
     # Callback Methods ----------
-    def psm_current_callback(self, msg):
+    def psm_current_callback(self, msg: Float32) -> None:
         """
         Callback function for the power sense module (PSM) current topic.
 
@@ -79,7 +79,7 @@ class BlackBoxNode(Node):
         """
         self.psm_current_data = msg.data
 
-    def psm_voltage_callback(self, msg):
+    def psm_voltage_callback(self, msg: Float32) -> None:
         """
         Callback function for the power sense module (PSM) voltage topic.
 
@@ -92,7 +92,7 @@ class BlackBoxNode(Node):
         """
         self.psm_voltage_data = msg.data
 
-    def pressure_callback(self, msg):
+    def pressure_callback(self, msg: Float32) -> None:
         """
         Callback function for the internal pressure topic.
 
@@ -105,7 +105,7 @@ class BlackBoxNode(Node):
         """
         self.pressure_data = msg.data
 
-    def temperature_callback(self, msg):
+    def temperature_callback(self, msg: Float32) -> None:
         """
         Callback function for the ambient temperature topic.
 
@@ -118,7 +118,7 @@ class BlackBoxNode(Node):
         """
         self.temperature_data = msg.data
 
-    def thruster_forces_callback(self, msg):
+    def thruster_forces_callback(self, msg: ThrusterForces) -> None:
         """
         Callback function for the thruster forces topic.
 
@@ -131,7 +131,7 @@ class BlackBoxNode(Node):
         """
         self.thruster_forces_data = msg.thrust
 
-    def pwm_callback(self, msg):
+    def pwm_callback(self, msg: Int16MultiArray) -> None:
         """
         Callback function for the PWM signals topic.
 
@@ -143,7 +143,7 @@ class BlackBoxNode(Node):
         """
         self.pwm_data = msg.data
 
-    def logger(self):
+    def logger(self) -> None:
         """
         Logs various sensor and actuator data to a CSV file.
 
@@ -185,7 +185,7 @@ class BlackBoxNode(Node):
         )
 
 
-def main(args=None):
+def main(args: list=None) -> None:
     """
     Entry point for the blackbox_node.
 

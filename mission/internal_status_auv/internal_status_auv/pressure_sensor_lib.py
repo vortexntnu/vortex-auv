@@ -9,7 +9,7 @@ import board
 
 
 class PressureSensor:
-    def __init__(self):
+    def __init__(self) -> None:
         # Pressure Sensor Setup
         i2c_adress_mprls = 0x18  # Reads pressure from MPRLS Adafruit sensor
         self.channel_pressure = None
@@ -29,7 +29,7 @@ class PressureSensor:
 
         time.sleep(1)
 
-    def get_pressure(self):
+    def get_pressure(self) -> float:
         """
         Retrieves the current pressure reading from the sensor.
 

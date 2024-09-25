@@ -73,7 +73,7 @@ class WirelessXboxSeriesX:
 
 
 class JoystickInterface(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("joystick_interface_node")
         self.get_logger().info(
             "Joystick interface is up and running. \n When the XBOX controller is connected, press the killswitch button once to enter XBOX mode."
@@ -149,14 +149,14 @@ class JoystickInterface(Node):
         wrench_msg.torque.z = yaw
         return wrench_msg
 
-    def transition_to_xbox_mode(self):
+    def transition_to_xbox_mode(self) -> None:
         """
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
 
-    def transition_to_autonomous_mode(self):
+    def transition_to_autonomous_mode(self) -> None:
         """
         Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
         """
@@ -281,7 +281,7 @@ class JoystickInterface(Node):
         return wrench_msg
 
 
-def main():
+def main() -> None:
     """
     Initializes the ROS 2 client library, creates an instance of the JoystickInterface node,
     and starts spinning the node to process callbacks. Once the node is shut down, it destroys

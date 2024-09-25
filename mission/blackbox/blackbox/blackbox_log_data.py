@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 
 class BlackBoxLogData:
-    def __init__(self, ros2_package_directory=""):
+    def __init__(self, ros2_package_directory: str="") -> None:
         # Global variables for .csv file manipulation ----------
         # Get the path for the directory where we will store our data
         self.blackbox_data_directory = ros2_package_directory + "blackbox_data/"
@@ -53,7 +53,7 @@ class BlackBoxLogData:
             writer.writerow(self.csv_headers)
 
     # Methods for inside use of the class ----------
-    def manage_csv_files(self, max_file_age_in_days=7, max_size_kb=3_000_000):
+    def manage_csv_files(self, max_file_age_in_days: int = 7, max_size_kb: int = 3_000_000) -> None:
         """
         Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
 
@@ -143,27 +143,27 @@ class BlackBoxLogData:
     # Methods for external uses ----------
     def log_data_to_csv_file(
         self,
-        psm_current=0.0,
-        psm_voltage=0.0,
-        pressure_internal=0.0,
-        temperature_ambient=0.0,
-        thruster_forces_1=0.0,
-        thruster_forces_2=0.0,
-        thruster_forces_3=0.0,
-        thruster_forces_4=0.0,
-        thruster_forces_5=0.0,
-        thruster_forces_6=0.0,
-        thruster_forces_7=0.0,
-        thruster_forces_8=0.0,
-        pwm_1=0,
-        pwm_2=0,
-        pwm_3=0,
-        pwm_4=0,
-        pwm_5=0,
-        pwm_6=0,
-        pwm_7=0,
-        pwm_8=0,
-    ):
+        psm_current: float = 0.0,
+        psm_voltage: float = 0.0,
+        pressure_internal: float = 0.0,
+        temperature_ambient: float = 0.0,
+        thruster_forces_1: float = 0.0,
+        thruster_forces_2: float = 0.0,
+        thruster_forces_3: float = 0.0,
+        thruster_forces_4: float = 0.0,
+        thruster_forces_5: float = 0.0,
+        thruster_forces_6: float = 0.0,
+        thruster_forces_7: float = 0.0,
+        thruster_forces_8: float = 0.0,
+        pwm_1: int = 0,
+        pwm_2: int = 0,
+        pwm_3: int = 0,
+        pwm_4: int = 0,
+        pwm_5: int = 0,
+        pwm_6: int = 0,
+        pwm_7: int = 0,
+        pwm_8: int = 0,
+    ) -> None:
         """
         Logs the provided data to a CSV file.
         Parameters:

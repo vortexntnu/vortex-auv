@@ -7,7 +7,7 @@ from RPLCD.i2c import CharLCD
 
 
 class LCDScreenDriver:
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize LCD Screen
         lcd_i2c_address = 0x27
 
@@ -23,7 +23,7 @@ class LCDScreenDriver:
             backlight_enabled=True,
         )
 
-    def write_to_screen(self, line1: str = "", line2: str = ""):
+    def write_to_screen(self, line1: str = "", line2: str = "") -> None:
         """
         Writes two lines of text to the LCD screen.
 
@@ -47,7 +47,7 @@ class LCDScreenDriver:
         self._lcd.write_string(line1 + "\r\n")
         self._lcd.write_string(line2)
 
-    def fancy_animation(self, animation_speed=0.4):
+    def fancy_animation(self, animation_speed: float=0.4) -> None:
         """
         Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
 

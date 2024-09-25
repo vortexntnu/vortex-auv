@@ -13,7 +13,7 @@ from vortex_msgs.msg import ThrusterForces
 
 
 class ThrusterInterfaceAUVNode(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize and name the node process running
         super().__init__("thruster_interface_auv_node")
 
@@ -64,11 +64,11 @@ class ThrusterInterfaceAUVNode(Node):
         # Debugging
         self.get_logger().info('"thruster_interface_auv_node" has been started')
 
-    def _thruster_forces_callback(self, msg):
+    def _thruster_forces_callback(self, msg: ThrusterForces) -> None:
         # Get data of the forces published
         self.thruster_forces_array = msg.thrust
 
-    def _timer_callback(self):
+    def _timer_callback(self) -> None:
         # Send thruster forces to be converted into PWM signal and sent to control the thrusters
         # PWM signal gets saved and is published in the "/pwm" topic as a debugging feature to see if everything is alright with the PWM signal
         thruster_pwm_array = self.thruster_driver.drive_thrusters(self.thruster_forces_array)
@@ -78,7 +78,7 @@ class ThrusterInterfaceAUVNode(Node):
         self.thruster_pwm_publisher.publish(pwm_message)
 
 
-def main(args=None):
+def main(args: list=None) -> None:
     """
     Entry point for the thruster interface AUV node.
 

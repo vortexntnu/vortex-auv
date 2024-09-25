@@ -11,11 +11,11 @@ import subprocess
 
 
 class TemperatureSensor:
-    def __init__(self):
+    def __init__(self) -> None:
         # Temperature Sensor Setup
         self.temperature_sensor_file_location = "/sys/class/thermal/thermal_zone0/temp"
 
-    def get_temperature(self):
+    def get_temperature(self) -> float:
         """
         Reads the internal temperature from the specified sensor file location.
 

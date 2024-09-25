@@ -12,7 +12,7 @@ from std_msgs.msg import Float32MultiArray, Int32MultiArray
 
 
 class AcousticsDataRecordNode(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Variables for setting upp logging correctly
         hydrophone_data_size = (2**10) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
         dsp_data_size = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
@@ -99,7 +99,7 @@ class AcousticsDataRecordNode(Node):
         )
 
     # Callback methods for different topics
-    def hydrophone1_callback(self, msg):
+    def hydrophone1_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for hydrophone1 topic.
 
@@ -108,7 +108,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.hydrophone1_data = msg.data
 
-    def hydrophone2_callback(self, msg):
+    def hydrophone2_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for hydrophone2 topic.
 
@@ -117,7 +117,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.hydrophone2_data = msg.data
 
-    def hydrophone3_callback(self, msg):
+    def hydrophone3_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for hydrophone3 topic.
 
@@ -126,7 +126,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.hydrophone3_data = msg.data
 
-    def hydrophone4_callback(self, msg):
+    def hydrophone4_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for hydrophone4 topic.
 
@@ -135,7 +135,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.hydrophone4_data = msg.data
 
-    def hydrophone5_callback(self, msg):
+    def hydrophone5_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for hydrophone5 topic.
 
@@ -144,7 +144,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.hydrophone5_data = msg.data
 
-    def filter_response_callback(self, msg):
+    def filter_response_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for filter_response topic.
 
@@ -153,7 +153,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.filter_response_data = msg.data
 
-    def fft_callback(self, msg):
+    def fft_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for fft topic.
 
@@ -162,7 +162,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.fft_data = msg.data
 
-    def peaks_callback(self, msg):
+    def peaks_callback(self, msg: Int32MultiArray) -> None:
         """
         Callback method for peaks topic.
 
@@ -171,7 +171,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.peaks_data = msg.data
 
-    def tdoa_callback(self, msg):
+    def tdoa_callback(self, msg: Float32MultiArray) -> None:
         """
         Callback method for time_difference_of_arrival topic.
 
@@ -180,7 +180,7 @@ class AcousticsDataRecordNode(Node):
         """
         self.tdoa_data = msg.data
 
-    def position_callback(self, msg):
+    def position_callback(self, msg: Float32MultiArray) -> None:
         """
         Callback method for position topic.
 
@@ -190,7 +190,7 @@ class AcousticsDataRecordNode(Node):
         self.position_data = msg.data
 
     # The logger that logs all the data
-    def logger(self):
+    def logger(self) -> None:
         """
         Logs all the data to a CSV file using the AcousticsDataRecordLib.
 
@@ -210,7 +210,7 @@ class AcousticsDataRecordNode(Node):
         )
 
 
-def main():
+def main() -> None:
     """
     Main function to initialize and run the ROS2 node for acoustics data recording.
 

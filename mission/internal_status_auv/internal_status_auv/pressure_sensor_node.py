@@ -9,7 +9,7 @@ from std_msgs.msg import Float32
 
 
 class PressurePublisher(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Pressure sensor setup ----------
         self.pressure = internal_status_auv.pressure_sensor_lib.PressureSensor()
 
@@ -41,7 +41,7 @@ class PressurePublisher(Node):
         # Debugging ----------
         self.get_logger().info('"pressure_sensor_publisher" has been started')
 
-    def timer_callback(self):
+    def timer_callback(self) -> None:
         """
         Callback function triggered by the main timer.
 
@@ -56,7 +56,7 @@ class PressurePublisher(Node):
         pressure_msg.data = self.pressure
         self.publisher_pressure.publish(pressure_msg)
 
-    def warning_timer_callback(self):
+    def warning_timer_callback(self) -> None:
         """
         Callback function triggered by the warning timer.
 
@@ -67,7 +67,7 @@ class PressurePublisher(Node):
             self.logger.fatal(f"WARNING: Internal pressure to HIGH: {self.pressure} hPa! Drone might be LEAKING!")
 
 
-def main(args=None):
+def main(args: list=None) -> None:
     """
     Main function to initialize and spin the ROS2 node.
 

@@ -94,7 +94,7 @@ class AcousticsInterfaceNode(Node):
         self._position_publisher.publish(Float32MultiArray(data=TeensyCommunicationUDP.acoustics_data["LOCATION"]))
 
 
-def main(args=None):
+def main(args: list=None) -> None:
     """
     Entry point for the acoustics interface node.
 

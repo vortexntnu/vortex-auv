@@ -64,7 +64,7 @@ acousticsCSVFiles = csv_files = glob.glob(ACOUSTICS_CSV_FILE_DIR + "/acoustics_d
 acousticsCSVFile = max(acousticsCSVFiles, key=os.path.getctime)
 
 
-def convert_pandas_object_to_int_array(pandas_object):
+def convert_pandas_object_to_int_array(pandas_object: pd.Series) -> list:
     """
     Convert a pandas object containing a string representation of an integer array to a list of integers.
 
@@ -80,7 +80,7 @@ def convert_pandas_object_to_int_array(pandas_object):
     return pandas_int_array
 
 
-def convert_pandas_object_to_float_array(pandas_object):
+def convert_pandas_object_to_float_array(pandas_object: pd.Series) -> list:
     """
     Convert a pandas object containing a string representation of a float array to a list of floats.
 
@@ -96,7 +96,7 @@ def convert_pandas_object_to_float_array(pandas_object):
     return pandas_float_array
 
 
-def get_acoustics_data():
+def get_acoustics_data() -> list:
     """
     Retrieves and processes the latest acoustics data from a CSV file.
 
@@ -218,7 +218,7 @@ def get_acoustics_data():
     ]
 
 
-def display_live_data():
+def display_live_data() -> None:
     """
     Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
 

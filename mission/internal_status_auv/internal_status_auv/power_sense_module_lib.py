@@ -6,7 +6,7 @@ from MCP342x import MCP342x
 
 
 class PowerSenseModule:
-    def __init__(self):
+    def __init__(self) -> None:
         # Parameters
         # to read voltage and current from ADC on PDB through I2C
         self.i2c_adress = 0x69
@@ -33,7 +33,7 @@ class PowerSenseModule:
         self.psm_to_battery_current_scale_factor = 37.8788  # A/V
         self.psm_to_battery_current_offset = 0.330  # V
 
-    def get_voltage(self):
+    def get_voltage(self) -> float:
         """
         Retrieves the voltage measurement from the Power Sense Module (PSM).
 
@@ -54,7 +54,7 @@ class PowerSenseModule:
             print(f"ERROR: Failed retrieving voltage from PSM: {error}")
             return 0.0
 
-    def get_current(self):
+    def get_current(self) -> float:
         """
         Retrieves the current measurement from the Power Sense Module (PSM).
 
