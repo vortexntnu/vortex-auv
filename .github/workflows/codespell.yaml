@@ -25,6 +25,6 @@ jobs:
         with:
           author_name: Codespell Robot
           author_email: codespell-robot@example.com
-          message: 'Committing codespell fixes'
+          message: "Committing codespell fixes"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
