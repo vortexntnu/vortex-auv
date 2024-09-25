@@ -80,7 +80,7 @@ class PowerSenseModulePublisher(Node):
             self.logger.fatal(f"WARNING: Battery Voltage to HIGH at {self.voltage} V")
 
 
-def main(args: list=None) -> None:
+def main(args: list = None) -> None:
     """
     Main function to initialize and spin the ROS2 node.
 

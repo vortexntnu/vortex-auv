@@ -67,7 +67,7 @@ class TemperaturePublisher(Node):
             self.logger.fatal(f"WARNING: Temperature inside the Drone to HIGH: {self.temperature} *C! Drone might be overheating!")
 
 
-def main(args: list=None) -> None:
+def main(args: list = None) -> None:
     """
     Main function to initialize and spin the ROS2 node.
 

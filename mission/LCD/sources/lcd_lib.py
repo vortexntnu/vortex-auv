@@ -47,7 +47,7 @@ class LCDScreenDriver:
         self._lcd.write_string(line1 + "\r\n")
         self._lcd.write_string(line2)
 
-    def fancy_animation(self, animation_speed: float=0.4) -> None:
+    def fancy_animation(self, animation_speed: float = 0.4) -> None:
         """
         Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
 

@@ -67,7 +67,7 @@ class PressurePublisher(Node):
             self.logger.fatal(f"WARNING: Internal pressure to HIGH: {self.pressure} hPa! Drone might be LEAKING!")
 
 
-def main(args: list=None) -> None:
+def main(args: list = None) -> None:
     """
     Main function to initialize and spin the ROS2 node.
 

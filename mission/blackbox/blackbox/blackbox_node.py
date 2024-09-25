@@ -185,7 +185,7 @@ class BlackBoxNode(Node):
         )
 
 
-def main(args: list=None) -> None:
+def main(args: list = None) -> None:
     """
     Entry point for the blackbox_node.
 

@@ -78,7 +78,7 @@ class ThrusterInterfaceAUVNode(Node):
         self.thruster_pwm_publisher.publish(pwm_message)
 
 
-def main(args: list=None) -> None:
+def main(args: list = None) -> None:
     """
     Entry point for the thruster interface AUV node.
 
