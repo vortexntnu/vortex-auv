@@ -1,0 +1,31 @@
+name: Yaml Format (prettier)
+
+on: [pull_request]
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install Prettier
+        run: |
+          sudo npm install -g prettier
+
+      # Run Prettier to format all YAML files
+      - name: Run Prettier to format YAML files
+        run: |
+          prettier --write "**/*.yaml" "**/*.yml"
+
+      # Commit Prettier changes
+      - name: Commit Prettier changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: Prettier Robot
+          author_email: prettier-robot@example.com
+          message: "Committing Prettier formatting fixes"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
