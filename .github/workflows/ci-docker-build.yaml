@@ -1,0 +1,22 @@
+name: CI - Docker Build
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker Image
+      run: |
+        docker build -t vortex-auv:latest .
+
+    - name: Run Docker Container and build ROS 2 workspace
+      run: |
+        docker run --rm vortex-auv:latest /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install"
