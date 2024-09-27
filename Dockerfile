@@ -1,5 +1,5 @@
 # Stage 1: Build the ROS 2 workspace
-FROM ros:humble AS builder
+FROM ros:humble-ros-base AS builder
 
 # Install necessary dependencies for building
 RUN apt-get update && apt-get install -y \
@@ -22,7 +22,7 @@ RUN source /opt/ros/humble/setup.bash && \
     colcon build --symlink-install
 
 # Stage 2: Minimal runtime image with the install directory only
-FROM ros:humble
+FROM ros:humble-ros-core
 
 # Set up the workspace
 WORKDIR /ros2_ws
