@@ -2,8 +2,6 @@
 import csv
 import time
 from datetime import datetime
-from typing import List
-
 
 class AcousticsDataRecordLib:
     def __init__(self, ros2_package_directory: str = "") -> None:
@@ -37,16 +35,16 @@ class AcousticsDataRecordLib:
     # Methods for external uses ----------
     def log_data_to_csv_file(
         self,
-        hydrophone1: List[int] = [0],
-        hydrophone2: List[int] = [0],
-        hydrophone3: List[int] = [0],
-        hydrophone4: List[int] = [0],
-        hydrophone5: List[int] = [0],
-        filter_response: List[int] = [0],
-        fft: List[int] = [0],
-        peaks: List[int] = [0],
-        tdoa: List[float] = [0.0],
-        position: List[float] = [0.0],
+        hydrophone1: list[int] = [0],
+        hydrophone2: list[int] = [0],
+        hydrophone3: list[int] = [0],
+        hydrophone4: list[int] = [0],
+        hydrophone5: list[int] = [0],
+        filter_response: list[int] = [0],
+        fft: list[int] = [0],
+        peaks: list[int] = [0],
+        tdoa: list[float] = [0.0],
+        position: list[float] = [0.0],
     ) -> None:
         """
         Logs the provided data to a CSV file.

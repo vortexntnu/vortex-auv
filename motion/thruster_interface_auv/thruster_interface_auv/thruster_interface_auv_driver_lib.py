@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # Import libraries
-from typing import List
-
 import numpy
 import pandas
 import smbus2
@@ -14,11 +12,11 @@ class ThrusterInterfaceAUVDriver:
         pico_i2c_address: int = 0x21,
         system_operational_voltage: float = 16.0,
         ros2_package_name_for_thruster_datasheet: str = "",
-        thruster_mapping: List[int] = [7, 6, 5, 4, 3, 2, 1, 0],
-        thruster_direction: List[int] = [1, 1, 1, 1, 1, 1, 1, 1],
-        thruster_pwm_offset: List[int] = [0, 0, 0, 0, 0, 0, 0, 0],
-        pwm_min: List[int] = [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
-        pwm_max: List[int] = [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
+        thruster_mapping: list[int] = [7, 6, 5, 4, 3, 2, 1, 0],
+        thruster_direction: list[int] = [1, 1, 1, 1, 1, 1, 1, 1],
+        thruster_pwm_offset: list[int] = [0, 0, 0, 0, 0, 0, 0, 0],
+        pwm_min: list[int] = [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
+        pwm_max: list[int] = [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
     ) -> None:
         # Initialice the I2C communication
         self.bus = None
