@@ -5,7 +5,8 @@ import subprocess
 
 class IPDriver:
     def __init__(self) -> None:
-        self.cmd = "hostname -I | cut -d' ' -f1"
+        # Store command as a list of arguments
+        self.cmd = ["hostname", "-I"]
 
     def get_ip(self) -> str:
         """
@@ -14,7 +15,15 @@ class IPDriver:
         Returns:
             str: The IP address as a string.
         """
-        ip_bytes = subprocess.check_output(self.cmd, shell=True)
-        ip_str = ip_bytes.decode("utf-8")
+        try:
+            # Run the command without shell=True
+            ip_bytes = subprocess.check_output(self.cmd, stderr=subprocess.STDOUT)
+            ip_str = ip_bytes.decode("utf-8").strip()
 
-        return ip_str
+            # Split by space and get the first IP
+            return ip_str.split()[0]
+
+        except subprocess.CalledProcessError as e:
+            # Handle the error appropriately (e.g., log it or raise an exception)
+            print(f"Failed to retrieve IP address: {e}")
+            return ""
