@@ -1,0 +1,29 @@
+name: C++ Checks
+
+on: [pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip clang-tidy
+          python3 -m pip install -U colcon-common-extensions colcon-compile-commands
+
+      - name: Build with colcon and generate compile_commands.json
+        run: |
+          colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          colcon compile-commands merge
+
+      - name: Run clang-tidy
+        run: |
+          find . -name '*.cpp' -o -name '*.hpp' -o -name '*.c' -o -name '*.h' | xargs clang-tidy -p .
+
+      - name: Report clang-tidy issues
+        if: failure()
+        run: |
+          echo "Linting failed. Please fix the above issues."
