@@ -4,13 +4,13 @@
   <name>joystick_interface_auv</name>
   <version>0.0.0</version>
   <description>Joystick interface package</description>
-  
+
   <maintainer email="aleksos@ntnu.no">aleksos</maintainer>
-  
+
   <license>MIT</license>
-  
+
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-  
+
   <exec_depend>rclpy</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>

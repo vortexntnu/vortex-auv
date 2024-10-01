@@ -433,7 +433,7 @@ disable=raw-checker-failed,
       # Critical issues related to imports, names, and exceptions
       import-error,                    # [E0401] Unable to import module (usually a missing or incorrect import)
       broad-exception-caught,          # [W0703] A broad exception (e.g., `except Exception`) is caught without specificity
-      no-name-in-module,               # [F0401] Module has no name attribute (e.g., due to a missing __init__.py file) 
+      no-name-in-module,               # [F0401] Module has no name attribute (e.g., due to a missing __init__.py file)
 
       # Issues related to program correctness and return consistency
       dangerous-default-value,         # [W0102] A mutable default argument (e.g., list, dict) is used in a function
