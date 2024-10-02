@@ -1,6 +1,6 @@
 name: Build ROS2 Project
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
