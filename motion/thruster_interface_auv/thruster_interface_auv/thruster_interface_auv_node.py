@@ -10,7 +10,7 @@ from vortex_msgs.msg import ThrusterForces
 from thruster_interface_auv.thruster_interface_auv_driver_lib import (
     ThrusterInterfaceAUVDriver,
 )
-
+from rcl_interfaces.msg import ParameterDescriptor
 
 class ThrusterInterfaceAUVNode(Node):
     def __init__(self):
@@ -23,7 +23,7 @@ class ThrusterInterfaceAUVNode(Node):
         self.thruster_forces_subscriber = self.create_subscription(
             ThrusterForces, "thrust/thruster_forces", self._thruster_forces_callback, 10
         )
-        self.thruster_pwm_publisher = self.create_publisher(Int16MultiArray, "pwm", 10)
+        self.thruster_pwm_publisher = self.create_publisher(Int16MultiArray, "pwm_NEW", 10)
 
         # Get thruster mapping, direction, offset and clamping parameters
         self.declare_parameter(
@@ -46,6 +46,19 @@ class ThrusterInterfaceAUVNode(Node):
 
         self.declare_parameter("propulsion.thrusters.thrust_update_rate", 10.0)
 
+        self.declare_parameter("coeffs.10V.LEFT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.10V.RIGHT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.12V.LEFT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.12V.RIGHT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.14V.LEFT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.14V.RIGHT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.16V.LEFT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.16V.RIGHT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.18V.LEFT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.18V.RIGHT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.20V.LEFT", None, ParameterDescriptor(dynamic_typing=True))
+        self.declare_parameter("coeffs.20V.RIGHT", None, ParameterDescriptor(dynamic_typing=True))
+
         self.thruster_mapping = self.get_parameter(
             "propulsion.thrusters.thruster_to_pin_mapping"
         ).value
@@ -65,6 +78,33 @@ class ThrusterInterfaceAUVNode(Node):
             1.0 / self.get_parameter("propulsion.thrusters.thrust_update_rate").value
         )
 
+        coeffs = {
+            10: {
+            "LEFT": self.get_parameter("coeffs.10V.LEFT").value,
+            "RIGHT": self.get_parameter("coeffs.10V.RIGHT").value,
+            },
+            12: {
+            "LEFT": self.get_parameter("coeffs.12V.LEFT").value,
+            "RIGHT": self.get_parameter("coeffs.12V.RIGHT").value,
+            },
+            14: {
+            "LEFT": self.get_parameter("coeffs.14V.LEFT").value,
+            "RIGHT": self.get_parameter("coeffs.14V.RIGHT").value,
+            },
+            16: {
+            "LEFT": self.get_parameter("coeffs.16V.LEFT").value,
+            "RIGHT": self.get_parameter("coeffs.16V.RIGHT").value,
+            },
+            18: {
+            "LEFT": self.get_parameter("coeffs.18V.LEFT").value,
+            "RIGHT": self.get_parameter("coeffs.18V.RIGHT").value,
+            },
+            20: {
+            "LEFT": self.get_parameter("coeffs.20V.LEFT").value,
+            "RIGHT": self.get_parameter("coeffs.20V.RIGHT").value,
+            },
+        }
+
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
             ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=get_package_share_directory(
@@ -75,6 +115,7 @@ class ThrusterInterfaceAUVNode(Node):
             THRUSTER_PWM_OFFSET=self.thruster_PWM_offset,
             PWM_MIN=self.thruster_PWM_min,
             PWM_MAX=self.thruster_PWM_max,
+            coeffs=coeffs,
         )
 
         # Start clock timer for driving thrusters every 0.2 seconds
