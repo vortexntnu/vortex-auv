@@ -82,11 +82,11 @@ class ThrusterInterfaceAUVDriver:
 
         # Calculate the interpolated PWM values using the polynomial coefficients
         interpolated_pwm = []
-        for force in thruster_forces_array:
+        for i,force in enumerate(thruster_forces_array):
             if force < 0:
                 pwm = numpy.polyval(left_coeffs, force)
             elif abs(force) < 1e-6:
-                pwm = 1500 - self.THRUSTER_PWM_OFFSET[0]
+                pwm = 1500 - self.THRUSTER_PWM_OFFSET[i]
             else:
                 pwm = numpy.polyval(right_coeffs, force)
             
@@ -143,8 +143,6 @@ class ThrusterInterfaceAUVDriver:
             thruster_pwm_array[ESC_channel] = (
                 thruster_pwm + self.THRUSTER_PWM_OFFSET[ESC_channel]
             )
-        
-        print(thruster_pwm_array)
 
         # Apply thruster offset and limit PWM if needed
         for ESC_channel in range(len(thruster_pwm_array)):
