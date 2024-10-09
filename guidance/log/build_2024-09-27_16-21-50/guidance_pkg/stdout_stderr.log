@@ -1,0 +1,35 @@
+running egg_info
+creating ../build/guidance_pkg/guidance_pkg.egg-info
+writing ../build/guidance_pkg/guidance_pkg.egg-info/PKG-INFO
+writing dependency_links to ../build/guidance_pkg/guidance_pkg.egg-info/dependency_links.txt
+writing entry points to ../build/guidance_pkg/guidance_pkg.egg-info/entry_points.txt
+writing requirements to ../build/guidance_pkg/guidance_pkg.egg-info/requires.txt
+writing top-level names to ../build/guidance_pkg/guidance_pkg.egg-info/top_level.txt
+writing manifest file '../build/guidance_pkg/guidance_pkg.egg-info/SOURCES.txt'
+reading manifest file '../build/guidance_pkg/guidance_pkg.egg-info/SOURCES.txt'
+writing manifest file '../build/guidance_pkg/guidance_pkg.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg
+copying guidance_pkg/guidance.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg
+copying guidance_pkg/__init__.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg
+running install
+running install_lib
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg
+copying /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg/guidance.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg
+copying /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg/__init__.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg
+byte-compiling /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg/guidance.py to guidance.cpython-310.pyc
+byte-compiling /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg/__init__.py to __init__.cpython-310.pyc
+running install_data
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/share/ament_index
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/share/ament_index/resource_index
+creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/share/ament_index/resource_index/packages
+copying resource/guidance_pkg -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/share/ament_index/resource_index/packages
+copying package.xml -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/share/guidance_pkg
+running install_egg_info
+Copying ../build/guidance_pkg/guidance_pkg.egg-info to /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg-0.0.0-py3.10.egg-info
+running install_scripts
+Installing guidance script to /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/guidance_pkg
+writing list of installed files to '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/install.log'

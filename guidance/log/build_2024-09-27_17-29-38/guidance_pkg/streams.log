@@ -1,0 +1,24 @@
+[0.295s] Invoking command in '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg': PYTHONPATH=/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/guidance_pkg build --build-base /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build install --record /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/install.log --single-version-externally-managed install_data
+[0.406s] running egg_info
+[0.406s] writing ../build/guidance_pkg/guidance_pkg.egg-info/PKG-INFO
+[0.406s] writing dependency_links to ../build/guidance_pkg/guidance_pkg.egg-info/dependency_links.txt
+[0.406s] writing entry points to ../build/guidance_pkg/guidance_pkg.egg-info/entry_points.txt
+[0.406s] writing requirements to ../build/guidance_pkg/guidance_pkg.egg-info/requires.txt
+[0.406s] writing top-level names to ../build/guidance_pkg/guidance_pkg.egg-info/top_level.txt
+[0.407s] reading manifest file '../build/guidance_pkg/guidance_pkg.egg-info/SOURCES.txt'
+[0.407s] writing manifest file '../build/guidance_pkg/guidance_pkg.egg-info/SOURCES.txt'
+[0.407s] running build
+[0.407s] running build_py
+[0.408s] copying guidance_pkg/guidance.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg
+[0.408s] running install
+[0.408s] running install_lib
+[0.408s] copying /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build/lib/guidance_pkg/guidance.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg
+[0.408s] byte-compiling /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg/guidance.py to guidance.cpython-310.pyc
+[0.410s] running install_data
+[0.410s] running install_egg_info
+[0.411s] removing '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg-0.0.0-py3.10.egg-info' (and everything under it)
+[0.411s] Copying ../build/guidance_pkg/guidance_pkg.egg-info to /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages/guidance_pkg-0.0.0-py3.10.egg-info
+[0.411s] running install_scripts
+[0.422s] Installing guidance script to /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/guidance_pkg
+[0.422s] writing list of installed files to '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/install.log'
+[0.435s] Invoked command in '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg' returned '0': PYTHONPATH=/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/install/guidance_pkg/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/guidance_pkg build --build-base /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/build install --record /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/build/guidance_pkg/install.log --single-version-externally-managed install_data
