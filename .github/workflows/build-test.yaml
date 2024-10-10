@@ -40,7 +40,10 @@ jobs:
           cd ~/ros2_ws/src
 
           # Copy the repository code to the workspace src folder
+          mkdir vortex-auv
+          cd vortex-auv
           cp -r $GITHUB_WORKSPACE/* .
+          cd ..
 
           # Clone vortex-msgs repository
           git clone https://github.com/vortexntnu/vortex-msgs.git
@@ -58,7 +61,7 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           cd ~/ros2_ws
-          colcon build --event-handlers console_cohesion+
+          colcon build
 
       - name: Run Tests
         run: |
