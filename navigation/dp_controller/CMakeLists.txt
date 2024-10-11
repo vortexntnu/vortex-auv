@@ -12,15 +12,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
 
 # Include directories
 include_directories(include)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Add executable
-add_executable(${PROJECT_NAME}_node src/dp_controller_node.cpp)
+add_executable(${PROJECT_NAME}_node src/main.cpp)
 
 # Link libraries
-ament_target_dependencies(${PROJECT_NAME}_node rclcpp)
+ament_target_dependencies(${PROJECT_NAME}_node rclcpp Eigen3 std_msgs nav_msgs geometry_msgs)
 
 # Install targets
 install(TARGETS
