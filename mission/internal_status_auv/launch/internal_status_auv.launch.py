@@ -1,10 +1,27 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 import os
 
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch_ros.actions import Node
 
-def generate_launch_description():
+
+def generate_launch_description() -> LaunchDescription:
+    """
+    Generates a LaunchDescription object that defines the nodes to be launched.
+
+    This function creates a launch configuration for three sensor nodes:
+    Power Sense Module Node, Pressure Sensor Node, and Temperature Sensor Node.
+    Each node is configured using parameters from a YAML file located in the
+    auv_setup directory.
+
+    The nodes will be launched with their respective executables and display
+    output on the screen.
+
+    Returns:
+    --------
+    launch.LaunchDescription
+        A LaunchDescription object containing the nodes to be launched.
+    """
     # Path to the YAML file
     yaml_file_path = os.path.join(
         get_package_share_directory("internal_status_auv"),
