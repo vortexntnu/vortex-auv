@@ -1,88 +1,90 @@
 import rclpy
-from action_tutorials_interfaces.action import Fibonacci
+
+# from action_tutorials_interfaces.action import Fibonacci
 from yasmin import Blackboard, CbState, StateMachine
-from yasmin_ros import ActionState
-from yasmin_ros.basic_outcomes import ABORT, CANCEL, SUCCEED
+
+# from yasmin_ros import ActionState
+from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
-
-"""
-class DockingState(ActionState):
-    def __init__(self) -> None:
-        super().__init__(
-            Fibonacci, # action type
-            "/fibonacci", # action name
-            self.create_goal_handler, #cb to create goal
-            None, #outcomes. Includes (SUCCEED, ABORT, CANCEL)
-            self.response_handler, #cb to handle response
-            self.print_feedback #cb to print feedback
-        )
-
-    def create_goal_handler(self, blackboard: Blackboard) -> Fibonacci.Goal:
-        goal = Fibonacci.Goal()
-        goal.order = blackboard.n
-        return goal
-
-    def response_handler(
-            self,
-            blackboard: Blackboard,
-            response: Fibonacci.Result
-    ) -> str:
-        blackboard.dock_res = response.sequence
-
-        return SUCCEED
-
-    def print_feedback(self, blackboard: Blackboard, feedback: Fibonacci.Feedback) -> None:
-        print(f"Received feedback {list(feedback.partial_sequence)}")
-"""
 
 
 def go_to_dock(blackboard: Blackboard) -> str:
+    """
+    State for going to dock. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Moving to dock ...")
     return SUCCEED
 
 
 def dock(blackboard: Blackboard) -> str:
+    """
+    State for docking. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Docking...")
     return SUCCEED
 
 
 def idle(blackboard: Blackboard) -> str:
+    """
+    State for being idle. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Idle...")
     return SUCCEED
 
 
 def search_for_dock(blackboard: Blackboard) -> str:
+    """
+    State for searching for the dock. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Searching_for_dock...")
     return SUCCEED
 
 
 def set_up(blackboard: Blackboard) -> str:
+    """
+    State for setting up the auv. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Setting up")
     return SUCCEED
 
 
 def return_home(blackboard: Blackboard) -> str:
+    """
+    State for returning home. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Returning home")
     return SUCCEED
 
 
 def error(blackboard: Blackboard) -> str:
+    """
+    State for error. Input: blackboard, returns: (str) the result of the node. ABORT
+    """
     print("Error occured")
     return ABORT
 
 
 def abort_mission(blackboard: Blackboard) -> str:
+    """
+    State for aborting. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Aborting mission")
     return SUCCEED
 
 
 def docked(blackboard: Blackboard) -> str:
+    """
+    State for being docked. Input: blackboard, returns: (str) the result of the node. SUCCESS
+    """
     print("Docked")
     return SUCCEED
 
 
-def main():
-    print("yasmin_action_client_demo (docking)")
+def main() -> None:
+    """
+    main function of the state machine.
+    """
+    print("yasmin_docking_fsm_demo")
 
     rclpy.init()
 
@@ -94,11 +96,11 @@ def main():
     sm.add_state("find_dock", CbState([SUCCEED], search_for_dock), transitions={SUCCEED: "go_to_dock"})
     sm.add_state("set_up", CbState([SUCCEED], set_up), transitions={SUCCEED: "dock"})
     sm.add_state("return_home", CbState([SUCCEED], return_home), transitions={SUCCEED: "Idle"})
-    sm.add_state("Error_state", CbState([ABORT], error), transitions={ABORT: "Abort_mission", SUCCEED: "find_dock"})
+    sm.add_state("Error_state", CbState([ABORT], error))
     sm.add_state("Abort_mission", CbState([SUCCEED], abort_mission), transitions={SUCCEED: "return_home", ABORT: "outcome4"})
     sm.add_state("docked", CbState([SUCCEED], docked), transitions={ABORT: "return_home", SUCCEED: "Idle"})
 
-    YasminViewerPub("Stateså", sm)
+    YasminViewerPub("Docking State Machine", sm)
 
     blackboard = Blackboard()
     blackboard.n = 10
