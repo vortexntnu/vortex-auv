@@ -1,0 +1,37 @@
+[0.306s] Invoking command in '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/guidance_test': PYTHONPATH=/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/guidance_test build --build-base /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build install --record /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/install.log --single-version-externally-managed install_data
+[0.422s] running egg_info
+[0.422s] creating ../build/guidance_test/guidance_test.egg-info
+[0.422s] writing ../build/guidance_test/guidance_test.egg-info/PKG-INFO
+[0.423s] writing dependency_links to ../build/guidance_test/guidance_test.egg-info/dependency_links.txt
+[0.423s] writing entry points to ../build/guidance_test/guidance_test.egg-info/entry_points.txt
+[0.423s] writing requirements to ../build/guidance_test/guidance_test.egg-info/requires.txt
+[0.423s] writing top-level names to ../build/guidance_test/guidance_test.egg-info/top_level.txt
+[0.423s] writing manifest file '../build/guidance_test/guidance_test.egg-info/SOURCES.txt'
+[0.424s] reading manifest file '../build/guidance_test/guidance_test.egg-info/SOURCES.txt'
+[0.424s] writing manifest file '../build/guidance_test/guidance_test.egg-info/SOURCES.txt'
+[0.424s] running build
+[0.424s] running build_py
+[0.424s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build
+[0.424s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build/lib
+[0.424s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build/lib/guidance_test
+[0.424s] copying guidance_test/guidance_test.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build/lib/guidance_test
+[0.424s] copying guidance_test/__init__.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build/lib/guidance_test
+[0.424s] running install
+[0.424s] running install_lib
+[0.425s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages/guidance_test
+[0.425s] copying /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build/lib/guidance_test/guidance_test.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages/guidance_test
+[0.425s] copying /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build/lib/guidance_test/__init__.py -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages/guidance_test
+[0.425s] byte-compiling /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages/guidance_test/guidance_test.py to guidance_test.cpython-310.pyc
+[0.425s] byte-compiling /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages/guidance_test/__init__.py to __init__.cpython-310.pyc
+[0.425s] running install_data
+[0.425s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/share/ament_index
+[0.425s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/share/ament_index/resource_index
+[0.425s] creating /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/share/ament_index/resource_index/packages
+[0.426s] copying resource/guidance_test -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/share/ament_index/resource_index/packages
+[0.426s] copying package.xml -> /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/share/guidance_test
+[0.426s] running install_egg_info
+[0.426s] Copying ../build/guidance_test/guidance_test.egg-info to /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages/guidance_test-0.0.1-py3.10.egg-info
+[0.427s] running install_scripts
+[0.439s] Installing guidance_test script to /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/guidance_test
+[0.439s] writing list of installed files to '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/install.log'
+[0.451s] Invoked command in '/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/guidance_test' returned '0': PYTHONPATH=/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/install/guidance_test/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated setup.py egg_info --egg-base ../build/guidance_test build --build-base /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/build install --record /home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_pkg/guidance_pkg/build/guidance_test/install.log --single-version-externally-managed install_data

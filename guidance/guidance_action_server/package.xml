@@ -1,0 +1,30 @@
+<package format="2">
+  <name>guidance_action_server</name>
+  <version>0.0.0</version>
+  <description>Guidance Action Server</description>
+  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <build_depend>rclpy</build_depend>
+  <exec_depend>rclpy</exec_depend>
+
+  <build_depend>action_msgs</build_depend>
+  <exec_depend>action_msgs</exec_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+
+  <build_depend>nav_msgs</build_depend>
+  <exec_depend>nav_msgs</exec_depend>
+
+  <build_depend>std_msgs</build_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <build_depend>vortex_msgs</build_depend>
+  <exec_depend>vortex_msgs</exec_depend>
+
+  <member_of_group>rclpy</member_of_group>
+
+</package>
