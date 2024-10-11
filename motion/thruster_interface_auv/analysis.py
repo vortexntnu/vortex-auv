@@ -13,7 +13,7 @@ files = [
     "motion/thruster_interface_auv/resources/T200-Thrusters-18V.csv",
     "motion/thruster_interface_auv/resources/T200-Thrusters-20V.csv",
 ]
-datas = []  
+datas = []
 for f in files:
     data = np.genfromtxt(f, delimiter=',', skip_header=1, usecols=(5, 0))
     datas.append(data)

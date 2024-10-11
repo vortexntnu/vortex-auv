@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # Import libraries
-import smbus2
-import pandas
 import numpy
-import yaml
+import smbus2
+
 
 class ThrusterInterfaceAUVDriver:
     def __init__(
@@ -17,14 +16,15 @@ class ThrusterInterfaceAUVDriver:
         THRUSTER_PWM_OFFSET=[0, 0, 0, 0, 0, 0, 0, 0],
         PWM_MIN=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
         PWM_MAX=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
-        coeffs = None,
-    ):
-        # Initialice the I2C comunication
+        coeffs=None,
+    ) -> None:
+
+        # Initialice the I2C communication
         self.bus = None
         try:
             self.bus = smbus2.SMBus(I2C_BUS)
         except Exception as errorCode:
-            print(f"ERROR: Failed connection I2C buss nr {self.bus}: {errorCode}")
+            print(f"ERROR: Failed connection I2C bus nr {self.bus}: {errorCode}")
         self.PICO_I2C_ADDRESS = PICO_I2C_ADDRESS
 
         # Set mapping, direction and offset for the thrusters
@@ -35,7 +35,7 @@ class ThrusterInterfaceAUVDriver:
         self.PWM_MAX = PWM_MAX
 
         # Convert SYSTEM_OPERATIONAL_VOLTAGE to a whole even number to work with
-        # This is because we have multiple files for the behavious of the thrusters depending on the voltage of the drone
+        # This is because we have multiple files for the behaviour of the thrusters depending on the voltage of the drone
         if SYSTEM_OPERATIONAL_VOLTAGE < 11.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 10
         elif SYSTEM_OPERATIONAL_VOLTAGE < 13.0:
@@ -50,13 +50,11 @@ class ThrusterInterfaceAUVDriver:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 20
 
         # Get the full path to the ROS2 package this file is located at
-        self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = (
-            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET
-        )
+        self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET
 
         self.coeffs = coeffs
 
-    def _interpolate_forces_to_pwm(self, thruster_forces_array):
+    def _interpolate_forces_to_pwm(self, thruster_forces_array) -> list:
         """
         Takes in Array of forces in Newtosn [N]
         takes 8 floats in form of:
@@ -67,10 +65,10 @@ class ThrusterInterfaceAUVDriver:
         [0, 0, 0, 0, 0, 0, 0, 0]
         """
         # Read the important data from the .csv file
-        thrusterDatasheetFileData = pandas.read_csv(
-            f"{self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET}/resources/T200-Thrusters-{self.SYSTEM_OPERATIONAL_VOLTAGE}V.csv",
-            usecols=[" PWM (µs)", " Force (Kg f)"],
-        )
+        # thrusterDatasheetFileData = pandas.read_csv(
+        #     f"{self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET}/resources/T200-Thrusters-{self.SYSTEM_OPERATIONAL_VOLTAGE}V.csv",
+        #     usecols=[" PWM (µs)", " Force (Kg f)"],
+        # )
 
         # Convert Newtons to Kg as Thruster Datasheet is in Kg format
         for i, thruster_forces in enumerate(thruster_forces_array):
@@ -82,14 +80,16 @@ class ThrusterInterfaceAUVDriver:
 
         # Calculate the interpolated PWM values using the polynomial coefficients
         interpolated_pwm = []
-        for i,force in enumerate(thruster_forces_array):
+        for i, force in enumerate(thruster_forces_array):
             if force < 0:
+                # use the left coefficients
                 pwm = numpy.polyval(left_coeffs, force)
-            elif abs(force) < 1e-6:
+            elif force == 0.00:
                 pwm = 1500 - self.THRUSTER_PWM_OFFSET[i]
             else:
+                # use the right coefficients
                 pwm = numpy.polyval(right_coeffs, force)
-            
+
             interpolated_pwm.append(pwm)
 
         # Convert PWM signal to integers as they are interpolated and can have floats
@@ -97,7 +97,7 @@ class ThrusterInterfaceAUVDriver:
 
         return interpolated_pwm
 
-    def _send_data_to_escs(self, thruster_pwm_array):
+    def _send_data_to_escs(self, thruster_pwm_array) -> None:
         i2c_data_array = []
 
         # Divide data into bytes as I2C only sends bytes
@@ -112,7 +112,7 @@ class ThrusterInterfaceAUVDriver:
         # OBS!: Python adds an extra byte at the start that the Microcotroller that is receiving this has to handle
         self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0, i2c_data_array)
 
-    def drive_thrusters(self, thruster_forces_array):
+    def drive_thrusters(self, thruster_forces_array) -> list:
         """
         Takes in Array of forces in Newtosn [N]
         takes 8 floats in form of:
@@ -122,7 +122,7 @@ class ThrusterInterfaceAUVDriver:
         PWM signals sent to PCA9685 module through I2C
         PCA9685 Module sends electrical PWM signals to the individual thruster ESCs
         The ESCs send corecponding electrical power to the Thrustres
-        Thrusters then generate thrust acordingly to the Forces sent to this driver
+        Thrusters then generate thrust accordingly to the Forces sent to this driver
 
         Returns an Array of PWM signal for debugging purposes
         Gives out 8 ints in form of:
@@ -130,19 +130,14 @@ class ThrusterInterfaceAUVDriver:
         """
 
         # Apply thruster mapping and direction
-        thruster_forces_array = [
-            thruster_forces_array[i] * self.THRUSTER_DIRECTION[i]
-            for i in self.THRUSTER_MAPPING
-        ]
+        thruster_forces_array = [thruster_forces_array[i] * self.THRUSTER_DIRECTION[i] for i in self.THRUSTER_MAPPING]
 
         # Convert Forces to PWM
         thruster_pwm_array = self._interpolate_forces_to_pwm(thruster_forces_array)
 
         # Apply thruster offset
         for ESC_channel, thruster_pwm in enumerate(thruster_pwm_array):
-            thruster_pwm_array[ESC_channel] = (
-                thruster_pwm + self.THRUSTER_PWM_OFFSET[ESC_channel]
-            )
+            thruster_pwm_array[ESC_channel] = thruster_pwm + self.THRUSTER_PWM_OFFSET[ESC_channel]
 
         # Apply thruster offset and limit PWM if needed
         for ESC_channel in range(len(thruster_pwm_array)):
@@ -152,10 +147,10 @@ class ThrusterInterfaceAUVDriver:
             elif thruster_pwm_array[ESC_channel] > self.PWM_MAX[ESC_channel]:  # To big
                 thruster_pwm_array[ESC_channel] = self.PWM_MAX[ESC_channel]
 
-        # Send data through I2C to the microcontroller that then controls the ESC and extention the thrusters
-        """ try:
+        # Send data through I2C to the microcontroller that then controls the ESC and extension the thrusters
+        try:
             self._send_data_to_escs(thruster_pwm_array)
         except Exception as errorCode:
-            print(f"ERROR: Failed to send PWM values: {errorCode}") """
+            print(f"ERROR: Failed to send PWM values: {errorCode}")
 
         return thruster_pwm_array
