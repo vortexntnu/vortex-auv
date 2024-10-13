@@ -50,13 +50,7 @@ class PlotCanvas(FigureCanvas):
     """A canvas widget for plotting odometry data using matplotlib."""
 
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
-        """
-        Initialize the PlotCanvas with a reference to the ROS node and configure the plot.
-
-        Args:
-            gui_node (GuiNode): A reference to the ROS node.
-            parent (Optional[QWidget]): The parent widget (default: None).
-        """
+        """Initialize the PlotCanvas with a reference to the ROS node and configure the plot."""
         self.gui_node = gui_node  # Store a reference to the ROS node
         self.fig, self.ax = plt.subplots()
         super().__init__(self.fig)
@@ -74,12 +68,7 @@ class PlotCanvas(FigureCanvas):
         self.mpl_connect("button_press_event", self.on_click)
 
     def on_click(self, event: MouseEvent) -> None:
-        """
-        Handle mouse click event on the plot and log the clicked coordinates.
-
-        Args:
-            event: The mouse click event from matplotlib.
-        """
+        """Handle mouse click event on the plot and log the clicked coordinates."""
         if event.inaxes is not None:
             x_click = event.xdata
             y_click = event.ydata
@@ -108,13 +97,7 @@ class PlotCanvas(FigureCanvas):
 
 
 def run_ros_node(ros_node: GuiNode, executor: MultiThreadedExecutor) -> None:
-    """
-    Run the ROS2 node in a separate thread using a MultiThreadedExecutor.
-
-    Args:
-        ros_node (GuiNode): The ROS2 node to run.
-        executor (MultiThreadedExecutor): The executor to use for spinning the node.
-    """
+    """Run the ROS2 node in a separate thread using a MultiThreadedExecutor."""
     rclpy.spin(ros_node, executor)
 
 
@@ -142,7 +125,7 @@ def main(args: Optional[List[str]] = None) -> None:
     layout.addWidget(plot_canvas)
 
     # Add buttons or other GUI elements if needed (optional)
-    button1 = QPushButton("Send command", parent=central_widget)
+    button1 = QPushButton("Send a command", parent=central_widget)
     button1.clicked.connect(lambda: ros_node.get_logger().info("Command sent"))
     layout.addWidget(button1)
 
