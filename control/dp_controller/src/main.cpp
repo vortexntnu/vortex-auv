@@ -251,7 +251,7 @@ Eigen::MatrixXd R(const Eigen::VectorXd &nu) {
 
 
 // Function to construct the J matrix
-Eigen::MatrixXd J(const Eigen::VectorXd &nu) {
+Eigen::MatrixXd create_J(const Eigen::VectorXd &nu) {
   Eigen::MatrixXd J(6, 6);
   J.setZero();
 
@@ -265,7 +265,7 @@ Eigen::MatrixXd J(const Eigen::VectorXd &nu) {
 
 Eigen::MatrixXd M_star_computing(const Eigen::MatrixXd &M, const Eigen::VectorXd &nu) {
   Eigen::MatrixXd M_star(6, 6);
-  Eigen::MatrixXd J_matrix = J(nu);
+  Eigen::MatrixXd J_matrix = create_J(nu);
   Eigen::MatrixXd J_inv = J_matrix.inverse();
 
   M_star = J_inv.transpose() * M * J_inv;
@@ -276,7 +276,7 @@ Eigen::MatrixXd M_star_computing(const Eigen::MatrixXd &M, const Eigen::VectorXd
 
 Eigen::MatrixXd C_star_computing(const Eigen::MatrixXd &C, const Eigen::VectorXd &nu) {
   Eigen::MatrixXd C_star(6, 6);
-  Eigen::MatrixXd J = J(nu);
+  Eigen::MatrixXd J = create_J(nu);
   Eigen::MatrixXd J_inv = J.fullPivLu().inverse();
 
   C_star = J_inv.transpose() * C * J_inv;
