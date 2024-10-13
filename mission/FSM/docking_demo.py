@@ -29,95 +29,85 @@ class GoToWaypointState(ActionState):
         print(f"Received feedback: {list(feedback.partial_sequence)}")
 """
 
+class FindDockingStationState(ActionState):
+    def __init__(self, blackboard: Blackboard) -> str:
+        """
+        State for searching for the dock. Input: blackboard, returns: (str) the result of the node. SUCCESS
+        """
+        print("Searching_for_dock...")
+        time.sleep(0.5)
+        #if blackboard.distance > 8:
+        #    print("Dock not found. Searching...")
+        #    blackboard.distance -= 1
+        #   return ABORT
+        #else:
+        #   return SUCCEED
+        #    pass
 
-def go_to_dock(blackboard: Blackboard) -> str:
-    """
-    State for going to dock. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    print("Moving to dock ...")
-    time.sleep(0.5)
-    return SUCCEED
+class GoToDockState(ActionState):
+    def __init__(self, blackboard: Blackboard) -> str:
+        """
+        State for going to dock. Input: blackboard, returns: (str) the result of the node. SUCCESS
+        """
+        #super().__init__(self)
+        print("Moving to dock ...")
+        time.sleep(0.5)
+        #return SUCCEED
 
-
-def dock(blackboard: Blackboard) -> str:
-    """
-    State for docking. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    print("Docking...")
-    time.sleep(0.5)
-    return SUCCEED
-
-
-def idle(blackboard: Blackboard) -> str:
-    """
-    State for being idle. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    blackboard.distance = 10
-    print("Idle...")
-    time.sleep(0.5)
-    return SUCCEED
-
-
-def search_for_dock(blackboard: Blackboard) -> str:
-    """
-    State for searching for the dock. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    print("Searching_for_dock...")
-    time.sleep(0.5)
-    if blackboard.distance > 8:
-        print("Dock not found. Searching...")
-        blackboard.distance -= 1
-        return ABORT
-    else:
-        return SUCCEED
+class DockState(ActionState):
+    def __init__(self, blackboard: Blackboard) -> str:
+        """
+        State for docking. Input: blackboard, returns: (str) the result of the node. SUCCESS
+        """
+        print("Docking...")
+        time.sleep(0.5)
+        #return SUCCEED
 
 
-def set_up(blackboard: Blackboard) -> str:
-    """
-    State for setting up the auv. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    time.sleep(0.5)
-    print("Setting up")
-    return SUCCEED
+
+class DockedState(ActionState):
+    def __init__(self,blackboard: Blackboard) -> str:
+        """
+        State for being docked. Input: blackboard, returns: (str) the result of the node. SUCCESS
+        """
+        time.sleep(0.5)
+        print("Docked")
+        #if blackboard.distance <= 3:
+        #   pass#return ABORT
+        #return SUCCEED
 
 
-def return_home(blackboard: Blackboard) -> str:
-    """
-    State for returning home. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    print("Returning home")
-    time.sleep(0.5)
-    return SUCCEED
 
+class ReturnHomeState(ActionState):
+    def __init__(self, blackboard: Blackboard) -> str:
+        """
+        State for returning home. Input: blackboard, returns: (str) the result of the node. SUCCESS
+        """
+        print("Returning home")
+        time.sleep(0.5)
+        #return SUCCEED
 
-def error(blackboard: Blackboard) -> str:
-    """
-    State for error. Input: blackboard, returns: (str) the result of the node. ABORT
-    """
-    print("Error occured")
+class AbortState(ActionState):
+    def __init__(self,blackboard: Blackboard) -> str:
+        """
+        State for aborting. Input: blackboard, returns: (str) the result of the node. SUCCESS
+        """
+        time.sleep(0.5)
+        print("Aborting mission")
+        #return ABORT
 
-    time.sleep(0.5)
-    return ABORT
+class ErrorState(ActionState):
+    def __init__(self, blackboard: Blackboard) -> str:  
+        """
+        State for error. Input: blackboard, returns: (str) the result of the node. ABORT
+        """
+        print("Error occured")
 
+        time.sleep(0.5)
+        #return ABORT
+    
+    
 
-def abort_mission(blackboard: Blackboard) -> str:
-    """
-    State for aborting. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    time.sleep(0.5)
-    print("Aborting mission")
-    return ABORT
-
-
-def docked(blackboard: Blackboard) -> str:
-    """
-    State for being docked. Input: blackboard, returns: (str) the result of the node. SUCCESS
-    """
-    time.sleep(0.5)
-    print("Docked")
-    if blackboard.distance <= 3:
-        return ABORT
-    return SUCCEED
 
 
 def main() -> None:
@@ -126,24 +116,24 @@ def main() -> None:
     """
     print("yasmin_docking_fsm_demo")
 
+
     rclpy.init()
 
+    # Create FSM
     sm = StateMachine(outcomes=["error", "finished", "aborted"])
-
-    sm.add_state("go_to_dock", CbState([SUCCEED], go_to_dock), transitions={SUCCEED: "set_up"})
-    sm.add_state("dock", CbState([SUCCEED], dock), transitions={SUCCEED: "docked"})
-    sm.add_state("Idle", CbState([SUCCEED], idle), transitions={SUCCEED: "find_dock"})
-    sm.add_state("find_dock", CbState([SUCCEED, ABORT], search_for_dock), transitions={SUCCEED: "go_to_dock", ABORT: "find_dock"})
-    sm.add_state("set_up", CbState([SUCCEED], set_up), transitions={SUCCEED: "dock"})
-    sm.add_state("return_home", CbState([SUCCEED], return_home), transitions={SUCCEED: "finished"})
-    sm.add_state("Error_state", CbState([ABORT], error), transitions={ABORT: "error"})
-    sm.add_state("Abort_mission", CbState([SUCCEED, ABORT], abort_mission), transitions={SUCCEED: "return_home", ABORT: "aborted"})
-    sm.add_state("docked", CbState([SUCCEED, ABORT], docked), transitions={ABORT: "Abort_mission", SUCCEED: "Idle"})
-
-    YasminViewerPub("Docking State Machine", sm)
 
     blackboard = Blackboard()
     blackboard.distance = 10
+
+    sm.add_state("find_dock", FindDockingStationState(blackboard), transitions={SUCCEED: "go_to_dock", ABORT: "find_dock"})
+    sm.add_state("go_to_dock", GoToDockState(blackboard), transitions={SUCCEED: "dock"})
+    sm.add_state("dock", DockState(blackboard), transitions={SUCCEED: "docked"})
+    sm.add_state("docked", DockedState(blackboard), transitions={ABORT: "Abort_mission", SUCCEED: "finished"})
+    sm.add_state("return_home", ReturnHomeState(blackboard), transitions={SUCCEED: "find_dock"})
+    sm.add_state("Abort_mission", AbortState(blackboard), transitions={SUCCEED: "return_home", ABORT: "aborted"})
+    sm.add_state("Error_state", ErrorState(blackboard), transitions={ABORT: "error"})
+
+    YasminViewerPub("Docking State Machine", sm)
 
     outcome = sm(blackboard)
     print("outcome: ", outcome)
