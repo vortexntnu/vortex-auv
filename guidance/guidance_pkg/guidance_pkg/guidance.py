@@ -9,22 +9,30 @@ import numpy as np
 import math
 from transforms3d.euler import quat2euler
 
+
 def normalize_angle(angle):
     """Normalize angle to be within [-pi, pi]."""
     return (angle + np.pi) % (2 * np.pi) - np.pi
 
+
 class GuidanceNode(Node):
+
     def __init__(self):
         super().__init__('guidance_pkg')
 
         # Publishers
-        self.output_pub = self.create_publisher(LOSGuidance, '/guidance/los', 10)
-        self.ref_pub = self.create_publisher(PoseStamped, '/guidance/reference', 10)
-        self.error_pub = self.create_publisher(Vector3Stamped, '/guidance/errors', 10)
-        self.twist_pub = self.create_publisher(TwistStamped, '/guidance/twist', 10)
+        self.output_pub = self.create_publisher(LOSGuidance, '/guidance/los',
+                                                10)
+        self.ref_pub = self.create_publisher(PoseStamped,
+                                             '/guidance/reference', 10)
+        self.error_pub = self.create_publisher(Vector3Stamped,
+                                               '/guidance/errors', 10)
+        self.twist_pub = self.create_publisher(TwistStamped, '/guidance/twist',
+                                               10)
 
         # Subscriber to odometry
-        self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback, 10)
+        self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback,
+                                 10)
 
         # Initialize variables
         self.current_position = None
@@ -32,14 +40,26 @@ class GuidanceNode(Node):
         self.current_orientation = None
 
         # Parameters for guidance algorithm
-        self.U = 1.0    # Desired surge speed (m/s)
+        self.U = 1.0  # Desired surge speed (m/s)
         self.delta = 0.2  # Lookahead distance (m)
 
         # Define waypoints
         self.waypoints = [
-            {'x': 5.0, 'y': 5.0, 'z': 8.0},
-            {'x': 10.0, 'y': 5.0, 'z': -5.0},
-            {'x': 15.0, 'y': 0.0, 'z': 0.0},
+            {
+                'x': 5.0,
+                'y': 5.0,
+                'z': 8.0
+            },
+            {
+                'x': 10.0,
+                'y': 5.0,
+                'z': -5.0
+            },
+            {
+                'x': 15.0,
+                'y': 0.0,
+                'z': 0.0
+            },
         ]
         self.current_waypoint_index = 0
 
@@ -54,7 +74,9 @@ class GuidanceNode(Node):
         self.current_position = msg.pose.pose
         self.current_velocity = msg.twist.twist
         orientation_q = msg.pose.pose.orientation
-        quaternion = [orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z]
+        quaternion = [
+            orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
+        ]
         roll, pitch, yaw = quat2euler(quaternion)
         self.current_orientation = {'roll': roll, 'pitch': pitch, 'yaw': yaw}
 
@@ -64,7 +86,8 @@ class GuidanceNode(Node):
             return
 
         if self.current_waypoint_index >= len(self.waypoints):
-            self.get_logger().info('All waypoints reached. Shutting down guidance node.')
+            self.get_logger().info(
+                'All waypoints reached. Shutting down guidance node.')
             rclpy.shutdown()
             return
 
@@ -82,16 +105,18 @@ class GuidanceNode(Node):
         target_z = waypoint['z']
 
         # Compute distance to the waypoint
-        distance = math.sqrt((target_x - current_x) ** 2 +
-                             (target_y - current_y) ** 2 +
-                             (target_z - current_z) ** 2)
+        distance = math.sqrt((target_x - current_x)**2 +
+                             (target_y - current_y)**2 +
+                             (target_z - current_z)**2)
 
         # Check if waypoint is reached
         if distance < 0.1:
-            self.get_logger().info(f'Reached waypoint {self.current_waypoint_index}')
+            self.get_logger().info(
+                f'Reached waypoint {self.current_waypoint_index}')
             self.current_waypoint_index += 1
             if self.current_waypoint_index >= len(self.waypoints):
-                self.get_logger().info('All waypoints reached. Shutting down guidance node.')
+                self.get_logger().info(
+                    'All waypoints reached. Shutting down guidance node.')
                 rclpy.shutdown()
                 return
             else:
@@ -185,10 +210,16 @@ class GuidanceNode(Node):
         twist_msg.twist.angular.z = 0.0
         self.twist_pub.publish(twist_msg)
 
-        self.get_logger().info("____________________________________________________")
-        self.get_logger().info(f"Current Position: x={current_x:.2f}, y={current_y:.2f}, z={current_z:.2f}")
-        self.get_logger().info(f"Target Waypoint: x={target_x:.2f}, y={target_y:.2f}, z={target_z:.2f}")
-        self.get_logger().info(f"Errors: e_x={e_x:.2f}, e_y={e_y:.2f}, e_psi={e_psi:.2f}")
+        self.get_logger().info(
+            "____________________________________________________")
+        self.get_logger().info(
+            f"Current Position: x={current_x:.2f}, y={current_y:.2f}, z={current_z:.2f}"
+        )
+        self.get_logger().info(
+            f"Target Waypoint: x={target_x:.2f}, y={target_y:.2f}, z={target_z:.2f}"
+        )
+        self.get_logger().info(
+            f"Errors: e_x={e_x:.2f}, e_y={e_y:.2f}, e_psi={e_psi:.2f}")
         self.get_logger().info(f"Desired Velocities: u={u:.2f}, v={v:.2f}")
 
 
@@ -198,6 +229,7 @@ def main(args=None):
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

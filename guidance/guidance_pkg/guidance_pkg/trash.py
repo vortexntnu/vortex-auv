@@ -243,7 +243,7 @@
 #         gamma = math.atan2(-dz, math.hypot(dx, dy))
 
 #         # Compute along-track and cross-track errors in local reference frame
-#         R = np.array([[math.cos(pi_p), -math.sin(pi_p)], 
+#         R = np.array([[math.cos(pi_p), -math.sin(pi_p)],
 #                       [math.sin(pi_p), math.cos(pi_p)]])
 #         eps = R.T @ np.array([current_x - ref_x, current_y - ref_y])
 
@@ -498,7 +498,6 @@
 #         self.get_logger().info(f"Target Waypoint: x={target_x}, y={target_y}, z={target_z}")
 #         self.get_logger().info(f"Errors: e_x={e_x}, e_y={e_y}, e_psi={e_psi}")
 #         self.get_logger().info(f"Desired Velocities: u={u}, v={v}")
-
 
 # def main(args=None):
 #     rclpy.init(args=args)
