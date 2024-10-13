@@ -3,8 +3,8 @@ from threading import Thread
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 import rclpy
-from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from nav_msgs.msg import Odometry
 from PyQt5.QtCore import QTimer
@@ -26,6 +26,7 @@ class GuiNode(Node):
         # Variables to store odometry data
         self.x_data: List[float] = []
         self.y_data: List[float] = []
+        self.z_data: List[float] = []
 
         self.counter_ = 0
         self.get_logger().info("Subscribed to /nucleus/odom")
@@ -35,8 +36,10 @@ class GuiNode(Node):
         # Extract x and y positions from the odometry message
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
+        z = -(msg.pose.pose.position.z)
         self.x_data.append(x)
         self.y_data.append(y)
+        self.z_data.append(z)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
         # Store 30 seconds worth of data at 100Hz
@@ -44,6 +47,7 @@ class GuiNode(Node):
         if len(self.x_data) > max_data_points:
             self.x_data.pop(0)
             self.y_data.pop(0)
+            self.z_data.pop(0)
 
 
 class PlotCanvas(FigureCanvas):
@@ -52,48 +56,54 @@ class PlotCanvas(FigureCanvas):
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
         """Initialize the PlotCanvas with a reference to the ROS node and configure the plot."""
         self.gui_node = gui_node  # Store a reference to the ROS node
-        self.fig, self.ax = plt.subplots()
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111, projection='3d')  # Set up 3D projection
         super().__init__(self.fig)
         self.setParent(parent)
 
-        self.ax.set_xlabel("X Position")
-        self.ax.set_ylabel("Y Position")
+        # Set labels and title for the 3D plot
+        self.ax.set_xlabel("X")
+        self.ax.set_ylabel("Y")
+        self.ax.set_zlabel("Z")
         self.ax.set_title("Odometry")
 
+        # Initialize data lists for 3D plot
         self.x_data: List[float] = []
         self.y_data: List[float] = []
-        (self.line,) = self.ax.plot([], [], 'b-')
+        self.z_data: List[float] = []
+        (self.line,) = self.ax.plot([], [], [], 'b-')  # 3D line plot
 
-        # Mouse click event handler
-        self.mpl_connect("button_press_event", self.on_click)
-
-    def on_click(self, event: MouseEvent) -> None:
-        """Handle mouse click event on the plot and log the clicked coordinates."""
-        if event.inaxes is not None:
-            x_click = event.xdata
-            y_click = event.ydata
-            # Use the logger from the ROS node to log the click event
-            self.gui_node.get_logger().info(f"Clicked at: x={x_click}, y={y_click}")
-
-    def update_plot(self, x_data: List[float], y_data: List[float]) -> None:
+    def update_plot(self, x_data: List[float], y_data: List[float], z_data: List[float]) -> None:
         """
-        Update the plot with the latest odometry data.
+        Update the 3D plot with the latest odometry data.
 
         Args:
             x_data (List[float]): The list of x positions.
             y_data (List[float]): The list of y positions.
+            z_data (List[float]): The list of z positions.
         """
-        self.line.set_data(x_data, y_data)  # Update the data of the line object
+        # Convert lists to numpy arrays to ensure compatibility with the plot functions
+        x_data = np.array(x_data, dtype=float)
+        y_data = np.array(y_data, dtype=float)
+        z_data = np.array(z_data, dtype=float)
 
-        if x_data and y_data:
+        # Check if the arrays are non-empty before updating the plot
+        if len(x_data) > 0 and len(y_data) > 0 and len(z_data) > 0:
+            self.line.set_data(x_data, y_data)  # Update the 2D projection data
+            self.line.set_3d_properties(z_data)  # Update the z-data for the 3D line
+
+            # Update the limits for the 3D plot around the latest data point
             x_latest = x_data[-1]
             y_latest = y_data[-1]
+            z_latest = z_data[-1]
             margin = 1  # Define a margin around the latest point
 
             self.ax.set_xlim(x_latest - margin, x_latest + margin)
             self.ax.set_ylim(y_latest - margin, y_latest + margin)
+            self.ax.set_zlim(z_latest - margin, z_latest + margin)
 
-        self.draw()
+            self.fig.canvas.draw()
+            self.fig.canvas.flush_events()
 
 
 def run_ros_node(ros_node: GuiNode, executor: MultiThreadedExecutor) -> None:
@@ -134,7 +144,7 @@ def main(args: Optional[List[str]] = None) -> None:
 
     # Use a QTimer to update the plot in the main thread
     def update_plot() -> None:
-        plot_canvas.update_plot(ros_node.x_data, ros_node.y_data)
+        plot_canvas.update_plot(ros_node.x_data, ros_node.y_data, ros_node.z_data)
 
     # Set up the timer to call update_plot every 100ms
     timer = QTimer()
