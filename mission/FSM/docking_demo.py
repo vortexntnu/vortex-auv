@@ -1,10 +1,12 @@
-import rclpy
 import time
+
+import rclpy
 
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
 from yasmin import Blackboard, CbState, StateMachine
-#from waypoint_action.action import Waypoint
+
+# from waypoint_action.action import Waypoint
 from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
@@ -13,19 +15,20 @@ from yasmin_viewer import YasminViewerPub
 class GoToWaypointState(ActionState):
     def __init__(self) -> None:
         super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
-    
+
     def create_goal_handler(self, blackboard: Blackboard) ->Waypoint.Goal:
         goal = Waypoint.Goal()
         goal.order = blackboard["waypoint"]
         return goal
-    
+
     def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
-    
+
     def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
         print(f"Received feedback: {list(feedback.partial_sequence)}")
 """
+
 
 def go_to_dock(blackboard: Blackboard) -> str:
     """
@@ -127,7 +130,6 @@ def main() -> None:
 
     sm = StateMachine(outcomes=["error", "finished", "aborted"])
 
-
     sm.add_state("go_to_dock", CbState([SUCCEED], go_to_dock), transitions={SUCCEED: "set_up"})
     sm.add_state("dock", CbState([SUCCEED], dock), transitions={SUCCEED: "docked"})
     sm.add_state("Idle", CbState([SUCCEED], idle), transitions={SUCCEED: "find_dock"})
@@ -144,7 +146,7 @@ def main() -> None:
     blackboard.distance = 10
 
     outcome = sm(blackboard)
-    print("outcome: ",outcome)
+    print("outcome: ", outcome)
 
     rclpy.shutdown()
 
