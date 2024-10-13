@@ -1,25 +1,25 @@
+import sys
+from threading import Thread
+import matplotlib.pyplot as plt
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from nav_msgs.msg import Odometry
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget
 from PyQt5.QtCore import QTimer
-import sys
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from threading import Thread
-from rclpy.executors import MultiThreadedExecutor
 
 class GuiNode(Node):
     def __init__(self):
         super().__init__("simple_gui_node")
-        
+
         # Subscriber to the /nucleus/odom topic
         self.subscription = self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback, 10)
-        
+
         # Variables to store odometry data
         self.x_data = []
         self.y_data = []
-        
+
         self.counter_ = 0
         self.get_logger().info("Subscribed to /nucleus/odom")
 
@@ -31,7 +31,7 @@ class GuiNode(Node):
         self.y_data.append(y)
 
         # self.get_logger().info(f"Received odometry: x={x}, y={y}")
-        
+
         # Limit the stored data for real-time plotting (avoid memory overflow)
         # Store 30 seconds worth of data at 100Hz
         max_data_points = 30 * 100  # 30 seconds * 100 Hz
@@ -100,7 +100,7 @@ def main(args=None):
     # Create a central widget and layout for the GUI
     central_widget = QWidget()
     layout = QVBoxLayout(central_widget)
-    
+
     plot_canvas = PlotCanvas(ros_node, central_widget)
     layout.addWidget(plot_canvas)
 
