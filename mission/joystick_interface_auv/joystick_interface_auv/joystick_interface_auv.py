@@ -3,11 +3,9 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool
-from std_msgs.msg import String
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Quaternion
-from tf_transformations import quaternion_from_euler
+from std_msgs.msg import Bool, String
+from geometry_msgs.msg import PoseStamped, Quaternion, Wrench
+import numpy as np
 
 class States:
     XBOX_MODE = 1
@@ -133,7 +131,7 @@ class JoystickInterface(Node):
 
         #Operational mode publisher
         self.operational_mode_signal_publisher_ = self.create_publisher(
-        String, "softwareOperationMode", 10) 
+            String, "softwareOperationMode", 10) 
         self.current_pose = PoseStamped()
 
 
@@ -281,9 +279,9 @@ class JoystickInterface(Node):
         # Toggle killswitch on and off
         if software_killswitch_button:
             if self.state_ == States.NO_GO:
-        # Signal that killswitch is not blocking
+                # Signal that killswitch is not blocking
                 self.software_killswitch_signal_publisher_.publish(
-                Bool(data=False))
+                    Bool(data=False))
                 self.transition_to_xbox_mode()
                 return
 
@@ -293,20 +291,20 @@ class JoystickInterface(Node):
                 # Signal that killswitch is blocking
                 self.software_killswitch_signal_publisher_.publish(
                 Bool(data=True))
-    # Publish a zero wrench message when killswitch is activated
+                # Publish a zero wrench message when killswitch is activated
                 wrench_msg = self.create_wrench_message(
-0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
                 self.wrench_publisher_.publish(wrench_msg)
                 self.state_ = States.NO_GO
                 return wrench_msg
             
-        if reference_mode_button: 
-            if States.REFERENCE_MODE == False:
-                States.REFERENCE_MODE = True 
-            else: 
-                States.REFERENCE_MODE = False
-            mode = "ENABLED" if States.REFERENCE_MODE else "DISABLED"
-            self.get_logger().info(f"Reference mode {mode}.")
+        # if reference_mode_button: 
+        #     if States.REFERENCE_MODE == False:
+        #         States.REFERENCE_MODE = True 
+        #     else: 
+        #         States.REFERENCE_MODE = False
+        #     mode = "ENABLED" if States.REFERENCE_MODE else "DISABLED"
+        #     self.get_logger().info(f"Reference mode {mode}.")
 
         # Toggle precise maneuvering mode on and off
         # if precise_manuevering_mode_button:
@@ -316,29 +314,29 @@ class JoystickInterface(Node):
         # self.precise_manuevering_scaling_ = 0.5 if self.precise_manuevering_mode_ else 1.0
 
         # Publish wrench message from joystick_interface to thrust allocation
-        wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, self.roll,
-self.pitch, self.yaw)
+        
 
         if self.state_ == States.XBOX_MODE:
-            if not States.REFERENCE_MODE:
-                self.wrench_publisher_.publish(wrench_msg)
-            else:
-                self.get_logger().info_throttle(4.0, "Reference mode is active, not publishing wrench")
-# if software_control_mode_button:
-# self.transition_to_autonomous_mode()
-# elif reference_mode_button:
-# self.transition_to_reference_mode()
+            wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
+                                                self.roll, self.pitch, self.yaw)
+            self.wrench_publisher_.publish(wrench_msg)
+            self.get_logger().info("XBOX mode")
+            if software_control_mode_button:
+                self.transition_to_autonomous_mode()
+            elif reference_mode_button:
+                self.transition_to_reference_mode()
 
         if self.state_ == States.AUTONOMOUS_MODE:
-            self.get_logger().info("autonomous mode", throttle_duration_sec=1)
+            self.get_logger().info("autonomous mode")
 
-# if xbox_control_mode_button:
-# self.transition_to_xbox_mode()
-# elif reference_mode_button:
-# self.transition_to_reference_mode() 
+            if xbox_control_mode_button:
+                self.transition_to_xbox_mode()
+            elif reference_mode_button:
+                self.transition_to_reference_mode() 
 
         if self.state_ == States.REFERENCE_MODE:
-            self.get_logger().info("Reference mode", throttle_duration_sec=1)
+            self.get_logger().info("Reference mode")
+
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
             elif xbox_control_mode_button:
@@ -349,21 +347,37 @@ self.pitch, self.yaw)
         self.current_pose.pose.position.y += self.sway / 300
         self.current_pose.pose.position.z += self.heave / 300
 
-#Convert roll, pitch, and yaw to quaternion
-        q = quaternion_from_euler(self.roll, self.pitch, self.yaw)
+        #Convert roll, pitch, and yaw to quaternion
+        q = self.euler_to_quat(self.roll, self.pitch, self.yaw)
         quaternion = Quaternion()
-        quaternion.x = q[0]
-        quaternion.y = q[1]
-        quaternion.z = q[2]
-        quaternion.w = q[3]
+        quaternion.w = q[0]
+        quaternion.x = q[1]
+        quaternion.y = q[2]
+        quaternion.z = q[3]
         self.current_pose.pose.orientation = quaternion 
         self.pose_publisher.publish(self.current_pose)
 
     def timer_cb(self):
-        if States.REFERENCE_MODE:
+        if self.state_ == States.REFERENCE_MODE:
             self.reference_pose()
-        msg = self.create_pose_message() 
-        self.pose_publisher.publish(msg)
+            msg = self.create_pose_message() 
+            self.pose_publisher.publish(msg)
+
+    @staticmethod
+    def euler_to_quat(roll: float, pitch: float, yaw: float) -> np.ndarray:
+        cy = np.cos(yaw * 0.5)
+        sy = np.sin(yaw * 0.5)
+        cp = np.cos(pitch * 0.5)
+        sp = np.sin(pitch * 0.5)
+        cr = np.cos(roll * 0.5)
+        sr = np.sin(roll * 0.5)
+
+        w = cy * cp * cr + sy * sp * sr
+        x = cy * cp * sr - sy * sp * cr
+        y = sy * cp * sr + cy * sp * cr
+        z = sy * cp * cr - cy * sp * sr
+
+        return np.array([w, x, y, z])
 
 def main():
     rclpy.init()
