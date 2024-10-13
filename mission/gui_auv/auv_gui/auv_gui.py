@@ -8,7 +8,7 @@ import rclpy
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from nav_msgs.msg import Odometry
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
@@ -124,7 +124,7 @@ def main(args: Optional[List[str]] = None) -> None:
     # Setup the PyQt5 application and window
     app = QApplication(sys.argv)
     gui = QMainWindow()
-    gui.setWindowTitle("AUV Odometry GUI")
+    gui.setWindowTitle("Vortex GUI")
     gui.setGeometry(100, 100, 600, 400)
 
     # Create a central widget and layout for the GUI
@@ -135,9 +135,12 @@ def main(args: Optional[List[str]] = None) -> None:
     layout.addWidget(plot_canvas)
 
     # Add buttons or other GUI elements if needed (optional)
-    button1 = QPushButton("Send a command", parent=central_widget)
-    button1.clicked.connect(lambda: ros_node.get_logger().info("Command sent"))
-    layout.addWidget(button1)
+    # button1 = QPushButton("Send a command", parent=central_widget)
+    # button1.clicked.connect(lambda: ros_node.get_logger().info("Command sent"))
+    # layout.addWidget(button1)
+
+    current_pos = QLabel(parent=central_widget)
+    layout.addWidget(current_pos)
 
     gui.setCentralWidget(central_widget)
     gui.show()
@@ -145,6 +148,7 @@ def main(args: Optional[List[str]] = None) -> None:
     # Use a QTimer to update the plot in the main thread
     def update_plot() -> None:
         plot_canvas.update_plot(ros_node.x_data, ros_node.y_data, ros_node.z_data)
+        current_pos.setText(f"Current Position:\nX: {ros_node.x_data[-1]:.2f}\nY: {ros_node.y_data[-1]:.2f}\nZ: {ros_node.z_data[-1]:.2f}")
 
     # Set up the timer to call update_plot every 100ms
     timer = QTimer()
