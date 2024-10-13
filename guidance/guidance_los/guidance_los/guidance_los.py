@@ -32,14 +32,16 @@ class GuidanceNode(Node):
         self.current_orientation = None
 
         # Parameters for guidance algorithm
-        self.U = 1.0    # Desired surge speed (m/s)
+        self.U = 0.3    # Desired surge speed (m/s)
         self.delta = 0.2  # Lookahead distance (m)
 
         # Define waypoints
         self.waypoints = [
-            {'x': 5.0, 'y': 5.0, 'z': 8.0},
-            {'x': 10.0, 'y': 5.0, 'z': -5.0},
-            {'x': 15.0, 'y': 0.0, 'z': 0.0},
+            {'x': 5.0, 'y': 0.0, 'z': 1.0},
+            {'x': 5.0, 'y': 5.0, 'z': 1.0},
+            {'x': 0.0, 'y': 5.0, 'z': 1.0},
+            {'x': 0.0, 'y': 0.0, 'z': 1.0},
+
         ]
         self.current_waypoint_index = 0
 

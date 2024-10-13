@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-package_name = 'guidance_pkg'
+package_name = 'guidance_los'
 
 setup(
     name=package_name,
@@ -19,7 +19,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'guidance = guidance_pkg.guidance:main',  # Ensure this is correctly pointing to the main function
+            'guidance = guidance_los.guidance_los:main',
         ],
     },
 )
