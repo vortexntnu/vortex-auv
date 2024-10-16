@@ -4,6 +4,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include "libraries.hpp"
 
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
@@ -58,41 +59,52 @@ namespace ekf_filtering
 
 {
 class EkfMapperNode : public rclcpp::Node {
+    public:
+    void ekf_filtering::EkfFilteringNode::EkfFilterCallback()
+    {
+        /*
+        * @brief Constructs an ArucoDetectorNode object.
+        */
+        EkfMapperNode(const rclcpp::NodeOptions & options);
+
+        /**
+         * @brief Destroys the ArucoDetector object.
+         */
+        ~EkfMapperNode(){};
+
+
+
+
+
+
+    }
     private:
+    
         std::string target_frame_; //Frame to map the local frame data
         std::shared_ptr<tf2_ros::Buffer> tf2_buffer_; //
         std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; //
         message_filters::Subscriber<geometry_msgs::msg::PointStamped> point_sub_; //
         std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PointStamped>> tf2_filter_; //
 
+        
+
         using DynMod = vortex::models::IdentityDynamicModel<6>;
         using SensMod = vortex::models::IdentitySensorModel<6,6>;
         using EKF = vortex::filter::EKF<DynMod, SensMod>;
 
-
+        enum class BoardDetectionStatus{
+            BOARD_NEVER_DETECTED,
+            MEASUREMENT_AVAILABLE,
+        };
 
         void kalmanFilterCallback();
 
 
-    public:
-        void ekf_filtering::EkfFilteringNode::EkfFilterCallback()
-        {
-            /*
-            * @brief Constructs an ArucoDetectorNode object.
-            */
-            EkfMapperNode(const rclcpp::NodeOptions & options);
+        std::shared_ptr<DynMod> dynamic_model_;
+        std::shared_ptr<SensMod> sensor_model_;
+        vortex::prob::Gauss<6> board_pose_est_;
+        
 
-            /**
-             * @brief Destroys the ArucoDetector object.
-             */
-            ~EkfMapperNode(){};
-
-
-
-
-
-
-        }
 
 
 

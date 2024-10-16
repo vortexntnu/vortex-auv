@@ -1,4 +1,6 @@
-
+#include "ekf_filtering_ros.hpp"
+#include <sstream>
+#include <filesystem>
 
 
 
@@ -22,9 +24,15 @@ The node need to input the 6d position for the object, which is recieved from th
 The output should be in the global frame, not local frame
 */
 
+/// tie
+template<typename... _Elements>
+constexpr tuple<_Elements&...>
+tie(_Elements&... __args) noexcept
+{ 
+    return tuple<_Elements&...>(__args...); 
+    }
 
-
-void object_detector::EkfMapperNode::kalmanFilterCallback()
+void object_filter::EkfFilteringNode::kalmanFilterCallback()
 {
     static rclcpp::Time previous_time = this->now();
     rclcpp::Time current_time = this->now();
@@ -32,7 +40,8 @@ void object_detector::EkfMapperNode::kalmanFilterCallback()
     previous_time = current_time;
 
     auto [status, board_pose_meas, stamp] = board_measurement_.getBoardPoseStamp();
-    switch(status) {
+    switch(status) 
+    {
     case BoardDetectionStatus::BOARD_NEVER_DETECTED:
         return;
     case BoardDetectionStatus::MEASUREMENT_AVAILABLE:
@@ -51,6 +60,7 @@ void object_detector::EkfMapperNode::kalmanFilterCallback()
 
     geometry_msgs::msg::PoseStamped pose_msg = cv_pose_to_ros_pose_stamped(tvec, quat, frame_, stamp);
     board_pose_pub_->publish(pose_msg);
+    }
 }
 
 

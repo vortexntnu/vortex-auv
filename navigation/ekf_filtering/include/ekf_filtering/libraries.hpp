@@ -23,18 +23,3 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include "aruco_detector.hpp"
-
-namespace vortex::ekf_filtering
-{
-
-
-
-
-
-
-
-
-
-
-
-}
