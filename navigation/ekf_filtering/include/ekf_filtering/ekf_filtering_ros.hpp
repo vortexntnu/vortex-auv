@@ -44,6 +44,9 @@ From aruco_detector_ros_hpp
     std::shared_ptr<DynMod> dynamic_model_;
     std::shared_ptr<SensMod> sensor_model_;
 
+For KallmanFilterCallback function:
+    getBoardPoseStamp(); - Need this function
+
 */
 
 
@@ -54,7 +57,7 @@ namespace vortex
 namespace ekf_filtering
 
 {
-class EkfFilteringNode : public rclcpp::Node {
+class EkfMapperNode : public rclcpp::Node {
     private:
         std::string target_frame_; //Frame to map the local frame data
         std::shared_ptr<tf2_ros::Buffer> tf2_buffer_; //
@@ -67,10 +70,22 @@ class EkfFilteringNode : public rclcpp::Node {
         using EKF = vortex::filter::EKF<DynMod, SensMod>;
 
 
+
+        void kalmanFilterCallback();
+
+
     public:
         void ekf_filtering::EkfFilteringNode::EkfFilterCallback()
         {
+            /*
+            * @brief Constructs an ArucoDetectorNode object.
+            */
+            EkfMapperNode(const rclcpp::NodeOptions & options);
 
+            /**
+             * @brief Destroys the ArucoDetector object.
+             */
+            ~EkfMapperNode(){};
 
 
 

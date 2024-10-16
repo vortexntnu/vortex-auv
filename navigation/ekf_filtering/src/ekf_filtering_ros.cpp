@@ -10,6 +10,7 @@ AruCo marker poses, detects and calculates position of markers
 Board Pose, position from centre of code, kalman filter for stable outputs
     detect_board should be set
     createRectangularBoard function -> position poblished in src/aruco_detector.hpp
+    getBoardPoseStamp();
 
 what to implement
 
@@ -23,7 +24,7 @@ The output should be in the global frame, not local frame
 
 
 
-void object_detector::ArucoDetectorNode::kalmanFilterCallback()
+void object_detector::EkfMapperNode::kalmanFilterCallback()
 {
     static rclcpp::Time previous_time = this->now();
     rclcpp::Time current_time = this->now();
