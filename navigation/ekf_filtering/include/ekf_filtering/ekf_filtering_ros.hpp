@@ -22,14 +22,24 @@
 - A node that publishes coordinates in global frame
 - We only want the node to run when the object in local frame is actually visible in the camera (callback)
 - function (local_frame_pos, auv_global_pos)
-- Save previous value 
-- From ekf:step time_since_previous callback, board_pose_est, board_pose_meas (measuement, from topic we listen) set global names
+- Save previous value to use for ekf step
+
+- For ekf:step we need: (set global names)
+         time_since_previous callback, 
+         board_pose_est - just call it, we get it from gauss. -> object
+         board_pose_meas (measuement) - from BoardPoaseStamp -> object
+         from topic we listen) 
+
+    For dynmod -  vortex::models::IdentityDynamicModel<6>;
+
+
 - using DynMod, and 
 
 From aruco_detector_ros_hpp
     using DynMod = vortex::models::IdentityDynamicModel<6>;
     using SensMod = vortex::models::IdentitySensorModel<6,6>;
     using EKF = vortex::filter::EKF<DynMod, SensMod>;
+
     
     std::shared_ptr<DynMod> dynamic_model_;
     std::shared_ptr<SensMod> sensor_model_;
@@ -51,6 +61,10 @@ class EkfFilteringNode : public rclcpp::Node {
         std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; //
         message_filters::Subscriber<geometry_msgs::msg::PointStamped> point_sub_; //
         std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PointStamped>> tf2_filter_; //
+
+        using DynMod = vortex::models::IdentityDynamicModel<6>;
+        using SensMod = vortex::models::IdentitySensorModel<6,6>;
+        using EKF = vortex::filter::EKF<DynMod, SensMod>;
 
 
     public:

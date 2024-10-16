@@ -22,3 +22,34 @@ The output should be in the global frame, not local frame
 */
 
 
+
+void object_detector::ArucoDetectorNode::kalmanFilterCallback()
+{
+    static rclcpp::Time previous_time = this->now();
+    rclcpp::Time current_time = this->now();
+    rclcpp::Duration time_since_previous_callback = current_time - previous_time;
+    previous_time = current_time;
+
+    auto [status, board_pose_meas, stamp] = board_measurement_.getBoardPoseStamp();
+    switch(status) {
+    case BoardDetectionStatus::BOARD_NEVER_DETECTED:
+        return;
+    case BoardDetectionStatus::MEASUREMENT_AVAILABLE:
+        std::tie(board_pose_est_, std::ignore, std::ignore) = EKF::step(*dynamic_model_, *sensor_model_, time_since_previous_callback.seconds(),board_pose_est_, board_pose_meas);
+        break;
+   
+    cv::Vec3d rvec,tvec;
+    tvec[0] = board_pose_est_.mean()(0);
+    tvec[1] = board_pose_est_.mean()(1);
+    tvec[2] = board_pose_est_.mean()(2);
+    rvec[0] = board_pose_est_.mean()(3);
+    rvec[1] = board_pose_est_.mean()(4);
+    rvec[2] = board_pose_est_.mean()(5);
+    
+    tf2::Quaternion quat = rvec_to_quat(rvec);
+
+    geometry_msgs::msg::PoseStamped pose_msg = cv_pose_to_ros_pose_stamped(tvec, quat, frame_, stamp);
+    board_pose_pub_->publish(pose_msg);
+}
+
+
