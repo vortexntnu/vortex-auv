@@ -9,9 +9,9 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='sondre',
-    maintainer_email='sondre@example.com',
+    maintainer_email='sondre95556888@gmail.com',
     description='AUV GUI for ROS2',
-    license='Apache License 2.0',
+    license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

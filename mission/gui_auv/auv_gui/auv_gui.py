@@ -8,9 +8,20 @@ import rclpy
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from nav_msgs.msg import Odometry
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import (
+    QApplication,
+    QGridLayout,
+    QLabel,
+    QMainWindow,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from std_msgs.msg import Float32
+
+# --- GUI Node ---
 
 
 class GuiNode(Node):
@@ -18,7 +29,7 @@ class GuiNode(Node):
 
     def __init__(self) -> None:
         """Initialize the GuiNode and set up the odometry subscriber."""
-        super().__init__("simple_gui_node")
+        super().__init__("auv_gui_node")
 
         # Subscriber to the /nucleus/odom topic
         self.subscription = self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback, 10)
@@ -28,26 +39,45 @@ class GuiNode(Node):
         self.y_data: List[float] = []
         self.z_data: List[float] = []
 
-        self.counter_ = 0
         self.get_logger().info("Subscribed to /nucleus/odom")
+
+        # Subscribe to internal status topics
+        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/current", self.current_callback, 5)
+        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/voltage", self.voltage_callback, 5)
+
+        # Variables for internal status
+        self.current = 0.0
+        self.voltage = 0.0
+
+    # --- Callback functions ---
 
     def odom_callback(self, msg: Odometry) -> None:
         """Callback function that is triggered when an odometry message is received."""
-        # Extract x and y positions from the odometry message
+        # Extract x, y, z positions from the odometry message
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
-        z = -(msg.pose.pose.position.z)
+        z = -(msg.pose.pose.position.z)  # Inverted to match reality...
         self.x_data.append(x)
         self.y_data.append(y)
         self.z_data.append(z)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
-        # Store 30 seconds worth of data at 100Hz
         max_data_points = 30 * 100  # 30 seconds * 100 Hz
         if len(self.x_data) > max_data_points:
             self.x_data.pop(0)
             self.y_data.pop(0)
             self.z_data.pop(0)
+
+    def current_callback(self, msg: Float32) -> None:
+        """Callback function that is triggered when a current message is received."""
+        self.current = msg.data
+
+    def voltage_callback(self, msg: Float32) -> None:
+        """Callback function that is triggered when a voltage message is received."""
+        self.voltage = msg.data
+
+
+# --- Plotting ---
 
 
 class PlotCanvas(FigureCanvas):
@@ -65,7 +95,7 @@ class PlotCanvas(FigureCanvas):
         self.ax.set_xlabel("X")
         self.ax.set_ylabel("Y")
         self.ax.set_zlabel("Z")
-        self.ax.set_title("Odometry")
+        self.ax.set_title("Position")
 
         # Initialize data lists for 3D plot
         self.x_data: List[float] = []
@@ -127,35 +157,54 @@ def main(args: Optional[List[str]] = None) -> None:
     gui.setWindowTitle("Vortex GUI")
     gui.setGeometry(100, 100, 600, 400)
 
-    # Create a central widget and layout for the GUI
-    central_widget = QWidget()
-    layout = QVBoxLayout(central_widget)
+    # Create the tab widget
+    tabs = QTabWidget()
+    tabs.setTabPosition(QTabWidget.North)
+    tabs.setMovable(True)
 
-    plot_canvas = PlotCanvas(ros_node, central_widget)
-    layout.addWidget(plot_canvas)
+    # --- Position Tab ---
+    position_widget = QWidget()
+    layout = QGridLayout(position_widget)  # grid layout
 
-    # Add buttons or other GUI elements if needed (optional)
-    # button1 = QPushButton("Send a command", parent=central_widget)
-    # button1.clicked.connect(lambda: ros_node.get_logger().info("Command sent"))
-    # layout.addWidget(button1)
+    plot_canvas = PlotCanvas(ros_node, position_widget)
+    layout.addWidget(plot_canvas, 0, 0)
 
-    current_pos = QLabel(parent=central_widget)
-    layout.addWidget(current_pos)
+    current_pos = QLabel(parent=position_widget)
+    layout.addWidget(current_pos, 0, 1)
 
-    gui.setCentralWidget(central_widget)
+    tabs.addTab(position_widget, "Position")
+
+    # --- Internal Status Tab ---
+    internal_widget = QWidget()
+    internal_layout = QVBoxLayout(internal_widget)
+
+    internal_status_label = QLabel(parent=internal_widget)
+    internal_layout.addWidget(internal_status_label)
+    tabs.addTab(internal_widget, "Internal")
+
+    gui.setCentralWidget(tabs)
     gui.show()
 
-    # Use a QTimer to update the plot in the main thread
-    def update_plot() -> None:
+    # Use a QTimer to update plot, current position, and internal status in the main thread
+    def update_gui() -> None:
         plot_canvas.update_plot(ros_node.x_data, ros_node.y_data, ros_node.z_data)
-        current_pos.setText(f"Current Position:\nX: {ros_node.x_data[-1]:.2f}\nY: {ros_node.y_data[-1]:.2f}\nZ: {ros_node.z_data[-1]:.2f}")
+        if len(ros_node.x_data) > 0:
+            current_pos.setText(f"Current Position:\nX: {ros_node.x_data[-1]:.2f}\nY: {ros_node.y_data[-1]:.2f}\nZ: {ros_node.z_data[-1]:.2f}")
 
-    # Set up the timer to call update_plot every 100ms
+        # Update internal status
+        internal_status_label.setText(f"Internal Status:\nCurrent: {ros_node.current:.2f}\nVoltage: {ros_node.voltage:.2f}")
+
+    # Set up the timer to call update_gui every 100ms
     timer = QTimer()
-    timer.timeout.connect(update_plot)
+    timer.timeout.connect(update_gui)
     timer.start(100)  # 100 ms interval
 
-    sys.exit(app.exec())
+    app.exec()
+
+    # Cleanup ROS resources
+    ros_node.destroy_node()
+    rclpy.shutdown()
+    sys.exit()
 
 
 if __name__ == '__main__':
