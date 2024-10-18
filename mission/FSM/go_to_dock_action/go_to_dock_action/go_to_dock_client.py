@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 import rclpy
+from go_to_dock_action.action import GoToDock
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from go_to_dock_action.action import GoToDock
+
 
 class GoToDockClient(Node):
 
     def __init__(self):
         super().__init__('go_to_dock_client')
-        self._action_client = ActionClient(self, GoToDock, 'go_to_dock')
+        self._action_client = ActionClient(self, GoToDock.action, 'go_to_dock')
 
     def send_goal(self, docking_position):
         goal_msg = GoToDock.Goal()
@@ -17,8 +18,7 @@ class GoToDockClient(Node):
         self._action_client.wait_for_server()
 
         self.get_logger().info(f'Sending goal: docking_position={docking_position}')
-        self._send_goal_future = self._action_client.send_goal_async(
-            goal_msg, feedback_callback=self.feedback_callback)
+        self._send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
@@ -41,6 +41,7 @@ class GoToDockClient(Node):
     def feedback_callback(self, feedback_msg):
         self.get_logger().info(message=f'Received feedback: Distance to dock: {feedback_msg.distance_to_dock:.2f} meters.')
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = GoToDockClient()
@@ -54,6 +55,7 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

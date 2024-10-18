@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
+import math
+
 import rclpy
+from go_to_dock_action.action import GoToDock  # Import the action definition
 from rclpy.action import ActionServer
 from rclpy.node import Node
-from go_to_dock_action.action import GoToDock  # Import the action definition
-import math
+
 
 class GoToDockServer(Node):
 
     def __init__(self):
         super().__init__('go_to_dock_server')
 
-        self._action_server = ActionServer(
-            self,
-            GoToDock,
-            'go_to_dock',
-            self.execute_callback
-        )
+        self._action_server = ActionServer(self, GoToDock, 'go_to_dock', self.execute_callback)
 
     def execute_callback(self, goal_handle):
         self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.docking_position))
@@ -59,6 +56,7 @@ class GoToDockServer(Node):
                 new_position.append(dock_coord)
         return new_position
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = GoToDockServer()
@@ -69,6 +67,7 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
