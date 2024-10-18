@@ -6,11 +6,13 @@ import rclpy
 import rclpy.publisher
 from yasmin import Blackboard, CbState, StateMachine
 
-# from waypoint_action.action import Waypoint
+# from waypoint_action.action import GoToDock
 from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
 
+
+from go_to_dock_action.action import GoToDock
 
 class FindDockingStationState(ActionState):
     """
@@ -21,24 +23,24 @@ class FindDockingStationState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Waypoint.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the docking station is found.
         """
-        goal = Waypoint.Goal()
+        goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the docking station is found.
         """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is how far it is in the search pattern.
         """
@@ -54,24 +56,25 @@ class GoToDockState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super.__init__(GoToDock, "/go_to_dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Waypoint.Goal:
+
+    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the docking station.
         """
-        goal = Waypoint.Goal()
+        goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         Response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the docking station.
         """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is the distance to the docking station.
         """
@@ -119,24 +122,27 @@ class DockedState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Waypoint.Goal:
+
+    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted or finished.
         """
-        goal = Waypoint.Goal()
+
+    
+        goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted
         """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is idle if it is idle."""
         print(f"Received feedback: {list(feedback.partial_sequence)}")
@@ -149,23 +155,24 @@ class ReturnHomeState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Waypoint.Goal:
+
+    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the home position."""
-        goal = Waypoint.Goal()
+        goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the home position.
         """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is the distance to the home position."""
         print(f"Received feedback: {list(feedback.partial_sequence)}")
@@ -178,21 +185,22 @@ class AbortState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Waypoint.Goal:
+
+    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted."""
-        goal = Waypoint.Goal()
+        goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
-        """The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted."""
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
+        """ The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted."""
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is ABORT!!!."""
         print(f"Received feedback: {list(feedback.partial_sequence)}")
@@ -205,22 +213,22 @@ class ErrorState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(Waypoint, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Waypoint.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is to shut down or save or something."""
-        goal = Waypoint.Goal()
+        goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Waypoint.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is the error."""
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Waypoint.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is the error."""
         print(f"Received feedback: {list(feedback.partial_sequence)}")
