@@ -22,7 +22,7 @@ class FindDockingStationState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
@@ -55,7 +55,7 @@ class GoToDockState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super.__init__(GoToDock, "/go_to_dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/go_to_dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
@@ -88,24 +88,24 @@ class DockState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super.__init__(Dock, "/dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> Dock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the auv is docked.
         """
-        goal = Dock.Goal()
+        goal = GoToDock.Goal()
         goal.order = blackboard[""]
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: Dock.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is docked.
         """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: Dock.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback comes from the DP controller.
         """
@@ -120,7 +120,7 @@ class DockedState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
@@ -150,7 +150,7 @@ class ReturnHomeState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
@@ -179,7 +179,7 @@ class AbortState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
@@ -206,7 +206,7 @@ class ErrorState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
