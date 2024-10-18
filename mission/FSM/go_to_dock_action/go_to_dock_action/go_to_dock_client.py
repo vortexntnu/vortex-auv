@@ -9,7 +9,7 @@ class GoToDockClient(Node):
 
     def __init__(self):
         super().__init__('go_to_dock_client')
-        self._action_client = ActionClient(self, GoToDock.action, 'go_to_dock')
+        self._action_client = ActionClient(self, GoToDock, 'go_to_dock')
 
     def send_goal(self, docking_position):
         goal_msg = GoToDock.Goal()
