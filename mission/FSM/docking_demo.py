@@ -4,6 +4,7 @@ import rclpy
 
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
+from go_to_dock_action.action import GoToDock
 from yasmin import Blackboard, CbState, StateMachine
 
 # from waypoint_action.action import GoToDock
@@ -11,19 +12,19 @@ from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
 
-from go_to_dock_action.action import GoToDock
 
 class FindDockingStationState(ActionState):
     """
     The state to find the docking station. Using rectangle search pattern to find the docking station.
     """
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN.
         """
         super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the docking station is found.
         """
@@ -49,13 +50,14 @@ class GoToDockState(ActionState):
     """
     The state to go to the docking station. Using the waypoint action to go to the docking station.
     """
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN.
         """
         super.__init__(GoToDock, "/go_to_dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the docking station.
         """
@@ -81,13 +83,14 @@ class DockState(ActionState):
     """
     The state to dock the auv to the docking station. Uses the DP controller.
     """
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN.
         """
         super.__init__(Dock, "/dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->Dock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> Dock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the auv is docked.
         """
@@ -113,21 +116,24 @@ class DockedState(ActionState):
     """
     The state when the AUV is docked. The state will wait for the mission to be aborted or finished.
     """
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
         super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
-        The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted or finished."""
+        The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted or finished.
+        """
         goal = GoToDock.Goal()
         goal.order = blackboard["waypoint"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
-        The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted"""
+        The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted
+        """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
@@ -138,14 +144,15 @@ class DockedState(ActionState):
 
 
 class ReturnHomeState(ActionState):
-    """"
+    """ "
     The state to return home. Using the waypoint action to go back to the home position."""
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
         super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the home position."""
         goal = GoToDock.Goal()
@@ -154,7 +161,8 @@ class ReturnHomeState(ActionState):
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
-        The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the home position."""
+        The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the home position.
+        """
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
@@ -167,12 +175,13 @@ class ReturnHomeState(ActionState):
 class AbortState(ActionState):
     """
     The state to abort the mission. When the mission is aborted, the auv will return home."""
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
         super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted."""
         goal = GoToDock.Goal()
@@ -180,7 +189,7 @@ class AbortState(ActionState):
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
-        """ The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted."""
+        """The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted."""
         blackboard["waypoint_res"] = response.sequence
         return SUCCEED
 
@@ -193,12 +202,13 @@ class AbortState(ActionState):
 class ErrorState(ActionState):
     """
     State if an error occurs. This state will stop the mission."""
+
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
         super.__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) ->GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is to shut down or save or something."""
         goal = GoToDock.Goal()
@@ -231,9 +241,9 @@ def main() -> None:
     # Create and initialize the blackboard
     blackboard = Blackboard()
     blackboard.distance = 10
-    blackboard["dock_pos"] = [5,5,10]
+    blackboard["dock_pos"] = [5, 5, 10]
     blackboard["start_pos"] = [0, 0, 0]
-    blackboard["Pool_dimensions"] = [30,12,10]
+    blackboard["Pool_dimensions"] = [30, 12, 10]
 
     # Adding states with transitions
     sm.add_state("find_dock", FindDockingStationState(blackboard), transitions={SUCCEED: "go_to_dock", ABORT: "abort_mission"})
@@ -253,7 +263,7 @@ def main() -> None:
     # Run the state machine
     outcome = sm(blackboard)
     print("Outcome: ", outcome)
-    
+
     # Shutdown ROS2
     rclpy.shutdown()
 

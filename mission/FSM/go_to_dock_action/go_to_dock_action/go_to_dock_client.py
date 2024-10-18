@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
@@ -38,7 +39,7 @@ class GoToDockClient(Node):
             self.get_logger().info('Failed to dock.')
 
     def feedback_callback(self, feedback_msg):
-        self.get_logger().info(f'Received feedback: Distance to dock: {feedback_msg.distance_to_dock:.2f} meters.')
+        self.get_logger().info(message=f'Received feedback: Distance to dock: {feedback_msg.distance_to_dock:.2f} meters.')
 
 def main(args=None):
     rclpy.init(args=args)
