@@ -6,6 +6,9 @@ PIDControllerNode::PIDControllerNode()
         pid_controller_(),
         time_step_(10) {
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/nucleus/odom", 10, std::bind(&PIDControllerNode::odometry_callback, this, std::placeholders::_1));
+    kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/kp", 10, std::bind(&PIDControllerNode::kp_callback, this, std::placeholders::_1));
+    ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/ki", 10, std::bind(&PIDControllerNode::ki_callback, this, std::placeholders::_1));
+    kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/kd", 10, std::bind(&PIDControllerNode::kd_callback, this, std::placeholders::_1));
     tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>("/thrust/wrench_input", 10);
     tau_pub_timer_ = this->create_wall_timer(time_step_, std::bind(&PIDControllerNode::publish_tau, this));
 }
@@ -36,4 +39,19 @@ void PIDControllerNode::publish_tau() {
     tau_msg.torque.z = tau(5);
 
     tau_pub_->publish(tau_msg);
+}
+
+void PIDControllerNode::kp_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+    Eigen::Matrix6d Kp = float64multiarray_to_diagonal_matrix6d(*msg);
+    pid_controller_.setKp(Kp);
+}
+
+void PIDControllerNode::ki_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+    Eigen::Matrix6d Ki = float64multiarray_to_diagonal_matrix6d(*msg);
+    pid_controller_.setKi(Ki);
+}
+
+void PIDControllerNode::kd_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+    Eigen::Matrix6d Kd = float64multiarray_to_diagonal_matrix6d(*msg);
+    pid_controller_.setKd(Kd);
 }
