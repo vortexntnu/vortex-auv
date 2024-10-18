@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, String, Float64
 from geometry_msgs.msg import PoseStamped, Quaternion, Wrench
 import numpy as np
 
@@ -11,7 +11,7 @@ class States:
     XBOX_MODE = 1
     AUTONOMOUS_MODE = 2
     NO_GO = 3
-    REFERENCE_MODE = 4 #Not implemented yet
+    REFERENCE_MODE = 4 
 
 class Wired:
     joystick_buttons_map_ = [
@@ -89,7 +89,12 @@ class JoystickInterface(Node):
         self.pitch = 0.0
         self.yaw = 0.0
         self.joystick_buttons_map_ = []
-        self.mode_published = False 
+        self.current_roll = 0.0
+        self.current_pitch = 0.0    
+        self.current_yaw = 0.0
+
+
+        self.roll_publisher = self.create_publisher(Float64, "joystick/roll", 10)
 
         self.joystick_axes_map_ = []
 
@@ -109,6 +114,14 @@ class JoystickInterface(Node):
         self.declare_parameter('roll_scale_factor', 30.0)
         self.declare_parameter('pitch_scale_factor', 20.0)
 
+        #The scaling factors for the reference mode
+        self.declare_parameter('surge_scale_ref_param', 300)
+        self.declare_parameter('sway_scale_ref_param', 300)
+        self.declare_parameter('heave_scale_ref_param', 300)
+        self.declare_parameter('yaw_scale_ref_param', 50)
+        self.declare_parameter('roll_scale_ref_param', 50)
+        self.declare_parameter('pitch_scale_ref_param', 50)
+
         #Gets the scaling factors from the yaml file
         self.joystick_surge_scaling_ = self.get_parameter(
         'surge_scale_factor').value
@@ -122,6 +135,19 @@ class JoystickInterface(Node):
         'roll_scale_factor').value
         self.joystick_pitch_scaling_ = self.get_parameter(
         'pitch_scale_factor').value
+
+        self.joystick_surge_param_ = self.get_parameter(
+        'surge_scale_ref_param').value
+        self.joystick_sway_param_ = self.get_parameter(
+        'sway_scale_ref_param').value
+        self.joystick_heave_param_ = self.get_parameter(
+        'heave_scale_ref_param').value
+        self.joystick_yaw_param_ = self.get_parameter(
+        'yaw_scale_ref_param').value
+        self.joystick_roll_param_ = self.get_parameter(
+        'roll_scale_ref_param').value
+        self.joystick_pitch_param_ = self.get_parameter(
+        'pitch_scale_ref_param').value
 
         #Killswitch publisher
         self.software_killswitch_signal_publisher_ = self.create_publisher(
@@ -297,24 +323,6 @@ class JoystickInterface(Node):
                 self.wrench_publisher_.publish(wrench_msg)
                 self.state_ = States.NO_GO
                 return wrench_msg
-            
-        # if reference_mode_button: 
-        #     if States.REFERENCE_MODE == False:
-        #         States.REFERENCE_MODE = True 
-        #     else: 
-        #         States.REFERENCE_MODE = False
-        #     mode = "ENABLED" if States.REFERENCE_MODE else "DISABLED"
-        #     self.get_logger().info(f"Reference mode {mode}.")
-
-        # Toggle precise maneuvering mode on and off
-        # if precise_manuevering_mode_button:
-        # self.precise_manuevering_mode_ = not self.precise_manuevering_mode_
-        # mode = "ENABLED" if self.precise_manuevering_mode_ else "DISABLED"
-        # self.get_logger().info(f"Precise maneuvering mode {mode}.")
-        # self.precise_manuevering_scaling_ = 0.5 if self.precise_manuevering_mode_ else 1.0
-
-        # Publish wrench message from joystick_interface to thrust allocation
-        
 
         if self.state_ == States.XBOX_MODE:
             wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
@@ -343,12 +351,16 @@ class JoystickInterface(Node):
                 self.transition_to_xbox_mode()
 
     def reference_pose(self):
-        self.current_pose.pose.position.x += self.surge / 300
-        self.current_pose.pose.position.y += self.sway / 300
-        self.current_pose.pose.position.z += self.heave / 300
+        self.current_pose.pose.position.x += self.surge / self.joystick_surge_param_
+        self.current_pose.pose.position.y += self.sway / self.joystick_sway_param_
+        self.current_pose.pose.position.z += self.heave / self.joystick_heave_param_
+        self.current_roll += self.roll / self.joystick_roll_param_
+        self.current_pitch += self.pitch / self.joystick_pitch_param_
+        self.current_yaw += self.yaw / self.joystick_yaw_param_
 
         #Convert roll, pitch, and yaw to quaternion
-        q = self.euler_to_quat(self.roll, self.pitch, self.yaw)
+        #Skal jeg sette inn current_roll, current_pitch, current_yaw her? 
+        q = self.euler_to_quat(self.current_roll, self.current_pitch, self.current_yaw)
         quaternion = Quaternion()
         quaternion.w = q[0]
         quaternion.x = q[1]
@@ -357,11 +369,16 @@ class JoystickInterface(Node):
         self.current_pose.pose.orientation = quaternion 
         self.pose_publisher.publish(self.current_pose)
 
+
     def timer_cb(self):
         if self.state_ == States.REFERENCE_MODE:
             self.reference_pose()
             msg = self.create_pose_message() 
             self.pose_publisher.publish(msg)
+        roll_msg = Float64()
+        roll_msg.data = self.current_roll 
+        self.roll_publisher.publish(roll_msg)
+
 
     @staticmethod
     def euler_to_quat(roll: float, pitch: float, yaw: float) -> np.ndarray:
