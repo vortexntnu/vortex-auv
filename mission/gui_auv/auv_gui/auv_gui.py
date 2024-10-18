@@ -1,3 +1,4 @@
+import math
 import sys
 from threading import Thread
 from typing import List, Optional
@@ -21,6 +22,40 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from std_msgs.msg import Float32
 
+# --- Quaternion to Euler angles ---
+
+
+def quaternion_to_euler(x: float, y: float, z: float, w: float) -> List[float]:
+    """
+    Convert a quaternion to Euler angles (roll, pitch, yaw).
+
+    Args:
+        x (float): The x component of the quaternion.
+        y (float): The y component of the quaternion.
+        z (float): The z component of the quaternion.
+        w (float): The w component of the quaternion.
+
+    Returns:
+        List[float]: A list of Euler angles [roll, pitch, yaw].
+    """
+
+    # Roll (x-axis rotation)
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = np.degrees(math.atan2(sinr_cosp, cosr_cosp))
+
+    # Pitch (y-axis rotation)
+    sinp = 2 * (w * y - z * x)
+    pitch = np.degrees(math.asin(sinp))
+
+    # Yaw (z-axis rotation)
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = np.degrees(math.atan2(siny_cosp, cosy_cosp))
+
+    return [roll, pitch, yaw]
+
+
 # --- GUI Node ---
 
 
@@ -35,11 +70,18 @@ class GuiNode(Node):
         self.subscription = self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback, 10)
 
         # Variables to store odometry data
-        self.x_data: List[float] = []
-        self.y_data: List[float] = []
-        self.z_data: List[float] = []
+        self.xpos_data: List[float] = []  # x position
+        self.ypos_data: List[float] = []  # y position
+        self.zpos_data: List[float] = []  # z position
 
-        self.get_logger().info("Subscribed to /nucleus/odom")
+        self.w_data: List[float] = []  # w component of the quaternion
+        self.x_data: List[float] = []  # x component of the quaternion
+        self.y_data: List[float] = []  # y component of the quaternion
+        self.z_data: List[float] = []  # z component of the quaternion
+
+        self.roll: Optional[float] = None
+        self.pitch: Optional[float] = None
+        self.yaw: Optional[float] = None
 
         # Subscribe to internal status topics
         self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/current", self.current_callback, 5)
@@ -57,16 +99,25 @@ class GuiNode(Node):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
         z = -(msg.pose.pose.position.z)  # Inverted to match reality...
-        self.x_data.append(x)
-        self.y_data.append(y)
-        self.z_data.append(z)
+        self.xpos_data.append(x)
+        self.ypos_data.append(y)
+        self.zpos_data.append(z)
+
+        # Extract the quaternion components from the odometry message
+        w = msg.pose.pose.orientation.w
+        x = msg.pose.pose.orientation.x
+        y = msg.pose.pose.orientation.y
+        z = msg.pose.pose.orientation.z
+        self.roll = quaternion_to_euler(x, y, z, w)[0]
+        self.pitch = quaternion_to_euler(x, y, z, w)[1]
+        self.yaw = quaternion_to_euler(x, y, z, w)[2]
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
         max_data_points = 30 * 100  # 30 seconds * 100 Hz
         if len(self.x_data) > max_data_points:
-            self.x_data.pop(0)
-            self.y_data.pop(0)
-            self.z_data.pop(0)
+            self.xpos_data.pop(0)
+            self.ypos_data.pop(0)
+            self.zpos_data.pop(0)
 
     def current_callback(self, msg: Float32) -> None:
         """Callback function that is triggered when a current message is received."""
@@ -88,6 +139,10 @@ class PlotCanvas(FigureCanvas):
         self.gui_node = gui_node  # Store a reference to the ROS node
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111, projection='3d')  # Set up 3D projection
+
+        (self.line,) = self.ax.plot([], [], [], 'b-')  # Initialize an empty 3D line
+        (self.current_position_dot,) = self.ax.plot([], [], [], 'ro')  # Initialize a red dot for the current position
+
         super().__init__(self.fig)
         self.setParent(parent)
 
@@ -122,11 +177,15 @@ class PlotCanvas(FigureCanvas):
             self.line.set_data(x_data, y_data)  # Update the 2D projection data
             self.line.set_3d_properties(z_data)  # Update the z-data for the 3D line
 
+            # Update the current position dot
+            self.current_position_dot.set_data(x_data[-1:], y_data[-1:])  # Update the 2D projection data
+            self.current_position_dot.set_3d_properties(z_data[-1:])  # Update the z-data for the 3D dot
+
             # Update the limits for the 3D plot around the latest data point
             x_latest = x_data[-1]
             y_latest = y_data[-1]
             z_latest = z_data[-1]
-            margin = 1  # Define a margin around the latest point
+            margin = 2.5  # Define a margin around the latest point
 
             self.ax.set_xlim(x_latest - margin, x_latest + margin)
             self.ax.set_ylim(y_latest - margin, y_latest + margin)
@@ -187,9 +246,11 @@ def main(args: Optional[List[str]] = None) -> None:
 
     # Use a QTimer to update plot, current position, and internal status in the main thread
     def update_gui() -> None:
-        plot_canvas.update_plot(ros_node.x_data, ros_node.y_data, ros_node.z_data)
-        if len(ros_node.x_data) > 0:
-            current_pos.setText(f"Current Position:\nX: {ros_node.x_data[-1]:.2f}\nY: {ros_node.y_data[-1]:.2f}\nZ: {ros_node.z_data[-1]:.2f}")
+        plot_canvas.update_plot(ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data)
+        if len(ros_node.xpos_data) > 0 and ros_node.roll is not None:
+            position_text = f"Current Position:\nX: {ros_node.xpos_data[-1]:.2f}\nY: {ros_node.ypos_data[-1]:.2f}\nZ: {ros_node.zpos_data[-1]:.2f}"
+            orientation_text = f"Current Orientation:\nRoll: {ros_node.roll:.2f}\nPitch: {ros_node.pitch:.2f}\nYaw: {ros_node.yaw:.2f}"
+            current_pos.setText(position_text + "\n\n\n" + orientation_text)
 
         # Update internal status
         internal_status_label.setText(f"Internal Status:\nCurrent: {ros_node.current:.2f}\nVoltage: {ros_node.voltage:.2f}")
