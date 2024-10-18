@@ -136,12 +136,13 @@ class PlotCanvas(FigureCanvas):
 
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
         """Initialize the PlotCanvas with a reference to the ROS node and configure the plot."""
+        # Set up the 3D plot
         self.gui_node = gui_node  # Store a reference to the ROS node
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111, projection='3d')  # Set up 3D projection
 
-        (self.line,) = self.ax.plot([], [], [], 'b-')  # Initialize an empty 3D line
-        (self.current_position_dot,) = self.ax.plot([], [], [], 'ro')  # Initialize a red dot for the current position
+        # Initialize a red dot for the current position
+        (self.current_position_dot,) = self.ax.plot([], [], [], 'ro')
 
         super().__init__(self.fig)
         self.setParent(parent)
