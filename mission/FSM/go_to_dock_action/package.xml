@@ -30,6 +30,5 @@
   <!-- Export section -->
   <export>
     <build_type>ament_cmake</build_type>
-     <!-- Make sure this tag is included -->
   </export>
 </package>

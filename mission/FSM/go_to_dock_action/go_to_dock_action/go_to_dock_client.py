@@ -39,7 +39,7 @@ class GoToDockClient(Node):
             self.get_logger().info('Failed to dock.')
 
     def feedback_callback(self, feedback_msg):
-        self.get_logger().info(message=f'Received feedback: Distance to dock: {feedback_msg.distance_to_dock:.2f} meters.')
+        self.get_logger().info(message=f'Received feedback: Distance to dock: {feedback_msg.feedback.distance_to_dock:.2f} meters.')
 
 
 def main(args=None):
