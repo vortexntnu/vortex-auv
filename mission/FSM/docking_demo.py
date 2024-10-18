@@ -144,7 +144,7 @@ class DockedState(ActionState):
 
 
 class ReturnHomeState(ActionState):
-    """
+    """ "
     The state to return home. Using the waypoint action to go back to the home position."""
 
     def __init__(self) -> None:
@@ -242,9 +242,7 @@ def main() -> None:
     blackboard = Blackboard()
     blackboard.distance = 10
     blackboard["dock_pos"] = [5, 5, 10]
-    blackboard["dock_pos"] = [5, 5, 10]
     blackboard["start_pos"] = [0, 0, 0]
-    blackboard["Pool_dimensions"] = [30, 12, 10]
     blackboard["Pool_dimensions"] = [30, 12, 10]
 
     # Adding states with transitions
