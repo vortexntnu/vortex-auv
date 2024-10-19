@@ -43,8 +43,10 @@ class PIDControllerNode : public rclcpp::Node
         Eigen::Vector6d eta_;
 
         Eigen::Vector6d eta_d_;
-        
+
         Eigen::Vector6d nu_;
+
+        Eigen::Vector6d eta_dot_d_;
 };
 
 #endif
