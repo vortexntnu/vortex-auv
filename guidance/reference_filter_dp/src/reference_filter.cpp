@@ -29,10 +29,10 @@ void ReferenceFilter::calculate_Bd() {
     Bd_.block<6, 6>(12, 0) = OmegaCubed;
 }
 
-void ReferenceFilter::setOmega(const Vector6d &omega) {
+void ReferenceFilter::set_omega(const Vector6d &omega) {
     Omega_ = omega.asDiagonal();
 }
 
-void ReferenceFilter::setDelta(const Vector6d &zeta) {
+void ReferenceFilter::set_delta(const Vector6d &zeta) {
     Delta_ = zeta.asDiagonal();
 }

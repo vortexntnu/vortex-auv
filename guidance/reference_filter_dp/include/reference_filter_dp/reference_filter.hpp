@@ -13,9 +13,9 @@ class ReferenceFilter {
 
         void calculate_Bd();
 
-        void setOmega(const Vector6d &omega);
+        void set_omega(const Vector6d &omega);
 
-        void setDelta(const Vector6d &zeta);
+        void set_delta(const Vector6d &zeta);
 
     private:
         Matrix18d Ad_;

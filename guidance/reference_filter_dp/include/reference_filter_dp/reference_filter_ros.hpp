@@ -17,6 +17,8 @@ class ReferenceFilterNode : public rclcpp::Node
 
         void reference_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
+        void set_refererence_filter();
+
         ReferenceFilter reference_filter_;
 
         rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr reference_pub_;
