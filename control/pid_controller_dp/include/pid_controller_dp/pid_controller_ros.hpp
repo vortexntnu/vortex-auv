@@ -39,6 +39,12 @@ class PIDControllerNode : public rclcpp::Node
         rclcpp::TimerBase::SharedPtr tau_pub_timer_;
 
         std::chrono::milliseconds time_step_;
+
+        Eigen::Vector6d eta_;
+
+        Eigen::Vector6d eta_d_;
+        
+        Eigen::Vector6d nu_;
 };
 
 #endif
