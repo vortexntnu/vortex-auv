@@ -42,8 +42,8 @@ install(TARGETS
   pid_controller_node
   DESTINATION lib/${PROJECT_NAME})
 
-# Install launch files.
 install(DIRECTORY
+  config
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
