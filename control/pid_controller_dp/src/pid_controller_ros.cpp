@@ -37,7 +37,7 @@ void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedP
 }
 
 void PIDControllerNode::publish_tau() {
-    Eigen::Vector6d tau = pid_controller_.calculate_tau(eta_, eta_d_, nu_);
+    Eigen::Vector6d tau = pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
 
     geometry_msgs::msg::Wrench tau_msg;
     tau_msg.force.x = tau(0);

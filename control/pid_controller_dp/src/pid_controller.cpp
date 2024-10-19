@@ -18,7 +18,7 @@ Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector6d &eta, const E
 
     Eigen::Vector6d nu_d = J_inv * eta_dot_d;
 
-    Eigen::Vector6d nu_error = nu - nu_d;
+    Eigen::Vector6d error_nu = nu - nu_d;
 
     Eigen::Vector6d tau = -(Kp_ * J_inv * error + Ki_ * integral_ + Kd_ * error_nu);
 

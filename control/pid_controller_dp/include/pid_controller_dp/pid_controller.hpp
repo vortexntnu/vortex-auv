@@ -7,7 +7,7 @@ class PIDController {
     public:
         explicit PIDController();
 
-        Eigen::Vector6d calculate_tau(const Eigen::Vector6d &eta, const Eigen::Vector6d &eta_d, const Eigen::Vector6d &nu);
+        Eigen::Vector6d calculate_tau(const Eigen::Vector6d &eta, const Eigen::Vector6d &eta_d, const Eigen::Vector6d &nu, const Eigen::Vector6d &eta_dot_d);
 
         void setKp(const Eigen::Matrix6d &Kp);
 
