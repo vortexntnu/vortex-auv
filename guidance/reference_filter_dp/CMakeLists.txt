@@ -17,6 +17,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -32,6 +33,7 @@ add_executable(reference_filter_node
 
 ament_target_dependencies(reference_filter_node 
   rclcpp 
+  rclcpp_action
   geometry_msgs 
   vortex_msgs
   Eigen3

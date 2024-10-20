@@ -11,7 +11,6 @@ ReferenceFilterNode::ReferenceFilterNode()
 
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>("/dp/reference", 10);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(reference_filter_topic, qos_sensor_data, std::bind(&ReferenceFilterNode::reference_callback, this, std::placeholders::_1));
-    // reference_pub_timer_ = this->create_wall_timer(time_step_, std::bind(&ReferenceFilterNode::reference_publisher_callback, this));
     
     set_refererence_filter();
 
@@ -59,23 +58,35 @@ void ReferenceFilterNode::reference_callback(const geometry_msgs::msg::PoseStamp
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal) {
     (void)uuid;
+    (void)goal;
     RCLCPP_INFO(this->get_logger(), "Received goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
-    const std::shared_ptr<GoalHandleReferenceFilter> goal_handle) {
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void ReferenceFilterNode::handle_accepted(const std::shared_ptr<GoalHandleReferenceFilter> goal_handle) {
+void ReferenceFilterNode::handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     std::thread{std::bind(&ReferenceFilterNode::execute, this, goal_handle)}.detach();
 }
 
-void ReferenceFilterNode::execute(const std::shared_ptr<GoalHandleReferenceFilter> goal_handle) {
+void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     RCLCPP_INFO(this->get_logger(), "Executing goal");
+
+    const geometry_msgs::msg::PoseStamped goal = goal_handle->get_goal()->goal;
+
+    double x = goal.pose.position.x;
+    double y = goal.pose.position.y;
+    double z = goal.pose.position.z;
+
+    Eigen::Quaterniond quat(goal.pose.orientation.w, goal.pose.orientation.x, goal.pose.orientation.y, goal.pose.orientation.z);
+    Eigen::Vector3d euler_angles = quaternion_to_euler(quat);
+
+    r_ << x, y, z, euler_angles(0), euler_angles(1), euler_angles(2);
 
     auto feedback = std::make_shared<vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
     auto result = std::make_shared<vortex_msgs::action::ReferenceFilterWaypoint::Result>();
@@ -86,14 +97,35 @@ void ReferenceFilterNode::execute(const std::shared_ptr<GoalHandleReferenceFilte
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
         x_ += x_dot * time_step_.count() / 1000.0;
 
-        feedback->x = x_(0);
-        feedback->y = x_(1);
-        feedback->z = x_(2);
-        feedback->roll = x_(3);
-        feedback->pitch = x_(4);
-        feedback->yaw = x_(5);
+        vortex_msgs::msg::ReferenceFilter feedback_msg;
+        feedback_msg.x = x_(0);
+        feedback_msg.y = x_(1);
+        feedback_msg.z = x_(2);
+        feedback_msg.roll = x_(3);
+        feedback_msg.pitch = x_(4);
+        feedback_msg.yaw = x_(5);
+        feedback_msg.x_dot = x_(6);
+        feedback_msg.y_dot = x_(7);
+        feedback_msg.z_dot = x_(8);
+        feedback_msg.roll_dot = x_(9);
+        feedback_msg.pitch_dot = x_(10);
+        feedback_msg.yaw_dot = x_(11);
 
+        feedback->feedback = feedback_msg;
+
+        // Publish feedback using the correct action feedback message
         goal_handle->publish_feedback(feedback);
+        reference_pub_->publish(feedback_msg);
+
+        if ((x_.segment<6>(0) - r_).norm() < 1e-5) {
+            RCLCPP_INFO(this->get_logger(), "Goal achieved");
+
+            // Populate result
+            result->result = feedback_msg;
+
+            goal_handle->succeed(result);
+            return;
+        }
 
         if (goal_handle->is_canceling()) {
             goal_handle->canceled(result);
@@ -104,38 +136,4 @@ void ReferenceFilterNode::execute(const std::shared_ptr<GoalHandleReferenceFilte
         loop_rate.sleep();
     }
 
-    result->x = x_(0);
-    result->y = x_(1);
-    result->z = x_(2);
-    result->roll = x_(3);
-    result->pitch = x_(4);
-    result->yaw = x_(5);
-    goal_handle->succeed(result);
-    RCLCPP_INFO(this->get_logger(), "Goal succeeded");
 }
-
-
-
-void ReferenceFilterNode::reference_publisher_callback() {
-    Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
-
-    x_ += x_dot * time_step_.count() / 1000.0;
-
-    vortex_msgs::msg::ReferenceFilter reference_msg;
-    
-    reference_msg.x = x_(0);
-    reference_msg.y = x_(1);
-    reference_msg.z = x_(2);
-    reference_msg.roll = x_(3);
-    reference_msg.pitch = x_(4);
-    reference_msg.yaw = x_(5);
-    reference_msg.x_dot = x_(6);
-    reference_msg.y_dot = x_(7);
-    reference_msg.z_dot = x_(8);
-    reference_msg.roll_dot = x_(9);
-    reference_msg.pitch_dot = x_(10);
-    reference_msg.yaw_dot = x_(11);
-
-    reference_pub_->publish(reference_msg);
-}
-
