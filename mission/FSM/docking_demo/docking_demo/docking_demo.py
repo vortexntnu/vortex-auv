@@ -4,9 +4,8 @@ import rclpy
 
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
-from go_to_dock_action.action import GoToDock, FindDock
+from go_to_dock_action.action import FindDock, GoToDock
 from yasmin import Blackboard, StateMachine
-
 from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
@@ -27,7 +26,7 @@ class FindDockingStationState(ActionState):
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the docking station is found.
         """
-        
+
         goal = FindDock.Goal()
         goal.found = True
         return goal
@@ -45,7 +44,7 @@ class FindDockingStationState(ActionState):
         Handles the feedback from the action. For this state, the feedback is how far it is in the search pattern.
         """
         blackboard["num_checked_waypoints"] = feedback.num_checked_waypoints
-        print(f"Received feedback: {list(feedback.num_checked_waypoints)}")
+        print(f"Received feedback: {feedback.num_checked_waypoints}")
 
 
 class GoToDockState(ActionState):

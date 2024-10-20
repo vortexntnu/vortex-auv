@@ -7,4 +7,4 @@ float32[] docking_station_location                 # Whether the AUV successfull
 ---
 
 # Feedback
-float32 num_checked_waypoints      # Current distance from AUV to the docking station
+int32 num_checked_waypoints      # Current distance from AUV to the docking station

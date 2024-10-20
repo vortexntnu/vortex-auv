@@ -21,6 +21,7 @@ setup(
         'console_scripts': [
             'go_to_dock_server = go_to_dock_action.go_to_dock_server:main',
             'go_to_dock_client = go_to_dock_action.go_to_dock_client:main',
+            'find_dock_server = go_to_dock_action.find_dock_server:main',
         ],
     },
 )

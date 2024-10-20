@@ -32,7 +32,7 @@ class GoToDockServer(Node):
             # Simulate AUV moving towards the dock
             auv_position = self.move_towards_dock(auv_position, docking_position)
 
-            rate.sleep()
+            #rate.sleep()
 
         goal_handle.succeed()
         result = GoToDock.Result()
