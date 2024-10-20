@@ -231,7 +231,7 @@ class JoystickInterface(Node):
             self.joystick_buttons_map_ = WirelessXboxSeriesX.joystick_buttons_map_
             self.joystick_axes_map_ = WirelessXboxSeriesX.joystick_axes_map_
         else:
-            self.joystick_buttons_map_ = Wired.joystick_buttons_map_
+            self.joystick_buttons_map = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
 
     def populate_buttons_dictionary(self, msg: Joy) -> None:
@@ -453,7 +453,18 @@ class JoystickInterface(Node):
         return quaternion
     
     def reference_pose(self):
-        #Update the current pose
+        """
+        Updates and publishes the current pose of the AUV in reference mode.
+
+        This function performs the following steps:
+        1. Updates the current pose based on joystick inputs.
+        2. Converts the current Euler angles (roll, pitch, yaw) to a quaternion.
+        3. Sets the orientation of the current pose to the calculated quaternion.
+        4. Publishes the updated pose to the pose publisher.
+
+        This function is typically called periodically to ensure that the AUV's
+        pose is continuously updated and published while in reference mode.
+        """
         self.update_current_pose() 
         quaternion = self.convert_euler_to_quaternion()
         self.current_pose.pose.orientation = quaternion
