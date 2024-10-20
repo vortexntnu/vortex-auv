@@ -102,7 +102,7 @@ class JoystickInterface(Node):
         self.wrench_publisher_ = self.create_publisher(Wrench,
         "joystick/wrench",
         10) 
-        self.pose_publisher = self.create_publisher(PoseStamped, "joystick/guidance", 10) 
+        self.pose_publisher = self.create_publisher(PoseStamped, "/dp/guidance", 10) 
         self.timer_ = self.create_timer(0.1, self.timer_cb) 
 
 
@@ -162,6 +162,15 @@ class JoystickInterface(Node):
 
 
     def create_pose_message(self): 
+        """
+        Creates a PoseStamped message with the current pose of the AUV.
+
+        This function creates a PoseStamped message, sets the current time as the timestamp,
+        and assigns the current pose of the AUV to the pose field of the message.
+
+        Returns:
+            PoseStamped: A ROS PoseStamped message containing the current pose of the AUV.
+        """
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
         pose_msg.header.frame_id = "base_link"
@@ -199,6 +208,8 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
         self.get_logger().info("Transitioned to XBOX mode.")
+        self.get_logger().info("XBOX mode")
+
 
     def transition_to_reference_mode(self):
         """
@@ -209,6 +220,9 @@ class JoystickInterface(Node):
         self.pose_publisher.publish(pose_msg)
         self.state_ = States.REFERENCE_MODE
         self.get_logger().info("Transitioned to reference mode")
+        self.get_logger().info("Reference mode")
+
+
 
     def transition_to_autonomous_mode(self):
         """
@@ -219,6 +233,8 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(
         String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
+        self.get_logger().info("autonomous mode")
+
 
     def check_number_of_buttons(self, msg: Joy) -> None:
         """
@@ -398,14 +414,12 @@ class JoystickInterface(Node):
             wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
                                                 self.roll, self.pitch, self.yaw)
             self.wrench_publisher_.publish(wrench_msg)
-            self.get_logger().info("XBOX mode")
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
             elif reference_mode_button:
                 self.transition_to_reference_mode()
 
         elif self.state_ == States.AUTONOMOUS_MODE:
-            self.get_logger().info("autonomous mode")
 
             if xbox_control_mode_button:
                 self.transition_to_xbox_mode()
@@ -413,7 +427,6 @@ class JoystickInterface(Node):
                 self.transition_to_reference_mode() 
 
         elif self.state_ == States.REFERENCE_MODE:
-            self.get_logger().info("Reference mode")
 
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
@@ -437,7 +450,7 @@ class JoystickInterface(Node):
         self.current_pitch = self.ssa(self.current_pitch)
         self.current_yaw = self.ssa(self.current_yaw)
 
-    def convert_euler_to_quaternion(self) -> Quaternion:
+    def create_quaternion_msg(self) -> Quaternion:
         """
         Converts the current Euler angles (roll, pitch, yaw) to a quaternion.
 
@@ -466,26 +479,56 @@ class JoystickInterface(Node):
         pose is continuously updated and published while in reference mode.
         """
         self.update_current_pose() 
-        quaternion = self.convert_euler_to_quaternion()
+        quaternion = self.create_quaternion_msg()
         self.current_pose.pose.orientation = quaternion
         self.pose_publisher.publish(self.current_pose)
 
 
     def timer_cb(self):
+        """
+        Timer callback function that is periodically called to update and publish the AUV's state.
+
+        This function performs the following actions:
+        1. Checks if the current state is REFERENCE_MODE.
+        2. If in REFERENCE_MODE, it updates and publishes the current pose.
+        3. Converts the current Euler angles (roll, pitch, yaw) to degrees.
+        4. Publishes the Euler angles as a Float64MultiArray message.
+
+        This function ensures that the AUV's pose and orientation are continuously updated
+        and published while in reference mode.
+
+        Note:
+            This function is typically called periodically by a timer.
+        """
         if self.state_ == States.REFERENCE_MODE:
             self.reference_pose()
             msg = self.create_pose_message() 
             self.pose_publisher.publish(msg)
-        euler_msg = Float64MultiArray()
-        roll_deg = self.current_roll * 180 / np.pi
-        pitch_deg = self.current_pitch * 180 / np.pi
-        yaw_deg = self.current_yaw * 180 / np.pi
-        euler_msg.data = [roll_deg, pitch_deg, yaw_deg]
-        self.euler_angle_publisher.publish(euler_msg)
+            euler_msg = Float64MultiArray()
+            roll_deg = self.current_roll * 180 / np.pi
+            pitch_deg = self.current_pitch * 180 / np.pi
+            yaw_deg = self.current_yaw * 180 / np.pi
+            euler_msg.data = [roll_deg, pitch_deg, yaw_deg]
+            self.euler_angle_publisher.publish(euler_msg)
 
 
     @staticmethod
     def euler_to_quat(roll: float, pitch: float, yaw: float) -> np.ndarray:
+        """
+        Converts Euler angles (roll, pitch, yaw) to a quaternion.
+
+        This function converts the provided Euler angles (in radians) to a quaternion
+        representation. The quaternion is returned as a NumPy array with four elements:
+        [w, x, y, z].
+
+        Args:
+            roll (float): The roll angle in radians.
+            pitch (float): The pitch angle in radians.
+            yaw (float): The yaw angle in radians.
+
+        Returns:
+            np.ndarray: A NumPy array representing the quaternion [w, x, y, z].
+        """
         cy = np.cos(yaw * 0.5)
         sy = np.sin(yaw * 0.5)
         cp = np.cos(pitch * 0.5)
