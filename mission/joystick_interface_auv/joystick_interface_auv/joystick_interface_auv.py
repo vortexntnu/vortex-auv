@@ -220,26 +220,13 @@ class JoystickInterface(Node):
         String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
-    def joystick_cb(self, msg: Joy) -> Wrench:
+    def check_number_of_buttons(self, msg: Joy) -> None:
         """
-        Callback function that receives joy messages and converts them into
-        wrench messages to be sent to the thruster allocation node. 
-        Handles software killswitch and control mode buttons,
-        and transitions between different states of operation.
-
+        Checks if the controller is wireless (has 16 buttons) or wired and sets the joystick button and axis maps accordingly.
+        
         Args:
-        msg: A ROS message containing the joy input data.
-
-        Returns:
-        A ROS message containing the wrench data that was sent to the thruster allocation node.
-        """
-
-        current_time = self.get_clock().now().to_msg()._sec
-
-        buttons = {}
-        axes = {}
-
-        # Check if the controller is wireless (has 16 buttons) or wired
+            msg: A ROS message containing the joy input data.
+        """        
         if len(msg.buttons) == 16:
             self.joystick_buttons_map_ = WirelessXboxSeriesX.joystick_buttons_map_
             self.joystick_axes_map_ = WirelessXboxSeriesX.joystick_axes_map_
@@ -247,33 +234,55 @@ class JoystickInterface(Node):
             self.joystick_buttons_map_ = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
 
-        # Populate buttons dictionary
+    def populate_buttons_dictionary(self, msg: Joy) -> None:
+        """
+        Populates a dictionary with button states from the joystick message.
+        
+        Args:
+            msg: A ROS message containing the joy input data.
+        
+        Returns:
+            A dictionary with button names as keys and their states as values.
+        """
+        buttons = {}
         for i, button_name in enumerate(self.joystick_buttons_map_):
             if i < len(msg.buttons):
                 buttons[button_name] = msg.buttons[i]
             else:
             # Assuming default value if button is not present
                 buttons[button_name] = 0
+        return buttons
 
-        # Populate axes dictionary
+    def populate_axes_dictionary(self, msg: Joy) -> None:
+        """
+        Populates a dictionary with axis values from the joystick message.
+        
+        Args:
+            msg: A ROS message containing the joy input data.
+        
+        Returns:
+            A dictionary with axis names as keys and their values as values.
+        """
+        axes = {}
         for i, axis_name in enumerate(self.joystick_axes_map_):
             if i < len(msg.axes):
                 axes[axis_name] = msg.axes[i]
             else:
             # Assuming default value if axis is not present
                 axes[axis_name] = 0.0
+        return axes
 
-    # Extract button values
-        xbox_control_mode_button = buttons.get("A", 0)
-        software_killswitch_button = buttons.get("B", 0)
-        software_control_mode_button = buttons.get("X", 0)
-        reference_mode_button = buttons.get("Y", 0)
-        left_trigger = axes.get("RT", 0.0)
-        right_trigger = axes.get("LT", 0.0)
-        left_shoulder = buttons.get("LB", 0)
-        right_shoulder = buttons.get("RB", 0)
+    def calculate_movement (self, axes: dict, left_trigger: float, right_trigger: float, left_shoulder: int, right_shoulder: int) -> None:
+        """
+        Calculates the movement values based on joystick input.
 
-        # Extract axis values 
+        Args:
+            axes: A dictionary with axis names as keys and their states as values.
+            left_trigger: The value of the left trigger.
+            right_trigger: The value of the right trigger.
+            left_shoulder: The state of the left shoulder button.
+            right_shoulder: The state of the right shoulder button.
+        """
         self.surge = axes.get(
         "vertical_axis_left_stick", 0.0
         ) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
@@ -293,6 +302,82 @@ class JoystickInterface(Node):
         "horizontal_axis_right_stick", 0.0
         ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
 
+    def handle_killswitch_button(self) -> None:
+        """
+        Handles the software killswitch button press.
+
+        This function performs the following actions based on the current state:
+        1. If the current state is NO_GO, it signals that the killswitch is not blocking,
+            transitions to Xbox mode, and returns.
+        2. Otherwise, it logs a message indicating that the software killswitch is active,
+            signals that the killswitch is blocking, publishes a zero wrench message to stop
+            the AUV, and sets the state to NO_GO.
+
+        The function ensures that the AUV stops moving when the killswitch is activated
+        and allows it to resume operation when the killswitch is deactivated.
+        """
+        if self.state_ == States.NO_GO:
+            # Signal that killswitch is not blocking
+            self.software_killswitch_signal_publisher_.publish(
+                Bool(data=False))
+            self.transition_to_xbox_mode()
+            return
+
+        else:
+            self.get_logger().info("SW killswitch",
+            throttle_duration_sec=1)
+            # Signal that killswitch is blocking
+            self.software_killswitch_signal_publisher_.publish(
+            Bool(data=True))
+            # Publish a zero wrench message when killswitch is activated
+            wrench_msg = self.create_wrench_message(
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            self.wrench_publisher_.publish(wrench_msg)
+            self.state_ = States.NO_GO
+            return 
+
+    def joystick_cb(self, msg: Joy) -> Wrench:
+        """
+        Callback function that receives joy messages and converts them into
+        wrench messages to be sent to the thruster allocation node. 
+        Handles software killswitch and control mode buttons,
+        and transitions between different states of operation.
+
+        This function performs the following steps:
+        1. Checks the number of buttons to set the correct joystick map.
+        2. Populates dictionaries for button and axis states.
+        3. Extracts specific button and axis values.
+        4. Calculates movement values based on joystick input.
+        5. Debounces button presses to prevent multiple triggers within a short duration.
+        6. Updates the last button press time if any button is pressed.
+
+        Args:
+            msg: A ROS message containing the joy input data.
+
+        Returns:
+            A ROS message containing the wrench data that was sent to the thruster allocation node.
+        """
+
+        #Check the number of buttons and axes
+        self.check_number_of_buttons(msg)
+
+        #Populate the buttons and axes dictionaries
+        buttons: dict = self.populate_buttons_dictionary(msg)
+        axes: dict = self.populate_axes_dictionary(msg)
+        current_time = self.get_clock().now().to_msg()._sec
+
+        # Extract button values
+        xbox_control_mode_button = buttons.get("A", 0)
+        software_killswitch_button = buttons.get("B", 0)
+        software_control_mode_button = buttons.get("X", 0)
+        reference_mode_button = buttons.get("Y", 0)
+        
+        left_trigger = axes.get("RT", 0.0)
+        right_trigger = axes.get("LT", 0.0)
+        left_shoulder = buttons.get("LB", 0)
+        right_shoulder = buttons.get("RB", 0)
+
+        self.calculate_movement(axes, left_trigger, right_trigger, left_shoulder, right_shoulder)
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -307,25 +392,7 @@ class JoystickInterface(Node):
 
         # Toggle killswitch on and off
         if software_killswitch_button:
-            if self.state_ == States.NO_GO:
-                # Signal that killswitch is not blocking
-                self.software_killswitch_signal_publisher_.publish(
-                    Bool(data=False))
-                self.transition_to_xbox_mode()
-                return
-
-            else:
-                self.get_logger().info("SW killswitch",
-                throttle_duration_sec=1)
-                # Signal that killswitch is blocking
-                self.software_killswitch_signal_publisher_.publish(
-                Bool(data=True))
-                # Publish a zero wrench message when killswitch is activated
-                wrench_msg = self.create_wrench_message(
-                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-                self.wrench_publisher_.publish(wrench_msg)
-                self.state_ = States.NO_GO
-                return wrench_msg
+            self.handle_killswitch_button()
 
         if self.state_ == States.XBOX_MODE:
             wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
@@ -337,7 +404,7 @@ class JoystickInterface(Node):
             elif reference_mode_button:
                 self.transition_to_reference_mode()
 
-        if self.state_ == States.AUTONOMOUS_MODE:
+        elif self.state_ == States.AUTONOMOUS_MODE:
             self.get_logger().info("autonomous mode")
 
             if xbox_control_mode_button:
@@ -345,7 +412,7 @@ class JoystickInterface(Node):
             elif reference_mode_button:
                 self.transition_to_reference_mode() 
 
-        if self.state_ == States.REFERENCE_MODE:
+        elif self.state_ == States.REFERENCE_MODE:
             self.get_logger().info("Reference mode")
 
             if software_control_mode_button:
@@ -353,7 +420,12 @@ class JoystickInterface(Node):
             elif xbox_control_mode_button:
                 self.transition_to_xbox_mode()
 
-    def reference_pose(self):
+    def update_current_pose(self): 
+        """
+        Updates the current pose of the AUV based on joystick inputs.
+        The position and orientation (roll, pitch, yaw) are updated
+        using the current joystick inputs scaled by their respective parameters.
+        """
         self.current_pose.pose.position.x += self.surge / self.joystick_surge_param_
         self.current_pose.pose.position.y += self.sway / self.joystick_sway_param_
         self.current_pose.pose.position.z += self.heave / self.joystick_heave_param_
@@ -365,14 +437,26 @@ class JoystickInterface(Node):
         self.current_pitch = self.ssa(self.current_pitch)
         self.current_yaw = self.ssa(self.current_yaw)
 
-        #Convert roll, pitch, and yaw to quaternion
+    def convert_euler_to_quaternion(self) -> Quaternion:
+        """
+        Converts the current Euler angles (roll, pitch, yaw) to a quaternion.
+
+        Returns:
+        A Quaternion object representing the orientation.
+        """
         q = self.euler_to_quat(self.current_roll, self.current_pitch, self.current_yaw)
         quaternion = Quaternion()
         quaternion.w = q[0]
         quaternion.x = q[1]
         quaternion.y = q[2]
         quaternion.z = q[3]
-        self.current_pose.pose.orientation = quaternion 
+        return quaternion
+    
+    def reference_pose(self):
+        #Update the current pose
+        self.update_current_pose() 
+        quaternion = self.convert_euler_to_quaternion()
+        self.current_pose.pose.orientation = quaternion
         self.pose_publisher.publish(self.current_pose)
 
 
