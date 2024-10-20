@@ -60,31 +60,31 @@ For KallmanFilterCallback function:
 */
 
 
-using std::placeholders::_1;
-
-
-namespace vortex
-{
-
-namespace ekf_filtering
+namespace vortex::ekf_filtering
 
 {
 
-class EkfFilteringNode : public rclcpp::Node{
+class EKFFilteringNode : public rclcpp::Node{
 
     public:
 
-        EkfFilteringNode();
+        EKFFilteringNode();
 
-        ~EkfFilteringNode(){};
+        ~EKFFilteringNode(){};
 
     private:
     
-        std::string target_frame_; //Frame to map the local frame data
-        std::shared_ptr<tf2_ros::Buffer> tf2_buffer_; //
-        std::shared_ptr<tf2_ros::TransformListener> tf2_listener_; //
-        message_filters::Subscriber<geometry_msgs::msg::PointStamped> point_sub_; //
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PointStamped>> tf2_filter_; //
+        std::string target_frame_;
+        std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
+        std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
+
+        // Subscriber and message filter for the input PoseStamped messages
+        message_filters::Subscriber<geometry_msgs::msg::PoseStamped> pose_sub_;
+        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>> tf2_filter_;
+
+
+        // Publisher for the transformed poses
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr transformed_pose_pub_;
 
         
 
@@ -92,37 +92,26 @@ class EkfFilteringNode : public rclcpp::Node{
         using SensMod = vortex::models::IdentitySensorModel<6,6>;
         using EKF = vortex::filter::EKF<DynMod, SensMod>;
 
-        static rclcpp::Time previous_time;
-        rclcpp::Time current_time;
-        rclcpp::Duration time_since_previous_callback;
-        bool callback_flag;
-        
-
-        void kalmanFilterCallback();
+        // static rclcpp::Time previous_time;
+        // rclcpp::Time current_time;
+        // rclcpp::Duration time_since_previous_callback;
+        // bool callback_flag;
         void poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
 
-
-        std::shared_ptr<DynMod> dynamic_model_;
-        std::shared_ptr<SensMod> sensor_model_;
-        vortex::prob::Gauss<6> board_pose_est_;
+        void kalmanFilterCallback();
+        // void poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
 
 
-        std::string target_frame_;
-        std::shared_ptr<tf2_ros::Buffer> tf2_buffer;
-        std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
-        std::chrono::duration<int> buffer_timeout;
+        // std::shared_ptr<DynMod> dynamic_model_;
+        // std::shared_ptr<SensMod> sensor_model_;
+        // vortex::prob::Gauss<6> board_pose_est_;
 
-        // Subscriber and message filter for the input PoseStamped messages
-        message_filters::Subscriber<geometry_msgs::msg::PoseStamped> pose_sub_;
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>> tf2_filter_;
 
-        // Publisher for the transformed poses
-        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr transformed_pose_pub
+    
 
 
 
-} 
-} //namespace ekf_filtering
-} //namespace vortex
+};
+} //namespace vortex::ekf_filtering
 
 #endif
