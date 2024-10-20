@@ -4,7 +4,7 @@
   <name>ekf_filtering</name>
   <version>0.0.1</version>
   <description>EKF filtering package</description>
-  <maintainer email="jorgen.fjermedal@hotmail.com">Jorgen Fjermedal</maintainer>
+  <maintainer email="chrisbjoe@hotmail.com">Christopher Bjorge</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -18,6 +18,12 @@
   <depend>image_transport</depend>
   <depend>rclcpp</depend>
   <depend>vortex_filtering</depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>message_filters</depend>
 
 
   <export>

@@ -22,6 +22,9 @@ find_package(image_transport REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(vortex_filtering REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 
 include_directories(include)
 include_directories(${EIGEN3_INCLUDE_DIR})
@@ -45,6 +48,8 @@ target_include_directories(${LIB_NAME} PUBLIC
   ${OpenCV_INCLUDE_DIRS}
 )
 
+add_executable(ekf_filtering_ros src/ekf_filtering_ros.cpp)
+
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
@@ -53,6 +58,10 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   tf2
   cv_bridge
   vortex_filtering
+  geometry_msgs
+  tf2_ros
+  tf2_geometry_msgs
+  message_filters
 )
 
 rclcpp_components_register_node(
@@ -64,11 +73,10 @@ rclcpp_components_register_node(
 # Export the target for other packages to use
 ament_export_targets(export_${LIB_NAME})
 
-install(TARGETS ${LIB_NAME}
-  EXPORT export_${LIB_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+install(TARGETS 
+  ekf_filtering_ros
+  DESTINATION lib/${PROJECT_NAME}
+
 )
 
 install(
@@ -83,7 +91,15 @@ install(DIRECTORY
 )
 
 if(BUILD_TESTING)
-    add_subdirectory(test)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # comment the line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # comment the line when this package is in a git repo and when
+  # a copyright and license is added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
 endif()
 
 ament_package()
