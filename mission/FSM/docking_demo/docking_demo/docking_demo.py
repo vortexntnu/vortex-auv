@@ -4,7 +4,7 @@ import rclpy
 
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
-from go_to_dock_action.action import GoToDock, FindDock, Dock
+from go_to_dock_action.action import GoToDock, FindDock
 from yasmin import Blackboard, StateMachine
 
 from yasmin_ros import ActionState
@@ -23,16 +23,16 @@ class FindDockingStationState(ActionState):
         """
         super().__init__(FindDock, "/find_dock", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
-    def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
+    def create_goal_handler(self, blackboard: Blackboard) -> FindDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the docking station is found.
         """
         
-        goal = GoToDock.Goal()
+        goal = FindDock.Goal()
         goal.found = True
         return goal
 
-    def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
+    def response_handler(self, blackboard: Blackboard, response: FindDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the docking station is found.
         """
@@ -40,7 +40,7 @@ class FindDockingStationState(ActionState):
         # implement error handling
         return SUCCEED
 
-    def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
+    def print_feedback(self, blackboard: Blackboard, feedback: FindDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is how far it is in the search pattern.
         """
