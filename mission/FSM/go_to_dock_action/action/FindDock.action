@@ -1,0 +1,10 @@
+# Goal
+bool found   # [x, y, z] of the docking station
+---
+
+# Result
+float32[] docking_station_location                 # Whether the AUV successfully docked
+---
+
+# Feedback
+float32 num_checked_waypoints      # Current distance from AUV to the docking station

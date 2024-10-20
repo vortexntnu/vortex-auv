@@ -1,0 +1,8 @@
+# Goal
+float32[] docking_station_location
+---
+# Result
+bool success
+---
+# Feedback
+float32[] distance
