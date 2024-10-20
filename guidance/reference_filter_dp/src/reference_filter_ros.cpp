@@ -11,6 +11,8 @@ ReferenceFilterNode::ReferenceFilterNode()
 
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>("/dp/reference", 10);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(reference_filter_topic, qos_sensor_data, std::bind(&ReferenceFilterNode::reference_callback, this, std::placeholders::_1));
+
+    state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/nucleus/odom", 10, std::bind(&ReferenceFilterNode::state_callback, this, std::placeholders::_1));
     
     set_refererence_filter();
 
@@ -23,6 +25,7 @@ ReferenceFilterNode::ReferenceFilterNode()
     );
 
     x_ = Vector18d::Zero();
+    current_state_ = nav_msgs::msg::Odometry();
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -55,6 +58,10 @@ void ReferenceFilterNode::reference_callback(const geometry_msgs::msg::PoseStamp
     r_ << x, y, z, euler_angles(0), euler_angles(1), euler_angles(2);
 }
 
+void ReferenceFilterNode::state_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    current_state_ = *msg;
+}
+
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal) {
     (void)uuid;
@@ -76,6 +83,21 @@ void ReferenceFilterNode::handle_accepted(const std::shared_ptr<rclcpp_action::S
 
 void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     RCLCPP_INFO(this->get_logger(), "Executing goal");
+
+    x_ = Vector18d::Zero();
+    x_(0) = current_state_.pose.pose.position.x;
+    x_(1) = current_state_.pose.pose.position.y;
+    x_(2) = current_state_.pose.pose.position.z;
+    Eigen::Vector3d euler_angles_current_pose = quaternion_to_euler(Eigen::Quaterniond(current_state_.pose.pose.orientation.w, current_state_.pose.pose.orientation.x, current_state_.pose.pose.orientation.y, current_state_.pose.pose.orientation.z));
+    x_(3) = euler_angles_current_pose(0);
+    x_(4) = euler_angles_current_pose(1);
+    x_(5) = euler_angles_current_pose(2);
+    x_(6) = current_state_.twist.twist.linear.x;
+    x_(7) = current_state_.twist.twist.linear.y;
+    x_(8) = current_state_.twist.twist.linear.z;
+    x_(9) = current_state_.twist.twist.angular.x;
+    x_(10) = current_state_.twist.twist.angular.y;
+    x_(11) = current_state_.twist.twist.angular.z;
 
     const geometry_msgs::msg::PoseStamped goal = goal_handle->get_goal()->goal;
 

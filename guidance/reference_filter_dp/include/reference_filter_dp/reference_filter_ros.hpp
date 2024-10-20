@@ -5,6 +5,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <reference_filter_dp/reference_filter.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <reference_filter_dp/reference_filter_utils.hpp>
@@ -26,6 +27,8 @@ class ReferenceFilterNode : public rclcpp::Node
         void reference_publisher_callback();
 
         void reference_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+        
+        void state_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
         void set_refererence_filter();
 
@@ -37,9 +40,13 @@ class ReferenceFilterNode : public rclcpp::Node
 
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr reference_sub_;
 
+        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_sub_;
+
         rclcpp::TimerBase::SharedPtr reference_pub_timer_;
 
         std::chrono::milliseconds time_step_;
+
+        nav_msgs::msg::Odometry current_state_;
 
         Vector18d x_;
 
