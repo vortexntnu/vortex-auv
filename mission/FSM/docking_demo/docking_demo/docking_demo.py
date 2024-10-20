@@ -5,7 +5,7 @@ import rclpy
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
 from go_to_dock_action.action import FindDock, GoToDock
-from yasmin import Blackboard, StateMachine
+from yasmin import Blackboard, StateMachine, CbState
 from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
@@ -99,7 +99,7 @@ class DockState(ActionState):
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the auv is docked.
         """
         goal = GoToDock.Goal()
-        goal.docking_station_location = blackboard["docking_station_location"]
+        goal.docking_position = blackboard["docking_station_location"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -118,6 +118,9 @@ class DockState(ActionState):
         """
         print(f"Received feedback: {feedback.distance_to_dock}")
 
+
+def docked_state(blackboard: Blackboard) -> str:
+    return SUCCEED
 
 class DockedState(ActionState):
     """
@@ -157,26 +160,26 @@ class ReturnHomeState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToDock, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/return_home", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the home position."""
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint_res"]
+        goal.docking_position = blackboard["start_pos"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the home position.
         """
-        blackboard["waypoint_res"] = response.sequence
+        blackboard["waypoint_res"] = response.success
         return SUCCEED
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is the distance to the home position."""
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+        print(f"Received feedback: {feedback.distance_to_dock}")
 
 
 class AbortState(ActionState):
@@ -250,15 +253,15 @@ def main() -> None:
     blackboard.distance = 10
     blackboard["waypoint_res"] = [0.0, 0.0, 0.0]
     blackboard["dock_pos"] = [5, 5, 10]
-    blackboard["start_pos"] = [0, 0, 0]
+    blackboard["start_pos"] = [0.0, 0.0, 0.0]
     blackboard["Pool_dimensions"] = [30, 12, 10]
 
     # Adding states with transitions
     sm.add_state("find_dock", FindDockingStationState(), transitions={SUCCEED: "go_to_dock", ABORT: "abort_mission"})
     sm.add_state("go_to_dock", GoToDockState(), transitions={SUCCEED: "dock", ABORT: "abort_mission"})
     sm.add_state("dock", DockState(), transitions={SUCCEED: "docked", ABORT: "abort_mission"})
-    sm.add_state("docked", DockedState(), transitions={ABORT: "abort_mission", SUCCEED: "return_home"})
-    sm.add_state("return_home", ReturnHomeState(), transitions={SUCCEED: "finished", ABORT: "abort_mission"})
+    sm.add_state("docked", CbState(outcomes=[SUCCEED, ABORT], cb=docked_state), transitions={ABORT: "abort_mission", SUCCEED: "return_home"})
+    sm.add_state("return_home", ReturnHomeState(), transitions={SUCCEED: "find_dock", ABORT: "abort_mission"})
     sm.add_state("abort_mission", AbortState(), transitions={SUCCEED: "find_dock", ABORT: "aborted"})
     sm.add_state("error_state", ErrorState(), transitions={ABORT: "error"})
 
