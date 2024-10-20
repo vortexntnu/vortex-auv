@@ -12,54 +12,80 @@ find_package(Eigen3 REQUIRED)
 # Include directories
 include_directories(include ${EIGEN3_INCLUDE_DIR})
 
-# Define the driver library
-add_library(thruster_interface_auv_driver
-  src/thruster_interface_auv_driver.cpp
-)
-target_include_directories(thruster_interface_auv_driver PRIVATE include)
-ament_target_dependencies(thruster_interface_auv_driver rclcpp std_msgs vortex_msgs ament_index_cpp Eigen3)
-
-# Define the ROS interface library
-add_library(thruster_interface_auv_ros
-  src/truster_interface_auv_ros.cpp
-)
-target_link_libraries(thruster_interface_auv_ros thruster_interface_auv_driver)
-target_include_directories(thruster_interface_auv_ros PRIVATE include)
-ament_target_dependencies(thruster_interface_auv_ros rclcpp std_msgs vortex_msgs ament_index_cpp Eigen3)
-
-# Define the executable for the ROS node
-add_executable(thruster_interface_auv_node
+add_executable(${PROJECT_NAME}_node
   src/thruster_interface_auv_node.cpp
+  src/thruster_interface_auv_driver.cpp
+  src/thruster_interface_auv_ros.cpp
 )
-target_link_libraries(thruster_interface_auv_node thruster_interface_auv_ros)
-ament_target_dependencies(thruster_interface_auv_node rclcpp std_msgs vortex_msgs ament_index_cpp Eigen3)
 
-# Install targets
+ament_target_dependencies(${PROJECT_NAME}_node
+  rclcpp
+  std_msgs
+  vortex_msgs
+  ament_index_cpp
+  Eigen3
+)
+
+# Install launch files.
+install(DIRECTORY
+  launch
+  config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 install(TARGETS
-  thruster_interface_auv_driver
-  thruster_interface_auv_ros
-  thruster_interface_auv_node
+  ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
+# # Define the driver library
+# add_library(thruster_interface_auv_driver
+#   src/thruster_interface_auv_driver.cpp
+# )
+# target_include_directories(thruster_interface_auv_driver PRIVATE include)
+# ament_target_dependencies(thruster_interface_auv_driver rclcpp std_msgs vortex_msgs ament_index_cpp Eigen3)
 
-# Install headers
-install(DIRECTORY include/
-  DESTINATION include/
-)
+# # Define the ROS interface library
+# add_library(thruster_interface_auv_ros
+#   src/truster_interface_auv_ros.cpp
+# )
+# target_link_libraries(thruster_interface_auv_ros thruster_interface_auv_driver)
+# target_include_directories(thruster_interface_auv_ros PRIVATE include)
+# ament_target_dependencies(thruster_interface_auv_ros rclcpp std_msgs vortex_msgs ament_index_cpp Eigen3)
 
-# Install launch files
-install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}/launch
-)
+# # Define the executable for the ROS node
+# add_executable(thruster_interface_auv_node
+#   src/thruster_interface_auv_node.cpp
+# )
+# target_link_libraries(thruster_interface_auv_node thruster_interface_auv_ros)
+# ament_target_dependencies(thruster_interface_auv_node rclcpp std_msgs vortex_msgs ament_index_cpp Eigen3)
 
-# Install config files (coeffs.yaml)
-install(DIRECTORY config
-  DESTINATION share/${PROJECT_NAME}/config
-)
+# # Install targets
+# install(TARGETS
+#   thruster_interface_auv_driver
+#   thruster_interface_auv_ros
+#   thruster_interface_auv_node
+#   DESTINATION lib/${PROJECT_NAME}
+# )
+
+# install(
+#   DIRECTORY include/
+#   DESTINATION include
+# )
+
+# # Install headers
+# install(DIRECTORY include/
+#   DESTINATION include/
+# )
+
+# # Install launch files
+# install(DIRECTORY launch
+#   DESTINATION share/${PROJECT_NAME}/launch
+# )
+
+# # Install config files (coeffs.yaml)
+# install(DIRECTORY config
+#   DESTINATION share/${PROJECT_NAME}/config
+# )
 
 ament_package()
