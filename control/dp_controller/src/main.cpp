@@ -5,8 +5,8 @@
 #include "geometry_msgs/msg/wrench.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
+#include "std_msgs/msg/string.hpp"
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -14,7 +14,6 @@
 #include <tuple>
 
 using namespace std::chrono_literals;
-
 
 SMC_node::SMC_node() : Node("SMC_Controller2") {
   wrench_publisher_ = this->create_publisher<geometry_msgs::msg::Wrench>("/thrust/wrench_input", 10);
@@ -32,20 +31,20 @@ SMC_node::SMC_node() : Node("SMC_Controller2") {
 std::tuple<Eigen::VectorXd, Eigen::VectorXd> SMC_node::format_eta(const nav_msgs::msg::Odometry::SharedPtr msg) {
   Eigen::VectorXd eta(7);
   eta << msg->pose.pose.position.x,
-         msg->pose.pose.position.y,
-         msg->pose.pose.position.z,
-         msg->pose.pose.orientation.x,
-         msg->pose.pose.orientation.y,
-         msg->pose.pose.orientation.z,
-         msg->pose.pose.orientation.w;
+      msg->pose.pose.position.y,
+      msg->pose.pose.position.z,
+      msg->pose.pose.orientation.x,
+      msg->pose.pose.orientation.y,
+      msg->pose.pose.orientation.z,
+      msg->pose.pose.orientation.w;
 
   Eigen::VectorXd nu(6);
   nu << msg->twist.twist.linear.x,
-        msg->twist.twist.linear.y,
-        msg->twist.twist.linear.z,
-        msg->twist.twist.angular.x,
-        msg->twist.twist.angular.y,
-        msg->twist.twist.angular.z;
+      msg->twist.twist.linear.y,
+      msg->twist.twist.linear.z,
+      msg->twist.twist.angular.x,
+      msg->twist.twist.angular.y,
+      msg->twist.twist.angular.z;
 
   return std::make_tuple(eta, nu);
 }
@@ -71,7 +70,7 @@ Eigen::Vector3d SMC_node::quaternionToEuler(double w, double x, double y, double
   double cosy_cosp = 1 - 2 * (y * y + z * z);
   euler(2) = std::atan2(siny_cosp, cosy_cosp);
 
-  return euler;  // Return the Euler angles as a Vector3d (roll, pitch, yaw)
+  return euler; // Return the Euler angles as a Vector3d (roll, pitch, yaw)
 }
 
 // Function to compute the smallest signed angle difference
@@ -116,7 +115,6 @@ Eigen::VectorXd SMC_node::tau_PID(double dt, const Eigen::VectorXd &nu, const Ei
   Kp.diagonal() << 20, 20, 18, 8, 8, 8;
   Kd.diagonal() << 8, 8, 15, 2.5, 2.5, 2.5;
   Ki.diagonal() << 0.5, 0.5, 0.3, 0.3, 0.3, 0.3;
-
 
   // Compute the error
   Eigen::VectorXd eta_e = vector_difference(eta, eta_d);
@@ -237,5 +235,3 @@ int main(int argc, char *argv[]) {
   rclcpp::shutdown();
   return 0;
 }
-
-

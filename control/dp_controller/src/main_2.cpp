@@ -5,8 +5,8 @@
 #include "geometry_msgs/msg/wrench.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
+#include "std_msgs/msg/string.hpp"
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -19,7 +19,7 @@ using namespace std::chrono_literals;
 Eigen::VectorXd nu_e_prev_global(6);
 Eigen::VectorXd integral_eta_e_global(6);
 Eigen::VectorXd eta_e_prev_global(6);
-const double m = 30; //Mass of the vehicle
+const double m = 30; // Mass of the vehicle
 
 // Initialize it to zero
 void initialize_global_vector() {
@@ -84,37 +84,35 @@ SMC_node::SMC_node() : Node("SMC_Controller2") {
       "/controller/ki", 10, std::bind(&SMC_node::ki_callback, this, std::placeholders::_1));
   ref_subscription_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
       "/controller/ref", 10, std::bind(&SMC_node::ref_callback, this, std::placeholders::_1));
-
 };
 
 // --------------------------------------------------------------
 // SSA (Smallest signed angle) function
 // --------------------------------------------------------------
 double ssa(const double a2, const double a1) {
-    double difference = fmod(a2 - a1, 2.0 * M_PI);
+  double difference = fmod(a2 - a1, 2.0 * M_PI);
 
-    // Ensure the difference is within the range [-π, π]
-    if (difference > M_PI)
-        difference -= 2.0 * M_PI;
-    else if (difference < -M_PI)
-        difference += 2.0 * M_PI;
+  // Ensure the difference is within the range [-π, π]
+  if (difference > M_PI)
+    difference -= 2.0 * M_PI;
+  else if (difference < -M_PI)
+    difference += 2.0 * M_PI;
 
-    return difference;
+  return difference;
 }
 
 Eigen::Vector3d ssa_vector(const Eigen::Vector3d &vector1, const Eigen::Vector3d &vector2) {
-    double e1 = ssa(vector1(0), vector2(0));
-    double e2 = ssa(vector1(1), vector2(1));
-    double e3 = ssa(vector1(2), vector2(2));
+  double e1 = ssa(vector1(0), vector2(0));
+  double e2 = ssa(vector1(1), vector2(1));
+  double e3 = ssa(vector1(2), vector2(2));
 
-    Eigen::Vector3d ssa_vector_angle;
-    ssa_vector_angle << e1, e2, e3;
+  Eigen::Vector3d ssa_vector_angle;
+  ssa_vector_angle << e1, e2, e3;
 
-    return ssa_vector_angle;
+  return ssa_vector_angle;
 }
 
-Eigen::VectorXd vector_difference(const Eigen::VectorXd &Current, const Eigen::VectorXd &Desired)
-{
+Eigen::VectorXd vector_difference(const Eigen::VectorXd &Current, const Eigen::VectorXd &Desired) {
   Eigen::VectorXd difference(6);
 
   difference.head<3>() = Desired.head<3>() - Current.head<3>();
@@ -127,54 +125,52 @@ Eigen::VectorXd vector_difference(const Eigen::VectorXd &Current, const Eigen::V
   return difference;
 }
 
-
 // --------------------------------------------------------------
-
 
 // Function to convert quaternion to Euler angles (roll, pitch, yaw)
 Eigen::Vector3d quaternionToEuler(double w, double x, double y, double z) {
-    Eigen::Vector3d euler;
-    
-    // Roll (x-axis rotation)
-    euler(0) = std::atan2(2.0 * ((w * x) + (y * z)), 1.0 - 2.0 * ((x * x)+ (y * y)));
-    
-    // Pitch (y-axis rotation)
+  Eigen::Vector3d euler;
+
+  // Roll (x-axis rotation)
+  euler(0) = std::atan2(2.0 * ((w * x) + (y * z)), 1.0 - 2.0 * ((x * x) + (y * y)));
+
+  // Pitch (y-axis rotation)
     euler(1) = -(3.1415/2) + (2*std::atan2(sqrt(1 + 2*((w*y) - (x*z))), sqrt(1-2*((w*y) + (x*z))));
-    
+
     // Yaw (z-axis rotation)
     euler(2) = std::atan2(2.0 * ((w * z) + (x * y)), 1.0 - 2.0 * (y * y + z * z));
-    
+
     return euler;  // Return the Euler angles as a Vector3d (roll, pitch, yaw)
 }
 
 // Function for controller
-Eigen::VectorXd tau_PID(const double dt, const Eigen::VectorXd &nu ,const Eigen::VectorXd &eta, const Eigen::VectorXd &eta_d) {
+Eigen::VectorXd tau_PID(const double dt, const Eigen::VectorXd &nu, const Eigen::VectorXd &eta, const Eigen::VectorXd &eta_d) {
   // Defined the tuning variables
   Eigen::MatrixXd Kp(6, 6);
   Eigen::MatrixXd Kd(6, 6);
   Eigen::MatrixXd Ki(6, 6);
 
   // Define the gains for the controller
-  Kp << 16,   0,     0,    0,    0,    0,
-       0,    16,     0,    0,    0,    0,
-       0,     0,    16,    0,    0,    0,
-       0,     0,     0,    7,    0,    0,
-       0,     0,     0,    0,    7,    0,
-       0,     0,     0,    0,    0,    7;
+  Kp << 16, 0, 0, 0, 0, 0,
+      0, 16, 0, 0, 0, 0,
+      0, 0, 16, 0, 0, 0,
+      0, 0, 0, 7, 0, 0,
+      0, 0, 0, 0, 7, 0,
+      0, 0, 0, 0, 0, 7;
 
-  Kd <<   5.5,    0,      0,   0,    0,    0,
-          0,    5.5,      0,   0,    0,    0,
-          0,      0,    5.5,   0,    0,    0,
-          0,      0,      0,   0,    0,    0,
-          0,      0,      0,   0,    0,    0,
-          0,      0,      0,   0,    0,    0;
+  Kd << 5.5, 0, 0, 0, 0, 0,
+      0, 5.5, 0, 0, 0, 0,
+      0, 0, 5.5, 0, 0, 0,
+      0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0;
 
-  Ki << 1.7,    0,    0,     0,    0,      0,
-        0,    1.7,    0,     0,    0,      0,
-        0,      0,  1.7,     0,    0,      0,
-        0,      0,    0,   0.7,    0,      0,
-        0,      0,    0,     0,    0.7,    0,
-        0,      0,    0,     0,    0,    0.7;
+  Ki << 1.7, 0, 0, 0, 0, 0,
+      0, 1.7, 0, 0, 0, 0,
+      0, 0, 1.7, 0, 0, 0,
+      0, 0, 0, 0.7, 0, 0,
+      0, 0, 0, 0, 0.7, 0,
+      0, 0, 0, 0, 0, 0.7;
 
   // Compute the error
   Eigen::VectorXd eta_e = vector_difference(eta, eta_d);
@@ -194,9 +190,8 @@ Eigen::VectorXd tau_PID(const double dt, const Eigen::VectorXd &nu ,const Eigen:
   for (int i = 0; i < integral_eta_e.size(); ++i) {
     if (integral_eta_e[i] > max_integral) {
       integral_eta_e[i] = max_integral;
-    } 
-    else if (integral_eta_e[i] < -max_integral) {
-    integral_eta_e[i] = -max_integral;
+    } else if (integral_eta_e[i] < -max_integral) {
+      integral_eta_e[i] = -max_integral;
     }
   }
 
@@ -243,18 +238,16 @@ Eigen::VectorXd run_u(const nav_msgs::msg::Odometry::SharedPtr msg, Eigen::Vecto
   return U;
 }
 
-Eigen::MatrixXd createDiagonalMatrix(const std_msgs::msg::Float64MultiArray::SharedPtr& data)
-{
-    // Create a 6x6 zero matrix
-    Eigen::Matrix<double, 6, 6> matrix = Eigen::Matrix<double, 6, 6>::Zero();
+Eigen::MatrixXd createDiagonalMatrix(const std_msgs::msg::Float64MultiArray::SharedPtr &data) {
+  // Create a 6x6 zero matrix
+  Eigen::Matrix<double, 6, 6> matrix = Eigen::Matrix<double, 6, 6>::Zero();
 
-    // Assign the elements to the diagonal
-    for (int i = 0; i < 6; ++i)
-    {
-        matrix(i, i) = data->data[i];
-    }
+  // Assign the elements to the diagonal
+  for (int i = 0; i < 6; ++i) {
+    matrix(i, i) = data->data[i];
+  }
 
-    return matrix;
+  return matrix;
 }
 
 // Callback function for the odometry message

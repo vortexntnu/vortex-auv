@@ -7,8 +7,8 @@
 #include "geometry_msgs/msg/wrench.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
+#include "std_msgs/msg/string.hpp"
 #include <iostream>
 
 class SMC_node : public rclcpp::Node {
@@ -36,7 +36,6 @@ private:
   Eigen::VectorXd eta_e_prev_global;
   Eigen::VectorXd integral_eta_e_global;
   rclcpp::Time prev_time;
-
 };
 
 #endif
