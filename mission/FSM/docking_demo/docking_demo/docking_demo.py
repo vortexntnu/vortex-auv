@@ -4,10 +4,9 @@ import rclpy
 
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
-from go_to_dock_action.action import GoToDock
-from yasmin import Blackboard, CbState, StateMachine
+from go_to_dock_action.action import GoToDock, FindDock, Dock
+from yasmin import Blackboard, StateMachine
 
-# from waypoint_action.action import GoToDock
 from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
@@ -22,7 +21,7 @@ class FindDockingStationState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super().__init__(GoToDock, "/go_to_dock", self.create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(FindDock, "/find_dock", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
@@ -30,22 +29,23 @@ class FindDockingStationState(ActionState):
         """
         
         goal = GoToDock.Goal()
-        print(goal)
-        goal.docking_position = blackboard["waypoint_res"]
+        goal.found = True
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the docking station is found.
         """
-        blackboard["found_dock"] = response.success
+        blackboard["docking_station_location"] = response.docking_station_location
+        # implement error handling
         return SUCCEED
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is how far it is in the search pattern.
         """
-        print(f"Received feedback: {list(feedback.distance_to_dock)}")
+        blackboard["num_checked_waypoints"] = feedback.num_checked_waypoints
+        print(f"Received feedback: {list(feedback.num_checked_waypoints)}")
 
 
 class GoToDockState(ActionState):
@@ -64,21 +64,24 @@ class GoToDockState(ActionState):
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the docking station.
         """
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint_res"]
+        goal.docking_position = blackboard["docking_station_location"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         Response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the docking station.
         """
-        blackboard["waypoint_res"] = response.sequence
-        return SUCCEED
+        blackboard["has_gone_to_docking_station"] = response.success
+        if blackboard["has_gone_to_docking_station"]:
+            return SUCCEED
+        elif not blackboard["has_gone_to_docking_station"]:
+            return ABORT
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is the distance to the docking station.
         """
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+        print(f"Received feedback: {feedback.distance_to_dock}")
 
 
 class DockState(ActionState):
@@ -97,21 +100,24 @@ class DockState(ActionState):
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the auv is docked.
         """
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint_res"]
+        goal.docking_station_location = blackboard["docking_station_location"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is docked.
         """
-        blackboard["waypoint_res"] = response.sequence
-        return SUCCEED
+        blackboard["has_docked"] = response.success
+        if blackboard["has_docked"]:
+            return SUCCEED
+        elif not blackboard["has_docked"]:
+            return ABORT
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback comes from the DP controller.
         """
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+        print(f"Received feedback: {feedback.distance_to_dock}")
 
 
 class DockedState(ActionState):

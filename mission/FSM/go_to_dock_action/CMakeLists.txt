@@ -8,7 +8,6 @@ find_package(rosidl_default_generators REQUIRED)  # To generate the action inter
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/GoToDock.action"                        # Add the path to your action file
   "action/FindDock.action"
-  "action/Dock.action"
   DEPENDENCIES builtin_interfaces
 )
 
