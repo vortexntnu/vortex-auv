@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import rclpy
-from rclpy.node import Node
 from geometry_msgs.msg import Wrench
+from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String, Float64MultiArray
 from geometry_msgs.msg import PoseStamped, Quaternion, Wrench
@@ -201,7 +201,7 @@ class JoystickInterface(Node):
         wrench_msg.torque.z = yaw
         return wrench_msg
 
-    def transition_to_xbox_mode(self):
+    def transition_to_xbox_mode(self) -> None:
         """
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
@@ -224,7 +224,7 @@ class JoystickInterface(Node):
 
 
 
-    def transition_to_autonomous_mode(self):
+    def transition_to_autonomous_mode(self) -> None:
         """
         Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
         """
@@ -404,6 +404,7 @@ class JoystickInterface(Node):
 
         # If any button is pressed, update the last button press time
         if software_control_mode_button or xbox_control_mode_button or software_killswitch_button or reference_mode_button:
+
             self.last_button_press_time_ = current_time
 
         # Toggle killswitch on and off
@@ -557,7 +558,14 @@ class JoystickInterface(Node):
         angle = (angle + np.pi) % (2 * np.pi) - np.pi
         return angle
 
-def main():
+def main() -> None:
+    """
+    Initializes the ROS 2 client library, creates an instance of the JoystickInterface node,
+    and starts spinning the node to process callbacks. Once the node is shut down, it destroys
+    the node and shuts down the ROS 2 client library.
+
+    This function is the entry point for the joystick interface application.
+    """
     rclpy.init()
     joystick_interface = JoystickInterface()
     rclpy.spin(joystick_interface)
