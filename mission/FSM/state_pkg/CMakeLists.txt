@@ -25,7 +25,7 @@ endif()
 
 install(
   PROGRAMS
-    scripts/get_state_node.py      
+    scripts/get_state_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

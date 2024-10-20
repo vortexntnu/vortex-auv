@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-
+from std_msgs.msg import String
 
 class DockingDemoNode(Node):
     def __init__(self) -> None:
@@ -11,7 +11,10 @@ class DockingDemoNode(Node):
 
     def timer_callback(self) -> None:
         """Timer callback function."""
-        self.get_logger().info('Docking Demo Node is running')
+        msg = String()
+        msg.data = "go_to_dock"
+        self.publisher_.publish(msg)
+        self.get_logger().info(f"Publishing: {msg.data}")
 
 
 def main(args: None = None) -> None:

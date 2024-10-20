@@ -20,6 +20,7 @@ setup(
     entry_points={
         'console_scripts': [
             'docking_demo_node = docking_demo.docking_demo_node:main',
+            'docking_demo = docking_demo.docking_demo:main',
         ],
     },
 )

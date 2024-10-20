@@ -22,28 +22,30 @@ class FindDockingStationState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/go_to_dock", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the docking station is found.
         """
+        
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint"]
+        print(goal)
+        goal.docking_position = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
         """
         The response handler to handle the response from the action. For this state, the response is true or false depending on if the docking station is found.
         """
-        blackboard["waypoint_res"] = response.sequence
+        blackboard["found_dock"] = response.success
         return SUCCEED
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToDock.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is how far it is in the search pattern.
         """
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+        print(f"Received feedback: {list(feedback.distance_to_dock)}")
 
 
 class GoToDockState(ActionState):
@@ -55,14 +57,14 @@ class GoToDockState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super().__init__(GoToDock, "/go_to_dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/go_to_dock", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the docking station.
         """
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint"]
+        goal.order = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -88,14 +90,14 @@ class DockState(ActionState):
         """
         Initialize the state, and using ActionState from YASMIN.
         """
-        super().__init__(GoToDock, "/dock", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/dock", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the auv is docked.
         """
         goal = GoToDock.Goal()
-        goal.order = blackboard[""]
+        goal.order = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -120,14 +122,14 @@ class DockedState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted or finished.
         """
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint"]
+        goal.order = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -150,13 +152,13 @@ class ReturnHomeState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is the waypoint to the home position."""
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint"]
+        goal.order = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -179,13 +181,13 @@ class AbortState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted."""
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint"]
+        goal.order = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -206,13 +208,13 @@ class ErrorState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToDock, "/waypoint", self._create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToDock, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToDock.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is to shut down or save or something."""
         goal = GoToDock.Goal()
-        goal.order = blackboard["waypoint"]
+        goal.order = blackboard["waypoint_res"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToDock.Result) -> str:
@@ -241,18 +243,19 @@ def main() -> None:
     # Create and initialize the blackboard
     blackboard = Blackboard()
     blackboard.distance = 10
+    blackboard["waypoint_res"] = [0.0, 0.0, 0.0]
     blackboard["dock_pos"] = [5, 5, 10]
     blackboard["start_pos"] = [0, 0, 0]
     blackboard["Pool_dimensions"] = [30, 12, 10]
 
     # Adding states with transitions
-    sm.add_state("find_dock", FindDockingStationState(blackboard), transitions={SUCCEED: "go_to_dock", ABORT: "abort_mission"})
-    sm.add_state("go_to_dock", GoToDockState(blackboard), transitions={SUCCEED: "dock", ABORT: "abort_mission"})
-    sm.add_state("dock", DockState(blackboard), transitions={SUCCEED: "docked", ABORT: "abort_mission"})
-    sm.add_state("docked", DockedState(blackboard), transitions={ABORT: "abort_mission", SUCCEED: "return_home"})
-    sm.add_state("return_home", ReturnHomeState(blackboard), transitions={SUCCEED: "finished", ABORT: "abort_mission"})
-    sm.add_state("abort_mission", AbortState(blackboard), transitions={SUCCEED: "find_dock", ABORT: "aborted"})
-    sm.add_state("error_state", ErrorState(blackboard), transitions={ABORT: "error"})
+    sm.add_state("find_dock", FindDockingStationState(), transitions={SUCCEED: "go_to_dock", ABORT: "abort_mission"})
+    sm.add_state("go_to_dock", GoToDockState(), transitions={SUCCEED: "dock", ABORT: "abort_mission"})
+    sm.add_state("dock", DockState(), transitions={SUCCEED: "docked", ABORT: "abort_mission"})
+    sm.add_state("docked", DockedState(), transitions={ABORT: "abort_mission", SUCCEED: "return_home"})
+    sm.add_state("return_home", ReturnHomeState(), transitions={SUCCEED: "finished", ABORT: "abort_mission"})
+    sm.add_state("abort_mission", AbortState(), transitions={SUCCEED: "find_dock", ABORT: "aborted"})
+    sm.add_state("error_state", ErrorState(), transitions={ABORT: "error"})
 
     # Set the initial state
     sm.set_start_state("find_dock")
