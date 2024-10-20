@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool, String, Float64
+from std_msgs.msg import Bool, String, Float64MultiArray
 from geometry_msgs.msg import PoseStamped, Quaternion, Wrench
 import numpy as np
 
@@ -80,7 +80,6 @@ class JoystickInterface(Node):
         self.last_button_press_time_ = 0
         self.debounce_duration_ = 0.25
         self.state_ = States.NO_GO
-        self.precise_manuevering_mode_ = False
         self.precise_manuevering_scaling_ = 1.0
         self.surge = 0.0
         self.sway = 0.0
@@ -94,7 +93,7 @@ class JoystickInterface(Node):
         self.current_yaw = 0.0
 
 
-        self.roll_publisher = self.create_publisher(Float64, "joystick/roll", 10)
+        self.euler_angle_publisher = self.create_publisher(Float64MultiArray, "joystick/roll", 10)
 
         self.joystick_axes_map_ = []
 
@@ -114,13 +113,13 @@ class JoystickInterface(Node):
         self.declare_parameter('roll_scale_factor', 30.0)
         self.declare_parameter('pitch_scale_factor', 20.0)
 
-        #The scaling factors for the reference mode
+        #The scaling parameters for the reference mode
         self.declare_parameter('surge_scale_ref_param', 300)
         self.declare_parameter('sway_scale_ref_param', 300)
         self.declare_parameter('heave_scale_ref_param', 300)
-        self.declare_parameter('yaw_scale_ref_param', 50)
-        self.declare_parameter('roll_scale_ref_param', 50)
-        self.declare_parameter('pitch_scale_ref_param', 50)
+        self.declare_parameter('yaw_scale_ref_param', 300)
+        self.declare_parameter('roll_scale_ref_param', 300)
+        self.declare_parameter('pitch_scale_ref_param', 300)
 
         #Gets the scaling factors from the yaml file
         self.joystick_surge_scaling_ = self.get_parameter(
@@ -136,6 +135,7 @@ class JoystickInterface(Node):
         self.joystick_pitch_scaling_ = self.get_parameter(
         'pitch_scale_factor').value
 
+        #Gets the scaling factors for the reference mode from the yaml file
         self.joystick_surge_param_ = self.get_parameter(
         'surge_scale_ref_param').value
         self.joystick_sway_param_ = self.get_parameter(
@@ -201,11 +201,14 @@ class JoystickInterface(Node):
         self.get_logger().info("Transitioned to XBOX mode.")
 
     def transition_to_reference_mode(self):
+        """
+        Publishes a pose message and signals that the operational mode has switched to Reference mode.
+        """
         pose_msg = self.create_pose_message()
         self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
         self.pose_publisher.publish(pose_msg)
         self.state_ = States.REFERENCE_MODE
-        self.get_logger().info("Transitioning to reference mode")
+        self.get_logger().info("Transitioned to reference mode")
 
     def transition_to_autonomous_mode(self):
         """
@@ -358,8 +361,11 @@ class JoystickInterface(Node):
         self.current_pitch += self.pitch / self.joystick_pitch_param_
         self.current_yaw += self.yaw / self.joystick_yaw_param_
 
+        self.current_roll = self.ssa(self.current_roll)
+        self.current_pitch = self.ssa(self.current_pitch)
+        self.current_yaw = self.ssa(self.current_yaw)
+
         #Convert roll, pitch, and yaw to quaternion
-        #Skal jeg sette inn current_roll, current_pitch, current_yaw her? 
         q = self.euler_to_quat(self.current_roll, self.current_pitch, self.current_yaw)
         quaternion = Quaternion()
         quaternion.w = q[0]
@@ -375,9 +381,12 @@ class JoystickInterface(Node):
             self.reference_pose()
             msg = self.create_pose_message() 
             self.pose_publisher.publish(msg)
-        roll_msg = Float64()
-        roll_msg.data = self.current_roll 
-        self.roll_publisher.publish(roll_msg)
+        euler_msg = Float64MultiArray()
+        roll_deg = self.current_roll * 180 / np.pi
+        pitch_deg = self.current_pitch * 180 / np.pi
+        yaw_deg = self.current_yaw * 180 / np.pi
+        euler_msg.data = [roll_deg, pitch_deg, yaw_deg]
+        self.euler_angle_publisher.publish(euler_msg)
 
 
     @staticmethod
@@ -395,6 +404,20 @@ class JoystickInterface(Node):
         z = sy * cp * cr - cy * sp * sr
 
         return np.array([w, x, y, z])
+    
+    @staticmethod
+    def ssa(angle: float) -> float:
+        """
+        Converts an angle from degrees to radians.
+
+        Args:
+        angle (float): The angle in degrees.
+
+        Returns:
+        float: The angle in radians.
+        """
+        angle = (angle + np.pi) % (2 * np.pi) - np.pi
+        return angle
 
 def main():
     rclpy.init()
@@ -405,4 +428,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
