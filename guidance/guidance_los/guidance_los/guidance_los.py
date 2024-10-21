@@ -206,9 +206,9 @@ class GuidanceNode(Node):
         twist_msg.header.stamp = self.get_clock().now().to_msg()
         # Transform desired velocities to body frame
         u = surge_velocity * math.cos(e_psi)
-        v = surge_velocity * math.sin(e_psi)
+        # v = surge_velocity * math.sin(e_psi)
         twist_msg.twist.linear.x = u
-        twist_msg.twist.linear.y = v
+        twist_msg.twist.linear.y = 0.0  # No lateral control as per request
         twist_msg.twist.linear.z = 0.0  # No vertical control as per request
         twist_msg.twist.angular.x = 0.0
         twist_msg.twist.angular.y = 0.0
