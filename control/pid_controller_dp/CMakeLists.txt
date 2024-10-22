@@ -16,6 +16,8 @@ find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
@@ -31,6 +33,8 @@ ament_target_dependencies(pid_controller_node
   geometry_msgs
   nav_msgs
   Eigen3
+  tf2
+  vortex_msgs
 )
 
 install(

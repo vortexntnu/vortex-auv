@@ -5,12 +5,10 @@
 #include "pid_controller_dp/eigen_typedefs.hpp"
 #include <eigen3/Eigen/Geometry>
 #include <cmath>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 Eigen::Matrix6d float64multiarray_to_diagonal_matrix6d(const std_msgs::msg::Float64MultiArray &msg);
-
-Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond &quat);
-
-Eigen::Quaterniond euler_to_quaternion(const Eigen::Vector3d &euler_angles);
 
 double ssa(double angle);
 

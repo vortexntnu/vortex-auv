@@ -7,6 +7,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
+#include <vortex_msgs/msg/reference_filter.hpp>
 
 class PIDControllerNode : public rclcpp::Node {
 public:
@@ -15,7 +16,7 @@ public:
 private:
   void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
-  void guidance_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+  void guidance_callback(const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
   void publish_tau();
 
@@ -31,7 +32,7 @@ private:
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
 
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr guidance_sub_;
+  rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr guidance_sub_;
 
   rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kp_sub_;
 

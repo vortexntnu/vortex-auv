@@ -5,7 +5,7 @@ PIDControllerNode::PIDControllerNode()
     : Node("pid_controller_node") {
   time_step_ = std::chrono::milliseconds(10);
   odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/nucleus/odom", 10, std::bind(&PIDControllerNode::odometry_callback, this, std::placeholders::_1));
-  guidance_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("/dp/guidance", 10, std::bind(&PIDControllerNode::guidance_callback, this, std::placeholders::_1));
+  guidance_sub_ = this->create_subscription<vortex_msgs::msg::ReferenceFilter>("/dp/reference", 10, std::bind(&PIDControllerNode::guidance_callback, this, std::placeholders::_1));
   kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/kp", 10, std::bind(&PIDControllerNode::kp_callback, this, std::placeholders::_1));
   ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/ki", 10, std::bind(&PIDControllerNode::ki_callback, this, std::placeholders::_1));
   kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/kd", 10, std::bind(&PIDControllerNode::kd_callback, this, std::placeholders::_1));
@@ -22,10 +22,17 @@ void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedP
   double y = msg->pose.pose.position.y;
   double z = msg->pose.pose.position.z;
 
-  Eigen::Quaterniond quat(msg->pose.pose.orientation.w, msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
-  Eigen::Vector3d euler_angles = quaternion_to_euler(quat);
+  tf2::Quaternion quat;
+  quat.setX(msg->pose.pose.orientation.x);
+  quat.setY(msg->pose.pose.orientation.y);
+  quat.setZ(msg->pose.pose.orientation.z);
+  quat.setW(msg->pose.pose.orientation.w);
 
-  eta_ << x, y, z, euler_angles(0), euler_angles(1), euler_angles(2);
+  tf2::Matrix3x3 m(quat);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+
+  eta_ << x, y, z, roll, pitch, yaw;
 
   double u = msg->twist.twist.linear.x;
   double v = msg->twist.twist.linear.y;
@@ -88,13 +95,13 @@ void PIDControllerNode::kd_callback(const std_msgs::msg::Float64MultiArray::Shar
   pid_controller_.setKd(Kd);
 }
 
-void PIDControllerNode::guidance_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-  double x = msg->pose.position.x;
-  double y = msg->pose.position.y;
-  double z = msg->pose.position.z;
+void PIDControllerNode::guidance_callback(const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
+  double x = msg->x;
+  double y = msg->y;
+  double z = msg->z;
+  double roll = msg->roll;
+  double pitch = msg->pitch;
+  double yaw = msg->yaw;
 
-  Eigen::Quaterniond quat(msg->pose.orientation.w, msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z);
-  Eigen::Vector3d euler_angles = quaternion_to_euler(quat);
-
-  eta_d_ << x, y, z, euler_angles(0), euler_angles(1), euler_angles(2);
+  eta_d_ << x, y, z, roll, pitch, yaw;
 }
