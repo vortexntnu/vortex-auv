@@ -51,6 +51,14 @@ class ReferenceFilterNode : public rclcpp::Node
         Vector18d x_;
 
         Vector6d r_;
+
+        std::mutex mutex_;
+
+        rclcpp_action::GoalUUID preempted_goal_id_;
+
+        std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle_;
+
+        rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
 
 #endif

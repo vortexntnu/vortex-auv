@@ -4,6 +4,8 @@ ReferenceFilterNode::ReferenceFilterNode()
     : Node("reference_filter_node") {
     time_step_ = std::chrono::milliseconds(10);
 
+    cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
     this->declare_parameter<std::string>("reference_filter_topic", "/reference_topic");
     std::string reference_filter_topic = this->get_parameter("reference_filter_topic").as_string();
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
@@ -21,7 +23,9 @@ ReferenceFilterNode::ReferenceFilterNode()
         "reference_filter",
         std::bind(&ReferenceFilterNode::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
         std::bind(&ReferenceFilterNode::handle_cancel, this, std::placeholders::_1),
-        std::bind(&ReferenceFilterNode::handle_accepted, this, std::placeholders::_1)
+        std::bind(&ReferenceFilterNode::handle_accepted, this, std::placeholders::_1),
+        rcl_action_server_get_default_options(),
+        cb_group_
     );
 
     x_ = Vector18d::Zero();
@@ -66,7 +70,16 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal) {
     (void)uuid;
     (void)goal;
-    RCLCPP_INFO(this->get_logger(), "Received goal request");
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (goal_handle_) {
+            if (goal_handle_->is_active()) {
+                RCLCPP_INFO(this->get_logger(), "Aborting current goal and accepting new goal");
+                preempted_goal_id_ = goal_handle_->get_goal_id();
+            }
+        }
+    }
+    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -77,11 +90,18 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void ReferenceFilterNode::handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    std::thread{std::bind(&ReferenceFilterNode::execute, this, goal_handle)}.detach();
+void ReferenceFilterNode::handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle)
+{
+    execute(goal_handle);
 }
+    
 
 void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        this->goal_handle_ = goal_handle;
+    }
+    
     RCLCPP_INFO(this->get_logger(), "Executing goal");
 
     x_ = Vector18d::Zero();
@@ -116,6 +136,19 @@ void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoa
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
     while (rclcpp::ok()) {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (goal_handle->get_goal_id() == preempted_goal_id_) {
+                result->result = feedback->feedback;
+                goal_handle->abort(result);
+                return;
+            }
+        }
+        if (goal_handle->is_canceling()) {
+            result->result = feedback->feedback;
+            goal_handle->canceled(result);
+            return;
+        }
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
         x_ += x_dot * time_step_.count() / 1000.0;
 
