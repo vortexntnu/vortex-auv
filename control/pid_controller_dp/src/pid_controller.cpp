@@ -1,5 +1,6 @@
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
+#include <iostream>
 
 PIDController::PIDController()
     : Kp_(Eigen::Matrix6d::Identity()),   
@@ -29,14 +30,17 @@ Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector6d &eta, const E
 
 void PIDController::setKp(const Eigen::Matrix6d &Kp) {
     this->Kp_ = Kp;
+    std::cout << "Kp: " << std::endl << Kp_ << std::endl;
 }
 
 void PIDController::setKi(const Eigen::Matrix6d &Ki) {
     this->Ki_ = Ki;
+    std::cout << "Ki: " << std::endl << Ki_ << std::endl;
 }
 
 void PIDController::setKd(const Eigen::Matrix6d &Kd) {
     this->Kd_ = Kd;
+    std::cout << "Kd: " << std::endl << Kd_ << std::endl;
 }
 
 void PIDController::setTimeStep(double dt) {

@@ -15,6 +15,7 @@ PIDControllerNode::PIDControllerNode()
   eta_d_ = Eigen::Vector6d::Zero();
   nu_ = Eigen::Vector6d::Zero();
   eta_dot_d_ = Eigen::Vector6d::Zero();
+  set_pid_params();
 }
 
 void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
