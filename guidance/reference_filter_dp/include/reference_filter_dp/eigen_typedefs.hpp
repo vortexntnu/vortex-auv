@@ -14,5 +14,6 @@ typedef Eigen::Matrix<double, 18, 6> Matrix18x6d;
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 18, 1> Vector18d;
+typedef Eigen::Matrix<double, 3, 3> Matrix3d;
 
 #endif

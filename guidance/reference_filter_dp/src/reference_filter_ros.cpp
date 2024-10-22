@@ -112,12 +112,19 @@ void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoa
     x_(3) = euler_angles_current_pose(0);
     x_(4) = euler_angles_current_pose(1);
     x_(5) = euler_angles_current_pose(2);
-    x_(6) = current_state_.twist.twist.linear.x;
-    x_(7) = current_state_.twist.twist.linear.y;
-    x_(8) = current_state_.twist.twist.linear.z;
-    x_(9) = current_state_.twist.twist.angular.x;
-    x_(10) = current_state_.twist.twist.angular.y;
-    x_(11) = current_state_.twist.twist.angular.z;
+
+    Vector6d eta;
+    eta << current_state_.pose.pose.position.x, current_state_.pose.pose.position.y, current_state_.pose.pose.position.z, euler_angles_current_pose(0), euler_angles_current_pose(1), euler_angles_current_pose(2);
+    Matrix6d J = calculate_J(eta);
+    Vector6d nu;
+    nu << current_state_.twist.twist.linear.x, current_state_.twist.twist.linear.y, current_state_.twist.twist.linear.z, current_state_.twist.twist.angular.x, current_state_.twist.twist.angular.y, current_state_.twist.twist.angular.z;
+    Vector6d eta_dot = J * nu;
+    x_(6) = eta_dot(0);
+    x_(7) = eta_dot(1);
+    x_(8) = eta_dot(2);
+    x_(9) = eta_dot(3);
+    x_(10) = eta_dot(4);
+    x_(11) = eta_dot(5);
 
     const geometry_msgs::msg::PoseStamped goal = goal_handle->get_goal()->goal;
 
