@@ -5,20 +5,26 @@
 #include <string>
 #include <map>
 #include <cstdint>
+#include <iostream>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+#include <cmath>
 
 class ThrusterInterfaceAUVDriver {
 public:
+
     ThrusterInterfaceAUVDriver(
         int I2C_BUS = 1,
-        int PICO_I2C_ADDRESS = 0x21,
-        double SYSTEM_OPERATIONAL_VOLTAGE = 16.0,
-        const std::string& ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = "",
-        const std::vector<int>& THRUSTER_MAPPING = {7,6,5,4,3,2,1,0},
-        const std::vector<int>& THRUSTER_DIRECTION = {1,1,1,1,1,1,1,1},
-        const std::vector<int>& THRUSTER_PWM_OFFSET = {0,0,0,0,0,0,0,0},
-        const std::vector<int>& PWM_MIN = {1100,1100,1100,1100,1100,1100,1100,1100},
-        const std::vector<int>& PWM_MAX = {1900,1900,1900,1900,1900,1900,1900,1900},
-        const std::map<int, std::map<std::string, std::vector<double>>>& coeffs = {}
+        int PICO_I2C_ADDRESS = 0xAA,
+        double SYSTEM_OPERATIONAL_VOLTAGE = 12.1,
+        const std::vector<int>& THRUSTER_MAPPING = {},
+        const std::vector<int>& THRUSTER_DIRECTION = {},
+        const std::vector<int>& THRUSTER_PWM_OFFSET = {},
+        const std::vector<int>& PWM_MIN = {},
+        const std::vector<int>& PWM_MAX = {},
+        const std::map<int, std::map<std::string, std::vector<double>>>& COEFFS = {}
     );
 
     ~ThrusterInterfaceAUVDriver();
@@ -26,7 +32,9 @@ public:
     std::vector<int16_t> drive_thrusters(const std::vector<double>& thruster_forces_array);
 
 private:
+
     int bus_fd;
+    int I2C_BUS;
     int PICO_I2C_ADDRESS;
     int SYSTEM_OPERATIONAL_VOLTAGE;
 
@@ -36,7 +44,7 @@ private:
     std::vector<int> PWM_MIN;
     std::vector<int> PWM_MAX;
 
-    std::map<int, std::map<std::string, std::vector<double>>> coeffs;
+    std::map<int, std::map<std::string, std::vector<double>>> COEFFS;
 
     std::vector<int16_t> interpolate_forces_to_pwm(const std::vector<double>& thruster_forces_array);
     void send_data_to_escs(const std::vector<int16_t>& thruster_pwm_array);
