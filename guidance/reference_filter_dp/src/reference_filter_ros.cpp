@@ -56,10 +56,17 @@ void ReferenceFilterNode::reference_callback(const geometry_msgs::msg::PoseStamp
     double y = msg->pose.position.y;
     double z = msg->pose.position.z;
 
-    Eigen::Quaterniond quat(msg->pose.orientation.w, msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z);
-    Eigen::Vector3d euler_angles = quaternion_to_euler(quat);
+    tf2::Quaternion q;
+    q.setX(msg->pose.orientation.x);
+    q.setY(msg->pose.orientation.y);
+    q.setZ(msg->pose.orientation.z);
+    q.setW(msg->pose.orientation.w);
 
-    r_ << x, y, z, euler_angles(0), euler_angles(1), euler_angles(2);
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+
+    r_ << x, y, z, roll, pitch, yaw;
 }
 
 void ReferenceFilterNode::state_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -108,17 +115,28 @@ void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoa
     x_(0) = current_state_.pose.pose.position.x;
     x_(1) = current_state_.pose.pose.position.y;
     x_(2) = current_state_.pose.pose.position.z;
-    Eigen::Vector3d euler_angles_current_pose = quaternion_to_euler(Eigen::Quaterniond(current_state_.pose.pose.orientation.w, current_state_.pose.pose.orientation.x, current_state_.pose.pose.orientation.y, current_state_.pose.pose.orientation.z));
-    x_(3) = euler_angles_current_pose(0);
-    x_(4) = euler_angles_current_pose(1);
-    x_(5) = euler_angles_current_pose(2);
+
+    tf2::Quaternion q;
+    q.setX(current_state_.pose.pose.orientation.x);
+    q.setY(current_state_.pose.pose.orientation.y);
+    q.setZ(current_state_.pose.pose.orientation.z);
+    q.setW(current_state_.pose.pose.orientation.w);
+
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    
+    x_(3) = ssa(roll);
+    x_(4) = ssa(pitch);
+    x_(5) = ssa(yaw);
 
     Vector6d eta;
-    eta << current_state_.pose.pose.position.x, current_state_.pose.pose.position.y, current_state_.pose.pose.position.z, euler_angles_current_pose(0), euler_angles_current_pose(1), euler_angles_current_pose(2);
+    eta << current_state_.pose.pose.position.x, current_state_.pose.pose.position.y, current_state_.pose.pose.position.z, roll, pitch, yaw;
     Matrix6d J = calculate_J(eta);
     Vector6d nu;
     nu << current_state_.twist.twist.linear.x, current_state_.twist.twist.linear.y, current_state_.twist.twist.linear.z, current_state_.twist.twist.angular.x, current_state_.twist.twist.angular.y, current_state_.twist.twist.angular.z;
     Vector6d eta_dot = J * nu;
+
     x_(6) = eta_dot(0);
     x_(7) = eta_dot(1);
     x_(8) = eta_dot(2);
@@ -132,10 +150,17 @@ void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoa
     double y = goal.pose.position.y;
     double z = goal.pose.position.z;
 
-    Eigen::Quaterniond quat(goal.pose.orientation.w, goal.pose.orientation.x, goal.pose.orientation.y, goal.pose.orientation.z);
-    Eigen::Vector3d euler_angles = quaternion_to_euler(quat);
+    tf2::Quaternion q_goal;
+    q_goal.setX(goal.pose.orientation.x);
+    q_goal.setY(goal.pose.orientation.y);
+    q_goal.setZ(goal.pose.orientation.z);
+    q_goal.setW(goal.pose.orientation.w);
 
-    r_ << x, y, z, euler_angles(0), euler_angles(1), euler_angles(2);
+    tf2::Matrix3x3 m_goal(q_goal);
+    double roll_goal, pitch_goal, yaw_goal;
+    m_goal.getRPY(roll_goal, pitch_goal, yaw_goal);
+
+    r_ << x, y, z, roll_goal, pitch_goal, yaw_goal;
 
     auto feedback = std::make_shared<vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
     auto result = std::make_shared<vortex_msgs::action::ReferenceFilterWaypoint::Result>();
@@ -163,9 +188,9 @@ void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoa
         feedback_msg.x = x_(0);
         feedback_msg.y = x_(1);
         feedback_msg.z = x_(2);
-        feedback_msg.roll = x_(3);
-        feedback_msg.pitch = x_(4);
-        feedback_msg.yaw = x_(5);
+        feedback_msg.roll = ssa(x_(3));
+        feedback_msg.pitch = ssa(x_(4));
+        feedback_msg.yaw = ssa(x_(5));
         feedback_msg.x_dot = x_(6);
         feedback_msg.y_dot = x_(7);
         feedback_msg.z_dot = x_(8);

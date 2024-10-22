@@ -9,6 +9,8 @@
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <reference_filter_dp/reference_filter_utils.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 class ReferenceFilterNode : public rclcpp::Node
 {
