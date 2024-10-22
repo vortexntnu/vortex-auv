@@ -53,7 +53,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode() : Node("thruster_interface_
     );
 
     //Declare "thruster_forces_array" in case no topic comes in at the beginning
-    this->thruster_forces_array_ = std::vector<double>(8, 2.23);
+    this->thruster_forces_array_ = std::vector<double>(8, 0.0);
 
     timer_ = this->create_wall_timer(
         std::chrono::duration<double>(this->thrust_timer_period_),

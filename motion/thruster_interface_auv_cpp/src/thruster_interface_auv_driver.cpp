@@ -1,5 +1,7 @@
 #include "thruster_interface_auv_driver.hpp"
 
+ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(){}
+
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     int I2C_BUS,
     int PICO_I2C_ADDRESS,
@@ -12,7 +14,7 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     const std::map<int, std::map<std::string, std::vector<double>>>& COEFFS
 ) : I2C_BUS(I2C_BUS),
     PICO_I2C_ADDRESS(PICO_I2C_ADDRESS),
-    SYSTEM_OPERATIONAL_VOLTAGE(SYSTEM_OPERATIONAL_VOLTAGE),
+    //SYSTEM_OPERATIONAL_VOLTAGE(SYSTEM_OPERATIONAL_VOLTAGE), done after in the if-else
     THRUSTER_MAPPING(THRUSTER_MAPPING),
     THRUSTER_DIRECTION(THRUSTER_DIRECTION),
     THRUSTER_PWM_OFFSET(THRUSTER_PWM_OFFSET),
@@ -28,36 +30,36 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     std::cout << "PICO_I2C_ADDRESS: " << PICO_I2C_ADDRESS << std::endl;
     std::cout << "SYSTEM_OPERATIONAL_VOLTAGE: " << SYSTEM_OPERATIONAL_VOLTAGE << std::endl;
     std::cout << "THRUSTER_MAPPING: ";
-    for (int i = 0; i < THRUSTER_MAPPING.size(); i++) {
+    for (size_t i = 0; i < THRUSTER_MAPPING.size(); ++i) {
         std::cout << THRUSTER_MAPPING[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "THRUSTER_DIRECTION: ";
-    for (int i = 0; i < THRUSTER_DIRECTION.size(); i++) {
+    for (size_t i = 0; i < THRUSTER_DIRECTION.size(); ++i) {
         std::cout << THRUSTER_DIRECTION[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "THRUSTER_PWM_OFFSET: ";
-    for (int i = 0; i < THRUSTER_PWM_OFFSET.size(); i++) {
+    for (size_t i = 0; i < THRUSTER_PWM_OFFSET.size(); ++i) {
         std::cout << THRUSTER_PWM_OFFSET[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "PWM_MIN: ";
-    for (int i = 0; i < PWM_MIN.size(); i++) {
+    for (size_t i = 0; i < PWM_MIN.size(); ++i) {
         std::cout << PWM_MIN[i] << " ";
     }
     std::cout << std::endl;
     std::cout << "PWM_MAX: ";
-    for (int i = 0; i < PWM_MAX.size(); i++) {
+    for (size_t i = 0; i < PWM_MAX.size(); ++i) {
         std::cout << PWM_MAX[i] << " ";
     }
     std::cout << std::endl;
-    for (auto const& [key, val] : COEFFS) {
-        std::cout << "COEFFS[" << key << "]: " << std::endl;
-        for (auto const& [key2, val2] : val) {
-            std::cout << "COEFFS[" << key << "][" << key2 << "]: ";
-            for (int i = 0; i < val2.size(); i++) {
-                std::cout << val2[i] << " ";
+    for (auto const& [voltage, coeffs] : COEFFS) {
+        std::cout << "Voltage: " << (int)voltage << std::endl;
+        for (auto const& [direction, coeff] : coeffs) {
+            std::cout << "Direction: " << direction << std::endl;
+            for (size_t i = 0; i < coeff.size(); ++i) {
+                std::cout << coeff[i] << " ";
             }
             std::cout << std::endl;
         }
@@ -66,14 +68,7 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
 
 
 
-    // Open the I2C bus
-    std::string i2c_filename = "/dev/i2c-" + std::to_string(I2C_BUS);
-    bus_fd = open(i2c_filename.c_str(), O_RDWR);
-    if (bus_fd < 0) {
-        std::cerr << "ERROR: Failed to open I2C bus " << I2C_BUS << std::endl;
-    }
-
-    // Convert SYSTEM_OPERATIONAL_VOLTAGE passed as argument to integer field variable
+    // Convert SYSTEM_OPERATIONAL_VOLTAGE passed as argument to assign the integer field variable [one is double, field var is int]
     if (SYSTEM_OPERATIONAL_VOLTAGE < 11.0) {
         this->SYSTEM_OPERATIONAL_VOLTAGE = 10;
     } else if (SYSTEM_OPERATIONAL_VOLTAGE < 13.0) {
@@ -87,20 +82,19 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     } else {
         this->SYSTEM_OPERATIONAL_VOLTAGE = 20;
     }
+
+    // Open the I2C bus
+    std::string i2c_filename = "/dev/i2c-" + std::to_string(I2C_BUS);
+    bus_fd = open(i2c_filename.c_str(), O_RDWR);
+    if (bus_fd < 0) {
+        std::cerr << "ERROR: Failed to open I2C bus " << I2C_BUS << std::endl;
+    }
 }
 
 ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
     if (bus_fd >= 0) {
         close(bus_fd);
     }
-}
-
-double ThrusterInterfaceAUVDriver::polyval(const std::vector<double>& coeffs, double x) {
-    double result = 0.0;
-    for (size_t i = 0; i < coeffs.size(); ++i) {
-        result += coeffs[i] * std::pow(x, coeffs.size() - i - 1);
-    }
-    return result;
 }
 
 std::vector<int16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(const std::vector<double>& thruster_forces_array) {
@@ -119,11 +113,17 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(const
         double force = forces_in_kg[i];
         double pwm = 0.0;
         if (force < 0) {
-            pwm = polyval(left_coeffs, force);
+            pwm =   left_coeffs[0] * std::pow(forces_in_kg[i], 3) + \
+                    left_coeffs[1] * std::pow(forces_in_kg[i], 2) + \
+                    left_coeffs[2] * forces_in_kg[i] + \
+                    left_coeffs[3];
         } else if (force == 0.0) {
-            pwm = 1500 - THRUSTER_PWM_OFFSET[i];
+            pwm = 1500;
         } else {
-            pwm = polyval(right_coeffs, force);
+            pwm =   right_coeffs[0] * std::pow(forces_in_kg[i], 3) + \
+                    right_coeffs[1] * std::pow(forces_in_kg[i], 2) + \
+                    right_coeffs[2] * forces_in_kg[i] + \
+                    right_coeffs[3];
         }
         interpolated_pwm.push_back(static_cast<int16_t>(pwm));
     }
@@ -162,7 +162,7 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::drive_thrusters(const std::vect
 
     // Apply thruster offset and limit PWM if needed
     for (size_t i = 0; i < thruster_pwm_array.size(); ++i) {
-        thruster_pwm_array[i] += THRUSTER_PWM_OFFSET[i];
+        //thruster_pwm_array[i] += THRUSTER_PWM_OFFSET[i];
 
         // Clamp the PWM signal
         if (thruster_pwm_array[i] < PWM_MIN[i]) {
