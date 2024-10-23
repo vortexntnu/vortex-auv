@@ -23,51 +23,6 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     COEFFS(COEFFS)
 {
 
-
-
-    //DEBUGGING ONLY-----------------------------------------------------------------------
-    std::cout << "I2C_BUS: " << I2C_BUS << std::endl;
-    std::cout << "PICO_I2C_ADDRESS: " << PICO_I2C_ADDRESS << std::endl;
-    std::cout << "SYSTEM_OPERATIONAL_VOLTAGE: " << SYSTEM_OPERATIONAL_VOLTAGE << std::endl;
-    std::cout << "THRUSTER_MAPPING: ";
-    for (size_t i = 0; i < THRUSTER_MAPPING.size(); ++i) {
-        std::cout << THRUSTER_MAPPING[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "THRUSTER_DIRECTION: ";
-    for (size_t i = 0; i < THRUSTER_DIRECTION.size(); ++i) {
-        std::cout << THRUSTER_DIRECTION[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "THRUSTER_PWM_OFFSET: ";
-    for (size_t i = 0; i < THRUSTER_PWM_OFFSET.size(); ++i) {
-        std::cout << THRUSTER_PWM_OFFSET[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "PWM_MIN: ";
-    for (size_t i = 0; i < PWM_MIN.size(); ++i) {
-        std::cout << PWM_MIN[i] << " ";
-    }
-    std::cout << std::endl;
-    std::cout << "PWM_MAX: ";
-    for (size_t i = 0; i < PWM_MAX.size(); ++i) {
-        std::cout << PWM_MAX[i] << " ";
-    }
-    std::cout << std::endl;
-    for (auto const& [voltage, coeffs] : COEFFS) {
-        std::cout << "Voltage: " << (int)voltage << std::endl;
-        for (auto const& [direction, coeff] : coeffs) {
-            std::cout << "Direction: " << direction << std::endl;
-            for (size_t i = 0; i < coeff.size(); ++i) {
-                std::cout << coeff[i] << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
-    //---------------------------------------------------------------------------------------
-
-
-
     // Convert SYSTEM_OPERATIONAL_VOLTAGE passed as argument to assign the integer field variable [one is double, field var is int]
     if (SYSTEM_OPERATIONAL_VOLTAGE < 11.0) {
         this->SYSTEM_OPERATIONAL_VOLTAGE = 10;

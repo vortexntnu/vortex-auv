@@ -102,7 +102,7 @@ class ThrusterInterfaceAUVNode(Node):
 
         # Start clock timer for driving thrusters every 0.2 seconds
         # Declare "self.thruster_forces_array" in case no topic comes in at the first possible second
-        self.thruster_forces_array = [2.23] * 8
+        self.thruster_forces_array = [0.00] * 8
 
         self.timer = self.create_timer(self.thrust_timer_period, self._timer_callback)
 
