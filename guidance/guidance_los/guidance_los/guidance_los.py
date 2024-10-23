@@ -18,7 +18,7 @@ def normalize_angle(angle):
 class GuidanceNode(Node):
 
     def __init__(self):
-        super().__init__('guidance_pkg')
+        super().__init__('guidance_los')
 
         # Publishers - keeping the same interface for compatibility
         self.output_pub = self.create_publisher(LOSGuidance, '/guidance/los',
@@ -52,18 +52,18 @@ class GuidanceNode(Node):
         self.waypoints = [
             {
                 'x': 5.0,
-                'y': 5.0,
-                'z': 8.0
+                'y': 0.0,
+                'z': 0.0
             },
             {
                 'x': 10.0,
                 'y': 5.0,
-                'z': -5.0
+                'z': 0.0
             },
             {
                 'x': 15.0,
-                'y': 0.0,
-                'z': 0.0
+                'y': 5.0,
+                'z': 5.0
             },
         ]
         self.current_waypoint_index = 0

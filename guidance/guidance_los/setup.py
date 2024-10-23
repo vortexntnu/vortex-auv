@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'guidance = guidance_los.guidance_los:main',
+            'guidance_test = guidance_los.guidance_test:main'
         ],
     },
 )
