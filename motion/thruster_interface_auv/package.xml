@@ -2,16 +2,17 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>thruster_interface_auv</name>
-  <version>1.0.0</version>
-  <description>Thruster interface to control thrusters through PCA9685 Module</description>
-  <maintainer email="vortex.git@vortexntnu.no">vortex</maintainer>
+  <version>0.0.0</version>
+  <description>Thruster interface to control thrusters mapping force to pwm values</description>
+  <maintainer email="albertomorselli00@gmail.com">albertomorselli</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <depend>rclpy</depend>
-  <depend>std_msgs</depend>
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
+  <depend>std_msgs</depend>
 
   <exec_depend>ros2launch</exec_depend>
 
