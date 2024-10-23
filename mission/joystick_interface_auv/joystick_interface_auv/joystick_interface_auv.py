@@ -247,7 +247,7 @@ class JoystickInterface(Node):
             self.joystick_buttons_map_ = WirelessXboxSeriesX.joystick_buttons_map_
             self.joystick_axes_map_ = WirelessXboxSeriesX.joystick_axes_map_
         else:
-            self.joystick_buttons_map = Wired.joystick_buttons_map_
+            self.joystick_buttons_map_ = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
 
     def populate_buttons_dictionary(self, msg: Joy) -> None:
