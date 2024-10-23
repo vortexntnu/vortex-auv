@@ -20,4 +20,6 @@ Eigen::Matrix3d calculate_T(const Eigen::Vector6d &eta);
 
 Eigen::Matrix6d calculate_J(const Eigen::Vector6d &eta);
 
+Eigen::Vector6d anti_windup(const double dt, const Eigen::Vector6d &error, const Eigen::Vector6d &integral);
+
 #endif

@@ -23,7 +23,7 @@ Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector6d &eta, const E
 
     Eigen::Vector6d tau = -(Kp_ * J_inv * error + Ki_ * integral_ + Kd_ * error_nu);
 
-    integral_ += error * dt;
+    integral_ = anti_windup(dt, error, integral_);
 
     return tau;
 }

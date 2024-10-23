@@ -81,3 +81,17 @@ Eigen::Matrix6d calculate_J(const Eigen::Vector6d &eta) {
     return J;
 }
 
+Eigen::Vector6d anti_windup(const double dt, const Eigen::Vector6d &error, const Eigen::Vector6d &integral) {
+    Eigen::Vector6d integral_anti_windup = integral + (error * dt);
+
+    for (int i = 0; i < integral_anti_windup.size(); ++i) {
+        if (integral_anti_windup[i] > 30.0) {
+            integral_anti_windup[i] = 30.0;
+        } else if (integral_anti_windup[i] < -30.0) {
+            integral_anti_windup[i] = -30.0;
+        }
+    }
+
+    return integral_anti_windup;
+}
+
