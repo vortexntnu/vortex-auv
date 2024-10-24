@@ -22,18 +22,22 @@ void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedP
   double x = msg->pose.pose.position.x;
   double y = msg->pose.pose.position.y;
   double z = msg->pose.pose.position.z;
+  double w_ori = msg->pose.pose.orientation.w;
+  double x_ori = msg->pose.pose.orientation.x; 
+  double y_ori = msg->pose.pose.orientation.y;
+  double z_ori = msg->pose.pose.orientation.z;
 
-  tf2::Quaternion quat;
-  quat.setX(msg->pose.pose.orientation.x);
-  quat.setY(msg->pose.pose.orientation.y);
-  quat.setZ(msg->pose.pose.orientation.z);
-  quat.setW(msg->pose.pose.orientation.w);
+  // tf2::Quaternion quat;
+  //   quat.setX(msg->pose.pose.orientation.x);
+  //   quat.setY(msg->pose.pose.orientation.y);
+  //   quat.setZ(msg->pose.pose.orientation.z);
+  //   quat.setW(msg->pose.pose.orientation.w);
 
-  tf2::Matrix3x3 m(quat);
-  double roll, pitch, yaw;
-  m.getRPY(roll, pitch, yaw);
+  //   tf2::Matrix3x3 m(quat);
+  //   double roll, pitch, yaw;
+  //   m.getRPY(roll, pitch, yaw);
 
-  eta_ << x, y, z, roll, pitch, yaw;
+  eta_ << x, y, z, w_ori, x_ori, y_ori, z_ori;
 
   double u = msg->twist.twist.linear.x;
   double v = msg->twist.twist.linear.y;
@@ -100,9 +104,12 @@ void PIDControllerNode::guidance_callback(const vortex_msgs::msg::ReferenceFilte
   double x = msg->x;
   double y = msg->y;
   double z = msg->z;
-  double roll = msg->roll;
-  double pitch = msg->pitch;
-  double yaw = msg->yaw;
+  
+  tf2::Quaternion quat;
+  quat.setRPY(msg->roll, msg->pitch, msg->yaw);
+  
+  eta_d_ << x, y, z, quat.w(), quat.x(), quat.y(), quat.z();
 
-  eta_d_ << x, y, z, roll, pitch, yaw;
+  double x_dot = msg->x_dot;
+
 }

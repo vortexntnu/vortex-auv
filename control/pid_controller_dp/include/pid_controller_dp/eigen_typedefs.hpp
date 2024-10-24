@@ -12,6 +12,10 @@ namespace Eigen {
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 3, 3> Matrix3d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
+typedef Eigen::Matrix<double, 7, 1> Vector7d;
+typedef Eigen::Matrix<double, 4, 3> Matrix4x3d;
+typedef Eigen::Matrix<double, 7, 6> Matrix7x6d;
+typedef Eigen::Matrix<double, 6, 7> Matrix6x7d;
 }
 
 #endif

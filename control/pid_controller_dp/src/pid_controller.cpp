@@ -9,12 +9,16 @@ PIDController::PIDController()
       integral_(Eigen::Vector6d::Zero()),
       dt(0.01) {}
 
-Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector6d &eta, const Eigen::Vector6d &eta_d, const Eigen::Vector6d &nu, const Eigen::Vector6d &eta_dot_d) {
-  Eigen::Vector6d error = apply_ssa(eta - eta_d);
+Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d, const Eigen::Vector6d &nu, const Eigen::Vector7d &eta_dot_d) {
+  // Eigen::Vector6d error = apply_ssa(eta - eta_d);
 
-  Eigen::Matrix6d J = calculate_J(eta);
+  // Eigen::Matrix6d J = calculate_J(eta);
 
-  Eigen::Matrix6d J_inv = J.inverse();
+  // Eigen::Matrix6d J_inv = J.inverse();
+
+  Eigen::Vector7d error = error_eta(eta, eta_d);
+
+  Eigen::Matrix6x7d J_inv = calculate_J_sudo_inv(eta);
 
   Eigen::Vector6d nu_d = J_inv * eta_dot_d;
 

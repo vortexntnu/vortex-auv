@@ -12,13 +12,19 @@ Eigen::Matrix6d float64multiarray_to_diagonal_matrix6d(const std_msgs::msg::Floa
 
 double ssa(double angle);
 
-Eigen::Vector6d apply_ssa(const Eigen::Vector6d &eta);
+Eigen::Vector6d apply_ssa(const Eigen::Vector7d &eta);
 
-Eigen::Matrix3d calculate_R(const Eigen::Vector6d &eta);
+Eigen::Matrix3d calculate_R(const Eigen::Vector7d &eta);
 
-Eigen::Matrix3d calculate_T(const Eigen::Vector6d &eta);
+Eigen::Matrix3d calculate_T(const Eigen::Vector7d &eta);
 
-Eigen::Matrix6d calculate_J(const Eigen::Vector6d &eta);
+Eigen::Matrix3d calculate_T_quat(const Eigen::Vector7d &eta);
+
+Eigen::Matrix6x7d calculate_J_sudo_inv(const Eigen::Vector7d &eta);
+
+Eigen::Vector7d error_eta(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d)
+
+Eigen::Matrix6d calculate_J(const Eigen::Vector7d &eta);
 
 Eigen::Vector6d anti_windup(const double dt, const Eigen::Vector6d &error, const Eigen::Vector6d &integral);
 
