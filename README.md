@@ -10,7 +10,7 @@
 
 ![Banner](docs/banner_image.png)
 
-This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS2 Humble framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations. The goal is to achieve given tasks at the TAC Challenge fully autonomously. This repo supports therefore autonomous docking and autonomous pipline following. 
+This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS2 Humble framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
 
 
 ## Documentation
