@@ -2,11 +2,10 @@
 import math
 
 import rclpy
-from vortex_msgs.action import FindDock  # Import the action definition
+from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
-
+from vortex_msgs.action import FindDock  # Import the action definition
 
 
 class FindDockServer(Node):
@@ -30,7 +29,7 @@ class FindDockServer(Node):
 
             goal_handle.publish_feedback(feedback_msg)
 
-            #rate.sleep()
+            # rate.sleep()
             time_elapsed += 0.1
 
         goal_handle.succeed()
@@ -48,8 +47,6 @@ class FindDockServer(Node):
         result.dock_pose.header.frame_id = '0'
 
         return result
-
-
 
 
 def main(args=None):

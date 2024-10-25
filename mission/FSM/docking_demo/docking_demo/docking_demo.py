@@ -4,12 +4,12 @@ import rclpy
 
 # from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
-from yasmin import Blackboard, StateMachine, CbState
+from geometry_msgs.msg import PoseStamped
+from vortex_msgs.action import FindDock, GoToWaypoint
+from yasmin import Blackboard, CbState, StateMachine
 from yasmin_ros import ActionState
 from yasmin_ros.basic_outcomes import ABORT, SUCCEED
 from yasmin_viewer import YasminViewerPub
-from vortex_msgs.action import GoToWaypoint, FindDock
-from geometry_msgs.msg import PoseStamped
 
 
 class FindDockingStationState(ActionState):
@@ -128,6 +128,7 @@ class DockState(ActionState):
 
 def docked_state(blackboard: Blackboard) -> str:
     return SUCCEED
+
 
 class DockedState(ActionState):
     """
