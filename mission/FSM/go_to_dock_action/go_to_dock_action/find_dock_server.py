@@ -2,39 +2,51 @@
 import math
 
 import rclpy
-from go_to_dock_action.action import FindDock  # Import the action definition
+from vortex_msgs.action import FindDock  # Import the action definition
 from rclpy.action import ActionServer
 from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
 
 
 
 class FindDockServer(Node):
 
     def __init__(self):
-        super().__init__('go_to_dock_server')
+        super().__init__('find_dock_server')
 
         self._action_server = ActionServer(self, FindDock, 'find_dock', self.execute_callback)
 
     def execute_callback(self, goal_handle):
-        self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.found))
+        self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.start_search))
 
         feedback_msg = FindDock.Feedback()
-        found = goal_handle.request.found  # bool
+        found = goal_handle.request.start_search  # bool
         rate = self.create_rate(1)  # Simulate 1Hz feedback
-        num_steps = 0
+        time_elapsed = 0.0
 
-        while not num_steps == 1:
-            num_steps += 1
-            feedback_msg.num_checked_waypoints = num_steps
-            self.get_logger().info('Num waypoints searched: {:.2f}'.format(num_steps))
+        while time_elapsed <= 20.0:
+            feedback_msg.time_elapsed = time_elapsed
+            self.get_logger().info('Time elapsed: {:.2f}'.format(time_elapsed))
 
             goal_handle.publish_feedback(feedback_msg)
 
             #rate.sleep()
+            time_elapsed += 0.1
 
         goal_handle.succeed()
         result = FindDock.Result()
-        result.docking_station_location = [5.0, 5.0, 10.0]
+
+        result.dock_pose = PoseStamped()
+        result.dock_pose.pose.position.x = 5.0
+        result.dock_pose.pose.position.y = 5.0
+        result.dock_pose.pose.position.z = 10.0
+        result.dock_pose.pose.orientation.x = 0.0
+        result.dock_pose.pose.orientation.y = 0.0
+        result.dock_pose.pose.orientation.z = 0.0
+        result.dock_pose.pose.orientation.w = 0.0
+        result.dock_pose.header.stamp = self.get_clock().now().to_msg()
+        result.dock_pose.header.frame_id = '0'
+
         return result
 
 

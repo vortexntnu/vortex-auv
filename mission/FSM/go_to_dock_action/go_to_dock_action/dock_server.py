@@ -2,59 +2,48 @@
 import math
 
 import rclpy
-from go_to_dock_action.action import GoToDock  # Import the action definition
+from vortex_msgs.action import GoToWaypoint  # Import the action definition
 from rclpy.action import ActionServer
 from rclpy.node import Node
+from geometry_msgs.msg import PoseStamped
 
 
 class DockServer(Node):
 
     def __init__(self):
-        super().__init__('go_to_dock_server')
+        super().__init__('dock_server')
 
-        self._action_server = ActionServer(self, GoToDock, 'dock', self.execute_callback)
+        self._action_server = ActionServer(self, GoToWaypoint, 'dock', self.execute_callback)
 
     def execute_callback(self, goal_handle):
-        self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.docking_position))
+        self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.waypoint))
 
-        feedback_msg = GoToDock.Feedback()
-        docking_position = goal_handle.request.docking_position  # [x, y, z]
-        auv_position = [0.0, 0.0, 0.0]  # Let's say AUV starts at (0,0,0)
+        feedback_msg = GoToWaypoint.Feedback()
+        docking_position = goal_handle.request.waypoint  # [x, y, z]
+        auv_position = PoseStamped()  # Let's say AUV starts at (0,0,0)
+        auv_position.pose.position.x = 0.0
+        auv_position.pose.position.y = 0.0 
+        auv_position.pose.position.z = 0.0
         rate = self.create_rate(1)  # Simulate 1Hz feedback
 
-        while not self.is_at_dock(auv_position, docking_position):
-            distance_to_dock = self.calculate_distance(auv_position, docking_position)
-            feedback_msg.distance_to_dock = distance_to_dock
-            self.get_logger().info('Distance to dock: {:.2f}'.format(distance_to_dock))
+        while math.sqrt((docking_position.pose.position.x - auv_position.pose.position.x)**2 + (docking_position.pose.position.y - auv_position.pose.position.y)**2 + (docking_position.pose.position.z - auv_position.pose.position.z)**2) > 0.1:
+            feedback_msg.current_pose = auv_position
+            self.get_logger().info('Current position: ({:.2f},{:.2f},{:.2f})'.format(auv_position.pose.position.x, auv_position.pose.position.y, auv_position.pose.position.z))
 
             goal_handle.publish_feedback(feedback_msg)
 
             # Simulate AUV moving towards the dock
-            auv_position = self.move_towards_dock(auv_position, docking_position)
+            auv_position.pose.position.x += (docking_position.pose.position.x- auv_position.pose.position.x)/2
+            auv_position.pose.position.y += (docking_position.pose.position.y- auv_position.pose.position.y)/2
+            auv_position.pose.position.z += (docking_position.pose.position.z- auv_position.pose.position.z)/2
 
             #rate.sleep()
 
         goal_handle.succeed()
-        result = GoToDock.Result()
+        result = GoToWaypoint.Result()
         result.success = True
         return result
 
-    def is_at_dock(self, auv_position, docking_position):
-        distance = self.calculate_distance(auv_position, docking_position)
-        return distance < 0.01
-
-    def calculate_distance(self, pos1, pos2):
-        return math.sqrt(sum([(p1 - p2) ** 2 for p1, p2 in zip(pos1, pos2)]))
-
-    def move_towards_dock(self, auv_position, docking_position):
-        step_size = 0.5
-        new_position = []
-        for auv_coord, dock_coord in zip(auv_position, docking_position):
-            if abs(dock_coord - auv_coord) > step_size:
-                new_position.append(auv_coord + step_size if dock_coord > auv_coord else auv_coord - step_size)
-            else:
-                new_position.append(dock_coord)
-        return new_position
 
 
 def main(args=None):
