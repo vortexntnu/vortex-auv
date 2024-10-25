@@ -5,6 +5,7 @@ from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String, Float64MultiArray
 from geometry_msgs.msg import PoseStamped, Quaternion, Wrench
+from nav_msgs.msg import Odometry
 import numpy as np
 
 class States:
@@ -92,6 +93,7 @@ class JoystickInterface(Node):
         self.current_pitch = 0.0    
         self.current_yaw = 0.0
 
+        self.current_odom = Odometry()
 
         self.euler_angle_publisher = self.create_publisher(Float64MultiArray, "joystick/roll", 10)
 
@@ -99,6 +101,8 @@ class JoystickInterface(Node):
 
         self.joy_subscriber_ = self.create_subscription(
         Joy, "joystick/joy", self.joystick_cb, 5)
+        self.odom_subscriber_ = self.create_subscription(
+            Odometry, "/nucleus/odom", self.odom_cb, 10)
         self.wrench_publisher_ = self.create_publisher(Wrench,
         "joystick/wrench",
         10) 
@@ -160,6 +164,12 @@ class JoystickInterface(Node):
             String, "softwareOperationMode", 10) 
         self.current_pose = PoseStamped()
 
+    def odom_cb(self, msg: Odometry) -> None:
+        # extract pose from odometry message
+        self.current_odom = msg
+
+        
+
 
     def create_pose_message(self): 
         """
@@ -215,7 +225,8 @@ class JoystickInterface(Node):
         """
         Publishes a pose message and signals that the operational mode has switched to Reference mode.
         """
-        pose_msg = self.create_pose_message()
+        pose_msg = self.create_pose_message() 
+        pose_msg.pose = self.current_odom.pose.pose
         self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
         self.pose_publisher.publish(pose_msg)
         self.state_ = States.REFERENCE_MODE
@@ -247,7 +258,7 @@ class JoystickInterface(Node):
             self.joystick_buttons_map_ = WirelessXboxSeriesX.joystick_buttons_map_
             self.joystick_axes_map_ = WirelessXboxSeriesX.joystick_axes_map_
         else:
-            self.joystick_buttons_map = Wired.joystick_buttons_map_
+            self.joystick_buttons_map_ = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
 
     def populate_buttons_dictionary(self, msg: Joy) -> None:
