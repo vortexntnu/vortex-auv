@@ -10,7 +10,7 @@ from acoustics_interface.acoustics_interface_lib import TeensyCommunicationUDP
 
 class AcousticsInterfaceNode(Node):
     """
-    Publishes Acoustics data to ROS2
+    Publishes Acoustics data to ROS2.
 
     Methods:
         data_update() -> None:
@@ -21,7 +21,7 @@ class AcousticsInterfaceNode(Node):
     """
 
     def __init__(self) -> None:
-        """Sets up acoustics logging and publishers, also sets up teensy communication"""
+        """Sets up acoustics logging and publishers, also sets up teensy communication."""
         super().__init__("acoustics_interface")
         rclpy.logging.initialize()
 
@@ -111,7 +111,7 @@ class AcousticsInterfaceNode(Node):
         TeensyCommunicationUDP.fetch_data()
 
     def data_publisher(self) -> None:
-        """Publishes to topics"""
+        """Publishes to topics."""
         self._hydrophone_1_publisher.publish(
             Int32MultiArray(data=TeensyCommunicationUDP.acoustics_data["HYDROPHONE_1"])
         )

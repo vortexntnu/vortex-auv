@@ -107,7 +107,7 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def fetch_data(cls) -> None:
-        """Gets data from teensy and stores it in `acoustics_data`"""
+        """Gets data from teensy and stores it in `acoustics_data`."""
         i = 0
 
         while True:
@@ -132,7 +132,7 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _write_to_target(cls) -> None:
-        """Writes to the current target in `acoustics_data` and clears the data string"""
+        """Writes to the current target in `acoustics_data` and clears the data string."""
         if cls._data_target in {"TDOA", "LOCATION"}:
             data = cls._parse_data_string(is_float=True)
         else:
@@ -149,7 +149,7 @@ class TeensyCommunicationUDP:
     @classmethod
     def _get_raw_data(cls) -> str | None:
         """
-        Gets a message from teensy
+        Gets a message from teensy.
 
         Returns:
             The message in the UDP buffer if there is one
@@ -183,7 +183,7 @@ class TeensyCommunicationUDP:
     # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
     @classmethod
     def _get_ip(cls) -> None:
-        """Gets the device's IP address"""
+        """Gets the device's IP address."""
         s = socket(AF_INET, SOCK_DGRAM)
         s.settimeout(0)
         try:
@@ -199,7 +199,7 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _send_acknowledge_signal(cls) -> None:
-        """Sends "HELLO :D to teensy"""
+        """Sends "HELLO :D to teensy."""
         try:
             cls._clientSocket.sendto(cls._INITIALIZATION_MESSAGE.encode(), cls._address)
             print("DEBUGGING: Sent acknowledge package")
@@ -210,7 +210,7 @@ class TeensyCommunicationUDP:
     @classmethod
     def _check_if_available(cls) -> None:
         """
-        Checks if READY has been received
+        Checks if READY has been received.
 
         Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all*
         the data in the UDP buffer is read out when waiting for ready signal, to avoid strange bugs
