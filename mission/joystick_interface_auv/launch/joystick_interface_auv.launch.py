@@ -6,8 +6,7 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generates a launch description for the joystick_interface_auv node.
+    """Generates a launch description for the joystick_interface_auv node.
 
     This function creates a ROS 2 launch description that includes the
     joystick_interface_auv node. The node is configured to use the
@@ -16,6 +15,7 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: A ROS 2 launch description containing the
         joystick_interface_auv node.
+
     """
     joystick_interface_node = Node(
         package="joystick_interface_auv",

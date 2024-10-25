@@ -18,7 +18,6 @@ class ThrusterInterfaceAUVDriver:
         PWM_MAX=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
         coeffs=None,
     ) -> None:
-
         # Initialice the I2C communication
         self.bus = None
         try:
@@ -50,13 +49,14 @@ class ThrusterInterfaceAUVDriver:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 20
 
         # Get the full path to the ROS2 package this file is located at
-        self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET
+        self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = (
+            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET
+        )
 
         self.coeffs = coeffs
 
     def _interpolate_forces_to_pwm(self, thruster_forces_array) -> list:
-        """
-        Takes in Array of forces in Newtosn [N]
+        """Takes in Array of forces in Newtosn [N]
         takes 8 floats in form of:
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
@@ -75,8 +75,8 @@ class ThrusterInterfaceAUVDriver:
             thruster_forces_array[i] = thruster_forces / 9.80665
 
         # Select the appropriate pair of coeffs based on the operational voltage
-        left_coeffs = self.coeffs[self.SYSTEM_OPERATIONAL_VOLTAGE]['LEFT']
-        right_coeffs = self.coeffs[self.SYSTEM_OPERATIONAL_VOLTAGE]['RIGHT']
+        left_coeffs = self.coeffs[self.SYSTEM_OPERATIONAL_VOLTAGE]["LEFT"]
+        right_coeffs = self.coeffs[self.SYSTEM_OPERATIONAL_VOLTAGE]["RIGHT"]
 
         # Calculate the interpolated PWM values using the polynomial coefficients
         interpolated_pwm = []
@@ -113,8 +113,7 @@ class ThrusterInterfaceAUVDriver:
         self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0, i2c_data_array)
 
     def drive_thrusters(self, thruster_forces_array) -> list:
-        """
-        Takes in Array of forces in Newtosn [N]
+        """Takes in Array of forces in Newtosn [N]
         takes 8 floats in form of:
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
@@ -128,16 +127,20 @@ class ThrusterInterfaceAUVDriver:
         Gives out 8 ints in form of:
         [0, 0, 0, 0, 0, 0, 0, 0]
         """
-
         # Apply thruster mapping and direction
-        thruster_forces_array = [thruster_forces_array[i] * self.THRUSTER_DIRECTION[i] for i in self.THRUSTER_MAPPING]
+        thruster_forces_array = [
+            thruster_forces_array[i] * self.THRUSTER_DIRECTION[i]
+            for i in self.THRUSTER_MAPPING
+        ]
 
         # Convert Forces to PWM
         thruster_pwm_array = self._interpolate_forces_to_pwm(thruster_forces_array)
 
         # Apply thruster offset
         for ESC_channel, thruster_pwm in enumerate(thruster_pwm_array):
-            thruster_pwm_array[ESC_channel] = thruster_pwm + self.THRUSTER_PWM_OFFSET[ESC_channel]
+            thruster_pwm_array[ESC_channel] = (
+                thruster_pwm + self.THRUSTER_PWM_OFFSET[ESC_channel]
+            )
 
         # Apply thruster offset and limit PWM if needed
         for ESC_channel in range(len(thruster_pwm_array)):

@@ -29,7 +29,9 @@ class AcousticsDataRecordLib:
         ]
 
         # Make new .csv file for logging blackbox data ----------
-        with open(self.data_file_location, mode="w", newline="", encoding="utf-8") as csv_file:
+        with open(
+            self.data_file_location, mode="w", newline="", encoding="utf-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(self.csv_headers)
 
@@ -47,10 +49,10 @@ class AcousticsDataRecordLib:
         tdoa: list[float] = [0.0],
         position: list[float] = [0.0],
     ) -> None:
-        """
-        Logs the provided data to a CSV file.
+        """Logs the provided data to a CSV file.
 
-        Parameters:
+        Parameters
+        ----------
         self (object): The instance of the class.
         hydrophone1 (list, optional): Data from hydrophone 1. Defaults to [0].
         hydrophone2 (list, optional): Data from hydrophone 2. Defaults to [0].
@@ -64,12 +66,15 @@ class AcousticsDataRecordLib:
         position (list, optional): Position data. Defaults to [0.0].
 
         Writes the current time and provided data to a CSV file located at self.data_file_location.
+
         """
         # Get current time in hours, minutes, seconds and milliseconds
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file
-        with open(self.data_file_location, mode="a", newline="", encoding="utf-8") as csv_file:
+        with open(
+            self.data_file_location, mode="a", newline="", encoding="utf-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
                 [

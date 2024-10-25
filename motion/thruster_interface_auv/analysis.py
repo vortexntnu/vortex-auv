@@ -1,9 +1,8 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-#--------------------------------
-#load data and transform to numpy
+# --------------------------------
+# load data and transform to numpy
 
 files = [
     "motion/thruster_interface_auv/resources/T200-Thrusters-10V.csv",
@@ -13,26 +12,29 @@ files = [
     "motion/thruster_interface_auv/resources/T200-Thrusters-18V.csv",
     "motion/thruster_interface_auv/resources/T200-Thrusters-20V.csv",
 ]
-datas = []
+data = []
 for f in files:
-    data = np.genfromtxt(f, delimiter=',', skip_header=1, usecols=(5, 0))
-    datas.append(data)
+    data = np.genfromtxt(f, delimiter=",", skip_header=1, usecols=(5, 0))
+    data.append(data)
 
-#--------------------------------
-#plot pwm values vs force
-def plot_csvs(datas):
-    for i, data in enumerate(datas):
-        plt.plot(data[:,0], data[:,1], label=i*2+10)
+
+# --------------------------------
+# plot pwm values vs force
+def plot_csvs(data):
+    for i, data in enumerate(data):
+        plt.plot(data[:, 0], data[:, 1], label=i * 2 + 10)
 
     plt.xlabel("force")
     plt.ylabel("pwm")
     plt.legend()
     plt.show()
 
-#plot_csvs(datas)
 
-#--------------------------------
-#calculate the two halfs deg-order poly approx and plot them on data
+# plot_csvs(data)
+
+# --------------------------------
+# calculate the two halves deg-order poly approx and plot them on data
+
 
 def plot_single_vs_poly(xdata, ydata, deg):
     zero_indices = np.where(xdata == 0.00)[0]
@@ -57,16 +59,17 @@ def plot_single_vs_poly(xdata, ydata, deg):
     rms = np.sqrt(np.mean((yL - yL_fit) ** 2)) + np.sqrt(np.mean((yR - yR_fit) ** 2))
 
     plt.scatter(xdata, ydata, s=2)
-    plt.plot(xL, yL_fit, color='red')
-    plt.plot(xR, yR_fit, color='red')
+    plt.plot(xL, yL_fit, color="red")
+    plt.plot(xR, yR_fit, color="red")
     plt.title(f"deg: {deg} rms {rms}")
-    
+
     plt.xlabel("force")
     plt.ylabel("pwm")
     plt.show()
 
     return coeffs_L, coeffs_R
 
+
 np.set_printoptions(precision=5, suppress=True)
-for data in datas:
-    plot_single_vs_poly(data[:,0], data[:,1], 3)
+for data in data:
+    plot_single_vs_poly(data[:, 0], data[:, 1], 3)
