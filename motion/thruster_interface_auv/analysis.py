@@ -21,8 +21,8 @@ for f in files:
 # --------------------------------
 # plot pwm values vs force
 def plot_csvs(data):
-    for i, data in enumerate(data):
-        plt.plot(data[:, 0], data[:, 1], label=i * 2 + 10)
+    for i, single_data in enumerate(data):
+        plt.plot(single_data[:, 0], single_data[:, 1], label=i * 2 + 10)
 
     plt.xlabel("force")
     plt.ylabel("pwm")
@@ -71,5 +71,5 @@ def plot_single_vs_poly(xdata, ydata, deg):
 
 
 np.set_printoptions(precision=5, suppress=True)
-for data in data:
-    plot_single_vs_poly(data[:, 0], data[:, 1], 3)
+for single_data in data:
+    plot_single_vs_poly(single_data[:, 0], single_data[:, 1], 3)

@@ -40,27 +40,27 @@ gs_dsp = gridspec.GridSpecFromSubplotSpec(
     2, 1, subplot_spec=outer_gs[1], height_ratios=[7, 3], hspace=0.3
 )
 
-hydrophoneAxis = [None] * 5
+hydrophone_axis = [None] * 5
 
 # Add subplots in the first column for hydrophone data
 for i in range(5):
-    hydrophoneAxis[i] = fig.add_subplot(
-        gs_hydrophone[i, 0], sharex=hydrophoneAxis[0] if i else None
+    hydrophone_axis[i] = fig.add_subplot(
+        gs_hydrophone[i, 0], sharex=hydrophone_axis[0] if i else None
     )
-    hydrophoneAxis[i].label_outer()
+    hydrophone_axis[i].label_outer()
 fig.text(0.25, 0.965, "Hydrophone Data", ha="center")
 
 # Add subplots in the second column
 FFTAxis = fig.add_subplot(gs_dsp[0])
-filterAxis = fig.add_subplot(gs_dsp[1])
+filter_axis = fig.add_subplot(gs_dsp[1])
 
 # Plot type so that the size is dynamic
 plt.tight_layout()
 
 # Select nice color pallet for graphs
-colorSoftPurple = (168 / 255, 140 / 255, 220 / 255)
-colorSoftBlue = (135 / 255, 206 / 255, 250 / 255)
-colorSoftGreen = (122 / 255, 200 / 255, 122 / 255)
+color_soft_purple = (168 / 255, 140 / 255, 220 / 255)
+color_soft_blue = (135 / 255, 206 / 255, 250 / 255)
+color_soft_green = (122 / 255, 200 / 255, 122 / 255)
 
 # .CSV Setup ==================================================
 # Get Directory of the .csv files
@@ -68,27 +68,25 @@ PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ACOUSTICS_CSV_FILE_DIR = PACKAGE_DIR + "/acoustics_data"
 
 # List of all the acoustic files
-acousticsCSVFiles = csv_files = glob.glob(
+acoustics_csv_file = csv_files = glob.glob(
     ACOUSTICS_CSV_FILE_DIR + "/acoustics_data_" + "*.csv"
 )
 
 # Get the latest csv file name for acoustics data
-acousticsCSVFile = max(acousticsCSVFiles, key=os.path.getctime)
+acoustics_csv_file = max(acoustics_csv_file, key=os.path.getctime)
 
 
 def convert_pandas_object_to_int_array(pandas_object: pd.Series) -> list:
-    pandas_string = pandas_object.iloc[0].strip("array('i', ").rstrip(")")
+    pandas_string = pandas_object.iloc[0].removeprefix("array('i', ").removesuffix(")")
     pandas_int_array = [int(x.strip()) for x in pandas_string.strip("[]").split(",")]
-
     return pandas_int_array
 
 
 def convert_pandas_object_to_float_array(pandas_object: pd.Series) -> list:
-    pandas_string = pandas_object.iloc[0].strip("array('f', ").rstrip(")")
+    pandas_string = pandas_object.iloc[0].removeprefix("array('f', ").removesuffix(")")
     pandas_float_array = [
         float(x.strip()) for x in pandas_string.strip("[]").split(",")
     ]
-
     return pandas_float_array
 
 
@@ -140,7 +138,7 @@ def get_acoustics_data() -> list:
     positon_data = [0.0] * POSITION_DATA_SIZE
 
     # Read latest acoustics data ----------
-    acoustics_data_frame = pd.read_csv(acousticsCSVFile)
+    acoustics_data_frame = pd.read_csv(acoustics_csv_file)
     latest_acoustics_data = acoustics_data_frame.tail(1)
 
     try:
@@ -280,26 +278,28 @@ def display_live_data() -> None:
     # Plot hydrophone data
     for hydrophone_index in range(5):
         x_hydrophone = list(range(len(hydrophone_data[hydrophone_index][::])))
-        hydrophoneAxis[hydrophone_index].clear()
-        hydrophoneAxis[hydrophone_index].plot(
+        hydrophone_axis[hydrophone_index].clear()
+        hydrophone_axis[hydrophone_index].plot(
             x_hydrophone,
             hydrophone_data[hydrophone_index],
             label=f"Hydrophone {hydrophone_index + 1}",
-            color=colorSoftBlue,
+            color=color_soft_blue,
             alpha=1,
         )
-        hydrophoneAxis[hydrophone_index].legend(loc="upper right", fontsize="xx-small")
+        hydrophone_axis[hydrophone_index].legend(loc="upper right", fontsize="xx-small")
 
     # Plot Filter response
     x_raw = list(range(len(unfiltered_data)))
     x_filter = list(range(len(filter_data)))
-    filterAxis.clear()
-    filterAxis.set_title("Filter response")
-    filterAxis.plot(x_raw, unfiltered_data, label="Raw", color=colorSoftBlue, alpha=0.5)
-    filterAxis.plot(
-        x_filter, filter_data, label="Filter", color=colorSoftGreen, alpha=0.7
+    filter_axis.clear()
+    filter_axis.set_title("Filter response")
+    filter_axis.plot(
+        x_raw, unfiltered_data, label="Raw", color=color_soft_blue, alpha=0.5
     )
-    filterAxis.legend(loc="upper right", fontsize="xx-small")
+    filter_axis.plot(
+        x_filter, filter_data, label="Filter", color=color_soft_green, alpha=0.7
+    )
+    filter_axis.legend(loc="upper right", fontsize="xx-small")
 
     # Plot FFT data
     FFTAxis.clear()
@@ -310,7 +310,7 @@ def display_live_data() -> None:
         fft_frequency_data,
         fft_amplitude_data,
         label="FFT",
-        color=colorSoftPurple,
+        color=color_soft_purple,
         alpha=1,
         width=500,
     )

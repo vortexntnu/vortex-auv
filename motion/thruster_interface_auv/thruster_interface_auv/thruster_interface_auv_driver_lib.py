@@ -7,50 +7,50 @@ import smbus2
 class ThrusterInterfaceAUVDriver:
     def __init__(
         self,
-        I2C_BUS=1,
-        PICO_I2C_ADDRESS=0x21,
-        SYSTEM_OPERATIONAL_VOLTAGE=16.0,
-        ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET="",
-        THRUSTER_MAPPING=[7, 6, 5, 4, 3, 2, 1, 0],
-        THRUSTER_DIRECTION=[1, 1, 1, 1, 1, 1, 1, 1],
-        THRUSTER_PWM_OFFSET=[0, 0, 0, 0, 0, 0, 0, 0],
-        PWM_MIN=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
-        PWM_MAX=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
+        i2c_bus=1,
+        pico_i2c_address=0x21,
+        system_operational_voltage=16.0,
+        ros2_package_name_for_thruster_datasheet="",
+        thruster_mapping=[7, 6, 5, 4, 3, 2, 1, 0],
+        thruster_direction=[1, 1, 1, 1, 1, 1, 1, 1],
+        thruster_pwm_offset=[0, 0, 0, 0, 0, 0, 0, 0],
+        pwm_min=[1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100],
+        pwm_max=[1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900],
         coeffs=None,
     ) -> None:
         # Initialice the I2C communication
         self.bus = None
         try:
-            self.bus = smbus2.SMBus(I2C_BUS)
+            self.bus = smbus2.SMBus(i2c_bus)
         except Exception as errorCode:
             print(f"ERROR: Failed connection I2C bus nr {self.bus}: {errorCode}")
-        self.PICO_I2C_ADDRESS = PICO_I2C_ADDRESS
+        self.PICO_I2C_ADDRESS = pico_i2c_address
 
         # Set mapping, direction and offset for the thrusters
-        self.THRUSTER_MAPPING = THRUSTER_MAPPING
-        self.THRUSTER_DIRECTION = THRUSTER_DIRECTION
-        self.THRUSTER_PWM_OFFSET = THRUSTER_PWM_OFFSET
-        self.PWM_MIN = PWM_MIN
-        self.PWM_MAX = PWM_MAX
+        self.THRUSTER_MAPPING = thruster_mapping
+        self.THRUSTER_DIRECTION = thruster_direction
+        self.THRUSTER_PWM_OFFSET = thruster_pwm_offset
+        self.PWM_MIN = pwm_min
+        self.PWM_MAX = pwm_max
 
         # Convert SYSTEM_OPERATIONAL_VOLTAGE to a whole even number to work with
         # This is because we have multiple files for the behaviour of the thrusters depending on the voltage of the drone
-        if SYSTEM_OPERATIONAL_VOLTAGE < 11.0:
+        if system_operational_voltage < 11.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 10
-        elif SYSTEM_OPERATIONAL_VOLTAGE < 13.0:
+        elif system_operational_voltage < 13.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 12
-        elif SYSTEM_OPERATIONAL_VOLTAGE < 15.0:
+        elif system_operational_voltage < 15.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 14
-        elif SYSTEM_OPERATIONAL_VOLTAGE < 17.0:
+        elif system_operational_voltage < 17.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 16
-        elif SYSTEM_OPERATIONAL_VOLTAGE < 19.0:
+        elif system_operational_voltage < 19.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 18
-        elif SYSTEM_OPERATIONAL_VOLTAGE >= 19.0:
+        elif system_operational_voltage >= 19.0:
             self.SYSTEM_OPERATIONAL_VOLTAGE = 20
 
         # Get the full path to the ROS2 package this file is located at
         self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET = (
-            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET
+            ros2_package_name_for_thruster_datasheet
         )
 
         self.coeffs = coeffs

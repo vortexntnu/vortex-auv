@@ -55,9 +55,9 @@ class TeensyCommunicationUDP:
 
     _INITIALIZATION_MESSAGE = "HELLO :D"  # This is a message only sent once to establish 2 way communication between Teensy and client
 
-    _clientSocket = socket(AF_INET, SOCK_DGRAM)
+    _client_socket = socket(AF_INET, SOCK_DGRAM)
 
-    _timeoutMax = 10
+    _timeout_max = 10
     _data_string = ""
     _data_target = ""
     acoustics_data = {
@@ -84,9 +84,9 @@ class TeensyCommunicationUDP:
         cls.MY_IP = cls._get_ip()
 
         # Socket setup
-        cls._clientSocket.settimeout(cls._TIMEOUT)
-        cls._clientSocket.bind((cls.MY_IP, cls._MY_PORT))
-        cls._clientSocket.setblocking(False)
+        cls._client_socket.settimeout(cls._TIMEOUT)
+        cls._client_socket.bind((cls.MY_IP, cls._MY_PORT))
+        cls._client_socket.setblocking(False)
 
         cls._send_acknowledge_signal()
         time_start = time.time()
@@ -96,7 +96,7 @@ class TeensyCommunicationUDP:
             print("Did not receive READY signal. Will wait.")
             time.sleep(1)
 
-            if time.time() - time_start > cls._timeoutMax:
+            if time.time() - time_start > cls._timeout_max:
                 print("Gave up on receiving READY. Sending acknowledge signal again")
                 # Start over
                 time_start = time.time()
@@ -156,7 +156,7 @@ class TeensyCommunicationUDP:
 
         """
         try:
-            rec_data, _ = cls._clientSocket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
+            rec_data, _ = cls._client_socket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
             message_received = rec_data.decode()
             return message_received
         except OSError as e:  # `error` is really `socket.error`
@@ -201,7 +201,9 @@ class TeensyCommunicationUDP:
     def _send_acknowledge_signal(cls) -> None:
         """Sends "HELLO :D to teensy."""
         try:
-            cls._clientSocket.sendto(cls._INITIALIZATION_MESSAGE.encode(), cls._address)
+            cls._client_socket.sendto(
+                cls._INITIALIZATION_MESSAGE.encode(), cls._address
+            )
             print("DEBUGGING: Sent acknowledge package")
         except Exception as e:
             print("Error from send_acknowledge_signal")
@@ -253,6 +255,6 @@ class TeensyCommunicationUDP:
                 frequency_variance_msg = f"{str(frequency)},{str(variance)},"
 
                 # print(self.address);
-                cls._clientSocket.sendto(frequency_variance_msg.encode(), cls._address)
+                cls._client_socket.sendto(frequency_variance_msg.encode(), cls._address)
         except Exception as e:
             print(f"Unexpected error while sending frequency data: {e}")

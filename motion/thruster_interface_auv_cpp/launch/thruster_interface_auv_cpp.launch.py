@@ -7,9 +7,9 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     # Path to the YAML file
-    config = path.join(
-        get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
-    )
+    # config = path.join(
+    #    get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
+    # )
 
     thruster_interface_auv_node = Node(
         package="thruster_interface_auv_cpp",
