@@ -54,8 +54,8 @@ repos:
         name: ruff-pydocstyle
         args: [
             "--select=D",
-            "--ignore=D100,D101,D102,D103,D104,D105,D106,D107,D203,D213,D205,D401,D415,D400,D417,D404",
-            "--fix"
+            "--ignore=D100,D101,D102,D103,D104,D105,D106,D107,D203,D205,D212,D401",
+            "--fix",
             ]
         stages: [pre-commit]
         pass_filenames: true
@@ -63,7 +63,7 @@ repos:
         name: ruff-check
         args: [
             "--select=F,PT,B,C4,T20,S,N",
-            "--ignore=T201,N806,F841,B006,N803,B020,S101,S607,S603,B007,N815,B005,N816,N999",
+            "--ignore=T201,B006,S101,S607,S603",
             "--fix"
             ]
         stages: [pre-commit]
