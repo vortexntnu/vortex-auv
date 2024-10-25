@@ -8,7 +8,8 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """Generate the launch description for the topside AUV setup.
+    """
+    Generate the launch description for the topside AUV setup.
 
     This function sets up the environment variable for ROS console formatting,
     initializes the joystick node with specific parameters and remappings, and

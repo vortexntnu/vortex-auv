@@ -6,7 +6,8 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """Generates a launch description for the blackbox node.
+    """
+    Generates a launch description for the blackbox node.
 
     This function constructs the path to the YAML configuration file for the
     blackbox node and returns a LaunchDescription object that includes the

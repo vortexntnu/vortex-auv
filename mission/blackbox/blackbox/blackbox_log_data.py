@@ -58,7 +58,8 @@ class BlackBoxLogData:
     def manage_csv_files(
         self, max_file_age_in_days: int = 7, max_size_kb: int = 3_000_000
     ) -> None:
-        """Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
+        """
+        Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
 
         Args:
             max_file_age_in_days (int, optional): The maximum age of files in days before they are deleted. Defaults to 7 days.
@@ -186,34 +187,6 @@ class BlackBoxLogData:
         pwm_7: int = 0,
         pwm_8: int = 0,
     ) -> None:
-        """Logs the provided data to a CSV file.
-
-        Parameters
-        ----------
-        - psm_current (float): The current of the power supply module.
-        - psm_voltage (float): The voltage of the power supply module.
-        - pressure_internal (float): The internal pressure.
-        - temperature_ambient (float): The ambient temperature.
-        - thruster_forces_1 (float): The force of thruster 1.
-        - thruster_forces_2 (float): The force of thruster 2.
-        - thruster_forces_3 (float): The force of thruster 3.
-        - thruster_forces_4 (float): The force of thruster 4.
-        - thruster_forces_5 (float): The force of thruster 5.
-        - thruster_forces_6 (float): The force of thruster 6.
-        - thruster_forces_7 (float): The force of thruster 7.
-        - thruster_forces_8 (float): The force of thruster 8.
-        - pwm_1 (int): The PWM signal for thruster 1.
-        - pwm_2 (int): The PWM signal for thruster 2.
-        - pwm_3 (int): The PWM signal for thruster 3.
-        - pwm_4 (int): The PWM signal for thruster 4.
-        - pwm_5 (int): The PWM signal for thruster 5.
-        - pwm_6 (int): The PWM signal for thruster 6.
-        - pwm_7 (int): The PWM signal for thruster 7.
-        - pwm_8 (int): The PWM signal for thruster 8.
-        This method appends a new row to the CSV file specified by `self.data_file_location`.
-        The row contains the current time and the provided data values.
-
-        """
         # Get current time in hours, minutes, seconds and milliseconds
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 

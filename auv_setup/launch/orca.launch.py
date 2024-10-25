@@ -7,7 +7,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description() -> LaunchDescription:
-    """Generates a launch description for the ORCA AUV setup.
+    """
+    Generates a launch description for the ORCA AUV setup.
 
     This function sets up the environment variable for ROS console formatting
     and includes the launch descriptions for the thruster allocator and thruster

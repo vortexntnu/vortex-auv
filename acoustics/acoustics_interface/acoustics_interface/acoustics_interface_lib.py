@@ -5,7 +5,8 @@ from socket import AF_INET, SOCK_DGRAM, socket
 
 
 class TeensyCommunicationUDP:
-    """This class is responsible for the RPI side of teensy-RPI UDP communication. It is
+    """
+    Class is responsible for the RPI side of teensy-RPI UDP communication. It is
     implemented with a singleton pattern for convenience.
 
     Note: Private members are denoted by _member_name
@@ -74,13 +75,6 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def init_communication(cls, frequencies_of_interest: list[tuple[int, int]]) -> None:
-        """Sets up communication with teensy
-
-        Parameters
-        ----------
-            frequenciesOfInterest (list[tuple[int, int]]): List of frequencies to look for
-
-        """
         assert (
             len(frequencies_of_interest) == 10
         ), "Frequency list has to have exactly 10 entries"
@@ -154,7 +148,8 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _get_raw_data(cls) -> str | None:
-        """Gets a message from teensy
+        """
+        Gets a message from teensy
 
         Returns:
             The message in the UDP buffer if there is one
@@ -172,17 +167,6 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _parse_data_string(cls, is_float: bool) -> list[float] | list[int] | None:
-        """Converts _data_string to a list
-
-        Parameters
-        ----------
-            is_float (bool): whether _data_string should be seen as a list of floats or ints
-
-        Returns
-        -------
-            The converted list
-
-        """
         if cls._data_string == "":
             return
 
@@ -225,7 +209,8 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _check_if_available(cls) -> None:
-        """Checks if READY has been received
+        """
+        Checks if READY has been received
 
         Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all*
         the data in the UDP buffer is read out when waiting for ready signal, to avoid strange bugs
@@ -257,13 +242,6 @@ class TeensyCommunicationUDP:
     def _send_frequencies_of_interest(
         cls, frequencies_of_interest: list[tuple[float, float]]
     ) -> None:
-        """Sends the list of frequencies with variance to teensy
-
-        Parameters
-        ----------
-            frequenciesOfInterest (list[tuple[float, float]]): The list of frequencies w/ variance
-
-        """
         try:
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
             assert (

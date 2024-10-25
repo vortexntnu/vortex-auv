@@ -70,7 +70,8 @@ class PowerSenseModulePublisher(Node):
         self.get_logger().info('"power_sense_module_publisher" has been started')
 
     def read_timer_callback(self) -> None:
-        """Callback function triggered by the read timer.
+        """
+        Callback function triggered by the read timer.
 
         This function retrieves the current and voltage data from the power sense module
         and publishes it to the corresponding ROS2 topics.
@@ -94,7 +95,8 @@ class PowerSenseModulePublisher(Node):
         )  # publish voltage value to the "voltge topic"
 
     def warning_timer_callback(self) -> None:
-        """Callback function triggered by the warning timer.
+        """
+        Callback function triggered by the warning timer.
 
         This function checks if the voltage levels are outside of the acceptable range
         and logs a warning if the voltage is either too low or too high.
@@ -106,7 +108,8 @@ class PowerSenseModulePublisher(Node):
 
 
 def main(args: list = None) -> None:
-    """Main function to initialize and spin the ROS2 node.
+    """
+    Main function to initialize and spin the ROS2 node.
 
     This function initializes the rclpy library, creates an instance of the
     PowerSenseModulePublisher node, and starts spinning to keep the node running

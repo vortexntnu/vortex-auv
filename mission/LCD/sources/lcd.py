@@ -21,7 +21,8 @@ Temperature = TemperatureSensor()
 
 # Formatting function for nices LCD screen layout
 def format_line(value: str, unit: str) -> str:
-    """Formats a string to fit within a 16-character display, appending a unit with spacing.
+    """
+    Formats a string to fit within a 16-character display, appending a unit with spacing.
 
     Args:
         value (str): The value to be displayed.

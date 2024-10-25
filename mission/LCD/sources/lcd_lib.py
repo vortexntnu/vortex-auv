@@ -24,7 +24,8 @@ class LCDScreenDriver:
         )
 
     def write_to_screen(self, line1: str = "", line2: str = "") -> None:
-        """Writes two lines of text to the LCD screen.
+        """
+        Writes two lines of text to the LCD screen.
 
         This method clears the LCD screen and then writes the provided text
         to the screen. Each line of text is truncated to a maximum of 16
@@ -48,7 +49,8 @@ class LCDScreenDriver:
         self._lcd.write_string(line2)
 
     def fancy_animation(self, animation_speed: float = 0.4) -> None:
-        """Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
+        """
+        Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
 
         Args:
             animation_speed (float): Speed of the animation. Default is 0.4. The actual speed is calculated as 1 / animation_speed.

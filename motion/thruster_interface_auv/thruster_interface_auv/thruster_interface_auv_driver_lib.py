@@ -56,14 +56,6 @@ class ThrusterInterfaceAUVDriver:
         self.coeffs = coeffs
 
     def _interpolate_forces_to_pwm(self, thruster_forces_array) -> list:
-        """Takes in Array of forces in Newtosn [N]
-        takes 8 floats in form of:
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-        Returns an Array of PWM
-        Gives out 8 ints in form of:
-        [0, 0, 0, 0, 0, 0, 0, 0]
-        """
         # Read the important data from the .csv file
         # thrusterDatasheetFileData = pandas.read_csv(
         #     f"{self.ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET}/resources/T200-Thrusters-{self.SYSTEM_OPERATIONAL_VOLTAGE}V.csv",
@@ -113,20 +105,6 @@ class ThrusterInterfaceAUVDriver:
         self.bus.write_i2c_block_data(self.PICO_I2C_ADDRESS, 0, i2c_data_array)
 
     def drive_thrusters(self, thruster_forces_array) -> list:
-        """Takes in Array of forces in Newtosn [N]
-        takes 8 floats in form of:
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-        Converts Forces to PWM signals
-        PWM signals sent to PCA9685 module through I2C
-        PCA9685 Module sends electrical PWM signals to the individual thruster ESCs
-        The ESCs send corecponding electrical power to the Thrustres
-        Thrusters then generate thrust accordingly to the Forces sent to this driver
-
-        Returns an Array of PWM signal for debugging purposes
-        Gives out 8 ints in form of:
-        [0, 0, 0, 0, 0, 0, 0, 0]
-        """
         # Apply thruster mapping and direction
         thruster_forces_array = [
             thruster_forces_array[i] * self.THRUSTER_DIRECTION[i]

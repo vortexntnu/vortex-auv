@@ -77,15 +77,6 @@ acousticsCSVFile = max(acousticsCSVFiles, key=os.path.getctime)
 
 
 def convert_pandas_object_to_int_array(pandas_object: pd.Series) -> list:
-    """Convert a pandas object containing a string representation of an integer array to a list of integers.
-
-    Args:
-        pandasObject (pandas.Series): A pandas Series object containing a string representation of an integer array.
-
-    Returns:
-        list: A list of integers extracted from the pandas object.
-
-    """
     pandas_string = pandas_object.iloc[0].strip("array('i', ").rstrip(")")
     pandas_int_array = [int(x.strip()) for x in pandas_string.strip("[]").split(",")]
 
@@ -93,15 +84,6 @@ def convert_pandas_object_to_int_array(pandas_object: pd.Series) -> list:
 
 
 def convert_pandas_object_to_float_array(pandas_object: pd.Series) -> list:
-    """Convert a pandas object containing a string representation of a float array to a list of floats.
-
-    Args:
-        pandasObject (pandas.Series): A pandas Series object containing a string representation of a float array.
-
-    Returns:
-        list: A list of floats extracted from the pandas object.
-
-    """
     pandas_string = pandas_object.iloc[0].strip("array('f', ").rstrip(")")
     pandas_float_array = [
         float(x.strip()) for x in pandas_string.strip("[]").split(",")
@@ -111,7 +93,8 @@ def convert_pandas_object_to_float_array(pandas_object: pd.Series) -> list:
 
 
 def get_acoustics_data() -> list:
-    """Retrieves and processes the latest acoustics data from a CSV file.
+    """
+    Retrieves and processes the latest acoustics data from a CSV file.
 
     This function reads the latest acoustics data from a specified CSV file and processes it to extract various
     data points including hydrophone data, unfiltered data, filtered data, FFT data, peaks data, TDOA data, and
@@ -247,7 +230,8 @@ def get_acoustics_data() -> list:
 
 
 def display_live_data() -> None:
-    """Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
+    """
+    Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
 
     Retrieves the latest acoustics data and separates it into hydrophone data, unfiltered data,
     filtered data, FFT amplitude and frequency data, and peak amplitude and frequency data.

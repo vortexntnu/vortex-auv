@@ -63,7 +63,8 @@ class TemperaturePublisher(Node):
         self.get_logger().info('"temperature_sensor_publisher" has been started')
 
     def timer_callback(self) -> None:
-        """Callback function triggered by the main timer.
+        """
+        Callback function triggered by the main timer.
 
         This function retrieves the temperature data from the sensor
         and publishes it to the "/auv/temperature" topic.
@@ -77,7 +78,8 @@ class TemperaturePublisher(Node):
         self.publisher_temperature.publish(temperature_msg)
 
     def warning_timer_callback(self) -> None:
-        """Callback function triggered by the warning timer.
+        """
+        Callback function triggered by the warning timer.
 
         This function checks if the temperature exceeds the critical level.
         If so, a fatal warning is logged indicating a possible overheating situation.
@@ -89,7 +91,8 @@ class TemperaturePublisher(Node):
 
 
 def main(args: list = None) -> None:
-    """Main function to initialize and spin the ROS2 node.
+    """
+    Main function to initialize and spin the ROS2 node.
 
     This function initializes the rclpy library, creates an instance of the
     TemperaturePublisher node, and starts spinning to keep the node running
