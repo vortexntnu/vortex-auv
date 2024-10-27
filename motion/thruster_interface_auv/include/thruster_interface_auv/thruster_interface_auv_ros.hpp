@@ -1,6 +1,7 @@
 #ifndef THRUSTER_INTERFACE_AUV_NODE_HPP
 #define THRUSTER_INTERFACE_AUV_NODE_HPP
 
+#include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>

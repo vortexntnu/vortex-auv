@@ -3,10 +3,10 @@
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver() {}
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
-    int I2C_BUS,
+    short I2C_BUS,
     int PICO_I2C_ADDRESS,
-    const std::vector<int>& THRUSTER_MAPPING,
-    const std::vector<int>& THRUSTER_DIRECTION,
+    const std::vector<short>& THRUSTER_MAPPING,
+    const std::vector<short>& THRUSTER_DIRECTION,
     const std::vector<int>& PWM_MIN,
     const std::vector<int>& PWM_MAX,
     const std::vector<double>& LEFT_COEFFS,
@@ -103,15 +103,6 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
         i2c_data_array[2 * i] = (thruster_pwm_array[i] >> 8) & 0xFF;  // MSB
         i2c_data_array[2 * i + 1] = thruster_pwm_array[i] & 0xFF;     // LSB
     }
-
-    /* constexpr std::size_t i2c_data_size = 8 * 2;  // 8 thrusters * (1xMSB +
-    1xLSB) std::uint8_t i2c_data_array[i2c_data_size]; auto pwm_to_i2c_data =
-    [](std::int16_t pwm) -> std::array<std::uint8_t, 2> { return
-    {static_cast<std::uint8_t>((pwm >> 8) & 0xFF), static_cast<std::uint8_t>(pwm
-    & 0xFF)};
-    };
-    std::transform(thruster_pwm_array.begin(), thruster_pwm_array.end(),
-    i2c_data_array, pwm_to_i2c_data); */
 
     // Set the I2C slave address
     if (ioctl(bus_fd, I2C_SLAVE, PICO_I2C_ADDRESS) < 0) {

@@ -54,10 +54,10 @@ class ThrusterInterfaceAUVDriver {
      * @param RIGHT_COEFFS        third order polynomial coefficients when force
      * > 0
      */
-    ThrusterInterfaceAUVDriver(int I2C_BUS,
+    ThrusterInterfaceAUVDriver(short I2C_BUS,
                                int PICO_I2C_ADDRESS,
-                               const std::vector<int>& THRUSTER_MAPPING,
-                               const std::vector<int>& THRUSTER_DIRECTION,
+                               const std::vector<short>& THRUSTER_MAPPING,
+                               const std::vector<short>& THRUSTER_DIRECTION,
                                const std::vector<int>& PWM_MIN,
                                const std::vector<int>& PWM_MAX,
                                const std::vector<double>& LEFT_COEFFS,
@@ -78,11 +78,11 @@ class ThrusterInterfaceAUVDriver {
    private:
     int bus_fd;  ///< file descriptor for the I2C bus (integer >0 that uniquely
                  ///< identifies the device. -1 if it fails)
-    int I2C_BUS;
+    short I2C_BUS;
     int PICO_I2C_ADDRESS;
 
-    std::vector<int> THRUSTER_MAPPING;
-    std::vector<int> THRUSTER_DIRECTION;
+    std::vector<short> THRUSTER_MAPPING;
+    std::vector<short> THRUSTER_DIRECTION;
     std::vector<int> PWM_MIN;
     std::vector<int> PWM_MAX;
     std::vector<double> LEFT_COEFFS;

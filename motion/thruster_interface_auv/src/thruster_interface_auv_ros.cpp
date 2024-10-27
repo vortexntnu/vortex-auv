@@ -4,13 +4,18 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     : Node("thruster_interface_auv_node") {
     // create a subscriber that takes data from thruster forces and publisher
     // for debugging
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+    auto qos_sensor_data = rclcpp::QoS(
+        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+
     this->thruster_forces_subscriber_ =
         this->create_subscription<vortex_msgs::msg::ThrusterForces>(
-            "thrust/thruster_forces", 10,
+            "thrust/thruster_forces", qos_sensor_data,
             std::bind(&ThrusterInterfaceAUVNode::thruster_forces_callback, this,
                       std::placeholders::_1));
     this->thruster_pwm_publisher_ =
-        this->create_publisher<std_msgs::msg::Int16MultiArray>("pwm", 10);
+        this->create_publisher<std_msgs::msg::Int16MultiArray>("pwm",
+                                                               qos_sensor_data);
 
     // from orca.yaml parameters
     this->declare_parameter<std::vector<int>>(
@@ -45,15 +50,17 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     this->thrust_timer_period_ =
         1.0 / this->get_parameter("propulsion.thrusters.thrust_update_rate")
                   .as_double();
-    auto left_coeffs = this->get_parameter("coeffs.16V.LEFT").as_double_array();
-    auto right_coeffs =
+    std::vector<double> left_coeffs =
+        this->get_parameter("coeffs.16V.LEFT").as_double_array();
+    std::vector<double> right_coeffs =
         this->get_parameter("coeffs.16V.RIGHT").as_double_array();
 
     // Initialize thruster driver
     this->thruster_driver_ = ThrusterInterfaceAUVDriver(
         i2c_bus, i2c_address,
-        std::vector<int>(thruster_mapping.begin(), thruster_mapping.end()),
-        std::vector<int>(thruster_direction.begin(), thruster_direction.end()),
+        std::vector<short>(thruster_mapping.begin(), thruster_mapping.end()),
+        std::vector<short>(thruster_direction.begin(),
+                           thruster_direction.end()),
         std::vector<int>(thruster_PWM_min.begin(), thruster_PWM_min.end()),
         std::vector<int>(thruster_PWM_max.begin(), thruster_PWM_max.end()),
         std::vector<double>(left_coeffs.begin(), left_coeffs.end()),
