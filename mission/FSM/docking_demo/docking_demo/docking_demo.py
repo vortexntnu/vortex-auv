@@ -218,6 +218,7 @@ class AbortState(ActionState):
         blackboard["current_pose"] = feedback.current_pose
         print(f"Received feedback: {list(feedback.current_pose)}")
 
+
 def error_state(blackboard: Blackboard) -> str:
     return "error"
 
