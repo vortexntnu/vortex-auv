@@ -16,13 +16,13 @@
 #include "tf2_ros/message_filter.h"
 #include "tf2_ros/transform_listener.h"
 #include <tuple>
+#include <Eigen/Dense>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex_filtering/vortex_filtering.hpp>
 
 
 
-#include <vector>
 //#include <opencv2/opencv.hpp>
 
 
@@ -59,10 +59,10 @@ For KallmanFilterCallback function:
 
 */
 
-
 namespace vortex::ekf_filtering
 
 {
+using Vector6d = Eigen::Vector<double, 6>;
 
 class EKFFilteringNode : public rclcpp::Node{
 
@@ -86,26 +86,70 @@ class EKFFilteringNode : public rclcpp::Node{
         // Publisher for the transformed poses
         rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr transformed_pose_pub_;
 
+    /**
+     * @brief Struct to store the board pose, status and timestamp using in kalmanFilterCallback function.
+    */ 
+        // struct BoardPoseStamp{
+        // std::tuple<BoardDetectionStatus, Vector6d, rclcpp::Time> getBoardPoseStamp() const {
+        // return {board_detection_status_, board_pose_meas_, stamp_};
+        // }
+        struct ObjectPoseStamp{
+         std::tuple<Vector6d, rclcpp::Time> getObjectPoseStamp() const {
+        return {object_pose_meas_, stamp_};
+         }
         
 
-        using DynMod = vortex::models::IdentityDynamicModel<6>;
+        using DynMod = vortex::models::IdentityDynamicModel<6>; //one for constant position as well
         using SensMod = vortex::models::IdentitySensorModel<6,6>;
         using EKF = vortex::filter::EKF<DynMod, SensMod>;
 
-        // static rclcpp::Time previous_time;
-        // rclcpp::Time current_time;
-        // rclcpp::Duration time_since_previous_callback;
-        // bool callback_flag;
+
+        bool first_run_ = true;
+        rclcpp::Time previous_time_;
+    
+        rclcpp::Duration time_since_previous_callback;
+        //bool poseCallback;
         void poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
+        void kalmanFilterCallback(geometry_msgs::msg::PoseStamped transformed_pose);
+        
 
-        void kalmanFilterCallback();
-        // void poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
+
+        std::shared_ptr<DynMod> dynamic_model_;
+        std::shared_ptr<SensMod> sensor_model_;
+        Vector6d object_pose_meas_ = Vector6d::Zero(6); 
+        Vector6d previous_pose_est_ = Vector6d::Zero(6); 
+        Vector6d transformed_pose_vector_ = Vector6d::Zero(6);
+        geometry_msgs::msg::PoseStamped estimated_pose_;
+
+        rclcpp::Time previous_est_time_;
+        rclcpp::Time stamp_;
+
+        std::vector<int64_t> ids_;
+        std::unordered_map<int,int> id_detection_counter_;
+        std::string frame_;
+        ObjectPoseStamp object_measurement_;
+        std::shared_ptr<DynMod> dynamic_model_;
+        std::shared_ptr<SensMod> sensor_model_;
+        vortex::prob::Gauss<6> board_pose_est_;
+        rclcpp::TimerBase::SharedPtr timer_;
+        rclcpp::TimerBase::SharedPtr timeout_timer_;
+        std::string image_topic_;
+        std::string camera_info_topic_;
 
 
-        // std::shared_ptr<DynMod> dynamic_model_;
-        // std::shared_ptr<SensMod> sensor_model_;
-        // vortex::prob::Gauss<6> board_pose_est_;
 
+        double ekf_x_pos_;
+        double ekf_y_pos_;
+        double ekf_z_pos_;
+
+        double ekf_x_orientation_;
+        double ekf_y_orientation_; //
+        double ekf_z_orientation_; //
+        
+
+
+
+        
 
     
 
@@ -113,5 +157,5 @@ class EKFFilteringNode : public rclcpp::Node{
 
 };
 } //namespace vortex::ekf_filtering
-
+}
 #endif

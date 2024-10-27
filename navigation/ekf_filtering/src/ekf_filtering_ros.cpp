@@ -12,7 +12,7 @@ AruCo marker poses, detects and calculates position of markers
 Board Pose, position from centre of code, kalman filter for stable outputs
     detect_board should be set
     createRectangularBoard function -> position poblished in src/aruco_detector.hpp
-    getBoardPoseStamp();
+    getObjectPoseStamp();
 
 what to implement
 
@@ -67,6 +67,8 @@ EKFFilteringNode::EKFFilteringNode() : Node("ekf_filtering_node")
         RCLCPP_INFO(this->get_logger(), "EKFFilteringNode has been started.");
     }
 
+
+
 void EKFFilteringNode::poseCallback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg)
     {
         // Attempt to transform the PoseStamped into the "odom" frame
@@ -80,46 +82,65 @@ void EKFFilteringNode::poseCallback(const geometry_msgs::msg::PoseStamped::Const
         }
     }
 
-void EKFFilteringNode::kalmanFilterCallback()
+void EKFFilteringNode::kalmanFilterCallback(geometry_msgs::msg::PoseStamped transformed_pose)
 {
-    //Filtering the transformed pose.
+
+    //Filtering the transformed pose, only inputvariable
+    //last position and time.  
+    
+    geometry_msgs::msg::PoseStamped object_pose = transformed_pose.pose;
+    transformed_pose_vector_ = object_pose.position.x, object_pose.position.y, object_pose.position.z, object_pose.orientation.x, object_pose.orientation.y, object_pose.orientation.z;
+
     //2 publishers, one with kalman filter and one without.
     //run kalmanfiltercallback
+    if (first_run_) {
+        //set previous estimate
+        previous_pose_est_ = transformed_pose_vector_;
+        previous_est_time_ = transformed_pose.header.stamp;  // Get the time stamp from the header
+        first_run_ = false;
+        return transformed_pose;
+    }
 
-    // static rclcpp::Time previous_time = this->now();
-    // rclcpp::Time current_time = this->now();
-    // //clcpp::Duration time_since_previous_callback = current_time - previous_time;
-    // previous_time = current_time;
-    // callback_flag = false;
+    else{
 
-
-    // auto [status, board_pose_meas, stamp] = board_measurement_.getBoardPoseStamp();
+    std::tie(object_pose_est_, std::ignore, std::ignore) = EKF::step(*dynamic_model_, *sensor_model_, previous_time, object_pose_est_, transformed_pose_vector_);
     
-    // //if no previous measurement, previous - current = 
+    //Update previous estimate and time
+    previous_pose_est_ = object_pose_est;
+    previous_est_time_ = transformed_pose.header.stamp;
 
-    // //else we have previous measurement
 
-    // if(callback_flag == false)
-    // {
-    //     //run first step
-    //     callback_flag = true;
-    // }
-    // else
-    // {
-    //     //run ekf step with previous steps
-    //     callback_flag = false;
-    //     std::tie(board_pose_est_, std::ignore, std::ignore) = EKF::step(*dynamic_model_, *sensor_model_, previous_time, board_pose_est_, board_pose_meas);
-    //     break;
+    //constant position model for dynmod
 
-    // }
+    estimated_pose_.position.x = object_pose_est_()(0);
+    estimated_pose_.position.y = object_pose_est_()(1);
+    estimated_pose_.position.z = object_pose_est_()(2);
+    estimated_pose_.orientation.x = object_pose_est_()(3);
+    estimated_pose_.orientation.y = object_pose_est_()(4);
+    estimated_pose_.orientation.z = object_pose_est_()(5);
+
+    estimated_pose.header.stamp = transformed_pose.header.stamp;
+
+    return estimated_pose_;
+    /*
+    //Service call
+    service server reset ekf variables in service callback. send sucess
+    */
+
+    
+
+
+
+    }
+
    
     // cv::Vec3d rvec,tvec;
-    // tvec[0] = board_pose_est_.mean()(0);
-    // tvec[1] = board_pose_est_.mean()(1);
-    // tvec[2] = board_pose_est_.mean()(2);
-    // rvec[0] = board_pose_est_.mean()(3);
-    // rvec[1] = board_pose_est_.mean()(4);
-    // rvec[2] = board_pose_est_.mean()(5);
+    // tvec[0] = object_pose_est_.mean()(0);
+    // tvec[1] = object_pose_est_.mean()(1);
+    // tvec[2] = object_pose_est_.mean()(2);
+    // rvec[0] = object_pose_est_.mean()(3);
+    // rvec[1] = object_pose_est_.mean()(4);
+    // rvec[2] = object_pose_est_.mean()(5);
     
     // tf2::Quaternion quat = rvec_to_quat(rvec);
 
