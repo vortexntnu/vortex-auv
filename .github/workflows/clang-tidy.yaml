@@ -1,7 +1,7 @@
 name: Source Build
 # Build the ROS 2 workspace from source code and run tests
 on:
-  push:
+  pull_request:
 jobs:
   source-build:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-clang-tidy.yaml@feat/clang-tidy-ros2
