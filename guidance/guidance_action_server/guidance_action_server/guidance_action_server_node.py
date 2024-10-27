@@ -12,7 +12,9 @@ from transforms3d.euler import quat2euler
 import numpy as np
 import time
 
+
 class GuidanceActionServer(Node):
+
     def __init__(self):
         super().__init__('guidance_action_server')
 
@@ -20,19 +22,19 @@ class GuidanceActionServer(Node):
         self.los_calculator = LOSGuidanceCalculator()
 
         # Publishers
-        self.output_pub = self.create_publisher(LOSGuidance, '/guidance/los', 10)
-        self.ref_pub = self.create_publisher(PoseStamped, '/guidance/reference', 10)
+        self.output_pub = self.create_publisher(LOSGuidance, '/guidance/los',
+                                                10)
+        self.ref_pub = self.create_publisher(PoseStamped,
+                                             '/guidance/reference', 10)
 
         # Subscriber to odometry
-        self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback, 10)
+        self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback,
+                                 10)
 
         # Action server
-        self._action_server = ActionServer(
-            self,
-            NavigateWaypoints,
-            'navigate_waypoints',
-            self.execute_callback
-        )
+        self._action_server = ActionServer(self, NavigateWaypoints,
+                                           'navigate_waypoints',
+                                           self.execute_callback)
 
         # Initialize state variables
         self.current_position = None
@@ -45,8 +47,10 @@ class GuidanceActionServer(Node):
     def odom_callback(self, msg):
         """Process odometry data to extract position and orientation."""
         orientation_q = msg.pose.pose.orientation
-        _, pitch, yaw = quat2euler([orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z])
-        
+        _, pitch, yaw = quat2euler([
+            orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
+        ])
+
         self.current_position = {
             'x': msg.pose.pose.position.x,
             'y': msg.pose.pose.position.y,
@@ -61,7 +65,8 @@ class GuidanceActionServer(Node):
 
     def process_guidance(self):
         """Process guidance calculations and publish commands."""
-        if not self.current_position or self.current_waypoint_index >= len(self.waypoints):
+        if not self.current_position or self.current_waypoint_index >= len(
+                self.waypoints):
             return
 
         # Get current waypoint
@@ -69,16 +74,15 @@ class GuidanceActionServer(Node):
 
         # Compute guidance commands
         commands = self.los_calculator.compute_los_guidance(
-            self.current_position,
-            target_point
-        )
+            self.current_position, target_point)
 
         # Publish guidance commands
         self.publish_guidance_messages(commands, target_point)
 
         # Check if waypoint is reached
         if commands['distance'] < 0.5:  # waypoint threshold
-            self.get_logger().info(f'Reached waypoint {self.current_waypoint_index}')
+            self.get_logger().info(
+                f'Reached waypoint {self.current_waypoint_index}')
             self.current_waypoint_index += 1
 
             # If all waypoints are reached, complete the action
@@ -91,7 +95,8 @@ class GuidanceActionServer(Node):
         # Publish feedback
         if self.goal_handle and self.goal_handle.is_active:
             feedback_msg = NavigateWaypoints.Feedback()
-            feedback_msg.current_waypoint_index = float(self.current_waypoint_index)
+            feedback_msg.current_waypoint_index = float(
+                self.current_waypoint_index)
             self.goal_handle.publish_feedback(feedback_msg)
 
         # Log status
@@ -117,7 +122,7 @@ class GuidanceActionServer(Node):
             if not goal_handle.is_active:
                 self.goal_handle = None
                 return NavigateWaypoints.Result(success=False)
-            
+
             if goal_handle.is_cancel_requested:
                 self.get_logger().info('Goal canceled')
                 goal_handle.canceled()
@@ -156,22 +161,25 @@ class GuidanceActionServer(Node):
     def log_status(self, commands, target_point):
         """Log current status information."""
         self.get_logger().info("\n=== Guidance Status ===")
-        self.get_logger().info(f"Current Position: x={self.current_position['x']:.2f}, "
-                              f"y={self.current_position['y']:.2f}, "
-                              f"z={self.current_position['z']:.2f}")
+        self.get_logger().info(
+            f"Current Position: x={self.current_position['x']:.2f}, "
+            f"y={self.current_position['y']:.2f}, "
+            f"z={self.current_position['z']:.2f}")
         self.get_logger().info(f"Target Position: x={target_point['x']:.2f}, "
-                              f"y={target_point['y']:.2f}, "
-                              f"z={target_point['z']:.2f}")
+                               f"y={target_point['y']:.2f}, "
+                               f"z={target_point['z']:.2f}")
         self.get_logger().info(f"Commands: surge={commands['surge']:.2f} m/s, "
-                              f"pitch={commands['pitch']:.2f} rad, "
-                              f"yaw={commands['yaw']:.2f} rad")
-        self.get_logger().info(f"Distance to target: {commands['distance']:.2f} m")
+                               f"pitch={commands['pitch']:.2f} rad, "
+                               f"yaw={commands['yaw']:.2f} rad")
+        self.get_logger().info(
+            f"Distance to target: {commands['distance']:.2f} m")
         self.get_logger().info(f"Depth error: {commands['depth_error']:.2f} m")
+
 
 def main(args=None):
     rclpy.init(args=args)
     action_server = GuidanceActionServer()
-    
+
     try:
         rclpy.spin(action_server)
     except Exception as e:
@@ -179,6 +187,7 @@ def main(args=None):
     finally:
         action_server.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
