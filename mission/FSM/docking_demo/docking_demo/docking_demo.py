@@ -255,7 +255,7 @@ def main() -> None:
     rclpy.init()
 
     # Create FSM with defined outcomes
-    sm = StateMachine(outcomes=["error", "finished", "aborted"])
+    sm = StateMachine(outcomes=["error", "finished", "aborted", "canceled", "succeeded"])
 
     # Create and initialize the blackboard
     blackboard = Blackboard()
