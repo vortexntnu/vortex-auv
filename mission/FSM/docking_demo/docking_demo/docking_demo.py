@@ -304,7 +304,7 @@ def main() -> None:
 
     # Create FSM with defined outcomes
     sm = StateMachine(outcomes=["error", "finished", "aborted", "canceled"])
-    nested_sm = StateMachine(outcomes=["error", "aborted", "finished", "canceled"])
+    nested_sm = StateMachine(outcomes=["aborted", "finished", "canceled"])
 
     # Create and initialize the blackboard
     blackboard = Blackboard()
@@ -329,7 +329,7 @@ def main() -> None:
     sm.add_state("abort_mission", AbortState(), transitions={SUCCEED: "find_dock", ABORT: "aborted"})
     sm.add_state("error_state", CbState(outcomes=["error"], cb=error_state), transitions={"error": "error"})
 
-    nested_sm.add_state("convege", GoRightOver(), transitions={SUCCEED: "go_down", ABORT: "aborted"})
+    nested_sm.add_state("converge", GoRightOver(), transitions={SUCCEED: "go_down", ABORT: "aborted"})
     nested_sm.add_state("go_down", GoDown(), transitions={SUCCEED: "has_finished_converging", ABORT: "aborted"})
     nested_sm.add_state(
         "has_finished_converging", CbState(outcomes=[SUCCEED, ABORT], cb=has_finished_converging), transitions={ABORT: "aborted", SUCCEED: "finished"}
