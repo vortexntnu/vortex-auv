@@ -207,6 +207,93 @@ def error_state(blackboard: Blackboard) -> str:
     return "error"
 
 
+def has_finished_converging(blackboard: Blackboard) -> str:
+    """
+    The state to check if the auv has finished converging. If the auv has finished converging, the mission is finished.
+    """
+    if blackboard["has_finished_converging"]:
+        return SUCCEED
+    return ABORT
+
+
+class GoRightOver(ActionState):
+    """
+    The state to go right over the docking station. Using the waypoint action to go right over the docking station.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the state, and using ActionState from YASMIN.
+        """
+        super().__init__(GoToWaypoint, "/go_right_over", self.create_goal_handler, None, self.response_handler, self.print_feedback)
+
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
+        """
+        The goal handler to create the goal for the action. For this state, the goal is the waypoint to go right over the docking station.
+        """
+        goal = GoToWaypoint.Goal()
+        goal.waypoint = blackboard["docking_station_location"]
+        goal.waypoint.pose.position.x += 5
+        return goal
+
+    def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
+        """
+        The response handler to handle the response from the action.
+        For this state, the response is true or false depending on if
+        the auv is right over the docking station.
+        """
+        blackboard["has_finished_converging"] = response.success
+        if blackboard["has_finished_converging"]:
+            return SUCCEED
+        return ABORT
+
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
+        """
+        Handles the feedback from the action. For this state, the feedback is the distance to the docking station.
+        """
+        blackboard["current_pose"] = feedback.current_pose
+        print(f"Received feedback: {feedback.current_pose}")
+
+
+class GoDown(ActionState):
+    """
+    The state to go down to the docking station. Using the waypoint action to go down to the docking station.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the state, and using ActionState from YASMIN.
+        """
+        super().__init__(GoToWaypoint, "/go_down", self.create_goal_handler, None, self.response_handler, self.print_feedback)
+
+    def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
+        """
+        The goal handler to create the goal for the action. For this state, the goal is the waypoint to go down to the docking station.
+        """
+        goal = GoToWaypoint.Goal()
+        goal.waypoint = blackboard["docking_station_location"]
+        goal.waypoint.pose.position.z = goal.waypoint.pose.position.z - 1
+        return goal
+
+    def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
+        """
+        The response handler to handle the response from the action.
+        For this state, the response is true or false depending on
+        if the auv is down at the docking station.
+        """
+        blackboard["has_finished_converging"] = response.success
+        if blackboard["has_finished_converging"]:
+            return SUCCEED
+        return ABORT
+
+    def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
+        """
+        Handles the feedback from the action. For this state, the feedback is the distance to the docking station.
+        """
+        blackboard["current_pose"] = feedback.current_pose
+        print(f"Received feedback: {feedback.current_pose}")
+
+
 def main() -> None:
     """
     Main function of the state machine.
@@ -217,6 +304,7 @@ def main() -> None:
 
     # Create FSM with defined outcomes
     sm = StateMachine(outcomes=["error", "finished", "aborted", "canceled"])
+    nested_sm = StateMachine(outcomes=["error", "aborted", "finished", "canceled"])
 
     # Create and initialize the blackboard
     blackboard = Blackboard()
@@ -235,18 +323,26 @@ def main() -> None:
     # Adding states with transitions
     sm.add_state("find_dock", FindDockingStationState(), transitions={SUCCEED: "go_to_dock", ABORT: "abort_mission"})
     sm.add_state("go_to_dock", GoToDockState(), transitions={SUCCEED: "dock", ABORT: "abort_mission"})
-    sm.add_state("dock", DockState(), transitions={SUCCEED: "docked", ABORT: "abort_mission"})
+    sm.add_state("dock", DockState(), transitions={SUCCEED: "dock_fsm", ABORT: "abort_mission"})
     sm.add_state("docked", CbState(outcomes=[SUCCEED, ABORT], cb=docked_state), transitions={ABORT: "abort_mission", SUCCEED: "return_home"})
     sm.add_state("return_home", ReturnHomeState(), transitions={SUCCEED: "find_dock", ABORT: "abort_mission"})
     sm.add_state("abort_mission", AbortState(), transitions={SUCCEED: "find_dock", ABORT: "aborted"})
     sm.add_state("error_state", CbState(outcomes=["error"], cb=error_state), transitions={"error": "error"})
+
+    nested_sm.add_state("convege", GoRightOver(), transitions={SUCCEED: "go_down", ABORT: "aborted"})
+    nested_sm.add_state("go_down", GoDown(), transitions={SUCCEED: "has_finished_converging", ABORT: "aborted"})
+    nested_sm.add_state(
+        "has_finished_converging", CbState(outcomes=[SUCCEED, ABORT], cb=has_finished_converging), transitions={ABORT: "aborted", SUCCEED: "finished"}
+    )
+
+    sm.add_state("dock_fsm", nested_sm, transitions={"finished": "docked", ABORT: "abort_mission"})
 
     # Set the initial state
     sm.set_start_state("find_dock")
 
     # Create a viewer to visualize the FSM (ensure YasminViewerPub is correctly set up)
     YasminViewerPub("Docking State Machine", sm)
-
+    YasminViewerPub("Nested State Machine", nested_sm)
     # Run the state machine
     outcome = sm(blackboard)
     print("Outcome: ", outcome)
