@@ -9,7 +9,7 @@ thruster_interface_auv_node:
       #   RIGHT: [3.84262, -31.64647, 160.76665, 1539.18791]
       # 14V:
       #   LEFT: [14.10463, 72.78164, 245.73575, 1456.5868]
-      #   RIGHT: [7.39517, -47.59238, 196.5525, 1543.6743] #14V csv table is wrong (is the same of 10V) and so also these coefficents
+      #   RIGHT: [7.39517, -47.59238, 196.5525, 1543.6743] #14V csv table is wrong (is the same of 10V) and so also these coefficients
       16V:
         LEFT: [3.31158, 28.90927, 152.1417, 1467.70348]
         RIGHT: [1.45002, -16.92386, 117.95721, 1533.55911]
@@ -19,7 +19,7 @@ thruster_interface_auv_node:
       # 20V:
       #   LEFT: [2.55792, 27.51178, 147.67001, 1472.23069]
       #   RIGHT: [1.33421, -18.75129, 121.29079, 1528.99886]
-    
+
     i2c:
       bus: 1
       address: 0x21

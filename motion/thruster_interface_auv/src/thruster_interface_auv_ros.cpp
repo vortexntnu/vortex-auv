@@ -14,7 +14,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode() : Node("thruster_interface_
   this->declare_parameter<std::vector<int>>("propulsion.thrusters.thruster_PWM_min");
   this->declare_parameter<std::vector<int>>("propulsion.thrusters.thruster_PWM_max");
   this->declare_parameter<double>("propulsion.thrusters.thrust_update_rate");
-  //from thruster_interface_auv.yaml parameters
+  // from thruster_interface_auv.yaml parameters
   this->declare_parameter<int>("i2c.bus");
   this->declare_parameter<int>("i2c.address");
   this->declare_parameter<std::vector<double>>("coeffs.16V.LEFT");
@@ -28,7 +28,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode() : Node("thruster_interface_
   auto thruster_PWM_max = this->get_parameter("propulsion.thrusters.thruster_PWM_max").as_integer_array();
   this->thrust_timer_period_ = 1.0 / this->get_parameter("propulsion.thrusters.thrust_update_rate").as_double();
   auto left_coeffs = this->get_parameter("coeffs.16V.LEFT").as_double_array();
-  auto right_coeffs = this->get_parameter("coeffs.16V.RIGHT").as_double_array(); 
+  auto right_coeffs = this->get_parameter("coeffs.16V.RIGHT").as_double_array();
 
   // Initialize thruster driver
   this->thruster_driver_ = ThrusterInterfaceAUVDriver(
@@ -39,8 +39,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode() : Node("thruster_interface_
       std::vector<int>(thruster_PWM_min.begin(), thruster_PWM_min.end()),
       std::vector<int>(thruster_PWM_max.begin(), thruster_PWM_max.end()),
       std::vector<double>(left_coeffs.begin(), left_coeffs.end()),
-      std::vector<double>(right_coeffs.begin(), right_coeffs.end())
-  );
+      std::vector<double>(right_coeffs.begin(), right_coeffs.end()));
 
   // Declare "thruster_forces_array" in case no topic comes in at the beginning
   this->thruster_forces_array_ = std::vector<double>(8, 0.00);

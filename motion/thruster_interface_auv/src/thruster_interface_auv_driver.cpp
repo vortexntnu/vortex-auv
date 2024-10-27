@@ -10,15 +10,14 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     const std::vector<int> &PWM_MIN,
     const std::vector<int> &PWM_MAX,
     const std::vector<double> &LEFT_COEFFS,
-    const std::vector<double> &RIGHT_COEFFS) :  I2C_BUS(I2C_BUS),
-                                                PICO_I2C_ADDRESS(PICO_I2C_ADDRESS),
-                                                THRUSTER_MAPPING(THRUSTER_MAPPING),
-                                                THRUSTER_DIRECTION(THRUSTER_DIRECTION),
-                                                PWM_MIN(PWM_MIN),
-                                                PWM_MAX(PWM_MAX),
-                                                LEFT_COEFFS(LEFT_COEFFS),
-                                                RIGHT_COEFFS(RIGHT_COEFFS)
-{
+    const std::vector<double> &RIGHT_COEFFS) : I2C_BUS(I2C_BUS),
+                                               PICO_I2C_ADDRESS(PICO_I2C_ADDRESS),
+                                               THRUSTER_MAPPING(THRUSTER_MAPPING),
+                                               THRUSTER_DIRECTION(THRUSTER_DIRECTION),
+                                               PWM_MIN(PWM_MIN),
+                                               PWM_MAX(PWM_MAX),
+                                               LEFT_COEFFS(LEFT_COEFFS),
+                                               RIGHT_COEFFS(RIGHT_COEFFS) {
   printf("I2C_BUS: %d\n", I2C_BUS);
   printf("PICO_I2C_ADDRESS: %d\n", PICO_I2C_ADDRESS);
   printf("THRUSTER_MAPPING: ");
