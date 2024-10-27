@@ -1,5 +1,5 @@
-name: Source Build
-# Build the ROS 2 workspace from source code and run tests
+name: Clang Tidy
+# Build the ROS 2 workspace from clang tidy
 on:
   pull_request:
 jobs:
