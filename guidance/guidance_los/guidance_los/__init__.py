@@ -1,1 +1,4 @@
+# __init__.py
+from guidance_los.guidance_los import GuidanceNode
+from guidance_los.los_guidance_computation import LOSGuidanceCalculator
 from guidance_los.guidance_test import main

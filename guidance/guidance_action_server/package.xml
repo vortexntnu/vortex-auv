@@ -4,30 +4,23 @@
   <name>guidance_action_server</name>
   <version>0.0.0</version>
   <description>Guidance Action Server</description>
-  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <maintainer email="abubakb@stud.ntnu.no">badawi</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
 
-  <build_depend>rclpy</build_depend>
-  <build_depend>action_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>vortex_msgs</build_depend>
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>vortex_msgs</depend>
+  <depend>guidance_los</depend>
 
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>action_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>vortex_msgs</exec_depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
-
-  <member_of_group>rosidl_interface_packages</member_of_group>
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
 
   <export>
-    <build_type>ament_cmake</build_type>
+    <build_type>ament_python</build_type>
   </export>
 </package>

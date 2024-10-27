@@ -1,9 +1,0 @@
-# Goal definition
-geometry_msgs/Pose[] waypoints
----
-# Result definition
-bool success
----
-# Feedback definition
-geometry_msgs/Pose current_pose
-int32 current_waypoint_index
