@@ -1,8 +1,4 @@
-import time
-
 import rclpy
-
-# from action_tutorials_interfaces.action import Fibonacci
 import rclpy.publisher
 from geometry_msgs.msg import PoseStamped
 from vortex_msgs.action import FindDock, GoToWaypoint
@@ -25,16 +21,18 @@ class FindDockingStationState(ActionState):
 
     def create_goal_handler(self, blackboard: Blackboard) -> FindDock.Goal:
         """
-        The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the docking station is found.
+        The goal handler to create the goal for the action.
+        For this state, the goal is true or false depending on if the docking station is found.
         """
 
         goal = FindDock.Goal()
-        goal.start_search = True
+        goal.start_search = blackboard["should_start_search"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: FindDock.Result) -> str:
         """
-        The response handler to handle the response from the action. For this state, the response is true or false depending on if the docking station is found.
+        The response handler to handle the response from the action.
+        For this state, the response is true or false depending on if the docking station is found.
         """
         blackboard["docking_station_location"] = response.dock_pose
         # implement error handling
@@ -73,17 +71,18 @@ class GoToDockState(ActionState):
 
     def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
         """
-        Response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the docking station.
+        Response handler to handle the response from the action.
+        For this state, the response is true or false depending on if the auv is at the docking station.
         """
         blackboard["has_finished_converging"] = response.success
         if blackboard["has_finished_converging"]:
             return SUCCEED
-        elif not blackboard["has_finished_converging"]:
-            return ABORT
+        return ABORT
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
         """
-        Handles the feedback from the action. For this state, the feedback is the distance to the docking station.
+        Handles the feedback from the action.
+        For this state, the feedback is the distance to the docking station.
         """
         blackboard["current_pose"] = feedback.current_pose
         print(f"Received feedback: {feedback.current_pose}")
@@ -102,7 +101,8 @@ class DockState(ActionState):
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
         """
-        The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the auv is docked.
+        The goal handler to create the goal for the action.
+        For this state, the goal is the docking station location.
         """
         goal = GoToWaypoint.Goal()
         goal.waypoint = blackboard["docking_station_location"]
@@ -110,55 +110,30 @@ class DockState(ActionState):
 
     def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
         """
-        The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is docked.
+        The response handler to handle the response from the action.
+        For this state, the response is true or false depending on if the auv is docked.
         """
         blackboard["has_docked"] = response.success
         if blackboard["has_docked"]:
             return SUCCEED
-        elif not blackboard["has_docked"]:
-            return ABORT
+        return ABORT
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
         """
-        Handles the feedback from the action. For this state, the feedback comes from the DP controller.
+        Handles the feedback from the action.
+        For this state, the feedback comes from the DP controller.
         """
         blackboard["current_pose"] = feedback.current_pose
         print(f"Received feedback: {feedback.current_pose}")
 
 
 def docked_state(blackboard: Blackboard) -> str:
-    return SUCCEED
-
-
-class DockedState(ActionState):
     """
-    The state when the AUV is docked. The state will wait for the mission to be aborted or finished.
-    """
-
-    def __init__(self) -> None:
-        """
-        Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToWaypoint, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
-
-    def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
-        """
-        The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted or finished.
-        """
-        goal = GoToWaypoint.Goal()
-        goal.order = blackboard["waypoint_res"]
-        return goal
-
-    def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
-        """
-        The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted
-        """
-        blackboard["waypoint_res"] = response.sequence
+    The state when the auv is docked. If the auv is instructed to return home, it returns home."""
+    blackboard["is_docked"] = True
+    if blackboard["return_home"]:
         return SUCCEED
-
-    def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
-        """
-        Handles the feedback from the action. For this state, the feedback is idle if it is idle."""
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+    return ABORT
 
 
 class ReturnHomeState(ActionState):
@@ -172,21 +147,24 @@ class ReturnHomeState(ActionState):
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
         """
-        The goal handler to create the goal for the action. For this state, the goal is the waypoint to the home position."""
+        The goal handler to create the goal for the action.
+        For this state, the goal is the waypoint to the home position."""
         goal = GoToWaypoint.Goal()
         goal.waypoint = blackboard["start_pos"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
         """
-        The response handler to handle the response from the action. For this state, the response is true or false depending on if the auv is at the home position.
+        The response handler to handle the response from the action.
+        For this state, the response is true or false depending on if the auv is at the home position.
         """
         blackboard["is_home"] = response.success
         return SUCCEED
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
         """
-        Handles the feedback from the action. For this state, the feedback is the distance to the home position."""
+        Handles the feedback from the action.
+        For this state, the feedback is the distance to the home position."""
         blackboard["current_pose"] = feedback.current_pose
         print(f"Received feedback: {feedback.current_pose}")
 
@@ -202,24 +180,30 @@ class AbortState(ActionState):
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
         """
-        The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted."""
+        The goal handler to create the goal for the action.
+        For this state, the goal is the starting position."""
         goal = GoToWaypoint.Goal()
         goal.waypoint = blackboard["start_pos"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
-        """The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted."""
+        """The response handler to handle the response from the action.
+        For this state, the response is true or false depending on if the mission is aborted."""
         blackboard["is_home"] = response.success
         return SUCCEED
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
         """
-        Handles the feedback from the action. For this state, the feedback is ABORT!!!."""
+        Handles the feedback from the action.
+        For this state, the feedback is the current pose of the auv."""
         blackboard["current_pose"] = feedback.current_pose
         print(f"Received feedback: {list(feedback.current_pose)}")
 
 
 def error_state(blackboard: Blackboard) -> str:
+    """
+    The state to handle errors. If an error occurs, do error handling."""
+    blackboard["is_error"] = True
     return "error"
 
 
@@ -232,7 +216,7 @@ def main() -> None:
     rclpy.init()
 
     # Create FSM with defined outcomes
-    sm = StateMachine(outcomes=["error", "finished", "aborted", "canceled", "succeeded"])
+    sm = StateMachine(outcomes=["error", "finished", "aborted", "canceled"])
 
     # Create and initialize the blackboard
     blackboard = Blackboard()
@@ -245,6 +229,8 @@ def main() -> None:
     blackboard["start_pos"].pose.position.y = 0.0
     blackboard["start_pos"].pose.position.z = 0.0
     blackboard["Pool_dimensions"] = [30, 12, 10]
+    blackboard["should_start_search"] = True
+    blackboard["return_home"] = True
 
     # Adding states with transitions
     sm.add_state("find_dock", FindDockingStationState(), transitions={SUCCEED: "go_to_dock", ABORT: "abort_mission"})
