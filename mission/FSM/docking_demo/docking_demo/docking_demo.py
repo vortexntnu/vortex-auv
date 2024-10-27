@@ -198,52 +198,28 @@ class AbortState(ActionState):
     def __init__(self) -> None:
         """
         Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToWaypoint, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
+        super().__init__(GoToWaypoint, "/abort", self.create_goal_handler, None, self.response_handler, self.print_feedback)
 
     def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
         """
         The goal handler to create the goal for the action. For this state, the goal is true or false depending on if the mission is aborted."""
         goal = GoToWaypoint.Goal()
-        goal.order = blackboard["waypoint_res"]
+        goal.waypoint = blackboard["start_pos"]
         return goal
 
     def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
         """The response handler to handle the response from the action. For this state, the response is true or false depending on if the mission is aborted."""
-        blackboard["waypoint_res"] = response.sequence
+        blackboard["is_home"] = response.success
         return SUCCEED
 
     def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
         """
         Handles the feedback from the action. For this state, the feedback is ABORT!!!."""
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+        blackboard["current_pose"] = feedback.current_pose
+        print(f"Received feedback: {list(feedback.current_pose)}")
 
-
-class ErrorState(ActionState):
-    """
-    State if an error occurs. This state will stop the mission."""
-
-    def __init__(self) -> None:
-        """
-        Initialize the state, and using ActionState from YASMIN."""
-        super().__init__(GoToWaypoint, "/waypoint", self.create_goal_handler, None, self.response_handler, self.print_feedback)
-
-    def create_goal_handler(self, blackboard: Blackboard) -> GoToWaypoint.Goal:
-        """
-        The goal handler to create the goal for the action. For this state, the goal is to shut down or save or something."""
-        goal = GoToWaypoint.Goal()
-        goal.order = blackboard["waypoint_res"]
-        return goal
-
-    def response_handler(self, blackboard: Blackboard, response: GoToWaypoint.Result) -> str:
-        """
-        The response handler to handle the response from the action. For this state, the response is the error."""
-        blackboard["waypoint_res"] = response.sequence
-        return SUCCEED
-
-    def print_feedback(self, blackboard: Blackboard, feedback: GoToWaypoint.Feedback) -> None:
-        """
-        Handles the feedback from the action. For this state, the feedback is the error."""
-        print(f"Received feedback: {list(feedback.partial_sequence)}")
+def error_state(blackboard: Blackboard) -> str:
+    return "error"
 
 
 def main() -> None:
@@ -276,7 +252,7 @@ def main() -> None:
     sm.add_state("docked", CbState(outcomes=[SUCCEED, ABORT], cb=docked_state), transitions={ABORT: "abort_mission", SUCCEED: "return_home"})
     sm.add_state("return_home", ReturnHomeState(), transitions={SUCCEED: "find_dock", ABORT: "abort_mission"})
     sm.add_state("abort_mission", AbortState(), transitions={SUCCEED: "find_dock", ABORT: "aborted"})
-    sm.add_state("error_state", ErrorState(), transitions={ABORT: "error"})
+    sm.add_state("error_state", CbState(outcomes=["error"], cb=error_state), transitions={"error": "error"})
 
     # Set the initial state
     sm.set_start_state("find_dock")
