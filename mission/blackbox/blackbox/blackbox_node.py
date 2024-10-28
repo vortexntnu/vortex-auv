@@ -94,8 +94,7 @@ class BlackBoxNode(Node):
 
     # Callback Methods ----------
     def psm_current_callback(self, msg: Float32) -> None:
-        """
-        Callback function for the power sense module (PSM) current topic.
+        """Callback function for the power sense module (PSM) current topic.
 
         This function is called whenever a new message is received on the
         "/auv/power_sense_module/current" topic. It updates the internal
@@ -108,8 +107,7 @@ class BlackBoxNode(Node):
         self.psm_current_data = msg.data
 
     def psm_voltage_callback(self, msg: Float32) -> None:
-        """
-        Callback function for the power sense module (PSM) voltage topic.
+        """Callback function for the power sense module (PSM) voltage topic.
 
         This function is called whenever a new message is received on the
         "/auv/power_sense_module/voltage" topic. It updates the internal
@@ -122,8 +120,7 @@ class BlackBoxNode(Node):
         self.psm_voltage_data = msg.data
 
     def pressure_callback(self, msg: Float32) -> None:
-        """
-        Callback function for the internal pressure topic.
+        """Callback function for the internal pressure topic.
 
         This function is called whenever a new message is received on the
         "/auv/pressure" topic. It updates the internal state with the latest
@@ -136,8 +133,7 @@ class BlackBoxNode(Node):
         self.pressure_data = msg.data
 
     def temperature_callback(self, msg: Float32) -> None:
-        """
-        Callback function for the ambient temperature topic.
+        """Callback function for the ambient temperature topic.
 
         This function is called whenever a new message is received on the
         "/auv/temperature" topic. It updates the internal state with the latest
@@ -150,8 +146,7 @@ class BlackBoxNode(Node):
         self.temperature_data = msg.data
 
     def thruster_forces_callback(self, msg: ThrusterForces) -> None:
-        """
-        Callback function for the thruster forces topic.
+        """Callback function for the thruster forces topic.
 
         This function is called whenever a new message is received on the
         "/thrust/thruster_forces" topic. It updates the internal state with the
@@ -164,8 +159,7 @@ class BlackBoxNode(Node):
         self.thruster_forces_data = msg.thrust
 
     def pwm_callback(self, msg: Int16MultiArray) -> None:
-        """
-        Callback function for the PWM signals topic.
+        """Callback function for the PWM signals topic.
 
         This function is called whenever a new message is received on the
         "/pwm" topic. It updates the internal state with the latest PWM signals data.
@@ -177,8 +171,7 @@ class BlackBoxNode(Node):
         self.pwm_data = msg.data
 
     def logger(self) -> None:
-        """
-        Logs various sensor and actuator data to a CSV file.
+        """Logs various sensor and actuator data to a CSV file.
 
         This method collects data from multiple sensors and actuators, including
         power system module (PSM) current and voltage, internal pressure, ambient
@@ -219,8 +212,7 @@ class BlackBoxNode(Node):
 
 
 def main(args: list = None) -> None:
-    """
-    Entry point for the blackbox_node.
+    """Entry point for the blackbox_node.
 
     This function initializes the ROS2 environment, starts the BlackBoxNode,
     and keeps it spinning until ROS2 is shut down. Once ROS2 ends, it destroys

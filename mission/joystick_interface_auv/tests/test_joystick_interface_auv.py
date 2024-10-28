@@ -6,8 +6,7 @@ from sensor_msgs.msg import Joy
 class TestJoystickInterface:
     # test that the wrench msg is created successfully
     def test_wrench_msg(self) -> None:
-        """
-        Test the creation of a Wrench message using the JoystickInterface.
+        """Test the creation of a Wrench message using the JoystickInterface.
 
         This test initializes the ROS 2 client library, creates a Wrench message
         with specified force and torque values using the JoystickInterface, and
@@ -34,8 +33,7 @@ class TestJoystickInterface:
 
     # Test that the callback function will be able to interpret the joy msg
     def test_input_from_controller_into_wrench_msg(self) -> None:
-        """
-        Test the conversion of joystick input to wrench message.
+        """Test the conversion of joystick input to wrench message.
 
         This test initializes the ROS 2 client library, creates a Joy message with
         specific axes and button values, and verifies that the joystick callback
@@ -71,8 +69,7 @@ class TestJoystickInterface:
 
     # When the killswitch button is activated in the buttons list, it should output a wrench msg with only zeros
     def test_killswitch_button(self) -> None:
-        """
-        Test the killswitch button functionality of the JoystickInterface.
+        """Test the killswitch button functionality of the JoystickInterface.
 
         This test initializes the ROS 2 client library, creates an instance of the
         JoystickInterface, and sets its state to XBOX_MODE. It then creates a Joy
@@ -107,8 +104,7 @@ class TestJoystickInterface:
 
     # When we move into XBOX mode it should still be able to return this wrench message
     def test_moving_in_of_xbox_mode(self) -> None:
-        """
-        Test the joystick callback function in XBOX mode.
+        """Test the joystick callback function in XBOX mode.
 
         This test initializes the ROS 2 client library, creates an instance of the
         JoystickInterface, and sets its state to XBOX_MODE. It then creates a Joy

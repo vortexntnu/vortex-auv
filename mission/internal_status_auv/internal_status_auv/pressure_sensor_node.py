@@ -59,8 +59,7 @@ class PressurePublisher(Node):
         self.get_logger().info('"pressure_sensor_publisher" has been started')
 
     def timer_callback(self) -> None:
-        """
-        Callback function triggered by the main timer.
+        """Callback function triggered by the main timer.
 
         This function retrieves the pressure data from the sensor
         and publishes it to the "/auv/pressure" topic.
@@ -74,8 +73,7 @@ class PressurePublisher(Node):
         self.publisher_pressure.publish(pressure_msg)
 
     def warning_timer_callback(self) -> None:
-        """
-        Callback function triggered by the warning timer.
+        """Callback function triggered by the warning timer.
 
         This function checks if the pressure exceeds the critical level.
         If so, a fatal warning is logged indicating a possible leak in the AUV.
@@ -87,8 +85,7 @@ class PressurePublisher(Node):
 
 
 def main(args: list = None) -> None:
-    """
-    Main function to initialize and spin the ROS2 node.
+    """Main function to initialize and spin the ROS2 node.
 
     This function initializes the rclpy library, creates an instance of
     the PressurePublisher node, and starts spinning to keep the node

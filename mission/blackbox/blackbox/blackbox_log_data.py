@@ -58,8 +58,7 @@ class BlackBoxLogData:
     def manage_csv_files(
         self, max_file_age_in_days: int = 7, max_size_kb: int = 3_000_000
     ) -> None:
-        """
-        Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
+        """Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
 
         Args:
             max_file_age_in_days (int, optional): The maximum age of files in days before they are deleted. Defaults to 7 days.
