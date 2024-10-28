@@ -91,8 +91,7 @@ def convert_pandas_object_to_float_array(pandas_object: pd.Series) -> list:
 
 
 def get_acoustics_data() -> list:
-    """
-    Retrieves and processes the latest acoustics data from a CSV file.
+    """Retrieves and processes the latest acoustics data from a CSV file.
 
     This function reads the latest acoustics data from a specified CSV file and processes it to extract various
     data points including hydrophone data, unfiltered data, filtered data, FFT data, peaks data, TDOA data, and
@@ -228,8 +227,7 @@ def get_acoustics_data() -> list:
 
 
 def display_live_data() -> None:
-    """
-    Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
+    """Display live acoustics data by plotting hydrophone data, filter response, and FFT data.
 
     Retrieves the latest acoustics data and separates it into hydrophone data, unfiltered data,
     filtered data, FFT amplitude and frequency data, and peak amplitude and frequency data.

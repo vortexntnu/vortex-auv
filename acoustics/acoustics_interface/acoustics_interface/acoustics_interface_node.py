@@ -9,8 +9,7 @@ from acoustics_interface.acoustics_interface_lib import TeensyCommunicationUDP
 
 
 class AcousticsInterfaceNode(Node):
-    """
-    Publishes Acoustics data to ROS2.
+    """Publishes Acoustics data to ROS2.
 
     Methods:
         data_update() -> None:
@@ -102,8 +101,7 @@ class AcousticsInterfaceNode(Node):
         self.get_logger().info("Successfully connected to Acoustics PCB MCU :D")
 
     def data_update(self) -> None:
-        """
-        Fetches data using the TeensyCommunicationUDP class.
+        """Fetches data using the TeensyCommunicationUDP class.
 
         This method calls the fetch_data method from the TeensyCommunicationUDP class
         to update the data.
@@ -149,8 +147,7 @@ class AcousticsInterfaceNode(Node):
 
 
 def main(args: list = None) -> None:
-    """
-    Entry point for the acoustics interface node.
+    """Entry point for the acoustics interface node.
 
     This function initializes the ROS 2 Python client library, creates an instance
     of the AcousticsInterfaceNode, and starts spinning the node to process callbacks.

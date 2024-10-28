@@ -5,13 +5,12 @@ from socket import AF_INET, SOCK_DGRAM, socket
 
 
 class TeensyCommunicationUDP:
-    """
-    Class is responsible for the RPI side of teensy-RPI UDP communication. It is
-    implemented with a singleton pattern for convenience.
+    """Class is responsible for the RPI side of teensy-RPI UDP communication.
 
+    It isimplemented with a singleton pattern for convenience.
     Note: Private members are denoted by _member_name
 
-    Attributes
+    Attributes:
     ----------
         _TEENSY_IP (string): self-explanatory
         _TEENSY_PORT (int): teensy's data port
@@ -24,7 +23,7 @@ class TeensyCommunicationUDP:
         _data_target (str): the field of `acoustics_data` that is written to
         acoustics_data (dict[str, list[int]]): container for data from teensy
 
-    Methods
+    Methods:
     -------
         init_communication(frequenciesOfInterest: list[tuple[int, int]]) -> None:
             Sets up socket for communication with teensy and waits for handshake
@@ -148,8 +147,7 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _get_raw_data(cls) -> str | None:
-        """
-        Gets a message from teensy.
+        """Gets a message from teensy.
 
         Returns:
             The message in the UDP buffer if there is one
@@ -211,8 +209,7 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _check_if_available(cls) -> None:
-        """
-        Checks if READY has been received.
+        """Checks if READY has been received.
 
         Note: The while loop here may not be necessary, it is just there to make absolutely sure that *all*
         the data in the UDP buffer is read out when waiting for ready signal, to avoid strange bugs

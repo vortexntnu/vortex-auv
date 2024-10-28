@@ -7,8 +7,7 @@ from launch import LaunchDescription
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generates a launch description for the acoustics_interface node.
+    """Generates a launch description for the acoustics_interface node.
 
     This function constructs the path to the YAML configuration file for the
     acoustics_interface node and returns a LaunchDescription object that
