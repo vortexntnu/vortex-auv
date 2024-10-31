@@ -11,10 +11,10 @@ PIDControllerNode::PIDControllerNode()
   kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>("/pid/kd", 10, std::bind(&PIDControllerNode::kd_callback, this, std::placeholders::_1));
   tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>("/thrust/wrench_input", 10);
   tau_pub_timer_ = this->create_wall_timer(time_step_, std::bind(&PIDControllerNode::publish_tau, this));
-  eta_ = Eigen::Vector6d::Zero();
-  eta_d_ = Eigen::Vector6d::Zero();
+  eta_ << 0, 0, 0, 1, 0, 0, 0;
+  eta_d_ << 0, 0, 0, 1, 0, 0, 0;
   nu_ = Eigen::Vector6d::Zero();
-  eta_dot_d_ = Eigen::Vector6d::Zero();
+  eta_dot_d_ << 0, 0, 0, 1, 0, 0, 0;
   set_pid_params();
 }
 
@@ -23,7 +23,7 @@ void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedP
   double y = msg->pose.pose.position.y;
   double z = msg->pose.pose.position.z;
   double w_ori = msg->pose.pose.orientation.w;
-  double x_ori = msg->pose.pose.orientation.x; 
+  double x_ori = msg->pose.pose.orientation.x;
   double y_ori = msg->pose.pose.orientation.y;
   double z_ori = msg->pose.pose.orientation.z;
 
@@ -35,7 +35,7 @@ void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedP
 
   //   tf2::Matrix3x3 m(quat);
   //   double roll, pitch, yaw;
-  //   m.getRPY(roll, pitch, yaw);
+    //   m.getRPY(roll, pitch, yaw);
 
   eta_ << x, y, z, w_ori, x_ori, y_ori, z_ori;
 
@@ -104,12 +104,9 @@ void PIDControllerNode::guidance_callback(const vortex_msgs::msg::ReferenceFilte
   double x = msg->x;
   double y = msg->y;
   double z = msg->z;
-  
+
   tf2::Quaternion quat;
   quat.setRPY(msg->roll, msg->pitch, msg->yaw);
-  
+
   eta_d_ << x, y, z, quat.w(), quat.x(), quat.y(), quat.z();
-
-  double x_dot = msg->x_dot;
-
 }

@@ -12,20 +12,22 @@ Eigen::Matrix6d float64multiarray_to_diagonal_matrix6d(const std_msgs::msg::Floa
 
 double ssa(double angle);
 
-Eigen::Vector6d apply_ssa(const Eigen::Vector7d &eta);
+// Eigen::Vector6d apply_ssa(const Eigen::Vector7d &eta);
 
-Eigen::Matrix3d calculate_R(const Eigen::Vector7d &eta);
+Eigen::Matrix3d calculate_R_quat(const Eigen::Vector4d &q);
 
-Eigen::Matrix3d calculate_T(const Eigen::Vector7d &eta);
+// Eigen::Matrix3d calculate_T(const Eigen::Vector7d &eta);
 
-Eigen::Matrix3d calculate_T_quat(const Eigen::Vector7d &eta);
+Eigen::Matrix4x3d calculate_T_quat(const Eigen::Vector4d &q);
 
 Eigen::Matrix6x7d calculate_J_sudo_inv(const Eigen::Vector7d &eta);
 
-Eigen::Vector7d error_eta(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d)
+Eigen::Vector7d error_eta(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d);
 
-Eigen::Matrix6d calculate_J(const Eigen::Vector7d &eta);
+Eigen::Matrix7x6d calculate_J(const Eigen::Vector7d &eta);
 
-Eigen::Vector6d anti_windup(const double dt, const Eigen::Vector6d &error, const Eigen::Vector6d &integral);
+Eigen::Vector7d anti_windup(const double dt, const Eigen::Vector7d &error, const Eigen::Vector7d &integral);
+
+Eigen::Vector6d limit_input(const Eigen::Vector6d &input);
 
 #endif

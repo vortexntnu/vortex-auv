@@ -4,25 +4,25 @@
 #include "pid_controller_dp/eigen_typedefs.hpp"
 
 class PIDController {
-    public:
-        explicit PIDController();
+public:
+  explicit PIDController();
 
-        Eigen::Vector6d calculate_tau(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d, const Eigen::Vector6d &nu, const Eigen::Vector7d &eta_dot_d);
+  Eigen::Vector6d calculate_tau(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d, const Eigen::Vector6d &nu, const Eigen::Vector7d &eta_dot_d);
 
-        void setKp(const Eigen::Matrix6d &Kp);
+  void setKp(const Eigen::Matrix6d &Kp);
 
-        void setKi(const Eigen::Matrix6d &Ki);
+  void setKi(const Eigen::Matrix6d &Ki);
 
-        void setKd(const Eigen::Matrix6d &Kd);
+  void setKd(const Eigen::Matrix6d &Kd);
 
-        void setTimeStep(double dt);
+  void setTimeStep(double dt);
 
-    private:
-        Eigen::Matrix6d Kp_;
-        Eigen::Matrix6d Ki_;
-        Eigen::Matrix6d Kd_;
-        Eigen::Vector6d integral_;
-        double dt;
+private:
+  Eigen::Matrix6d Kp_;
+  Eigen::Matrix6d Ki_;
+  Eigen::Matrix6d Kd_;
+  Eigen::Vector7d integral_;
+  double dt;
 };
 
 #endif
