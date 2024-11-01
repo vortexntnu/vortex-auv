@@ -100,6 +100,13 @@ class ThrusterInterfaceAUVDriver {
     std::vector<int16_t> interpolate_forces_to_pwm(
         const std::vector<double>& thruster_forces_array);
 
+    std::int16_t force_to_pwm(double force,
+                              const std::vector<double>& left_coeffs,
+                              const std::vector<double>& right_coeffs);
+
+    std::int16_t interpolate_pwm(double force,
+                                 const std::vector<double>& coeffs);
+
     /**
      * @brief [private] method that takes the pwm values computed and sends them
      * to the ESCs via I2C
@@ -107,6 +114,8 @@ class ThrusterInterfaceAUVDriver {
      * @param thruster_pwm_array vector of pwm values to send
      */
     void send_data_to_escs(const std::vector<int16_t>& thruster_pwm_array);
+
+    static constexpr auto to_kg = [](double force) { return force / 9.80665; };
 };
 
 #endif  // THRUSTER_INTERFACE_AUV_DRIVER_HPP

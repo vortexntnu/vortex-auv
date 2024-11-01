@@ -71,29 +71,36 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     const std::vector<double>& thruster_forces_array) {
     // Convert Newtons to Kg (since the thruster datasheet is in Kg)
     std::vector<double> forces_in_kg(thruster_forces_array.size());
-    for (size_t i = 0; i < thruster_forces_array.size(); ++i) {
-        forces_in_kg[i] = thruster_forces_array[i] / 9.80665;
-    }
+    std::transform(thruster_forces_array.begin(), thruster_forces_array.end(),
+                   forces_in_kg.begin(), to_kg);
 
     std::vector<int16_t> interpolated_pwm;
-    for (size_t i = 0; i < forces_in_kg.size(); ++i) {
-        double force = forces_in_kg[i];
-        double pwm = 0.0;
-        if (force < 0) {
-            pwm = LEFT_COEFFS[0] * std::pow(forces_in_kg[i], 3) +
-                  LEFT_COEFFS[1] * std::pow(forces_in_kg[i], 2) +
-                  LEFT_COEFFS[2] * forces_in_kg[i] + LEFT_COEFFS[3];
-        } else if (force == 0.0) {
-            pwm = 1500;
-        } else {
-            pwm = RIGHT_COEFFS[0] * std::pow(forces_in_kg[i], 3) +
-                  RIGHT_COEFFS[1] * std::pow(forces_in_kg[i], 2) +
-                  RIGHT_COEFFS[2] * forces_in_kg[i] + RIGHT_COEFFS[3];
-        }
-        interpolated_pwm.push_back(static_cast<int16_t>(pwm));
+    for (const double force : forces_in_kg) {
+        interpolated_pwm.push_back(
+            force_to_pwm(force, LEFT_COEFFS, RIGHT_COEFFS));
     }
-
     return interpolated_pwm;
+}
+
+std::int16_t ThrusterInterfaceAUVDriver::force_to_pwm(
+    double force,
+    const std::vector<double>& left_coeffs,
+    const std::vector<double>& right_coeffs) {
+    if (force < 0) {
+        return interpolate_pwm(force, left_coeffs);
+    } else if (force > 0) {
+        return interpolate_pwm(force, right_coeffs);
+    } else {
+        return 1500;
+    }
+}
+
+std::int16_t ThrusterInterfaceAUVDriver::interpolate_pwm(
+    double force,
+    const std::vector<double>& coeffs) {
+    return static_cast<std::int16_t>(coeffs[0] * std::pow(force, 3) +
+                                     coeffs[1] * std::pow(force, 2) +
+                                     coeffs[2] * force + coeffs[3]);
 }
 
 void ThrusterInterfaceAUVDriver::send_data_to_escs(
