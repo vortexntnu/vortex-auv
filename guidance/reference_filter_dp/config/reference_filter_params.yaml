@@ -2,4 +2,4 @@ reference_filter_node:
   ros__parameters:
     reference_filter_topic: /aruco_board_pose_camera
     zeta: [1., 1., 1., 1., 1., 1.]
-    omega: [0.09, 0.09, 0.09, 0.2, 0.2, 0.2]
+    omega: [0.09, 0.09, 0.09, 0.09, 0.09, 0.09]
