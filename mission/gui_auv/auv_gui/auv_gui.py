@@ -8,8 +8,8 @@ import numpy as np
 import rclpy
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from nav_msgs.msg import Odometry
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import (
     QApplication,
     QGridLayout,
     QLabel,
@@ -66,8 +66,22 @@ class GuiNode(Node):
         """Initialize the GuiNode and set up the odometry subscriber."""
         super().__init__("auv_gui_node")
 
+        # ROS2 parameters
+        self.declare_parameter("odom_topic", "/nucleus/odom")
+        self.declare_parameter("current_topic", "/auv/power_sense_module/current")
+        self.declare_parameter("voltage_topic", "/auv/power_sense_module/voltage")
+        self.declare_parameter("temperature_topic", "/auv/temperature")
+        self.declare_parameter("pressure_topic", "/auv/pressure")
+        self.declare_parameter("history_length", 30)
+
+        odom_topic = self.get_parameter("odom_topic").get_parameter_value().string_value
+        current_topic = self.get_parameter("current_topic").get_parameter_value().string_value
+        voltage_topic = self.get_parameter("voltage_topic").get_parameter_value().string_value
+        temperature_topic = self.get_parameter("temperature_topic").get_parameter_value().string_value
+        pressure_topic = self.get_parameter("pressure_topic").get_parameter_value().string_value
+
         # Subscriber to the /nucleus/odom topic
-        self.subscription = self.create_subscription(Odometry, '/nucleus/odom', self.odom_callback, 10)
+        self.subscription = self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
 
         # Variables to store odometry data
         self.xpos_data: List[float] = []  # x position
@@ -84,10 +98,10 @@ class GuiNode(Node):
         self.yaw: Optional[float] = None
 
         # Subscribe to internal status topics
-        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/current", self.current_callback, 5)
-        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/voltage", self.voltage_callback, 5)
-        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/temperature", self.temperature_callback, 5)
-        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/pressure", self.pressure_callback, 5)
+        self.current_subscriber = self.create_subscription(Float32, current_topic, self.current_callback, 5)
+        self.voltage_subscriber = self.create_subscription(Float32, voltage_topic, self.voltage_callback, 5)
+        self.temperature_subscriber = self.create_subscription(Float32, temperature_topic, self.temperature_callback, 5)
+        self.pressure_subscriber = self.create_subscription(Float32, pressure_topic, self.pressure_callback, 5)
 
         # Variables for internal status
         self.current = 0.0
@@ -112,12 +126,10 @@ class GuiNode(Node):
         x = msg.pose.pose.orientation.x
         y = msg.pose.pose.orientation.y
         z = msg.pose.pose.orientation.z
-        self.roll = quaternion_to_euler(x, y, z, w)[0]
-        self.pitch = quaternion_to_euler(x, y, z, w)[1]
-        self.yaw = quaternion_to_euler(x, y, z, w)[2]
+        self.roll, self.pitch, self.yaw = quaternion_to_euler(x, y, z, w)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
-        max_data_points = 30 * 100  # 30 seconds * 100 Hz
+        max_data_points = self.get_parameter("history_length").get_parameter_value().integer_value
         if len(self.x_data) > max_data_points:
             self.xpos_data.pop(0)
             self.ypos_data.pop(0)
@@ -224,7 +236,7 @@ def main(args: Optional[List[str]] = None) -> None:
 
     # Create the tab widget
     tabs = QTabWidget()
-    tabs.setTabPosition(QTabWidget.North)
+    tabs.setTabPosition(QTabWidget.TabPosition.North)
     tabs.setMovable(True)
 
     # --- Position Tab ---
@@ -248,7 +260,7 @@ def main(args: Optional[List[str]] = None) -> None:
     tabs.addTab(internal_widget, "Internal")
 
     gui.setCentralWidget(tabs)
-    gui.show()
+    gui.showMaximized()
 
     # Use a QTimer to update plot, current position, and internal status in the main thread
     def update_gui() -> None:
