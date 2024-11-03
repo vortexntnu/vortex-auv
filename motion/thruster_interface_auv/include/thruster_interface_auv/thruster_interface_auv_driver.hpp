@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <string>
@@ -86,6 +87,7 @@ class ThrusterInterfaceAUVDriver {
     std::vector<int> pwm_max_;
     std::vector<double> left_coeffs_;
     std::vector<double> right_coeffs_;
+    bool DEBUGGING_;
 
     /**
      * @brief [private] method that just take the thruster forces and return PWM

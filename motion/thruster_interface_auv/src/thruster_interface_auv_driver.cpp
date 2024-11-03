@@ -48,7 +48,6 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     for (int i = 0; i < right_coeffs_.size(); i++) {
         printf("%f ", right_coeffs_[i]);
     }
-    printf("\n");
 
     // Open the I2C bus
     std::string i2c_filename = "/dev/i2c-" + std::to_string(i2c_bus_);
@@ -56,7 +55,9 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
         open(i2c_filename.c_str(),
              O_RDWR);  // Open the i2c bus for reading and writing (0_RDWR)
     if (bus_fd_ < 0) {
-        std::cerr << "ERROR: Failed to open I2C bus " << i2c_bus_ << std::endl;
+        std::runtime_error("ERROR: Failed to open I2C bus " +
+                           std::to_string(i2c_bus_) + " : " +
+                           std::string(strerror(errno)));
     }
 }
 
@@ -118,13 +119,16 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
 
     // Set the I2C slave address
     if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
-        std::cerr << "ERROR: Failed to set I2C slave address" << std::endl;
+        throw std::runtime_error("Failed to open I2C bus " +
+                                 std::to_string(i2c_bus_) + " : " +
+                                 std::string(strerror(errno)));
         return;
     }
 
     // Write data to the I2C device
     if (write(bus_fd_, i2c_data_array.data(), 16) != 16) {
-        std::cerr << "ERROR: Failed to write to I2C device" << std::endl;
+        throw std::runtime_error("ERROR: Failed to write to I2C device : " +
+                                 std::string(strerror(errno)));
     }
 }
 
