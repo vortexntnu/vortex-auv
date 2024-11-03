@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(docking_demo_cpp)
+project(docking_cpp)
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -43,6 +43,7 @@ find_package(yasmin_viewer REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(action_tutorials_interfaces REQUIRED)
+find_package(vortex_msgs REQUIRED)
 
 # C++
 include_directories(include)
@@ -57,19 +58,20 @@ set(DEPENDENCIES
   nav_msgs
   example_interfaces
   action_tutorials_interfaces
+  vortex_msgs
 )
 
 
 # action client demo
-add_executable(docking_demo
-  src/docking_demo.cpp
+add_executable(docking
+  src/docking.cpp
 )
 set(SOURCES
-  src/docking_demo.cpp
+  src/docking.cpp
 )
-ament_target_dependencies(docking_demo ${DEPENDENCIES})
+ament_target_dependencies(docking ${DEPENDENCIES})
 install(TARGETS
-  docking_demo
+  docking
   DESTINATION lib/${PROJECT_NAME}
 )
 
