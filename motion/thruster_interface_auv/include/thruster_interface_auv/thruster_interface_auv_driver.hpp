@@ -40,28 +40,28 @@ class ThrusterInterfaceAUVDriver {
      * @brief actually used constructor. Called from ThrusterInterfaceAUVNode
      * .cpp when instantiating the object, initializes all the params.
      *
-     * @param I2C_BUS             bus number used to communicate
-     * @param PICO_I2C_ADDRESS    i2c address of the ESC that drive the
+     * @param i2c_bus             bus number used to communicate
+     * @param pico_i2c_address    i2c address of the ESC that drive the
      * thrusters
-     * @param THRUSTER_MAPPING    pin to motor mapping for the thrusters i.e. if
+     * @param thruster_mapping    pin to motor mapping for the thrusters i.e. if
      * thruster_to_pin = [7,6 ...] then thruster 0 is pin 1 etc..
-     * @param THRUSTER_DIRECTION  physical mounting direction of the thrusters,
+     * @param thruster_direction  physical mounting direction of the thrusters,
      * (+-1)
-     * @param PWM_MIN             minimum clamping pwm values
-     * @param PWM_MAX             maximum clamping pwm values
-     * @param LEFT_COEFFS         third order polynomial coefficients when force
+     * @param pwm_min             minimum clamping pwm values
+     * @param pwm_max             maximum clamping pwm values
+     * @param left_coeffs         third order polynomial coefficients when force
      * < 0
-     * @param RIGHT_COEFFS        third order polynomial coefficients when force
+     * @param right_coeffs        third order polynomial coefficients when force
      * > 0
      */
-    ThrusterInterfaceAUVDriver(short I2C_BUS,
-                               int PICO_I2C_ADDRESS,
-                               const std::vector<short>& THRUSTER_MAPPING,
-                               const std::vector<short>& THRUSTER_DIRECTION,
-                               const std::vector<int>& PWM_MIN,
-                               const std::vector<int>& PWM_MAX,
-                               const std::vector<double>& LEFT_COEFFS,
-                               const std::vector<double>& RIGHT_COEFFS);
+    ThrusterInterfaceAUVDriver(short i2c_bus,
+                               int pico_i2c_address,
+                               const std::vector<short>& thruster_mapping,
+                               const std::vector<short>& thruster_direction,
+                               const std::vector<int>& pwm_min,
+                               const std::vector<int>& pwm_max,
+                               const std::vector<double>& left_coeffs,
+                               const std::vector<double>& right_coeffs);
 
     /**
      * @brief [PUBLIC] method that calls 1) interpolate_forces_to_pwm() to
@@ -76,17 +76,17 @@ class ThrusterInterfaceAUVDriver {
         const std::vector<double>& thruster_forces_array);
 
    private:
-    int bus_fd;  ///< file descriptor for the I2C bus (integer >0 that uniquely
-                 ///< identifies the device. -1 if it fails)
-    short I2C_BUS;
-    int PICO_I2C_ADDRESS;
+    int bus_fd_;  ///< file descriptor for the I2C bus (integer >0 that uniquely
+                  ///< identifies the device. -1 if it fails)
+    short i2c_bus_;
+    int pico_i2c_address_;
 
-    std::vector<short> THRUSTER_MAPPING;
-    std::vector<short> THRUSTER_DIRECTION;
-    std::vector<int> PWM_MIN;
-    std::vector<int> PWM_MAX;
-    std::vector<double> LEFT_COEFFS;
-    std::vector<double> RIGHT_COEFFS;
+    std::vector<short> thruster_mapping_;
+    std::vector<short> thruster_direction_;
+    std::vector<int> pwm_min_;
+    std::vector<int> pwm_max_;
+    std::vector<double> left_coeffs_;
+    std::vector<double> right_coeffs_;
 
     /**
      * @brief [private] method that just take the thruster forces and return PWM

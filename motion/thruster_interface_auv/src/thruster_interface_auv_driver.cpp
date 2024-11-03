@@ -3,67 +3,68 @@
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver() {}
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
-    short I2C_BUS,
-    int PICO_I2C_ADDRESS,
-    const std::vector<short>& THRUSTER_MAPPING,
-    const std::vector<short>& THRUSTER_DIRECTION,
-    const std::vector<int>& PWM_MIN,
-    const std::vector<int>& PWM_MAX,
-    const std::vector<double>& LEFT_COEFFS,
-    const std::vector<double>& RIGHT_COEFFS)
-    : I2C_BUS(I2C_BUS),
-      PICO_I2C_ADDRESS(PICO_I2C_ADDRESS),
-      THRUSTER_MAPPING(THRUSTER_MAPPING),
-      THRUSTER_DIRECTION(THRUSTER_DIRECTION),
-      PWM_MIN(PWM_MIN),
-      PWM_MAX(PWM_MAX),
-      LEFT_COEFFS(LEFT_COEFFS),
-      RIGHT_COEFFS(RIGHT_COEFFS) {
-    printf("I2C_BUS: %d\n", I2C_BUS);
-    printf("PICO_I2C_ADDRESS: %d\n", PICO_I2C_ADDRESS);
+    short i2c_bus,
+    int pico_i2c_address,
+    const std::vector<short>& thruster_mapping,
+    const std::vector<short>& thruster_direction,
+    const std::vector<int>& pwm_min,
+    const std::vector<int>& pwm_max,
+    const std::vector<double>& left_coeffs,
+    const std::vector<double>& right_coeffs)
+    : i2c_bus_(i2c_bus),
+      pico_i2c_address_(pico_i2c_address),
+      thruster_mapping_(thruster_mapping),
+      thruster_direction_(thruster_direction),
+      pwm_min_(pwm_min),
+      pwm_max_(pwm_max),
+      left_coeffs_(left_coeffs),
+      right_coeffs_(right_coeffs) {
+    printf("I2C_BUS: %d\n", i2c_bus_);
+    printf("PICO_I2C_ADDRESS: %d\n", pico_i2c_address_);
     printf("THRUSTER_MAPPING: ");
-    for (int i = 0; i < THRUSTER_MAPPING.size(); i++) {
-        printf("%d ", THRUSTER_MAPPING[i]);
+    for (int i = 0; i < thruster_mapping_.size(); i++) {
+        printf("%d ", thruster_mapping_[i]);
     }
     printf("\n");
     printf("THRUSTER_DIRECTION: ");
-    for (int i = 0; i < THRUSTER_DIRECTION.size(); i++) {
-        printf("%d ", THRUSTER_DIRECTION[i]);
+    for (int i = 0; i < thruster_direction_.size(); i++) {
+        printf("%d ", thruster_direction_[i]);
     }
     printf("\n");
     printf("PWM_MIN: ");
-    for (int i = 0; i < PWM_MIN.size(); i++) {
-        printf("%d ", PWM_MIN[i]);
+    for (int i = 0; i < pwm_min_.size(); i++) {
+        printf("%d ", pwm_min_[i]);
     }
     printf("\n");
     printf("PWM_MAX: ");
-    for (int i = 0; i < PWM_MAX.size(); i++) {
-        printf("%d ", PWM_MAX[i]);
+    for (int i = 0; i < pwm_max_.size(); i++) {
+        printf("%d ", pwm_max_[i]);
     }
     printf("\n");
     printf("LEFT_COEFFS: ");
-    for (int i = 0; i < LEFT_COEFFS.size(); i++) {
-        printf("%f ", LEFT_COEFFS[i]);
+    for (int i = 0; i < left_coeffs_.size(); i++) {
+        printf("%f ", left_coeffs_[i]);
     }
     printf("\n");
     printf("RIGHT_COEFFS: ");
-    for (int i = 0; i < RIGHT_COEFFS.size(); i++) {
-        printf("%f ", RIGHT_COEFFS[i]);
+    for (int i = 0; i < right_coeffs_.size(); i++) {
+        printf("%f ", right_coeffs_[i]);
     }
     printf("\n");
 
     // Open the I2C bus
-    std::string i2c_filename = "/dev/i2c-" + std::to_string(I2C_BUS);
-    bus_fd = open(i2c_filename.c_str(),
-                  O_RDWR);  // Open the i2c bus for reading and writing (0_RDWR)
-    if (bus_fd < 0) {
-        std::cerr << "ERROR: Failed to open I2C bus " << I2C_BUS << std::endl;
+    std::string i2c_filename = "/dev/i2c-" + std::to_string(i2c_bus_);
+    bus_fd_ =
+        open(i2c_filename.c_str(),
+             O_RDWR);  // Open the i2c bus for reading and writing (0_RDWR)
+    if (bus_fd_ < 0) {
+        std::cerr << "ERROR: Failed to open I2C bus " << i2c_bus_ << std::endl;
     }
 }
 
 ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
-    if (bus_fd >= 0) {
-        close(bus_fd);
+    if (bus_fd_ >= 0) {
+        close(bus_fd_);
     }
 }
 
@@ -77,7 +78,7 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     std::vector<int16_t> interpolated_pwm;
     for (const double force : forces_in_kg) {
         interpolated_pwm.push_back(
-            force_to_pwm(force, LEFT_COEFFS, RIGHT_COEFFS));
+            force_to_pwm(force, left_coeffs_, right_coeffs_));
     }
     return interpolated_pwm;
 }
@@ -112,13 +113,13 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
     }
 
     // Set the I2C slave address
-    if (ioctl(bus_fd, I2C_SLAVE, PICO_I2C_ADDRESS) < 0) {
+    if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
         std::cerr << "ERROR: Failed to set I2C slave address" << std::endl;
         return;
     }
 
     // Write data to the I2C device
-    if (write(bus_fd, i2c_data_array, 16) != 16) {
+    if (write(bus_fd_, i2c_data_array, 16) != 16) {
         std::cerr << "ERROR: Failed to write to I2C device" << std::endl;
     }
 }
@@ -127,9 +128,9 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
     // Apply thruster mapping and direction
     std::vector<double> mapped_forces(thruster_forces_array.size());
-    for (size_t i = 0; i < THRUSTER_MAPPING.size(); ++i) {
-        mapped_forces[i] =
-            thruster_forces_array[THRUSTER_MAPPING[i]] * THRUSTER_DIRECTION[i];
+    for (size_t i = 0; i < thruster_mapping_.size(); ++i) {
+        mapped_forces[i] = thruster_forces_array[thruster_mapping_[i]] *
+                           thruster_direction_[i];
     }
 
     // Convert forces to PWM
@@ -139,10 +140,10 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     // Apply thruster offset and limit PWM if needed
     for (size_t i = 0; i < thruster_pwm_array.size(); ++i) {
         // Clamp the PWM signal
-        if (thruster_pwm_array[i] < PWM_MIN[i]) {
-            thruster_pwm_array[i] = PWM_MIN[i];
-        } else if (thruster_pwm_array[i] > PWM_MAX[i]) {
-            thruster_pwm_array[i] = PWM_MAX[i];
+        if (thruster_pwm_array[i] < pwm_min_[i]) {
+            thruster_pwm_array[i] = pwm_min_[i];
+        } else if (thruster_pwm_array[i] > pwm_max_[i]) {
+            thruster_pwm_array[i] = pwm_max_[i];
         }
     }
 
