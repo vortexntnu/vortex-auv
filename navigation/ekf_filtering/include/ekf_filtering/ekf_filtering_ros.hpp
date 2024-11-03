@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
@@ -46,7 +47,14 @@ class EKFFilteringNode : public rclcpp::Node{
 
         ~EKFFilteringNode(){};
 
+
     private:
+        //first run callback
+        void SetFirstRunCallback(const std::shared_ptr<std_srvs::srv::SetBool::Request> request, 
+        std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+
+        //Creating the service
+        rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr service_;
     
         std::string target_frame_;
         std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
@@ -131,29 +139,8 @@ class EKFFilteringNode : public rclcpp::Node{
         
 
 
-
-        
-
-    
-
-
-
 };
 
-//
-using SetFirstRun = variagle_interfaces::srv::SetFirstRun;
-
-class SetFirstRunService : public rclcpp::Node
-{
-    public:
-        SetFirstRunService();
-
-    private:
-        void SetFirstRunCallback(const std::shared_ptr<SetFirstRun::Request> request, std::shared_ptr>SetFirstRun::Response> response){};
-        rclcpp::Service<SetFirstRun>::SharedPtr service_;
-
-
-}
 
 } //namespace vortex::ekf_filtering
 #endif

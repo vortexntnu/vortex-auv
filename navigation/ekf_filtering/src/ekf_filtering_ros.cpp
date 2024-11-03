@@ -20,6 +20,10 @@ namespace ekf_filtering {
 
 EKFFilteringNode::EKFFilteringNode() : Node("ekf_filtering_node"), time_since_previous_callback(0,0)
     {
+        //for the service call
+        service_ = this->create_service<std_srvs::srv::SetBool>("set_first_run", 
+        std::bind(&EKFFilteringNode::SetFirstRunCallback, this, std::placeholders::_1, std::placeholders::_2));
+
          // Declare and acquire `target_frame` parameter
         target_frame_ = this->declare_parameter<std::string>("target_frame", "odom");
 
@@ -135,19 +139,12 @@ geometry_msgs::msg::PoseStamped EKFFilteringNode::kalmanFilterCallback(geometry_
     }
     }
 
-    SetFirstRunService:SetFirstRunService() : Node("set_first_run_node")
+    void EKFFilteringNode::SetFirstRunCallback(const std::shared_ptr<std_srvs::srv::SetBool::Request> request, 
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response)
     {
-        service_ = this->create_service<SetFirstRun>("set_first_run", std::bind(&SetFirstRunService::SetFirstRunCallback, 
-        this, std::placeholders::_1, std::placeholders::_2));
-    }
-
-    void SetFirstRunCallback(const std::shared_ptr<SetFirstRun::Request> request, 
-    std::shared_ptr<SetFirstRun::Response> response)
-    {
-        bool first_run_ = request->new_value;
+        first_run_ = false;
         response->success = true;
     }
-
 
 
 } //namespace ekf filtering
@@ -159,8 +156,6 @@ int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<vortex::ekf_filtering::EKFFilteringNode>());
-    auto node = std::make_shared<SetFirstRunService>();
-    rclcpp:spin(node);
     rclcpp::shutdown();
     return 0;
 }

@@ -19,6 +19,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(vortex_filtering REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(include)
 
@@ -37,7 +38,8 @@ ament_target_dependencies(ekf_filtering_node
   tf2_ros 
   tf2_geometry_msgs 
   message_filters
-  vortex_filtering)
+  vortex_filtering
+  std_srvs)
 
 install(TARGETS
   ekf_filtering_node
