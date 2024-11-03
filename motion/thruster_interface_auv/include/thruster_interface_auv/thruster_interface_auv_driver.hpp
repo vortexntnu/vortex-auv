@@ -33,7 +33,6 @@ class ThrusterInterfaceAUVDriver {
      * @brief empty default constructor called when declaring the object in the
      * .hpp file. Doesn't initialize any params.
      */
-    ThrusterInterfaceAUVDriver();
     ~ThrusterInterfaceAUVDriver();
 
     /**

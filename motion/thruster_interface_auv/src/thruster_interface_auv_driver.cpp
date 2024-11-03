@@ -1,7 +1,5 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
-ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver() {}
-
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     short i2c_bus,
     int pico_i2c_address,

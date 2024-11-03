@@ -22,7 +22,7 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
         thruster_pwm_publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
 
-    ThrusterInterfaceAUVDriver thruster_driver_;
+    std::unique_ptr<ThrusterInterfaceAUVDriver> thruster_driver_;
 
     std::vector<double> thruster_forces_array_;
     double thrust_timer_period_;

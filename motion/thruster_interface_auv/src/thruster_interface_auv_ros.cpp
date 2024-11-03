@@ -64,7 +64,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
                                                                qos_sensor_data);
 
     // Initialize thruster driver
-    this->thruster_driver_ = ThrusterInterfaceAUVDriver(
+    this->thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
         i2c_bus, i2c_address,
         std::vector<short>(thruster_mapping.begin(), thruster_mapping.end()),
         std::vector<short>(thruster_direction.begin(),
@@ -93,7 +93,7 @@ void ThrusterInterfaceAUVNode::thruster_forces_callback(
 
 void ThrusterInterfaceAUVNode::timer_callback() {
     std::vector<int16_t> thruster_pwm_array =
-        thruster_driver_.drive_thrusters(this->thruster_forces_array_);
+        thruster_driver_->drive_thrusters(this->thruster_forces_array_);
 
     // publish PWM values for debugging
     std_msgs::msg::Int16MultiArray pwm_message;
