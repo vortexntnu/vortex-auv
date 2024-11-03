@@ -115,6 +115,11 @@ class ThrusterInterfaceAUVDriver {
     void send_data_to_escs(const std::vector<int16_t>& thruster_pwm_array);
 
     static constexpr auto to_kg = [](double force) { return force / 9.80665; };
+    static constexpr auto pwm_to_i2c_data =
+        [](std::int16_t pwm) -> std::array<std::uint8_t, 2> {
+        return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
+                static_cast<std::uint8_t>(pwm & 0xFF)};
+    };
 };
 
 #endif  // THRUSTER_INTERFACE_AUV_DRIVER_HPP

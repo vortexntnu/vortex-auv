@@ -104,11 +104,17 @@ std::int16_t ThrusterInterfaceAUVDriver::interpolate_pwm(
 
 void ThrusterInterfaceAUVDriver::send_data_to_escs(
     const std::vector<int16_t>& thruster_pwm_array) {
-    uint8_t i2c_data_array[16];
-    for (size_t i = 0; i < thruster_pwm_array.size(); ++i) {
-        i2c_data_array[2 * i] = (thruster_pwm_array[i] >> 8) & 0xFF;  // MSB
-        i2c_data_array[2 * i + 1] = thruster_pwm_array[i] & 0xFF;     // LSB
-    }
+    constexpr std::size_t i2c_data_size =
+        8 * 2;  // 8 thrusters * (1xMSB + 1xLSB)
+    std::vector<std::uint8_t> i2c_data_array;
+    i2c_data_array.reserve(i2c_data_size);
+
+    std::for_each(thruster_pwm_array.begin(), thruster_pwm_array.end(),
+                  [&](std::int16_t pwm) {
+                      std::array<std::uint8_t, 2> bytes = pwm_to_i2c_data(pwm);
+                      std::copy(bytes.begin(), bytes.end(),
+                                std::back_inserter(i2c_data_array));
+                  });
 
     // Set the I2C slave address
     if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
@@ -117,7 +123,7 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
     }
 
     // Write data to the I2C device
-    if (write(bus_fd_, i2c_data_array, 16) != 16) {
+    if (write(bus_fd_, i2c_data_array.data(), 16) != 16) {
         std::cerr << "ERROR: Failed to write to I2C device" << std::endl;
     }
 }
@@ -145,11 +151,14 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
         }
     }
 
-    // Send data through I2C
     try {
         send_data_to_escs(thruster_pwm_array);
+    } catch (const std::exception& e) {
+        std::cerr << "ERROR: Failed to send PWM values - " << e.what()
+                  << std::endl;
     } catch (...) {
-        std::cerr << "ERROR: Failed to send PWM values" << std::endl;
+        std::cerr << "ERROR: Failed to send PWM values - Unknown exception"
+                  << std::endl;
     }
 
     return thruster_pwm_array;
