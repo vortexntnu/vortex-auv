@@ -86,10 +86,14 @@ class GuiNode(Node):
         # Subscribe to internal status topics
         self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/current", self.current_callback, 5)
         self.internal_status_subscriber = self.create_subscription(Float32, "/auv/power_sense_module/voltage", self.voltage_callback, 5)
+        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/temperature", self.temperature_callback, 5)
+        self.internal_status_subscriber = self.create_subscription(Float32, "/auv/pressure", self.pressure_callback, 5)
 
         # Variables for internal status
         self.current = 0.0
         self.voltage = 0.0
+        self.temperature = 0.0
+        self.pressure = 0.0
 
     # --- Callback functions ---
 
@@ -98,7 +102,7 @@ class GuiNode(Node):
         # Extract x, y, z positions from the odometry message
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
-        z = -(msg.pose.pose.position.z)  # Inverted to match reality...
+        z = -(msg.pose.pose.position.z)
         self.xpos_data.append(x)
         self.ypos_data.append(y)
         self.zpos_data.append(z)
@@ -127,6 +131,14 @@ class GuiNode(Node):
         """Callback function that is triggered when a voltage message is received."""
         self.voltage = msg.data
 
+    def temperature_callback(self, msg: Float32) -> None:
+        """Callback function that is triggered when a temperature message is received."""
+        self.temperature = msg.data
+
+    def pressure_callback(self, msg: Float32) -> None:
+        """Callback function that is triggered when a pressure message is received."""
+        self.pressure = msg.data
+
 
 # --- Plotting ---
 
@@ -135,11 +147,11 @@ class PlotCanvas(FigureCanvas):
     """A canvas widget for plotting odometry data using matplotlib."""
 
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
-        """Initialize the PlotCanvas with a reference to the ROS node and configure the plot."""
+        """Initialize the PlotCanvas."""
         # Set up the 3D plot
-        self.gui_node = gui_node  # Store a reference to the ROS node
+        self.gui_node = gui_node
         self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111, projection='3d')  # Set up 3D projection
+        self.ax = self.fig.add_subplot(111, projection='3d')
 
         # Initialize a red dot for the current position
         (self.current_position_dot,) = self.ax.plot([], [], [], 'ro')
@@ -157,17 +169,10 @@ class PlotCanvas(FigureCanvas):
         self.x_data: List[float] = []
         self.y_data: List[float] = []
         self.z_data: List[float] = []
-        (self.line,) = self.ax.plot([], [], [], 'b-')  # 3D line plot
+        (self.line,) = self.ax.plot([], [], [], 'b-')
 
     def update_plot(self, x_data: List[float], y_data: List[float], z_data: List[float]) -> None:
-        """
-        Update the 3D plot with the latest odometry data.
-
-        Args:
-            x_data (List[float]): The list of x positions.
-            y_data (List[float]): The list of y positions.
-            z_data (List[float]): The list of z positions.
-        """
+        """Update the 3D plot with the latest odometry data."""
         # Convert lists to numpy arrays to ensure compatibility with the plot functions
         x_data = np.array(x_data, dtype=float)
         y_data = np.array(y_data, dtype=float)
@@ -175,12 +180,12 @@ class PlotCanvas(FigureCanvas):
 
         # Check if the arrays are non-empty before updating the plot
         if len(x_data) > 0 and len(y_data) > 0 and len(z_data) > 0:
-            self.line.set_data(x_data, y_data)  # Update the 2D projection data
-            self.line.set_3d_properties(z_data)  # Update the z-data for the 3D line
+            self.line.set_data(x_data, y_data)
+            self.line.set_3d_properties(z_data)
 
             # Update the current position dot
-            self.current_position_dot.set_data(x_data[-1:], y_data[-1:])  # Update the 2D projection data
-            self.current_position_dot.set_3d_properties(z_data[-1:])  # Update the z-data for the 3D dot
+            self.current_position_dot.set_data(x_data[-1:], y_data[-1:])
+            self.current_position_dot.set_3d_properties(z_data[-1:])
 
             # Update the limits for the 3D plot around the latest data point
             x_latest = x_data[-1]
@@ -254,16 +259,21 @@ def main(args: Optional[List[str]] = None) -> None:
             current_pos.setText(position_text + "\n\n\n" + orientation_text)
 
         # Update internal status
-        internal_status_label.setText(f"Internal Status:\nCurrent: {ros_node.current:.2f}\nVoltage: {ros_node.voltage:.2f}")
+        internal_status_label.setText(
+            f"Internal Status:\n"
+            f"Current: {ros_node.current:.2f}\n"
+            f"Voltage: {ros_node.voltage:.2f}\n"
+            f"Temperature: {ros_node.temperature:.2f}\n"
+            f"Pressure: {ros_node.pressure:.2f}"
+        )
 
     # Set up the timer to call update_gui every 100ms
     timer = QTimer()
     timer.timeout.connect(update_gui)
-    timer.start(100)  # 100 ms interval
+    timer.start(100)
 
     app.exec()
 
-    # Cleanup ROS resources
     ros_node.destroy_node()
     rclpy.shutdown()
     sys.exit()
