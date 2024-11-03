@@ -23,3 +23,7 @@ thruster_interface_auv_node:
     i2c:
       bus: 1
       address: 0x21
+
+    topics:
+      thruster_forces_subscriber: "thrust/thruster_forces"
+      pwm_publisher: "pwm"

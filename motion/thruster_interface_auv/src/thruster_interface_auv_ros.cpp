@@ -2,21 +2,6 @@
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     : Node("thruster_interface_auv_node") {
-    // create a subscriber that takes data from thruster forces and publisher
-    // for debugging
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
-
-    this->thruster_forces_subscriber_ =
-        this->create_subscription<vortex_msgs::msg::ThrusterForces>(
-            "thrust/thruster_forces", qos_sensor_data,
-            std::bind(&ThrusterInterfaceAUVNode::thruster_forces_callback, this,
-                      std::placeholders::_1));
-    this->thruster_pwm_publisher_ =
-        this->create_publisher<std_msgs::msg::Int16MultiArray>("pwm",
-                                                               qos_sensor_data);
-
     // from orca.yaml parameters
     this->declare_parameter<std::vector<int>>(
         "propulsion.thrusters.thruster_to_pin_mapping");
@@ -32,6 +17,9 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     this->declare_parameter<int>("i2c.address");
     this->declare_parameter<std::vector<double>>("coeffs.16V.LEFT");
     this->declare_parameter<std::vector<double>>("coeffs.16V.RIGHT");
+
+    this->declare_parameter<std::string>("topics.thruster_forces_subscriber");
+    this->declare_parameter<std::string>("topics.pwm_publisher");
 
     int i2c_bus = this->get_parameter("i2c.bus").as_int();
     int i2c_address = this->get_parameter("i2c.address").as_int();
@@ -54,6 +42,26 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
         this->get_parameter("coeffs.16V.LEFT").as_double_array();
     std::vector<double> right_coeffs =
         this->get_parameter("coeffs.16V.RIGHT").as_double_array();
+
+    std::string subscriber_name =
+        this->get_parameter("topics.thruster_forces_subscriber").as_string();
+    std::string publisher_name =
+        this->get_parameter("topics.pwm_publisher").as_string();
+
+    // create a subscriber that takes data from thruster forces and publisher
+    // for debugging
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+    auto qos_sensor_data = rclcpp::QoS(
+        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+
+    this->thruster_forces_subscriber_ =
+        this->create_subscription<vortex_msgs::msg::ThrusterForces>(
+            subscriber_name, qos_sensor_data,
+            std::bind(&ThrusterInterfaceAUVNode::thruster_forces_callback, this,
+                      std::placeholders::_1));
+    this->thruster_pwm_publisher_ =
+        this->create_publisher<std_msgs::msg::Int16MultiArray>(publisher_name,
+                                                               qos_sensor_data);
 
     // Initialize thruster driver
     this->thruster_driver_ = ThrusterInterfaceAUVDriver(
