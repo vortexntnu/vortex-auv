@@ -139,5 +139,21 @@ class EKFFilteringNode : public rclcpp::Node{
 
 
 };
+
+//
+using SetFirstRun = variagle_interfaces::srv::SetFirstRun;
+
+class SetFirstRunService : public rclcpp::Node
+{
+    public:
+        SetFirstRunService();
+
+    private:
+        void SetFirstRunCallback(const std::shared_ptr<SetFirstRun::Request> request, std::shared_ptr>SetFirstRun::Response> response){};
+        rclcpp::Service<SetFirstRun>::SharedPtr service_;
+
+
+}
+
 } //namespace vortex::ekf_filtering
 #endif
