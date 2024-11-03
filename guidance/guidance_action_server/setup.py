@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'guidance_action_server = guidance_action_server.guidance_action_server_node:main',
+            'test_guidance_client = guidance_action_server.test_guidance_client:main',
         ],
     },
 )
