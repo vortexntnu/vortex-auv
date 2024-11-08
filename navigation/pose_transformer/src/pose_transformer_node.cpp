@@ -39,7 +39,7 @@ public:
 
         // Set up the MessageFilter to transform poses into the "odom" frame
         tf2_filter_ = std::make_shared<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>(
-            pose_sub_, *tf2_buffer_, "odom", 100, this->get_node_logging_interface(), this->get_node_clock_interface());
+            pose_sub_, *tf2_buffer_, target_frame_, 100, this->get_node_logging_interface(), this->get_node_clock_interface());
 
         tf2_filter_->registerCallback(std::bind(&PoseTransformerNode::poseCallback, this, _1));
 
@@ -55,13 +55,46 @@ private:
         // Attempt to transform the PoseStamped into the "odom" frame
         geometry_msgs::msg::PoseStamped transformed_pose;
         try {
-            tf2_buffer_->transform(*pose_msg, transformed_pose, "odom", tf2::Duration(std::chrono::milliseconds(100)));
-            transformed_pose_pub_->publish(transformed_pose);
+            tf2_buffer_->transform(*pose_msg, transformed_pose, target_frame_, tf2::Duration(std::chrono::milliseconds(100)));
+            
+            transformed_pose_pub_->publish(transformEnuToNed(transformed_pose));
+            
             RCLCPP_INFO(this->get_logger(), "Pose transformed and published.");
         } catch (tf2::TransformException &ex) {
             RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
         }
     }
+
+// Function to rotate a quaternion 180 degrees around the X-axis without flipping the X-axis direction
+geometry_msgs::msg::PoseStamped transformEnuToNed(const geometry_msgs::msg::PoseStamped& enu_pose)
+{
+    geometry_msgs::msg::PoseStamped ned_pose = enu_pose;
+
+    // Copy the position without change
+    ned_pose.pose.position = enu_pose.pose.position;
+
+    // Extract the original orientation
+    tf2::Quaternion q_enu;
+    tf2::fromMsg(enu_pose.pose.orientation, q_enu);
+
+    // Define a quaternion that represents a 180-degree rotation around the X-axis
+    // Adjusting the rotation to ensure it doesn't invert the X-axis itself.
+    tf2::Quaternion q_rot;
+    q_rot.setValue(0, 1, 0.5, 0);  // This represents a 180-degree rotation around the X-axis
+
+    // Apply the rotation to the original quaternion
+    tf2::Quaternion q_ned = q_rot * q_enu;
+
+    q_ned.setRPY(0, 0, 0);
+
+    q_ned.normalize();
+
+    // Set the adjusted orientation back to the message
+    ned_pose.pose.orientation = tf2::toMsg(q_ned);
+
+    return ned_pose;
+}
+
     
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
