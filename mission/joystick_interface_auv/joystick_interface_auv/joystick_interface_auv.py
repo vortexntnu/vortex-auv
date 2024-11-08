@@ -98,13 +98,9 @@ class JoystickInterface(Node):
         self.joystick_axes_map_ = []
 
         self.joy_subscriber_ = self.create_subscription(
-        Joy, "joystick/joy", self.joystick_cb, 5)
-        self.wrench_publisher_ = self.create_publisher(Wrench,
-        "joystick/wrench",
-        10) 
-        self.pose_publisher = self.create_publisher(PoseStamped, "/dp/guidance", 10) 
-        self.timer_ = self.create_timer(0.1, self.timer_cb) 
-
+            Joy, "joystick/joy", self.joystick_cb, 5
+        )
+        self.wrench_publisher_ = self.create_publisher(Wrench, "thrust/wrench_input", 5)
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -135,51 +131,32 @@ class JoystickInterface(Node):
         self.joystick_pitch_scaling_ = self.get_parameter(
         'pitch_scale_factor').value
 
-        #Gets the scaling factors for the reference mode from the yaml file
-        self.joystick_surge_param_ = self.get_parameter(
-        'surge_scale_ref_param').value
-        self.joystick_sway_param_ = self.get_parameter(
-        'sway_scale_ref_param').value
-        self.joystick_heave_param_ = self.get_parameter(
-        'heave_scale_ref_param').value
-        self.joystick_yaw_param_ = self.get_parameter(
-        'yaw_scale_ref_param').value
-        self.joystick_roll_param_ = self.get_parameter(
-        'roll_scale_ref_param').value
-        self.joystick_pitch_param_ = self.get_parameter(
-        'pitch_scale_ref_param').value
-
-        #Killswitch publisher
+        # Killswitch publisher
         self.software_killswitch_signal_publisher_ = self.create_publisher(
-            Bool, "softwareKillSwitch", 10)
+            Bool, "softwareKillSwitch", 10
+        )
         self.software_killswitch_signal_publisher_.publish(
-            Bool(data=True)) #Killswitch is active
+            Bool(data=True)
+        )  # Killswitch is active
 
-        #Operational mode publisher
+        # Operational mode publisher
         self.operational_mode_signal_publisher_ = self.create_publisher(
-            String, "softwareOperationMode", 10) 
-        self.current_pose = PoseStamped()
+            String, "softwareOperationMode", 10
+        )
 
+        # Signal that we are in XBOX mode
+        self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
 
-    def create_pose_message(self): 
-        """
-        Creates a PoseStamped message with the current pose of the AUV.
-
-        This function creates a PoseStamped message, sets the current time as the timestamp,
-        and assigns the current pose of the AUV to the pose field of the message.
-
-        Returns:
-            PoseStamped: A ROS PoseStamped message containing the current pose of the AUV.
-        """
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = "base_link"
-        pose_msg.pose = self.current_pose.pose
-        return pose_msg
-
-    def create_wrench_message(self, surge: float, sway: float, heave: float, roll: float, pitch: float, yaw: float) -> Wrench:
-        """
-        Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
+    def create_wrench_message(
+        self,
+        surge: float,
+        sway: float,
+        heave: float,
+        roll: float,
+        pitch: float,
+        yaw: float,
+    ) -> Wrench:
+        """Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
         Args:
         surge (float): The x component of the force vector.
@@ -202,32 +179,12 @@ class JoystickInterface(Node):
         return wrench_msg
 
     def transition_to_xbox_mode(self) -> None:
-        """
-        Turns off the controller and signals that the operational mode has switched to Xbox mode.
-        """
+        """Turns off the controller and signals that the operational mode has switched to Xbox mode."""
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
-        self.get_logger().info("Transitioned to XBOX mode.")
-        self.get_logger().info("XBOX mode")
-
-
-    def transition_to_reference_mode(self):
-        """
-        Publishes a pose message and signals that the operational mode has switched to Reference mode.
-        """
-        pose_msg = self.create_pose_message()
-        self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
-        self.pose_publisher.publish(pose_msg)
-        self.state_ = States.REFERENCE_MODE
-        self.get_logger().info("Transitioned to reference mode")
-        self.get_logger().info("Reference mode")
-
-
 
     def transition_to_autonomous_mode(self) -> None:
-        """
-        Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
-        """
+        """Publishes a zero force wrench message and signals that the system is turning on autonomous mode."""
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
         self.operational_mode_signal_publisher_.publish(
@@ -236,13 +193,23 @@ class JoystickInterface(Node):
         self.get_logger().info("autonomous mode")
 
 
-    def check_number_of_buttons(self, msg: Joy) -> None:
-        """
-        Checks if the controller is wireless (has 16 buttons) or wired and sets the joystick button and axis maps accordingly.
-        
+    def joystick_cb(self, msg: Joy) -> Wrench:
+        """Callback function that receives joy messages and converts them into wrench messages to be sent to the thruster allocation node.
+
+        Handles software killswitch and control mode buttons, and transitions between different states of operation.
+
         Args:
             msg: A ROS message containing the joy input data.
-        """        
+
+        Returns:
+            A ROS message containing the wrench data that was sent to the thruster allocation node.
+        """
+        current_time = self.get_clock().now().to_msg().sec
+
+        buttons = {}
+        axes = {}
+
+        # Check if the controller is wireless (has 16 buttons) or wired
         if len(msg.buttons) == 16:
             self.joystick_buttons_map_ = WirelessXboxSeriesX.joystick_buttons_map_
             self.joystick_axes_map_ = WirelessXboxSeriesX.joystick_axes_map_
@@ -393,7 +360,37 @@ class JoystickInterface(Node):
         left_shoulder = buttons.get("LB", 0)
         right_shoulder = buttons.get("RB", 0)
 
-        self.calculate_movement(axes, left_trigger, right_trigger, left_shoulder, right_shoulder)
+        # Extract axis values
+        surge = (
+            axes.get("vertical_axis_left_stick", 0.0)
+            * self.joystick_surge_scaling_
+            * self.precise_manuevering_scaling_
+        )
+        sway = (
+            -axes.get("horizontal_axis_left_stick", 0.0)
+            * self.joystick_sway_scaling_
+            * self.precise_manuevering_scaling_
+        )
+        heave = (
+            (left_trigger - right_trigger)
+            * self.joystick_heave_scaling_
+            * self.precise_manuevering_scaling_
+        )
+        roll = (
+            (right_shoulder - left_shoulder)
+            * self.joystick_roll_scaling_
+            * self.precise_manuevering_scaling_
+        )
+        pitch = (
+            -axes.get("vertical_axis_right_stick", 0.0)
+            * self.joystick_pitch_scaling_
+            * self.precise_manuevering_scaling_
+        )
+        yaw = (
+            -axes.get("horizontal_axis_right_stick", 0.0)
+            * self.joystick_yaw_scaling_
+            * self.precise_manuevering_scaling_
+        )
 
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
@@ -403,13 +400,43 @@ class JoystickInterface(Node):
             reference_mode_button = False
 
         # If any button is pressed, update the last button press time
-        if software_control_mode_button or xbox_control_mode_button or software_killswitch_button or reference_mode_button:
-
+        if (
+            software_control_mode_button
+            or xbox_control_mode_button
+            or software_killswitch_button
+            or precise_manuevering_mode_button
+        ):
             self.last_button_press_time_ = current_time
 
         # Toggle killswitch on and off
         if software_killswitch_button:
-            self.handle_killswitch_button()
+            if self.state_ == States.NO_GO:
+                # Signal that killswitch is not blocking
+                self.software_killswitch_signal_publisher_.publish(Bool(data=False))
+                self.transition_to_xbox_mode()
+                return
+
+            self.get_logger().info("SW killswitch", throttle_duration_sec=1)
+            # Signal that killswitch is blocking
+            self.software_killswitch_signal_publisher_.publish(Bool(data=True))
+
+            # Publish a zero wrench message when killswitch is activated
+            wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            self.wrench_publisher_.publish(wrench_msg)
+            self.state_ = States.NO_GO
+            return wrench_msg
+
+        # Toggle precise maneuvering mode on and off
+        if precise_manuevering_mode_button:
+            self.precise_manuevering_mode_ = not self.precise_manuevering_mode_
+            mode = "ENABLED" if self.precise_manuevering_mode_ else "DISABLED"
+            self.get_logger().info(f"Precise maneuvering mode {mode}.")
+            self.precise_manuevering_scaling_ = (
+                0.5 if self.precise_manuevering_mode_ else 1.0
+            )
+
+        # Publish wrench message from joystick_interface to thrust allocation
+        wrench_msg = self.create_wrench_message(surge, sway, heave, roll, pitch, yaw)
 
         if self.state_ == States.XBOX_MODE:
             wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
@@ -559,10 +586,9 @@ class JoystickInterface(Node):
         return angle
 
 def main() -> None:
-    """
-    Initializes the ROS 2 client library, creates an instance of the JoystickInterface node,
-    and starts spinning the node to process callbacks. Once the node is shut down, it destroys
-    the node and shuts down the ROS 2 client library.
+    """Initializes the ROS 2 client library, creates an instance of the JoystickInterface node, and starts spinning the node to process callbacks.
+
+    Once the node is shut down, it destroys the node and shuts down the ROS 2 client library.
 
     This function is the entry point for the joystick interface application.
     """

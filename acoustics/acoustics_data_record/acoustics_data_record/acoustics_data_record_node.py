@@ -14,9 +14,13 @@ from std_msgs.msg import Float32MultiArray, Int32MultiArray
 class AcousticsDataRecordNode(Node):
     def __init__(self) -> None:
         # Variables for setting upp logging correctly
-        hydrophone_data_size = (2**10) * 3  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
+        hydrophone_data_size = (
+            (2**10) * 3
+        )  # 1 hydrophone buffer is 2^10 long, Each hydrophone data has 3 buffers full of this data
         dsp_data_size = 2**10  # DSP (Digital Signal Processing) has 2^10 long data
-        tdoa_data_size = 5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
+        tdoa_data_size = (
+            5  # TDOA (Time Difference Of Arrival) has 5 hydrophones it has times for
+        )
         position_data_size = 3  # position only has X, Y, Z basically 3 elements
 
         # Initialize ROS2 node
@@ -24,19 +28,29 @@ class AcousticsDataRecordNode(Node):
 
         # Initialize Subscribers ----------
         # Start listening to Hydrophone data
-        self.subscriber_hydrophone1 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone1", self.hydrophone1_callback, 5)
+        self.subscriber_hydrophone1 = self.create_subscription(
+            Int32MultiArray, "/acoustics/hydrophone1", self.hydrophone1_callback, 5
+        )
         self.hydrophone1_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone2 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone2", self.hydrophone2_callback, 5)
+        self.subscriber_hydrophone2 = self.create_subscription(
+            Int32MultiArray, "/acoustics/hydrophone2", self.hydrophone2_callback, 5
+        )
         self.hydrophone2_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone3 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone3", self.hydrophone3_callback, 5)
+        self.subscriber_hydrophone3 = self.create_subscription(
+            Int32MultiArray, "/acoustics/hydrophone3", self.hydrophone3_callback, 5
+        )
         self.hydrophone3_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone4 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone4", self.hydrophone4_callback, 5)
+        self.subscriber_hydrophone4 = self.create_subscription(
+            Int32MultiArray, "/acoustics/hydrophone4", self.hydrophone4_callback, 5
+        )
         self.hydrophone4_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone5 = self.create_subscription(Int32MultiArray, "/acoustics/hydrophone5", self.hydrophone5_callback, 5)
+        self.subscriber_hydrophone5 = self.create_subscription(
+            Int32MultiArray, "/acoustics/hydrophone5", self.hydrophone5_callback, 5
+        )
         self.hydrophone5_data = array.array("i", [0] * hydrophone_data_size)
 
         # Start listening to DSP (Digital Signal Processing) data
@@ -48,10 +62,14 @@ class AcousticsDataRecordNode(Node):
         )
         self.filter_response_data = array.array("i", [0] * dsp_data_size)
 
-        self.subscriber_fft = self.create_subscription(Int32MultiArray, "/acoustics/fft", self.fft_callback, 5)
+        self.subscriber_fft = self.create_subscription(
+            Int32MultiArray, "/acoustics/fft", self.fft_callback, 5
+        )
         self.fft_data = array.array("i", [0] * dsp_data_size)
 
-        self.subscriber_peaks = self.create_subscription(Int32MultiArray, "/acoustics/peaks", self.peaks_callback, 5)
+        self.subscriber_peaks = self.create_subscription(
+            Int32MultiArray, "/acoustics/peaks", self.peaks_callback, 5
+        )
         self.peaks_data = array.array("i", [0] * dsp_data_size)
 
         # Start listening to Multilateration data
@@ -63,23 +81,38 @@ class AcousticsDataRecordNode(Node):
         )
         self.tdoa_data = array.array("f", [0.0] * tdoa_data_size)
 
-        self.subscriber_position_response = self.create_subscription(Float32MultiArray, "/acoustics/position", self.position_callback, 5)
+        self.subscriber_position_response = self.create_subscription(
+            Float32MultiArray, "/acoustics/position", self.position_callback, 5
+        )
         self.position_data = array.array("f", [0.0] * position_data_size)
 
         # Initialize logger ----------
         # Get package directory location
-        ros2_package_directory_location = get_package_share_directory("acoustics_data_record")
-        ros2_package_directory_location = ros2_package_directory_location + "/../../../../"  # go back to workspace
+        ros2_package_directory_location = get_package_share_directory(
+            "acoustics_data_record"
+        )
         ros2_package_directory_location = (
-            ros2_package_directory_location + "src/vortex-auv/acoustics/acoustics_data_record/"
+            ros2_package_directory_location + "/../../../../"
+        )  # go back to workspace
+        ros2_package_directory_location = (
+            ros2_package_directory_location
+            + "src/vortex-auv/acoustics/acoustics_data_record/"
         )  # Navigate to this package
 
         # Make blackbox logging file
-        self.acoustics_data_record = AcousticsDataRecordLib(ros2_package_directory=ros2_package_directory_location)
+        self.acoustics_data_record = AcousticsDataRecordLib(
+            ros2_package_directory=ros2_package_directory_location
+        )
 
         # Logs all the newest data 1 time(s) per second
-        self.declare_parameter("acoustics.data_logging_rate", 1.0)  # Providing a default value 1.0 => 1 samplings per second, very slow
-        data_loging_rate = self.get_parameter("acoustics.data_logging_rate").get_parameter_value().double_value
+        self.declare_parameter(
+            "acoustics.data_logging_rate", 1.0
+        )  # Providing a default value 1.0 => 1 samplings per second, very slow
+        data_loging_rate = (
+            self.get_parameter("acoustics.data_logging_rate")
+            .get_parameter_value()
+            .double_value
+        )
         timer_period = 1.0 / data_loging_rate
         self.logger_timer = self.create_timer(timer_period, self.logger)
 
@@ -100,8 +133,7 @@ class AcousticsDataRecordNode(Node):
 
     # Callback methods for different topics
     def hydrophone1_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for hydrophone1 topic.
+        """Callback method for hydrophone1 topic.
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone1 data.
@@ -109,8 +141,7 @@ class AcousticsDataRecordNode(Node):
         self.hydrophone1_data = msg.data
 
     def hydrophone2_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for hydrophone2 topic.
+        """Callback method for hydrophone2 topic.
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone2 data.
@@ -118,8 +149,7 @@ class AcousticsDataRecordNode(Node):
         self.hydrophone2_data = msg.data
 
     def hydrophone3_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for hydrophone3 topic.
+        """Callback method for hydrophone3 topic.
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone3 data.
@@ -127,8 +157,7 @@ class AcousticsDataRecordNode(Node):
         self.hydrophone3_data = msg.data
 
     def hydrophone4_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for hydrophone4 topic.
+        """Callback method for hydrophone4 topic.
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone4 data.
@@ -136,8 +165,7 @@ class AcousticsDataRecordNode(Node):
         self.hydrophone4_data = msg.data
 
     def hydrophone5_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for hydrophone5 topic.
+        """Callback method for hydrophone5 topic.
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone5 data.
@@ -145,8 +173,7 @@ class AcousticsDataRecordNode(Node):
         self.hydrophone5_data = msg.data
 
     def filter_response_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for filter_response topic.
+        """Callback method for filter_response topic.
 
         Args:
             msg (Int32MultiArray): Message containing filter response data.
@@ -154,8 +181,7 @@ class AcousticsDataRecordNode(Node):
         self.filter_response_data = msg.data
 
     def fft_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for fft topic.
+        """Callback method for fft topic.
 
         Args:
             msg (Int32MultiArray): Message containing FFT data.
@@ -163,8 +189,7 @@ class AcousticsDataRecordNode(Node):
         self.fft_data = msg.data
 
     def peaks_callback(self, msg: Int32MultiArray) -> None:
-        """
-        Callback method for peaks topic.
+        """Callback method for peaks topic.
 
         Args:
             msg (Int32MultiArray): Message containing peaks data.
@@ -172,8 +197,7 @@ class AcousticsDataRecordNode(Node):
         self.peaks_data = msg.data
 
     def tdoa_callback(self, msg: Float32MultiArray) -> None:
-        """
-        Callback method for time_difference_of_arrival topic.
+        """Callback method for time_difference_of_arrival topic.
 
         Args:
             msg (Float32MultiArray): Message containing TDOA data.
@@ -181,8 +205,7 @@ class AcousticsDataRecordNode(Node):
         self.tdoa_data = msg.data
 
     def position_callback(self, msg: Float32MultiArray) -> None:
-        """
-        Callback method for position topic.
+        """Callback method for position topic.
 
         Args:
             msg (Float32MultiArray): Message containing position data.
@@ -191,8 +214,7 @@ class AcousticsDataRecordNode(Node):
 
     # The logger that logs all the data
     def logger(self) -> None:
-        """
-        Logs all the data to a CSV file using the AcousticsDataRecordLib.
+        """Logs all the data to a CSV file using the AcousticsDataRecordLib.
 
         This method is called periodically based on the data logging rate.
         """
@@ -211,8 +233,7 @@ class AcousticsDataRecordNode(Node):
 
 
 def main() -> None:
-    """
-    Main function to initialize and run the ROS2 node for acoustics data recording.
+    """Main function to initialize and run the ROS2 node for acoustics data recording.
 
     This function performs the following steps:
     1. Initializes the ROS2 communication.

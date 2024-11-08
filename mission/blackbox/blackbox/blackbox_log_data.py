@@ -48,14 +48,17 @@ class BlackBoxLogData:
         self.manage_csv_files()
 
         # Make new .csv file for logging blackbox data ----------
-        with open(self.data_file_location, mode="w", newline="", encoding="utf-8") as csv_file:
+        with open(
+            self.data_file_location, mode="w", newline="", encoding="utf-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(self.csv_headers)
 
     # Methods for inside use of the class ----------
-    def manage_csv_files(self, max_file_age_in_days: int = 7, max_size_kb: int = 3_000_000) -> None:
-        """
-        Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
+    def manage_csv_files(
+        self, max_file_age_in_days: int = 7, max_size_kb: int = 3_000_000
+    ) -> None:
+        """Manages CSV files in the blackbox data directory by deleting old files and ensuring the total size does not exceed a specified limit.
 
         Args:
             max_file_age_in_days (int, optional): The maximum age of files in days before they are deleted. Defaults to 7 days.
@@ -77,10 +80,16 @@ class BlackBoxLogData:
         older_than_time = current_time - timedelta(days=max_file_age_in_days)
 
         # Compile a regular expression pattern for matching the expected filename format
-        pattern = re.compile(r"blackbox_data_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})\.csv")
+        pattern = re.compile(
+            r"blackbox_data_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2})\.csv"
+        )
 
         # List all .csv files in the blackbox data directory
-        csv_files = [f for f in os.listdir(self.blackbox_data_directory) if f.endswith(".csv") and f.startswith("blackbox_data_")]
+        csv_files = [
+            f
+            for f in os.listdir(self.blackbox_data_directory)
+            if f.endswith(".csv") and f.startswith("blackbox_data_")
+        ]
 
         for csv_file in csv_files:
             match = pattern.match(csv_file)
@@ -92,7 +101,9 @@ class BlackBoxLogData:
             try:
                 file_time = datetime.strptime(match.group(1), "%Y-%m-%d_%H:%M:%S")
             except ValueError as e:
-                print(f"Error parsing file timestamp, skipping file: {csv_file}. Error: {e}")
+                print(
+                    f"Error parsing file timestamp, skipping file: {csv_file}. Error: {e}"
+                )
                 continue
 
             if file_time < older_than_time:
@@ -103,20 +114,28 @@ class BlackBoxLogData:
         # Calculate the total size of remaining .csv files
         total_size_kb = (
             sum(
-                os.path.getsize(os.path.join(self.blackbox_data_directory, f)) for f in os.listdir(self.blackbox_data_directory) if f.endswith(".csv")
+                os.path.getsize(os.path.join(self.blackbox_data_directory, f))
+                for f in os.listdir(self.blackbox_data_directory)
+                if f.endswith(".csv")
             )
             / 1024
         )
 
         csv_files = [
-            f for f in os.listdir(self.blackbox_data_directory) if f.endswith(".csv") and f.startswith("blackbox_data_") and pattern.match(f)
+            f
+            for f in os.listdir(self.blackbox_data_directory)
+            if f.endswith(".csv")
+            and f.startswith("blackbox_data_")
+            and pattern.match(f)
         ]
         # Delete oldest files if total size exceeds max_size_kb
         while total_size_kb > max_size_kb:
             # Sort .csv files by timestamp (oldest first)
             csv_files_sorted = sorted(
                 csv_files,
-                key=lambda x: datetime.strptime(pattern.match(x).group(1), "%Y-%m-%d_%H:%M:%S"),
+                key=lambda x: datetime.strptime(
+                    pattern.match(x).group(1), "%Y-%m-%d_%H:%M:%S"
+                ),
             )
 
             if not csv_files_sorted:
@@ -137,7 +156,9 @@ class BlackBoxLogData:
                 )
                 / 1024
             )
-            csv_files.remove(oldest_file)  # Ensure the deleted file is removed from the list
+            csv_files.remove(
+                oldest_file
+            )  # Ensure the deleted file is removed from the list
             print(f"Now the total size of .csv files is: {total_size_kb:.2f} KB")
 
     # Methods for external uses ----------
@@ -164,29 +185,8 @@ class BlackBoxLogData:
         pwm_7: int = 0,
         pwm_8: int = 0,
     ) -> None:
-        """
-        Logs the provided data to a CSV file.
-        Parameters:
-        - psm_current (float): The current of the power supply module.
-        - psm_voltage (float): The voltage of the power supply module.
-        - pressure_internal (float): The internal pressure.
-        - temperature_ambient (float): The ambient temperature.
-        - thruster_forces_1 (float): The force of thruster 1.
-        - thruster_forces_2 (float): The force of thruster 2.
-        - thruster_forces_3 (float): The force of thruster 3.
-        - thruster_forces_4 (float): The force of thruster 4.
-        - thruster_forces_5 (float): The force of thruster 5.
-        - thruster_forces_6 (float): The force of thruster 6.
-        - thruster_forces_7 (float): The force of thruster 7.
-        - thruster_forces_8 (float): The force of thruster 8.
-        - pwm_1 (int): The PWM signal for thruster 1.
-        - pwm_2 (int): The PWM signal for thruster 2.
-        - pwm_3 (int): The PWM signal for thruster 3.
-        - pwm_4 (int): The PWM signal for thruster 4.
-        - pwm_5 (int): The PWM signal for thruster 5.
-        - pwm_6 (int): The PWM signal for thruster 6.
-        - pwm_7 (int): The PWM signal for thruster 7.
-        - pwm_8 (int): The PWM signal for thruster 8.
+        """Logs the provided data to a CSV file.
+
         This method appends a new row to the CSV file specified by `self.data_file_location`.
         The row contains the current time and the provided data values.
         """
@@ -194,7 +194,9 @@ class BlackBoxLogData:
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 
         # Write to .csv file
-        with open(self.data_file_location, mode="a", newline="", encoding="utf-8") as csv_file:
+        with open(
+            self.data_file_location, mode="a", newline="", encoding="utf-8"
+        ) as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(
                 [
