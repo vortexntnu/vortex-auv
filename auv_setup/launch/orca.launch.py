@@ -7,8 +7,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generates a launch description for the ORCA AUV setup.
+    """Generates a launch description for the ORCA AUV setup.
 
     This function sets up the environment variable for ROS console formatting
     and includes the launch descriptions for the thruster allocator and thruster
@@ -20,7 +19,9 @@ def generate_launch_description() -> LaunchDescription:
         thruster interface.
     """
     # Set environment variable
-    set_env_var = SetEnvironmentVariable(name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}")
+    set_env_var = SetEnvironmentVariable(
+        name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}"
+    )
 
     # Thruster Allocator launch
     thrust_allocator_launch = IncludeLaunchDescription(
@@ -45,4 +46,6 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     # Return launch description
-    return LaunchDescription([set_env_var, thrust_allocator_launch, thruster_interface_launch])
+    return LaunchDescription(
+        [set_env_var, thrust_allocator_launch, thruster_interface_launch]
+    )
