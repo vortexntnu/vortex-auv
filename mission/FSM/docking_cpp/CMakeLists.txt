@@ -44,6 +44,8 @@ find_package(nav_msgs REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(action_tutorials_interfaces REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # C++
 include_directories(include)
@@ -59,6 +61,8 @@ set(DEPENDENCIES
   example_interfaces
   action_tutorials_interfaces
   vortex_msgs
+  rclcpp
+  std_msgs
 )
 
 
@@ -66,12 +70,19 @@ set(DEPENDENCIES
 add_executable(docking
   src/docking.cpp
 )
+add_executable(docking_node
+  src/docking_node.cpp
+)
+
 set(SOURCES
   src/docking.cpp
+  src/docking_node.cpp
 )
 ament_target_dependencies(docking ${DEPENDENCIES})
+ament_target_dependencies(docking_node ${DEPENDENCIES})
 install(TARGETS
   docking
+  docking_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
