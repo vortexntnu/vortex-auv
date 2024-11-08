@@ -1,67 +1,79 @@
 #ifndef REFERENCE_FILTER_ROS_HPP
 #define REFERENCE_FILTER_ROS_HPP
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <reference_filter_dp/reference_filter.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
-#include <vortex_msgs/msg/reference_filter.hpp>
-#include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <reference_filter_dp/reference_filter_utils.hpp>
-#include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <vortex_msgs/action/reference_filter_waypoint.hpp>
+#include <vortex_msgs/msg/reference_filter.hpp>
 
-class ReferenceFilterNode : public rclcpp::Node
-{
-    public:
-        explicit ReferenceFilterNode();
+class ReferenceFilterNode : public rclcpp::Node {
+public:
+  explicit ReferenceFilterNode();
 
-    private:
-        rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal);
+private:
+  // @brief Initializes the reference filter with ROS parameters.
+  void set_refererence_filter();
 
-        rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+  // @brief Callback for the reference topic
+  // @param msg The reference message
+  void reference_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
-        void handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+  // @brief Callback for the state topic
+  // @param msg The state message
+  void state_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
-        void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+  // @brief Handle the goal request
+  // @param uuid The goal UUID
+  // @param goal The goal message
+  // @return The goal response
+  rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &uuid, std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal);
 
-        void reference_publisher_callback();
+  // @brief Handle the cancel request
+  // @param goal_handle The goal handle
+  // @return The cancel response
+  rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-        void reference_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
-        
-        void state_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+  // @brief Handle the accepted request
+  // @param goal_handle The goal handle
+  void handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-        void set_refererence_filter();
+  // @brief Execute the goal
+  // @param goal_handle The goal handle
+  void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-        rclcpp_action::Server<vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
+  rclcpp_action::Server<vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
 
-        ReferenceFilter reference_filter_;
+  ReferenceFilter reference_filter_;
 
-        rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr reference_pub_;
+  rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr reference_pub_;
 
-        rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr reference_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr reference_sub_;
 
-        rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_sub_;
 
-        rclcpp::TimerBase::SharedPtr reference_pub_timer_;
+  rclcpp::TimerBase::SharedPtr reference_pub_timer_;
 
-        std::chrono::milliseconds time_step_;
+  std::chrono::milliseconds time_step_;
 
-        nav_msgs::msg::Odometry current_state_;
+  nav_msgs::msg::Odometry current_state_;
 
-        Vector18d x_;
+  Vector18d x_;
 
-        Vector6d r_;
+  Vector6d r_;
 
-        std::mutex mutex_;
+  std::mutex mutex_;
 
-        rclcpp_action::GoalUUID preempted_goal_id_;
+  rclcpp_action::GoalUUID preempted_goal_id_;
 
-        std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle_;
+  std::shared_ptr<rclcpp_action::ServerGoalHandle<vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle_;
 
-        rclcpp::CallbackGroup::SharedPtr cb_group_;
+  rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
 
 #endif
-

@@ -195,19 +195,8 @@ void ReferenceFilterNode::execute(const std::shared_ptr<rclcpp_action::ServerGoa
 
     feedback->feedback = feedback_msg;
 
-    // Publish feedback using the correct action feedback message
     goal_handle->publish_feedback(feedback);
     reference_pub_->publish(feedback_msg);
-
-    // if ((x_.segment<6>(0) - r_).norm() < 1e-5) {
-    //     RCLCPP_INFO(this->get_logger(), "Goal achieved");
-
-    //     // Populate result
-    //     result->result = feedback_msg;
-
-    //     goal_handle->succeed(result);
-    //     return;
-    // }
 
     if (goal_handle->is_canceling()) {
       goal_handle->canceled(result);
