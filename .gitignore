@@ -6,7 +6,7 @@ cmake-build-debug/
 
 ### ROS ###
 install/
-logs/
+log/
 build/
 bin/
 lib/
