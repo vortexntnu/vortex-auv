@@ -16,7 +16,6 @@
 
 using std::placeholders::_1;
 using std::placeholders::_2;
-using Fibonacci = action_tutorials_interfaces::action::Fibonacci;
 using FindDock = vortex_msgs::action::FindDock;
 using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
