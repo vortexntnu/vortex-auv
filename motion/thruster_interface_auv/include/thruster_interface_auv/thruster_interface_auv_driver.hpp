@@ -13,9 +13,10 @@
 #include <string>
 #include <vector>
 
+#define IDLE_PWM_VALUE 1500
 struct ThrusterParameters {
     std::vector<uint8_t> mapping;
-    std::vector<uint8_t> direction;
+    std::vector<int8_t> direction;
     std::vector<uint16_t> pwm_min;
     std::vector<uint16_t> pwm_max;
 };

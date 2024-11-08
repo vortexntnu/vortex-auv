@@ -8,9 +8,8 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     : i2c_bus_(i2c_bus),
       pico_i2c_address_(pico_i2c_address),
       thruster_parameters_(thruster_parameters),
-      poly_coeffs_(poly_coeffs)
-
-{
+      poly_coeffs_(poly_coeffs) {
+    // TO BE REMOVED----------------------------------------------------
     printf("I2C_BUS: %d\n", i2c_bus_);
     printf("PICO_I2C_ADDRESS: %d\n", pico_i2c_address_);
     printf("THRUSTER_MAPPING: ");
@@ -43,6 +42,7 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
         printf("%f ", poly_coeffs_[0].right[i]);
     }
     printf("\n");
+    //----------------------------------------------------------------
 
     // Open the I2C bus
     std::string i2c_filename = "/dev/i2c-" + std::to_string(i2c_bus_);
@@ -84,7 +84,7 @@ std::int16_t ThrusterInterfaceAUVDriver::force_to_pwm(
     } else if (force > 0) {
         return interpolate_pwm(force, coeffs[0].right);
     } else {
-        return 1500;
+        return IDLE_PWM_VALUE;  // 1500
     }
 }
 
