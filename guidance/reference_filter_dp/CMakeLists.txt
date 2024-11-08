@@ -26,17 +26,17 @@ find_package(tf2 REQUIRED)
 
 include_directories(include)
 
-add_executable(reference_filter_node 
-  src/reference_filter_node.cpp 
-  src/reference_filter_ros.cpp 
+add_executable(reference_filter_node
+  src/reference_filter_node.cpp
+  src/reference_filter_ros.cpp
   src/reference_filter_utils.cpp
   src/reference_filter.cpp
 )
 
-ament_target_dependencies(reference_filter_node 
-  rclcpp 
+ament_target_dependencies(reference_filter_node
+  rclcpp
   rclcpp_action
-  geometry_msgs 
+  geometry_msgs
   vortex_msgs
   Eigen3
   tf2

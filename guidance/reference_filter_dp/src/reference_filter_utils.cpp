@@ -1,6 +1,6 @@
 #include <reference_filter_dp/reference_filter_utils.hpp>
 
-Matrix3d calculate_R(const Vector6d &eta) {
+Matrix3d calculate_R(const Vector6d& eta) {
     double phi = eta(3);
     double theta = eta(4);
     double psi = eta(5);
@@ -14,14 +14,15 @@ Matrix3d calculate_R(const Vector6d &eta) {
 
     Matrix3d rotation_matrix;
 
-    rotation_matrix << cpsi * ctheta, cpsi * stheta * sphi - spsi * cphi, cpsi * stheta * cphi + spsi * sphi,
-                       spsi * ctheta, spsi * stheta * sphi + cpsi * cphi, spsi * stheta * cphi - cpsi * sphi,
-                       -stheta, ctheta * sphi, ctheta * cphi;
+    rotation_matrix << cpsi * ctheta, cpsi * stheta * sphi - spsi * cphi,
+        cpsi * stheta * cphi + spsi * sphi, spsi * ctheta,
+        spsi * stheta * sphi + cpsi * cphi, spsi * stheta * cphi - cpsi * sphi,
+        -stheta, ctheta * sphi, ctheta * cphi;
 
     return rotation_matrix;
 }
 
-Matrix3d calculate_T(const Vector6d &eta) {
+Matrix3d calculate_T(const Vector6d& eta) {
     double phi = eta(3);
     double theta = eta(4);
 
@@ -37,13 +38,12 @@ Matrix3d calculate_T(const Vector6d &eta) {
     Matrix3d transformation_matrix;
 
     transformation_matrix << 1, sphi * stheta / ctheta, cphi * stheta / ctheta,
-                             0, cphi, -sphi,
-                             0, sphi / ctheta, cphi / ctheta;
+        0, cphi, -sphi, 0, sphi / ctheta, cphi / ctheta;
 
     return transformation_matrix;
 }
 
-Matrix6d calculate_J(const Vector6d &eta) {
+Matrix6d calculate_J(const Vector6d& eta) {
     Matrix3d R = calculate_R(eta);
     Matrix3d T = calculate_T(eta);
 
