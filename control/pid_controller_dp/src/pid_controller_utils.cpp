@@ -156,7 +156,7 @@ Eigen::Vector7d anti_windup(const double dt,
     q_error = q_error / q_error.norm();
     error_norm.tail<4>() = q_error;
 
-    Eigen::Vector7d integral_anti_windup = integral + (error_nom * dt);
+    Eigen::Vector7d integral_anti_windup = integral + (error_norm * dt);
 
     integral_anti_windup = clamp_values(integral_anti_windup, -30.0, 30.0);
 

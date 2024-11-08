@@ -56,18 +56,18 @@ Eigen::Vector7d error_eta(const Eigen::Vector7d& eta,
 // @return Vector containing the clamped values
 Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
                              double min_val,
-                             double max_val)
+                             double max_val);
 
-    // @brief Calculate the anti-windup term
-    // @param dt: Time step
-    // @param error: 7D vector containing the error between the desired and
-    // actual vehicle pose [x, y, z, w, x, y, z]
-    // @param integral: 7D vector containing the integral term of the PID
-    // controller [x, y, z, w, x, y, z]
-    // @return 7D vector containing the anti-windup term
-    Eigen::Vector7d anti_windup(const double dt,
-                                const Eigen::Vector7d& error,
-                                const Eigen::Vector7d& integral);
+// @brief Calculate the anti-windup term
+// @param dt: Time step
+// @param error: 7D vector containing the error between the desired and
+// actual vehicle pose [x, y, z, w, x, y, z]
+// @param integral: 7D vector containing the integral term of the PID
+// controller [x, y, z, w, x, y, z]
+// @return 7D vector containing the anti-windup term
+Eigen::Vector7d anti_windup(const double dt,
+                            const Eigen::Vector7d& error,
+                            const Eigen::Vector7d& integral);
 
 // @brief Limit the input to the PID controller
 // @param input: 6D vector containing the input to the PID controller [u, v, w,

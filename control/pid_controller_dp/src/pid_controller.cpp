@@ -29,7 +29,7 @@ Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector7d& eta,
 
     Eigen::Vector6d tau = -limit_input((P + I + D));
 
-    integral_ = anti_windup(dt, error, integral_);
+    integral_ = anti_windup(dt_, error, integral_);
 
     return tau;
 }
@@ -46,6 +46,6 @@ void PIDController::setKd(const Eigen::Matrix6d& Kd) {
     this->Kd_ = Kd;
 }
 
-void PIDController::setTimeStep(double dt) {
+void PIDController::setTimeStep(double dt_) {
     this->dt_ = dt_;
 }
