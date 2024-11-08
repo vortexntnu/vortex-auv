@@ -19,7 +19,7 @@ struct ThrusterParameters {
     std::vector<uint16_t> pwm_min;
     std::vector<uint16_t> pwm_max;
 };
-struct Coeffs {
+struct PolyCoeffs {
     std::vector<double> left;
     std::vector<double> right;
 };
@@ -69,7 +69,7 @@ class ThrusterInterfaceAUVDriver {
         short i2c_bus,
         int pico_i2c_address,
         const std::vector<ThrusterParameters>& thruster_parameters,
-        const std::vector<Coeffs>& approx_poly_coeffs);
+        const std::vector<PolyCoeffs>& approx_poly_coeffs);
     /**
      * @brief [PUBLIC] method that calls 1) interpolate_forces_to_pwm() to
      * convert the thruster forces to PWM values 2) send_data_to_escs() to send
@@ -86,10 +86,10 @@ class ThrusterInterfaceAUVDriver {
     int bus_fd_;  ///< file descriptor for the I2C bus (integer >0 that uniquely
                   ///< identifies the device. -1 if it fails)
 
-    short i2c_bus_;
+    int i2c_bus_;
     int pico_i2c_address_;
     std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<Coeffs> approx_poly_coeffs_;
+    std::vector<PolyCoeffs> poly_coeffs_;
 
     /**
      * @brief [private] method that just take the thruster forces and return PWM
@@ -103,7 +103,8 @@ class ThrusterInterfaceAUVDriver {
     std::vector<int16_t> interpolate_forces_to_pwm(
         const std::vector<double>& thruster_forces_array);
 
-    std::int16_t force_to_pwm(double force, const std::vector<Coeffs>& coeffs);
+    std::int16_t force_to_pwm(double force,
+                              const std::vector<PolyCoeffs>& coeffs);
 
     std::int16_t interpolate_pwm(double force,
                                  const std::vector<double>& coeffs);
@@ -116,12 +117,12 @@ class ThrusterInterfaceAUVDriver {
      */
     void send_data_to_escs(const std::vector<int16_t>& thruster_pwm_array);
 
-    static constexpr auto to_kg = [](double force) { return force / 9.80665; };
-    static constexpr auto pwm_to_i2c_data =
-        [](std::int16_t pwm) -> std::array<std::uint8_t, 2> {
+    static constexpr double to_kg(double force) { return force / 9.80665; }
+    static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
+        std::int16_t pwm) {
         return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
                 static_cast<std::uint8_t>(pwm & 0xFF)};
-    };
+    }
 };
 
 #endif  // THRUSTER_INTERFACE_AUV_DRIVER_HPP

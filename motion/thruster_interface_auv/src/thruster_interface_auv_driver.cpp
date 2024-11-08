@@ -4,43 +4,43 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     short i2c_bus,
     int pico_i2c_address,
     const std::vector<ThrusterParameters>& thruster_parameters,
-    const std::vector<Coeffs>& approx_poly_coeffs)
+    const std::vector<PolyCoeffs>& poly_coeffs)
     : i2c_bus_(i2c_bus),
       pico_i2c_address_(pico_i2c_address),
       thruster_parameters_(thruster_parameters),
-      approx_poly_coeffs_(approx_poly_coeffs)
+      poly_coeffs_(poly_coeffs)
 
 {
     printf("I2C_BUS: %d\n", i2c_bus_);
     printf("PICO_I2C_ADDRESS: %d\n", pico_i2c_address_);
     printf("THRUSTER_MAPPING: ");
-    for (size_t i = 0; i < thruster_parameters[0].mapping.size(); ++i) {
-        printf("%d ", thruster_parameters[0].mapping[i]);
+    for (size_t i = 0; i < thruster_parameters_[0].mapping.size(); ++i) {
+        printf("%d ", thruster_parameters_[0].mapping[i]);
     }
     printf("\n");
     printf("THRUSTER_DIRECTION: ");
-    for (size_t i = 0; i < thruster_parameters[0].direction.size(); ++i) {
-        printf("%d ", thruster_parameters[0].direction[i]);
+    for (size_t i = 0; i < thruster_parameters_[0].direction.size(); ++i) {
+        printf("%d ", thruster_parameters_[0].direction[i]);
     }
     printf("\n");
     printf("THRUSTER_PWM_MIN: ");
-    for (size_t i = 0; i < thruster_parameters[0].pwm_min.size(); ++i) {
-        printf("%d ", thruster_parameters[0].pwm_min[i]);
+    for (size_t i = 0; i < thruster_parameters_[0].pwm_min.size(); ++i) {
+        printf("%d ", thruster_parameters_[0].pwm_min[i]);
     }
     printf("\n");
     printf("THRUSTER_PWM_MAX: ");
-    for (size_t i = 0; i < thruster_parameters[0].pwm_max.size(); ++i) {
-        printf("%d ", thruster_parameters[0].pwm_max[i]);
+    for (size_t i = 0; i < thruster_parameters_[0].pwm_max.size(); ++i) {
+        printf("%d ", thruster_parameters_[0].pwm_max[i]);
     }
     printf("\n");
     printf("LEFT_COEFFS: ");
-    for (size_t i = 0; i < approx_poly_coeffs[0].left.size(); ++i) {
-        printf("%f ", approx_poly_coeffs[0].left[i]);
+    for (size_t i = 0; i < poly_coeffs_[0].left.size(); ++i) {
+        printf("%f ", poly_coeffs_[0].left[i]);
     }
     printf("\n");
     printf("RIGHT_COEFFS: ");
-    for (size_t i = 0; i < approx_poly_coeffs[0].right.size(); ++i) {
-        printf("%f ", approx_poly_coeffs[0].right[i]);
+    for (size_t i = 0; i < poly_coeffs_[0].right.size(); ++i) {
+        printf("%f ", poly_coeffs_[0].right[i]);
     }
     printf("\n");
 
@@ -71,14 +71,14 @@ std::vector<int16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
 
     std::vector<int16_t> interpolated_pwm;
     for (const double force : forces_in_kg) {
-        interpolated_pwm.push_back(force_to_pwm(force, approx_poly_coeffs_));
+        interpolated_pwm.push_back(force_to_pwm(force, poly_coeffs_));
     }
     return interpolated_pwm;
 }
 
 std::int16_t ThrusterInterfaceAUVDriver::force_to_pwm(
     double force,
-    const std::vector<Coeffs>& coeffs) {
+    const std::vector<PolyCoeffs>& coeffs) {
     if (force < 0) {
         return interpolate_pwm(force, coeffs[0].left);
     } else if (force > 0) {
