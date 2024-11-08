@@ -1,0 +1,6 @@
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+# Keep quotes as is
+quote-style = "preserve"

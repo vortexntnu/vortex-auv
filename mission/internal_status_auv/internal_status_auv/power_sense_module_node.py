@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # ROS2 Libraries
+# Custom Libraries
 import rclpy
-from rclpy.node import Node
 from rclpy.logging import get_logger
+from rclpy.node import Node
 from std_msgs.msg import Float32
 
-# Custom Libraries
 import internal_status_auv.power_sense_module_lib
 
 
 class PowerSenseModulePublisher(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Node setup ----------
         super().__init__("power_sense_module_publisher")
-        self.PSM = internal_status_auv.power_sense_module_lib.PowerSenseModule()
+        self.psm = internal_status_auv.power_sense_module_lib.PowerSenseModule()
 
         # Create publishers ----------
         self.publisher_current = self.create_publisher(
@@ -42,14 +42,14 @@ class PowerSenseModulePublisher(Node):
         self.logger = get_logger("power_sense_module")
 
         self.declare_parameter("internal_status.voltage_min", 14.5)
-        self.voltageMin = (
+        self.voltage_min = (
             self.get_parameter("internal_status.voltage_min")
             .get_parameter_value()
             .double_value
         )
 
         self.declare_parameter("internal_status.voltage_max", 16.8)
-        self.voltageMax = (
+        self.voltage_max = (
             self.get_parameter("internal_status.voltage_max")
             .get_parameter_value()
             .double_value
@@ -66,13 +66,18 @@ class PowerSenseModulePublisher(Node):
             warning_timer_period, self.warning_timer_callback
         )
 
-        # Debuging ----------
+        # Debugging ----------
         self.get_logger().info('"power_sense_module_publisher" has been started')
 
-    def read_timer_callback(self):
+    def read_timer_callback(self) -> None:
+        """Callback function triggered by the read timer.
+
+        This function retrieves the current and voltage data from the power sense module
+        and publishes it to the corresponding ROS2 topics.
+        """
         # Get the PSM data
-        self.current = self.PSM.get_current()
-        self.voltage = self.PSM.get_voltage()
+        self.current = self.psm.get_current()
+        self.voltage = self.psm.get_voltage()
 
         # Publish PSM data
         current_msg = Float32()
@@ -88,15 +93,30 @@ class PowerSenseModulePublisher(Node):
             voltage_msg
         )  # publish voltage value to the "voltge topic"
 
-    def warning_timer_callback(self):
-        # Check if Voltage is abnormal and if so print a warning
-        if self.voltage < self.voltageMin:
+    def warning_timer_callback(self) -> None:
+        """Callback function triggered by the warning timer.
+
+        This function checks if the voltage levels are outside of the acceptable range
+        and logs a warning if the voltage is either too low or too high.
+        """
+        if self.voltage < self.voltage_min:
             self.logger.fatal(f"WARNING: Battery Voltage to LOW at {self.voltage} V")
-        elif self.voltage > self.voltageMax:
+        elif self.voltage > self.voltage_max:
             self.logger.fatal(f"WARNING: Battery Voltage to HIGH at {self.voltage} V")
 
 
-def main(args=None):
+def main(args: list = None) -> None:
+    """Main function to initialize and spin the ROS2 node.
+
+    This function initializes the rclpy library, creates an instance of the
+    PowerSenseModulePublisher node, and starts spinning to keep the node running
+    and publishing current and voltage data.
+
+    Args:
+    -----
+    args : list, optional
+        Arguments passed to the node. Default is None.
+    """
     rclpy.init(args=args)
 
     power_sense_module_publisher = PowerSenseModulePublisher()
