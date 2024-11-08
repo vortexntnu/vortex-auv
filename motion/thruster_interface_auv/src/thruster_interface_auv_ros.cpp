@@ -109,23 +109,17 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->publisher_topic_name_ =
         this->get_parameter("topics.pwm_publisher").as_string();
 
-    // create ThrusterParameters and PolyCoeffs structs
-    ThrusterParameters thruster_parameters_struct;
-    thruster_parameters_struct.mapping =
-        std::vector<uint8_t>(thruster_mapping.begin(), thruster_mapping.end());
-    thruster_parameters_struct.direction = std::vector<int8_t>(
-        thruster_direction.begin(), thruster_direction.end());
-    thruster_parameters_struct.pwm_min =
-        std::vector<uint16_t>(thruster_PWM_min.begin(), thruster_PWM_min.end());
-    thruster_parameters_struct.pwm_max =
-        std::vector<uint16_t>(thruster_PWM_max.begin(), thruster_PWM_max.end());
+    // create <ThrusterParameters> and <PolyCoeffs> vectors
+    ThrusterParameters temp;
+    for (size_t i = 0; i < thruster_mapping.size(); ++i) {
+        temp.mapping = static_cast<uint8_t>(thruster_mapping[i]);
+        temp.direction = static_cast<int8_t>(thruster_direction[i]);
+        temp.pwm_min = static_cast<uint16_t>(thruster_PWM_min[i]);
+        temp.pwm_max = static_cast<uint16_t>(thruster_PWM_max[i]);
 
-    PolyCoeffs coeffs_struct;
-    coeffs_struct.left =
-        std::vector<double>(left_coeffs.begin(), left_coeffs.end());
-    coeffs_struct.right =
-        std::vector<double>(right_coeffs.begin(), right_coeffs.end());
+        this->thruster_parameters_.push_back(temp);
+    }
 
-    this->thruster_parameters_.push_back(thruster_parameters_struct);
-    this->poly_coeffs_.push_back(coeffs_struct);
+    this->poly_coeffs_.push_back(left_coeffs);
+    this->poly_coeffs_.push_back(right_coeffs);
 }

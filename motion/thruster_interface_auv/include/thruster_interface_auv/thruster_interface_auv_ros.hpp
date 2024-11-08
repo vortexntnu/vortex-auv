@@ -22,7 +22,7 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     std::string subscriber_topic_name_;
     std::string publisher_topic_name_;
     std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<PolyCoeffs> poly_coeffs_;
+    std::vector<std::vector<double>> poly_coeffs_;
 
     std::vector<double> thruster_forces_array_;
     double thrust_timer_period_;

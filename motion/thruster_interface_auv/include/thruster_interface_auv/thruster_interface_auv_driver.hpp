@@ -15,15 +15,13 @@
 
 #define IDLE_PWM_VALUE 1500
 struct ThrusterParameters {
-    std::vector<uint8_t> mapping;
-    std::vector<int8_t> direction;
-    std::vector<uint16_t> pwm_min;
-    std::vector<uint16_t> pwm_max;
+    uint8_t mapping;
+    int8_t direction;
+    uint16_t pwm_min;
+    uint16_t pwm_max;
 };
-struct PolyCoeffs {
-    std::vector<double> left;
-    std::vector<double> right;
-};
+
+enum PolySide { LEFT = 0, RIGHT = 1 };
 
 /**
  * @brief class instantiated by ThrusterInterfaceAUVNode to control the
@@ -70,7 +68,7 @@ class ThrusterInterfaceAUVDriver {
         short i2c_bus,
         int pico_i2c_address,
         const std::vector<ThrusterParameters>& thruster_parameters,
-        const std::vector<PolyCoeffs>& approx_poly_coeffs);
+        const std::vector<std::vector<double>>& approx_poly_coeffs);
     /**
      * @brief [PUBLIC] method that calls 1) interpolate_forces_to_pwm() to
      * convert the thruster forces to PWM values 2) send_data_to_escs() to send
@@ -90,7 +88,7 @@ class ThrusterInterfaceAUVDriver {
     int i2c_bus_;
     int pico_i2c_address_;
     std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<PolyCoeffs> poly_coeffs_;
+    std::vector<std::vector<double>> poly_coeffs_;
 
     /**
      * @brief [private] method that just take the thruster forces and return PWM
@@ -105,7 +103,7 @@ class ThrusterInterfaceAUVDriver {
         const std::vector<double>& thruster_forces_array);
 
     std::int16_t force_to_pwm(double force,
-                              const std::vector<PolyCoeffs>& coeffs);
+                              const std::vector<std::vector<double>>& coeffs);
 
     std::int16_t interpolate_pwm(double force,
                                  const std::vector<double>& coeffs);
