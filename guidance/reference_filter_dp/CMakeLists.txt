@@ -10,10 +10,6 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -42,16 +38,10 @@ ament_target_dependencies(reference_filter_node
   tf2
 )
 
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
 install(TARGETS
   reference_filter_node
   DESTINATION lib/${PROJECT_NAME})
 
-# Install launch files.
 install(DIRECTORY
   launch
   config

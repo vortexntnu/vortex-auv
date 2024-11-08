@@ -41,7 +41,7 @@ class PIDController {
     Eigen::Matrix6d Ki_;
     Eigen::Matrix6d Kd_;
     Eigen::Vector7d integral_;
-    double dt;
+    double dt_;
 };
 
 #endif

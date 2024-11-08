@@ -7,7 +7,7 @@ PIDController::PIDController()
       Ki_(Eigen::Matrix6d::Zero()),
       Kd_(Eigen::Matrix6d::Zero()),
       integral_(Eigen::Vector7d::Zero()),
-      dt(0.01) {}
+      dt_(0.01) {}
 
 Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector7d& eta,
                                              const Eigen::Vector7d& eta_d,
@@ -47,5 +47,5 @@ void PIDController::setKd(const Eigen::Matrix6d& Kd) {
 }
 
 void PIDController::setTimeStep(double dt) {
-    this->dt = dt;
+    this->dt_ = dt_;
 }

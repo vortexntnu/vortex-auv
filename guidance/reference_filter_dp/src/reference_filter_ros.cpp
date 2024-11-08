@@ -8,21 +8,28 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
 
     this->declare_parameter<std::string>("reference_filter_topic",
                                          "/reference_topic");
+    this->declare_parameter<std::string>("dp_reference_topic", "/dp/reference");
+    this->declare_parameter<std::string>("nucleus_odom_topic", "/nucleus/odom");
+
     std::string reference_filter_topic =
         this->get_parameter("reference_filter_topic").as_string();
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
+    std::string dp_reference_topic =
+        this->get_parameter("/dp_reference").as_string();
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
-        "/dp/reference", 10);
+        dp_reference_topic, 10);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_filter_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::reference_callback, this,
                   std::placeholders::_1));
 
+    std::string nucleus_odom_topic =
+        this->get_parameter("/nucleus/odom").as_string();
     state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/nucleus/odom", 10,
+        nucleus_odom_topic, 10,
         std::bind(&ReferenceFilterNode::state_callback, this,
                   std::placeholders::_1));
 

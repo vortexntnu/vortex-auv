@@ -76,8 +76,12 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     nav_msgs::msg::Odometry current_state_;
 
+    // The state vector with 18 elements, [eta, nu, nu_dot]
+    // nu and eta are 6 degrees of freedom (position and orientation in 3D
+    // space)
     Vector18d x_;
 
+    // The reference signal vector with 6 degrees of freedom [eta]
     Vector6d r_;
 
     std::mutex mutex_;

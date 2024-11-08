@@ -3,9 +3,9 @@
 <package format="3">
   <name>reference_filter_dp</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Reference model for the DP controller</description>
   <maintainer email="andeshog@stud.ntnu.no">andeshog</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

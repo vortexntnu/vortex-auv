@@ -73,22 +73,28 @@ Eigen::Matrix7x6d calculate_J(const Eigen::Vector7d& eta) {
 }
 
 Eigen::Matrix6x7d calculate_J_sudo_inv(const Eigen::Vector7d& eta) {
-    Eigen::Vector7d eta_nom = eta;
-    Eigen::Vector4d q = eta_nom.tail<4>();
+    Eigen::Vector7d eta_norm = eta;
+    Eigen::Vector4d q = eta_norm.tail<4>();
     q = q / q.norm();
-    eta_nom.tail<4>() = q;
+    eta_norm.tail<4>() = q;
 
-    Eigen::Matrix7x6d J = calculate_J(eta_nom);
+    Eigen::Matrix7x6d J = calculate_J(eta_norm);
 
+    // Perform Singular Value Decomposition (SVD) on the matrix J
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(
         J, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
+    // Define a tolerance level for singular values to be considered non-zero
     double tolerance = 1e-6;
-    Eigen::VectorXd singularValuesInv = svd.singularValues().unaryExpr(
+
+    // Compute the inverse of the singular values, setting values below the
+    // tolerance to zero
+    Eigen::VectorXd singular_values_inv = svd.singularValues().unaryExpr(
         [&](double x) { return (std::abs(x) > tolerance) ? 1.0 / x : 0.0; });
 
+    // Compute the pseudo-inverse of J using the SVD components
     Eigen::MatrixXd J_pseudo_inv = svd.matrixV() *
-                                   singularValuesInv.asDiagonal() *
+                                   singular_values_inv.asDiagonal() *
                                    svd.matrixU().transpose();
 
     return J_pseudo_inv;
@@ -127,23 +133,32 @@ Eigen::Vector7d error_eta(const Eigen::Vector7d& eta,
     return error;
 }
 
+Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
+                             double min_val,
+                             double max_val) {
+    Eigen::VectorXd clamped_values = values;
+
+    auto clamp = [min_val, max_val](double x) {
+        return std::clamp(x, min_val, max_val);
+    };
+    std::transform(clamped_values.data(),
+                   clamped_values.data() + clamped_values.size(),
+                   clamped_values.data(), clamp);
+
+    return clamped_values;
+}
+
 Eigen::Vector7d anti_windup(const double dt,
                             const Eigen::Vector7d& error,
                             const Eigen::Vector7d& integral) {
-    Eigen::Vector7d error_nom = error;
+    Eigen::Vector7d error_norm = error;
     Eigen::Vector4d q_error = error.tail<4>();
     q_error = q_error / q_error.norm();
-    error_nom.tail<4>() = q_error;
+    error_norm.tail<4>() = q_error;
 
     Eigen::Vector7d integral_anti_windup = integral + (error_nom * dt);
 
-    for (int i = 0; i < integral_anti_windup.size(); ++i) {
-        if (integral_anti_windup[i] > 30.0) {
-            integral_anti_windup[i] = 30.0;
-        } else if (integral_anti_windup[i] < -30.0) {
-            integral_anti_windup[i] = -30.0;
-        }
-    }
+    integral_anti_windup = clamp_values(integral_anti_windup, -30.0, 30.0);
 
     return integral_anti_windup;
 }
@@ -151,13 +166,7 @@ Eigen::Vector7d anti_windup(const double dt,
 Eigen::Vector6d limit_input(const Eigen::Vector6d& input) {
     Eigen::Vector6d limited_input = input;
 
-    for (int i = 0; i < limited_input.size(); ++i) {
-        if (limited_input[i] > 95.0) {
-            limited_input[i] = 95.0;
-        } else if (limited_input[i] < -95.0) {
-            limited_input[i] = -95.0;
-        }
-    }
+    limited_input = clamp_values(limited_input, -95.0, 95.0);
 
     return limited_input;
 }
