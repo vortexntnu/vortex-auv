@@ -1,23 +1,7 @@
-// Copyright (C) 2023  Miguel Ángel González Santamarta
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 #include <iostream>
 #include <memory>
 #include <string>
 
-#include <action_tutorials_interfaces/action/fibonacci.hpp>
 #include <vortex_msgs/action/find_dock.hpp>
 #include <vortex_msgs/action/go_to_waypoint.hpp>
 
@@ -37,72 +21,6 @@ using FindDock = vortex_msgs::action::FindDock;
 using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using namespace yasmin;
-
-std::string
-print_result(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-
-  auto fibo_res = blackboard->get<std::vector<int>>("sum");
-
-  fprintf(stderr, "Result received:");
-
-  for (auto ele : fibo_res) {
-    fprintf(stderr, " %d,", ele);
-  }
-
-  fprintf(stderr, "\n");
-
-  return yasmin_ros::basic_outcomes::SUCCEED;
-}
-
-class FibonacciState : public yasmin_ros::ActionState<Fibonacci> {
-
-public:
-  FibonacciState()
-      : yasmin_ros::ActionState<Fibonacci>(
-
-            "/fibonacci", // action name
-
-            // # cb to create the goal
-            std::bind(&FibonacciState::create_goal_handler, this, _1),
-            // # cb to process the response
-
-            std::bind(&FibonacciState::response_handler, this, _1, _2),
-
-            // cb to process the feedback
-            std::bind(&FibonacciState::print_feedback, this, _1, _2)) {};
-
-  Fibonacci::Goal create_goal_handler(
-      std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-
-    auto goal = Fibonacci::Goal();
-    goal.order = blackboard->get<int>("n");
-
-    return goal;
-  }
-
-  std::string
-  response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-                   Fibonacci::Result::SharedPtr response) {
-
-    blackboard->set<std::vector<int>>("sum", response->sequence);
-
-    return yasmin_ros::basic_outcomes::SUCCEED;
-  }
-
-  void
-  print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-                 std::shared_ptr<const Fibonacci::Feedback> feedback) {
-    (void)blackboard;
-
-    std::stringstream ss;
-    ss << "Next number in sequence received: ";
-    for (auto number : feedback->partial_sequence) {
-      ss << number << " ";
-    }
-
-    fprintf(stderr, "%s\n", ss.str().c_str());
-  }
-};
 
 class FindDockState : public yasmin_ros::ActionState<FindDock> {
 public:
@@ -325,7 +243,7 @@ int main(int argc, char *argv[]) {
                 });
 
   // pub
-  yasmin_viewer::YasminViewerPub yasmin_pub("YASMIN_ACTION_CLIENT_DEMO", sm);
+  yasmin_viewer::YasminViewerPub yasmin_pub("Docking", sm);
 
   // create an initial blackboard
   std::shared_ptr<yasmin::blackboard::Blackboard> blackboard =
