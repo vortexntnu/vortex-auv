@@ -63,16 +63,31 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
         this->create_publisher<std_msgs::msg::Int16MultiArray>(publisher_name,
                                                                qos_sensor_data);
 
+    ThrusterParameters thruster_parameters_struct;
+    thruster_parameters_struct.mapping =
+        std::vector<uint8_t>(thruster_mapping.begin(), thruster_mapping.end());
+    thruster_parameters_struct.direction = std::vector<uint8_t>(
+        thruster_direction.begin(), thruster_direction.end());
+    thruster_parameters_struct.pwm_min =
+        std::vector<uint16_t>(thruster_PWM_min.begin(), thruster_PWM_min.end());
+    thruster_parameters_struct.pwm_max =
+        std::vector<uint16_t>(thruster_PWM_max.begin(), thruster_PWM_max.end());
+
+    Coeffs coeffs_struct;
+    coeffs_struct.left =
+        std::vector<double>(left_coeffs.begin(), left_coeffs.end());
+    coeffs_struct.right =
+        std::vector<double>(right_coeffs.begin(), right_coeffs.end());
+
+    // Create a vector of ThrusterParameters
+    std::vector<ThrusterParameters> thruster_parameters;
+    thruster_parameters.push_back(thruster_parameters_struct);
+    std::vector<Coeffs> coeffs;
+    coeffs.push_back(coeffs_struct);
+
     // Initialize thruster driver
     this->thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
-        i2c_bus, i2c_address,
-        std::vector<short>(thruster_mapping.begin(), thruster_mapping.end()),
-        std::vector<short>(thruster_direction.begin(),
-                           thruster_direction.end()),
-        std::vector<int>(thruster_PWM_min.begin(), thruster_PWM_min.end()),
-        std::vector<int>(thruster_PWM_max.begin(), thruster_PWM_max.end()),
-        std::vector<double>(left_coeffs.begin(), left_coeffs.end()),
-        std::vector<double>(right_coeffs.begin(), right_coeffs.end()));
+        i2c_bus, i2c_address, thruster_parameters, coeffs);
 
     // Declare "thruster_forces_array" in case no topic comes in at the
     // beginning

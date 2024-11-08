@@ -13,6 +13,17 @@
 #include <string>
 #include <vector>
 
+struct ThrusterParameters {
+    std::vector<uint8_t> mapping;
+    std::vector<uint8_t> direction;
+    std::vector<uint16_t> pwm_min;
+    std::vector<uint16_t> pwm_max;
+};
+struct Coeffs {
+    std::vector<double> left;
+    std::vector<double> right;
+};
+
 /**
  * @brief class instantiated by ThrusterInterfaceAUVNode to control the
  * thrusters, takes the thruster forces and converts them to PWM signals to be
@@ -54,15 +65,11 @@ class ThrusterInterfaceAUVDriver {
      * @param right_coeffs        third order polynomial coefficients when force
      * > 0
      */
-    ThrusterInterfaceAUVDriver(short i2c_bus,
-                               int pico_i2c_address,
-                               const std::vector<short>& thruster_mapping,
-                               const std::vector<short>& thruster_direction,
-                               const std::vector<int>& pwm_min,
-                               const std::vector<int>& pwm_max,
-                               const std::vector<double>& left_coeffs,
-                               const std::vector<double>& right_coeffs);
-
+    ThrusterInterfaceAUVDriver(
+        short i2c_bus,
+        int pico_i2c_address,
+        const std::vector<ThrusterParameters>& thruster_parameters,
+        const std::vector<Coeffs>& approx_poly_coeffs);
     /**
      * @brief [PUBLIC] method that calls 1) interpolate_forces_to_pwm() to
      * convert the thruster forces to PWM values 2) send_data_to_escs() to send
@@ -78,16 +85,11 @@ class ThrusterInterfaceAUVDriver {
    private:
     int bus_fd_;  ///< file descriptor for the I2C bus (integer >0 that uniquely
                   ///< identifies the device. -1 if it fails)
+
     short i2c_bus_;
     int pico_i2c_address_;
-
-    std::vector<short> thruster_mapping_;
-    std::vector<short> thruster_direction_;
-    std::vector<int> pwm_min_;
-    std::vector<int> pwm_max_;
-    std::vector<double> left_coeffs_;
-    std::vector<double> right_coeffs_;
-    bool DEBUGGING_;
+    std::vector<ThrusterParameters> thruster_parameters_;
+    std::vector<Coeffs> approx_poly_coeffs_;
 
     /**
      * @brief [private] method that just take the thruster forces and return PWM
@@ -101,9 +103,7 @@ class ThrusterInterfaceAUVDriver {
     std::vector<int16_t> interpolate_forces_to_pwm(
         const std::vector<double>& thruster_forces_array);
 
-    std::int16_t force_to_pwm(double force,
-                              const std::vector<double>& left_coeffs,
-                              const std::vector<double>& right_coeffs);
+    std::int16_t force_to_pwm(double force, const std::vector<Coeffs>& coeffs);
 
     std::int16_t interpolate_pwm(double force,
                                  const std::vector<double>& coeffs);
