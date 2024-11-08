@@ -40,39 +40,28 @@ enum PolySide { LEFT = 0, RIGHT = 1 };
  */
 class ThrusterInterfaceAUVDriver {
    public:
-    /**
-     * @brief empty default constructor called when declaring the object in the
-     * .hpp file. Doesn't initialize any params.
-     */
     ~ThrusterInterfaceAUVDriver();
 
     /**
-     * @brief actually used constructor. Called from ThrusterInterfaceAUVNode
-     * .cpp when instantiating the object, initializes all the params.
+     * @brief called from ThrusterInterfaceAUVNode .cpp when instantiating the
+     * object, initializes all the params.
      *
-     * @param i2c_bus             bus number used to communicate
-     * @param pico_i2c_address    i2c address of the ESC that drive the
-     * thrusters
-     * @param thruster_mapping    pin to motor mapping for the thrusters i.e. if
-     * thruster_to_pin = [7,6 ...] then thruster 0 is pin 1 etc..
-     * @param thruster_direction  physical mounting direction of the thrusters,
-     * (+-1)
-     * @param pwm_min             minimum clamping pwm values
-     * @param pwm_max             maximum clamping pwm values
-     * @param left_coeffs         third order polynomial coefficients when force
-     * < 0
-     * @param right_coeffs        third order polynomial coefficients when force
-     * > 0
+     * @param i2c_bus               bus number used to communicate
+     * @param pico_i2c_address      i2c address of the ESC that drive the
+     * @param thruster_parameters   describe mapping, direction, min and max pwm
+     * value for each thruster
+     * @param poly_coeffs           LEFT(<0) and RIGHT(>0) third order
+     * polynomial coefficients,
      */
     ThrusterInterfaceAUVDriver(
         short i2c_bus,
         int pico_i2c_address,
         const std::vector<ThrusterParameters>& thruster_parameters,
-        const std::vector<std::vector<double>>& approx_poly_coeffs);
+        const std::vector<std::vector<double>>& poly_coeffs);
     /**
-     * @brief [PUBLIC] method that calls 1) interpolate_forces_to_pwm() to
-     * convert the thruster forces to PWM values 2) send_data_to_escs() to send
-     * them to the ESCs via I2C
+     * @brief calls both 1) interpolate_forces_to_pwm() to
+     * convert the thruster forces to PWM values and 2) send_data_to_escs() to
+     * send them to the ESCs via I2C
      *
      * @param thruster_forces_array vector of forces for each thruster
      *
@@ -91,8 +80,7 @@ class ThrusterInterfaceAUVDriver {
     std::vector<std::vector<double>> poly_coeffs_;
 
     /**
-     * @brief [private] method that just take the thruster forces and return PWM
-     * values
+     * @brief only take the thruster forces and return PWM values
      *
      * @param thruster_forces_array vector of forces for each thruster
      *
@@ -102,21 +90,52 @@ class ThrusterInterfaceAUVDriver {
     std::vector<int16_t> interpolate_forces_to_pwm(
         const std::vector<double>& thruster_forces_array);
 
+    /**
+     * @brief scalar map from force to pwm x->y. Choose coefficients [LEFT] or
+     * [RIGHT] based on sign(force)
+     *
+     * @param force  scalar force value
+     * @param coeffs std::vector<std::vector<double>> coeffs contains the pair
+     * of coefficients
+     *
+     * @return std::int16_t scalar pwm value
+     */
     std::int16_t force_to_pwm(double force,
                               const std::vector<std::vector<double>>& coeffs);
 
-    std::int16_t interpolate_pwm(double force,
-                                 const std::vector<double>& coeffs);
+    /**
+     * @brief compute y = a*x^3 + b*x^2 + c*x + d
+     * @param force x
+     * @param coeffs a,b,c,d
+     *
+     * @return std::int16_t pwm value
+     */
+    std::int16_t calc_poly(double force, const std::vector<double>& coeffs);
 
     /**
-     * @brief [private] method that takes the pwm values computed and sends them
+     * @brief only takes the pwm values computed and sends them
      * to the ESCs via I2C
      *
      * @param thruster_pwm_array vector of pwm values to send
      */
     void send_data_to_escs(const std::vector<int16_t>& thruster_pwm_array);
 
+    /**
+     * @brief convert Newtons to Kg
+     *
+     * @param force Newtons
+     *
+     * @return double Kg
+     */
     static constexpr double to_kg(double force) { return force / 9.80665; }
+
+    /**
+     * @brief convert pwm values to i2c bytes
+     *
+     * @param pwm pwm value
+     *
+     * @return std::array<std::uint8_t, 2> i2c data
+     */
     static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
         std::int16_t pwm) {
         return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),

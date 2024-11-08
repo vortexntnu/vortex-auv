@@ -9,43 +9,6 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
       pico_i2c_address_(pico_i2c_address),
       thruster_parameters_(thruster_parameters),
       poly_coeffs_(poly_coeffs) {
-    // TO BE REMOVED----------------------------------------------------
-    printf("I2C_BUS: %d\n", i2c_bus_);
-    printf("PICO_I2C_ADDRESS: %d\n", pico_i2c_address_);
-
-    printf("MAPPING: ");
-    for (size_t i = 0; i < thruster_parameters_.size(); ++i) {
-        printf("%d ", thruster_parameters_[i].mapping);
-    }
-    printf("\n");
-    printf("DIRECTION: ");
-    for (size_t i = 0; i < thruster_parameters_.size(); ++i) {
-        printf("%d ", thruster_parameters_[i].direction);
-    }
-    printf("\n");
-    printf("PWM_MIN: ");
-    for (size_t i = 0; i < thruster_parameters_.size(); ++i) {
-        printf("%d ", thruster_parameters_[i].pwm_min);
-    }
-    printf("\n");
-    printf("PWM_MAX: ");
-    for (size_t i = 0; i < thruster_parameters_.size(); ++i) {
-        printf("%d ", thruster_parameters_[i].pwm_max);
-    }
-    printf("\n");
-
-    printf("LEFT_COEFFS: ");
-    for (size_t i = 0; i < poly_coeffs_[LEFT].size(); ++i) {
-        printf("%f ", poly_coeffs_[LEFT][i]);
-    }
-    printf("\n");
-    printf("RIGHT_COEFFS: ");
-    for (size_t i = 0; i < poly_coeffs_[RIGHT].size(); ++i) {
-        printf("%f ", poly_coeffs_[RIGHT][i]);
-    }
-    printf("\n");
-    //----------------------------------------------------------------
-
     // Open the I2C bus
     std::string i2c_filename = "/dev/i2c-" + std::to_string(i2c_bus_);
     bus_fd_ =
@@ -82,15 +45,15 @@ std::int16_t ThrusterInterfaceAUVDriver::force_to_pwm(
     double force,
     const std::vector<std::vector<double>>& coeffs) {
     if (force < 0) {
-        return interpolate_pwm(force, coeffs[LEFT]);
+        return calc_poly(force, coeffs[LEFT]);
     } else if (force > 0) {
-        return interpolate_pwm(force, coeffs[RIGHT]);
+        return calc_poly(force, coeffs[RIGHT]);
     } else {
         return IDLE_PWM_VALUE;  // 1500
     }
 }
 
-std::int16_t ThrusterInterfaceAUVDriver::interpolate_pwm(
+std::int16_t ThrusterInterfaceAUVDriver::calc_poly(
     double force,
     const std::vector<double>& coeffs) {
     return static_cast<std::int16_t>(coeffs[0] * std::pow(force, 3) +

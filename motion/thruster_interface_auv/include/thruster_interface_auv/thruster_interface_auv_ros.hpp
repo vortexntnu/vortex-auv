@@ -12,9 +12,22 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     ThrusterInterfaceAUVNode();
 
    private:
+    /**
+     * @brief periodically receive thruster forces topic
+     *
+     * @param msg ThrusterForces message
+     */
     void thruster_forces_callback(
         const vortex_msgs::msg::ThrusterForces::SharedPtr msg);
+
+    /**
+     * @brief periodically and publish and send pwm commands to thrusters
+     */
     void timer_callback();
+
+    /**
+     * @brief extract all parameters from the .yaml file
+     */
     void extract_all_parameters();
 
     int i2c_bus_;
@@ -27,10 +40,13 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     std::vector<double> thruster_forces_array_;
     double thrust_timer_period_;
 
-    std::unique_ptr<ThrusterInterfaceAUVDriver> thruster_driver_;
-    rclcpp::Subscription<vortex_msgs::msg::ThrusterForces>::SharedPtr
-        thruster_forces_subscriber_;
-    rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr
+    std::unique_ptr<ThrusterInterfaceAUVDriver>
+        thruster_driver_;  ///<-- pwm driver
+    rclcpp::Subscription<vortex_msgs::msg::ThrusterForces>::
+        SharedPtr  ///<-- thruster forces subscriber
+            thruster_forces_subscriber_;
+    rclcpp::Publisher<
+        std_msgs::msg::Int16MultiArray>::SharedPtr  ///<-- pwm publisher
         thruster_pwm_publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
 };
