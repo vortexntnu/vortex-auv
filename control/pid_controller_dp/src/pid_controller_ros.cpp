@@ -27,16 +27,6 @@ void PIDControllerNode::odometry_callback(const nav_msgs::msg::Odometry::SharedP
   double y_ori = msg->pose.pose.orientation.y;
   double z_ori = msg->pose.pose.orientation.z;
 
-  // tf2::Quaternion quat;
-  //   quat.setX(msg->pose.pose.orientation.x);
-  //   quat.setY(msg->pose.pose.orientation.y);
-  //   quat.setZ(msg->pose.pose.orientation.z);
-  //   quat.setW(msg->pose.pose.orientation.w);
-
-  //   tf2::Matrix3x3 m(quat);
-  //   double roll, pitch, yaw;
-    //   m.getRPY(roll, pitch, yaw);
-
   eta_ << x, y, z, w_ori, x_ori, y_ori, z_ori;
 
   double u = msg->twist.twist.linear.x;

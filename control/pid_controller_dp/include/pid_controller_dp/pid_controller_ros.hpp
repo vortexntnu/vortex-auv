@@ -9,24 +9,37 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 
+// @brief Class for the PID controller node
 class PIDControllerNode : public rclcpp::Node {
 public:
   explicit PIDControllerNode();
 
 private:
+  // @brief Callback function for the odometry topic
+  // @param msg: Odometry message containing the vehicle pose and velocity
   void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
-  void guidance_callback(const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
-
+  // @brief Callback function for the proportional gain matrix
   void publish_tau();
 
+  // @brief Set the PID controller parameters
+  void set_pid_params();
+
+  // @brief Callback function for the proportional gain matrix
+  // @param msg: Float64MultiArray message containing the proportional gain matrix
   void kp_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 
+  // @brief Callback function for the integral gain matrix
+  // @param msg: Float64MultiArray message containing the integral gain matrix
   void ki_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 
+  // @brief Callback function for the derivative gain matrix
+  // @param msg: Float64MultiArray message containing the derivative gain matrix
   void kd_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 
-  void set_pid_params();
+  // @brief Callback function for the guidance topic
+  // @param msg: ReferenceFilter message containing the desired vehicle pose and velocity
+  void guidance_callback(const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
   PIDController pid_controller_;
 

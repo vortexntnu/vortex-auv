@@ -10,11 +10,6 @@ PIDController::PIDController()
       dt(0.01) {}
 
 Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector7d &eta, const Eigen::Vector7d &eta_d, const Eigen::Vector6d &nu, const Eigen::Vector7d &eta_dot_d) {
-  // Eigen::Vector6d error = apply_ssa(eta - eta_d);
-
-  // Eigen::Matrix6d J = calculate_J(eta);
-
-  // Eigen::Matrix6d J_inv = J.inverse();
 
   Eigen::Vector7d error = error_eta(eta, eta_d);
 
@@ -26,13 +21,11 @@ Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector7d &eta, const E
 
   Eigen::Vector6d P = Kp_ * J_inv * error;
 
-  Eigen::Vector6d I = Ki_ * J_inv * integral_ ;
+  Eigen::Vector6d I = Ki_ * J_inv * integral_;
 
   Eigen::Vector6d D = Kd_ * error_nu;
-  
-  Eigen::Vector6d tau = -(P + I + D);
 
-  tau = limit_input(tau);
+  Eigen::Vector6d tau = -limit_input((P + I + D));
 
   integral_ = anti_windup(dt, error, integral_);
 
@@ -41,20 +34,14 @@ Eigen::Vector6d PIDController::calculate_tau(const Eigen::Vector7d &eta, const E
 
 void PIDController::setKp(const Eigen::Matrix6d &Kp) {
   this->Kp_ = Kp;
-  std::cout << "Kp: " << std::endl
-            << Kp_ << std::endl;
 }
 
 void PIDController::setKi(const Eigen::Matrix6d &Ki) {
   this->Ki_ = Ki;
-  std::cout << "Ki: " << std::endl
-            << Ki_ << std::endl;
 }
 
 void PIDController::setKd(const Eigen::Matrix6d &Kd) {
   this->Kd_ = Kd;
-  std::cout << "Kd: " << std::endl
-            << Kd_ << std::endl;
 }
 
 void PIDController::setTimeStep(double dt) {
