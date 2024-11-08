@@ -49,13 +49,12 @@ class ThrusterInterfaceAUVDriver:
             self.system_operational_voltage = 20
 
         # Get the full path to the ROS2 package this file is located at
-        self.ros2_package_name_for_thruster_datasheet = ros2_package_name_for_thruster_datasheet
+        self.ros2_package_name_for_thruster_datasheet = (
+            ros2_package_name_for_thruster_datasheet
+        )
 
     def _interpolate_forces_to_pwm(self, thruster_forces_array: list) -> list:
-        """
-        Takes in Array of forces in Newtosn [N]
-        takes 8 floats in form of:
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        """Takes in Array of forces in Newtosn [N] takes 8 floats in form of: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0].
 
         Returns an Array of PWM
         Gives out 8 ints in form of:
@@ -72,8 +71,12 @@ class ThrusterInterfaceAUVDriver:
             thruster_forces_array[i] = thruster_forces / 9.80665
 
         # Interpolate data
-        thruster_datasheet_file_forces = thruster_datasheet_file_data[" Force (Kg f)"].values
-        thruster_datasheet_file_data_pwm = thruster_datasheet_file_data[" PWM (µs)"].values
+        thruster_datasheet_file_forces = thruster_datasheet_file_data[
+            " Force (Kg f)"
+        ].values
+        thruster_datasheet_file_data_pwm = thruster_datasheet_file_data[
+            " PWM (µs)"
+        ].values
         interpolated_pwm = numpy.interp(
             thruster_forces_array,
             thruster_datasheet_file_forces,
@@ -101,10 +104,7 @@ class ThrusterInterfaceAUVDriver:
         self.bus.write_i2c_block_data(self.pico_i2c_address, 0, i2c_data_array)
 
     def drive_thrusters(self, thruster_forces_array: list) -> list:
-        """
-        Takes in Array of forces in Newtosn [N]
-        takes 8 floats in form of:
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        """Takes in Array of forces in Newtosn [N] takes 8 floats in form of: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0].
 
         Converts Forces to PWM signals
         PWM signals sent to PCA9685 module through I2C
@@ -116,16 +116,20 @@ class ThrusterInterfaceAUVDriver:
         Gives out 8 ints in form of:
         [0, 0, 0, 0, 0, 0, 0, 0]
         """
-
         # Apply thruster mapping and direction
-        thruster_forces_array = [thruster_forces_array[i] * self.thruster_direction[i] for i in self.thruster_mapping]
+        thruster_forces_array = [
+            thruster_forces_array[i] * self.thruster_direction[i]
+            for i in self.thruster_mapping
+        ]
 
         # Convert Forces to PWM
         thruster_pwm_array = self._interpolate_forces_to_pwm(thruster_forces_array)
 
         # Apply thruster offset
         for esc_channel, thruster_pwm in enumerate(thruster_pwm_array):
-            thruster_pwm_array[esc_channel] = thruster_pwm + self.thruster_pwm_offset[esc_channel]
+            thruster_pwm_array[esc_channel] = (
+                thruster_pwm + self.thruster_pwm_offset[esc_channel]
+            )
 
         # Apply thruster offset and limit PWM if needed
         for esc_channel in enumerate(thruster_pwm_array):

@@ -26,8 +26,7 @@ from std_msgs.msg import Float32
 
 
 def quaternion_to_euler(x: float, y: float, z: float, w: float) -> List[float]:
-    """
-    Convert a quaternion to Euler angles (roll, pitch, yaw).
+    """Convert a quaternion to Euler angles (roll, pitch, yaw).
 
     Args:
         x (float): The x component of the quaternion.
@@ -38,7 +37,6 @@ def quaternion_to_euler(x: float, y: float, z: float, w: float) -> List[float]:
     Returns:
         List[float]: A list of Euler angles [roll, pitch, yaw].
     """
-
     # Roll (x-axis rotation)
     sinr_cosp = 2 * (w * x + y * z)
     cosr_cosp = 1 - 2 * (x * x + y * y)
@@ -75,13 +73,23 @@ class GuiNode(Node):
         self.declare_parameter("history_length", 30)
 
         odom_topic = self.get_parameter("odom_topic").get_parameter_value().string_value
-        current_topic = self.get_parameter("current_topic").get_parameter_value().string_value
-        voltage_topic = self.get_parameter("voltage_topic").get_parameter_value().string_value
-        temperature_topic = self.get_parameter("temperature_topic").get_parameter_value().string_value
-        pressure_topic = self.get_parameter("pressure_topic").get_parameter_value().string_value
+        current_topic = (
+            self.get_parameter("current_topic").get_parameter_value().string_value
+        )
+        voltage_topic = (
+            self.get_parameter("voltage_topic").get_parameter_value().string_value
+        )
+        temperature_topic = (
+            self.get_parameter("temperature_topic").get_parameter_value().string_value
+        )
+        pressure_topic = (
+            self.get_parameter("pressure_topic").get_parameter_value().string_value
+        )
 
         # Subscriber to the /nucleus/odom topic
-        self.subscription = self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
+        self.subscription = self.create_subscription(
+            Odometry, odom_topic, self.odom_callback, 10
+        )
 
         # Variables to store odometry data
         self.xpos_data: List[float] = []  # x position
@@ -98,10 +106,18 @@ class GuiNode(Node):
         self.yaw: Optional[float] = None
 
         # Subscribe to internal status topics
-        self.current_subscriber = self.create_subscription(Float32, current_topic, self.current_callback, 5)
-        self.voltage_subscriber = self.create_subscription(Float32, voltage_topic, self.voltage_callback, 5)
-        self.temperature_subscriber = self.create_subscription(Float32, temperature_topic, self.temperature_callback, 5)
-        self.pressure_subscriber = self.create_subscription(Float32, pressure_topic, self.pressure_callback, 5)
+        self.current_subscriber = self.create_subscription(
+            Float32, current_topic, self.current_callback, 5
+        )
+        self.voltage_subscriber = self.create_subscription(
+            Float32, voltage_topic, self.voltage_callback, 5
+        )
+        self.temperature_subscriber = self.create_subscription(
+            Float32, temperature_topic, self.temperature_callback, 5
+        )
+        self.pressure_subscriber = self.create_subscription(
+            Float32, pressure_topic, self.pressure_callback, 5
+        )
 
         # Variables for internal status
         self.current = 0.0
@@ -129,7 +145,9 @@ class GuiNode(Node):
         self.roll, self.pitch, self.yaw = quaternion_to_euler(x, y, z, w)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
-        max_data_points = self.get_parameter("history_length").get_parameter_value().integer_value
+        max_data_points = (
+            self.get_parameter("history_length").get_parameter_value().integer_value
+        )
         if len(self.x_data) > max_data_points:
             self.xpos_data.pop(0)
             self.ypos_data.pop(0)
@@ -183,7 +201,9 @@ class PlotCanvas(FigureCanvas):
         self.z_data: List[float] = []
         (self.line,) = self.ax.plot([], [], [], 'b-')
 
-    def update_plot(self, x_data: List[float], y_data: List[float], z_data: List[float]) -> None:
+    def update_plot(
+        self, x_data: List[float], y_data: List[float], z_data: List[float]
+    ) -> None:
         """Update the 3D plot with the latest odometry data."""
         # Convert lists to numpy arrays to ensure compatibility with the plot functions
         x_data = np.array(x_data, dtype=float)
@@ -264,7 +284,9 @@ def main(args: Optional[List[str]] = None) -> None:
 
     # Use a QTimer to update plot, current position, and internal status in the main thread
     def update_gui() -> None:
-        plot_canvas.update_plot(ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data)
+        plot_canvas.update_plot(
+            ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data
+        )
         if len(ros_node.xpos_data) > 0 and ros_node.roll is not None:
             position_text = f"Current Position:\nX: {ros_node.xpos_data[-1]:.2f}\nY: {ros_node.ypos_data[-1]:.2f}\nZ: {ros_node.zpos_data[-1]:.2f}"
             orientation_text = f"Current Orientation:\nRoll: {ros_node.roll:.2f}\nPitch: {ros_node.pitch:.2f}\nYaw: {ros_node.yaw:.2f}"
