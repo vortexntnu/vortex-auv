@@ -23,6 +23,7 @@ Matrix3d calculate_R(const Vector6d& eta) {
 }
 
 Matrix3d calculate_T(const Vector6d& eta) {
+    Matrix3d transformation_matrix;
     double phi = eta(3);
     double theta = eta(4);
 
@@ -31,12 +32,7 @@ Matrix3d calculate_T(const Vector6d& eta) {
     double ctheta = cos(theta);
     double stheta = sin(theta);
 
-    if (ctheta == 0) {
-        throw std::runtime_error("Division by zero in calculate_T.");
-    }
-
-    Matrix3d transformation_matrix;
-
+    // Manually added the transformation matrix from Fossen 2021 p.29 eq: 2.41
     transformation_matrix << 1, sphi * stheta / ctheta, cphi * stheta / ctheta,
         0, cphi, -sphi, 0, sphi / ctheta, cphi / ctheta;
 

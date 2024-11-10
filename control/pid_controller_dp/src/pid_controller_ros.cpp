@@ -1,5 +1,7 @@
 #include "pid_controller_dp/pid_controller_ros.hpp"
+#include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
+#include "pid_controller_dp/typedefs.hpp"
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     time_step_ = std::chrono::milliseconds(10);
@@ -28,37 +30,17 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         "/thrust/wrench_input", 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
-    eta_ << 0, 0, 0, 1, 0, 0, 0;
-    eta_d_ << 0, 0, 0, 1, 0, 0, 0;
-    nu_ = Eigen::Vector6d::Zero();
-    eta_dot_d_ << 0, 0, 0, 1, 0, 0, 0;
     set_pid_params();
 }
 
 void PIDControllerNode::odometry_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
-    double x = msg->pose.pose.position.x;
-    double y = msg->pose.pose.position.y;
-    double z = msg->pose.pose.position.z;
-    double w_ori = msg->pose.pose.orientation.w;
-    double x_ori = msg->pose.pose.orientation.x;
-    double y_ori = msg->pose.pose.orientation.y;
-    double z_ori = msg->pose.pose.orientation.z;
-
-    eta_ << x, y, z, w_ori, x_ori, y_ori, z_ori;
-
-    double u = msg->twist.twist.linear.x;
-    double v = msg->twist.twist.linear.y;
-    double w = msg->twist.twist.linear.z;
-    double p = msg->twist.twist.angular.x;
-    double q = msg->twist.twist.angular.y;
-    double r = msg->twist.twist.angular.z;
-
-    nu_ << u, v, w, p, q, r;
+    eta_ = eta_convert_from_ros_to_eigen(msg);
+    nu_ = nu_convert_from_ros_to_eigen(msg);
 }
 
 void PIDControllerNode::publish_tau() {
-    Eigen::Vector6d tau =
+    types::Vector6d tau =
         pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
 
     geometry_msgs::msg::Wrench tau_msg;
@@ -99,30 +81,32 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::kp_callback(
     const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    Eigen::Matrix6d Kp = float64multiarray_to_diagonal_matrix6d(*msg);
+    types::Matrix6d Kp = float64multiarray_to_diagonal_matrix6d(*msg);
     pid_controller_.setKp(Kp);
 }
 
 void PIDControllerNode::ki_callback(
     const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    Eigen::Matrix6d Ki = float64multiarray_to_diagonal_matrix6d(*msg);
+    types::Matrix6d Ki = float64multiarray_to_diagonal_matrix6d(*msg);
     pid_controller_.setKi(Ki);
 }
 
 void PIDControllerNode::kd_callback(
     const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    Eigen::Matrix6d Kd = float64multiarray_to_diagonal_matrix6d(*msg);
+    types::Matrix6d Kd = float64multiarray_to_diagonal_matrix6d(*msg);
     pid_controller_.setKd(Kd);
 }
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    double x = msg->x;
-    double y = msg->y;
-    double z = msg->z;
+    types::Eta eta_d;
+    eta_d.pos << msg->x, msg->y, msg->z;
 
-    tf2::Quaternion quat;
-    quat.setRPY(msg->roll, msg->pitch, msg->yaw);
+    double roll = msg->roll;
+    double pitch = msg->pitch;
+    double yaw = msg->yaw;
 
-    eta_d_ << x, y, z, quat.w(), quat.x(), quat.y(), quat.z();
+    eta_d.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
+                Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+                Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
 }

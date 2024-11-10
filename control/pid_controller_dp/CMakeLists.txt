@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(pid_controller_dp)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -24,6 +24,7 @@ add_executable(pid_controller_node
   src/pid_controller_ros.cpp
   src/pid_controller.cpp
   src/pid_controller_utils.cpp
+  src/pid_controller_conversions.cpp
 )
 
 ament_target_dependencies(pid_controller_node
@@ -33,11 +34,6 @@ ament_target_dependencies(pid_controller_node
   Eigen3
   tf2
   vortex_msgs
-)
-
-install(
-  DIRECTORY include/
-  DESTINATION include
 )
 
 install(TARGETS

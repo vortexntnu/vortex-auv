@@ -8,6 +8,7 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
+#include "pid_controller_dp/typedefs.hpp"
 
 // @brief Class for the PID controller node
 class PIDControllerNode : public rclcpp::Node {
@@ -64,13 +65,13 @@ class PIDControllerNode : public rclcpp::Node {
 
     std::chrono::milliseconds time_step_;
 
-    Eigen::Vector7d eta_;
+    types::Eta eta_;
 
-    Eigen::Vector7d eta_d_;
+    types::Eta eta_d_;
 
-    Eigen::Vector6d nu_;
+    types::Nu nu_;
 
-    Eigen::Vector7d eta_dot_d_;
+    types::Eta eta_dot_d_;
 };
 
 #endif

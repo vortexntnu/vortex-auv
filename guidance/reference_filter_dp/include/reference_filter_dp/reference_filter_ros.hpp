@@ -83,7 +83,7 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     nav_msgs::msg::Odometry current_state_;
 
-    // The state vector with 18 elements, [eta, nu, nu_dot]
+    // x is [eta, eta_dot, eta_dot_dot] (ref. page 337 in Fossen, 2021
     // nu and eta are 6 degrees of freedom (position and orientation in 3D
     // space)
     Vector18d x_;

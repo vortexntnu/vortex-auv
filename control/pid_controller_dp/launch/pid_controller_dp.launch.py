@@ -4,6 +4,10 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+pid_params = path.join(
+    get_package_share_directory("pid_controller_dp"), "config", "pid_params.yaml"
+)
+
 
 def generate_launch_description():
     pid_controller_node = Node(
@@ -11,11 +15,7 @@ def generate_launch_description():
         executable="pid_controller_node",
         name="pid_controller_node",
         parameters=[
-            path.join(
-                get_package_share_directory("pid_controller_dp"),
-                "config",
-                "pid_params.yaml",
-            )
+            pid_params,
         ],
         output="screen",
     )
