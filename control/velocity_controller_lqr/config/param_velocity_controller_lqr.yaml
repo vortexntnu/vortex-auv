@@ -8,17 +8,17 @@ velocity_controller_lqr_node:
 
     #LQR parameters
 
-    Q_surge: 75
-    Q_pitch: 175
-    Q_yaw: 175
+    q_surge: 75
+    q_pitch: 175
+    q_yaw: 175
 
-    R_surge: 0.3
-    R_pitch: 0.4
-    R_yaw: 0.4
-    
-    I_surge: 0.3
-    I_pitch: 0.4
-    I_yaw: 0.3
+    r_surge: 0.3
+    r_pitch: 0.4
+    r_yaw: 0.4
+
+    i_surge: 0.3
+    i_pitch: 0.4
+    i_yaw: 0.3
 
     #Clamp parameter
     max_force: 99.5

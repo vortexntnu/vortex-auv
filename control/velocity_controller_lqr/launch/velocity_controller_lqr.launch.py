@@ -1,12 +1,12 @@
 import os
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generates a launch description for the velocity_controller_lqr node.
+    """Generates a launch description for the velocity_controller_lqr node.
 
     This function creates a ROS 2 launch description that includes the
     velocity_controller_lqr node. The node is configured to use the
@@ -20,7 +20,7 @@ def generate_launch_description() -> LaunchDescription:
     parameter_file = os.path.join(
         get_package_share_directory("velocity_controller_lqr"),
         "config",
-        "param_velocity_controller_lqr.yaml"
+        "param_velocity_controller_lqr.yaml",
     )
 
     # Define the node
