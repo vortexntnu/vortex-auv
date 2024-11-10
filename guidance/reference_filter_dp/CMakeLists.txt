@@ -19,6 +19,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 include_directories(include)
 
@@ -36,6 +37,7 @@ ament_target_dependencies(reference_filter_node
   vortex_msgs
   Eigen3
   tf2
+  tf2_geometry_msgs
 )
 
 install(TARGETS
