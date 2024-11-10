@@ -273,9 +273,9 @@ int main(int argc, char *argv[]) {
 
   auto nested_sm = std::make_shared<yasmin::StateMachine>(
       std::initializer_list<std::string>{
-          "aborted",
-          "finished",
-      });
+          yasmin_ros::basic_outcomes::SUCCEED,
+          yasmin_ros::basic_outcomes::CANCEL,
+          yasmin_ros::basic_outcomes::ABORT});
 
   // cancel state machine on ROS 2 shutdown
   rclcpp::on_shutdown([sm]() {
@@ -345,16 +345,21 @@ int main(int argc, char *argv[]) {
                            {yasmin_ros::basic_outcomes::SUCCEED, "has_finished_converging"},
                            {yasmin_ros::basic_outcomes::ABORT, "aborted"},
                        });
-  nested_sm->add_state("has_finished_converging", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::ABORT}, has_finished_converging),
+  nested_sm->add_state("has_finished_converging",
+                       std::make_shared<yasmin::CbState>(
+                           std::initializer_list<std::string>{
+                               yasmin_ros::basic_outcomes::SUCCEED,
+                               yasmin_ros::basic_outcomes::ABORT},
+                           has_finished_converging),
                        {
-                           {yasmin_ros::basic_outcomes::SUCCEED, "finished"},
-                           {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                           {yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::SUCCEED},
+                           {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
                        });
 
   sm->add_state("dock_fsm", nested_sm,
                 {
-                    {"finished", "DOCKED"},
-                    {"aborted", "ABORT"},
+                    {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
+                    {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
 
   // pub
