@@ -12,7 +12,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
-find_package(stonefish_ros2)  # Add this to find OpenCV
+find_package(std_msgs REQUIRED)
+
+include_directories(include)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -20,18 +22,18 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(line_filtering src/line_filtering.cpp)
+add_executable(line_filtering_node src/line_filtering_ros.cpp src/line_filtering_node.cpp)
 
 ament_target_dependencies(line_filtering_node
   rclcpp
   sensor_msgs
   image_transport
   cv_bridge
-  stonefish_ros2
+  std_msgs
 )
 
 # Link against OpenCV libraries
-target_link_libraries(line_filtering ${OpenCV_LIBS})
+target_link_libraries(line_filtering_node ${OpenCV_LIBS})
 
 install(TARGETS
   line_filtering_node

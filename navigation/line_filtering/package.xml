@@ -13,8 +13,7 @@
   <depend>sensor_msgs</depend>
   <depend>image_transport</depend>
   <depend>cv_bridge</depend>
-  <depend>stonefish_ros2</depend>
-
+  <depend>std_msgs</depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
