@@ -2,9 +2,9 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Wrench
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy, JointState
 from std_msgs.msg import Bool
-from std_msgs.msg import String
+from std_msgs.msg import String, Float64
 
 
 class States:
@@ -97,12 +97,32 @@ class JoystickInterface(Node):
                                                        "thrust/wrench_input",
                                                        5)
 
+        self.gripper_pos_publisher_ = self.create_publisher(
+            Float64, "orca/gripper_cmd", 10
+        )
+
+        self.gripper_rot_publisher_ = self.create_publisher(
+            Float64, "orca/gripper_arm_cmd", 10
+        )
+
+        self.gripper_finger_publisher_ = self.create_publisher(
+            Float64, "orca/gripper_finger_cmd", 10
+        )
+
+        self.gripper_state_publisher_ = self.create_publisher(
+            JointState, "stonefish/servos", 10
+        )
+
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
         self.declare_parameter('yaw_scale_factor', 60.0)
         self.declare_parameter('heave_scale_factor', 17.5)
         self.declare_parameter('roll_scale_factor', 30.0)
         self.declare_parameter('pitch_scale_factor', 20.0)
+
+        self.gripper_desired_position_ = 0.0
+        self.gripper_desired_rotation_ = 0.0
+        self.gripper_grip_position_ = 0.0
 
         #Gets the scaling factors from the yaml file
         self.joystick_surge_scaling_ = self.get_parameter(
@@ -162,6 +182,7 @@ class JoystickInterface(Node):
         """
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
+        self.get_logger().info("XBOX mode")
 
     def transition_to_autonomous_mode(self):
         """
@@ -172,8 +193,9 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(
             String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
+        self.get_logger().info("autonomous mode")
 
-    def joystick_cb(self, msg: Joy) -> Wrench:
+    def joystick_cb(self, msg: Joy):
         """
         Callback function that receives joy messages and converts them into
         wrench messages to be sent to the thruster allocation node. 
@@ -246,6 +268,11 @@ class JoystickInterface(Node):
             "horizontal_axis_right_stick", 0.0
         ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
 
+        gripper = axes.get("dpad_vertical", 0.0)
+        gripper_rotation = axes.get("dpad_horizontal", 0.0)
+        gripper_grip = buttons.get("stick_button_left", 0)
+        gripper_open = buttons.get("stick_button_right", 0)
+
         # Debounce for the buttons
         if current_time - self.last_button_press_time_ < self.debounce_duration_:
             software_control_mode_button = False
@@ -278,7 +305,6 @@ class JoystickInterface(Node):
                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
                 self.wrench_publisher_.publish(wrench_msg)
                 self.state_ = States.NO_GO
-                return wrench_msg
 
         # Toggle precise maneuvering mode on and off
         if precise_manuevering_mode_button:
@@ -292,19 +318,63 @@ class JoystickInterface(Node):
                                                 pitch, yaw)
 
         if self.state_ == States.XBOX_MODE:
-            self.get_logger().info("XBOX", throttle_duration_sec=1)
+            # self.get_logger().info("XBOX", throttle_duration_sec=1)
             self.wrench_publisher_.publish(wrench_msg)
+
+            gripper_state_msg = JointState()
+            gripper_names = ["Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1", "Orca/Finger_joint2"]
+            gripper_pos = []
+
+            gripper_msg = Float64()
+            self.gripper_desired_position_ += gripper * 0.01
+            if self.gripper_desired_position_ > .11:
+                self.gripper_desired_position_ = .11
+            if self.gripper_desired_position_ < -2.1:
+                self.gripper_desired_position_ = -2.1
+
+            gripper_pos.append(self.gripper_desired_position_)
+
+            gripper_state_msg.name = gripper_names
+
+            gripper_msg.data = self.gripper_desired_position_
+            self.gripper_pos_publisher_.publish(gripper_msg)
+
+            gripper_rot_msg = Float64()
+            self.gripper_desired_rotation_ += gripper_rotation * 0.05
+            gripper_rot_msg.data = self.gripper_desired_rotation_
+            self.gripper_rot_publisher_.publish(gripper_rot_msg)
+
+
+
+            gripper_finger_msg = Float64()
+            if gripper_grip:
+                self.gripper_grip_position_ += 0.01
+            if gripper_open:
+                self.gripper_grip_position_ -= 0.01
+            if self.gripper_grip_position_ < 0:
+                self.gripper_grip_position_ = 0.
+            elif self.gripper_grip_position_ > 0.78:
+                self.gripper_grip_position_ = 0.78
+
+            gripper_pos.append(self.gripper_desired_rotation_)
+            gripper_pos.append(self.gripper_grip_position_)
+            gripper_pos.append(self.gripper_grip_position_)
+            
+            gripper_finger_msg.data = self.gripper_grip_position_
+            self.gripper_finger_publisher_.publish(gripper_finger_msg)
+
+            gripper_state_msg.position = gripper_pos
+
+            self.gripper_state_publisher_.publish(gripper_state_msg)
 
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
 
         if self.state_ == States.AUTONOMOUS_MODE:
-            self.get_logger().info("autonomous mode", throttle_duration_sec=1)
+            # self.get_logger().info("autonomous mode", throttle_duration_sec=1)
 
             if xbox_control_mode_button:
                 self.transition_to_xbox_mode()
-
-        return wrench_msg
 
 
 def main():
