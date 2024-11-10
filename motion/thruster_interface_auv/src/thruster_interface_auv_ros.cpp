@@ -73,16 +73,30 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
             RCLCPP_INFO(this->get_logger(), "Received parameter event");
             for (const auto& changed_parameter : event.changed_parameters) {
                 if (changed_parameter.name.find("debug.flag") == 0) {
-                    this->debug_flag_ =
-                        this->get_parameter("debug.flag").as_bool();
-                    if (this->debug_flag_ == 0) {
-                        // kill the pub
-                    } else {
-                        // reinitialize the pub
-                    }
+                    check_and_initialize_debug_publisher();
                 }
             }
         });
+}
+
+void ThrusterInterfaceAUVNode::check_and_initialize_debug_publisher() {
+    bool debug_flag = this->get_parameter("debug.flag").as_bool();
+    if (debug_flag_ != debug_flag) {
+        if (debug_flag) {
+            rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+            auto qos_sensor_data = rclcpp::QoS(
+                rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+            thruster_pwm_publisher_ =
+                this->create_publisher<std_msgs::msg::Int16MultiArray>(
+                    publisher_topic_name_, qos_sensor_data);
+            RCLCPP_INFO(this->get_logger(), "Initialized debug publisher");
+        } else {
+            thruster_pwm_publisher_.reset();
+            RCLCPP_INFO(this->get_logger(), "Killed debug publisher");
+        }
+        debug_flag_ = debug_flag;
+    }
+       
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {

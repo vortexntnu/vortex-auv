@@ -38,6 +38,8 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
      */
     void initialize_parameter_handler();
 
+    void check_and_initialize_debug_publisher();
+
     /**
      * @brief Manages parameter events for the node.
      *
