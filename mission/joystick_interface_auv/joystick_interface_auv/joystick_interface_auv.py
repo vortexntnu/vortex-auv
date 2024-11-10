@@ -98,20 +98,16 @@ class JoystickInterface(Node):
                                                        5)
 
         self.gripper_pos_publisher_ = self.create_publisher(
-            Float64, "orca/gripper_cmd", 10
-        )
+            Float64, "orca/gripper_cmd", 10)
 
         self.gripper_rot_publisher_ = self.create_publisher(
-            Float64, "orca/gripper_arm_cmd", 10
-        )
+            Float64, "orca/gripper_arm_cmd", 10)
 
         self.gripper_finger_publisher_ = self.create_publisher(
-            Float64, "orca/gripper_finger_cmd", 10
-        )
+            Float64, "orca/gripper_finger_cmd", 10)
 
         self.gripper_state_publisher_ = self.create_publisher(
-            JointState, "stonefish/servos", 10
-        )
+            JointState, "stonefish/servos", 10)
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -322,7 +318,10 @@ class JoystickInterface(Node):
             self.wrench_publisher_.publish(wrench_msg)
 
             gripper_state_msg = JointState()
-            gripper_names = ["Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1", "Orca/Finger_joint2"]
+            gripper_names = [
+                "Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1",
+                "Orca/Finger_joint2"
+            ]
             gripper_pos = []
 
             gripper_msg = Float64()
@@ -344,8 +343,6 @@ class JoystickInterface(Node):
             gripper_rot_msg.data = self.gripper_desired_rotation_
             self.gripper_rot_publisher_.publish(gripper_rot_msg)
 
-
-
             gripper_finger_msg = Float64()
             if gripper_grip:
                 self.gripper_grip_position_ += 0.01
@@ -359,7 +356,7 @@ class JoystickInterface(Node):
             gripper_pos.append(self.gripper_desired_rotation_)
             gripper_pos.append(self.gripper_grip_position_)
             gripper_pos.append(self.gripper_grip_position_)
-            
+
             gripper_finger_msg.data = self.gripper_grip_position_
             self.gripper_finger_publisher_.publish(gripper_finger_msg)
 
