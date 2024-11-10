@@ -127,7 +127,7 @@ void ReferenceFilterNode::handle_accepted(
     execute(goal_handle);
 }
 
-Vector18d fill_reference_state() {
+Vector18d ReferenceFilterNode::fill_reference_state() {
     Vector18d x = Vector18d::Zero();
     x(0) = current_state_.pose.pose.position.x;
     x(1) = current_state_.pose.pose.position.y;
@@ -157,17 +157,17 @@ Vector18d fill_reference_state() {
         current_state_.twist.twist.angular.z;
     Vector6d eta_dot = J * nu;
 
-    x_(6) = eta_dot(0);
-    x_(7) = eta_dot(1);
-    x_(8) = eta_dot(2);
-    x_(9) = eta_dot(3);
-    x_(10) = eta_dot(4);
-    x_(11) = eta_dot(5);
+    x(6) = eta_dot(0);
+    x(7) = eta_dot(1);
+    x(8) = eta_dot(2);
+    x(9) = eta_dot(3);
+    x(10) = eta_dot(4);
+    x(11) = eta_dot(5);
 
     return x;
 }
 
-Vector6d fill_reference_goal(const geometry_msgs::msg::PoseStamped::SharedPtr goal) {
+Vector6d ReferenceFilterNode::fill_reference_goal(const geometry_msgs::msg::PoseStamped& goal) {
     double x = goal.pose.position.x;
     double y = goal.pose.position.y;
     double z = goal.pose.position.z;
@@ -185,7 +185,7 @@ Vector6d fill_reference_goal(const geometry_msgs::msg::PoseStamped::SharedPtr go
     return r;
 }
 
-vortex_msgs::msg::ReferenceFilter fill_reference_msg() {
+vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
     vortex_msgs::msg::ReferenceFilter feedback_msg;
     feedback_msg.x = x_(0);
     feedback_msg.y = x_(1);
