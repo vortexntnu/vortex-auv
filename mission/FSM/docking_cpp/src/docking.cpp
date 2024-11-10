@@ -44,6 +44,7 @@ public:
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const FindDock::Feedback> feedback) {
     (void)blackboard;
+    blackboard->set<float>("time_elapsed", feedback->time_elapsed);
     fprintf(stderr, "Time elapsed: %f\n",
             feedback->time_elapsed);
   }
@@ -59,6 +60,9 @@ public:
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
+
+    blackboard->set<PoseStamped>("docking_goal", blackboard->get<PoseStamped>("dock_pose"));
+    blackboard->set<float>("docking_goal.pose.position.z", blackboard->get<float>("dock_pose.pose.position.z") + blackboard->get<float>("docking_station_offset"));
     goal.waypoint = blackboard->get<PoseStamped>("dock_pose");
     return goal;
   }
@@ -66,11 +70,17 @@ public:
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
     (void)blackboard;
     (void)response;
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    blackboard->set<bool>("has_finished_converging", response->success);
+    if (blackboard->get<bool>("has_finished_converging")) {
+      return yasmin_ros::basic_outcomes::SUCCEED;
+    } else {
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
     (void)blackboard;
+    blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
     fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
             feedback->current_pose.pose.position.x,
             feedback->current_pose.pose.position.y,
@@ -95,11 +105,17 @@ public:
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
     (void)blackboard;
     (void)response;
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    blackboard->set<bool>("is_docked", response->success);
+    if (blackboard->get<bool>("is_docked")) {
+      return yasmin_ros::basic_outcomes::SUCCEED;
+    } else {
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
     (void)blackboard;
+    blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
     fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
             feedback->current_pose.pose.position.x,
             feedback->current_pose.pose.position.y,
@@ -110,7 +126,12 @@ public:
 std::string
 DockedState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
   (void)blackboard;
-  return yasmin_ros::basic_outcomes::SUCCEED;
+  blackboard->set<bool>("is_docked", true);
+  if (blackboard->get<bool>("return_home")) {
+    return yasmin_ros::basic_outcomes::SUCCEED;
+  } else {
+    return yasmin_ros::basic_outcomes::ABORT;
+  }
 };
 
 class ReturnHomeState : public yasmin_ros::ActionState<GoToWaypoint> {
@@ -130,11 +151,13 @@ public:
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
     (void)blackboard;
     (void)response;
+    blackboard->set<bool>("is_home", response->success);
     return yasmin_ros::basic_outcomes::SUCCEED;
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
     (void)blackboard;
+    blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
     fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
             feedback->current_pose.pose.position.x,
             feedback->current_pose.pose.position.y,
@@ -152,18 +175,20 @@ public:
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
-    goal.waypoint = blackboard->get<PoseStamped>("home_pose");
+    goal.waypoint = blackboard->get<PoseStamped>("start_pose");
     return goal;
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
     (void)blackboard;
     (void)response;
+    blackboard->set<bool>("is_home", response->success);
     return yasmin_ros::basic_outcomes::SUCCEED;
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
     (void)blackboard;
+    blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
     fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
             feedback->current_pose.pose.position.x,
             feedback->current_pose.pose.position.y,
@@ -174,7 +199,8 @@ public:
 std::string
 ErrorState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
   (void)blackboard;
-  return yasmin_ros::basic_outcomes::CANCEL;
+  blackboard->set<bool>("is_error", true);
+  return yasmin_ros::basic_outcomes::SUCCEED;
 };
 
 class GoOverDock : public yasmin_ros::ActionState<GoToWaypoint> {
@@ -187,8 +213,7 @@ public:
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
-    goal.waypoint = blackboard->get<PoseStamped>("dock_pose");
-    goal.waypoint.pose.position.x += 1.0;
+    goal.waypoint = blackboard->get<PoseStamped>("docking_goal");
     return goal;
   }
 
@@ -224,8 +249,7 @@ public:
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
-    goal.waypoint = blackboard->get<PoseStamped>("docking_station_location");
-    goal.waypoint.pose.position.z -= 1.0;
+    goal.waypoint = blackboard->get<PoseStamped>("dock_pose");
     return goal;
   }
 
@@ -251,11 +275,6 @@ public:
   }
 };
 
-std::string has_finished_converging(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-  (void)blackboard;
-  return yasmin_ros::basic_outcomes::SUCCEED;
-};
-
 int main(int argc, char *argv[]) {
 
   YASMIN_LOG_INFO("docking");
@@ -264,9 +283,9 @@ int main(int argc, char *argv[]) {
   // set ROS 2 logs
   yasmin_ros::set_ros_loggers();
 
-  // create a state machine
+  // create state machines
   auto sm = std::make_shared<yasmin::StateMachine>(
-      std::initializer_list<std::string>{"outcome4",
+      std::initializer_list<std::string>{"error",
                                          yasmin_ros::basic_outcomes::SUCCEED,
                                          yasmin_ros::basic_outcomes::CANCEL,
                                          yasmin_ros::basic_outcomes::ABORT});
@@ -294,44 +313,44 @@ int main(int argc, char *argv[]) {
   sm->add_state("FIND_DOCK", std::make_shared<FindDockState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_DOCK"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "outcome4"},
-                    {yasmin_ros::basic_outcomes::ABORT, "outcome4"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "error"},
+                    {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("GO_TO_DOCK", std::make_shared<GoToDockState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "DOCK"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "outcome4"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "error"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("DOCK", std::make_shared<DockState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "dock_fsm"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "outcome4"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "error"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
-  sm->add_state("DOCKED", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{"outcome4", yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::ABORT}, DockedState),
+  sm->add_state("DOCKED", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{"error", yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::ABORT}, DockedState),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
-                    {yasmin_ros::basic_outcomes::ABORT, "RETURN_HOME"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
+                    {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "outcome4"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "error"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("ABORT", std::make_shared<AbortState>(),
                 {
-                    {yasmin_ros::basic_outcomes::SUCCEED, "aborted"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "aborted"},
+                    {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "aborted"},
                     {yasmin_ros::basic_outcomes::ABORT, "aborted"},
                 });
-  sm->add_state("ERROR", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{"outcome4", yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::ABORT}, ErrorState),
+  sm->add_state("ERROR", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{"error", yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::ABORT}, ErrorState),
                 {
-                    {yasmin_ros::basic_outcomes::SUCCEED, "outcome4"},
-                    {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
-                    {yasmin_ros::basic_outcomes::ABORT, "RETURN_HOME"},
+                    {yasmin_ros::basic_outcomes::SUCCEED, "error"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
+                    // {yasmin_ros::basic_outcomes::ABORT, "RETURN_HOME"},
                 });
 
   nested_sm->add_state("GO_OVER_DOCK", std::make_shared<GoOverDock>(),
@@ -342,18 +361,8 @@ int main(int argc, char *argv[]) {
 
   nested_sm->add_state("GO_DOWN_DOCK", std::make_shared<GoDownDock>(),
                        {
-                           {yasmin_ros::basic_outcomes::SUCCEED, "has_finished_converging"},
-                           {yasmin_ros::basic_outcomes::ABORT, "aborted"},
-                       });
-  nested_sm->add_state("has_finished_converging",
-                       std::make_shared<yasmin::CbState>(
-                           std::initializer_list<std::string>{
-                               yasmin_ros::basic_outcomes::SUCCEED,
-                               yasmin_ros::basic_outcomes::ABORT},
-                           has_finished_converging),
-                       {
                            {yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::SUCCEED},
-                           {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
+                           {yasmin_ros::basic_outcomes::ABORT, "aborted"},
                        });
 
   sm->add_state("dock_fsm", nested_sm,
@@ -369,8 +378,8 @@ int main(int argc, char *argv[]) {
   // create an initial blackboard
   std::shared_ptr<yasmin::blackboard::Blackboard> blackboard =
       std::make_shared<yasmin::blackboard::Blackboard>();
-  blackboard->set<int>("n", 10);
   blackboard->set<bool>("start_search", true);
+  blackboard->set<PoseStamped>("current_pose", PoseStamped());
   blackboard->set<PoseStamped>("start_pose", PoseStamped());
   blackboard->set<float>("start_pose.pose.position.x", 0.0f);
   blackboard->set<float>("start_pose.pose.position.y", 0.0f);
@@ -379,7 +388,12 @@ int main(int argc, char *argv[]) {
   blackboard->set<float>("dock_pose.pose.position.x", 5.0);
   blackboard->set<float>("dock_pose.pose.position.y", 5.0);
   blackboard->set<float>("dock_pose.pose.position.z", 10.0);
+  blackboard->set<float>("docking_station_offset", -1.0);
   blackboard->set<bool>("return_home", true);
+  blackboard->set<bool>("is_docked", false);
+  blackboard->set<bool>("is_home", false);
+  blackboard->set<bool>("is_error", false);
+  blackboard->set<bool>("has_finished_converging", false);
 
   // execute
   try {
