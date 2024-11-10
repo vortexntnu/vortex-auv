@@ -87,8 +87,7 @@ geometry_msgs::msg::PoseStamped EKFFilteringNode::kalmanFilterCallback(geometry_
     //Filtering the transformed pose, only inputvariable
     //last position and time.  
     
-    geometry_msgs::msg::PoseStamped object_pose = transformed_pose;
-    transformed_pose_vector_ << object_pose.pose.position.x, object_pose.pose.position.y, object_pose.pose.position.z, object_pose.pose.orientation.x, object_pose.pose.orientation.y, object_pose.pose.orientation.z;
+    , object_pose.pose.position.z, object_pose.pose.orientation.x, object_pose.pose.orientation.y, object_pose.pose.orientation.z;
 
     //2 publishers, one with kalman filter and one without.
     //run kalmanfiltercallback
