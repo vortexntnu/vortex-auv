@@ -20,14 +20,17 @@ setup(
     zip_safe=True,
     maintainer='badawi',
     maintainer_email='badawi@todo.todo',
-    description='Package for guidance node implementing PID control.',
+    description='Package for guidance node implementing LOS guidance with action server.',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'guidance = guidance_los.guidance_los:main',
-            'guidance_test = guidance_los.guidance_test:main',
-            'odom_formatter = guidance_los.odom_formatter:main'
+            # Replace 'guidance' with the new action server
+            'los_guidance_action_server = guidance_los.los_guidance_action_server:main',
+            'guidance_test_client = guidance_los.guidance_test_client:main',
+            # Keep other entries if still needed
+            #'guidance_test = guidance_los.guidance_test:main',
+            #'odom_formatter = guidance_los.odom_formatter:main'
         ],
     },
 )

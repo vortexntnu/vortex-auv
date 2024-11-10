@@ -1,3 +1,0 @@
-"""
-Guidance Action Server package.
-"""

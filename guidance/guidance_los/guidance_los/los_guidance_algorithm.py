@@ -1,13 +1,14 @@
 # integrated_los_guidance.py
+# location: vortex-auv/guidance/guidance_los/guidance_los/los_guidance_algorithm.py
 
 #!/usr/bin/env python3
 
 import numpy as np
 from typing import Tuple
 
-class IntegratedLOSGuidance:
+class FirstOrderLOSGuidance:
     def __init__(self):
-        # LOS parameters
+        # LOS parameters (keeping same as original)
         self.h_delta_min = 1.0      # Minimum look-ahead distance
         self.h_delta_max = 5.0      # Maximum look-ahead distance
         self.h_delta_factor = 3.0   # Look-ahead scaling factor
@@ -16,31 +17,18 @@ class IntegratedLOSGuidance:
         self.max_pitch_angle = np.pi/6  # 30 degrees max pitch
         self.depth_gain = 0.5       # Gain for depth error
 
-        # Filter parameters
-        self.x = np.zeros(9)  # State vector for reference filter [pos, vel, acc] for [surge, pitch, yaw]
-        self.omega = np.diag([1.8, 1.8, 1.8])  # Natural frequency
-        self.zeta = np.diag([0.8, 0.8, 0.8])   # Damping ratio
+        # First order filter parameters
+        self.x = np.zeros(3)  # State vector for reference filter [surge, pitch, yaw]
+        self.omega = np.diag([2.5, 2.5, 2.5])  # Natural frequency - can be tuned
         
         # Initialize filter matrices
         self.setup_filter_matrices()
 
     def setup_filter_matrices(self):
-        """Setup state-space matrices for the reference filter."""
-        self.Ad = np.zeros((9, 9))
-        self.Bd = np.zeros((9, 3))
-        
-        # Fill Ad matrix blocks
-        self.Ad[0:3, 3:6] = np.eye(3)  # Position to velocity
-        self.Ad[3:6, 6:9] = np.eye(3)  # Velocity to acceleration
-        
-        omega_cubed = self.omega @ self.omega @ self.omega
-        omega_squared = self.omega @ self.omega
-        
-        self.Ad[6:9, 0:3] = -omega_cubed
-        self.Ad[6:9, 3:6] = -(2 * self.zeta + np.eye(3)) @ omega_squared
-        self.Ad[6:9, 6:9] = -(2 * self.zeta + np.eye(3)) @ self.omega
-        
-        self.Bd[6:9, :] = omega_cubed
+        """Setup state-space matrices for the first-order reference filter."""
+        # Simple first order filter matrices
+        self.Ad = -self.omega
+        self.Bd = self.omega
 
     def normalize_angle(self, angle: float) -> float:
         """Normalize angle to [-pi, pi]."""
@@ -97,7 +85,7 @@ class IntegratedLOSGuidance:
 
     def apply_reference_filter(self, commands: np.ndarray, dt: float) -> np.ndarray:
         """
-        Apply reference filter to guidance commands.
+        Apply first-order reference filter to guidance commands.
         
         Args:
             commands: np.ndarray [surge, pitch, yaw]
@@ -106,12 +94,11 @@ class IntegratedLOSGuidance:
         Returns:
             np.ndarray: filtered commands [surge, pitch, yaw]
         """
-        # Update filter state
+        # First order filter update
         x_dot = self.Ad @ self.x + self.Bd @ commands
         self.x = self.x + x_dot * dt
         
-        # Return filtered velocity states
-        return self.x[3:6]  # Return velocity states [surge, pitch, yaw]
+        return self.x  # Return filtered states
 
     def compute_guidance(self, current_pos: np.ndarray, 
                         target_pos: np.ndarray, 
@@ -148,5 +135,4 @@ class IntegratedLOSGuidance:
         Args:
             current_commands: np.ndarray [surge, pitch, yaw]
         """
-        self.x = np.zeros(9)
-        self.x[0:3] = current_commands  # Initialize positions with current commands
+        self.x = current_commands  # Initialize states with current commands
