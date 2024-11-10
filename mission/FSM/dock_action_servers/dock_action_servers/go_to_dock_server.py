@@ -5,17 +5,21 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.node import Node
-from vortex_msgs.action import GoToWaypoint  # Import the action definition
+from vortex_msgs.action import GoToWaypoint
+from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result
 
 
-class DockServer(Node):
+class GoToDockServer(Node):
 
-    def __init__(self):
-        super().__init__('dock_server')
+    def __init__(self) -> None:
+        """Constructor."""
+        super().__init__('go_to_dock_server')
 
-        self._action_server = ActionServer(self, GoToWaypoint, 'dock', self.execute_callback)
+        self._action_server = ActionServer(self, GoToWaypoint, '/go_to_dock', self.execute_callback)
 
-    def execute_callback(self, goal_handle):
+    def execute_callback(self, goal_handle) -> GoToWaypoint_Result:
+        """
+        This function is called when the action server receives a goal to go down."""
         self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.waypoint))
 
         feedback_msg = GoToWaypoint.Feedback()
@@ -56,9 +60,10 @@ class DockServer(Node):
         return result
 
 
-def main(args=None):
+def main(args=None) -> None:
+    """Main function to create and spin the node."""
     rclpy.init(args=args)
-    node = DockServer()
+    node = GoToDockServer()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

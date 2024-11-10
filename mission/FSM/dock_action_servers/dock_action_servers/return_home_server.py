@@ -6,16 +6,17 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.node import Node
 from vortex_msgs.action import GoToWaypoint
+from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result
 
 
 class ReturnHomeServer(Node):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('return_home_server')
 
         self._action_server = ActionServer(self, GoToWaypoint, 'return_home', self.execute_callback)
 
-    def execute_callback(self, goal_handle):
+    def execute_callback(self, goal_handle) -> GoToWaypoint_Result:
         self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.waypoint))
 
         feedback_msg = GoToWaypoint.Feedback()
@@ -56,7 +57,7 @@ class ReturnHomeServer(Node):
         return result
 
 
-def main(args=None):
+def main(args=None) -> None:
     rclpy.init(args=args)
     node = ReturnHomeServer()
     try:

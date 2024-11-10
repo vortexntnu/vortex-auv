@@ -5,17 +5,22 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.node import Node
-from vortex_msgs.action import FindDock  # Import the action definition
+from vortex_msgs.action import FindDock
+from vortex_msgs.action._find_dock import FindDock_Result  # Import the action definition
 
 
 class FindDockServer(Node):
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initialize the action server for finding the dock."""
         super().__init__('find_dock_server')
 
         self._action_server = ActionServer(self, FindDock, 'find_dock', self.execute_callback)
 
-    def execute_callback(self, goal_handle):
+    def execute_callback(self, goal_handle) -> FindDock_Result:
+        """
+        This function is called when the action server receives a goal to find the dock."""
         self.get_logger().info('Executing goal to dock at: {}'.format(goal_handle.request.start_search))
 
         feedback_msg = FindDock.Feedback()
@@ -49,7 +54,9 @@ class FindDockServer(Node):
         return result
 
 
-def main(args=None):
+def main(args=None) -> None:
+    """
+    Main function to run the FindDockServer node."""
     rclpy.init(args=args)
     node = FindDockServer()
     try:

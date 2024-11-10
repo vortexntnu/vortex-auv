@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>go_to_dock_action</name>
+  <name>dock_action_servers</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="vetlets@icloud.com">vetlets</maintainer>

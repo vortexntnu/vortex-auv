@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'go_to_dock_action'
+package_name = 'dock_action_servers'
 
 setup(
     name=package_name,
@@ -19,11 +19,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'go_to_dock_server = go_to_dock_action.go_to_dock_server:main',
-            'go_to_dock_client = go_to_dock_action.go_to_dock_client:main',
-            'find_dock_server = go_to_dock_action.find_dock_server:main',
-            'dock_server = go_to_dock_action.dock_server:main',
-            'return_home_server = go_to_dock_action.return_home_server:main',
+            'go_to_dock_server = dock_action_servers.go_to_dock_server:main',
+            'find_dock_server = dock_action_servers.find_dock_server:main',
+            'dock_server = dock_action_servers.dock_server:main',
+            'return_home_server = dock_action_servers.return_home_server:main',
+            'go_down_server = dock_action_servers.go_down_server:main',
+            'go_over_dock_server = dock_action_servers.go_over_dock_server:main',
         ],
     },
 )
