@@ -16,9 +16,9 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
             std::bind(&ThrusterInterfaceAUVNode::thruster_forces_callback, this,
                       std::placeholders::_1));
 
-    // publisher only for debugging
-    set_publisher();
-    initialize_parameter_handler();
+    this->thruster_pwm_publisher_ =
+        this->create_publisher<std_msgs::msg::Int16MultiArray>(
+            publisher_topic_name_, qos_sensor_data);
 
     // call constructor for thruster_driver_
     this->thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
@@ -28,6 +28,8 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     // Declare thruster_forces_array_ in case no topic comes at the
     // very beginning
     this->thruster_forces_array_ = std::vector<double>(8, 0.00);
+
+    initialize_parameter_handler();
 
     RCLCPP_INFO(this->get_logger(),
                 "\"thruster_interface_auv_node\" correctly initialized");
@@ -56,38 +58,13 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
     param_handler_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
 
     // Register the parameter event callback directly in the lambda expression
-    param_cb_handle_ = param_handler_->add_parameter_event_callback(
-        [this](const rcl_interfaces::msg::ParameterEvent& event) {
-            auto node_name = this->get_fully_qualified_name();
-
-            // Filter out events not related to this node
-            if (event.node != node_name) {
-                return;  // Early return if the event is not from this node
-            }
-
-            RCLCPP_INFO(this->get_logger(), "Received parameter event");
-            for (const auto& changed_parameter : event.changed_parameters) {
-                if (changed_parameter.name.find("debug.flag") == 0) {
-                    debug_flag_ = this->get_parameter("debug.flag").as_bool();
-                    RCLCPP_INFO(this->get_logger(), "%d", debug_flag_);
-                    // RCLCPP_INFO(this->get_logger(), "MODYF debug publisher");
-                    // if (debug_flag_ != debug_flag) {
-                    //     debug_flag_ = debug_flag;
-                    //     //set_publisher();
-                    // }
-                }
-            }
-        });
+    debug_flag_parameter_cb = param_handler_->add_parameter_callback(
+        "debug.flag", std::bind(&ThrusterInterfaceAUVNode::update_debug_flag,
+                                this, std::placeholders::_1));
 }
 
-void ThrusterInterfaceAUVNode::set_publisher() {
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
-    thruster_pwm_publisher_ =
-        this->create_publisher<std_msgs::msg::Int16MultiArray>(
-            publisher_topic_name_, qos_sensor_data);
-    RCLCPP_INFO(this->get_logger(), "Initialized debug publisher");
+void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
+    this->debug_flag_ = p.get_value<bool>();
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {

@@ -83,7 +83,12 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
      * respond to parameter changes with the registered callback in an efficient
      * and controlled manner.
      */
-    rclcpp::ParameterEventCallbackHandle::SharedPtr param_cb_handle_;
+    rclcpp::ParameterCallbackHandle::SharedPtr debug_flag_parameter_cb;
+
+    /**
+     * callback for updating debug_flag.
+     */
+    void update_debug_flag(const rclcpp::Parameter& p);
 };
 
 #endif  // THRUSTER_INTERFACE_AUV_NODE_HPP
