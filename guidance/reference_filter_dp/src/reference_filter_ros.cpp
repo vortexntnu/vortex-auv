@@ -18,7 +18,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
     std::string dp_reference_topic =
-        this->get_parameter("/dp_reference").as_string();
+        this->get_parameter("dp_reference_topic").as_string();
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
         dp_reference_topic, 10);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -27,7 +27,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
                   std::placeholders::_1));
 
     std::string nucleus_odom_topic =
-        this->get_parameter("/nucleus/odom").as_string();
+        this->get_parameter("nucleus_odom_topic").as_string();
     state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         nucleus_odom_topic, 10,
         std::bind(&ReferenceFilterNode::state_callback, this,
