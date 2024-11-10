@@ -13,7 +13,6 @@ function that uses the 2d ponints, and sorts/groups the points to a line in came
 recieving either 0, 2 or 4 points for line, as poseArray
 */
 
-#include <camera_3d_points/line_selector.hpp>
 #include <camera_3d_pints/line_selector.hpp>
 #include <filesystem>
 
@@ -38,7 +37,7 @@ LineSelectorNode::LineSelectorNode() : Node("line_selector_node")
 geometry_msgs::msg::PoseStamped line_grouper(float64 point1_, float64 point2_, 
     float64 point3_, float64 point4_)
 {
-    LineSeg
+    struct LineSegment line1 = line1;
 
 }
 
