@@ -6,7 +6,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -51,7 +53,7 @@ class ThrusterInterfaceAUVDriver {
      * @param thruster_parameters   describe mapping, direction, min and max pwm
      * value for each thruster
      * @param poly_coeffs           LEFT(<0) and RIGHT(>0) third order
-     * polynomial coefficients,
+     * polynomial coefficients
      */
     ThrusterInterfaceAUVDriver(
         short i2c_bus,

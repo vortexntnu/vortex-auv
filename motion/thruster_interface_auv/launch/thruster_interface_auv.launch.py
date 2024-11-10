@@ -5,30 +5,27 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
-def generate_launch_description():
-    # Path to the YAML file
-    # config = path.join(
-    #    get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
-    # )
+def generate_launch_description() -> LaunchDescription:
+    config = [
+        path.join(
+            get_package_share_directory(package_name="auv_setup"),
+            "config",
+            "robots",
+            "orca.yaml",
+        ),
+        path.join(
+            get_package_share_directory(package_name="thruster_interface_auv"),
+            "config",
+            "thruster_interface_auv_config.yaml",
+        ),
+    ]
 
     thruster_interface_auv_node = Node(
         package="thruster_interface_auv",
         executable="thruster_interface_auv_node",
         name="thruster_interface_auv_node",
         output="screen",
-        parameters=[
-            path.join(
-                get_package_share_directory("auv_setup"),
-                "config",
-                "robots",
-                "orca.yaml",
-            ),
-            path.join(
-                get_package_share_directory("thruster_interface_auv"),
-                "config",
-                "thruster_interface_auv_config.yaml",
-            ),
-        ],
+        parameters=config,
     )
 
     return LaunchDescription([thruster_interface_auv_node])

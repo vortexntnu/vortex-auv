@@ -17,9 +17,11 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
                       std::placeholders::_1));
 
     // publisher only for debugging
-    this->thruster_pwm_publisher_ =
-        this->create_publisher<std_msgs::msg::Int16MultiArray>(
-            this->publisher_topic_name_, qos_sensor_data);
+    if (this->debug_flag_) {
+        this->thruster_pwm_publisher_ =
+            this->create_publisher<std_msgs::msg::Int16MultiArray>(
+                this->publisher_topic_name_, qos_sensor_data);
+    }
 
     // call constructor for thruster_driver_
     this->thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
@@ -30,10 +32,6 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     // very beginning
     this->thruster_forces_array_ = std::vector<double>(8, 0.00);
 
-    timer_ = this->create_wall_timer(
-        std::chrono::duration<double>(this->thrust_timer_period_),
-        std::bind(&ThrusterInterfaceAUVNode::timer_callback, this));
-
     RCLCPP_INFO(this->get_logger(),
                 "\"thruster_interface_auv_node\" correctly initialized");
 }
@@ -41,17 +39,20 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
     const vortex_msgs::msg::ThrusterForces::SharedPtr msg) {
     this->thruster_forces_array_ = msg->thrust;
+    this->pwm_callback();
 }
 
-void ThrusterInterfaceAUVNode::timer_callback() {
+void ThrusterInterfaceAUVNode::pwm_callback() {
     // drive thrusters...
     std::vector<int16_t> thruster_pwm_array =
         thruster_driver_->drive_thrusters(this->thruster_forces_array_);
 
     //..and publish PWM values for debugging purposes
-    std_msgs::msg::Int16MultiArray pwm_message;
-    pwm_message.data = thruster_pwm_array;
-    thruster_pwm_publisher_->publish(pwm_message);
+    if (this->debug_flag_) {
+        std_msgs::msg::Int16MultiArray pwm_message;
+        pwm_message.data = thruster_pwm_array;
+        thruster_pwm_publisher_->publish(pwm_message);
+    }
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {
@@ -64,7 +65,6 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
         "propulsion.thrusters.thruster_PWM_min");
     this->declare_parameter<std::vector<int>>(
         "propulsion.thrusters.thruster_PWM_max");
-    this->declare_parameter<double>("propulsion.thrusters.thrust_update_rate");
 
     // approx poly coeffs for 16V from thruster_interface_auv.yaml
     this->declare_parameter<std::vector<double>>("coeffs.16V.LEFT");
@@ -77,6 +77,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     // topics
     this->declare_parameter<std::string>("topics.thruster_forces_subscriber");
     this->declare_parameter<std::string>("topics.pwm_publisher");
+
+    this->declare_parameter<bool>("debug.flag");
 
     //-----------------------------------------------------------------------
     // get them
@@ -92,9 +94,6 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     auto thruster_PWM_max =
         this->get_parameter("propulsion.thrusters.thruster_PWM_max")
             .as_integer_array();
-    this->thrust_timer_period_ =
-        1.0 / this->get_parameter("propulsion.thrusters.thrust_update_rate")
-                  .as_double();
 
     std::vector<double> left_coeffs =
         this->get_parameter("coeffs.16V.LEFT").as_double_array();
@@ -108,6 +107,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
         this->get_parameter("topics.thruster_forces_subscriber").as_string();
     this->publisher_topic_name_ =
         this->get_parameter("topics.pwm_publisher").as_string();
+
+    this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
 
     // create <ThrusterParameters> and <PolyCoeffs> vectors
     ThrusterParameters temp;

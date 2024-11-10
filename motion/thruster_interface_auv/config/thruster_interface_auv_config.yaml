@@ -27,3 +27,6 @@ thruster_interface_auv_node:
     topics:
       thruster_forces_subscriber: "thrust/thruster_forces"
       pwm_publisher: "pwm"
+
+    debug:
+      flag: True
