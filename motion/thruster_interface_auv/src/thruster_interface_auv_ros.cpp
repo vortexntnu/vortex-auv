@@ -75,6 +75,11 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
                 if (changed_parameter.name.find("debug.flag") == 0) {
                     this->debug_flag_ =
                         this->get_parameter("debug.flag").as_bool();
+                    if (this->debug_flag_ == 0) {
+                        // kill the pub
+                    } else {
+                        // reinitialize the pub
+                    }
                 }
             }
         });
