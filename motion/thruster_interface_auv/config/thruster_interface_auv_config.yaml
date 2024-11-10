@@ -29,4 +29,4 @@ thruster_interface_auv_node:
       pwm_publisher: "pwm"
 
     debug:
-      flag: True
+      flag: False
