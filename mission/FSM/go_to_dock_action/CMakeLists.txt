@@ -14,11 +14,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 # Install Python nodes
 install(
   PROGRAMS
-    go_to_dock_action/go_to_dock_client.py 
-    go_to_dock_action/go_to_dock_server.py  
-    go_to_dock_action/find_dock_server.py 
+    go_to_dock_action/go_to_dock_client.py
+    go_to_dock_action/go_to_dock_server.py
+    go_to_dock_action/find_dock_server.py
     go_to_dock_action/dock_server.py
-    go_to_dock_action/return_home_server.py     
+    go_to_dock_action/return_home_server.py
+    go_to_dock_action/go_over_dock_server.py
+    go_to_dock_action/go_down_server.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
