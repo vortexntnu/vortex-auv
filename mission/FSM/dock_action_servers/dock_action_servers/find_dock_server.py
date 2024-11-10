@@ -6,7 +6,9 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.node import Node
 from vortex_msgs.action import FindDock
-from vortex_msgs.action._find_dock import FindDock_Result  # Import the action definition
+from vortex_msgs.action._find_dock import (
+    FindDock_Result,  # Import the action definition
+)
 
 
 class FindDockServer(Node):

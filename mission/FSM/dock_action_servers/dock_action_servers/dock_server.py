@@ -6,7 +6,9 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionServer
 from rclpy.node import Node
 from vortex_msgs.action import GoToWaypoint
-from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result  # Import the action definition
+from vortex_msgs.action._go_to_waypoint import (
+    GoToWaypoint_Result,  # Import the action definition
+)
 
 
 class DockServer(Node):
@@ -40,7 +42,6 @@ class DockServer(Node):
             feedback_msg.current_pose = auv_position
             self.get_logger().info(
                 f'Current position: ({auv_position.pose.position.x:.2f},{auv_position.pose.position.y:.2f},{auv_position.pose.position.z:.2f})'
-                    
             )
 
             goal_handle.publish_feedback(feedback_msg)
