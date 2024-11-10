@@ -1,12 +1,12 @@
 #ifndef THRUSTER_INTERFACE_AUV_NODE_HPP
 #define THRUSTER_INTERFACE_AUV_NODE_HPP
 
+#include <rclcpp/parameter_event_handler.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
-#include <rclcpp/parameter_event_handler.hpp>
 
 class ThrusterInterfaceAUVNode : public rclcpp::Node {
    public:
@@ -34,17 +34,18 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
 
     /**
      * @brief Initialize the parameter handler and a parameter event callback.
-     * 
-    */
+     *
+     */
     void initialize_parameter_handler();
 
     /**
      * @brief Manages parameter events for the node.
      *
-     * This handle is used to set up a mechanism to listen for and react to changes in parameters. 
-     * Parameters can be used to configure the node's operational behavior dynamically, 
-     * allowing adjustments without altering the code. The `param_handler_` is responsible for 
-     * registering callbacks that are triggered on parameter changes, providing a centralized 
+     * This handle is used to set up a mechanism to listen for and react to
+     * changes in parameters. Parameters can be used to configure the node's
+     * operational behavior dynamically, allowing adjustments without altering
+     * the code. The `param_handler_` is responsible for registering callbacks
+     * that are triggered on parameter changes, providing a centralized
      * management system within the node for such events.
      */
     std::shared_ptr<rclcpp::ParameterEventHandler> param_handler_;
@@ -52,11 +53,12 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     /**
      * @brief Handle to the registration of the parameter event callback.
      *
-     * Represents a token or reference to the specific callback registration made with 
-     * the parameter event handler (`param_handler_`). This handle allows for management 
-     * of the lifecycle of the callback, such as removing the callback if it's no longer needed. 
-     * It ensures that the node can respond to parameter changes with the registered callback 
-     * in an efficient and controlled manner.
+     * Represents a token or reference to the specific callback registration
+     * made with the parameter event handler (`param_handler_`). This handle
+     * allows for management of the lifecycle of the callback, such as removing
+     * the callback if it's no longer needed. It ensures that the node can
+     * respond to parameter changes with the registered callback in an efficient
+     * and controlled manner.
      */
     rclcpp::ParameterEventCallbackHandle::SharedPtr param_cb_handle_;
 

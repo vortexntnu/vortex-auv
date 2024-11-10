@@ -62,22 +62,22 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
 
     // Register the parameter event callback directly in the lambda expression
     param_cb_handle_ = param_handler_->add_parameter_event_callback(
-        [this](const rcl_interfaces::msg::ParameterEvent & event) {
+        [this](const rcl_interfaces::msg::ParameterEvent& event) {
             auto node_name = this->get_fully_qualified_name();
 
             // Filter out events not related to this node
             if (event.node != node_name) {
-                return; // Early return if the event is not from this node
+                return;  // Early return if the event is not from this node
             }
-            
+
             RCLCPP_INFO(this->get_logger(), "Received parameter event");
             for (const auto& changed_parameter : event.changed_parameters) {
                 if (changed_parameter.name.find("debug.flag") == 0) {
-                    this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
+                    this->debug_flag_ =
+                        this->get_parameter("debug.flag").as_bool();
                 }
             }
-        }
-    );
+        });
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {
