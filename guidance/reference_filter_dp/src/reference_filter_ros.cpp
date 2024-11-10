@@ -127,34 +127,21 @@ void ReferenceFilterNode::handle_accepted(
     execute(goal_handle);
 }
 
-void ReferenceFilterNode::execute(
-    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        this->goal_handle_ = goal_handle;
-    }
-
-    RCLCPP_INFO(this->get_logger(), "Executing goal");
-
-    x_ = Vector18d::Zero();
-    x_(0) = current_state_.pose.pose.position.x;
-    x_(1) = current_state_.pose.pose.position.y;
-    x_(2) = current_state_.pose.pose.position.z;
+Vector18d fill_reference_state() {
+    Vector18d x = Vector18d::Zero();
+    x(0) = current_state_.pose.pose.position.x;
+    x(1) = current_state_.pose.pose.position.y;
+    x(2) = current_state_.pose.pose.position.z;
 
     tf2::Quaternion q;
-    q.setX(current_state_.pose.pose.orientation.x);
-    q.setY(current_state_.pose.pose.orientation.y);
-    q.setZ(current_state_.pose.pose.orientation.z);
-    q.setW(current_state_.pose.pose.orientation.w);
-
+    tf2::fromMsg(current_state_.pose.pose.orientation, q);
     tf2::Matrix3x3 m(q);
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
 
-    x_(3) = ssa(roll);
-    x_(4) = ssa(pitch);
-    x_(5) = ssa(yaw);
+    x(3) = ssa(roll);
+    x(4) = ssa(pitch);
+    x(5) = ssa(yaw);
 
     Vector6d eta;
     eta << current_state_.pose.pose.position.x,
@@ -177,23 +164,60 @@ void ReferenceFilterNode::execute(
     x_(10) = eta_dot(4);
     x_(11) = eta_dot(5);
 
-    const geometry_msgs::msg::PoseStamped goal = goal_handle->get_goal()->goal;
+    return x;
+}
 
+Vector6d fill_reference_goal(const geometry_msgs::msg::PoseStamped::SharedPtr goal) {
     double x = goal.pose.position.x;
     double y = goal.pose.position.y;
     double z = goal.pose.position.z;
 
     tf2::Quaternion q_goal;
-    q_goal.setX(goal.pose.orientation.x);
-    q_goal.setY(goal.pose.orientation.y);
-    q_goal.setZ(goal.pose.orientation.z);
-    q_goal.setW(goal.pose.orientation.w);
+    tf2::fromMsg(goal.pose.orientation, q_goal);
 
     tf2::Matrix3x3 m_goal(q_goal);
     double roll_goal, pitch_goal, yaw_goal;
     m_goal.getRPY(roll_goal, pitch_goal, yaw_goal);
 
-    r_ << x, y, z, roll_goal, pitch_goal, yaw_goal;
+    Vector6d r;
+    r << x, y, z, roll_goal, pitch_goal, yaw_goal;
+
+    return r;
+}
+
+vortex_msgs::msg::ReferenceFilter fill_reference_msg() {
+    vortex_msgs::msg::ReferenceFilter feedback_msg;
+    feedback_msg.x = x_(0);
+    feedback_msg.y = x_(1);
+    feedback_msg.z = x_(2);
+    feedback_msg.roll = ssa(x_(3));
+    feedback_msg.pitch = ssa(x_(4));
+    feedback_msg.yaw = ssa(x_(5));
+    feedback_msg.x_dot = x_(6);
+    feedback_msg.y_dot = x_(7);
+    feedback_msg.z_dot = x_(8);
+    feedback_msg.roll_dot = x_(9);
+    feedback_msg.pitch_dot = x_(10);
+    feedback_msg.yaw_dot = x_(11);
+
+    return feedback_msg;
+}
+
+void ReferenceFilterNode::execute(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        this->goal_handle_ = goal_handle;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Executing goal");
+
+    x_ = fill_reference_state();
+
+    const geometry_msgs::msg::PoseStamped goal = goal_handle->get_goal()->goal;
+
+    r_ = fill_reference_goal(goal);
 
     auto feedback = std::make_shared<
         vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
@@ -219,19 +243,7 @@ void ReferenceFilterNode::execute(
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
         x_ += x_dot * time_step_.count() / 1000.0;
 
-        vortex_msgs::msg::ReferenceFilter feedback_msg;
-        feedback_msg.x = x_(0);
-        feedback_msg.y = x_(1);
-        feedback_msg.z = x_(2);
-        feedback_msg.roll = ssa(x_(3));
-        feedback_msg.pitch = ssa(x_(4));
-        feedback_msg.yaw = ssa(x_(5));
-        feedback_msg.x_dot = x_(6);
-        feedback_msg.y_dot = x_(7);
-        feedback_msg.z_dot = x_(8);
-        feedback_msg.roll_dot = x_(9);
-        feedback_msg.pitch_dot = x_(10);
-        feedback_msg.yaw_dot = x_(11);
+        vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
 
         feedback->feedback = feedback_msg;
 

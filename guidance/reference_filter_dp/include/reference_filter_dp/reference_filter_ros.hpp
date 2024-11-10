@@ -3,6 +3,7 @@
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -56,6 +57,12 @@ class ReferenceFilterNode : public rclcpp::Node {
     void execute(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+
+    Vector18d fill_reference_state();
+
+    Vector6d fill_reference_goal();
+
+    vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
