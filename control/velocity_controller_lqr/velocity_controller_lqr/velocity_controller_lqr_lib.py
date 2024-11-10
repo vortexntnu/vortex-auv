@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import math as math
 
-import control as ct
 import numpy as np
+
+import control as ct
 
 
 class LQRController:
@@ -241,8 +242,12 @@ class LQRController:
         # Augmented state vector including integrators
         u = -lqr_gain @ state_error
 
-        self.surge_windup, force_x = self.saturate(u[0], self.surge_windup, self.max_force)
-        self.pitch_windup, torque_y = self.saturate(u[1], self.pitch_windup, self.max_force)
+        self.surge_windup, force_x = self.saturate(
+            u[0], self.surge_windup, self.max_force
+        )
+        self.pitch_windup, torque_y = self.saturate(
+            u[1], self.pitch_windup, self.max_force
+        )
         self.yaw_windup, torque_z = self.saturate(u[2], self.yaw_windup, self.max_force)
 
         u = np.array([force_x, torque_y, torque_z])

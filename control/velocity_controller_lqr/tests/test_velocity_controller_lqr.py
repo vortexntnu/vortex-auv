@@ -32,18 +32,25 @@ class TestVelocityController:
     def test_saturate(self):
         print("Commencing saturate test: \n")
 
-        self.windup = False
-        assert controller.saturate(10, self.windup, 5) == 5
-        assert self.windup == True
+        # Test case 1: Saturation occurs, so windup should be True
+        saturated_value, windup = controller.saturate(10, False, 5)
+        assert saturated_value == 5.0
+        assert windup == True
 
-        windup = False
-        assert controller.saturate(-10, False, 5) == -5
+        # Test case 2: Saturation occurs with negative limit, so windup should be True
+        saturated_value, windup = controller.saturate(-10, False, 5)
+        assert saturated_value == -5.0
+        assert windup == True
 
-        windup = True
-        assert controller.saturate(10, False, 15) == 10
+        # Test case 3: No saturation, so windup should be False
+        saturated_value, windup = controller.saturate(3, True, 5)
+        assert saturated_value == 3.0
+        assert windup == False
 
-        windup = True
-        assert controller.saturate(-10, False, 15) == -10
+        # Test case 4: No saturation with negative value, so windup should be False
+        saturated_value, windup = controller.saturate(-3, True, 5)
+        assert saturated_value == -3.0
+        assert windup == False
 
         print("Saturate test passed")
 
