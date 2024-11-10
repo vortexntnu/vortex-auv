@@ -167,7 +167,8 @@ Vector18d ReferenceFilterNode::fill_reference_state() {
     return x;
 }
 
-Vector6d ReferenceFilterNode::fill_reference_goal(const geometry_msgs::msg::PoseStamped& goal) {
+Vector6d ReferenceFilterNode::fill_reference_goal(
+    const geometry_msgs::msg::PoseStamped& goal) {
     double x = goal.pose.position.x;
     double y = goal.pose.position.y;
     double z = goal.pose.position.z;
