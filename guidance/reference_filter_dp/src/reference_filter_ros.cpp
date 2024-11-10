@@ -238,6 +238,7 @@ void ReferenceFilterNode::execute(
         if (goal_handle->is_canceling()) {
             result->result = feedback->feedback;
             goal_handle->canceled(result);
+            RCLCPP_INFO(this->get_logger(), "Goal canceled");
             return;
         }
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
@@ -249,12 +250,6 @@ void ReferenceFilterNode::execute(
 
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
-
-        if (goal_handle->is_canceling()) {
-            goal_handle->canceled(result);
-            RCLCPP_INFO(this->get_logger(), "Goal canceled");
-            return;
-        }
 
         loop_rate.sleep();
     }
