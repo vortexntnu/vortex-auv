@@ -36,8 +36,7 @@ from std_msgs.msg import MultiArrayDimension
 
 
 def quaternion_to_euler(x: float, y: float, z: float, w: float) -> List[float]:
-    """
-    Convert a quaternion to Euler angles (roll, pitch, yaw).
+    """Convert a quaternion to Euler angles (roll, pitch, yaw).
 
     Args:
         x (float): The x component of the quaternion.
@@ -48,7 +47,6 @@ def quaternion_to_euler(x: float, y: float, z: float, w: float) -> List[float]:
     Returns:
         List[float]: A list of Euler angles [roll, pitch, yaw].
     """
-
     # Roll (x-axis rotation)
     sinr_cosp = 2 * (w * x + y * z)
     cosr_cosp = 1 - 2 * (x * x + y * y)
@@ -78,7 +76,7 @@ class GuiNode(Node):
 
         # Initialize empty waypoints list
         self.waypoints = []
-        
+
         # Subscribe to waypoint list
         self.create_subscription(
             Float32MultiArray,
@@ -91,7 +89,7 @@ class GuiNode(Node):
         self.create_subscription(LOSGuidance, '/guidance/los', self.los_callback, 10)
         self.create_subscription(PoseStamped, '/guidance/reference', self.reference_callback, 10)
         self.create_subscription(NavigateWaypoints.Feedback, '/navigate_waypoints/_action/feedback', self.waypoint_feedback_callback, 10)
-        
+
         # Add new data storage variables
         self.los_data = None  # Store latest LOS guidance commands
         self.reference_pose = None  # Store latest reference pose
@@ -107,13 +105,23 @@ class GuiNode(Node):
         self.declare_parameter("history_length", 30)
 
         odom_topic = self.get_parameter("odom_topic").get_parameter_value().string_value
-        current_topic = self.get_parameter("current_topic").get_parameter_value().string_value
-        voltage_topic = self.get_parameter("voltage_topic").get_parameter_value().string_value
-        temperature_topic = self.get_parameter("temperature_topic").get_parameter_value().string_value
-        pressure_topic = self.get_parameter("pressure_topic").get_parameter_value().string_value
+        current_topic = (
+            self.get_parameter("current_topic").get_parameter_value().string_value
+        )
+        voltage_topic = (
+            self.get_parameter("voltage_topic").get_parameter_value().string_value
+        )
+        temperature_topic = (
+            self.get_parameter("temperature_topic").get_parameter_value().string_value
+        )
+        pressure_topic = (
+            self.get_parameter("pressure_topic").get_parameter_value().string_value
+        )
 
         # Subscriber to the /nucleus/odom topic
-        self.subscription = self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
+        self.subscription = self.create_subscription(
+            Odometry, odom_topic, self.odom_callback, 10
+        )
 
         # Variables to store odometry data
         self.xpos_data: List[float] = []  # x position
@@ -130,17 +138,25 @@ class GuiNode(Node):
         self.yaw: Optional[float] = None
 
         # Subscribe to internal status topics
-        self.current_subscriber = self.create_subscription(Float32, current_topic, self.current_callback, 5)
-        self.voltage_subscriber = self.create_subscription(Float32, voltage_topic, self.voltage_callback, 5)
-        self.temperature_subscriber = self.create_subscription(Float32, temperature_topic, self.temperature_callback, 5)
-        self.pressure_subscriber = self.create_subscription(Float32, pressure_topic, self.pressure_callback, 5)
+        self.current_subscriber = self.create_subscription(
+            Float32, current_topic, self.current_callback, 5
+        )
+        self.voltage_subscriber = self.create_subscription(
+            Float32, voltage_topic, self.voltage_callback, 5
+        )
+        self.temperature_subscriber = self.create_subscription(
+            Float32, temperature_topic, self.temperature_callback, 5
+        )
+        self.pressure_subscriber = self.create_subscription(
+            Float32, pressure_topic, self.pressure_callback, 5
+        )
 
         # Variables for internal status
         self.current = 0.0
         self.voltage = 0.0
         self.temperature = 0.0
         self.pressure = 0.0
-    
+
     # Add these callback methods to the GuiNode class
 
     def los_callback(self, msg: LOSGuidance) -> None:
@@ -175,8 +191,15 @@ class GuiNode(Node):
         self.roll, self.pitch, self.yaw = quaternion_to_euler(x, y, z, w)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
+<<<<<<< HEAD
         max_data_points = self.get_parameter("history_length").get_parameter_value().integer_value
         if len(self.xpos_data) > max_data_points:
+=======
+        max_data_points = (
+            self.get_parameter("history_length").get_parameter_value().integer_value
+        )
+        if len(self.x_data) > max_data_points:
+>>>>>>> origin/develop
             self.xpos_data.pop(0)
             self.ypos_data.pop(0)
             self.zpos_data.pop(0)
@@ -201,7 +224,7 @@ class GuiNode(Node):
         """Callback for receiving the complete waypoint list."""
         num_waypoints = msg.layout.dim[0].size
         waypoint_data = msg.data
-        
+
         # Clear existing waypoints and add new ones
         self.waypoints = []
         for i in range(num_waypoints):
@@ -211,7 +234,7 @@ class GuiNode(Node):
                 -waypoint_data[i*3 + 2] # Negate z value
             ])
             self.waypoints.append(wp)
-        
+
         self.get_logger().info(f"Received complete waypoint list. Total waypoints: {len(self.waypoints)}")
 
     def reference_callback(self, msg: PoseStamped) -> None:
@@ -252,7 +275,9 @@ class PlotCanvas(FigureCanvas):
         self.z_data: List[float] = []
         (self.line,) = self.ax.plot([], [], [], 'b-')
 
-    def update_plot(self, x_data: List[float], y_data: List[float], z_data: List[float]) -> None:
+    def update_plot(
+        self, x_data: List[float], y_data: List[float], z_data: List[float]
+    ) -> None:
         """Update the 3D plot with the latest odometry data."""
         # Convert lists to numpy arrays to ensure compatibility with the plot functions
         x_data = np.array(x_data, dtype=float)
@@ -317,10 +342,10 @@ class GuidancePlotCanvas(FigureCanvas):
             x_data = np.array(self.gui_node.xpos_data)
             y_data = np.array(self.gui_node.ypos_data)
             z_data = np.array(self.gui_node.zpos_data)
-            
+
             self.vehicle_path.set_data(x_data, y_data)
             self.vehicle_path.set_3d_properties(z_data)
-            
+
             # Update current position
             self.current_position.set_data([x_data[-1]], [y_data[-1]])
             self.current_position.set_3d_properties([z_data[-1]])
@@ -328,7 +353,7 @@ class GuidancePlotCanvas(FigureCanvas):
             # Update waypoints visualization
             if hasattr(self.gui_node, 'waypoints') and len(self.gui_node.waypoints) > 0:
                 waypoints = np.array(self.gui_node.waypoints)
-                
+
                 # Plot all waypoints
                 self.waypoints.set_data(waypoints[:, 0], waypoints[:, 1])
                 self.waypoints.set_3d_properties(waypoints[:, 2])
@@ -336,17 +361,17 @@ class GuidancePlotCanvas(FigureCanvas):
                 # Add this section to plot the desired path
                 self.desired_path.set_data(waypoints[:, 0], waypoints[:, 1])
                 self.desired_path.set_3d_properties(waypoints[:, 2])
-                
+
                 # Plot current target waypoint
                 if self.gui_node.current_waypoint_index < len(self.gui_node.waypoints):
                     target = self.gui_node.waypoints[self.gui_node.current_waypoint_index]
                     self.target_waypoint.set_data([target[0]], [target[1]])
                     self.target_waypoint.set_3d_properties([target[2]])
-                    
+
                     # Update LOS vector from current position to target
                     self.los_vector.set_data([x_data[-1], target[0]], [y_data[-1], target[1]])
                     self.los_vector.set_3d_properties([z_data[-1], target[2]])
-                    
+
                     # Make sure the plot shows all waypoints
                     self._update_plot_limits(x_data, y_data, z_data)
 
@@ -380,20 +405,20 @@ class GuidanceInfoPanel(QWidget):
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.gui_node = gui_node
-        
+
         # Create layout
         layout = QVBoxLayout(self)
-        
+
         # Create labels for different information sections
         self.waypoint_info = QLabel("Waypoint Information:")
         self.guidance_commands = QLabel("Guidance Commands:")
         self.navigation_status = QLabel("Navigation Status:")
-        
+
         # Add labels to layout
         layout.addWidget(self.waypoint_info)
         layout.addWidget(self.guidance_commands)
         layout.addWidget(self.navigation_status)
-        
+
         # Add stretch to keep widgets at the top
         layout.addStretch()
 
@@ -403,22 +428,22 @@ class GuidanceInfoPanel(QWidget):
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.gui_node = gui_node
-        
+
         # Create layout
         layout = QVBoxLayout(self)
-        
+
         # Create labels for different information sections
         self.waypoint_info = QLabel("Waypoint Information:")
         self.current_position_info = QLabel("Current Position:")  # New label
         self.guidance_commands = QLabel("Guidance Commands:")
         self.navigation_status = QLabel("Navigation Status:")
-        
+
         # Add labels to layout
         layout.addWidget(self.waypoint_info)
         layout.addWidget(self.current_position_info)  # Add new label
         layout.addWidget(self.guidance_commands)
         layout.addWidget(self.navigation_status)
-        
+
         # Add stretch to keep widgets at the top
         layout.addStretch()
 
@@ -467,17 +492,17 @@ class GuidanceInfoPanel(QWidget):
         # Update navigation status with more details
         status_text = "Navigation Status:\n"
         if len(self.gui_node.xpos_data) > 0 and self.gui_node.current_waypoint_index < len(self.gui_node.waypoints):
-            current_pos = np.array([self.gui_node.xpos_data[-1], 
-                                  self.gui_node.ypos_data[-1], 
+            current_pos = np.array([self.gui_node.xpos_data[-1],
+                                  self.gui_node.ypos_data[-1],
                                   self.gui_node.zpos_data[-1]])
             target_pos = self.gui_node.waypoints[self.gui_node.current_waypoint_index]
             distance = np.linalg.norm(current_pos - target_pos)
-            
+
             # Calculate individual axis errors
             x_error = target_pos[0] - current_pos[0]
             y_error = target_pos[1] - current_pos[1]
             z_error = target_pos[2] - current_pos[2]
-            
+
             status_text += f"Distance to target: {distance:.2f} m\n"
             status_text += f"Position errors:\n"
             status_text += f"  X error: {x_error:.2f} m\n"
@@ -553,8 +578,14 @@ def main(args: Optional[List[str]] = None) -> None:
 
     # Update your existing update_gui function
     def update_gui() -> None:
+<<<<<<< HEAD
         # Existing updates
         plot_canvas.update_plot(ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data)
+=======
+        plot_canvas.update_plot(
+            ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data
+        )
+>>>>>>> origin/develop
         if len(ros_node.xpos_data) > 0 and ros_node.roll is not None:
             position_text = f"Current Position:\nX: {ros_node.xpos_data[-1]:.2f}\nY: {ros_node.ypos_data[-1]:.2f}\nZ: {ros_node.zpos_data[-1]:.2f}"
             orientation_text = f"Current Orientation:\nRoll: {ros_node.roll:.2f}\nPitch: {ros_node.pitch:.2f}\nYaw: {ros_node.yaw:.2f}"
