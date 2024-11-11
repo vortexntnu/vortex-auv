@@ -191,15 +191,8 @@ class GuiNode(Node):
         self.roll, self.pitch, self.yaw = quaternion_to_euler(x, y, z, w)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
-<<<<<<< HEAD
         max_data_points = self.get_parameter("history_length").get_parameter_value().integer_value
         if len(self.xpos_data) > max_data_points:
-=======
-        max_data_points = (
-            self.get_parameter("history_length").get_parameter_value().integer_value
-        )
-        if len(self.x_data) > max_data_points:
->>>>>>> origin/develop
             self.xpos_data.pop(0)
             self.ypos_data.pop(0)
             self.zpos_data.pop(0)
@@ -578,14 +571,8 @@ def main(args: Optional[List[str]] = None) -> None:
 
     # Update your existing update_gui function
     def update_gui() -> None:
-<<<<<<< HEAD
         # Existing updates
         plot_canvas.update_plot(ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data)
-=======
-        plot_canvas.update_plot(
-            ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data
-        )
->>>>>>> origin/develop
         if len(ros_node.xpos_data) > 0 and ros_node.roll is not None:
             position_text = f"Current Position:\nX: {ros_node.xpos_data[-1]:.2f}\nY: {ros_node.ypos_data[-1]:.2f}\nZ: {ros_node.zpos_data[-1]:.2f}"
             orientation_text = f"Current Orientation:\nRoll: {ros_node.roll:.2f}\nPitch: {ros_node.pitch:.2f}\nYaw: {ros_node.yaw:.2f}"
