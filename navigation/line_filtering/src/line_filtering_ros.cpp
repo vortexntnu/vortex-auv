@@ -5,8 +5,8 @@ Camera3DPointsNode::Camera3DPointsNode() : Node("camera_3d_points_node")
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    image_sub_ = image_transport::create_subscription(
-        this, "/cam_down/image_color", std::bind(&Camera3DPointsNode::imageCallback, this, std::placeholders::_1), "raw");
+    image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+        "/cam_down/image_color", qos_sensor_data, std::bind(&Camera3DPointsNode::imageCallback, this, std::placeholders::_1));
 
     camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         "/cam_down/camera_info", qos_sensor_data, std::bind(&Camera3DPointsNode::cameraInfoCallback, this, std::placeholders::_1));
@@ -112,36 +112,36 @@ void Camera3DPointsNode::imageCallback(const sensor_msgs::msg::Image::ConstShare
 }
 
 
-LineGrouper lines_grouped(double point1_, double point2_, 
-    double point3_ = 0, double point4_  = 0)
-{
-        LineGrouper lines_grouped_temp;
+// LineGrouper lines_grouped(double point1_, double point2_, 
+//     double point3_ = 0, double point4_  = 0)
+// {
+//         LineGrouper lines_grouped_temp;
 
-        lines_grouped_temp.line1_.start.x= point1.x;
-        lines_grouped_temp.line1_.start.y = point1.y;
+//         lines_grouped_temp.line1_.start.x= point1.x;
+//         lines_grouped_temp.line1_.start.y = point1.y;
 
-        lines_grouped_temp.line1_.end.x = point2.x;
-        lines_grouped_temp.line1_.end.y = point2.y;
+//         lines_grouped_temp.line1_.end.x = point2.x;
+//         lines_grouped_temp.line1_.end.y = point2.y;
 
-        lines_grouped_temp.line2_.start.x = point3.x;
-        lines_grouped_temp.line2_.start.y = point3.y;
+//         lines_grouped_temp.line2_.start.x = point3.x;
+//         lines_grouped_temp.line2_.start.y = point3.y;
 
-        lines_grouped_temp.line2_.end.x = point4.x;
-        lines_grouped_temp.line2_.end.y = point4.y;
+//         lines_grouped_temp.line2_.end.x = point4.x;
+//         lines_grouped_temp.line2_.end.y = point4.y;
 
-        return lines_grouped_temp;
+//         return lines_grouped_temp;
 
-}
+// }
 
 
-//Selecting line based on Y values
-LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2)
- { 
-    if(line1.start.y > line2.end.y)
-    {
-        return line1;
-    }
-    else{
-        return line2;
-    }
- }
+// //Selecting line based on Y values
+// LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2)
+//  { 
+//     if(line1.start.y > line2.end.y)
+//     {
+//         return line1;
+//     }
+//     else{
+//         return line2;
+//     }
+//  }

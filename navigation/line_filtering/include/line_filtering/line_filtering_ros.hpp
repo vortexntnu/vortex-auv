@@ -5,22 +5,16 @@
 #include <memory>
 #include <string>
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/set_bool.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <image_transport/image_transport.hpp>
 #include <opencv2/opencv.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>  
 #include <std_msgs/msg/float64.hpp> 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#include <vortex_filtering/vortex_filtering.hpp>
-#include <tuple>
-#include <Eigen/Dense>
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
 
@@ -33,7 +27,7 @@ public:
     Camera3DPointsNode();
 
 private:
-    image_transport::Subscriber image_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr depth_sub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub_;
@@ -52,29 +46,29 @@ private:
     void depthCallback(const std_msgs::msg::Float64::SharedPtr msg);
 
 
-    struct PointGrouper
-        {
-            geometry_msgs::msg::Point start;
-            geometry_msgs::msg::Point end;
-        };
+    // struct PointGrouper
+    //     {
+    //         geometry_msgs::msg::Point start;
+    //         geometry_msgs::msg::Point end;
+    //     };
 
-        //struct to store both lines together
-        struct LineGrouper
-        {
-         PointGrouper line1_;
-         PointGrouper line2_;
-        };
+    //     //struct to store both lines together
+    //     struct LineGrouper
+    //     {
+    //      PointGrouper line1_;
+    //      PointGrouper line2_;
+    //     };
 
-        LineGrouper lines_combined;
+    //     LineGrouper lines_combined;
 
-        //selects which line is the current one
-        LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2);
+    //     //selects which line is the current one
+    //     LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2);
 
 
-        //function for grouping two points into a line
-        //might have to run recursive
-        LineGrouper lines_grouped(double point1_, double point2_, 
-            double point3_ = 0, double point4_  = 0);
+    //     //function for grouping two points into a line
+    //     //might have to run recursive
+    //     LineGrouper lines_grouped(double point1_, double point2_, 
+    //         double point3_ = 0, double point4_  = 0);
 };
 
 #endif  // CAMERA_3D_POINTS_NODE_HPP

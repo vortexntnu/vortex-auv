@@ -9,7 +9,6 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -27,7 +26,6 @@ add_executable(line_filtering_node src/line_filtering_ros.cpp src/line_filtering
 ament_target_dependencies(line_filtering_node
   rclcpp
   sensor_msgs
-  image_transport
   cv_bridge
   std_msgs
 )
