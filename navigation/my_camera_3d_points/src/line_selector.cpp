@@ -40,17 +40,17 @@ LineGrouper lines_grouped(double point1_, double point2_,
 {
         LineGrouper lines_grouped_temp;
 
-        lines_grouped.line1_.start.x= point1.x;
-        lines_grouped.line1_.start.y = point1.y;
+        lines_grouped_temp.line1_.start.x= point1.x;
+        lines_grouped_temp.line1_.start.y = point1.y;
 
-        lines_grouped.line1_.end.x = point2.x;
-        lines_grouped.line1_.end.y = point2.y;
+        lines_grouped_temp.line1_.end.x = point2.x;
+        lines_grouped_temp.line1_.end.y = point2.y;
 
-        lines_grouped.line2_.start.x = point3.x;
-        lines_grouped.line2_.start.y = point3.y;
+        lines_grouped_temp.line2_.start.x = point3.x;
+        lines_grouped_temp.line2_.start.y = point3.y;
 
-        lines_grouped.line2_.end.x = point4.x;
-        lines_grouped.line2_.end.y = point4.y;
+        lines_grouped_temp.line2_.end.x = point4.x;
+        lines_grouped_temp.line2_.end.y = point4.y;
 
         return lines_grouped_temp;
 
@@ -58,7 +58,7 @@ LineGrouper lines_grouped(double point1_, double point2_,
 
 
 //Selecting line based on Y values
-geometry_msgs::msg::PoseStamped line_selector(lines_grouped.line1_ line1, lines_grouped.line2 line2)
+LineGrouper line_selector(lines_grouped.line1_ line1, lines_grouped.line2 line2)
  { 
     if(line1.start.y > line2.end.y)
     {

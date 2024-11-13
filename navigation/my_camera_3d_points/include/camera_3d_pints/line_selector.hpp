@@ -59,20 +59,18 @@ class LineSelectorNode :: public rllcpp::Node{
         LineGrouper lines_grouped;
 
         //selects which line is the current one
-        geometry_msgs::msg::PoseStamped line_selector(geometry_msgs::msg::PoseStamped line1, geometry_msgs::msg::PoseStamped line2);
+        LineGrouper line_selector(lines_grouped.line1_ line1, lines_grouped.line2 line2);
 
 
         //function for grouping two points into a line
         //might have to run recursive
-        geometry_msgs::msg::PoseStamped line_grouper(float64 point1_, float64 point2_, float64 point3_, float64 point4_);
-        
+        LineGrouper lines_grouped(double point1_, double point2_, 
+            double point3_ = 0, double point4_  = 0);
 
-        //value for storing the y coor
-        float64 line1_y_end;
-        float64 line2_y_start;
+
 
         //compare the y coordinate of the two lines
-        float64 y_coor_line_comp_(float64 line1_y_, float64 line2_y_);
+        // float64 y_coor_line_comp_(float64 line1_y_, float64 line2_y_);
 
 
 } //Line selector node
