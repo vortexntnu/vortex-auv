@@ -101,7 +101,8 @@ void Camera3DPointsNode::imageCallback(const sensor_msgs::msg::Image::ConstShare
     point_cloud_msg.fields[0].name = "x";
     point_cloud_msg.fields[0].offset = 0;
     point_cloud_msg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
-    }
+
+}// camera 3d points node
 
 
     void Camera3DPointsNode::depthCallback(const std_msgs::msg::Float64::SharedPtr msg)
