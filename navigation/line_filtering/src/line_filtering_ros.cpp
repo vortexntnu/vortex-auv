@@ -109,3 +109,38 @@ void Camera3DPointsNode::imageCallback(const sensor_msgs::msg::Image::ConstShare
     depth_.data = msg->data;
     RCLCPP_INFO(this->get_logger(), "Received depth: %f", msg->data);
 }
+
+
+LineGrouper lines_grouped(double point1_, double point2_, 
+    double point3_ = 0, double point4_  = 0)
+{
+        LineGrouper lines_grouped_temp;
+
+        lines_grouped_temp.line1_.start.x= point1.x;
+        lines_grouped_temp.line1_.start.y = point1.y;
+
+        lines_grouped_temp.line1_.end.x = point2.x;
+        lines_grouped_temp.line1_.end.y = point2.y;
+
+        lines_grouped_temp.line2_.start.x = point3.x;
+        lines_grouped_temp.line2_.start.y = point3.y;
+
+        lines_grouped_temp.line2_.end.x = point4.x;
+        lines_grouped_temp.line2_.end.y = point4.y;
+
+        return lines_grouped_temp;
+
+}
+
+
+//Selecting line based on Y values
+LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2)
+ { 
+    if(line1.start.y > line2.end.y)
+    {
+        return line1;
+    }
+    else{
+        return line2;
+    }
+ }

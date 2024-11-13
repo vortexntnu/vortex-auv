@@ -1,6 +1,12 @@
 #ifndef CAMERA_3D_POINTS_NODE_HPP
 #define CAMERA_3D_POINTS_NODE_HPP
 
+#include <chrono>
+#include <memory>
+#include <string>
+#include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/set_bool.hpp>
+
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
@@ -11,6 +17,13 @@
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>  
 #include <std_msgs/msg/float64.hpp> 
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <vortex_filtering/vortex_filtering.hpp>
+#include <tuple>
+#include <Eigen/Dense>
+#include "geometry_msgs/msg/point_stamped.hpp"
+#include "geometry_msgs/msg/pose_array.hpp"
+
           
        
 
