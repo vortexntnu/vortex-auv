@@ -45,16 +45,15 @@ class LineSelectorNode :: public rllcpp::Node{
 
         struct PointGrouper
         {
-            
-        }
-
-
+            geometry_msgs::msg::Point start;
+            geometry_msgs::msg::Point end;
+        };
 
         //struct to store both lines together
         struct LineGrouper
         {
-         geometry_msgs::msg::PoseStamped line1_;
-         geometry_msgs::msg::PoseStamped line2_;
+         PointGrouper line1_;
+         PointGrouper line2_;
         };
 
         LineGrouper lines_grouped;
