@@ -37,6 +37,31 @@ private:
     void cameraInfoCallback(const sensor_msgs::msg::CameraInfo::SharedPtr msg);
     void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg);
     void depthCallback(const std_msgs::msg::Float64::SharedPtr msg);
+
+
+    struct PointGrouper
+        {
+            geometry_msgs::msg::Point start;
+            geometry_msgs::msg::Point end;
+        };
+
+        //struct to store both lines together
+        struct LineGrouper
+        {
+         PointGrouper line1_;
+         PointGrouper line2_;
+        };
+
+        LineGrouper lines_combined;
+
+        //selects which line is the current one
+        LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2);
+
+
+        //function for grouping two points into a line
+        //might have to run recursive
+        LineGrouper lines_grouped(double point1_, double point2_, 
+            double point3_ = 0, double point4_  = 0);
 };
 
 #endif  // CAMERA_3D_POINTS_NODE_HPP
