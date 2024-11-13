@@ -34,25 +34,40 @@ LineSelectorNode::LineSelectorNode() : Node("line_selector_node")
 //Needs a subscriber for line 1 and 2
 
 // Grouping the points into a line
+//There is a possibility that the Y-coordinates at intersection is not at the exact same pixel
 geometry_msgs::msg::PoseStamped line_grouper(float64 point1_, float64 point2_, 
-    float64 point3_, float64 point4_)
+    float64 point3_ = 0, float64 point4_  = 0)
 {
-    struct LineSegment line1 = line1;
+
+        lines_grouped.line1_.pose.position.x = point1.x;
+        lines_grouped.line1_.pose.position.y = point1.y;
+
+        lines_grouped.line1_.end.pose.position.x = point2.x;
+        lines_grouped.line1_.end.pose.position.y = point2.y;
+
+        lines_grouped.line2_.start.pose.position.x = point3.x;
+        lines_grouped.line2_.start.pose.position.y = point3.y;
+
+        lines_grouped.line2_.end.pose.position.x = point4.x;
+        lines_grouped.line2_.end.pose.position.y = point4.y;
+
+        return lines_grouped;
 
 }
 
 
-//Selecting line
-geometry_msgs::msg::PoseStamped line_selector(geometry_msgs::msg::PoseStamped line1,
- geometry_msgs::msg::PoseStamped line2)
- {
-
-
-
+//Selecting line based on Y values
+geometry_msgs::msg::PoseStamped line_selector(lines_grouped.line1_ line1, lines_grouped.line2 line2)
+ { 
+    if(line1.pose.position.y > line2.pose.position.y)
+    {
+        return line1;
+    }
+    else{
+        return line2;
+    }
  }
 
-
-float64 y_
 
 
 

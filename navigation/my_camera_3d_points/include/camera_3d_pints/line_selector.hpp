@@ -40,15 +40,24 @@ class LineSelectorNode :: public rllcpp::Node{
         LineSelectorNode(){};
 
     private:
-        geometry_msgs::msg::PoseStamped line1_;
-        geometry_msgs::msg::PoseStamped line2_;
+         
+        //Struct to store two points in a line
 
-        //struct to store both the start and end point together
-        struct LineSegment_
+        struct PointGrouper
         {
-            geometry_msgs::msg::Point start;
-            geometry_msgs::msg::Point end;
+            
+        }
+
+
+
+        //struct to store both lines together
+        struct LineGrouper
+        {
+         geometry_msgs::msg::PoseStamped line1_;
+         geometry_msgs::msg::PoseStamped line2_;
         };
+
+        LineGrouper lines_grouped;
 
         //selects which line is the current one
         geometry_msgs::msg::PoseStamped line_selector(geometry_msgs::msg::PoseStamped line1, geometry_msgs::msg::PoseStamped line2);
