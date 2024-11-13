@@ -56,10 +56,10 @@ class LineSelectorNode :: public rllcpp::Node{
          PointGrouper line2_;
         };
 
-        LineGrouper lines_grouped;
+        LineGrouper lines_combined;
 
         //selects which line is the current one
-        LineGrouper line_selector(lines_grouped.line1_ line1, lines_grouped.line2 line2);
+        LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2);
 
 
         //function for grouping two points into a line

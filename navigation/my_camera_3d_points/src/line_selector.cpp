@@ -58,7 +58,7 @@ LineGrouper lines_grouped(double point1_, double point2_,
 
 
 //Selecting line based on Y values
-LineGrouper line_selector(lines_grouped.line1_ line1, lines_grouped.line2 line2)
+LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2)
  { 
     if(line1.start.y > line2.end.y)
     {
