@@ -14,7 +14,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 # Install Python nodes
 install(
   PROGRAMS
-    dock_action_servers/go_to_dock_client.py
     dock_action_servers/go_to_dock_server.py
     dock_action_servers/find_dock_server.py
     dock_action_servers/dock_server.py

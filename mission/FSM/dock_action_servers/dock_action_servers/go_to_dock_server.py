@@ -65,7 +65,7 @@ def main(args=None) -> None:
     rclpy.init(args=args)
     node = GoToDockServer()
     try:
-        rclpy.spin(node)
+        rclpy.spin(node=node)
     except KeyboardInterrupt:
         pass
     finally:
