@@ -10,6 +10,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/FindDock.action"
   DEPENDENCIES builtin_interfaces
 )
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
 
 # Install Python nodes
 install(

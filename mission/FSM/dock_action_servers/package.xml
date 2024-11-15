@@ -25,7 +25,6 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>action_msgs</exec_depend>
   <exec_depend>builtin_interfaces</exec_depend>
-  <exec_depend>ros2launch</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
 
   <!-- Export section -->
