@@ -1,10 +1,10 @@
 velocity_controller_lqr_node:
   ros__parameters:
 
-    #Path parameters
-    odom_path: /nucleus/odom
-    guidance_path: /guidance/los
-    thrust_path: /thrust/wrench_input
+    #topic parameters
+    odom_topic: /nucleus/odom
+    guidance_topic: /guidance/los
+    thrust_topic: /thrust/wrench_input
 
     #LQR parameters
 
@@ -19,6 +19,11 @@ velocity_controller_lqr_node:
     i_surge: 0.3
     i_pitch: 0.4
     i_yaw: 0.3
+
+    i_weight: 0.5
+
+    #Inertia matrix
+    inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 
     #Clamp parameter
     max_force: 99.5

@@ -12,13 +12,13 @@ class LinearQuadraticRegulator(Node):
     def __init__(self):
         super().__init__("velocity_controller_lqr_node")
 
-        self.declare_parameter("odom_path", "/nucleus/odom")
-        self.declare_parameter("guidance_path", "/guidance/los")
-        self.declare_parameter("thrust_path", "/thrust/wrench_input")
+        self.declare_parameter("odom_topic", "/nucleus/odom")
+        self.declare_parameter("guidance_topic", "/guidance/los")
+        self.declare_parameter("thrust_topic", "/thrust/wrench_input")
 
-        odom_path = self.get_parameter("odom_path").value
-        guidance_path = self.get_parameter("guidance_path").value
-        thrust_path = self.get_parameter("thrust_path").value
+        odom_path = self.get_parameter("odom_topic").value
+        guidance_path = self.get_parameter("guidance_topic").value
+        thrust_path = self.get_parameter("thrust_topic").value
 
         # SUBSRCIBERS -----------------------------------
         self.nucleus_subscriber = self.create_subscription(
@@ -32,12 +32,22 @@ class LinearQuadraticRegulator(Node):
         self.publisherLQR = self.create_publisher(Wrench, thrust_path, 10)
 
         # TIMERS ----------------------------------------
-        self.control_timer = self.create_timer(0.1, self.controller)
+        self.control_timer = self.create_timer(0.1, self.control_loop)
 
         # ROS2 SHENNANIGANS with parameters
-        self.declare_parameter("max_force", 99.5)
-        max_force = self.get_parameter("max_force").value
+        parameters, inertia_matrix = self.get_parameters()
+        self.controller = LQRController(parameters, inertia_matrix)
 
+        # Only keeping variables that need to be updated inside of a callback
+        self.coriolis_matrix = np.zeros((3, 3))  # Initialize Coriolis matrix
+        self.states = np.array(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        )  # State vector 1. surge, 2. pitch, 3. yaw, 4. integral_surge, 5. integral_pitch, 6. integral_yaw
+        self.guidance_values = np.array(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        )  # Array to store guidance values
+
+    def get_parameters(self):
         self.declare_parameter("q_surge", 75)
         self.declare_parameter("q_pitch", 175)
         self.declare_parameter("q_yaw", 175)
@@ -49,6 +59,13 @@ class LinearQuadraticRegulator(Node):
         self.declare_parameter("i_surge", 0.3)
         self.declare_parameter("i_pitch", 0.4)
         self.declare_parameter("i_yaw", 0.3)
+
+        self.declare_parameter("i_weight", 0.5)
+
+        self.declare_parameter("max_force", 99.5)
+        self.declare_parameter(
+            "inertia_matrix", [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
+        )
 
         q_surge = self.get_parameter("q_surge").value
         q_pitch = self.get_parameter("q_pitch").value
@@ -62,27 +79,33 @@ class LinearQuadraticRegulator(Node):
         i_pitch = self.get_parameter("i_pitch").value
         i_yaw = self.get_parameter("i_yaw").value
 
-        self.controller = LQRController(
-            q_surge,
-            q_pitch,
-            q_yaw,
-            r_surge,
-            r_pitch,
-            r_yaw,
-            i_surge,
-            i_pitch,
-            i_yaw,
-            max_force,
+        i_weight = self.get_parameter("i_weight").value
+        max_force = self.get_parameter("max_force").value
+
+        inertia_matrix_flat = self.get_parameter("inertia_matrix").value
+        inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
+
+        parameters = np.array(
+            [
+                q_surge,
+                q_pitch,
+                q_yaw,
+                r_surge,
+                r_pitch,
+                r_yaw,
+                i_surge,
+                i_pitch,
+                i_yaw,
+                i_weight,
+                max_force,
+            ]
         )
 
-        # Only keeping variables that need to be updated inside of a callback
-        self.C = np.zeros((3, 3))  # Initialize Coriolis matrix
-        self.states = np.array(
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        )  # State vector 1. surge, 2. pitch, 3. yaw, 4. integral_surge, 5. integral_pitch, 6. integral_yaw
-        self.guidance_values = np.array(
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        )  # Array to store guidance values
+        for i in range(len(parameters - 2)):
+            assert parameters[i] > 0, f"Parameter {i} is negative"
+        assert 0 <= parameters[-1] <= 99.9, "Max force must be in the range [0, 99.9]."
+
+        return parameters, inertia_matrix
 
     # ---------------------------------------------------------------Callback Functions---------------------------------------------------------------
 
@@ -98,7 +121,7 @@ class LinearQuadraticRegulator(Node):
 
         self.states[0] = msg.twist.twist.linear.x
 
-        self.C = self.controller.calculate_coriolis_matrix(
+        self.coriolis_matrix = self.controller.calculate_coriolis_matrix(
             msg.twist.twist.angular.y,
             msg.twist.twist.angular.z,
             msg.twist.twist.linear.y,
@@ -114,17 +137,15 @@ class LinearQuadraticRegulator(Node):
 
     # ---------------------------------------------------------------Publisher Functions---------------------------------------------------------------
 
-    def controller(self):  # The LQR controller function
+    def control_loop(self):  # The LQR controller function
         msg = Wrench()
 
-        u = self.controller.calculate_lqr_u(self.C, self.states, self.guidance_values)
-        msg.force.x = u[0]
-        msg.torque.y = u[1]
-        msg.torque.z = u[2]
-
-        self.get_logger().info(
-            f"Input values: {msg.force.x}, {msg.torque.y}, {msg.torque.z}"
+        u = self.controller.calculate_lqr_u(
+            self.coriolis_matrix, self.states, self.guidance_values
         )
+        msg.force.x = float(u[0])
+        msg.torque.y = float(u[1])
+        msg.torque.z = float(u[2])
 
         # Publish the control input
         self.publisherLQR.publish(msg)
@@ -143,4 +164,26 @@ def main(args=None):  # main function
 if __name__ == "__main__":
     main()
 
-# Anders er goated
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣠⢴⣤⣠⣤⢤⣂⣔⣲⣒⣖⡺⢯⣝⡿⣿⣿⣿⣷⣶⣶⣢⢦⣤⣄⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⣯⣿⣾⣿⣶⣺⣯⡿⣓⣽⢞⡸⣻⢏⣋⠌⣛⣭⣿⢟⣿⣛⣿⢷⣿⣿⣿⡟⣿⣻⣵⣲⢢⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⢀⣀⣤⡴⠲⠶⢦⠤⢤⡤⠿⠿⠿⠿⣿⣽⣿⣽⣷⣿⢽⣾⣷⣭⡞⣩⡐⠏⡋⣽⡬⣭⠏⢍⣞⢿⣽⣿⣷⢿⣿⣿⡿⠾⣿⢶⡶⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⣤⣖⠯⡙⢢⡁⠄⢢⡤⢠⢀⣸⠀⣄⡠⣀⣀⣦⡄⣠⢀⡃⠽⣽⠬⠍⣿⣿⣤⣥⣷⣿⣿⣿⣾⡍⠛⢌⠈⢫⣍⢋⣍⡁⠹⢍⠈⣳⢎⠴⠟⠻⢧⣄⠀⠀⠀⠀⠀
+# ⠀⠀⣠⣾⣿⣿⣿⣯⡔⠆⠠⠈⣿⣿⠾⡾⠿⣶⠿⡟⣻⡛⣭⢙⠍⢩ANDERS ER GOATED⣤⣥⣩⣶⣟⣻⠧⣻⠶⢤⢰⡱⣬⣤⣌⣑⠞⠲⠓⠭⡀⠀⠀⠀
+# ⠀⠐⣿⣿⣿⢟⡋⢈⢤⣤⣷⢿⣿⠒⢜⣁⡱⡧⢿⣹⣷⣿⡿⣷⠌⣢⣟⢱⢽⡨⢊⠴⡉⢉⡿⣯⢿⣏⢹⠏⣯⣩⣙⠾⢿⣳⣶⢻⣟⣿⠧⢀⠋⠟⣿⡧⠠⠄⡤⠈⢠⠀⠀
+# ⠀⠀⠘⠻⠿⠶⠶⠿⠛⣹⣟⡞⠸⣬⠐⠙⢍⢉⣔⠪⠟⡛⠫⢵⣾⣣⣼⣽⢈⠔⡅⣜⡽⢯⢞⡕⡠⠓⣡⢚⣷⣷⣿⣳⡄⠢⠉⠛⢿⣲⢿⣶⢿⣬⣾⣛⠳⣼⡮⠳⡂⠒⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⡁⢉⣀⣑⣆⡐⠊⣅⡕⢦⣀⣱⡶⢫⣨⢟⠽⠕⣇⢶⣵⣋⢝⣉⣋⠜⠉⠉⡯⠛⣿⣿⣿⣾⣳⠠⠤⠪⠁⠊⠉⠻⣟⣾⣿⣿⣟⣧⣧⢸⠂⠠⢠
+# ⠀⠀⠀⠀⠀⠀⠀⣠⣾⢞⢉⠿⢿⣟⡓⠖⢾⡏⢠⣾⣿⠛⣰⠾⢓⡵⣺⢺⣼⡫⢪⡱⣉⠷⢗⡀⠤⠆⡻⣛⠿⣻⣿⢶⣊⡄⠀⠀⠀⠀⠄⢀⠀⠉⠿⣿⡿⣿⣛⡁⢍⣀⡌
+# ⠀⠀⠀⠀⠀⠀⣠⣛⢓⠗⠀⠀⠠⣈⠉⢀⢬⣵⡿⢋⣴⣞⣵⣼⣭⢁⠕⢿⢋⣞⢟⣕⡩⣔⠃⠀⠀⡀⣛⣤⢿⣷⢻⣿⣿⣽⣮⡙⠆⠀⠤⢓⡙⣆⠀⠀⠘⠙⢯⣛⣶⠋⠁
+# ⠀⠀⠀⠀⠀⢠⢋⢿⣼⣶⣶⣤⠒⢉⠠⣪⣮⠟⣡⡾⠹⡿⣿⣿⠝⢊⣐⢺⡜⣫⡞⢭⡕⠋⣐⠒⠀⠡⠏⠉⠘⠛⠚⡻⣯⠋⠛⢅⠐⢄⠀⣸⡃⠛⠀⡀⡀⠀⠈⠙⡟⠀⠀
+# ⠀⠀⠀⠀⣠⢫⠎⠙⠿⣿⠛⡡⠔⠕⣴⡿⡁⡮⡷⡶⢟⣿⢎⡵⡠⢞⠱⢈⣼⠁⠄⠇⡄⣢⠒⠀⡎⠀⡇⠒⠐⠐⠐⢚⠐⢷⣔⢖⢊⡈⠒⠗⠠⠘⠈⡁⢈⣠⣤⠾⠀⠀⠀
+# ⠀⠀⠀⣰⢳⠏⢀⢔⢤⠶⠪⣠⣭⣾⣿⠗⢘⣷⣼⠛⠛⢛⡝⣜⢑⣤⣾⠿⣿⣿⢽⣿⠿⠶⢴⣯⣄⡄⣇⣀⣀⡀⠄⠠⠆⣀⡨⢽⣵⣕⣄⣀⣰⣥⣶⣾⡿⠟⠉⠀⠀⠀⠀
+# ⠀⠀⡰⣱⢋⠴⣩⠔⠻⣴⡾⢷⣿⡿⠃⠰⢿⣿⣿⣿⣶⣬⣧⣼⡿⠛⠁⡢⠒⠈⢈⡉⠿⠚⢼⣿⣿⣿⡆⠋⠉⠢⠀⢀⣀⣡⣴⡶⣿⣿⣿⠿⠻⠛⠋⠁⠀⠀⠀⠀⠀⠀⠀
+# ⠀⡼⣳⣯⣱⣪⣲⣫⠻⣯⢟⠽⠋⠀⠀⠀⠀⠈⠙⠻⢻⡳⡩⢇⢀⠸⢢⣤⣴⣁⡀⠊⡀⠠⠂⢉⣫⡭⣁⣀⣠⣴⣶⢿⣿⣿⣿⡿⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⣼⣟⡿⣿⣿⢝⣫⣶⡿⠣⠉⠀⠀⠀⠀⠀⠀⠀⣠⣖⠕⡩⢂⢕⠡⠒⠸⣿⣿⣿⡿⢂⢀⠀⣜⡿⣵⣶⣾⣿⡿⠯⠟⠋⠉⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⢸⢿⣷⣷⣷⣿⠛⠋⠁⠀⠀⠀⠀⠀⠀⢀⣴⡺⠟⣑⣿⡺⢑⡴⠂⠊⠀⢀⡁⣍⣢⣼⣺⣽⣶⡿⠿⠏⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠈⠙⠻⠝⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⡿⡋⢰⠕⠋⡿⠉⢁⡈⢕⣲⣼⣒⣯⣷⣿⠿⠟⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣴⣿⣷⣧⡎⣠⡤⠥⣰⢬⣵⣮⣽⣿⡿⠟⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣷⣮⣟⡯⣓⣦⣿⣮⣿⣿⣿⠿⠛⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠿⣿⣿⣿⣿⡿⠟⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+# ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠛⠉⠀⠀

@@ -26,7 +26,7 @@ def generate_launch_description() -> LaunchDescription:
     # Define the node
     velocity_controller_node = Node(
         package="velocity_controller_lqr",
-        executable="velocity_controller_lqr_node.py",  # Ensure this matches your Python file name
+        executable="velocity_controller_lqr_node.py",
         name="velocity_controller_lqr_node",
         output="screen",
         parameters=[parameter_file],

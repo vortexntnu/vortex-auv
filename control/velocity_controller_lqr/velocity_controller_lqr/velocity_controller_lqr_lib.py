@@ -1,25 +1,11 @@
 #!/usr/bin/env python3
-import math as math
-
 import numpy as np
 
 import control as ct
 
 
 class LQRController:
-    def __init__(
-        self,
-        q_surge,
-        q_pitch,
-        q_yaw,
-        r_surge,
-        r_pitch,
-        r_yaw,
-        i_surge,
-        i_pitch,
-        i_yaw,
-        max_force,
-    ):
+    def __init__(self, parameters, inertia_matrix):
         self.integral_error_surge = 0.0
         self.integral_error_pitch = 0.0
         self.integral_error_yaw = 0.0
@@ -28,29 +14,36 @@ class LQRController:
         self.pitch_windup = False  # Windup variable
         self.yaw_windup = False  # Windup variable
 
-        self.max_force = max_force  # Maximum force that can be applied
+        self.q_surge = parameters[0]  # Surge cost
+        self.q_pitch = parameters[1]  # Pitch cost
+        self.q_yaw = parameters[2]  # Yaw cost
 
-        self.i_surge = i_surge  # Integral gain for surge
-        self.i_pitch = i_pitch  # Integral gain for pitch
-        self.i_yaw = i_yaw  # Integral gain for yaw
+        self.r_surge = parameters[3]  # Surge control cost
+        self.r_pitch = parameters[4]  # Pitch control cost
+        self.r_yaw = parameters[5]  # Yaw control cost
 
-        self.q_surge = q_surge  # Surge cost
-        self.q_pitch = q_pitch  # Pitch cost
-        self.q_yaw = q_yaw  # Yaw cost
+        self.i_surge = parameters[6]  # Integral gain for surge
+        self.i_pitch = parameters[7]  # Integral gain for pitch
+        self.i_yaw = parameters[8]  # Integral gain for yaw
 
-        self.r_surge = r_surge  # Surge control cost
-        self.r_pitch = r_pitch  # Pitch control cost
-        self.r_yaw = r_yaw  # Yaw control cost
+        self.i_weight = parameters[9]  # Weight for integral gain
+
+        self.max_force = parameters[10]  # Maximum force that can be applied
+
+        self.inertia_matrix_inv = inertia_matrix  # Inverse of the inertia matrix
 
         # VARIABLES
         self.inertia_matrix_inv = np.linalg.inv(
-            np.array([[30, 0.6, 0], [0.6, 1.629, 0], [0, 0, 1.769]])
-        )  # mass matrix
+            inertia_matrix
+        )  # Inverse of the inertia matrix
 
         self.state_weight_matrix = np.block(
             [
                 [np.diag([self.q_surge, self.q_pitch, self.q_yaw]), np.zeros((3, 3))],
-                [np.zeros((3, 3)), np.diag([0.5, 0.5, 0.5])],
+                [
+                    np.zeros((3, 3)),
+                    np.diag([self.i_weight, self.i_weight, self.i_weight]),
+                ],
             ]
         )  # Augmented state cost matrix
         self.input_weight_matrix = np.diag(
@@ -107,7 +100,7 @@ class LQRController:
             angle += 2 * np.pi
         return angle
 
-    def saturate(self, value: float, windup: bool, limit: float) -> float:
+    def saturate(self, value: float, windup: bool, limit: float) -> tuple:
         """Function to saturate the value within the limits, and set the windup flag.
 
         Args:
@@ -116,7 +109,7 @@ class LQRController:
             limit: float: limit for saturation
 
         Returns:
-            value: float: saturated value
+            (value, windup): tuple: saturated value and windup flag
 
         """
         if abs(value) > limit:
