@@ -61,9 +61,10 @@ public:
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
 
+    blackboard->set<bool>("is_home", false);
     blackboard->set<PoseStamped>("docking_goal", blackboard->get<PoseStamped>("dock_pose"));
     blackboard->set<float>("docking_goal.pose.position.z", blackboard->get<float>("dock_pose.pose.position.z") + blackboard->get<float>("docking_station_offset"));
-    goal.waypoint = blackboard->get<PoseStamped>("dock_pose");
+    goal.waypoint = blackboard->get<PoseStamped>("docking_goal");
     return goal;
   }
 
@@ -143,6 +144,7 @@ public:
                           std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {};
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    blackboard->set<bool>("is_docked", false);
     auto goal = GoToWaypoint::Goal();
     goal.waypoint = blackboard->get<PoseStamped>("start_pose");
     return goal;
