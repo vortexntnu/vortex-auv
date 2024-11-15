@@ -65,28 +65,21 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     /**
      * @brief Manages parameter events for the node.
      *
-     * This handle is used to set up a mechanism to listen for and react to
-     * changes in parameters. Parameters can be used to configure the node's
-     * operational behavior dynamically, allowing adjustments without altering
-     * the code. The `param_handler_` is responsible for registering callbacks
-     * that are triggered on parameter changes, providing a centralized
-     * management system within the node for such events.
+     * This handler is used to set up a mechanism to listen for and react to
+     * changes in parameters via terminal at runtime.
      */
     std::shared_ptr<rclcpp::ParameterEventHandler> param_handler_;
+
     /**
      * @brief Handle to the registration of the parameter event callback.
      *
      * Represents a token or reference to the specific callback registration
-     * made with the parameter event handler (`param_handler_`). This handle
-     * allows for management of the lifecycle of the callback, such as removing
-     * the callback if it's no longer needed. It ensures that the node can
-     * respond to parameter changes with the registered callback in an efficient
-     * and controlled manner.
+     * made with the parameter event handler (`param_handler_`).
      */
     rclcpp::ParameterCallbackHandle::SharedPtr debug_flag_parameter_cb;
 
     /**
-     * callback for updating debug_flag.
+     * specific callback for updating debug_flag.
      */
     void update_debug_flag(const rclcpp::Parameter& p);
 };

@@ -15,7 +15,11 @@
 #include <string>
 #include <vector>
 
-#define IDLE_PWM_VALUE 1500
+#define IDLE_PWM_VALUE 1500  ///<-- pwm value to output when force = 0.00
+
+/**
+ * @brief struct to hold the parameters for a single thruster
+ */
 struct ThrusterParameters {
     uint8_t mapping;
     int8_t direction;
@@ -23,7 +27,10 @@ struct ThrusterParameters {
     uint16_t pwm_max;
 };
 
-enum PolySide { LEFT = 0, RIGHT = 1 };
+enum PolySide {
+    LEFT = 0,
+    RIGHT = 1
+};  // vector index for the position of the coefficients in the coeff vector
 
 /**
  * @brief class instantiated by ThrusterInterfaceAUVNode to control the

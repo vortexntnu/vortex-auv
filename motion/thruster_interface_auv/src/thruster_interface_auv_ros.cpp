@@ -10,26 +10,25 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    this->thruster_forces_subscriber_ =
+    thruster_forces_subscriber_ =
         this->create_subscription<vortex_msgs::msg::ThrusterForces>(
-            this->subscriber_topic_name_, qos_sensor_data,
+            subscriber_topic_name_, qos_sensor_data,
             std::bind(&ThrusterInterfaceAUVNode::thruster_forces_callback, this,
                       std::placeholders::_1));
 
-    this->thruster_pwm_publisher_ =
+    thruster_pwm_publisher_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(
             publisher_topic_name_, qos_sensor_data);
 
     // call constructor for thruster_driver_
-    this->thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
-        this->i2c_bus_, this->i2c_address_, this->thruster_parameters_,
-        this->poly_coeffs_);
+    thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
+        i2c_bus_, i2c_address_, thruster_parameters_, poly_coeffs_);
 
     // Declare thruster_forces_array_ in case no topic comes at the
     // very beginning
-    this->thruster_forces_array_ = std::vector<double>(8, 0.00);
+    thruster_forces_array_ = std::vector<double>(8, 0.00);
 
-    initialize_parameter_handler();
+    this->initialize_parameter_handler();
 
     RCLCPP_INFO(this->get_logger(),
                 "\"thruster_interface_auv_node\" correctly initialized");
@@ -37,7 +36,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
 
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
     const vortex_msgs::msg::ThrusterForces::SharedPtr msg) {
-    this->thruster_forces_array_ = msg->thrust;
+    thruster_forces_array_ = msg->thrust;
     this->pwm_callback();
 }
 
@@ -47,7 +46,7 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
         thruster_driver_->drive_thrusters(this->thruster_forces_array_);
 
     //..and publish PWM values for debugging purposes
-    if (this->debug_flag_) {
+    if (debug_flag_) {
         std_msgs::msg::Int16MultiArray pwm_message;
         pwm_message.data = thruster_pwm_array;
         thruster_pwm_publisher_->publish(pwm_message);
@@ -64,7 +63,10 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
 }
 
 void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
-    this->debug_flag_ = p.get_value<bool>();
+    debug_flag_ = p.get_value<bool>();
+    RCLCPP_INFO(this->get_logger(),
+                "Received parameter event: debug.flag updated to: %s",
+                debug_flag_ ? "true" : "false");
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {
