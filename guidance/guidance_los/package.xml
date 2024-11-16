@@ -2,23 +2,18 @@
 <package format="3">
   <name>guidance_los</name>
   <version>0.0.0</version>
-  <description>Package for guidance node implementing PID control.</description>
-  <maintainer email="badawi@todo.todo">badawi</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Package for implemneting a LOS guidance action server.</description>
+  <maintainer email="abubakb@stud.ntnu.no">badawi</maintainer>
+  <license>MIT</license>
 
   <!-- Build tool dependency -->
   <buildtool_depend>ament_python</buildtool_depend>
 
   <!-- Build dependencies -->
-  <build_depend>rclpy</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-
-  <!-- Execution dependencies -->
-  <exec_depend>rclpy</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>tf_transformations</exec_depend>
+  <depend>std_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>rclpy</depend>
+  <depend>tf_transformations</depend>
 
   <export>
     <build_type>ament_python</build_type>
