@@ -87,7 +87,7 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
     }
 
     // Write data to the I2C device
-    if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
+    if (write(bus_fd_, i2c_data_array.data(), 16) != 16) {
         throw std::runtime_error("ERROR: Failed to write to I2C device : " +
                                  std::string(strerror(errno)));
     }
