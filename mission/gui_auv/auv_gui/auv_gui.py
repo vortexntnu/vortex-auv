@@ -423,10 +423,12 @@ class GuidanceInfoPanel(QWidget):
         # Create labels for different information sections
         self.waypoint_info = QLabel("Waypoint Information:")
         self.guidance_commands = QLabel("Guidance Commands:")
+        self.current_position_info = QLabel("Current Position:")
         self.navigation_status = QLabel("Navigation Status:")
 
         # Add labels to layout
         layout.addWidget(self.waypoint_info)
+        layout.addWidget(self.current_position_info)
         layout.addWidget(self.guidance_commands)
         layout.addWidget(self.navigation_status)
 
