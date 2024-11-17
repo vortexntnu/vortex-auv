@@ -3,16 +3,23 @@
 <package format="3">
   <name>line_filtering</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Line filtering with PoseArray and camera information.</description>
+  
   <maintainer email="tuangsamte@outlook.com">tuangsamte</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Apache-2.0</license>
 
+  <!-- Build tools -->
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <!-- Runtime dependencies -->
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>ament_cmake</depend>
+
+  <!-- Testing dependencies -->
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

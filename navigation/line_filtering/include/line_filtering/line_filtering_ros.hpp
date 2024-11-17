@@ -17,6 +17,9 @@
 #include <std_msgs/msg/float64.hpp> 
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
+#include <std_msgs/msg/header.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+
 
           
        
@@ -27,23 +30,30 @@ public:
     Camera3DPointsNode();
 
 private:
+    //Subscriptions
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr depth_sub_;
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr upper_left_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr upper_right_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr lower_left_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr lower_right_;
-    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pointmiddle_;
+    rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_sub_;
 
-    cv::Mat K_; // Camera intrinsic matrix
+    //Publisher
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_1_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_2_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_3_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
+
+
+
+    cv::Mat K_; 
 
     std_msgs::msg::Float64 depth_;
 
     void cameraInfoCallback(const sensor_msgs::msg::CameraInfo::SharedPtr msg);
     void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg);
     void depthCallback(const std_msgs::msg::Float64::SharedPtr msg);
+    void poseArrayCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg); 
 
 
     // struct PointGrouper

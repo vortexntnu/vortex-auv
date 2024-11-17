@@ -5,112 +5,104 @@ Camera3DPointsNode::Camera3DPointsNode() : Node("camera_3d_points_node")
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/cam_down/image_color", qos_sensor_data, std::bind(&Camera3DPointsNode::imageCallback, this, std::placeholders::_1));
-
+    // Subscriptions
     camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
-        "/cam_down/camera_info", qos_sensor_data, std::bind(&Camera3DPointsNode::cameraInfoCallback, this, std::placeholders::_1));
+        "/cam_down/camera_info", qos_sensor_data, 
+        std::bind(&Camera3DPointsNode::cameraInfoCallback, this, std::placeholders::_1));
     
-   depth_sub_ = this->create_subscription<std_msgs::msg::Float64>(
-    "/dvl/depth", qos_sensor_data, std::bind(&Camera3DPointsNode::depthCallback, this, std::placeholders::_1));
+    depth_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+        "/dvl/depth", qos_sensor_data, 
+        std::bind(&Camera3DPointsNode::depthCallback, this, std::placeholders::_1));
+        
+    pose_array_sub_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
+        "/line/pose_array", qos_sensor_data,
+        std::bind(&Camera3DPointsNode::poseArrayCallback, this, std::placeholders::_1));
 
+
+  
     depth_.data = -1.0;
 
-    point_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("camera_3d_points", qos_sensor_data);
-    upper_left_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("upper_left", qos_sensor_data);
-    upper_right_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("upper_right", qos_sensor_data);
-    lower_left_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("lower_left", qos_sensor_data);
-    lower_right_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("lower_right", qos_sensor_data);
-    pointmiddle_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("middle", qos_sensor_data);
+    //publisher
+    pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("pose_array", qos_sensor_data);
 }
 
 void Camera3DPointsNode::cameraInfoCallback(const sensor_msgs::msg::CameraInfo::SharedPtr msg)
 {
     K_ = cv::Mat(3, 3, CV_64F, const_cast<double*>(msg->k.data())).clone();
     RCLCPP_INFO(this->get_logger(), "Camera Intrinsic Matrix initialized.");
+  
     camera_info_sub_.reset();
 }
 
-void Camera3DPointsNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg)
+
+
+void Camera3DPointsNode::poseArrayCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg)
 {
-    if (K_.empty()) {
-        RCLCPP_WARN(this->get_logger(), "Camera intrinsic matrix not initialized yet.");
+    if (depth_.data < 0.0) {
+        RCLCPP_WARN(this->get_logger(), "Depth data not yet received.");
         return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Received image with size %dx%d", msg->width, msg->height);
-
-    cv_bridge::CvImagePtr cv_ptr;
-    try {
-        cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    } catch (cv_bridge::Exception &e) {
-        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-        return;
-    }
-
-    std::vector<cv::Point2f> image_points = {
-        cv::Point2f(0, 0),
-        cv::Point2f(cv_ptr->image.cols - 1, 0),
-        cv::Point2f(0, cv_ptr->image.rows - 1),
-        cv::Point2f(cv_ptr->image.cols - 1, cv_ptr->image.rows - 1),
-        cv::Point2f(cv_ptr->image.cols / 2.0, cv_ptr->image.rows / 2.0)
-    };
-
-    
-
-    if (depth_.data == -1.0){
-        return;
-    }
     double depth = depth_.data;
 
-    std::vector<cv::Point3f> points_3d;
-    for (size_t i = 0; i < image_points.size(); ++i) {
-        double X = (image_points[i].x - K_.at<double>(0, 2)) * depth / K_.at<double>(0, 0);
-        double Y = (image_points[i].y - K_.at<double>(1, 2)) * depth / K_.at<double>(1, 1);
+    RCLCPP_INFO(this->get_logger(), "Received PoseArray with %zu poses", msg->poses.size());
 
-        points_3d.push_back(cv::Point3f(X, Y, depth));
+    // Create a new PoseArray to publish
+    geometry_msgs::msg::PoseArray updated_pose_array;
+    updated_pose_array.header = msg->header;  // Use the same header for consistency
+
+    // Iterate through the incoming poses and compute 3D points
+    size_t i = 0;
+    for (const auto &pose : msg->poses) {
+        geometry_msgs::msg::Pose updated_pose;
+
+        // Extract x and y from the incoming PoseArray
+        double u = pose.position.x;
+        double v = pose.position.y;
+
+        // Transform 2D (u, v) to 3D (X, Y, Z) using the camera intrinsic matrix
+        double X = (u - K_.at<double>(0, 2)) * depth / K_.at<double>(0, 0);
+        double Y = (v - K_.at<double>(1, 2)) * depth / K_.at<double>(1, 1);
+
+        // Create the updated pose
+        updated_pose.position.x = X;
+        updated_pose.position.y = Y;
+        updated_pose.position.z = depth;  // Use the depth value from DVL
+        updated_pose.orientation = pose.orientation;  // Retain the orientation from the incoming pose
+
+        // Add the updated pose to the PoseArray
+        updated_pose_array.poses.push_back(updated_pose);
+
+        // Publish individual PoseStamped messages for specific points (optional)
         geometry_msgs::msg::PoseStamped pose_msg;
         pose_msg.header = msg->header;
-        pose_msg.pose.position.x = X;
-        pose_msg.pose.position.y = Y;
-        pose_msg.pose.position.z = depth;
-        pose_msg.pose.orientation.w = 1.0;
+        pose_msg.pose = updated_pose;
 
-    
         switch (i) {
-            case 0: upper_left_->publish(pose_msg); break;
-            case 1: upper_right_->publish(pose_msg); break;
-            case 2: lower_left_->publish(pose_msg); break;
-            case 3: lower_right_->publish(pose_msg); break;
-            case 4: pointmiddle_->publish(pose_msg); break;
+            case 0: point_1_->publish(pose_msg); break;
+            case 1: point_2_->publish(pose_msg); break;
+            case 2: point_3_->publish(pose_msg); break;
+            case 3: point_4_->publish(pose_msg); break;
+            default: break;
         }
-    
 
         RCLCPP_INFO(this->get_logger(), "Point %zu: 2D (%f, %f) -> 3D (%f, %f, %f)", 
-                    i + 1, image_points[i].x, image_points[i].y, X, Y, depth);
+                    i + 1, u, v, X, Y, depth);
+
+        i++;
     }
 
-    sensor_msgs::msg::PointCloud2 point_cloud_msg;
-    point_cloud_msg.header = msg->header;
-    point_cloud_msg.height = 1;
-    point_cloud_msg.width = points_3d.size();
-    point_cloud_msg.is_dense = true;
-    point_cloud_msg.is_bigendian = false;
-    point_cloud_msg.fields.resize(3);
+    // Publish the updated PoseArray
+    pose_array_pub_->publish(updated_pose_array);
 
-    point_cloud_msg.fields[0].name = "x";
-    point_cloud_msg.fields[0].offset = 0;
-    point_cloud_msg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+    RCLCPP_INFO(this->get_logger(), "Published updated PoseArray with %zu poses", updated_pose_array.poses.size());
+}
 
-}// camera 3d points node
-
-
-    void Camera3DPointsNode::depthCallback(const std_msgs::msg::Float64::SharedPtr msg)
+void Camera3DPointsNode::depthCallback(const std_msgs::msg::Float64::SharedPtr msg)
 {
     depth_.data = msg->data;
     RCLCPP_INFO(this->get_logger(), "Received depth: %f", msg->data);
 }
-
 
 // LineGrouper lines_grouped(double point1_, double point2_, 
 //     double point3_ = 0, double point4_  = 0)

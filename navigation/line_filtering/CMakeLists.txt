@@ -28,6 +28,7 @@ ament_target_dependencies(line_filtering_node
   sensor_msgs
   cv_bridge
   std_msgs
+  geometry_msgs
 )
 
 # Link against OpenCV libraries
