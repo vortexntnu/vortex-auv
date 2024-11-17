@@ -5,12 +5,11 @@ import math
 import sys
 from threading import Thread
 from typing import List, Optional
-from rclpy.time import Time
-from std_msgs.msg import String
 
 import matplotlib.pyplot as plt
 import numpy as np
 import rclpy
+from geometry_msgs.msg import PoseStamped
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from nav_msgs.msg import Odometry
 from PyQt6.QtCore import QTimer
@@ -25,12 +24,9 @@ from PyQt6.QtWidgets import (
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
-from std_msgs.msg import Float32
-from geometry_msgs.msg import PoseStamped
-from vortex_msgs.msg import LOSGuidance
+from std_msgs.msg import Float32, Float32MultiArray
 from vortex_msgs.action import NavigateWaypoints
-from std_msgs.msg import Float32MultiArray
-from std_msgs.msg import MultiArrayDimension
+from vortex_msgs.msg import LOSGuidance
 
 # --- Quaternion to Euler angles ---
 
@@ -82,13 +78,20 @@ class GuiNode(Node):
             Float32MultiArray,
             '/guidance/waypoint_list',
             self.waypoint_list_callback,
-            10
+            10,
         )
 
         # Add new subscriptions for guidance
         self.create_subscription(LOSGuidance, '/guidance/los', self.los_callback, 10)
-        self.create_subscription(PoseStamped, '/guidance/reference', self.reference_callback, 10)
-        self.create_subscription(NavigateWaypoints.Feedback, '/navigate_waypoints/_action/feedback', self.waypoint_feedback_callback, 10)
+        self.create_subscription(
+            PoseStamped, '/guidance/reference', self.reference_callback, 10
+        )
+        self.create_subscription(
+            NavigateWaypoints.Feedback,
+            '/navigate_waypoints/_action/feedback',
+            self.waypoint_feedback_callback,
+            10,
+        )
 
         # Add new data storage variables
         self.los_data = None  # Store latest LOS guidance commands
@@ -161,11 +164,7 @@ class GuiNode(Node):
 
     def los_callback(self, msg: LOSGuidance) -> None:
         """Callback function for LOS guidance commands."""
-        self.los_data = {
-        'surge': msg.surge,
-        'pitch': msg.pitch,
-        'yaw': msg.yaw
-    }
+        self.los_data = {'surge': msg.surge, 'pitch': msg.pitch, 'yaw': msg.yaw}
 
     def waypoint_feedback_callback(self, msg: NavigateWaypoints.Feedback) -> None:
         """Callback function for waypoint navigation feedback."""
@@ -191,7 +190,9 @@ class GuiNode(Node):
         self.roll, self.pitch, self.yaw = quaternion_to_euler(x, y, z, w)
 
         # Limit the stored data for real-time plotting (avoid memory overflow)
-        max_data_points = self.get_parameter("history_length").get_parameter_value().integer_value
+        max_data_points = (
+            self.get_parameter("history_length").get_parameter_value().integer_value
+        )
         if len(self.xpos_data) > max_data_points:
             self.xpos_data.pop(0)
             self.ypos_data.pop(0)
@@ -221,22 +222,28 @@ class GuiNode(Node):
         # Clear existing waypoints and add new ones
         self.waypoints = []
         for i in range(num_waypoints):
-            wp = np.array([
-                waypoint_data[i*3],     # x
-                waypoint_data[i*3 + 1], # y
-                -waypoint_data[i*3 + 2] # Negate z value
-            ])
+            wp = np.array(
+                [
+                    waypoint_data[i * 3],  # x
+                    waypoint_data[i * 3 + 1],  # y
+                    -waypoint_data[i * 3 + 2],  # Negate z value
+                ]
+            )
             self.waypoints.append(wp)
 
-        self.get_logger().info(f"Received complete waypoint list. Total waypoints: {len(self.waypoints)}")
+        self.get_logger().info(
+            f"Received complete waypoint list. Total waypoints: {len(self.waypoints)}"
+        )
 
     def reference_callback(self, msg: PoseStamped) -> None:
         """Callback function for reference pose."""
         self.reference_pose = {
             'x': msg.pose.position.x,
             'y': msg.pose.position.y,
-            'z': msg.pose.position.z
+            'z': msg.pose.position.z,
         }
+
+
 # --- Plotting ---
 
 
@@ -299,6 +306,7 @@ class PlotCanvas(FigureCanvas):
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
 
+
 class GuidancePlotCanvas(FigureCanvas):
     def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
         """Initialize the GuidancePlotCanvas."""
@@ -308,11 +316,15 @@ class GuidancePlotCanvas(FigureCanvas):
 
         # Initialize plot elements
         (self.vehicle_path,) = self.ax.plot([], [], [], 'b-', label='Vehicle Path')
-        (self.current_position,) = self.ax.plot([], [], [], 'ro', label='Current Position')
+        (self.current_position,) = self.ax.plot(
+            [], [], [], 'ro', label='Current Position'
+        )
         (self.waypoints,) = self.ax.plot([], [], [], 'g^', label='Waypoints')
         # Add this new line for desired path
         (self.desired_path,) = self.ax.plot([], [], [], 'g--', label='Desired Path')
-        (self.target_waypoint,) = self.ax.plot([], [], [], 'y*', markersize=15, label='Target Waypoint')
+        (self.target_waypoint,) = self.ax.plot(
+            [], [], [], 'y*', markersize=15, label='Target Waypoint'
+        )
         (self.los_vector,) = self.ax.plot([], [], [], 'r--', label='LOS Vector')
 
         super().__init__(self.fig)
@@ -357,12 +369,16 @@ class GuidancePlotCanvas(FigureCanvas):
 
                 # Plot current target waypoint
                 if self.gui_node.current_waypoint_index < len(self.gui_node.waypoints):
-                    target = self.gui_node.waypoints[self.gui_node.current_waypoint_index]
+                    target = self.gui_node.waypoints[
+                        self.gui_node.current_waypoint_index
+                    ]
                     self.target_waypoint.set_data([target[0]], [target[1]])
                     self.target_waypoint.set_3d_properties([target[2]])
 
                     # Update LOS vector from current position to target
-                    self.los_vector.set_data([x_data[-1], target[0]], [y_data[-1], target[1]])
+                    self.los_vector.set_data(
+                        [x_data[-1], target[0]], [y_data[-1], target[1]]
+                    )
                     self.los_vector.set_3d_properties([z_data[-1], target[2]])
 
                     # Make sure the plot shows all waypoints
@@ -371,7 +387,9 @@ class GuidancePlotCanvas(FigureCanvas):
                 self.fig.canvas.draw()
                 self.fig.canvas.flush_events()
 
-    def _update_plot_limits(self, x_data: np.ndarray, y_data: np.ndarray, z_data: np.ndarray) -> None:
+    def _update_plot_limits(
+        self, x_data: np.ndarray, y_data: np.ndarray, z_data: np.ndarray
+    ) -> None:
         """Update the plot limits to keep the vehicle and waypoints in view."""
         margin = 2.5
         if len(self.gui_node.waypoints) > 0:
@@ -414,6 +432,7 @@ class GuidanceInfoPanel(QWidget):
 
         # Add stretch to keep widgets at the top
         layout.addStretch()
+
 
 class GuidanceInfoPanel(QWidget):
     """Widget displaying guidance-related information."""
@@ -484,10 +503,16 @@ class GuidanceInfoPanel(QWidget):
 
         # Update navigation status with more details
         status_text = "Navigation Status:\n"
-        if len(self.gui_node.xpos_data) > 0 and self.gui_node.current_waypoint_index < len(self.gui_node.waypoints):
-            current_pos = np.array([self.gui_node.xpos_data[-1],
-                                  self.gui_node.ypos_data[-1],
-                                  self.gui_node.zpos_data[-1]])
+        if len(
+            self.gui_node.xpos_data
+        ) > 0 and self.gui_node.current_waypoint_index < len(self.gui_node.waypoints):
+            current_pos = np.array(
+                [
+                    self.gui_node.xpos_data[-1],
+                    self.gui_node.ypos_data[-1],
+                    self.gui_node.zpos_data[-1],
+                ]
+            )
             target_pos = self.gui_node.waypoints[self.gui_node.current_waypoint_index]
             distance = np.linalg.norm(current_pos - target_pos)
 
@@ -497,13 +522,14 @@ class GuidanceInfoPanel(QWidget):
             z_error = target_pos[2] - current_pos[2]
 
             status_text += f"Distance to target: {distance:.2f} m\n"
-            status_text += f"Position errors:\n"
+            status_text += "Position errors:\n"
             status_text += f"  X error: {x_error:.2f} m\n"
             status_text += f"  Y error: {y_error:.2f} m\n"
             status_text += f"  Z error: {z_error:.2f} m"
         else:
             status_text += "No navigation status available"
         self.navigation_status.setText(status_text)
+
 
 def run_ros_node(ros_node: GuiNode, executor: MultiThreadedExecutor) -> None:
     """Run the ROS2 node in a separate thread using a MultiThreadedExecutor."""
@@ -572,7 +598,9 @@ def main(args: Optional[List[str]] = None) -> None:
     # Update your existing update_gui function
     def update_gui() -> None:
         # Existing updates
-        plot_canvas.update_plot(ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data)
+        plot_canvas.update_plot(
+            ros_node.xpos_data, ros_node.ypos_data, ros_node.zpos_data
+        )
         if len(ros_node.xpos_data) > 0 and ros_node.roll is not None:
             position_text = f"Current Position:\nX: {ros_node.xpos_data[-1]:.2f}\nY: {ros_node.ypos_data[-1]:.2f}\nZ: {ros_node.zpos_data[-1]:.2f}"
             orientation_text = f"Current Orientation:\nRoll: {ros_node.roll:.2f}\nPitch: {ros_node.pitch:.2f}\nYaw: {ros_node.yaw:.2f}"

@@ -1,6 +1,6 @@
-from setuptools import setup
-import os
 from glob import glob
+
+from setuptools import setup
 
 package_name = 'auv_gui'
 
@@ -9,8 +9,7 @@ setup(
     version='0.0.0',
     packages=[package_name],
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
+        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.py')),
         ('share/' + package_name + '/config', glob('config/*')),
@@ -28,9 +27,7 @@ setup(
     license='MIT',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [
-            'auv_gui_node = auv_gui.auv_gui:main'
-        ],
+        'console_scripts': ['auv_gui_node = auv_gui.auv_gui:main'],
     },
     scripts=[],  # Add this line
     python_requires='>=3.8',  # Add this line
