@@ -16,6 +16,7 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: A launch description containing the node configuration
         for acoustics_data_record.
+
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(

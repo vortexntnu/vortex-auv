@@ -146,6 +146,7 @@ class JoystickInterface(Node):
 
         Returns:
             Wrench: A 2D wrench message with the given values.
+
         """
         wrench_msg = Wrench()
         wrench_msg.force.x = surge
@@ -171,13 +172,15 @@ class JoystickInterface(Node):
     def joystick_cb(self, msg: Joy) -> Wrench:
         """Callback function that receives joy messages and converts them into wrench messages to be sent to the thruster allocation node.
 
-        Handles software killswitch and control mode buttons, and transitions between different states of operation.
+        Handles software killswitch and control mode buttons,
+        and transitions between different states of operation.
 
         Args:
             msg: A ROS message containing the joy input data.
 
         Returns:
             A ROS message containing the wrench data that was sent to the thruster allocation node.
+
         """
         current_time = self.get_clock().now().to_msg().sec
 
@@ -315,7 +318,8 @@ class JoystickInterface(Node):
 def main() -> None:
     """Initializes the ROS 2 client library, creates an instance of the JoystickInterface node, and starts spinning the node to process callbacks.
 
-    Once the node is shut down, it destroys the node and shuts down the ROS 2 client library.
+    Once the node is shut down, it destroys
+    the node and shuts down the ROS 2 client library.
 
     This function is the entry point for the joystick interface application.
     """

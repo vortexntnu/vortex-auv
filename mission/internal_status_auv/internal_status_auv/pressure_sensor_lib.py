@@ -37,9 +37,10 @@ class PressureSensor:
         If an error occurs, an error message is printed and 0.0 is returned.
 
         Returns:
-        --------
+        -------
         float
             The pressure reading in hPa (hectopascals), or 0.0 if an error occurs.
+
         """
         try:
             pressure = self.channel_pressure.pressure

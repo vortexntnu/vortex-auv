@@ -34,6 +34,7 @@ class PressureSensor:
 
         Returns:
             float: The current pressure value. Returns 0.0 if an error occurs.
+
         """
         try:
             pressure = self.channel_pressure.pressure

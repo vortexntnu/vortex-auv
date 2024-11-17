@@ -29,6 +29,7 @@ def format_line(value: str, unit: str) -> str:
 
     Returns:
         str: A formatted string that fits within a 16-character limit, with the unit appended.
+
     """
     spaces_available = 16
     value_length = len(value)
