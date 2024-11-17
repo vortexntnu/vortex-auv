@@ -12,8 +12,12 @@ from dataclasses import dataclass
 
 import numpy as np
 import rclpy
+<<<<<<< Updated upstream
 from geographic_msgs.msg import Point
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
+=======
+from geometry_msgs.msg import Point, PoseStamped, Vector3Stamped
+>>>>>>> Stashed changes
 from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -22,6 +26,11 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from transforms3d.euler import quat2euler
 from vortex_msgs.action import NavigateWaypoints
+<<<<<<< Updated upstream
+=======
+
+# from geographic_msgs.msg import Point
+>>>>>>> Stashed changes
 from vortex_msgs.msg import LOSGuidance, WaypointList
 
 from guidance_los.los_guidance_algorithm import ThirdOrderLOSGuidance
