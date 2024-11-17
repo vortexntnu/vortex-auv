@@ -23,13 +23,13 @@ using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using namespace yasmin;
 
-class FindDockState : public yasmin_ros::ActionState<FindDock> {
+class FindPipelineState : public yasmin_ros::ActionState<FindDock> {
 public:
-  FindDockState() : yasmin_ros::ActionState<FindDock>(
-                        "/find_dock",
-                        std::bind(&FindDockState::create_goal_handler, this, _1),
-                        std::bind(&FindDockState::response_handler, this, _1, _2),
-                        std::bind(&FindDockState::print_feedback, this, _1, _2)) {};
+  FindPipelineState() : yasmin_ros::ActionState<FindDock>(
+                            "/find_dock",
+                            std::bind(&FindPipelineState::create_goal_handler, this, _1),
+                            std::bind(&FindPipelineState::response_handler, this, _1, _2),
+                            std::bind(&FindPipelineState::print_feedback, this, _1, _2)) {};
 
   FindDock::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = FindDock::Goal();
@@ -50,13 +50,13 @@ public:
   }
 };
 
-class GoToDockState : public yasmin_ros::ActionState<GoToWaypoint> {
+class GoToStartPipelineState : public yasmin_ros::ActionState<GoToWaypoint> {
 public:
-  GoToDockState() : yasmin_ros::ActionState<GoToWaypoint>(
-                        "/go_to_dock",
-                        std::bind(&GoToDockState::create_goal_handler, this, _1),
-                        std::bind(&GoToDockState::response_handler, this, _1, _2),
-                        std::bind(&GoToDockState::print_feedback, this, _1, _2)) {};
+  GoToStartPipelineState() : yasmin_ros::ActionState<GoToWaypoint>(
+                                 "/go_to_dock",
+                                 std::bind(&GoToStartPipelineState::create_goal_handler, this, _1),
+                                 std::bind(&GoToStartPipelineState::response_handler, this, _1, _2),
+                                 std::bind(&GoToStartPipelineState::print_feedback, this, _1, _2)) {};
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
@@ -205,13 +205,13 @@ ErrorState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
   return yasmin_ros::basic_outcomes::SUCCEED;
 };
 
-class GoOverDock : public yasmin_ros::ActionState<GoToWaypoint> {
+class GoToNextWaypointState : public yasmin_ros::ActionState<GoToWaypoint> {
 public:
-  GoOverDock() : yasmin_ros::ActionState<GoToWaypoint>(
-                     "/go_right_over",
-                     std::bind(&GoOverDock::create_goal_handler, this, _1),
-                     std::bind(&GoOverDock::response_handler, this, _1, _2),
-                     std::bind(&GoOverDock::print_feedback, this, _1, _2)) {};
+  GoToNextWaypointState() : yasmin_ros::ActionState<GoToWaypoint>(
+                                "/go_right_over",
+                                std::bind(&GoToNextWaypointState::create_goal_handler, this, _1),
+                                std::bind(&GoToNextWaypointState::response_handler, this, _1, _2),
+                                std::bind(&GoToNextWaypointState::print_feedback, this, _1, _2)) {};
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
@@ -241,13 +241,13 @@ public:
   }
 };
 
-class GoDownDock : public yasmin_ros::ActionState<GoToWaypoint> {
+class ScanCodeState : public yasmin_ros::ActionState<GoToWaypoint> {
 public:
-  GoDownDock() : yasmin_ros::ActionState<GoToWaypoint>(
-                     "/go_down",
-                     std::bind(&GoDownDock::create_goal_handler, this, _1),
-                     std::bind(&GoDownDock::response_handler, this, _1, _2),
-                     std::bind(&GoDownDock::print_feedback, this, _1, _2)) {};
+  ScanCodeState() : yasmin_ros::ActionState<GoToWaypoint>(
+                        "/go_down",
+                        std::bind(&ScanCodeState::create_goal_handler, this, _1),
+                        std::bind(&ScanCodeState::response_handler, this, _1, _2),
+                        std::bind(&ScanCodeState::print_feedback, this, _1, _2)) {};
 
   GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = GoToWaypoint::Goal();
@@ -312,13 +312,13 @@ int main(int argc, char *argv[]) {
   });
 
   // add states
-  sm->add_state("FIND_DOCK", std::make_shared<FindDockState>(),
+  sm->add_state("FIND_DOCK", std::make_shared<FindPipelineState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_DOCK"},
                     // {yasmin_ros::basic_outcomes::CANCEL, "error"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
-  sm->add_state("GO_TO_DOCK", std::make_shared<GoToDockState>(),
+  sm->add_state("GO_TO_DOCK", std::make_shared<GoToStartPipelineState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "DOCK"},
                     // {yasmin_ros::basic_outcomes::CANCEL, "error"},
@@ -355,13 +355,13 @@ int main(int argc, char *argv[]) {
                     // {yasmin_ros::basic_outcomes::ABORT, "RETURN_HOME"},
                 });
 
-  nested_sm->add_state("GO_OVER_DOCK", std::make_shared<GoOverDock>(),
+  nested_sm->add_state("GO_OVER_DOCK", std::make_shared<GoToNextWaypointState>(),
                        {
                            {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
                            {yasmin_ros::basic_outcomes::ABORT, "aborted"},
                        });
 
-  nested_sm->add_state("GO_DOWN_DOCK", std::make_shared<GoDownDock>(),
+  nested_sm->add_state("GO_DOWN_DOCK", std::make_shared<ScanCodeState>(),
                        {
                            {yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::SUCCEED},
                            {yasmin_ros::basic_outcomes::ABORT, "aborted"},
