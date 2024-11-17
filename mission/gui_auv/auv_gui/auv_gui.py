@@ -433,32 +433,6 @@ class GuidanceInfoPanel(QWidget):
         # Add stretch to keep widgets at the top
         layout.addStretch()
 
-
-class GuidanceInfoPanel(QWidget):
-    """Widget displaying guidance-related information."""
-
-    def __init__(self, gui_node: GuiNode, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-        self.gui_node = gui_node
-
-        # Create layout
-        layout = QVBoxLayout(self)
-
-        # Create labels for different information sections
-        self.waypoint_info = QLabel("Waypoint Information:")
-        self.current_position_info = QLabel("Current Position:")  # New label
-        self.guidance_commands = QLabel("Guidance Commands:")
-        self.navigation_status = QLabel("Navigation Status:")
-
-        # Add labels to layout
-        layout.addWidget(self.waypoint_info)
-        layout.addWidget(self.current_position_info)  # Add new label
-        layout.addWidget(self.guidance_commands)
-        layout.addWidget(self.navigation_status)
-
-        # Add stretch to keep widgets at the top
-        layout.addStretch()
-
     def update_info(self) -> None:
         """Update the displayed information."""
         # Update waypoint information

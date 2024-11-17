@@ -30,6 +30,7 @@ from guidance_los.los_guidance_algorithm import ThirdOrderLOSGuidance
 @dataclass(slots=True)
 class State:
     """Data class representing the current state of the vehicle.
+
     Uses slots for memory efficiency.
 
     Attributes:
@@ -131,6 +132,7 @@ class GuidanceActionServer(Node):
 
     def publish_waypoint_list(self):
         """Publish the current waypoint list for visualization in GUI.
+
         Converts waypoints to ROS message format.
         """
         msg = WaypointList()
