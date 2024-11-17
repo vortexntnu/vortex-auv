@@ -1,22 +1,28 @@
 <?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>guidance_los</name>
   <version>0.0.0</version>
-  <description>Package for implemneting a LOS guidance action server.</description>
+  <description>Package for implementing a LOS guidance action server.</description>
   <maintainer email="abubakb@stud.ntnu.no">badawi</maintainer>
   <license>MIT</license>
 
-  <!-- Build tool dependency -->
-  <buildtool_depend>ament_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <!-- Build dependencies -->
-  <depend>geographic_msgs</depend>
+  <depend>rclpy</depend>
+  <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>geographic_msgs</depend>
+  <depend>vortex_msgs</depend>
   <depend>tf_transformations</depend>
 
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

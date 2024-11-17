@@ -14,6 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Point, PoseStamped, Vector3Stamped
+from guidance_los.los_guidance_algorithm import ThirdOrderLOSGuidance
 from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -23,8 +24,6 @@ from std_msgs.msg import String
 from transforms3d.euler import quat2euler
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance, WaypointList
-
-from guidance_los.los_guidance_algorithm import ThirdOrderLOSGuidance
 
 
 @dataclass(slots=True)
@@ -69,6 +68,9 @@ class GuidanceActionServer(Node):
     def __init__(self):
         """Initialize the guidance action server node with all its ROS interfaces."""
         super().__init__('guidance_action_server')
+
+        # Initialize filter status flag
+        self.filter_initialized = False
 
         # Create callback groups for concurrent execution
         self.action_cb_group = ReentrantCallbackGroup()
@@ -163,7 +165,7 @@ class GuidanceActionServer(Node):
             self.state.pitch = pitch
 
             # Initialize filter on first callback
-            if not hasattr(self, 'filter_initialized'):
+            if not self.filter_initialized:
                 initial_commands = np.array([0.0, 0.0, yaw])
                 self.guidance_calculator.reset_filter_state(initial_commands)
                 self.filter_initialized = True

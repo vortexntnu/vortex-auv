@@ -13,8 +13,6 @@ Key features:
 - Configurable natural frequency and damping parameters
 """
 
-from typing import Tuple
-
 import numpy as np
 
 
@@ -100,7 +98,7 @@ class ThirdOrderLOSGuidance:
 
     def compute_raw_los_guidance(
         self, current_pos: np.ndarray, target_pos: np.ndarray
-    ) -> Tuple[np.ndarray, float, float]:
+    ) -> tuple[np.ndarray, float, float]:
         """Compute raw LOS guidance commands before filtering.
 
         Calculates desired surge velocity, pitch angle, and yaw angle based on
@@ -195,7 +193,7 @@ class ThirdOrderLOSGuidance:
 
     def compute_guidance(
         self, current_pos: np.ndarray, target_pos: np.ndarray, dt: float
-    ) -> Tuple[np.ndarray, float, float]:
+    ) -> tuple[np.ndarray, float, float]:
         """Compute filtered guidance commands.
 
         Main interface method that computes raw LOS guidance commands and
