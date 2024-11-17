@@ -26,6 +26,8 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
 
 ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
     if (bus_fd_ >= 0) {
+        send_data_to_escs(std::vector<uint16_t>(thruster_parameters_.size(),
+                                                idle_pwm_value_));
         close(bus_fd_);
     }
 }
@@ -70,8 +72,8 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
         1 + 8 * 2;  // 8 thrusters * (1xMSB + 1xLSB)
     std::vector<std::uint8_t> i2c_data_array;
     i2c_data_array.reserve(i2c_data_size);
-    i2c_data_array.push_back(0x00);  // Start byte
 
+    i2c_data_array.push_back(0x00);  // Start byte
     std::for_each(thruster_pwm_array.begin(), thruster_pwm_array.end(),
                   [&](std::uint16_t pwm) {
                       std::array<std::uint8_t, 2> bytes = pwm_to_i2c_data(pwm);
