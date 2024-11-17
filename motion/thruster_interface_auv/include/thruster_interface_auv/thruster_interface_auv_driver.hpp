@@ -15,8 +15,6 @@
 #include <string>
 #include <vector>
 
-#define IDLE_PWM_VALUE 1500  ///<-- pwm value to output when force = 0.00
-
 /**
  * @brief struct to hold the parameters for a single thruster
  */
@@ -74,9 +72,9 @@ class ThrusterInterfaceAUVDriver {
      *
      * @param thruster_forces_array vector of forces for each thruster
      *
-     * @return std::vector<int16_t> vector of pwm values sent to each thruster
+     * @return std::vector<uint16_t> vector of pwm values sent to each thruster
      */
-    std::vector<int16_t> drive_thrusters(
+    std::vector<uint16_t> drive_thrusters(
         const std::vector<double>& thruster_forces_array);
 
    private:
@@ -88,15 +86,17 @@ class ThrusterInterfaceAUVDriver {
     std::vector<ThrusterParameters> thruster_parameters_;
     std::vector<std::vector<double>> poly_coeffs_;
 
+    uint16_t idle_pwm_value_;  ///< pwm value when force = 0.00
+
     /**
      * @brief only take the thruster forces and return PWM values
      *
      * @param thruster_forces_array vector of forces for each thruster
      *
-     * @return std::vector<int16_t> vector of pwm values sent to each thruster
+     * @return std::vector<uint16_t> vector of pwm values sent to each thruster
      * if we want to publish them for debug purposes
      */
-    std::vector<int16_t> interpolate_forces_to_pwm(
+    std::vector<uint16_t> interpolate_forces_to_pwm(
         const std::vector<double>& thruster_forces_array);
 
     /**
@@ -107,19 +107,19 @@ class ThrusterInterfaceAUVDriver {
      * @param coeffs std::vector<std::vector<double>> coeffs contains the pair
      * of coefficients
      *
-     * @return std::int16_t scalar pwm value
+     * @return std::uint16_t scalar pwm value
      */
-    std::int16_t force_to_pwm(double force,
-                              const std::vector<std::vector<double>>& coeffs);
+    std::uint16_t force_to_pwm(double force,
+                               const std::vector<std::vector<double>>& coeffs);
 
     /**
      * @brief compute y = a*x^3 + b*x^2 + c*x + d
      * @param force x
      * @param coeffs a,b,c,d
      *
-     * @return std::int16_t pwm value
+     * @return std::uint16_t pwm value
      */
-    std::int16_t calc_poly(double force, const std::vector<double>& coeffs);
+    std::uint16_t calc_poly(double force, const std::vector<double>& coeffs);
 
     /**
      * @brief only takes the pwm values computed and sends them
@@ -127,7 +127,7 @@ class ThrusterInterfaceAUVDriver {
      *
      * @param thruster_pwm_array vector of pwm values to send
      */
-    void send_data_to_escs(const std::vector<int16_t>& thruster_pwm_array);
+    void send_data_to_escs(const std::vector<uint16_t>& thruster_pwm_array);
 
     /**
      * @brief convert Newtons to Kg
@@ -146,7 +146,7 @@ class ThrusterInterfaceAUVDriver {
      * @return std::array<std::uint8_t, 2> i2c data
      */
     static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
-        std::int16_t pwm) {
+        std::uint16_t pwm) {
         return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
                 static_cast<std::uint8_t>(pwm & 0xFF)};
     }
