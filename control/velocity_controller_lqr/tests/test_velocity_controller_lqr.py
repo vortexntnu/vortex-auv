@@ -1,14 +1,14 @@
 import numpy as np
 from velocity_controller_lqr.velocity_controller_lqr_lib import LQRController
 
-controller = LQRController(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+controller = LQRController(
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+)
 
 
 class TestVelocityController:
     def test_placeholder(self):
-        assert (
-            controller is not None
-        )  # Simple test to ensure the controller initializes
+        assert controller is not None
 
     def test_ssa(self):
         print("Commencing ssa test: \n")
@@ -32,22 +32,22 @@ class TestVelocityController:
     def test_saturate(self):
         print("Commencing saturate test: \n")
 
-        # Test case 1: Saturation occurs, so windup should be True
+        # Test case 1: Saturation occurs
         saturated_value, windup = controller.saturate(10, False, 5)
         assert saturated_value == 5.0
         assert windup == True
 
-        # Test case 2: Saturation occurs with negative limit, so windup should be True
+        # Test case 2: Saturation occurs with negative limit
         saturated_value, windup = controller.saturate(-10, False, 5)
         assert saturated_value == -5.0
         assert windup == True
 
-        # Test case 3: No saturation, so windup should be False
+        # Test case 3: No saturation
         saturated_value, windup = controller.saturate(3, True, 5)
         assert saturated_value == 3.0
         assert windup == False
 
-        # Test case 4: No saturation with negative value, so windup should be False
+        # Test case 4: No saturation with negative value
         saturated_value, windup = controller.saturate(-3, True, 5)
         assert saturated_value == -3.0
         assert windup == False
@@ -65,6 +65,7 @@ class TestVelocityController:
 
         print("Anti windup test passed")
 
-    def test_final(self):
-        print("¯\_(ツ)_/¯ ehh good enough pass anyway")
-        pass
+    def test_max_force(self):
+        assert (
+            0 <= controller.max_force <= 99.9
+        ), "Max force must be in the range [0, 99.9]."

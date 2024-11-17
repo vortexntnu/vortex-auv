@@ -22,7 +22,6 @@ velocity_controller_lqr_node:
 
     i_weight: 0.5
 
-    #Inertia matrix
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 
     #Clamp parameter

@@ -4,7 +4,12 @@ import rclpy
 from geometry_msgs.msg import Wrench
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from velocity_controller_lqr.velocity_controller_lqr_lib import LQRController
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+from velocity_controller_lqr.velocity_controller_lqr_lib import (
+    GuidanceValues,
+    LQRController,
+    State,
+)
 from vortex_msgs.msg import LOSGuidance
 
 
@@ -12,42 +17,70 @@ class LinearQuadraticRegulator(Node):
     def __init__(self):
         super().__init__("velocity_controller_lqr_node")
 
+        odom_topic, guidance_topic, thrust_topic = self.get_topics()
+
+        best_effort_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+        )
+
+        reliable_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+
+        # ---------------------------- SUBSCRIBERS ---------------------------
+        self.nucleus_subscriber = self.create_subscription(
+            Odometry, odom_topic, self.odom_callback, qos_profile=best_effort_qos
+        )
+        self.guidance_subscriber = self.create_subscription(
+            LOSGuidance,
+            guidance_topic,
+            self.guidance_callback,
+            qos_profile=best_effort_qos,
+        )
+
+        # ---------------------------- PUBLISHERS ----------------------------
+        self.publisherLQR = self.create_publisher(Wrench, thrust_topic, reliable_qos)
+
+        # ------------------------------ TIMERS ------------------------------
+        self.control_timer = self.create_timer(0.1, self.control_loop)
+
+        # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
+        parameters, inertia_matrix = self.get_parameters()
+        self.controller = LQRController(parameters, inertia_matrix)
+
+        # ---------------- CALLBACK VARIABLES INITIALIZATION -----------------
+        self.coriolis_matrix = np.zeros((3, 3))
+        self.states = State()
+        self.guidance_values = GuidanceValues()
+
+    def get_topics(self):
+        """Get the topics from the parameter server.
+
+        Returns:
+        odom_topic: str: The topic for accessing the odometry data from the parameter file
+        guidance_topic: str: The topic for accessing the guidance data the parameter file
+        thrust_topic: str: The topic for accessing the thrust data from the parameter file
+        """
         self.declare_parameter("odom_topic", "/nucleus/odom")
         self.declare_parameter("guidance_topic", "/guidance/los")
         self.declare_parameter("thrust_topic", "/thrust/wrench_input")
 
-        odom_path = self.get_parameter("odom_topic").value
-        guidance_path = self.get_parameter("guidance_topic").value
-        thrust_path = self.get_parameter("thrust_topic").value
+        odom_topic = self.get_parameter("odom_topic").value
+        guidance_topic = self.get_parameter("guidance_topic").value
+        thrust_topic = self.get_parameter("thrust_topic").value
 
-        # SUBSRCIBERS -----------------------------------
-        self.nucleus_subscriber = self.create_subscription(
-            Odometry, odom_path, self.nucleus_callback, 20
-        )
-        self.guidance_subscriber = self.create_subscription(
-            LOSGuidance, guidance_path, self.guidance_callback, 20
-        )
-
-        # PUBLISHERS ------------------------------------
-        self.publisherLQR = self.create_publisher(Wrench, thrust_path, 10)
-
-        # TIMERS ----------------------------------------
-        self.control_timer = self.create_timer(0.1, self.control_loop)
-
-        # ROS2 SHENNANIGANS with parameters
-        parameters, inertia_matrix = self.get_parameters()
-        self.controller = LQRController(parameters, inertia_matrix)
-
-        # Only keeping variables that need to be updated inside of a callback
-        self.coriolis_matrix = np.zeros((3, 3))  # Initialize Coriolis matrix
-        self.states = np.array(
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        )  # State vector 1. surge, 2. pitch, 3. yaw, 4. integral_surge, 5. integral_pitch, 6. integral_yaw
-        self.guidance_values = np.array(
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        )  # Array to store guidance values
+        return odom_topic, guidance_topic, thrust_topic
 
     def get_parameters(self):
+        """Get the parameters from the parameter server.
+
+        Returns:
+        parameters: LQRParams: The parameters for the LQR controller
+        """
         self.declare_parameter("q_surge", 75)
         self.declare_parameter("q_pitch", 175)
         self.declare_parameter("q_yaw", 175)
@@ -85,59 +118,49 @@ class LinearQuadraticRegulator(Node):
         inertia_matrix_flat = self.get_parameter("inertia_matrix").value
         inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
 
-        parameters = np.array(
-            [
-                q_surge,
-                q_pitch,
-                q_yaw,
-                r_surge,
-                r_pitch,
-                r_yaw,
-                i_surge,
-                i_pitch,
-                i_yaw,
-                i_weight,
-                max_force,
-            ]
-        )
-
-        for i in range(len(parameters - 2)):
-            assert parameters[i] > 0, f"Parameter {i} is negative"
-        assert 0 <= parameters[-1] <= 99.9, "Max force must be in the range [0, 99.9]."
+        parameters = [
+            q_surge,
+            q_pitch,
+            q_yaw,
+            r_surge,
+            r_pitch,
+            r_yaw,
+            i_surge,
+            i_pitch,
+            i_yaw,
+            i_weight,
+            max_force,
+        ]
 
         return parameters, inertia_matrix
 
     # ---------------------------------------------------------------Callback Functions---------------------------------------------------------------
 
-    def nucleus_callback(
-        self, msg: Odometry
-    ):  # callback function to read data from nucleus
-        dummy, self.states[1], self.states[2] = LQRController.quaternion_to_euler_angle(
+    def odom_callback(self, msg: Odometry):
+        _, self.states.yaw, self.states.pitch = LQRController.quaternion_to_euler_angle(
             msg.pose.pose.orientation.w,
             msg.pose.pose.orientation.x,
             msg.pose.pose.orientation.y,
             msg.pose.pose.orientation.z,
         )
 
-        self.states[0] = msg.twist.twist.linear.x
+        self.states.surge = msg.twist.twist.linear.x
 
-        self.coriolis_matrix = self.controller.calculate_coriolis_matrix(
+        self.coriolis_matrix = LQRController.calculate_coriolis_matrix(
             msg.twist.twist.angular.y,
             msg.twist.twist.angular.z,
             msg.twist.twist.linear.y,
             msg.twist.twist.linear.z,
-        )  # coriolis matrix
+        )
 
-    def guidance_callback(
-        self, msg: LOSGuidance
-    ):  # Function to read data from guidance
-        self.guidance_values[0] = msg.surge
-        self.guidance_values[1] = msg.pitch
-        self.guidance_values[2] = msg.yaw
+    def guidance_callback(self, msg: LOSGuidance):
+        self.guidance_values.surge = msg.surge
+        self.guidance_values.pitch = msg.pitch
+        self.guidance_values.yaw = msg.yaw
 
-    # ---------------------------------------------------------------Publisher Functions---------------------------------------------------------------
+    # ---------------------------------------------------------------Publisher Functions--------------------------------------------------------------
 
-    def control_loop(self):  # The LQR controller function
+    def control_loop(self):
         msg = Wrench()
 
         u = self.controller.calculate_lqr_u(
@@ -147,14 +170,13 @@ class LinearQuadraticRegulator(Node):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
-        # Publish the control input
         self.publisherLQR.publish(msg)
 
 
-# ---------------------------------------------------------------Main Function---------------------------------------------------------------
+# ---------------------------------------------------------------------Main Function-----------------------------------------------------------------
 
 
-def main(args=None):  # main function
+def main(args=None):
     rclpy.init(args=args)
     node = LinearQuadraticRegulator()
     rclpy.spin(node)

@@ -16,14 +16,12 @@ def generate_launch_description() -> LaunchDescription:
         LaunchDescription: A ROS 2 launch description containing the
         velocity_controller_lqr node.
     """
-    # Define the path to the parameter file
     parameter_file = os.path.join(
         get_package_share_directory("velocity_controller_lqr"),
         "config",
         "param_velocity_controller_lqr.yaml",
     )
 
-    # Define the node
     velocity_controller_node = Node(
         package="velocity_controller_lqr",
         executable="velocity_controller_lqr_node.py",
