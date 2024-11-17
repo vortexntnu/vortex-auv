@@ -5,11 +5,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(rosidl_default_generators REQUIRED)  # To generate the action interfaces
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/GoToDock.action"                        # Add the path to your action file
-  "action/FindDock.action"
-  DEPENDENCIES builtin_interfaces
-)
+
 install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
