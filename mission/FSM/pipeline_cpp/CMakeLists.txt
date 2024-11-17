@@ -66,22 +66,16 @@ set(DEPENDENCIES
 
 
 # action client demo
-add_executable(docking
-  src/docking.cpp
-)
-add_executable(docking_node
-  src/docking_node.cpp
+add_executable(pipeline_demo_cpp
+  src/pipeline_demo_cpp.cpp
 )
 
 set(SOURCES
-  src/docking.cpp
-  src/docking_node.cpp
+  src/pipeline_demo_cpp.cpp
 )
-ament_target_dependencies(docking ${DEPENDENCIES})
-ament_target_dependencies(docking_node ${DEPENDENCIES})
+ament_target_dependencies(pipeline_demo_cpp ${DEPENDENCIES})
 install(TARGETS
-  docking
-  docking_node
+  pipeline_demo_cpp
   DESTINATION lib/${PROJECT_NAME}
 )
 
