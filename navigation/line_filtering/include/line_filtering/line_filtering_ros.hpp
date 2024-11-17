@@ -45,7 +45,7 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
 
 
-
+    bool camera_info_received_ = false;
     cv::Mat K_; 
 
     std_msgs::msg::Float64 depth_;

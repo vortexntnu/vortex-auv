@@ -18,8 +18,13 @@ Camera3DPointsNode::Camera3DPointsNode() : Node("camera_3d_points_node")
         "/line/pose_array", qos_sensor_data,
         std::bind(&Camera3DPointsNode::poseArrayCallback, this, std::placeholders::_1));
 
+    point_1_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_1", qos_sensor_data);
+    point_2_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_2", qos_sensor_data);
+    point_3_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_3", qos_sensor_data);
+    point_4_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_4", qos_sensor_data);
 
-  
+
+    
     depth_.data = -1.0;
 
     //publisher
@@ -30,7 +35,7 @@ void Camera3DPointsNode::cameraInfoCallback(const sensor_msgs::msg::CameraInfo::
 {
     K_ = cv::Mat(3, 3, CV_64F, const_cast<double*>(msg->k.data())).clone();
     RCLCPP_INFO(this->get_logger(), "Camera Intrinsic Matrix initialized.");
-  
+    camera_info_received_ = true;
     camera_info_sub_.reset();
 }
 
@@ -40,6 +45,10 @@ void Camera3DPointsNode::poseArrayCallback(const geometry_msgs::msg::PoseArray::
 {
     if (depth_.data < 0.0) {
         RCLCPP_WARN(this->get_logger(), "Depth data not yet received.");
+        return;
+    }
+    if (!camera_info_received_) {
+        RCLCPP_WARN(this->get_logger(), "Camera info not yet received.");
         return;
     }
 
