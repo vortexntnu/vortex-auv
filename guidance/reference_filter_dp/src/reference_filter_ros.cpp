@@ -29,7 +29,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
     std::string nucleus_odom_topic =
         this->get_parameter("nucleus_odom_topic").as_string();
     state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        nucleus_odom_topic, 10,
+        nucleus_odom_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::state_callback, this,
                   std::placeholders::_1));
 
