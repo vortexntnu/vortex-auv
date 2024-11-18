@@ -22,15 +22,15 @@ find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
-add_executable(pid_controller_node 
+add_executable(pid_controller_node
   src/pid_controller_node.cpp
   src/pid_controller_ros.cpp
   src/pid_controller.cpp
   src/pid_controller_utils.cpp
 )
 
-ament_target_dependencies(pid_controller_node 
-  rclcpp 
+ament_target_dependencies(pid_controller_node
+  rclcpp
   geometry_msgs
   nav_msgs
   Eigen3

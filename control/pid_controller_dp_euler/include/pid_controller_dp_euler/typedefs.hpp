@@ -20,7 +20,7 @@ struct Eta {
     double pitch = 0.0;
     double yaw = 0.0;
 
-    Eta operator-(const Eta &other) const {
+    Eta operator-(const Eta& other) const {
         Eta eta;
         eta.x = x - other.x;
         eta.y = y - other.y;
@@ -57,13 +57,12 @@ struct Eta {
         double r33 = ctheta * cphi;
 
         Matrix3d rotation_matrix;
-        rotation_matrix << r11, r12, r13,
-                           r21, r22, r23,
-                           r31, r32, r33;
+        rotation_matrix << r11, r12, r13, r21, r22, r23, r31, r32, r33;
         return rotation_matrix;
     }
 
-    // @brief Make the transformation matrix according to eq. 2.41 in Fossen, 2021
+    // @brief Make the transformation matrix according to eq. 2.41 in Fossen,
+    // 2021
     Matrix3d as_transformation_matrix() const {
         double cphi = cos(roll);
         double sphi = sin(roll);
@@ -71,7 +70,8 @@ struct Eta {
         double stheta = sin(pitch);
 
         if (ctheta == 0) {
-            throw std::runtime_error("Division by zero in transformation matrix.");
+            throw std::runtime_error(
+                "Division by zero in transformation matrix.");
         }
 
         double t11 = 1;
@@ -86,9 +86,7 @@ struct Eta {
 
         Matrix3d transformation_matrix;
 
-        transformation_matrix << t11, t12, t13,
-                                 t21, t22, t23,
-                                 t31, t32, t33;
+        transformation_matrix << t11, t12, t13, t21, t22, t23, t31, t32, t33;
 
         return transformation_matrix;
     }
@@ -102,7 +100,7 @@ struct Nu {
     double q = 0.0;
     double r = 0.0;
 
-    Nu operator-(const Nu &other) const {
+    Nu operator-(const Nu& other) const {
         Nu nu;
         nu.u = u - other.u;
         nu.v = v - other.v;
