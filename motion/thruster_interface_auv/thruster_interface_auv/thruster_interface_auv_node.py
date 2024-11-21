@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 # ROS2 Libraries
 import rclpy
+from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from std_msgs.msg import Int16MultiArray
-from ament_index_python.packages import get_package_share_directory
 
 # Custom libraries
 from vortex_msgs.msg import ThrusterForces
+
 from thruster_interface_auv.thruster_interface_auv_driver_lib import (
     ThrusterInterfaceAUVDriver,
 )
 
 
 class ThrusterInterfaceAUVNode(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         # Initialize and name the node process running
         super().__init__("thruster_interface_auv_node")
 
@@ -52,13 +53,13 @@ class ThrusterInterfaceAUVNode(Node):
         self.thruster_direction = self.get_parameter(
             "propulsion.thrusters.thruster_direction"
         ).value
-        self.thruster_PWM_offset = self.get_parameter(
+        self.thruster_pwm_offset = self.get_parameter(
             "propulsion.thrusters.thruster_PWM_offset"
         ).value
-        self.thruster_PWM_min = self.get_parameter(
+        self.thruster_pwm_min = self.get_parameter(
             "propulsion.thrusters.thruster_PWM_min"
         ).value
-        self.thruster_PWM_max = self.get_parameter(
+        self.thruster_pwm_max = self.get_parameter(
             "propulsion.thrusters.thruster_PWM_max"
         ).value
         self.thrust_timer_period = (
@@ -67,14 +68,14 @@ class ThrusterInterfaceAUVNode(Node):
 
         # Initialize thruster driver
         self.thruster_driver = ThrusterInterfaceAUVDriver(
-            ROS2_PACKAGE_NAME_FOR_THRUSTER_DATASHEET=get_package_share_directory(
+            ros2_package_name_for_thruster_datasheet=get_package_share_directory(
                 "thruster_interface_auv"
             ),
-            THRUSTER_MAPPING=self.thruster_mapping,
-            THRUSTER_DIRECTION=self.thruster_direction,
-            THRUSTER_PWM_OFFSET=self.thruster_PWM_offset,
-            PWM_MIN=self.thruster_PWM_min,
-            PWM_MAX=self.thruster_PWM_max,
+            thruster_mapping=self.thruster_mapping,
+            thruster_direction=self.thruster_direction,
+            thruster_pwm_offset=self.thruster_pwm_offset,
+            pwm_min=self.thruster_pwm_min,
+            pwm_max=self.thruster_pwm_max,
         )
 
         # Start clock timer for driving thrusters every 0.2 seconds
@@ -86,13 +87,13 @@ class ThrusterInterfaceAUVNode(Node):
         # Debugging
         self.get_logger().info('"thruster_interface_auv_node" has been started')
 
-    def _thruster_forces_callback(self, msg):
+    def _thruster_forces_callback(self, msg: ThrusterForces) -> None:
         # Get data of the forces published
         self.thruster_forces_array = msg.thrust
 
-    def _timer_callback(self):
+    def _timer_callback(self) -> None:
         # Send thruster forces to be converted into PWM signal and sent to control the thrusters
-        # PWM signal gets saved and is published in the "/pwm" topic as a debuging feature to see if everything is alright with the PWM signal
+        # PWM signal gets saved and is published in the "/pwm" topic as a debugging feature to see if everything is alright with the PWM signal
         thruster_pwm_array = self.thruster_driver.drive_thrusters(
             self.thruster_forces_array
         )
@@ -102,7 +103,17 @@ class ThrusterInterfaceAUVNode(Node):
         self.thruster_pwm_publisher.publish(pwm_message)
 
 
-def main(args=None):
+def main(args: list = None) -> None:
+    """Entry point for the thruster interface AUV node.
+
+    This function initializes the ROS 2 client library, creates an instance of the
+    ThrusterInterfaceAUVNode, and starts spinning the node to process callbacks.
+    Upon shutdown, it destroys the node and shuts down the ROS 2 client library.
+
+    Args:
+        args (list, optional): Command line arguments passed to the ROS 2 client library.
+                               Defaults to None.
+    """
     # Initialize
     rclpy.init(args=args)
 

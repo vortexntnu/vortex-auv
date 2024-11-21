@@ -1,10 +1,9 @@
 #!/usr/bin/python3
 import rclpy
-from rclpy.node import Node
 from geometry_msgs.msg import Wrench
+from rclpy.node import Node
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
 
 
 class States:
@@ -74,7 +73,7 @@ class WirelessXboxSeriesX:
 
 
 class JoystickInterface(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("joystick_interface_node")
         self.get_logger().info(
             "Joystick interface is up and running. \n When the XBOX controller is connected, press the killswitch button once to enter XBOX mode."
@@ -135,8 +134,7 @@ class JoystickInterface(Node):
         pitch: float,
         yaw: float,
     ) -> Wrench:
-        """
-        Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
+        """Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
         Args:
             surge (float): The x component of the force vector.
@@ -158,28 +156,22 @@ class JoystickInterface(Node):
         wrench_msg.torque.z = yaw
         return wrench_msg
 
-    def transition_to_xbox_mode(self):
-        """
-        Turns off the controller and signals that the operational mode has switched to Xbox mode.
-        """
+    def transition_to_xbox_mode(self) -> None:
+        """Turns off the controller and signals that the operational mode has switched to Xbox mode."""
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = States.XBOX_MODE
 
-    def transition_to_autonomous_mode(self):
-        """
-        Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
-        """
+    def transition_to_autonomous_mode(self) -> None:
+        """Publishes a zero force wrench message and signals that the system is turning on autonomous mode."""
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
         self.operational_mode_signal_publisher_.publish(String(data="autonomous mode"))
         self.state_ = States.AUTONOMOUS_MODE
 
     def joystick_cb(self, msg: Joy) -> Wrench:
-        """
-        Callback function that receives joy messages and converts them into
-        wrench messages to be sent to the thruster allocation node.
-        Handles software killswitch and control mode buttons,
-        and transitions between different states of operation.
+        """Callback function that receives joy messages and converts them into wrench messages to be sent to the thruster allocation node.
+
+        Handles software killswitch and control mode buttons, and transitions between different states of operation.
 
         Args:
             msg: A ROS message containing the joy input data.
@@ -187,8 +179,7 @@ class JoystickInterface(Node):
         Returns:
             A ROS message containing the wrench data that was sent to the thruster allocation node.
         """
-
-        current_time = self.get_clock().now().to_msg()._sec
+        current_time = self.get_clock().now().to_msg().sec
 
         buttons = {}
         axes = {}
@@ -283,16 +274,15 @@ class JoystickInterface(Node):
                 self.transition_to_xbox_mode()
                 return
 
-            else:
-                self.get_logger().info("SW killswitch", throttle_duration_sec=1)
-                # Signal that killswitch is blocking
-                self.software_killswitch_signal_publisher_.publish(Bool(data=True))
+            self.get_logger().info("SW killswitch", throttle_duration_sec=1)
+            # Signal that killswitch is blocking
+            self.software_killswitch_signal_publisher_.publish(Bool(data=True))
 
-                # Publish a zero wrench message when killswitch is activated
-                wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-                self.wrench_publisher_.publish(wrench_msg)
-                self.state_ = States.NO_GO
-                return wrench_msg
+            # Publish a zero wrench message when killswitch is activated
+            wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            self.wrench_publisher_.publish(wrench_msg)
+            self.state_ = States.NO_GO
+            return wrench_msg
 
         # Toggle precise maneuvering mode on and off
         if precise_manuevering_mode_button:
@@ -322,7 +312,13 @@ class JoystickInterface(Node):
         return wrench_msg
 
 
-def main():
+def main() -> None:
+    """Initializes the ROS 2 client library, creates an instance of the JoystickInterface node, and starts spinning the node to process callbacks.
+
+    Once the node is shut down, it destroys the node and shuts down the ROS 2 client library.
+
+    This function is the entry point for the joystick interface application.
+    """
     rclpy.init()
     joystick_interface = JoystickInterface()
     rclpy.spin(joystick_interface)

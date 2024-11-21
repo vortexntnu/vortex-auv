@@ -1,10 +1,22 @@
-from launch import LaunchDescription
-from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 import os
 
+from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 
-def generate_launch_description():
+from launch import LaunchDescription
+
+
+def generate_launch_description() -> LaunchDescription:
+    """Generates a launch description for the acoustics_interface node.
+
+    This function constructs the path to the YAML configuration file for the
+    acoustics_interface node and returns a LaunchDescription object that
+    includes the node with the specified parameters.
+
+    Returns:
+        LaunchDescription: A launch description object that includes the
+        acoustics_interface node with the specified parameters.
+    """
     # Path to the YAML file
     yaml_file_path = os.path.join(
         get_package_share_directory("acoustics_interface"),

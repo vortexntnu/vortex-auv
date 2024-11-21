@@ -1,54 +1,16 @@
 name: Source Build
-
+# Build the ROS 2 workspace from source code and run tests
 on:
+  workflow_dispatch:
   pull_request:
-
-  # runs daily to check for dependency issues or flaking tests
+  # Runs daily to check for dependency issues or flaking tests
   schedule:
-    - cron: "0 3 * * *"
-
+    - cron: "0 1 * * *"
 jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Setup ROS 2 Environment
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: humble
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          path: ros2_ws/src/${{ github.event.repository.name }}
-
-      - name: Import Dependencies with vcs
-        run: |
-          cd ${{ github.workspace }}/ros2_ws/src
-          vcs import . < ${{ github.workspace }}/ros2_ws/src/${{ github.event.repository.name }}/ros2.repos
-
-      - name: Install Package Dependencies with rosdep
-        run: |
-          cd ${{ github.workspace }}/ros2_ws
-          source /opt/ros/humble/setup.bash
-
-          rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
-
-      - name: Build ROS 2 Workspace
-        run: |
-          cd ${{ github.workspace }}/ros2_ws
-          source /opt/ros/humble/setup.bash
-          colcon build --event-handlers console_cohesion+
-
-      - name: Run Tests
-        run: |
-          cd ${{ github.workspace }}/ros2_ws
-          source /opt/ros/humble/setup.bash
-          colcon test --event-handlers console_direct+
-
-      - name: Test Results Summary
-        run: |
-          cd ${{ github.workspace }}/ros2_ws
-          source /opt/ros/humble/setup.bash
-          colcon test-result --verbose
+  source-build:
+    uses: vortexntnu/vortex-ci/.github/workflows/reusable-source-build.yaml@main
+    with:
+      ros_distro: 'humble'
+      os_name: 'ubuntu-22.04'
+      ref: ${{ github.ref_name }}
+      vcs_repo_file_url: 'https://raw.githubusercontent.com/vortexntnu/vortex-auv/main/ros2.repos'
