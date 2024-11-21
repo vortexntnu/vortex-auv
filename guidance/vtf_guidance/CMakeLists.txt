@@ -12,12 +12,21 @@ find_package(std_msgs REQUIRED)
 # Install Python package and scripts
 ament_python_install_package(${PROJECT_NAME}) # Installs the Python module
 
+
+# Install Python scripts (if any)
+install(
+  DIRECTORY
+  vtf_guidance/
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # Install Python scripts (if any)
 install(
   PROGRAMS
   vtf_guidance/vtf_guidance.py # Add your Python script here
   DESTINATION lib/${PROJECT_NAME}
 )
+
 
 
 # Mark the package as complete

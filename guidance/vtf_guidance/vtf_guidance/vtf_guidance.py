@@ -11,6 +11,7 @@ from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from scipy import linalg
 from std_msgs.msg import Float32MultiArray, Float64
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 
 from path_calculation import Path
 
@@ -66,22 +67,23 @@ def euler_angle_to_quaternion(roll, pitch, yaw):
 class GuidanceNode(Node):
     def __init__(self):
         super().__init__("vtf_guidance")
-        self.current_position = np.array([0, 0, 0])
+        qos_profile = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.current_position = np.array([0., 0., 0.])
         # Initialization
         tstart = 0
         tstop = 25
         increment = 0.1
-        self.x_target = np.array([0, 0, 0, 0, 0, 0])
+        self.x_target = np.array([0., 0., 0., 0., 0, 0.])
         # self.drone_position = np.array([0, 0, 0, 0, 0, 0])
-        self.drone_orientation = np.array([0, 0, 0, 0, 0, 0])
-        self.drone_position = np.array([0, 0, 0])
-        self.x_desired = np.array([0, 0, 0])
+        self.drone_orientation = np.array([0., 0., 0., 0., 0., 0.])
+        self.drone_position = np.array([0., 0., 0.])
+        self.x_desired = np.array([0., 0., 0.])
         # self.angles = np.array([0, 0])
 
         #### states to get from orca
-        self.roll = 0
-        self.pitch = 0
-        self.yaw = 0
+        self.roll = 0.
+        self.pitch = 0.
+        self.yaw = 0.
 
         position_x = 0
         position_y = 0
@@ -89,8 +91,8 @@ class GuidanceNode(Node):
         ####
 
         self.i = 0
-        self.e_target = 0
-        self.e_drone = 0
+        self.e_target = 0.
+        self.e_drone = 0.
         self.r = 1
         self.eta = 1.3
         self.m = 2
@@ -145,7 +147,7 @@ class GuidanceNode(Node):
         )  # Timer with 100 ms interval
 
         self.odom_subscriber = self.create_subscription(
-            Odometry, "/nucleus/odom", self.odom_subscribe_callback, 10
+            Odometry, "/nucleus/odom", self.odom_subscribe_callback, qos_profile
         )
 
     def waypoints_subscribe_callback(self, msg: Float64):
