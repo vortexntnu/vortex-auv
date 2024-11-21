@@ -2,7 +2,7 @@
 
 import math
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Pose
@@ -12,7 +12,7 @@ from rclpy.node import Node
 from scipy import linalg
 from std_msgs.msg import Float32MultiArray, Float64
 
-from path import Path
+from .path_calculation import Path
 
 
 def quaternion_to_euler_angle(w, x, y, z):
@@ -74,8 +74,9 @@ class GuidanceNode(Node):
         self.x_target = np.array([0, 0, 0, 0, 0, 0])
         # self.drone_position = np.array([0, 0, 0, 0, 0, 0])
         self.drone_orientation = np.array([0, 0, 0, 0, 0, 0])
+        self.drone_position = np.array([0, 0, 0])
         self.x_desired = np.array([0, 0, 0])
-        self.angles = np.array([0, 0])
+        # self.angles = np.array([0, 0])
 
         #### states to get from orca
         self.roll = 0
@@ -146,7 +147,6 @@ class GuidanceNode(Node):
         self.odom_subscriber = self.create_subscription(
             Odometry, "/nucleus/odom", self.odom_subscribe_callback, 10
         )
-        self.get_logger().info("Send anything")
 
     def waypoints_subscribe_callback(self, msg: Float64):
         self.get_logger().info("waypoints")
@@ -159,18 +159,15 @@ class GuidanceNode(Node):
             msg.pose.pose.orientation.z,
         )
 
-        self.drone_position = msg.pose.pose.position
+        self.drone_position[0] = msg.pose.pose.position.x
+        self.drone_position[1] = msg.pose.pose.position.y
+        self.drone_position[2] = msg.pose.pose.position.z
 
         self.get_logger().info(
-            f"Position: x={self.drone_position.x:.2f}, y={self.drone_position.y:.2f}, z={self.drone_position.z:.2f} | Orientation: roll={self.drone_orientation[0]:.2f}, pitch={self.drone_orientation[1]:.2f}, yaw={self.drone_orientation[2]:.2f}"
+            f"Position: x={self.drone_position[0]:.2f}, y={self.drone_position[1]:.2f}, z={self.drone_position[2]:.2f} | Orientation: roll={self.drone_orientation[0]:.2f}, pitch={self.drone_orientation[1]:.2f}, yaw={self.drone_orientation[2]:.2f}"
         )
 
     def publisher_callback(self):
-
-        if self.i >= len(self.points):
-            self.get_logger().info("Path complete. Stopping publisher.")
-            self.timer.cancel()  # Stop the timer when done
-            return
 
         msg = Pose()
 
@@ -185,20 +182,25 @@ class GuidanceNode(Node):
 
         points = np.array(points)
 
+        if self.i >= len(points):
+            self.get_logger().info("Path complete. Stopping publisher.")
+            self.timer.cancel()  # Stop the timer when done
+            return
+
         # Get the next waypoint
         goal = np.array(
             [
-                self.points[self.i, 0],
+                points[self.i, 0],
                 0,
-                self.points[self.i, 1],
+                points[self.i, 1],
                 0,
-                self.points[self.i, 2],
+                points[self.i, 2],
                 0,
             ]
         )
         self.e_target = goal - self.x_target  # Error vector
         self.e_drone = self.x_desired - np.array(
-            [self.drone_position.x, self.drone_position.y, self.drone_position.z]
+            [self.drone_position[0], self.drone_position[1], self.drone_position[2]]
         )
         u = np.array(
             [self.e_target[0], self.e_target[2], self.e_target[4]]
@@ -208,16 +210,18 @@ class GuidanceNode(Node):
             self.A @ self.x_target * self.dt + self.x_target + self.B @ u * self.dt
         )
 
-        self.x_desired = self.x_target
+        self.x_desired = np.array(
+            [self.x_target[0], self.x_target[2], self.x_target[4]]
+        )
 
         self.roll = 0  # not needed for the tasks
         self.pitch = np.arctan2(
-            self.x_target[4] - self.drone_position.z,
-            self.x_target[0] - self.drone_position.x,
+            self.x_target[4] - self.drone_position[2],
+            self.x_target[0] - self.drone_position[0],
         )
         self.yaw = np.arctan2(
-            self.x_target[0] - self.drone_position.x,
-            self.x_target[2] - self.drone_position.y,
+            self.x_target[0] - self.drone_position[0],
+            self.x_target[2] - self.drone_position[1],
         )
         msg.position.x = self.x_desired[0]
         msg.position.y = self.x_desired[1]
@@ -229,6 +233,7 @@ class GuidanceNode(Node):
         msg.orientation.z = q[3]
 
         self.guidance_publisher.publish(msg)
+        self.get_logger().info("Send desired states")
 
         # Move to the next point if virtual target is not too far from the trajectory and there is no big gap between virtual target and drone
         if linalg.norm(self.e_target) < 1 and linalg.norm(self.e_drone) < 1:
