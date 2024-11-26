@@ -1,7 +1,7 @@
 import math
 import sys
 from threading import Thread
-from typing import List, Optional
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,7 +25,7 @@ from std_msgs.msg import Float32
 # --- Quaternion to Euler angles ---
 
 
-def quaternion_to_euler(x: float, y: float, z: float, w: float) -> List[float]:
+def quaternion_to_euler(x: float, y: float, z: float, w: float) -> list[float]:
     """Convert a quaternion to Euler angles (roll, pitch, yaw).
 
     Args:
@@ -92,14 +92,14 @@ class GuiNode(Node):
         )
 
         # Variables to store odometry data
-        self.xpos_data: List[float] = []  # x position
-        self.ypos_data: List[float] = []  # y position
-        self.zpos_data: List[float] = []  # z position
+        self.xpos_data: list[float] = []  # x position
+        self.ypos_data: list[float] = []  # y position
+        self.zpos_data: list[float] = []  # z position
 
-        self.w_data: List[float] = []  # w component of the quaternion
-        self.x_data: List[float] = []  # x component of the quaternion
-        self.y_data: List[float] = []  # y component of the quaternion
-        self.z_data: List[float] = []  # z component of the quaternion
+        self.w_data: list[float] = []  # w component of the quaternion
+        self.x_data: list[float] = []  # x component of the quaternion
+        self.y_data: list[float] = []  # y component of the quaternion
+        self.z_data: list[float] = []  # z component of the quaternion
 
         self.roll: Optional[float] = None
         self.pitch: Optional[float] = None
@@ -196,13 +196,13 @@ class PlotCanvas(FigureCanvas):
         self.ax.set_title("Position")
 
         # Initialize data lists for 3D plot
-        self.x_data: List[float] = []
-        self.y_data: List[float] = []
-        self.z_data: List[float] = []
+        self.x_data: list[float] = []
+        self.y_data: list[float] = []
+        self.z_data: list[float] = []
         (self.line,) = self.ax.plot([], [], [], 'b-')
 
     def update_plot(
-        self, x_data: List[float], y_data: List[float], z_data: List[float]
+        self, x_data: list[float], y_data: list[float], z_data: list[float]
     ) -> None:
         """Update the 3D plot with the latest odometry data."""
         # Convert lists to numpy arrays to ensure compatibility with the plot functions
@@ -238,7 +238,7 @@ def run_ros_node(ros_node: GuiNode, executor: MultiThreadedExecutor) -> None:
     rclpy.spin(ros_node, executor)
 
 
-def main(args: Optional[List[str]] = None) -> None:
+def main(args: Optional[list[str]] = None) -> None:
     """The main function to initialize ROS2 and the GUI application."""
     rclpy.init(args=args)
     ros_node = GuiNode()
