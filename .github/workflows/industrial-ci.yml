@@ -1,5 +1,5 @@
-name: Build status
-# Run industrial-ci on a repository
+name: Industrial CI
+
 on:
   push:
   workflow_dispatch:
