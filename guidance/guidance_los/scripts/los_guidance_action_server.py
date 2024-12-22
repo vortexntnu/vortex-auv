@@ -1,44 +1,27 @@
 #!/usr/bin/env python3
-"""ROS2 Node for Line-of-Sight (LOS) guidance control using third-order filtering from Fossen.
-
-This node provides waypoint navigation capabilities for underwater vehicles using
-LOS guidance algorithm with third-order reference filtering for smooth motion.
-
-The node accepts waypoint navigation goals and generates guidance commands (surge, pitch, yaw)
-while providing feedback about the navigation progress.
-"""
 
 import time
 from dataclasses import dataclass
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import Point, PoseStamped, Vector3Stamped
+from geometry_msgs.msg import PoseStamped, Vector3Stamped
 from guidance_los.los_guidance_algorithm import ThirdOrderLOSGuidance
 from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
+from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from std_msgs.msg import String
 from transforms3d.euler import quat2euler
 from vortex_msgs.action import NavigateWaypoints
-from vortex_msgs.msg import LOSGuidance, WaypointList
+from vortex_msgs.msg import LOSGuidance
 
 
 @dataclass(slots=True)
 class State:
-    """Data class representing the current state of the vehicle.
-
-    Uses slots for memory efficiency.
-
-    Attributes:
-        x (float): X position in world frame
-        y (float): Y position in world frame
-        z (float): Z position (depth) in world frame
-        yaw (float): Yaw angle in radians
-        pitch (float): Pitch angle in radians
-    """
+    """Data class representing the current state of the vehicle."""
 
     x: float = 0.0
     y: float = 0.0
@@ -47,30 +30,22 @@ class State:
     pitch: float = 0.0
 
     def as_ndarray(self) -> np.ndarray:
-        """Convert state to numpy array format for guidance calculations.
-
-        Returns:
-            np.ndarray: Array containing [x, y, z, yaw, pitch]
-        """
+        """Convert state to numpy array for guidance calculations."""
         return np.array([self.x, self.y, self.z, self.yaw, self.pitch])
 
 
 class GuidanceActionServer(Node):
-    """ROS2 Action Server node for waypoint navigation using LOS guidance.
-
-    This node provides:
-    - Action server for waypoint navigation
-    - Odometry subscription for vehicle state updates
-    - LOS guidance command publishing
-    - Reference and error publishing for monitoring
-    """
+    """ROS2 Action Server node for waypoint navigation using LOS guidance."""
 
     def __init__(self):
-        """Initialize the guidance action server node with all its ROS interfaces."""
         super().__init__('guidance_action_server')
 
         # Initialize filter status flag
         self.filter_initialized = False
+
+        # Add debug parameter
+        self.declare_parameter('debug_mode', False)
+        self.debug_mode = self.get_parameter('debug_mode').value
 
         # Create callback groups for concurrent execution
         self.action_cb_group = ReentrantCallbackGroup()
@@ -80,14 +55,21 @@ class GuidanceActionServer(Node):
         self.guidance_calculator = ThirdOrderLOSGuidance()
 
         # Publishers for guidance commands and monitoring
-        self.output_pub = self.create_publisher(LOSGuidance, '/guidance/los', 10)
-        self.ref_pub = self.create_publisher(PoseStamped, '/guidance/reference', 10)
-        self.error_pub = self.create_publisher(Vector3Stamped, '/guidance/errors', 10)
-
-        # Debug publisher for logging
-        self.log_publisher = self.create_publisher(
-            String, '/guidance_action_server/logs', 10
+        self.guidance_cmd_pub = self.create_publisher(
+            LOSGuidance, '/guidance/LOS_commands', 10
         )
+
+        # Debug publishers (if debug mode is enabled)
+        if self.debug_mode:
+            self.guidance_ref_pub = self.create_publisher(
+                PoseStamped, '/guidance/debug/reference', 10
+            )
+            self.guidance_error_pub = self.create_publisher(
+                Vector3Stamped, '/guidance/debug/errors', 10
+            )
+            self.log_publisher = self.create_publisher(
+                String, '/guidance/debug/logs', 10
+            )
 
         # Subscriber for vehicle state updates
         self.create_subscription(
@@ -96,11 +78,6 @@ class GuidanceActionServer(Node):
             self.odom_callback,
             10,
             callback_group=self.timer_cb_group,
-        )
-
-        # Publisher for visualizing waypoints in GUI
-        self.waypoint_list_pub = self.create_publisher(
-            WaypointList, '/guidance/waypoint_list', 10
         )
 
         # Action server for handling navigation requests
@@ -114,42 +91,26 @@ class GuidanceActionServer(Node):
 
         # State variables initialization
         self.state: State = State()  # Current vehicle state
-        self.waypoints = []  # List of waypoints to navigate
-        self.current_waypoint_index = 0  # Index of current target waypoint
-        self.goal_handle = None  # Handle for current navigation goal
+        self.waypoints: list[np.ndarray] = []  # List of waypoints to coordinates
+        self.current_waypoint_index: int = 0  # Index of current target waypoint
+        self.goal_handle: ServerGoalHandle[NavigateWaypoints] | None = (
+            None  # Handle for current navigation goal
+        )
         self.update_period = 0.1  # Guidance update period in seconds
 
         self.get_logger().info('Guidance Action Server initialized')
 
     def publish_log(self, message: str):
-        """Publish debug log message to ROS topic and node logger.
+        """Publish debug log message to ROS topic and node logger (debug mode only)."""
+        if not self.debug_mode:
+            return
 
-        Args:
-            message (str): Message to be logged
-        """
         msg = String()
         msg.data = message
-        # self.log_publisher.publish(msg)
         self.get_logger().info(message)
 
-    def publish_waypoint_list(self):
-        """Publish the current waypoint list for visualization in GUI.
-
-        Converts waypoints to ROS message format.
-        """
-        msg = WaypointList()
-        msg.waypoints = [Point(x=wp[0], y=wp[1], z=wp[2]) for wp in self.waypoints]
-        self.waypoint_list_pub.publish(msg)
-
     def odom_callback(self, msg: Odometry):
-        """Process odometry updates and trigger guidance calculations.
-
-        Updates vehicle state and triggers guidance calculations if a navigation
-        goal is active.
-
-        Args:
-            msg (Odometry): ROS odometry message containing vehicle pose
-        """
+        """Process odometry updates and trigger guidance calculations."""
         try:
             # Extract orientation quaternion to Euler angles
             orientation_q = msg.pose.pose.orientation
@@ -189,11 +150,7 @@ class GuidanceActionServer(Node):
             self.get_logger().error(f'Error in odom_callback: {str(e)}')
 
     def process_guidance(self):
-        """Process guidance calculations and publish commands.
-
-        Computes guidance commands for current waypoint, publishes commands,
-        and handles waypoint transitions.
-        """
+        """Process guidance calculations and publish control commands."""
         try:
             if self.current_waypoint_index >= len(self.waypoints):
                 return
@@ -243,18 +200,8 @@ class GuidanceActionServer(Node):
         except Exception as e:
             self.get_logger().error(f'Error in process_guidance: {str(e)}')
 
-    def execute_callback(self, goal_handle):
-        """Execute waypoint navigation action.
-
-        Handles the navigation action request, processes waypoints,
-        and monitors completion status.
-
-        Args:
-            goal_handle: Action goal handle containing waypoints
-
-        Returns:
-            NavigateWaypoints.Result: Success status of navigation
-        """
+    def execute_callback(self, goal_handle: ServerGoalHandle[NavigateWaypoints]):
+        """Execute waypoint navigation action."""
         try:
             self.publish_log('Executing waypoint navigation...')
 
@@ -267,9 +214,6 @@ class GuidanceActionServer(Node):
                 np.array([wp.pose.position.x, wp.pose.position.y, wp.pose.position.z])
                 for wp in goal_handle.request.waypoints
             ]
-
-            # Publish waypoints for visualization
-            self.publish_waypoint_list()
 
             self.publish_log(f'Received {len(self.waypoints)} waypoints')
 
@@ -295,53 +239,42 @@ class GuidanceActionServer(Node):
             return NavigateWaypoints.Result(success=False)
 
     def publish_guidance(self, commands):
-        """Publish guidance commands for vehicle control.
-
-        Args:
-            commands (np.ndarray): Array of [surge, pitch, yaw] commands
-        """
+        """Publish guidance commands for vehicle control."""
         msg = LOSGuidance()
         msg.surge = commands[0]
         msg.pitch = commands[1]
         msg.yaw = commands[2]
-        self.output_pub.publish(msg)
+        self.guidance_cmd_pub.publish(msg)
 
     def publish_reference(self, target):
-        """Publish reference pose for monitoring.
+        """Publish reference pose for monitoring (if debug mode is enabled)."""
+        if not self.debug_mode:
+            return
 
-        Args:
-            target (np.ndarray): Target position [x, y, z]
-        """
         msg = PoseStamped()
         msg.header.frame_id = "odom"
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.pose.position.x = target[0]
         msg.pose.position.y = target[1]
         msg.pose.position.z = target[2]
-        self.ref_pub.publish(msg)
+        self.guidance_ref_pub.publish(msg)
 
     def publish_errors(self, target, depth_error):
-        """Publish position errors for monitoring.
+        """Publish position errors for monitoring (if debug mode is enabled)."""
+        if not self.debug_mode:
+            return
 
-        Args:
-            target (np.ndarray): Target position [x, y, z]
-            depth_error (float): Error in depth
-        """
         msg = Vector3Stamped()
         msg.header.frame_id = "odom"
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.vector.x = target[0] - self.state.x
         msg.vector.y = target[1] - self.state.y
         msg.vector.z = depth_error
-        self.error_pub.publish(msg)
+        self.guidance_error_pub.publish(msg)
 
 
 def main(args=None):
-    """Main function to initialize and run the guidance node.
-
-    Args:
-        args: Command line arguments (unused)
-    """
+    """Main function to initialize and run the guidance node."""
     rclpy.init(args=args)
 
     # Create and initialize node

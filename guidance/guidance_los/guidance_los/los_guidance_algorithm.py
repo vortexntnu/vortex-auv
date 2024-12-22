@@ -1,40 +1,11 @@
 #!/usr/bin/env python3
-"""Third-order Line-of-Sight (LOS) guidance algorithm with reference filtering.
-
-This module implements a Line-of-Sight guidance algorithm with third-order reference
-filtering for smooth motion control. The algorithm generates guidance commands
-(surge, pitch, yaw) based on current position and target position while ensuring
-smooth transitions through third-order filtering.
-
-Key features:
-- LOS guidance with look-ahead distance scaling
-- Third-order reference filtering for smooth motion
-- Adaptive speed control based on cross-track error
-- Configurable natural frequency and damping parameters
-"""
 
 import numpy as np
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 
 class ThirdOrderLOSGuidance:
-    """Third-order Line-of-Sight guidance algorithm implementation.
-
-    This class provides methods for computing guidance commands using LOS algorithm
-    with third-order reference filtering. It handles both horizontal and vertical
-    plane guidance while ensuring smooth transitions through filtering.
-
-    Attributes:
-        h_delta_min (float): Minimum look-ahead distance for LOS calculation
-        h_delta_max (float): Maximum look-ahead distance for LOS calculation
-        h_delta_factor (float): Scaling factor for look-ahead distance
-        nominal_speed (float): Nominal surge velocity for forward motion
-        min_speed (float): Minimum allowable surge velocity
-        max_pitch_angle (float): Maximum allowable pitch angle (±30 degrees)
-        depth_gain (float): Proportional gain for depth control
-        x (np.ndarray): State vector for reference filter [pos, vel, acc] for each channel
-        omega (np.ndarray): Natural frequency diagonal matrix for filter tuning
-        zeta (np.ndarray): Damping ratio diagonal matrix for filter tuning
-    """
+    """Third-order Line-of-Sight (LOS) guidance algorithm."""
 
     def __init__(self):
         # LOS parameters
@@ -56,14 +27,109 @@ class ThirdOrderLOSGuidance:
         # Initialize filter matrices
         self.setup_filter_matrices()
 
-    def setup_filter_matrices(self):
-        """Setup state-space matrices for the third-order reference filter.
+    def _init_parameters(self):
+        """Declare all parameters with default values."""
+        # LOS parameters
+        self.declare_parameter(
+            'los_guidance.h_delta_min',
+            1.0,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE,
+                description='Minimum look-ahead distance',
+            ),
+        )
 
-        Creates the state transition matrix (Ad) and input matrix (Bd) for the
-        third-order filter based on natural frequency (omega) and damping ratio (zeta).
-        The resulting system provides smooth transitions in position, velocity,
-        and acceleration for each control channel.
-        """
+        self.declare_parameter(
+            'los_guidance.h_delta_max',
+            5.0,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE,
+                description='Maximum look-ahead distance',
+            ),
+        )
+
+        self.declare_parameter(
+            'los_guidance.h_delta_factor',
+            3.0,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE,
+                description='Look-ahead scaling factor',
+            ),
+        )
+
+        self.declare_parameter(
+            'los_guidance.nominal_speed',
+            0.35,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE,
+                description='Nominal surge velocity',
+            ),
+        )
+
+        self.declare_parameter(
+            'los_guidance.min_speed',
+            0.1,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE,
+                description='Minimum surge velocity',
+            ),
+        )
+
+        self.declare_parameter(
+            'los_guidance.max_pitch_angle',
+            np.pi / 6,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE,
+                description='Maximum pitch angle in radians',
+            ),
+        )
+
+        self.declare_parameter(
+            'los_guidance.depth_gain',
+            0.5,
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE, description='Gain for depth error'
+            ),
+        )
+
+        # Filter parameters
+        self.declare_parameter(
+            'los_guidance.filter.omega_diag',
+            [2.5, 2.5, 2.5],
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+                description='Natural frequency diagonal values',
+            ),
+        )
+
+        self.declare_parameter(
+            'los_guidance.filter.zeta_diag',
+            [0.7, 0.7, 0.7],
+            ParameterDescriptor(
+                type=ParameterType.PARAMETER_DOUBLE_ARRAY,
+                description='Damping ratio diagonal values',
+            ),
+        )
+
+    def _load_parameters(self):
+        """Load parameters from config into class attributes."""
+        # LOS parameters
+        self.h_delta_min = self.get_parameter('los_guidance.h_delta_min').value
+        self.h_delta_max = self.get_parameter('los_guidance.h_delta_max').value
+        self.h_delta_factor = self.get_parameter('los_guidance.h_delta_factor').value
+        self.nominal_speed = self.get_parameter('los_guidance.nominal_speed').value
+        self.min_speed = self.get_parameter('los_guidance.min_speed').value
+        self.max_pitch_angle = self.get_parameter('los_guidance.max_pitch_angle').value
+        self.depth_gain = self.get_parameter('los_guidance.depth_gain').value
+
+        # Filter parameters
+        omega_diag = self.get_parameter('los_guidance.filter.omega_diag').value
+        zeta_diag = self.get_parameter('los_guidance.filter.zeta_diag').value
+        self.omega = np.diag(omega_diag)
+        self.zeta = np.diag(zeta_diag)
+
+    def setup_filter_matrices(self):
+        """Setup state-space matrices for the third-order reference filter."""
         self.Ad = np.zeros((9, 9))
         self.Bd = np.zeros((9, 3))
 
@@ -86,34 +152,13 @@ class ThirdOrderLOSGuidance:
         self.Bd[6:9, :] = omega_cubed  # Acceleration input coupling
 
     def ssa(self, angle: float) -> float:
-        """Maps an angle to the interval [-π, π].
-
-        Args:
-            angle (float): Input angle in radians
-
-        Returns:
-            float: Normalized angle in range [-π, π]
-        """
+        """Maps an angle to the interval [-π, π]."""
         return (angle + np.pi) % (2 * np.pi) - np.pi
 
     def compute_raw_los_guidance(
         self, current_pos: np.ndarray, target_pos: np.ndarray
     ) -> tuple[np.ndarray, float, float]:
-        """Compute raw LOS guidance commands before filtering.
-
-        Calculates desired surge velocity, pitch angle, and yaw angle based on
-        current position and target position using LOS guidance principles.
-
-        Args:
-            current_pos (np.ndarray): Current position and orientation [x, y, z, yaw, pitch]
-            target_pos (np.ndarray): Target position [x, y, z]
-
-        Returns:
-            Tuple containing:
-            - np.ndarray: Raw commands [surge, pitch, yaw]
-            - float: Horizontal distance to target
-            - float: Depth error
-        """
+        """Compute raw LOS guidance commands before filtering."""
         # Extract positions
         dx = target_pos[0] - current_pos[0]  # x
         dy = target_pos[1] - current_pos[1]  # y
@@ -137,53 +182,21 @@ class ThirdOrderLOSGuidance:
     def compute_pitch_command(
         self, depth_error: float, horizontal_distance: float
     ) -> float:
-        """Compute pitch command with distance-based scaling.
-
-        Calculates desired pitch angle based on depth error and horizontal distance,
-        with scaling based on distance to prevent steep angles when close to target.
-
-        Args:
-            depth_error (float): Error in depth (desired - current)
-            horizontal_distance (float): Distance to target in horizontal plane
-
-        Returns:
-            float: Commanded pitch angle in radians, limited to ±max_pitch_angle
-        """
+        """Compute pitch command with distance-based scaling."""
         raw_pitch = -self.depth_gain * depth_error
         distance_factor = min(1.0, horizontal_distance / self.h_delta_max)
         modified_pitch = raw_pitch * distance_factor
         return np.clip(modified_pitch, -self.max_pitch_angle, self.max_pitch_angle)
 
     def compute_desired_speed(self, yaw_error: float, distance: float) -> float:
-        """Compute speed command with yaw and distance-based scaling.
-
-        Reduces speed when large yaw corrections are needed or when close to target.
-
-        Args:
-            yaw_error (float): Error in yaw angle (desired - current)
-            distance (float): Distance to target
-
-        Returns:
-            float: Commanded surge velocity, limited to minimum speed
-        """
+        """Compute speed command with yaw and distance-based scaling."""
         yaw_factor = np.cos(yaw_error)
         distance_factor = min(1.0, distance / self.h_delta_max)
         desired_speed = self.nominal_speed * yaw_factor * distance_factor
         return max(self.min_speed, desired_speed)
 
     def apply_reference_filter(self, commands: np.ndarray, dt: float) -> np.ndarray:
-        """Apply third-order reference filter to guidance commands.
-
-        Filters raw commands through third-order dynamics to ensure smooth
-        transitions in position, velocity, and acceleration.
-
-        Args:
-            commands (np.ndarray): Raw commands [surge, pitch, yaw]
-            dt (float): Time step for integration
-
-        Returns:
-            np.ndarray: Filtered position commands [surge, pitch, yaw]
-        """
+        """Apply third-order reference filter to guidance commands."""
         # Update filter state
         x_dot = self.Ad @ self.x + self.Bd @ commands
         self.x = self.x + x_dot * dt
@@ -193,27 +206,14 @@ class ThirdOrderLOSGuidance:
 
     def compute_guidance(
         self, current_pos: np.ndarray, target_pos: np.ndarray, dt: float
-    ) -> tuple[np.ndarray, float, float]:
-        """Compute filtered guidance commands.
-
-        Main interface method that computes raw LOS guidance commands and
-        applies reference filtering for smooth motion.
-
-        Args:
-            current_pos (np.ndarray): Current position and orientation [x, y, z, yaw, pitch]
-            target_pos (np.ndarray): Target position [x, y, z]
-            dt (float): Time step for filter integration
-
-        Returns:
-            Tuple containing:
-            - np.ndarray: Filtered commands [surge, pitch, yaw]
-            - float: Distance to target
-            - float: Depth error
-        """
+    ) -> np.ndarray:
+        """Compute filtered guidance commands."""
         # Step 1: Compute raw LOS guidance
-        raw_commands, distance, depth_error = self.compute_raw_los_guidance(
-            current_pos, target_pos
-        )
+        (
+            raw_commands,
+            self.horizontal_distance_to_target,
+            self.vertical_distance_to_target,
+        ) = self.compute_raw_los_guidance(current_pos, target_pos)
 
         # Step 2: Apply reference filter
         filtered_commands = self.apply_reference_filter(raw_commands, dt)
@@ -221,17 +221,10 @@ class ThirdOrderLOSGuidance:
         # Normalize yaw angle in filtered commands
         filtered_commands[2] = self.ssa(filtered_commands[2])
 
-        return filtered_commands, distance, depth_error
+        return filtered_commands
 
     def reset_filter_state(self, current_commands: np.ndarray) -> None:
-        """Reset filter state to initial conditions.
-
-        Resets all filter states while maintaining current position commands
-        and zeroing velocities and accelerations.
-
-        Args:
-            current_commands (np.ndarray): Current position commands [surge, pitch, yaw]
-        """
+        """Reset filter state to initial conditions."""
         self.x = np.zeros(9)
         self.x[0:3] = current_commands  # Initialize positions with current commands
         # Initialize velocities and accelerations to zero
