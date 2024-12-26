@@ -17,7 +17,7 @@
   <exec_depend>vortex_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-matplotlib</exec_depend>
-  <exec_depend>python3-pyqt6</exec_depend>
+  <exec_depend>python3-pyqt6</exec_depend> <!-- Note: python3-pyqt6 cannot be resolved by rosdep. Install manually using 'pip install pyqt6' or the system's package manager -->
 
   <export>
     <build_type>ament_python</build_type>
