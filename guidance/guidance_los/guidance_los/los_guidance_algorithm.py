@@ -1,28 +1,37 @@
-#!/usr/bin/env python3
-
 import numpy as np
 
 
 class ThirdOrderLOSGuidance:
-    """Line-of-Sight (LOS) guidance algorithm."""
+    """This class implements the Line-of-Sight (LOS) guidance algorithm.
+
+    The LOS provide a control outputs for surge, pitch, and yaw for navigating towards a target in 3D space.
+    """
 
     def __init__(self, config_dict: dict):
-        # Initialize parameters
-        self.h_delta_min = config_dict['h_delta_min']
-        self.h_delta_max = config_dict['h_delta_max']
-        self.h_delta_factor = config_dict['h_delta_factor']
-        self.nominal_speed = config_dict['nominal_speed']
-        self.min_speed = config_dict['min_speed']
-        self.max_pitch_angle = config_dict['max_pitch_angle']
-        self.depth_gain = config_dict['depth_gain']
-
-        # Filter parameters
-        self.x = np.zeros(9)
-        self.omega = np.diag(config_dict['filter']['omega_diag'])
-        self.zeta = np.diag(config_dict['filter']['zeta_diag'])
-
-        # Initialize filter matrices
+        self.config_dict = config_dict
+        self.init_los_parameters()
+        self.init_filter_parameters()
         self.setup_filter_matrices()
+
+    def init_los_parameters(self):
+        """Initialize Line-of-Sight guidance parameters."""
+        self.h_delta_min = self.config_dict['h_delta_min']
+        self.h_delta_max = self.config_dict['h_delta_max']
+        self.h_delta_factor = self.config_dict['h_delta_factor']
+        self.nominal_speed = self.config_dict['nominal_speed']
+        self.min_speed = self.config_dict['min_speed']
+        self.max_pitch_angle = self.config_dict['max_pitch_angle']
+        self.depth_gain = self.config_dict['depth_gain']
+
+    def init_filter_parameters(self):
+        """Initialize filter state and parameters."""
+        self.x = np.zeros(9)
+        self.omega = np.diag(self.config_dict['filter']['omega_diag'])
+        self.zeta = np.diag(self.config_dict['filter']['zeta_diag'])
+
+    @staticmethod
+    def ssa(angle: float) -> float:
+        return (angle + np.pi) % (2 * np.pi) - np.pi
 
     def setup_filter_matrices(self):
         self.Ad = np.zeros((9, 9))
@@ -43,9 +52,6 @@ class ThirdOrderLOSGuidance:
 
         # Input matrix
         self.Bd[6:9, :] = omega_cubed
-
-    def ssa(self, angle: float) -> float:
-        return (angle + np.pi) % (2 * np.pi) - np.pi
 
     def compute_raw_los_guidance(
         self, current_pos: np.ndarray, target_pos: np.ndarray

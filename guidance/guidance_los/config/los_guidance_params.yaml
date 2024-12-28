@@ -1,5 +1,4 @@
 los_guidance_node:
-  # Node configurations
   ros__parameters:
     los_guidance:
       h_delta_min: 1.0
@@ -13,7 +12,6 @@ los_guidance_node:
         omega_diag: [2.5, 2.5, 2.5]
         zeta_diag: [0.7, 0.7, 0.7]
 
-    # Topic configurations
     topics:
       publishers:
         los_commands: '/guidance/LOS_commands'
@@ -24,7 +22,6 @@ los_guidance_node:
       subscribers:
         odometry: '/nucleus/odom'
 
-    # QoS configurations
     qos:
       publisher_depth: 10
       subscriber_depth: 10

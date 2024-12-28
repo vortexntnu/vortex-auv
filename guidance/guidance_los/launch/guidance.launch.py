@@ -22,7 +22,7 @@ def generate_launch_description():
     config_path_arg = DeclareLaunchArgument(
         'config_path',
         default_value=config_file,
-        description='/home/badawi/Desktop/auto-pilot/src/vortex-auv/guidance/guidance_los/config/los_guidance_params.yaml',
+        description='Path to the LOS guidance config file',
     )
 
     # Create the node
