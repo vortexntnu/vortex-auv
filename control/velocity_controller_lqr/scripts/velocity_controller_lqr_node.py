@@ -3,6 +3,7 @@ import numpy as np
 import rclpy
 from geometry_msgs.msg import Wrench
 from nav_msgs.msg import Odometry
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
@@ -178,9 +179,19 @@ class LinearQuadraticRegulator(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = LinearQuadraticRegulator()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    lqr_node = LinearQuadraticRegulator()
+    executor = MultiThreadedExecutor()
+    executor.add_node(lqr_node)
+
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        executor.shutdown()
+        lqr_node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

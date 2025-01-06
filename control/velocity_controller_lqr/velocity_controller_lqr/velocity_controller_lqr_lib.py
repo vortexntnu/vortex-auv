@@ -177,18 +177,18 @@ class LQRController:
         self.pitch_windup = False
         self.yaw_windup = False
 
-        self.q_surge = parameters[0]  # Surge LQR cost
-        self.q_pitch = parameters[1]  # Pitch LQR cost
-        self.q_yaw = parameters[2]  # Yaw LQR cost
+        self.q_surge = parameters[0]
+        self.q_pitch = parameters[1]
+        self.q_yaw = parameters[2]
 
-        self.r_surge = parameters[3]  # Surge LQR input cost
-        self.r_pitch = parameters[4]  # Pitch LQR input cost
-        self.r_yaw = parameters[5]  # Yaw input LQR cost
+        self.r_surge = parameters[3]
+        self.r_pitch = parameters[4]
+        self.r_yaw = parameters[5]
 
-        self.i_surge = parameters[6]  # Integral gain for surge
-        self.i_pitch = parameters[7]  # Integral gain for pitch
-        self.i_yaw = parameters[8]  # Integral gain for yaw
-        self.i_weight = parameters[9]  # Weight for integral gain
+        self.i_surge = parameters[6]
+        self.i_pitch = parameters[7]
+        self.i_yaw = parameters[8]
+        self.i_weight = parameters[9]
         self.max_force = parameters[10]
 
     def set_matrices(self, inertia_matrix):
@@ -212,9 +212,7 @@ class LQRController:
         self.augmented_system_matrix = np.block(
             [[system_matrix, np.zeros((3, 3))], [-np.eye(3), np.zeros((3, 3))]]
         )
-        self.augmented_input_matrix = np.block(
-            [[input_matrix], [np.zeros((3, 3))]]
-        )  # Control input does not affect integrators directly
+        self.augmented_input_matrix = np.block([[input_matrix], [np.zeros((3, 3))]])
 
     def update_error(self, guidance_values: GuidanceValues, states: State) -> np.array:
         """Updates the error values for the LQR controller.
@@ -228,11 +226,11 @@ class LQRController:
         """
         surge_error = (
             guidance_values.surge - states.surge
-        )  # Surge error no need for angle wrapping
+        )  # Surge error isn't an angle, no need for angle wrapping
         pitch_error = self.ssa(guidance_values.yaw - states.yaw)
         yaw_error = self.ssa(guidance_values.pitch - states.pitch)
 
-        # Update the integrator sums
+        # Update the running integrator sums
         self.integral_error_surge = self.anti_windup(
             self.i_surge, surge_error, self.integral_error_surge, self.surge_windup
         )
