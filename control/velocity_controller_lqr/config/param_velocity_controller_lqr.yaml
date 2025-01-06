@@ -1,26 +1,26 @@
 velocity_controller_lqr_node:
   ros__parameters:
+    dt: 0.1
 
-    #topic parameters
-    odom_topic: /nucleus/odom
-    guidance_topic: /guidance/los
-    thrust_topic: /thrust/wrench_input
+    topics:
+      odom_topic: /nucleus/odom
+      guidance_topic: /guidance/los
+      thrust_topic: /thrust/wrench_input
 
-    #LQR parameters
+    LQR_params:
+      q_surge: 75
+      q_pitch: 175
+      q_yaw: 175
 
-    q_surge: 75
-    q_pitch: 175
-    q_yaw: 175
+      r_surge: 0.3
+      r_pitch: 0.4
+      r_yaw: 0.4
 
-    r_surge: 0.3
-    r_pitch: 0.4
-    r_yaw: 0.4
+      i_surge: 0.3
+      i_pitch: 0.4
+      i_yaw: 0.3
 
-    i_surge: 0.3
-    i_pitch: 0.4
-    i_yaw: 0.3
-
-    i_weight: 0.5
+      i_weight: 0.5
 
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 

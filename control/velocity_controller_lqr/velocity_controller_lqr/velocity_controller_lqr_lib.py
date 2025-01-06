@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from dataclasses import dataclass
 
 import numpy as np
@@ -11,7 +10,7 @@ class State:
     """Dataclass to store the state values for the LQR controller.
 
     Attributes:
-        surge: float: Surge state value
+        surge: float Surge state value
         pitch: float: Pitch state value
         yaw: float: Yaw state value
         integral_surge: float: Surge integral state value
@@ -48,8 +47,39 @@ class GuidanceValues:
     integral_yaw: float = 0.0
 
 
+@dataclass
+class LQRParameters:
+    """Dataclass to store the parameters for the LQR controller.
+
+    Attributes:
+        q_surge: float: Surge state weight
+        q_pitch: float: Pitch state weight
+        q_yaw: float: Yaw state weight
+        r_surge: float: Surge input weight
+        r_pitch: float: Pitch input weight
+        r_yaw: float: Yaw input weight
+        i_surge: float: Surge integral weight
+        i_pitch: float: Pitch integral weight
+        i_yaw: float: Yaw integral weight
+        i_weight: float: Integral weight
+        max_force: float: Maximum force
+    """
+
+    q_surge: float = 0.0
+    q_pitch: float = 0.0
+    q_yaw: float = 0.0
+    r_surge: float = 0.0
+    r_pitch: float = 0.0
+    r_yaw: float = 0.0
+    i_surge: float = 0.0
+    i_pitch: float = 0.0
+    i_yaw: float = 0.0
+    i_weight: float = 0.0
+    max_force: float = 0.0
+
+
 class LQRController:
-    def __init__(self, parameters, inertia_matrix):
+    def __init__(self, parameters: LQRParameters, inertia_matrix: np.array) -> None:
         self.set_params(parameters)
         self.set_matrices(inertia_matrix)
 
@@ -57,7 +87,7 @@ class LQRController:
     def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
         """Function to convert quaternion to euler angles.
 
-        Args:
+        Parameters:
             w: float: w component of quaternion
             x: float: x component of quaternion
             y: float: y component of quaternion
@@ -90,7 +120,7 @@ class LQRController:
     def ssa(angle: float) -> float:
         """Function to convert the angle to the smallest signed angle.
 
-        Args:
+        Parameters:
             angle: float: angle in radians
 
         Returns:
@@ -102,7 +132,7 @@ class LQRController:
     def saturate(self, value: float, windup: bool, limit: float) -> tuple:
         """Function to saturate the value within the limits, and set the windup flag.
 
-        Args:
+        Parameters:
             value: float: value to be saturated
             windup: bool: windup variable
             limit: float: limit for saturation
@@ -125,7 +155,7 @@ class LQRController:
     ) -> float:
         """Function to saturate the integral value within the limits.
 
-        Args:
+        Parameters:
             k_i : float: integral gain
             error: float: error value
             integral_sum: float: integral sum
@@ -137,9 +167,7 @@ class LQRController:
             value: float: saturated value
 
         """
-        if windup:
-            integral_sum += 0.0
-        else:
+        if not windup:
             integral_sum += k_i * error
 
         return integral_sum
@@ -168,7 +196,13 @@ class LQRController:
             ]
         )
 
-    def set_params(self, parameters):
+    def set_params(self, parameters: LQRParameters) -> None:
+        """Sets the parameters for the LQR controller.
+
+        Parameters:
+            parameters: LQRParameters: dataclass containing the parameters for the LQR controller
+
+        """
         self.integral_error_surge = 0.0
         self.integral_error_pitch = 0.0
         self.integral_error_yaw = 0.0
@@ -177,21 +211,26 @@ class LQRController:
         self.pitch_windup = False
         self.yaw_windup = False
 
-        self.q_surge = parameters[0]
-        self.q_pitch = parameters[1]
-        self.q_yaw = parameters[2]
+        self.q_surge = parameters.q_surge
+        self.q_pitch = parameters.q_pitch
+        self.q_yaw = parameters.q_yaw
 
-        self.r_surge = parameters[3]
-        self.r_pitch = parameters[4]
-        self.r_yaw = parameters[5]
+        self.r_surge = parameters.r_surge
+        self.r_pitch = parameters.r_pitch
+        self.r_yaw = parameters.r_yaw
 
-        self.i_surge = parameters[6]
-        self.i_pitch = parameters[7]
-        self.i_yaw = parameters[8]
-        self.i_weight = parameters[9]
-        self.max_force = parameters[10]
+        self.i_surge = parameters.i_surge
+        self.i_pitch = parameters.i_pitch
+        self.i_yaw = parameters.i_yaw
+        self.i_weight = parameters.i_weight
+        self.max_force = parameters.max_force
 
-    def set_matrices(self, inertia_matrix):
+    def set_matrices(self, inertia_matrix: np.array) -> None:
+        """Adjusts the matrices for the LQR controller.
+
+        Parameters:
+            inertia_matrix: np.array: 3x3 inertia matrix
+        """
         self.inertia_matrix_inv = np.linalg.inv(inertia_matrix)
         self.state_weight_matrix = np.block(
             [
@@ -206,6 +245,11 @@ class LQRController:
         self.input_weight_matrix = np.diag([self.r_surge, self.r_pitch, self.r_yaw])
 
     def update_augmented_matrices(self, coriolis_matrix: np.array) -> None:
+        """Updates the augmented matrices for the LQR controller.
+
+        Parameters:
+            coriolis_matrix: np.array: 3x3 Coriolis Matrix
+        """
         system_matrix = self.inertia_matrix_inv @ coriolis_matrix
         input_matrix = self.inertia_matrix_inv
 
@@ -217,7 +261,7 @@ class LQRController:
     def update_error(self, guidance_values: GuidanceValues, states: State) -> np.array:
         """Updates the error values for the LQR controller.
 
-        Args:
+        Parameters:
             guidance_values: GuidanceValues: 6x1 dataclass containing the guidance values
             states: State: 6x1 dataclass containing the state values
 
@@ -256,7 +300,7 @@ class LQRController:
     def saturate_input(self, u: np.array) -> np.array:
         """Saturates the control input within the limits, and sets the windup flag.
 
-        Args:
+        Parameters:
             u: np.array: 3x1 control input
 
         Returns:
@@ -298,9 +342,6 @@ class LQRController:
 
         u = self.saturate_input(-lqr_gain @ state_error)
         return u
-
-
-# ---------------------------------------------------------------Main Function---------------------------------------------------------------
 
 
 #                     .--------------.
