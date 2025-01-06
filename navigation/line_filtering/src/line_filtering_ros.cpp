@@ -113,36 +113,32 @@ void Camera3DPointsNode::depthCallback(const std_msgs::msg::Float64::SharedPtr m
     RCLCPP_INFO(this->get_logger(), "Received depth: %f", msg->data);
 }
 
-// LineGrouper lines_grouped(double point1_, double point2_, 
-//     double point3_ = 0, double point4_  = 0)
-// {
-//         LineGrouper lines_grouped_temp;
+Camera3DPointsNode::LineGrouper Camera3DPointsNode::lines_grouped(geometry_msgs::msg::Point point1_, 
+                                                                  geometry_msgs::msg::Point point2_, 
+                                                                  geometry_msgs::msg::Point point3_, 
+                                                                  geometry_msgs::msg::Point point4_) {
+    Camera3DPointsNode::LineGrouper lines_grouped_temp;
 
-//         lines_grouped_temp.line1_.start.x= point1.x;
-//         lines_grouped_temp.line1_.start.y = point1.y;
+    lines_grouped_temp.line1_.start = point1_;
+    lines_grouped_temp.line1_.end = point2_;
+    lines_grouped_temp.line2_.start = point3_;
+    lines_grouped_temp.line2_.end = point4_;
 
-//         lines_grouped_temp.line1_.end.x = point2.x;
-//         lines_grouped_temp.line1_.end.y = point2.y;
-
-//         lines_grouped_temp.line2_.start.x = point3.x;
-//         lines_grouped_temp.line2_.start.y = point3.y;
-
-//         lines_grouped_temp.line2_.end.x = point4.x;
-//         lines_grouped_temp.line2_.end.y = point4.y;
-
-//         return lines_grouped_temp;
-
-// }
+    return lines_grouped_temp;
+}
 
 
-// //Selecting line based on Y values
-// LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2)
-//  { 
-//     if(line1.start.y > line2.end.y)
-//     {
-//         return line1;
-//     }
-//     else{
-//         return line2;
-//     }
-//  }
+//Selecting line based on Y values
+Camera3DPointsNode::LineGrouper Camera3DPointsNode::line_selector(Camera3DPointsNode::PointGrouper& line1, 
+                                                                  Camera3DPointsNode::PointGrouper& line2)
+{
+    Camera3DPointsNode::LineGrouper selected_line;
+
+    if (line1.start.y > line2.end.y) {
+        selected_line.line1_ = line1;
+    } else {
+        selected_line.line2_ = line2;
+    }
+
+    return selected_line;
+}

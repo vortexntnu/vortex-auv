@@ -1,5 +1,5 @@
-#ifndef CAMERA_3D_POINTS_NODE_HPP
-#define CAMERA_3D_POINTS_NODE_HPP
+#ifndef LINE_FILTERING_ROS_HPP
+#define LINE_FILTERING_ROS_HPP
 
 #include <chrono>
 #include <memory>
@@ -29,6 +29,28 @@ class Camera3DPointsNode : public rclcpp::Node
 public:
     Camera3DPointsNode();
 
+    struct PointGrouper{
+        geometry_msgs::msg::Point start;
+        geometry_msgs::msg::Point end;
+    };
+
+    //struct to store both lines together
+    struct LineGrouper{
+        PointGrouper line1_;
+        PointGrouper line2_;
+    };
+
+    LineGrouper lines_combined;
+
+    //selects which line is the current one
+    LineGrouper line_selector(PointGrouper& line1, PointGrouper& line2);
+
+
+    //function for grouping two points into a line
+    //might have to run recursive
+    LineGrouper lines_grouped(geometry_msgs::msg::Point point1_, geometry_msgs::msg::Point point2_, geometry_msgs::msg::Point point3_, geometry_msgs::msg::Point point4_);
+
+
 private:
     //Subscriptions
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
@@ -56,29 +78,7 @@ private:
     void poseArrayCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg); 
 
 
-    // struct PointGrouper
-    //     {
-    //         geometry_msgs::msg::Point start;
-    //         geometry_msgs::msg::Point end;
-    //     };
 
-    //     //struct to store both lines together
-    //     struct LineGrouper
-    //     {
-    //      PointGrouper line1_;
-    //      PointGrouper line2_;
-    //     };
-
-    //     LineGrouper lines_combined;
-
-    //     //selects which line is the current one
-    //     LineGrouper line_selector(lines_combined.line1_ line1, lines_combined.line2 line2);
-
-
-    //     //function for grouping two points into a line
-    //     //might have to run recursive
-    //     LineGrouper lines_grouped(double point1_, double point2_, 
-    //         double point3_ = 0, double point4_  = 0);
 };
 
 #endif  // CAMERA_3D_POINTS_NODE_HPP
