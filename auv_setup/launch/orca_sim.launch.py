@@ -26,14 +26,11 @@ def generate_launch_description():
         executable='joy_node',
         name='joystick_driver',
         output='screen',
-        parameters=[
-            {
-                'deadzone': 0.15
-            },
-            {
-                'autorepeat_rate': 100.0
-            },
-        ],
+        parameters=[{
+            'deadzone': 0.15,
+            'autorepeat_rate': 100.0,
+            'device_name': 'Xbox Series X Controller',
+        }],
         remappings=[
             ('/joy', '/joystick/joy'),
         ],
