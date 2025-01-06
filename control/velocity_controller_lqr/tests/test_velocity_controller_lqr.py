@@ -1,9 +1,11 @@
 import numpy as np
-from velocity_controller_lqr.velocity_controller_lqr_lib import LQRController
-
-controller = LQRController(
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+from velocity_controller_lqr.velocity_controller_lqr_lib import (
+    LQRController,
+    LQRParameters,
 )
+
+lqr_params = LQRParameters()
+controller = LQRController(lqr_params, np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
 
 
 class TestVelocityController:
