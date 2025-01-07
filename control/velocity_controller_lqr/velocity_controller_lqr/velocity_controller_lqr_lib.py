@@ -76,6 +76,7 @@ class LQRParameters:
     i_yaw: float = 0.0
     i_weight: float = 0.0
     max_force: float = 0.0
+    operation_mode: str = "xbox mode"
 
 
 class LQRController:
@@ -143,7 +144,7 @@ class LQRController:
         """
         if abs(value) > limit:
             windup = True
-            value = limit * value / abs(value)
+            value = limit * (value / abs(value))
         else:
             windup = False
 
@@ -160,8 +161,6 @@ class LQRController:
             error: float: error value
             integral_sum: float: integral sum
             windup: bool: windup variable
-
-
 
         Returns:
             value: float: saturated value
@@ -225,6 +224,8 @@ class LQRController:
         self.i_weight = parameters.i_weight
         self.max_force = parameters.max_force
 
+        self.operation_mode = parameters.operation_mode
+
     def set_matrices(self, inertia_matrix: np.array) -> None:
         """Adjusts the matrices for the LQR controller.
 
@@ -271,8 +272,8 @@ class LQRController:
         surge_error = (
             guidance_values.surge - states.surge
         )  # Surge error isn't an angle, no need for angle wrapping
-        pitch_error = self.ssa(guidance_values.yaw - states.yaw)
-        yaw_error = self.ssa(guidance_values.pitch - states.pitch)
+        pitch_error = self.ssa(guidance_values.pitch - states.pitch)
+        yaw_error = self.ssa(guidance_values.yaw - states.yaw)
 
         # Update the running integrator sums
         self.integral_error_surge = self.anti_windup(
@@ -313,6 +314,7 @@ class LQRController:
             u[1], self.pitch_windup, self.max_force
         )
         self.yaw_windup, torque_z = self.saturate(u[2], self.yaw_windup, self.max_force)
+
         return [force_x, torque_y, torque_z]
 
     def calculate_lqr_u(
@@ -340,8 +342,19 @@ class LQRController:
 
         state_error = self.update_error(guidance_values, states)
 
-        u = self.saturate_input(-lqr_gain @ state_error)
+        u = self.saturate_input(lqr_gain @ state_error)
+        u = -lqr_gain @ state_error
         return u
+
+    def reset_controller(self) -> None:
+        """Resets the controller to the initial state."""
+        self.integral_error_surge = 0.0
+        self.integral_error_pitch = 0.0
+        self.integral_error_yaw = 0.0
+
+        self.surge_windup = False
+        self.pitch_windup = False
+        self.yaw_windup = False
 
 
 #                     .--------------.

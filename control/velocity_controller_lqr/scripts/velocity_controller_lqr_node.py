@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
-from geometry_msgs.msg import Wrench
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import (
+    PoseWithCovarianceStamped,
+    TwistWithCovarianceStamped,
+    Wrench,
+)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+from std_msgs.msg import String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
     GuidanceValues,
     LQRController,
@@ -19,7 +23,14 @@ class LinearQuadraticRegulator(Node):
     def __init__(self):
         super().__init__("velocity_controller_lqr_node")
 
-        odom_topic, guidance_topic, thrust_topic = self.get_topics()
+        (
+            odom_topic,
+            pose_topic,
+            twist_topic,
+            guidance_topic,
+            thrust_topic,
+            softwareoperation_topic,
+        ) = self.get_topics()
 
         best_effort_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -34,9 +45,31 @@ class LinearQuadraticRegulator(Node):
         )
 
         # ---------------------------- SUBSCRIBERS ---------------------------
-        self.nucleus_subscriber = self.create_subscription(
-            Odometry, odom_topic, self.odom_callback, qos_profile=best_effort_qos
+        # self.nucleus_subscriber = self.create_subscription(
+        #     Odometry, odom_topic, self.odom_callback, qos_profile=best_effort_qos
+        # )
+
+        self.pose_subscriber = self.create_subscription(
+            PoseWithCovarianceStamped,
+            pose_topic,
+            self.pose_callback,
+            qos_profile=best_effort_qos,
         )
+
+        self.twist_subscriber = self.create_subscription(
+            TwistWithCovarianceStamped,
+            twist_topic,
+            self.twist_callback,
+            qos_profile=best_effort_qos,
+        )
+
+        self.operationmode_subscriber = self.create_subscription(
+            String,
+            softwareoperation_topic,
+            self.operation_callback,
+            qos_profile=best_effort_qos,
+        )
+
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
             guidance_topic,
@@ -62,23 +95,45 @@ class LinearQuadraticRegulator(Node):
         self.states = State()
         self.guidance_values = GuidanceValues()
 
+        self.guidance_values.surge = 0.2
+        self.guidance_values.pitch = np.pi / 4
+
     def get_topics(self):
         """Get the topics from the parameter server.
 
         Returns:
         odom_topic: str: The topic for accessing the odometry data from the parameter file
+        twist_topic: str: The topic for accessing the twist data from the parameter file
+        pose_topic: str: The topic for accessing the pose data from the parameter file
         guidance_topic: str: The topic for accessing the guidance data the parameter file
         thrust_topic: str: The topic for accessing the thrust data from the parameter file
         """
         self.declare_parameter("topics.odom_topic", "/nucleus/odom")
+        self.declare_parameter("topics.pose_topic", "/dvl/pose")
+        self.declare_parameter("topics.twist_topic", "/dvl/twist")
         self.declare_parameter("topics.guidance_topic", "/guidance/los")
         self.declare_parameter("topics.thrust_topic", "/thrust/wrench_input")
+        self.declare_parameter(
+            "topics.softwareoperation_topic", "/softwareOperationMode"
+        )
 
         odom_topic = self.get_parameter("topics.odom_topic").value
+        pose_topic = self.get_parameter("topics.pose_topic").value
+        twist_topic = self.get_parameter("topics.twist_topic").value
         guidance_topic = self.get_parameter("topics.guidance_topic").value
         thrust_topic = self.get_parameter("topics.thrust_topic").value
+        softwareoperation_topic = self.get_parameter(
+            "topics.softwareoperation_topic"
+        ).value
 
-        return odom_topic, guidance_topic, thrust_topic
+        return (
+            odom_topic,
+            pose_topic,
+            twist_topic,
+            guidance_topic,
+            thrust_topic,
+            softwareoperation_topic,
+        )
 
     def get_parameters(self):
         """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.
@@ -127,19 +182,62 @@ class LinearQuadraticRegulator(Node):
 
     # ---------------------------------------------------------------CALLBACK FUNCTIONS---------------------------------------------------------------
 
-    def odom_callback(self, msg: Odometry):
-        """Callback function for the odometry data.
+    # def odom_callback(self, msg: Odometry):
+    #     """Callback function for the odometry data.
 
-        Parameters: Odometry: msg: The odometry data from the AUV.
+    #     Parameters: Odometry: msg: The odometry data from the AUV.
+
+    #     """
+    #     _, self.states.pitch, self.states.yaw = LQRController.quaternion_to_euler_angle(
+    #         msg.pose.pose.orientation.w,
+    #         msg.pose.pose.orientation.x,
+    #         msg.pose.pose.orientation.y,
+    #         msg.pose.pose.orientation.z,
+    #     )
+
+    #     self.states.surge = msg.twist.twist.linear.x
+
+    #     self.coriolis_matrix = LQRController.calculate_coriolis_matrix(
+    #         msg.twist.twist.angular.y,
+    #         msg.twist.twist.angular.z,
+    #         msg.twist.twist.linear.y,
+    #         msg.twist.twist.linear.z,
+    #     )
+
+    # ----------------------------------------------------DVL CALLBACK (TEMP WHILE TALHA FIXES ODOM)---------------------------------------------------
+
+    def pose_callback(self, msg: PoseWithCovarianceStamped):
+        """Callback function for the pose data from DVL.
+
+        Parameters: msg: PoseWithCovarianceStamped The pose data from the DVL.
 
         """
-        _, self.states.yaw, self.states.pitch = LQRController.quaternion_to_euler_angle(
+        _, self.states.pitch, self.states.yaw = LQRController.quaternion_to_euler_angle(
             msg.pose.pose.orientation.w,
             msg.pose.pose.orientation.x,
             msg.pose.pose.orientation.y,
             msg.pose.pose.orientation.z,
         )
 
+        if self.controller.operation_mode == "autonomous mode":
+            self.get_logger().info(
+                f"roll: {_} pitch: {self.states.pitch}, yaw: {self.states.yaw}"
+            )
+
+    def operation_callback(self, msg: String):
+        """Callback function for the operation mode data.
+
+        Parameters: String: msg: The operation mode data from the AUV.
+
+        """
+        self.controller.operation_mode = msg.data
+
+    def twist_callback(self, msg: TwistWithCovarianceStamped):
+        """Callback function for the Twist data from DVL.
+
+        Parameters: msg: TwistWithCovarianceStamped The twist data from the DVL.
+
+        """
         self.states.surge = msg.twist.twist.linear.x
 
         self.coriolis_matrix = LQRController.calculate_coriolis_matrix(
@@ -148,6 +246,9 @@ class LinearQuadraticRegulator(Node):
             msg.twist.twist.linear.y,
             msg.twist.twist.linear.z,
         )
+
+        if self.controller.operation_mode == "autonomous mode":
+            self.get_logger().info(f"twist_callback: {msg.twist.twist.linear.x}")
 
     def guidance_callback(self, msg: LOSGuidance):
         """Callback function for the guidance data.
@@ -159,7 +260,7 @@ class LinearQuadraticRegulator(Node):
         self.guidance_values.pitch = msg.pitch
         self.guidance_values.yaw = msg.yaw
 
-    # ---------------------------------------------------------------PUBLISHER FUNCTIONS--------------------------------------------------------------
+    # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
     def control_loop(self):
         """The control loop that calculates the input for the LQR controller."""
@@ -172,10 +273,13 @@ class LinearQuadraticRegulator(Node):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
-        self.publisherLQR.publish(msg)
+        if self.controller.operation_mode == "autonomous mode":
+            self.publisherLQR.publish(msg)
+        else:
+            self.controller.reset_controller()
 
 
-# ----------------------------------------------------------------------MAIN FUNCTION-----------------------------------------------------------------
+# ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
 
 
 def main(args=None):
