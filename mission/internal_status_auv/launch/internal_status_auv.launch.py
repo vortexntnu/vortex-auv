@@ -6,8 +6,7 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generates a LaunchDescription object that defines the nodes to be launched.
+    """Generates a LaunchDescription object that defines the nodes to be launched.
 
     This function creates a launch configuration for three sensor nodes:
     Power Sense Module Node, Pressure Sensor Node, and Temperature Sensor Node.
@@ -18,9 +17,10 @@ def generate_launch_description() -> LaunchDescription:
     output on the screen.
 
     Returns:
-    --------
+    -------
     launch.LaunchDescription
         A LaunchDescription object containing the nodes to be launched.
+
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(
