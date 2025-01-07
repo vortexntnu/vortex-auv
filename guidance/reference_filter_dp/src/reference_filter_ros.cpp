@@ -20,7 +20,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
     std::string dp_reference_topic =
         this->get_parameter("dp_reference_topic").as_string();
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
-        dp_reference_topic, 10);
+        dp_reference_topic, qos_sensor_data);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_filter_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::reference_callback, this,

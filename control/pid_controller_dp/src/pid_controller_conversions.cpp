@@ -3,6 +3,7 @@
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
+#include <iostream>
 
 types::Eta eta_convert_from_ros_to_eigen(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -13,6 +14,7 @@ types::Eta eta_convert_from_ros_to_eigen(
     eta.ori.x() = msg->pose.pose.orientation.x;
     eta.ori.y() = msg->pose.pose.orientation.y;
     eta.ori.z() = msg->pose.pose.orientation.z;
+
     return eta;
 }
 

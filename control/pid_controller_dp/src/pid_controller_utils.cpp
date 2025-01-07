@@ -1,5 +1,6 @@
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include <iostream>
+#include <algorithm>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
@@ -17,6 +18,29 @@ types::Matrix6d float64multiarray_to_diagonal_matrix6d(
 }
 
 types::Matrix3d calculate_R_quat(const types::Eta& eta) {
+
+    types::Vector4d q_norm = eta.ori.normalized().coeffs();
+    double nu = q_norm(3);
+    double eps_1 = q_norm(0);
+    double eps_2 = q_norm(1);
+    double eps_3 = q_norm(2);
+
+    double r11 = 1 - (2 * ((eps_2 * eps_2) + (eps_3 * eps_3)));
+    double r12 = 2 * ((eps_1 * eps_2) + (eps_3 * nu));
+    double r13 = 2 * ((eps_1 * eps_3) - (eps_2 * nu));
+    double r21 = 2 * ((eps_1 * eps_2) - (eps_3 * nu));
+    double r22 = 1 - (2 * ((eps_1 * eps_1) + (eps_3 * eps_3)));
+    double r23 = 2 * ((eps_2 * eps_3) + (eps_1 * nu));
+    double r31 = 2 * ((eps_1 * eps_3) + (eps_2 * nu));
+    double r32 = 2 * ((eps_2 * eps_3) - (eps_1 * nu));
+    double r33 = 1 - (2 * ((eps_1 * eps_1) + (eps_2 * eps_2)));
+
+    Eigen::Matrix3d R;
+    R << r11, r21, r31, r12, r22, r32, r13, r23, r33;
+
+    std::cout << "R" << R << std::endl;
+    std::cout << "R_R" << eta.ori.normalized().toRotationMatrix() << std::endl;
+
     return eta.ori.normalized().toRotationMatrix();
 }
 
@@ -46,7 +70,9 @@ types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
     types::Matrix3d R = calculate_R_quat(eta_norm);
     types::Matrix4x3d T = calculate_T_quat(eta_norm);
 
-    types::J_transformation J = {R, T};
+    types::J_transformation J;
+    J.R = R;
+    J.T = T;
 
     // Perform Singular Value Decomposition (SVD) on the matrix J
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(
@@ -72,20 +98,15 @@ types::Eta error_eta(const types::Eta& eta, const types::Eta& eta_d) {
     types::Eta eta_error;
 
     eta_error.pos = eta.pos - eta_d.pos;
-    eta_error.ori = eta.ori * eta_d.ori.inverse();
+    eta_error.ori = eta_d.ori.conjugate() * eta.ori;
+
+    eta_error.ori = eta_error.ori.normalized();
 
     return eta_error;
 }
 
-Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
-                             double min_val,
-                             double max_val) {
-    auto clamp = [min_val, max_val](double x) {
-        return std::clamp(x, min_val, max_val);
-    };
-    Eigen::VectorXd clamped_values = values.unaryExpr(clamp);
-
-    return clamped_values;
+Eigen::VectorXd clamp_values(const Eigen::VectorXd& values, double min_val, double max_val) {
+    return values.cwiseMax(min_val).cwiseMin(max_val);
 }
 
 types::Vector7d anti_windup(const double dt,
@@ -94,20 +115,19 @@ types::Vector7d anti_windup(const double dt,
     types::Eta error_norm;
 
     error_norm.pos = error.pos;
-    error_norm.ori = error.ori.normalized();
+    error_norm.ori = error.ori;
 
     types::Vector7d integral_anti_windup =
         integral + (error_norm.as_vector() * dt);
 
     integral_anti_windup = clamp_values(integral_anti_windup, -30.0, 30.0);
-
     return integral_anti_windup;
 }
 
 types::Vector6d limit_input(const types::Vector6d& input) {
     types::Vector6d limited_input = input;
 
-    limited_input = clamp_values(input, -95.0, 95.0);
+    limited_input = clamp_values(input, -85.0, 85.0);
 
     return limited_input;
 }

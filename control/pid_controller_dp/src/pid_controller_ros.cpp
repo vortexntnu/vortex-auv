@@ -1,29 +1,33 @@
-#include "pid_controller_dp/pid_controller_ros.hpp"
+#include <variant>
+#include <pid_controller_dp/pid_controller_ros.hpp>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
+
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+    auto qos_sensor_data = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/nucleus/odom", 10,
+        "/nucleus/odom", qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            "/dp/reference", 10,
+            "/dp/reference", qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
     kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kp", 10,
+        "/pid/kp", qos_sensor_data,
         std::bind(&PIDControllerNode::kp_callback, this,
                   std::placeholders::_1));
     ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/ki", 10,
+        "/pid/ki", qos_sensor_data,
         std::bind(&PIDControllerNode::ki_callback, this,
                   std::placeholders::_1));
     kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kd", 10,
+        "/pid/kd", qos_sensor_data,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
     tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
