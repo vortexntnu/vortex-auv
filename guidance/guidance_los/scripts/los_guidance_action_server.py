@@ -2,6 +2,7 @@
 
 import numpy as np
 import rclpy
+import threading
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
@@ -11,7 +12,7 @@ from guidance_los.los_guidance_algorithm import (
 )
 from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
-from rclpy.action.server import ServerGoalHandle
+from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -33,6 +34,10 @@ class LOSActionServer(Node):
 
     def __init__(self):
         super().__init__('los_guidance_node')
+        
+        # Initialize goal handle lock
+        self._goal_lock = threading.Lock()
+
 
         # update rate parameter
         self.declare_parameter('update_rate', 10.0)
@@ -186,8 +191,33 @@ class LOSActionServer(Node):
             NavigateWaypoints,
             'navigate_waypoints',
             execute_callback=self.execute_callback,
+            goal_callback=self.goal_callback,
+            cancel_callback=self.cancel_callback,
             callback_group=self.action_cb_group,
         )
+    
+    
+    def goal_callback(self, goal_request):
+        """Handle new goal requests with preemption."""
+        self.get_logger().info("Received new goal request")
+            
+        # Validate waypoints exist
+        if not goal_request.waypoints:
+            self.get_logger().warn("No waypoints in request, rejecting")
+            return GoalResponse.REJECT
+        
+        with self._goal_lock:
+            # If there's an active goal, preempt it
+            if self.goal_handle and self.goal_handle.is_active:
+                self.get_logger().info("Preempting current goal")
+                self.goal_handle.abort()
+            
+            return GoalResponse.ACCEPT
+
+    def cancel_callback(self, goal_handle):
+        """Handle cancellation requests."""
+        self.get_logger().info("Received cancel request")
+        return CancelResponse.ACCEPT
 
     def publish_log(self, message: str):
         """Publish debug log message to ROS topic and node logger (debug mode only)."""
@@ -290,8 +320,12 @@ class LOSActionServer(Node):
             self.goal_handle = goal_handle
             self.current_waypoint_index = 0
 
-            # Store waypoints directly as PoseStamped
-            self.waypoints = goal_handle.request.waypoints
+            # Initialize navigation goal with lock
+            with self._goal_lock:
+                self.goal_handle = goal_handle
+                self.current_waypoint_index = 0
+                # Store waypoints directly as PoseStamped
+                self.waypoints = goal_handle.request.waypoints
 
             self.publish_log(f'Received {len(self.waypoints)} waypoints')
 
@@ -321,7 +355,11 @@ class LOSActionServer(Node):
         except Exception as e:
             self.get_logger().error(f'Error in execute_callback: {str(e)}')
             return NavigateWaypoints.Result(success=False)
-
+        finally:
+            with self._goal_lock:
+                if self.goal_handle == goal_handle:
+                    self.goal_handle = None
+                    
     def publish_guidance(self, commands: State):
         """Publish the commanded surge velocity, pitch angle, and yaw angle."""
         msg = LOSGuidance()
