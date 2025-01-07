@@ -38,7 +38,8 @@ types::Matrix3d calculate_R_quat(const types::Eta& eta) {
     R << r11, r21, r31, r12, r22, r32, r13, r23, r33;
 
     // std::cout << "R" << R << std::endl;
-    // std::cout << "R_R" << eta.ori.normalized().toRotationMatrix() << std::endl;
+    // std::cout << "R_R" << eta.ori.normalized().toRotationMatrix() <<
+    // std::endl;
 
     return eta.ori.normalized().toRotationMatrix();
 }
@@ -75,7 +76,8 @@ types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
     std::cout << "J" << J.as_matrix() << std::endl;
 
     types::Matrix6x7d J_transpose = J.as_matrix().transpose();
-    types::Matrix6x7d J_pseudo_inv = (J_transpose * J.as_matrix()).inverse() * J_transpose;
+    types::Matrix6x7d J_pseudo_inv =
+        (J_transpose * J.as_matrix()).inverse() * J_transpose;
 
     return J_pseudo_inv;
 }
