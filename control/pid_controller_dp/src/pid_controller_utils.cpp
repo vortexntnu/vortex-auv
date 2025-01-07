@@ -1,6 +1,6 @@
 #include "pid_controller_dp/pid_controller_utils.hpp"
-#include <iostream>
 #include <algorithm>
+#include <iostream>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
@@ -18,7 +18,6 @@ types::Matrix6d float64multiarray_to_diagonal_matrix6d(
 }
 
 types::Matrix3d calculate_R_quat(const types::Eta& eta) {
-
     types::Vector4d q_norm = eta.ori.normalized().coeffs();
     double nu = q_norm(3);
     double eps_1 = q_norm(0);
@@ -105,7 +104,9 @@ types::Eta error_eta(const types::Eta& eta, const types::Eta& eta_d) {
     return eta_error;
 }
 
-Eigen::VectorXd clamp_values(const Eigen::VectorXd& values, double min_val, double max_val) {
+Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
+                             double min_val,
+                             double max_val) {
     return values.cwiseMax(min_val).cwiseMin(max_val);
 }
 

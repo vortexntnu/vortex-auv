@@ -1,16 +1,16 @@
-#include <variant>
 #include <pid_controller_dp/pid_controller_ros.hpp>
+#include <variant>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
-
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto qos_sensor_data = rclcpp::QoS(
+        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/nucleus/odom", qos_sensor_data,
+        "/orca/odom", qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
