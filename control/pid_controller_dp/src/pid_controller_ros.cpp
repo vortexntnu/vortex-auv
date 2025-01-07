@@ -10,28 +10,28 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/orca/odom", qos_sensor_data,
+        "/talha_test/orca/odom", qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            "/dp/reference", qos_sensor_data,
+            "/talha_test/dp/reference", qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
     kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kp", qos_sensor_data,
+        "/talha_test/pid/kp", qos_sensor_data,
         std::bind(&PIDControllerNode::kp_callback, this,
                   std::placeholders::_1));
     ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/ki", qos_sensor_data,
+        "/talha_test/pid/ki", qos_sensor_data,
         std::bind(&PIDControllerNode::ki_callback, this,
                   std::placeholders::_1));
     kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kd", qos_sensor_data,
+        "/talha_test/pid/kd", qos_sensor_data,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
     tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
-        "/thrust/wrench_input", 10);
+        "/talha_test/thrust/wrench_input", 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();

@@ -17,6 +17,8 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
 
     types::Matrix6x7d J_inv = calculate_J_sudo_inv(error);
 
+    std::cout << "J_inv" << J_inv << std::endl;
+
     types::Vector6d nu_d = J_inv * eta_dot_d.as_vector();
 
     types::Vector6d error_nu = nu.as_vector() - nu_d;

@@ -9,6 +9,7 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <variant>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/msg/pid_debug.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
