@@ -6,3 +6,10 @@ joystick_interface_auv:
     heave_scale_factor: 17.5
     roll_scale_factor: 30.0
     pitch_scale_factor: 20.0
+
+    surge_scale_ref_param: 5000.0
+    sway_scale_ref_param: 5000.0
+    heave_scale_ref_param: 5000.0
+    roll_scale_ref_param: 5000.0
+    pitch_scale_ref_param: 5000.0
+    yaw_scale_ref_param: 5000.0
