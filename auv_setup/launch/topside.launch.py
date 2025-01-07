@@ -33,7 +33,7 @@ def generate_launch_description() -> LaunchDescription:
             {"autorepeat_rate": 100.0},
         ],
         remappings=[
-            ("/joy", "/joystick/joy"),
+            ("/joy", "/orca/joy"),
         ],
     )
 

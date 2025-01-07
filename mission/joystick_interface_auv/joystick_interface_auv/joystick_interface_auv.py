@@ -5,110 +5,45 @@ from geometry_msgs.msg import Wrench
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String, Float64MultiArray
 from geometry_msgs.msg import PoseStamped, Quaternion, Wrench
+from vortex_msgs.msg import ReferenceFilter
 from nav_msgs.msg import Odometry
 import numpy as np
-
-class States:
-    XBOX_MODE = 1
-    AUTONOMOUS_MODE = 2
-    NO_GO = 3
-    REFERENCE_MODE = 4 
-
-class Wired:
-    joystick_buttons_map_ = [
-        "A",
-        "B",
-        "X",
-        "Y",
-        "LB",
-        "RB",
-        "back",
-        "start",
-        "power",
-        "stick_button_left",
-        "stick_button_right",
-        "share_button",
-]
-
-    joystick_axes_map_ = [
-        "horizontal_axis_left_stick", #Sway
-        "vertical_axis_left_stick", #Surge
-        "LT", #Negative thrust/torque multiplier
-        "horizontal_axis_right_stick", #Yaw
-        "vertical_axis_right_stick",
-        "RT", #Positive thrust/torque multiplier
-        "dpad_horizontal",
-        "dpad_vertical",
-]
-
-class WirelessXboxSeriesX:
-    joystick_buttons_map_ = [
-        "A",
-        "B",
-        "0",
-        "X",
-        "Y",
-        "0",
-        "LB",
-        "RB",
-        "0",
-        "0",
-        "back",
-        "start",
-        "power",
-        "stick_button_left",
-        "stick_button_right",
-        "share_button",
-]
-
-    joystick_axes_map_ = [
-        "horizontal_axis_left_stick", #Sway
-        "vertical_axis_left_stick", #Surge
-        "horizontal_axis_right_stick", #Yaw
-        "vertical_axis_right_stick",
-        "RT", #Positive thrust/torque multiplier
-        "LT", #Negative thrust/torque multiplier
-        "dpad_horizontal",
-        "dpad_vertical",
-]
+from joystick_utils import Wired, WirelessXboxSeriesX, JoyStates, State, euler_to_quat, quat_to_euler
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 class JoystickInterface(Node):
 
     def __init__(self):
         super().__init__('joystick_interface_node')
-        self.get_logger().info("Joystick interface is up and running. \n When the XBOX controller is connected, press the killswitch button once to enter XBOX mode.")
+        self.get_logger().info(".")
+
+        best_effort_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
 
         self.last_button_press_time_ = 0
         self.debounce_duration_ = 0.25
-        self.state_ = States.NO_GO
+        self.state_ = JoyStates.REFERENCE_MODE
         self.precise_manuevering_scaling_ = 1.0
-        self.surge = 0.0
-        self.sway = 0.0
-        self.heave = 0.0
-        self.roll = 0.0
-        self.pitch = 0.0
-        self.yaw = 0.0
         self.joystick_buttons_map_ = []
-        self.current_roll = 0.0
-        self.current_pitch = 0.0    
-        self.current_yaw = 0.0
 
-        self.current_odom = Odometry()
+        self.current_state = State()
+        self.desired_state = State()
 
         self.euler_angle_publisher = self.create_publisher(Float64MultiArray, "joystick/roll", 10)
 
         self.joystick_axes_map_ = []
 
         self.joy_subscriber_ = self.create_subscription(
-        Joy, "joystick/joy", self.joystick_cb, 5)
+        Joy, "orca/joy", self.joystick_cb, 5)
         self.odom_subscriber_ = self.create_subscription(
-            Odometry, "/nucleus/odom", self.odom_cb, 10)
+            Odometry, "/orca/odom", self.odom_cb, qos_profile=best_effort_qos)
         self.wrench_publisher_ = self.create_publisher(Wrench,
         "joystick/wrench",
         10) 
-        self.pose_publisher = self.create_publisher(PoseStamped, "/dp/guidance", 10) 
-        self.timer_ = self.create_timer(0.1, self.timer_cb) 
-
+        self.ref_publisher = self.create_publisher(ReferenceFilter, "/dp/guidance", 10) 
 
         self.declare_parameter('surge_scale_factor', 60.0)
         self.declare_parameter('sway_scale_factor', 60.0)
@@ -166,26 +101,25 @@ class JoystickInterface(Node):
 
     def odom_cb(self, msg: Odometry) -> None:
         # extract pose from odometry message
-        self.current_odom = msg
+        self.current_state.x = msg.pose.pose.position.x
+        self.current_state.y = msg.pose.pose.position.y
+        self.current_state.z = msg.pose.pose.position.z
 
-        
-
-
-    def create_pose_message(self): 
-        """
-        Creates a PoseStamped message with the current pose of the AUV.
-
-        This function creates a PoseStamped message, sets the current time as the timestamp,
-        and assigns the current pose of the AUV to the pose field of the message.
-
-        Returns:
-            PoseStamped: A ROS PoseStamped message containing the current pose of the AUV.
-        """
-        pose_msg = PoseStamped()
-        pose_msg.header.stamp = self.get_clock().now().to_msg()
-        pose_msg.header.frame_id = "base_link"
-        pose_msg.pose = self.current_pose.pose
-        return pose_msg
+        quat = np.array([msg.pose.pose.orientation.w, msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z])
+        euler_angles = quat_to_euler(quat)
+        self.current_state.roll = euler_angles[0]
+        self.current_state.pitch = euler_angles[1]
+        self.current_state.yaw = euler_angles[2]
+    
+    def create_reference_message(self) -> ReferenceFilter:
+        reference_msg = ReferenceFilter()
+        reference_msg.x = self.desired_state.x
+        reference_msg.y = self.desired_state.y
+        reference_msg.z = self.desired_state.z
+        reference_msg.roll = self.desired_state.roll
+        reference_msg.pitch = self.desired_state.pitch
+        reference_msg.yaw = self.desired_state.yaw
+        return reference_msg
 
     def create_wrench_message(self, surge: float, sway: float, heave: float, roll: float, pitch: float, yaw: float) -> Wrench:
         """
@@ -216,7 +150,7 @@ class JoystickInterface(Node):
         Turns off the controller and signals that the operational mode has switched to Xbox mode.
         """
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
-        self.state_ = States.XBOX_MODE
+        self.state_ = JoyStates.XBOX_MODE
         self.get_logger().info("Transitioned to XBOX mode.")
         self.get_logger().info("XBOX mode")
 
@@ -225,11 +159,18 @@ class JoystickInterface(Node):
         """
         Publishes a pose message and signals that the operational mode has switched to Reference mode.
         """
-        pose_msg = self.create_pose_message() 
-        pose_msg.pose = self.current_odom.pose.pose
+        self.desired_state = State(
+            x=self.current_state.x,
+            y=self.current_state.y,
+            z=self.current_state.z,
+            roll=self.current_state.roll,
+            pitch=self.current_state.pitch,
+            yaw=self.current_state.yaw
+        )
+        reference_msg = self.create_reference_message()
         self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
-        self.pose_publisher.publish(pose_msg)
-        self.state_ = States.REFERENCE_MODE
+        self.ref_publisher.publish(reference_msg)
+        self.state_ = JoyStates.REFERENCE_MODE
         self.get_logger().info("Transitioned to reference mode")
         self.get_logger().info("Reference mode")
 
@@ -242,8 +183,8 @@ class JoystickInterface(Node):
         wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         self.wrench_publisher_.publish(wrench_msg)
         self.operational_mode_signal_publisher_.publish(
-        String(data="autonomous mode"))
-        self.state_ = States.AUTONOMOUS_MODE
+            String(data="autonomous mode"))
+        self.state_ = JoyStates.AUTONOMOUS_MODE
         self.get_logger().info("autonomous mode")
 
 
@@ -263,13 +204,13 @@ class JoystickInterface(Node):
 
     def populate_buttons_dictionary(self, msg: Joy) -> None:
         """
-        Populates a dictionary with button states from the joystick message.
+        Populates a dictionary with button JoyStates from the joystick message.
         
         Args:
             msg: A ROS message containing the joy input data.
         
         Returns:
-            A dictionary with button names as keys and their states as values.
+            A dictionary with button names as keys and their JoyStates as values.
         """
         buttons = {}
         for i, button_name in enumerate(self.joystick_buttons_map_):
@@ -304,7 +245,7 @@ class JoystickInterface(Node):
         Calculates the movement values based on joystick input.
 
         Args:
-            axes: A dictionary with axis names as keys and their states as values.
+            axes: A dictionary with axis names as keys and their JoyStates as values.
             left_trigger: The value of the left trigger.
             right_trigger: The value of the right trigger.
             left_shoulder: The state of the left shoulder button.
@@ -343,7 +284,7 @@ class JoystickInterface(Node):
         The function ensures that the AUV stops moving when the killswitch is activated
         and allows it to resume operation when the killswitch is deactivated.
         """
-        if self.state_ == States.NO_GO:
+        if self.state_ == JoyStates.NO_GO:
             # Signal that killswitch is not blocking
             self.software_killswitch_signal_publisher_.publish(
                 Bool(data=False))
@@ -360,7 +301,7 @@ class JoystickInterface(Node):
             wrench_msg = self.create_wrench_message(
                 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
             self.wrench_publisher_.publish(wrench_msg)
-            self.state_ = States.NO_GO
+            self.state_ = JoyStates.NO_GO
             return 
 
     def joystick_cb(self, msg: Joy) -> Wrench:
@@ -368,11 +309,11 @@ class JoystickInterface(Node):
         Callback function that receives joy messages and converts them into
         wrench messages to be sent to the thruster allocation node. 
         Handles software killswitch and control mode buttons,
-        and transitions between different states of operation.
+        and transitions between different JoyStates of operation.
 
         This function performs the following steps:
         1. Checks the number of buttons to set the correct joystick map.
-        2. Populates dictionaries for button and axis states.
+        2. Populates dictionaries for button and axis JoyStates.
         3. Extracts specific button and axis values.
         4. Calculates movement values based on joystick input.
         5. Debounces button presses to prevent multiple triggers within a short duration.
@@ -421,7 +362,7 @@ class JoystickInterface(Node):
         if software_killswitch_button:
             self.handle_killswitch_button()
 
-        if self.state_ == States.XBOX_MODE:
+        if self.state_ == JoyStates.XBOX_MODE:
             wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
                                                 self.roll, self.pitch, self.yaw)
             self.wrench_publisher_.publish(wrench_msg)
@@ -430,129 +371,40 @@ class JoystickInterface(Node):
             elif reference_mode_button:
                 self.transition_to_reference_mode()
 
-        elif self.state_ == States.AUTONOMOUS_MODE:
+        elif self.state_ == JoyStates.AUTONOMOUS_MODE:
 
             if xbox_control_mode_button:
                 self.transition_to_xbox_mode()
             elif reference_mode_button:
                 self.transition_to_reference_mode() 
 
-        elif self.state_ == States.REFERENCE_MODE:
+        elif self.state_ == JoyStates.REFERENCE_MODE:
+            self.update_reference()
+            msg = self.create_reference_message() 
+            self.ref_publisher.publish(msg)
 
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
             elif xbox_control_mode_button:
                 self.transition_to_xbox_mode()
 
-    def update_current_pose(self): 
+
+    def update_reference(self): 
         """
         Updates the current pose of the AUV based on joystick inputs.
         The position and orientation (roll, pitch, yaw) are updated
         using the current joystick inputs scaled by their respective parameters.
         """
-        self.current_pose.pose.position.x += self.surge / self.joystick_surge_param_
-        self.current_pose.pose.position.y += self.sway / self.joystick_sway_param_
-        self.current_pose.pose.position.z += self.heave / self.joystick_heave_param_
-        self.current_roll += self.roll / self.joystick_roll_param_
-        self.current_pitch += self.pitch / self.joystick_pitch_param_
-        self.current_yaw += self.yaw / self.joystick_yaw_param_
+        self.desired_state.x += self.surge / self.joystick_surge_param_
+        self.desired_state.y += self.sway / self.joystick_sway_param_
+        self.desired_state.z += self.heave / self.joystick_heave_param_
+        self.desired_state.roll += self.roll / self.joystick_roll_param_
+        self.desired_state.pitch += self.pitch / self.joystick_pitch_param_
+        self.desired_state.yaw += self.yaw / self.joystick_yaw_param_
 
-        self.current_roll = self.ssa(self.current_roll)
-        self.current_pitch = self.ssa(self.current_pitch)
-        self.current_yaw = self.ssa(self.current_yaw)
-
-    def create_quaternion_msg(self) -> Quaternion:
-        """
-        Converts the current Euler angles (roll, pitch, yaw) to a quaternion.
-
-        Returns:
-        A Quaternion object representing the orientation.
-        """
-        q = self.euler_to_quat(self.current_roll, self.current_pitch, self.current_yaw)
-        quaternion = Quaternion()
-        quaternion.w = q[0]
-        quaternion.x = q[1]
-        quaternion.y = q[2]
-        quaternion.z = q[3]
-        return quaternion
-    
-    def reference_pose(self):
-        """
-        Updates and publishes the current pose of the AUV in reference mode.
-
-        This function performs the following steps:
-        1. Updates the current pose based on joystick inputs.
-        2. Converts the current Euler angles (roll, pitch, yaw) to a quaternion.
-        3. Sets the orientation of the current pose to the calculated quaternion.
-        4. Publishes the updated pose to the pose publisher.
-
-        This function is typically called periodically to ensure that the AUV's
-        pose is continuously updated and published while in reference mode.
-        """
-        self.update_current_pose() 
-        quaternion = self.create_quaternion_msg()
-        self.current_pose.pose.orientation = quaternion
-        self.pose_publisher.publish(self.current_pose)
-
-
-    def timer_cb(self):
-        """
-        Timer callback function that is periodically called to update and publish the AUV's state.
-
-        This function performs the following actions:
-        1. Checks if the current state is REFERENCE_MODE.
-        2. If in REFERENCE_MODE, it updates and publishes the current pose.
-        3. Converts the current Euler angles (roll, pitch, yaw) to degrees.
-        4. Publishes the Euler angles as a Float64MultiArray message.
-
-        This function ensures that the AUV's pose and orientation are continuously updated
-        and published while in reference mode.
-
-        Note:
-            This function is typically called periodically by a timer.
-        """
-        if self.state_ == States.REFERENCE_MODE:
-            self.reference_pose()
-            msg = self.create_pose_message() 
-            self.pose_publisher.publish(msg)
-            euler_msg = Float64MultiArray()
-            roll_deg = self.current_roll * 180 / np.pi
-            pitch_deg = self.current_pitch * 180 / np.pi
-            yaw_deg = self.current_yaw * 180 / np.pi
-            euler_msg.data = [roll_deg, pitch_deg, yaw_deg]
-            self.euler_angle_publisher.publish(euler_msg)
-
-
-    @staticmethod
-    def euler_to_quat(roll: float, pitch: float, yaw: float) -> np.ndarray:
-        """
-        Converts Euler angles (roll, pitch, yaw) to a quaternion.
-
-        This function converts the provided Euler angles (in radians) to a quaternion
-        representation. The quaternion is returned as a NumPy array with four elements:
-        [w, x, y, z].
-
-        Args:
-            roll (float): The roll angle in radians.
-            pitch (float): The pitch angle in radians.
-            yaw (float): The yaw angle in radians.
-
-        Returns:
-            np.ndarray: A NumPy array representing the quaternion [w, x, y, z].
-        """
-        cy = np.cos(yaw * 0.5)
-        sy = np.sin(yaw * 0.5)
-        cp = np.cos(pitch * 0.5)
-        sp = np.sin(pitch * 0.5)
-        cr = np.cos(roll * 0.5)
-        sr = np.sin(roll * 0.5)
-
-        w = cy * cp * cr + sy * sp * sr
-        x = cy * cp * sr - sy * sp * cr
-        y = sy * cp * sr + cy * sp * cr
-        z = sy * cp * cr - cy * sp * sr
-
-        return np.array([w, x, y, z])
+        self.desired_state.roll = self.ssa(self.desired_state.roll)
+        self.desired_state.pitch = self.ssa(self.desired_state.pitch)
+        self.desired_state.yaw = self.ssa(self.desired_state.yaw)
     
     @staticmethod
     def ssa(angle: float) -> float:
