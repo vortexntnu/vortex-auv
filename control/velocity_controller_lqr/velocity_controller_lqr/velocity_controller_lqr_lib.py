@@ -148,7 +148,7 @@ class LQRController:
         else:
             windup = False
 
-        return value, windup
+        return windup, value
 
     @staticmethod
     def anti_windup(
@@ -341,9 +341,8 @@ class LQRController:
         )
 
         state_error = self.update_error(guidance_values, states)
+        u = self.saturate_input(-lqr_gain @ state_error)
 
-        u = self.saturate_input(lqr_gain @ state_error)
-        u = -lqr_gain @ state_error
         return u
 
     def reset_controller(self) -> None:
