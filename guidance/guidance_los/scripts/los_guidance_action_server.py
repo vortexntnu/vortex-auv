@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import threading
+
 import numpy as np
 import rclpy
-import threading
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
@@ -12,7 +13,7 @@ from guidance_los.los_guidance_algorithm import (
 )
 from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
-from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
+from rclpy.action.server import CancelResponse, GoalResponse, ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -34,10 +35,9 @@ class LOSActionServer(Node):
 
     def __init__(self):
         super().__init__('los_guidance_node')
-        
+
         # Initialize goal handle lock
         self._goal_lock = threading.Lock()
-
 
         # update rate parameter
         self.declare_parameter('update_rate', 10.0)
@@ -195,28 +195,41 @@ class LOSActionServer(Node):
             cancel_callback=self.cancel_callback,
             callback_group=self.action_cb_group,
         )
-    
-    
+
     def goal_callback(self, goal_request):
         """Handle new goal requests with preemption."""
         self.get_logger().info("Received new goal request")
-            
+
         # Validate waypoints exist
         if not goal_request.waypoints:
             self.get_logger().warn("No waypoints in request, rejecting")
             return GoalResponse.REJECT
-        
+
         with self._goal_lock:
             # If there's an active goal, preempt it
             if self.goal_handle and self.goal_handle.is_active:
                 self.get_logger().info("Preempting current goal")
                 self.goal_handle.abort()
-            
+
             return GoalResponse.ACCEPT
 
-    def cancel_callback(self, goal_handle):
+    def cancel_callback(self, goal_handle: ServerGoalHandle):
         """Handle cancellation requests."""
         self.get_logger().info("Received cancel request")
+        
+        with self._goal_lock:
+            if self.goal_handle == goal_handle:
+                # Reset navigation state
+                self.waypoints = []
+                self.current_waypoint_index = 0
+                self.goal_handle = None
+                
+                # Reset guidance state if needed
+                initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
+                self.guidance_calculator.reset_filter_state(initial_commands)
+                
+                self.publish_log("Navigation canceled and state reset")
+        
         return CancelResponse.ACCEPT
 
     def publish_log(self, message: str):
@@ -359,7 +372,7 @@ class LOSActionServer(Node):
             with self._goal_lock:
                 if self.goal_handle == goal_handle:
                     self.goal_handle = None
-                    
+
     def publish_guidance(self, commands: State):
         """Publish the commanded surge velocity, pitch angle, and yaw angle."""
         msg = LOSGuidance()
