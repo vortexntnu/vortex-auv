@@ -216,20 +216,20 @@ class LOSActionServer(Node):
     def cancel_callback(self, goal_handle: ServerGoalHandle):
         """Handle cancellation requests."""
         self.get_logger().info("Received cancel request")
-        
+
         with self._goal_lock:
             if self.goal_handle == goal_handle:
                 # Reset navigation state
                 self.waypoints = []
                 self.current_waypoint_index = 0
                 self.goal_handle = None
-                
+
                 # Reset guidance state if needed
                 initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
                 self.guidance_calculator.reset_filter_state(self.state)
-                
+
                 self.publish_log("Navigation canceled and state reset")
-        
+
         return CancelResponse.ACCEPT
 
     def publish_log(self, message: str):
