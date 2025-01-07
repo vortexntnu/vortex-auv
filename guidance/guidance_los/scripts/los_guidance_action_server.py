@@ -84,7 +84,7 @@ class LOSActionServer(Node):
         self.declare_parameter('los_guidance.filter.omega_diag', [2.5, 2.5, 2.5])
         self.declare_parameter('los_guidance.filter.zeta_diag', [0.7, 0.7, 0.7])
 
-    def get_los_parameters_(self) -> dict:
+    def get_los_parameters_(self) -> LOSParameters:
         los_params = LOSParameters()
         los_params.lookahead_distance_min = self.get_parameter(
             'los_guidance.h_delta_min'
@@ -105,7 +105,7 @@ class LOSActionServer(Node):
         los_params.depth_gain = self.get_parameter('los_guidance.depth_gain').value
         return los_params
 
-    def get_filter_parameters_(self) -> dict:
+    def get_filter_parameters_(self) -> FilterParameters:
         filter_params = FilterParameters()
         filter_params.omega_diag = self.get_parameter(
             'los_guidance.filter.omega_diag'
@@ -226,7 +226,7 @@ class LOSActionServer(Node):
                 
                 # Reset guidance state if needed
                 initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
-                self.guidance_calculator.reset_filter_state(initial_commands)
+                self.guidance_calculator.reset_filter_state(self.state)
                 
                 self.publish_log("Navigation canceled and state reset")
         
@@ -347,6 +347,7 @@ class LOSActionServer(Node):
 
             while rclpy.ok():
                 if not goal_handle.is_active:
+                    # reset filter here
                     return NavigateWaypoints.Result(success=False)
 
                 if goal_handle.is_cancel_requested:

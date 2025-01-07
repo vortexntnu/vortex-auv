@@ -71,14 +71,6 @@ class FilterParameters:
     omega_diag: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 1.0]))
     zeta_diag: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 1.0]))
 
-    def get_omega_matrix(self) -> np.ndarray:
-        """Get omega diagonal matrix."""
-        return np.diag(self.omega_diag)
-
-    def get_zeta_matrix(self) -> np.ndarray:
-        """Get zeta diagonal matrix."""
-        return np.diag(self.zeta_diag)
-
 
 class ThirdOrderLOSGuidance:
     """This class implements the Line-of-Sight (LOS) guidance algorithm.
@@ -172,8 +164,6 @@ class ThirdOrderLOSGuidance:
         filtered_commands.yaw = self.ssa(filtered_commands.yaw)
         return filtered_commands
 
-    def reset_filter_state(self, current_commands: np.ndarray) -> None:
+    def reset_filter_state(self, current_state: State) -> None:
         self.x = np.zeros(9)
-        self.x[0:3] = current_commands
-        self.x[3:6] = np.zeros(3)
-        self.x[6:9] = np.zeros(3)
+        self.x[0:3] = current_state.as_los_array()
