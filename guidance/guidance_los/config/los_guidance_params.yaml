@@ -14,14 +14,10 @@ los_guidance_node:
 
     topics:
       publishers:
-        los_commands: '/guidance/LOS_commands'
+        los_commands: '/guidance/los'
         debug:
           reference: '/guidance/debug/reference'
           errors: '/guidance/debug/errors'
           logs: '/guidance/debug/logs'
       subscribers:
         odometry: '/nucleus/odom'
-
-    qos:
-      publisher_depth: 10
-      subscriber_depth: 10

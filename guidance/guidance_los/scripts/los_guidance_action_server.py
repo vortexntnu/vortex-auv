@@ -1,44 +1,38 @@
 #!/usr/bin/env python3
 
-from dataclasses import dataclass
-
 import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseStamped, Vector3Stamped
-from guidance_los.los_guidance_algorithm import ThirdOrderLOSGuidance
+from guidance_los.los_guidance_algorithm import (
+    FilterParameters,
+    LOSParameters,
+    State,
+    ThirdOrderLOSGuidance,
+)
 from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
 from rclpy.action.server import ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
 from transforms3d.euler import quat2euler
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
 
-
-@dataclass(slots=True)
-class State:
-    """Data class representing the current state of the vehicle."""
-
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
-    yaw: float = 0.0
-    pitch: float = 0.0
-    surge_vel: float = 0.0
-
-    def as_ndarray(self) -> np.ndarray:
-        """Convert state to numpy array for guidance calculations."""
-        return np.array([self.x, self.y, self.z, self.yaw, self.pitch])
+best_effort_qos = QoSProfile(
+    reliability=ReliabilityPolicy.BEST_EFFORT,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+)
 
 
 class LOSActionServer(Node):
     """ROS2 Action Server node for waypoint navigation using LOS guidance."""
 
     def __init__(self):
-        super().__init__('guidance_action_server')
+        super().__init__('los_guidance_node')
 
         # update rate parameter
         self.declare_parameter('update_rate', 10.0)
@@ -57,19 +51,20 @@ class LOSActionServer(Node):
         self.timer_cb_group = ReentrantCallbackGroup()
 
         # Initialize parameters and topics
-        self._declare_los_parameters()
+        self.declare_los_parameters_()
         self._declare_topic_parameters()
         self._initialize_publishers()
         self._initialize_subscribers()
         self._initialize_state()
         self._initialize_action_server()
 
-        los_params = self._declare_los_parameters()
+        los_params = self.get_los_parameters_()
+        filter_params = self.get_filter_parameters_()
 
         # Initialize guidance calculator with third-order filtering
-        self.guidance_calculator = ThirdOrderLOSGuidance(los_params)
+        self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
 
-    def _declare_los_parameters(self):
+    def declare_los_parameters_(self):
         """Declare all LOS guidance parameters."""
         # Declare main LOS parameters
         self.declare_parameter('los_guidance.h_delta_min', 1.0)
@@ -84,30 +79,41 @@ class LOSActionServer(Node):
         self.declare_parameter('los_guidance.filter.omega_diag', [2.5, 2.5, 2.5])
         self.declare_parameter('los_guidance.filter.zeta_diag', [0.7, 0.7, 0.7])
 
-    def _get_los_parameters(self) -> dict:
-        """Get all LOS parameters and return them as a dictionary."""
-        return {
-            'h_delta_min': self.get_parameter('los_guidance.h_delta_min').value,
-            'h_delta_max': self.get_parameter('los_guidance.h_delta_max').value,
-            'h_delta_factor': self.get_parameter('los_guidance.h_delta_factor').value,
-            'nominal_speed': self.get_parameter('los_guidance.nominal_speed').value,
-            'min_speed': self.get_parameter('los_guidance.min_speed').value,
-            'max_pitch_angle': self.get_parameter('los_guidance.max_pitch_angle').value,
-            'depth_gain': self.get_parameter('los_guidance.depth_gain').value,
-            'filter': {
-                'omega_diag': self.get_parameter(
-                    'los_guidance.filter.omega_diag'
-                ).value,
-                'zeta_diag': self.get_parameter('los_guidance.filter.zeta_diag').value,
-            },
-        }
+    def get_los_parameters_(self) -> dict:
+        los_params = LOSParameters()
+        los_params.lookahead_distance_min = self.get_parameter(
+            'los_guidance.h_delta_min'
+        ).value
+        los_params.lookahead_distance_max = self.get_parameter(
+            'los_guidance.h_delta_max'
+        ).value
+        los_params.lookahead_distance_factor = self.get_parameter(
+            'los_guidance.h_delta_factor'
+        ).value
+        los_params.nominal_speed = self.get_parameter(
+            'los_guidance.nominal_speed'
+        ).value
+        los_params.min_speed = self.get_parameter('los_guidance.min_speed').value
+        los_params.max_pitch_angle = self.get_parameter(
+            'los_guidance.max_pitch_angle'
+        ).value
+        los_params.depth_gain = self.get_parameter('los_guidance.depth_gain').value
+        return los_params
+
+    def get_filter_parameters_(self) -> dict:
+        filter_params = FilterParameters()
+        filter_params.omega_diag = self.get_parameter(
+            'los_guidance.filter.omega_diag'
+        ).value
+        filter_params.zeta_diag = self.get_parameter(
+            'los_guidance.filter.zeta_diag'
+        ).value
+        return filter_params
 
     def _declare_topic_parameters(self):
         """Declare parameters for all topics."""
         # Publishers
-        self.declare_parameter(
-            'topics.publishers.los_commands', '/guidance/LOS_commands'
-        )
+        self.declare_parameter('topics.publishers.los_commands', '/guidance/los')
         self.declare_parameter(
             'topics.publishers.debug.reference', '/guidance/debug/reference'
         )
@@ -129,8 +135,9 @@ class LOSActionServer(Node):
 
         # Main guidance command publisher
         los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
+        self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
         self.guidance_cmd_pub = self.create_publisher(
-            LOSGuidance, los_commands_topic, pub_qos_depth
+            LOSGuidance, los_commands_topic, qos_profile=best_effort_qos
         )
 
         # Debug publishers
@@ -153,14 +160,14 @@ class LOSActionServer(Node):
 
     def _initialize_subscribers(self):
         """Initialize subscribers."""
-        sub_qos_depth = self.get_parameter('qos.subscriber_depth').value
+        # sub_qos_depth = self.get_parameter('qos.subscriber_depth').value
         odom_topic = self.get_parameter('topics.subscribers.odometry').value
 
         self.create_subscription(
             Odometry,
             odom_topic,
             self.odom_callback,
-            sub_qos_depth,
+            qos_profile=best_effort_qos,
             callback_group=self.timer_cb_group,
         )
 
@@ -169,7 +176,7 @@ class LOSActionServer(Node):
         self.state: State = State()
         self.waypoints: list[PoseStamped] = []
         self.current_waypoint_index: int = 0
-        self.goal_handle: ServerGoalHandle[NavigateWaypoints] | None = None
+        self.goal_handle: ServerGoalHandle = None
         self.update_period = 0.1
 
     def _initialize_action_server(self):
@@ -212,6 +219,9 @@ class LOSActionServer(Node):
             self.guidance_calculator.reset_filter_state(initial_commands)
             self.filter_initialized = True
 
+        if not self.debug_mode:
+            return
+
         # Log current position for debugging
         self.publish_log(
             f"Position: x={self.state.x:.3f}, "
@@ -229,34 +239,27 @@ class LOSActionServer(Node):
 
         # Extract position from PoseStamped waypoint
         current_waypoint = self.waypoints[self.current_waypoint_index]
-        target_point = np.array(
-            [
-                current_waypoint.pose.position.x,
-                current_waypoint.pose.position.y,
-                current_waypoint.pose.position.z,
-            ]
+        target_point = State(
+            x=current_waypoint.pose.position.x,
+            y=current_waypoint.pose.position.y,
+            z=current_waypoint.pose.position.z,
         )
         # Compute guidance commands using current state
-        commands, distance, depth_error = self.guidance_calculator.compute_guidance(
-            self.state.as_ndarray(), target_point, self.update_period
-        )
+        commands = self.guidance_calculator.compute_guidance(self.state, target_point)
 
         # Publish commands and monitoring data
         self.publish_guidance(commands)
-        self.publish_reference(
-            self.waypoints[self.current_waypoint_index]
-        )  # Pass full PoseStamped
-        self.publish_errors(target_point, depth_error)
+        # self.publish_errors(target_point, depth_error)
 
         # Log guidance status
-        self.publish_log(
-            f"Guidance Status: surge={commands[0]:.2f}, "
-            f"pitch={commands[1]:.2f}, yaw={commands[2]:.2f}"
-        )
-        self.publish_log(f"Distance to target: {distance:.2f}")
+        # self.publish_log(
+        #     f"Guidance Status: surge={commands.surge_vel:.2f}, "
+        #     f"pitch={commands[1]:.2f}, yaw={commands[2]:.2f}"
+        # )
+        # self.publish_log(f"Distance to target: {distance:.2f}")
 
         # Check if waypoint is reached (0.5m threshold)
-        if distance < 0.5:
+        if self.guidance_calculator.horizontal_distance < 0.5:
             self.publish_log(f'Reached waypoint {self.current_waypoint_index}')
 
             # Reset filter state for next waypoint
@@ -278,7 +281,7 @@ class LOSActionServer(Node):
             feedback_msg.current_waypoint_index = float(self.current_waypoint_index)
             self.goal_handle.publish_feedback(feedback_msg)
 
-    def execute_callback(self, goal_handle: ServerGoalHandle[NavigateWaypoints]):
+    def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
         try:
             self.publish_log('Executing waypoint navigation...')
@@ -326,17 +329,6 @@ class LOSActionServer(Node):
         msg.pitch = commands.pitch
         msg.yaw = commands.yaw
         self.guidance_cmd_pub.publish(msg)
-
-    def publish_reference(self, target_pose: PoseStamped):
-        """Publish reference pose for monitoring (if debug mode is enabled)."""
-        if not self.debug_mode:
-            return
-
-        msg = PoseStamped()
-        msg.header.frame_id = "odom"
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.pose = target_pose.pose
-        self.guidance_ref_pub.publish(msg)
 
     def publish_errors(self, target_point: np.ndarray, depth_error: float):
         """Publish position errors for monitoring (if debug mode is enabled)."""
