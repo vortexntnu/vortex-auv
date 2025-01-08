@@ -107,19 +107,20 @@ class GoToDockState : public yasmin_ros::ActionState<GoToWaypoint> {
     }
 };
 
-class DockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
+class GoOverDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
-    DockState()
+    GoOverDockState()
         : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
               "/reference_filter",
-              std::bind(&DockState::create_goal_handler, this, _1),
-              std::bind(&DockState::response_handler, this, _1, _2),
-              std::bind(&DockState::print_feedback, this, _1, _2)) {};
+              std::bind(&GoOverDockState::create_goal_handler, this, _1),
+              std::bind(&GoOverDockState::response_handler, this, _1, _2),
+              std::bind(&GoOverDockState::print_feedback, this, _1, _2)) {};
 
     ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
         auto goal = ReferenceFilterWaypoint::Goal();
         auto dock_pose = blackboard->get<PoseStamped>("dock_pose");
+        dock_pose.pose.position.z += blackboard->get<float>("docking_station_offset");
         goal.goal = dock_pose;
         fprintf(stderr, "Goal sent to action server: \n");
         fprintf(stderr, "  Position: x = %f, y = %f, z = %f\n",
@@ -267,49 +268,6 @@ std::string ErrorState(
     return yasmin_ros::basic_outcomes::SUCCEED;
 };
 
-class GoToNextWaypointState : public yasmin_ros::ActionState<GoToWaypoint> {
-   public:
-    GoToNextWaypointState()
-        : yasmin_ros::ActionState<GoToWaypoint>(
-              "/go_right_over",
-              std::bind(&GoToNextWaypointState::create_goal_handler, this, _1),
-              std::bind(&GoToNextWaypointState::response_handler, this, _1, _2),
-              std::bind(&GoToNextWaypointState::print_feedback, this, _1, _2)) {
-          };
-
-    GoToWaypoint::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = GoToWaypoint::Goal();
-        goal.waypoint = blackboard->get<PoseStamped>("docking_goal");
-        return goal;
-    }
-
-    std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        GoToWaypoint::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
-
-        blackboard->set<bool>("has_finished_converging", response->success);
-        if (blackboard->get<bool>("has_finished_converging")) {
-            return yasmin_ros::basic_outcomes::SUCCEED;
-        } else {
-            return yasmin_ros::basic_outcomes::ABORT;
-        }
-    }
-
-    void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
-        (void)blackboard;
-        blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
-        fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-                feedback->current_pose.pose.position.x,
-                feedback->current_pose.pose.position.y,
-                feedback->current_pose.pose.position.z);
-    }
-};
-
 class GoDownState : public yasmin_ros::ActionState<GoToWaypoint> {
    public:
     GoDownState()
@@ -393,16 +351,11 @@ int main(int argc, char* argv[]) {
                   });
     sm->add_state("GO_TO_DOCK", std::make_shared<GoToDockState>(),
                   {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "DOCK"},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "error"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
-    sm->add_state("DOCK", std::make_shared<DockState>(),
-                  {
                       {yasmin_ros::basic_outcomes::SUCCEED, "dock_fsm"},
                       // {yasmin_ros::basic_outcomes::CANCEL, "error"},
                       {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                   });
+
     sm->add_state("DOCKED",
                   std::make_shared<yasmin::CbState>(
                       std::initializer_list<std::string>{
@@ -441,7 +394,7 @@ int main(int argc, char* argv[]) {
                   });
 
     nested_sm->add_state(
-        "GO_OVER_DOCK", std::make_shared<GoToNextWaypointState>(),
+        "GO_OVER_DOCK", std::make_shared<GoOverDockState>(),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
             {yasmin_ros::basic_outcomes::ABORT, "aborted"},
