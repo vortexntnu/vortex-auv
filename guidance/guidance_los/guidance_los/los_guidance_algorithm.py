@@ -187,6 +187,7 @@ class ThirdOrderLOSGuidance:
     def apply_reference_filter(self, commands: State) -> State:
         x_dot = self.Ad @ self.x + self.Bd @ commands.as_los_array()
         self.x = self.x + x_dot * self.los_params.dt
+        print(self.x[:3])
         return State(surge_vel=self.x[0], pitch=self.x[1], yaw=self.x[2])
 
     def compute_guidance(self, current_pos: State, target_pos: State) -> State:
@@ -199,4 +200,5 @@ class ThirdOrderLOSGuidance:
 
     def reset_filter_state(self, current_state: State) -> None:
         self.x = np.zeros(9)
-        self.x[0:3] = current_state.as_los_array()
+        current_state_array = np.array(current_state.as_los_array(), copy=True)
+        self.x[0:3] = current_state_array

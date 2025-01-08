@@ -20,4 +20,4 @@ los_guidance_node:
           errors: '/guidance/debug/errors'
           logs: '/guidance/debug/logs'
       subscribers:
-        odometry: '/nucleus/odom'
+        odometry: '/orca/odom'

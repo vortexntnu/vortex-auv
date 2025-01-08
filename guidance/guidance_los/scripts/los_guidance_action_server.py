@@ -127,7 +127,7 @@ class LOSActionServer(Node):
         self.declare_parameter('topics.publishers.debug.logs', '/guidance/debug/logs')
 
         # Subscribers
-        self.declare_parameter('topics.subscribers.odometry', '/nucleus/odom')
+        self.declare_parameter('topics.subscribers.odometry', '/orca/odom')
 
         # QoS settings
         self.declare_parameter('qos.publisher_depth', 10)
@@ -172,7 +172,7 @@ class LOSActionServer(Node):
             odom_topic,
             self.odom_callback,
             qos_profile=best_effort_qos,
-            callback_group=self.timer_cb_group,
+            #callback_group=self.timer_cb_group,
         )
 
     def _initialize_state(self):
@@ -242,10 +242,9 @@ class LOSActionServer(Node):
 
     def odom_callback(self, msg: Odometry):
         """Process odometry updates and trigger guidance calculations."""
-        # Extract orientation quaternion to Euler angles
         orientation_q = msg.pose.pose.orientation
         roll, pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
-            [orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z]
+            orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
         )
 
         # Update vehicle state
@@ -257,8 +256,7 @@ class LOSActionServer(Node):
 
         # Initialize filter on first callback
         if not self.filter_initialized:
-            initial_commands = np.array([0.0, 0.0, yaw])
-            self.guidance_calculator.reset_filter_state(initial_commands)
+            self.guidance_calculator.reset_filter_state(self.state)
             self.filter_initialized = True
 
         if not self.debug_mode:
@@ -305,8 +303,7 @@ class LOSActionServer(Node):
             self.publish_log(f'Reached waypoint {self.current_waypoint_index}')
 
             # Reset filter state for next waypoint
-            initial_commands = np.array([0.0, 0.0, self.state.yaw])
-            self.guidance_calculator.reset_filter_state(initial_commands)
+            self.guidance_calculator.reset_filter_state(self.state)
 
             self.current_waypoint_index += 1
 
@@ -327,26 +324,27 @@ class LOSActionServer(Node):
         """Execute waypoint navigation action."""
         self.publish_log('Executing waypoint navigation...')
 
-        # Initialize navigation goal
-        self.goal_handle = goal_handle
-        self.current_waypoint_index = 0
-
         # Initialize navigation goal with lock
         with self._goal_lock:
             self.goal_handle = goal_handle
-            self.current_waypoint_index = 0
-            # Store waypoints directly as PoseStamped
-            self.waypoints = goal_handle.request.waypoints
+        self.current_waypoint_index = 0
+        self.waypoints = goal_handle.request.waypoints
+
+        feedback = NavigateWaypoints.Feedback()
+        result = NavigateWaypoints.Result()
 
         self.publish_log(f'Received {len(self.waypoints)} waypoints')
 
         # Monitor navigation progress
         rate = self.create_rate(1.0 / self.update_period)
 
+        self.get_logger().info('Executing goal')
         while rclpy.ok():
             if not goal_handle.is_active:
-                # reset filter here
-                return NavigateWaypoints.Result(success=False)
+                # Preempted by another goal
+                result.success = False
+                self.guidance_calculator.reset_filter_state(self.state)
+                return result
 
             if goal_handle.is_cancel_requested:
                 self.publish_log('Goal canceled')
@@ -399,7 +397,8 @@ def main(args=None):
         action_server.get_logger().error(f'Error: {str(e)}')
     finally:
         action_server.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
