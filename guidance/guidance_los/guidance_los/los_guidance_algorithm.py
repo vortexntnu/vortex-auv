@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+
 import numpy as np
 
 
@@ -35,16 +36,15 @@ class State:
 
 @dataclass(slots=True)
 class LOSParameters:
-    """
-    Parameters for the 3D Line-of-Sight (LOS) guidance algorithm.
+    """Parameters for the 3D Line-of-Sight (LOS) guidance algorithm.
 
     This class consist the configurable parameters used in the LOS guidance system
     for determining navigation commands in 3D space.
 
     Attributes:
-        Δh (float): Horizontal look-ahead distance for LOS guidance [m]. 
+        Δh (float): Horizontal look-ahead distance for LOS guidance [m].
                     Determines how far ahead the algorithm looks in the horizontal plane.
-        Δv (float): Vertical look-ahead distance for LOS guidance [m]. 
+        Δv (float): Vertical look-ahead distance for LOS guidance [m].
                     Determines how far ahead the algorithm looks in the vertical plane.
         γh (float): Horizontal adaptive gain. Controls the responsiveness to horizontal cross-track errors.
         γv (float): Vertical adaptive gain. Controls the responsiveness to vertical cross-track errors.
@@ -59,16 +59,17 @@ class LOSParameters:
                              (`M_theta + epsilon`) used in adaptive parameter updates.
 
     """
-    Δh: float = 2.0  
-    Δv: float = 2.0  
-    γh: float = 1.0  
-    γv: float = 1.0  
-    M_theta: float = 0.5  
-    epsilon: float = 0.1  
+
+    Δh: float = 2.0
+    Δv: float = 2.0
+    γh: float = 1.0
+    γv: float = 1.0
+    M_theta: float = 0.5
+    epsilon: float = 0.1
     nominal_speed: float = 1.0
     min_speed: float = 0.1
     dt: float = 0.01
-    
+
     @property
     def M_hat_theta(self) -> float:
         return self.M_theta + self.epsilon
@@ -81,17 +82,17 @@ class FilterParameters:
     Attributes:
         omega_diag: Natural frequencies for surge, pitch, and yaw [rad/s]
         zeta_diag: Damping ratios for surge, pitch, and yaw [-]
-        
+
     """
+
     omega_diag: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 1.0]))
     zeta_diag: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 1.0]))
 
 
 class ThirdOrderLOSGuidance:
-    """
-    Implements a 3D Line-of-Sight (LOS) guidance algorithm.
+    """Implements a 3D Line-of-Sight (LOS) guidance algorithm.
 
-    Provides control outputs for surge, pitch, and yaw to navigate towards a target, 
+    Provides control outputs for surge, pitch, and yaw to navigate towards a target,
     incorporating adaptive parameter estimation and third-order filtering for smooth commands.
     """
 
@@ -103,7 +104,7 @@ class ThirdOrderLOSGuidance:
         self.setup_filter_matrices()
         self.β_c_hat = 0.0  # Estimated course correction
         self.α_c_hat = 0.0  # Estimated altitude correction
-        
+
     @staticmethod
     def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
         """Function to convert quaternion to euler angles.
@@ -136,7 +137,7 @@ class ThirdOrderLOSGuidance:
         psi = np.arctan2(t3, t4)
 
         return phi, theta, psi
-    
+
     @staticmethod
     def ssa(angle: float) -> float:
         """Smallest signed angle."""
@@ -164,51 +165,52 @@ class ThirdOrderLOSGuidance:
         dx = target.x - current.x
         dy = target.y - current.y
         dz = target.z - current.z
-        
+
         self.horizontal_distance = np.sqrt(dx**2 + dy**2)
-        
+
         # Compute azimuth angle πh
         π_h = np.arctan2(dy, dx)
-        
+
         # Compute elevation angle πv
         π_v = np.arctan2(-dz, self.horizontal_distance)
-        
+
         return π_h, π_v
 
-    def compute_path_frame_errors(self, current: State, target: State) -> tuple[float, float, float]:
+    def compute_path_frame_errors(
+        self, current: State, target: State
+    ) -> tuple[float, float, float]:
         """Compute errors in the path-tangential frame."""
         dx = target.x - current.x
         dy = target.y - current.y
         dz = target.z - current.z
-        
+
         π_h, π_v = self.compute_angles(current, target)
-        
+
         # Create rotation matrices
-        R_z = np.array([
-            [np.cos(π_h), -np.sin(π_h), 0],
-            [np.sin(π_h), np.cos(π_h), 0],
-            [0, 0, 1]
-        ])
-        
-        R_y = np.array([
-            [np.cos(π_v), 0, np.sin(π_v)],
-            [0, 1, 0],
-            [-np.sin(π_v), 0, np.cos(π_v)]
-        ])
-        
+        R_z = np.array(
+            [[np.cos(π_h), -np.sin(π_h), 0], [np.sin(π_h), np.cos(π_h), 0], [0, 0, 1]]
+        )
+
+        R_y = np.array(
+            [[np.cos(π_v), 0, np.sin(π_v)], [0, 1, 0], [-np.sin(π_v), 0, np.cos(π_v)]]
+        )
+
         # Compute errors in path frame
         error_n = np.array([dx, dy, dz])
         error_p = (R_y.T @ R_z.T @ error_n.reshape(3, 1)).flatten()
-        
+
         return error_p[0], error_p[1], error_p[2]
 
     def parameter_projection(self, param: float, error: float) -> float:
         """Implement the parameter projection function."""
         M = self.los_params.M_hat_theta
-        
+
         if abs(param) > M and param * error > 0:
-            c = min(1.0, (param**2 - self.los_params.M_theta**2) / 
-                   (self.los_params.M_hat_theta**2 - self.los_params.M_theta**2))
+            c = min(
+                1.0,
+                (param**2 - self.los_params.M_theta**2)
+                / (self.los_params.M_hat_theta**2 - self.los_params.M_theta**2),
+            )
             return (1 - c) * error
         return error
 
@@ -217,39 +219,49 @@ class ThirdOrderLOSGuidance:
         # Compute angles and errors
         π_h, π_v = self.compute_angles(current_pos, target_pos)
         x_e, y_e, z_e = self.compute_path_frame_errors(current_pos, target_pos)
-        
+
         # Compute desired heading angle ψd
         desired_yaw = π_h - self.β_c_hat - np.arctan2(y_e, self.los_params.Δh)
-        
+
         # Compute desired pitch angle θd
         desired_pitch = π_v + self.α_c_hat + np.arctan2(z_e, self.los_params.Δv)
-        
+
         # Update parameter estimates using projection
-        β_c_dot = self.los_params.γh * (self.los_params.Δh / 
-                  np.sqrt(self.los_params.Δh**2 + y_e**2)) * \
-                  self.parameter_projection(self.β_c_hat, y_e)
-        
-        α_c_dot = self.los_params.γv * (self.los_params.Δv / 
-                  np.sqrt(self.los_params.Δv**2 + z_e**2)) * \
-                  self.parameter_projection(self.α_c_hat, z_e)
-        
+        β_c_dot = (
+            self.los_params.γh
+            * (self.los_params.Δh / np.sqrt(self.los_params.Δh**2 + y_e**2))
+            * self.parameter_projection(self.β_c_hat, y_e)
+        )
+
+        α_c_dot = (
+            self.los_params.γv
+            * (self.los_params.Δv / np.sqrt(self.los_params.Δv**2 + z_e**2))
+            * self.parameter_projection(self.α_c_hat, z_e)
+        )
+
         # Update estimates
         self.β_c_hat += β_c_dot * self.los_params.dt
         self.α_c_hat += α_c_dot * self.los_params.dt
-        
+
         # Clip parameter estimates to bounds
-        self.β_c_hat = np.clip(self.β_c_hat, -self.los_params.M_hat_theta, self.los_params.M_hat_theta)
-        self.α_c_hat = np.clip(self.α_c_hat, -self.los_params.M_hat_theta, self.los_params.M_hat_theta)
+        self.β_c_hat = np.clip(
+            self.β_c_hat, -self.los_params.M_hat_theta, self.los_params.M_hat_theta
+        )
+        self.α_c_hat = np.clip(
+            self.α_c_hat, -self.los_params.M_hat_theta, self.los_params.M_hat_theta
+        )
 
         # Compute desired speed based on cross-track error
         yaw_error = self.ssa(desired_yaw - current_pos.yaw)
         desired_speed = self.compute_desired_speed(yaw_error, self.horizontal_distance)
 
         commands = State(surge_vel=desired_speed, pitch=desired_pitch, yaw=desired_yaw)
-        
+
         return commands
 
-    def compute_desired_speed(self, yaw_error: float, distance_to_target: float) -> float:
+    def compute_desired_speed(
+        self, yaw_error: float, distance_to_target: float
+    ) -> float:
         """Compute speed command with yaw and distance-based scaling."""
         yaw_factor = np.cos(yaw_error)
         distance_factor = min(1.0, distance_to_target / self.los_params.Δh)

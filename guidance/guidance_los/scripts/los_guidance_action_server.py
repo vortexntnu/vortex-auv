@@ -77,7 +77,7 @@ class LOSActionServer(Node):
 
     def get_los_parameters_(self) -> LOSParameters:
         los_params = LOSParameters()
-        
+
         los_params.lookahead_distance_min = self.get_parameter(
             'los_guidance.h_delta_min'
         ).value
@@ -90,15 +90,11 @@ class LOSActionServer(Node):
         los_params.nominal_speed = self.get_parameter(
             'los_guidance.nominal_speed'
         ).value
-        los_params.min_speed = self.get_parameter(
-            'los_guidance.min_speed'
-        ).value
+        los_params.min_speed = self.get_parameter('los_guidance.min_speed').value
         los_params.max_pitch_angle = self.get_parameter(
             'los_guidance.max_pitch_angle'
         ).value
-        los_params.depth_gain = self.get_parameter(
-            'los_guidance.depth_gain'
-        ).value
+        los_params.depth_gain = self.get_parameter('los_guidance.depth_gain').value
         return los_params
 
     def get_filter_parameters_(self) -> FilterParameters:
@@ -113,35 +109,27 @@ class LOSActionServer(Node):
 
     def _declare_topic_parameters(self):
         # Publishers
-        self.declare_parameter(
-            'topics.publishers.los_commands', '/guidance/los'
-        )
+        self.declare_parameter('topics.publishers.los_commands', '/guidance/los')
         self.declare_parameter(
             'topics.publishers.debug.reference', '/guidance/debug/reference'
         )
         self.declare_parameter(
             'topics.publishers.debug.errors', '/guidance/debug/errors'
         )
-        self.declare_parameter(
-            'topics.publishers.debug.logs', '/guidance/debug/logs'
-        )
+        self.declare_parameter('topics.publishers.debug.logs', '/guidance/debug/logs')
 
         # Subscribers
-        self.declare_parameter(
-            'topics.subscribers.odometry', '/orca/odom'
-        )
+        self.declare_parameter('topics.subscribers.odometry', '/orca/odom')
 
     def _initialize_publishers(self):
         """Initialize all publishers."""
         pub_qos_depth = 10
 
         # Main guidance command publisher
-        los_commands_topic = self.get_parameter(
-            'topics.publishers.los_commands'
-        ).value
-        
+        los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
+
         self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
-        
+
         self.guidance_cmd_pub = self.create_publisher(
             LOSGuidance, los_commands_topic, qos_profile=best_effort_qos
         )
@@ -151,14 +139,10 @@ class LOSActionServer(Node):
             reference_topic = self.get_parameter(
                 'topics.publishers.debug.reference'
             ).value
-            
-            errors_topic = self.get_parameter(
-                'topics.publishers.debug.errors'
-            ).value
-            
-            logs_topic = self.get_parameter(
-                'topics.publishers.debug.logs'
-            ).value
+
+            errors_topic = self.get_parameter('topics.publishers.debug.errors').value
+
+            logs_topic = self.get_parameter('topics.publishers.debug.logs').value
 
             self.guidance_ref_pub = self.create_publisher(
                 PoseStamped, reference_topic, pub_qos_depth
@@ -172,9 +156,7 @@ class LOSActionServer(Node):
 
     def _initialize_subscribers(self):
         """Initialize subscribers."""
-        odom_topic = self.get_parameter(
-            'topics.subscribers.odometry'
-        ).value
+        odom_topic = self.get_parameter('topics.subscribers.odometry').value
 
         self.create_subscription(
             Odometry,
