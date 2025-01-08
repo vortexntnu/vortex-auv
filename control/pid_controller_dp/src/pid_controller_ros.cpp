@@ -43,8 +43,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         "/pid/kd", qos_sensor_data,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
-    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
-        control_topic, 10);
+    tau_pub_ =
+        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();
@@ -123,6 +123,6 @@ void PIDControllerNode::guidance_callback(
     double yaw = msg->yaw;
 
     eta_d_.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-                Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-                Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+                 Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+                 Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
 }

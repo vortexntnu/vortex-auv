@@ -8,7 +8,8 @@
 types::Eta eta_convert_from_ros_to_eigen(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
     types::Eta eta;
-    eta.pos << msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z;
+    eta.pos << msg->pose.pose.position.x, msg->pose.pose.position.y,
+        msg->pose.pose.position.z;
     eta.ori.w() = msg->pose.pose.orientation.w;
     eta.ori.x() = msg->pose.pose.orientation.x;
     eta.ori.y() = msg->pose.pose.orientation.y;

@@ -50,7 +50,8 @@ types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
     J.T = T;
 
     types::Matrix6x7d J_transpose = J.as_matrix().transpose();
-    types::Matrix6x7d J_pseudo_inv = (J_transpose * J.as_matrix()).inverse() * J_transpose;
+    types::Matrix6x7d J_pseudo_inv =
+        (J_transpose * J.as_matrix()).inverse() * J_transpose;
 
     return J_pseudo_inv;
 }
