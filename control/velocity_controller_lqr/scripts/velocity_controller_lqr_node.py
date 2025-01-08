@@ -9,7 +9,7 @@ from geometry_msgs.msg import (
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import Float32MultiArray, String
+from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
     GuidanceValues,
     LQRController,
@@ -29,6 +29,7 @@ class LinearQuadraticRegulator(Node):
             guidance_topic,
             thrust_topic,
             softwareoperation_topic,
+            killswitch_topic,
         ) = self.get_topics()
 
         best_effort_qos = QoSProfile(
@@ -65,6 +66,12 @@ class LinearQuadraticRegulator(Node):
             self.operation_callback,
             qos_profile=best_effort_qos,
         )
+        self.killswitch_subscriber = self.create_subscription(
+            Bool,
+            killswitch_topic,
+            self.killswitch_callback,
+            qos_profile=best_effort_qos,
+        )
 
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
@@ -75,9 +82,6 @@ class LinearQuadraticRegulator(Node):
 
         # ---------------------------- PUBLISHERS ----------------------------
         self.publisherLQR = self.create_publisher(Wrench, thrust_topic, reliable_qos)
-        self.publisherStates = self.create_publisher(
-            Float32MultiArray, "velocity/state", reliable_qos
-        )
 
         # ------------------------------ TIMERS ------------------------------
         self.declare_parameter("dt", 0.1)
@@ -111,6 +115,7 @@ class LinearQuadraticRegulator(Node):
         self.declare_parameter(
             "topics.softwareoperation_topic", "/softwareOperationMode"
         )
+        self.declare_parameter("topics.killswitch_topic", "/softwareKillSwitch")
 
         pose_topic = self.get_parameter("topics.pose_topic").value
         twist_topic = self.get_parameter("topics.twist_topic").value
@@ -119,6 +124,7 @@ class LinearQuadraticRegulator(Node):
         softwareoperation_topic = self.get_parameter(
             "topics.softwareoperation_topic"
         ).value
+        killswitch_topic = self.get_parameter("topics.killswitch_topic").value
 
         return (
             pose_topic,
@@ -126,6 +132,7 @@ class LinearQuadraticRegulator(Node):
             guidance_topic,
             thrust_topic,
             softwareoperation_topic,
+            killswitch_topic,
         )
 
     def get_parameters(self):
@@ -221,6 +228,18 @@ class LinearQuadraticRegulator(Node):
         self.guidance_values.pitch = msg.pitch
         self.guidance_values.yaw = msg.yaw
 
+    def killswitch_callback(self, msg: Bool):
+        """Callback function for the killswitch data.
+
+        Parameters: String: msg: The killswitch data from the AUV.
+
+        """
+        if msg.data == True:
+            self.controller.reset_controller()
+            self.controller.killswitch = True
+        else:
+            self.controller.killswitch = False
+
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
     def control_loop(self):
@@ -234,11 +253,12 @@ class LinearQuadraticRegulator(Node):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
-        if self.controller.operation_mode == "autonomous mode":
-            self.publisherLQR.publish(msg)
+        if self.controller.killswitch == False:
+            if self.controller.operation_mode == "autonomous mode":
+                self.publisherLQR.publish(msg)
 
-        else:
-            self.controller.reset_controller()
+            else:
+                self.controller.reset_controller()
 
 
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
