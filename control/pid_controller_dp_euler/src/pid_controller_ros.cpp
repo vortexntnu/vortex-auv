@@ -15,7 +15,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/nucleus/odom", qos_sensor_data,
+        "/orca/odom", qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
