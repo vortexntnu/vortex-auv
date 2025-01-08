@@ -41,8 +41,6 @@ find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
 find_package(yasmin_viewer REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(example_interfaces REQUIRED)
-find_package(action_tutorials_interfaces REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -58,8 +56,6 @@ set(DEPENDENCIES
   yasmin_ros
   yasmin_viewer
   nav_msgs
-  example_interfaces
-  action_tutorials_interfaces
   vortex_msgs
   rclcpp
   std_msgs

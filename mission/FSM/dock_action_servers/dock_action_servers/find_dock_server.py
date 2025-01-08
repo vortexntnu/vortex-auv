@@ -26,8 +26,8 @@ class FindDockServer(Node):
         )
 
         feedback_msg = FindDock.Feedback()
-        found = goal_handle.request.start_search  # bool
-        rate = self.create_rate(1)  # Simulate 1Hz feedback
+        # found = goal_handle.request.start_search  # bool
+        # rate = self.create_rate(1)  # Simulate 1Hz feedback
         time_elapsed = 0.0
 
         while time_elapsed <= 20.0:
@@ -43,9 +43,9 @@ class FindDockServer(Node):
         result = FindDock.Result()
 
         result.dock_pose = PoseStamped()
-        result.dock_pose.pose.position.x = 5.0
-        result.dock_pose.pose.position.y = 5.0
-        result.dock_pose.pose.position.z = 10.0
+        result.dock_pose.pose.position.x = 0.0
+        result.dock_pose.pose.position.y = 7.5
+        result.dock_pose.pose.position.z = 2.0
         result.dock_pose.pose.orientation.x = 0.0
         result.dock_pose.pose.orientation.y = 0.0
         result.dock_pose.pose.orientation.z = 0.0
