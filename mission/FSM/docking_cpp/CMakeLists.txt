@@ -1,35 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 project(docking_cpp)
 
-# Default to C++14
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-if(NOT DEFINED ENV{ROS_DISTRO})
-  message(FATAL_ERROR "ROS_DISTRO is not defined." )
-endif()
-if("$ENV{ROS_DISTRO}" STREQUAL "foxy")
-  message(STATUS "Build for ROS2 Foxy")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFOXY")
-elseif("$ENV{ROS_DISTRO}" STREQUAL "humble")
-  message(STATUS "Build for ROS2 Humble")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHUMBLE")
-elseif("$ENV{ROS_DISTRO}" STREQUAL "iron")
-  message(STATUS "Build for ROS2 Iron")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIRON")
-elseif("$ENV{ROS_DISTRO}" STREQUAL "jazzy")
-  message(STATUS "Build for ROS2 Jazzy")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DJAZZY")
-elseif("$ENV{ROS_DISTRO}" STREQUAL "rolling")
-  message(STATUS "Build for ROS2 Rolling")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROLLING")
-else()
-  message(FATAL_ERROR "Unsupported ROS Distribution: " "$ENV{ROS_DISTRO}")
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
 endif()
 
 # Find dependencies
@@ -62,7 +40,7 @@ set(DEPENDENCIES
 )
 
 
-# action client demo
+
 add_executable(docking
   src/docking.cpp
 )
