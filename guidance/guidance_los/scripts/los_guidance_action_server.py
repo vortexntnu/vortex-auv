@@ -35,26 +35,17 @@ class LOSActionServer(Node):
     def __init__(self):
         super().__init__('los_guidance_node')
 
-        # Initialize goal handle lock
         self._goal_lock = threading.Lock()
-
-        # update rate parameter
         self.declare_parameter('update_rate', 10.0)
         update_rate = self.get_parameter('update_rate').value
         self.update_period = 1.0 / update_rate
-
-        # Initialize filter status flag
         self.filter_initialized = False
 
-        # Add debug parameter
         self.declare_parameter('debug_mode', False)
         self.debug_mode = self.get_parameter('debug_mode').value
 
-        # Create callback groups for concurrent execution
         self.action_cb_group = ReentrantCallbackGroup()
-        self.timer_cb_group = ReentrantCallbackGroup()
 
-        # Initialize parameters and topics
         self.declare_los_parameters_()
         self._declare_topic_parameters()
         self._initialize_publishers()
@@ -65,7 +56,7 @@ class LOSActionServer(Node):
         los_params = self.get_los_parameters_()
         filter_params = self.get_filter_parameters_()
 
-        # Initialize guidance calculator with third-order filtering
+        # Initialize guidance calculator
         self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
 
     def declare_los_parameters_(self):
@@ -76,8 +67,9 @@ class LOSActionServer(Node):
         self.declare_parameter('los_guidance.h_delta_factor', 3.0)
         self.declare_parameter('los_guidance.nominal_speed', 0.35)
         self.declare_parameter('los_guidance.min_speed', 0.1)
-        self.declare_parameter('los_guidance.max_pitch_angle', 0.52359877559)
-        self.declare_parameter('los_guidance.depth_gain', 0.5)
+        self.declare_parameter('los_guidance.max_pitch_angle', 1.047)
+        self.declare_parameter('los_guidance.depth_gain', 10.0)
+        # self.declare_parameter('depth_integral_gain', 0.5)
 
         # Declare filter parameters
         self.declare_parameter('los_guidance.filter.omega_diag', [2.5, 2.5, 2.5])
@@ -85,6 +77,7 @@ class LOSActionServer(Node):
 
     def get_los_parameters_(self) -> LOSParameters:
         los_params = LOSParameters()
+        
         los_params.lookahead_distance_min = self.get_parameter(
             'los_guidance.h_delta_min'
         ).value
@@ -97,11 +90,15 @@ class LOSActionServer(Node):
         los_params.nominal_speed = self.get_parameter(
             'los_guidance.nominal_speed'
         ).value
-        los_params.min_speed = self.get_parameter('los_guidance.min_speed').value
+        los_params.min_speed = self.get_parameter(
+            'los_guidance.min_speed'
+        ).value
         los_params.max_pitch_angle = self.get_parameter(
             'los_guidance.max_pitch_angle'
         ).value
-        los_params.depth_gain = self.get_parameter('los_guidance.depth_gain').value
+        los_params.depth_gain = self.get_parameter(
+            'los_guidance.depth_gain'
+        ).value
         return los_params
 
     def get_filter_parameters_(self) -> FilterParameters:
@@ -115,31 +112,36 @@ class LOSActionServer(Node):
         return filter_params
 
     def _declare_topic_parameters(self):
-        """Declare parameters for all topics."""
         # Publishers
-        self.declare_parameter('topics.publishers.los_commands', '/guidance/los')
+        self.declare_parameter(
+            'topics.publishers.los_commands', '/guidance/los'
+        )
         self.declare_parameter(
             'topics.publishers.debug.reference', '/guidance/debug/reference'
         )
         self.declare_parameter(
             'topics.publishers.debug.errors', '/guidance/debug/errors'
         )
-        self.declare_parameter('topics.publishers.debug.logs', '/guidance/debug/logs')
+        self.declare_parameter(
+            'topics.publishers.debug.logs', '/guidance/debug/logs'
+        )
 
         # Subscribers
-        self.declare_parameter('topics.subscribers.odometry', '/orca/odom')
-
-        # QoS settings
-        self.declare_parameter('qos.publisher_depth', 10)
-        self.declare_parameter('qos.subscriber_depth', 10)
+        self.declare_parameter(
+            'topics.subscribers.odometry', '/orca/odom'
+        )
 
     def _initialize_publishers(self):
         """Initialize all publishers."""
-        pub_qos_depth = self.get_parameter('qos.publisher_depth').value
+        pub_qos_depth = 10
 
         # Main guidance command publisher
-        los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
+        los_commands_topic = self.get_parameter(
+            'topics.publishers.los_commands'
+        ).value
+        
         self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
+        
         self.guidance_cmd_pub = self.create_publisher(
             LOSGuidance, los_commands_topic, qos_profile=best_effort_qos
         )
@@ -149,8 +151,14 @@ class LOSActionServer(Node):
             reference_topic = self.get_parameter(
                 'topics.publishers.debug.reference'
             ).value
-            errors_topic = self.get_parameter('topics.publishers.debug.errors').value
-            logs_topic = self.get_parameter('topics.publishers.debug.logs').value
+            
+            errors_topic = self.get_parameter(
+                'topics.publishers.debug.errors'
+            ).value
+            
+            logs_topic = self.get_parameter(
+                'topics.publishers.debug.logs'
+            ).value
 
             self.guidance_ref_pub = self.create_publisher(
                 PoseStamped, reference_topic, pub_qos_depth
@@ -164,15 +172,15 @@ class LOSActionServer(Node):
 
     def _initialize_subscribers(self):
         """Initialize subscribers."""
-        # sub_qos_depth = self.get_parameter('qos.subscriber_depth').value
-        odom_topic = self.get_parameter('topics.subscribers.odometry').value
+        odom_topic = self.get_parameter(
+            'topics.subscribers.odometry'
+        ).value
 
         self.create_subscription(
             Odometry,
             odom_topic,
             self.odom_callback,
             qos_profile=best_effort_qos,
-            #callback_group=self.timer_cb_group,
         )
 
     def _initialize_state(self):
@@ -299,15 +307,13 @@ class LOSActionServer(Node):
         # self.publish_log(f"Distance to target: {distance:.2f}")
 
         # Check if waypoint is reached (0.5m threshold)
-        if self.guidance_calculator.horizontal_distance < 0.5:
+        if self.guidance_calculator.horizontal_distance < 0.1:
             self.publish_log(f'Reached waypoint {self.current_waypoint_index}')
 
-            # Reset filter state for next waypoint
             self.guidance_calculator.reset_filter_state(self.state)
 
             self.current_waypoint_index += 1
 
-            # Check if all waypoints are reached
             if self.current_waypoint_index >= len(self.waypoints):
                 if self.goal_handle and self.goal_handle.is_active:
                     self.goal_handle.succeed()
@@ -335,7 +341,6 @@ class LOSActionServer(Node):
 
         self.publish_log(f'Received {len(self.waypoints)} waypoints')
 
-        # Monitor navigation progress
         rate = self.create_rate(1.0 / self.update_period)
 
         self.get_logger().info('Executing goal')
