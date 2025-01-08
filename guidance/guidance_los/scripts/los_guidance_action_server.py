@@ -195,7 +195,7 @@ class LOSActionServer(Node):
             callback_group=self.action_cb_group,
         )
 
-    def goal_callback(self, goal_request):
+    def goal_callback(self, goal_request: NavigateWaypoints.Goal):
         """Handle new goal requests with preemption."""
         self.get_logger().info("Received new goal request")
 
@@ -216,18 +216,18 @@ class LOSActionServer(Node):
         """Handle cancellation requests."""
         self.get_logger().info("Received cancel request")
 
-        with self._goal_lock:
-            if self.goal_handle == goal_handle:
-                # Reset navigation state
-                self.waypoints = []
-                self.current_waypoint_index = 0
-                self.goal_handle = None
+        # with self._goal_lock:
+        #     if self.goal_handle == goal_handle:
+        #         # Reset navigation state
+        #         self.waypoints = []
+        #         self.current_waypoint_index = 0
+        #         self.goal_handle = None
 
-                # Reset guidance state if needed
-                initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
-                self.guidance_calculator.reset_filter_state(self.state)
+        #         # Reset guidance state if needed
+        #         initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
+        #         self.guidance_calculator.reset_filter_state(self.state)
 
-                self.publish_log("Navigation canceled and state reset")
+        #         self.publish_log("Navigation canceled and state reset")
 
         return CancelResponse.ACCEPT
 
@@ -325,53 +325,44 @@ class LOSActionServer(Node):
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
-        try:
-            self.publish_log('Executing waypoint navigation...')
+        self.publish_log('Executing waypoint navigation...')
 
-            # Initialize navigation goal
+        # Initialize navigation goal
+        self.goal_handle = goal_handle
+        self.current_waypoint_index = 0
+
+        # Initialize navigation goal with lock
+        with self._goal_lock:
             self.goal_handle = goal_handle
             self.current_waypoint_index = 0
+            # Store waypoints directly as PoseStamped
+            self.waypoints = goal_handle.request.waypoints
 
-            # Initialize navigation goal with lock
-            with self._goal_lock:
-                self.goal_handle = goal_handle
-                self.current_waypoint_index = 0
-                # Store waypoints directly as PoseStamped
-                self.waypoints = goal_handle.request.waypoints
+        self.publish_log(f'Received {len(self.waypoints)} waypoints')
 
-            self.publish_log(f'Received {len(self.waypoints)} waypoints')
+        # Monitor navigation progress
+        rate = self.create_rate(1.0 / self.update_period)
 
-            # Monitor navigation progress
-            rate = self.create_rate(1.0 / self.update_period)
+        while rclpy.ok():
+            if not goal_handle.is_active:
+                # reset filter here
+                return NavigateWaypoints.Result(success=False)
 
-            while rclpy.ok():
-                if not goal_handle.is_active:
-                    # reset filter here
-                    return NavigateWaypoints.Result(success=False)
+            if goal_handle.is_cancel_requested:
+                self.publish_log('Goal canceled')
+                goal_handle.canceled()
+                self.goal_handle = None
+                return NavigateWaypoints.Result(success=False)
 
-                if goal_handle.is_cancel_requested:
-                    self.publish_log('Goal canceled')
-                    goal_handle.canceled()
-                    self.goal_handle = None
-                    return NavigateWaypoints.Result(success=False)
+            # process guiance
+            if len(self.waypoints) > 0:
+                self.process_guidance()
 
-                # process guiance
-                if len(self.waypoints) > 0:
-                    self.process_guidance()
+            if self.current_waypoint_index >= len(self.waypoints):
+                self.publish_log('All waypoints reached')
+                return NavigateWaypoints.Result(success=True)
 
-                if self.current_waypoint_index >= len(self.waypoints):
-                    self.publish_log('All waypoints reached')
-                    return NavigateWaypoints.Result(success=True)
-
-                rate.sleep()
-
-        except Exception as e:
-            self.get_logger().error(f'Error in execute_callback: {str(e)}')
-            return NavigateWaypoints.Result(success=False)
-        finally:
-            with self._goal_lock:
-                if self.goal_handle == goal_handle:
-                    self.goal_handle = None
+            rate.sleep()
 
     def publish_guidance(self, commands: State):
         """Publish the commanded surge velocity, pitch angle, and yaw angle."""
