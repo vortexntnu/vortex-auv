@@ -18,25 +18,6 @@ types::Matrix6d float64multiarray_to_diagonal_matrix6d(
 }
 
 types::Matrix3d calculate_R_quat(const types::Eta& eta) {
-    types::Vector4d q_norm = eta.ori.normalized().coeffs();
-    double nu = q_norm(3);
-    double eps_1 = q_norm(0);
-    double eps_2 = q_norm(1);
-    double eps_3 = q_norm(2);
-
-    double r11 = 1 - (2 * ((eps_2 * eps_2) + (eps_3 * eps_3)));
-    double r12 = 2 * ((eps_1 * eps_2) + (eps_3 * nu));
-    double r13 = 2 * ((eps_1 * eps_3) - (eps_2 * nu));
-    double r21 = 2 * ((eps_1 * eps_2) - (eps_3 * nu));
-    double r22 = 1 - (2 * ((eps_1 * eps_1) + (eps_3 * eps_3)));
-    double r23 = 2 * ((eps_2 * eps_3) + (eps_1 * nu));
-    double r31 = 2 * ((eps_1 * eps_3) + (eps_2 * nu));
-    double r32 = 2 * ((eps_2 * eps_3) - (eps_1 * nu));
-    double r33 = 1 - (2 * ((eps_1 * eps_1) + (eps_2 * eps_2)));
-
-    Eigen::Matrix3d R;
-    R << r11, r21, r31, r12, r22, r32, r13, r23, r33;
-    
     return eta.ori.normalized().toRotationMatrix();
 }
 
@@ -69,8 +50,7 @@ types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
     J.T = T;
 
     types::Matrix6x7d J_transpose = J.as_matrix().transpose();
-    types::Matrix6x7d J_pseudo_inv =
-        (J_transpose * J.as_matrix()).inverse() * J_transpose;
+    types::Matrix6x7d J_pseudo_inv = (J_transpose * J.as_matrix()).inverse() * J_transpose;
 
     return J_pseudo_inv;
 }
