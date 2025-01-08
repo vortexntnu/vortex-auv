@@ -36,29 +36,23 @@ types::Matrix3d calculate_R_quat(const types::Eta& eta) {
 
     Eigen::Matrix3d R;
     R << r11, r21, r31, r12, r22, r32, r13, r23, r33;
-
-    // std::cout << "R" << R << std::endl;
-    // std::cout << "R_R" << eta.ori.normalized().toRotationMatrix() <<
-    // std::endl;
-
+    
     return eta.ori.normalized().toRotationMatrix();
 }
 
 types::Matrix4x3d calculate_T_quat(const types::Eta& eta) {
     types::Quaterniond quaternion_norm = eta.ori.normalized();
 
-    double w = std::round(quaternion_norm.w() * 1000.0) / 1000.0;
-    double x = std::round(quaternion_norm.x() * 1000.0) / 1000.0;
-    double y = std::round(quaternion_norm.y() * 1000.0) / 1000.0;
-    double z = std::round(quaternion_norm.z() * 1000.0) / 1000.0;
+    double w = quaternion_norm.w();
+    double x = quaternion_norm.x();
+    double y = quaternion_norm.y();
+    double z = quaternion_norm.z();
 
     types::Matrix4x3d transformation_matrix;
 
     transformation_matrix << -x, -y, -z, w, -z, y, z, w, -x, -y, x, w;
 
-    transformation_matrix = transformation_matrix * 0.5;
-
-    return transformation_matrix;
+    return transformation_matrix * 0.5;
 }
 
 types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
@@ -73,7 +67,6 @@ types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
     types::J_transformation J;
     J.R = R;
     J.T = T;
-    std::cout << "J" << J.as_matrix() << std::endl;
 
     types::Matrix6x7d J_transpose = J.as_matrix().transpose();
     types::Matrix6x7d J_pseudo_inv =

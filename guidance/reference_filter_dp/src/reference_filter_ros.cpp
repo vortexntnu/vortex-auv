@@ -9,7 +9,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
     this->declare_parameter<std::string>("reference_filter_topic",
                                          "/reference_topic");
     this->declare_parameter<std::string>("dp_reference_topic", "/dp/reference");
-    this->declare_parameter<std::string>("nucleus_odom_topic", "/nucleus/odom");
+    this->declare_parameter<std::string>("nucleus_odom_topic", "/orca/odom");
 
     std::string reference_filter_topic =
         this->get_parameter("reference_filter_topic").as_string();

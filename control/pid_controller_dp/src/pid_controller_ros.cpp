@@ -1,3 +1,4 @@
+#include <iostream>
 #include <pid_controller_dp/pid_controller_ros.hpp>
 #include <variant>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
@@ -9,29 +10,41 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
+
+    this->declare_parameter("nucleus_odom_topic", "/orca/odom");
+    this->declare_parameter("dp_reference_topic", "/dp/reference");
+    this->declare_parameter("control_topic", "/thrust/wrench_input");
+
+    std::string nucleus_odom_topic =
+        this->get_parameter("nucleus_odom_topic").as_string();
+    std::string dp_reference_topic =
+        this->get_parameter("dp_reference_topic").as_string();
+    std::string control_topic =
+        this->get_parameter("control_topic").as_string();
+
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/talha_test/orca/odom", qos_sensor_data,
+        nucleus_odom_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            "/talha_test/dp/reference", qos_sensor_data,
+            dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
     kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/talha_test/pid/kp", qos_sensor_data,
+        "/pid/kp", qos_sensor_data,
         std::bind(&PIDControllerNode::kp_callback, this,
                   std::placeholders::_1));
     ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/talha_test/pid/ki", qos_sensor_data,
+        "/pid/ki", qos_sensor_data,
         std::bind(&PIDControllerNode::ki_callback, this,
                   std::placeholders::_1));
     kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/talha_test/pid/kd", qos_sensor_data,
+        "/pid/kd", qos_sensor_data,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
     tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
-        "/talha_test/thrust/wrench_input", 10);
+        control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();
@@ -103,14 +116,13 @@ void PIDControllerNode::kd_callback(
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    types::Eta eta_d;
-    eta_d.pos << msg->x, msg->y, msg->z;
+    eta_d_.pos << msg->x, msg->y, msg->z;
 
     double roll = msg->roll;
     double pitch = msg->pitch;
     double yaw = msg->yaw;
 
-    eta_d.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
+    eta_d_.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
                 Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
                 Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
 }
