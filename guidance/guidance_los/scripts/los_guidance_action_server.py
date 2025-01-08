@@ -19,7 +19,6 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
-from transforms3d.euler import quat2euler
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
 
@@ -245,7 +244,7 @@ class LOSActionServer(Node):
         """Process odometry updates and trigger guidance calculations."""
         # Extract orientation quaternion to Euler angles
         orientation_q = msg.pose.pose.orientation
-        roll, pitch, yaw = quat2euler(
+        roll, pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
             [orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z]
         )
 

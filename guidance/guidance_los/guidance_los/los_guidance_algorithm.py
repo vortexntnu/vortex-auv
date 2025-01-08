@@ -86,6 +86,39 @@ class ThirdOrderLOSGuidance:
         self.setup_filter_matrices()
 
     @staticmethod
+    def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
+        """Function to convert quaternion to euler angles.
+
+        Parameters:
+            w: float: w component of quaternion
+            x: float: x component of quaternion
+            y: float: y component of quaternion
+            z: float: z component of quaternion
+
+        Returns:
+            phi: float: roll angle
+            theta: float: pitch angle
+            psi: float: yaw angle
+
+        """
+        y_square = y * y
+
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y_square)
+        phi = np.arctan2(t0, t1)
+
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        theta = np.arcsin(t2)
+
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y_square + z * z)
+        psi = np.arctan2(t3, t4)
+
+        return phi, theta, psi
+
+    @staticmethod
     def ssa(angle: float) -> float:
         return (angle + np.pi) % (2 * np.pi) - np.pi
 
