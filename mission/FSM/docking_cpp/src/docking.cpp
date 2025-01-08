@@ -72,12 +72,12 @@ class GoToDockState : public yasmin_ros::ActionState<GoToWaypoint> {
         auto goal = GoToWaypoint::Goal();
 
         blackboard->set<bool>("is_home", false);
-        blackboard->set<PoseStamped>("docking_goal",
-                                     blackboard->get<PoseStamped>("dock_pose"));
-        blackboard->set<float>(
-            "docking_goal.pose.position.z",
-            blackboard->get<float>("dock_pose.pose.position.z") +
-                blackboard->get<float>("docking_station_offset"));
+
+        auto docking_goal = blackboard->get<PoseStamped>("dock_pose");
+        docking_goal.pose.position.z +=
+            blackboard->get<float>("docking_station_offset");
+        blackboard->set<PoseStamped>("docking_goal", docking_goal);
+
         goal.waypoint = blackboard->get<PoseStamped>("docking_goal");
         return goal;
     }
@@ -119,7 +119,16 @@ class DockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
     ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
         auto goal = ReferenceFilterWaypoint::Goal();
-        goal.goal = blackboard->get<PoseStamped>("dock_pose");
+        auto dock_pose = blackboard->get<PoseStamped>("dock_pose");
+        goal.goal = dock_pose;
+        fprintf(stderr, "Goal sent to action server: \n");
+        fprintf(stderr, "  Position: x = %f, y = %f, z = %f\n",
+                dock_pose.pose.position.x, dock_pose.pose.position.y,
+                dock_pose.pose.position.z);
+        fprintf(stderr, "  Orientation: x = %f, y = %f, z = %f, w = %f\n",
+                dock_pose.pose.orientation.x, dock_pose.pose.orientation.y,
+                dock_pose.pose.orientation.z, dock_pose.pose.orientation.w);
+
         return goal;
     }
 
@@ -140,10 +149,28 @@ class DockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
         (void)blackboard;
-        blackboard->set<ReferenceFilter>("current_pose", feedback->feedback);
-        fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-                feedback->feedback.x, feedback->feedback.y,
-                feedback->feedback.z);
+
+        /*
+        // Print Eta_d (position and orientation)
+        fprintf(stderr, "Eta_d (Desired Pose):\n");
+        fprintf(stderr, "  Position: x = %f, y = %f, z = %f\n",
+        feedback->feedback.x, feedback->feedback.y, feedback->feedback.z);
+        fprintf(stderr, "  Orientation: roll = %f, pitch = %f, yaw = %f\n",
+                feedback->feedback.roll, feedback->feedback.pitch,
+        feedback->feedback.yaw);
+
+        // Print Eta_d_dot (rates of change)
+        fprintf(stderr, "Eta_d_dot (Desired Velocities):\n");
+        fprintf(stderr, "  Linear Velocities: x_dot = %f, y_dot = %f, z_dot =
+        %f\n", feedback->feedback.x_dot, feedback->feedback.y_dot,
+        feedback->feedback.z_dot); fprintf(stderr, "  Angular Velocities:
+        roll_dot = %f, pitch_dot = %f, yaw_dot = %f\n",
+                feedback->feedback.roll_dot, feedback->feedback.pitch_dot,
+        feedback->feedback.yaw_dot);
+
+        */
+        // Optionally store feedback in the blackboard for further processing
+        blackboard->set<decltype(feedback)>("current_feedback", feedback);
     }
 };
 
@@ -442,17 +469,25 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard =
         std::make_shared<yasmin::blackboard::Blackboard>();
 
-    // SHOULD BE IN CONFIG FILE or similar
+    // SOME THINGS SHOULD BE IN CONFIG FILE or similar
+    PoseStamped dock_pose;
+    dock_pose.pose.position.x = 5.0;
+    dock_pose.pose.position.y = 5.0;
+    dock_pose.pose.position.z = 10.0;
+    dock_pose.pose.orientation.x = 0.0;
+    dock_pose.pose.orientation.y = 0.0;
+    dock_pose.pose.orientation.z = 0.0;
+    dock_pose.pose.orientation.w = 1.0;
+
+    PoseStamped start_pose;
+    start_pose.pose.position.x = 0.0;
+    start_pose.pose.position.y = 0.0;
+    start_pose.pose.position.z = 0.0;
+
     blackboard->set<bool>("start_search", true);
     blackboard->set<PoseStamped>("current_pose", PoseStamped());
-    blackboard->set<PoseStamped>("start_pose", PoseStamped());
-    blackboard->set<float>("start_pose.pose.position.x", 0.0f);
-    blackboard->set<float>("start_pose.pose.position.y", 0.0f);
-    blackboard->set<float>("start_pose.pose.position.z", 0.0f);
-    blackboard->set<PoseStamped>("dock_pose", PoseStamped());
-    blackboard->set<float>("dock_pose.pose.position.x", 5.0);
-    blackboard->set<float>("dock_pose.pose.position.y", 5.0);
-    blackboard->set<float>("dock_pose.pose.position.z", 10.0);
+    blackboard->set<PoseStamped>("start_pose", start_pose);
+    blackboard->set<PoseStamped>("dock_pose", dock_pose);
     blackboard->set<float>("docking_station_offset", -1.0);
     blackboard->set<bool>("return_home", true);
     blackboard->set<bool>("is_docked", false);
