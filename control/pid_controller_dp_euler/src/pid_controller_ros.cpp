@@ -9,8 +9,10 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     this->declare_parameter("nucleus_odom_topic", "/orca/odom");
     this->declare_parameter("dp_reference_topic", "/dp/reference");
     this->declare_parameter("control_topic", "/thrust/wrench_input");
-    this->declare_parameter("software_kill_switch_topic", "/softwareKillSwitch");
-    this->declare_parameter("software_operation_mode_topic", "/softwareOperationMode");
+    this->declare_parameter("software_kill_switch_topic",
+                            "/softwareKillSwitch");
+    this->declare_parameter("software_operation_mode_topic",
+                            "/softwareOperationMode");
 
     std::string nucleus_odom_topic =
         this->get_parameter("nucleus_odom_topic").as_string();
@@ -65,8 +67,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         "/pid/kd", 10,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
-    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
-        control_topic, 10);
+    tau_pub_ =
+        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();
