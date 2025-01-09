@@ -14,6 +14,10 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     this->declare_parameter("nucleus_odom_topic", "/orca/odom");
     this->declare_parameter("dp_reference_topic", "/dp/reference");
     this->declare_parameter("control_topic", "/thrust/wrench_input");
+    this->declare_parameter("software_kill_switch_topic",
+                            "/softwareKillSwitch");
+    this->declare_parameter("software_operation_mode_topic",
+                            "/softwareOperationMode");
 
     std::string nucleus_odom_topic =
         this->get_parameter("nucleus_odom_topic").as_string();
@@ -21,7 +25,19 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         this->get_parameter("dp_reference_topic").as_string();
     std::string control_topic =
         this->get_parameter("control_topic").as_string();
+    std::string software_kill_switch_topic =
+        this->get_parameter("software_kill_switch_topic").as_string();
+    std::string software_operation_mode_topic =
+        this->get_parameter("software_operation_mode_topic").as_string();
 
+    killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+        software_kill_switch_topic, 10,
+        std::bind(&PIDControllerNode::killswitch_callback, this,
+                  std::placeholders::_1));
+    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
+        software_operation_mode_topic, 10,
+        std::bind(&PIDControllerNode::software_mode_callback, this,
+                  std::placeholders::_1));
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         nucleus_odom_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
@@ -50,6 +66,16 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     set_pid_params();
 }
 
+void PIDControllerNode::killswitch_callback(
+    const std_msgs::msg::Bool::SharedPtr msg) {
+    killswitch_on_ = msg->data;
+}
+
+void PIDControllerNode::software_mode_callback(
+    const std_msgs::msg::String::SharedPtr msg) {
+    software_mode_ = msg->data;
+}
+
 void PIDControllerNode::odometry_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
     eta_ = eta_convert_from_ros_to_eigen(msg);
@@ -57,6 +83,10 @@ void PIDControllerNode::odometry_callback(
 }
 
 void PIDControllerNode::publish_tau() {
+    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+        return;
+    }
+
     types::Vector6d tau =
         pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
 

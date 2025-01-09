@@ -25,17 +25,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     std::string software_operation_mode_topic =
         this->get_parameter("software_operation_mode_topic").as_string();
 
-    std::string nucleus_odom_topic =
-        this->get_parameter("nucleus_odom_topic").as_string();
-    std::string dp_reference_topic =
-        this->get_parameter("dp_reference_topic").as_string();
-    std::string control_topic =
-        this->get_parameter("control_topic").as_string();
-    std::string software_kill_switch_topic =
-        this->get_parameter("software_kill_switch_topic").as_string();
-    std::string software_operation_mode_topic =
-        this->get_parameter("software_operation_mode_topic").as_string();
-
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
