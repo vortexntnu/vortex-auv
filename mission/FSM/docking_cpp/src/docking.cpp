@@ -138,6 +138,8 @@ class GoOverDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> 
         ReferenceFilterWaypoint::Result::SharedPtr response) {
         (void)blackboard;
         (void)response;
+        fprintf(stderr, "Response received from action server: \n");
+        fprintf(stderr, "  Success: %s\n", response->success ? "true" : "false");
         blackboard->set<bool>("is_docked", true);
         if (blackboard->get<bool>("is_docked")) {
             return yasmin_ros::basic_outcomes::SUCCEED;
@@ -268,25 +270,25 @@ std::string ErrorState(
     return yasmin_ros::basic_outcomes::SUCCEED;
 };
 
-class GoDownState : public yasmin_ros::ActionState<GoToWaypoint> {
+class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
     GoDownState()
-        : yasmin_ros::ActionState<GoToWaypoint>(
-              "/go_down",
+        : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
+              "/reference_filter",
               std::bind(&GoDownState::create_goal_handler, this, _1),
               std::bind(&GoDownState::response_handler, this, _1, _2),
               std::bind(&GoDownState::print_feedback, this, _1, _2)) {};
 
-    GoToWaypoint::Goal create_goal_handler(
+    ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = GoToWaypoint::Goal();
-        goal.waypoint = blackboard->get<PoseStamped>("dock_pose");
+        auto goal = ReferenceFilterWaypoint::Goal();
+        goal.goal = blackboard->get<PoseStamped>("dock_pose");
         return goal;
     }
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        GoToWaypoint::Result::SharedPtr response) {
+        ReferenceFilterWaypoint::Result::SharedPtr response) {
         (void)blackboard;
         (void)response;
 
@@ -300,13 +302,13 @@ class GoDownState : public yasmin_ros::ActionState<GoToWaypoint> {
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
+        std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
         (void)blackboard;
-        blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
+        blackboard->set<ReferenceFilter>("current_pose", feedback->feedback);
         fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-                feedback->current_pose.pose.position.x,
-                feedback->current_pose.pose.position.y,
-                feedback->current_pose.pose.position.z);
+                feedback->feedback.x,
+                feedback->feedback.y,
+                feedback->feedback.z);
     }
 };
 
@@ -455,7 +457,9 @@ int main(int argc, char* argv[]) {
     } catch (const std::exception& e) {
         YASMIN_LOG_WARN(e.what());
     }
+    if (rclcpp::ok()) {
     rclcpp::shutdown();
+    }
 
     return 0;
 }
