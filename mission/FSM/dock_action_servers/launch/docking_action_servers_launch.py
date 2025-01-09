@@ -17,5 +17,6 @@ def generate_launch_description() -> LaunchDescription:
             Node(package='dock_action_servers', executable='return_home_server.py', name='return_home_server', on_exit=launch.actions.LogInfo(msg="Return_home_server exited")),
             Node(package='yasmin_viewer', executable='yasmin_viewer_node', name='yasmin_viewer', on_exit=launch.actions.LogInfo(msg="Yasmin_viewer exited")),
             Node(package='docking_cpp', executable='docking', name='docking', on_exit=launch.actions.LogInfo(msg="Docking exited")),
+            Node(package='dock_action_servers', executable='fsm_state_node.py', name='fsm_state_node', on_exit=launch.actions.LogInfo(msg="fsm_state_node exited"))
         ]
     )
