@@ -19,8 +19,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     this->declare_parameter("software_operation_mode_topic",
                             "/softwareOperationMode");
 
-    std::string odom_topic =
-        this->get_parameter("odom_topic").as_string();
+    std::string odom_topic = this->get_parameter("odom_topic").as_string();
     std::string dp_reference_topic =
         this->get_parameter("dp_reference_topic").as_string();
     std::string control_topic =
