@@ -23,8 +23,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
-    void guidance_callback(
-        const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+    void guidance_callback(const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
     void publish_tau();
 
@@ -44,8 +43,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
 
-    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
-        guidance_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr guidance_sub_;
 
     rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kp_sub_;
 
