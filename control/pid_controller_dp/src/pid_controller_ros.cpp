@@ -11,7 +11,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
 
-    this->declare_parameter("nucleus_odom_topic", "/orca/odom");
+    this->declare_parameter("odom_topic", "/orca/odom");
     this->declare_parameter("dp_reference_topic", "/dp/reference");
     this->declare_parameter("control_topic", "/thrust/wrench_input");
     this->declare_parameter("software_kill_switch_topic",
@@ -19,8 +19,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     this->declare_parameter("software_operation_mode_topic",
                             "/softwareOperationMode");
 
-    std::string nucleus_odom_topic =
-        this->get_parameter("nucleus_odom_topic").as_string();
+    std::string odom_topic =
+        this->get_parameter("odom_topic").as_string();
     std::string dp_reference_topic =
         this->get_parameter("dp_reference_topic").as_string();
     std::string control_topic =
@@ -39,7 +39,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        nucleus_odom_topic, qos_sensor_data,
+        odom_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
