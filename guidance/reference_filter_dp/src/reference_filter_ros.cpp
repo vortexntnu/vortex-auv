@@ -231,13 +231,13 @@ void ReferenceFilterNode::execute(
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->get_goal_id() == preempted_goal_id_) {
-                result->result = feedback->feedback;
+                result->success = false;
                 goal_handle->abort(result);
                 return;
             }
         }
         if (goal_handle->is_canceling()) {
-            result->result = feedback->feedback;
+            result->success = false;
             goal_handle->canceled(result);
             RCLCPP_INFO(this->get_logger(), "Goal canceled");
             return;
@@ -251,6 +251,16 @@ void ReferenceFilterNode::execute(
 
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
+
+        if ((x_.head(6)-r_.head(6)).norm() < 0.1) {
+            result->success = true;
+            goal_handle->succeed(result);
+            x_.head(6) = r_.head(6);
+            vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
+            reference_pub_->publish(feedback_msg);
+            RCLCPP_INFO(this->get_logger(), "Goal reached");
+            return;
+        }
 
         loop_rate.sleep();
     }
