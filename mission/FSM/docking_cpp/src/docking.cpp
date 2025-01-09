@@ -6,6 +6,7 @@
 
 #include <vortex_msgs/action/find_dock.hpp>
 #include <vortex_msgs/action/go_to_waypoint.hpp>
+#include <vortex_msgs/action/navigate_waypoints.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 
 #include <yasmin/cb_state.hpp>
@@ -22,8 +23,10 @@ using std::placeholders::_2;
 using FindDock = vortex_msgs::action::FindDock;
 using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
+using Pose = geometry_msgs::msg::Pose;
 using ReferenceFilterWaypoint = vortex_msgs::action::ReferenceFilterWaypoint;
 using ReferenceFilter = vortex_msgs::msg::ReferenceFilter;
+using NavigateWaypoints = vortex_msgs::action::NavigateWaypoints;
 using namespace yasmin;
 
 class FindDockState : public yasmin_ros::ActionState<FindDock> {
@@ -58,18 +61,18 @@ class FindDockState : public yasmin_ros::ActionState<FindDock> {
     }
 };
 
-class GoToDockState : public yasmin_ros::ActionState<GoToWaypoint> {
+class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
    public:
     GoToDockState()
-        : yasmin_ros::ActionState<GoToWaypoint>(
-              "/go_to_dock",
+        : yasmin_ros::ActionState<NavigateWaypoints>(
+              "/navigate_waypoints",
               std::bind(&GoToDockState::create_goal_handler, this, _1),
               std::bind(&GoToDockState::response_handler, this, _1, _2),
               std::bind(&GoToDockState::print_feedback, this, _1, _2)) {};
 
-    GoToWaypoint::Goal create_goal_handler(
+    NavigateWaypoints::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = GoToWaypoint::Goal();
+        auto goal = NavigateWaypoints::Goal();
 
         blackboard->set<bool>("is_home", false);
 
@@ -78,13 +81,17 @@ class GoToDockState : public yasmin_ros::ActionState<GoToWaypoint> {
             blackboard->get<float>("docking_station_offset");
         blackboard->set<PoseStamped>("docking_goal", docking_goal);
 
-        goal.waypoint = blackboard->get<PoseStamped>("docking_goal");
+        PoseStamped single_pose = blackboard->get<PoseStamped>("docking_goal");
+        std::vector<PoseStamped> docking_goals;
+        docking_goals.push_back(single_pose);
+
+        goal.waypoints = docking_goals;
         return goal;
     }
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        GoToWaypoint::Result::SharedPtr response) {
+        NavigateWaypoints::Result::SharedPtr response) {
         (void)blackboard;
         (void)response;
         blackboard->set<bool>("has_finished_converging", response->success);
@@ -97,17 +104,18 @@ class GoToDockState : public yasmin_ros::ActionState<GoToWaypoint> {
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
+        std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
         (void)blackboard;
-        blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
+        blackboard->set<Pose>("current_pose", feedback->current_pose);
         fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-                feedback->current_pose.pose.position.x,
-                feedback->current_pose.pose.position.y,
-                feedback->current_pose.pose.position.z);
+                feedback->current_pose.position.x,
+                feedback->current_pose.position.y,
+                feedback->current_pose.position.z);
     }
 };
 
-class GoOverDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
+class GoOverDockState
+    : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
     GoOverDockState()
         : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
@@ -120,7 +128,8 @@ class GoOverDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> 
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
         auto goal = ReferenceFilterWaypoint::Goal();
         auto dock_pose = blackboard->get<PoseStamped>("dock_pose");
-        dock_pose.pose.position.z += blackboard->get<float>("docking_station_offset");
+        dock_pose.pose.position.z +=
+            blackboard->get<float>("docking_station_offset");
         goal.goal = dock_pose;
         fprintf(stderr, "Goal sent to action server: \n");
         fprintf(stderr, "  Position: x = %f, y = %f, z = %f\n",
@@ -139,7 +148,8 @@ class GoOverDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> 
         (void)blackboard;
         (void)response;
         fprintf(stderr, "Response received from action server: \n");
-        fprintf(stderr, "  Success: %s\n", response->success ? "true" : "false");
+        fprintf(stderr, "  Success: %s\n",
+                response->success ? "true" : "false");
         blackboard->set<bool>("is_docked", true);
         if (blackboard->get<bool>("is_docked")) {
             return yasmin_ros::basic_outcomes::SUCCEED;
@@ -306,8 +316,7 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
         (void)blackboard;
         blackboard->set<ReferenceFilter>("current_pose", feedback->feedback);
         fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-                feedback->feedback.x,
-                feedback->feedback.y,
+                feedback->feedback.x, feedback->feedback.y,
                 feedback->feedback.z);
     }
 };
@@ -458,7 +467,7 @@ int main(int argc, char* argv[]) {
         YASMIN_LOG_WARN(e.what());
     }
     if (rclcpp::ok()) {
-    rclcpp::shutdown();
+        rclcpp::shutdown();
     }
 
     return 0;
