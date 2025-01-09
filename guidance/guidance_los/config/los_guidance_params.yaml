@@ -1,0 +1,23 @@
+los_guidance_node:
+  ros__parameters:
+    los_guidance:
+      h_delta_min: 1.0
+      h_delta_max: 5.0
+      h_delta_factor: 3.0
+      nominal_speed: 0.35
+      min_speed: 0.1
+      max_pitch_angle: 0.52359877559
+      depth_gain: 0.5
+      filter:
+        omega_diag: [2.5, 2.5, 2.5]
+        zeta_diag: [0.7, 0.7, 0.7]
+
+    topics:
+      publishers:
+        los_commands: '/guidance/los'
+        debug:
+          reference: '/guidance/debug/reference'
+          errors: '/guidance/debug/errors'
+          logs: '/guidance/debug/logs'
+      subscribers:
+        odometry: '/orca/odom'
