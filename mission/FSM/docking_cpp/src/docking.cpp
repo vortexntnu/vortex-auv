@@ -428,7 +428,7 @@ int main(int argc, char* argv[]) {
     PoseStamped dock_pose;
     dock_pose.pose.position.x = 0.0;
     dock_pose.pose.position.y = 7.5;
-    dock_pose.pose.position.z = 2.0;
+    dock_pose.pose.position.z = 3.638;
     dock_pose.pose.orientation.x = 0.0;
     dock_pose.pose.orientation.y = 0.0;
     dock_pose.pose.orientation.z = 0.0;

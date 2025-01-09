@@ -45,7 +45,7 @@ class FindDockServer(Node):
         result.dock_pose = PoseStamped()
         result.dock_pose.pose.position.x = 0.0
         result.dock_pose.pose.position.y = 7.5
-        result.dock_pose.pose.position.z = 2.0
+        result.dock_pose.pose.position.z = 3.638
         result.dock_pose.pose.orientation.x = 0.0
         result.dock_pose.pose.orientation.y = 0.0
         result.dock_pose.pose.orientation.z = 0.0
