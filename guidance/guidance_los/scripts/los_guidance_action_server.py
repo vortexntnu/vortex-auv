@@ -320,6 +320,7 @@ class LOSActionServer(Node):
             feedback_msg.current_waypoint_index = float(self.current_waypoint_index)
             self.goal_handle.publish_feedback(feedback_msg)
 
+
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
         self.publish_log('Executing waypoint navigation...')

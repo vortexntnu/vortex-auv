@@ -17,6 +17,7 @@
 #include <yasmin_ros/ros_logs.hpp>
 #include <yasmin_ros/yasmin_node.hpp>
 #include <yasmin_viewer/yasmin_viewer_pub.hpp>
+#include <std_msgs/msg/string.hpp>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
