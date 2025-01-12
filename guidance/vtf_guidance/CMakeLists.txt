@@ -7,6 +7,7 @@ find_package(ament_cmake_python REQUIRED) # For Python support
 find_package(rclpy REQUIRED)
 find_package(nav_msgs REQUIRED) # ROS 2 dependencies
 find_package(std_msgs REQUIRED)
+find_package(vortex_msgs REQUIRED)
 
 
 # Install Python package and scripts

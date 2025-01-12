@@ -170,3 +170,5 @@ class Path:
 
 #     i = 0
 #     print([points[i, 0], points[i, 1]])
+
+#-> HOMEWORK: plot arrow of where desired is pointing
