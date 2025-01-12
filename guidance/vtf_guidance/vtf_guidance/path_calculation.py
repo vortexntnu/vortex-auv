@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 # Written by Aksel Kristoffersen
-# Documentation can be found in my master's thesis: Guidance and Control System for Dynamic Positioning and PathFollowing of an AUV exposed to Ocean Currents
+# Documentation can be found in Aksels master's thesis: Guidance and Control System for Dynamic Positioning and PathFollowing of an AUV exposed to Ocean Currents
 
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 
+# function to calculate the smallest signed angle
 def ssa(angle):
     if angle < -np.pi or angle >= np.pi:
         # Map angle to [-pi, pi)
@@ -14,12 +15,14 @@ def ssa(angle):
     return angle
 
 
+# function to calculate the rotation matrix around the z-axis
 def R_z(rot):
     return np.array(
         [[np.cos(rot), -np.sin(rot), 0], [np.sin(rot), np.cos(rot), 0], [0, 0, 1]]
     )
 
 
+# class to generate a path
 class Path:
 
     def __init__(self):
@@ -30,6 +33,7 @@ class Path:
         self.kappa_v = []
         self.length = []
 
+    # path generation with only straight lines
     def generate_G0_path(self, waypoints):
         for i in range(len(waypoints) - 1):
             v = [a - b for a, b in zip(waypoints[i + 1], waypoints[i])]
@@ -38,6 +42,7 @@ class Path:
             gamma_l = -np.arctan2(v[2], np.linalg.norm(v[:2]))
             self.straight_line_path_segment(waypoints[i], l, chi_l, gamma_l)
 
+    # path generation with straight lines and curved arcs
     def generate_G1_path(self, waypoints, r_h, r_v):
         wp_0 = waypoints[0]
         for i in range(len(waypoints) - 2):
@@ -129,46 +134,3 @@ class Path:
             (abs(r_h * ssa(chi_1 - chi_0)) / 2) ** 2 + l_2**2
         )
         self.length.append(length)
-
-
-# if __name__ == "__main__":
-#     waypoints = [
-#         [0, 0, 0.5],
-#         [-2, 4, 2],
-#         [-4, 4, 4],
-#         [-6, 5, 4],
-#         [-8, 3, 4],
-#         [-6, 1, 4],
-#         [-4, 2, 4],
-#         [-2, 2, 2],
-#         [0, 0, 0.5],
-#     ]
-#     path = Path()
-#     # path.generate_G0_path(waypoints)
-#     path.generate_G1_path(waypoints, 0.2, 0.2)
-
-#     # Extract path points for plotting
-#     points = []
-#     for segment in path.path:
-#         for t in np.linspace(0, 1, 100):
-#             points.append(segment(t))
-
-#     points = np.array(points)
-
-#     # 3D plotting
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, projection="3d")
-#     ax.plot(points[:, 0], points[:, 1], points[:, 2], label="Path", color="b")
-#     ax.scatter(*zip(*waypoints), label="Waypoints", color="r", marker="o")
-
-#     ax.set_xlabel("X Axis")
-#     ax.set_ylabel("Y Axis")
-#     ax.set_zlabel("Z Axis")
-#     ax.set_title("3D Path Visualization")
-#     ax.legend()
-#     plt.show()
-
-#     i = 0
-#     print([points[i, 0], points[i, 1]])
-
-#-> HOMEWORK: plot arrow of where desired is pointing

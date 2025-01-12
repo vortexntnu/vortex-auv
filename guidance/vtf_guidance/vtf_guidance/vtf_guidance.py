@@ -3,18 +3,18 @@
 import math
 from dataclasses import dataclass
 
-# import matplotlib.pyplot as plt
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Point, Pose
 from mpl_toolkits.mplot3d import Axes3D
 from nav_msgs.msg import Odometry
-from path_calculation import Path
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from scipy import linalg
 from std_msgs.msg import Float32MultiArray, Float64
 from vortex_msgs.msg import ReferenceFilter
+
+from path_calculation import Path
 
 
 @dataclass
@@ -57,6 +57,17 @@ class DroneState:
 
 
 def quaternion_to_euler_angle(w, x, y, z):
+    """
+    Converts a quaternion (w, x, y, z) to euler angles (roll, pitch, yaw).
+
+    Args:
+        w, x, y, z: Quaternion components.
+
+    Returns:
+        roll: Rotation around the x-axis (in radians).
+        pitch: Rotation around the y-axis (in radians).
+        yaw: Rotation around the z-axis (in radians).
+    """
     ysqr = y * y
 
     t0 = +2.0 * (w * x + y * z)
@@ -110,14 +121,20 @@ class GuidanceNode(Node):
         qos_profile = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
         self.current_position = np.array([0.0, 0.0, 0.0])
         # Initialization
+        self.heading_mode = 0
+        # position for point dependent heading
+        self.specific_target_position = TargetState()
+        # Define the parameters for simulation of virtual target
         tstart = 0
         tstop = 25
         increment = 0.1
+
+        # initialization of states
         self.target_state = TargetState()
-        # self.drone_position = np.array([0, 0, 0, 0, 0, 0])
         self.drone_state = DroneState()
         self.x_desired = DroneState()
 
+        # initialization of errors and simulation parameters
         self.e_target = 0.0
         self.e_drone = 0.0
         self.r = 1
@@ -130,6 +147,7 @@ class GuidanceNode(Node):
         self.t = np.arange(tstart, tstop + 1, increment)
         self.dt = 0.1
 
+        # dynamics of the virtual target
         Fr = -6 * math.pi * self.r * self.eta / self.m
         self.A = np.array(
             [
@@ -183,6 +201,7 @@ class GuidanceNode(Node):
     def waypoints_subscribe_callback(self, msg: Float64):
         self.get_logger().info("waypoints")
 
+    # getting states of the drone
     def odom_subscribe_callback(self, msg: Odometry):
         roll, pitch, yaw = quaternion_to_euler_angle(
             msg.pose.pose.orientation.w,
@@ -191,6 +210,7 @@ class GuidanceNode(Node):
             msg.pose.pose.orientation.z,
         )
 
+        # setting the state parameters of the drone
         self.drone_state.x = msg.pose.pose.position.x
         self.drone_state.y = msg.pose.pose.position.y
         self.drone_state.z = msg.pose.pose.position.z
@@ -203,6 +223,7 @@ class GuidanceNode(Node):
         msg = ReferenceFilter()
         msg_point = Point()
 
+        # generate a path with straight lines and curved arcs (G1 path)
         path = Path()
         path.generate_G1_path(self.waypoints, 0.2, 0.2)
 
@@ -225,12 +246,14 @@ class GuidanceNode(Node):
                 0,
             ]
         )
+        # calculate the errors for the virtual target and the drone
         self.e_target = goal - self.target_state.as_array()  # Error vector
         self.e_drone = self.drone_state - self.target_state  # Error vector
-        u = np.array(
-            [self.e_target[0], self.e_target[2], self.e_target[4]]
-        )  # Control input, can be modified if needed
 
+        # Control input, can be modified if needed
+        u = np.array([self.e_target[0], self.e_target[2], self.e_target[4]])
+
+        # calculate the next state of the virtual target
         target_state_next = (
             self.A @ self.target_state.as_array() * self.dt
             + self.target_state.as_array()
@@ -238,11 +261,21 @@ class GuidanceNode(Node):
         )
         self.target_state.update(target_state_next)
 
+        # calculate the desired angles for the drone
+
+        # change of heading mode
+        if self.heading_mode == 1:
+            self.target_state = self.specific_target_position
+
+        direction_vector = self.target_state - self.drone_state
+        d_total = np.linalg.norm(direction_vector)
+
         roll = 0.0  # not needed for the tasks
-        pitch = np.arctan2(
-            self.target_state.z - self.drone_state.z,
-            self.target_state.x - self.drone_state.x,
-        )
+        pitch = np.arcsin((self.target_state.z - self.drone_state.z) / d_total)
+        # pitch = np.arctan2(
+        #    self.target_state.z - self.drone_state.z,
+        #    self.target_state.x - self.drone_state.x,
+        # )
 
         yaw = np.arctan2(
             self.target_state.y - self.drone_state.y,
@@ -272,7 +305,9 @@ class GuidanceNode(Node):
         if linalg.norm(self.e_target) < 1 and linalg.norm(self.e_drone) < 1:
             self.path_index += 1
 
-            ## hold the last point
+        # hold the last point
+        if self.path_index >= len(points):
+            self.path_index = len(points) - 1
 
 
 def main(args=None):
