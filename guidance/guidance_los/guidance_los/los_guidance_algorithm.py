@@ -32,6 +32,9 @@ class State:
 
     def as_los_array(self):
         return np.array([self.surge_vel, self.pitch, self.yaw])
+    
+    def as_pos_array(self):
+        return np.array([self.x, self.y, self.z])
 
 
 @dataclass(slots=True)
@@ -84,6 +87,8 @@ class ThirdOrderLOSGuidance:
         self.x = np.zeros(9)  # Filter state
         self.horizontal_distance = 0.0
         self.setup_filter_matrices()
+        self.lookahead_h = 1.0
+        self.lookahead_v = 1.0
 
     @staticmethod
     def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
@@ -201,3 +206,43 @@ class ThirdOrderLOSGuidance:
         self.x = np.zeros(9)
         current_state_array = np.array(current_state.as_los_array(), copy=True)
         self.x[0:3] = current_state_array
+
+    @staticmethod
+    def compute_pi_h(current_waypoint: State, next_waypoint: State) -> float:
+        dx = next_waypoint.x - current_waypoint.x
+        dy = next_waypoint.y - current_waypoint.y
+        return np.arctan2(dy, dx)
+    
+    @staticmethod
+    def compute_pi_v(current_waypoint: State, next_waypoint: State) -> float:
+        dz = next_waypoint.z - current_waypoint.z
+        horizontal_distance = np.sqrt((next_waypoint.x - current_waypoint.x)**2 + (next_waypoint.y - current_waypoint.y)**2)
+        return np.arctan2(-dz, horizontal_distance)
+    
+    @staticmethod
+    def compute_rotation_y(pi_v: float) -> np.ndarray:
+        return np.array([
+            [np.cos(pi_v), 0, np.sin(pi_v)],
+            [0, 1, 0],
+            [-np.sin(pi_v), 0, np.cos(pi_v)]
+        ])
+    
+    @staticmethod
+    def compute_rotation_z(pi_h: float) -> np.ndarray:
+        return np.array([
+            [np.cos(pi_h), -np.sin(pi_h), 0],
+            [np.sin(pi_h), np.cos(pi_h), 0],
+            [0, 0, 1]
+        ])
+    
+    def compute_psi_d(self, current_waypoint: State, next_waypoint: State, crosstrack_y) -> float:
+        pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
+        psi_d = pi_h - np.arctan(crosstrack_y / self.lookahead_h)
+        psi_d = self.ssa(psi_d)
+        return psi_d
+    
+    def compute_theta_d(self, current_waypoint: State, next_waypoint: State, crosstrack_z) -> float:
+        pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
+        theta_d = pi_v + np.arctan(crosstrack_z / self.lookahead_v)
+        theta_d = self.ssa(theta_d)
+        return theta_d
