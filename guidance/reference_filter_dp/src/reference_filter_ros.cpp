@@ -20,7 +20,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
     std::string dp_reference_topic =
         this->get_parameter("dp_reference_topic").as_string();
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
-        dp_reference_topic, 10);
+        dp_reference_topic, qos_sensor_data);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_filter_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::reference_callback, this,
@@ -252,11 +252,12 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        if ((x_.head(6)-r_.head(6)).norm() < 0.1) {
+        if ((x_.head(6) - r_.head(6)).norm() < 0.1) {
             result->success = true;
             goal_handle->succeed(result);
             x_.head(6) = r_.head(6);
-            vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
+            vortex_msgs::msg::ReferenceFilter feedback_msg =
+                fill_reference_msg();
             reference_pub_->publish(feedback_msg);
             RCLCPP_INFO(this->get_logger(), "Goal reached");
             return;

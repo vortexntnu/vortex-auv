@@ -1,26 +1,47 @@
 #include <pid_controller_dp_euler/pid_controller_ros.hpp>
 #include <pid_controller_dp_euler/pid_controller_utils.hpp>
+#include <string>
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     time_step_ = std::chrono::milliseconds(10);
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+
+    this->declare_parameter("nucleus_odom_topic", "/orca/odom");
+    this->declare_parameter("dp_reference_topic", "/dp/reference");
+    this->declare_parameter("control_topic", "/thrust/wrench_input");
+    this->declare_parameter("software_kill_switch_topic",
+                            "/softwareKillSwitch");
+    this->declare_parameter("software_operation_mode_topic",
+                            "/softwareOperationMode");
+
+    std::string nucleus_odom_topic =
+        this->get_parameter("nucleus_odom_topic").as_string();
+    std::string dp_reference_topic =
+        this->get_parameter("dp_reference_topic").as_string();
+    std::string control_topic =
+        this->get_parameter("control_topic").as_string();
+    std::string software_kill_switch_topic =
+        this->get_parameter("software_kill_switch_topic").as_string();
+    std::string software_operation_mode_topic =
+        this->get_parameter("software_operation_mode_topic").as_string();
+
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        "/softwareKillSwitch", 10,
+        software_kill_switch_topic, 10,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        "/softwareOperationMode", 10,
+        software_operation_mode_topic, 10,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/orca/odom", qos_sensor_data,
+        nucleus_odom_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            "/dp/reference", 10,
+            dp_reference_topic, 10,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
     kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
@@ -35,8 +56,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         "/pid/kd", 10,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
-    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
-        "/thrust/wrench_input", 10);
+    tau_pub_ =
+        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();

@@ -48,7 +48,7 @@ struct J_transformation {
     types::Matrix4x3d T = types::Matrix4x3d::Zero();
 
     types::Matrix7x6d as_matrix() const {
-        types::Matrix7x6d mat;
+        types::Matrix7x6d mat = types::Matrix7x6d::Zero();
         mat.block<3, 3>(0, 0) = R;
         mat.block<4, 3>(3, 3) = T;
         return mat;

@@ -1,4 +1,5 @@
 #include "pid_controller_dp/pid_controller_conversions.hpp"
+#include <iostream>
 #include "nav_msgs/msg/odometry.hpp"
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
@@ -13,6 +14,7 @@ types::Eta eta_convert_from_ros_to_eigen(
     eta.ori.x() = msg->pose.pose.orientation.x;
     eta.ori.y() = msg->pose.pose.orientation.y;
     eta.ori.z() = msg->pose.pose.orientation.z;
+
     return eta;
 }
 
