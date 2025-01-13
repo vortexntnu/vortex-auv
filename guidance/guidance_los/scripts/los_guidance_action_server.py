@@ -320,7 +320,6 @@ class LOSActionServer(Node):
         self.current_waypoint_index = 0
         self.waypoints = [self.state]
         incoming_waypoints = goal_handle.request.waypoints
-        self.get_logger().info(f'Got {len(incoming_waypoints)} waypoints')
         for waypoint in incoming_waypoints:
             point_as_state = State(
                 x=waypoint.pose.position.x,
@@ -354,7 +353,8 @@ class LOSActionServer(Node):
                 self.get_logger().info('Goal canceled')
                 goal_handle.canceled()
                 self.goal_handle = None
-                return NavigateWaypoints.Result(success=False)
+                result.success = False
+                return result
             
             norm = np.linalg.norm(self.state.as_pos_array() - self.waypoints[self.current_waypoint_index + 1].as_pos_array(), 2)
             if norm < 0.5:
@@ -363,11 +363,12 @@ class LOSActionServer(Node):
 
                 if self.current_waypoint_index >= len(self.waypoints) - 1:
                     self.get_logger().info('All waypoints reached!')
-                    return NavigateWaypoints.Result(success=True)
+                    final_commands = State(surge_vel=0.0, pitch=self.state.pitch, yaw=self.state.yaw)
+                    self.publish_guidance(final_commands)
+                    result.success = True
+                    self.goal_handle.succeed()
+                    return result
                 
-                self.get_logger().info(f"Going to waypoint {self.waypoints[self.current_waypoint_index + 1].as_pos_array()} \n from {self.waypoints[self.current_waypoint_index].as_pos_array()}")
-
-                self.get_logger().info(f"index: {self.current_waypoint_index}, len: {len(self.waypoints)}")
                 self.pi_h = self.guidance_calculator.compute_pi_h(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
                 self.pi_v = self.guidance_calculator.compute_pi_v(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
 
@@ -377,10 +378,6 @@ class LOSActionServer(Node):
 
             commands = self.calculate_guidance()
             self.publish_guidance(commands)
-
-            if self.current_waypoint_index >= len(self.waypoints):
-                self.get_logger().info('All waypoints reached')
-                return NavigateWaypoints.Result(success=True)
 
             rate.sleep()
 
