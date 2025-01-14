@@ -18,7 +18,8 @@ struct Track {
     bool confirmed;
     float centroid_z_measurement;
     // make connection between line
-    Eigen::Matrix<double, 3, 2> line_points;
+    Eigen::Matrix<double, 2, 2> line_points;
+    Eigen::Vector2d line_params;
 
     // For sorting tracks based on existence probability and confirmed track
     bool operator<(const Track &other) const {
@@ -90,6 +91,9 @@ public:
      * @return A vector of Track objects representing the current tracks.
      */
     std::vector<Track> getTracks() const { return tracks_; }
+
+    // TODO: create this function
+    Eigen::Vector2d getLineParams(Eigen::Matrix<double, 2, 2> line_points) const;
 
 private:
     std::vector<Track> tracks_; ///< The vector of tracks.

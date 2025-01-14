@@ -66,6 +66,8 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_3_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
 
+
+    // only need the odom variable. Transform lines in poseArrayCallback and store them in the odom variable.
     geometry_msgs::msg::PoseArray::SharedPtr linePointsArray_;
     geometry_msgs::msg::PoseArray::SharedPtr odomLinePointsArray_;
 
@@ -79,8 +81,12 @@ private:
     void depthCallback(const std_msgs::msg::Float64::SharedPtr msg);
     void poseArrayCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg); 
 
-     //timer
+    
+    // Track manager
+    TrackManager track_manager_;
 
+    // TODO: In timer callback pass lines into update tracks function, then retrieve tracks using getTracks.
+    // We now have all valid lines as tracks. Use the line_points of tracks to determine which to publish.
     void timer_callback();
     void update_timer(int update_interval);
     rclcpp::TimerBase::SharedPtr timer_;

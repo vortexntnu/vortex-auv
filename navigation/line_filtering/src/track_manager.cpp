@@ -5,7 +5,7 @@ TrackManager::TrackManager()
 {
 }
 
-void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements_,
+void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
     int update_interval, 
     double confirmation_threshold, 
     double gate_theshhold, 
@@ -35,12 +35,13 @@ void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurem
         state_est_prev.x_estimate = track.state;
         state_est_prev.existence_probability = track.existence_probability;
         // Predict next state
+        // TODO: input into IPDA::step should be line params not points
         auto output = 
             IPDA::step(*dyn_model_, 
             *sensor_model_,
             update_interval / 1000.0,
             state_est_prev, 
-            measurements_, 
+            measurements, 
             config);
         // Update state
         track.state = output.state.x_estimate;
@@ -55,42 +56,42 @@ void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurem
 
     
         // Update the measurement list
-        Eigen::Array<double, 2, Eigen::Dynamic> outside(2, measurements_.cols());
+        Eigen::Array<double, 2, Eigen::Dynamic> outside(2, measurements.cols());
     
         Eigen::Index inside_num = 0;
-        for (Eigen::Index i = 0; i < measurements_.cols(); ++i)
+        for (Eigen::Index i = 0; i < measurements.cols(); ++i)
         {
             if (output.gated_measurements[i])
             {
-                track.cluster.insert(track.cluster.end(), clusters_[i].begin(), clusters_[i].end());
-
-                z_centroid_meas += centroid_z_meas_[i];
+                // This is old code for assigning clusters to track based on the index of the gated measurements.
+                // Update this to assign line_points to track based on the index of the gated measurements.
+                // If multiple measurements are gated to the same track (should not happen), only assign one set of line points to the track (random or average). 
+                // track.cluster.insert(track.cluster.end(), clusters_[i].begin(), clusters_[i].end());
+                // z_centroid_meas += centroid_z_meas_[i];
                 inside_num++;
             }
             else
             {
-                clusters.push_back(clusters_[i]);
-                outside.col(i-inside_num) = measurements_.col(i);
-                centroid_z_meas.push_back(centroid_z_meas_[i]);
+                // SAME here as above. Update to handle lines
+                // clusters.push_back(clusters_[i]);
+                // outside.col(i-inside_num) = measurements.col(i);
+                // centroid_z_meas.push_back(centroid_z_meas_[i]);
             }
         }
-        outside.conservativeResize(2, measurements_.cols() - inside_num);
+        outside.conservativeResize(2, measurements.cols() - inside_num);
         if(inside_num != 0)
         {
-            track.centroid_z_measurement = z_centroid_meas / inside_num;
-            centroid_z_meas_ = centroid_z_meas;
-            clusters_ = clusters;
-            measurements_ = outside;
+            measurements = outside;
         }
     }
     // Create new tracks based on the remaining measurements
-    createTracks(measurements_, initial_existence_probability);
+    createTracks(measurements, initial_existence_probability);
 }
 
 void TrackManager::createTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements, 
     double initial_existence_probability)
 {
-        
+    // TODO: assign line params to track state.
     for (Eigen::Index i = 0; i < measurements.cols(); ++i)
     {
         Eigen::Vector4d state_estimate;
