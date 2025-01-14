@@ -62,7 +62,7 @@ class LOSActionServer(Node):
         # Initialize guidance calculator with third-order filtering
         self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
 
-        self.desired_vel = 0.5
+        self.desired_vel = 0.3
 
     def declare_los_parameters_(self):
         """Declare all LOS guidance parameters."""
@@ -195,7 +195,7 @@ class LOSActionServer(Node):
     def odom_callback(self, msg: Odometry):
         """Process odometry updates and trigger guidance calculations."""
         orientation_q = msg.pose.pose.orientation
-        _, pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
+        self.phi, self.pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
             orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
         )
 
@@ -204,7 +204,11 @@ class LOSActionServer(Node):
         self.state.y = msg.pose.pose.position.y
         self.state.z = msg.pose.pose.position.z
         self.state.yaw = yaw
-        self.state.pitch = pitch
+        self.state.pitch = self.pitch
+
+        self.u = msg.twist.twist.linear.x
+        self.v = msg.twist.twist.linear.y
+        self.w = msg.twist.twist.linear.z
 
         # Initialize filter on first callback
         if not self.filter_initialized:
@@ -214,15 +218,17 @@ class LOSActionServer(Node):
     def calculate_guidance(self) -> State:
         error = self.state.as_pos_array() - self.waypoints[self.current_waypoint_index].as_pos_array()
         _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
+        alpha_c = self.guidance_calculator.calculate_alpha_c(self.u, self.v, self.w, self.phi)
+        beta_c = self.guidance_calculator.calculate_beta_c(self.u, self.v, self.w, self.phi, self.pitch, alpha_c)
         psi_d = self.guidance_calculator.compute_psi_d(self.waypoints[self.current_waypoint_index], 
                                                        self.waypoints[self.current_waypoint_index + 1], 
-                                                       crosstrack_y)
+                                                       crosstrack_y, beta_c)
         theta_d = self.guidance_calculator.compute_theta_d(self.waypoints[self.current_waypoint_index], 
                                                            self.waypoints[self.current_waypoint_index + 1], 
-                                                           crosstrack_z)
+                                                           crosstrack_z, alpha_c)
         unfiltered_commands = State(surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d)
         filtered_commands = self.guidance_calculator.apply_reference_filter(unfiltered_commands)
-        return filtered_commands
+        return unfiltered_commands
 
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
@@ -271,7 +277,7 @@ class LOSActionServer(Node):
                 return result
             
             norm = np.linalg.norm(self.state.as_pos_array() - self.waypoints[self.current_waypoint_index + 1].as_pos_array(), 2)
-            if norm < 0.5:
+            if norm < 1.5:
                 self.get_logger().info('Waypoint reached')
                 self.current_waypoint_index += 1
 

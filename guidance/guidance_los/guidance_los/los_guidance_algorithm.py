@@ -87,8 +87,8 @@ class ThirdOrderLOSGuidance:
         self.x = np.zeros(9)  # Filter state
         self.horizontal_distance = 0.0
         self.setup_filter_matrices()
-        self.lookahead_h = 1.0
-        self.lookahead_v = 1.0
+        self.lookahead_h = 2.0
+        self.lookahead_v = 2.0
 
     @staticmethod
     def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
@@ -235,14 +235,23 @@ class ThirdOrderLOSGuidance:
             [0, 0, 1]
         ])
     
-    def compute_psi_d(self, current_waypoint: State, next_waypoint: State, crosstrack_y) -> float:
+    def compute_psi_d(self, current_waypoint: State, next_waypoint: State, crosstrack_y: float, beta_c: float) -> float:
         pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
-        psi_d = pi_h - np.arctan(crosstrack_y / self.lookahead_h)
+        psi_d = pi_h - np.arctan(crosstrack_y / self.lookahead_h) - beta_c
         psi_d = self.ssa(psi_d)
         return psi_d
     
-    def compute_theta_d(self, current_waypoint: State, next_waypoint: State, crosstrack_z) -> float:
+    def compute_theta_d(self, current_waypoint: State, next_waypoint: State, crosstrack_z: float, alpha_c: float) -> float:
         pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
-        theta_d = pi_v + np.arctan(crosstrack_z / self.lookahead_v)
+        theta_d = pi_v + np.arctan(crosstrack_z / self.lookahead_v) + alpha_c
         theta_d = self.ssa(theta_d)
         return theta_d
+
+    @staticmethod
+    def calculate_alpha_c(u: float, v: float, w: float, phi: float) -> float:
+        return np.arctan((v * np.sin(phi) + w * np.cos(phi)) / u) # Slide 104 in Fossen 2024
+    
+    @staticmethod
+    def calculate_beta_c(u: float, v: float, w: float, phi: float, theta: float, alpha_c: float) -> float:
+        U_v = u * np.sqrt(1 + np.tan(alpha_c)**2)
+        return np.arctan((v * np.cos(phi) - w * np.sin(phi)) / (U_v * np.cos(theta - alpha_c))) # Slide 104 in Fossen 2024
