@@ -102,7 +102,7 @@ void PIDControllerNode::odometry_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ || software_mode_ == "XBOX") {
         return;
     }
 
