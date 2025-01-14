@@ -20,6 +20,7 @@ install(DIRECTORY
 
 install(PROGRAMS
   joystick_interface_auv/joystick_interface_auv.py
+  joystick_interface_auv/joystick_utils.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
