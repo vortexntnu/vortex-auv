@@ -53,7 +53,7 @@ def generate_launch_description():
                     'autorepeat_rate': 100.0,
                 }],
                 remappings=[
-                    ('/joy', '/joystick/joy'),
+                    ('/joy', '/orca/joy'),
                 ],
             )]
         
@@ -69,7 +69,7 @@ def generate_launch_description():
                     'device_name': 'Xbox Series X Controller',
                 }],
                 remappings=[
-                    ('/joy', '/joystick/joy'),
+                    ('/joy', '/orca/joy'),
                 ],
             )]
 
