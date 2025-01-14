@@ -18,6 +18,11 @@ def generate_launch_description():
     set_env_var = SetEnvironmentVariable(
         name='ROSCONSOLE_FORMAT',
         value='[${severity}] [${time}] [${node}]: ${message}')
+    
+    set_warn_color = SetEnvironmentVariable(
+        name='RCUTILS_COLORIZED_OUTPUT',
+        value='1'
+    )
 
     thrust_allocator_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -37,7 +42,7 @@ def generate_launch_description():
     def include_joy_node(context: LaunchContext):
         num_drones = int(LaunchConfiguration('num_drones').perform(context))
 
-        if num_drones == 1:
+        if num_drones != 2:
             return [Node(
                 package='joy',
                 executable='joy_node',
@@ -71,6 +76,7 @@ def generate_launch_description():
     return LaunchDescription([
         num_drones_arg,
         set_env_var,
+        set_warn_color,
         thrust_allocator_launch,
         OpaqueFunction(function=include_joy_node),
         joystick_interface_launch,
