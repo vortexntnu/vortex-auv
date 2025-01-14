@@ -1,0 +1,14 @@
+line_filtering_node:
+  ros__parameters:
+    sub_image: "image_sub_"   
+    sub_camera_info: "camera_info_sub_"
+    sub_depth: "depth_sub_"
+    sub_array: "pose_array_sub_"
+    pub_topic: "point_cloud_pub_"
+    pub_array: "pose_array_pub_"
+    pub_point1: "point_1_"
+    pub_point2: "point_2_"
+    pub_point3: "point_3_"
+    pub_point4: "point_4_"
+    time: 10
+

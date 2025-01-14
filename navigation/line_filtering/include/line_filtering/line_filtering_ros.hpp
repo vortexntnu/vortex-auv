@@ -66,6 +66,8 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_3_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
 
+    geometry_msgs::msg::PoseArray::SharedPtr linePointsArray_;
+    geometry_msgs::msg::PoseArray::SharedPtr odomLinePointsArray_;
 
     bool camera_info_received_ = false;
     cv::Mat K_; 
@@ -76,6 +78,12 @@ private:
     void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg);
     void depthCallback(const std_msgs::msg::Float64::SharedPtr msg);
     void poseArrayCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg); 
+
+     //timer
+
+    void timer_callback();
+    void update_timer(int update_interval);
+    rclcpp::TimerBase::SharedPtr timer_;
 
 
 

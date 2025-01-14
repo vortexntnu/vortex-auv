@@ -1,4 +1,5 @@
 #include "line_filtering/line_filtering_ros.hpp"
+#include "line_filtering/track_manager.hpp"
 
 Camera3DPointsNode::Camera3DPointsNode() : Node("camera_3d_points_node")
 {
@@ -26,6 +27,11 @@ Camera3DPointsNode::Camera3DPointsNode() : Node("camera_3d_points_node")
 
     
     depth_.data = -1.0;
+
+    // set timer
+    int update_interval = get_parameter("update_interval_ms").as_int();
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(update_interval), std::bind(&line_filtering_node::timer_callback, this));
+
 
     //publisher
     pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("pose_array", qos_sensor_data);
@@ -85,13 +91,22 @@ void Camera3DPointsNode::poseArrayCallback(const geometry_msgs::msg::PoseArray::
         // Publish individual PoseStamped messages for specific points (optional)
         geometry_msgs::msg::PoseStamped pose_msg;
         pose_msg.header = msg->header;
-        pose_msg.pose = updated_pose;
+        pose_msg.pose = updated_pose;        
+
 
         switch (i) {
-            case 0: point_1_->publish(pose_msg); break;
-            case 1: point_2_->publish(pose_msg); break;
-            case 2: point_3_->publish(pose_msg); break;
-            case 3: point_4_->publish(pose_msg); break;
+            case 0: point_1_->publish(pose_msg); 
+                linePointsArray_.poses[0] = point_1_; //Store the pose in the pose array
+                break;
+            case 1: point_2_->publish(pose_msg); 
+                linePointsArray_.poses[1] = point_2_; //Store the pose in the pose array
+                break;
+            case 2: point_3_->publish(pose_msg); 
+                linePointsArray_.poses[2] = point_3_; //Store the pose in the pose array
+                break;
+            case 3: point_4_->publish(pose_msg); 
+                linePointsArray_.poses[3] = point_4_; //Store the pose in the pose array
+                break;
             default: break;
         }
 
@@ -118,7 +133,7 @@ Camera3DPointsNode::LineGrouper Camera3DPointsNode::lines_grouped(geometry_msgs:
                                                                   geometry_msgs::msg::Point point3_, 
                                                                   geometry_msgs::msg::Point point4_) {
     Camera3DPointsNode::LineGrouper lines_grouped_temp;
-
+    // retrieve member variables on timer callback
     lines_grouped_temp.line1_.start = point1_;
     lines_grouped_temp.line1_.end = point2_;
     lines_grouped_temp.line2_.start = point3_;
@@ -141,4 +156,44 @@ Camera3DPointsNode::LineGrouper Camera3DPointsNode::line_selector(Camera3DPoints
     }
 
     return selected_line;
+}
+
+//get current pose from DVL and orientation for orca, to test if we travel too far 
+
+void Camera3DPointsNode::timer_callback()
+{
+    // get parameters
+    int update_interval = get_parameter("update_interval_ms").as_int();
+    double confirmation_threshold = get_parameter("confirmation_threshold").as_double();
+    double gate_threshold = get_parameter("gate_threshold").as_double();
+    double min_gate_threshold = get_parameter("min_gate_threshold").as_double();
+    double max_gate_threshold = get_parameter("max_gate_threshold").as_double();
+    double prob_of_detection = get_parameter("probability_of_detection").as_double();
+    double prob_of_survival = get_parameter("probability_of_survival").as_double();
+    double clutter_intensity = get_parameter("clutter_rate").as_double();
+    double deletion_threshold = get_parameter("deletion_threshold").as_double();
+
+    // Update tracks
+    track_manager_.updateTracks(measurements_, update_interval, confirmation_threshold, gate_threshold, min_gate_threshold, max_gate_threshold, prob_of_detection, prob_of_survival,clutter_intensity);
+
+    measurements_.clear();
+
+    // Publish tracks to landmark server
+    publish_landmarks(deletion_threshold);
+
+    // Publish visualization parameters
+    if (get_parameter("publish_visualization").as_bool())
+    {
+        publish_visualization_parameters(gate_threshold, min_gate_threshold, max_gate_threshold);
+    }
+
+    // delete tracks
+    track_manager_.deleteTracks(deletion_threshold);
+}
+
+void TargetTrackingNode::update_timer(int update_interval)
+{
+    timer_->cancel();
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(update_interval), std::bind(&line_filtering_node::timer_callback, this));
+    RCLCPP_INFO(this->get_logger(), "Updated timer with %d ms update interval", update_interval);
 }
