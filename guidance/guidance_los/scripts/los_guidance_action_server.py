@@ -308,7 +308,9 @@ class LOSActionServer(Node):
         theta_d = self.guidance_calculator.compute_theta_d(self.waypoints[self.current_waypoint_index], 
                                                            self.waypoints[self.current_waypoint_index + 1], 
                                                            crosstrack_z)
-        return State(surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d)
+        unfiltered_commands = State(surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d)
+        filtered_commands = self.guidance_calculator.apply_reference_filter(unfiltered_commands)
+        return filtered_commands
 
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
