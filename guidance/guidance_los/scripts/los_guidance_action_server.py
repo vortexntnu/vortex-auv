@@ -4,7 +4,7 @@ import threading
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped, Vector3Stamped
+from geometry_msgs.msg import PoseStamped
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
     LOSParameters,
@@ -18,7 +18,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import String
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
 
@@ -46,13 +45,8 @@ class LOSActionServer(Node):
         # Initialize filter status flag
         self.filter_initialized = False
 
-        # Add debug parameter
-        self.declare_parameter('debug_mode', False)
-        self.debug_mode = self.get_parameter('debug_mode').value
-
         # Create callback groups for concurrent execution
         self.action_cb_group = ReentrantCallbackGroup()
-        self.timer_cb_group = ReentrantCallbackGroup()
 
         # Initialize parameters and topics
         self.declare_los_parameters_()
@@ -137,36 +131,15 @@ class LOSActionServer(Node):
 
     def _initialize_publishers(self):
         """Initialize all publishers."""
-        pub_qos_depth = self.get_parameter('qos.publisher_depth').value
 
-        # Main guidance command publisher
         los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
         self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
         self.guidance_cmd_pub = self.create_publisher(
             LOSGuidance, los_commands_topic, qos_profile=best_effort_qos
         )
 
-        # Debug publishers
-        if self.debug_mode:
-            reference_topic = self.get_parameter(
-                'topics.publishers.debug.reference'
-            ).value
-            errors_topic = self.get_parameter('topics.publishers.debug.errors').value
-            logs_topic = self.get_parameter('topics.publishers.debug.logs').value
-
-            self.guidance_ref_pub = self.create_publisher(
-                PoseStamped, reference_topic, pub_qos_depth
-            )
-            self.guidance_error_pub = self.create_publisher(
-                Vector3Stamped, errors_topic, pub_qos_depth
-            )
-            self.log_publisher = self.create_publisher(
-                String, logs_topic, pub_qos_depth
-            )
-
     def _initialize_subscribers(self):
         """Initialize subscribers."""
-        # sub_qos_depth = self.get_parameter('qos.subscriber_depth').value
         odom_topic = self.get_parameter('topics.subscribers.odometry').value
 
         self.create_subscription(
@@ -174,7 +147,6 @@ class LOSActionServer(Node):
             odom_topic,
             self.odom_callback,
             qos_profile=best_effort_qos,
-            #callback_group=self.timer_cb_group,
         )
 
     def _initialize_state(self):
@@ -218,19 +190,6 @@ class LOSActionServer(Node):
         """Handle cancellation requests."""
         self.get_logger().info("Received cancel request")
 
-        # with self._goal_lock:
-        #     if self.goal_handle == goal_handle:
-        #         # Reset navigation state
-        #         self.waypoints = []
-        #         self.current_waypoint_index = 0
-        #         self.goal_handle = None
-
-        #         # Reset guidance state if needed
-        #         initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
-        #         self.guidance_calculator.reset_filter_state(self.state)
-
-        #         self.publish_log("Navigation canceled and state reset")
-
         return CancelResponse.ACCEPT
 
     def odom_callback(self, msg: Odometry):
@@ -251,53 +210,6 @@ class LOSActionServer(Node):
         if not self.filter_initialized:
             self.guidance_calculator.reset_filter_state(self.state)
             self.filter_initialized = True
-
-    def process_guidance(self):
-        """Process guidance calculations and publish control commands."""
-        if self.current_waypoint_index >= len(self.waypoints):
-            return
-
-        # Extract position from PoseStamped waypoint
-        current_waypoint = self.waypoints[self.current_waypoint_index]
-        target_point = State(
-            x=current_waypoint.pose.position.x,
-            y=current_waypoint.pose.position.y,
-            z=current_waypoint.pose.position.z,
-        )
-        # Compute guidance commands using current state
-        commands = self.guidance_calculator.compute_guidance(self.state, target_point)
-
-        # Publish commands and monitoring data
-        self.publish_guidance(commands)
-        # self.publish_errors(target_point, depth_error)
-
-        # Check if waypoint is reached (0.5m threshold)
-        if self.guidance_calculator.horizontal_distance < 0.5:
-            self.get_logger().info(f'Reached waypoint {self.current_waypoint_index}')
-
-            # Reset filter state for next waypoint
-            self.guidance_calculator.reset_filter_state(self.state)
-
-            self.current_waypoint_index += 1
-
-            self.pi_h = self.guidance_calculator.compute_pi_h(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
-            self.pi_v = self.guidance_calculator.compute_pi_v(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
-            rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
-            rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
-            self.rotation_yz = rotation_y.T @ rotation_z.T
-
-            # Check if all waypoints are reached
-            if self.current_waypoint_index >= len(self.waypoints):
-                if self.goal_handle and self.goal_handle.is_active:
-                    self.goal_handle.succeed()
-                    self.goal_handle = None
-                return
-
-        # Publish progress feedback
-        if self.goal_handle and self.goal_handle.is_active:
-            feedback_msg = NavigateWaypoints.Feedback()
-            feedback_msg.current_waypoint_index = float(self.current_waypoint_index)
-            self.goal_handle.publish_feedback(feedback_msg)
 
     def calculate_guidance(self) -> State:
         error = self.state.as_pos_array() - self.waypoints[self.current_waypoint_index].as_pos_array()
