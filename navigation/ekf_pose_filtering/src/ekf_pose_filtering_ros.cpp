@@ -69,10 +69,10 @@ void EKFPoseFilteringNode::pose_callback(const geometry_msgs::msg::PoseStamped::
 void EKFPoseFilteringNode::filter_pose(geometry_msgs::msg::PoseStamped& pose_msg)
 {
     if (first_run_) {
-        Eigen::Vector3d initial_pose = {pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z};
-        previous_pose_est_ = Gauss3d(
-            initial_pose,
-        Gauss3d::Mat_nn::Identity()
+        Eigen::Vector4d initial_measurement = {pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z, pose_msg.pose.orientation.z};
+        previous_pose_est_ = Gauss4d(
+            initial_measurement,
+        Gauss4d::Mat_nn::Identity()
         );
         previous_time_ = pose_msg.header.stamp;
         first_run_ = false;
@@ -81,10 +81,11 @@ void EKFPoseFilteringNode::filter_pose(geometry_msgs::msg::PoseStamped& pose_msg
     else{
         rclcpp::Time current_time(pose_msg.header.stamp);
         rclcpp::Duration time_step = current_time - previous_time_;
-        Eigen::Vector3d object_pose;
+        Eigen::Vector4d object_pose;
         object_pose(0) = pose_msg.pose.position.x;
         object_pose(1) = pose_msg.pose.position.y;
         object_pose(2) = pose_msg.pose.position.z;
+        object_pose(3) = pose_msg.pose.orientation.z;
         std::tie(object_pose_est_, std::ignore, std::ignore) = EKF::step(*dynamic_model_,
         *sensor_model_,
         time_step.seconds(),
@@ -97,6 +98,7 @@ void EKFPoseFilteringNode::filter_pose(geometry_msgs::msg::PoseStamped& pose_msg
         pose_msg.pose.position.x = object_pose_est_.mean()(0);
         pose_msg.pose.position.y = object_pose_est_.mean()(1);
         pose_msg.pose.position.z = object_pose_est_.mean()(2);
+        pose_msg.pose.orientation.z = object_pose_est_.mean()(3);
     }
 }
 
@@ -122,9 +124,9 @@ geometry_msgs::msg::Quaternion EKFPoseFilteringNode::enu_to_ned_quaternion(const
 void EKFPoseFilteringNode::resetEFK(std::shared_ptr<std_srvs::srv::SetBool::Response> response)
 {
     first_run_ = false;
-    previous_pose_est_ = Gauss3d(
-        Gauss3d::Vec_n::Zero(),
-        Gauss3d::Mat_nn::Identity()
+    previous_pose_est_ = Gauss4d(
+        Gauss4d::Vec_n::Zero(),
+        Gauss4d::Mat_nn::Identity()
     );
     response->success = true;
 }
