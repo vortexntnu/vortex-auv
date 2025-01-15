@@ -2,10 +2,10 @@ from dataclasses import dataclass
 import numpy as np
 
 class JoyStates:
-    XBOX_MODE = 1
-    AUTONOMOUS_MODE = 2
-    NO_GO = 3
-    REFERENCE_MODE = 4
+    XBOX_MODE = "XBOX_MODE"
+    AUTONOMOUS_MODE = "AUTONOMOUS_MODE"
+    KILLSWITCH = "KILLSWITCH"
+    REFERENCE_MODE = "REFERENCE_MODE"
 
 @dataclass(slots=True)
 class State:

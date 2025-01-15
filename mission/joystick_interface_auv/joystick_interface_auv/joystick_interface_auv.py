@@ -15,7 +15,6 @@ class JoystickInterface(Node):
 
     def __init__(self):
         super().__init__('joystick_interface_node')
-        self.get_logger().info(".")
 
         best_effort_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -25,14 +24,12 @@ class JoystickInterface(Node):
 
         self.last_button_press_time_ = 0
         self.debounce_duration_ = 0.25
-        self.state_ = JoyStates.REFERENCE_MODE
+        self.state_ = JoyStates.KILLSWITCH
         self.precise_manuevering_scaling_ = 1.0
         self.joystick_buttons_map_ = []
 
         self.current_state = State()
         self.desired_state = State()
-
-        self.euler_angle_publisher = self.create_publisher(Float64MultiArray, "joystick/roll", 10)
 
         self.joystick_axes_map_ = []
 
@@ -114,6 +111,8 @@ class JoystickInterface(Node):
             String, "softwareOperationMode", 10) 
         self.current_pose = PoseStamped()
 
+        self.get_logger().warn(f"Joystick interface initialized. Current mode: {self.state_}")
+
     def odom_cb(self, msg: Odometry) -> None:
         # extract pose from odometry message
         self.current_state.x = msg.pose.pose.position.x
@@ -136,8 +135,7 @@ class JoystickInterface(Node):
         reference_msg.yaw = self.desired_state.yaw
         return reference_msg
 
-    def create_wrench_message(self, surge: float, sway: float, heave: float,
-                              roll: float, pitch: float, yaw: float) -> Wrench:
+    def create_wrench_message(self) -> Wrench:
         """
         Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
@@ -153,12 +151,12 @@ class JoystickInterface(Node):
             Wrench: A 2D wrench message with the given values.
         """
         wrench_msg = Wrench()
-        wrench_msg.force.x = surge
-        wrench_msg.force.y = sway
-        wrench_msg.force.z = heave
-        wrench_msg.torque.x = roll
-        wrench_msg.torque.y = pitch
-        wrench_msg.torque.z = yaw
+        wrench_msg.force.x = self.surge
+        wrench_msg.force.y = self.sway
+        wrench_msg.force.z = self.heave
+        wrench_msg.torque.x = self.roll
+        wrench_msg.torque.y = self.pitch
+        wrench_msg.torque.z = self.yaw
         return wrench_msg
 
     def transition_to_xbox_mode(self):
@@ -167,8 +165,7 @@ class JoystickInterface(Node):
         """
         self.operational_mode_signal_publisher_.publish(String(data="XBOX"))
         self.state_ = JoyStates.XBOX_MODE
-        self.get_logger().info("Transitioned to XBOX mode.")
-        self.get_logger().info("XBOX mode")
+        self.get_logger().warn("XBOX mode")
 
 
     def transition_to_reference_mode(self):
@@ -187,8 +184,7 @@ class JoystickInterface(Node):
         self.operational_mode_signal_publisher_.publish(String(data="Reference mode"))
         self.ref_publisher.publish(reference_msg)
         self.state_ = JoyStates.REFERENCE_MODE
-        self.get_logger().info("Transitioned to reference mode")
-        self.get_logger().info("Reference mode")
+        self.get_logger().warn("Reference mode")
 
 
 
@@ -196,12 +192,12 @@ class JoystickInterface(Node):
         """
         Publishes a zero force wrench message and signals that the system is turning on autonomous mode.
         """
-        wrench_msg = self.create_wrench_message(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        self.wrench_publisher_.publish(wrench_msg)
+        empty_wrench_msg = Wrench()
+        self.wrench_publisher_.publish(empty_wrench_msg)
         self.operational_mode_signal_publisher_.publish(
             String(data="autonomous mode"))
         self.state_ = JoyStates.AUTONOMOUS_MODE
-        self.get_logger().info("autonomous mode")
+        self.get_logger().warn("autonomous mode")
 
     def check_number_of_buttons(self, msg: Joy) -> None:
         """
@@ -268,59 +264,60 @@ class JoystickInterface(Node):
             right_shoulder: The state of the right shoulder button.
         """
         self.surge = axes.get(
-        "vertical_axis_left_stick", 0.0
-        ) * self.joystick_surge_scaling_ * self.precise_manuevering_scaling_
+            "vertical_axis_left_stick", 0.0
+        ) * self.joystick_surge_scaling_
+
         self.sway = -axes.get(
             "horizontal_axis_left_stick", 0.0
-        ) * self.joystick_sway_scaling_ * self.precise_manuevering_scaling_
+        ) * self.joystick_sway_scaling_
+
         self.heave = (
             left_trigger - right_trigger
-        ) * self.joystick_heave_scaling_ * self.precise_manuevering_scaling_
+        ) * self.joystick_heave_scaling_
+
         self.roll = (
             right_shoulder - left_shoulder
-        ) * self.joystick_roll_scaling_ * self.precise_manuevering_scaling_
+        ) * self.joystick_roll_scaling_
+
         self.pitch = -axes.get(
             "vertical_axis_right_stick", 0.0
-        ) * self.joystick_pitch_scaling_ * self.precise_manuevering_scaling_
+        ) * self.joystick_pitch_scaling_
+
         self.yaw = -axes.get(
             "horizontal_axis_right_stick", 0.0
-        ) * self.joystick_yaw_scaling_ * self.precise_manuevering_scaling_
+        ) * self.joystick_yaw_scaling_
 
-    def handle_killswitch_button(self) -> None:
+    def handle_killswitch_button(self):
         """
         Handles the software killswitch button press.
 
         This function performs the following actions based on the current state:
-        1. If the current state is NO_GO, it signals that the killswitch is not blocking,
+        1. If the current state is KILLSWITCH, it signals that the killswitch is not blocking,
             transitions to Xbox mode, and returns.
         2. Otherwise, it logs a message indicating that the software killswitch is active,
             signals that the killswitch is blocking, publishes a zero wrench message to stop
-            the AUV, and sets the state to NO_GO.
+            the AUV, and sets the state to KILLSWITCH.
 
         The function ensures that the AUV stops moving when the killswitch is activated
         and allows it to resume operation when the killswitch is deactivated.
         """
-        if self.state_ == JoyStates.NO_GO:
-            # Signal that killswitch is not blocking
+        if self.state_ == JoyStates.KILLSWITCH:
             self.software_killswitch_signal_publisher_.publish(
                 Bool(data=False))
             self.transition_to_xbox_mode()
             return
 
         else:
-            self.get_logger().info("SW killswitch",
-            throttle_duration_sec=1)
-            # Signal that killswitch is blocking
+            self.get_logger().warn("SW killswitch")
             self.software_killswitch_signal_publisher_.publish(
             Bool(data=True))
-            # Publish a zero wrench message when killswitch is activated
-            wrench_msg = self.create_wrench_message(
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-            self.wrench_publisher_.publish(wrench_msg)
-            self.state_ = JoyStates.NO_GO
+
+            empty_wrench_msg = Wrench()
+            self.wrench_publisher_.publish(empty_wrench_msg)
+            self.state_ = JoyStates.KILLSWITCH
             return 
 
-    def joystick_cb(self, msg: Joy) -> Wrench:
+    def joystick_cb(self, msg: Joy):
         """
         Callback function that receives joy messages and converts them into
         wrench messages to be sent to the thruster allocation node. 
@@ -361,10 +358,12 @@ class JoystickInterface(Node):
         left_shoulder = buttons.get("LB", 0)
         right_shoulder = buttons.get("RB", 0)
 
-        gripper = axes.get("dpad_vertical", 0.0)
+        gripper_move = axes.get("dpad_vertical", 0.0)
         gripper_rotation = axes.get("dpad_horizontal", 0.0)
         gripper_grip = buttons.get("stick_button_left", 0)
         gripper_open = buttons.get("stick_button_right", 0)
+
+        self.handle_gripper(gripper_move, gripper_rotation, gripper_grip, gripper_open)
 
         self.calculate_movement(axes, left_trigger, right_trigger, left_shoulder, right_shoulder)
 
@@ -384,59 +383,13 @@ class JoystickInterface(Node):
             self.handle_killswitch_button()
 
         if self.state_ == JoyStates.XBOX_MODE:
-            wrench_msg = self.create_wrench_message(self.surge, self.sway, self.heave, 
-                                                self.roll, self.pitch, self.yaw)
+            wrench_msg = self.create_wrench_message()
             self.wrench_publisher_.publish(wrench_msg)
-
-            gripper_state_msg = JointState()
-            gripper_names = [
-                "Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1",
-                "Orca/Finger_joint2"
-            ]
-            gripper_pos = []
-
-            gripper_msg = Float64()
-            self.gripper_desired_position_ += gripper * 0.01
-            if self.gripper_desired_position_ > .11:
-                self.gripper_desired_position_ = .11
-            if self.gripper_desired_position_ < -2.1:
-                self.gripper_desired_position_ = -2.1
-
-            gripper_pos.append(self.gripper_desired_position_)
-
-            gripper_state_msg.name = gripper_names
-
-            gripper_msg.data = self.gripper_desired_position_
-            self.gripper_pos_publisher_.publish(gripper_msg)
-
-            gripper_rot_msg = Float64()
-            self.gripper_desired_rotation_ += gripper_rotation * 0.05
-            gripper_rot_msg.data = self.gripper_desired_rotation_
-            self.gripper_rot_publisher_.publish(gripper_rot_msg)
-
-            gripper_finger_msg = Float64()
-            if gripper_grip:
-                self.gripper_grip_position_ += 0.01
-            if gripper_open:
-                self.gripper_grip_position_ -= 0.01
-            if self.gripper_grip_position_ < 0:
-                self.gripper_grip_position_ = 0.
-            elif self.gripper_grip_position_ > 0.78:
-                self.gripper_grip_position_ = 0.78
-
-            gripper_pos.append(self.gripper_desired_rotation_)
-            gripper_pos.append(self.gripper_grip_position_)
-            gripper_pos.append(self.gripper_grip_position_)
-
-            gripper_finger_msg.data = self.gripper_grip_position_
-            self.gripper_finger_publisher_.publish(gripper_finger_msg)
-
-            gripper_state_msg.position = gripper_pos
-
-            self.gripper_state_publisher_.publish(gripper_state_msg)
 
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
+            elif reference_mode_button:
+                self.transition_to_reference_mode()
 
         elif self.state_ == JoyStates.AUTONOMOUS_MODE:
 
@@ -455,6 +408,53 @@ class JoystickInterface(Node):
             elif xbox_control_mode_button:
                 self.transition_to_xbox_mode()
 
+    def handle_gripper(self, gripper_move: float, gripper_rotation: float, gripper_grip: bool, gripper_open: bool):
+        gripper_state_msg = JointState()
+        gripper_names = [
+            "Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1",
+            "Orca/Finger_joint2"
+        ]
+        gripper_pos = []
+
+        gripper_msg = Float64()
+        self.gripper_desired_position_ += gripper_move * 0.01
+        if self.gripper_desired_position_ > .11:
+            self.gripper_desired_position_ = .11
+        if self.gripper_desired_position_ < -2.1:
+            self.gripper_desired_position_ = -2.1
+
+        gripper_pos.append(self.gripper_desired_position_)
+
+        gripper_state_msg.name = gripper_names
+
+        gripper_msg.data = self.gripper_desired_position_
+        self.gripper_pos_publisher_.publish(gripper_msg)
+
+        gripper_rot_msg = Float64()
+        self.gripper_desired_rotation_ += gripper_rotation * 0.05
+        gripper_rot_msg.data = self.gripper_desired_rotation_
+        self.gripper_rot_publisher_.publish(gripper_rot_msg)
+
+        gripper_finger_msg = Float64()
+        if gripper_grip:
+            self.gripper_grip_position_ += 0.01
+        if gripper_open:
+            self.gripper_grip_position_ -= 0.01
+        if self.gripper_grip_position_ < 0:
+            self.gripper_grip_position_ = 0.
+        elif self.gripper_grip_position_ > 0.78:
+            self.gripper_grip_position_ = 0.78
+
+        gripper_pos.append(self.gripper_desired_rotation_)
+        gripper_pos.append(self.gripper_grip_position_)
+        gripper_pos.append(self.gripper_grip_position_)
+
+        gripper_finger_msg.data = self.gripper_grip_position_
+        self.gripper_finger_publisher_.publish(gripper_finger_msg)
+
+        gripper_state_msg.position = gripper_pos
+
+        self.gripper_state_publisher_.publish(gripper_state_msg)
 
     def update_reference(self): 
         """
