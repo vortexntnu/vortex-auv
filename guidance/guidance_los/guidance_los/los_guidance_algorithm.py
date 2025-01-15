@@ -32,7 +32,7 @@ class State:
 
     def as_los_array(self):
         return np.array([self.surge_vel, self.pitch, self.yaw])
-    
+
     def as_pos_array(self):
         return np.array([self.x, self.y, self.z])
 
@@ -158,7 +158,6 @@ class ThirdOrderLOSGuidance:
         )
 
         desired_surge = self.compute_desired_speed(yaw_error, self.horizontal_distance)
-
         commands = State(surge_vel=desired_surge, pitch=desired_pitch, yaw=desired_yaw)
 
         return commands
@@ -212,36 +211,55 @@ class ThirdOrderLOSGuidance:
         dx = next_waypoint.x - current_waypoint.x
         dy = next_waypoint.y - current_waypoint.y
         return np.arctan2(dy, dx)
-    
+
     @staticmethod
     def compute_pi_v(current_waypoint: State, next_waypoint: State) -> float:
         dz = next_waypoint.z - current_waypoint.z
-        horizontal_distance = np.sqrt((next_waypoint.x - current_waypoint.x)**2 + (next_waypoint.y - current_waypoint.y)**2)
+        horizontal_distance = np.sqrt(
+            (next_waypoint.x - current_waypoint.x) ** 2
+            + (next_waypoint.y - current_waypoint.y) ** 2
+        )
         return np.arctan2(-dz, horizontal_distance)
-    
+
     @staticmethod
     def compute_rotation_y(pi_v: float) -> np.ndarray:
-        return np.array([
-            [np.cos(pi_v), 0, np.sin(pi_v)],
-            [0, 1, 0],
-            [-np.sin(pi_v), 0, np.cos(pi_v)]
-        ])
-    
+        return np.array(
+            [
+                [np.cos(pi_v), 0, np.sin(pi_v)],
+                [0, 1, 0],
+                [-np.sin(pi_v), 0, np.cos(pi_v)],
+            ]
+        )
+
     @staticmethod
     def compute_rotation_z(pi_h: float) -> np.ndarray:
-        return np.array([
-            [np.cos(pi_h), -np.sin(pi_h), 0],
-            [np.sin(pi_h), np.cos(pi_h), 0],
-            [0, 0, 1]
-        ])
-    
-    def compute_psi_d(self, current_waypoint: State, next_waypoint: State, crosstrack_y: float, beta_c: float) -> float:
+        return np.array(
+            [
+                [np.cos(pi_h), -np.sin(pi_h), 0],
+                [np.sin(pi_h), np.cos(pi_h), 0],
+                [0, 0, 1],
+            ]
+        )
+
+    def compute_psi_d(
+        self,
+        current_waypoint: State,
+        next_waypoint: State,
+        crosstrack_y: float,
+        beta_c: float,
+    ) -> float:
         pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
         psi_d = pi_h - np.arctan(crosstrack_y / self.lookahead_h) - beta_c
         psi_d = self.ssa(psi_d)
         return psi_d
-    
-    def compute_theta_d(self, current_waypoint: State, next_waypoint: State, crosstrack_z: float, alpha_c: float) -> float:
+
+    def compute_theta_d(
+        self,
+        current_waypoint: State,
+        next_waypoint: State,
+        crosstrack_z: float,
+        alpha_c: float,
+    ) -> float:
         pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
         theta_d = pi_v + np.arctan(crosstrack_z / self.lookahead_v) + alpha_c
         theta_d = self.ssa(theta_d)
@@ -249,9 +267,15 @@ class ThirdOrderLOSGuidance:
 
     @staticmethod
     def calculate_alpha_c(u: float, v: float, w: float, phi: float) -> float:
-        return np.arctan((v * np.sin(phi) + w * np.cos(phi)) / u) # Slide 104 in Fossen 2024
-    
+        return np.arctan(
+            (v * np.sin(phi) + w * np.cos(phi)) / u
+        )  # Slide 104 in Fossen 2024
+
     @staticmethod
-    def calculate_beta_c(u: float, v: float, w: float, phi: float, theta: float, alpha_c: float) -> float:
-        U_v = u * np.sqrt(1 + np.tan(alpha_c)**2)
-        return np.arctan((v * np.cos(phi) - w * np.sin(phi)) / (U_v * np.cos(theta - alpha_c))) # Slide 104 in Fossen 2024
+    def calculate_beta_c(
+        u: float, v: float, w: float, phi: float, theta: float, alpha_c: float
+    ) -> float:
+        u_v = u * np.sqrt(1 + np.tan(alpha_c) ** 2)
+        return np.arctan(
+            (v * np.cos(phi) - w * np.sin(phi)) / (u_v * np.cos(theta - alpha_c))
+        )  # Slide 104 in Fossen 2024
