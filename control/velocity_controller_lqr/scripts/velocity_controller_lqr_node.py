@@ -253,12 +253,14 @@ class LinearQuadraticRegulator(Node):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
-        if self.controller.killswitch == False:
-            if self.controller.operation_mode == "autonomous mode":
-                self.publisherLQR.publish(msg)
+        if (
+            self.controller.killswitch == False
+            and self.controller.operation_mode == "autonomous mode"
+        ):
+            self.publisherLQR.publish(msg)
 
-            else:
-                self.controller.reset_controller()
+        else:
+            self.controller.reset_controller()
 
 
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
