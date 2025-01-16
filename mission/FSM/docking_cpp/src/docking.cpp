@@ -376,7 +376,7 @@ int main(int argc, char* argv[]) {
                           yasmin_ros::basic_outcomes::ABORT},
                       DockedState),
                   {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
+                      {yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::SUCCEED},
                       // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
                       {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                   });
