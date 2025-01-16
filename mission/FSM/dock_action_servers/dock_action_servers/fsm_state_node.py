@@ -34,9 +34,10 @@ class FSMStateNode(Node):
             msg = String()
             msg.data = controller_message
 
-            self.get_logger().info(f'Message to publish: {msg.data}')
 
-            if msg.data != 'None':
+
+            if msg.data != 'None':            
+                self.get_logger().info(f'Message to publish: {msg.data}')
                 self.publisher.publish(msg)
                 self.last_state_id = state_id
             
