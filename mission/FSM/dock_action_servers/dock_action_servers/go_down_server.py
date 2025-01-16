@@ -10,17 +10,19 @@ from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result
 
 
 class GoDownServer(Node):
-
     def __init__(self) -> None:
         super().__init__('go_down_server')
 
-        self._action_server = ActionServer(self, GoToWaypoint, '/go_down', self.execute_callback)
+        self._action_server = ActionServer(
+            self, GoToWaypoint, '/fsm/go_down', self.execute_callback
+        )
 
     def execute_callback(self, goal_handle: GoToWaypoint.Goal) -> GoToWaypoint_Result:
+        """This function is called when the action server receives a goal to go down.
         """
-        This function is called when the action server receives a goal to go down.
-        """
-        self.get_logger().info(f'Executing goal to dock at: {goal_handle.request.waypoint}')
+        self.get_logger().info(
+            f'Executing goal to dock at: {goal_handle.request.waypoint}'
+        )
 
         feedback_msg = GoToWaypoint.Feedback()
         docking_position = goal_handle.request.waypoint  # [x, y, z]
@@ -46,9 +48,15 @@ class GoDownServer(Node):
             goal_handle.publish_feedback(feedback_msg)
 
             # Simulate AUV moving towards the dock
-            auv_position.pose.position.x += (docking_position.pose.position.x - auv_position.pose.position.x) / 2
-            auv_position.pose.position.y += (docking_position.pose.position.y - auv_position.pose.position.y) / 2
-            auv_position.pose.position.z += (docking_position.pose.position.z - auv_position.pose.position.z) / 2
+            auv_position.pose.position.x += (
+                docking_position.pose.position.x - auv_position.pose.position.x
+            ) / 2
+            auv_position.pose.position.y += (
+                docking_position.pose.position.y - auv_position.pose.position.y
+            ) / 2
+            auv_position.pose.position.z += (
+                docking_position.pose.position.z - auv_position.pose.position.z
+            ) / 2
 
             # rate.sleep()
 
@@ -70,6 +78,7 @@ def main(args: None = None) -> None:
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

@@ -9,6 +9,7 @@
 #include <vortex_msgs/action/navigate_waypoints.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 
+#include <std_msgs/msg/string.hpp>
 #include <yasmin/cb_state.hpp>
 #include <yasmin/logs.hpp>
 #include <yasmin/state_machine.hpp>
@@ -17,7 +18,6 @@
 #include <yasmin_ros/ros_logs.hpp>
 #include <yasmin_ros/yasmin_node.hpp>
 #include <yasmin_viewer/yasmin_viewer_pub.hpp>
-#include <std_msgs/msg/string.hpp>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -34,7 +34,7 @@ class FindDockState : public yasmin_ros::ActionState<FindDock> {
    public:
     FindDockState()
         : yasmin_ros::ActionState<FindDock>(
-              "/find_dock",
+              "/fsm/find_dock",
               std::bind(&FindDockState::create_goal_handler, this, _1),
               std::bind(&FindDockState::response_handler, this, _1, _2),
               std::bind(&FindDockState::print_feedback, this, _1, _2)) {};
@@ -203,7 +203,7 @@ class ReturnHomeState : public yasmin_ros::ActionState<GoToWaypoint> {
    public:
     ReturnHomeState()
         : yasmin_ros::ActionState<GoToWaypoint>(
-              "/return_home",
+              "/fsm/return_home",
               std::bind(&ReturnHomeState::create_goal_handler, this, _1),
               std::bind(&ReturnHomeState::response_handler, this, _1, _2),
               std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {};
@@ -241,7 +241,7 @@ class AbortState : public yasmin_ros::ActionState<GoToWaypoint> {
    public:
     AbortState()
         : yasmin_ros::ActionState<GoToWaypoint>(
-              "/abort",
+              "/fsm/abort",
               std::bind(&AbortState::create_goal_handler, this, _1),
               std::bind(&AbortState::response_handler, this, _1, _2),
               std::bind(&AbortState::print_feedback, this, _1, _2)) {};
