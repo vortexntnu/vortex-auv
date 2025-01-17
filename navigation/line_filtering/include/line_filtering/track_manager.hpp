@@ -5,21 +5,17 @@
 #include <vortex_filtering/vortex_filtering.hpp>
 #include <vortex_filtering/filters/ipda.hpp>
 
-using State4d = vortex::prob::Gauss4d;
 using State2d = vortex::prob::Gauss<2>;
-using DynMod = vortex::models::ConstantVelocity;
-using SensorMod = vortex::models::IdentitySensorModel<4, 2>;
+using DynMod = vortex::models::ConstantPosition;
+using SensorMod = vortex::models::IdentitySensorModel<2, 2>;
 using IPDA = vortex::filter::IPDA<DynMod, SensorMod>;
 
 struct Track {
     int id;
-    State4d state;
+    State2d state;
     double existence_probability;
     bool confirmed;
-    float centroid_z_measurement;
-    // make connection between line
     Eigen::Matrix<double, 2, 2> line_points;
-    Eigen::Vector2d line_params;
 
     // For sorting tracks based on existence probability and confirmed track
     bool operator<(const Track &other) const {
@@ -47,7 +43,7 @@ public:
     /**
      * @brief Updates the tracks based on the measurements received from the sensor.
      * 
-     * @param measurements_ The measurements received from the sensor.
+     * @param measurements The measurements received from the sensor.
      * @param update_interval The time interval between updates.
      * @param confirmation_threshold The threshold for confirming a track.
      * @param gate_theshhold The threshold for gating measurements.
@@ -55,14 +51,14 @@ public:
      * @param prob_of_survival The probability of survival.
      * @param clutter_intensity The intensity of clutter.
      */
-    void updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements_, int update_interval, double confirmation_threshold, double gate_theshhold, double min_gate_threshold, double max_gate_threshold, double prob_of_detection, double prob_of_survival, double clutter_intensity, double initial_existence_probability);
+    void updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements, Eigen::Array<double, 2, Eigen::Dynamic> line_params, int update_interval, double confirmation_threshold, double gate_theshhold, double min_gate_threshold, double max_gate_threshold, double prob_of_detection, double prob_of_survival, double clutter_intensity, double initial_existence_probability);
 
     /**
      * @brief Creates new tracks for every measurements.
      * 
      * @param measurements The measurements received.
      */
-    void createTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements, double initial_existence_probability);
+    void createTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements, Eigen::Array<double, 2, Eigen::Dynamic> line_params, double initial_existence_probability);
 
     /**
      * @brief Deletes tracks that have a low probability of existence.
@@ -91,9 +87,6 @@ public:
      * @return A vector of Track objects representing the current tracks.
      */
     std::vector<Track> getTracks() const { return tracks_; }
-
-    // TODO: create this function
-    Eigen::Vector2d getLineParams(Eigen::Matrix<double, 2, 2> line_points) const;
 
 private:
     std::vector<Track> tracks_; ///< The vector of tracks.

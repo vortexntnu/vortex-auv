@@ -7,6 +7,7 @@
 
     enu_orientation: true # Set to true if the measurements are in ENU frame, false if NED frame
 
-    dynmod_stddev: 0.01
+    dynmod_stddev_pos: 0.01
+    dynmod_stddev_ori: 0.01
     sendmod_stddev: 0.01
 

@@ -12,12 +12,19 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <!-- Runtime dependencies -->
+  <depend>vortex_filtering</depend>
+  <depend>eigen</depend>
   <depend>rclcpp</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>message_filters</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>ament_cmake</depend>
+  <depend>nav_msgs</depend>
 
   <!-- Testing dependencies -->
   <test_depend>ament_lint_auto</test_depend>

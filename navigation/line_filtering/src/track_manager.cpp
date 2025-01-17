@@ -6,6 +6,7 @@ TrackManager::TrackManager()
 }
 
 void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
+    Eigen::Array<double, 2, Eigen::Dynamic> line_params,
     int update_interval, 
     double confirmation_threshold, 
     double gate_theshhold, 
@@ -35,13 +36,12 @@ void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurem
         state_est_prev.x_estimate = track.state;
         state_est_prev.existence_probability = track.existence_probability;
         // Predict next state
-        // TODO: input into IPDA::step should be line params not points
         auto output = 
             IPDA::step(*dyn_model_, 
             *sensor_model_,
             update_interval / 1000.0,
             state_est_prev, 
-            measurements, 
+            line_params, 
             config);
         // Update state
         track.state = output.state.x_estimate;
@@ -54,51 +54,48 @@ void TrackManager::updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurem
             track.confirmed = true;
         }
 
-    
         // Update the measurement list
-        Eigen::Array<double, 2, Eigen::Dynamic> outside(2, measurements.cols());
-    
+        Eigen::Array<double, 2, Eigen::Dynamic> outside(2, line_params.cols());
+        Eigen::Array<double, 2, Eigen::Dynamic> outside_measurements(2, measurements.cols());
+
         Eigen::Index inside_num = 0;
-        for (Eigen::Index i = 0; i < measurements.cols(); ++i)
+        for (Eigen::Index i = 0; i < line_params.cols(); ++i)
         {
             if (output.gated_measurements[i])
             {
-                // This is old code for assigning clusters to track based on the index of the gated measurements.
-                // Update this to assign line_points to track based on the index of the gated measurements.
-                // If multiple measurements are gated to the same track (should not happen), only assign one set of line points to the track (random or average). 
-                // track.cluster.insert(track.cluster.end(), clusters_[i].begin(), clusters_[i].end());
-                // z_centroid_meas += centroid_z_meas_[i];
+                track.line_points = measurements.block<2, 2>(0, i*2);
                 inside_num++;
             }
             else
             {
-                // SAME here as above. Update to handle lines
-                // clusters.push_back(clusters_[i]);
-                // outside.col(i-inside_num) = measurements.col(i);
-                // centroid_z_meas.push_back(centroid_z_meas_[i]);
+                outside.col(i-inside_num) = line_params.col(i);
+                outside_measurements.block<2, 2>(0, 2 * (i - inside_num)) = measurements.block<2, 2>(0, i * 2);
             }
         }
-        outside.conservativeResize(2, measurements.cols() - inside_num);
+        outside.conservativeResize(2, line_params.cols() - inside_num);
+        outside_measurements.conservativeResize(2, measurements.cols() - inside_num*2);
         if(inside_num != 0)
         {
-            measurements = outside;
+            line_params = outside;
+            measurements = outside_measurements;
         }
     }
     // Create new tracks based on the remaining measurements
-    createTracks(measurements, initial_existence_probability);
+    createTracks(measurements, line_params, initial_existence_probability);
 }
 
-void TrackManager::createTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements, 
+void TrackManager::createTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
+    Eigen::Array<double, 2, Eigen::Dynamic> line_params,
     double initial_existence_probability)
 {
-    // TODO: assign line params to track state.
-    for (Eigen::Index i = 0; i < measurements.cols(); ++i)
+    for (Eigen::Index i = 0; i < line_params.cols(); ++i)
     {
-        Eigen::Vector4d state_estimate;
-        state_estimate << measurements.col(i), 0.0, 0.0;
+        Eigen::Vector2d state_estimate;
+        state_estimate << line_params(0, i), line_params(1, i);
         Track track;
         track.id = tracker_id_;
-        track.state = vortex::prob::Gauss4d(state_estimate, Eigen::Matrix4d::Identity());
+        track.state = vortex::prob::Gauss2d(state_estimate, Eigen::Matrix2d::Identity());
+        track.line_points = measurements.block<2, 2>(0, i*2);
         track.existence_probability = initial_existence_probability;
         track.confirmed = false;
         tracks_.push_back(track);

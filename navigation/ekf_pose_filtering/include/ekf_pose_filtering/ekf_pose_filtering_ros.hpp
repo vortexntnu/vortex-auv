@@ -13,7 +13,6 @@
 #include <Eigen/Dense>
 #include <vortex_filtering/vortex_filtering.hpp>
 #include <tuple>
-#include <Eigen/Dense>
 
 using Vector6d = Eigen::Vector<double, 3>;
 

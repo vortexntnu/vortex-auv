@@ -1,6 +1,13 @@
 line_filtering_node:
   ros__parameters:
-    sub_image: "image_sub_"   
+    line_sub_topic: "/line/pose_array"
+    camera_info_sub_topic: "/camera_info"
+    dvl_depth_sub_topic: "/dvl/depth"
+    pose_array_pub_topic: "/line/pose_array_filtered"
+    odom_sub_topic: "/orca/odom"
+
+    debug_visualization: true
+
     sub_camera_info: "camera_info_sub_"
     sub_depth: "depth_sub_"
     sub_array: "pose_array_sub_"
@@ -10,5 +17,17 @@ line_filtering_node:
     pub_point2: "point_2_"
     pub_point3: "point_3_"
     pub_point4: "point_4_"
-    time: 10
+  
+    clutter_rate: 0.001
+    probability_of_detection: 0.7
+    probability_of_survival: 0.99
+    gate_threshold: 2.5
+    min_gate_threshold: 1.0
+    max_gate_threshold: 10.0
+    confirmation_threshold: 0.6
+    deletion_threshold: 0.2
+    initial_existence_probability: 0.4
+    std_velocity: 0.2
+    std_sensor: 0.5
+    update_interval_ms: 100
 

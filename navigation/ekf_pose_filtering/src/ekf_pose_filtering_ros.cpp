@@ -43,9 +43,10 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node")
         transformed_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(transformed_pose_pub_topic, qos_sensor_data);
         filtered_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(filtered_pose_pub_topic, qos_sensor_data);
 
-        double dynmod_stddev = this->declare_parameter("dynmod_stddev", 0.01);
+        double dynmod_stddev_pos = this->declare_parameter("dynmod_stddev_pos", 0.01);
+        double dynmod_stddev_ori = this->declare_parameter("dynmod_stddev_ori", 0.01);
         double sensmod_stddev = this->declare_parameter("sensmod_stddev", 0.01);
-        dynamic_model_ = std::make_shared<DynMod>(dynmod_stddev);
+        dynamic_model_ = std::make_shared<DynMod>(dynmod_stddev_pos, dynmod_stddev_ori);
         sensor_model_ = std::make_shared<SensMod>(sensmod_stddev);
     }
 
