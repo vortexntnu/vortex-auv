@@ -13,6 +13,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
                             "/softwareKillSwitch");
     this->declare_parameter("software_operation_mode_topic",
                             "/softwareOperationMode");
+    this->declare_parameter("active_controller_topic", 
+                            "/fsm_active_controller");
 
     std::string nucleus_odom_topic =
         this->get_parameter("nucleus_odom_topic").as_string();
@@ -24,6 +26,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         this->get_parameter("software_kill_switch_topic").as_string();
     std::string software_operation_mode_topic =
         this->get_parameter("software_operation_mode_topic").as_string();
+    std::string active_controller_topic = 
+        this->get_parameter("active_controller_topic").as_string();
 
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
@@ -35,13 +39,17 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         software_operation_mode_topic, 10,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
+    active_controller_sub_ = this->create_subscription<std_msgs::msg::String>(
+        active_controller_topic, 10,
+        std::bind(&PIDControllerNode::active_controller_callback, this,
+                  std::placeholders::_1));
     odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         nucleus_odom_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::odometry_callback, this,
                   std::placeholders::_1));
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            dp_reference_topic, 10,
+            dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
     kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
@@ -73,6 +81,11 @@ void PIDControllerNode::software_mode_callback(
     software_mode_ = msg->data;
 }
 
+void PIDControllerNode::active_controller_callback(
+    const std_msgs::msg::String::SharedPtr msg) {
+    active_controller_ = msg->data;
+}
+
 void PIDControllerNode::odometry_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
     eta_.x = msg->pose.pose.position.x;
@@ -102,7 +115,7 @@ void PIDControllerNode::odometry_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ == "XBOX") {
+    if (killswitch_on_ || software_mode_ == "XBOX" || active_controller_ != "PID") {
         return;
     }
 

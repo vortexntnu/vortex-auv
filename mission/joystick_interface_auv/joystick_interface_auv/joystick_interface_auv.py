@@ -34,13 +34,14 @@ class JoystickInterface(Node):
         self.joystick_axes_map_ = []
 
         self.joy_subscriber_ = self.create_subscription(
-        Joy, "orca/joy", self.joystick_cb, 5)
+            Joy, "orca/joy", self.joystick_cb, 5)
         self.odom_subscriber_ = self.create_subscription(
             Odometry, "/orca/odom", self.odom_cb, qos_profile=best_effort_qos)
-        self.wrench_publisher_ = self.create_publisher(Wrench,
-        "thrust/wrench_input",5) 
+        self.wrench_publisher_ = self.create_publisher(
+            Wrench, "thrust/wrench_input",5) 
         
-        self.ref_publisher = self.create_publisher(ReferenceFilter, "/dp/guidance", 10)
+        self.ref_publisher = self.create_publisher(
+            ReferenceFilter, "/dp/guidance", qos_profile=best_effort_qos)
 
         self.gripper_pos_publisher_ = self.create_publisher(
             Float64, "orca/gripper_cmd", 10)
@@ -363,8 +364,6 @@ class JoystickInterface(Node):
         gripper_grip = buttons.get("stick_button_left", 0)
         gripper_open = buttons.get("stick_button_right", 0)
 
-        self.handle_gripper(gripper_move, gripper_rotation, gripper_grip, gripper_open)
-
         self.calculate_movement(axes, left_trigger, right_trigger, left_shoulder, right_shoulder)
 
         # Debounce for the buttons
@@ -381,6 +380,9 @@ class JoystickInterface(Node):
         # Toggle killswitch on and off
         if software_killswitch_button:
             self.handle_killswitch_button()
+            
+        if not self.state_ == JoyStates.KILLSWITCH:
+            self.handle_gripper(gripper_move, gripper_rotation, gripper_grip, gripper_open)
 
         if self.state_ == JoyStates.XBOX_MODE:
             wrench_msg = self.create_wrench_message()

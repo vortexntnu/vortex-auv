@@ -21,6 +21,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
 
+    void active_controller_callback(const std_msgs::msg::String::SharedPtr msg);
+
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     void guidance_callback(
@@ -41,6 +43,8 @@ class PIDControllerNode : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
+
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr active_controller_sub_;
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
 
@@ -70,6 +74,8 @@ class PIDControllerNode : public rclcpp::Node {
     bool killswitch_on_;
 
     std::string software_mode_;
+
+    std::string active_controller_;
 };
 
 #endif

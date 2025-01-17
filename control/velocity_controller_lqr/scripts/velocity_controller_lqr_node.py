@@ -30,6 +30,7 @@ class LinearQuadraticRegulator(Node):
             thrust_topic,
             softwareoperation_topic,
             killswitch_topic,
+            active_controller_topic,
         ) = self.get_topics()
 
         best_effort_qos = QoSProfile(
@@ -73,6 +74,13 @@ class LinearQuadraticRegulator(Node):
             qos_profile=best_effort_qos,
         )
 
+        self.active_controller_subscriber = self.create_subscription(
+            String,
+            active_controller_topic,
+            self.active_controller_callback,
+            qos_profile=10
+        )
+
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
             guidance_topic,
@@ -97,6 +105,7 @@ class LinearQuadraticRegulator(Node):
         self.coriolis_matrix = np.zeros((3, 3))
         self.states = State()
         self.guidance_values = GuidanceValues()
+        self.active_controller = None
 
     def get_topics(self):
         """Get the topics from the parameter server.
@@ -116,6 +125,7 @@ class LinearQuadraticRegulator(Node):
             "topics.softwareoperation_topic", "/softwareOperationMode"
         )
         self.declare_parameter("topics.killswitch_topic", "/softwareKillSwitch")
+        self.declare_parameter("topics.active_controller_topic", "/fsm_active_controller")
 
         pose_topic = self.get_parameter("topics.pose_topic").value
         twist_topic = self.get_parameter("topics.twist_topic").value
@@ -125,6 +135,7 @@ class LinearQuadraticRegulator(Node):
             "topics.softwareoperation_topic"
         ).value
         killswitch_topic = self.get_parameter("topics.killswitch_topic").value
+        active_controller_topic = self.get_parameter("topics.active_controller_topic").value
 
         return (
             pose_topic,
@@ -133,6 +144,7 @@ class LinearQuadraticRegulator(Node):
             thrust_topic,
             softwareoperation_topic,
             killswitch_topic,
+            active_controller_topic,
         )
 
     def get_parameters(self):
@@ -240,6 +252,14 @@ class LinearQuadraticRegulator(Node):
         else:
             self.controller.killswitch = False
 
+    def active_controller_callback(self, msg: String):
+        """Callback function for the active controller data.
+
+        Parameters: String: msg: The active controller data from the AUV.
+
+        """
+        self.active_controller = msg.data
+
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
     def control_loop(self):
@@ -253,7 +273,7 @@ class LinearQuadraticRegulator(Node):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
-        if self.controller.killswitch == False:
+        if self.controller.killswitch == False or self.active_controller == "LQR":
             if self.controller.operation_mode == "autonomous mode":
                 self.publisherLQR.publish(msg)
 

@@ -5,6 +5,7 @@ pid_controller_euler_node:
     nucleus_odom_topic: /orca/odom
     software_kill_switch_topic: /softwareKillSwitch
     software_operation_mode_topic: /softwareOperationMode
+    active_controller_topic: /fsm_active_controller
     Kp: [70.0, 70.0, 70.0, 15.0, 15.0, 15.0]
     Ki: [9.0, 9.0, 9.0, 1.0, 1.5, 1.5]
     Kd: [20.0, 20.0, 20.0, 0.1, 1.0, 1.0]
