@@ -102,6 +102,7 @@ class BlackBoxNode(Node):
 
         Args:
             msg (std_msgs.msg.Float32): The message containing the current data.
+
         """
         self.psm_current_data = msg.data
 
@@ -114,6 +115,7 @@ class BlackBoxNode(Node):
 
         Args:
             msg (std_msgs.msg.Float32): The message containing the voltage data.
+
         """
         self.psm_voltage_data = msg.data
 
@@ -126,6 +128,7 @@ class BlackBoxNode(Node):
 
         Args:
             msg (std_msgs.msg.Float32): The message containing the pressure data.
+
         """
         self.pressure_data = msg.data
 
@@ -138,6 +141,7 @@ class BlackBoxNode(Node):
 
         Args:
             msg (std_msgs.msg.Float32): The message containing the temperature data.
+
         """
         self.temperature_data = msg.data
 
@@ -150,6 +154,7 @@ class BlackBoxNode(Node):
 
         Args:
             msg (vortex_msgs.msg.ThrusterForces): The message containing the thruster forces data.
+
         """
         self.thruster_forces_data = msg.thrust
 
@@ -161,6 +166,7 @@ class BlackBoxNode(Node):
 
         Args:
             msg (std_msgs.msg.Int16MultiArray): The message containing the PWM signals data.
+
         """
         self.pwm_data = msg.data
 
@@ -214,6 +220,7 @@ def main(args: list = None) -> None:
 
     Args:
         args (list, optional): Command-line arguments passed to the ROS2 initialization.
+
     """
     # Initialize ROS2
     rclpy.init(args=args)

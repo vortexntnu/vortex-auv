@@ -15,6 +15,7 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: A ROS 2 launch description containing the
         joystick_interface_auv node.
+
     """
     joystick_interface_node = Node(
         package="joystick_interface_auv",

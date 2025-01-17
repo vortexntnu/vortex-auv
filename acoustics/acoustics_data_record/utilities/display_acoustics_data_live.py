@@ -68,43 +68,25 @@ PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ACOUSTICS_CSV_FILE_DIR = PACKAGE_DIR + "/acoustics_data"
 
 # List of all the acoustic files
-acoustics_csv_files = csv_files = glob.glob(
+acoustics_csv_file = csv_files = glob.glob(
     ACOUSTICS_CSV_FILE_DIR + "/acoustics_data_" + "*.csv"
 )
 
 # Get the latest csv file name for acoustics data
-acoustics_csv_file = max(acoustics_csv_files, key=os.path.getctime)
+acoustics_csv_file = max(acoustics_csv_file, key=os.path.getctime)
 
 
 def convert_pandas_object_to_int_array(pandas_object: pd.Series) -> list:
-    """Convert a pandas object containing a string representation of an integer array to a list of integers.
-
-    Args:
-        pandas_object (pandas.Series): A pandas Series object containing a string representation of an integer array.
-
-    Returns:
-        list: A list of integers extracted from the pandas object.
-    """
-    pandas_string = pandas_object.iloc[0].replace("array('i', ", "").replace(")", "")
+    pandas_string = pandas_object.iloc[0].removeprefix("array('i', ").removesuffix(")")
     pandas_int_array = [int(x.strip()) for x in pandas_string.strip("[]").split(",")]
-
     return pandas_int_array
 
 
 def convert_pandas_object_to_float_array(pandas_object: pd.Series) -> list:
-    """Convert a pandas object containing a string representation of a float array to a list of floats.
-
-    Args:
-        pandas_object (pandas.Series): A pandas Series object containing a string representation of a float array.
-
-    Returns:
-        list: A list of floats extracted from the pandas object.
-    """
-    pandas_string = pandas_object.iloc[0].replace("array('f', ", "").replace(")", "")
+    pandas_string = pandas_object.iloc[0].removeprefix("array('f', ").removesuffix(")")
     pandas_float_array = [
         float(x.strip()) for x in pandas_string.strip("[]").split(",")
     ]
-
     return pandas_float_array
 
 
@@ -133,6 +115,7 @@ def get_acoustics_data() -> list:
 
     Raises:
         Exception: If there is an error reading the acoustics data or processing the DSP data.
+
     """
     # Variables that will be filled with latest acoustics data ----------
     hydrophone1 = [0] * HYDROPHONE_DATA_SIZE
@@ -265,6 +248,7 @@ def display_live_data() -> None:
     Note:
         This function assumes that `getAcousticsData`, `hydrophoneAxis`, `filterAxis`, `FFTAxis`,
         `colorSoftBlue`, `colorSoftGreen`, and `colorSoftPurple` are defined elsewhere in the code.
+
     """
     # Get latest acoustics data
     acoustics_data = get_acoustics_data()

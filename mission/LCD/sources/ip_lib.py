@@ -13,6 +13,7 @@ class IPDriver:
 
         Returns:
             str: The IP address as a string.
+
         """
         try:
             # Run the command without shell=True

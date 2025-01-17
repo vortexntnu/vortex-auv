@@ -14,6 +14,7 @@ def generate_launch_description() -> LaunchDescription:
 
     Returns:
         LaunchDescription: A launch description object containing the blackbox node.
+
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(
