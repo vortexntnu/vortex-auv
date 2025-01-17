@@ -16,7 +16,7 @@ class FindDockServer(Node):
         super().__init__('find_dock_server')
 
         self._action_server = ActionServer(
-            self, FindDock, 'find_dock', self.execute_callback
+            self, FindDock, '/fsm/find_dock', self.execute_callback
         )
 
     def execute_callback(self, goal_handle) -> FindDock_Result:
