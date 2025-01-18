@@ -4,4 +4,4 @@ reference_filter_node:
     dp_reference_topic: /dp/reference
     nucleus_odom_topic: /orca/odom
     zeta: [1., 1., 1., 1., 1., 1.]
-    omega: [0.09, 0.09, 0.09, 0.9, 0.9, 0.09]
+    omega: [0.2, 0.2, 0.2, 0.9, 0.9, 0.2]
