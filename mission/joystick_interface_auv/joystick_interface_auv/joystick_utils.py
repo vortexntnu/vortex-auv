@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 import numpy as np
+from vortex_msgs.msg import ReferenceFilter
+from geometry_msgs.msg import Wrench
+from nav_msgs.msg import Odometry
 
 class JoyStates:
     XBOX_MODE = "XBOX_MODE"
@@ -15,6 +18,52 @@ class State:
     roll: float = 0.0
     pitch: float = 0.0
     yaw: float = 0.0
+
+    def from_odom_msg(self, odom_msg: Odometry):
+        self.x = odom_msg.pose.pose.position.x
+        self.y = odom_msg.pose.pose.position.y
+        self.z = odom_msg.pose.pose.position.z
+
+        quat = np.array([
+            odom_msg.pose.pose.orientation.w,
+            odom_msg.pose.pose.orientation.x,
+            odom_msg.pose.pose.orientation.y,
+            odom_msg.pose.pose.orientation.z
+        ])
+        euler = quat_to_euler(quat)
+        self.roll, self.pitch, self.yaw = euler
+
+    def to_wrench_msg(self) -> Wrench:
+        wrench = Wrench()
+        wrench.force.x = self.x
+        wrench.force.y = self.y
+        wrench.force.z = self.z
+        wrench.torque.x = self.roll
+        wrench.torque.y = self.pitch
+        wrench.torque.z = self.yaw
+
+        return wrench
+    
+    def to_reference_msg(self) -> ReferenceFilter:
+        reference_filter = ReferenceFilter()
+        reference_filter.x = self.x
+        reference_filter.y = self.y
+        reference_filter.z = self.z
+        reference_filter.roll = self.roll
+        reference_filter.pitch = self.pitch
+        reference_filter.yaw = self.yaw
+
+        return reference_filter
+    
+    def as_pos_array(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z])
+    
+    def from_pos_array(self, array: np.ndarray):
+        self.x, self.y, self.z = array
+        
+    def as_rotation_matrix(self) -> np.ndarray:
+        return rotation_matrix_from_quat(euler_to_quat(self.roll, self.pitch, self.yaw))
+
 
 class Wired:
     joystick_buttons_map_ = [
@@ -167,3 +216,16 @@ def quat_to_euler(quat: np.ndarray) -> np.ndarray:
         psi = np.arctan2(R[1, 0], R[0, 0])
 
         return np.array([phi, theta, psi])
+
+def ssa(angle: float) -> float:
+        """
+        Converts an angle from degrees to radians.
+
+        Args:
+        angle (float): The angle in degrees.
+
+        Returns:
+        float: The angle in radians.
+        """
+        angle = (angle + np.pi) % (2 * np.pi) - np.pi
+        return angle

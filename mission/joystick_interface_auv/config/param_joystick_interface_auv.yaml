@@ -1,11 +1,11 @@
-joystick_interface_auv:
+joystick_interface_auv_node:
   ros__parameters:
     surge_scale_factor: 60.0
     sway_scale_factor: 60.0
-    yaw_scale_factor: 25.0
     heave_scale_factor: 17.5
     roll_scale_factor: 30.0
     pitch_scale_factor: 20.0
+    yaw_scale_factor: 25.0
 
     surge_scale_ref_param: 5000.0
     sway_scale_ref_param: 5000.0
