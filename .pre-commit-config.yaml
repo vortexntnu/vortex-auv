@@ -1,0 +1,82 @@
+# To use:
+#
+#     pre-commit run -a
+#
+# Or:
+#
+#     pre-commit install  # (runs every time you commit in git)
+#
+# To update this file:
+#
+#     pre-commit autoupdate
+#
+# See https://github.com/pre-commit/pre-commit
+
+repos:
+  # Standard hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-xml
+      - id: check-yaml
+        args: ["--allow-multiple-documents"]
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+        exclude_types: [rst]
+      - id: fix-byte-order-marker
+      - id: requirements-txt-fixer
+  # Python hooks
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.0
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        name: ruff-isort
+        args: [
+            "--select=I",
+            "--fix"
+            ]
+      - id: ruff
+        name: ruff-pyupgrade
+        args: [
+            "--select=UP",
+            "--fix"
+            ]
+      - id: ruff
+        name: ruff-pydocstyle
+        args: [
+            "--select=D",
+            "--ignore=D100,D101,D102,D103,D104,D105,D106,D107,D401",
+            "--fix",
+            ]
+        stages: [pre-commit]
+        pass_filenames: true
+      - id: ruff
+        name: ruff-check
+        args: [
+            "--select=F,PT,B,C4,T20,S,N",
+            "--ignore=T201,N812,B006,S101,S311,S607,S603",
+            "--fix"
+            ]
+        stages: [pre-commit]
+        pass_filenames: true
+  # C++ hooks
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v19.1.0
+    hooks:
+      - id: clang-format
+        args: [--style=file]
+  # Spellcheck in comments and docs
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: ['--write-changes', '--ignore-words-list=theses']

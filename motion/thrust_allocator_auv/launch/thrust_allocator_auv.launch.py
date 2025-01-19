@@ -6,8 +6,7 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generates a launch description for the thrust_allocator_auv_node.
+    """Generates a launch description for the thrust_allocator_auv_node.
 
     This function creates a ROS 2 launch description that includes the
     thrust_allocator_auv_node. The node is configured with parameters
@@ -18,6 +17,7 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: A ROS 2 LaunchDescription object containing
         the thrust_allocator_auv_node.
+
     """
     thrust_allocator_auv_node = Node(
         package="thrust_allocator_auv",

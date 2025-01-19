@@ -3,17 +3,15 @@
 <package format="3">
   <name>thruster_interface_auv</name>
   <version>1.0.0</version>
-  <description>Thruster interface to control thrusters through PCA9685 Module</description>
-  <maintainer email="vortex.git@vortexntnu.no">vortex</maintainer>
+  <description>Thruster interface to control thrusters through PCA9685 Module via i2c, mapping force values to pwm values</description>
+  <maintainer email="albertomorselli00@gmail.com">vortex</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_cmake_python</buildtool_depend>
-  
-  <depend>rclpy</depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>vortex_msgs</depend>
-
-  <exec_depend>ros2launch</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -30,11 +30,11 @@ class PressureSensor:
         time.sleep(1)
 
     def get_pressure(self) -> float:
-        """
-        Retrieves the current pressure from the pressure sensor.
+        """Retrieves the current pressure from the pressure sensor.
 
         Returns:
             float: The current pressure value. Returns 0.0 if an error occurs.
+
         """
         try:
             pressure = self.channel_pressure.pressure

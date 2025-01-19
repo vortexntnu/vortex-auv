@@ -30,17 +30,17 @@ class PressureSensor:
         time.sleep(1)
 
     def get_pressure(self) -> float:
-        """
-        Retrieves the current pressure reading from the sensor.
+        """Retrieves the current pressure reading from the sensor.
 
         This method attempts to read the pressure from the connected MPRLS sensor.
         If the reading is successful, the pressure value is returned.
         If an error occurs, an error message is printed and 0.0 is returned.
 
         Returns:
-        --------
+        -------
         float
             The pressure reading in hPa (hectopascals), or 0.0 if an error occurs.
+
         """
         try:
             pressure = self.channel_pressure.pressure
