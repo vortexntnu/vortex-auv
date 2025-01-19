@@ -18,7 +18,7 @@ class FindPipelineStartServer(Node):
         Initialize the action server for finding the dock."""
         super().__init__('find_pipeline_start_server')
 
-        self._action_server = ActionServer(self, FindDock, 'find_pipeline_start', self.execute_callback)
+        self._action_server = ActionServer(self, FindDock, '/find_pipeline', self.execute_callback)
 
     def execute_callback(self, goal_handle) -> FindDock_Result:
         """
@@ -67,7 +67,8 @@ def main(args=None) -> None:
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
