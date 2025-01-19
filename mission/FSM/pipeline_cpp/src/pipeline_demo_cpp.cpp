@@ -65,6 +65,16 @@ public:
 
     std::vector<PoseStamped> waypoints;
     waypoints.push_back(blackboard->get<PoseStamped>("pipeline_start_pose"));
+    // Print the pipeline start pose
+    fprintf(stderr, "Pipeline start pose: x = %f, y = %f, z = %f\n",
+            waypoints[0].pose.position.x,
+            waypoints[0].pose.position.y,
+            waypoints[0].pose.position.z);
+    fprintf(stderr, "Pipeline start pose orientation: w = %f, x = %f, y = %f, z = %f\n",
+            waypoints[0].pose.orientation.w,
+            waypoints[0].pose.orientation.x,
+            waypoints[0].pose.orientation.y,
+            waypoints[0].pose.orientation.z);
     goal.waypoints = waypoints;
     return goal;
   }
@@ -332,7 +342,7 @@ int main(int argc, char *argv[]) {
   pipeline_start_pose.pose.orientation.x = 0.0;
   pipeline_start_pose.pose.orientation.y = 0.0;
   pipeline_start_pose.pose.orientation.z = 0.0;
-  
+
 
 
   blackboard->set<PoseStamped>("pipeline_start_pose", pipeline_start_pose);

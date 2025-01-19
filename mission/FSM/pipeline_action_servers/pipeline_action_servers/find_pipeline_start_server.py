@@ -49,9 +49,8 @@ class FindPipelineStartServer(Node):
         result.dock_pose.pose.orientation.x = 0.0
         result.dock_pose.pose.orientation.y = 0.0
         result.dock_pose.pose.orientation.z = 0.0
-        result.dock_pose.pose.orientation.w = 0.0
-        result.dock_pose.header.stamp = self.get_clock().now().to_msg()
-        result.dock_pose.header.frame_id = '0'
+        result.dock_pose.pose.orientation.w = 1.0
+        
 
         return result
 
