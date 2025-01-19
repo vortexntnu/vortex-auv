@@ -8,3 +8,4 @@ jobs:
           base-image: rwthika/ros2:humble
           target: dev  # Specify the dev stage
           image-tag: dev
+          platform: amd64,arm64  # Build for both amd64 and arm64
