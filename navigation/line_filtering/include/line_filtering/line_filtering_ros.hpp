@@ -115,6 +115,9 @@ private:
     Eigen::Array<double, 2, Eigen::Dynamic> measurements_;
     Eigen::Array<double, 2, Eigen::Dynamic> line_params_;
 
+    int active_id_;
+    int id_counter_;
+
 
     bool debug_visualization_ = true;
 
