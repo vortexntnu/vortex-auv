@@ -7,3 +7,4 @@ jobs:
         with:
           base-image: rwthika/ros2:humble
           target: dev
+          platform: "arm64"
