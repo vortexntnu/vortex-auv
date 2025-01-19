@@ -63,6 +63,11 @@ class LOSActionServer(Node):
         self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
 
         self.desired_vel = 0.3
+        self.u = 0.0
+        self.v = 0.0
+        self.w = 0.0
+        self.phi = 0.0
+        self.pitch = 0.0
 
     def declare_los_parameters_(self):
         """Declare all LOS guidance parameters."""

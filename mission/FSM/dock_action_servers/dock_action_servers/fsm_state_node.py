@@ -58,10 +58,14 @@ class FSMStateNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     fsm_state_node = FSMStateNode()
-    rclpy.spin(fsm_state_node)
-    fsm_state_node.destroy_node()
-    if rclpy.ok():
-        rclpy.shutdown()
+    try:
+        rclpy.spin(fsm_state_node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        fsm_state_node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

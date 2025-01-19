@@ -336,6 +336,109 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
     }
 };
 
+// Create state machines
+std::shared_ptr<yasmin::StateMachine> create_state_machines() {
+    auto sm = std::make_shared<yasmin::StateMachine>(
+        std::initializer_list<std::string>{"error",
+                                           yasmin_ros::basic_outcomes::SUCCEED,
+                                           yasmin_ros::basic_outcomes::CANCEL,
+                                           yasmin_ros::basic_outcomes::ABORT,
+                                           });
+    return sm;
+}
+std::shared_ptr<yasmin::StateMachine> create_state_machines_nested() {
+    auto sm = std::make_shared<yasmin::StateMachine>(
+        std::initializer_list<std::string>{"error",
+                                           yasmin_ros::basic_outcomes::SUCCEED,
+                                           yasmin_ros::basic_outcomes::CANCEL,
+                                           yasmin_ros::basic_outcomes::ABORT,
+                                           });
+    return sm;
+}
+
+// Add states
+void add_states(std::shared_ptr<yasmin::StateMachine> sm, std::shared_ptr<yasmin::StateMachine> nested_sm) {
+    sm->add_state("FIND_DOCK", std::make_shared<FindDockState>(),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_DOCK"},
+                      {yasmin_ros::basic_outcomes::CANCEL, "error"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                  });
+    sm->add_state("GO_TO_DOCK", std::make_shared<GoToDockState>(),
+                  {
+                    {yasmin_ros::basic_outcomes::SUCCEED, "dock_fsm"},
+                    // {yasmin_ros::basic_outcomes::CANCEL, "error"},
+                    {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                  });
+
+    sm->add_state("DOCKED",
+                  std::make_shared<yasmin::CbState>(
+                      std::initializer_list<std::string>{
+                          "error", yasmin_ros::basic_outcomes::SUCCEED,
+                          yasmin_ros::basic_outcomes::CANCEL,
+                          yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      DockedState),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED,
+                       yasmin_ros::basic_outcomes::SUCCEED},
+                      // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                      
+                  });
+    sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
+                      // {yasmin_ros::basic_outcomes::CANCEL, "error"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                      
+                  });
+    sm->add_state("ABORT", std::make_shared<AbortState>(),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
+                      // {yasmin_ros::basic_outcomes::CANCEL, "aborted"},
+                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      
+                  });
+    sm->add_state("ERROR",
+                  std::make_shared<yasmin::CbState>(
+                      std::initializer_list<std::string>{
+                          "error", yasmin_ros::basic_outcomes::SUCCEED,
+                            yasmin_ros::basic_outcomes::CANCEL,
+                            yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                        ErrorState),
+                    {
+                        {yasmin_ros::basic_outcomes::SUCCEED, "error"},
+                        // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
+                        // {yasmin_ros::basic_outcomes::ABORT, "RETURN_HOME"},
+                        
+                    });
+    sm->add_state("dock_fsm", nested_sm,
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                      
+                  });
+}
+
+void add_states_nested(std::shared_ptr<yasmin::StateMachine> sm) {
+    sm->add_state("GO_OVER_DOCK", std::make_shared<GoOverDockState>(),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
+                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      
+                  });
+
+    sm->add_state("GO_DOWN_DOCK", std::make_shared<GoDownState>(),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED,
+                       yasmin_ros::basic_outcomes::SUCCEED},
+                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      
+                  });
+}
+
+
+
 int main(int argc, char* argv[]) {
     YASMIN_LOG_INFO("docking");
     rclcpp::init(argc, argv);
@@ -343,17 +446,9 @@ int main(int argc, char* argv[]) {
     // set ROS 2 logs
     yasmin_ros::set_ros_loggers();
 
-    // create state machines
-    auto sm = std::make_shared<yasmin::StateMachine>(
-        std::initializer_list<std::string>{"error",
-                                           yasmin_ros::basic_outcomes::SUCCEED,
-                                           yasmin_ros::basic_outcomes::CANCEL,
-                                           yasmin_ros::basic_outcomes::ABORT});
-
-    auto nested_sm = std::make_shared<yasmin::StateMachine>(
-        std::initializer_list<std::string>{yasmin_ros::basic_outcomes::SUCCEED,
-                                           yasmin_ros::basic_outcomes::CANCEL,
-                                           yasmin_ros::basic_outcomes::ABORT});
+    // create state machines     
+    std::shared_ptr<yasmin::StateMachine> sm = create_state_machines(); 
+    std::shared_ptr<yasmin::StateMachine> nested_sm = create_state_machines_nested();                      
 
     // cancel state machine on ROS 2 shutdown
     rclcpp::on_shutdown([sm]() {
@@ -369,76 +464,8 @@ int main(int argc, char* argv[]) {
     });
 
     // add states
-    sm->add_state("FIND_DOCK", std::make_shared<FindDockState>(),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_DOCK"},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "error"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
-    sm->add_state("GO_TO_DOCK", std::make_shared<GoToDockState>(),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "dock_fsm"},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "error"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
-
-    sm->add_state("DOCKED",
-                  std::make_shared<yasmin::CbState>(
-                      std::initializer_list<std::string>{
-                          "error", yasmin_ros::basic_outcomes::SUCCEED,
-                          yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT},
-                      DockedState),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED,
-                       yasmin_ros::basic_outcomes::SUCCEED},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
-    sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "error"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
-    sm->add_state("ABORT", std::make_shared<AbortState>(),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "aborted"},
-                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
-                  });
-    sm->add_state("ERROR",
-                  std::make_shared<yasmin::CbState>(
-                      std::initializer_list<std::string>{
-                          "error", yasmin_ros::basic_outcomes::SUCCEED,
-                          yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT},
-                      ErrorState),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "error"},
-                      // {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
-                      // {yasmin_ros::basic_outcomes::ABORT, "RETURN_HOME"},
-                  });
-
-    nested_sm->add_state(
-        "GO_OVER_DOCK", std::make_shared<GoOverDockState>(),
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
-            {yasmin_ros::basic_outcomes::ABORT, "aborted"},
-        });
-
-    nested_sm->add_state("GO_DOWN_DOCK", std::make_shared<GoDownState>(),
-                         {
-                             {yasmin_ros::basic_outcomes::SUCCEED,
-                              yasmin_ros::basic_outcomes::SUCCEED},
-                             {yasmin_ros::basic_outcomes::ABORT, "aborted"},
-                         });
-
-    sm->add_state("dock_fsm", nested_sm,
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
+    add_states(sm, nested_sm);
+    add_states_nested(nested_sm);
 
     // pub
     yasmin_viewer::YasminViewerPub yasmin_pub("Docking", sm);
@@ -449,7 +476,9 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard =
         std::make_shared<yasmin::blackboard::Blackboard>();
 
-    // SOME THINGS SHOULD BE IN CONFIG FILE or similar
+    
+
+    // SOME THINGS SHOULD BE IN CONFIG FILE or similar NEED TO IMPLEMENT THIS
     PoseStamped dock_pose;
     dock_pose.pose.position.x = 0.0;
     dock_pose.pose.position.y = 7.5;
@@ -475,16 +504,34 @@ int main(int argc, char* argv[]) {
     blackboard->set<bool>("is_error", false);
     blackboard->set<bool>("has_finished_converging", false);
 
-    // execute
     try {
+        // Execute the state machine
         std::string outcome = (*sm.get())(blackboard);
         YASMIN_LOG_INFO(outcome.c_str());
     } catch (const std::exception& e) {
+        // Log exceptions from the state machine execution
         YASMIN_LOG_WARN(e.what());
+
+        rcutils_reset_error();
     }
+
+    /*if (!rclcpp::ok()) {
+        YASMIN_LOG_WARN("ROS2 context is already invalid. Skipping publisher destruction.");
+        return 0; // DONT KNOW THE CORRECT RETURN VALUE
+    }
+    */
+    // Ensure ROS2 is properly shutdown
     if (rclcpp::ok()) {
+        // Explicitly reset state machine resources if needed
+        sm.reset();
+        blackboard.reset();
+
+        // Shut down ROS2 context
         rclcpp::shutdown();
+
+        YASMIN_LOG_INFO("ROS2 shutdown completed gracefully.");
     }
+
 
     return 0;
 }
