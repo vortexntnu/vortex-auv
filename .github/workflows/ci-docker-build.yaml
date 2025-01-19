@@ -8,3 +8,4 @@ jobs:
           base-image: rwthika/ros2:humble
           target: dev
           platform: "arm64"
+          enable-slim: false
