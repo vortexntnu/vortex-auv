@@ -3,6 +3,8 @@
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -20,15 +22,19 @@ class PIDControllerNode : public rclcpp::Node {
     explicit PIDControllerNode();
 
    private:
+
+    // @brief Callback function for the killswitch topic
+    // @param msg: Bool message containing the killswitch status
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
+    // @brief Callback function for the software mode topic
+    // @param msg: String message containing the software mode
     void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
 
-    // @brief Callback function for the odometry topic
-    // @param msg: Odometry message containing the vehicle pose and velocity
-    void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
-    // @brief Callback function for the proportional gain matrix
+    // @brief Callback function for the tau publisher timer
     void publish_tau();
 
     // @brief Set the PID controller parameters
@@ -60,7 +66,9 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+
+    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;

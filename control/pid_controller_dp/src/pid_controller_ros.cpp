@@ -11,7 +11,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
 
-    this->declare_parameter("odom_topic", "/orca/odom");
     this->declare_parameter("dp_reference_topic", "/dp/reference");
     this->declare_parameter("control_topic", "/thrust/wrench_input");
     this->declare_parameter("software_kill_switch_topic",
@@ -19,7 +18,9 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     this->declare_parameter("software_operation_mode_topic",
                             "/softwareOperationMode");
 
-    std::string odom_topic = this->get_parameter("odom_topic").as_string();
+    this->declare_parameter("pose_topic", "/dvl/pose");                        
+    this->declare_parameter("twist_topic", "/dvl/twist"); 
+
     std::string dp_reference_topic =
         this->get_parameter("dp_reference_topic").as_string();
     std::string control_topic =
@@ -29,6 +30,12 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     std::string software_operation_mode_topic =
         this->get_parameter("software_operation_mode_topic").as_string();
 
+    std::string pose_topic =
+        this->get_parameter("pose_topic").as_string();
+    std::string twist_topic =
+        this->get_parameter("twist_topic").as_string();
+    
+
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, 10,
         std::bind(&PIDControllerNode::killswitch_callback, this,
@@ -37,10 +44,17 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         software_operation_mode_topic, 10,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
-    odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        odom_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::odometry_callback, this,
+
+    pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        pose_topic, qos_sensor_data,
+        std::bind(&PIDControllerNode::pose_callback, this,
                   std::placeholders::_1));
+    
+    twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
+        twist_topic, qos_sensor_data,
+        std::bind(&PIDControllerNode::twist_callback, this,
+                  std::placeholders::_1));
+
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             dp_reference_topic, qos_sensor_data,
@@ -58,6 +72,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         "/pid/kd", qos_sensor_data,
         std::bind(&PIDControllerNode::kd_callback, this,
                   std::placeholders::_1));
+
     tau_pub_ =
         this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
@@ -75,9 +90,13 @@ void PIDControllerNode::software_mode_callback(
     software_mode_ = msg->data;
 }
 
-void PIDControllerNode::odometry_callback(
-    const nav_msgs::msg::Odometry::SharedPtr msg) {
+void PIDControllerNode::pose_callback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
     eta_ = eta_convert_from_ros_to_eigen(msg);
+}
+
+void PIDControllerNode::twist_callback(
+    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
     nu_ = nu_convert_from_ros_to_eigen(msg);
 }
 

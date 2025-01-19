@@ -40,7 +40,7 @@ types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
     types::Eta eta_norm;
 
     eta_norm.pos = eta.pos;
-    eta_norm.ori = eta.ori.normalized();
+    eta_norm.ori = eta.ori;
 
     types::Matrix3d R = calculate_R_quat(eta_norm);
     types::Matrix4x3d T = calculate_T_quat(eta_norm);
@@ -84,7 +84,7 @@ types::Vector7d anti_windup(const double dt,
     types::Vector7d integral_anti_windup =
         integral + (error_norm.as_vector() * dt);
 
-    integral_anti_windup = clamp_values(integral_anti_windup, -30.0, 30.0);
+    integral_anti_windup = clamp_values(integral_anti_windup, -80.0, 80.0);
     return integral_anti_windup;
 }
 
