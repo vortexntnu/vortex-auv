@@ -18,8 +18,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     this->declare_parameter("software_operation_mode_topic",
                             "/softwareOperationMode");
 
-    this->declare_parameter("pose_topic", "/dvl/pose");                        
-    this->declare_parameter("twist_topic", "/dvl/twist"); 
+    this->declare_parameter("pose_topic", "/dvl/pose");
+    this->declare_parameter("twist_topic", "/dvl/twist");
 
     std::string dp_reference_topic =
         this->get_parameter("dp_reference_topic").as_string();
@@ -30,11 +30,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     std::string software_operation_mode_topic =
         this->get_parameter("software_operation_mode_topic").as_string();
 
-    std::string pose_topic =
-        this->get_parameter("pose_topic").as_string();
-    std::string twist_topic =
-        this->get_parameter("twist_topic").as_string();
-    
+    std::string pose_topic = this->get_parameter("pose_topic").as_string();
+    std::string twist_topic = this->get_parameter("twist_topic").as_string();
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, 10,
@@ -45,12 +42,14 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
 
-    pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    pose_sub_ = this->create_subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::pose_callback, this,
                   std::placeholders::_1));
-    
-    twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
+
+    twist_sub_ = this->create_subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
         std::bind(&PIDControllerNode::twist_callback, this,
                   std::placeholders::_1));

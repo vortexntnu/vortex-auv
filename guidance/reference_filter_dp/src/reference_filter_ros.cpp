@@ -256,8 +256,8 @@ void ReferenceFilterNode::execute(
         //     result->success = true;
         //     goal_handle->succeed(result);
         //     x_.head(6) = r_.head(6);
-        //     vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
-        //     reference_pub_->publish(feedback_msg);
+        //     vortex_msgs::msg::ReferenceFilter feedback_msg =
+        //     fill_reference_msg(); reference_pub_->publish(feedback_msg);
         //     RCLCPP_INFO(this->get_logger(), "Goal reached");
         //     return;
         // }

@@ -22,7 +22,6 @@ class PIDControllerNode : public rclcpp::Node {
     explicit PIDControllerNode();
 
    private:
-
     // @brief Callback function for the killswitch topic
     // @param msg: Bool message containing the killswitch status
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
@@ -31,8 +30,10 @@ class PIDControllerNode : public rclcpp::Node {
     // @param msg: String message containing the software mode
     void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
 
-    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+    void pose_callback(
+        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+    void twist_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Callback function for the tau publisher timer
     void publish_tau();
@@ -66,9 +67,11 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;
