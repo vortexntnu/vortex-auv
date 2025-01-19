@@ -6,4 +6,4 @@ jobs:
       - uses: ika-rwth-aachen/docker-ros@v1.6.1
         with:
           base-image: rwthika/ros2:humble
-          command: ""
+          command: "bash"
