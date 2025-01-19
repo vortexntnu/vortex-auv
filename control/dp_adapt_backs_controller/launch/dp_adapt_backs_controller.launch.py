@@ -5,7 +5,9 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 adapt_params = path.join(
-    get_package_share_directory("dp_adapt_backs_controller"), "config", "adapt_params.yaml"
+    get_package_share_directory("dp_adapt_backs_controller"),
+    "config",
+    "adapt_params.yaml",
 )
 
 

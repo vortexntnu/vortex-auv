@@ -5,12 +5,14 @@
 #include "typedefs.hpp"
 
 class DPAdaptBacksController {
-    public:
-        explicit DPAdaptBacksController();
-    
+   public:
+    explicit DPAdaptBacksController();
+
     // @brief Calculate thecontrol input tau
-    // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]
-    // @param eta_d: 6D vector containing the desired vehicle pose [x, y, z, roll, pitch, yaw]
+    // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
+    // yaw]
+    // @param eta_d: 6D vector containing the desired vehicle pose [x, y, z,
+    // roll, pitch, yaw]
     // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
     dp_types::Vector6d calculate_tau(const dp_types::Eta& eta,
@@ -37,13 +39,11 @@ class DPAdaptBacksController {
     // @param d_gain: 6D vector containing the d gain matrix
     void setDGain(const dp_types::Vector6d& d_gain);
 
-
-
     // @brief Set the time step
     // @param dt: Time step
     void setTimeStep(double dt);
 
-    private:
+   private:
     dp_types::Matrix6d K1_;
     dp_types::Matrix6d K2_;
     dp_types::Vector3d r_b_bg_;
@@ -52,5 +52,5 @@ class DPAdaptBacksController {
     dp_types::Vector12d adap_param_;
     dp_types::Vector6d d_est_;
     double dt_;
-}; 
+};
 #endif

@@ -1,8 +1,8 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
+#include <eigen3/Eigen/Dense>
+#include <iostream>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
-#include <iostream>
-#include <eigen3/Eigen/Dense>
 
 DPAdaptBacksController::DPAdaptBacksController()
     : K1_(dp_types::Matrix6d::Identity()),
@@ -14,9 +14,10 @@ DPAdaptBacksController::DPAdaptBacksController()
       d_est_(dp_types::Vector6d::Zero()),
       dt_(0.01) {}
 
-dp_types::Vector6d DPAdaptBacksController::calculate_tau(const dp_types::Eta& eta,
-                                                         const dp_types::Eta& eta_d,
-                                                         const dp_types::Nu& nu) {
+dp_types::Vector6d DPAdaptBacksController::calculate_tau(
+    const dp_types::Eta& eta,
+    const dp_types::Eta& eta_d,
+    const dp_types::Nu& nu) {
     dp_types::Eta error = error_eta(eta, eta_d);
 
     std::cout << "K1_: " << K1_ << std::endl;
@@ -40,7 +41,8 @@ void DPAdaptBacksController::setrbg(const dp_types::Vector3d& r_b_bg) {
     this->r_b_bg_ = r_b_bg;
 }
 
-void DPAdaptBacksController::setAdapParam(const dp_types::Vector12d& adapt_gain) {
+void DPAdaptBacksController::setAdapParam(
+    const dp_types::Vector12d& adapt_gain) {
     this->adapt_gain_ = adapt_gain.asDiagonal().toDenseMatrix();
 }
 

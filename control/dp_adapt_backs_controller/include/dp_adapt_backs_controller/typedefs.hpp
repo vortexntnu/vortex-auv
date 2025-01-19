@@ -52,6 +52,6 @@ struct J_matrix {
     }
 };
 
-}  
+}  // namespace dp_types
 
 #endif

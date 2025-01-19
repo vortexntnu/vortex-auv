@@ -18,10 +18,10 @@
 
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
-    public:
-        explicit DPAdaptBacksControllerNode();
+   public:
+    explicit DPAdaptBacksControllerNode();
 
-    private:
+   private:
     // @brief Callback function for the killswitch topic
     // @param msg: Bool message containing the killswitch status
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
@@ -32,11 +32,13 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     // @brief Callback function for the pose topic
     // @param msg: PoseWithCovarianceStamped message containing the AUV pose
-    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-    
+    void pose_callback(
+        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
     // @brief Callback function for the twist topic
     // @param msg: TwistWithCovarianceStamped message containing the AUV speed
-    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+    void twist_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Callback function for the control input tau publish
     void publish_tau();
@@ -45,8 +47,10 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     void set_adap_params();
 
     // @brief Callback function for the guidance topic
-    // @param msg: ReferenceFilter message containing the desired vehicle pose and velocity
-    void guidance_callback(const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+    // @param msg: ReferenceFilter message containing the desired vehicle pose
+    // and velocity
+    void guidance_callback(
+        const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
     DPAdaptBacksController dp_adapt_backs_controller_;
 
@@ -54,11 +58,14 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
-    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr guidance_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
+        guidance_sub_;
 
     rclcpp::Publisher<geometry_msgs::msg::Wrench>::SharedPtr tau_pub_;
 
@@ -75,7 +82,6 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     bool killswitch_on_;
 
     std::string software_mode_;
-
 };
 
 #endif
