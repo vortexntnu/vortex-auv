@@ -39,6 +39,18 @@ class DPAdaptBacksController {
     // @param d_gain: 6D vector containing the d gain matrix
     void setDGain(const dp_types::Vector6d& d_gain);
 
+    // @brief Set the inertia matrix
+    // @param I_b: 3D vector containing the inertia matrix
+    void setInertiaMatrix(const dp_types::Vector3d& I_b);
+
+    // @brief Set the mass inertia matrix
+    // @param m: Mass inertia matrix
+    void setMassInertiaMatrix(const dp_types::Matrix6d& M);
+
+    // @brief Set the mass
+    // @param m: Mass
+    void setm(double m);
+
     // @brief Set the time step
     // @param dt: Time step
     void setTimeStep(double dt);
@@ -51,6 +63,9 @@ class DPAdaptBacksController {
     dp_types::Matrix6d d_gain_;
     dp_types::Vector12d adap_param_;
     dp_types::Vector6d d_est_;
+    dp_types::Matrix3d I_b_;
+    dp_types::Matrix6d M_;
+    double m_;
     double dt_;
 };
 #endif

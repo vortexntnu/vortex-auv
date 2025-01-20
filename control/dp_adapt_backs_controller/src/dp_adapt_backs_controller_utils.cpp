@@ -106,7 +106,7 @@ dp_types::J_matrix calculate_J_dot(const dp_types::Eta& eta,
     J_dot.R = R_dot;
     J_dot.T = T_dot;
 
-    return J_dot;
+    return J_dot.as_matrix();
 }
 
 dp_types::Matrix6d calculate_C(double m,
