@@ -9,9 +9,11 @@ class PIDController {
 
     // @brief Calculate the control input tau
     // @param eta: struct containing the vehicle pose [position, orientation]
-    // @param eta_d:  struct containing the desired vehicle pose [position, orientation]
+    // @param eta_d:  struct containing the desired vehicle pose [position,
+    // orientation]
     // @param nu:  struct containing the vehicle velocity [linear, angular]
-    // @param eta_dot_d: struct containing the derivative of the desired vehicle pose [position, orientation]
+    // @param eta_dot_d: struct containing the derivative of the desired vehicle
+    // pose [position, orientation]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
     types::Vector6d calculate_tau(const types::Eta& eta,
                                   const types::Eta& eta_d,
