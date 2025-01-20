@@ -95,9 +95,9 @@ void DPAdaptBacksControllerNode::twist_callback(
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {
-    // if (killswitch_on_ || software_mode_ != "autonomous mode") {
-    //     return;
-    // }
+    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+         return;      
+    }
 
     dp_types::Vector6d tau =
         dp_adapt_backs_controller_.calculate_tau(eta_, eta_d_, nu_);
@@ -112,7 +112,7 @@ void DPAdaptBacksControllerNode::publish_tau() {
     tau_msg.torque.y = tau(4);
     tau_msg.torque.z = tau(5);
 
-    // tau_pub_->publish(tau_msg);
+    tau_pub_->publish(tau_msg);
 }
 
 void DPAdaptBacksControllerNode::set_adap_params() {

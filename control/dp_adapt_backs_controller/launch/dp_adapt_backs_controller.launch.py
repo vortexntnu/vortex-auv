@@ -10,7 +10,6 @@ adapt_params = path.join(
     "adapt_params.yaml",
 )
 
-
 def generate_launch_description():
     dp_adapt_backs_controller_node = Node(
         package="dp_adapt_backs_controller",

@@ -19,7 +19,9 @@ dp_types::Eta error_eta(const dp_types::Eta& eta, const dp_types::Eta& eta_d) {
 dp_types::Matrix3d skew_symmetric(const dp_types::Vector3d& vec) {
     dp_types::Matrix3d skew;
 
-    skew << 0, -vec.z(), vec.y(), vec.z(), 0, -vec.x(), -vec.y(), vec.x(), 0;
+    skew << 0, -vec.z(), vec.y(), 
+            vec.z(), 0, -vec.x(), 
+            -vec.y(), vec.x(), 0;
 
     return skew;
 }
