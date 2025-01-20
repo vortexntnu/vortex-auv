@@ -1,7 +1,9 @@
 pid_controller_node:
   ros__parameters:
+    software_kill_switch_topic: /softwareKillSwitch
+    software_operation_mode_topic: /softwareOperationMode
     control_topic: /thrust/wrench_input
-    dp_reference_topic: /dp/reference
+    reference_topic: /dp/reference
     odom_topic: /orca/odom
     pose_topic: /dvl/pose
     twist_topic: /dvl/twist

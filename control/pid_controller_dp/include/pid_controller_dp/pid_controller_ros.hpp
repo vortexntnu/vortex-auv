@@ -30,8 +30,13 @@ class PIDControllerNode : public rclcpp::Node {
     // @param msg: String message containing the software mode
     void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
 
+    // @brief Callback function for the pose topic
+    // @param msg: PoseWithCovarianceStamped message containing the AUV pose
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+    // @brief Callback function for the twist topic
+    // @param msg: TwistWithCovarianceStamped message containing the AUV speed
     void twist_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
@@ -40,20 +45,6 @@ class PIDControllerNode : public rclcpp::Node {
 
     // @brief Set the PID controller parameters
     void set_pid_params();
-
-    // @brief Callback function for the proportional gain matrix
-    // @param msg: Float64MultiArray message containing the proportional gain
-    // matrix
-    void kp_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
-
-    // @brief Callback function for the integral gain matrix
-    // @param msg: Float64MultiArray message containing the integral gain matrix
-    void ki_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
-
-    // @brief Callback function for the derivative gain matrix
-    // @param msg: Float64MultiArray message containing the derivative gain
-    // matrix
-    void kd_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose

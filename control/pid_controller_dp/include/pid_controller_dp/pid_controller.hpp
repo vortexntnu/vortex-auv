@@ -8,12 +8,10 @@ class PIDController {
     explicit PIDController();
 
     // @brief Calculate the control input tau
-    // @param eta: 7D vector containing the vehicle pose [x, y, z, w, x, y, z]
-    // @param eta_d: 7D vector containing the desired vehicle pose [x, y, z, w,
-    // x, y, z]
-    // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
-    // @param eta_dot_d: 7D vector containing the desired vehicle velocity [u,
-    // v, w, p, q, r]
+    // @param eta: struct containing the vehicle pose [position, orientation]
+    // @param eta_d:  struct containing the desired vehicle pose [position, orientation]
+    // @param nu:  struct containing the vehicle velocity [linear, angular]
+    // @param eta_dot_d: struct containing the derivative of the desired vehicle pose [position, orientation]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
     types::Vector6d calculate_tau(const types::Eta& eta,
                                   const types::Eta& eta_d,
@@ -22,19 +20,19 @@ class PIDController {
 
     // @brief Set the proportional gain matrix
     // @param Kp: 6x6 matrix containing the proportional gain matrix
-    void setKp(const types::Matrix6d& Kp);
+    void set_kp(const types::Matrix6d& Kp);
 
     // @brief Set the integral gain matrix
     // @param Ki: 6x6 matrix containing the integral gain matrix
-    void setKi(const types::Matrix6d& Ki);
+    void set_ki(const types::Matrix6d& Ki);
 
     // @brief Set the derivative gain matrix
     // @param Kd: 6x6 matrix containing the derivative gain matrix
-    void setKd(const types::Matrix6d& Kd);
+    void set_kd(const types::Matrix6d& Kd);
 
     // @brief Set the time step
     // @param dt: Time step
-    void setTimeStep(double dt);
+    void set_time_step(double dt);
 
    private:
     types::Matrix6d Kp_;

@@ -11,7 +11,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     time_step_ = std::chrono::milliseconds(10);
 
-    this->declare_parameter("dp_reference_topic", "/dp/reference");
+    this->declare_parameter("reference_topic", "/dp/reference");
     this->declare_parameter("control_topic", "/thrust/wrench_input");
     this->declare_parameter("software_kill_switch_topic",
                             "/softwareKillSwitch");
@@ -22,7 +22,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     this->declare_parameter("twist_topic", "/dvl/twist");
 
     std::string dp_reference_topic =
-        this->get_parameter("dp_reference_topic").as_string();
+        this->get_parameter("reference_topic").as_string();
     std::string control_topic =
         this->get_parameter("control_topic").as_string();
     std::string software_kill_switch_topic =
@@ -59,18 +59,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
-    kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kp", qos_sensor_data,
-        std::bind(&PIDControllerNode::kp_callback, this,
-                  std::placeholders::_1));
-    ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/ki", qos_sensor_data,
-        std::bind(&PIDControllerNode::ki_callback, this,
-                  std::placeholders::_1));
-    kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kd", qos_sensor_data,
-        std::bind(&PIDControllerNode::kd_callback, this,
-                  std::placeholders::_1));
 
     tau_pub_ =
         this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
@@ -138,27 +126,9 @@ void PIDControllerNode::set_pid_params() {
     Ki_msg.data = Ki_vec;
     Kd_msg.data = Kd_vec;
 
-    pid_controller_.setKp(float64multiarray_to_diagonal_matrix6d(Kp_msg));
-    pid_controller_.setKi(float64multiarray_to_diagonal_matrix6d(Ki_msg));
-    pid_controller_.setKd(float64multiarray_to_diagonal_matrix6d(Kd_msg));
-}
-
-void PIDControllerNode::kp_callback(
-    const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    types::Matrix6d Kp = float64multiarray_to_diagonal_matrix6d(*msg);
-    pid_controller_.setKp(Kp);
-}
-
-void PIDControllerNode::ki_callback(
-    const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    types::Matrix6d Ki = float64multiarray_to_diagonal_matrix6d(*msg);
-    pid_controller_.setKi(Ki);
-}
-
-void PIDControllerNode::kd_callback(
-    const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    types::Matrix6d Kd = float64multiarray_to_diagonal_matrix6d(*msg);
-    pid_controller_.setKd(Kd);
+    pid_controller_.set_kp(float64multiarray_to_diagonal_matrix6d(Kp_msg));
+    pid_controller_.set_ki(float64multiarray_to_diagonal_matrix6d(Ki_msg));
+    pid_controller_.set_kd(float64multiarray_to_diagonal_matrix6d(Kd_msg));
 }
 
 void PIDControllerNode::guidance_callback(
