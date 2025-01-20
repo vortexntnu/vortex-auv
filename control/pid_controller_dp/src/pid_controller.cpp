@@ -1,5 +1,4 @@
 #include "pid_controller_dp/pid_controller.hpp"
-#include <iostream>
 #include "pid_controller_dp/pid_controller_utils.hpp"
 
 PIDController::PIDController()

@@ -1,6 +1,5 @@
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include <algorithm>
-#include <iostream>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
