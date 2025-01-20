@@ -79,7 +79,7 @@ dp_types::Matrix6d calculate_J_dot(const dp_types::Eta& eta,
 // @brief Calculate the coriolis matrix
 // @param m: mass of the vehicle
 // @param r_b_bg: 3D vector of the body frame to the center of gravity
-// @param nu_2: 3D vector contating angular velocity of the vehicle
+// @param nu_2: 3D vector containing angular velocity of the vehicle
 // @param I_b : 3D matrix containing the inertia matrix
 // @return 6x6 coriolis matrix
 dp_types::Matrix6d calculate_C(double m,
