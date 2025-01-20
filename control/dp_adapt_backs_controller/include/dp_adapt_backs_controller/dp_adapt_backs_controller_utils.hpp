@@ -73,15 +73,19 @@ dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta);
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]
 // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
 // @return 6x6 derivative of the Jacobian matrix
-dp_types::Matrix6d calculate_J_dot(const dp_types::Eta& eta, const dp_types::Nu& nu);
+dp_types::Matrix6d calculate_J_dot(const dp_types::Eta& eta,
+                                   const dp_types::Nu& nu);
 
 // @brief Calculate the coriolis matrix
 // @param m: mass of the vehicle
 // @param r_b_bg: 3D vector of the body frame to the center of gravity
 // @param nu_2: 3D vector contating angular velocity of the vehicle
-// @param I_b : 3D matrix containing the inertia matrix 
+// @param I_b : 3D matrix containing the inertia matrix
 // @return 6x6 coriolis matrix
-dp_types::Matrix6d calculate_C(double m, const dp_types::Vector3d& r_b_bg, const dp_types::Nu& nu_2, const dp_types::Matrix3d& I_b);
+dp_types::Matrix6d calculate_C(double m,
+                               const dp_types::Vector3d& r_b_bg,
+                               const dp_types::Nu& nu_2,
+                               const dp_types::Matrix3d& I_b);
 
 // @brief Calculate the damping matrix for the adaptive backstepping controller
 // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
