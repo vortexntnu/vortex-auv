@@ -4,6 +4,8 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -26,9 +28,9 @@ class ReferenceFilterNode : public rclcpp::Node {
     void reference_callback(
         const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
-    // @brief Callback for the state topic
-    // @param msg The state message
-    void state_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Handle the goal request
     // @param uuid The goal UUID
@@ -75,13 +77,17 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
         reference_sub_;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+
+    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
     rclcpp::TimerBase::SharedPtr reference_pub_timer_;
 
     std::chrono::milliseconds time_step_;
 
-    nav_msgs::msg::Odometry current_state_;
+    geometry_msgs::msg::PoseWithCovarianceStamped current_pose_;
+
+    geometry_msgs::msg::TwistWithCovarianceStamped current_twist_;
 
     // x is [eta, eta_dot, eta_dot_dot] (ref. page 337 in Fossen, 2021
     // nu and eta are 6 degrees of freedom (position and orientation in 3D

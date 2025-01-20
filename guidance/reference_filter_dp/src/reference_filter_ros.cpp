@@ -8,8 +8,10 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
 
     this->declare_parameter<std::string>("reference_filter_topic",
                                          "/reference_topic");
-    this->declare_parameter<std::string>("dp_reference_topic", "/dp/reference");
-    this->declare_parameter<std::string>("nucleus_odom_topic", "/orca/odom");
+    this->declare_parameter<std::string>("reference_topic", "/dp/reference");
+    this->declare_parameter<std::string>("odom_topic", "/orca/odom");
+    this->declare_parameter<std::string>("pose_topic", "/dvl/pose");
+    this->declare_parameter<std::string>("twist_topic", "/dvl/twist");
 
     std::string reference_filter_topic =
         this->get_parameter("reference_filter_topic").as_string();
@@ -18,7 +20,7 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
     std::string dp_reference_topic =
-        this->get_parameter("dp_reference_topic").as_string();
+        this->get_parameter("reference_topic").as_string();
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
         dp_reference_topic, qos_sensor_data);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -26,11 +28,19 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
         std::bind(&ReferenceFilterNode::reference_callback, this,
                   std::placeholders::_1));
 
-    std::string nucleus_odom_topic =
-        this->get_parameter("nucleus_odom_topic").as_string();
-    state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        nucleus_odom_topic, qos_sensor_data,
-        std::bind(&ReferenceFilterNode::state_callback, this,
+    std::string pose_topic =
+        this->get_parameter("pose_topic").as_string();
+    std::string twist_topic = 
+        this->get_parameter("twist_topic").as_string();
+    
+    pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        pose_topic, qos_sensor_data,
+        std::bind(&ReferenceFilterNode::pose_callback, this,
+                  std::placeholders::_1));
+
+    twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
+        twist_topic, qos_sensor_data,
+        std::bind(&ReferenceFilterNode::twist_callback, this,
                   std::placeholders::_1));
 
     set_refererence_filter();
@@ -47,7 +57,6 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
         rcl_action_server_get_default_options(), cb_group_);
 
     x_ = Vector18d::Zero();
-    current_state_ = nav_msgs::msg::Odometry();
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -88,9 +97,14 @@ void ReferenceFilterNode::reference_callback(
     r_ << x, y, z, roll, pitch, yaw;
 }
 
-void ReferenceFilterNode::state_callback(
-    const nav_msgs::msg::Odometry::SharedPtr msg) {
-    current_state_ = *msg;
+void ReferenceFilterNode::pose_callback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
+    current_pose_ = *msg;
+}
+
+void ReferenceFilterNode::twist_callback(
+    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+    current_twist_ = *msg;
 }
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
@@ -129,12 +143,12 @@ void ReferenceFilterNode::handle_accepted(
 
 Vector18d ReferenceFilterNode::fill_reference_state() {
     Vector18d x = Vector18d::Zero();
-    x(0) = current_state_.pose.pose.position.x;
-    x(1) = current_state_.pose.pose.position.y;
-    x(2) = current_state_.pose.pose.position.z;
+    x(0) = current_pose_.pose.pose.position.x;
+    x(1) = current_pose_.pose.pose.position.y;
+    x(2) = current_pose_.pose.pose.position.z;
 
     tf2::Quaternion q;
-    tf2::fromMsg(current_state_.pose.pose.orientation, q);
+    tf2::fromMsg(current_pose_.pose.pose.orientation, q);
     tf2::Matrix3x3 m(q);
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
@@ -144,17 +158,17 @@ Vector18d ReferenceFilterNode::fill_reference_state() {
     x(5) = ssa(yaw);
 
     Vector6d eta;
-    eta << current_state_.pose.pose.position.x,
-        current_state_.pose.pose.position.y,
-        current_state_.pose.pose.position.z, roll, pitch, yaw;
+    eta << current_pose_.pose.pose.position.x,
+        current_pose_.pose.pose.position.y,
+        current_pose_.pose.pose.position.z, roll, pitch, yaw;
     Matrix6d J = calculate_J(eta);
     Vector6d nu;
-    nu << current_state_.twist.twist.linear.x,
-        current_state_.twist.twist.linear.y,
-        current_state_.twist.twist.linear.z,
-        current_state_.twist.twist.angular.x,
-        current_state_.twist.twist.angular.y,
-        current_state_.twist.twist.angular.z;
+    nu << current_twist_.twist.twist.linear.x,
+        current_twist_.twist.twist.linear.y,
+        current_twist_.twist.twist.linear.z,
+        current_twist_.twist.twist.angular.x,
+        current_twist_.twist.twist.angular.y,
+        current_twist_.twist.twist.angular.z;
     Vector6d eta_dot = J * nu;
 
     x(6) = eta_dot(0);
@@ -252,15 +266,15 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        // if ((x_.head(6)-r_.head(6)).norm() < 0.1) {
-        //     result->success = true;
-        //     goal_handle->succeed(result);
-        //     x_.head(6) = r_.head(6);
-        //     vortex_msgs::msg::ReferenceFilter feedback_msg =
-        //     fill_reference_msg(); reference_pub_->publish(feedback_msg);
-        //     RCLCPP_INFO(this->get_logger(), "Goal reached");
-        //     return;
-        // }
+        if ((x_.head(6)-r_.head(6)).norm() < 0.1) {
+            result->success = true;
+            goal_handle->succeed(result);
+            x_.head(6) = r_.head(6);
+            vortex_msgs::msg::ReferenceFilter feedback_msg =
+            fill_reference_msg(); reference_pub_->publish(feedback_msg);
+            RCLCPP_INFO(this->get_logger(), "Goal reached");
+            return;
+        }
 
         loop_rate.sleep();
     }
