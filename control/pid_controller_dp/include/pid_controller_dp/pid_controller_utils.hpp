@@ -13,12 +13,6 @@
 // @return Smallest sine angle of the input
 double ssa(double angle);
 
-// @brief Convert a Float64MultiArray message to a 6x6 diagonal matrix
-// @param msg: Float64MultiArray message containing 6 elements
-// @return 6x6 diagonal matrix with the elements of the message on the diagonal
-types::Matrix6d float64multiarray_to_diagonal_matrix6d(
-    const std_msgs::msg::Float64MultiArray& msg);
-
 // @brief Calculate the rotation matrix from a quaternion
 // @param q: Quaternion represented as a 4D vector [w, x, y, z]
 // @return 3x3 rotation matrix
@@ -76,12 +70,5 @@ Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
 types::Vector7d anti_windup(const double dt,
                             const types::Eta& error,
                             const types::Vector7d& integral);
-
-// @brief Limit the input to the PID controller
-// @param input: 6D vector containing the input to the PID controller [u, v, w,
-// p, q, r]
-// @return 6D vector containing the limited input to the PID controller [u, v,
-// w, p, q, r]
-types::Vector6d limit_input(const types::Vector6d& input);
 
 #endif

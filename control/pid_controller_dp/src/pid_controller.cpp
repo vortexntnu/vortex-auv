@@ -26,7 +26,7 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
 
     types::Vector6d D = Kd_ * error_nu;
 
-    types::Vector6d tau = -limit_input((P + I + D));
+    types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
 
     integral_ = anti_windup(dt_, error, integral_);
 

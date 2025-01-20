@@ -102,8 +102,6 @@ void DPAdaptBacksControllerNode::publish_tau() {
     dp_types::Vector6d tau =
         dp_adapt_backs_controller_.calculate_tau(eta_, eta_d_, nu_);
 
-    std::cout << "Tau: " << tau << std::endl;
-
     geometry_msgs::msg::Wrench tau_msg;
     tau_msg.force.x = tau(0);
     tau_msg.force.y = tau(1);
