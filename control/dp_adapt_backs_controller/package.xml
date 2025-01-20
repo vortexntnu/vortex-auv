@@ -5,7 +5,7 @@
   <version>1.0.0</version>
   <description>Adaptive backstepping controller for DP</description>
   <maintainer email="talhanc@stud.ntnu.no">talhanc</maintainer>
-  <license>TNC</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
