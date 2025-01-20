@@ -64,6 +64,31 @@ dp_types::Matrix3d calculate_T(const dp_types::Eta& eta) {
     return T;
 }
 
+dp_types::Matrix6d calculate_J(const dp_types::Eta& eta) {
+    dp_types::Matrix3d R = calculate_R(eta);
+    dp_types::Matrix3d T = calculate_T(eta);
+
+    dp_types::J_matrix J;
+    J.R = R;
+    J.T = T;
+
+    return J.as_matrix();
+}
+
+dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta) {
+    dp_types::Matrix6d J = calculate_J(eta);
+    dp_types::Matrix6d J_inv = dp_types::Matrix6d::Zero();
+
+    if (J.determinant() == 0) {
+        std::cerr << "Jacobian matrix is singular" << std::endl;
+        return J;
+    }
+
+    J_inv = J.inverse();
+
+    return J_inv;
+}
+
 dp_types::Matrix3d calculate_R_dot(const dp_types::Eta& eta,
                                    const dp_types::Nu& nu) {
     dp_types::Matrix3d R = calculate_R(eta);
@@ -97,7 +122,7 @@ dp_types::Matrix3d calculate_T_dot(const dp_types::Eta& eta,
 
     return T_dot;
 }
-dp_types::J_matrix calculate_J_dot(const dp_types::Eta& eta,
+dp_types::Matrix6d calculate_J_dot(const dp_types::Eta& eta,
                                    const dp_types::Nu& nu) {
     dp_types::Matrix3d R_dot = calculate_R_dot(eta, nu);
     dp_types::Matrix3d T_dot = calculate_T_dot(eta, nu);
@@ -112,14 +137,14 @@ dp_types::J_matrix calculate_J_dot(const dp_types::Eta& eta,
 dp_types::Matrix6d calculate_C(double m,
                                const dp_types::Vector3d& r_b_bg,
                                const dp_types::Nu& nu_2,
-                               const dp_types::Vector3d& I_b_nu_2) {
+                               const dp_types::Matrix3d& I_b) {
     dp_types::Matrix6d C;
     dp_types::Matrix3d C1 = m * skew_symmetric(nu_2.linear_speed);
     dp_types::Matrix3d C2 =
         -m * skew_symmetric(nu_2.angular_speed) * skew_symmetric(r_b_bg);
     dp_types::Matrix3d C3 =
         m * skew_symmetric(nu_2.angular_speed) * skew_symmetric(r_b_bg);
-    dp_types::Matrix3d C4 = skew_symmetric(I_b_nu_2);
+    dp_types::Matrix3d C4 = skew_symmetric(I_b * nu_2.angular_speed);
 
     C << C1, C2, C3, C4;
 

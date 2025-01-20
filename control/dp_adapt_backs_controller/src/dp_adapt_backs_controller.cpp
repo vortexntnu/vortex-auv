@@ -25,11 +25,11 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
 
     dp_types::Matrix6d C = calculate_C(m_, r_b_bg_, nu, I_b_);
 
-    dp_types::Matrix6d J = calculate_J(eta);
+    dp_types::Matrix6d J = calculate_J(error);
 
     dp_types::Matrix6d J_inv = calculate_J_sudo_inv(error);
 
-    dp_types::Matrix6d J_dot = calculate_J_dot(eta, nu);
+    dp_types::Matrix6d J_dot = calculate_J_dot(error, nu);
 
     dp_types::Vector6d alpha = -J_inv * K1_ * error.as_vector();
 
