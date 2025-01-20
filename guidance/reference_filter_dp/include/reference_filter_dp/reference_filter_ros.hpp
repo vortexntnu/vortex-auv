@@ -28,9 +28,11 @@ class ReferenceFilterNode : public rclcpp::Node {
     void reference_callback(
         const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
-    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+    void pose_callback(
+        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
-    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+    void twist_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Handle the goal request
     // @param uuid The goal UUID
@@ -77,9 +79,11 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
         reference_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
     rclcpp::TimerBase::SharedPtr reference_pub_timer_;
 
