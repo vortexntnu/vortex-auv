@@ -28,9 +28,13 @@ class ReferenceFilterNode : public rclcpp::Node {
     void reference_callback(
         const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
+    // @brief Callback for the pose topic
+    // @param msg The pose message
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
+    // @brief Callback for the twist topic
+    // @param msg The twist message
     void twist_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
