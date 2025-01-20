@@ -119,17 +119,13 @@ void PIDControllerNode::set_pid_params() {
     std::vector<double> Ki_vec = this->get_parameter("Ki").as_double_array();
     std::vector<double> Kd_vec = this->get_parameter("Kd").as_double_array();
 
-    std_msgs::msg::Float64MultiArray Kp_msg;
-    std_msgs::msg::Float64MultiArray Ki_msg;
-    std_msgs::msg::Float64MultiArray Kd_msg;
+    Matrix6d Kp = Eigen::Map<Matrix6d>(Kp_vec.data());
+    Matrix6d Ki = Eigen::Map<Matrix6d>(Ki_vec.data());
+    Matrix6d Kd = Eigen::Map<Matrix6d>(Kd_vec.data());
 
-    Kp_msg.data = Kp_vec;
-    Ki_msg.data = Ki_vec;
-    Kd_msg.data = Kd_vec;
-
-    pid_controller_.setKp(float64multiarray_to_diagonal_matrix6d(Kp_msg));
-    pid_controller_.setKi(float64multiarray_to_diagonal_matrix6d(Ki_msg));
-    pid_controller_.setKd(float64multiarray_to_diagonal_matrix6d(Kd_msg));
+    pid_controller_.set_kp(Kp);
+    pid_controller_.set_ki(Ki);
+    pid_controller_.set_kd(Kd);
 }
 
 void PIDControllerNode::guidance_callback(
