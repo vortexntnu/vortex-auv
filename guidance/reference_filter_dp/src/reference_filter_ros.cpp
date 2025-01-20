@@ -27,17 +27,17 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
         std::bind(&ReferenceFilterNode::reference_callback, this,
                   std::placeholders::_1));
 
-    std::string pose_topic =
-        this->get_parameter("pose_topic").as_string();
-    std::string twist_topic = 
-        this->get_parameter("twist_topic").as_string();
-    
-    pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    std::string pose_topic = this->get_parameter("pose_topic").as_string();
+    std::string twist_topic = this->get_parameter("twist_topic").as_string();
+
+    pose_sub_ = this->create_subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::pose_callback, this,
                   std::placeholders::_1));
 
-    twist_sub_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
+    twist_sub_ = this->create_subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::twist_callback, this,
                   std::placeholders::_1));
@@ -158,8 +158,8 @@ Vector18d ReferenceFilterNode::fill_reference_state() {
 
     Vector6d eta;
     eta << current_pose_.pose.pose.position.x,
-        current_pose_.pose.pose.position.y,
-        current_pose_.pose.pose.position.z, roll, pitch, yaw;
+        current_pose_.pose.pose.position.y, current_pose_.pose.pose.position.z,
+        roll, pitch, yaw;
     Matrix6d J = calculate_J(eta);
     Vector6d nu;
     nu << current_twist_.twist.twist.linear.x,
@@ -265,12 +265,13 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        if ((x_.head(6)-r_.head(6)).norm() < 0.1) {
+        if ((x_.head(6) - r_.head(6)).norm() < 0.1) {
             result->success = true;
             goal_handle->succeed(result);
             x_.head(6) = r_.head(6);
             vortex_msgs::msg::ReferenceFilter feedback_msg =
-            fill_reference_msg(); reference_pub_->publish(feedback_msg);
+                fill_reference_msg();
+            reference_pub_->publish(feedback_msg);
             RCLCPP_INFO(this->get_logger(), "Goal reached");
             return;
         }
