@@ -28,12 +28,6 @@ class PIDControllerNode : public rclcpp::Node {
 
     void publish_tau();
 
-    void kp_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
-
-    void ki_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
-
-    void kd_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
-
     void set_pid_params();
 
     PIDController pid_controller_;
@@ -46,12 +40,6 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kp_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr ki_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kd_sub_;
 
     rclcpp::Publisher<geometry_msgs::msg::Wrench>::SharedPtr tau_pub_;
 

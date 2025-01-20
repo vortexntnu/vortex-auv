@@ -6,8 +6,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     time_step_ = std::chrono::milliseconds(10);
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
 
-    this->declare_parameter("nucleus_odom_topic", "/orca/odom");
-    this->declare_parameter("dp_reference_topic", "/dp/reference");
+    this->declare_parameter("odom_topic", "/orca/odom");
+    this->declare_parameter("reference_topic", "/dp/reference");
     this->declare_parameter("control_topic", "/thrust/wrench_input");
     this->declare_parameter("software_kill_switch_topic",
                             "/softwareKillSwitch");
@@ -15,9 +15,9 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
                             "/softwareOperationMode");
 
     std::string nucleus_odom_topic =
-        this->get_parameter("nucleus_odom_topic").as_string();
+        this->get_parameter("odom_topic").as_string();
     std::string dp_reference_topic =
-        this->get_parameter("dp_reference_topic").as_string();
+        this->get_parameter("reference_topic").as_string();
     std::string control_topic =
         this->get_parameter("control_topic").as_string();
     std::string software_kill_switch_topic =
@@ -44,18 +44,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
             dp_reference_topic, 10,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
-    kp_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kp", 10,
-        std::bind(&PIDControllerNode::kp_callback, this,
-                  std::placeholders::_1));
-    ki_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/ki", 10,
-        std::bind(&PIDControllerNode::ki_callback, this,
-                  std::placeholders::_1));
-    kd_sub_ = this->create_subscription<std_msgs::msg::Float64MultiArray>(
-        "/pid/kd", 10,
-        std::bind(&PIDControllerNode::kd_callback, this,
-                  std::placeholders::_1));
     tau_pub_ =
         this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
@@ -142,24 +130,6 @@ void PIDControllerNode::set_pid_params() {
     pid_controller_.setKp(float64multiarray_to_diagonal_matrix6d(Kp_msg));
     pid_controller_.setKi(float64multiarray_to_diagonal_matrix6d(Ki_msg));
     pid_controller_.setKd(float64multiarray_to_diagonal_matrix6d(Kd_msg));
-}
-
-void PIDControllerNode::kp_callback(
-    const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    Matrix6d Kp = float64multiarray_to_diagonal_matrix6d(*msg);
-    pid_controller_.setKp(Kp);
-}
-
-void PIDControllerNode::ki_callback(
-    const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    Matrix6d Ki = float64multiarray_to_diagonal_matrix6d(*msg);
-    pid_controller_.setKi(Ki);
-}
-
-void PIDControllerNode::kd_callback(
-    const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
-    Matrix6d Kd = float64multiarray_to_diagonal_matrix6d(*msg);
-    pid_controller_.setKd(Kd);
 }
 
 void PIDControllerNode::guidance_callback(

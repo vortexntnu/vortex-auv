@@ -32,18 +32,18 @@ Vector6d PIDController::calculate_tau(const Eta& eta,
     return tau;
 }
 
-void PIDController::setKp(const Matrix6d& Kp) {
+void PIDController::set_kp(const Matrix6d& Kp) {
     this->Kp_ = Kp;
 }
 
-void PIDController::setKi(const Matrix6d& Ki) {
+void PIDController::set_ki(const Matrix6d& Ki) {
     this->Ki_ = Ki;
 }
 
-void PIDController::setKd(const Matrix6d& Kd) {
+void PIDController::set_kd(const Matrix6d& Kd) {
     this->Kd_ = Kd;
 }
 
-void PIDController::setTimeStep(double dt) {
+void PIDController::set_time_step(double dt) {
     this->dt_ = dt;
 }
