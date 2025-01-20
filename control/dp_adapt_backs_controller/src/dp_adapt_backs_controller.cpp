@@ -21,7 +21,6 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
     const dp_types::Eta& eta,
     const dp_types::Eta& eta_d,
     const dp_types::Nu& nu) {
-
     dp_types::Eta error = error_eta(eta, eta_d);
 
     dp_types::Matrix6d C = calculate_C(m_, r_b_bg_, nu, I_b_);
@@ -50,7 +49,8 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
     dp_types::Vector6d F_est = Y_v * adap_param_;
 
     dp_types::Vector6d tau = (M_ * alpha_dot) + (C * nu.as_vector()) -
-                             (J.transpose() * z_1) - (K2_ * z_2) - F_est - d_est_;
+                             (J.transpose() * z_1) - (K2_ * z_2) - F_est -
+                             d_est_;
 
     tau = tau.cwiseMax(-80.0).cwiseMin(80.0);
 

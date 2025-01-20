@@ -96,7 +96,7 @@ void DPAdaptBacksControllerNode::twist_callback(
 
 void DPAdaptBacksControllerNode::publish_tau() {
     if (killswitch_on_ || software_mode_ != "autonomous mode") {
-         return;      
+        return;
     }
 
     dp_types::Vector6d tau =
