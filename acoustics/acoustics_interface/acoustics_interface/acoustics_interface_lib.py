@@ -74,9 +74,9 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def init_communication(cls, frequencies_of_interest: list[tuple[int, int]]) -> None:
-        assert (
-            len(frequencies_of_interest) == 10
-        ), "Frequency list has to have exactly 10 entries"
+        assert len(frequencies_of_interest) == 10, (
+            "Frequency list has to have exactly 10 entries"
+        )
 
         _frequencies_of_interest = frequencies_of_interest
 
@@ -243,9 +243,9 @@ class TeensyCommunicationUDP:
     ) -> None:
         try:
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
-            assert (
-                len(frequencies_of_interest) == 10
-            ), "List of frequencies has to be ten entries long!"
+            assert len(frequencies_of_interest) == 10, (
+                "List of frequencies has to be ten entries long!"
+            )
 
             # ten messages in total, one message for each entry to work around the max packet size
             for frequency, variance in frequencies_of_interest:
