@@ -17,6 +17,7 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: A ROS 2 LaunchDescription object containing
         the thrust_allocator_auv_node.
+
     """
     thrust_allocator_auv_node = Node(
         package="thrust_allocator_auv",

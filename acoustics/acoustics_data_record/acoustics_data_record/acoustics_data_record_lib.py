@@ -49,23 +49,6 @@ class AcousticsDataRecordLib:
         tdoa: list[float] = [0.0],
         position: list[float] = [0.0],
     ) -> None:
-        """Logs the provided data to a CSV file.
-
-        Parameters:
-        self (object): The instance of the class.
-        hydrophone1 (list, optional): Data from hydrophone 1. Defaults to [0].
-        hydrophone2 (list, optional): Data from hydrophone 2. Defaults to [0].
-        hydrophone3 (list, optional): Data from hydrophone 3. Defaults to [0].
-        hydrophone4 (list, optional): Data from hydrophone 4. Defaults to [0].
-        hydrophone5 (list, optional): Data from hydrophone 5. Defaults to [0].
-        filter_response (list, optional): Filter response data. Defaults to [0].
-        fft (list, optional): FFT data. Defaults to [0].
-        peaks (list, optional): Peaks data. Defaults to [0].
-        tdoa (list, optional): Time Difference of Arrival data. Defaults to [0.0].
-        position (list, optional): Position data. Defaults to [0.0].
-
-        Writes the current time and provided data to a CSV file located at self.data_file_location.
-        """
         # Get current time in hours, minutes, seconds and milliseconds
         current_time = datetime.now().strftime("%H:%M:%S.%f")[:-3]
 

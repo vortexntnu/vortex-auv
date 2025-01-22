@@ -17,6 +17,7 @@ def generate_launch_description() -> LaunchDescription:
         LaunchDescription: A launch description containing the environment variable
         setting and the included launch descriptions for the thruster allocator and
         thruster interface.
+
     """
     # Set environment variable
     set_env_var = SetEnvironmentVariable(

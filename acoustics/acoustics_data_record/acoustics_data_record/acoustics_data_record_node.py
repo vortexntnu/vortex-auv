@@ -137,6 +137,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone1 data.
+
         """
         self.hydrophone1_data = msg.data
 
@@ -145,6 +146,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone2 data.
+
         """
         self.hydrophone2_data = msg.data
 
@@ -153,6 +155,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone3 data.
+
         """
         self.hydrophone3_data = msg.data
 
@@ -161,6 +164,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone4 data.
+
         """
         self.hydrophone4_data = msg.data
 
@@ -169,6 +173,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing hydrophone5 data.
+
         """
         self.hydrophone5_data = msg.data
 
@@ -177,6 +182,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing filter response data.
+
         """
         self.filter_response_data = msg.data
 
@@ -185,6 +191,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing FFT data.
+
         """
         self.fft_data = msg.data
 
@@ -193,6 +200,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Int32MultiArray): Message containing peaks data.
+
         """
         self.peaks_data = msg.data
 
@@ -201,6 +209,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Float32MultiArray): Message containing TDOA data.
+
         """
         self.tdoa_data = msg.data
 
@@ -209,6 +218,7 @@ class AcousticsDataRecordNode(Node):
 
         Args:
             msg (Float32MultiArray): Message containing position data.
+
         """
         self.position_data = msg.data
 
@@ -244,6 +254,7 @@ def main() -> None:
 
     Returns:
         None
+
     """
     # Initialize ROS2
     rclpy.init()
