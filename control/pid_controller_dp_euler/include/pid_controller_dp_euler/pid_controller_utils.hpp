@@ -8,9 +8,6 @@
 #include <pid_controller_dp_euler/typedefs.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 
-Matrix6d float64multiarray_to_diagonal_matrix6d(
-    const std_msgs::msg::Float64MultiArray& msg);
-
 double ssa(double angle);
 
 Eta apply_ssa(const Eta& eta);

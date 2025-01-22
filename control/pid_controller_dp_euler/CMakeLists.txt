@@ -36,11 +36,6 @@ ament_target_dependencies(pid_controller_node
   vortex_msgs
 )
 
-install(
-  DIRECTORY include/
-  DESTINATION include
-)
-
 install(TARGETS
   pid_controller_node
   DESTINATION lib/${PROJECT_NAME})
