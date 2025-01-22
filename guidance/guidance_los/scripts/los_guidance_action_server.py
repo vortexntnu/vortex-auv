@@ -4,7 +4,7 @@ import threading
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped, Vector3Stamped
+from geometry_msgs.msg import PoseStamped
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
     LOSParameters,
@@ -18,7 +18,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import String
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
 
@@ -35,17 +34,21 @@ class LOSActionServer(Node):
     def __init__(self):
         super().__init__('los_guidance_node')
 
+        # Initialize goal handle lock
         self._goal_lock = threading.Lock()
+
+        # update rate parameter
         self.declare_parameter('update_rate', 10.0)
         update_rate = self.get_parameter('update_rate').value
         self.update_period = 1.0 / update_rate
+
+        # Initialize filter status flag
         self.filter_initialized = False
 
-        self.declare_parameter('debug_mode', False)
-        self.debug_mode = self.get_parameter('debug_mode').value
-
+        # Create callback groups for concurrent execution
         self.action_cb_group = ReentrantCallbackGroup()
 
+        # Initialize parameters and topics
         self.declare_los_parameters_()
         self._declare_topic_parameters()
         self._initialize_publishers()
@@ -56,8 +59,10 @@ class LOSActionServer(Node):
         los_params = self.get_los_parameters_()
         filter_params = self.get_filter_parameters_()
 
-        # Initialize guidance calculator
+        # Initialize guidance calculator with third-order filtering
         self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
+
+        # self.desired_vel = 0.3
 
     def declare_los_parameters_(self):
         """Declare all LOS guidance parameters."""
@@ -67,9 +72,8 @@ class LOSActionServer(Node):
         self.declare_parameter('los_guidance.h_delta_factor', 3.0)
         self.declare_parameter('los_guidance.nominal_speed', 0.35)
         self.declare_parameter('los_guidance.min_speed', 0.1)
-        self.declare_parameter('los_guidance.max_pitch_angle', 1.047)
-        self.declare_parameter('los_guidance.depth_gain', 10.0)
-        # self.declare_parameter('depth_integral_gain', 0.5)
+        self.declare_parameter('los_guidance.max_pitch_angle', 0.52359877559)
+        self.declare_parameter('los_guidance.depth_gain', 0.5)
 
         # Declare filter parameters
         self.declare_parameter('los_guidance.filter.omega_diag', [2.5, 2.5, 2.5])
@@ -77,7 +81,6 @@ class LOSActionServer(Node):
 
     def get_los_parameters_(self) -> LOSParameters:
         los_params = LOSParameters()
-
         los_params.lookahead_distance_min = self.get_parameter(
             'los_guidance.h_delta_min'
         ).value
@@ -108,6 +111,7 @@ class LOSActionServer(Node):
         return filter_params
 
     def _declare_topic_parameters(self):
+        """Declare parameters for all topics."""
         # Publishers
         self.declare_parameter('topics.publishers.los_commands', '/guidance/los')
         self.declare_parameter(
@@ -121,38 +125,17 @@ class LOSActionServer(Node):
         # Subscribers
         self.declare_parameter('topics.subscribers.odometry', '/orca/odom')
 
+        # QoS settings
+        self.declare_parameter('qos.publisher_depth', 10)
+        self.declare_parameter('qos.subscriber_depth', 10)
+
     def _initialize_publishers(self):
         """Initialize all publishers."""
-        pub_qos_depth = 10
-
-        # Main guidance command publisher
         los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
-
         self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
-
         self.guidance_cmd_pub = self.create_publisher(
             LOSGuidance, los_commands_topic, qos_profile=best_effort_qos
         )
-
-        # Debug publishers
-        if self.debug_mode:
-            reference_topic = self.get_parameter(
-                'topics.publishers.debug.reference'
-            ).value
-
-            errors_topic = self.get_parameter('topics.publishers.debug.errors').value
-
-            logs_topic = self.get_parameter('topics.publishers.debug.logs').value
-
-            self.guidance_ref_pub = self.create_publisher(
-                PoseStamped, reference_topic, pub_qos_depth
-            )
-            self.guidance_error_pub = self.create_publisher(
-                Vector3Stamped, errors_topic, pub_qos_depth
-            )
-            self.log_publisher = self.create_publisher(
-                String, logs_topic, pub_qos_depth
-            )
 
     def _initialize_subscribers(self):
         """Initialize subscribers."""
@@ -206,34 +189,12 @@ class LOSActionServer(Node):
         """Handle cancellation requests."""
         self.get_logger().info("Received cancel request")
 
-        # with self._goal_lock:
-        #     if self.goal_handle == goal_handle:
-        #         # Reset navigation state
-        #         self.waypoints = []
-        #         self.current_waypoint_index = 0
-        #         self.goal_handle = None
-
-        #         # Reset guidance state if needed
-        #         initial_commands = np.array([0.0, self.state.pitch, self.state.yaw])
-        #         self.guidance_calculator.reset_filter_state(self.state)
-
-        #         self.publish_log("Navigation canceled and state reset")
-
         return CancelResponse.ACCEPT
-
-    def publish_log(self, message: str):
-        """Publish debug log message to ROS topic and node logger (debug mode only)."""
-        if not self.debug_mode:
-            return
-
-        msg = String()
-        msg.data = message
-        self.get_logger().info(message)
 
     def odom_callback(self, msg: Odometry):
         """Process odometry updates and trigger guidance calculations."""
         orientation_q = msg.pose.pose.orientation
-        roll, pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
+        self.phi, self.pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
             orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
         )
 
@@ -242,87 +203,88 @@ class LOSActionServer(Node):
         self.state.y = msg.pose.pose.position.y
         self.state.z = msg.pose.pose.position.z
         self.state.yaw = yaw
-        self.state.pitch = pitch
+        self.state.pitch = self.pitch
+
+        self.u = msg.twist.twist.linear.x
+        self.v = msg.twist.twist.linear.y
+        self.w = msg.twist.twist.linear.z
 
         # Initialize filter on first callback
         if not self.filter_initialized:
             self.guidance_calculator.reset_filter_state(self.state)
             self.filter_initialized = True
 
-        if not self.debug_mode:
-            return
-
-        # Log current position for debugging
-        self.publish_log(
-            f"Position: x={self.state.x:.3f}, "
-            f"y={self.state.y:.3f}, "
-            f"z={self.state.z:.3f}"
+    def calculate_guidance(self) -> State:
+        error = (
+            self.state.as_pos_array()
+            - self.waypoints[self.current_waypoint_index].as_pos_array()
         )
-        self.publish_log(
-            f"Orientation: roll={roll:.3f}, pitch={pitch:.3f}, yaw={yaw:.3f}"
+        _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
+        alpha_c = self.guidance_calculator.calculate_alpha_c(
+            self.u, self.v, self.w, self.phi
+        )
+        beta_c = self.guidance_calculator.calculate_beta_c(
+            self.u, self.v, self.w, self.phi, self.pitch, alpha_c
+        )
+        psi_d = self.guidance_calculator.compute_psi_d(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+            crosstrack_y,
+            beta_c,
+        )
+        theta_d = self.guidance_calculator.compute_theta_d(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+            crosstrack_z,
+            alpha_c,
         )
 
-    def process_guidance(self):
-        """Process guidance calculations and publish control commands."""
-        if self.current_waypoint_index >= len(self.waypoints):
-            return
+        yaw_error = self.guidance_calculator.ssa(psi_d - self.state.yaw)
 
-        # Extract position from PoseStamped waypoint
-        current_waypoint = self.waypoints[self.current_waypoint_index]
-        target_point = State(
-            x=current_waypoint.pose.position.x,
-            y=current_waypoint.pose.position.y,
-            z=current_waypoint.pose.position.z,
+        desired_surge = self.guidance_calculator.compute_desired_speed(
+            yaw_error, self.norm
         )
-        # Compute guidance commands using current state
-        commands = self.guidance_calculator.compute_guidance(self.state, target_point)
 
-        # Publish commands and monitoring data
-        self.publish_guidance(commands)
-        # self.publish_errors(target_point, depth_error)
-
-        # Log guidance status
-        # self.publish_log(
-        #     f"Guidance Status: surge={commands.surge_vel:.2f}, "
-        #     f"pitch={commands[1]:.2f}, yaw={commands[2]:.2f}"
-        # )
-        # self.publish_log(f"Distance to target: {distance:.2f}")
-
-        # Check if waypoint is reached (0.5m threshold)
-        if self.guidance_calculator.horizontal_distance < 0.1:
-            self.publish_log(f'Reached waypoint {self.current_waypoint_index}')
-
-            self.guidance_calculator.reset_filter_state(self.state)
-
-            self.current_waypoint_index += 1
-
-            if self.current_waypoint_index >= len(self.waypoints):
-                if self.goal_handle and self.goal_handle.is_active:
-                    self.goal_handle.succeed()
-                    self.goal_handle = None
-                return
-
-        # Publish progress feedback
-        if self.goal_handle and self.goal_handle.is_active:
-            feedback_msg = NavigateWaypoints.Feedback()
-            feedback_msg.current_waypoint_index = float(self.current_waypoint_index)
-            self.goal_handle.publish_feedback(feedback_msg)
+        unfiltered_commands = State(surge_vel=desired_surge, pitch=theta_d, yaw=psi_d)
+        filtered_commands = self.guidance_calculator.apply_reference_filter(
+            unfiltered_commands
+        )
+        # return unfiltered_commands
+        return filtered_commands
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
-        self.publish_log('Executing waypoint navigation...')
-
         # Initialize navigation goal with lock
         with self._goal_lock:
             self.goal_handle = goal_handle
         self.current_waypoint_index = 0
-        self.waypoints = goal_handle.request.waypoints
+        self.waypoints = [self.state]
+        incoming_waypoints = goal_handle.request.waypoints
+        for waypoint in incoming_waypoints:
+            point_as_state = State(
+                x=waypoint.pose.position.x,
+                y=waypoint.pose.position.y,
+                z=waypoint.pose.position.z,
+            )
+            self.waypoints.append(point_as_state)
 
-        feedback = NavigateWaypoints.Feedback()
+        self.pi_h = self.guidance_calculator.compute_pi_h(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+        )
+        self.pi_v = self.guidance_calculator.compute_pi_v(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+        )
+
+        rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
+        rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
+        self.rotation_yz = rotation_y.T @ rotation_z.T
+
+        # feedback = NavigateWaypoints.Feedback()
         result = NavigateWaypoints.Result()
 
-        self.publish_log(f'Received {len(self.waypoints)} waypoints')
-
+        # Monitor navigation progress
         rate = self.create_rate(1.0 / self.update_period)
 
         self.get_logger().info('Executing goal')
@@ -334,18 +296,46 @@ class LOSActionServer(Node):
                 return result
 
             if goal_handle.is_cancel_requested:
-                self.publish_log('Goal canceled')
+                self.get_logger().info('Goal canceled')
                 goal_handle.canceled()
                 self.goal_handle = None
-                return NavigateWaypoints.Result(success=False)
+                result.success = False
+                return result
 
-            # process guiance
-            if len(self.waypoints) > 0:
-                self.process_guidance()
+            self.norm = np.linalg.norm(
+                self.state.as_pos_array()
+                - self.waypoints[self.current_waypoint_index + 1].as_pos_array(),
+                2,
+            )
+            if self.norm < 1.5:
+                self.get_logger().info('Waypoint reached')
+                self.current_waypoint_index += 1
 
-            if self.current_waypoint_index >= len(self.waypoints):
-                self.publish_log('All waypoints reached')
-                return NavigateWaypoints.Result(success=True)
+                if self.current_waypoint_index >= len(self.waypoints) - 1:
+                    self.get_logger().info('All waypoints reached!')
+                    final_commands = State(
+                        surge_vel=0.0, pitch=self.state.pitch, yaw=self.state.yaw
+                    )
+                    self.publish_guidance(final_commands)
+                    result.success = True
+                    self.goal_handle.succeed()
+                    return result
+
+                self.pi_h = self.guidance_calculator.compute_pi_h(
+                    self.waypoints[self.current_waypoint_index],
+                    self.waypoints[self.current_waypoint_index + 1],
+                )
+                self.pi_v = self.guidance_calculator.compute_pi_v(
+                    self.waypoints[self.current_waypoint_index],
+                    self.waypoints[self.current_waypoint_index + 1],
+                )
+
+                rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
+                rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
+                self.rotation_yz = rotation_y.T @ rotation_z.T
+
+            commands = self.calculate_guidance()
+            self.publish_guidance(commands)
 
             rate.sleep()
 
@@ -356,19 +346,6 @@ class LOSActionServer(Node):
         msg.pitch = commands.pitch
         msg.yaw = commands.yaw
         self.guidance_cmd_pub.publish(msg)
-
-    def publish_errors(self, target_point: np.ndarray, depth_error: float):
-        """Publish position errors for monitoring (if debug mode is enabled)."""
-        if not self.debug_mode:
-            return
-
-        msg = Vector3Stamped()
-        msg.header.frame_id = "odom"
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.vector.x = target_point[0] - self.state.x
-        msg.vector.y = target_point[1] - self.state.y
-        msg.vector.z = depth_error
-        self.guidance_error_pub.publish(msg)
 
 
 def main(args=None):
