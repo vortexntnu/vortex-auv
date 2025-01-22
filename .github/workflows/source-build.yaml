@@ -15,4 +15,3 @@ jobs:
       ref: ${{ github.ref }}
       vcs_repo_file_url: 'https://raw.githubusercontent.com/vortexntnu/vortex-auv/main/ros2.repos'
       dependency_script: 'requirements.sh'
-
