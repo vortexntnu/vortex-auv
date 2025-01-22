@@ -156,14 +156,14 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_types::Matrix6d mass_matrix =
         Eigen::Map<dp_types::Matrix6d>(mass_matrix_vec.data());
 
-    dp_adapt_backs_controller_.setK1(K1_eigen);
-    dp_adapt_backs_controller_.setK2(K2_eigen);
-    dp_adapt_backs_controller_.setrbg(r_b_bg_eigen);
-    dp_adapt_backs_controller_.setAdapParam(adap_param_eigen);
-    dp_adapt_backs_controller_.setDGain(d_gain_eigen);
-    dp_adapt_backs_controller_.setInertiaMatrix(I_b_eigen);
-    dp_adapt_backs_controller_.setMassInertiaMatrix(mass_matrix);
-    dp_adapt_backs_controller_.setm(m);
+    dp_adapt_backs_controller_.set_k1(K1_eigen);
+    dp_adapt_backs_controller_.set_k2(K2_eigen);
+    dp_adapt_backs_controller_.set_rbg(r_b_bg_eigen);
+    dp_adapt_backs_controller_.set_adap_param(adap_param_eigen);
+    dp_adapt_backs_controller_.set_d_gain(d_gain_eigen);
+    dp_adapt_backs_controller_.set_inertia_matrix(I_b_eigen);
+    dp_adapt_backs_controller_.set_mass_inertia_matrix(mass_matrix);
+    dp_adapt_backs_controller_.set_m(m);
 }
 
 void DPAdaptBacksControllerNode::guidance_callback(

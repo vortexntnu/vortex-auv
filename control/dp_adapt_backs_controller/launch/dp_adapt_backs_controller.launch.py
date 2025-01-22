@@ -9,6 +9,12 @@ adapt_params = path.join(
     "config",
     "adapt_params.yaml",
 )
+orca_params = path.join(
+    get_package_share_directory("auv_setup"),
+    "config",
+    "robots",
+    "orca.yaml",
+)
 
 
 def generate_launch_description():
@@ -18,6 +24,7 @@ def generate_launch_description():
         name="dp_adapt_backs_controller_node",
         parameters=[
             adapt_params,
+            orca_params,
         ],
         output="screen",
     )

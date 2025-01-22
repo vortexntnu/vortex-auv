@@ -34,21 +34,17 @@ dp_types::Vector3d quat_to_euler(double w, double x, double y, double z) {
 }
 
 dp_types::Matrix3d calculate_R(const dp_types::Eta& eta) {
-    double cos_phi = std::cos(eta.ori.x());
-    double sin_phi = std::sin(eta.ori.x());
-    double cos_theta = std::cos(eta.ori.y());
-    double sin_theta = std::sin(eta.ori.y());
-    double cos_psi = std::cos(eta.ori.z());
-    double sin_psi = std::sin(eta.ori.z());
+    const double roll = eta.ori.x();
+    const double pitch = eta.ori.y();
+    const double yaw = eta.ori.z();
 
-    dp_types::Matrix3d R;
-    R << cos_psi * cos_theta,
-        -sin_psi * cos_phi + cos_psi * sin_theta * sin_phi,
-        sin_psi * sin_phi + cos_psi * cos_phi * sin_theta, sin_psi * cos_theta,
-        cos_psi * cos_phi + sin_phi * cos_theta * sin_psi,
-        -cos_psi * sin_phi + sin_psi * cos_phi * sin_theta, -sin_theta,
-        cos_theta * sin_phi, cos_theta * cos_phi;
-    return R;
+    const Eigen::AngleAxisd roll_angle(roll, dp_types::Vector3d::UnitX());
+    const Eigen::AngleAxisd pitch_angle(pitch, dp_types::Vector3d::UnitY());
+    const Eigen::AngleAxisd yaw_angle(yaw, dp_types::Vector3d::UnitZ());
+
+    const Eigen::Quaterniond q = yaw_angle * pitch_angle * roll_angle;
+
+    return q.toRotationMatrix();
 }
 
 dp_types::Matrix3d calculate_T(const dp_types::Eta& eta) {
@@ -58,8 +54,15 @@ dp_types::Matrix3d calculate_T(const dp_types::Eta& eta) {
     double tan_theta = std::tan(eta.ori.y());
 
     dp_types::Matrix3d T;
-    T << 1, sin_phi * tan_theta, cos_phi * tan_theta, 0, cos_phi, -sin_phi, 0,
-        sin_phi / cos_theta, cos_phi / cos_theta;
+    T(0, 0) = 1;
+    T(0, 1) = sin_phi * tan_theta;
+    T(0, 2) = cos_phi * tan_theta;
+    T(1, 0) = 0;
+    T(1, 1) = cos_phi;
+    T(1, 2) = -sin_phi;
+    T(2, 0) = 0;
+    T(2, 1) = sin_phi / cos_theta;
+    T(2, 2) = cos_phi / cos_theta;
 
     return T;
 }
@@ -92,8 +95,9 @@ dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta) {
 dp_types::Matrix3d calculate_R_dot(const dp_types::Eta& eta,
                                    const dp_types::Nu& nu) {
     dp_types::Matrix3d R = calculate_R(eta);
-    dp_types::Matrix3d S;
-    S << 0, -1, 0, 1, 0, 0, 0, 0, 0;
+    dp_types::Vector3d vec(0, 0, 1);
+
+    dp_types::Matrix3d S = skew_symmetric(vec);
 
     dp_types::Matrix3d R_dot = R * S * nu.angular_speed.z();
 
