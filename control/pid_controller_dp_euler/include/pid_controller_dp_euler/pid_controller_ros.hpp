@@ -2,6 +2,8 @@
 #define PID_CONTROLLER_ROS_HPP
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <pid_controller_dp_euler/pid_controller.hpp>
@@ -11,6 +13,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include "pid_controller_dp_euler/typedefs.hpp"
 
 class PIDControllerNode : public rclcpp::Node {
    public:
@@ -21,7 +24,11 @@ class PIDControllerNode : public rclcpp::Node {
 
     void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
 
-    void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    void pose_callback(
+        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+    void twist_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
@@ -36,7 +43,11 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;

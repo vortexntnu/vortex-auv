@@ -1,5 +1,7 @@
 pid_controller_euler_node:
   ros__parameters:
+    pose_topic: /dvl/pose
+    twist_topic: /dvl/twist
     control_topic: /thrust/wrench_input
     reference_topic: /dp/reference
     odom_topic: /orca/odom
