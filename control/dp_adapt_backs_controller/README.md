@@ -8,10 +8,10 @@ This package implements a dynamic positioning (DP) Adaptive backstepping control
 
 ### Model for AUV
 
-\[
+```math
 \dot{\eta} = J(\eta)\nu, \newline
 M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta^*) = \tau + d^*
-\]
+```
 
 - $\nu$: Body-fixed velocity vector
 - $\eta$: Inertial position and orientation vector
