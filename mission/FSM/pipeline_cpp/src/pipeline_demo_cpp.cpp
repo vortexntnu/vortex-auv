@@ -180,6 +180,7 @@ public:
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
+    (void)blackboard;
     if (response->success) {
       return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
