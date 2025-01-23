@@ -13,7 +13,7 @@ This package implements a dynamic positioning (DP) Adaptive backstepping control
 ```
 
 ```math
-M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta\star) = \tau + d\star
+M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta^\star) = \tau + d^\star
 ```
 
 - $\nu$: Body-fixed velocity vector
@@ -21,7 +21,7 @@ M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta\star) = \tau + d\star
 - M: Constant mass-inertia matrix
 - C($\eta$): Coriolis and centripetal terms
 - J($\eta$): Transformation from body to inertial coordinates
-- F($\nu$, $\Theta$) =  Y($\nu$) $\Theta^\star$: The damping assumed damping function (linear and nonlinear), where Y(*) describes the behaviour
+- F($\nu$, $\Theta^\star$) =  Y($\nu$) $\Theta^\star$: The damping assumed damping function (linear and nonlinear), where Y(*) describes the behaviour
 - $d^\star$: Disturbance and uncertainties
 
 ### File overview
@@ -83,22 +83,22 @@ where the $\alpha$ is defined as the function that stabilizes the $z_1$ variable
 ##### Adaptive parameters
 
 ```math
-\tilde{\Theta} = \hat{\Theta} - \Theta\star
+\tilde{\Theta} = \hat{\Theta} - \Theta^\star
 ```
 
 ```math
-\tilde{d} = \hat{d} - d\star
+\tilde{d} = \hat{d} - d^\star
 ```
 
 where:
 
-- $ \Theta\star $ and $ d\star $ are the actual parameters,
+- $\Theta^\star$ and $d^\star$ are the actual parameters,
 - $\hat{\Theta}$ and $\hat{d}$ are the estimated parameters,
 - $\tilde{\Theta}$ and $\tilde{d}$ are the estimation errors.
 
 #### Proof of control law
 
-We define the Lyapunov function candidate (CLF) as:
+We define the Lyapunov function candidate (LFC) as:
 
 ```math
 V_1 = \frac{1}{2} z_1^\top z_1
@@ -118,7 +118,7 @@ Using the chain rule, we get:
 \dot{V}_1 = z_1^\top \dot{z}_1
 ```
 
-Substitute \(\dot{z}_1\) with the dynamics of \(z_1\):
+Substitute $\dot{z}_1$ with the dynamics of $z_1$:
 
 ```math
 \dot{z}_1 = \dot{\eta} - \dot{\eta}_d
@@ -143,7 +143,7 @@ Thus, the derivative of the Lyapunov function candidate is:
 \dot{V}_1 = z_1^\top J(\eta)(z_2 + \alpha)
 ```
 
-We also assume that \(\dot{\eta_d} = 0 \) since we only get a desired position and orientation ($\eta$).
+We also assume that $\dot{\eta_d} = 0$ since we only get a desired position and orientation ($\eta$).
 
 We choose an $\alpha$ value to make $z_1$ be negative semi-definite.
 
@@ -189,16 +189,16 @@ and now we will analyze the derivative of this CLF, and ensure convergence for t
 
 Before we write this out, we need to make some assumptions to make this more readable and easier to understand.
 
-For \(\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}\star\) we assume that the actual value has no changes, assuming it's static, and therefore the derivative \(\dot{\Theta}\star = 0\)
+For $\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}^\star$ we assume that the actual value has no changes, assuming it's static, and therefore the derivative $\dot{\Theta}^\star = 0$
 
-2. The same condition holds for \(\dot{\tilde{d}}\)
+2. The same condition holds for $\dot{\tilde{d}}$
 
 ```math
 \dot{V} = \dot{V}_1 + z_2^\top M (\dot{\nu} - \dot{\alpha}) + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 ```math
-= \dot{V}_1 - z_2^\top M \dot{\alpha} + z_2^\top\tau - z_2^\top C(\nu)\,\nu + z_2^\top F(\nu, \Theta\star) + z_2^\top d + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
+= \dot{V}_1 - z_2^\top M \dot{\alpha} + z_2^\top\tau - z_2^\top C(\nu)\,\nu + z_2^\top F(\nu, \Theta^\star) + z_2^\top d + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 ```math
@@ -220,8 +220,8 @@ We insert this into the system and get:
 We look at the adaptive parameters a little more and try to simplify them as much as possible
 
 ```math
-\hat{\Theta} - \Theta\star = \hat{\Theta} - (\hat{\Theta} - \tilde{\Theta}) = \tilde{\Theta} \newline
-\hat{d} - d\star = \hat{d} - (\hat{d} - \tilde{d}) = \tilde{d}
+\hat{\Theta} - \Theta^\star = \hat{\Theta} - (\hat{\Theta} - \tilde{\Theta}) = \tilde{\Theta} \newline
+\hat{d} - d^\star = \hat{d} - (\hat{d} - \tilde{d}) = \tilde{d}
 ```
 
 Now we have:
