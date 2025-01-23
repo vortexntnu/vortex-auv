@@ -27,7 +27,6 @@ class FindPipelineStartServer(Node):
 
         feedback_msg = FindDock.Feedback()
         found = goal_handle.request.start_search  # bool
-        rate = self.create_rate(1)  # Simulate 1Hz feedback
         time_elapsed = 0.0
 
         while time_elapsed <= 20.0:
@@ -36,7 +35,6 @@ class FindPipelineStartServer(Node):
 
             goal_handle.publish_feedback(feedback_msg)
 
-            # rate.sleep()
             time_elapsed += 0.1
 
         goal_handle.succeed()

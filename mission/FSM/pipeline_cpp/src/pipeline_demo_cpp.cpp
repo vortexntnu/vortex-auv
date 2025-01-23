@@ -81,7 +81,6 @@ public:
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
     (void)blackboard;
-    (void)response;
     if (response->success) {
       return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
@@ -90,7 +89,6 @@ public:
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-    (void)blackboard;
     blackboard->set<Pose>("current_pose", feedback->current_pose);
     fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
             feedback->current_pose.position.x,
@@ -115,8 +113,6 @@ public:
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
-    (void)blackboard;
-    (void)response;
     if (response->success) {
       blackboard->set<bool>("is_home", true);
       return yasmin_ros::basic_outcomes::SUCCEED;
@@ -184,8 +180,7 @@ public:
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
-    blackboard->set<bool>("has_finished_converging", response->success);
-    if (blackboard->get<bool>("has_finished_converging")) {
+    if (response->success) {
       return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
       return yasmin_ros::basic_outcomes::ABORT;
@@ -216,9 +211,9 @@ public:
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
-    (void)blackboard;
-    (void)response;
-    blackboard->set<int>("num_remaining_codes", blackboard->get<int>("num_remaining_codes") - 1);
+    if (response->success) {
+      blackboard->set<int>("num_remaining_codes", blackboard->get<int>("num_remaining_codes") - 1);
+    }
     if (blackboard->get<int>("num_remaining_codes") == 0) {
       return yasmin_ros::basic_outcomes::CANCEL;
     } else {
@@ -227,7 +222,6 @@ public:
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
-    (void)blackboard;
     blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
     fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
             feedback->current_pose.pose.position.x,
@@ -343,8 +337,6 @@ int main(int argc, char *argv[]) {
   pipeline_start_pose.pose.orientation.y = 0.0;
   pipeline_start_pose.pose.orientation.z = 0.0;
 
-
-
   blackboard->set<PoseStamped>("pipeline_start_pose", pipeline_start_pose);
   
   std::vector<PoseStamped> aruco_waypoints;
@@ -365,7 +357,17 @@ int main(int argc, char *argv[]) {
   } catch (const std::exception &e) {
     YASMIN_LOG_WARN(e.what());
   }
-  rclcpp::shutdown();
 
+  if (rclcpp::ok()) {
+        // Explicitly reset state machine resources if needed
+        sm.reset();
+        blackboard.reset();
+
+        // Shut down ROS2 context
+        rclcpp::shutdown();
+
+        YASMIN_LOG_INFO("ROS2 shutdown completed.");
+  }
+  
   return 0;
 }
