@@ -91,9 +91,10 @@ where the $\alpha$ is defined as the function that stabilizes the $z_1$ variable
 ```
 
 where:
-- \(\Theta^*\) and \(d^*\) are the actual parameters,
-- \(\hat{\Theta}\) and \(\hat{d}\) are the estimated parameters,
-- \(\tilde{\Theta}\) and \(\tilde{d}\) are the estimation errors.
+
+- $$\Theta^*$$ and $$d^*$$ are the actual parameters,
+- $$\hat{\Theta}$$ and $$\hat{d}$$ are the estimated parameters,
+- $$\tilde{\Theta}$$ and $$\tilde{d}$$ are the estimation errors.
 
 #### Proof of control law
 
