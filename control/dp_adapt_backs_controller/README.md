@@ -13,7 +13,7 @@ This package implements a dynamic positioning (DP) Adaptive backstepping control
 ```
 
 ```math
-M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta^*) = \tau + d^*
+M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta\star) = \tau + d\star
 ```
 
 - $\nu$: Body-fixed velocity vector
@@ -21,7 +21,7 @@ M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta^*) = \tau + d^*
 - M: Constant mass-inertia matrix
 - C($\eta$): Coriolis and centripetal terms
 - J($\eta$): Transformation from body to inertial coordinates
-- F($\nu$, $\Theta$) =  Y($\nu$) $\Theta$: The damping assumed damping function (linear and nonlinear), where Y(*) describes the behaviour
+- F($\nu$, $\Theta$) =  Y($\nu$) $\Theta^\star$: The damping assumed damping function (linear and nonlinear), where Y(*) describes the behaviour
 - $d^\star$: Disturbance and uncertainties
 
 ### File overview
@@ -83,18 +83,18 @@ where the $\alpha$ is defined as the function that stabilizes the $z_1$ variable
 ##### Adaptive parameters
 
 ```math
-\tilde{\Theta} = \hat{\Theta} - \Theta^*
+\tilde{\Theta} = \hat{\Theta} - \Theta\star
 ```
 
 ```math
-\tilde{d} = \hat{d} - d^*
+\tilde{d} = \hat{d} - d\star
 ```
 
 where:
 
-- $$ \Theta^* $$ and $$ d^* $$ are the actual parameters,
-- $$\hat{\Theta}$$ and $$\hat{d}$$ are the estimated parameters,
-- $$\tilde{\Theta}$$ and $$\tilde{d}$$ are the estimation errors.
+- $ \Theta\star $ and $ d\star $ are the actual parameters,
+- $\hat{\Theta}$ and $\hat{d}$ are the estimated parameters,
+- $\tilde{\Theta}$ and $\tilde{d}$ are the estimation errors.
 
 #### Proof of control law
 
@@ -189,7 +189,7 @@ and now we will analyze the derivative of this CLF, and ensure convergence for t
 
 Before we write this out, we need to make some assumptions to make this more readable and easier to understand.
 
-For \(\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}^*\) we assume that the actual value has no changes, assuming it's static, and therefore the derivative \(\dot{\Theta}^* = 0\)
+For \(\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}\star\) we assume that the actual value has no changes, assuming it's static, and therefore the derivative \(\dot{\Theta}\star = 0\)
 
 2. The same condition holds for \(\dot{\tilde{d}}\)
 
@@ -198,11 +198,11 @@ For \(\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}^*\) we assume tha
 ```
 
 ```math
-= \dot{V}_1 - z_2^\top M \dot{\alpha} + z_2^\top\tau - z_2^\top C(\nu)\,\nu + z_2^\top F(\nu, \Theta^*) + z_2^\top d + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
+= \dot{V}_1 - z_2^\top M \dot{\alpha} + z_2^\top\tau - z_2^\top C(\nu)\,\nu + z_2^\top F(\nu, \Theta\star) + z_2^\top d + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 ```math
-= - z_1^\top K_1z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau - z_2^\top C(\nu)\,\nu + z_2^\top Y(\nu) \Theta^* + z_2^\top d  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
+= - z_1^\top K_1z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau - z_2^\top C(\nu)\,\nu + z_2^\top Y(\nu) \Theta\star + z_2^\top d  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 Since we only know the estimate of the adaptive parameters, we can write the controller in two parts:
@@ -214,14 +214,14 @@ Important to notice is that we introduce the estimate (^) for the variables, not
 We insert this into the system and get:
 
 ```math
-= - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu - z_2^\top Y(\nu) (\hat{\Theta} - \Theta^* ) - z_2^\top (\hat{d} - d^*)  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
+= - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu - z_2^\top Y(\nu) (\hat{\Theta} - \Theta\star ) - z_2^\top (\hat{d} - d\star)  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 We look at the adaptive parameters a little more and try to simplify them as much as possible
 
 ```math
-\hat{\Theta} - \Theta^* = \hat{\Theta} - (\hat{\Theta} - \tilde{\Theta}) = \tilde{\Theta} \newline
-\hat{d} - d^* = \hat{d} - (\hat{d} - \tilde{d}) = \tilde{d}
+\hat{\Theta} - \Theta\star = \hat{\Theta} - (\hat{\Theta} - \tilde{\Theta}) = \tilde{\Theta} \newline
+\hat{d} - d\star = \hat{d} - (\hat{d} - \tilde{d}) = \tilde{d}
 ```
 
 Now we have:
