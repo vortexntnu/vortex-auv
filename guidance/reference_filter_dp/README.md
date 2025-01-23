@@ -2,7 +2,7 @@
 
 The reference filter (or reference model) is of third order and provides reference for pose, velocity and acceleration. So that $x_d := [\eta_d^\top, \dot{\eta}_d^\top, \ddot{\eta}_d^\top] \in \mathbb{R}^{3n}$.
 
-The state-space representation is, according to (Fossen, 2021), 
+The state-space representation is, according to (Fossen, 2021),
 $$\dot{x}_d = A_d x_d + B_d r$$
 where
 $$
