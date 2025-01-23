@@ -206,14 +206,14 @@ class LOSActionServer(Node):
         return CancelResponse.ACCEPT
 
     def pose_callback(self, msg: PoseWithCovarianceStamped):
-        State.pose = pose_from_ros(msg.pose.pose)
+        self.state.pose = pose_from_ros(msg.pose.pose)
 
         if not self.filter_initialized:
             self.guidance_calculator.reset_filter_state(self.state)
             self.filter_initialized = True
 
     def twist_callback(self, msg: TwistWithCovarianceStamped):
-        State.twist = twist_from_ros(msg.twist.twist)
+        self.state.twist = twist_from_ros(msg.twist.twist)
 
     def calculate_guidance(self) -> State:
         waypoint: State = self.waypoints[self.current_waypoint_index]
