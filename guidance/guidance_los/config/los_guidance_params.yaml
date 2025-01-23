@@ -23,3 +23,5 @@ los_guidance_node:
           logs: '/guidance/debug/logs'
       subscribers:
         odometry: '/orca/odom'
+        pose: '/dvl/pose'
+        twist: '/dvl/twist'

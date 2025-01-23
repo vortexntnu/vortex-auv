@@ -4,14 +4,16 @@ import threading
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import (
+    PoseStamped,
+    PoseWithCovarianceStamped,
+    TwistWithCovarianceStamped,
+)
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
     LOSParameters,
-    State,
     ThirdOrderLOSGuidance,
 )
-from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, GoalResponse, ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -20,6 +22,8 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
+from vortex_utils.python_utils import State, ssa
+from vortex_utils.ros_converter import pose_from_ros, twist_from_ros
 
 best_effort_qos = QoSProfile(
     reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -36,6 +40,7 @@ class LOSActionServer(Node):
 
         # Initialize goal handle lock
         self._goal_lock = threading.Lock()
+        self.state = State()
 
         # update rate parameter
         self.declare_parameter('update_rate', 10.0)
@@ -123,7 +128,8 @@ class LOSActionServer(Node):
         self.declare_parameter('topics.publishers.debug.logs', '/guidance/debug/logs')
 
         # Subscribers
-        self.declare_parameter('topics.subscribers.odometry', '/orca/odom')
+        self.declare_parameter('topics.subscribers.pose', '/dvl/pose')
+        self.declare_parameter('topics.subscribers.twist', '/dvl/twist')
 
         # QoS settings
         self.declare_parameter('qos.publisher_depth', 10)
@@ -139,12 +145,20 @@ class LOSActionServer(Node):
 
     def _initialize_subscribers(self):
         """Initialize subscribers."""
-        odom_topic = self.get_parameter('topics.subscribers.odometry').value
+        pose_topic = self.get_parameter('topics.subscribers.pose').value
+        twist_topic = self.get_parameter('topics.subscribers.twist').value
 
         self.create_subscription(
-            Odometry,
-            odom_topic,
-            self.odom_callback,
+            PoseWithCovarianceStamped,
+            pose_topic,
+            self.pose_callback,
+            qos_profile=best_effort_qos,
+        )
+
+        self.create_subscription(
+            TwistWithCovarianceStamped,
+            twist_topic,
+            self.twist_callback,
             qos_profile=best_effort_qos,
         )
 
@@ -191,40 +205,33 @@ class LOSActionServer(Node):
 
         return CancelResponse.ACCEPT
 
-    def odom_callback(self, msg: Odometry):
-        """Process odometry updates and trigger guidance calculations."""
-        orientation_q = msg.pose.pose.orientation
-        self.phi, self.pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
-            orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
-        )
+    def pose_callback(self, msg: PoseWithCovarianceStamped):
+        State.pose = pose_from_ros(msg.pose.pose)
 
-        # Update vehicle state
-        self.state.x = msg.pose.pose.position.x
-        self.state.y = msg.pose.pose.position.y
-        self.state.z = msg.pose.pose.position.z
-        self.state.yaw = yaw
-        self.state.pitch = self.pitch
-
-        self.u = msg.twist.twist.linear.x
-        self.v = msg.twist.twist.linear.y
-        self.w = msg.twist.twist.linear.z
-
-        # Initialize filter on first callback
         if not self.filter_initialized:
             self.guidance_calculator.reset_filter_state(self.state)
             self.filter_initialized = True
 
+    def twist_callback(self, msg: TwistWithCovarianceStamped):
+        State.twist = twist_from_ros(msg.twist.twist)
+
     def calculate_guidance(self) -> State:
-        error = (
-            self.state.as_pos_array()
-            - self.waypoints[self.current_waypoint_index].as_pos_array()
-        )
+        waypoint: State = self.waypoints[self.current_waypoint_index]
+        error = self.guidance_calculator.state_as_pos_array(self.state - waypoint)
         _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
         alpha_c = self.guidance_calculator.calculate_alpha_c(
-            self.u, self.v, self.w, self.phi
+            self.state.twist.linear_x,
+            self.state.twist.linear_y,
+            self.state.twist.linear_z,
+            self.state.pose.pitch,
         )
         beta_c = self.guidance_calculator.calculate_beta_c(
-            self.u, self.v, self.w, self.phi, self.pitch, alpha_c
+            self.state.twist.linear_x,
+            self.state.twist.linear_y,
+            self.state.twist.linear_z,
+            self.state.pose.roll,
+            self.state.pose.pitch,
+            alpha_c,
         )
         psi_d = self.guidance_calculator.compute_psi_d(
             self.waypoints[self.current_waypoint_index],
@@ -239,13 +246,16 @@ class LOSActionServer(Node):
             alpha_c,
         )
 
-        yaw_error = self.guidance_calculator.ssa(psi_d - self.state.yaw)
+        yaw_error = ssa(psi_d - self.state.pose.yaw)
 
         desired_surge = self.guidance_calculator.compute_desired_speed(
             yaw_error, self.norm
         )
 
-        unfiltered_commands = State(surge_vel=desired_surge, pitch=theta_d, yaw=psi_d)
+        unfiltered_commands = State()
+        unfiltered_commands.twist.linear_x = desired_surge
+        unfiltered_commands.pose.pitch = theta_d
+        unfiltered_commands.pose.yaw = psi_d
         filtered_commands = self.guidance_calculator.apply_reference_filter(
             unfiltered_commands
         )
@@ -261,11 +271,8 @@ class LOSActionServer(Node):
         self.waypoints = [self.state]
         incoming_waypoints = goal_handle.request.waypoints
         for waypoint in incoming_waypoints:
-            point_as_state = State(
-                x=waypoint.pose.position.x,
-                y=waypoint.pose.position.y,
-                z=waypoint.pose.position.z,
-            )
+            pose = pose_from_ros(waypoint.pose)
+            point_as_state = State(pose=pose)
             self.waypoints.append(point_as_state)
 
         self.pi_h = self.guidance_calculator.compute_pi_h(
@@ -301,11 +308,9 @@ class LOSActionServer(Node):
                 self.goal_handle = None
                 result.success = False
                 return result
-
+            error = self.state - self.waypoints[self.current_waypoint_index + 1]
             self.norm = np.linalg.norm(
-                self.state.as_pos_array()
-                - self.waypoints[self.current_waypoint_index + 1].as_pos_array(),
-                2,
+                self.guidance_calculator.state_as_pos_array(error)
             )
             if self.norm < 1.5:
                 self.get_logger().info('Waypoint reached')
@@ -313,9 +318,10 @@ class LOSActionServer(Node):
 
                 if self.current_waypoint_index >= len(self.waypoints) - 1:
                     self.get_logger().info('All waypoints reached!')
-                    final_commands = State(
-                        surge_vel=0.0, pitch=self.state.pitch, yaw=self.state.yaw
-                    )
+                    final_commands = State()
+                    final_commands.twist.linear_x = 0
+                    final_commands.pose.pitch = self.state.pose.pitch
+                    final_commands.pose.yaw = self.state.pose.yaw
                     self.publish_guidance(final_commands)
                     result.success = True
                     self.goal_handle.succeed()
@@ -342,9 +348,9 @@ class LOSActionServer(Node):
     def publish_guidance(self, commands: State):
         """Publish the commanded surge velocity, pitch angle, and yaw angle."""
         msg = LOSGuidance()
-        msg.surge = commands.surge_vel
-        msg.pitch = commands.pitch
-        msg.yaw = commands.yaw
+        msg.surge = commands.twist.linear_x
+        msg.pitch = commands.pose.pitch
+        msg.yaw = commands.pose.yaw
         self.guidance_cmd_pub.publish(msg)
 
 

@@ -1,40 +1,7 @@
 from dataclasses import dataclass, field
 
 import numpy as np
-
-
-@dataclass
-class State:
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
-    pitch: float = 0.0
-    yaw: float = 0.0
-    surge_vel: float = 0.0
-
-    def __add__(self, other: "State") -> "State":
-        return State(
-            x=self.x + other.x,
-            y=self.y + other.y,
-            z=self.z + other.z,
-            pitch=self.pitch + other.pitch,
-            yaw=self.yaw + other.yaw,
-        )
-
-    def __sub__(self, other: "State") -> "State":
-        return State(
-            x=self.x - other.x,
-            y=self.y - other.y,
-            z=self.z - other.z,
-            pitch=self.pitch - other.pitch,
-            yaw=self.yaw - other.yaw,
-        )
-
-    def as_los_array(self):
-        return np.array([self.surge_vel, self.pitch, self.yaw])
-
-    def as_pos_array(self):
-        return np.array([self.x, self.y, self.z])
+from vortex_utils.python_utils import State, ssa
 
 
 @dataclass(slots=True)
@@ -90,43 +57,6 @@ class ThirdOrderLOSGuidance:
         self.lookahead_h = 2.0
         self.lookahead_v = 2.0
 
-    @staticmethod
-    def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
-        """Function to convert quaternion to euler angles.
-
-        Parameters:
-            w: float: w component of quaternion
-            x: float: x component of quaternion
-            y: float: y component of quaternion
-            z: float: z component of quaternion
-
-        Returns:
-            phi: float: roll angle
-            theta: float: pitch angle
-            psi: float: yaw angle
-
-        """
-        y_square = y * y
-
-        t0 = +2.0 * (w * x + y * z)
-        t1 = +1.0 - 2.0 * (x * x + y_square)
-        phi = np.arctan2(t0, t1)
-
-        t2 = +2.0 * (w * y - z * x)
-        t2 = +1.0 if t2 > +1.0 else t2
-        t2 = -1.0 if t2 < -1.0 else t2
-        theta = np.arcsin(t2)
-
-        t3 = +2.0 * (w * z + x * y)
-        t4 = +1.0 - 2.0 * (y_square + z * z)
-        psi = np.arctan2(t3, t4)
-
-        return phi, theta, psi
-
-    @staticmethod
-    def ssa(angle: float) -> float:
-        return (angle + np.pi) % (2 * np.pi) - np.pi
-
     def setup_filter_matrices(self):
         omega = np.diag(self.filter_params.omega_diag)
         zeta = np.diag(self.filter_params.zeta_diag)
@@ -145,20 +75,23 @@ class ThirdOrderLOSGuidance:
         self.Bd[6:9, :] = omega_cubed
 
     def compute_raw_los_guidance(self, current_pos: State, target_pos: State) -> State:
-        dx = target_pos.x - current_pos.x
-        dy = target_pos.y - current_pos.y
+        dx = target_pos.pose.x - current_pos.pose.x
+        dy = target_pos.pose.y - current_pos.pose.y
 
         self.horizontal_distance = np.sqrt(dx**2 + dy**2)
         desired_yaw = np.arctan2(dy, dx)
-        yaw_error = self.ssa(desired_yaw - current_pos.yaw)
+        yaw_error = ssa(desired_yaw - current_pos.pose.yaw)
 
-        depth_error = target_pos.z - current_pos.z
+        depth_error = target_pos.pose.z - current_pos.pose.z
         desired_pitch = self.compute_pitch_command(
             depth_error, self.horizontal_distance
         )
 
         desired_surge = self.compute_desired_speed(yaw_error, self.horizontal_distance)
-        commands = State(surge_vel=desired_surge, pitch=desired_pitch, yaw=desired_yaw)
+        commands = State()
+        commands.twist.linear_x = desired_surge
+        commands.pose.pitch = desired_pitch
+        commands.pose.yaw = desired_yaw
 
         return commands
 
@@ -189,35 +122,51 @@ class ThirdOrderLOSGuidance:
         return max(self.los_params.min_speed, desired_speed)
 
     def apply_reference_filter(self, commands: State) -> State:
-        x_dot = self.Ad @ self.x + self.Bd @ commands.as_los_array()
+        los_array = self.state_to_los_array(commands)
+        x_dot = self.Ad @ self.x + self.Bd @ los_array
         self.x = self.x + x_dot * self.los_params.dt
-        return State(surge_vel=self.x[0], pitch=self.x[1], yaw=self.x[2])
+
+        commands.twist.linear_x = self.x[0]
+        commands.pose.pitch = self.x[1]
+        commands.pose.yaw = self.x[2]
+
+        return commands
 
     def compute_guidance(self, current_pos: State, target_pos: State) -> State:
         raw_commands = self.compute_raw_los_guidance(current_pos, target_pos)
 
         filtered_commands = self.apply_reference_filter(raw_commands)
-        filtered_commands.pitch = self.ssa(filtered_commands.pitch)
-        filtered_commands.yaw = self.ssa(filtered_commands.yaw)
+        filtered_commands.pose.pitch = ssa(filtered_commands.pose.pitch)
+        filtered_commands.pose.yaw = ssa(filtered_commands.pose.yaw)
         return filtered_commands
 
     def reset_filter_state(self, current_state: State) -> None:
         self.x = np.zeros(9)
-        current_state_array = np.array(current_state.as_los_array(), copy=True)
+        current_state_array = self.state_to_los_array(current_state)
         self.x[0:3] = current_state_array
 
     @staticmethod
+    def state_to_los_array(state: State) -> np.ndarray:
+        """Converts State object to array with surge velocity, pitch, and yaw."""
+        return np.array([state.twist.linear_x, state.pose.pitch, state.pose.yaw])
+
+    @staticmethod
+    def state_as_pos_array(state: State) -> np.ndarray:
+        """Converts State object to array with x, y, z."""
+        return np.array([state.pose.x, state.pose.y, state.pose.z])
+
+    @staticmethod
     def compute_pi_h(current_waypoint: State, next_waypoint: State) -> float:
-        dx = next_waypoint.x - current_waypoint.x
-        dy = next_waypoint.y - current_waypoint.y
+        dx = next_waypoint.pose.x - current_waypoint.pose.x
+        dy = next_waypoint.pose.y - current_waypoint.pose.y
         return np.arctan2(dy, dx)
 
     @staticmethod
     def compute_pi_v(current_waypoint: State, next_waypoint: State) -> float:
-        dz = next_waypoint.z - current_waypoint.z
+        dz = next_waypoint.pose.z - current_waypoint.pose.z
         horizontal_distance = np.sqrt(
-            (next_waypoint.x - current_waypoint.x) ** 2
-            + (next_waypoint.y - current_waypoint.y) ** 2
+            (next_waypoint.pose.x - current_waypoint.pose.x) ** 2
+            + (next_waypoint.pose.y - current_waypoint.pose.y) ** 2
         )
         return np.arctan2(-dz, horizontal_distance)
 
@@ -250,7 +199,7 @@ class ThirdOrderLOSGuidance:
     ) -> float:
         pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
         psi_d = pi_h - np.arctan(crosstrack_y / self.lookahead_h) - beta_c
-        psi_d = self.ssa(psi_d)
+        psi_d = ssa(psi_d)
         return psi_d
 
     def compute_theta_d(
@@ -262,11 +211,13 @@ class ThirdOrderLOSGuidance:
     ) -> float:
         pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
         theta_d = pi_v + np.arctan(crosstrack_z / self.lookahead_v) + alpha_c
-        theta_d = self.ssa(theta_d)
+        theta_d = ssa(theta_d)
         return theta_d
 
     @staticmethod
     def calculate_alpha_c(u: float, v: float, w: float, phi: float) -> float:
+        if u == 0:
+            return 0
         return np.arctan(
             (v * np.sin(phi) + w * np.cos(phi)) / u
         )  # Slide 104 in Fossen 2024
@@ -276,6 +227,8 @@ class ThirdOrderLOSGuidance:
         u: float, v: float, w: float, phi: float, theta: float, alpha_c: float
     ) -> float:
         u_v = u * np.sqrt(1 + np.tan(alpha_c) ** 2)
+        if u_v == 0:
+            return 0
         return np.arctan(
             (v * np.cos(phi) - w * np.sin(phi)) / (u_v * np.cos(theta - alpha_c))
         )  # Slide 104 in Fossen 2024
