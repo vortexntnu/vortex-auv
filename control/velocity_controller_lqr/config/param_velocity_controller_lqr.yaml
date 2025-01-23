@@ -1,6 +1,5 @@
 velocity_controller_lqr_node:
   ros__parameters:
-    dt: 0.1
 
     topics:
       odom_topic: /orca/odom
@@ -25,6 +24,8 @@ velocity_controller_lqr_node:
       i_yaw: 0.3
 
       i_weight: 0.5
+
+      dt: 0.1
 
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 

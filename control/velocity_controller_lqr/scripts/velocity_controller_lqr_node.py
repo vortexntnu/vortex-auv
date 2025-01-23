@@ -7,7 +7,8 @@ from geometry_msgs.msg import (
     Wrench,
 )
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node
+from rclpy.lifecycle import LifecycleNode
+from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
@@ -19,10 +20,42 @@ from velocity_controller_lqr.velocity_controller_lqr_lib import (
 from vortex_msgs.msg import LOSGuidance
 
 
-class LinearQuadraticRegulator(Node):
+class LinearQuadraticRegulator(LifecycleNode):
     def __init__(self):
+        # ----------------------- DEFINE RELIABILITY ------------------------
         super().__init__("velocity_controller_lqr_node")
+        self.best_effort_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+        )
 
+        self.reliable_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+
+        # ---------------- CALLBACK VARIABLES INITIALIZATION ----------------
+        self.coriolis_matrix = np.zeros((3, 3))
+        self.states = State()
+        self.guidance_values = GuidanceValues()
+        self.lqr_params = LQRParameters()
+        # ------------------------ INITIALIZE TO NONE -----------------------
+        self.pose_subscriber = None
+        self.twist_subscriber = None
+        self.operationmode_subscriber = None
+        self.killswitch_subscriber = None
+        self.guidance_subscriber = None
+        self.publisherLQR = None
+        self.control_timer = None
+
+        # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
+        inertia_matrix = self.get_parameters()
+        self.controller = LQRController(self.lqr_params, inertia_matrix)
+
+    def on_configure(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        # -------------------------- GET ALL TOPICS -------------------------
         (
             pose_topic,
             twist_topic,
@@ -32,73 +65,73 @@ class LinearQuadraticRegulator(Node):
             killswitch_topic,
         ) = self.get_topics()
 
-        best_effort_qos = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-        )
-
-        reliable_qos = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
-        # ---------------------------- SUBSCRIBERS ---------------------------
-
         self.pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
             pose_topic,
             self.pose_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         self.twist_subscriber = self.create_subscription(
             TwistWithCovarianceStamped,
             twist_topic,
             self.twist_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         self.operationmode_subscriber = self.create_subscription(
             String,
             softwareoperation_topic,
             self.operation_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             killswitch_topic,
             self.killswitch_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
             guidance_topic,
             self.guidance_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         # ---------------------------- PUBLISHERS ----------------------------
-        self.publisherLQR = self.create_publisher(Wrench, thrust_topic, reliable_qos)
+        self.publisherLQR = self.create_lifecycle_publisher(
+            Wrench, thrust_topic, self.reliable_qos
+        )
 
         # ------------------------------ TIMERS ------------------------------
-        self.declare_parameter("dt", 0.1)
-        dt = self.get_parameter("dt").value
+        dt = self.lqr_params.dt
         self.control_timer = self.create_timer(dt, self.control_loop)
+        self.control_timer.cancel()
 
-        # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
-        self.lqr_params = LQRParameters()
-        inertia_matrix = self.get_parameters()
-        self.controller = LQRController(self.lqr_params, inertia_matrix)
+        return TransitionCallbackReturn.SUCCESS
 
-        # ---------------- CALLBACK VARIABLES INITIALIZATION -----------------
-        self.coriolis_matrix = np.zeros((3, 3))
-        self.states = State()
-        self.guidance_values = GuidanceValues()
+    def on_activate(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.control_timer.reset()
+        self.controller.reset_controller()
+        return super().on_activate(previous_state)
 
-    def get_topics(self):
+    def on_deactivate(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.control_timer.cancel()
+        self.controller.reset_controller()
+        return super().on_activate(previous_state)
+
+    def on_cleanup(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.destroy_publisher(self.publisherLQR)
+        self.destroy_timer(self.control_timer)
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_shutdown(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.destroy_publisher(self.publisherLQR)
+        self.destroy_timer(self.control_timer)
+        return TransitionCallbackReturn.SUCCESS
+
+    def get_topics(self) -> None:
         """Get the topics from the parameter server.
 
         Returns:
@@ -155,6 +188,8 @@ class LinearQuadraticRegulator(Node):
 
         self.declare_parameter("LQR_params.i_weight", 0.5)
 
+        self.declare_parameter("LQR_params.dt", 0.1)
+
         self.declare_parameter("max_force", 99.5)
         self.declare_parameter(
             "inertia_matrix", [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
@@ -175,12 +210,14 @@ class LinearQuadraticRegulator(Node):
         self.lqr_params.i_weight = self.get_parameter("LQR_params.i_weight").value
         self.lqr_params.max_force = self.get_parameter("max_force").value
 
+        self.lqr_params.dt = self.get_parameter("LQR_params.dt").value
+
         inertia_matrix_flat = self.get_parameter("inertia_matrix").value
         inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
 
         return inertia_matrix
 
-    # ---------------------------------------------------------------CALLBACK FUNCTIONS---------------------------------------------------------------
+    # ------------------------- CALLBACK FUNCTIONS ---------------------------
 
     def pose_callback(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose data from DVL.
