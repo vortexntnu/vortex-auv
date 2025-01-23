@@ -123,29 +123,26 @@ Substitute \(\dot{z}_1\) with the dynamics of \(z_1\):
 \dot{z}_1 = \dot{\eta} - \dot{\eta}_d
 ```
 
-and then inserting in the relation; \(\eta = z_1 + \eta_d\):
+and then inserting in the relation:
+
+```math
+\dot{\eta} = J(\eta)\nu
+```
 
 ```math
 \dot{z}_1 = J(\eta)\nu - \dot{\eta}_d
 ```
 
-Thus, the derivative of the Lyapunov function candidate is:
-```math
-\dot{\eta} = J(\eta)\nu
-```
 and
 ```math
 \nu = z_2 + \alpha
 ```
-We also assume that
-```math
-\dot{\eta_d} = 0
-```
-since we only get a desired position and orientation ($\eta$).
-
+Thus, the derivative of the Lyapunov function candidate is:
 ```math
 \dot{V}_1 = z_1^\top J(\eta)(z_2 + \alpha)
 ```
+
+We also assume that \(\dot{\eta_d} = 0 \) since we only get a desired position and orientation ($\eta$).
 
 We choose an $\alpha$ value to make $z_1$ be negative semi-definite.
 
@@ -191,18 +188,9 @@ and now we will analyze the derivative of this CLF, and ensure convergence for t
 
 Before we write this out, we need to make some assumptions to make this more readable and easier to understand.
 
-1. For
-```math
-\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}^*
-```
-we assume that the actual value has no changes, assuming it's static, and therefore the derivative
-```math
-\dot{\Theta}^* = 0
-```.
-2. The same condition holds for
-```math
-\dot{\tilde{d}}
-```
+For \(\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}^*\) we assume that the actual value has no changes, assuming it's static, and therefore the derivative \(\dot{\Theta}^* = 0\)
+
+2. The same condition holds for \(\dot{\tilde{d}}\)
 
 ```math
 \dot{V} = \dot{V}_1 + z_2^\top M (\dot{\nu} - \dot{\alpha}) + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
@@ -216,20 +204,19 @@ we assume that the actual value has no changes, assuming it's static, and theref
 = - z_1^\top K_1z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau - z_2^\top C(\nu)\,\nu + z_2^\top Y(\nu) \Theta^* + z_2^\top d  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
-We can say this:
 Since we only know the estimate of the adaptive parameters, we can write the controller in two parts:
 
 ```math
 \tau = \tau_{controller} - F(\nu, \hat{\Theta}) - d = \tau_{controller} -Y(\nu) \hat{\Theta} - \hat{d}
 ```
-Important to notice is that we here introduce the estimate (^) for the variables, not the actual value (*).
+Important to notice is that we introduce the estimate (^) for the variables, not the actual value (*).
 We insert this into the system and get:
 
 ```math
 = - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu - z_2^\top Y(\nu) (\hat{\Theta} - \Theta^* ) - z_2^\top (\hat{d} - d^*)  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
-We look at the adaptive parameters a little more now and try to simplify them as much as possible
+We look at the adaptive parameters a little more and try to simplify them as much as possible
 
 ```math
 \hat{\Theta} - \Theta^* = \hat{\Theta} - (\hat{\Theta} - \tilde{\Theta}) = \tilde{\Theta} \newline
@@ -240,21 +227,14 @@ Now we have:
 ```math
 = - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu + (-z_2^\top Y(\nu) \tilde{\Theta}+ \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}}) + (-z_2^\top \tilde{d} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}})
 ```
+From this we can separate out the terms with the adaptive parameters. We can write them up as two separate equations:
 
 ```math
 -z_2^\top Y(\nu) \tilde{\Theta}+\tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} = - \tilde{\Theta}^\top Y(\nu)^\top z_2 +\tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}}\newline
 -z_2^\top \tilde{d} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}} = - \tilde{d}^\top z_2+ \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
-Now we choose the
-```math
-\dot{\hat{\Theta}}
-```
-and
-```math
-\dot{\hat{d}}
-```
-to zero this out
+We choose the \(\dot{\hat{\Theta}}\) and \(\dot{\hat{d}}\) to zero this out
 ```math
 \boxed{
 \dot{\hat{\Theta}} =  \Gamma_{\theta} Y(\nu)^\top z_2
@@ -266,7 +246,7 @@ to zero this out
 \dot{\hat{d}} = \Gamma_{d} z_2
 }
 ```
-Now that we have defined this we can insert and remove this from the equation, which should leave us with the normal system. An observation made during the construction of the controller was that the adaptive part and backstepping part is decoupled. Maybe this is dependent on the method used for the adaptive part, which is more of a MRAC type method. Sadly, I don't have enough information about adaptive controllers to comment on this in detail.
+Now that we have defined this we can insert and remove this from the equation, which should leave us with the normal system. An observation made during the construction of the controller was that the adaptive part and backstepping part is decoupled. Maybe this is dependent on the method used for the adaptive part, which is more of a MRAC type. Sadly, I don't have enough information about adaptive controllers to comment on this in detail.
 
 ```math
 = - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu
