@@ -21,8 +21,8 @@ M \dot{\nu} + C(\nu)\,\nu - F(\nu, \Theta^*) = \tau + d^*
 - M: Constant mass-inertia matrix
 - C($\eta$): Coriolis and centripetal terms
 - J($\eta$): Transformation from body to inertial coordinates
-- F($\nu$, $$ \Theta^{*} $$) =  Y($$ \nu $$) $$ \Theta^{*} $$: The damping assumed damping function (linear and nonlinear), where Y(*) describes the behaviour
-- $$ d^* $$: Disturbance and uncertainties
+- F($\nu$, $\Theta$) =  Y($ \nu $) $ \Theta $: The damping assumed damping function (linear and nonlinear), where Y(*) describes the behaviour
+- $ d $: Disturbance and uncertainties
 
 ### File overview
 1. **dp_adapt_backs_controller.cpp/hpp**
