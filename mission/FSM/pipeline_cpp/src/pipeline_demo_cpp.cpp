@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
                 });
   sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(),
                 {
-                    {yasmin_ros::basic_outcomes::SUCCEED, "FIND_PIPELINE"},
+                    {yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::SUCCEED},
                     {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::CANCEL},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
@@ -263,9 +263,13 @@ int main(int argc, char *argv[]) {
   
   std::vector<PoseStamped> aruco_waypoints;
   aruco_waypoints.push_back(PoseStamped());
-  aruco_waypoints[0].pose.position.x = 1.0;
-  aruco_waypoints[0].pose.position.y = 1.0;
-  aruco_waypoints[0].pose.position.z = 1.0;
+  aruco_waypoints.at(0).pose.position.x = 1.0;
+  aruco_waypoints.at(0).pose.position.y = 1.0;
+  aruco_waypoints.at(0).pose.position.z = 1.0;
+  aruco_waypoints.at(0).pose.orientation.w = 1.0;
+  aruco_waypoints.at(0).pose.orientation.x = 0.0;
+  aruco_waypoints.at(0).pose.orientation.y = 0.0;
+  aruco_waypoints.at(0).pose.orientation.z = 0.0;
   
   blackboard->set<std::vector<PoseStamped>>("aruco_waypoints", aruco_waypoints);
 
