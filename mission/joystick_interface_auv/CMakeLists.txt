@@ -1,17 +1,10 @@
 cmake_minimum_required(VERSION 3.8)
 project(joystick_interface_auv)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
-find_package(ament_cmake_python REQUIRED)
+find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
 
-ament_python_install_package(joystick_interface_auv)
+ament_python_install_package(${PROJECT_NAME})
 
 install(DIRECTORY
   launch
@@ -20,14 +13,15 @@ install(DIRECTORY
 )
 
 install(PROGRAMS
-  joystick_interface_auv/joystick_interface_auv.py
+  ${PROJECT_NAME}/${PROJECT_NAME}_node.py
+  ${PROJECT_NAME}/joystick_utils.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
   set(_pytest_tests
-    tests/test_joystick_interface_auv.py
+    tests/test_${PROJECT_NAME}.py
   )
   foreach(_test_path ${_pytest_tests})
     get_filename_component(_test_name ${_test_path} NAME_WE)

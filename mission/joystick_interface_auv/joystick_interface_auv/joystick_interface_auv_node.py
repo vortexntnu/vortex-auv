@@ -169,7 +169,7 @@ class JoystickInterface(Node):
             self.joystick_buttons_map_ = Wired.joystick_buttons_map_
             self.joystick_axes_map_ = Wired.joystick_axes_map_
 
-    def populate_buttons_dictionary(self, msg: Joy):
+    def populate_buttons_dictionary(self, msg: Joy) -> dict:
         """Populates a dictionary with button JoyStates from the joystick message.
 
         Args:
@@ -187,7 +187,7 @@ class JoystickInterface(Node):
                 buttons[button_name] = 0
         return buttons
 
-    def populate_axes_dictionary(self, msg: Joy):
+    def populate_axes_dictionary(self, msg: Joy) -> dict:
         """Populates a dictionary with axis values from the joystick message.
 
         Args:
