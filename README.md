@@ -13,7 +13,7 @@
 This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS2 Humble framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
 
 ## Docker
-This project uses the (docker-ros)[https://github.com/ika-rwth-aachen/docker-ros] repository for building and managing Docker images. The docker-ros repository is included as a Git submodule and is configured to build images locally.
+This project uses the [docker-ros](https://github.com/ika-rwth-aachen/docker-ros) repository for building and managing Docker images. The docker-ros repository is included as a Git submodule and is configured to build images locally.
 
 ### Prerequisites
 1. Docker must be installed on your system. Follow the instructions [here](https://docs.docker.com/get-docker/) to install Docker.
@@ -33,7 +33,8 @@ git submodule update --init --recursive
 ```bash
 ./entrypoint.sh
 ```
-Or, you can pull the appropriate image from (Github packages)[https://github.com/vortexntnu/vortex-auv/pkgs/container/vortex-auv]
+Or, you can pull the appropriate image from [Github packages](https://github.com/vortexntnu/vortex-auv/pkgs/container/vortex-auv)
+
 2. Once the image is built, run the following command to start the container:
 ```bash
 docker run -it --privileged --network host --ipc=host "auv-image:latest"
