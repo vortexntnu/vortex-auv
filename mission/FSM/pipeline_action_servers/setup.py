@@ -26,6 +26,7 @@ setup(
             'find_pipeline_start_server = pipeline_action_servers.find_pipeline_start_server:main',
             'go_to_pipeline_server = pipeline_action_servers.go_to_pipeline_server:main',
             'return_home_server = pipeline_action_servers.return_home_server:main',
+            'fsm_state_node = pipeline_action_servers.fsm_state_node:main',
         ],
     },
 )

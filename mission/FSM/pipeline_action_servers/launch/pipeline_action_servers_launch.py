@@ -11,6 +11,7 @@ def generate_launch_description() -> LaunchDescription:
             Node(package='pipeline_action_servers', executable='go_to_pipeline_server', name='go_to_pipeline_server'),
             Node(package='pipeline_action_servers', executable='find_pipeline_start_server', name='find_pipeline_start_server'),
             Node(package='pipeline_action_servers', executable='return_home_server', name='return_home_server'),
+            Node(package='pipeline_action_servers', executable='fsm_state_node', name='fsm_state_node'),
             Node(package='yasmin_viewer', executable='yasmin_viewer_node', name='yasmin_viewer'),
             Node(package='pipeline_cpp', executable='pipeline_demo_cpp', name='pipeline_demo_cpp'),
         ]
