@@ -17,6 +17,7 @@ class LOSParameters:
         max_pitch_angle: Maximum allowed pitch angle in radians
         depth_gain: Gain for depth control
         dt: update rate in seconds
+        kappa: Integral gain
     """
 
     lookahead_distance_min: float = 2.0
@@ -27,6 +28,7 @@ class LOSParameters:
     max_pitch_angle: float = 0.5  # ~28.6 degrees
     depth_gain: float = 1.0
     dt: float = 0.01
+    kappa: float = 0.1
 
 
 @dataclass(slots=True)
@@ -56,6 +58,7 @@ class ThirdOrderLOSGuidance:
         self.setup_filter_matrices()
         self.lookahead_h = 2.0
         self.lookahead_v = 2.0
+        self.kappa = los_params.kappa
 
     def setup_filter_matrices(self):
         omega = np.diag(self.filter_params.omega_diag)
@@ -110,15 +113,14 @@ class ThirdOrderLOSGuidance:
             self.los_params.max_pitch_angle,
         )
 
-    def compute_desired_speed(
-        self, yaw_error: float, distance_to_target: float
-    ) -> float:
-        """Compute speed command with yaw and distance-based scaling."""
+    def compute_desired_speed(self, yaw_error: float, distance_to_target: float, crosstrack_y: float) -> float:
+        """
+        Compute speed command with yaw error, distance and crosstrack-based scaling.
+        """
         yaw_factor = np.cos(yaw_error)
-        distance_factor = min(
-            1.0, distance_to_target / self.los_params.lookahead_distance_max
-        )
-        desired_speed = self.los_params.nominal_speed * yaw_factor * distance_factor
+        distance_factor = min(1.0, distance_to_target / self.los_params.lookahead_distance_max)
+        crosstrack_factor = 1.0 / (1.0 + abs(crosstrack_y))
+        desired_speed = self.los_params.nominal_speed * yaw_factor * distance_factor * crosstrack_factor
         return max(self.los_params.min_speed, desired_speed)
 
     def apply_reference_filter(self, commands: State) -> State:
@@ -214,6 +216,16 @@ class ThirdOrderLOSGuidance:
         theta_d = ssa(theta_d)
         return theta_d
 
+    def calculate_y_int_dot(self, crosstrack_y, y_int):
+        y_int_dot = (self.lookahead_h * crosstrack_y) / (self.lookahead_h**2 + (crosstrack_y + self.kappa * y_int)**2)
+        return y_int_dot
+    
+    def compute_psi_d(self, current_waypoint: State, next_waypoint: State, crosstrack_y: float, y_int: float) -> float:
+        pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
+        psi_d = pi_h - np.arctan((crosstrack_y + self.kappa) / self.lookahead_h)
+        psi_d = self.ssa(psi_d)
+        return psi_d
+    
     @staticmethod
     def calculate_alpha_c(u: float, v: float, w: float, phi: float) -> float:
         if u == 0:
