@@ -30,6 +30,8 @@
 #include <vortex_filtering/filters/pdaf.hpp>
 #include <line_filtering/track_manager.hpp>
 
+#include <visualization_msgs/msg/marker_array.hpp>
+
 
           
        
@@ -66,6 +68,8 @@ private:
      */
     void timer_callback();
 
+    void visualize_tracks();
+
     Eigen::Vector2d get_line_params(Eigen::Matrix<double, 2, 2> line_points);
 
     //Subscriptions
@@ -80,6 +84,9 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_2_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_3_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
+
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr line_params_pub_;
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr line_points_pub_;
 
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;

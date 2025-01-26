@@ -76,6 +76,9 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node")
         point_2_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_2", qos_sensor_data);
         point_3_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_3", qos_sensor_data);
         point_4_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/line/point_4", qos_sensor_data);
+
+        line_params_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracks/param", qos_sensor_data);
+        line_points_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/tracks/points", qos_sensor_data);
     }
 
     depth_.data = -1.0;
@@ -231,113 +234,156 @@ void LineFilteringNode::timer_callback()
     // delete tracks
     track_manager_.deleteTracks(deletion_threshold);
 
-    select_line();
+    visualize_tracks();
+    // select_line();
 }
 
-void LineFilteringNode::select_line()
-{
-   geometry_msgs::msg::PoseArray pose_array;
-    pose_array.header.frame_id = target_frame_;
-    pose_array.header.stamp = this->now();
+void LineFilteringNode::visualize_tracks(){
 
-    // Get the robot's position and orientation
-    geometry_msgs::msg::Pose Pose_orca = orca_pose_;
-    double position_x = Pose_orca.position.x;
-    double position_y = Pose_orca.position.y;
+    if (!debug_visualization_) {
+        return;
+    }
 
-    // Convert quaternion to yaw (robot's heading)
-    tf2::Quaternion q(Pose_orca.orientation.x, Pose_orca.orientation.y,
-                      Pose_orca.orientation.z, Pose_orca.orientation.w);
-    double roll, pitch, yaw;
-    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-    double threshold_distance = 0.1; // Distance threshold
-    double angular_threshold = 0.1; // Angular threshold in radians 
-
-    const int treshold_count= 5;
-
-    active_id_=track.id;
-    id_counter++;
-
-
-    if(id_counter >= treshold_count)
-
-        //comitt to line. 
-            
-        }
+    visualization_msgs::msg::MarkerArray marker_array;
+    visualization_msgs::msg::Marker marker;
+    marker.header.frame_id = target_frame_;
+    marker.header.stamp = this->now();
+    marker.ns = "track_params";
+    marker.type = visualization_msgs::msg::Marker::LINE_LIST;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose.orientation.w = 1.0;
+    marker.scale.x = 0.05;
+    marker.color.r = 1.0;
+    marker.color.a = 1.0;
 
     for (const auto& track : track_manager_.getTracks())
     {
-       
         if (!track.confirmed) {
             continue;
         }
 
+        geometry_msgs::msg::Point start;
+        start.x = track.line_points(0, 0);
+        start.y = track.line_points(1, 0);
+        start.z = orca_pose_.position.z + depth_.data;
+
+        geometry_msgs::msg::Point end;
+        end.x = track.line_points(0, 1);
+        end.y = track.line_points(1, 1);
+        end.z = orca_pose_.position.z + depth_.data;
+
+        marker.points.push_back(start);
+        marker.points.push_back(end);
+    }
+
+    marker_array.markers.push_back(marker);
+    line_points_pub_->publish(marker_array);
+}
+
+// void LineFilteringNode::select_line()
+// {
+//    geometry_msgs::msg::PoseArray pose_array;
+//     pose_array.header.frame_id = target_frame_;
+//     pose_array.header.stamp = this->now();
+
+//     // Get the robot's position and orientation
+//     geometry_msgs::msg::Pose Pose_orca = orca_pose_;
+//     double position_x = Pose_orca.position.x;
+//     double position_y = Pose_orca.position.y;
+
+//     // Convert quaternion to yaw (robot's heading)
+//     tf2::Quaternion q(Pose_orca.orientation.x, Pose_orca.orientation.y,
+//                       Pose_orca.orientation.z, Pose_orca.orientation.w);
+//     double roll, pitch, yaw;
+//     tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+//     double threshold_distance = 0.1; // Distance threshold
+//     double angular_threshold = 0.1; // Angular threshold in radians 
+
+//     const int treshold_count= 5;
+
+//     active_id_=track.id;
+//     id_counter++;
+
+
+//     if(id_counter >= treshold_count)
+
+//         //comitt to line. 
+            
+//         }
+
+//     for (const auto& track : track_manager_.getTracks())
+//     {
+       
+//         if (!track.confirmed) {
+//             continue;
+//         }
+
         
-        geometry_msgs::msg::Pose line_start;
-        line_start.position.x = track.line_points(0, 0);
-        line_start.position.y = track.line_points(1, 0);
+//         geometry_msgs::msg::Pose line_start;
+//         line_start.position.x = track.line_points(0, 0);
+//         line_start.position.y = track.line_points(1, 0);
 
-        geometry_msgs::msg::Pose line_end;
-        line_end.position.x = track.line_points(0, 1);
-        line_end.position.y = track.line_points(1, 1);
+//         geometry_msgs::msg::Pose line_end;
+//         line_end.position.x = track.line_points(0, 1);
+//         line_end.position.y = track.line_points(1, 1);
 
 
-        // Compute the line's direction vector
-        double line_dir_x = line_end.position.x - line_start.position.x;
-        double line_dir_y = line_end.position.y - line_start.position.y;
+//         // Compute the line's direction vector
+//         double line_dir_x = line_end.position.x - line_start.position.x;
+//         double line_dir_y = line_end.position.y - line_start.position.y;
 
-        // Normalize the direction vector
-        double line_length = std::sqrt(line_dir_x * line_dir_x + line_dir_y * line_dir_y);
-        line_dir_x /= line_length;
-        line_dir_y /= line_length;
+//         // Normalize the direction vector
+//         double line_length = std::sqrt(line_dir_x * line_dir_x + line_dir_y * line_dir_y);
+//         line_dir_x /= line_length;
+//         line_dir_y /= line_length;
 
-        // Compute the vector from line start to the robot's position
-        double robot_vec_x = position_x - line_start.position.x;
-        double robot_vec_y = position_y - line_start.position.y;
+//         // Compute the vector from line start to the robot's position
+//         double robot_vec_x = position_x - line_start.position.x;
+//         double robot_vec_y = position_y - line_start.position.y;
 
-        // Project the robot's vector onto the line's direction vector (dot product)
-        double projection = (robot_vec_x * line_dir_x) + (robot_vec_y * line_dir_y);
+//         // Project the robot's vector onto the line's direction vector (dot product)
+//         double projection = (robot_vec_x * line_dir_x) + (robot_vec_y * line_dir_y);
 
-        // Check if the robot is on the line segment
-        //if (projection < 0 || projection > line_length) {
-          //  continue;
-        //}
+//         // Check if the robot is on the line segment
+//         //if (projection < 0 || projection > line_length) {
+//           //  continue;
+//         //}
 
-        // Calculate the perpendicular distance from the robot to the line
-        double perp_dist = std::abs(robot_vec_x * line_dir_y - robot_vec_y * line_dir_x);
+//         // Calculate the perpendicular distance from the robot to the line
+//         double perp_dist = std::abs(robot_vec_x * line_dir_y - robot_vec_y * line_dir_x);
 
-        if (perp_dist > threshold_distance) {
+//         if (perp_dist > threshold_distance) {
             
-            continue;
-        }
+//             continue;
+//         }
 
-        // Check if the robot's heading aligns with the line's direction
-        double line_angle = std::atan2(line_dir_y, line_dir_x);
-        double angular_difference = std::fmod(yaw - line_angle + M_PI, 2 * M_PI) - M_PI;
+//         // Check if the robot's heading aligns with the line's direction
+//         double line_angle = std::atan2(line_dir_y, line_dir_x);
+//         double angular_difference = std::fmod(yaw - line_angle + M_PI, 2 * M_PI) - M_PI;
 
-        if (std::abs(angular_difference) > angular_threshold) {
+//         if (std::abs(angular_difference) > angular_threshold) {
             
-            continue;
-        }
+//             continue;
+//         }
 
-        // Add the line to the pose array if all checks pass
-        pose_array.poses.push_back(line_start);
-        pose_array.poses.push_back(line_end);
+//         // Add the line to the pose array if all checks pass
+//         pose_array.poses.push_back(line_start);
+//         pose_array.poses.push_back(line_end);
 
-        RCLCPP_INFO(this->get_logger(),
-                    "Matched line: Projection: %f, Perpendicular distance: %f, Angular difference: %f",
-                    projection, perp_dist, angular_difference);
-    }
+//         RCLCPP_INFO(this->get_logger(),
+//                     "Matched line: Projection: %f, Perpendicular distance: %f, Angular difference: %f",
+//                     projection, perp_dist, angular_difference);
+//     }
 
-    // Publish the pose array if there are matching lines
-    if (!pose_array.poses.empty()) {
-        pose_array_pub_->publish(pose_array);
-        RCLCPP_INFO(this->get_logger(), "Published PoseArray with %zu poses", pose_array.poses.size());
-    } else {
-        RCLCPP_WARN(this->get_logger(), "No matching lines found.");
-    }
-}   
+//     // Publish the pose array if there are matching lines
+//     if (!pose_array.poses.empty()) {
+//         pose_array_pub_->publish(pose_array);
+//         RCLCPP_INFO(this->get_logger(), "Published PoseArray with %zu poses", pose_array.poses.size());
+//     } else {
+//         RCLCPP_WARN(this->get_logger(), "No matching lines found.");
+//     }
+// }   
 
 void LineFilteringNode::update_timer(int update_interval)
 {
