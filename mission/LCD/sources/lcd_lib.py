@@ -24,8 +24,7 @@ class LCDScreenDriver:
         )
 
     def write_to_screen(self, line1: str = "", line2: str = "") -> None:
-        """
-        Writes two lines of text to the LCD screen.
+        """Writes two lines of text to the LCD screen.
 
         This method clears the LCD screen and then writes the provided text
         to the screen. Each line of text is truncated to a maximum of 16
@@ -36,6 +35,7 @@ class LCDScreenDriver:
                  Defaults to an empty string.
             line2 (str): The text to display on the second line of the LCD screen.
                  Defaults to an empty string.
+
         """
         self._lcd.clear()
 
@@ -48,8 +48,7 @@ class LCDScreenDriver:
         self._lcd.write_string(line2)
 
     def fancy_animation(self, animation_speed: float = 0.4) -> None:
-        """
-        Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
+        """Displays a fancy animation on the LCD screen where Pac-Man and a ghost chase each other.
 
         Args:
             animation_speed (float): Speed of the animation. Default is 0.4. The actual speed is calculated as 1 / animation_speed.
@@ -64,6 +63,7 @@ class LCDScreenDriver:
             - Ghost
 
         The animation is displayed in two rows of the LCD screen.
+
         """
         # Calculate the appropriate animation speed
         animation_speed = 1 / animation_speed
@@ -108,7 +108,9 @@ class LCDScreenDriver:
 
         # Display sequence
         steps = 20
-        for a in range(steps):  # Increase range to allow characters to exit screen completely
+        for a in range(
+            steps
+        ):  # Increase range to allow characters to exit screen completely
             self._lcd.clear()
 
             # Pac-Man position and animation
@@ -121,7 +123,9 @@ class LCDScreenDriver:
                     self._lcd.write_string(chr(1))  # Mouth closed
 
             # Ghost position and animation
-            if 3 < a < steps + 4:  # Start later and continue until the ghost is off-screen
+            if (
+                3 < a < steps + 4
+            ):  # Start later and continue until the ghost is off-screen
                 ghost_pos = (0, a - 4)  # Maintain spacing
                 self._lcd.cursor_pos = ghost_pos
                 self._lcd.write_string(chr(2))
@@ -136,7 +140,9 @@ class LCDScreenDriver:
 
         # Display sequence
         steps = 26
-        for a in range(steps + 4):  # Adjusted range to ensure all characters exit screen
+        for a in range(
+            steps + 4
+        ):  # Adjusted range to ensure all characters exit screen
             self._lcd.clear()
 
             # Ghost position and animation
@@ -147,7 +153,9 @@ class LCDScreenDriver:
                 self._lcd.write_string(chr(2))
 
             # Pac-Man position and animation
-            pac_man_start_pos = ghost_start_pos + 4  # Starts 4 positions to the right of the ghost initially
+            pac_man_start_pos = (
+                ghost_start_pos + 4
+            )  # Starts 4 positions to the right of the ghost initially
             pac_man_current_pos = pac_man_start_pos - a
             if 0 <= pac_man_current_pos < 16:
                 self._lcd.cursor_pos = (1, pac_man_current_pos)
