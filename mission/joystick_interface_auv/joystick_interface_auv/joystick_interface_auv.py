@@ -33,13 +33,20 @@ class JoystickInterface(Node):
         self.get_logger().info(f"Joystick interface node started. Current mode: {self.mode_}")
 
     def get_parameters(self):
-        params = ['joystick_surge_gain', 'joystick_sway_gain', 'joystick_heave_gain', 'joystick_roll_gain', 'joystick_pitch_gain', 'joystick_yaw_gain',
+        gain_params = ['joystick_surge_gain', 'joystick_sway_gain', 'joystick_heave_gain', 'joystick_roll_gain', 'joystick_pitch_gain', 'joystick_yaw_gain',
                   'guidance_surge_gain', 'guidance_sway_gain', 'guidance_heave_gain', 'guidance_roll_gain', 'guidance_pitch_gain', 'guidance_yaw_gain',
                   'debounce_duration']
         
-        for param in params:
+        for param in gain_params:
             self.declare_parameter(param, 1.0)
             setattr(self, param + '_', self.get_parameter(param).value)
+
+        topic_params = ['pose', 'joy', 'wrench',
+                        'guidance', 'killswitch', 'mode']
+        
+        for param in topic_params:
+            self.declare_parameter(f'topics.{param}', "_")
+            setattr(self, param + '_topic', self.get_parameter(f'topics.{param}').value)
 
     def init_movement(self):
         self.surge = 0.0
@@ -57,24 +64,26 @@ class JoystickInterface(Node):
         )
 
         self.joy_subscriber_ = self.create_subscription(
-            Joy, "orca/joy", self.joystick_cb, 5)
+            Joy, self.joy_topic, self.joystick_cb, 5)
         self.odom_subscriber_ = self.create_subscription(
-            PoseWithCovarianceStamped, "/orca/pose", self.pose_cb, qos_profile=best_effort_qos)
+            PoseWithCovarianceStamped, self.pose_topic, self.pose_cb, qos_profile=best_effort_qos)
         self.wrench_publisher_ = self.create_publisher(Wrench,
-            "thrust/wrench_input", 10)
-        self.ref_publisher = self.create_publisher(ReferenceFilter, "/dp/reference", 10)
+            self.wrench_topic, 10)
+        self.ref_publisher = self.create_publisher(ReferenceFilter, self.guidance_topic, 10)
         self.software_killswitch_signal_publisher_ = self.create_publisher(
-            Bool, "softwareKillSwitch", 10)
+            Bool, self.killswitch_topic, 10)
         self.software_killswitch_signal_publisher_.publish(
             Bool(data=True))
         self.operational_mode_signal_publisher_ = self.create_publisher(
-            String, "softwareOperationMode", 10)
+            String, self.mode_topic, 10)
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         self.current_state_ = pose_from_ros(msg)
     
     def create_reference_message(self) -> ReferenceFilter:
         reference_msg = ReferenceFilter()
+        reference_msg.header.stamp = self.get_clock().now().to_msg()
+        reference_msg.header.frame_id = "odom"
         reference_msg.x = self.desired_state_.x
         reference_msg.y = self.desired_state_.y
         reference_msg.z = self.desired_state_.z
@@ -85,10 +94,10 @@ class JoystickInterface(Node):
 
     def create_wrench_message(self) -> Wrench:
         """
-        Creates a 2D wrench message with the given x, y, heave, roll, pitch, and yaw values.
+        Creates a 3D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
         Returns:
-        Wrench: A 2D wrench message with the given values.
+        Wrench: A 3D wrench message with the given values.
         """
         wrench_msg = Wrench()
         wrench_msg.force.x = self.surge
@@ -245,6 +254,19 @@ class JoystickInterface(Node):
             self.wrench_publisher_.publish(empty_wrench_msg)
             self.mode_ = JoyStates.KILLSWITCH
             return
+        
+    def update_reference(self): 
+        """
+        Updates the current pose of the AUV based on joystick inputs.
+        The position and orientation (roll, pitch, yaw) are updated
+        using the current joystick inputs scaled by their respective parameters.
+        """
+        self.desired_state_.x += self.surge / self.guidance_surge_gain_
+        self.desired_state_.y += self.sway / self.guidance_sway_gain_
+        self.desired_state_.z += self.heave / self.guidance_heave_gain_
+        self.desired_state_.roll += self.roll / self.guidance_roll_gain_
+        self.desired_state_.pitch += self.pitch / self.guidance_pitch_gain_
+        self.desired_state_.yaw += self.yaw / self.guidance_yaw_gain_
     
     def joystick_cb(self, msg: Joy):
         """
@@ -307,28 +329,12 @@ class JoystickInterface(Node):
         elif self.mode_ == JoyStates.REFERENCE_MODE:
             self.update_reference()
             ref_msg = self.create_reference_message()
-            ref_msg.header.stamp = self.get_clock().now().to_msg()
-            ref_msg.header.frame_id = "odom"
             self.ref_publisher.publish(ref_msg)
 
             if software_control_mode_button:
                 self.transition_to_autonomous_mode()
             elif xbox_control_mode_button:
                 self.transition_to_xbox_mode()
-
-
-    def update_reference(self): 
-        """
-        Updates the current pose of the AUV based on joystick inputs.
-        The position and orientation (roll, pitch, yaw) are updated
-        using the current joystick inputs scaled by their respective parameters.
-        """
-        self.desired_state_.x += self.surge / self.guidance_surge_gain_
-        self.desired_state_.y += self.sway / self.guidance_sway_gain_
-        self.desired_state_.z += self.heave / self.guidance_heave_gain_
-        self.desired_state_.roll += self.roll / self.guidance_roll_gain_
-        self.desired_state_.pitch += self.pitch / self.guidance_pitch_gain_
-        self.desired_state_.yaw += self.yaw / self.guidance_yaw_gain_
 
 def main():
     rclpy.init()

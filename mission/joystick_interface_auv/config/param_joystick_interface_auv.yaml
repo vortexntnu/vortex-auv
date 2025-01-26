@@ -15,3 +15,11 @@ joystick_interface_auv:
     guidance_yaw_gain: 5000.0
 
     debounce_duration: 0.25
+
+    topics:
+      pose: /orca/pose
+      joy: /orca/joy
+      wrench: /thrust/wrench_input
+      guidance: /dp/reference
+      killswitch: /orca/killswitch
+      mode: /orca/operation_mode
