@@ -1,4 +1,7 @@
-on: push
+on:
+  push:
+    tags:
+      - 'v*'
 jobs:
   docker-ros:
     runs-on: ubuntu-latest
@@ -7,5 +10,5 @@ jobs:
         with:
           base-image: rwthika/ros2:humble
           target: dev  # Specify the dev stage
-          image-tag: dev
-          platform: amd64
+          image-tag: ${{ github.ref_name }}
+          platform: linux/arm64,linux/amd64
