@@ -165,13 +165,13 @@ ErrorState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
   return yasmin_ros::basic_outcomes::ABORT;
 };
 
-class GoToNextWaypointState : public yasmin_ros::ActionState<NavigateWaypoints> {
+class FollowPipelineState : public yasmin_ros::ActionState<NavigateWaypoints> {
 public:
-  GoToNextWaypointState() : yasmin_ros::ActionState<NavigateWaypoints>(
+  FollowPipelineState() : yasmin_ros::ActionState<NavigateWaypoints>(
                                 "/navigate_waypoints",
-                                std::bind(&GoToNextWaypointState::create_goal_handler, this, _1),
-                                std::bind(&GoToNextWaypointState::response_handler, this, _1, _2),
-                                std::bind(&GoToNextWaypointState::print_feedback, this, _1, _2)) {};
+                                std::bind(&FollowPipelineState::create_goal_handler, this, _1),
+                                std::bind(&FollowPipelineState::response_handler, this, _1, _2),
+                                std::bind(&FollowPipelineState::print_feedback, this, _1, _2)) {};
 
   NavigateWaypoints::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = NavigateWaypoints::Goal();
@@ -197,39 +197,7 @@ public:
   }
 };
 
-class ScanCodeState : public yasmin_ros::ActionState<GoToWaypoint> {
-public:
-  ScanCodeState() : yasmin_ros::ActionState<GoToWaypoint>(
-                        "/go_down",
-                        std::bind(&ScanCodeState::create_goal_handler, this, _1),
-                        std::bind(&ScanCodeState::response_handler, this, _1, _2),
-                        std::bind(&ScanCodeState::print_feedback, this, _1, _2)) {};
 
-  GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    (void)blackboard;
-    auto goal = GoToWaypoint::Goal();
-    return goal;
-  }
-
-  std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
-    if (response->success) {
-      blackboard->set<int>("num_remaining_codes", blackboard->get<int>("num_remaining_codes") - 1);
-    }
-    if (blackboard->get<int>("num_remaining_codes") == 0) {
-      return yasmin_ros::basic_outcomes::CANCEL;
-    } else {
-      return yasmin_ros::basic_outcomes::SUCCEED;
-    }
-  }
-
-  void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
-    blackboard->set<PoseStamped>("current_pose", feedback->current_pose);
-    fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-            feedback->current_pose.pose.position.x,
-            feedback->current_pose.pose.position.y,
-            feedback->current_pose.pose.position.z);
-  }
-};
 
 int main(int argc, char *argv[]) {
 
@@ -246,22 +214,10 @@ int main(int argc, char *argv[]) {
                                          yasmin_ros::basic_outcomes::CANCEL,
                                          yasmin_ros::basic_outcomes::ABORT});
 
-  auto nested_sm = std::make_shared<yasmin::StateMachine>(
-      std::initializer_list<std::string>{
-          yasmin_ros::basic_outcomes::SUCCEED,
-          yasmin_ros::basic_outcomes::CANCEL,
-          yasmin_ros::basic_outcomes::ABORT});
-
   // cancel state machine on ROS 2 shutdown
   rclcpp::on_shutdown([sm]() {
     if (sm->is_running()) {
       sm->cancel_state();
-    }
-  });
-
-  rclcpp::on_shutdown([nested_sm]() {
-    if (nested_sm->is_running()) {
-      nested_sm->cancel_state();
     }
   });
 
@@ -274,7 +230,7 @@ int main(int argc, char *argv[]) {
                 });
   sm->add_state("GO_TO_START_OF_PIPELINE", std::make_shared<GoToStartPipelineState>(),
                 {
-                    {yasmin_ros::basic_outcomes::SUCCEED, "FOLLOW_FSM"},
+                    {yasmin_ros::basic_outcomes::SUCCEED, "FOLLOW_PIPELINE"},
                     {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::CANCEL},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
@@ -293,28 +249,16 @@ int main(int argc, char *argv[]) {
                     {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
                 });
 
-  nested_sm->add_state("FOLLOW_PIPELINE", std::make_shared<GoToNextWaypointState>(),
+  sm->add_state("FOLLOW_PIPELINE", std::make_shared<FollowPipelineState>(),
                        {
-                           {yasmin_ros::basic_outcomes::SUCCEED, "SCAN_ARUCO"},
+                           {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
                            {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
                        });
 
-  nested_sm->add_state("SCAN_ARUCO", std::make_shared<ScanCodeState>(),
-                       {
-                           {yasmin_ros::basic_outcomes::SUCCEED, "FOLLOW_PIPELINE"},
-                           {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
-                           {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::SUCCEED},
-                       });
 
-  sm->add_state("FOLLOW_FSM", nested_sm,
-                {
-                    {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
-                    {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                });
 
   // pub
   yasmin_viewer::YasminViewerPub yasmin_pub("Pipeline", sm);
-  yasmin_viewer::YasminViewerPub yasmin_pub_nested("FollowingPipeline", nested_sm);
 
   // create an initial blackboard
   std::shared_ptr<yasmin::blackboard::Blackboard> blackboard =
