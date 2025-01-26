@@ -1,0 +1,13 @@
+/**:
+  ros__parameters:
+
+    pose_sub_topic: "/aruco_board_pose_camera"
+    transformed_pose_pub_topic: "/transformed_pose"
+    filtered_pose_pub_topic: "/ekf_filtered_pose"
+
+    enu_orientation: true # Set to true if the measurements are in ENU frame, false if NED frame
+
+    dynmod_stddev_pos: 0.01
+    dynmod_stddev_ori: 0.01
+    sendmod_stddev: 0.01
+
