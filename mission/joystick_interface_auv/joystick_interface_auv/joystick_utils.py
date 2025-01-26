@@ -4,6 +4,7 @@ class JoyStates:
     KILLSWITCH = "killswitch"
     REFERENCE_MODE = "reference"
 
+
 class Wired:
     joystick_buttons_map_ = [
         "A",
@@ -18,7 +19,7 @@ class Wired:
         "stick_button_left",
         "stick_button_right",
         "share_button",
-]
+    ]
 
     joystick_axes_map_ = [
         "horizontal_axis_left_stick",
@@ -29,7 +30,8 @@ class Wired:
         "RT",
         "dpad_horizontal",
         "dpad_vertical",
-]
+    ]
+
 
 class WirelessXboxSeriesX:
     joystick_buttons_map_ = [
@@ -49,7 +51,7 @@ class WirelessXboxSeriesX:
         "stick_button_left",
         "stick_button_right",
         "share_button",
-]
+    ]
 
     joystick_axes_map_ = [
         "horizontal_axis_left_stick",
@@ -60,4 +62,4 @@ class WirelessXboxSeriesX:
         "LT",
         "dpad_horizontal",
         "dpad_vertical",
-]
+    ]
