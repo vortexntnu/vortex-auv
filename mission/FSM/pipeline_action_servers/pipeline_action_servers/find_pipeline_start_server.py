@@ -31,7 +31,6 @@ class FindPipelineStartServer(Node):
 
         while time_elapsed <= 20.0:
             feedback_msg.time_elapsed = time_elapsed
-            self.get_logger().info('Time elapsed: {:.2f}'.format(time_elapsed))
 
             goal_handle.publish_feedback(feedback_msg)
 

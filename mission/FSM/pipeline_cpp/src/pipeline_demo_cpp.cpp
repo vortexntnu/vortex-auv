@@ -130,34 +130,12 @@ public:
   }
 };
 
-class AbortState : public yasmin_ros::ActionState<GoToWaypoint> {
-public:
-  AbortState() : yasmin_ros::ActionState<GoToWaypoint>(
-                     "/abort",
-                     std::bind(&AbortState::create_goal_handler, this, _1),
-                     std::bind(&AbortState::response_handler, this, _1, _2),
-                     std::bind(&AbortState::print_feedback, this, _1, _2)) {};
-
-  GoToWaypoint::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = GoToWaypoint::Goal();
-    goal.waypoint = blackboard->get<PoseStamped>("start_pose");
-    return goal;
-  }
-
-  std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, GoToWaypoint::Result::SharedPtr response) {
-    (void)blackboard;
-    (void)response;
-    return yasmin_ros::basic_outcomes::SUCCEED;
-  }
-
-  void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const GoToWaypoint::Feedback> feedback) {
-    (void)blackboard;
-    fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-            feedback->current_pose.pose.position.x,
-            feedback->current_pose.pose.position.y,
-            feedback->current_pose.pose.position.z);
-  }
+// Abort State 
+std::string AbortState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+  (void)blackboard;
+  return yasmin_ros::basic_outcomes::ABORT;
 };
+
 
 std::string
 ErrorState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
@@ -196,7 +174,6 @@ public:
             feedback->current_pose.position.z);
   }
 };
-
 
 
 int main(int argc, char *argv[]) {
@@ -240,7 +217,7 @@ int main(int argc, char *argv[]) {
                     {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::CANCEL},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
-  sm->add_state("ABORT", std::make_shared<AbortState>(),
+  sm->add_state("ABORT", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{yasmin_ros::basic_outcomes::ABORT}, AbortState),
                 {
                     {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
                 });
