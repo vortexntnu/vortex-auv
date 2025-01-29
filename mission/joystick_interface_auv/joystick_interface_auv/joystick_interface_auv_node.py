@@ -1,8 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, Wrench
-from joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
@@ -10,6 +9,8 @@ from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
 from vortex_utils.ros_converter import pose_from_ros
+
+from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
 
 
 class JoystickInterface(Node):
@@ -34,6 +35,7 @@ class JoystickInterface(Node):
         )
 
     def get_parameters(self):
+        """Method to get the parameters from the config file."""
         gain_params = [
             'joystick_surge_gain',
             'joystick_sway_gain',
@@ -52,6 +54,7 @@ class JoystickInterface(Node):
 
         for param in gain_params:
             self.declare_parameter(param, 1.0)
+            # Get the values and set them as attributes of the class
             setattr(self, param + '_', self.get_parameter(param).value)
 
         topic_params = ['pose', 'joy', 'wrench', 'guidance', 'killswitch', 'mode']
@@ -97,9 +100,11 @@ class JoystickInterface(Node):
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
+        """Callback function for the pose subscriber. Updates the current state of the AUV."""
         self.current_state_ = pose_from_ros(msg)
 
     def create_reference_message(self) -> ReferenceFilter:
+        """Creates a reference message with the desired state values."""
         reference_msg = ReferenceFilter()
         reference_msg.header.stamp = self.get_clock().now().to_msg()
         reference_msg.header.frame_id = "odom"
@@ -206,7 +211,7 @@ class JoystickInterface(Node):
         return axes
 
     def calculate_movement(self, axes: dict, buttons: dict):
-        """Calculates the movement values based on joystick input."""
+        """Calculates the 6 DOF movement vector based on joystick input."""
         left_trigger = axes.get("LT", 0.0)
         right_trigger = axes.get("RT", 0.0)
         left_shoulder = buttons.get("LB", 0)
@@ -295,6 +300,7 @@ class JoystickInterface(Node):
             software_killswitch_button = False
             reference_mode_button = False
 
+        # Check if any button is pressed
         if any(
             [
                 software_control_mode_button,
