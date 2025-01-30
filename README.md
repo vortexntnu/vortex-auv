@@ -13,6 +13,31 @@
 This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS2 Humble framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
 
 
+## Docker
+This project uses the [docker-ros](https://github.com/ika-rwth-aachen/docker-ros) repository for building and managing Docker images. The docker-ros repository is included as a Git submodule and is configured to build images locally.
+
+### Prerequisites
+- Install [Docker](https://www.docker.com/get-started)
+
+### Cloning
+To clone this repository with the docker-ros submodule, use the following command:
+```bash
+git clone --recurse-submodules https://github.com/vortexntnu/vortex-asv.git
+```
+Alternatively, if you have already cloned the repository, run the following command to initialize the submodule:
+```bash
+git submodule update --init --recursive
+```
+### Building and Running
+1. Run the following command from the root of this repository to build the Docker image, its called ```asv-image:latest```, and start a container:
+```bash
+./entrypoint.sh
+```
+2. The Docker container will start with the following configurations:
+- The source code from this repository is mounted to ```/docker-ros/ws/src/target``` inside the container. This means any changes made locally will also be reflected inside the container, and any changes made inside the container will appear locally.
+- Any dependencies listed in ```dependencies.repositories``` will be added to ```/docker-ros/ws/src/upstream```. For instance, the repository vortex-msgs will be added to this directory but will not be mounted.
+3. The Docker container runs with the --network host option. This enables the container to see other ROS 2 topics and nodes on the host network. However, note that this functionality is not supported on macOS.
+
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
 * TODO: How to adapt the software stack to new hardware.
