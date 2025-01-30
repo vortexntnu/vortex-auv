@@ -55,7 +55,7 @@ class JoystickInterface(Node):
         for param in gain_params:
             self.declare_parameter(param, 1.0)
             # Get the values and set them as attributes of the class
-            setattr(self, '_' +param, self.get_parameter(param).value)
+            setattr(self, '_' + param, self.get_parameter(param).value)
 
         topic_params = ['pose', 'joy', 'wrench', 'guidance', 'killswitch', 'mode']
 
