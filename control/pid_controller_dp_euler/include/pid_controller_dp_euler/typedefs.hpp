@@ -6,8 +6,7 @@
 #ifndef VORTEX_EIGEN_TYPEDEFS_H
 #define VORTEX_EIGEN_TYPEDEFS_H
 
-#include <eigen3/Eigen/src/Geometry/AngleAxis.h>
-#include <eigen3/Eigen/src/Geometry/Quaternion.h>
+#include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/Dense>
 
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
