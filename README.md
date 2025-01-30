@@ -12,7 +12,6 @@
 
 This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS2 Humble framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
 
-
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
 * TODO: How to adapt the software stack to new hardware.

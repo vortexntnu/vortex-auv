@@ -19,7 +19,7 @@ def generate_launch_description() -> LaunchDescription:
     """
     joystick_interface_node = Node(
         package="joystick_interface_auv",
-        executable="joystick_interface_auv.py",
+        executable="joystick_interface_auv_node.py",
         name="joystick_interface_auv",
         output="screen",
         parameters=[
