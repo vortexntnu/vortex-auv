@@ -6,7 +6,7 @@ class JoyStates:
 
 
 class Wired:
-    joystick_buttons_map_ = [
+    joystick_buttons_map = [
         "A",
         "B",
         "X",
@@ -21,7 +21,7 @@ class Wired:
         "share_button",
     ]
 
-    joystick_axes_map_ = [
+    joystick_axes_map = [
         "horizontal_axis_left_stick",
         "vertical_axis_left_stick",
         "LT",
@@ -34,7 +34,7 @@ class Wired:
 
 
 class WirelessXboxSeriesX:
-    joystick_buttons_map_ = [
+    joystick_buttons_map = [
         "A",
         "B",
         "0",
@@ -53,7 +53,7 @@ class WirelessXboxSeriesX:
         "share_button",
     ]
 
-    joystick_axes_map_ = [
+    joystick_axes_map = [
         "horizontal_axis_left_stick",
         "vertical_axis_left_stick",
         "horizontal_axis_right_stick",
