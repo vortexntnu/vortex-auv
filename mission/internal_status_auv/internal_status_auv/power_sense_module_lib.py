@@ -45,9 +45,10 @@ class PowerSenseModule:
         voltage in volts.
 
         Returns:
-        --------
+        -------
         float
             The system voltage in volts. If an error occurs during reading, returns 0.0.
+
         """
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
         try:
@@ -67,9 +68,10 @@ class PowerSenseModule:
         current in amperes.
 
         Returns:
-        --------
+        -------
         float
             The current value in amperes. If an error occurs during reading, returns 0.0.
+
         """
         try:
             system_current = (

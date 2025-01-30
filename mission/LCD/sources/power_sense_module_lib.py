@@ -47,6 +47,7 @@ class PowerSenseModule:
 
         Returns:
             float: The system voltage if successfully read and converted, otherwise 0.0.
+
         """
         # Sometimes an I/O timeout or error happens, it will run again when the error disappears
         try:
@@ -66,6 +67,7 @@ class PowerSenseModule:
 
         Raises:
             Exception: If there is an error in reading or converting the current.
+
         """
         try:
             system_current = (

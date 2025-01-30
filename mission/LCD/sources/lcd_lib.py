@@ -35,6 +35,7 @@ class LCDScreenDriver:
                  Defaults to an empty string.
             line2 (str): The text to display on the second line of the LCD screen.
                  Defaults to an empty string.
+
         """
         self._lcd.clear()
 
@@ -62,6 +63,7 @@ class LCDScreenDriver:
             - Ghost
 
         The animation is displayed in two rows of the LCD screen.
+
         """
         # Calculate the appropriate animation speed
         animation_speed = 1 / animation_speed

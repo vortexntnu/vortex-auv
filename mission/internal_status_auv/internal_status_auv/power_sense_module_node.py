@@ -113,9 +113,10 @@ def main(args: list = None) -> None:
     and publishing current and voltage data.
 
     Args:
-    -----
+    ----
     args : list, optional
         Arguments passed to the node. Default is None.
+
     """
     rclpy.init(args=args)
 

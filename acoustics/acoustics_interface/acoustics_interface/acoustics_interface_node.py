@@ -16,6 +16,7 @@ class AcousticsInterfaceNode(Node):
             calls fetch_data() from acoustics_interface
         data_publisher(self) -> None:
             publishes data to ROS2 topics
+
     """
 
     def __init__(self) -> None:
@@ -154,6 +155,7 @@ def main(args: list = None) -> None:
 
     Args:
         args (list, optional): Command line arguments passed to the ROS 2 client library. Defaults to None.
+
     """
     rclpy.init(args=args)
 

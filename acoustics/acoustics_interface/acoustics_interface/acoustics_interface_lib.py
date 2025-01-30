@@ -5,14 +5,13 @@ from socket import AF_INET, SOCK_DGRAM, socket
 
 
 class TeensyCommunicationUDP:
-    """This class is responsible for the RPI side of teensy-RPI UDP communication.
+    """Class is responsible for the RPI side of teensy-RPI UDP communication.
 
-    It is implemented with a singleton pattern for convenience.
-
+    It isimplemented with a singleton pattern for convenience.
     Note: Private members are denoted by _member_name
 
     Attributes:
-    -----------
+    ----------
         _TEENSY_IP (string): self-explanatory
         _TEENSY_PORT (int): teensy's data port
         _MY_PORT (int): the device's data port
@@ -25,7 +24,7 @@ class TeensyCommunicationUDP:
         acoustics_data (dict[str, list[int]]): container for data from teensy
 
     Methods:
-    --------
+    -------
         init_communication(frequenciesOfInterest: list[tuple[int, int]]) -> None:
             Sets up socket for communication with teensy and waits for handshake
         fetch_data() -> None:
@@ -75,14 +74,9 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def init_communication(cls, frequencies_of_interest: list[tuple[int, int]]) -> None:
-        """Sets up communication with teensy.
-
-        Parameters:
-            frequenciesOfInterest (list[tuple[int, int]]): List of frequencies to look for
-        """
-        assert (
-            len(frequencies_of_interest) == 10
-        ), "Frequency list has to have exactly 10 entries"
+        assert len(frequencies_of_interest) == 10, (
+            "Frequency list has to have exactly 10 entries"
+        )
 
         _frequencies_of_interest = frequencies_of_interest
 
@@ -157,6 +151,7 @@ class TeensyCommunicationUDP:
 
         Returns:
             The message in the UDP buffer if there is one
+
         """
         try:
             rec_data, _ = cls._client_socket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
@@ -170,14 +165,6 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _parse_data_string(cls, is_float: bool) -> list[float] | list[int] | None:
-        """Converts _data_string to a list.
-
-        Parameters:
-            is_float (bool): whether _data_string should be seen as a list of floats or ints
-
-        Returns:
-            The converted list
-        """
         if cls._data_string == "":
             return
 
@@ -254,16 +241,11 @@ class TeensyCommunicationUDP:
     def _send_frequencies_of_interest(
         cls, frequencies_of_interest: list[tuple[float, float]]
     ) -> None:
-        """Sends the list of frequencies with variance to teensy.
-
-        Parameters:
-            frequenciesOfInterest (list[tuple[float, float]]): The list of frequencies w/ variance
-        """
         try:
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
-            assert (
-                len(frequencies_of_interest) == 10
-            ), "List of frequencies has to be ten entries long!"
+            assert len(frequencies_of_interest) == 10, (
+                "List of frequencies has to be ten entries long!"
+            )
 
             # ten messages in total, one message for each entry to work around the max packet size
             for frequency, variance in frequencies_of_interest:

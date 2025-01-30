@@ -16,6 +16,7 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: A launch description object that includes the
         acoustics_interface node with the specified parameters.
+
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(

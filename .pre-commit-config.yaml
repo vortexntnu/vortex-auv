@@ -35,7 +35,7 @@ repos:
       - id: requirements-txt-fixer
   # Python hooks
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.7.0
+    rev: v0.9.2
     hooks:
       - id: ruff-format
       - id: ruff
@@ -56,7 +56,6 @@ repos:
             "--select=D",
             "--ignore=D100,D101,D102,D103,D104,D105,D106,D107,D401",
             "--fix",
-            "--unsafe-fixes"
             ]
         stages: [pre-commit]
         pass_filenames: true
@@ -71,7 +70,7 @@ repos:
         pass_filenames: true
   # C++ hooks
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v19.1.0
+    rev: v19.1.7
     hooks:
       - id: clang-format
         args: [--style=file]
@@ -80,4 +79,7 @@ repos:
     rev: v2.3.0
     hooks:
       - id: codespell
-        args: ['--write-changes', '--ignore-words-list=theses']
+        args: ['--write-changes', '--ignore-words-list=theses,fom']
+
+ci:
+    autoupdate_schedule: quarterly
