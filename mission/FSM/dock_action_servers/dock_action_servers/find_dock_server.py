@@ -30,7 +30,7 @@ class FindDockServer(Node):
         # rate = self.create_rate(1)  # Simulate 1Hz feedback
         time_elapsed = 0.0
 
-        while time_elapsed <= 20.0:
+        while time_elapsed <= 5.0:
             feedback_msg.time_elapsed = time_elapsed
             self.get_logger().info(f'Time elapsed: {time_elapsed:.2f}')
 
