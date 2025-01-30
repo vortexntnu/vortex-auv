@@ -42,7 +42,15 @@ public:
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, FindDock::Result::SharedPtr response) {
     blackboard->set<PoseStamped>("pipeline_start_pose", response->dock_pose);
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    // If found position is (0, 0, 0), the dock_station was not found
+    if (response->dock_pose.pose.position.x == 0.0 &&
+        response->dock_pose.pose.position.y == 0.0 &&
+        response->dock_pose.pose.position.z == 0.0) {
+      return yasmin_ros::basic_outcomes::ABORT;
+    } else {
+      return yasmin_ros::basic_outcomes::SUCCEED;
+    }
+    
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const FindDock::Feedback> feedback) {
@@ -80,7 +88,7 @@ public:
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
-    (void)blackboard;
+    blackboard->set<bool>("is_at_pipeline", response->success);
     if (response->success) {
       return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
@@ -113,11 +121,12 @@ public:
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
-    if (response->success) {
-      blackboard->set<bool>("is_home", true);
-      return yasmin_ros::basic_outcomes::SUCCEED;
+      blackboard->set<bool>("is_home", response->success);
+      if (response->success) {
+
+        return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
-      return yasmin_ros::basic_outcomes::ABORT;
+        return yasmin_ros::basic_outcomes::ABORT;
     }
   }
 
@@ -274,6 +283,7 @@ int main(int argc, char *argv[]) {
   blackboard->set<std::vector<PoseStamped>>("aruco_waypoints", aruco_waypoints);
 
   blackboard->set<bool>("return_home", true);
+  blackboard->set<bool>("is_at_pipeline", false);
   blackboard->set<int>("num_remaining_codes", 5);
 
   // execute

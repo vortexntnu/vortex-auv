@@ -23,10 +23,9 @@ class FindPipelineStartServer(Node):
     def execute_callback(self, goal_handle) -> FindDock_Result:
         """
         This function is called when the action server receives a goal to find the dock."""
-        self.get_logger().info('Executing goal to find pipeline at: {}'.format(goal_handle.request.start_search))
+        self.get_logger().info('Executing goal to find pipeline: {}'.format(goal_handle.request.start_search))
 
         feedback_msg = FindDock.Feedback()
-        found = goal_handle.request.start_search  # bool
         time_elapsed = 0.0
 
         while time_elapsed <= 20.0:

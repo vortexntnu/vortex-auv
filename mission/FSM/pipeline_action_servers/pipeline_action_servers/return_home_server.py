@@ -10,13 +10,18 @@ from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result
 
 
 class ReturnHomeServer(Node):
-
+    """
+    This class implements the action server for returning home."""
     def __init__(self) -> None:
+        """
+        Constructor."""
         super().__init__('return_home_server')
 
         self._action_server = ActionServer(self, GoToWaypoint, 'return_home', self.execute_callback)
 
     def execute_callback(self, goal_handle) -> GoToWaypoint_Result:
+        """
+        Callback function for the action server to return home."""
         self.get_logger().info('Executing goal to return home at: {}'.format(goal_handle.request.waypoint))
 
         feedback_msg = GoToWaypoint.Feedback()
@@ -58,6 +63,8 @@ class ReturnHomeServer(Node):
 
 
 def main(args=None) -> None:
+    """
+    Main function to run the ReturnHomeServer node."""
     rclpy.init(args=args)
     node = ReturnHomeServer()
     try:

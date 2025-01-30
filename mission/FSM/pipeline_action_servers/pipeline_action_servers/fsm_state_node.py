@@ -6,8 +6,11 @@ from yasmin_msgs.msg import StateMachine
 import yaml
 
 class FSMStateNode(Node):
-
+    """ 
+    publishes the active controller based on the current state of the FSM"""
     def __init__(self):
+        """
+        Initialize the node and create the subscription and publisher."""
         super().__init__('fsm_state_node')
         self.subscription = self.create_subscription(
             StateMachine,
@@ -15,10 +18,13 @@ class FSMStateNode(Node):
             self.listener_callback,
             10)
         self.publisher = self.create_publisher(String, '/fsm_active_controller', 10)
-        self.subscription  # prevent unused variable warning
+        #self.subscription  # prevent unused variable warning
         self.last_state_id = -1
 
     def listener_callback(self, fsm_msg: StateMachine):
+        """
+        Callback function for the subscriber to the FSM state topic.
+        Matches the id of the current state to the name, and if the state is corresponding to a controller, publishes the controller name."""
         try:
             state_id = fsm_msg.states[0].current_state
 
@@ -54,6 +60,8 @@ class FSMStateNode(Node):
             return 'None'
 
 def main(args=None):
+    """
+    Main function to run the FSMStateNode node."""
     rclpy.init(args=args)
     fsm_state_node = FSMStateNode()
     try:

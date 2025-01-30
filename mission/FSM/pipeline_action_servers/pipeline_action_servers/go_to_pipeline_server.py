@@ -10,7 +10,8 @@ from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result
 
 
 class GoToPipelineServer(Node):
-
+    """
+    This class implements the action server for going to the pipeline."""
     def __init__(self) -> None:
         """Constructor."""
         super().__init__('go_to_pipeline_server')
