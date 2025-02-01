@@ -23,14 +23,14 @@ ros2 launch thruster_interface_auv thruster_interface_auv.launch.py
 
 ### Topics
 
-- *subscribe to:* `/thrust/thruster_forces  [vortex_msgs/msg/ThrusterForce]` -- array of forces to apply to each thruster.
+- *subscribe to:* `/orca/thruster_forces  [vortex_msgs/msg/ThrusterForce]` -- array of forces to apply to each thruster.
 
-- *publish:* `/pwm  [std_msgs/msg/Int16MultiArray]` -- pwm command value to apply that force.
+- *publish:* `/orca/pwm  [std_msgs/msg/Int16MultiArray]` -- pwm command value to apply that force.
 
 ## Config
 
 1. Edit `../auv_setup/config/robots/orca.yaml` for thruster parameters like mapping, direction, pwm_min and max.
-2. Edit `/config/thruster_interface_auv_config.yaml` for i2c bus and address, topic names and polynomial coefficients for the mapping.
+2. Edit `/config/thruster_interface_auv_config.yaml` for i2c bus and address, and polynomial coefficients for the mapping.
 
 ## Contact
 
