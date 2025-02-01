@@ -12,13 +12,13 @@ class PIDController {
                            const Nu& nu,
                            const Eta& eta_dot_d);
 
-    void setKp(const Matrix6d& Kp);
+    void set_kp(const Matrix6d& Kp);
 
-    void setKi(const Matrix6d& Ki);
+    void set_ki(const Matrix6d& Ki);
 
-    void setKd(const Matrix6d& Kd);
+    void set_kd(const Matrix6d& Kd);
 
-    void setTimeStep(double dt);
+    void set_time_step(double dt);
 
    private:
     Matrix6d Kp_;

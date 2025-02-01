@@ -46,5 +46,4 @@ def generate_launch_description() -> LaunchDescription:
         )
     )
 
-    # Return launch description
     return LaunchDescription([set_env_var, joy_node, joystick_interface_launch])

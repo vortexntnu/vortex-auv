@@ -1,29 +1,21 @@
 #include <reference_filter_dp/reference_filter_utils.hpp>
 
 Matrix3d calculate_R(const Vector6d& eta) {
-    double phi = eta(3);
-    double theta = eta(4);
-    double psi = eta(5);
+    const double roll = eta(3);
+    const double pitch = eta(4);
+    const double yaw = eta(5);
 
-    double cphi = cos(phi);
-    double sphi = sin(phi);
-    double ctheta = cos(theta);
-    double stheta = sin(theta);
-    double cpsi = cos(psi);
-    double spsi = sin(psi);
+    const Eigen::AngleAxisd roll_angle(roll, Eigen::Vector3d::UnitX());
+    const Eigen::AngleAxisd pitch_angle(pitch, Eigen::Vector3d::UnitY());
+    const Eigen::AngleAxisd yaw_angle(yaw, Eigen::Vector3d::UnitZ());
 
-    Matrix3d rotation_matrix;
+    const Eigen::Quaterniond q = yaw_angle * pitch_angle * roll_angle;
 
-    rotation_matrix << cpsi * ctheta, cpsi * stheta * sphi - spsi * cphi,
-        cpsi * stheta * cphi + spsi * sphi, spsi * ctheta,
-        spsi * stheta * sphi + cpsi * cphi, spsi * stheta * cphi - cpsi * sphi,
-        -stheta, ctheta * sphi, ctheta * cphi;
-
-    return rotation_matrix;
+    return q.toRotationMatrix();
 }
 
 Matrix3d calculate_T(const Vector6d& eta) {
-    Matrix3d transformation_matrix;
+    Matrix3d T;
     double phi = eta(3);
     double theta = eta(4);
 
@@ -33,10 +25,17 @@ Matrix3d calculate_T(const Vector6d& eta) {
     double stheta = sin(theta);
 
     // Manually added the transformation matrix from Fossen 2021 p.29 eq: 2.41
-    transformation_matrix << 1, sphi * stheta / ctheta, cphi * stheta / ctheta,
-        0, cphi, -sphi, 0, sphi / ctheta, cphi / ctheta;
+    T(0, 0) = 1;
+    T(0, 1) = sphi * stheta / ctheta;
+    T(0, 2) = cphi * stheta / ctheta;
+    T(1, 0) = 0;
+    T(1, 1) = cphi;
+    T(1, 2) = -sphi;
+    T(2, 0) = 0;
+    T(2, 1) = sphi / ctheta;
+    T(2, 2) = cphi / ctheta;
 
-    return transformation_matrix;
+    return T;
 }
 
 Matrix6d calculate_J(const Vector6d& eta) {
