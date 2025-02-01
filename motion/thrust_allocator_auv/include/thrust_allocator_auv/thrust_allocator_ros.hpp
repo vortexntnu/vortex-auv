@@ -42,6 +42,22 @@ class ThrustAllocator : public rclcpp::Node {
      */
     bool healthy_wrench(const Eigen::VectorXd& v) const;
 
+    /**
+     * @brief Extracts the parameters from the config file.
+     */
+    void extract_parameters();
+
+    /**
+     * @brief Creates the configuration matrix and calculates the pseudoinverse
+     * matrix for the thrust allocator.
+     */
+    void set_allocator();
+
+    /**
+     * @brief Sets the wrench subscriber and thrust publisher for the node.
+     */
+    void set_subscriber_and_publisher();
+
     rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
         thruster_forces_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr
@@ -54,6 +70,7 @@ class ThrustAllocator : public rclcpp::Node {
     int num_thrusters_;
     int min_thrust_;
     int max_thrust_;
+    double thrust_update_rate_;
 
     std::chrono::milliseconds thrust_update_period_;
 
