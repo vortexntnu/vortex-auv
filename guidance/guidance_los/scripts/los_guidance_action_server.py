@@ -42,6 +42,11 @@ class LOSActionServer(Node):
         update_rate = self.get_parameter('update_rate').value
         self.update_period = 1.0 / update_rate
 
+        self.waiting_at_waypoint = False
+        self.wait_cycles = int(1.0 / self.update_period)
+        self.wait_count = 0
+        self.y_int = 0.0
+
         # Initialize filter status flag
         self.filter_initialized = False
 
@@ -224,24 +229,53 @@ class LOSActionServer(Node):
             self.state.as_pos_array()
             - self.waypoints[self.current_waypoint_index].as_pos_array()
         )
+        error = self.guidance_calculator.state_as_pos_array(
+            self.state - self.waypoints[self.current_waypoint_index]
+        )
         _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
+
         alpha_c = self.guidance_calculator.calculate_alpha_c(
             self.u, self.v, self.w, self.phi
+            self.state.twist.linear_x,
+            self.state.twist.linear_y,
+            self.state.twist.linear_z,
+            self.state.pose.pitch,
         )
+
         beta_c = self.guidance_calculator.calculate_beta_c(
             self.u, self.v, self.w, self.phi, self.pitch, alpha_c
+            self.state.twist.linear_x,
+            self.state.twist.linear_y,
+            self.state.twist.linear_z,
+            self.state.pose.roll,
+            self.state.pose.pitch,
+            alpha_c,
         )
+
         psi_d = self.guidance_calculator.compute_psi_d(
             self.waypoints[self.current_waypoint_index],
             self.waypoints[self.current_waypoint_index + 1],
             crosstrack_y,
             beta_c,
+            self.y_int,
         )
+
+        y_int_dot = self.guidance_calculator.calculate_y_int_dot(
+            crosstrack_y, self.y_int
+        )
+        self.y_int += y_int_dot * self.update_period
+
         theta_d = self.guidance_calculator.compute_theta_d(
             self.waypoints[self.current_waypoint_index],
             self.waypoints[self.current_waypoint_index + 1],
             crosstrack_z,
             alpha_c,
+            alpha_c,
+        )
+
+        yaw_error = ssa(psi_d - self.state.pose.yaw)
+        desired_surge = self.guidance_calculator.compute_desired_speed(
+            yaw_error, self.norm, crosstrack_y
         )
         unfiltered_commands = State(
             surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d
@@ -251,11 +285,22 @@ class LOSActionServer(Node):
         )
         return unfiltered_commands
 
+        unfiltered_commands = State()
+        unfiltered_commands.twist.linear_x = desired_surge
+        unfiltered_commands.pose.pitch = theta_d
+        unfiltered_commands.pose.yaw = psi_d
+
+        filtered_commands = self.guidance_calculator.apply_reference_filter(
+            unfiltered_commands
+        )
+        return filtered_commands
+
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
         # Initialize navigation goal with lock
         with self._goal_lock:
             self.goal_handle = goal_handle
+
         self.current_waypoint_index = 0
         self.waypoints = [self.state]
         incoming_waypoints = goal_handle.request.waypoints
@@ -281,6 +326,13 @@ class LOSActionServer(Node):
         self.rotation_yz = rotation_y.T @ rotation_z.T
 
         feedback = NavigateWaypoints.Feedback()
+        # Initialize integral control
+        initial_error = self.guidance_calculator.state_as_pos_array(
+            self.state - self.waypoints[self.current_waypoint_index]
+        )
+        _, initial_crosstrack_y, _ = self.rotation_yz @ initial_error
+        self.y_int = -initial_crosstrack_y / self.guidance_calculator.kappa
+
         result = NavigateWaypoints.Result()
 
         # Monitor navigation progress
@@ -309,6 +361,32 @@ class LOSActionServer(Node):
             if norm < 0.5:
                 self.get_logger().info('Waypoint reached')
                 self.current_waypoint_index += 1
+
+            if self.norm < 0.5:
+                if not waiting_at_waypoint:
+                    self.get_logger().info('Waypoint reached')
+                    waiting_at_waypoint = True
+                    stop_state = State()
+                    stop_state.pose.pitch = self.state.pose.pitch
+                    stop_state.pose.yaw = self.state.pose.yaw
+                    self.guidance_calculator.reset_filter_state(stop_state)
+
+                if wait_count < wait_cycles:
+                    stop_command = State()
+                    stop_command.pose.pitch = self.state.pose.pitch
+                    stop_command.pose.yaw = self.state.pose.yaw
+                    self.publish_guidance(stop_command)
+                    wait_count += 1
+                else:
+                    self.current_waypoint_index += 1
+                    # Reset integral term for new waypoint
+                    initial_error = self.guidance_calculator.state_as_pos_array(
+                        self.state - self.waypoints[self.current_waypoint_index]
+                    )
+                    _, initial_crosstrack_y, _ = self.rotation_yz @ initial_error
+                    self.y_int = -initial_crosstrack_y / self.guidance_calculator.kappa
+                    waiting_at_waypoint = False
+                    wait_count = 0
 
                 if self.current_waypoint_index >= len(self.waypoints) - 1:
                     self.get_logger().info('All waypoints reached!')
