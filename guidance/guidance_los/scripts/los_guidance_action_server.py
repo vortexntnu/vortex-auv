@@ -136,7 +136,6 @@ class LOSActionServer(Node):
 
     def _initialize_publishers(self):
         """Initialize all publishers."""
-
         los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
         self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
         self.guidance_cmd_pub = self.create_publisher(
@@ -221,24 +220,39 @@ class LOSActionServer(Node):
             self.filter_initialized = True
 
     def calculate_guidance(self) -> State:
-        error = self.state.as_pos_array() - self.waypoints[self.current_waypoint_index].as_pos_array()
+        error = (
+            self.state.as_pos_array()
+            - self.waypoints[self.current_waypoint_index].as_pos_array()
+        )
         _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
-        alpha_c = self.guidance_calculator.calculate_alpha_c(self.u, self.v, self.w, self.phi)
-        beta_c = self.guidance_calculator.calculate_beta_c(self.u, self.v, self.w, self.phi, self.pitch, alpha_c)
-        psi_d = self.guidance_calculator.compute_psi_d(self.waypoints[self.current_waypoint_index], 
-                                                       self.waypoints[self.current_waypoint_index + 1], 
-                                                       crosstrack_y, beta_c)
-        theta_d = self.guidance_calculator.compute_theta_d(self.waypoints[self.current_waypoint_index], 
-                                                           self.waypoints[self.current_waypoint_index + 1], 
-                                                           crosstrack_z, alpha_c)
-        unfiltered_commands = State(surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d)
-        filtered_commands = self.guidance_calculator.apply_reference_filter(unfiltered_commands)
+        alpha_c = self.guidance_calculator.calculate_alpha_c(
+            self.u, self.v, self.w, self.phi
+        )
+        beta_c = self.guidance_calculator.calculate_beta_c(
+            self.u, self.v, self.w, self.phi, self.pitch, alpha_c
+        )
+        psi_d = self.guidance_calculator.compute_psi_d(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+            crosstrack_y,
+            beta_c,
+        )
+        theta_d = self.guidance_calculator.compute_theta_d(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+            crosstrack_z,
+            alpha_c,
+        )
+        unfiltered_commands = State(
+            surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d
+        )
+        filtered_commands = self.guidance_calculator.apply_reference_filter(
+            unfiltered_commands
+        )
         return unfiltered_commands
-
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
-
         # Initialize navigation goal with lock
         with self._goal_lock:
             self.goal_handle = goal_handle
@@ -253,8 +267,14 @@ class LOSActionServer(Node):
             )
             self.waypoints.append(point_as_state)
 
-        self.pi_h = self.guidance_calculator.compute_pi_h(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
-        self.pi_v = self.guidance_calculator.compute_pi_v(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
+        self.pi_h = self.guidance_calculator.compute_pi_h(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+        )
+        self.pi_v = self.guidance_calculator.compute_pi_v(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1],
+        )
 
         rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
         rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
@@ -280,22 +300,34 @@ class LOSActionServer(Node):
                 self.goal_handle = None
                 result.success = False
                 return result
-            
-            norm = np.linalg.norm(self.state.as_pos_array() - self.waypoints[self.current_waypoint_index + 1].as_pos_array(), 2)
+
+            norm = np.linalg.norm(
+                self.state.as_pos_array()
+                - self.waypoints[self.current_waypoint_index + 1].as_pos_array(),
+                2,
+            )
             if norm < 0.5:
                 self.get_logger().info('Waypoint reached')
                 self.current_waypoint_index += 1
 
                 if self.current_waypoint_index >= len(self.waypoints) - 1:
                     self.get_logger().info('All waypoints reached!')
-                    final_commands = State(surge_vel=0.0, pitch=self.state.pitch, yaw=self.state.yaw)
+                    final_commands = State(
+                        surge_vel=0.0, pitch=self.state.pitch, yaw=self.state.yaw
+                    )
                     self.publish_guidance(final_commands)
                     result.success = True
                     self.goal_handle.succeed()
                     return result
-                
-                self.pi_h = self.guidance_calculator.compute_pi_h(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
-                self.pi_v = self.guidance_calculator.compute_pi_v(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
+
+                self.pi_h = self.guidance_calculator.compute_pi_h(
+                    self.waypoints[self.current_waypoint_index],
+                    self.waypoints[self.current_waypoint_index + 1],
+                )
+                self.pi_v = self.guidance_calculator.compute_pi_v(
+                    self.waypoints[self.current_waypoint_index],
+                    self.waypoints[self.current_waypoint_index + 1],
+                )
 
                 rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
                 rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
@@ -313,6 +345,7 @@ class LOSActionServer(Node):
         msg.pitch = commands.pitch
         msg.yaw = commands.yaw
         self.guidance_cmd_pub.publish(msg)
+
 
 def main(args=None):
     """Main function to initialize and run the guidance node."""
