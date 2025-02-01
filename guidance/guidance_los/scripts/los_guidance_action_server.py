@@ -4,16 +4,14 @@ import threading
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import (
-    PoseStamped,
-    PoseWithCovarianceStamped,
-    TwistWithCovarianceStamped,
-)
+from geometry_msgs.msg import PoseStamped
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
     LOSParameters,
+    State,
     ThirdOrderLOSGuidance,
 )
+from nav_msgs.msg import Odometry
 from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, GoalResponse, ServerGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -22,8 +20,6 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
-from vortex_utils.python_utils import State, ssa
-from vortex_utils.ros_converter import pose_from_ros, twist_from_ros
 
 best_effort_qos = QoSProfile(
     reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -40,17 +36,11 @@ class LOSActionServer(Node):
 
         # Initialize goal handle lock
         self._goal_lock = threading.Lock()
-        self.state = State()
 
         # update rate parameter
         self.declare_parameter('update_rate', 10.0)
         update_rate = self.get_parameter('update_rate').value
         self.update_period = 1.0 / update_rate
-        
-        self.waiting_at_waypoint = False
-        self.wait_cycles = int(1.0 / self.update_period)
-        self.wait_count = 0
-        self.y_int = 0.0 
 
         # Initialize filter status flag
         self.filter_initialized = False
@@ -72,7 +62,12 @@ class LOSActionServer(Node):
         # Initialize guidance calculator with third-order filtering
         self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
 
-        # self.desired_vel = 0.3
+        self.desired_vel = 0.05
+        self.u = 0.0
+        self.v = 0.0
+        self.w = 0.0
+        self.phi = 0.0
+        self.pitch = 0.0
 
     def declare_los_parameters_(self):
         """Declare all LOS guidance parameters."""
@@ -133,8 +128,7 @@ class LOSActionServer(Node):
         self.declare_parameter('topics.publishers.debug.logs', '/guidance/debug/logs')
 
         # Subscribers
-        self.declare_parameter('topics.subscribers.pose', '/dvl/pose')
-        self.declare_parameter('topics.subscribers.twist', '/dvl/twist')
+        self.declare_parameter('topics.subscribers.odometry', '/orca/odom')
 
         # QoS settings
         self.declare_parameter('qos.publisher_depth', 10)
@@ -142,6 +136,7 @@ class LOSActionServer(Node):
 
     def _initialize_publishers(self):
         """Initialize all publishers."""
+
         los_commands_topic = self.get_parameter('topics.publishers.los_commands').value
         self.get_logger().info(f"Publishing LOS commands to: {los_commands_topic}")
         self.guidance_cmd_pub = self.create_publisher(
@@ -150,20 +145,12 @@ class LOSActionServer(Node):
 
     def _initialize_subscribers(self):
         """Initialize subscribers."""
-        pose_topic = self.get_parameter('topics.subscribers.pose').value
-        twist_topic = self.get_parameter('topics.subscribers.twist').value
+        odom_topic = self.get_parameter('topics.subscribers.odometry').value
 
         self.create_subscription(
-            PoseWithCovarianceStamped,
-            pose_topic,
-            self.pose_callback,
-            qos_profile=best_effort_qos,
-        )
-
-        self.create_subscription(
-            TwistWithCovarianceStamped,
-            twist_topic,
-            self.twist_callback,
+            Odometry,
+            odom_topic,
+            self.odom_callback,
             qos_profile=best_effort_qos,
         )
 
@@ -210,105 +197,79 @@ class LOSActionServer(Node):
 
         return CancelResponse.ACCEPT
 
-    def pose_callback(self, msg: PoseWithCovarianceStamped):
-        self.state.pose = pose_from_ros(msg.pose.pose)
+    def odom_callback(self, msg: Odometry):
+        """Process odometry updates and trigger guidance calculations."""
+        orientation_q = msg.pose.pose.orientation
+        self.phi, self.pitch, yaw = self.guidance_calculator.quaternion_to_euler_angle(
+            orientation_q.w, orientation_q.x, orientation_q.y, orientation_q.z
+        )
 
+        # Update vehicle state
+        self.state.x = msg.pose.pose.position.x
+        self.state.y = msg.pose.pose.position.y
+        self.state.z = msg.pose.pose.position.z
+        self.state.yaw = yaw
+        self.state.pitch = self.pitch
+
+        self.u = msg.twist.twist.linear.x
+        self.v = msg.twist.twist.linear.y
+        self.w = msg.twist.twist.linear.z
+
+        # Initialize filter on first callback
         if not self.filter_initialized:
             self.guidance_calculator.reset_filter_state(self.state)
             self.filter_initialized = True
 
-    def twist_callback(self, msg: TwistWithCovarianceStamped):
-        self.state.twist = twist_from_ros(msg.twist.twist)
-
     def calculate_guidance(self) -> State:
-        error = self.guidance_calculator.state_as_pos_array(self.state - self.waypoints[self.current_waypoint_index])
+        error = self.state.as_pos_array() - self.waypoints[self.current_waypoint_index].as_pos_array()
         _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
-        
-        alpha_c = self.guidance_calculator.calculate_alpha_c(
-            self.state.twist.linear_x,
-            self.state.twist.linear_y, 
-            self.state.twist.linear_z,
-            self.state.pose.pitch
-        )
-        
-        beta_c = self.guidance_calculator.calculate_beta_c(
-            self.state.twist.linear_x,
-            self.state.twist.linear_y,
-            self.state.twist.linear_z,
-            self.state.pose.roll,
-            self.state.pose.pitch,
-            alpha_c
-        )
-        
-        psi_d = self.guidance_calculator.compute_psi_d(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
-            crosstrack_y,
-            self.y_int
-        )
-        
-        y_int_dot = self.guidance_calculator.calculate_y_int_dot(crosstrack_y, self.y_int)
-        self.y_int += y_int_dot * self.update_period
-        
-        theta_d = self.guidance_calculator.compute_theta_d(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
-            crosstrack_z,
-            alpha_c
-        )
-
-        yaw_error = ssa(psi_d - self.state.pose.yaw)
-        desired_surge = self.guidance_calculator.compute_desired_speed(
-            yaw_error, self.norm, crosstrack_y
-        )
-
-        unfiltered_commands = State()
-        unfiltered_commands.twist.linear_x = desired_surge
-        unfiltered_commands.pose.pitch = theta_d
-        unfiltered_commands.pose.yaw = psi_d
-        
+        alpha_c = self.guidance_calculator.calculate_alpha_c(self.u, self.v, self.w, self.phi)
+        beta_c = self.guidance_calculator.calculate_beta_c(self.u, self.v, self.w, self.phi, self.pitch, alpha_c)
+        psi_d = self.guidance_calculator.compute_psi_d(self.waypoints[self.current_waypoint_index], 
+                                                       self.waypoints[self.current_waypoint_index + 1], 
+                                                       crosstrack_y, beta_c)
+        theta_d = self.guidance_calculator.compute_theta_d(self.waypoints[self.current_waypoint_index], 
+                                                           self.waypoints[self.current_waypoint_index + 1], 
+                                                           crosstrack_z, alpha_c)
+        unfiltered_commands = State(surge_vel=self.desired_vel, pitch=theta_d, yaw=psi_d)
         filtered_commands = self.guidance_calculator.apply_reference_filter(unfiltered_commands)
-        return filtered_commands
+        return unfiltered_commands
+
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
+
+        # Initialize navigation goal with lock
         with self._goal_lock:
             self.goal_handle = goal_handle
-        
         self.current_waypoint_index = 0
         self.waypoints = [self.state]
-        for waypoint in goal_handle.request.waypoints:
-            pose = pose_from_ros(waypoint.pose)
-            point_as_state = State(pose=pose)
+        incoming_waypoints = goal_handle.request.waypoints
+        for waypoint in incoming_waypoints:
+            point_as_state = State(
+                x=waypoint.pose.position.x,
+                y=waypoint.pose.position.y,
+                z=waypoint.pose.position.z,
+            )
             self.waypoints.append(point_as_state)
 
-        self.pi_h = self.guidance_calculator.compute_pi_h(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
-        )
-        self.pi_v = self.guidance_calculator.compute_pi_v(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
-        )
+        self.pi_h = self.guidance_calculator.compute_pi_h(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
+        self.pi_v = self.guidance_calculator.compute_pi_v(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
 
         rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
         rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
         self.rotation_yz = rotation_y.T @ rotation_z.T
 
-        # Initialize integral control
-        initial_error = self.guidance_calculator.state_as_pos_array(self.state - self.waypoints[self.current_waypoint_index])
-        _, initial_crosstrack_y, _ = self.rotation_yz @ initial_error
-        self.y_int = -initial_crosstrack_y / self.guidance_calculator.kappa
-
+        feedback = NavigateWaypoints.Feedback()
         result = NavigateWaypoints.Result()
+
+        # Monitor navigation progress
         rate = self.create_rate(1.0 / self.update_period)
-        waiting_at_waypoint = False
-        wait_cycles = int(1.0 / self.update_period)
-        wait_count = 0
 
         self.get_logger().info('Executing goal')
         while rclpy.ok():
             if not goal_handle.is_active:
+                # Preempted by another goal
                 result.success = False
                 self.guidance_calculator.reset_filter_state(self.state)
                 return result
@@ -319,74 +280,39 @@ class LOSActionServer(Node):
                 self.goal_handle = None
                 result.success = False
                 return result
+            
+            norm = np.linalg.norm(self.state.as_pos_array() - self.waypoints[self.current_waypoint_index + 1].as_pos_array(), 2)
+            if norm < 0.5:
+                self.get_logger().info('Waypoint reached')
+                self.current_waypoint_index += 1
 
-            error = self.state - self.waypoints[self.current_waypoint_index + 1]
-            self.norm = np.linalg.norm(
-                self.guidance_calculator.state_as_pos_array(error)
-            )
+                if self.current_waypoint_index >= len(self.waypoints) - 1:
+                    self.get_logger().info('All waypoints reached!')
+                    final_commands = State(surge_vel=0.0, pitch=self.state.pitch, yaw=self.state.yaw)
+                    self.publish_guidance(final_commands)
+                    result.success = True
+                    self.goal_handle.succeed()
+                    return result
+                
+                self.pi_h = self.guidance_calculator.compute_pi_h(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
+                self.pi_v = self.guidance_calculator.compute_pi_v(self.waypoints[self.current_waypoint_index], self.waypoints[self.current_waypoint_index + 1])
 
-            if self.norm < 0.5:
-                if not waiting_at_waypoint:
-                    self.get_logger().info('Waypoint reached')
-                    waiting_at_waypoint = True
-                    stop_state = State()
-                    stop_state.pose.pitch = self.state.pose.pitch
-                    stop_state.pose.yaw = self.state.pose.yaw
-                    self.guidance_calculator.reset_filter_state(stop_state)
+                rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
+                rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
+                self.rotation_yz = rotation_y.T @ rotation_z.T
 
-                if wait_count < wait_cycles:
-                    stop_command = State()
-                    stop_command.pose.pitch = self.state.pose.pitch
-                    stop_command.pose.yaw = self.state.pose.yaw
-                    self.publish_guidance(stop_command)
-                    wait_count += 1
-                else:
-                    self.current_waypoint_index += 1
-                    # Reset integral term for new waypoint
-                    initial_error = self.guidance_calculator.state_as_pos_array(self.state - self.waypoints[self.current_waypoint_index])
-                    _, initial_crosstrack_y, _ = self.rotation_yz @ initial_error
-                    self.y_int = -initial_crosstrack_y / self.guidance_calculator.kappa
-                    waiting_at_waypoint = False
-                    wait_count = 0
-
-                    if self.current_waypoint_index >= len(self.waypoints) - 1:
-                        self.get_logger().info('All waypoints reached!')
-                        final_commands = State()
-                        final_commands.twist.linear_x = 0
-                        final_commands.pose.pitch = self.state.pose.pitch
-                        final_commands.pose.yaw = self.state.pose.yaw
-                        self.publish_guidance(final_commands)
-                        result.success = True
-                        self.goal_handle.succeed()
-                        return result
-
-                    self.pi_h = self.guidance_calculator.compute_pi_h(
-                        self.waypoints[self.current_waypoint_index],
-                        self.waypoints[self.current_waypoint_index + 1],
-                    )
-                    self.pi_v = self.guidance_calculator.compute_pi_v(
-                        self.waypoints[self.current_waypoint_index],
-                        self.waypoints[self.current_waypoint_index + 1],
-                    )
-
-                    rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
-                    rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
-                    self.rotation_yz = rotation_y.T @ rotation_z.T
-
-            if not waiting_at_waypoint:
-                commands = self.calculate_guidance()
-                self.publish_guidance(commands)
+            commands = self.calculate_guidance()
+            self.publish_guidance(commands)
 
             rate.sleep()
 
     def publish_guidance(self, commands: State):
         """Publish the commanded surge velocity, pitch angle, and yaw angle."""
         msg = LOSGuidance()
-        msg.surge = commands.twist.linear_x
-        msg.pitch = commands.pose.pitch
-        msg.yaw = commands.pose.yaw
+        msg.surge = commands.surge_vel
+        msg.pitch = commands.pitch
+        msg.yaw = commands.yaw
         self.guidance_cmd_pub.publish(msg)
-
 
 def main(args=None):
     """Main function to initialize and run the guidance node."""
