@@ -7,6 +7,7 @@
 #define VORTEX_EIGEN_TYPEDEFS_H
 
 #include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
 
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 3, 3> Matrix3d;
@@ -39,26 +40,13 @@ struct Eta {
 
     // @brief Make the rotation matrix according to eq. 2.31 in Fossen, 2021
     Matrix3d as_rotation_matrix() const {
-        double cphi = cos(roll);
-        double sphi = sin(roll);
-        double ctheta = cos(pitch);
-        double stheta = sin(pitch);
-        double cpsi = cos(yaw);
-        double spsi = sin(yaw);
+        Eigen::AngleAxisd roll_angle(roll, Eigen::Vector3d::UnitX());
+        Eigen::AngleAxisd pitch_angle(pitch, Eigen::Vector3d::UnitY());
+        Eigen::AngleAxisd yaw_angle(yaw, Eigen::Vector3d::UnitZ());
 
-        double r11 = cpsi * ctheta;
-        double r12 = cpsi * stheta * sphi - spsi * cphi;
-        double r13 = cpsi * stheta * cphi + spsi * sphi;
-        double r21 = spsi * ctheta;
-        double r22 = spsi * stheta * sphi + cpsi * cphi;
-        double r23 = spsi * stheta * cphi - cpsi * sphi;
-        double r31 = -stheta;
-        double r32 = ctheta * sphi;
-        double r33 = ctheta * cphi;
+        Eigen::Quaterniond q = yaw_angle * pitch_angle * roll_angle;
 
-        Matrix3d rotation_matrix;
-        rotation_matrix << r11, r12, r13, r21, r22, r23, r31, r32, r33;
-        return rotation_matrix;
+        return q.toRotationMatrix();
     }
 
     // @brief Make the transformation matrix according to eq. 2.41 in Fossen,
@@ -73,22 +61,18 @@ struct Eta {
             throw std::runtime_error(
                 "Division by zero in transformation matrix.");
         }
+        Matrix3d T;
+        T(0, 0) = 1;
+        T(0, 1) = sphi * stheta / ctheta;
+        T(0, 2) = cphi * stheta / ctheta;
+        T(1, 0) = 0;
+        T(1, 1) = cphi;
+        T(1, 2) = -sphi;
+        T(2, 0) = 0;
+        T(2, 1) = sphi / ctheta;
+        T(2, 2) = cphi / ctheta;
 
-        double t11 = 1;
-        double t12 = sphi * stheta / ctheta;
-        double t13 = cphi * stheta / ctheta;
-        double t21 = 0;
-        double t22 = cphi;
-        double t23 = -sphi;
-        double t31 = 0;
-        double t32 = sphi / ctheta;
-        double t33 = cphi / ctheta;
-
-        Matrix3d transformation_matrix;
-
-        transformation_matrix << t11, t12, t13, t21, t22, t23, t31, t32, t33;
-
-        return transformation_matrix;
+        return T;
     }
 };
 

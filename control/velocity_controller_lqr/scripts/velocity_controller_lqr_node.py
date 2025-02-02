@@ -30,7 +30,10 @@ class LinearQuadraticRegulator(Node):
             thrust_topic,
             softwareoperation_topic,
             killswitch_topic,
+<<<<<<< HEAD
             active_controller_topic,
+=======
+>>>>>>> origin/434-task-dp-controller
         ) = self.get_topics()
 
         best_effort_qos = QoSProfile(
@@ -74,6 +77,7 @@ class LinearQuadraticRegulator(Node):
             qos_profile=best_effort_qos,
         )
 
+<<<<<<< HEAD
         self.active_controller_subscriber = self.create_subscription(
             String,
             active_controller_topic,
@@ -81,6 +85,8 @@ class LinearQuadraticRegulator(Node):
             qos_profile=10
         )
 
+=======
+>>>>>>> origin/434-task-dp-controller
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
             guidance_topic,
@@ -105,7 +111,10 @@ class LinearQuadraticRegulator(Node):
         self.coriolis_matrix = np.zeros((3, 3))
         self.states = State()
         self.guidance_values = GuidanceValues()
+<<<<<<< HEAD
         self.active_controller = None
+=======
+>>>>>>> origin/434-task-dp-controller
 
     def get_topics(self):
         """Get the topics from the parameter server.
@@ -125,7 +134,10 @@ class LinearQuadraticRegulator(Node):
             "topics.softwareoperation_topic", "/softwareOperationMode"
         )
         self.declare_parameter("topics.killswitch_topic", "/softwareKillSwitch")
+<<<<<<< HEAD
         self.declare_parameter("topics.active_controller_topic", "/fsm_active_controller")
+=======
+>>>>>>> origin/434-task-dp-controller
 
         pose_topic = self.get_parameter("topics.pose_topic").value
         twist_topic = self.get_parameter("topics.twist_topic").value
@@ -135,7 +147,10 @@ class LinearQuadraticRegulator(Node):
             "topics.softwareoperation_topic"
         ).value
         killswitch_topic = self.get_parameter("topics.killswitch_topic").value
+<<<<<<< HEAD
         active_controller_topic = self.get_parameter("topics.active_controller_topic").value
+=======
+>>>>>>> origin/434-task-dp-controller
 
         return (
             pose_topic,
@@ -144,7 +159,10 @@ class LinearQuadraticRegulator(Node):
             thrust_topic,
             softwareoperation_topic,
             killswitch_topic,
+<<<<<<< HEAD
             active_controller_topic,
+=======
+>>>>>>> origin/434-task-dp-controller
         )
 
     def get_parameters(self):
@@ -252,6 +270,7 @@ class LinearQuadraticRegulator(Node):
         else:
             self.controller.killswitch = False
 
+<<<<<<< HEAD
     def active_controller_callback(self, msg: String):
         """Callback function for the active controller data.
 
@@ -260,6 +279,8 @@ class LinearQuadraticRegulator(Node):
         """
         self.active_controller = msg.data
 
+=======
+>>>>>>> origin/434-task-dp-controller
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
     def control_loop(self):
@@ -273,7 +294,14 @@ class LinearQuadraticRegulator(Node):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
+<<<<<<< HEAD
         if self.controller.killswitch == False and self.active_controller == "LQR" and self.controller.operation_mode == "autonomous mode":
+=======
+        if (
+            self.controller.killswitch == False
+            and self.controller.operation_mode == "autonomous mode"
+        ):
+>>>>>>> origin/434-task-dp-controller
             self.publisherLQR.publish(msg)
 
         else:

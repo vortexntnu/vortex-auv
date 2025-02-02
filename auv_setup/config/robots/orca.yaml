@@ -18,6 +18,7 @@
   ros__parameters:
     physical:
       center_of_mass: [0.0, 0.0, 0.035] # m (x,y,z)
+      mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
 
     propulsion:
       dofs:
@@ -84,11 +85,10 @@
         rate_of_change:
           max: 1 # Maximum rate of change in newton per second for a thruster
 
-        thrust_update_rate: 10.0 # [Hz]
+        thrust_update_rate: 100.0 # [Hz]
 
         thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
         thruster_direction: [1, -1, 1, -1, 1, 1, 1, -1] # Disclose during thruster mapping (+/- 1)
-        thruster_PWM_offset: [-28, -28, -28, -28, -28, -28, -28, -28] # Offset IN PWM -400 to 400 # Offset moves where the thrust is at rest
         thruster_PWM_min: [1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200] # Minimum PWM value, Recommended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
         thruster_PWM_max: [1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800] # Maximum PWM value, Recommended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
 
@@ -134,3 +134,19 @@
           0,
         ]
       data_logging_rate: 1.0 # [loggings/second], Recommended: 1.0 loggings per second
+
+    topics:
+      namespace: "/orca"
+      wrench_input: "/wrench_input"
+      thruster_forces: "/thruster_forces"
+      pwm_output: "/pwm"
+      current: "/power_sense_module/current"
+      voltage: "/power_sense_module/voltage"
+      pressure: "/pressure"
+      temperature: "/temperature"
+      pose: "/pose"
+      twist: "/twist"
+      operation_mode: /operation_mode
+      killswitch: /killswitch
+      guidance:
+        los: "/guidance/los"

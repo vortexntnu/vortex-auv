@@ -1,21 +1,5 @@
 #include <pid_controller_dp_euler/pid_controller_utils.hpp>
 
-Matrix6d float64multiarray_to_diagonal_matrix6d(
-    const std_msgs::msg::Float64MultiArray& msg) {
-    Matrix6d matrix = Matrix6d::Zero();
-
-    if (msg.data.size() != 6) {
-        throw std::runtime_error(
-            "Float64MultiArray message must have exactly 6 elements.");
-    }
-
-    for (size_t i = 0; i < 6; ++i) {
-        matrix(i, i) = msg.data[i];
-    }
-
-    return matrix;
-}
-
 double ssa(double angle) {
     double angle_ssa = fmod(angle + M_PI, 2 * M_PI) - M_PI;
     return angle_ssa;

@@ -68,6 +68,12 @@ class TestVelocityController:
         print("Anti windup test passed")
 
     def test_max_force(self):
+<<<<<<< HEAD
         assert (
             0 <= controller.max_force <= 99.9
         ), "Max force must be in the range [0, 99.9]."
+=======
+        assert 0 <= controller.max_force <= 99.9, (
+            "Max force must be in the range [0, 99.9]."
+        )
+>>>>>>> origin/434-task-dp-controller

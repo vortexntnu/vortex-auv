@@ -1,16 +1,14 @@
 cmake_minimum_required(VERSION 3.8)
 project(pid_controller_dp_euler)
 
-# Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -36,11 +34,6 @@ ament_target_dependencies(pid_controller_node
   Eigen3
   tf2
   vortex_msgs
-)
-
-install(
-  DIRECTORY include/
-  DESTINATION include
 )
 
 install(TARGETS

@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>line_filtering</name>
+  <version>0.0.0</version>
+  <description>Line filtering with PoseArray and camera information.</description>
+  
+  <maintainer email="tuangsamte@outlook.com">tuangsamte</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Build tools -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Runtime dependencies -->
+  <depend>vortex_filtering</depend>
+  <depend>eigen</depend>
+  <depend>rclcpp</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>message_filters</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>ament_cmake</depend>
+  <depend>nav_msgs</depend>
+  <depend>visualization_msgs</depend>
+
+  <!-- Testing dependencies -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -4,6 +4,13 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+config_file = path.join(
+    get_package_share_directory("auv_setup"),
+    "config",
+    "robots",
+    "orca.yaml",
+)
+
 
 def generate_launch_description() -> LaunchDescription:
     """Generates a launch description for the thrust_allocator_auv_node.
@@ -23,14 +30,7 @@ def generate_launch_description() -> LaunchDescription:
         package="thrust_allocator_auv",
         executable="thrust_allocator_auv_node",
         name="thrust_allocator_auv_node",
-        parameters=[
-            path.join(
-                get_package_share_directory("auv_setup"),
-                "config",
-                "robots",
-                "orca.yaml",
-            )
-        ],
+        parameters=[config_file],
         output="screen",
     )
     return LaunchDescription([thrust_allocator_auv_node])

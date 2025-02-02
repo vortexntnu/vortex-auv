@@ -1,5 +1,4 @@
 #include "pid_controller_dp/pid_controller.hpp"
-#include <iostream>
 #include "pid_controller_dp/pid_controller_utils.hpp"
 
 PIDController::PIDController()
@@ -27,25 +26,25 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
 
     types::Vector6d D = Kd_ * error_nu;
 
-    types::Vector6d tau = -limit_input((P + I + D));
+    types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
 
     integral_ = anti_windup(dt_, error, integral_);
 
     return tau;
 }
 
-void PIDController::setKp(const types::Matrix6d& Kp) {
+void PIDController::set_kp(const types::Matrix6d& Kp) {
     this->Kp_ = Kp;
 }
 
-void PIDController::setKi(const types::Matrix6d& Ki) {
+void PIDController::set_ki(const types::Matrix6d& Ki) {
     this->Ki_ = Ki;
 }
 
-void PIDController::setKd(const types::Matrix6d& Kd) {
+void PIDController::set_kd(const types::Matrix6d& Kd) {
     this->Kd_ = Kd;
 }
 
-void PIDController::setTimeStep(double dt_) {
-    this->dt_ = dt_;
+void PIDController::set_time_step(double dt) {
+    this->dt_ = dt;
 }
