@@ -37,12 +37,16 @@ public:
   FindDock::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = FindDock::Goal();
     goal.start_search = blackboard->get<bool>("start_search");
+
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server: ");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Start search: %s",
+                goal.start_search ? "true" : "false");
     return goal;
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, FindDock::Result::SharedPtr response) {
     blackboard->set<PoseStamped>("pipeline_start_pose", response->dock_pose);
-    // If found position is (0, 0, 0), the dock_station was not found
+    // If found position is (0, 0, 0), the pipeline was not found
     if (response->dock_pose.pose.position.x == 0.0 &&
         response->dock_pose.pose.position.y == 0.0 &&
         response->dock_pose.pose.position.z == 0.0) {
@@ -54,9 +58,9 @@ public:
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const FindDock::Feedback> feedback) {
-    (void)blackboard;
-    fprintf(stderr, "Time elapsed: %f\n",
-            feedback->time_elapsed);
+    blackboard->set<float>("time_elapsed", feedback->time_elapsed);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Time elapsed: %f",
+                feedback->time_elapsed);
   }
 };
 
@@ -71,24 +75,24 @@ public:
   NavigateWaypoints::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = NavigateWaypoints::Goal();
 
-    std::vector<PoseStamped> waypoints;
-    waypoints.push_back(blackboard->get<PoseStamped>("pipeline_start_pose"));
+    PoseStamped pipeline_start_pose = blackboard->get<PoseStamped>("pipeline_start_pose");
     // Print the pipeline start pose
-    fprintf(stderr, "Pipeline start pose: x = %f, y = %f, z = %f\n",
-            waypoints[0].pose.position.x,
-            waypoints[0].pose.position.y,
-            waypoints[0].pose.position.z);
-    fprintf(stderr, "Pipeline start pose orientation: w = %f, x = %f, y = %f, z = %f\n",
-            waypoints[0].pose.orientation.w,
-            waypoints[0].pose.orientation.x,
-            waypoints[0].pose.orientation.y,
-            waypoints[0].pose.orientation.z);
-    goal.waypoints = waypoints;
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server: ");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Start position: x = %f, y = %f, z = %f",
+                pipeline_start_pose.pose.position.x, pipeline_start_pose.pose.position.y,
+                pipeline_start_pose.pose.position.z);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Orientation: x = %f, y = %f, z = %f, w = %f",
+                pipeline_start_pose.pose.orientation.x, pipeline_start_pose.pose.orientation.y,
+                pipeline_start_pose.pose.orientation.z, pipeline_start_pose.pose.orientation.w);
+    goal.waypoints.push_back(pipeline_start_pose);
     return goal;
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
     blackboard->set<bool>("is_at_pipeline", response->success);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Response received from action server: ");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s",
+                response->success ? "true" : "false");
     if (response->success) {
       return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
@@ -98,10 +102,10 @@ public:
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
     blackboard->set<Pose>("current_pose", feedback->current_pose);
-    fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-            feedback->current_pose.position.x,
-            feedback->current_pose.position.y,
-            feedback->current_pose.position.z);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Current position: x = %f, y = %f, z = %f",
+                feedback->current_pose.position.x,
+                feedback->current_pose.position.y,
+                feedback->current_pose.position.z);
   }
 };
 
@@ -116,14 +120,21 @@ public:
   NavigateWaypoints::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = NavigateWaypoints::Goal();
     goal.waypoints.push_back(blackboard->get<PoseStamped>("start_pose"));
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server: ");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Returning home to position x = %f, y = %f, z = %f",
+                goal.waypoints.at(0).pose.position.x,
+                goal.waypoints.at(0).pose.position.y,
+                goal.waypoints.at(0).pose.position.z);
 
     return goal;
   }
 
   std::string response_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, NavigateWaypoints::Result::SharedPtr response) {
       blackboard->set<bool>("is_home", response->success);
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Response received from action server: ");
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s",
+                  response->success ? "true" : "false");
       if (response->success) {
-
         return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
         return yasmin_ros::basic_outcomes::ABORT;
@@ -131,11 +142,11 @@ public:
   }
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-    (void)blackboard;
-    fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-            feedback->current_pose.position.x,
-            feedback->current_pose.position.y,
-            feedback->current_pose.position.z);
+    blackboard->set<Pose>("current_pose", feedback->current_pose);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Current position: x = %f, y = %f, z = %f",
+                feedback->current_pose.position.x,
+                feedback->current_pose.position.y,
+                feedback->current_pose.position.z); 
   }
 };
 
@@ -162,7 +173,12 @@ public:
 
   NavigateWaypoints::Goal create_goal_handler(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = NavigateWaypoints::Goal();
-    goal.waypoints.push_back(blackboard->get<PoseStamped>("aruco_waypoints"));
+    goal.waypoints = blackboard->get<std::vector<PoseStamped>>("aruco_waypoints");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server: ");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Following pipeline to position x = %f, y = %f, z = %f",
+                goal.waypoints.at(0).pose.position.x,
+                goal.waypoints.at(0).pose.position.y,
+                goal.waypoints.at(0).pose.position.z);
     return goal;
   }
 
@@ -177,37 +193,23 @@ public:
 
   void print_feedback(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard, std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
     blackboard->set<Pose>("current_pose", feedback->current_pose);
-    fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
-            feedback->current_pose.position.x,
-            feedback->current_pose.position.y,
-            feedback->current_pose.position.z);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Current position: x = %f, y = %f, z = %f",
+                feedback->current_pose.position.x,
+                feedback->current_pose.position.y,
+                feedback->current_pose.position.z);
   }
 };
-
-
-int main(int argc, char *argv[]) {
-
-  YASMIN_LOG_INFO("pipeline_demo_cpp");
-  rclcpp::init(argc, argv);
-
-  // set ROS 2 logs
-  yasmin_ros::set_ros_loggers();
-
-  // create a state machine
+std::shared_ptr<yasmin::StateMachine> create_state_machine() {
   auto sm = std::make_shared<yasmin::StateMachine>(
       std::initializer_list<std::string>{
                                          yasmin_ros::basic_outcomes::SUCCEED,
                                          yasmin_ros::basic_outcomes::CANCEL,
-                                         yasmin_ros::basic_outcomes::ABORT});
+                                         yasmin_ros::basic_outcomes::ABORT, "error"});
 
-  // cancel state machine on ROS 2 shutdown
-  rclcpp::on_shutdown([sm]() {
-    if (sm->is_running()) {
-      sm->cancel_state();
-    }
-  });
+  return sm;
+}
 
-  // add states
+void add_states(std::shared_ptr<yasmin::StateMachine> sm) {
   sm->add_state("FIND_PIPELINE", std::make_shared<FindPipelineState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_START_OF_PIPELINE"},
@@ -240,8 +242,28 @@ int main(int argc, char *argv[]) {
                            {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
                            {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
                        });
+}
 
+int main(int argc, char *argv[]) {
 
+  YASMIN_LOG_INFO("pipeline_demo_cpp");
+  rclcpp::init(argc, argv);
+
+  // set ROS 2 logs
+  yasmin_ros::set_ros_loggers();
+
+  // create a state machine
+  auto sm = create_state_machine();
+
+  // cancel state machine on ROS 2 shutdown
+  rclcpp::on_shutdown([sm]() {
+    if (sm->is_running()) {
+      sm->cancel_state();
+    }
+  });
+
+  // add states
+  add_states(sm);
 
   // pub
   yasmin_viewer::YasminViewerPub yasmin_pub("Pipeline", sm);
@@ -251,6 +273,7 @@ int main(int argc, char *argv[]) {
       std::make_shared<yasmin::blackboard::Blackboard>();
 
   blackboard->set<bool>("start_search", true);
+  blackboard->set<float>("time_elapsed", 0.0);
 
   PoseStamped current_pose;
   current_pose.pose.position.x = 0.0;
@@ -292,6 +315,7 @@ int main(int argc, char *argv[]) {
     YASMIN_LOG_INFO(outcome.c_str());
   } catch (const std::exception &e) {
     YASMIN_LOG_WARN(e.what());
+    rcutils_reset_error();
   }
 
   if (rclcpp::ok()) {
