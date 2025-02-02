@@ -2,6 +2,7 @@
 
 # ROS2 Libraries
 import array
+from pathlib import Path
 
 import rclpy
 from ament_index_python.packages import get_package_share_directory
@@ -13,7 +14,7 @@ from std_msgs.msg import Float32, Int16MultiArray
 # Custom Libraries
 from vortex_msgs.msg import ThrusterForces
 
-from blackbox.blackbox_log_data import BlackBoxLogData
+from blackbox_auv.blackbox_log_data import BlackBoxLogData
 
 
 class BlackBoxNode(Node):
@@ -21,52 +22,37 @@ class BlackBoxNode(Node):
         # Start the ROS2 Node ----------
         super().__init__("blackbox_node")
 
-        # Initialize sunscribers ----------
-        self.psm_current_subscriber = self.create_subscription(
-            Float32, "/auv/power_sense_module/current", self.psm_current_callback, 1
-        )
+        self.get_topics()
+        self.create_subscribers()
+
         self.psm_current_data = 0.0
 
-        self.psm_voltage_subscriber = self.create_subscription(
-            Float32, "/auv/power_sense_module/voltage", self.psm_voltage_callback, 1
-        )
         self.psm_voltage_data = 0.0
 
-        self.pressure_subscriber = self.create_subscription(
-            Float32, "/auv/pressure", self.pressure_callback, 1
-        )
         self.pressure_data = 0.0
 
-        self.temperature_subscriber = self.create_subscription(
-            Float32, "/auv/temperature", self.temperature_callback, 1
-        )
         self.temperature_data = 0.0
 
-        self.thruster_forces = self.create_subscription(
-            ThrusterForces, "/thrust/thruster_forces", self.thruster_forces_callback, 1
-        )
         self.thruster_forces_data = array.array(
             "f", [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         )
 
-        self.pwm = self.create_subscription(
-            Int16MultiArray, "/pwm", self.pwm_callback, 1
-        )
         self.pwm_data = array.array("i", [0, 0, 0, 0, 0, 0, 0, 0])
 
         # Initialize logger ----------
         # Get package directory location
         ros2_package_directory_location = get_package_share_directory("blackbox")
         ros2_package_directory_location = (
-            ros2_package_directory_location + "/../../../../"
-        )  # go back to workspace
-        ros2_package_directory_location = (
-            ros2_package_directory_location + "src/vortex-auv/mission/blackbox/"
-        )  # Navigate to this package
+            Path(ros2_package_directory_location).parents[3]
+            / 'src'
+            / 'vortex-auv'
+            / 'mission'
+            / 'blackbox_auv'
+        )
 
         # Make blackbox logging file
         self.blackbox_log_data = BlackBoxLogData(
-            ros2_package_directory=ros2_package_directory_location
+            ros2_package_directory=str(ros2_package_directory_location)
         )
 
         # Logs all the newest data 10 times per second
@@ -90,6 +76,38 @@ class BlackBoxNode(Node):
             "/auv/temperature [Float32] \n"
             "/thrust/thruster_forces [ThrusterForces] \n"
             "/pwm [Float32] \n"
+        )
+
+    def get_topics(self) -> None:
+        namespace = self.declare_parameter("topics.namespace", "_").get_parameter_value().string_value
+        topics = ["current", "voltage", "pressure", "temperature", "thruster_forces", "pwm_output"]
+        for topic in topics:
+            self.declare_parameter(f"topics.{topic}", "_")
+            setattr(self, topic + "_topic", namespace + self.get_parameter(f"topics.{topic}").value)
+
+    def create_subscribers(self) -> None:
+        self.psm_current_subscriber = self.create_subscription(
+            Float32, self.current_topic, self.psm_current_callback, 1
+        )
+
+        self.psm_voltage_subscriber = self.create_subscription(
+            Float32, self.voltage_topic, self.psm_voltage_callback, 1
+        )
+
+        self.pressure_subscriber = self.create_subscription(
+            Float32, self.pressure_topic, self.pressure_callback, 1
+        )
+
+        self.temperature_subscriber = self.create_subscription(
+            Float32, self.temperature_topic, self.temperature_callback, 1
+        )
+
+        self.thruster_forces = self.create_subscription(
+            ThrusterForces, self.thruster_forces_topic, self.thruster_forces_callback, 1
+        )
+
+        self.pwm = self.create_subscription(
+            Int16MultiArray, self.pwm_output_topic, self.pwm_callback, 1
         )
 
     # Callback Methods ----------
