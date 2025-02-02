@@ -22,7 +22,7 @@ Contains the LQR controller package for the AUV Orca. The controller utilizes an
 #### Transitioning between states manually:
 The ROS2 node is implemented using lifecycle nodes, which are managed externally by a lifecycle manager i.e a finite state machine. If you want to manually test the node do the following:
 
-**From Unconfigured ---> Configured (Inactive)**
+**From Unconfigured ---> Inactive**
 ```bash
 ros2 lifecycle set /velocity_controller_lqr_node configure
 ```
@@ -37,4 +37,9 @@ ros2 lifecycle set /velocity_controller_lqr_node activate
 ros2 lifecycle set /velocity_controller_lqr_node deactivate
 ```
 
-More info about the
+For the full state diagram you can refer to the figure below, sourced from the official ROS2 Documentation:
+![image info](./figures/ros2_transition_diagram.png)
+
+
+### Theory
+---
