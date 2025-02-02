@@ -7,7 +7,6 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(DIRECTORY
   launch
-  acoustics_data
   DESTINATION share/${PROJECT_NAME}
 )
 
