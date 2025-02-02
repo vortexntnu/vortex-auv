@@ -23,7 +23,7 @@ Alternatively, if you have already cloned the repository, run the following comm
 git submodule update --init --recursive
 ```
 ### Building and Running
-1. Run the following command from the root of this repository to build the Docker image, its called ```asv-image:latest```, and start a container:
+1. Run the following command from the root of this repository to build the Docker image, its called ```auv-image:latest```, and start a container:
 ```bash
 ./entrypoint.sh
 ```
@@ -35,7 +35,7 @@ git submodule update --init --recursive
 ### Troubleshooting
 #### Platform Compatibility (e.g, ARM64 vs AMD64)
 [docker-ros](https://github.com/ika-rwth-aachen/docker-ros) will automatically detect the platform, but if you're encountering issues with Docker due to platform incompatibilities (like arm64 vs. amd64), follow these steps:
-1. Check Your Computers Architecture
+1. Check your computers architecture
 2. In ```entrypoint.sh```, uncomment and adjust the PLATFORM variable:
 - For AMD64:
 ```bash
