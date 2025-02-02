@@ -46,11 +46,9 @@ def generate_launch_description():
     )
 
     # Launch Nodes
-    return LaunchDescription(
-        [
-            power_sense_module_node,
-            pressure_sensor_node,
-            temperature_sensor_node,
-            gripper_feedback_node,
-        ]
-    )
+    return LaunchDescription([
+        power_sense_module_node,
+        pressure_sensor_node,
+        temperature_sensor_node,
+        gripper_feedback_node,
+    ])
