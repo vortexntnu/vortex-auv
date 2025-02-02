@@ -2,10 +2,10 @@
 # This script builds and runs a Docker image
 
 # Define environment variables for the Docker build process and execute the build script
-export IMAGE="asv-image:latest"
+export IMAGE="auv-image:latest"
 export BASE_IMAGE="rwthika/ros2:humble"
 export TARGET="dev"
-# export PLATFORM="linux/arm64"  # Uncomment this line for ARM64 builds
+export PLATFORM="linux/arm64"  # Uncomment this line for ARM64 builds
 # export PLATFORM="amd64"  # Uncomment this line for AMD64 builds
 
 # Run the build script
