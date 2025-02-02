@@ -25,11 +25,10 @@ class GoToPipelineServer(Node):
 
         feedback_msg = GoToWaypoint.Feedback()
         docking_position = goal_handle.request.waypoint  # [x, y, z]
-        auv_position = PoseStamped()  # Let's say AUV starts at (0,0,0)
+        auv_position = PoseStamped()  # AUV starts at (0,0,0)
         auv_position.pose.position.x = 0.0
         auv_position.pose.position.y = 0.0
         auv_position.pose.position.z = 0.0
-        rate = self.create_rate(1)  # Simulate 1Hz feedback
 
         while (
             math.sqrt(
