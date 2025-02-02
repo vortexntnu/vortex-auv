@@ -1,9 +1,8 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
-
 from launch import LaunchDescription
+from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -20,10 +19,7 @@ def generate_launch_description() -> LaunchDescription:
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        "orca.yaml"
+        get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
     )
 
     return LaunchDescription(

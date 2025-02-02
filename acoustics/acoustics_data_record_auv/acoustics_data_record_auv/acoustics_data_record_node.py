@@ -93,8 +93,12 @@ class AcousticsDataRecordNode(Node):
             "acoustics_data_record_auv"
         )
         ros2_package_directory_location = (
-            Path(ros2_package_directory_location).parents[3] / 'src' / 'vortex-auv' / 'acoustics' / 'acoustics_data_record_auv'
-        ) 
+            Path(ros2_package_directory_location).parents[3]
+            / 'src'
+            / 'vortex-auv'
+            / 'acoustics'
+            / 'acoustics_data_record_auv'
+        )
 
         # Make blackbox logging file
         self.acoustics_data_record = AcousticsDataRecordLib(

@@ -21,40 +21,12 @@ class AcousticsInterfaceNode(Node):
 
     def __init__(self) -> None:
         """Sets up acoustics logging and publishers, also sets up teensy communication."""
-        super().__init__("acoustics_interface")
+        super().__init__("acoustics_interface_auv")
         rclpy.logging.initialize()
 
-        self._hydrophone_1_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/hydrophone1", 5
-        )
-        self._hydrophone_2_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/hydrophone2", 5
-        )
-        self._hydrophone_3_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/hydrophone3", 5
-        )
-        self._hydrophone_4_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/hydrophone4", 5
-        )
-        self._hydrophone_5_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/hydrophone5", 5
-        )
+        self.get_parameters()
 
-        self._filter_response_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/filter_response", 5
-        )
-        self._fft_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/fft", 5
-        )
-        self._peak_publisher = self.create_publisher(
-            Int32MultiArray, "/acoustics/peaks", 5
-        )
-        self._tdoa_publisher = self.create_publisher(
-            Float32MultiArray, "/acoustics/time_difference_of_arrival", 5
-        )
-        self._position_publisher = self.create_publisher(
-            Float32MultiArray, "/acoustics/position", 5
-        )
+        self.create_publishers_and_subscribers()
 
         # Logs all the newest data
         self.declare_parameter(
@@ -99,6 +71,73 @@ class AcousticsInterfaceNode(Node):
         TeensyCommunicationUDP.init_communication(frequencies_of_interest)
 
         self.get_logger().info("Successfully connected to Acoustics PCB MCU :D")
+
+    def get_parameters(self) -> None:
+        orca_namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        accoustics_namespace = (
+            self.declare_parameter("topics.acoustics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        hydrophone_topics = (
+            self.declare_parameter("topics.acoustics.hydrophones", ["_"])
+            .get_parameter_value()
+            .string_array_value
+        )
+        for topic in hydrophone_topics:
+            setattr(
+                self,
+                topic + "_topic",
+                orca_namespace + accoustics_namespace + "/" + topic,
+            )
+
+        topics = ["filter_response", "fft", "peaks", "tdoa", "position"]
+        for topic in topics:
+            self.declare_parameter(f"topics.acoustics.{topic}", "_")
+            setattr(
+                self,
+                topic + "_topic",
+                orca_namespace
+                + accoustics_namespace
+                + self.get_parameter(f"topics.acoustics.{topic}")
+                .get_parameter_value()
+                .string_value,
+            )
+
+    def create_publishers_and_subscribers(self) -> None:
+        self._hydrophone_1_publisher = self.create_publisher(
+            Int32MultiArray, self.hydrophone1_topic, 5
+        )
+        self._hydrophone_2_publisher = self.create_publisher(
+            Int32MultiArray, self.hydrophone2_topic, 5
+        )
+        self._hydrophone_3_publisher = self.create_publisher(
+            Int32MultiArray, self.hydrophone3_topic, 5
+        )
+        self._hydrophone_4_publisher = self.create_publisher(
+            Int32MultiArray, self.hydrophone4_topic, 5
+        )
+        self._hydrophone_5_publisher = self.create_publisher(
+            Int32MultiArray, self.hydrophone5_topic, 5
+        )
+
+        self._filter_response_publisher = self.create_publisher(
+            Int32MultiArray, self.filter_response_topic, 5
+        )
+        self._fft_publisher = self.create_publisher(Int32MultiArray, self.fft_topic, 5)
+        self._peak_publisher = self.create_publisher(
+            Int32MultiArray, self.peaks_topic, 5
+        )
+        self._tdoa_publisher = self.create_publisher(
+            Float32MultiArray, self.tdoa_topic, 5
+        )
+        self._position_publisher = self.create_publisher(
+            Float32MultiArray, self.position_topic, 5
+        )
 
     def data_update(self) -> None:
         """Fetches data using the TeensyCommunicationUDP class.
