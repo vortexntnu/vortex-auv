@@ -38,6 +38,24 @@ git submodule update --init --recursive
 - Any dependencies listed in ```dependencies.repositories``` will be added to ```/docker-ros/ws/src/upstream```. For instance, the repository vortex-msgs will be added to this directory but will not be mounted.
 3. The Docker container runs with the --network host option. This enables the container to see other ROS 2 topics and nodes on the host network. However, note that this functionality is not supported on macOS.
 
+### Troubleshooting
+#### Platform Compatibility (e.g, ARM64 vs AMD64)
+[docker-ros](https://github.com/ika-rwth-aachen/docker-ros) will automatically detect the platform, but if you're encountering issues with Docker due to platform incompatibilities (like arm64 vs. amd64), follow these steps:
+1. Check Your Computers Architecture
+2. In ```entrypoint.sh```, uncomment and adjust the PLATFORM variable:
+- For AMD64:
+```bash
+export PLATFORM="amd64"
+```
+- For ARM64:
+```bash
+export PLATFORM="linux/arm64"
+```
+3. After adjusting the platform, rebuild the Docker image and run the container:
+```bash
+./entrypoint.sh
+```
+
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
 * TODO: How to adapt the software stack to new hardware.
