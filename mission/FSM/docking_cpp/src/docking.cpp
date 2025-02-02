@@ -53,8 +53,6 @@ class FindDockState : public yasmin_ros::ActionState<FindDock> {
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         FindDock::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
         blackboard->set<PoseStamped>("dock_pose", response->dock_pose);
         return yasmin_ros::basic_outcomes::SUCCEED;
     }
@@ -62,7 +60,6 @@ class FindDockState : public yasmin_ros::ActionState<FindDock> {
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const FindDock::Feedback> feedback) {
-        (void)blackboard;
         blackboard->set<float>("time_elapsed", feedback->time_elapsed);
         fprintf(stderr, "Time elapsed: %f\n", feedback->time_elapsed);
     }
@@ -83,7 +80,7 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
         blackboard->set<bool>("is_home", false);
 
-        PoseStamped docking_goal = blackboard->get<PoseStamped>("docking_goal");
+        PoseStamped docking_goal = blackboard->get<PoseStamped>("docking_offset_goal");
         goal.waypoints.push_back(docking_goal);
 
         fprintf(stderr, "Goal sent to action server: \n");
@@ -101,8 +98,6 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         NavigateWaypoints::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
 
         fprintf(stderr, "Response received from action server: \n");
         fprintf(stderr, "  Success: %s\n",
@@ -120,7 +115,7 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-        (void)blackboard;
+        
         blackboard->set<Pose>("current_pose", feedback->current_pose);
         fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
                 feedback->current_pose.position.x,
@@ -143,17 +138,17 @@ class GoOverDockState
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
         auto goal = ReferenceFilterWaypoint::Goal();
 
-        auto docking_goal = blackboard->get<PoseStamped>("docking_goal");
-        goal.goal = docking_goal;
+        auto docking_offset_goal = blackboard->get<PoseStamped>("docking_offset_goal");
+        goal.goal = docking_offset_goal;
 
         fprintf(stderr, "Goal sent to action server: \n");
         fprintf(stderr, "  Position: x = %f, y = %f, z = %f\n",
-                docking_goal.pose.position.x, docking_goal.pose.position.y,
-                docking_goal.pose.position.z);
+                docking_offset_goal.pose.position.x, docking_offset_goal.pose.position.y,
+                docking_offset_goal.pose.position.z);
         fprintf(
             stderr, "  Orientation: x = %f, y = %f, z = %f, w = %f\n",
-            docking_goal.pose.orientation.x, docking_goal.pose.orientation.y,
-            docking_goal.pose.orientation.z, docking_goal.pose.orientation.w);
+            docking_offset_goal.pose.orientation.x, docking_offset_goal.pose.orientation.y,
+            docking_offset_goal.pose.orientation.z, docking_offset_goal.pose.orientation.w);
 
         return goal;
     }
@@ -161,8 +156,6 @@ class GoOverDockState
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         ReferenceFilterWaypoint::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
         fprintf(stderr, "Response received from action server: \n");
         fprintf(stderr, "  Success: %s\n",
                 response->success ? "true" : "false");
@@ -179,7 +172,6 @@ class GoOverDockState
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
-        (void)blackboard;
         Pose current_pose = Pose();
         current_pose.position.x = feedback->feedback.x;
         current_pose.position.y = feedback->feedback.y;
@@ -194,18 +186,19 @@ class GoOverDockState
 
 std::string DockedState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    (void)blackboard;
 
     // THIS IS NOT A GOOD SOLUTION
     int i = 0;
+    // This code is a bad way to simulate waiting for 10 seconds
     while (i < 1000) {
         blackboard->set<bool>("is_docked", true);
         if (blackboard->get<bool>("return_home")) {
             return yasmin_ros::basic_outcomes::SUCCEED;
         }
+
+        i++;
     };
 
-    i++;
     return yasmin_ros::basic_outcomes::ABORT;
 };
 
@@ -224,7 +217,7 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
         blackboard->set<bool>("is_docked", false);
 
-        PoseStamped docking_goal = blackboard->get<PoseStamped>("docking_goal");
+        PoseStamped docking_goal = blackboard->get<PoseStamped>("docking_offset_goal");
         PoseStamped start_pose = blackboard->get<PoseStamped>("start_pose");
 
         goal.waypoints.push_back(docking_goal);
@@ -244,8 +237,6 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         NavigateWaypoints::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
 
         fprintf(stderr, "Response received from action server: \n");
         fprintf(stderr, "  Success: %s\n",
@@ -259,7 +250,7 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-        (void)blackboard;
+
         blackboard->set<Pose>("current_pose", feedback->current_pose);
         fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
                 feedback->current_pose.position.x,
@@ -295,8 +286,6 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         NavigateWaypoints::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
 
         fprintf(stderr, "Response received from action server: \n");
         fprintf(stderr, "  Success: %s\n",
@@ -309,7 +298,7 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-        (void)blackboard;
+
         blackboard->set<Pose>("current_pose", feedback->current_pose);
         fprintf(stderr, "Current position: x = %f, y = %f, z = %f\n",
                 feedback->current_pose.position.x,
@@ -320,7 +309,7 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
 std::string ErrorState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    (void)blackboard;
+
     blackboard->set<bool>("is_error", true);
     return yasmin_ros::basic_outcomes::SUCCEED;
 };
@@ -352,8 +341,6 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         ReferenceFilterWaypoint::Result::SharedPtr response) {
-        (void)blackboard;
-        (void)response;
 
         fprintf(stderr, "Response received from action server: \n");
         fprintf(stderr, "  Success: %s\n",
@@ -370,7 +357,6 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
-        (void)blackboard;
 
         Pose current_pose = Pose();
         current_pose.position.x = feedback->feedback.x;
@@ -427,7 +413,7 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                       std::initializer_list<std::string>{
                           "error", yasmin_ros::basic_outcomes::SUCCEED,
                           yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                          yasmin_ros::basic_outcomes::ABORT},
                       DockedState),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED,
@@ -455,7 +441,7 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                       std::initializer_list<std::string>{
                           "error", yasmin_ros::basic_outcomes::SUCCEED,
                           yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                          yasmin_ros::basic_outcomes::ABORT},
                       ErrorState),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "error"},
@@ -594,10 +580,10 @@ int main(int argc, char* argv[]) {
     blackboard->set<bool>("is_error", false);
     blackboard->set<bool>("has_finished_converging", false);
 
-    PoseStamped docking_goal;
-    docking_goal = dock_pose;
-    docking_goal.pose.position.z += docking_station_offset;
-    blackboard->set<PoseStamped>("docking_goal", docking_goal);
+    PoseStamped docking_offset_goal;
+    docking_offset_goal = dock_pose;
+    docking_offset_goal.pose.position.z += docking_station_offset;
+    blackboard->set<PoseStamped>("docking_offset_goal", docking_offset_goal);
 
     // *************************************************************
 
