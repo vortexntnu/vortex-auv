@@ -143,9 +143,11 @@
       voltage: "/power_sense_module/voltage"
       pressure: "/pressure"
       temperature: "/temperature"
+      joy: "/joy"
       pose: "/pose"
       twist: "/twist"
       operation_mode: /operation_mode
       killswitch: /killswitch
       guidance:
         los: "/guidance/los"
+        dp: "/guidance/dp"
