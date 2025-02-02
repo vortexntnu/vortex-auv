@@ -24,17 +24,11 @@ class PIDControllerNode : public rclcpp::Node {
 
     void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
 
-<<<<<<< HEAD
-    void active_controller_callback(const std_msgs::msg::String::SharedPtr msg);
-
-    void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
-=======
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
     void twist_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
->>>>>>> origin/434-task-dp-controller
 
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
@@ -49,17 +43,11 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
 
-<<<<<<< HEAD
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr active_controller_sub_;
-
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
-=======
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
->>>>>>> origin/434-task-dp-controller
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;

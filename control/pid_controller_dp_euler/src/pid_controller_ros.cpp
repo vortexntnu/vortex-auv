@@ -42,19 +42,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         software_operation_mode_topic, 10,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
-<<<<<<< HEAD
-    active_controller_sub_ = this->create_subscription<std_msgs::msg::String>(
-        active_controller_topic, 10,
-        std::bind(&PIDControllerNode::active_controller_callback, this,
-                  std::placeholders::_1));
-    odometry_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        nucleus_odom_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::odometry_callback, this,
-                  std::placeholders::_1));
-    guidance_sub_ =
-        this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            dp_reference_topic, qos_sensor_data,
-=======
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
@@ -68,7 +55,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             reference_topic, qos_sensor_data,
->>>>>>> origin/434-task-dp-controller
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
     tau_pub_ =
@@ -88,18 +74,8 @@ void PIDControllerNode::software_mode_callback(
     software_mode_ = msg->data;
 }
 
-<<<<<<< HEAD
-void PIDControllerNode::active_controller_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    active_controller_ = msg->data;
-}
-
-void PIDControllerNode::odometry_callback(
-    const nav_msgs::msg::Odometry::SharedPtr msg) {
-=======
 void PIDControllerNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
->>>>>>> origin/434-task-dp-controller
     eta_.x = msg->pose.pose.position.x;
     eta_.y = msg->pose.pose.position.y;
     eta_.z = msg->pose.pose.position.z;
