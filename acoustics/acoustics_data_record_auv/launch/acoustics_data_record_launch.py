@@ -1,3 +1,6 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
@@ -14,14 +17,17 @@ def generate_launch_description() -> LaunchDescription:
         for acoustics_data_record.
 
     """
+    yaml_file = os.path.join(
+        get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
+    )
     return LaunchDescription(
         [
             Node(
                 package="acoustics_data_record_auv",
                 executable="acoustics_data_record_node.py",
-                name="acoustics_data_record_auv_node",
+                name="acoustics_data_record_auv",
                 output="screen",
-                parameters=[],
+                parameters=[yaml_file],
             ),
         ]
     )

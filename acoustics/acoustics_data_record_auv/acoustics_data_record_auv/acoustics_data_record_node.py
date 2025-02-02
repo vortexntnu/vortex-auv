@@ -25,66 +25,32 @@ class AcousticsDataRecordNode(Node):
         position_data_size = 3  # position only has X, Y, Z basically 3 elements
 
         # Initialize ROS2 node
-        super().__init__("acoustics_data_record_node")
+        super().__init__("acoustics_data_record_auv")
+
+        self.get_topics()
+        self.create_publishers_and_subscribers()
 
         # Initialize Subscribers ----------
         # Start listening to Hydrophone data
-        self.subscriber_hydrophone1 = self.create_subscription(
-            Int32MultiArray, "/acoustics/hydrophone1", self.hydrophone1_callback, 5
-        )
+
         self.hydrophone1_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone2 = self.create_subscription(
-            Int32MultiArray, "/acoustics/hydrophone2", self.hydrophone2_callback, 5
-        )
         self.hydrophone2_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone3 = self.create_subscription(
-            Int32MultiArray, "/acoustics/hydrophone3", self.hydrophone3_callback, 5
-        )
         self.hydrophone3_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone4 = self.create_subscription(
-            Int32MultiArray, "/acoustics/hydrophone4", self.hydrophone4_callback, 5
-        )
         self.hydrophone4_data = array.array("i", [0] * hydrophone_data_size)
 
-        self.subscriber_hydrophone5 = self.create_subscription(
-            Int32MultiArray, "/acoustics/hydrophone5", self.hydrophone5_callback, 5
-        )
         self.hydrophone5_data = array.array("i", [0] * hydrophone_data_size)
 
-        # Start listening to DSP (Digital Signal Processing) data
-        self.subscriber_filter_response = self.create_subscription(
-            Int32MultiArray,
-            "/acoustics/filter_response",
-            self.filter_response_callback,
-            5,
-        )
         self.filter_response_data = array.array("i", [0] * dsp_data_size)
 
-        self.subscriber_fft = self.create_subscription(
-            Int32MultiArray, "/acoustics/fft", self.fft_callback, 5
-        )
         self.fft_data = array.array("i", [0] * dsp_data_size)
 
-        self.subscriber_peaks = self.create_subscription(
-            Int32MultiArray, "/acoustics/peaks", self.peaks_callback, 5
-        )
         self.peaks_data = array.array("i", [0] * dsp_data_size)
 
-        # Start listening to Multilateration data
-        self.subscriber_tdoa_response = self.create_subscription(
-            Float32MultiArray,
-            "/acoustics/time_difference_of_arrival",
-            self.tdoa_callback,
-            5,
-        )
         self.tdoa_data = array.array("f", [0.0] * tdoa_data_size)
 
-        self.subscriber_position_response = self.create_subscription(
-            Float32MultiArray, "/acoustics/position", self.position_callback, 5
-        )
         self.position_data = array.array("f", [0.0] * position_data_size)
 
         # Initialize logger ----------
@@ -130,6 +96,86 @@ class AcousticsDataRecordNode(Node):
             "/acoustics/peaks [Int32MultiArray] \n"
             "/acoustics/time_difference_of_arrival [Float32MultiArray] \n"
             "/acoustics/position [Float32MultiArray] \n"
+        )
+
+    def get_topics(self) -> None:
+        orca_namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        accoustics_namespace = (
+            self.declare_parameter("topics.acoustics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        hydrophone_topics = (
+            self.declare_parameter("topics.acoustics.hydrophones", ["_"])
+            .get_parameter_value()
+            .string_array_value
+        )
+        for topic in hydrophone_topics:
+            setattr(
+                self,
+                topic + "_topic",
+                orca_namespace + accoustics_namespace + "/" + topic,
+            )
+
+        topics = ["filter_response", "fft", "peaks", "tdoa", "position"]
+        for topic in topics:
+            self.declare_parameter(f"topics.acoustics.{topic}", "_")
+            setattr(
+                self,
+                topic + "_topic",
+                orca_namespace
+                + accoustics_namespace
+                + self.get_parameter(f"topics.acoustics.{topic}")
+                .get_parameter_value()
+                .string_value,
+            )
+
+    def create_publishers_and_subscribers(self) -> None:
+        self.subscriber_hydrophone1 = self.create_subscription(
+            Int32MultiArray, self.hydrophone1_topic, self.hydrophone1_callback, 5
+        )
+
+        self.subscriber_hydrophone2 = self.create_subscription(
+            Int32MultiArray, self.hydrophone2_topic, self.hydrophone2_callback, 5
+        )
+
+        self.subscriber_hydrophone3 = self.create_subscription(
+            Int32MultiArray, self.hydrophone3_topic, self.hydrophone3_callback, 5
+        )
+
+        self.subscriber_hydrophone4 = self.create_subscription(
+            Int32MultiArray, self.hydrophone4_topic, self.hydrophone4_callback, 5
+        )
+
+        self.subscriber_hydrophone5 = self.create_subscription(
+            Int32MultiArray, self.hydrophone5_topic, self.hydrophone5_callback, 5
+        )
+
+        self.subscriber_filter_response = self.create_subscription(
+            Int32MultiArray,
+            self.filter_response_topic,
+            self.filter_response_callback,
+            5,
+        )
+
+        self.subscriber_fft = self.create_subscription(
+            Int32MultiArray, self.fft_topic, self.fft_callback, 5
+        )
+
+        self.subscriber_peaks = self.create_subscription(
+            Int32MultiArray, self.peaks_topic, self.peaks_callback, 5
+        )
+
+        self.subscriber_tdoa_response = self.create_subscription(
+            Float32MultiArray, self.tdoa_topic, self.tdoa_callback, 5
+        )
+
+        self.subscriber_position_response = self.create_subscription(
+            Float32MultiArray, self.position_topic, self.position_callback, 5
         )
 
     # Callback methods for different topics

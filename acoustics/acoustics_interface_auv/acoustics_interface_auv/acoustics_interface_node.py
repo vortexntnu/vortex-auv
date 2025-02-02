@@ -24,7 +24,7 @@ class AcousticsInterfaceNode(Node):
         super().__init__("acoustics_interface_auv")
         rclpy.logging.initialize()
 
-        self.get_parameters()
+        self.get_topics()
 
         self.create_publishers_and_subscribers()
 
@@ -72,7 +72,7 @@ class AcousticsInterfaceNode(Node):
 
         self.get_logger().info("Successfully connected to Acoustics PCB MCU :D")
 
-    def get_parameters(self) -> None:
+    def get_topics(self) -> None:
         orca_namespace = (
             self.declare_parameter("topics.namespace", "_")
             .get_parameter_value()
