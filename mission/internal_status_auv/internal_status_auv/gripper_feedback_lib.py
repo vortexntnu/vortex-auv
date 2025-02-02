@@ -1,0 +1,2 @@
+class GripperFeedback:
+    pass
