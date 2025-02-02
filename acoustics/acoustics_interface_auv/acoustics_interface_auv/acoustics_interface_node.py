@@ -5,7 +5,7 @@ import rclpy.logging
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray, Int32MultiArray
 
-from acoustics_interface.acoustics_interface_lib import TeensyCommunicationUDP
+from acoustics_interface_auv.acoustics_interface_lib import TeensyCommunicationUDP
 
 
 class AcousticsInterfaceNode(Node):

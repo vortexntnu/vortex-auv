@@ -2,6 +2,7 @@
 
 # Python Libraries
 import array
+from pathlib import Path
 
 # ROS2 Libraries
 import rclpy
@@ -89,19 +90,15 @@ class AcousticsDataRecordNode(Node):
         # Initialize logger ----------
         # Get package directory location
         ros2_package_directory_location = get_package_share_directory(
-            "acoustics_data_record"
+            "acoustics_data_record_auv"
         )
         ros2_package_directory_location = (
-            ros2_package_directory_location + "/../../../../"
-        )  # go back to workspace
-        ros2_package_directory_location = (
-            ros2_package_directory_location
-            + "src/vortex-auv/acoustics/acoustics_data_record/"
-        )  # Navigate to this package
+            Path(ros2_package_directory_location).parents[3] / 'src' / 'vortex-auv' / 'acoustics' / 'acoustics_data_record_auv'
+        ) 
 
         # Make blackbox logging file
         self.acoustics_data_record = AcousticsDataRecordLib(
-            ros2_package_directory=ros2_package_directory_location
+            ros2_package_directory=str(ros2_package_directory_location)
         )
 
         # Logs all the newest data 1 time(s) per second
