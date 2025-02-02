@@ -19,12 +19,10 @@ def generate_launch_description() -> LaunchDescription:
         variable setting, joystick node, and joystick interface launch.
 
     """
-    # Set environment variable
     set_env_var = SetEnvironmentVariable(
         name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}"
     )
 
-    # Joystick node
     joy_node = Node(
         package="joy",
         executable="joy_node",
@@ -35,11 +33,10 @@ def generate_launch_description() -> LaunchDescription:
             {"autorepeat_rate": 100.0},
         ],
         remappings=[
-            ("/joy", "/joystick/joy"),
+            ("/joy", "/orca/joy"),
         ],
     )
 
-    # Joystick interface launch
     joystick_interface_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -49,5 +46,4 @@ def generate_launch_description() -> LaunchDescription:
         )
     )
 
-    # Return launch description
     return LaunchDescription([set_env_var, joy_node, joystick_interface_launch])
