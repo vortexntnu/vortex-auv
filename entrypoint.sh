@@ -5,7 +5,7 @@
 export IMAGE="auv-image:latest"
 export BASE_IMAGE="rwthika/ros2:humble"
 export TARGET="dev"
-export PLATFORM="linux/arm64"  # Uncomment this line for ARM64 builds
+# export PLATFORM="linux/arm64"  # Uncomment this line for ARM64 builds
 # export PLATFORM="amd64"  # Uncomment this line for AMD64 builds
 
 # Run the build script
@@ -17,4 +17,4 @@ docker run -it --rm \
     --network host \
     --ipc=host \
     -v "$(pwd):/docker-ros/ws/src/target:rshared" \
-    "asv-image:latest" /bin/bash
+    "$IMAGE" /bin/bash
