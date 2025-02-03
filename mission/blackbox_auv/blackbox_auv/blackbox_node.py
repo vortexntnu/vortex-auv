@@ -79,11 +79,26 @@ class BlackBoxNode(Node):
         )
 
     def get_topics(self) -> None:
-        namespace = self.declare_parameter("topics.namespace", "_").get_parameter_value().string_value
-        topics = ["current", "voltage", "pressure", "temperature", "thruster_forces", "pwm_output"]
+        namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        topics = [
+            "current",
+            "voltage",
+            "pressure",
+            "temperature",
+            "thruster_forces",
+            "pwm_output",
+        ]
         for topic in topics:
             self.declare_parameter(f"topics.{topic}", "_")
-            setattr(self, topic + "_topic", namespace + self.get_parameter(f"topics.{topic}").value)
+            setattr(
+                self,
+                topic + "_topic",
+                namespace + self.get_parameter(f"topics.{topic}").value,
+            )
 
     def create_subscribers(self) -> None:
         self.psm_current_subscriber = self.create_subscription(

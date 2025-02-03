@@ -1,13 +1,15 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(thruster_interface_auv)
 
-# Required dependencies
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 
-# Include directories
 include_directories(include)
 
 add_executable(${PROJECT_NAME}_node
@@ -22,7 +24,6 @@ ament_target_dependencies(${PROJECT_NAME}_node
   vortex_msgs
 )
 
-# Install launch files.
 install(DIRECTORY
   launch
   config
