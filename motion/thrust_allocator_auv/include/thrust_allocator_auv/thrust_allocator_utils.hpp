@@ -139,4 +139,16 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
+inline Eigen::Vector6d wrench_to_vector(const geometry_msgs::msg::Wrench& msg) {
+    Eigen::Vector6d msg_vector;
+    msg_vector(0) = msg.force.x;
+    msg_vector(1) = msg.force.y;
+    msg_vector(2) = msg.force.z;
+    msg_vector(3) = msg.torque.x;
+    msg_vector(4) = msg.torque.y;
+    msg_vector(5) = msg.torque.z;
+
+    return msg_vector;
+}
+
 #endif  // VORTEX_ALLOCATOR_UTILS_HPP

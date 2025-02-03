@@ -12,7 +12,7 @@ class BlackBoxLogData:
     def __init__(self, ros2_package_directory: str = "") -> None:
         # Global variables for .csv file manipulation ----------
         # Get the path for the directory where we will store our data
-        self.blackbox_data_directory = ros2_package_directory + "blackbox_data/"
+        self.blackbox_data_directory = ros2_package_directory + "/blackbox_data/"
 
         timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
         data_file_name = "blackbox_data_" + timestamp + ".csv"

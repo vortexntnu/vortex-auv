@@ -57,11 +57,24 @@ class JoystickInterface(Node):
             # Get the values and set them as attributes of the class
             setattr(self, '_' + param, self.get_parameter(param).value)
 
-        topic_params = ['pose', 'joy', 'wrench', 'guidance', 'killswitch', 'mode']
+        namespace = (
+            self.declare_parameter('topics.namespace', 'orca')
+            .get_parameter_value()
+            .string_value
+        )
+
+        topic_params = ['pose', 'joy', 'wrench_input', 'killswitch', 'operation_mode']
 
         for param in topic_params:
             self.declare_parameter(f'topics.{param}', "_")
-            setattr(self, param + '_topic', self.get_parameter(f'topics.{param}').value)
+            setattr(
+                self,
+                param + '_topic',
+                namespace + self.get_parameter(f'topics.{param}').value,
+            )
+
+        self.declare_parameter('topics.guidance.dp', "_")
+        self.guidance_topic = self.get_parameter('topics.guidance.dp').value
 
     def init_movement(self):
         self.surge = 0.0
@@ -81,13 +94,15 @@ class JoystickInterface(Node):
         self._joy_subscriber = self.create_subscription(
             Joy, self.joy_topic, self.joystick_cb, 5
         )
-        self._odom_subscriber = self.create_subscription(
+        self._pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
             self.pose_topic,
             self.pose_cb,
             qos_profile=best_effort_qos,
         )
-        self._wrench_publisher = self.create_publisher(Wrench, self.wrench_topic, 10)
+        self._wrench_publisher = self.create_publisher(
+            Wrench, self.wrench_input_topic, 10
+        )
         self._ref_publisher = self.create_publisher(
             ReferenceFilter, self.guidance_topic, best_effort_qos
         )
@@ -96,7 +111,7 @@ class JoystickInterface(Node):
         )
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.mode_topic, best_effort_qos
+            String, self.operation_mode_topic, best_effort_qos
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
