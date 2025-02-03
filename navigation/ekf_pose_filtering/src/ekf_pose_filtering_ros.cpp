@@ -56,10 +56,10 @@ void EKFPoseFilteringNode::pose_callback(const geometry_msgs::msg::PoseStamped::
         try {
             tf2_buffer_->transform(*pose_msg, transformed_pose, target_frame_, tf2::Duration(std::chrono::milliseconds(100)));
             transformed_pose.header.frame_id = target_frame_;
-            transformed_pose_pub_->publish(transformed_pose);
             if (enu_orientation_) {
                 transformed_pose.pose.orientation = enu_to_ned_quaternion(transformed_pose.pose.orientation);
             }
+            transformed_pose_pub_->publish(transformed_pose);
             filter_pose(transformed_pose);
             filtered_pose_pub_->publish(transformed_pose);
         } catch (tf2::TransformException &ex) {

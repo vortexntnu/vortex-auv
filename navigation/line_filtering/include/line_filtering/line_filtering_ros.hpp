@@ -122,8 +122,9 @@ private:
     Eigen::Array<double, 2, Eigen::Dynamic> measurements_;
     Eigen::Array<double, 2, Eigen::Dynamic> line_params_;
 
-    int active_id_;
+    int current_id_;
     int id_counter_;
+    geometry_msgs::msg::PoseArray current_track_points_;
 
 
     bool debug_visualization_ = true;
