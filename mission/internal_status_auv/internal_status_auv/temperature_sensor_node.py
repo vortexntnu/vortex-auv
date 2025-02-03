@@ -12,16 +12,17 @@ import internal_status_auv.temperature_sensor_lib
 class TemperaturePublisher(Node):
     def __init__(self) -> None:
         # Pressure sensor setup ----------
-        self.temperature = (
+        self.temperature_lib = (
             internal_status_auv.temperature_sensor_lib.TemperatureSensor()
         )
 
         # Node setup ----------
         super().__init__("temperature_sensor_publisher")
 
-        # Create publishers ----------
+        self.get_topic()
+
         self.publisher_temperature = self.create_publisher(
-            Float32, "/auv/temperature", 5
+            Float32, self.temperature_topic, 5
         )
 
         # Data gathering cycle ----------
@@ -62,6 +63,17 @@ class TemperaturePublisher(Node):
         # Debugging ----------
         self.get_logger().info('"temperature_sensor_publisher" has been started')
 
+    def get_topic(self) -> None:
+        namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        self.declare_parameter("topics.temperature", "_")
+        self.temperature_topic = (
+            namespace + self.get_parameter("topics.temperature").value
+        )
+
     def timer_callback(self) -> None:
         """Callback function triggered by the main timer.
 
@@ -69,7 +81,7 @@ class TemperaturePublisher(Node):
         and publishes it to the "/auv/temperature" topic.
         """
         # Get temperature data
-        self.temperature = self.temperature.get_temperature()
+        self.temperature = self.temperature_lib.get_temperature()
 
         # Publish temperature data
         temperature_msg = Float32()

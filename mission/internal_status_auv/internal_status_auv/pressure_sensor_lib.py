@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# Python Libraries
 import time
 
 import adafruit_mprls  # ! NOTE: sudo pip3 install adafruit-circuitpython-mprls
