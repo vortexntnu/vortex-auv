@@ -103,25 +103,6 @@ void DPAdaptBacksControllerNode::twist_callback(
         msg->twist.twist.angular.z;
 }
 
-void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
-        return;
-    }
-
-    dp_types::Vector6d tau =
-        dp_adapt_backs_controller_.calculate_tau(eta_, eta_d_, nu_);
-
-    geometry_msgs::msg::Wrench tau_msg;
-    tau_msg.force.x = tau(0);
-    tau_msg.force.y = tau(1);
-    tau_msg.force.z = tau(2);
-    tau_msg.torque.x = tau(3);
-    tau_msg.torque.y = tau(4);
-    tau_msg.torque.z = tau(5);
-
-    tau_pub_->publish(tau_msg);
-}
-
 void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>(
         "adap_param",
@@ -165,14 +146,37 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_types::Matrix6d mass_matrix =
         Eigen::Map<dp_types::Matrix6d>(mass_matrix_vec.data());
 
-    dp_adapt_backs_controller_.set_k1(K1_eigen);
-    dp_adapt_backs_controller_.set_k2(K2_eigen);
-    dp_adapt_backs_controller_.set_rbg(r_b_bg_eigen);
-    dp_adapt_backs_controller_.set_adap_param(adap_param_eigen);
-    dp_adapt_backs_controller_.set_d_gain(d_gain_eigen);
-    dp_adapt_backs_controller_.set_inertia_matrix(I_b_eigen);
-    dp_adapt_backs_controller_.set_mass_inertia_matrix(mass_matrix);
-    dp_adapt_backs_controller_.set_m(m);
+    dp_adapt_params_.adap_param = adap_param_eigen;
+    dp_adapt_params_.d_gain = d_gain_eigen;
+    dp_adapt_params_.K1 = K1_eigen;
+    dp_adapt_params_.K2 = K2_eigen;
+    dp_adapt_params_.r_b_bg = r_b_bg_eigen;
+    dp_adapt_params_.I_b = I_b_eigen;
+    dp_adapt_params_.mass_matrix = mass_matrix;
+    dp_adapt_params_.m = m;
+
+    dp_adapt_backs_controller_ =
+        std::make_unique<DPAdaptBacksController>(dp_adapt_params_);
+    ;
+}
+
+void DPAdaptBacksControllerNode::publish_tau() {
+    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+        return;
+    }
+
+    dp_types::Vector6d tau =
+        dp_adapt_backs_controller_->calculate_tau(eta_, eta_d_, nu_);
+
+    geometry_msgs::msg::Wrench tau_msg;
+    tau_msg.force.x = tau(0);
+    tau_msg.force.y = tau(1);
+    tau_msg.force.z = tau(2);
+    tau_msg.torque.x = tau(3);
+    tau_msg.torque.y = tau(4);
+    tau_msg.torque.z = tau(5);
+
+    tau_pub_->publish(tau_msg);
 }
 
 void DPAdaptBacksControllerNode::guidance_callback(

@@ -15,6 +15,7 @@
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
+#include "typedefs.hpp"
 
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
@@ -55,8 +56,6 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
-    DPAdaptBacksController dp_adapt_backs_controller_;
-
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
@@ -81,6 +80,10 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     dp_types::Eta eta_d_;
 
     dp_types::Nu nu_;
+
+    dp_types::DPAdaptParams dp_adapt_params_;
+
+    std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_;
 
     bool killswitch_on_;
 

@@ -9,8 +9,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
 
     set_subscribers_and_publisher();
 
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();
@@ -74,6 +72,9 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
+
+    tau_pub_ =
+        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
 }
 
 void PIDControllerNode::killswitch_callback(

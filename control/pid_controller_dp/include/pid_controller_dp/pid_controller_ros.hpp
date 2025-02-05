@@ -47,7 +47,7 @@ class PIDControllerNode : public rclcpp::Node {
     void set_pid_params();
 
     // @brief Set the subscriber and publisher for the node
-    void PIDControllerNode::set_subscribers_and_publisher();
+    void set_subscribers_and_publisher();
 
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose

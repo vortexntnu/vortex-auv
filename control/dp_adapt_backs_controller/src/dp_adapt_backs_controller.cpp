@@ -4,17 +4,18 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-DPAdaptBacksController::DPAdaptBacksController()
-    : K1_(dp_types::Matrix6d::Identity()),
-      K2_(dp_types::Matrix6d::Identity()),
-      r_b_bg_(dp_types::Vector3d::Zero()),
-      adapt_gain_(dp_types::Matrix12d::Identity()),
-      d_gain_(dp_types::Matrix6d::Zero()),
+DPAdaptBacksController::DPAdaptBacksController(
+    const dp_types::DPAdaptParams adap_params)
+    : K1_(adap_params.K1.asDiagonal().toDenseMatrix()),
+      K2_(adap_params.K2.asDiagonal().toDenseMatrix()),
+      r_b_bg_(adap_params.r_b_bg),
+      adapt_gain_(adap_params.adap_param.asDiagonal().toDenseMatrix()),
+      d_gain_(adap_params.d_gain.asDiagonal().toDenseMatrix()),
       adap_param_(dp_types::Vector12d::Zero()),
       d_est_(dp_types::Vector6d::Zero()),
-      I_b_(dp_types::Matrix3d::Identity()),
-      M_(dp_types::Matrix6d::Identity()),
-      m_(0),
+      I_b_(adap_params.I_b.asDiagonal().toDenseMatrix()),
+      M_(adap_params.mass_matrix),
+      m_(adap_params.m),
       dt_(0.04) {}
 
 dp_types::Vector6d DPAdaptBacksController::calculate_tau(
@@ -63,40 +64,6 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
     d_est_ = d_est_.cwiseMax(-80.0).cwiseMin(80.0);
 
     return tau;
-}
-
-void DPAdaptBacksController::set_k1(const dp_types::Vector6d& K1) {
-    this->K1_ = K1.asDiagonal().toDenseMatrix();
-}
-
-void DPAdaptBacksController::set_k2(const dp_types::Vector6d& K2) {
-    this->K2_ = K2.asDiagonal().toDenseMatrix();
-}
-
-void DPAdaptBacksController::set_rbg(const dp_types::Vector3d& r_b_bg) {
-    this->r_b_bg_ = r_b_bg;
-}
-
-void DPAdaptBacksController::set_adap_param(
-    const dp_types::Vector12d& adapt_gain) {
-    this->adapt_gain_ = adapt_gain.asDiagonal().toDenseMatrix();
-}
-
-void DPAdaptBacksController::set_d_gain(const dp_types::Vector6d& d_gain) {
-    this->d_gain_ = d_gain.asDiagonal().toDenseMatrix();
-}
-
-void DPAdaptBacksController::set_inertia_matrix(const dp_types::Vector3d& I_b) {
-    this->I_b_ = I_b.asDiagonal().toDenseMatrix();
-}
-
-void DPAdaptBacksController::set_mass_inertia_matrix(
-    const dp_types::Matrix6d& M) {
-    this->M_ = M;
-}
-
-void DPAdaptBacksController::set_m(double m) {
-    this->m_ = m;
 }
 
 void DPAdaptBacksController::set_timeStep(double dt) {
