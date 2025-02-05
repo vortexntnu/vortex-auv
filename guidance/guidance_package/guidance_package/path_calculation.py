@@ -4,7 +4,6 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 
 def ssa(angle):
@@ -21,7 +20,6 @@ def R_z(rot):
 
 
 class Path:
-
     def __init__(self):
         self.path = []
         self.chi_p = []

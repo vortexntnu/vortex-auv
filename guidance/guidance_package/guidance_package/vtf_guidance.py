@@ -6,11 +6,10 @@ import math
 import numpy as np
 import rclpy
 from geometry_msgs.msg import Pose
-from mpl_toolkits.mplot3d import Axes3D
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from scipy import linalg
-from std_msgs.msg import Float32MultiArray, Float64
+from std_msgs.msg import Float64
 
 from .path_calculation import Path
 
@@ -35,8 +34,7 @@ def quaternion_to_euler_angle(w, x, y, z):
 
 
 def euler_angle_to_quaternion(roll, pitch, yaw):
-    """
-    Converts Euler angles (roll, pitch, yaw) to a quaternion (w, x, y, z).
+    """Converts Euler angles (roll, pitch, yaw) to a quaternion (w, x, y, z).
 
     Args:
         roll: Rotation around the x-axis (in radians).
@@ -168,7 +166,6 @@ class GuidanceNode(Node):
         )
 
     def publisher_callback(self):
-
         msg = Pose()
 
         path = Path()

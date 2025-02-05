@@ -2,9 +2,7 @@
 # Written by Aksel Kristoffersen
 # Documentation can be found in Aksels master's thesis: Guidance and Control System for Dynamic Positioning and PathFollowing of an AUV exposed to Ocean Currents
 
-import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 
 # function to calculate the smallest signed angle
@@ -24,7 +22,6 @@ def R_z(rot):
 
 # class to generate a path
 class Path:
-
     def __init__(self):
         self.path = []
         self.chi_p = []

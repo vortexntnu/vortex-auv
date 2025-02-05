@@ -5,21 +5,18 @@ from dataclasses import dataclass
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import Point, Pose
-from mpl_toolkits.mplot3d import Axes3D
+from geometry_msgs.msg import Point
 from nav_msgs.msg import Odometry
+from path_calculation import Path
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from scipy import linalg
-from std_msgs.msg import Float32MultiArray, Float64
+from std_msgs.msg import Float64
 from vortex_msgs.msg import ReferenceFilter
-
-from path_calculation import Path
 
 
 @dataclass
 class TargetState:
-
     x: float = 0.0
     x_dot: float = 0.0
     y: float = 0.0
@@ -38,10 +35,12 @@ class TargetState:
         self.z = new_state[4]
         self.z_dot = new_state[5]
 
+    def __sub__(self, other: "DroneState"):
+        return np.array([self.x - other.x, self.y - other.y, self.z - other.z])
+
 
 @dataclass
 class DroneState:
-
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -57,8 +56,7 @@ class DroneState:
 
 
 def quaternion_to_euler_angle(w, x, y, z):
-    """
-    Converts a quaternion (w, x, y, z) to euler angles (roll, pitch, yaw).
+    """Converts a quaternion (w, x, y, z) to euler angles (roll, pitch, yaw).
 
     Args:
         w, x, y, z: Quaternion components.
@@ -87,8 +85,7 @@ def quaternion_to_euler_angle(w, x, y, z):
 
 
 def euler_angle_to_quaternion(roll, pitch, yaw):
-    """
-    Converts Euler angles (roll, pitch, yaw) to a quaternion (w, x, y, z).
+    """Converts Euler angles (roll, pitch, yaw) to a quaternion (w, x, y, z).
 
     Args:
         roll: Rotation around the x-axis (in radians).
@@ -195,7 +192,7 @@ class GuidanceNode(Node):
         self.point_publisher = self.create_publisher(Point, "/dp/vtf_point", 10)
 
         self.odom_subscriber = self.create_subscription(
-            Odometry, "/nucleus/odom", self.odom_subscribe_callback, qos_profile
+            Odometry, "/orca/odom", self.odom_subscribe_callback, qos_profile
         )
 
     def waypoints_subscribe_callback(self, msg: Float64):
@@ -219,7 +216,6 @@ class GuidanceNode(Node):
         self.drone_state.yaw = yaw
 
     def publisher_callback(self):
-
         msg = ReferenceFilter()
         msg_point = Point()
 
@@ -272,10 +268,6 @@ class GuidanceNode(Node):
 
         roll = 0.0  # not needed for the tasks
         pitch = np.arcsin((self.target_state.z - self.drone_state.z) / d_total)
-        # pitch = np.arctan2(
-        #    self.target_state.z - self.drone_state.z,
-        #    self.target_state.x - self.drone_state.x,
-        # )
 
         yaw = np.arctan2(
             self.target_state.y - self.drone_state.y,
@@ -284,11 +276,6 @@ class GuidanceNode(Node):
         msg.x = self.target_state.x
         msg.y = self.target_state.y
         msg.z = self.target_state.z
-        # q = euler_angle_to_quaternion(self.roll, self.pitch, self.yaw)
-        # msg.orientation.w = q[0]
-        # msg.orientation.x = q[1]
-        # msg.orientation.y = q[2]
-        # msg.orientation.z = q[3]
         msg.roll = roll
         msg.pitch = pitch
         msg.yaw = yaw

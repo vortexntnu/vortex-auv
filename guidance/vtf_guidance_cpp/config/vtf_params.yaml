@@ -1,0 +1,7 @@
+guidance_vtf_node:
+  ros__parameters:
+    pose_topic: "/dvl/pose"
+    twist_topic: "/dvl/twist"
+    control_topic: "/thrust/wrench_input"
+    kill_switch: "softwareKillSwitch"
+    software_switch: "softwareOperationMode"
