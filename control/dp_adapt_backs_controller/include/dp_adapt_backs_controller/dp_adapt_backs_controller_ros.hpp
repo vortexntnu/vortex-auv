@@ -46,6 +46,9 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     // @brief set the DP Adaptive Backstepping controller parameters
     void set_adap_params();
 
+    // @brief Set the subscriber and publisher for the node
+    void set_subscribers_and_publisher();
+
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity

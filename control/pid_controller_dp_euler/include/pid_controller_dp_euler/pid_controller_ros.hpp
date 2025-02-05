@@ -37,6 +37,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     void set_pid_params();
 
+    void set_subscribers_and_publisher();
+
     PIDController pid_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;

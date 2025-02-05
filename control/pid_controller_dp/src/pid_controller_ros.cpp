@@ -5,32 +5,48 @@
 #include "pid_controller_dp/typedefs.hpp"
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
+    time_step_ = std::chrono::milliseconds(10);
+
+    set_subscribers_and_publisher();
+
+    tau_pub_ =
+        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
+    tau_pub_timer_ = this->create_wall_timer(
+        time_step_, std::bind(&PIDControllerNode::publish_tau, this));
+    set_pid_params();
+}
+
+void PIDControllerNode::set_subscribers_and_publisher() {
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
-    time_step_ = std::chrono::milliseconds(10);
 
-    this->declare_parameter("reference_topic", "/dp/reference");
-    this->declare_parameter("control_topic", "/thrust/wrench_input");
-    this->declare_parameter("software_kill_switch_topic",
-                            "/softwareKillSwitch");
-    this->declare_parameter("software_operation_mode_topic",
-                            "/softwareOperationMode");
+    this->declare_parameter<std::string>("topics.namespace");
+    std::string ns = this->get_parameter("topics.namespace").as_string();
 
-    this->declare_parameter("pose_topic", "/dvl/pose");
-    this->declare_parameter("twist_topic", "/dvl/twist");
-
+    this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
-        this->get_parameter("reference_topic").as_string();
-    std::string control_topic =
-        this->get_parameter("control_topic").as_string();
-    std::string software_kill_switch_topic =
-        this->get_parameter("software_kill_switch_topic").as_string();
-    std::string software_operation_mode_topic =
-        this->get_parameter("software_operation_mode_topic").as_string();
+        ns + this->get_parameter("topics.guidance.dp").as_string();
 
-    std::string pose_topic = this->get_parameter("pose_topic").as_string();
-    std::string twist_topic = this->get_parameter("twist_topic").as_string();
+    this->declare_parameter<std::string>("topics.pose");
+    std::string pose_topic =
+        ns + this->get_parameter("topics.pose").as_string();
+
+    this->declare_parameter<std::string>("topics.twist");
+    std::string twist_topic =
+        ns + this->get_parameter("topics.twist").as_string();
+
+    this->declare_parameter<std::string>("topics.killswitch");
+    std::string software_kill_switch_topic =
+        ns + this->get_parameter("topics.killswitch").as_string();
+
+    this->declare_parameter<std::string>("topics.operation_mode");
+    std::string software_operation_mode_topic =
+        ns + this->get_parameter("topics.operation_mode").as_string();
+
+    this->declare_parameter<std::string>("topics.wrench_input");
+    std::string control_topic =
+        ns + this->get_parameter("topics.wrench_input").as_string();
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, 10,
@@ -58,12 +74,6 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
-
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
-    tau_pub_timer_ = this->create_wall_timer(
-        time_step_, std::bind(&PIDControllerNode::publish_tau, this));
-    set_pid_params();
 }
 
 void PIDControllerNode::killswitch_callback(
