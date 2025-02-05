@@ -10,6 +10,13 @@ config_file_path = os.path.join(
     'reference_filter_params.yaml',
 )
 
+orca_config = os.path.join(
+    get_package_share_directory('auv_setup'),
+    'config',
+    'robots',
+    'orca.yaml',
+)
+
 
 def generate_launch_description():
     reference_filter_node = Node(
@@ -18,6 +25,7 @@ def generate_launch_description():
         name='reference_filter_node',
         parameters=[
             config_file_path,
+            orca_config,
         ],
         output='screen',
     )

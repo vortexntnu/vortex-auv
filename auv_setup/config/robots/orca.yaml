@@ -147,8 +147,9 @@
       joy: "/joy"
       pose: "/pose"
       twist: "/twist"
-      operation_mode: /operation_mode
-      killswitch: /killswitch
+      operation_mode: "/operation_mode"
+      killswitch: "/killswitch"
+      aruco_board_pose_camera: "/aruco_board_pose_camera"
       guidance:
         los: "/guidance/los"
         dp: "/guidance/dp"
@@ -161,3 +162,6 @@
         peaks: "/peaks"
         tdoa: "/time_difference_of_arrival"
         position: "/position"
+
+    action_servers:
+      reference_filter: "/reference_filter"
