@@ -22,12 +22,19 @@ def generate_launch_description() -> LaunchDescription:
         "param_velocity_controller_lqr.yaml",
     )
 
+    topic_file = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        "orca.yaml",
+    )
+
     velocity_controller_node = Node(
         package="velocity_controller_lqr",
         executable="velocity_controller_lqr_node.py",
         name="velocity_controller_lqr_node",
         output="screen",
-        parameters=[parameter_file],
+        parameters=[parameter_file, topic_file],
     )
 
     return LaunchDescription([velocity_controller_node])

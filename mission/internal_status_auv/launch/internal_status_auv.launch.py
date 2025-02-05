@@ -24,10 +24,10 @@ def generate_launch_description() -> LaunchDescription:
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(
-        get_package_share_directory("internal_status_auv"),
-        "../../../../",  # Navigate to the workspace root
-        "src/vortex-auv/auv_setup/config/robots/",  # Directory containing YAML files
-        "orca.yaml",  # Configuration file for the orca robot
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        "orca.yaml",
     )
 
     # Power Sense Module Node

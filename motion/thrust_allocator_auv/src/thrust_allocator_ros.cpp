@@ -11,57 +11,81 @@ using namespace std::chrono_literals;
 ThrustAllocator::ThrustAllocator()
     : Node("thrust_allocator_node"),
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
-    declare_parameter("physical.center_of_mass", std::vector<double>{0});
-    declare_parameter("propulsion.dimensions.num", 3);
-    declare_parameter("propulsion.thrusters.num", 8);
-    declare_parameter("propulsion.thrusters.min", -100);
-    declare_parameter("propulsion.thrusters.max", 100);
-    declare_parameter("propulsion.thrusters.thrust_update_rate", 10.0);
-    declare_parameter("propulsion.thrusters.thruster_force_direction",
-                      std::vector<double>{0});
-    declare_parameter("propulsion.thrusters.thruster_position",
-                      std::vector<double>{0});
+    extract_parameters();
+
+    thrust_update_period_ =
+        std::chrono::milliseconds(static_cast<int>(1000 / thrust_update_rate_));
+
+    set_allocator();
+
+    set_subscriber_and_publisher();
+
+    calculate_thrust_timer_ = this->create_wall_timer(
+        thrust_update_period_,
+        std::bind(&ThrustAllocator::calculate_thrust_timer_cb, this));
+
+    body_frame_forces_.setZero();
+}
+
+void ThrustAllocator::extract_parameters() {
+    this->declare_parameter<std::vector<double>>("physical.center_of_mass");
+    this->declare_parameter<int>("propulsion.dimensions.num");
+    this->declare_parameter<int>("propulsion.thrusters.num");
+    this->declare_parameter<int>("propulsion.thrusters.min");
+    this->declare_parameter<int>("propulsion.thrusters.max");
+    this->declare_parameter<double>("propulsion.thrusters.thrust_update_rate");
+    this->declare_parameter<std::vector<double>>(
+        "propulsion.thrusters.thruster_force_direction");
+    this->declare_parameter<std::vector<double>>(
+        "propulsion.thrusters.thruster_position");
 
     center_of_mass_ = double_array_to_eigen_vector3d(
-        get_parameter("physical.center_of_mass").as_double_array());
+        this->get_parameter("physical.center_of_mass").as_double_array());
+    num_dimensions_ = this->get_parameter("propulsion.dimensions.num").as_int();
+    num_thrusters_ = this->get_parameter("propulsion.thrusters.num").as_int();
+    min_thrust_ = this->get_parameter("propulsion.thrusters.min").as_int();
+    max_thrust_ = this->get_parameter("propulsion.thrusters.max").as_int();
+    thrust_update_rate_ =
+        this->get_parameter("propulsion.thrusters.thrust_update_rate")
+            .as_double();
 
-    num_dimensions_ = get_parameter("propulsion.dimensions.num").as_int();
-    num_thrusters_ = get_parameter("propulsion.thrusters.num").as_int();
-    min_thrust_ = get_parameter("propulsion.thrusters.min").as_int();
-    max_thrust_ = get_parameter("propulsion.thrusters.max").as_int();
-    thrust_update_period_ = std::chrono::milliseconds(static_cast<int>(
-        1000 /
-        get_parameter("propulsion.thrusters.thrust_update_rate").as_double()));
+    this->declare_parameter<std::string>("topics.namespace");
+    this->declare_parameter<std::string>("topics.wrench_input");
+    this->declare_parameter<std::string>("topics.thruster_forces");
+}
 
+void ThrustAllocator::set_allocator() {
     thruster_force_direction_ = double_array_to_eigen_matrix(
-        get_parameter("propulsion.thrusters.thruster_force_direction")
+        this->get_parameter("propulsion.thrusters.thruster_force_direction")
             .as_double_array(),
         num_dimensions_, num_thrusters_);
 
     thruster_position_ = double_array_to_eigen_matrix(
-        get_parameter("propulsion.thrusters.thruster_position")
+        this->get_parameter("propulsion.thrusters.thruster_position")
             .as_double_array(),
         num_dimensions_, num_thrusters_);
 
     thrust_configuration_ = calculate_thrust_allocation_matrix(
         thruster_force_direction_, thruster_position_, center_of_mass_);
 
+    pseudoinverse_allocator_.T_pinv =
+        calculate_right_pseudoinverse(thrust_configuration_);
+}
+
+void ThrustAllocator::set_subscriber_and_publisher() {
+    std::string ns = this->get_parameter("topics.namespace").as_string();
+    std::string wrench_input_topic =
+        ns + this->get_parameter("topics.wrench_input").as_string();
+    std::string thruster_forces_topic =
+        ns + this->get_parameter("topics.thruster_forces").as_string();
+
     wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
-        "thrust/wrench_input", 1,
+        wrench_input_topic, 1,
         std::bind(&ThrustAllocator::wrench_cb, this, std::placeholders::_1));
 
     thruster_forces_publisher_ =
         this->create_publisher<vortex_msgs::msg::ThrusterForces>(
-            "thrust/thruster_forces", 5);
-
-    calculate_thrust_timer_ = this->create_wall_timer(
-        thrust_update_period_,
-        std::bind(&ThrustAllocator::calculate_thrust_timer_cb, this));
-
-    pseudoinverse_allocator_.T_pinv =
-        calculate_right_pseudoinverse(thrust_configuration_);
-
-    body_frame_forces_.setZero();
+            thruster_forces_topic, 5);
 }
 
 void ThrustAllocator::calculate_thrust_timer_cb() {
@@ -70,6 +94,7 @@ void ThrustAllocator::calculate_thrust_timer_cb() {
 
     if (is_invalid_matrix(thruster_forces)) {
         RCLCPP_ERROR(get_logger(), "ThrusterForces vector invalid");
+        thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
         return;
     }
 
@@ -84,16 +109,11 @@ void ThrustAllocator::calculate_thrust_timer_cb() {
 }
 
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
-    Eigen::Vector6d msg_vector;
-    msg_vector(0) = msg.force.x;   // surge
-    msg_vector(1) = msg.force.y;   // sway
-    msg_vector(2) = msg.force.z;   // heave
-    msg_vector(3) = msg.torque.x;  // roll
-    msg_vector(4) = msg.torque.y;  // pitch
-    msg_vector(5) = msg.torque.z;  // yaw
+    Eigen::Vector6d msg_vector = wrench_to_vector(msg);
 
     if (!healthy_wrench(msg_vector)) {
         RCLCPP_ERROR(get_logger(), "ASV wrench vector invalid, ignoring.");
+        body_frame_forces_.setZero();
         return;
     }
     std::swap(msg_vector, body_frame_forces_);

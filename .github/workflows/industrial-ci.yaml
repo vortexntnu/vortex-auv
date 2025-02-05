@@ -10,4 +10,5 @@ jobs:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-industrial-ci.yml@main
     with:
         upstream_workspace: './dependencies.repos'
-        before_install_target_dependencies: 'cp ./requirements.sh /tmp/requirements.sh && chmod +x /tmp/requirements.sh && /tmp/requirements.sh'
+        before_install_target_dependencies: './requirements.sh'
+        ros_repo: '["testing", "main"]'

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import numpy as np
 import rclpy
 from geometry_msgs.msg import (
@@ -23,14 +24,7 @@ class LinearQuadraticRegulator(Node):
     def __init__(self):
         super().__init__("velocity_controller_lqr_node")
 
-        (
-            pose_topic,
-            twist_topic,
-            guidance_topic,
-            thrust_topic,
-            softwareoperation_topic,
-            killswitch_topic,
-        ) = self.get_topics()
+        self.get_topics()
 
         best_effort_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -48,44 +42,45 @@ class LinearQuadraticRegulator(Node):
 
         self.pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
-            pose_topic,
+            self.pose_topic,
             self.pose_callback,
             qos_profile=best_effort_qos,
         )
 
         self.twist_subscriber = self.create_subscription(
             TwistWithCovarianceStamped,
-            twist_topic,
+            self.twist_topic,
             self.twist_callback,
             qos_profile=best_effort_qos,
         )
 
         self.operationmode_subscriber = self.create_subscription(
             String,
-            softwareoperation_topic,
+            self.operation_mode_topic,
             self.operation_callback,
             qos_profile=best_effort_qos,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
-            killswitch_topic,
+            self.killswitch_topic,
             self.killswitch_callback,
             qos_profile=best_effort_qos,
         )
 
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
-            guidance_topic,
+            self.los_topic,
             self.guidance_callback,
             qos_profile=best_effort_qos,
         )
 
         # ---------------------------- PUBLISHERS ----------------------------
-        self.publisherLQR = self.create_publisher(Wrench, thrust_topic, reliable_qos)
+        self.publisherLQR = self.create_publisher(
+            Wrench, self.wrench_input_topic, reliable_qos
+        )
 
         # ------------------------------ TIMERS ------------------------------
-        self.declare_parameter("dt", 0.1)
-        dt = self.get_parameter("dt").value
+        dt = self.declare_parameter("dt", 0.1).get_parameter_value().double_value
         self.control_timer = self.create_timer(dt, self.control_loop)
 
         # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
@@ -99,41 +94,35 @@ class LinearQuadraticRegulator(Node):
         self.guidance_values = GuidanceValues()
 
     def get_topics(self):
-        """Get the topics from the parameter server.
-
-        Returns:
-        odom_topic: str: The topic for accessing the odometry data from the parameter file
-        twist_topic: str: The topic for accessing the twist data from the parameter file
-        pose_topic: str: The topic for accessing the pose data from the parameter file
-        guidance_topic: str: The topic for accessing the guidance data the parameter file
-        thrust_topic: str: The topic for accessing the thrust data from the parameter file
-        """
-        self.declare_parameter("topics.pose_topic", "/dvl/pose")
-        self.declare_parameter("topics.twist_topic", "/dvl/twist")
-        self.declare_parameter("topics.guidance_topic", "/guidance/los")
-        self.declare_parameter("topics.thrust_topic", "/thrust/wrench_input")
-        self.declare_parameter(
-            "topics.softwareoperation_topic", "/softwareOperationMode"
+        """Get the topics from the parameter file."""
+        namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
         )
-        self.declare_parameter("topics.killswitch_topic", "/softwareKillSwitch")
-
-        pose_topic = self.get_parameter("topics.pose_topic").value
-        twist_topic = self.get_parameter("topics.twist_topic").value
-        guidance_topic = self.get_parameter("topics.guidance_topic").value
-        thrust_topic = self.get_parameter("topics.thrust_topic").value
-        softwareoperation_topic = self.get_parameter(
-            "topics.softwareoperation_topic"
-        ).value
-        killswitch_topic = self.get_parameter("topics.killswitch_topic").value
-
-        return (
-            pose_topic,
-            twist_topic,
-            guidance_topic,
-            thrust_topic,
-            softwareoperation_topic,
-            killswitch_topic,
-        )
+        topics = [
+            "pose",
+            "twist",
+            "los",
+            "wrench_input",
+            "operation_mode",
+            "killswitch",
+        ]
+        for topic in topics:
+            if topic == "los":
+                self.declare_parameter("topics.guidance." + topic, "_")
+                setattr(
+                    self,
+                    topic + "_topic",
+                    namespace + self.get_parameter("topics.guidance." + topic).value,
+                )
+                continue
+            self.declare_parameter("topics." + topic, "_")
+            setattr(
+                self,
+                topic + "_topic",
+                namespace + self.get_parameter("topics." + topic).value,
+            )
 
     def get_parameters(self):
         """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.

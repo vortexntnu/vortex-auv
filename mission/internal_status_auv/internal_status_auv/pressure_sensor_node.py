@@ -12,13 +12,14 @@ import internal_status_auv.pressure_sensor_lib
 class PressurePublisher(Node):
     def __init__(self) -> None:
         # Pressure sensor setup ----------
-        self.pressure = internal_status_auv.pressure_sensor_lib.PressureSensor()
+        self.pressure_lib = internal_status_auv.pressure_sensor_lib.PressureSensor()
 
         # Node setup ----------
         super().__init__("pressure_sensor_publisher")
 
-        # Create publishers ----------
-        self.publisher_pressure = self.create_publisher(Float32, "/auv/pressure", 5)
+        self.get_topic()
+
+        self.publisher_pressure = self.create_publisher(Float32, self.pressure_topic, 5)
 
         # Data gathering cycle ----------
         self.pressure = 0.0
@@ -58,6 +59,15 @@ class PressurePublisher(Node):
         # Debugging ----------
         self.get_logger().info('"pressure_sensor_publisher" has been started')
 
+    def get_topic(self) -> None:
+        namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        self.declare_parameter("topics.pressure", "_")
+        self.pressure_topic = namespace + self.get_parameter("topics.pressure").value
+
     def timer_callback(self) -> None:
         """Callback function triggered by the main timer.
 
@@ -65,7 +75,7 @@ class PressurePublisher(Node):
         and publishes it to the "/auv/pressure" topic.
         """
         # Get pressure data
-        self.pressure = self.pressure.get_pressure()
+        self.pressure = self.pressure_lib.get_pressure()
 
         # Publish pressure data
         pressure_msg = Float32()
