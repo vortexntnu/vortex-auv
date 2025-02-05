@@ -18,6 +18,7 @@
   ros__parameters:
     physical:
       center_of_mass: [0.0, 0.0, 0.035] # m (x,y,z)
+      mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
 
     propulsion:
       dofs:
@@ -146,8 +147,9 @@
       joy: "/joy"
       pose: "/pose"
       twist: "/twist"
-      operation_mode: /operation_mode
-      killswitch: /killswitch
+      operation_mode: "/operation_mode"
+      killswitch: "/killswitch"
+      aruco_board_pose_camera: "/aruco_board_pose_camera"
       guidance:
         los: "/guidance/los"
         dp: "/guidance/dp"
@@ -160,3 +162,6 @@
         peaks: "/peaks"
         tdoa: "/time_difference_of_arrival"
         position: "/position"
+
+    action_servers:
+      reference_filter: "/reference_filter"
