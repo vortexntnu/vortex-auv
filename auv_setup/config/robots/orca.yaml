@@ -144,9 +144,20 @@
       voltage: "/power_sense_module/voltage"
       pressure: "/pressure"
       temperature: "/temperature"
+      joy: "/joy"
       pose: "/pose"
       twist: "/twist"
       operation_mode: /operation_mode
       killswitch: /killswitch
       guidance:
         los: "/guidance/los"
+        dp: "/guidance/dp"
+
+      acoustics:
+        namespace: "/acoustics"
+        hydrophones : ["hydrophone1", "hydrophone2", "hydrophone3", "hydrophone4", "hydrophone5"]
+        filter_response: "/filter_response"
+        fft: "/fft"
+        peaks: "/peaks"
+        tdoa: "/time_difference_of_arrival"
+        position: "/position"

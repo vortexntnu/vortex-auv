@@ -1,9 +1,8 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
-
 from launch import LaunchDescription
+from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -20,19 +19,15 @@ def generate_launch_description() -> LaunchDescription:
     """
     # Path to the YAML file
     yaml_file_path = os.path.join(
-        get_package_share_directory("acoustics_interface"),
-        "../../../../",  # Go to the workspace
-        "src/vortex-auv/auv_setup/config/robots/",  # Go inside where yamal files are located at
-        "orca.yaml",
+        get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
     )
 
     return LaunchDescription(
         [
             Node(
-                package="acoustics_interface",
-                namespace="acoustics_interface",
+                package="acoustics_interface_auv",
                 executable="acoustics_interface_node.py",
-                name="acoustics_interface_node",
+                name="acoustics_interface_auv_node",
                 output="screen",
                 parameters=[yaml_file_path],
             ),

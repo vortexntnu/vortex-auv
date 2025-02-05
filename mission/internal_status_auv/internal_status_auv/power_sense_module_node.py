@@ -15,13 +15,9 @@ class PowerSenseModulePublisher(Node):
         super().__init__("power_sense_module_publisher")
         self.psm = internal_status_auv.power_sense_module_lib.PowerSenseModule()
 
-        # Create publishers ----------
-        self.publisher_current = self.create_publisher(
-            Float32, "/auv/power_sense_module/current", 5
-        )
-        self.publisher_voltage = self.create_publisher(
-            Float32, "/auv/power_sense_module/voltage", 5
-        )
+        self.get_topics()
+
+        self.set_publishers()
 
         # Data gathering cycle ----------
         self.current = 0.0
@@ -68,6 +64,25 @@ class PowerSenseModulePublisher(Node):
 
         # Debugging ----------
         self.get_logger().info('"power_sense_module_publisher" has been started')
+
+    def get_topics(self) -> None:
+        namespace = (
+            self.declare_parameter("topics.namespace", "_")
+            .get_parameter_value()
+            .string_value
+        )
+        topics = ["current", "voltage"]
+        for topic in topics:
+            self.declare_parameter(f"topics.{topic}", "_")
+            setattr(
+                self,
+                topic + "_topic",
+                namespace + self.get_parameter(f"topics.{topic}").value,
+            )
+
+    def set_publishers(self) -> None:
+        self.publisher_current = self.create_publisher(Float32, self.current_topic, 5)
+        self.publisher_voltage = self.create_publisher(Float32, self.voltage_topic, 5)
 
     def read_timer_callback(self) -> None:
         """Callback function triggered by the read timer.

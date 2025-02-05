@@ -1,15 +1,17 @@
 joystick_interface_auv_node:
   ros__parameters:
-    surge_scale_factor: 60.0
-    sway_scale_factor: 60.0
-    heave_scale_factor: 17.5
-    roll_scale_factor: 30.0
-    pitch_scale_factor: 20.0
-    yaw_scale_factor: 25.0
+    joystick_surge_gain: 60.0
+    joystick_sway_gain: 60.0
+    joystick_heave_gain: 17.5
+    joystick_roll_gain: 30.0
+    joystick_pitch_gain: 20.0
+    joystick_yaw_gain: 25.0
 
-    surge_scale_ref_param: 5000.0
-    sway_scale_ref_param: 5000.0
-    heave_scale_ref_param: 5000.0
-    roll_scale_ref_param: 5000.0
-    pitch_scale_ref_param: 5000.0
-    yaw_scale_ref_param: 5000.0
+    guidance_surge_gain: 0.0002
+    guidance_sway_gain: 0.0002
+    guidance_heave_gain: 0.0002
+    guidance_roll_gain: 0.0002
+    guidance_pitch_gain: 0.0002
+    guidance_yaw_gain: 0.0002
+
+    debounce_duration: 0.25

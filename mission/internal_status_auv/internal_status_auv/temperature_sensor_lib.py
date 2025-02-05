@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 """NOTE: Internal temperature measurement approach.
 
 For now, we don't have an external sensor to measure the internal temperature.
