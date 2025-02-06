@@ -12,6 +12,7 @@ from geometry_msgs.msg import (
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
     LOSParameters,
+    LOSGuidanceAlgorithm
 )
 from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, GoalResponse, ServerGoalHandle
@@ -64,7 +65,7 @@ class LOSActionServer(Node):
         filter_params = self.get_filter_parameters_()
 
         # Initialize guidance calculator with third-order filtering
-        self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
+        self.guidance_calculator = LOSGuidanceAlgorithm(los_params, filter_params)
 
         # self.desired_vel = 0.3
 
@@ -311,7 +312,7 @@ class LOSActionServer(Node):
             self.norm = np.linalg.norm(
                 self.guidance_calculator.state_as_pos_array(error)
             )
-            if self.norm < 1.5:
+            if self.norm < 0.5:
                 self.get_logger().info('Waypoint reached')
                 self.current_waypoint_index += 1
 
