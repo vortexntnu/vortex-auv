@@ -361,7 +361,6 @@ def main(args=None):
     executor = MultiThreadedExecutor()
     executor.add_node(action_server)
 
-    
     executor.spin()
     action_server.destroy_node()
     rclpy.shutdown()
