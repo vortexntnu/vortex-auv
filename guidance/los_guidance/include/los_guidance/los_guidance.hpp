@@ -31,6 +31,7 @@ struct Params {
     double lookahead_distance_v;
     double gamma_h;
     double gamma_v;
+    double time_step;
 };
 }  // namespace LOS
 

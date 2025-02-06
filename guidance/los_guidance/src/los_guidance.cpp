@@ -1,5 +1,12 @@
 #include <los_guidance/los_guidance.hpp>
 
+AdaptiveLOSGuidance::AdaptiveLOSGuidance(const LOS::Params& params)
+    : time_step_(params.time_step),
+      lookahead_distance_h_(params.lookahead_distance_h),
+      lookahead_distance_v_(params.lookahead_distance_v),
+      gamma_h_(params.gamma_h),
+      gamma_v_(params.gamma_v) {}
+
 void AdaptiveLOSGuidance::update_angles(const LOS::Point& prev_point,
                                         const LOS::Point& next_point) {
     const LOS::Point difference = next_point - prev_point;
