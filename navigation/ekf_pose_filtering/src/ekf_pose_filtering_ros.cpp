@@ -3,83 +3,97 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node")
-    {
-        service_ = this->create_service<std_srvs::srv::SetBool>("reset_ekf", 
-        std::bind(&EKFPoseFilteringNode::resetEFK, this, _2));
+EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
+    service_ = this->create_service<std_srvs::srv::SetBool>(
+        "reset_ekf", std::bind(&EKFPoseFilteringNode::resetEFK, this, _2));
 
-        target_frame_ = this->declare_parameter<std::string>("target_frame", "odom");
-        auto pose_sub_topic = this->declare_parameter<std::string>("pose_sub_topic", "/aruco_board_pose_camera");
+    target_frame_ =
+        this->declare_parameter<std::string>("target_frame", "odom");
+    auto pose_sub_topic = this->declare_parameter<std::string>(
+        "pose_sub_topic", "/aruco_board_pose_camera");
 
-        enu_orientation_ = this->declare_parameter("enu_orientation", true);
+    enu_orientation_ = this->declare_parameter("enu_orientation", true);
 
-        std::chrono::duration<int> buffer_timeout(1);
+    std::chrono::duration<int> buffer_timeout(1);
 
-        tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    
-        auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
-            this->get_node_base_interface(),
-            this->get_node_timers_interface()
-            );
+    tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
 
-        tf2_buffer_->setCreateTimerInterface(timer_interface);
-        tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
+    auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
+        this->get_node_base_interface(), this->get_node_timers_interface());
 
-        rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+    tf2_buffer_->setCreateTimerInterface(timer_interface);
+    tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
-        pose_sub_.subscribe(this, pose_sub_topic, qos.get_rmw_qos_profile());
+    rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10))
+                          .reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
 
-        tf2_filter_ = std::make_shared<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>(
-            pose_sub_, *tf2_buffer_, target_frame_, 100, this->get_node_logging_interface(), this->get_node_clock_interface());
+    pose_sub_.subscribe(this, pose_sub_topic, qos.get_rmw_qos_profile());
 
-        tf2_filter_->registerCallback(std::bind(&EKFPoseFilteringNode::pose_callback, this, _1));
+    tf2_filter_ = std::make_shared<
+        tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>(
+        pose_sub_, *tf2_buffer_, target_frame_, 100,
+        this->get_node_logging_interface(), this->get_node_clock_interface());
 
-        rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-        auto qos_sensor_data = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    tf2_filter_->registerCallback(
+        std::bind(&EKFPoseFilteringNode::pose_callback, this, _1));
 
-        auto transformed_pose_pub_topic = this->declare_parameter<std::string>("transformed_pose_pub_topic", "/transformed_pose");
-        auto filtered_pose_pub_topic = this->declare_parameter<std::string>("filtered_pose_pub_topic", "/filtered_pose");
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+    auto qos_sensor_data = rclcpp::QoS(
+        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-        transformed_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(transformed_pose_pub_topic, qos_sensor_data);
-        filtered_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(filtered_pose_pub_topic, qos_sensor_data);
+    auto transformed_pose_pub_topic = this->declare_parameter<std::string>(
+        "transformed_pose_pub_topic", "/transformed_pose");
+    auto filtered_pose_pub_topic = this->declare_parameter<std::string>(
+        "filtered_pose_pub_topic", "/filtered_pose");
 
-        double dynmod_stddev_pos = this->declare_parameter("dynmod_stddev_pos", 0.01);
-        double dynmod_stddev_ori = this->declare_parameter("dynmod_stddev_ori", 0.01);
-        double sensmod_stddev = this->declare_parameter("sensmod_stddev", 0.01);
-        dynamic_model_ = std::make_shared<DynMod>(dynmod_stddev_pos, dynmod_stddev_ori);
-        sensor_model_ = std::make_shared<SensMod>(sensmod_stddev);
-    }
+    transformed_pose_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseStamped>(
+            transformed_pose_pub_topic, qos_sensor_data);
+    filtered_pose_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseStamped>(
+            filtered_pose_pub_topic, qos_sensor_data);
 
-void EKFPoseFilteringNode::pose_callback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg)
-    {
-        geometry_msgs::msg::PoseStamped transformed_pose;
-        try {
-            tf2_buffer_->transform(*pose_msg, transformed_pose, target_frame_, tf2::Duration(std::chrono::milliseconds(100)));
-            transformed_pose.header.frame_id = target_frame_;
-            if (enu_orientation_) {
-                transformed_pose.pose.orientation = enu_to_ned_quaternion(transformed_pose.pose.orientation);
-            }
-            transformed_pose_pub_->publish(transformed_pose);
-            filter_pose(transformed_pose);
-            filtered_pose_pub_->publish(transformed_pose);
-        } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
+    double dynmod_stddev_pos =
+        this->declare_parameter("dynmod_stddev_pos", 0.01);
+    double dynmod_stddev_ori =
+        this->declare_parameter("dynmod_stddev_ori", 0.01);
+    double sensmod_stddev = this->declare_parameter("sensmod_stddev", 0.01);
+    dynamic_model_ =
+        std::make_shared<DynMod>(dynmod_stddev_pos, dynmod_stddev_ori);
+    sensor_model_ = std::make_shared<SensMod>(sensmod_stddev);
+}
+
+void EKFPoseFilteringNode::pose_callback(
+    const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg) {
+    geometry_msgs::msg::PoseStamped transformed_pose;
+    try {
+        tf2_buffer_->transform(*pose_msg, transformed_pose, target_frame_,
+                               tf2::Duration(std::chrono::milliseconds(100)));
+        transformed_pose.header.frame_id = target_frame_;
+        if (enu_orientation_) {
+            transformed_pose.pose.orientation =
+                enu_to_ned_quaternion(transformed_pose.pose.orientation);
         }
+        transformed_pose_pub_->publish(transformed_pose);
+        filter_pose(transformed_pose);
+        filtered_pose_pub_->publish(transformed_pose);
+    } catch (tf2::TransformException& ex) {
+        RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
     }
+}
 
-void EKFPoseFilteringNode::filter_pose(geometry_msgs::msg::PoseStamped& pose_msg)
-{
+void EKFPoseFilteringNode::filter_pose(
+    geometry_msgs::msg::PoseStamped& pose_msg) {
     if (first_run_) {
-        Eigen::Vector4d initial_measurement = {pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z, pose_msg.pose.orientation.z};
-        previous_pose_est_ = Gauss4d(
-            initial_measurement,
-        Gauss4d::Mat_nn::Identity()
-        );
+        Eigen::Vector4d initial_measurement = {
+            pose_msg.pose.position.x, pose_msg.pose.position.y,
+            pose_msg.pose.position.z, pose_msg.pose.orientation.z};
+        previous_pose_est_ =
+            Gauss4d(initial_measurement, Gauss4d::Mat_nn::Identity());
         previous_time_ = pose_msg.header.stamp;
         first_run_ = false;
         return;
-    }
-    else{
+    } else {
         rclcpp::Time current_time(pose_msg.header.stamp);
         rclcpp::Duration time_step = current_time - previous_time_;
         Eigen::Vector4d object_pose;
@@ -87,12 +101,9 @@ void EKFPoseFilteringNode::filter_pose(geometry_msgs::msg::PoseStamped& pose_msg
         object_pose(1) = pose_msg.pose.position.y;
         object_pose(2) = pose_msg.pose.position.z;
         object_pose(3) = pose_msg.pose.orientation.z;
-        std::tie(object_pose_est_, std::ignore, std::ignore) = EKF::step(*dynamic_model_,
-        *sensor_model_,
-        time_step.seconds(),
-        previous_pose_est_,
-        object_pose
-        );
+        std::tie(object_pose_est_, std::ignore, std::ignore) =
+            EKF::step(*dynamic_model_, *sensor_model_, time_step.seconds(),
+                      previous_pose_est_, object_pose);
         previous_pose_est_ = object_pose_est_;
         previous_time_ = current_time;
 
@@ -103,8 +114,8 @@ void EKFPoseFilteringNode::filter_pose(geometry_msgs::msg::PoseStamped& pose_msg
     }
 }
 
-geometry_msgs::msg::Quaternion EKFPoseFilteringNode::enu_to_ned_quaternion(const geometry_msgs::msg::Quaternion& enu_quat)
-{
+geometry_msgs::msg::Quaternion EKFPoseFilteringNode::enu_to_ned_quaternion(
+    const geometry_msgs::msg::Quaternion& enu_quat) {
     tf2::Quaternion tf_enu_quat(enu_quat.x, enu_quat.y, enu_quat.z, enu_quat.w);
 
     tf2::Quaternion q_rot_z, q_rot_x;
@@ -122,21 +133,17 @@ geometry_msgs::msg::Quaternion EKFPoseFilteringNode::enu_to_ned_quaternion(const
     return ned_quat;
 }
 
-void EKFPoseFilteringNode::resetEFK(std::shared_ptr<std_srvs::srv::SetBool::Response> response)
-{
+void EKFPoseFilteringNode::resetEFK(
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
     first_run_ = false;
-    previous_pose_est_ = Gauss4d(
-        Gauss4d::Vec_n::Zero(),
-        Gauss4d::Mat_nn::Identity()
-    );
+    previous_pose_est_ =
+        Gauss4d(Gauss4d::Vec_n::Zero(), Gauss4d::Mat_nn::Identity());
     response->success = true;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<EKFPoseFilteringNode>());
     rclcpp::shutdown();
     return 0;
 }
-

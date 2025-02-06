@@ -15,12 +15,12 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 
 add_executable(pose_transformer_node src/pose_transformer_node.cpp)
-ament_target_dependencies(pose_transformer_node 
-  rclcpp 
-  geometry_msgs 
-  tf2 
-  tf2_ros 
-  tf2_geometry_msgs 
+ament_target_dependencies(pose_transformer_node
+  rclcpp
+  geometry_msgs
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
   message_filters)
 
 install(TARGETS

@@ -2,4 +2,4 @@ repositories:
   vortex-msgs:
     type: git
     url: https://github.com/vortexntnu/vortex-msgs.git
-    version: develop
+    version: main

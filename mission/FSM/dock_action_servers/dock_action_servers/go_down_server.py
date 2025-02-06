@@ -18,8 +18,7 @@ class GoDownServer(Node):
         )
 
     def execute_callback(self, goal_handle: GoToWaypoint.Goal) -> GoToWaypoint_Result:
-        """This function is called when the action server receives a goal to go down.
-        """
+        """This function is called when the action server receives a goal to go down."""
         self.get_logger().info(
             f'Executing goal to dock at: {goal_handle.request.waypoint}'
         )

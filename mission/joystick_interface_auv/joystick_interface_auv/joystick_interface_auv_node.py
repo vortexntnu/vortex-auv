@@ -1,18 +1,19 @@
 #!/usr/bin/python3
 
 import rclpy
+from geometry_msgs.msg import PoseWithCovarianceStamped, Wrench
 from rclpy.node import Node
-from std_msgs.msg import Bool, String, Float64
-from geometry_msgs.msg import Wrench, PoseWithCovarianceStamped
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+from sensor_msgs.msg import JointState, Joy
+from std_msgs.msg import Bool, Float64, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
 from vortex_utils.ros_converter import pose_from_ros
-from joystick_interface_auv.joystick_utils import *
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-from sensor_msgs.msg import Joy, JointState
+
+from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
+
 
 class JoystickInterfaceNode(Node):
-
     def __init__(self):
         super().__init__('joystick_interface_node')
 
@@ -29,14 +30,13 @@ class JoystickInterfaceNode(Node):
         self._joystick_buttons_map = []
         self._last_button_press_time = 0
 
-        self.gripper_desired_position_ = 0.
-        self.gripper_desired_rotation_ = 0.
-        self.gripper_grip_position_ = 0.
+        self.gripper_desired_position_ = 0.0
+        self.gripper_desired_rotation_ = 0.0
+        self.gripper_grip_position_ = 0.0
 
         self.get_logger().info(
             f"Joystick interface node started. Current mode: {self._mode}"
         )
-
 
     def extract_parameters(self):
         """Method to get the parameters from the config file."""
@@ -87,8 +87,7 @@ class JoystickInterfaceNode(Node):
         self.roll = 0.0
         self.pitch = 0.0
         self.yaw = 0.0
-    
-    
+
     def set_publishers_and_subscribers(self):
         best_effort_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -118,18 +117,22 @@ class JoystickInterfaceNode(Node):
         self._operational_mode_signal_publisher = self.create_publisher(
             String, self.operation_mode_topic, best_effort_qos
         )
-        
+
         self.gripper_pos_publisher_ = self.create_publisher(
-            Float64, "orca/gripper_cmd", 10)
+            Float64, "orca/gripper_cmd", 10
+        )
 
         self.gripper_rot_publisher_ = self.create_publisher(
-            Float64, "orca/gripper_arm_cmd", 10)
+            Float64, "orca/gripper_arm_cmd", 10
+        )
 
         self.gripper_finger_publisher_ = self.create_publisher(
-            Float64, "orca/gripper_finger_cmd", 10)
+            Float64, "orca/gripper_finger_cmd", 10
+        )
 
         self.gripper_state_publisher_ = self.create_publisher(
-            JointState, "stonefish/servos", 10)
+            JointState, "stonefish/servos", 10
+        )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
@@ -252,7 +255,7 @@ class JoystickInterfaceNode(Node):
         self.surge = (
             axes.get("vertical_axis_left_stick", 0.0) * self._joystick_surge_gain
         )
-        
+
         self.sway = (
             -axes.get("horizontal_axis_left_stick", 0.0) * self._joystick_sway_gain
         )
@@ -304,18 +307,26 @@ class JoystickInterfaceNode(Node):
         self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
         self._desired_state.yaw += self.yaw * self._guidance_yaw_gain
 
-    def handle_gripper(self, gripper_move: float, gripper_rotation: float, gripper_grip: bool, gripper_open: bool):
+    def handle_gripper(
+        self,
+        gripper_move: float,
+        gripper_rotation: float,
+        gripper_grip: bool,
+        gripper_open: bool,
+    ):
         gripper_state_msg = JointState()
         gripper_names = [
-            "Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1",
-            "Orca/Finger_joint2"
+            "Orca/Shoulder_joint",
+            "Orca/Arm_joint",
+            "Orca/Finger_joint1",
+            "Orca/Finger_joint2",
         ]
         gripper_pos = []
 
         gripper_msg = Float64()
         self.gripper_desired_position_ += gripper_move * 0.01
-        if self.gripper_desired_position_ > .11:
-            self.gripper_desired_position_ = .11
+        if self.gripper_desired_position_ > 0.11:
+            self.gripper_desired_position_ = 0.11
         if self.gripper_desired_position_ < -2.1:
             self.gripper_desired_position_ = -2.1
 
@@ -337,7 +348,7 @@ class JoystickInterfaceNode(Node):
         if gripper_open:
             self.gripper_grip_position_ -= 0.01
         if self.gripper_grip_position_ < 0:
-            self.gripper_grip_position_ = 0.
+            self.gripper_grip_position_ = 0.0
         elif self.gripper_grip_position_ > 0.78:
             self.gripper_grip_position_ = 0.78
 
@@ -352,11 +363,9 @@ class JoystickInterfaceNode(Node):
 
         self.gripper_state_publisher_.publish(gripper_state_msg)
 
-
     def joystick_cb(self, msg: Joy):
-        """
-        Callback function that receives joy messages and converts them into
-        wrench messages to be sent to the thruster allocation node. 
+        """Callback function that receives joy messages and converts them into
+        wrench messages to be sent to the thruster allocation node.
         Handles software killswitch and control mode buttons,
         and transitions between different JoyStates of operation.
 
@@ -372,11 +381,10 @@ class JoystickInterfaceNode(Node):
             msg: A ROS message containing the joy input data.
 
         """
-
-        #Check the number of buttons and axes
+        # Check the number of buttons and axes
         self.check_number_of_buttons(msg)
 
-        #Populate the buttons and axes dictionaries
+        # Populate the buttons and axes dictionaries
         buttons: dict = self.populate_buttons_dictionary(msg)
         axes: dict = self.populate_axes_dictionary(msg)
         current_time = self.get_clock().now().to_msg()._sec
@@ -386,7 +394,7 @@ class JoystickInterfaceNode(Node):
         software_killswitch_button = buttons.get("B", 0)
         software_control_mode_button = buttons.get("X", 0)
         reference_mode_button = buttons.get("Y", 0)
-        
+
         gripper_move = axes.get("dpad_vertical", 0.0)
         gripper_rotation = axes.get("dpad_horizontal", 0.0)
         gripper_grip = buttons.get("stick_button_left", 0)
@@ -402,15 +410,24 @@ class JoystickInterfaceNode(Node):
             reference_mode_button = False
 
         # If any button is pressed, update the last button press time
-        if any([software_control_mode_button, xbox_control_mode_button, software_killswitch_button, reference_mode_button]):
+        if any(
+            [
+                software_control_mode_button,
+                xbox_control_mode_button,
+                software_killswitch_button,
+                reference_mode_button,
+            ]
+        ):
             self._last_button_press_time = current_time
 
         # Toggle killswitch on and off
         if software_killswitch_button:
             self.handle_killswitch_button()
-            
+
         if not self._mode == JoyStates.KILLSWITCH:
-            self.handle_gripper(gripper_move, gripper_rotation, gripper_grip, gripper_open)
+            self.handle_gripper(
+                gripper_move, gripper_rotation, gripper_grip, gripper_open
+            )
 
         if self._mode == JoyStates.XBOX_MODE:
             wrench_msg = self.create_wrench_message()
@@ -424,9 +441,9 @@ class JoystickInterfaceNode(Node):
             if xbox_control_mode_button:
                 self.transition_to_xbox_mode()
             elif reference_mode_button:
-                self.transition_to_reference_mode() 
+                self.transition_to_reference_mode()
 
-        elif self._mode== JoyStates.REFERENCE_MODE:
+        elif self._mode == JoyStates.REFERENCE_MODE:
             self.update_reference()
             msg = self.create_reference_message()
             self._ref_publisher.publish(msg)
@@ -435,7 +452,8 @@ class JoystickInterfaceNode(Node):
                 self.transition_to_autonomous_mode()
             elif xbox_control_mode_button:
                 self.transition_to_xbox_mode()
-    
+
+
 def main():
     rclpy.init()
     joystick_interface = JoystickInterfaceNode()

@@ -21,25 +21,25 @@ find_package(std_srvs REQUIRED)
 
 include_directories(include)
 
-add_executable(ekf_pose_filtering_node 
+add_executable(ekf_pose_filtering_node
 src/ekf_pose_filtering_ros.cpp)
 
 
-ament_target_dependencies(ekf_pose_filtering_node 
-rclcpp 
-geometry_msgs 
-tf2 
-tf2_ros 
-tf2_geometry_msgs 
+ament_target_dependencies(ekf_pose_filtering_node
+rclcpp
+geometry_msgs
+tf2
+tf2_ros
+tf2_geometry_msgs
   message_filters
   vortex_filtering
   std_srvs)
-  
+
 install(TARGETS
   ekf_pose_filtering_node
   DESTINATION lib/${PROJECT_NAME}
 )
-  
+
 install(
   DIRECTORY include/
   DESTINATION include

@@ -39,9 +39,9 @@ add_executable(line_filtering_node src/line_filtering_ros.cpp src/track_manager.
 target_link_libraries(line_filtering_node ${OpenCV_LIBS} Eigen3::Eigen)
 
 ament_target_dependencies(line_filtering_node
-  tf2 
-  tf2_ros 
-  tf2_geometry_msgs 
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
   message_filters
   rclcpp
   sensor_msgs

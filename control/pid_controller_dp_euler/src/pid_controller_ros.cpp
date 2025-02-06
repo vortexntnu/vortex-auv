@@ -16,7 +16,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
                             "/softwareKillSwitch");
     this->declare_parameter("software_operation_mode_topic",
                             "/softwareOperationMode");
-    this->declare_parameter("active_controller_topic", 
+    this->declare_parameter("active_controller_topic",
                             "/fsm_active_controller");
 
     std::string pose_topic = this->get_parameter("pose_topic").as_string();
@@ -29,7 +29,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
         this->get_parameter("software_kill_switch_topic").as_string();
     std::string software_operation_mode_topic =
         this->get_parameter("software_operation_mode_topic").as_string();
-    std::string active_controller_topic = 
+    std::string active_controller_topic =
         this->get_parameter("active_controller_topic").as_string();
 
     auto qos_sensor_data = rclcpp::QoS(
@@ -106,7 +106,8 @@ void PIDControllerNode::twist_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ == "XBOX" || active_controller_ != "PID") {
+    if (killswitch_on_ || software_mode_ == "XBOX" ||
+        active_controller_ != "PID") {
         return;
     }
 
