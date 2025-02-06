@@ -65,7 +65,7 @@ class LOSActionServer(Node):
         filter_params = self.get_filter_parameters_()
 
         # Initialize guidance calculator with third-order filtering
-        self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
+        self.guidance_calculator = LOSGuidance(los_params, filter_params)
 
         # self.desired_vel = 0.3
 
