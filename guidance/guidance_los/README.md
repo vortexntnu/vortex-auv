@@ -1,6 +1,6 @@
-# LOS Guidance System
+# LOS Guidance Action Server Implementation
 
-A ROS2 implementation of a 3D Line-of-Sight (LOS) guidance system for autonomous underwater vehicles (AUVs).
+A ROS2 implementation of a 3D Line-of-Sight (LOS) guidance for path following for autonomous underwater vehicles (AUVs).
 
 ## Overview
 
@@ -9,9 +9,101 @@ This package implements a **3D Line-of-Sight (LOS) guidance system** with adapti
 1. **LOS Guidance Algorithm** (`los_guidance_algorithm.py`) - Implements the core path-following logic.
 2. **ROS2 Action Server** (`los_guidance_action_server.py`) - Provides a ROS2 interface for real-time guidance and control.
 
-## Components
+## Guidance Law Equations
 
-### 1. LOS Guidance Algorithm
+The guidance system implements equations from *"Handbook of Marine Craft Hydrodynamics and Motion Control"* (Fossen, 2011).
+
+![Alt text](Images/LOS_IMAGE.png)
+
+The guidance law calculates the desired heading angle $\psi_d$ and desired pitch angle $\theta_d$. The crab angles $\beta_c$ and $\alpha_c$ are estimated adaptively. The guidance law is given as:
+
+### Desired Heading and Pitch Angles
+
+$$
+\psi_d = \pi_h - \hat{\beta}_c - \tan^{-1}\left(\frac{y_e^p}{\Delta_h}\right)
+$$
+
+$$
+\theta_d = \pi_v + \hat{\alpha}_c + \tan^{-1}\left(\frac{z_e^p}{\Delta_v}\right)
+$$
+
+
+### Adaptive Estimation of Crab Angles
+
+$$
+\dot{\hat{\beta}}_c = \gamma_h \frac{\Delta_h}{\sqrt{\Delta_h^2 + (y_e^p)^2}} y_e^p
+$$
+
+$$
+\dot{\hat{\alpha}}_c = \gamma_v \frac{\Delta_v}{\sqrt{\Delta_v^2 + (z_e^p)^2}} z_e^p
+$$
+
+### Definitions
+
+- $\Delta_h$ : Horizontal lookahead distance
+- $\Delta_v$ : Vertical lookahead distance
+- $\gamma_h, \gamma_v$ : Adaptive gains
+- $y_e^p$ : Cross-track error
+- $z_e^p$ : Vertical-track error
+
+### Azimuth and Elevation Angles
+
+The azimuth angle $\pi_h$ and the elevation angle $\pi_v$ are given by:
+
+$$
+\pi_h = \text{atan2}(y_{i+1}^n - y_i^n, x_{i+1}^n - x_i^n)
+$$
+
+$$
+\pi_v = \text{atan2}(-(z_{i+1}^n - z_i^n), \sqrt{(x_{i+1}^n - x_i^n)^2 + (y_{i+1}^n - y_i^n)^2})
+$$
+
+where
+- $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down (NED) frame.
+- $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint in the NED frame.
+
+### Path-Tangential Frame Errors
+
+### Path-Tangential Reference Frame
+The path-tangential coordinate system `{p}` has its origin at `(x_i, y_i, z_i)` with the `x_p`-axis pointing towards the next waypoint. The path-following errors are transformed using:
+
+```math
+\begin{bmatrix}
+x_e^p \\
+y_e^p \\
+z_e^p
+\end{bmatrix} =
+\begin{bmatrix}
+\cos(\pi_v) & 0 & \sin(\pi_v) \\
+0 & 1 & 0 \\
+-\sin(\pi_v) & 0 & \cos(\pi_v)
+\end{bmatrix}
+\begin{bmatrix}
+\cos(\pi_h) & -\sin(\pi_h) & 0 \\
+\sin(\pi_h) & \cos(\pi_h) & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+x^n \\
+y^n \\
+z^n
+\end{bmatrix}
+```
+
+
+The along-track, cross-track, and vertical-track errors in the path-tangential frame are computed as follows:
+
+```math
+\begin{bmatrix}
+x_e^p \\ y_e^p \\ z_e^p
+\end{bmatrix} = \mathbf{R}_{y, \pi_v}^\top \mathbf{R}_{z, \pi_h}^\top \left( \begin{bmatrix}
+x^n \\ y^n \\ z^n
+\end{bmatrix} - \begin{bmatrix}
+x_i^n \\ y_i^n \\ z_i^n
+\end{bmatrix}
+\right)
+```
+where $P^n = (x^n, y^n, z^n)$ is the current position of the drone.
 
 The **LOS Guidance Algorithm** is responsible for calculating the optimal control commands (surge speed, pitch, and yaw) to guide an AUV along a predefined path. It consists of:
 
@@ -62,36 +154,6 @@ Parameters for the guidance system are stored in **`los_guidance_params.yaml`**,
 - **Speed Constraints (`nominal_speed`, `min_speed`)**: Defines the operating speed range.
 - **Filter Settings (`omega_diag`, `zeta_diag`)**: Configures natural frequencies and damping ratios for smooth motion.
 - **ROS2 Topics**: Specifies topic names for command publishing and debugging.
-
-## Guidance Law Equations
-
-The guidance system implements equations from *"Handbook of Marine Craft Hydrodynamics and Motion Control"* (Fossen, 2011).
-
-### Path-Tangential Reference Frame
-The path-tangential coordinate system `{p}` has its origin at `(x_i, y_i, z_i)` with the `x_p`-axis pointing towards the next waypoint. The path-following errors are transformed using:
-
-```math
-\begin{bmatrix}
-x_e^p \\
-y_e^p \\
-z_e^p
-\end{bmatrix} =
-\begin{bmatrix}
-\cos(\pi_v) & 0 & \sin(\pi_v) \\
-0 & 1 & 0 \\
--\sin(\pi_v) & 0 & \cos(\pi_v)
-\end{bmatrix}
-\begin{bmatrix}
-\cos(\pi_h) & -\sin(\pi_h) & 0 \\
-\sin(\pi_h) & \cos(\pi_h) & 0 \\
-0 & 0 & 1
-\end{bmatrix}
-\begin{bmatrix}
-x^n \\
-y^n \\
-z^n
-\end{bmatrix}
-```
 
 ## ROS2 Topics
 
