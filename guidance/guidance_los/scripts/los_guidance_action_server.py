@@ -65,7 +65,7 @@ class LOSActionServer(Node):
         filter_params = self.get_filter_parameters_()
 
         # Initialize guidance calculator with third-order filtering
-        self.guidance_calculator = LOSGuidance(los_params, filter_params)
+        self.guidance_calculator = ThirdOrderLOSGuidance(los_params, filter_params)
 
         # self.desired_vel = 0.3
 
@@ -259,8 +259,8 @@ class LOSActionServer(Node):
         filtered_commands = self.guidance_calculator.apply_reference_filter(
             unfiltered_commands
         )
-        # return unfiltered_commands
-        return filtered_commands
+        return unfiltered_commands
+        # return filtered_commands
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute waypoint navigation action."""
@@ -361,14 +361,10 @@ def main(args=None):
     executor = MultiThreadedExecutor()
     executor.add_node(action_server)
 
-    try:
-        executor.spin()
-    except Exception as e:
-        action_server.get_logger().error(f'Error: {str(e)}')
-    finally:
-        action_server.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+    
+    executor.spin()
+    action_server.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == '__main__':

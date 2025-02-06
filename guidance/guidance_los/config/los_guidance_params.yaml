@@ -7,8 +7,8 @@ los_guidance_node:
       gamma_v: 1.0                # Vertical adaptive gain
       M_theta: 0.5                # Bound for parameter estimates
       epsilon: 0.1                # Padding for parameter estimates
-      nominal_speed: 1.0          # Nominal surge speed
-      min_speed: 0.1              # Minimum allowable surge speed
+      nominal_speed: 0.1          # Nominal surge speed
+      min_speed: 0.05              # Minimum allowable surge speed
       dt: 0.01                    # Time step for guidance updates
       filter:
         omega_diag: [2.5, 2.5, 2.5]  # Natural frequencies for surge, pitch, and yaw

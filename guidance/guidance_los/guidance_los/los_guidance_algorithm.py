@@ -42,7 +42,7 @@ class FilterParameters:
     zeta_diag: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 1.0]))
 
 
-class LOSGuidance:
+class ThirdOrderLOSGuidance:
     """This class implements the Line-of-Sight (LOS) guidance algorithm.
 
     The LOS provide a control outputs for surge, pitch, and yaw for navigating towards a target in 3D space.
