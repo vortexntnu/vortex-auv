@@ -12,7 +12,6 @@ from geometry_msgs.msg import (
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
     LOSParameters,
-    ThirdOrderLOSGuidance,
 )
 from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, GoalResponse, ServerGoalHandle
