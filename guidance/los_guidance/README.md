@@ -1,4 +1,4 @@
-## ALOS Guidance Law for 3D Path Following
+## ALSO Guidance Law for 3D Path Following
 
 The guidance law gives calculates the desired heading angle $\psi_d$ and desired pitch angle $\theta_d$. The crab angles $\beta_c$ and $\alpha_c$ are estimated adaptively. The guidance law looks like
 
@@ -36,9 +36,9 @@ The azimuth angle $\pi_v$ and the elevation angle $\pi_h$ can be found by
 \pi_v = \text{atan2}(-(z_{i+1}^n - z_i^n), \sqrt{(x_{i+1}^n - x_i^n)^2 + (y_{i+1}^n - y_i^n)^2})
 ```
 
-where $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in NED and $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint in NED.
+where $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down frame and $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint in north-east-down frame.
 
-The along-, cross- and vertical-track errors in the path-tangential frame are found by 
+The along-, cross- and vertical-track errors in the path-tangential frame are found by
 
 ```math
 \begin{bmatrix}
@@ -51,4 +51,3 @@ x_i^n \\ y_i^n \\ z_i^n
 \right)
 ```
 where $P^n = (x^n, y^n, z^n)$ is the current position of the drone.
-
