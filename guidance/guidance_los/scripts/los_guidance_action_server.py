@@ -262,96 +262,96 @@ class LOSActionServer(Node):
         return unfiltered_commands
         # return filtered_commands
 
-    def execute_callback(self, goal_handle: ServerGoalHandle):
-        """Execute waypoint navigation action."""
-        # Initialize navigation goal with lock
-        with self._goal_lock:
-            self.goal_handle = goal_handle
-        self.current_waypoint_index = 0
-        self.waypoints = [self.state]
-        incoming_waypoints = goal_handle.request.waypoints
-        for waypoint in incoming_waypoints:
-            pose = pose_from_ros(waypoint.pose)
-            point_as_state = State(pose=pose)
-            self.waypoints.append(point_as_state)
+    # def execute_callback(self, goal_handle: ServerGoalHandle):
+    #     """Execute waypoint navigation action."""
+    #     # Initialize navigation goal with lock
+    #     with self._goal_lock:
+    #         self.goal_handle = goal_handle
+    #     self.current_waypoint_index = 0
+    #     self.waypoints = [self.state]
+    #     incoming_waypoints = goal_handle.request.waypoints
+    #     for waypoint in incoming_waypoints:
+    #         pose = pose_from_ros(waypoint.pose)
+    #         point_as_state = State(pose=pose)
+    #         self.waypoints.append(point_as_state)
 
-        self.pi_h = self.guidance_calculator.compute_pi_h(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
-        )
-        self.pi_v = self.guidance_calculator.compute_pi_v(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
-        )
+    #     self.pi_h = self.guidance_calculator.compute_pi_h(
+    #         self.waypoints[self.current_waypoint_index],
+    #         self.waypoints[self.current_waypoint_index + 1],
+    #     )
+    #     self.pi_v = self.guidance_calculator.compute_pi_v(
+    #         self.waypoints[self.current_waypoint_index],
+    #         self.waypoints[self.current_waypoint_index + 1],
+    #     )
 
-        rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
-        rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
-        self.rotation_yz = rotation_y.T @ rotation_z.T
+    #     rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
+    #     rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
+    #     self.rotation_yz = rotation_y.T @ rotation_z.T
 
-        # feedback = NavigateWaypoints.Feedback()
-        result = NavigateWaypoints.Result()
+    #     # feedback = NavigateWaypoints.Feedback()
+    #     result = NavigateWaypoints.Result()
 
-        # Monitor navigation progress
-        rate = self.create_rate(1.0 / self.update_period)
+    #     # Monitor navigation progress
+    #     rate = self.create_rate(1.0 / self.update_period)
 
-        self.get_logger().info('Executing goal')
-        while rclpy.ok():
-            if not goal_handle.is_active:
-                # Preempted by another goal
-                result.success = False
-                self.guidance_calculator.reset_filter_state(self.state)
-                return result
+    #     self.get_logger().info('Executing goal')
+    #     while rclpy.ok():
+    #         if not goal_handle.is_active:
+    #             # Preempted by another goal
+    #             result.success = False
+    #             self.guidance_calculator.reset_filter_state(self.state)
+    #             return result
 
-            if goal_handle.is_cancel_requested:
-                self.get_logger().info('Goal canceled')
-                goal_handle.canceled()
-                self.goal_handle = None
-                result.success = False
-                return result
-            error = self.state - self.waypoints[self.current_waypoint_index + 1]
-            self.norm = np.linalg.norm(
-                self.guidance_calculator.state_as_pos_array(error)
-            )
-            if self.norm < 0.5:
-                self.get_logger().info('Waypoint reached')
-                self.current_waypoint_index += 1
+    #         if goal_handle.is_cancel_requested:
+    #             self.get_logger().info('Goal canceled')
+    #             goal_handle.canceled()
+    #             self.goal_handle = None
+    #             result.success = False
+    #             return result
+    #         error = self.state - self.waypoints[self.current_waypoint_index + 1]
+    #         self.norm = np.linalg.norm(
+    #             self.guidance_calculator.state_as_pos_array(error)
+    #         )
+    #         if self.norm < 0.5:
+    #             self.get_logger().info('Waypoint reached')
+    #             self.current_waypoint_index += 1
 
-                if self.current_waypoint_index >= len(self.waypoints) - 1:
-                    self.get_logger().info('All waypoints reached!')
-                    final_commands = State()
-                    final_commands.twist.linear_x = 0
-                    final_commands.pose.pitch = self.state.pose.pitch
-                    final_commands.pose.yaw = self.state.pose.yaw
-                    self.publish_guidance(final_commands)
-                    result.success = True
-                    self.goal_handle.succeed()
-                    return result
+    #             if self.current_waypoint_index >= len(self.waypoints) - 1:
+    #                 self.get_logger().info('All waypoints reached!')
+    #                 final_commands = State()
+    #                 final_commands.twist.linear_x = 0
+    #                 final_commands.pose.pitch = self.state.pose.pitch
+    #                 final_commands.pose.yaw = self.state.pose.yaw
+    #                 self.publish_guidance(final_commands)
+    #                 result.success = True
+    #                 self.goal_handle.succeed()
+    #                 return result
 
-                self.pi_h = self.guidance_calculator.compute_pi_h(
-                    self.waypoints[self.current_waypoint_index],
-                    self.waypoints[self.current_waypoint_index + 1],
-                )
-                self.pi_v = self.guidance_calculator.compute_pi_v(
-                    self.waypoints[self.current_waypoint_index],
-                    self.waypoints[self.current_waypoint_index + 1],
-                )
+    #             self.pi_h = self.guidance_calculator.compute_pi_h(
+    #                 self.waypoints[self.current_waypoint_index],
+    #                 self.waypoints[self.current_waypoint_index + 1],
+    #             )
+    #             self.pi_v = self.guidance_calculator.compute_pi_v(
+    #                 self.waypoints[self.current_waypoint_index],
+    #                 self.waypoints[self.current_waypoint_index + 1],
+    #             )
 
-                rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
-                rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
-                self.rotation_yz = rotation_y.T @ rotation_z.T
+    #             rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
+    #             rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
+    #             self.rotation_yz = rotation_y.T @ rotation_z.T
 
-            commands = self.calculate_guidance()
-            self.publish_guidance(commands)
+    #         commands = self.calculate_guidance()
+    #         self.publish_guidance(commands)
 
-            rate.sleep()
+    #         rate.sleep()
 
-    def publish_guidance(self, commands: State):
-        """Publish the commanded surge velocity, pitch angle, and yaw angle."""
-        msg = LOSGuidance()
-        msg.surge = commands.twist.linear_x
-        msg.pitch = commands.pose.pitch
-        msg.yaw = commands.pose.yaw
-        self.guidance_cmd_pub.publish(msg)
+    # def publish_guidance(self, commands: State):
+    #     """Publish the commanded surge velocity, pitch angle, and yaw angle."""
+    #     msg = LOSGuidance()
+    #     msg.surge = commands.twist.linear_x
+    #     msg.pitch = commands.pose.pitch
+    #     msg.yaw = commands.pose.yaw
+    #     self.guidance_cmd_pub.publish(msg)
 
 
 def main(args=None):
