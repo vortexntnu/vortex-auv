@@ -13,6 +13,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Run custom pre-build script
+        run: |
+          chmod +x ./requirements.sh
+          ./requirements.sh
+
+
       # 2. Set up ROS on the runner.
       #    This action installs (and sources) ROS 2 binaries.
       - name: Setup ROS
