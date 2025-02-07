@@ -12,6 +12,11 @@ jobs:
       # 1. Check out the repository code.
       - name: Checkout repository
         uses: actions/checkout@v4
+    
+      - name: Install Python3-pip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
 
       - name: Run custom pre-build script
         run: |
