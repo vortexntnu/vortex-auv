@@ -21,7 +21,7 @@ struct CrossTrackError {
     double y_e;
     double z_e;
 
-    CrossTrackError from_vector(const Eigen::Vector3d& vector) const {
+    inline static CrossTrackError from_vector(const Eigen::Vector3d& vector) {
         return CrossTrackError{vector.x(), vector.y(), vector.z()};
     }
 };
@@ -33,7 +33,7 @@ struct Params {
     double gamma_v;
     double time_step;
 };
-}  // namespace LOS
+};  // namespace LOS
 
 /**
  * @brief Adaptive Line-of-Sight (LOS) guidance algorithm based on slide 113
@@ -42,15 +42,19 @@ struct Params {
 class AdaptiveLOSGuidance {
    public:
     AdaptiveLOSGuidance(const LOS::Params& params);
-    ~AdaptiveLOSGuidance();
+    ~AdaptiveLOSGuidance() = default;
 
     void update_angles(const LOS::Point& prev_point,
                        const LOS::Point& next_point);
+
     LOS::CrossTrackError calculate_crosstrack_error(
         const LOS::Point& prev_point,
         const LOS::Point& current_position);
+
     double calculate_psi_d(const double& y_e);
+
     double calculate_theta_d(const double& z_e);
+
     void update_adaptive_estimates(
         const LOS::CrossTrackError& crosstrack_error);
 
@@ -66,6 +70,6 @@ class AdaptiveLOSGuidance {
     double pi_v_;
     double beta_c_hat_ = 0.0;
     double alpha_c_hat_ = 0.0;
-}
+};
 
 #endif  // LOS_GUIDANCE_HPP
