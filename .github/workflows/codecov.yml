@@ -1,84 +1,56 @@
-name: Reusable Codecov
+name: ROS CI with Coverage
 
 on:
   push:
 
 jobs:
-  industrial_ci:
-    name: Industrial CI
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        # Adjust the ROS distributions and repos as needed
-        ROS_DISTRO: [ humble ]
-        ROS_REPO: [ main ]
+  ros_ci:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      # 1. Check out the repository code.
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Industrial CI Checks
-        # This uses the official industrial_ci action.
-        uses: ros-industrial/industrial_ci@master
-        env:
-          ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
-          ROS_REPO: ${{ matrix.ROS_REPO }}
-          # (Optional) Other industrial_ci environment variables can be set here.
-  
-  coverage:
-    name: Code Coverage
-    needs: industrial_ci
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup ROS 2 and Coverage Tools
-        run: |
-          sudo apt-get update
-          # Install prerequisites: curl, gnupg, lsb-release
-          sudo apt-get install -y curl gnupg lsb-release lcov
-          # Add the ROS 2 apt repository (this example uses Humble)
-          sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
-          curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
-          sudo apt-get update
-          # Install ROS 2 Humble Desktop (or another ROS 2 package set) and colcon extensions.
-          sudo apt-get install -y ros-humble-desktop python3-colcon-common-extensions python3-colcon-lcov-result
-          # Make ROS environment available in subsequent steps.
-          echo 'source /opt/ros/humble/setup.bash' >> $BASH_ENV
-          source $BASH_ENV
-
-      - name: Build with Coverage Flags
-        run: |
-          # Ensure the ROS setup is loaded.
-          source /opt/ros/humble/setup.bash
-          # Build your workspace with coverage instrumentation.
-          # Adjust the directory if your workspace is not the repository root.
-          colcon build \
-            --cmake-args \
-              "-DCMAKE_BUILD_TYPE=Debug" \
-              "-DCMAKE_CXX_FLAGS=--coverage" \
-              "-DCMAKE_C_FLAGS=--coverage"
-
-      - name: Run Tests
-        run: |
-          source /opt/ros/humble/setup.bash
-          colcon test
-          colcon test-result --verbose
-
-      - name: Generate Coverage Report
-        run: |
-          source /opt/ros/humble/setup.bash
-          # This plugin scans your build directory for .gcno and .gcda files
-          # and generates a unified LCOV file (coverage.info).
-          colcon lcov-result --lcov-file coverage.info
-
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v3
+      # 2. Set up ROS on the runner.
+      #    This action installs (and sources) ROS 2 binaries.
+      - name: Setup ROS
+        uses: ros-tooling/setup-ros@v0.7
         with:
-          files: coverage.info
+          required-ros-distributions: humble
+          # You can list more than one distro if needed.
+
+      # 3. Build, test, and generate code coverage.
+      #    This step uses action-ros-ci to assemble the workspace,
+      #    install dependencies, build the package, run tests, and—using colcon mixins—generate coverage data.
+      - name: Build and Test with ROS CI
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          # Specify the target ROS 2 distro (adjust if you need a different one)
+          target-ros2-distro: humble
+          # The following colcon-defaults JSON instructs colcon to use mixins that add the necessary coverage flags
+          # for C/C++ (coverage-gcc) and for Python tests (coverage-pytest)
+          colcon-defaults: |
+            {
+              "build": {
+                "mixin": ["coverage-gcc", "coverage-pytest"]
+              },
+              "test": {
+                "mixin": ["coverage-pytest"]
+              }
+            }
+          # Pin the mixin repository so that changes upstream won’t unexpectedly break your build.
+          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/b8436aa16c0bdbc01081b12caa253cbf16e0fb82/index.yaml
+
+      # 4. Upload the generated coverage reports to Codecov.
+      #    The action-ros-ci mixins (coverage-gcc and coverage-pytest) generate coverage files at predictable locations:
+      #      - C/C++ coverage: ros_ws/lcov/total_coverage.info
+      #      - Python coverage:  ros_ws/coveragepy/.coverage
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v1.2.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}   # (only needed for private repositories)
+          files: |
+            ros_ws/lcov/total_coverage.info
+            ros_ws/coveragepy/.coverage
           flags: unittests
-          name: codecov-coverage
-          # Uncomment and set your token if your repo is private:
-          # token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: false
-          verbose: true
+          name: codecov-umbrella
