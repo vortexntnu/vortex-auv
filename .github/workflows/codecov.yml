@@ -6,6 +6,8 @@ on:
 jobs:
   ros_ci:
     runs-on: ubuntu-22.04
+    container:
+      image: ros:humble-ros-base
     steps:
       # 1. Check out the repository code.
       - name: Checkout repository
@@ -25,6 +27,7 @@ jobs:
       - name: Build and Test with ROS CI
         uses: ros-tooling/action-ros-ci@v0.3
         with:
+          vcs-repo-file-url: dependencies.repos
           # Specify the target ROS 2 distro (adjust if you need a different one)
           target-ros2-distro: humble
           # The following colcon-defaults JSON instructs colcon to use mixins that add the necessary coverage flags
