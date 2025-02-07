@@ -1,20 +1,50 @@
-#!/bin/bash
-# This script builds and runs a Docker image
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Define environment variables for the Docker build process and execute the build script
-export IMAGE="auv-image:latest"
-export BASE_IMAGE="rwthika/ros2:humble"
-export TARGET="dev"
-# export PLATFORM="linux/arm64"  # Uncomment this line for ARM64 builds
-# export PLATFORM="amd64"  # Uncomment this line for AMD64 builds
+# ------------------------------------------------------------------------------
+# Set environment variables for the image, base, target stage, and platform.
+# ------------------------------------------------------------------------------
+export IMAGE="auv-image:latest"             # Name for the built Docker image
+export BASE_IMAGE="ros:humble-ros-base"        # Base image (an official ROS 2 Humble image)
+export TARGET="dev"                          # Target build stage (e.g., dev, run, build)
 
-# Run the build script
-./docker/docker-ros/scripts/build.sh
+# Set the target platform.
+# On Darwin (macOS), we force a Linux platform (since Docker builds Linux images),
+# otherwise we use the host's architecture.
+if [[ "$(uname)" == "Darwin" ]]; then
+    export PLATFORM="linux/arm64"
+else
+    export PLATFORM="$(dpkg --print-architecture)"
+fi
 
-# Run the built Docker image with appropriate flags
+# ------------------------------------------------------------------------------
+# Define the custom command to install extra dependencies.
+# The repository is copied into the container under "src", so we reference the
+# requirements script as "bash src/requirements.sh".
+# ------------------------------------------------------------------------------
+export INSTALL_CMD='bash src/requirements.sh'
+
+# ------------------------------------------------------------------------------
+# Determine paths.
+# ------------------------------------------------------------------------------
+# SCRIPT_DIR: The absolute path of the directory containing this script.
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+
+# WORKSPACE: The parent directory of SCRIPT_DIR (assumed to be the repository root).
+WORKSPACE="$(realpath "$SCRIPT_DIR/..")"
+
+# ------------------------------------------------------------------------------
+# 1) Build the Docker image using the build script.
+# ------------------------------------------------------------------------------
+"$SCRIPT_DIR/docker/build.sh"
+
+# ------------------------------------------------------------------------------
+# 2) Run the Docker container.
+#    Mount the workspace into the container to allow read/write operations.
+# ------------------------------------------------------------------------------
 docker run -it --rm \
     --privileged \
     --network host \
     --ipc=host \
-    -v "$(pwd):/docker-ros/ws/src/target:rshared" \
+    -v "$WORKSPACE":/docker/ws/src \
     "$IMAGE" /bin/bash
