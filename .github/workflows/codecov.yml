@@ -55,6 +55,11 @@ jobs:
           # Pin the mixin repository so that changes upstream won’t unexpectedly break your build.
           colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/b8436aa16c0bdbc01081b12caa253cbf16e0fb82/index.yaml
 
+      - name: Check coverage file size
+        run: |
+            ls -lh ros_ws/lcov/total_coverage.info || true
+            ls -lh ros_ws/coveragepy/.coverage || true
+        
       # 4. Upload the generated coverage reports to Codecov.
       #    The action-ros-ci mixins (coverage-gcc and coverage-pytest) generate coverage files at predictable locations:
       #      - C/C++ coverage: ros_ws/lcov/total_coverage.info
