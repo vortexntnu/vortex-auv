@@ -2,15 +2,16 @@
 set -euo pipefail
 
 # ------------------------------------------------------------------------------
-# Set environment variables for the image, base, target stage, and platform.
+# Set environment variables for the image, base, and platform.
 # ------------------------------------------------------------------------------
-export IMAGE="auv-image:latest"             # Name for the built Docker image
-export BASE_IMAGE="ros:humble-ros-base"        # Base image (an official ROS 2 Humble image)
-export TARGET="dev"                          # Target build stage (e.g., dev, run, build)
+export IMAGE="auv-image:latest"             # Name of the built Docker image
+export BASE_IMAGE="ros:humble-ros-base"     # Base image (official ROS 2 Humble)
 
+# ------------------------------------------------------------------------------
 # Set the target platform.
 # On Darwin (macOS), we force a Linux platform (since Docker builds Linux images),
 # otherwise we use the host's architecture.
+# ------------------------------------------------------------------------------
 if [[ "$(uname)" == "Darwin" ]]; then
     export PLATFORM="linux/arm64"
 else
@@ -18,22 +19,18 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# Determine paths.
+# Locate this script and the project root
 # ------------------------------------------------------------------------------
-# SCRIPT_DIR: The absolute path of the directory containing this script.
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
-
-# WORKSPACE: The parent directory of SCRIPT_DIR (assumed to be the repository root).
 WORKSPACE="$(realpath "$SCRIPT_DIR/..")"
 
 # ------------------------------------------------------------------------------
-# 1) Build the Docker image using the build script.
+# 1) Build the Docker image
 # ------------------------------------------------------------------------------
 "$SCRIPT_DIR/docker/build.sh"
 
 # ------------------------------------------------------------------------------
-# 2) Run the Docker container.
-#    Mount the workspace into the container to allow read/write operations.
+# 2) Run the Docker container
 # ------------------------------------------------------------------------------
 docker run -it --rm \
     --privileged \

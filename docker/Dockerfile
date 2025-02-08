@@ -4,9 +4,9 @@
     ARG BASE_IMAGE=ros:humble-ros-base
 
     #######################################
-    # Stage: dependencies
+    # Single Stage
     #######################################
-    FROM ${BASE_IMAGE} AS dependencies
+    FROM ${BASE_IMAGE}
     
     USER root
     SHELL ["/bin/bash", "-c"]
@@ -20,7 +20,7 @@
     RUN mkdir -p src
     
     # ------------------------------------------------------------------------------
-    # Use the ROS 2 sources already set in the base image; update apt and install needed packages.
+    # Update apt and install needed packages.
     # ------------------------------------------------------------------------------
     ARG ROS_DISTRO
     ENV ROS_DISTRO=${ROS_DISTRO}
@@ -31,17 +31,15 @@
             python3-rosdep \
             python3-vcstool \
             ros-${ROS_DISTRO}-ros-core \
-            python3-pip && \
-        rm -rf /var/lib/apt/lists/*
+            python3-pip
     
     # ------------------------------------------------------------------------------
     # Copy the repository contents into the image under the "src" directory.
     # ------------------------------------------------------------------------------
     COPY . src
     
-    #######################################
-    # Stage: dev
-    #######################################
-    FROM dependencies AS dev
+    # ------------------------------------------------------------------------------
+    # Default command
+    # ------------------------------------------------------------------------------
     CMD ["bash"]
     
