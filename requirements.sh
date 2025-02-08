@@ -15,7 +15,9 @@ pip3 install --upgrade pip
 # Install Python packages with specified versions that are not handled by rosdep.
 # Specify versions using `==<version-number>` for consistent builds.
 # Example: `pip3 install <package-name>==<version>`
-pip3 install control==0.10.1
-pip3 install "numpy<1.25.0"
+
+# The following is required by vortex-auv/control/velocity_controller_lqr
+pip3 install control==0.10.1 # Rosdep does not support it.
+pip3 install "numpy<1.25.0" # velocity_controller_lqr is not compatible with numpy 1.25.0, and rosdep does not support specifying a version range.
 
 echo "Finished installing extra dependencies."
