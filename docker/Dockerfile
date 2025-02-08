@@ -7,18 +7,18 @@
     # Stage: dependencies
     #######################################
     FROM ${BASE_IMAGE} AS dependencies
-    
+
     USER root
     SHELL ["/bin/bash", "-c"]
     ARG DEBIAN_FRONTEND=noninteractive
-    
+
     # ------------------------------------------------------------------------------
     # Create the workspace folder structure.
     # ------------------------------------------------------------------------------
     ENV WORKSPACE=/docker/ws
     WORKDIR $WORKSPACE
     RUN mkdir -p src
-    
+
     # ------------------------------------------------------------------------------
     # Setup ROS keys and package sources.
     # ------------------------------------------------------------------------------
@@ -32,15 +32,15 @@
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null ; \
         fi && \
         rm -rf /var/lib/apt/lists/*
-    
+
     # ------------------------------------------------------------------------------
     # Copy the repository contents into the image under the "src" directory.
     # ------------------------------------------------------------------------------
     COPY . src
-    
+
     #######################################
     # Stage: dev
     #######################################
     FROM dependencies AS dev
     CMD ["bash"]
-    
+
