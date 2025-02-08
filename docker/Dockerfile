@@ -10,11 +10,11 @@
     ARG TARGETARCH
     # Set the TARGETARCH environment variable for later use.
     ENV TARGETARCH=${TARGETARCH}
-    
+
     USER root
     SHELL ["/bin/bash", "-c"]
     ARG DEBIAN_FRONTEND=noninteractive
-    
+
     # ------------------------------------------------------------------------------
     # Create the workspace folder structure.
     # WORKSPACE: The main directory for your build process.
@@ -22,7 +22,7 @@
     ENV WORKSPACE=/docker/ws
     WORKDIR $WORKSPACE
     RUN mkdir -p src
-    
+
     # ------------------------------------------------------------------------------
     # Setup ROS keys and package sources.
     # This installs curl and gnupg, then adds the ROS 2 repository if it isn't already present.
@@ -37,7 +37,7 @@
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null ; \
         fi && \
         rm -rf /var/lib/apt/lists/*
-    
+
     # ------------------------------------------------------------------------------
     # Install basic build tools and optionally ROS.
     # This step installs git, rosdep, and vcstool.
@@ -53,17 +53,17 @@
             apt-get install -y ros-${ROS_DISTRO}-ros-core; \
         fi && \
         rm -rf /var/lib/apt/lists/*
-    
+
     # ------------------------------------------------------------------------------
     # Copy the repository contents into the image under the "src" directory.
     # ------------------------------------------------------------------------------
     COPY . src
-    
+
     # ------------------------------------------------------------------------------
     # Install python3-pip so that pip3 is available for installing Python packages.
     # ------------------------------------------------------------------------------
     RUN apt-get update && apt-get install -y python3-pip
-    
+
     # ------------------------------------------------------------------------------
     # Ensure that the "pip" command is available by linking pip3 to pip.
     # This is needed because some rosdep rules expect the "pip" command.
@@ -82,7 +82,7 @@
             else \
               echo "No custom install commands provided."; \
             fi
-    
+
     # ------------------------------------------------------------------------------
     # Run rosdep to install system dependencies for ROS packages.
     # This step updates rosdep's cache and installs any missing system dependencies
@@ -90,11 +90,11 @@
     # ------------------------------------------------------------------------------
     RUN rosdep update && \
         rosdep install --from-paths src --ignore-src -r -y
-    
+
     #######################################
     # Stage: dev
     #######################################
     FROM dependencies AS dev
     # Set the default command to start a bash shell when the container runs.
     CMD ["bash"]
-    
+
