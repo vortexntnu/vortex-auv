@@ -18,13 +18,6 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# Define the custom command to install extra dependencies.
-# The repository is copied into the container under "src", so we reference the
-# requirements script as "bash src/requirements.sh".
-# ------------------------------------------------------------------------------
-export INSTALL_CMD='bash src/requirements.sh'
-
-# ------------------------------------------------------------------------------
 # Determine paths.
 # ------------------------------------------------------------------------------
 # SCRIPT_DIR: The absolute path of the directory containing this script.
