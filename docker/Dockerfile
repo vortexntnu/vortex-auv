@@ -20,24 +20,13 @@
     RUN mkdir -p src
     
     # ------------------------------------------------------------------------------
-    # Ensure the ROS 2 APT repository is properly set up.
+    # Use the ROS 2 sources already set in the base image; update apt and install needed packages.
     # ------------------------------------------------------------------------------
     ARG ROS_DISTRO
     ENV ROS_DISTRO=${ROS_DISTRO}
     
-    # Install essential tools for repository setup, remove conflicting files,
-    # and then add the ROS 2 repository using the key already provided by the base image.
     RUN apt-get update && \
-        apt-get install -y curl gnupg lsb-release && \
-        rm -f /etc/apt/sources.list.d/ros2-latest.list && \
-        rm -f /etc/apt/sources.list.d/ros2.list && \
-        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros2-latest-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list && \
-        apt-get update
-    
-    # ------------------------------------------------------------------------------
-    # Install ROS packages.
-    # ------------------------------------------------------------------------------
-    RUN apt-get install -y \
+        apt-get install -y \
             git \
             python3-rosdep \
             python3-vcstool \
