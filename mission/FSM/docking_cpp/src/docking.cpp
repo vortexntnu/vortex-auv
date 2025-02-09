@@ -44,7 +44,7 @@ class FindDockState : public yasmin_ros::ActionState<LocateDock> {
         goal.start_search = blackboard->get<bool>("start_search");
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Goal sent to action server: \n");
+                    "Goal sent to action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Start search: %s\n",
                     goal.start_search ? "true" : "false");
 
@@ -57,7 +57,7 @@ class FindDockState : public yasmin_ros::ActionState<LocateDock> {
         blackboard->set<PoseStamped>("dock_pose", response->board_pose);
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Response received from action server: \n");
+                    "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "  Dock pose: x = %f, y = %f, z = %f\n",
                     response->board_pose.pose.position.x,
@@ -103,9 +103,9 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
         goal.waypoints.push_back(docking_goal);
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Goal sent to action server: \n");
+                    "Goal sent to action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "  Position: x = %f, y = %f, z = %f\n",
+                    "  Position: x = %f, y = %f, z = %f",
                     docking_goal.pose.position.x, docking_goal.pose.position.y,
                     docking_goal.pose.position.z);
         fprintf(
@@ -120,7 +120,7 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         NavigateWaypoints::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Response received from action server: \n");
+                    "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
                     response->success ? "true" : "false");
 
@@ -164,9 +164,9 @@ class GoOverDockState
         goal.goal = docking_offset_goal;
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Goal sent to action server: \n");
+                    "Goal sent to action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "  Position: x = %f, y = %f, z = %f\n",
+                    "  Position: x = %f, y = %f, z = %f",
                     docking_offset_goal.pose.position.x,
                     docking_offset_goal.pose.position.y,
                     docking_offset_goal.pose.position.z);
@@ -183,7 +183,7 @@ class GoOverDockState
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         ReferenceFilterWaypoint::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Response received from action server: \n");
+                    "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
                     response->success ? "true" : "false");
 
@@ -252,9 +252,9 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
         goal.waypoints.push_back(start_pose);
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Goal sent to action server: \n");
+                    "Goal sent to action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "  Docking position: x = %f, y = %f, z = %f\n",
+                    "  Docking position: x = %f, y = %f, z = %f",
                     docking_goal.pose.position.x, docking_goal.pose.position.y,
                     docking_goal.pose.position.z);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
@@ -269,7 +269,7 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         NavigateWaypoints::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Response received from action server: \n");
+                    "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
                     response->success ? "true" : "false");
 
@@ -307,7 +307,7 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
         goal.waypoints.push_back(start_pose);
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Goal sent to action server: \n");
+                    "Goal sent to action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "  Start position: x = %f, y = %f, z = %f\n",
                     start_pose.pose.position.x, start_pose.pose.position.y,
@@ -320,7 +320,7 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         NavigateWaypoints::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Response received from action server: \n");
+                    "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
                     response->success ? "true" : "false");
 
@@ -363,7 +363,7 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
         goal.goal = dock_pose;
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Goal sent to action server: \n");
+                    "Goal sent to action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "  Position: x = %f, y = %f, z = %f\n",
                     goal.goal.pose.position.x, goal.goal.pose.position.y,
@@ -376,7 +376,7 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
         ReferenceFilterWaypoint::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Response received from action server: \n");
+                    "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
                     response->success ? "true" : "false");
 
@@ -412,6 +412,7 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines() {
             yasmin_ros::basic_outcomes::SUCCEED,
             yasmin_ros::basic_outcomes::CANCEL,
             yasmin_ros::basic_outcomes::ABORT,
+            yasmin_ros::basic_outcomes::TIMEOUT,
         });
     return sm;
 }
@@ -422,6 +423,7 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines_nested() {
             yasmin_ros::basic_outcomes::SUCCEED,
             yasmin_ros::basic_outcomes::CANCEL,
             yasmin_ros::basic_outcomes::ABORT,
+            yasmin_ros::basic_outcomes::TIMEOUT,
         });
     return sm;
 }
@@ -466,8 +468,10 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
     sm->add_state("ABORT", std::make_shared<AbortState>(),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
-                      {yasmin_ros::basic_outcomes::CANCEL, "aborted"},
-                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      {yasmin_ros::basic_outcomes::CANCEL,
+                       yasmin_ros::basic_outcomes::ABORT},
+                      {yasmin_ros::basic_outcomes::ABORT,
+                       yasmin_ros::basic_outcomes::ABORT},
 
                   });
     sm->add_state("ERROR",
@@ -494,7 +498,8 @@ void add_states_nested(std::shared_ptr<yasmin::StateMachine> sm) {
     sm->add_state("GO_OVER_DOCK", std::make_shared<GoOverDockState>(),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
-                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      {yasmin_ros::basic_outcomes::ABORT,
+                       yasmin_ros::basic_outcomes::ABORT},
 
                   });
 
@@ -502,55 +507,11 @@ void add_states_nested(std::shared_ptr<yasmin::StateMachine> sm) {
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED,
                        yasmin_ros::basic_outcomes::SUCCEED},
-                      {yasmin_ros::basic_outcomes::ABORT, "aborted"},
+                      {yasmin_ros::basic_outcomes::ABORT,
+                       yasmin_ros::basic_outcomes::ABORT},
 
                   });
 }
-
-class MakeBlackboard : public rclcpp::Node {
-   public:
-    MakeBlackboard() : Node("make_blackboard") {
-        RCLCPP_INFO(this->get_logger(), "Creating MakeBlackboard node");
-        // Initialize the blackboard
-        this->blackboards = std::make_shared<yasmin::blackboard::Blackboard>();
-
-        // Declare parameters with a map
-        this->declare_parameters(
-            "",  // Namespace
-            std::map<std::string, rclcpp::ParameterValue>{
-                {"dock_pose", rclcpp::ParameterValue(0)},
-                {"start_pose", rclcpp::ParameterValue(0)},
-                {"docking_station_offset", rclcpp::ParameterValue(0.0)},
-                {"return_home", rclcpp::ParameterValue(false)},
-                {"is_docked", rclcpp::ParameterValue(false)},
-                {"is_home", rclcpp::ParameterValue(false)},
-                {"is_error", rclcpp::ParameterValue(false)},
-                {"has_finished_converging", rclcpp::ParameterValue(false)},
-                {"start_search", rclcpp::ParameterValue(true)},
-            });
-        RCLCPP_INFO(this->get_logger(), "Parameters declared");
-        bool start_search;  // Create a local variable to hold the value
-        if (this->get_parameter("start_search",
-                                start_search)) {  // Check if the parameter
-                                                  // exists and was retrieved
-            this->blackboards->set<bool>(
-                "start_search", start_search);  // Set it in the blackboard
-            RCLCPP_INFO(this->get_logger(),
-                        "Parameter 'start_search' set to %d", start_search);
-        } else {
-            RCLCPP_WARN(this->get_logger(),
-                        "Parameter 'start_search' not set or invalid");
-        }
-    }
-
-    // Getter for the blackboard
-    std::shared_ptr<yasmin::blackboard::Blackboard> get_blackboard() const {
-        return this->blackboards;
-    }
-
-   private:
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboards;
-};
 
 int main(int argc, char* argv[]) {
     YASMIN_LOG_INFO("docking");
@@ -580,16 +541,28 @@ int main(int argc, char* argv[]) {
     yasmin_viewer::YasminViewerPub yasmin_pub_nested("DockingNested",
                                                      nested_sm);
 
-    auto CreateBlackboard = std::make_shared<MakeBlackboard>();
-    auto blackboard = CreateBlackboard->get_blackboard();
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "State machines created");
 
-    // ******************* THIS VALUE CAN BE CHANGED ***************
-    double docking_station_offset = -1.0;
-    blackboard->set<float>("docking_station_offset", docking_station_offset);
+    // ************** Initialize parameters ************************
 
-    //**************************************************************
+    auto params = std::make_shared<rclcpp::Node>("docking");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating params node");
 
-    // ****************** TEST VALUES*******************************
+    params->declare_parameter<double>("docking_station_offset");
+    params->declare_parameter<bool>("return_home");
+    params->declare_parameter<bool>("is_docked");
+    params->declare_parameter<bool>("is_home");
+    params->declare_parameter<bool>("is_error");
+    params->declare_parameter<bool>("has_finished_converging");
+    params->declare_parameter<bool>("start_search");
+
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Parameters declared");
+
+    // *************************************************************
+
+    auto blackboard = std::make_shared<yasmin::blackboard::Blackboard>();
+
+    // ****************** TEST VALUES *******************************
     PoseStamped dock_pose;
     dock_pose.pose.position.x = 0.0;
     dock_pose.pose.position.y = 7.5;
@@ -604,16 +577,28 @@ int main(int argc, char* argv[]) {
     start_pose.pose.position.y = 0.0;
     start_pose.pose.position.z = 0.0;
 
-    blackboard->set<bool>("start_search", true);
-    blackboard->set<PoseStamped>("current_pose", PoseStamped());
-    blackboard->set<PoseStamped>("start_pose", start_pose);
+    // These may not be needed
     blackboard->set<PoseStamped>("dock_pose", dock_pose);
-    blackboard->set<bool>("return_home", true);
-    blackboard->set<bool>("is_docked", false);
-    blackboard->set<bool>("is_home", false);
-    blackboard->set<bool>("is_error", false);
-    blackboard->set<bool>("has_finished_converging", false);
+    blackboard->set<PoseStamped>("start_pose", start_pose);
 
+    blackboard->set<double>(
+        "docking_station_offset",
+        params->get_parameter("docking_station_offset").as_double());
+    blackboard->set<bool>("return_home",
+                          params->get_parameter("return_home").as_bool());
+    blackboard->set<bool>("is_docked",
+                          params->get_parameter("is_docked").as_bool());
+    blackboard->set<bool>("is_home",
+                          params->get_parameter("is_home").as_bool());
+    blackboard->set<bool>("is_error",
+                          params->get_parameter("is_error").as_bool());
+    blackboard->set<bool>(
+        "has_finished_converging",
+        params->get_parameter("has_finished_converging").as_bool());
+    blackboard->set<bool>("start_search",
+                          params->get_parameter("start_search").as_bool());
+
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Blackboard created");
     // *************************************************************
 
     try {
@@ -627,7 +612,7 @@ int main(int argc, char* argv[]) {
     if (!rclcpp::ok()) {
         YASMIN_LOG_WARN(
             "ROS2 context is already invalid. Skipping publisher destruction.");
-        return 1;  // DONT KNOW THE CORRECT RETURN VALUE
+        return 1;  // Exit with error
     }
 
     if (rclcpp::ok()) {

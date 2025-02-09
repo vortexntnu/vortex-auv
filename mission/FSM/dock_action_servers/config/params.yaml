@@ -1,29 +1,6 @@
 docking:
   ros__parameters:
-    dock_pose:
-      pose:
-        position:
-          x: 0.0
-          y: 7.5
-          z: 3.638
-        orientation:
-          x: 0.0
-          y: 0.0
-          z: 0.0
-          w: 1.0
-    start_pose:
-      pose:
-        position:
-          x: 0.0
-          y: 0.0
-          z: 0.0
-        orientation:
-          x: 0.0
-          y: 0.0
-          z: 0.0
-          w: 1.0
     start_search: true
-    current_pose: ~  # or a valid PoseStamped if needed
     docking_station_offset: -1.0
     return_home: false
     is_docked: false

@@ -9,7 +9,9 @@ from launch_ros.actions import Node
 def generate_launch_description() -> LaunchDescription:
     """Launch file to launch all nodes necessary for docking fsm."""
     config = os.path.join(
-        get_package_share_directory('dock_action_servers'), 'config', 'params.yaml'
+        get_package_share_directory(package_name='dock_action_servers'),
+        'config',
+        'params.yaml',
     )
 
     return LaunchDescription(
