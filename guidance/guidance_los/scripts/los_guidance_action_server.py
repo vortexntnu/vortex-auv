@@ -269,13 +269,11 @@ class LOSActionServer(Node):
             total_crosstrack
         )
         
-        # Create unfiltered commands
         unfiltered_commands = State()
         unfiltered_commands.twist.linear_x = desired_surge
-        unfiltered_commands.pose.pitch = theta_d
+        unfiltered_commands.pose.pitch = 0.0
         unfiltered_commands.pose.yaw = psi_d
         
-        # Apply reference filtering
         filtered_commands = self.guidance_calculator.apply_reference_filter(
             unfiltered_commands
         )
@@ -290,17 +288,23 @@ class LOSActionServer(Node):
             
         self.current_waypoint_index = 0
         
-        # Initialize waypoint list with current position as first waypoint
         self.waypoints = [self.state]
         
-        # Add incoming waypoints
         incoming_waypoints = goal_handle.request.waypoints
         for waypoint in incoming_waypoints:
             pose = pose_from_ros(waypoint.pose)
             point_as_state = State(pose=pose)
             self.waypoints.append(point_as_state)
 
-        # Initialize result and rate
+        self.pi_h = self.guidance_calculator.compute_pi_h(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1]
+        )
+        self.pi_v = self.guidance_calculator.compute_pi_v(
+            self.waypoints[self.current_waypoint_index],
+            self.waypoints[self.current_waypoint_index + 1]
+        )
+
         result = NavigateWaypoints.Result()
         rate = self.create_rate(1.0 / self.update_period)
 
@@ -321,41 +325,41 @@ class LOSActionServer(Node):
                 result.success = False
                 return result
 
-            # Calculate cross-track errors
-            along_track, crosstrack_y, crosstrack_z = self.guidance_calculator.compute_crosstrack_error(
-                self.state,
-                self.waypoints[self.current_waypoint_index],
-                self.waypoints[self.current_waypoint_index + 1]
+            # Calculate distance to next waypoint
+            error = self.state - self.waypoints[self.current_waypoint_index + 1]
+            self.norm = np.linalg.norm(
+                self.guidance_calculator.state_as_pos_array(error)
             )
             
-            # Calculate total cross-track error
-            total_crosstrack = np.sqrt(crosstrack_y**2 + crosstrack_z**2)
-            
             # Check if waypoint is reached
-            if along_track > 0 and total_crosstrack < 1.5:  # You can tune this threshold
-                self.get_logger().info('Waypoint reached')
+            if self.norm < 1.5:  # Using 0.5m as acceptance radius
+                self.get_logger().info('Waypoint reached onto the next one')
                 self.current_waypoint_index += 1
 
                 # Check if all waypoints are reached
                 if self.current_waypoint_index >= len(self.waypoints) - 1:
                     self.get_logger().info('All waypoints reached!')
-                    
-                    # Send final commands (stop moving but maintain orientation)
                     final_commands = State()
-                    final_commands.twist.linear_x = 0
+                    final_commands.twist.linear_x = 0.0
                     final_commands.pose.pitch = self.state.pose.pitch
                     final_commands.pose.yaw = self.state.pose.yaw
                     self.publish_guidance(final_commands)
-                    
-                    # Set success and return
                     result.success = True
                     self.goal_handle.succeed()
                     return result
 
-            # Calculate and publish guidance commands
+                # Update path angles for new segment
+                self.pi_h = self.guidance_calculator.compute_pi_h(
+                    self.waypoints[self.current_waypoint_index],
+                    self.waypoints[self.current_waypoint_index + 1]
+                )
+                self.pi_v = self.guidance_calculator.compute_pi_v(
+                    self.waypoints[self.current_waypoint_index],
+                    self.waypoints[self.current_waypoint_index + 1]
+                )
+
             commands = self.calculate_guidance()
             self.publish_guidance(commands)
-
             rate.sleep()
 
     def publish_guidance(self, commands: State):

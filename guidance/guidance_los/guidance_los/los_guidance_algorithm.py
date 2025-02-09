@@ -19,8 +19,8 @@ class LOSParameters:
         dt: update rate in seconds
     """
 
-    lookahead_distance_min: float = 1.0
-    lookahead_distance_max: float = 1.0
+    lookahead_distance_min: float = 2.0
+    lookahead_distance_max: float = 2.0
     lookahead_distance_factor: float = 1.0
     nominal_speed: float = 1.0
     min_speed: float = 0.1
@@ -31,7 +31,7 @@ class LOSParameters:
 
 @dataclass(slots=True)
 class FilterParameters:
-    """Parameters for third-order filter.
+    """Parameters for filter.
 
     Attributes:
         omega_diag: Natural frequencies for surge, pitch, and yaw [rad/s]
@@ -82,12 +82,32 @@ class LOSGuidanceAlgorithm:
         desired_yaw = np.arctan2(dy, dx)
         yaw_error = ssa(desired_yaw - current_pos.pose.yaw)
 
-        depth_error = target_pos.pose.z - current_pos.pose.z
-        desired_pitch = self.compute_pitch_command(
-            depth_error, self.horizontal_distance
+        alpha_c = self.calculate_alpha_c(
+            current_pos.twist.linear_x,
+            current_pos.twist.linear_y,
+            current_pos.twist.linear_z,
+            current_pos.pose.roll
         )
 
-        desired_surge = self.compute_desired_speed(yaw_error, self.horizontal_distance)
+        _, _, crosstrack_z = self.compute_crosstrack_error(
+            current_pos,
+            current_pos,  
+            target_pos    
+        )
+
+        desired_pitch = self.compute_pitch_command(
+            current_pos,   
+            target_pos,    
+            crosstrack_z,
+            alpha_c
+        )
+
+        desired_surge = self.compute_desired_speed(
+            current_pos,
+            target_pos,
+            abs(crosstrack_z) 
+        )
+
         commands = State()
         commands.twist.linear_x = desired_surge
         commands.pose.pitch = desired_pitch
@@ -102,25 +122,13 @@ class LOSGuidanceAlgorithm:
         crosstrack_z: float,
         alpha_c: float
     ) -> float:
-        """Compute pitch command based on LOS guidance law.
+        """Compute pitch command based on LOS guidance law."""
         
-        Args:
-            current_waypoint: Current waypoint State
-            next_waypoint: Next waypoint State
-            crosstrack_z: Vertical cross-track error
-            alpha_c: Estimated crab angle for pitch
-            
-        Returns:
-            float: Desired pitch angle in radians
-        """
-        # Calculate path elevation angle
         pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
         
-        # Compute desired pitch using LOS guidance law
         theta_d = pi_v + alpha_c + np.arctan(crosstrack_z / self.lookahead_v)
         
-        # Normalize angle and apply pitch limits
-        theta_d = ssa(theta_d)  # Normalize to [-π, π]
+        theta_d = ssa(theta_d) 
         return np.clip(
             theta_d,
             -self.los_params.max_pitch_angle,
@@ -133,33 +141,25 @@ class LOSGuidanceAlgorithm:
         target_pos: State,
         crosstrack_error: float
     ) -> float:
-        """Compute speed command based on path-following requirements.
+        """Compute speed command based on path-following requirements."""
         
-        Args:
-            current_pos: Current vehicle position State
-            target_pos: Target position State
-            crosstrack_error: Total cross-track error magnitude
-            
-        Returns:
-            float: Desired surge velocity in m/s
-        """
-        # Calculate distance to target
+
         dx = target_pos.pose.x - current_pos.pose.x
         dy = target_pos.pose.y - current_pos.pose.y
         dz = target_pos.pose.z - current_pos.pose.z
         distance_to_target = np.sqrt(dx**2 + dy**2 + dz**2)
         
-        # Speed reduction based on cross-track error
+
         crosstrack_factor = np.exp(-self.los_params.lookahead_distance_factor * 
                                 abs(crosstrack_error))
         
-        # Speed reduction based on distance to target
+
         distance_factor = min(
             1.0,
             distance_to_target / self.los_params.lookahead_distance_max
         )
         
-        # Compute final speed command
+
         desired_speed = (self.los_params.nominal_speed * 
                         crosstrack_factor * 
                         distance_factor)
@@ -172,31 +172,29 @@ class LOSGuidanceAlgorithm:
         current_waypoint: State,
         next_waypoint: State
     ) -> tuple[float, float, float]:
-        """Compute cross-track errors in path-tangential frame.
-        
-        Args:
-            current_pos: Current vehicle position
-            current_waypoint: Current waypoint
-            next_waypoint: Next waypoint
-            
-        Returns:
-            tuple: (along_track_error, cross_track_error, vertical_track_error)
-        """
-        # Calculate path angles
+        """Compute cross-track errors in path-tangential frame."""
+
+        path_vector = self.state_as_pos_array(next_waypoint - current_waypoint)
+        path_length = np.linalg.norm(path_vector)
+        if path_length == 0:
+            return 0.0, 0.0, 0.0
+
         pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
         pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
-        
-        # Compute rotation matrices
+
         R_y = self.compute_rotation_y(pi_v)
         R_z = self.compute_rotation_z(pi_h)
+        R = R_y.T @ R_z.T
         
-        # Calculate position error in NED frame
-        error_ned = self.state_as_pos_array(current_pos - current_waypoint)
+        pos_error = self.state_as_pos_array(current_pos - current_waypoint)
+        error_path = R @ pos_error
+        along_track = error_path[0]
         
-        # Transform to path-tangential frame
-        error_path = R_y.T @ R_z.T @ error_ned
+
+        cross_track_y = error_path[1]
+        cross_track_z = error_path[2]  
         
-        return error_path[0], error_path[1], error_path[2]
+        return along_track, cross_track_y, cross_track_z
 
     def apply_reference_filter(self, commands: State) -> State:
         los_array = self.state_to_los_array(commands)
