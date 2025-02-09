@@ -1,8 +1,8 @@
 los_guidance_node:
   ros__parameters:
     los_guidance:
-      delta_h: 1.0                # Horizontal look-ahead distance
-      delta_v: 1.0                # Vertical look-ahead distance
+      delta_h: 2.0                # Horizontal look-ahead distance
+      delta_v: 2.0                # Vertical look-ahead distance
       gamma_h: 1.0                # Horizontal adaptive gain
       gamma_v: 1.0                # Vertical adaptive gain
       M_theta: 0.5                # Bound for parameter estimates

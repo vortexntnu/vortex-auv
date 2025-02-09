@@ -19,8 +19,8 @@ class LOSParameters:
         dt: update rate in seconds
     """
 
-    lookahead_distance_min: float = 2.0
-    lookahead_distance_max: float = 8.0
+    lookahead_distance_min: float = 1.0
+    lookahead_distance_max: float = 1.0
     lookahead_distance_factor: float = 1.0
     nominal_speed: float = 1.0
     min_speed: float = 0.1
@@ -51,7 +51,7 @@ class LOSGuidanceAlgorithm:
     def __init__(self, los_params: LOSParameters, filter_params: FilterParameters):
         self.los_params = los_params
         self.filter_params = filter_params
-        self.x = np.zeros(9)  # Filter state
+        self.filter_state = np.zeros(9)
         self.horizontal_distance = 0.0
         self.setup_filter_matrices()
         self.lookahead_h = 2.0
@@ -60,8 +60,8 @@ class LOSGuidanceAlgorithm:
     def setup_filter_matrices(self):
         omega = np.diag(self.filter_params.omega_diag)
         zeta = np.diag(self.filter_params.zeta_diag)
-        omega_cubed = omega @ omega @ omega
-        omega_squared = omega @ omega
+        omega_cubed = np.linalg.matrix_power(omega, 3)  
+        omega_squared = np.linalg.matrix_power(omega, 2) 
 
         self.Ad = np.zeros((9, 9))
         self.Bd = np.zeros((9, 3))
@@ -69,8 +69,8 @@ class LOSGuidanceAlgorithm:
         self.Ad[0:3, 3:6] = np.eye(3)
         self.Ad[3:6, 6:9] = np.eye(3)
         self.Ad[6:9, 0:3] = -omega_cubed
-        self.Ad[6:9, 3:6] = -(2 * zeta + np.eye(3)) @ omega_squared
-        self.Ad[6:9, 6:9] = -(2 * zeta + np.eye(3)) @ omega
+        self.Ad[6:9, 3:6] = -np.dot((2 * zeta + np.eye(3)),omega_squared)
+        self.Ad[6:9, 6:9] = -np.dot((2 * zeta + np.eye(3)),omega)
 
         self.Bd[6:9, :] = omega_cubed
 
@@ -96,39 +96,116 @@ class LOSGuidanceAlgorithm:
         return commands
 
     def compute_pitch_command(
-        self, depth_error: float, horizontal_distance: float
+        self,
+        current_waypoint: State,
+        next_waypoint: State,
+        crosstrack_z: float,
+        alpha_c: float
     ) -> float:
-        """Compute pitch command with distance-based scaling."""
-        raw_pitch = -self.los_params.depth_gain * depth_error
-        distance_factor = min(
-            1.0, horizontal_distance / self.los_params.lookahead_distance_max
-        )
-        modified_pitch = raw_pitch * distance_factor
+        """Compute pitch command based on LOS guidance law.
+        
+        Args:
+            current_waypoint: Current waypoint State
+            next_waypoint: Next waypoint State
+            crosstrack_z: Vertical cross-track error
+            alpha_c: Estimated crab angle for pitch
+            
+        Returns:
+            float: Desired pitch angle in radians
+        """
+        # Calculate path elevation angle
+        pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
+        
+        # Compute desired pitch using LOS guidance law
+        theta_d = pi_v + alpha_c + np.arctan(crosstrack_z / self.lookahead_v)
+        
+        # Normalize angle and apply pitch limits
+        theta_d = ssa(theta_d)  # Normalize to [-π, π]
         return np.clip(
-            modified_pitch,
+            theta_d,
             -self.los_params.max_pitch_angle,
-            self.los_params.max_pitch_angle,
+            self.los_params.max_pitch_angle
         )
 
     def compute_desired_speed(
-        self, yaw_error: float, distance_to_target: float
+        self,
+        current_pos: State,
+        target_pos: State,
+        crosstrack_error: float
     ) -> float:
-        """Compute speed command with yaw and distance-based scaling."""
-        yaw_factor = np.cos(yaw_error)
+        """Compute speed command based on path-following requirements.
+        
+        Args:
+            current_pos: Current vehicle position State
+            target_pos: Target position State
+            crosstrack_error: Total cross-track error magnitude
+            
+        Returns:
+            float: Desired surge velocity in m/s
+        """
+        # Calculate distance to target
+        dx = target_pos.pose.x - current_pos.pose.x
+        dy = target_pos.pose.y - current_pos.pose.y
+        dz = target_pos.pose.z - current_pos.pose.z
+        distance_to_target = np.sqrt(dx**2 + dy**2 + dz**2)
+        
+        # Speed reduction based on cross-track error
+        crosstrack_factor = np.exp(-self.los_params.lookahead_distance_factor * 
+                                abs(crosstrack_error))
+        
+        # Speed reduction based on distance to target
         distance_factor = min(
-            1.0, distance_to_target / self.los_params.lookahead_distance_max
+            1.0,
+            distance_to_target / self.los_params.lookahead_distance_max
         )
-        desired_speed = self.los_params.nominal_speed * yaw_factor * distance_factor
+        
+        # Compute final speed command
+        desired_speed = (self.los_params.nominal_speed * 
+                        crosstrack_factor * 
+                        distance_factor)
+        
         return max(self.los_params.min_speed, desired_speed)
+    
+    def compute_crosstrack_error(
+        self,
+        current_pos: State,
+        current_waypoint: State,
+        next_waypoint: State
+    ) -> tuple[float, float, float]:
+        """Compute cross-track errors in path-tangential frame.
+        
+        Args:
+            current_pos: Current vehicle position
+            current_waypoint: Current waypoint
+            next_waypoint: Next waypoint
+            
+        Returns:
+            tuple: (along_track_error, cross_track_error, vertical_track_error)
+        """
+        # Calculate path angles
+        pi_h = self.compute_pi_h(current_waypoint, next_waypoint)
+        pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
+        
+        # Compute rotation matrices
+        R_y = self.compute_rotation_y(pi_v)
+        R_z = self.compute_rotation_z(pi_h)
+        
+        # Calculate position error in NED frame
+        error_ned = self.state_as_pos_array(current_pos - current_waypoint)
+        
+        # Transform to path-tangential frame
+        error_path = R_y.T @ R_z.T @ error_ned
+        
+        return error_path[0], error_path[1], error_path[2]
 
     def apply_reference_filter(self, commands: State) -> State:
         los_array = self.state_to_los_array(commands)
-        x_dot = self.Ad @ self.x + self.Bd @ los_array
-        self.x = self.x + x_dot * self.los_params.dt
+        x_dot = self.Ad @ self.filter_state + self.Bd @ los_array
+        self.filter_state = self.filter_state + x_dot * self.los_params.dt
 
-        commands.twist.linear_x = self.x[0]
-        commands.pose.pitch = self.x[1]
-        commands.pose.yaw = self.x[2]
+        commands.twist.linear_x = self.filter_state[0]
+        commands.pose.pitch = self.filter_state[1]
+        commands.pose.yaw = self.filter_state[2]
 
         return commands
 
@@ -141,9 +218,9 @@ class LOSGuidanceAlgorithm:
         return filtered_commands
 
     def reset_filter_state(self, current_state: State) -> None:
-        self.x = np.zeros(9)
+        self.filter_state = np.zeros(9)
         current_state_array = self.state_to_los_array(current_state)
-        self.x[0:3] = current_state_array
+        self.filter_state[0:3] = current_state_array
 
     @staticmethod
     def state_to_los_array(state: State) -> np.ndarray:

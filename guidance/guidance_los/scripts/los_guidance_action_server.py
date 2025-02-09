@@ -216,142 +216,155 @@ class LOSActionServer(Node):
         self.state.twist = twist_from_ros(msg.twist.twist)
 
     def calculate_guidance(self) -> State:
-        waypoint: State = self.waypoints[self.current_waypoint_index]
-        error = self.guidance_calculator.state_as_pos_array(self.state - waypoint)
-        _, crosstrack_y, crosstrack_z = self.rotation_yz @ error
+        # Get current and next waypoints
+        current_waypoint = self.waypoints[self.current_waypoint_index]
+        next_waypoint = self.waypoints[self.current_waypoint_index + 1]
+        
+        # Calculate cross-track errors
+        along_track, crosstrack_y, crosstrack_z = self.guidance_calculator.compute_crosstrack_error(
+            self.state,
+            current_waypoint,
+            next_waypoint
+        )
+        
+        # Calculate crab angles
         alpha_c = self.guidance_calculator.calculate_alpha_c(
             self.state.twist.linear_x,
             self.state.twist.linear_y,
             self.state.twist.linear_z,
-            self.state.pose.pitch,
+            self.state.pose.roll
         )
+        
         beta_c = self.guidance_calculator.calculate_beta_c(
             self.state.twist.linear_x,
             self.state.twist.linear_y,
             self.state.twist.linear_z,
             self.state.pose.roll,
             self.state.pose.pitch,
-            alpha_c,
+            alpha_c
         )
+        
+        # Calculate desired heading and pitch
         psi_d = self.guidance_calculator.compute_psi_d(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
+            current_waypoint,
+            next_waypoint,
             crosstrack_y,
-            beta_c,
+            beta_c
         )
-        theta_d = self.guidance_calculator.compute_theta_d(
-            self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1],
+        
+        theta_d = self.guidance_calculator.compute_pitch_command(
+            current_waypoint,
+            next_waypoint,
             crosstrack_z,
-            alpha_c,
+            alpha_c
         )
-
-        yaw_error = ssa(psi_d - self.state.pose.yaw)
-
+        
+        # Calculate total cross-track error
+        total_crosstrack = np.sqrt(crosstrack_y**2 + crosstrack_z**2)
+        
+        # Calculate desired surge speed
         desired_surge = self.guidance_calculator.compute_desired_speed(
-            yaw_error, self.norm
+            self.state,
+            next_waypoint,
+            total_crosstrack
         )
-
+        
+        # Create unfiltered commands
         unfiltered_commands = State()
         unfiltered_commands.twist.linear_x = desired_surge
         unfiltered_commands.pose.pitch = theta_d
         unfiltered_commands.pose.yaw = psi_d
+        
+        # Apply reference filtering
         filtered_commands = self.guidance_calculator.apply_reference_filter(
             unfiltered_commands
         )
+        
         return unfiltered_commands
-        # return filtered_commands
 
-    # def execute_callback(self, goal_handle: ServerGoalHandle):
-    #     """Execute waypoint navigation action."""
-    #     # Initialize navigation goal with lock
-    #     with self._goal_lock:
-    #         self.goal_handle = goal_handle
-    #     self.current_waypoint_index = 0
-    #     self.waypoints = [self.state]
-    #     incoming_waypoints = goal_handle.request.waypoints
-    #     for waypoint in incoming_waypoints:
-    #         pose = pose_from_ros(waypoint.pose)
-    #         point_as_state = State(pose=pose)
-    #         self.waypoints.append(point_as_state)
+    def execute_callback(self, goal_handle: ServerGoalHandle):
+        """Execute waypoint navigation action."""
+        # Initialize navigation goal with lock
+        with self._goal_lock:
+            self.goal_handle = goal_handle
+            
+        self.current_waypoint_index = 0
+        
+        # Initialize waypoint list with current position as first waypoint
+        self.waypoints = [self.state]
+        
+        # Add incoming waypoints
+        incoming_waypoints = goal_handle.request.waypoints
+        for waypoint in incoming_waypoints:
+            pose = pose_from_ros(waypoint.pose)
+            point_as_state = State(pose=pose)
+            self.waypoints.append(point_as_state)
 
-    #     self.pi_h = self.guidance_calculator.compute_pi_h(
-    #         self.waypoints[self.current_waypoint_index],
-    #         self.waypoints[self.current_waypoint_index + 1],
-    #     )
-    #     self.pi_v = self.guidance_calculator.compute_pi_v(
-    #         self.waypoints[self.current_waypoint_index],
-    #         self.waypoints[self.current_waypoint_index + 1],
-    #     )
+        # Initialize result and rate
+        result = NavigateWaypoints.Result()
+        rate = self.create_rate(1.0 / self.update_period)
 
-    #     rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
-    #     rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
-    #     self.rotation_yz = rotation_y.T @ rotation_z.T
+        self.get_logger().info('Executing goal')
+        
+        while rclpy.ok():
+            # Check if goal is still active
+            if not goal_handle.is_active:
+                result.success = False
+                self.guidance_calculator.reset_filter_state(self.state)
+                return result
 
-    #     # feedback = NavigateWaypoints.Feedback()
-    #     result = NavigateWaypoints.Result()
+            # Check for cancellation
+            if goal_handle.is_cancel_requested:
+                self.get_logger().info('Goal canceled')
+                goal_handle.canceled()
+                self.goal_handle = None
+                result.success = False
+                return result
 
-    #     # Monitor navigation progress
-    #     rate = self.create_rate(1.0 / self.update_period)
+            # Calculate cross-track errors
+            along_track, crosstrack_y, crosstrack_z = self.guidance_calculator.compute_crosstrack_error(
+                self.state,
+                self.waypoints[self.current_waypoint_index],
+                self.waypoints[self.current_waypoint_index + 1]
+            )
+            
+            # Calculate total cross-track error
+            total_crosstrack = np.sqrt(crosstrack_y**2 + crosstrack_z**2)
+            
+            # Check if waypoint is reached
+            if along_track > 0 and total_crosstrack < 1.5:  # You can tune this threshold
+                self.get_logger().info('Waypoint reached')
+                self.current_waypoint_index += 1
 
-    #     self.get_logger().info('Executing goal')
-    #     while rclpy.ok():
-    #         if not goal_handle.is_active:
-    #             # Preempted by another goal
-    #             result.success = False
-    #             self.guidance_calculator.reset_filter_state(self.state)
-    #             return result
+                # Check if all waypoints are reached
+                if self.current_waypoint_index >= len(self.waypoints) - 1:
+                    self.get_logger().info('All waypoints reached!')
+                    
+                    # Send final commands (stop moving but maintain orientation)
+                    final_commands = State()
+                    final_commands.twist.linear_x = 0
+                    final_commands.pose.pitch = self.state.pose.pitch
+                    final_commands.pose.yaw = self.state.pose.yaw
+                    self.publish_guidance(final_commands)
+                    
+                    # Set success and return
+                    result.success = True
+                    self.goal_handle.succeed()
+                    return result
 
-    #         if goal_handle.is_cancel_requested:
-    #             self.get_logger().info('Goal canceled')
-    #             goal_handle.canceled()
-    #             self.goal_handle = None
-    #             result.success = False
-    #             return result
-    #         error = self.state - self.waypoints[self.current_waypoint_index + 1]
-    #         self.norm = np.linalg.norm(
-    #             self.guidance_calculator.state_as_pos_array(error)
-    #         )
-    #         if self.norm < 0.5:
-    #             self.get_logger().info('Waypoint reached')
-    #             self.current_waypoint_index += 1
+            # Calculate and publish guidance commands
+            commands = self.calculate_guidance()
+            self.publish_guidance(commands)
 
-    #             if self.current_waypoint_index >= len(self.waypoints) - 1:
-    #                 self.get_logger().info('All waypoints reached!')
-    #                 final_commands = State()
-    #                 final_commands.twist.linear_x = 0
-    #                 final_commands.pose.pitch = self.state.pose.pitch
-    #                 final_commands.pose.yaw = self.state.pose.yaw
-    #                 self.publish_guidance(final_commands)
-    #                 result.success = True
-    #                 self.goal_handle.succeed()
-    #                 return result
+            rate.sleep()
 
-    #             self.pi_h = self.guidance_calculator.compute_pi_h(
-    #                 self.waypoints[self.current_waypoint_index],
-    #                 self.waypoints[self.current_waypoint_index + 1],
-    #             )
-    #             self.pi_v = self.guidance_calculator.compute_pi_v(
-    #                 self.waypoints[self.current_waypoint_index],
-    #                 self.waypoints[self.current_waypoint_index + 1],
-    #             )
-
-    #             rotation_y = self.guidance_calculator.compute_rotation_y(self.pi_v)
-    #             rotation_z = self.guidance_calculator.compute_rotation_z(self.pi_h)
-    #             self.rotation_yz = rotation_y.T @ rotation_z.T
-
-    #         commands = self.calculate_guidance()
-    #         self.publish_guidance(commands)
-
-    #         rate.sleep()
-
-    # def publish_guidance(self, commands: State):
-    #     """Publish the commanded surge velocity, pitch angle, and yaw angle."""
-    #     msg = LOSGuidance()
-    #     msg.surge = commands.twist.linear_x
-    #     msg.pitch = commands.pose.pitch
-    #     msg.yaw = commands.pose.yaw
-    #     self.guidance_cmd_pub.publish(msg)
+    def publish_guidance(self, commands: State):
+        """Publish the commanded surge velocity, pitch angle, and yaw angle."""
+        msg = LOSGuidance()
+        msg.surge = commands.twist.linear_x
+        msg.pitch = commands.pose.pitch
+        msg.yaw = commands.pose.yaw
+        self.guidance_cmd_pub.publish(msg)
 
 
 def main(args=None):
