@@ -33,7 +33,7 @@
             python3-pip
 
     # ------------------------------------------------------------------------------
-    # Clone the vortex-auv repository and fetch submodules.
+    # Copy the entire workspace into the Docker image.
     # ------------------------------------------------------------------------------
     COPY . .
 
