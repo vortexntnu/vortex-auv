@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <vortex_msgs/action/filtered_pose.hpp>
 #include <vortex_msgs/action/go_to_waypoint.hpp>
-#include <vortex_msgs/action/locate_dock.hpp>
 #include <vortex_msgs/action/navigate_waypoints.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 
@@ -20,7 +20,7 @@
 
 using std::placeholders::_1;
 using std::placeholders::_2;
-using LocateDock = vortex_msgs::action::LocateDock;
+using FilteredPose = vortex_msgs::action::FilteredPose;
 using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;
@@ -29,45 +29,45 @@ using ReferenceFilter = vortex_msgs::msg::ReferenceFilter;
 using NavigateWaypoints = vortex_msgs::action::NavigateWaypoints;
 using namespace yasmin;
 
-class FindDockState : public yasmin_ros::ActionState<LocateDock> {
+class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
    public:
     FindDockState()
-        : yasmin_ros::ActionState<LocateDock>(
-              "search_dock",
+        : yasmin_ros::ActionState<FilteredPose>(
+              "filtered_pose",
               std::bind(&FindDockState::create_goal_handler, this, _1),
               std::bind(&FindDockState::response_handler, this, _1, _2),
               std::bind(&FindDockState::print_feedback, this, _1, _2)) {};
 
-    LocateDock::Goal create_goal_handler(
+    FilteredPose::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = LocateDock::Goal();
-        goal.start_search = blackboard->get<bool>("start_search");
+        auto goal = FilteredPose::Goal();
+        goal.num_measurements = blackboard->get<bool>("num_measurements");
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Goal sent to action server:");
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Start search: %s\n",
-                    goal.start_search ? "true" : "false");
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
+                    "  Number of measurements: %d", goal.num_measurements);
 
         return goal;
     }
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        LocateDock::Result::SharedPtr response) {
-        blackboard->set<PoseStamped>("dock_pose", response->board_pose);
+        FilteredPose::Result::SharedPtr response) {
+        blackboard->set<PoseStamped>("dock_pose", response->filtered_pose);
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "  Dock pose: x = %f, y = %f, z = %f\n",
-                    response->board_pose.pose.position.x,
-                    response->board_pose.pose.position.y,
-                    response->board_pose.pose.position.z);
+                    response->filtered_pose.pose.position.x,
+                    response->filtered_pose.pose.position.y,
+                    response->filtered_pose.pose.position.z);
 
         PoseStamped docking_offset_goal;
-        docking_offset_goal = response->board_pose;
+        docking_offset_goal = response->filtered_pose;
         docking_offset_goal.pose.position.z +=
-            blackboard->get<float>("docking_station_offset");
+            blackboard->get<double>("docking_station_offset");
         blackboard->set<PoseStamped>("docking_offset_goal",
                                      docking_offset_goal);
 
@@ -76,10 +76,14 @@ class FindDockState : public yasmin_ros::ActionState<LocateDock> {
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const LocateDock::Feedback> feedback) {
-        blackboard->set<float>("confimred_search", feedback->confirmed);
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Confirmed search: %i\n",
-                    feedback->confirmed);
+        std::shared_ptr<const FilteredPose::Feedback> feedback) {
+        blackboard->set<Pose>("current_pose", feedback->current_pose.pose);
+
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
+                    "Current position: x = %f, y = %f, z = %f\n",
+                    feedback->current_pose.pose.position.x,
+                    feedback->current_pose.pose.position.y,
+                    feedback->current_pose.pose.position.z);
     }
 };
 
@@ -554,7 +558,7 @@ int main(int argc, char* argv[]) {
     params->declare_parameter<bool>("is_home");
     params->declare_parameter<bool>("is_error");
     params->declare_parameter<bool>("has_finished_converging");
-    params->declare_parameter<bool>("start_search");
+    params->declare_parameter<int>("num_measurements");
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Parameters declared");
 
@@ -595,8 +599,8 @@ int main(int argc, char* argv[]) {
     blackboard->set<bool>(
         "has_finished_converging",
         params->get_parameter("has_finished_converging").as_bool());
-    blackboard->set<bool>("start_search",
-                          params->get_parameter("start_search").as_bool());
+    blackboard->set<int>("num_measurements",
+                         params->get_parameter("num_measurements").as_int());
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Blackboard created");
     // *************************************************************
