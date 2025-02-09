@@ -238,7 +238,7 @@ class JoystickInterface(Node):
         self.sway = (
             -axes.get("horizontal_axis_left_stick", 0.0) * self._joystick_sway_gain
         )
-        self.heave = (left_trigger - right_trigger) * self._joystick_heave_gain
+        self.heave = -(left_trigger - right_trigger) * self._joystick_heave_gain
         self.roll = (right_shoulder - left_shoulder) * self._joystick_roll_gain
         self.pitch = (
             -axes.get("vertical_axis_right_stick", 0.0) * self._joystick_pitch_gain
