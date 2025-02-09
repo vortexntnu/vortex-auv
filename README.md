@@ -10,11 +10,20 @@ This repo contains software for operating UUVs, developed by students at NTNU. T
 ### Prerequisites
 - Install [Docker](https://www.docker.com/get-started)
 ### Building and Running
-From the root of the repository, run the following command to build the Docker image (tagged as auv-image:latest) and start a container:
+To build the Docker image (tagged as auv-image:latest) and start a container, run the following command from the repository:
 ```bash
 ./entrypoint.sh
 ```
-Once the container is running, your local workspace is mounted at /docker/ws/src within the container. This means any changes you make locally are immediately reflected inside the container.
+Once the container is running, your local workspace is mounted at /docker/ws within the container. This means any changes you make locally are immediately reflected inside the container. Also, if you build inside the container (colcon build), the generated build/, log/, and install/ directories will be stored locally. Your local workspace should follow a standard ROS 2 structure:
+```
+ws/
+│── build/
+│── log/
+│── install/
+│── src/
+│   └── vortex-auv/
+│   └── vortex-msgs/
+```
 
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
