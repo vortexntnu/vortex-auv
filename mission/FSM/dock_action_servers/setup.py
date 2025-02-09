@@ -25,7 +25,7 @@ setup(
             'return_home_server = dock_action_servers.return_home_server:main',
             'go_down_server = dock_action_servers.go_down_server:main',
             'go_over_dock_server = dock_action_servers.go_over_dock_server:main',
-            'fsm_state_node = dock_action_servers.fsm_state_node:main'
+            'fsm_state_node = dock_action_servers.fsm_state_node:main',
         ],
     },
 )

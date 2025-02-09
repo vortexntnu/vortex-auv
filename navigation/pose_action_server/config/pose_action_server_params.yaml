@@ -1,0 +1,5 @@
+/**:
+  ros__parameters:
+    pose_sub_topic: "/ekf_filtered_pose"
+    action_name: "filtered_pose"
+

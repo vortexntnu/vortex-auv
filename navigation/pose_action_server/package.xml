@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>pose_transformer</name>
+  <name>pose_action_server</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="jorgen.fjermedal@hotmail.com">jorgen</maintainer>
@@ -10,14 +10,9 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend>message_filters</depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <depend>vortex_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -17,7 +17,7 @@ line_filtering_node:
     pub_point2: "point_2_"
     pub_point3: "point_3_"
     pub_point4: "point_4_"
-  
+
     clutter_rate: 0.001
     probability_of_detection: 0.7
     probability_of_survival: 0.99
@@ -30,4 +30,3 @@ line_filtering_node:
     std_velocity: 0.2
     std_sensor: 0.5
     update_interval_ms: 100
-

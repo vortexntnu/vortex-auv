@@ -4,6 +4,7 @@ class JoyStates:
     KILLSWITCH = "KILLSWITCH"
     REFERENCE_MODE = "REFERENCE_MODE"
 
+
 class Wired:
     joystick_buttons_map = [
         "A",
@@ -18,18 +19,19 @@ class Wired:
         "stick_button_left",
         "stick_button_right",
         "share_button",
-]
+    ]
 
     joystick_axes_map = [
-        "horizontal_axis_left_stick", #Sway
-        "vertical_axis_left_stick", #Surge
-        "LT", #Negative thrust/torque multiplier
-        "horizontal_axis_right_stick", #Yaw
+        "horizontal_axis_left_stick",  # Sway
+        "vertical_axis_left_stick",  # Surge
+        "LT",  # Negative thrust/torque multiplier
+        "horizontal_axis_right_stick",  # Yaw
         "vertical_axis_right_stick",
-        "RT", #Positive thrust/torque multiplier
+        "RT",  # Positive thrust/torque multiplier
         "dpad_horizontal",
         "dpad_vertical",
-]
+    ]
+
 
 class WirelessXboxSeriesX:
     joystick_buttons_map = [
@@ -49,15 +51,15 @@ class WirelessXboxSeriesX:
         "stick_button_left",
         "stick_button_right",
         "share_button",
-]
+    ]
 
     joystick_axes_map = [
-        "horizontal_axis_left_stick", #Sway
-        "vertical_axis_left_stick", #Surge
-        "horizontal_axis_right_stick", #Yaw
+        "horizontal_axis_left_stick",  # Sway
+        "vertical_axis_left_stick",  # Surge
+        "horizontal_axis_right_stick",  # Yaw
         "vertical_axis_right_stick",
-        "RT", #Positive thrust/torque multiplier
-        "LT", #Negative thrust/torque multiplier
+        "RT",  # Positive thrust/torque multiplier
+        "LT",  # Negative thrust/torque multiplier
         "dpad_horizontal",
         "dpad_vertical",
-]
+    ]

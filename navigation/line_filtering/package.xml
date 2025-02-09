@@ -4,7 +4,7 @@
   <name>line_filtering</name>
   <version>0.0.0</version>
   <description>Line filtering with PoseArray and camera information.</description>
-  
+
   <maintainer email="tuangsamte@outlook.com">tuangsamte</maintainer>
   <license>Apache-2.0</license>
 

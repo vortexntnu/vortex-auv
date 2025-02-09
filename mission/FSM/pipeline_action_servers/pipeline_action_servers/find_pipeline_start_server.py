@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import math
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
@@ -12,18 +11,19 @@ from vortex_msgs.action._find_dock import (
 
 
 class FindPipelineStartServer(Node):
-
     def __init__(self) -> None:
-        """
-        Initialize the action server for finding the dock."""
+        """Initialize the action server for finding the dock."""
         super().__init__('find_pipeline_start_server')
 
-        self._action_server = ActionServer(self, FindDock, '/find_pipeline', self.execute_callback)
+        self._action_server = ActionServer(
+            self, FindDock, '/find_pipeline', self.execute_callback
+        )
 
     def execute_callback(self, goal_handle) -> FindDock_Result:
-        """
-        This function is called when the action server receives a goal to find the dock."""
-        self.get_logger().info('Executing goal to find pipeline at: {}'.format(goal_handle.request.start_search))
+        """This function is called when the action server receives a goal to find the dock."""
+        self.get_logger().info(
+            f'Executing goal to find pipeline at: {goal_handle.request.start_search}'
+        )
 
         feedback_msg = FindDock.Feedback()
         found = goal_handle.request.start_search  # bool
@@ -31,7 +31,7 @@ class FindPipelineStartServer(Node):
 
         while time_elapsed <= 20.0:
             feedback_msg.time_elapsed = time_elapsed
-            self.get_logger().info('Time elapsed: {:.2f}'.format(time_elapsed))
+            self.get_logger().info(f'Time elapsed: {time_elapsed:.2f}')
 
             goal_handle.publish_feedback(feedback_msg)
 
@@ -48,14 +48,12 @@ class FindPipelineStartServer(Node):
         result.dock_pose.pose.orientation.y = 0.0
         result.dock_pose.pose.orientation.z = 0.0
         result.dock_pose.pose.orientation.w = 1.0
-        
 
         return result
 
 
 def main(args=None) -> None:
-    """
-    Main function to run the FindDockServer node."""
+    """Main function to run the FindDockServer node."""
     rclpy.init(args=args)
     node = FindPipelineStartServer()
     try:

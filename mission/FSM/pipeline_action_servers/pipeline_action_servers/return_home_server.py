@@ -10,14 +10,17 @@ from vortex_msgs.action._go_to_waypoint import GoToWaypoint_Result
 
 
 class ReturnHomeServer(Node):
-
     def __init__(self) -> None:
         super().__init__('return_home_server')
 
-        self._action_server = ActionServer(self, GoToWaypoint, 'return_home', self.execute_callback)
+        self._action_server = ActionServer(
+            self, GoToWaypoint, 'return_home', self.execute_callback
+        )
 
     def execute_callback(self, goal_handle) -> GoToWaypoint_Result:
-        self.get_logger().info('Executing goal to return home at: {}'.format(goal_handle.request.waypoint))
+        self.get_logger().info(
+            f'Executing goal to return home at: {goal_handle.request.waypoint}'
+        )
 
         feedback_msg = GoToWaypoint.Feedback()
         home_position = goal_handle.request.waypoint  # [x, y, z]
@@ -37,17 +40,21 @@ class ReturnHomeServer(Node):
         ):
             feedback_msg.current_pose = auv_position
             self.get_logger().info(
-                'Current position: ({:.2f},{:.2f},{:.2f})'.format(
-                    auv_position.pose.position.x, auv_position.pose.position.y, auv_position.pose.position.z
-                )
+                f'Current position: ({auv_position.pose.position.x:.2f},{auv_position.pose.position.y:.2f},{auv_position.pose.position.z:.2f})'
             )
 
             goal_handle.publish_feedback(feedback_msg)
 
             # Simulate AUV moving towards the dock
-            auv_position.pose.position.x += (home_position.pose.position.x - auv_position.pose.position.x) / 2
-            auv_position.pose.position.y += (home_position.pose.position.y - auv_position.pose.position.y) / 2
-            auv_position.pose.position.z += (home_position.pose.position.z - auv_position.pose.position.z) / 2
+            auv_position.pose.position.x += (
+                home_position.pose.position.x - auv_position.pose.position.x
+            ) / 2
+            auv_position.pose.position.y += (
+                home_position.pose.position.y - auv_position.pose.position.y
+            ) / 2
+            auv_position.pose.position.z += (
+                home_position.pose.position.z - auv_position.pose.position.z
+            ) / 2
 
             # rate.sleep()
 
