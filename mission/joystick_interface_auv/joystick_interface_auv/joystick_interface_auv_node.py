@@ -74,7 +74,7 @@ class JoystickInterface(Node):
             )
 
         self.declare_parameter('topics.guidance.dp', "_")
-        self.guidance_topic = self.get_parameter('topics.guidance.dp').value
+        self.guidance_topic = namespace + self.get_parameter('topics.guidance.dp').value
 
     def init_movement(self):
         self.surge = 0.0
@@ -116,7 +116,7 @@ class JoystickInterface(Node):
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
-        self._current_state_ = pose_from_ros(msg.pose.pose)
+        self._current_state = pose_from_ros(msg.pose.pose)
 
     def create_reference_message(self) -> ReferenceFilter:
         """Creates a reference message with the desired state values."""
@@ -281,7 +281,7 @@ class JoystickInterface(Node):
         """
         self._desired_state.x += self.surge * self._guidance_surge_gain
         self._desired_state.y += self.sway * self._guidance_sway_gain
-        self._desired_state.z += self.heave * self._guidance_heave_gain
+        self._desired_state.z -= self.heave * self._guidance_heave_gain
         self._desired_state.roll += self.roll * self._guidance_roll_gain
         self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
         self._desired_state.yaw += self.yaw * self._guidance_yaw_gain
