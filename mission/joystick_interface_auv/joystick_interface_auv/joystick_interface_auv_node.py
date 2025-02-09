@@ -112,11 +112,11 @@ class JoystickInterfaceNode(Node):
             ReferenceFilter, self.guidance_topic, best_effort_qos
         )
         self._software_killswitch_signal_publisher = self.create_publisher(
-            Bool, self.killswitch_topic, best_effort_qos
+            Bool, self.killswitch_topic, 5
         )
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.operation_mode_topic, best_effort_qos
+            String, self.operation_mode_topic, 5
         )
         
         self.gripper_pos_publisher_ = self.create_publisher(
@@ -133,7 +133,7 @@ class JoystickInterfaceNode(Node):
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
-        self._current_state_ = pose_from_ros(msg)
+        self._current_state_ = pose_from_ros(msg.pose.pose)
 
     def create_reference_message(self) -> ReferenceFilter:
         """Creates a reference message with the desired state values."""
