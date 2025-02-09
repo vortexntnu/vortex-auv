@@ -22,7 +22,7 @@ fi
 # Locate this script and the project root
 # ------------------------------------------------------------------------------
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
-WORKSPACE="$(realpath "$SCRIPT_DIR/..")"
+WORKSPACE="$(realpath "$SCRIPT_DIR/../..")"
 
 # ------------------------------------------------------------------------------
 # 1) Build the Docker image
@@ -36,5 +36,5 @@ docker run -it --rm \
     --privileged \
     --network host \
     --ipc=host \
-    -v "$WORKSPACE":/docker/ws/src \
+    -v "$WORKSPACE":/docker/ws \
     "$IMAGE" /bin/bash
