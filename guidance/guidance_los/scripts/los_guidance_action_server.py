@@ -11,8 +11,8 @@ from geometry_msgs.msg import (
 )
 from guidance_los.los_guidance_algorithm import (
     FilterParameters,
+    LOSGuidanceAlgorithm,
     LOSParameters,
-    LOSGuidanceAlgorithm
 )
 from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, GoalResponse, ServerGoalHandle
@@ -22,7 +22,7 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from vortex_msgs.action import NavigateWaypoints
 from vortex_msgs.msg import LOSGuidance
-from vortex_utils.python_utils import State, ssa
+from vortex_utils.python_utils import State
 from vortex_utils.ros_converter import pose_from_ros, twist_from_ros
 
 best_effort_qos = QoSProfile(
@@ -219,65 +219,57 @@ class LOSActionServer(Node):
         # Get current and next waypoints
         current_waypoint = self.waypoints[self.current_waypoint_index]
         next_waypoint = self.waypoints[self.current_waypoint_index + 1]
-        
+
         # Calculate cross-track errors
-        along_track, crosstrack_y, crosstrack_z = self.guidance_calculator.compute_crosstrack_error(
-            self.state,
-            current_waypoint,
-            next_waypoint
+        along_track, crosstrack_y, crosstrack_z = (
+            self.guidance_calculator.compute_crosstrack_error(
+                self.state, current_waypoint, next_waypoint
+            )
         )
-        
+
         # Calculate crab angles
         alpha_c = self.guidance_calculator.calculate_alpha_c(
             self.state.twist.linear_x,
             self.state.twist.linear_y,
             self.state.twist.linear_z,
-            self.state.pose.roll
+            self.state.pose.roll,
         )
-        
+
         beta_c = self.guidance_calculator.calculate_beta_c(
             self.state.twist.linear_x,
             self.state.twist.linear_y,
             self.state.twist.linear_z,
             self.state.pose.roll,
             self.state.pose.pitch,
-            alpha_c
+            alpha_c,
         )
-        
+
         # Calculate desired heading and pitch
         psi_d = self.guidance_calculator.compute_psi_d(
-            current_waypoint,
-            next_waypoint,
-            crosstrack_y,
-            beta_c
+            current_waypoint, next_waypoint, crosstrack_y, beta_c
         )
-        
+
         theta_d = self.guidance_calculator.compute_pitch_command(
-            current_waypoint,
-            next_waypoint,
-            crosstrack_z,
-            alpha_c
+            current_waypoint, next_waypoint, crosstrack_z, alpha_c
         )
-        
+
         # Calculate total cross-track error
         total_crosstrack = np.sqrt(crosstrack_y**2 + crosstrack_z**2)
-        
+
         # Calculate desired surge speed
         desired_surge = self.guidance_calculator.compute_desired_speed(
-            self.state,
-            next_waypoint,
-            total_crosstrack
+            self.state, next_waypoint, total_crosstrack
         )
-        
+
         unfiltered_commands = State()
         unfiltered_commands.twist.linear_x = desired_surge
         unfiltered_commands.pose.pitch = 0.0
         unfiltered_commands.pose.yaw = psi_d
-        
+
         filtered_commands = self.guidance_calculator.apply_reference_filter(
             unfiltered_commands
         )
-        
+
         return unfiltered_commands
 
     def execute_callback(self, goal_handle: ServerGoalHandle):
@@ -285,11 +277,11 @@ class LOSActionServer(Node):
         # Initialize navigation goal with lock
         with self._goal_lock:
             self.goal_handle = goal_handle
-            
+
         self.current_waypoint_index = 0
-        
+
         self.waypoints = [self.state]
-        
+
         incoming_waypoints = goal_handle.request.waypoints
         for waypoint in incoming_waypoints:
             pose = pose_from_ros(waypoint.pose)
@@ -298,18 +290,18 @@ class LOSActionServer(Node):
 
         self.pi_h = self.guidance_calculator.compute_pi_h(
             self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1]
+            self.waypoints[self.current_waypoint_index + 1],
         )
         self.pi_v = self.guidance_calculator.compute_pi_v(
             self.waypoints[self.current_waypoint_index],
-            self.waypoints[self.current_waypoint_index + 1]
+            self.waypoints[self.current_waypoint_index + 1],
         )
 
         result = NavigateWaypoints.Result()
         rate = self.create_rate(1.0 / self.update_period)
 
         self.get_logger().info('Executing goal')
-        
+
         while rclpy.ok():
             # Check if goal is still active
             if not goal_handle.is_active:
@@ -330,7 +322,7 @@ class LOSActionServer(Node):
             self.norm = np.linalg.norm(
                 self.guidance_calculator.state_as_pos_array(error)
             )
-            
+
             # Check if waypoint is reached
             if self.norm < 1.5:  # Using 0.5m as acceptance radius
                 self.get_logger().info('Waypoint reached onto the next one')
@@ -351,11 +343,11 @@ class LOSActionServer(Node):
                 # Update path angles for new segment
                 self.pi_h = self.guidance_calculator.compute_pi_h(
                     self.waypoints[self.current_waypoint_index],
-                    self.waypoints[self.current_waypoint_index + 1]
+                    self.waypoints[self.current_waypoint_index + 1],
                 )
                 self.pi_v = self.guidance_calculator.compute_pi_v(
                     self.waypoints[self.current_waypoint_index],
-                    self.waypoints[self.current_waypoint_index + 1]
+                    self.waypoints[self.current_waypoint_index + 1],
                 )
 
             commands = self.calculate_guidance()

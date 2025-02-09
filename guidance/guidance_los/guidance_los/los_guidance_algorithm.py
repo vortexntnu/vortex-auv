@@ -60,8 +60,8 @@ class LOSGuidanceAlgorithm:
     def setup_filter_matrices(self):
         omega = np.diag(self.filter_params.omega_diag)
         zeta = np.diag(self.filter_params.zeta_diag)
-        omega_cubed = np.linalg.matrix_power(omega, 3)  
-        omega_squared = np.linalg.matrix_power(omega, 2) 
+        omega_cubed = np.linalg.matrix_power(omega, 3)
+        omega_squared = np.linalg.matrix_power(omega, 2)
 
         self.Ad = np.zeros((9, 9))
         self.Bd = np.zeros((9, 3))
@@ -69,8 +69,8 @@ class LOSGuidanceAlgorithm:
         self.Ad[0:3, 3:6] = np.eye(3)
         self.Ad[3:6, 6:9] = np.eye(3)
         self.Ad[6:9, 0:3] = -omega_cubed
-        self.Ad[6:9, 3:6] = -np.dot((2 * zeta + np.eye(3)),omega_squared)
-        self.Ad[6:9, 6:9] = -np.dot((2 * zeta + np.eye(3)),omega)
+        self.Ad[6:9, 3:6] = -np.dot((2 * zeta + np.eye(3)), omega_squared)
+        self.Ad[6:9, 6:9] = -np.dot((2 * zeta + np.eye(3)), omega)
 
         self.Bd[6:9, :] = omega_cubed
 
@@ -86,26 +86,19 @@ class LOSGuidanceAlgorithm:
             current_pos.twist.linear_x,
             current_pos.twist.linear_y,
             current_pos.twist.linear_z,
-            current_pos.pose.roll
+            current_pos.pose.roll,
         )
 
         _, _, crosstrack_z = self.compute_crosstrack_error(
-            current_pos,
-            current_pos,  
-            target_pos    
+            current_pos, current_pos, target_pos
         )
 
         desired_pitch = self.compute_pitch_command(
-            current_pos,   
-            target_pos,    
-            crosstrack_z,
-            alpha_c
+            current_pos, target_pos, crosstrack_z, alpha_c
         )
 
         desired_surge = self.compute_desired_speed(
-            current_pos,
-            target_pos,
-            abs(crosstrack_z) 
+            current_pos, target_pos, abs(crosstrack_z)
         )
 
         commands = State()
@@ -120,60 +113,45 @@ class LOSGuidanceAlgorithm:
         current_waypoint: State,
         next_waypoint: State,
         crosstrack_z: float,
-        alpha_c: float
+        alpha_c: float,
     ) -> float:
         """Compute pitch command based on LOS guidance law."""
-        
         pi_v = self.compute_pi_v(current_waypoint, next_waypoint)
-        
+
         theta_d = pi_v + alpha_c + np.arctan(crosstrack_z / self.lookahead_v)
-        
-        theta_d = ssa(theta_d) 
+
+        theta_d = ssa(theta_d)
         return np.clip(
-            theta_d,
-            -self.los_params.max_pitch_angle,
-            self.los_params.max_pitch_angle
+            theta_d, -self.los_params.max_pitch_angle, self.los_params.max_pitch_angle
         )
 
     def compute_desired_speed(
-        self,
-        current_pos: State,
-        target_pos: State,
-        crosstrack_error: float
+        self, current_pos: State, target_pos: State, crosstrack_error: float
     ) -> float:
         """Compute speed command based on path-following requirements."""
-        
-
         dx = target_pos.pose.x - current_pos.pose.x
         dy = target_pos.pose.y - current_pos.pose.y
         dz = target_pos.pose.z - current_pos.pose.z
         distance_to_target = np.sqrt(dx**2 + dy**2 + dz**2)
-        
 
-        crosstrack_factor = np.exp(-self.los_params.lookahead_distance_factor * 
-                                abs(crosstrack_error))
-        
+        crosstrack_factor = np.exp(
+            -self.los_params.lookahead_distance_factor * abs(crosstrack_error)
+        )
 
         distance_factor = min(
-            1.0,
-            distance_to_target / self.los_params.lookahead_distance_max
+            1.0, distance_to_target / self.los_params.lookahead_distance_max
         )
-        
 
-        desired_speed = (self.los_params.nominal_speed * 
-                        crosstrack_factor * 
-                        distance_factor)
-        
+        desired_speed = (
+            self.los_params.nominal_speed * crosstrack_factor * distance_factor
+        )
+
         return max(self.los_params.min_speed, desired_speed)
-    
+
     def compute_crosstrack_error(
-        self,
-        current_pos: State,
-        current_waypoint: State,
-        next_waypoint: State
+        self, current_pos: State, current_waypoint: State, next_waypoint: State
     ) -> tuple[float, float, float]:
         """Compute cross-track errors in path-tangential frame."""
-
         path_vector = self.state_as_pos_array(next_waypoint - current_waypoint)
         path_length = np.linalg.norm(path_vector)
         if path_length == 0:
@@ -185,15 +163,14 @@ class LOSGuidanceAlgorithm:
         R_y = self.compute_rotation_y(pi_v)
         R_z = self.compute_rotation_z(pi_h)
         R = R_y.T @ R_z.T
-        
+
         pos_error = self.state_as_pos_array(current_pos - current_waypoint)
         error_path = R @ pos_error
         along_track = error_path[0]
-        
 
         cross_track_y = error_path[1]
-        cross_track_z = error_path[2]  
-        
+        cross_track_z = error_path[2]
+
         return along_track, cross_track_y, cross_track_z
 
     def apply_reference_filter(self, commands: State) -> State:

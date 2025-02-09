@@ -176,4 +176,3 @@ Parameters for the guidance system are stored in **`los_guidance_params.yaml`**,
 ## References
 - *Fossen, T. I. (2011). Handbook of Marine Craft Hydrodynamics and Motion Control.*
 - *Fossen, T. I. (2024). Slide 104: Guidance and Control for Marine Vehicles.*
-
