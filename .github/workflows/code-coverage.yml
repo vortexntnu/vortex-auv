@@ -1,11 +1,11 @@
-name: CI Coverage Build
+name: Code Coverage
 
 on:
   push:
 
 jobs:
   coverage_build:
-    uses: vortexntnu/vortex-ci/.github/workflows/reusable-build-coverage.yml@ci/setup-codecov
+    uses: vortexntnu/vortex-ci/.github/workflows/reusable-code-coverage.yml@ci/setup-codecov
     with:
       vcs-repo-file-url: './dependencies.repos'
     secrets:
