@@ -1,7 +1,6 @@
 coverage:
   precision: 2
   round: down
-  range: "35...100"
   status:
     project:
       default:
@@ -17,18 +16,11 @@ comment:
 flags:
   unittests:
     paths:
-      - acoustics/acoustics_data_record_auv
-      - acoustics/acoustics_interface_auv
-      - auv_setup
       - control/dp_adapt_backs_controller
       - control/pid_controller_dp
       - control/pid_controller_dp_euler
       - control/velocity_controller_lqr
       - guidance/reference_filter_dp
-      - mission/LCD
-      - mission/blackbox_auv
-      - mission/internal_status_auv
-      - mission/joystick_interface_auv
       - motion/thrust_allocator_auv
       - motion/thruster_interface_auv
-      
+
