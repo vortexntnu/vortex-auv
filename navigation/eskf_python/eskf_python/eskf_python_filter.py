@@ -353,16 +353,8 @@ class ErrorStateKalmanFilter:
         z_pred = MeasurementModel()
 
         # Define the z_pred values separately
-        z_pred_1 = np.hstack((current_state.position, current_state.velocity))
-        z_pred_2 = np.hstack(
-            np.dot(current_state.R_q(), self.lever_arm),
-            np.dot(
-                current_state.R_q,
-                np.dot(
-                    self.skew_symmetric(current_state.angular_velocity), self.lever_arm
-                ),
-            ),
-        )
+        z_pred_1 = current_state.velocity
+        z_pred_2 = 0  # Currently assuming no lever arm compensation
 
         # Combine the z_pred values
         z_pred.measurement = z_pred_1 + z_pred_2
