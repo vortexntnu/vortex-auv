@@ -12,4 +12,4 @@ jobs:
       debug: true       # Set to true to enable additional debug output, or omit (or false) otherwise
       repos_file: './dependencies.repos'
     secrets:
-      token: ${{ secrets.CODECOV_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
