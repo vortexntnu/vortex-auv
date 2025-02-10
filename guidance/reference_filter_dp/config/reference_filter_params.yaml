@@ -1,0 +1,4 @@
+reference_filter_node:
+  ros__parameters:
+    zeta: [1., 1., 1., 1., 1., 1.]
+    omega: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]

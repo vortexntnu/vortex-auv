@@ -1,6 +1,0 @@
-[codespell]
-# File containing words to ignore during the spell check.
-ignore-words = .codespellignore
-
-# Check file names as well.
-check-filenames = true

@@ -3,7 +3,7 @@
 <package format="3">
   <name>thrust_allocator_auv</name>
   <version>0.0.0</version>
-  <description>Thruster allocator for AUV</description>
+  <description>Thrust allocator for AUV</description>
   <maintainer email="alicez@stud.ntnu.no">alice</maintainer>
   <license>MIT</license>
 

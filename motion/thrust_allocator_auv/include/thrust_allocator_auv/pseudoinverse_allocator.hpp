@@ -15,25 +15,25 @@
  * the input torques using the pseudoinverse allocator.
  */
 class PseudoinverseAllocator {
-public:
-  /**
-   * @brief Constructor for the PseudoinverseAllocator class.
-   *
-   * @param T_pinv The pseudoinverse of the thruster configuration matrix.
-   */
-  explicit PseudoinverseAllocator(const Eigen::MatrixXd &T_pinv);
+   public:
+    /**
+     * @brief Constructor for the PseudoinverseAllocator class.
+     *
+     * @param T_pinv The pseudoinverse of the thruster configuration matrix.
+     */
+    explicit PseudoinverseAllocator(const Eigen::MatrixXd& T_pinv);
 
-  /**
-   * @brief Calculates the allocated thrust given the input torques using the
-   * pseudoinverse allocator.
-   *
-   * @param tau The input torques as a vector.
-   * @return The allocated thrust as a vector.
-   */
-  Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd &tau);
+    /**
+     * @brief Calculates the allocated thrust given the input torques using the
+     * pseudoinverse allocator.
+     *
+     * @param tau The input torques as a vector.
+     * @return The allocated thrust as a vector.
+     */
+    Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd& tau);
 
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Eigen::MatrixXd T_pinv;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    Eigen::MatrixXd T_pinv;
 };
 
-#endif // VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_HPP
+#endif  // VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_HPP

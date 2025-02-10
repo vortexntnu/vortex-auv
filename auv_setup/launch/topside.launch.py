@@ -8,8 +8,7 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description() -> LaunchDescription:
-    """
-    Generate the launch description for the topside AUV setup.
+    """Generate the launch description for the topside AUV setup.
 
     This function sets up the environment variable for ROS console formatting,
     initializes the joystick node with specific parameters and remappings, and
@@ -18,11 +17,12 @@ def generate_launch_description() -> LaunchDescription:
     Returns:
         LaunchDescription: The launch description containing the environment
         variable setting, joystick node, and joystick interface launch.
-    """
-    # Set environment variable
-    set_env_var = SetEnvironmentVariable(name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}")
 
-    # Joystick node
+    """
+    set_env_var = SetEnvironmentVariable(
+        name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}"
+    )
+
     joy_node = Node(
         package="joy",
         executable="joy_node",
@@ -33,11 +33,10 @@ def generate_launch_description() -> LaunchDescription:
             {"autorepeat_rate": 100.0},
         ],
         remappings=[
-            ("/joy", "/joystick/joy"),
+            ("/joy", "/orca/joy"),
         ],
     )
 
-    # Joystick interface launch
     joystick_interface_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -47,5 +46,4 @@ def generate_launch_description() -> LaunchDescription:
         )
     )
 
-    # Return launch description
     return LaunchDescription([set_env_var, joy_node, joystick_interface_launch])

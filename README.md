@@ -1,17 +1,29 @@
 ## Vortex AUV
-[![Website shields.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://vortexntnu.no)
-[![version](https://img.shields.io/badge/version-1.0.0-blue)](https://GitHub.com/vortexntnu/manta-auv/releases/)
-![ViewCount](https://views.whatilearened.today/views/github/vortexntnu/manta-auv.svg)
-[![GitHub contributors](https://img.shields.io/github/contributors/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/graphs/contributors/)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/vortexntnu/manta-auv/graphs/commit-activity)
-[![GitHub pull-requests](https://img.shields.io/github/issues-pr/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
-[![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/vortexntnu/manta-auv.svg)](https://GitHub.com/vortexntnu/manta-auv/pulls)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![codecov](https://codecov.io/github/vortexntnu/vortex-auv/graph/badge.svg?token=UXIGc2qG7N)](https://codecov.io/github/vortexntnu/vortex-auv)
+[![Industrial CI](https://github.com/vortexntnu/vortex-auv/actions/workflows/industrial-ci.yaml/badge.svg)](https://github.com/vortexntnu/vortex-auv/actions/workflows/industrial-ci.yaml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/vortexntnu/vortex-auv/main.svg)](https://results.pre-commit.ci/latest/github/vortexntnu/vortex-auv/main)
 
 ![Banner](docs/banner_image.png)
 
-This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS Melodic framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
+This repo contains software for operating UUVs, developed by students at NTNU. The software is based on the ROS2 Humble framework, and aims to be hardware independent. Although the main focus of Vortex is autonomous operation, this software stack supports both AUV and ROV operations.
+
+## Docker
+### Prerequisites
+- Install [Docker](https://www.docker.com/get-started)
+### Building and Running
+To build the Docker image (tagged as auv-image:latest) and start a container, execute the following script in this repository:
+```bash
+./entrypoint.sh
+```
+Once the container is running, your local workspace is mounted at /docker/ws within the container. This means any changes you make locally are immediately reflected inside the container. Also, if you build inside the container (colcon build), the generated build/, log/, and install/ directories will be stored locally. Your local workspace should follow a standard ROS 2 structure:
+```
+ws/
+│── build/
+│── log/
+│── install/
+│── src/
+│   └── vortex-auv/
+│   └── vortex-msgs/
+```
 
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.

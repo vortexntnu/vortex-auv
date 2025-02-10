@@ -9,11 +9,11 @@ class IPDriver:
         self.cmd = ["hostname", "-I"]
 
     def get_ip(self) -> str:
-        """
-        Executes a shell command to retrieve the IP address.
+        """Executes a shell command to retrieve the IP address.
 
         Returns:
             str: The IP address as a string.
+
         """
         try:
             # Run the command without shell=True
