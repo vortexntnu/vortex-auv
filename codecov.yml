@@ -1,0 +1,17 @@
+fixes:
+  - "ros_ws/src/vortex-auv/::"
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+flags:
+  unittests:
+    paths:
+      - acoustics/acoustics_data_record
+      - acoustics/acoustics_interface
+      - auv_setup
+      - mission/blackbox
+      - mission/internal_status_auv
+      - mission/joystick_interface_auv
+      - mission/LCD
+      - motion/thrust_allocator_auv
+      - motion/thruster_interface_auv
