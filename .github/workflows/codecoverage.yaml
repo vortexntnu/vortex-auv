@@ -15,5 +15,6 @@ jobs:
       os_name: 'ubuntu-22.04'
       python_version: '3.8'
       ref: ${{ github.ref_name }}
+      before_install_target_dependencies: './requirements.sh'
       vcs_repo_file_url: 'https://raw.githubusercontent.com/vortexntnu/vortex-auv/main/dependencies.repos'
     secrets: inherit
