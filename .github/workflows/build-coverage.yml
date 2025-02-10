@@ -1,0 +1,15 @@
+# .github/workflows/coverage-call.yml
+name: CI Coverage Build
+
+on:
+  push:
+
+jobs:
+  coverage_build:
+    # Note: the path below must match the location of the reusable workflow in the remote repo.
+    uses: vortexntnu/vortex-ci/setup-codecov/.github/workflows/reusable-build-coverage.yml@ci
+    with:
+      ros_distro: humble   # Change to your desired ROS2 distribution (e.g., foxy, galactic, humble)
+      debug: true       # Set to true to enable additional debug output, or omit (or false) otherwise
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
