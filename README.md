@@ -10,7 +10,7 @@ This repo contains software for operating UUVs, developed by students at NTNU. T
 ### Prerequisites
 - Install [Docker](https://www.docker.com/get-started)
 ### Building and Running
-To build the Docker image (tagged as auv-image:latest) and start a container, run the following command from the repository:
+To build the Docker image (tagged as auv-image:latest) and start a container, execute the following script in this repository:
 ```bash
 ./entrypoint.sh
 ```
