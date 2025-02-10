@@ -10,3 +10,4 @@ jobs:
     with:
       ros_distro: humble   # Change to your desired ROS2 distribution (e.g., foxy, galactic, humble)
       debug: true       # Set to true to enable additional debug output, or omit (or false) otherwise
+      repos_file: './dependencies.repos'
