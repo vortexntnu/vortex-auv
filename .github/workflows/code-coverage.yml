@@ -8,6 +8,7 @@ jobs:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-code-coverage.yml@ci/setup-codecov
     with:
       vcs-repo-file-url: './dependencies.repos'
+      before_install_target_dependencies: './requirements.sh'
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
