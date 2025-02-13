@@ -11,7 +11,14 @@ class FSMStateNode(Node):
         self.subscription = self.create_subscription(
             StateMachine, '/fsm_viewer', self.listener_callback, 10
         )
-        self.publisher = self.create_publisher(String, '/fsm_active_controller', 10)
+
+        self.declare_parameter("publish_topic", "")
+        publish_topic = (
+            self.get_parameter("publish_topic").get_parameter_value().string_value
+        )
+        self.get_logger().info(f'Publishing to topic: {publish_topic}')
+
+        self.publisher = self.create_publisher(String, publish_topic, 10)
         self.last_state_id = -1
 
     def listener_callback(self, fsm_msg: StateMachine):
@@ -40,9 +47,15 @@ class FSMStateNode(Node):
 
     def get_controller_message(self, current_state):
         """Returns the controller message based on the current state."""
-        if current_state in ['GO_TO_DOCK', 'RETURN_HOME', 'ABORT_STATE']:
+        if current_state in []:
             return 'LQR'
-        elif current_state in ['GO_OVER_DOCK', 'GO_DOWN_DOCK']:
+        elif current_state in [
+            'GO_OVER_DOCK',
+            'GO_DOWN_DOCK',
+            'GO_TO_DOCK',
+            'RETURN_HOME',
+            'ABORT_STATE',
+        ]:
             return 'PID'
         else:
             return 'None'

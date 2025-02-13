@@ -15,6 +15,12 @@ def generate_launch_description() -> LaunchDescription:
         'params.yaml',
     )
 
+    config_dock_state = os.path.join(
+        get_package_share_directory(package_name='dock_action_servers'),
+        'config',
+        'state_params.yaml',
+    )
+
     yasmin_viewer_node = Node(
         package='yasmin_viewer',
         executable='yasmin_viewer_node',
@@ -34,6 +40,7 @@ def generate_launch_description() -> LaunchDescription:
         package='dock_action_servers',
         executable='fsm_state_node.py',
         name='fsm_state_node',
+        parameters=[config_dock_state],
         on_exit=launch.actions.LogInfo(msg="fsm_state_node exited"),
     )
 
