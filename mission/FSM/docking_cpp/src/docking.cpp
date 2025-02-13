@@ -4,7 +4,6 @@
 #include <string>
 
 #include <vortex_msgs/action/filtered_pose.hpp>
-#include <vortex_msgs/action/go_to_waypoint.hpp>
 #include <vortex_msgs/action/navigate_waypoints.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 
@@ -21,7 +20,6 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 using FilteredPose = vortex_msgs::action::FilteredPose;
-using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;
 using ReferenceFilterWaypoint = vortex_msgs::action::ReferenceFilterWaypoint;
@@ -87,24 +85,24 @@ class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
     }
 };
 
-class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
+class GoToDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
     GoToDockState()
-        : yasmin_ros::ActionState<NavigateWaypoints>(
-              "/navigate_waypoints",
+        : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
+              "/reference_filter",
               std::bind(&GoToDockState::create_goal_handler, this, _1),
               std::bind(&GoToDockState::response_handler, this, _1, _2),
               std::bind(&GoToDockState::print_feedback, this, _1, _2)) {};
 
-    NavigateWaypoints::Goal create_goal_handler(
+    ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = NavigateWaypoints::Goal();
+        auto goal = ReferenceFilterWaypoint::Goal();
 
         blackboard->set<bool>("is_home", false);
 
         PoseStamped docking_goal =
             blackboard->get<PoseStamped>("docking_offset_goal");
-        goal.waypoints.push_back(docking_goal);
+        goal.goal = docking_goal;
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Goal sent to action server:");
@@ -122,7 +120,7 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        NavigateWaypoints::Result::SharedPtr response) {
+        ReferenceFilterWaypoint::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -139,13 +137,19 @@ class GoToDockState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-        blackboard->set<Pose>("current_pose", feedback->current_pose);
+        std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
+        Pose current_pose = Pose();
+        current_pose.position.x = feedback->feedback.x;
+        current_pose.position.y = feedback->feedback.y;
+        current_pose.position.z = feedback->feedback.z;
+        current_pose.orientation.x = feedback->feedback.roll;
+        current_pose.orientation.y = feedback->feedback.pitch;
+        current_pose.orientation.z = feedback->feedback.yaw;
+        blackboard->set<Pose>("current_pose", current_pose);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Current position: x = %f, y = %f, z = %f\n",
-                    feedback->current_pose.position.x,
-                    feedback->current_pose.position.y,
-                    feedback->current_pose.position.z);
+                    current_pose.position.x, current_pose.position.y,
+                    current_pose.position.z);
     }
 };
 
@@ -233,34 +237,28 @@ std::string DockedState(
     return yasmin_ros::basic_outcomes::ABORT;
 };
 
-class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
+class ReturnHomeState
+    : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
     ReturnHomeState()
-        : yasmin_ros::ActionState<NavigateWaypoints>(
-              "/fsm/return_home",
+        : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
+              "/reference_filter",
               std::bind(&ReturnHomeState::create_goal_handler, this, _1),
               std::bind(&ReturnHomeState::response_handler, this, _1, _2),
               std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {};
 
-    NavigateWaypoints::Goal create_goal_handler(
+    ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = NavigateWaypoints::Goal();
+        auto goal = ReferenceFilterWaypoint::Goal();
 
         blackboard->set<bool>("is_docked", false);
 
-        PoseStamped docking_goal =
-            blackboard->get<PoseStamped>("docking_offset_goal");
         PoseStamped start_pose = blackboard->get<PoseStamped>("start_pose");
 
-        goal.waypoints.push_back(docking_goal);
-        goal.waypoints.push_back(start_pose);
+        goal.goal = start_pose;
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Goal sent to action server:");
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "  Docking position: x = %f, y = %f, z = %f",
-                    docking_goal.pose.position.x, docking_goal.pose.position.y,
-                    docking_goal.pose.position.z);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "  Start position: x = %f, y = %f, z = %f\n",
                     start_pose.pose.position.x, start_pose.pose.position.y,
@@ -271,7 +269,7 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        NavigateWaypoints::Result::SharedPtr response) {
+        ReferenceFilterWaypoint::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -284,31 +282,38 @@ class ReturnHomeState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-        blackboard->set<Pose>("current_pose", feedback->current_pose);
+        std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
+        Pose current_pose = Pose();
+        current_pose.position.x = feedback->feedback.x;
+        current_pose.position.y = feedback->feedback.y;
+        current_pose.position.z = feedback->feedback.z;
+        current_pose.orientation.x = feedback->feedback.roll;
+        current_pose.orientation.y = feedback->feedback.pitch;
+        current_pose.orientation.z = feedback->feedback.yaw;
+
+        blackboard->set<Pose>("current_pose", current_pose);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Current position: x = %f, y = %f, z = %f\n",
-                    feedback->current_pose.position.x,
-                    feedback->current_pose.position.y,
-                    feedback->current_pose.position.z);
+                    current_pose.position.x, current_pose.position.y,
+                    current_pose.position.z);
     }
 };
 
-class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
+class AbortState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
     AbortState()
-        : yasmin_ros::ActionState<NavigateWaypoints>(
+        : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
               "/fsm/abort",
               std::bind(&AbortState::create_goal_handler, this, _1),
               std::bind(&AbortState::response_handler, this, _1, _2),
               std::bind(&AbortState::print_feedback, this, _1, _2)) {};
 
-    NavigateWaypoints::Goal create_goal_handler(
+    ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-        auto goal = NavigateWaypoints::Goal();
+        auto goal = ReferenceFilterWaypoint::Goal();
 
         PoseStamped start_pose = blackboard->get<PoseStamped>("start_pose");
-        goal.waypoints.push_back(start_pose);
+        goal.goal = start_pose;
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Goal sent to action server:");
@@ -322,7 +327,7 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        NavigateWaypoints::Result::SharedPtr response) {
+        ReferenceFilterWaypoint::Result::SharedPtr response) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Response received from action server:");
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -334,13 +339,20 @@ class AbortState : public yasmin_ros::ActionState<NavigateWaypoints> {
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const NavigateWaypoints::Feedback> feedback) {
-        blackboard->set<Pose>("current_pose", feedback->current_pose);
+        std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
+        Pose current_pose = Pose();
+        current_pose.position.x = feedback->feedback.x;
+        current_pose.position.y = feedback->feedback.y;
+        current_pose.position.z = feedback->feedback.z;
+        current_pose.orientation.x = feedback->feedback.roll;
+        current_pose.orientation.y = feedback->feedback.pitch;
+        current_pose.orientation.z = feedback->feedback.yaw;
+
+        blackboard->set<Pose>("current_pose", current_pose);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Current position: x = %f, y = %f, z = %f\n",
-                    feedback->current_pose.position.x,
-                    feedback->current_pose.position.y,
-                    feedback->current_pose.position.z);
+                    current_pose.position.x, current_pose.position.y,
+                    current_pose.position.z);
     }
 };
 

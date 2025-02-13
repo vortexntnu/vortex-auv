@@ -44,19 +44,13 @@ set(DEPENDENCIES
 add_executable(docking
   src/docking.cpp
 )
-add_executable(docking_node
-  src/docking_node.cpp
-)
 
 set(SOURCES
   src/docking.cpp
-  src/docking_node.cpp
 )
 ament_target_dependencies(docking ${DEPENDENCIES})
-ament_target_dependencies(docking_node ${DEPENDENCIES})
 install(TARGETS
   docking
-  docking_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
