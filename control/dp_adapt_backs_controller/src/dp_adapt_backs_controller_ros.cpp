@@ -5,73 +5,109 @@
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
 DPAdaptBacksControllerNode::DPAdaptBacksControllerNode()
-    : Node("dp_adapt_backs_controller_node") {
-    time_step_ = std::chrono::milliseconds(10);
-
-    set_subscribers_and_publisher();
-
-    tau_pub_timer_ = this->create_wall_timer(
-        time_step_, std::bind(&DPAdaptBacksControllerNode::publish_tau, this));
-
+    : LifecycleNode("dp_adapt_backs_controller_node") {
     set_adap_params();
 }
 
-void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
+LifecycleCallbackReturn DPAdaptBacksControllerNode::on_configure(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "configuration step");
+
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    this->declare_parameter<std::string>("topics.namespace");
-    std::string ns = this->get_parameter("topics.namespace").as_string();
+    auto best_effort =
+        rclcpp::QoS(rclcpp::KeepLast(1)).best_effort().durability_volatile();
 
-    this->declare_parameter<std::string>("topics.guidance.dp");
-    std::string dp_reference_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+    auto reliable =
+        rclcpp::QoS(rclcpp::KeepLast(5)).reliable().durability_volatile();
+
+    Topics topics;
+    get_topics(topics);
+
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
-            dp_reference_topic, qos_sensor_data,
+            topics.dp_reference_topic, qos_sensor_data,
             std::bind(&DPAdaptBacksControllerNode::guidance_callback, this,
                       std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
-        pose_topic, qos_sensor_data,
+        topics.pose_topic, best_effort,
         std::bind(&DPAdaptBacksControllerNode::pose_callback, this,
                   std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
-        twist_topic, qos_sensor_data,
+        topics.twist_topic, best_effort,
         std::bind(&DPAdaptBacksControllerNode::twist_callback, this,
                   std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.killswitch");
-    std::string software_kill_switch_topic =
-        ns + this->get_parameter("topics.killswitch").as_string();
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 10,
+        topics.software_kill_switch_topic, best_effort,
         std::bind(&DPAdaptBacksControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.operation_mode");
-    std::string software_operation_mode_topic =
-        ns + this->get_parameter("topics.operation_mode").as_string();
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, 10,
+        topics.software_operation_mode_topic, best_effort,
         std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.wrench_input");
-    std::string control_topic =
-        ns + this->get_parameter("topics.wrench_input").as_string();
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
+    time_step_ = std::chrono::milliseconds(10);
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
+        topics.control_topic, reliable);
+    tau_pub_timer_ = this->create_wall_timer(
+        time_step_, std::bind(&DPAdaptBacksControllerNode::publish_tau, this));
+    tau_pub_timer_->cancel();
+
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn DPAdaptBacksControllerNode::on_activate(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "activation step");
+    tau_pub_timer_->reset();
+    rclcpp_lifecycle::LifecycleNode::on_activate(previous_state);
+
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn DPAdaptBacksControllerNode::on_deactivate(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "deactivation step");
+
+    tau_pub_timer_->reset();
+    tau_pub_timer_->cancel();
+    dp_adapt_backs_controller_.reset_adap_param();
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn DPAdaptBacksControllerNode::on_cleanup(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "cleanup step");
+
+    dp_adapt_backs_controller_.reset_adap_param();
+    tau_pub_timer_->reset();
+    tau_pub_timer_->cancel();
+
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn DPAdaptBacksControllerNode::on_shutdown(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "shutdown step");
+
+    dp_adapt_backs_controller_.reset_adap_param();
+    tau_pub_timer_->cancel();
+    tau_pub_.reset();
+
+    return LifecycleCallbackReturn::SUCCESS;
 }
 
 void DPAdaptBacksControllerNode::killswitch_callback(
@@ -101,6 +137,25 @@ void DPAdaptBacksControllerNode::twist_callback(
 
     nu_.angular_speed << msg->twist.twist.angular.x, msg->twist.twist.angular.y,
         msg->twist.twist.angular.z;
+}
+
+void DPAdaptBacksControllerNode::publish_tau() {
+    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+        return;
+    }
+
+    dp_types::Vector6d tau =
+        dp_adapt_backs_controller_.calculate_tau(eta_, eta_d_, nu_);
+
+    geometry_msgs::msg::Wrench tau_msg;
+    tau_msg.force.x = tau(0);
+    tau_msg.force.y = tau(1);
+    tau_msg.force.z = tau(2);
+    tau_msg.torque.x = tau(3);
+    tau_msg.torque.y = tau(4);
+    tau_msg.torque.z = tau(5);
+
+    tau_pub_->publish(tau_msg);
 }
 
 void DPAdaptBacksControllerNode::set_adap_params() {
@@ -146,41 +201,43 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_types::Matrix6d mass_matrix =
         Eigen::Map<dp_types::Matrix6d>(mass_matrix_vec.data());
 
-    dp_adapt_params_.adap_param = adap_param_eigen;
-    dp_adapt_params_.d_gain = d_gain_eigen;
-    dp_adapt_params_.K1 = K1_eigen;
-    dp_adapt_params_.K2 = K2_eigen;
-    dp_adapt_params_.r_b_bg = r_b_bg_eigen;
-    dp_adapt_params_.I_b = I_b_eigen;
-    dp_adapt_params_.mass_matrix = mass_matrix;
-    dp_adapt_params_.m = m;
-
-    dp_adapt_backs_controller_ =
-        std::make_unique<DPAdaptBacksController>(dp_adapt_params_);
-    ;
-}
-
-void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
-        return;
-    }
-
-    dp_types::Vector6d tau =
-        dp_adapt_backs_controller_->calculate_tau(eta_, eta_d_, nu_);
-
-    geometry_msgs::msg::Wrench tau_msg;
-    tau_msg.force.x = tau(0);
-    tau_msg.force.y = tau(1);
-    tau_msg.force.z = tau(2);
-    tau_msg.torque.x = tau(3);
-    tau_msg.torque.y = tau(4);
-    tau_msg.torque.z = tau(5);
-
-    tau_pub_->publish(tau_msg);
+    dp_adapt_backs_controller_.set_k1(K1_eigen);
+    dp_adapt_backs_controller_.set_k2(K2_eigen);
+    dp_adapt_backs_controller_.set_rbg(r_b_bg_eigen);
+    dp_adapt_backs_controller_.set_adap_param(adap_param_eigen);
+    dp_adapt_backs_controller_.set_d_gain(d_gain_eigen);
+    dp_adapt_backs_controller_.set_inertia_matrix(I_b_eigen);
+    dp_adapt_backs_controller_.set_mass_inertia_matrix(mass_matrix);
+    dp_adapt_backs_controller_.set_m(m);
 }
 
 void DPAdaptBacksControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
     eta_d_.pos << msg->x, msg->y, msg->z;
     eta_d_.ori << msg->roll, msg->pitch, msg->yaw;
+}
+
+void DPAdaptBacksControllerNode::get_topics(Topics& topics) {
+    this->declare_parameter("dp_reference_topic", "/dp/reference");
+    topics.dp_reference_topic =
+        this->get_parameter("dp_reference_topic").as_string();
+
+    this->declare_parameter("pose_topic", "/dvl/pose");
+    topics.pose_topic = this->get_parameter("pose_topic").as_string();
+
+    this->declare_parameter("twist_topic", "/dvl/twist");
+    topics.twist_topic = this->get_parameter("twist_topic").as_string();
+
+    this->declare_parameter("software_kill_switch_topic",
+                            "/softwareKillSwitch");
+    topics.software_kill_switch_topic =
+        this->get_parameter("software_kill_switch_topic").as_string();
+
+    this->declare_parameter("software_operation_mode_topic",
+                            "/softwareOperationMode");
+    topics.software_operation_mode_topic =
+        this->get_parameter("software_operation_mode_topic").as_string();
+
+    this->declare_parameter("control_topic", "/thrust/wrench_input");
+    topics.control_topic = this->get_parameter("control_topic").as_string();
 }

@@ -16,6 +16,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
 
 include_directories(include)
 
@@ -28,6 +29,7 @@ add_executable(dp_adapt_backs_controller_node
 
 ament_target_dependencies(dp_adapt_backs_controller_node
   rclcpp
+  rclcpp_lifecycle
   geometry_msgs
   nav_msgs
   Eigen3

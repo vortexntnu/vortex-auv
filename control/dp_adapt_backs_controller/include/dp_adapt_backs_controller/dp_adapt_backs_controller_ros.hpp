@@ -8,6 +8,7 @@
 #include <geometry_msgs/msg/wrench.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -15,12 +16,50 @@
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
-#include "typedefs.hpp"
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
+
+using LifecycleCallbackReturn =
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+// @brief struct for the topics loaded from the parameter server
+struct Topics {
+    std::string dp_reference_topic;
+    std::string pose_topic;
+    std::string twist_topic;
+    std::string software_kill_switch_topic;
+    std::string software_operation_mode_topic;
+    std::string control_topic;
+};
 
 // @brief Class for the DP Adaptive Backstepping controller node
-class DPAdaptBacksControllerNode : public rclcpp::Node {
+class DPAdaptBacksControllerNode : public rclcpp_lifecycle::LifecycleNode {
    public:
     explicit DPAdaptBacksControllerNode();
+
+    // @brief function for configuring the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_configure(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for activating the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_activate(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for cleaning up after the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_cleanup(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for deactivating the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_deactivate(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for shutting down the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_shutdown(
+        const rclcpp_lifecycle::State& previous_state);
 
    private:
     // @brief Callback function for the killswitch topic
@@ -47,14 +86,16 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     // @brief set the DP Adaptive Backstepping controller parameters
     void set_adap_params();
 
-    // @brief Set the subscriber and publisher for the node
-    void set_subscribers_and_publisher();
-
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+
+    // @brief get the topics from the parameter server
+    void get_topics(Topics& topics);
+
+    DPAdaptBacksController dp_adapt_backs_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
@@ -69,7 +110,8 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;
 
-    rclcpp::Publisher<geometry_msgs::msg::Wrench>::SharedPtr tau_pub_;
+    rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Wrench>::SharedPtr
+        tau_pub_;
 
     rclcpp::TimerBase::SharedPtr tau_pub_timer_;
 
@@ -80,10 +122,6 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     dp_types::Eta eta_d_;
 
     dp_types::Nu nu_;
-
-    dp_types::DPAdaptParams dp_adapt_params_;
-
-    std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_;
 
     bool killswitch_on_;
 
