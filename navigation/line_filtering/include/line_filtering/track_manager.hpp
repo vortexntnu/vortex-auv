@@ -16,6 +16,8 @@ struct Track {
     double existence_probability;
     bool confirmed;
     Eigen::Matrix<double, 2, 2> line_points;
+    int id1;
+    int id2;
 
     // For sorting tracks based on existence probability and confirmed track
     bool operator<(const Track& other) const {
@@ -51,7 +53,7 @@ class TrackManager {
      * @param prob_of_survival The probability of survival.
      * @param clutter_intensity The intensity of clutter.
      */
-    void updateTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
+    void updateLineTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
                       Eigen::Array<double, 2, Eigen::Dynamic> line_params,
                       int update_interval,
                       double confirmation_threshold,
@@ -63,14 +65,30 @@ class TrackManager {
                       double clutter_intensity,
                       double initial_existence_probability);
 
+    void updateLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
+                    Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
+                    int update_interval, 
+                    double confirmation_threshold, 
+                    double gate_theshhold, 
+                    double min_gate_threshold, 
+                    double max_gate_threshold, 
+                    double prob_of_detection, 
+                    double prob_of_survival, 
+                    double clutter_intensity,
+                    double initial_existence_probability);
+
     /**
      * @brief Creates new tracks for every measurements.
      *
      * @param measurements The measurements received.
      */
-    void createTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
+    void createLineTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
                       Eigen::Array<double, 2, Eigen::Dynamic> line_params,
                       double initial_existence_probability);
+
+    void createLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
+                    Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
+                    double initial_existence_probability);
 
     /**
      * @brief Deletes tracks that have a low probability of existence.

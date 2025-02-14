@@ -13,8 +13,9 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     declare_parameter<double>("deletion_threshold", 0.1);
     declare_parameter<double>("initial_existence_probability", 0.4);
     declare_parameter<int>("update_interval_ms", 500);
-    declare_parameter<double>("std_velocity", 0.2);
+    declare_parameter<double>("std_dynmod", 0.2);
     declare_parameter<double>("std_sensor", 0.5);
+    declare_parameter<double>("connected_lines_threshold", 0.5);
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
@@ -105,12 +106,16 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     depth_.data = -1.0;
 
     // Initialize track manager
-    double std_velocity = get_parameter("std_velocity").as_double();
+    double std_dynmod = get_parameter("std_dynmod").as_double();
     double std_sensor = get_parameter("std_sensor").as_double();
 
-    track_manager_ = TrackManager();
-    track_manager_.set_dyn_model(std_velocity);
-    track_manager_.set_sensor_model(std_sensor);
+    line_tracker_ = TrackManager();
+    line_tracker_.set_dyn_model(std_dynmod);
+    line_tracker_.set_sensor_model(std_sensor);
+
+    line_crossing_tracker_ = TrackManager();
+    line_crossing_tracker_.set_dyn_model(std_dynmod);
+    line_crossing_tracker_.set_sensor_model(std_sensor);
 
     // set timer
     int update_interval = get_parameter("update_interval_ms").as_int();
@@ -264,8 +269,8 @@ void LineFilteringNode::timer_callback() {
     double initial_existence_probability =
         get_parameter("initial_existence_probability").as_double();
 
-    // Update tracks
-    track_manager_.updateTracks(
+    // Update line tracks
+    line_tracker_.updateLineTracks(
         measurements_, line_params_, update_interval, confirmation_threshold,
         gate_threshold, min_gate_threshold, max_gate_threshold,
         prob_of_detection, prob_of_survival, clutter_intensity,
@@ -275,11 +280,26 @@ void LineFilteringNode::timer_callback() {
     line_params_.resize(2, 0);
 
     // delete tracks
-    track_manager_.deleteTracks(deletion_threshold);
+    line_tracker_.deleteTracks(deletion_threshold);
+
+    // find line crossings
+    find_line_crossings();
+
+    line_crossing_tracker_.updateLineCrossingTracks(
+        current_line_intersections_, current_intersection_ids_,
+        update_interval, confirmation_threshold, gate_threshold,
+        min_gate_threshold, max_gate_threshold, prob_of_detection,
+        prob_of_survival, clutter_intensity, initial_existence_probability);
+
+    current_line_intersections_.resize(2, 0);
+    current_intersection_ids_.resize(2, 0);
+
+    line_crossing_tracker_.deleteTracks(deletion_threshold);
 
     if (debug_visualization_) {
         visualize_tracks();
     }
+
     // select_line();
 }
 
@@ -296,7 +316,7 @@ void LineFilteringNode::visualize_tracks() {
     marker.color.r = 1.0;
     marker.color.a = 1.0;
 
-    for (const auto& track : track_manager_.getTracks()) {
+    for (const auto& track : line_tracker_.getTracks()) {
         if (!track.confirmed) {
             continue;
         }
@@ -333,7 +353,7 @@ void LineFilteringNode::visualize_tracks() {
     // Length of the segment to visualize (adjust as needed)
     const float segment_length = 20.0f;
 
-    for (const auto& track : track_manager_.getTracks()) {
+    for (const auto& track : line_tracker_.getTracks()) {
         if (!track.confirmed) {
             continue;
         }
@@ -383,6 +403,90 @@ void LineFilteringNode::visualize_tracks() {
     line_params_pub_->publish(line_params_array);
 }
 
+void LineFilteringNode::find_line_crossings() {
+    // Define threshold for connected lines
+    double connected_threshold = get_parameter("connected_lines_threshold").as_double();
+    std::vector<Track> tracks = line_tracker_.getTracks();
+    std::vector<LineIntersection> intersections;
+
+    for (const auto& track : tracks) {
+        if (!track.confirmed) continue;
+
+        for (const auto& track2 : tracks) {
+            if (!track2.confirmed) continue;
+            if (track.id == track2.id) continue;
+
+            // Extract line parameters (angle, distance)
+            Eigen::Vector2d line1_params = track.state.mean();
+            Eigen::Vector2d line2_params = track2.state.mean();
+
+            double theta1 = line1_params(0);
+            double d1 = line1_params(1);
+            double theta2 = line2_params(0);
+            double d2 = line2_params(1);
+
+            // Form the system Ax = B
+            Eigen::Matrix2d A;
+            A << std::cos(theta1), std::sin(theta1),
+                    std::cos(theta2), std::sin(theta2);
+
+            Eigen::Vector2d B(d1, d2);
+
+            Eigen::Vector2d intersection;
+            // Solve for intersection point (x, y)
+            if (A.determinant() != 0) {  // Ensure the lines are not parallel
+                intersection = A.inverse() * B;
+            } else {
+                continue;
+            }
+
+            Eigen::Matrix<double,2,2> line1_points = track.line_points;
+            Eigen::Matrix<double,2,2> line2_points = track2.line_points;
+            Eigen::Vector2d intersection_point_line1;
+            Eigen::Vector2d intersection_point_line2;
+
+            if ((intersection - line1_points.col(0)).norm() < (intersection - line1_points.col(1)).norm()) {
+                intersection_point_line1 = line1_points.col(0);
+            } else {
+                intersection_point_line1 = line1_points.col(1);
+            }
+
+            if ((intersection - line2_points.col(0)).norm() < (intersection - line2_points.col(1)).norm()) {
+                intersection_point_line2 = line2_points.col(0);
+            } else {
+                intersection_point_line2 = line2_points.col(1);
+            }
+
+            if ((intersection_point_line1 - intersection_point_line2).norm() < connected_threshold) {
+                LineIntersection line_intersection;
+                line_intersection.x = intersection(0);
+                line_intersection.y = intersection(1);
+                line_intersection.id1 = track.id;
+                line_intersection.id2 = track2.id;
+                
+                // Check if the intersection already exists by comparing both ids to the existing intersections
+                if (std::find(used_line_intersections_.begin(), used_line_intersections_.end(), line_intersection) != used_line_intersections_.end()) {
+                    continue;
+                }
+                intersections.push_back(line_intersection);
+                
+            }            
+
+        }
+    }
+    int size = intersections.size();
+    current_line_intersections_ = Eigen::Array<double, 2, Eigen::Dynamic>(2, size);
+    current_intersection_ids_ = Eigen::Array<int, 2, Eigen::Dynamic>(2, size);
+
+
+    for (size_t i = 0; i < intersections.size(); i++) {
+        current_line_intersections_.col(i) << intersections.at(i).x, intersections.at(i).y;
+        current_intersection_ids_.col(i) << intersections.at(i).id1, intersections.at(i).id2;
+    }
+
+}
+
+
 void LineFilteringNode::select_line() {
     // Get the robot's position and orientation
     geometry_msgs::msg::Pose Pose_orca = orca_pose_;
@@ -400,7 +504,7 @@ void LineFilteringNode::select_line() {
 
     const int treshold_count = 5;
 
-    for (const auto& track : track_manager_.getTracks()) {
+    for (const auto& track : line_tracker_.getTracks()) {
         if (!track.confirmed) {
             continue;
         }
@@ -484,12 +588,12 @@ void LineFilteringNode::update_timer(int update_interval) {
                 update_interval);
 }
 
-void LineFilteringNode::update_dyn_model(double std_velocity) {
-    track_manager_.set_dyn_model(std_velocity);
+void LineFilteringNode::update_dyn_model(double std_dynmod) {
+    line_tracker_.set_dyn_model(std_dynmod);
     RCLCPP_INFO(this->get_logger(), "Updated dynamic model");
 }
 
 void LineFilteringNode::update_sensor_model(double std_measurement) {
-    track_manager_.set_sensor_model(std_measurement);
+    line_tracker_.set_sensor_model(std_measurement);
     RCLCPP_INFO(this->get_logger(), "Updated sensor model");
 }

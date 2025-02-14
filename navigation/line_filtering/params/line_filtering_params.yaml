@@ -27,6 +27,8 @@ line_filtering_node:
     confirmation_threshold: 0.6
     deletion_threshold: 0.2
     initial_existence_probability: 0.4
-    std_velocity: 0.2
+    std_dynmod: 0.2
     std_sensor: 0.5
     update_interval_ms: 100
+
+    connected_line_threshold: 0.5

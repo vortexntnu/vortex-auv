@@ -32,6 +32,18 @@
 
 #include <visualization_msgs/msg/marker_array.hpp>
 
+struct LineIntersection {
+    double x;
+    double y;
+    int id1;
+    int id2;
+
+    bool operator==(const LineIntersection& other) const {
+        return (id1 == other.id1 && id2 == other.id2) ||
+               (id1 == other.id2 && id2 == other.id1);
+    }
+};
+
 class LineFilteringNode : public rclcpp::Node {
    public:
     LineFilteringNode();
@@ -41,9 +53,9 @@ class LineFilteringNode : public rclcpp::Node {
      * @brief Updates the dynamic model with the given velocity standard
      * deviation.
      *
-     * @param std_velocity The velocity standard deviation.
+     * @param std_dynmod The velocity standard deviation.
      */
-    void update_dyn_model(double std_velocity);
+    void update_dyn_model(double std_dynmod);
 
     /**
      * @brief Updates the sensor model with the given sensor standard deviation.
@@ -118,11 +130,16 @@ class LineFilteringNode : public rclcpp::Node {
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void select_line();
 
+    void find_line_crossings();
     // Track manager
-    TrackManager track_manager_;
+    TrackManager line_tracker_;
+    TrackManager line_crossing_tracker_;
+    std::vector<LineIntersection> used_line_intersections_;
 
     Eigen::Array<double, 2, Eigen::Dynamic> measurements_;
     Eigen::Array<double, 2, Eigen::Dynamic> line_params_;
+    Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersections_;
+    Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids_;
 
     int current_id_;
     int id_counter_;
