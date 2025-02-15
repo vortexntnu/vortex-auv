@@ -22,6 +22,7 @@ def generate_launch_description():
         package="dp_adapt_backs_controller",
         executable="dp_adapt_backs_controller_node",
         name="dp_adapt_backs_controller_node",
+        namespace="orca",
         parameters=[
             adapt_params,
             orca_params,

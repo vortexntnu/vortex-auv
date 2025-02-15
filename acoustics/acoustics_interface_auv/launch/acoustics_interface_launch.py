@@ -28,6 +28,7 @@ def generate_launch_description() -> LaunchDescription:
                 package="acoustics_interface_auv",
                 executable="acoustics_interface_node.py",
                 name="acoustics_interface_auv_node",
+                namespace="orca",
                 output="screen",
                 parameters=[yaml_file_path],
             ),

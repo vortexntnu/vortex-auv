@@ -1,4 +1,4 @@
-dp_adapt_backs_controller_node:
+/**:
   ros__parameters:
     K1 : [20.5, 15.5, 20.5, 1.2, 6.0, 2.5]
     K2 : [30.5, 25.5, 30.5, 2.6, 10.0, 6.5]
