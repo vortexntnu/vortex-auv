@@ -90,7 +90,6 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->declare_parameter<int>("i2c.address");
 
     // topics
-    this->declare_parameter<std::string>("topics.namespace");
     this->declare_parameter<std::string>("topics.thruster_forces");
     this->declare_parameter<std::string>("topics.pwm_output");
 
@@ -119,11 +118,10 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();
     this->i2c_address_ = this->get_parameter("i2c.address").as_int();
 
-    std::string ns = this->get_parameter("topics.namespace").as_string();
     this->subscriber_topic_name_ =
-        ns + this->get_parameter("topics.thruster_forces").as_string();
+        this->get_parameter("topics.thruster_forces").as_string();
     this->publisher_topic_name_ =
-        ns + this->get_parameter("topics.pwm_output").as_string();
+        this->get_parameter("topics.pwm_output").as_string();
 
     this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
 

@@ -64,14 +64,9 @@ class TemperaturePublisher(Node):
         self.get_logger().info('"temperature_sensor_publisher" has been started')
 
     def get_topic(self) -> None:
-        namespace = (
-            self.declare_parameter("topics.namespace", "_")
-            .get_parameter_value()
-            .string_value
-        )
         self.declare_parameter("topics.temperature", "_")
         self.temperature_topic = (
-            namespace + self.get_parameter("topics.temperature").value
+            self.get_parameter("topics.temperature").value
         )
 
     def timer_callback(self) -> None:

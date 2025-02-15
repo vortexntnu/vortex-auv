@@ -13,21 +13,19 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {
-    this->declare_parameter<std::string>("topics.namespace");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
     this->declare_parameter<std::string>("topics.guidance.dp");
     this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
 
-    std::string ns = this->get_parameter("topics.namespace").as_string();
     std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
+        this->get_parameter("topics.pose").as_string();
     std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
+        this->get_parameter("topics.twist").as_string();
     std::string guidance_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp").as_string();
     std::string aruco_board_pose_camera_topic =
-        ns + this->get_parameter("topics.aruco_board_pose_camera").as_string();
+        this->get_parameter("topics.aruco_board_pose_camera").as_string();
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(

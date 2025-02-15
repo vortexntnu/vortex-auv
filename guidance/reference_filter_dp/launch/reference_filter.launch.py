@@ -23,6 +23,7 @@ def generate_launch_description():
         package='reference_filter_dp',
         executable='reference_filter_node',
         name='reference_filter_node',
+        namespace='orca',
         parameters=[
             config_file_path,
             orca_config,

@@ -30,6 +30,7 @@ def generate_launch_description() -> LaunchDescription:
                 package="blackbox_auv",
                 executable="blackbox_node.py",
                 name="blackbox_node",
+                namespace="orca",
                 output="screen",
                 parameters=[yaml_file_path],
             ),

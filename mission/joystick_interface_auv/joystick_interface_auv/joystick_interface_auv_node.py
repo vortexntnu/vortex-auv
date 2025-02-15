@@ -57,12 +57,6 @@ class JoystickInterface(Node):
             # Get the values and set them as attributes of the class
             setattr(self, '_' + param, self.get_parameter(param).value)
 
-        namespace = (
-            self.declare_parameter('topics.namespace', 'orca')
-            .get_parameter_value()
-            .string_value
-        )
-
         topic_params = ['pose', 'joy', 'wrench_input', 'killswitch', 'operation_mode']
 
         for param in topic_params:
@@ -70,11 +64,11 @@ class JoystickInterface(Node):
             setattr(
                 self,
                 param + '_topic',
-                namespace + self.get_parameter(f'topics.{param}').value,
+                self.get_parameter(f'topics.{param}').value,
             )
 
         self.declare_parameter('topics.guidance.dp', "_")
-        self.guidance_topic = namespace + self.get_parameter('topics.guidance.dp').value
+        self.guidance_topic = self.get_parameter('topics.guidance.dp').value
 
     def init_movement(self):
         self.surge = 0.0

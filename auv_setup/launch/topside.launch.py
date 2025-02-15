@@ -27,13 +27,11 @@ def generate_launch_description() -> LaunchDescription:
         package="joy",
         executable="joy_node",
         name="joystick_driver",
+        namespace="orca",
         output="screen",
         parameters=[
             {"deadzone": 0.15},
             {"autorepeat_rate": 100.0},
-        ],
-        remappings=[
-            ("/joy", "/orca/joy"),
         ],
     )
 

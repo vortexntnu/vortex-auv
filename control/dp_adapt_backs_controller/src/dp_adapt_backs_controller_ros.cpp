@@ -21,12 +21,9 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    this->declare_parameter<std::string>("topics.namespace");
-    std::string ns = this->get_parameter("topics.namespace").as_string();
-
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp").as_string();
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             dp_reference_topic, qos_sensor_data,
@@ -35,7 +32,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("topics.pose");
     std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
+        this->get_parameter("topics.pose").as_string();
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
@@ -44,7 +41,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("topics.twist");
     std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
+        this->get_parameter("topics.twist").as_string();
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
@@ -53,7 +50,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =
-        ns + this->get_parameter("topics.killswitch").as_string();
+        this->get_parameter("topics.killswitch").as_string();
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, 10,
         std::bind(&DPAdaptBacksControllerNode::killswitch_callback, this,
@@ -61,7 +58,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
-        ns + this->get_parameter("topics.operation_mode").as_string();
+        this->get_parameter("topics.operation_mode").as_string();
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
         software_operation_mode_topic, 10,
         std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
@@ -69,7 +66,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
-        ns + this->get_parameter("topics.wrench_input").as_string();
+        this->get_parameter("topics.wrench_input").as_string();
     tau_pub_ =
         this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
 }
