@@ -30,6 +30,7 @@ def generate_launch_description() -> LaunchDescription:
         package="joystick_interface_auv",
         executable="joystick_interface_auv_node.py",
         name="joystick_interface_auv",
+        namespace="orca",
         output="screen",
         parameters=[joystick_params, orca_params],
     )

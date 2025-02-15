@@ -19,32 +19,27 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    this->declare_parameter<std::string>("topics.namespace");
-    std::string ns = this->get_parameter("topics.namespace").as_string();
-
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp").as_string();
 
     this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
 
     this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =
-        ns + this->get_parameter("topics.killswitch").as_string();
+        this->get_parameter("topics.killswitch").as_string();
 
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
-        ns + this->get_parameter("topics.operation_mode").as_string();
+        this->get_parameter("topics.operation_mode").as_string();
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
-        ns + this->get_parameter("topics.wrench_input").as_string();
+        this->get_parameter("topics.wrench_input").as_string();
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, 10,

@@ -33,6 +33,7 @@ def generate_launch_description() -> LaunchDescription:
         package="velocity_controller_lqr",
         executable="velocity_controller_lqr_node.py",
         name="velocity_controller_lqr_node",
+        namespace="orca",
         output="screen",
         parameters=[parameter_file, topic_file],
     )

@@ -34,6 +34,8 @@ def generate_launch_description() -> LaunchDescription:
     power_sense_module_node = Node(
         package="internal_status_auv",
         executable="power_sense_module_node.py",
+        name="power_sense_module_node",
+        namespace="orca",
         output="screen",
         parameters=[yaml_file_path],
     )
@@ -42,6 +44,8 @@ def generate_launch_description() -> LaunchDescription:
     pressure_sensor_node = Node(
         package="internal_status_auv",
         executable="pressure_sensor_node.py",
+        name="pressure_sensor_node",
+        namespace="orca",
         output="screen",
         parameters=[yaml_file_path],
     )
@@ -50,6 +54,8 @@ def generate_launch_description() -> LaunchDescription:
     temperature_sensor_node = Node(
         package="internal_status_auv",
         executable="temperature_sensor_node.py",
+        name="temperature_sensor_node",
+        namespace="orca",
         output="screen",
         parameters=[yaml_file_path],
     )

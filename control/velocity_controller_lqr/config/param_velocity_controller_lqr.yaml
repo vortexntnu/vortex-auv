@@ -1,4 +1,4 @@
-velocity_controller_lqr_node:
+/**:
   ros__parameters:
     dt: 0.1
 

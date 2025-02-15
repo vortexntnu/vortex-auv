@@ -136,32 +136,30 @@
       data_logging_rate: 1.0 # [loggings/second], Recommended: 1.0 loggings per second
 
     topics:
-      namespace: "/orca"
-      wrench_input: "/wrench_input"
-      thruster_forces: "/thruster_forces"
-      pwm_output: "/pwm"
-      current: "/power_sense_module/current"
-      voltage: "/power_sense_module/voltage"
-      pressure: "/pressure"
-      temperature: "/temperature"
-      joy: "/joy"
-      pose: "/pose"
-      twist: "/twist"
-      operation_mode: "/operation_mode"
-      killswitch: "/killswitch"
-      aruco_board_pose_camera: "/aruco_board_pose_camera"
+      wrench_input: "wrench_input"
+      thruster_forces: "thruster_forces"
+      pwm_output: "pwm"
+      current: "power_sense_module/current"
+      voltage: "power_sense_module/voltage"
+      pressure: "pressure"
+      temperature: "temperature"
+      joy: "joy"
+      pose: "pose"
+      twist: "twist"
+      operation_mode: "operation_mode"
+      killswitch: "killswitch"
+      aruco_board_pose_camera: "aruco_board_pose_camera"
       guidance:
-        los: "/guidance/los"
-        dp: "/guidance/dp"
+        los: "guidance/los"
+        dp: "guidance/dp"
 
       acoustics:
-        namespace: "/acoustics"
         hydrophones : ["hydrophone1", "hydrophone2", "hydrophone3", "hydrophone4", "hydrophone5"]
-        filter_response: "/filter_response"
-        fft: "/fft"
-        peaks: "/peaks"
-        tdoa: "/time_difference_of_arrival"
-        position: "/position"
+        filter_response: "acoustics/filter_response"
+        fft: "acoustics/fft"
+        peaks: "acoustics/peaks"
+        tdoa: "acoustics/time_difference_of_arrival"
+        position: "acoustics/position"
 
     action_servers:
       reference_filter: "/reference_filter"

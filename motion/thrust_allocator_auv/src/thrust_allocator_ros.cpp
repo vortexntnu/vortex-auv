@@ -49,7 +49,6 @@ void ThrustAllocator::extract_parameters() {
         this->get_parameter("propulsion.thrusters.thrust_update_rate")
             .as_double();
 
-    this->declare_parameter<std::string>("topics.namespace");
     this->declare_parameter<std::string>("topics.wrench_input");
     this->declare_parameter<std::string>("topics.thruster_forces");
 }
@@ -73,11 +72,10 @@ void ThrustAllocator::set_allocator() {
 }
 
 void ThrustAllocator::set_subscriber_and_publisher() {
-    std::string ns = this->get_parameter("topics.namespace").as_string();
     std::string wrench_input_topic =
-        ns + this->get_parameter("topics.wrench_input").as_string();
+        this->get_parameter("topics.wrench_input").as_string();
     std::string thruster_forces_topic =
-        ns + this->get_parameter("topics.thruster_forces").as_string();
+        this->get_parameter("topics.thruster_forces").as_string();
 
     wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
         wrench_input_topic, 1,
