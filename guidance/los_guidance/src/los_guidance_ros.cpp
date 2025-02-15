@@ -11,18 +11,16 @@ LOSGuidanceNode::LOSGuidanceNode() : Node("los_guidance_node") {
 }
 
 void LOSGuidanceNode::set_subscribers_and_publisher() {
-    this->declare_parameter<std::string>("topics.namespace");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.guidance.los");
     this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
 
-    std::string ns = this->get_parameter("topics.namespace").as_string();
     std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
+        this->get_parameter("topics.pose").as_string();
     std::string guidance_topic =
-        ns + this->get_parameter("topics.guidance.los").as_string();
+        this->get_parameter("topics.guidance.los").as_string();
     std::string aruco_board_pose_camera_topic =
-        ns + this->get_parameter("topics.aruco_board_pose_camera").as_string();
+        this->get_parameter("topics.aruco_board_pose_camera").as_string();
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
@@ -60,12 +58,18 @@ void LOSGuidanceNode::set_action_server() {
 }
 
 void LOSGuidanceNode::set_adaptive_los_guidance() {
+    this->declare_parameter<double>("lookahead_distance_h");
+    this->declare_parameter<double>("lookahead_distance_v");
+    this->declare_parameter<double>("gamma_h");
+    this->declare_parameter<double>("gamma_v");
+    this->declare_parameter<double>("time_step");
+
     LOS::Params params;
-    params.lookahead_distance_h = 1;
-    params.lookahead_distance_v = 1;
-    params.gamma_h = 0.1;
-    params.gamma_v = 0.1;
-    params.time_step = 0.01;
+    params.lookahead_distance_h = this->get_parameter("lookahead_distance_h").as_double();
+    params.lookahead_distance_v = this->get_parameter("lookahead_distance_v").as_double();
+    params.gamma_h = this->get_parameter("gamma_h").as_double();
+    params.gamma_v = this->get_parameter("gamma_v").as_double();
+    params.time_step = this->get_parameter("time_step").as_double();
 
     adaptive_los_guidance_ = std::make_unique<AdaptiveLOSGuidance>(params);
 }

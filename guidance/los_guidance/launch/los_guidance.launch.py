@@ -25,6 +25,7 @@ def generate_launch_description():
         namespace="orca",
         parameters=[
             orca_params,
+            adapt_params,
         ],
         output="screen",
     )
