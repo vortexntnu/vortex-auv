@@ -20,12 +20,10 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.guidance.dp").as_string();
 
     this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic =
-        this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
 
     this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic =
-        this->get_parameter("topics.twist").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =

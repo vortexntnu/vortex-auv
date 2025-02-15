@@ -18,10 +18,8 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.guidance.dp");
     this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
 
-    std::string pose_topic =
-        this->get_parameter("topics.pose").as_string();
-    std::string twist_topic =
-        this->get_parameter("topics.twist").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
     std::string guidance_topic =
         this->get_parameter("topics.guidance.dp").as_string();
     std::string aruco_board_pose_camera_topic =

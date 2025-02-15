@@ -31,8 +31,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
                       std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic =
-        this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
@@ -40,8 +39,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
                   std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic =
-        this->get_parameter("topics.twist").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,

@@ -65,9 +65,7 @@ class TemperaturePublisher(Node):
 
     def get_topic(self) -> None:
         self.declare_parameter("topics.temperature", "_")
-        self.temperature_topic = (
-            self.get_parameter("topics.temperature").value
-        )
+        self.temperature_topic = self.get_parameter("topics.temperature").value
 
     def timer_callback(self) -> None:
         """Callback function triggered by the main timer.
