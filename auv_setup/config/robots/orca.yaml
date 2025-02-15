@@ -154,12 +154,12 @@
         dp: "guidance/dp"
 
       acoustics:
-        hydrophones : ["acoustics/hydrophone1", "acoustics/hydrophone2", "acoustics/hydrophone3", "acoustics/hydrophone4", "acoustics/hydrophone5"]
+        hydrophones : ["hydrophone1", "hydrophone2", "hydrophone3", "hydrophone4", "hydrophone5"]
         filter_response: "acoustics/filter_response"
-        fft: "acoustics//fft"
-        peaks: "acoustics//peaks"
-        tdoa: "acoustics//time_difference_of_arrival"
-        position: "acoustics//position"
+        fft: "acoustics/fft"
+        peaks: "acoustics/peaks"
+        tdoa: "acoustics/time_difference_of_arrival"
+        position: "acoustics/position"
 
     action_servers:
       reference_filter: "/reference_filter"
