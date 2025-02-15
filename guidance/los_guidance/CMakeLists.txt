@@ -39,7 +39,13 @@ ament_target_dependencies(los_guidance_node
 
 install(TARGETS
   los_guidance_node
-  DESTINATION lib/${PROJECT_NAME})
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
 
 install(DIRECTORY
   launch

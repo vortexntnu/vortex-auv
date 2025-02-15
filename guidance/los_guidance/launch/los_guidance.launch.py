@@ -22,6 +22,7 @@ def generate_launch_description():
         package="los_guidance",
         executable="los_guidance_node",
         name="los_guidance_node",
+        namespace="orca",
         parameters=[
             orca_params,
         ],
