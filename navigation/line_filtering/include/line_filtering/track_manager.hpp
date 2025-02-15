@@ -53,7 +53,7 @@ class TrackManager {
      * @param prob_of_survival The probability of survival.
      * @param clutter_intensity The intensity of clutter.
      */
-    void updateLineTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
+    void update_line_tracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
                       Eigen::Array<double, 2, Eigen::Dynamic> line_params,
                       int update_interval,
                       double confirmation_threshold,
@@ -65,7 +65,7 @@ class TrackManager {
                       double clutter_intensity,
                       double initial_existence_probability);
 
-    void updateLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
+    void update_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
                     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
                     int update_interval, 
                     double confirmation_threshold, 
@@ -82,11 +82,11 @@ class TrackManager {
      *
      * @param measurements The measurements received.
      */
-    void createLineTracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
+    void create_line_tracks(Eigen::Array<double, 2, Eigen::Dynamic> measurements,
                       Eigen::Array<double, 2, Eigen::Dynamic> line_params,
                       double initial_existence_probability);
 
-    void createLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
+    void create_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
                     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
                     double initial_existence_probability);
 
@@ -95,7 +95,7 @@ class TrackManager {
      *
      * @param deletion_threshold The threshold for deleting a track.
      */
-    void deleteTracks(double deletion_threshold);
+    void delete_tracks(double deletion_threshold);
 
     /**
      * @brief Sets the dynamic model for estimating target motion.
@@ -116,7 +116,9 @@ class TrackManager {
      *
      * @return A vector of Track objects representing the current tracks.
      */
-    std::vector<Track> getTracks() const { return tracks_; }
+    std::vector<Track> get_tracks() const { return tracks_; }
+
+    Track get_track(int id);
 
    private:
     std::vector<Track> tracks_;  ///< The vector of tracks.

@@ -16,8 +16,8 @@
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/header.hpp>
-#include "geometry_msgs/msg/point_stamped.hpp"
-#include "geometry_msgs/msg/pose_array.hpp"
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
 
 #include <message_filters/subscriber.h>
 #include <tf2_ros/buffer.h>
@@ -112,6 +112,9 @@ class LineFilteringNode : public rclcpp::Node {
 
     rclcpp::TimerBase::SharedPtr timer_;
 
+    rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_point_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_intersection_pub_;
+
     // only need the odom variable. Transform lines in line_callback and store
     // them in the odom variable.
     geometry_msgs::msg::PoseArray::SharedPtr odomLinePointsArray_;
@@ -130,10 +133,13 @@ class LineFilteringNode : public rclcpp::Node {
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
     void select_line();
 
-    void find_line_crossings();
+    void find_line_intersections();
+
+    int find_intersection_id();
+
     // Track manager
     TrackManager line_tracker_;
-    TrackManager line_crossing_tracker_;
+    TrackManager line_intersection_tracker_;
     std::vector<LineIntersection> used_line_intersections_;
 
     Eigen::Array<double, 2, Eigen::Dynamic> measurements_;

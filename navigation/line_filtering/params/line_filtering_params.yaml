@@ -32,3 +32,9 @@ line_filtering_node:
     update_interval_ms: 100
 
     connected_line_threshold: 0.5
+    crossing_min_angle: 0.5236 # 30 degrees
+
+    line_point_pub_topic: "/line/point"
+    line_intersection_pub_topic: "/line/intersection"
+
+    target_frame: "odom"

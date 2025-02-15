@@ -2,7 +2,7 @@
 
 TrackManager::TrackManager() : tracker_id_(0) {}
 
-void TrackManager::updateLineTracks(
+void TrackManager::update_line_tracks(
     Eigen::Array<double, 2, Eigen::Dynamic> measurements,
     Eigen::Array<double, 2, Eigen::Dynamic> line_params,
     int update_interval,
@@ -71,10 +71,10 @@ void TrackManager::updateLineTracks(
         }
     }
     // Create new tracks based on the remaining measurements
-    createLineTracks(measurements, line_params, initial_existence_probability);
+    create_line_tracks(measurements, line_params, initial_existence_probability);
 }
 
-void TrackManager::createLineTracks(
+void TrackManager::create_line_tracks(
     Eigen::Array<double, 2, Eigen::Dynamic> measurements,
     Eigen::Array<double, 2, Eigen::Dynamic> line_params,
     double initial_existence_probability) {
@@ -93,7 +93,7 @@ void TrackManager::createLineTracks(
     }
 }
 
-void TrackManager::updateLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
+void TrackManager::update_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
     int update_interval, 
     double confirmation_threshold, 
@@ -178,10 +178,10 @@ void TrackManager::updateLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynam
         }
     }
     // Create new tracks based on the remaining measurements
-    createLineCrossingTracks(intersections, current_intersection_ids, initial_existence_probability);
+    create_line_intersection_tracks(intersections, current_intersection_ids, initial_existence_probability);
 }
 
-void TrackManager::createLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
+void TrackManager::create_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
     double initial_existence_probability)
 {
@@ -202,13 +202,21 @@ void TrackManager::createLineCrossingTracks(Eigen::Array<double, 2, Eigen::Dynam
     }
 }
 
-void TrackManager::deleteTracks(double deletion_threshold) {
+void TrackManager::delete_tracks(double deletion_threshold) {
     tracks_.erase(std::remove_if(tracks_.begin(), tracks_.end(),
                                  [deletion_threshold](const Track& track) {
                                      return track.existence_probability <
                                             deletion_threshold;
                                  }),
                   tracks_.end());
+}
+
+Track TrackManager::get_track(int id) {
+    for (const auto& track : tracks_) {
+        if (track.id == id) {
+            return track;
+        }
+    }
 }
 
 void TrackManager::set_dyn_model(double std_velocity) {

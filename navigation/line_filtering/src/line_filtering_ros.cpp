@@ -16,6 +16,7 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     declare_parameter<double>("std_dynmod", 0.2);
     declare_parameter<double>("std_sensor", 0.5);
     declare_parameter<double>("connected_lines_threshold", 0.5);
+    declare_parameter<double>("crossing_min_angle", 0.5236);
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
@@ -34,6 +35,17 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     auto odom_sub_topic =
         this->declare_parameter<std::string>("odom_sub_topic", "/orca/odom");
     debug_visualization_ = this->declare_parameter("debug_visualization", true);
+
+    auto line_point_pub_topic = this->declare_parameter<std::string>(
+        "line_point_pub_topic", "/line/point");
+    auto line_intersection_pub_topic = this->declare_parameter<std::string>(
+        "line_intersection_pub_topic", "/line/intersection");
+
+    line_point_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
+        line_point_pub_topic, qos_sensor_data);
+
+    line_intersection_pub_ = this->create_publisher<geometry_msgs::msg::PointStamped>(
+        line_intersection_pub_topic, qos_sensor_data);
 
     std::chrono::duration<int> buffer_timeout(1);
 
@@ -113,9 +125,9 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     line_tracker_.set_dyn_model(std_dynmod);
     line_tracker_.set_sensor_model(std_sensor);
 
-    line_crossing_tracker_ = TrackManager();
-    line_crossing_tracker_.set_dyn_model(std_dynmod);
-    line_crossing_tracker_.set_sensor_model(std_sensor);
+    line_intersection_tracker_ = TrackManager();
+    line_intersection_tracker_.set_dyn_model(std_dynmod);
+    line_intersection_tracker_.set_sensor_model(std_sensor);
 
     // set timer
     int update_interval = get_parameter("update_interval_ms").as_int();
@@ -270,7 +282,7 @@ void LineFilteringNode::timer_callback() {
         get_parameter("initial_existence_probability").as_double();
 
     // Update line tracks
-    line_tracker_.updateLineTracks(
+    line_tracker_.update_line_tracks(
         measurements_, line_params_, update_interval, confirmation_threshold,
         gate_threshold, min_gate_threshold, max_gate_threshold,
         prob_of_detection, prob_of_survival, clutter_intensity,
@@ -280,12 +292,12 @@ void LineFilteringNode::timer_callback() {
     line_params_.resize(2, 0);
 
     // delete tracks
-    line_tracker_.deleteTracks(deletion_threshold);
+    line_tracker_.delete_tracks(deletion_threshold);
 
     // find line crossings
-    find_line_crossings();
+    find_line_intersections();
 
-    line_crossing_tracker_.updateLineCrossingTracks(
+    line_intersection_tracker_.update_line_intersection_tracks(
         current_line_intersections_, current_intersection_ids_,
         update_interval, confirmation_threshold, gate_threshold,
         min_gate_threshold, max_gate_threshold, prob_of_detection,
@@ -294,10 +306,25 @@ void LineFilteringNode::timer_callback() {
     current_line_intersections_.resize(2, 0);
     current_intersection_ids_.resize(2, 0);
 
-    line_crossing_tracker_.deleteTracks(deletion_threshold);
+    line_intersection_tracker_.delete_tracks(deletion_threshold);
 
     if (debug_visualization_) {
         visualize_tracks();
+    }
+
+    int line_intersection_id = find_intersection_id();
+
+    if (line_intersection_id != -1) {
+        RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
+                    line_intersection_id);
+        auto track = line_intersection_tracker_.get_track(line_intersection_id);
+        geometry_msgs::msg::PointStamped intersection_point;
+        intersection_point.header.frame_id = target_frame_;
+        intersection_point.header.stamp = this->now();
+        intersection_point.point.x = track.state.mean()(0);
+        intersection_point.point.y = track.state.mean()(1);
+        line_intersection_pub_->publish(intersection_point);
+        
     }
 
     // select_line();
@@ -316,7 +343,7 @@ void LineFilteringNode::visualize_tracks() {
     marker.color.r = 1.0;
     marker.color.a = 1.0;
 
-    for (const auto& track : line_tracker_.getTracks()) {
+    for (const auto& track : line_tracker_.get_tracks()) {
         if (!track.confirmed) {
             continue;
         }
@@ -353,7 +380,7 @@ void LineFilteringNode::visualize_tracks() {
     // Length of the segment to visualize (adjust as needed)
     const float segment_length = 20.0f;
 
-    for (const auto& track : line_tracker_.getTracks()) {
+    for (const auto& track : line_tracker_.get_tracks()) {
         if (!track.confirmed) {
             continue;
         }
@@ -403,10 +430,11 @@ void LineFilteringNode::visualize_tracks() {
     line_params_pub_->publish(line_params_array);
 }
 
-void LineFilteringNode::find_line_crossings() {
+void LineFilteringNode::find_line_intersections() {
     // Define threshold for connected lines
     double connected_threshold = get_parameter("connected_lines_threshold").as_double();
-    std::vector<Track> tracks = line_tracker_.getTracks();
+    double min_angle = get_parameter("crossing_min_angle").as_double();
+    std::vector<Track> tracks = line_tracker_.get_tracks();
     std::vector<LineIntersection> intersections;
 
     for (const auto& track : tracks) {
@@ -424,6 +452,11 @@ void LineFilteringNode::find_line_crossings() {
             double d1 = line1_params(1);
             double theta2 = line2_params(0);
             double d2 = line2_params(1);
+
+            // Check if the lines are not nearly parallel
+            if (std::abs(theta1 - theta2) < min_angle) {
+                continue;
+            }
 
             // Form the system Ax = B
             Eigen::Matrix2d A;
@@ -478,12 +511,22 @@ void LineFilteringNode::find_line_crossings() {
     current_line_intersections_ = Eigen::Array<double, 2, Eigen::Dynamic>(2, size);
     current_intersection_ids_ = Eigen::Array<int, 2, Eigen::Dynamic>(2, size);
 
-
     for (size_t i = 0; i < intersections.size(); i++) {
         current_line_intersections_.col(i) << intersections.at(i).x, intersections.at(i).y;
         current_intersection_ids_.col(i) << intersections.at(i).id1, intersections.at(i).id2;
     }
 
+}
+
+int LineFilteringNode::find_intersection_id() {
+    for (const auto& track : line_intersection_tracker_.get_tracks()) {
+        if (!track.confirmed) {
+            continue;
+        }
+        used_line_intersections_.push_back(LineIntersection{track.state.mean()(0), track.state.mean()(1), track.id1, track.id2});
+        return track.id;
+    }
+    return -1;
 }
 
 
@@ -504,7 +547,7 @@ void LineFilteringNode::select_line() {
 
     const int treshold_count = 5;
 
-    for (const auto& track : line_tracker_.getTracks()) {
+    for (const auto& track : line_tracker_.get_tracks()) {
         if (!track.confirmed) {
             continue;
         }
