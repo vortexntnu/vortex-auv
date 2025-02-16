@@ -196,8 +196,8 @@ void LineFilteringNode::line_callback(
 
             measurements_.col(i) << transformed.x(), transformed.y();
             if (i % 2 == 1) {
-                line_params_.col((i - 1) / 2) =
-                    get_line_params(measurements_.block<2, 2>(0, i - 1));
+                line_params_.col((i - 1) / 2) = measurements_.col(i - 1) +
+                                                measurements_.col(i) / 2.0;
             }
 
             // Publish the transformed points for visualization
@@ -299,18 +299,18 @@ void LineFilteringNode::timer_callback() {
     line_tracker_.delete_tracks(deletion_threshold);
 
     // find line crossings
-    find_line_intersections();
+    // find_line_intersections();
 
-    line_intersection_tracker_.update_line_intersection_tracks(
-        current_line_intersections_, current_intersection_ids_,
-        update_interval, confirmation_threshold, gate_threshold,
-        min_gate_threshold, max_gate_threshold, prob_of_detection,
-        prob_of_survival, clutter_intensity, initial_existence_probability);
+    // line_intersection_tracker_.update_line_intersection_tracks(
+    //     current_line_intersections_, current_intersection_ids_,
+    //     update_interval, confirmation_threshold, gate_threshold,
+    //     min_gate_threshold, max_gate_threshold, prob_of_detection,
+    //     prob_of_survival, clutter_intensity, initial_existence_probability);
 
-    current_line_intersections_.resize(2, 0);
-    current_intersection_ids_.resize(2, 0);
+    // current_line_intersections_.resize(2, 0);
+    // current_intersection_ids_.resize(2, 0);
 
-    line_intersection_tracker_.delete_tracks(deletion_threshold);
+    // line_intersection_tracker_.delete_tracks(deletion_threshold);
 
     if (debug_visualization_) {
         visualize_line_tracks();
@@ -322,20 +322,20 @@ void LineFilteringNode::timer_callback() {
         scene_update_pub_->publish(scene_update);
     }
 
-    int line_intersection_id = find_intersection_id();
+    // int line_intersection_id = find_intersection_id();
 
-    if (line_intersection_id != -1) {
-        RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
-                    line_intersection_id);
-        auto track = line_intersection_tracker_.get_track(line_intersection_id);
-        geometry_msgs::msg::PointStamped intersection_point;
-        intersection_point.header.frame_id = target_frame_;
-        intersection_point.header.stamp = this->now();
-        intersection_point.point.x = track.state.mean()(0);
-        intersection_point.point.y = track.state.mean()(1);
-        line_intersection_pub_->publish(intersection_point);
+    // if (line_intersection_id != -1) {
+    //     RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
+    //                 line_intersection_id);
+    //     auto track = line_intersection_tracker_.get_track(line_intersection_id);
+    //     geometry_msgs::msg::PointStamped intersection_point;
+    //     intersection_point.header.frame_id = target_frame_;
+    //     intersection_point.header.stamp = this->now();
+    //     intersection_point.point.x = track.state.mean()(0);
+    //     intersection_point.point.y = track.state.mean()(1);
+    //     line_intersection_pub_->publish(intersection_point);
         
-    }
+    // }
 
     // select_line();
 }
@@ -375,69 +375,69 @@ void LineFilteringNode::visualize_line_tracks() {
     marker_array.markers.push_back(marker);
     line_points_pub_->publish(marker_array);
 
-    visualization_msgs::msg::MarkerArray line_params_array;
-    visualization_msgs::msg::Marker line_params;
-    line_params.header.frame_id = target_frame_;
-    line_params.header.stamp = this->now();
-    line_params.ns = "line_params";
-    line_params.type = visualization_msgs::msg::Marker::LINE_LIST;
-    line_params.action = visualization_msgs::msg::Marker::ADD;
-    line_params.pose.orientation.w = 1.0;
-    line_params.scale.x = 0.05;
-    line_params.color.g = 1.0;
-    line_params.color.a = 1.0;
+    // visualization_msgs::msg::MarkerArray line_params_array;
+    // visualization_msgs::msg::Marker line_params;
+    // line_params.header.frame_id = target_frame_;
+    // line_params.header.stamp = this->now();
+    // line_params.ns = "line_params";
+    // line_params.type = visualization_msgs::msg::Marker::LINE_LIST;
+    // line_params.action = visualization_msgs::msg::Marker::ADD;
+    // line_params.pose.orientation.w = 1.0;
+    // line_params.scale.x = 0.05;
+    // line_params.color.g = 1.0;
+    // line_params.color.a = 1.0;
 
-    // Length of the segment to visualize (adjust as needed)
-    const float segment_length = 20.0f;
+    // // Length of the segment to visualize (adjust as needed)
+    // const float segment_length = 20.0f;
 
-    for (const auto& track : line_tracker_.get_tracks()) {
-        if (!track.confirmed) {
-            continue;
-        }
+    // for (const auto& track : line_tracker_.get_tracks()) {
+    //     if (!track.confirmed) {
+    //         continue;
+    //     }
 
-        // Extract line parameters
-        float line_angle = track.state.mean()(0);
-        float line_distance = track.state.mean()(1);
+    //     // Extract line parameters
+    //     float line_angle = track.state.mean()(0);
+    //     float line_distance = track.state.mean()(1);
 
-        // Compute the normal and tangent vectors of the line
-        float cos_angle = std::cos(line_angle);
-        float sin_angle = std::sin(line_angle);
-        // Unit normal (points from the origin toward the line)
-        Eigen::Vector2f n(cos_angle, sin_angle);
-        // Tangent (direction along the line)
-        Eigen::Vector2f t(-sin_angle, cos_angle);
+    //     // Compute the normal and tangent vectors of the line
+    //     float cos_angle = std::cos(line_angle);
+    //     float sin_angle = std::sin(line_angle);
+    //     // Unit normal (points from the origin toward the line)
+    //     Eigen::Vector2f n(cos_angle, sin_angle);
+    //     // Tangent (direction along the line)
+    //     Eigen::Vector2f t(-sin_angle, cos_angle);
 
-        // Get the current position from orca_pose_
-        float pose_x = orca_pose_.position.x;
-        float pose_y = orca_pose_.position.y;
-        Eigen::Vector2f p(pose_x, pose_y);
+    //     // Get the current position from orca_pose_
+    //     float pose_x = orca_pose_.position.x;
+    //     float pose_y = orca_pose_.position.y;
+    //     Eigen::Vector2f p(pose_x, pose_y);
 
-        // Compute the projection of p onto the line
-        float n_dot_p = n.dot(p);
-        float distance_from_line = n_dot_p - line_distance;
-        Eigen::Vector2f p_closest = p - distance_from_line * n;
+    //     // Compute the projection of p onto the line
+    //     float n_dot_p = n.dot(p);
+    //     float distance_from_line = n_dot_p - line_distance;
+    //     Eigen::Vector2f p_closest = p - distance_from_line * n;
 
-        // Define endpoints along the tangent direction (half segment in each
-        // direction)
-        Eigen::Vector2f start_vec = p_closest + (segment_length / 2.0f) * t;
-        Eigen::Vector2f end_vec = p_closest - (segment_length / 2.0f) * t;
+    //     // Define endpoints along the tangent direction (half segment in each
+    //     // direction)
+    //     Eigen::Vector2f start_vec = p_closest + (segment_length / 2.0f) * t;
+    //     Eigen::Vector2f end_vec = p_closest - (segment_length / 2.0f) * t;
 
-        geometry_msgs::msg::Point start;
-        start.x = start_vec.x();
-        start.y = start_vec.y();
-        start.z = orca_pose_.position.z +
-                  depth_.data;  // same z as your other markers
+    //     geometry_msgs::msg::Point start;
+    //     start.x = start_vec.x();
+    //     start.y = start_vec.y();
+    //     start.z = orca_pose_.position.z +
+    //               depth_.data;  // same z as your other markers
 
-        geometry_msgs::msg::Point end;
-        end.x = end_vec.x();
-        end.y = end_vec.y();
-        end.z = orca_pose_.position.z + depth_.data;
+    //     geometry_msgs::msg::Point end;
+    //     end.x = end_vec.x();
+    //     end.y = end_vec.y();
+    //     end.z = orca_pose_.position.z + depth_.data;
 
-        line_params.points.push_back(start);
-        line_params.points.push_back(end);
-    }
-    line_params_array.markers.push_back(line_params);
-    line_params_pub_->publish(line_params_array);
+    //     line_params.points.push_back(start);
+    //     line_params.points.push_back(end);
+    // }
+    // line_params_array.markers.push_back(line_params);
+    // line_params_pub_->publish(line_params_array);
 }
 
 void LineFilteringNode::find_line_intersections() {
