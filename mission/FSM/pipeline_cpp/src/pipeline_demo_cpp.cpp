@@ -20,7 +20,6 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 using FindDock = vortex_msgs::action::FindDock;
-using GoToWaypoint = vortex_msgs::action::GoToWaypoint;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;
 using NavigateWaypoints = vortex_msgs::action::NavigateWaypoints;
@@ -203,8 +202,8 @@ std::shared_ptr<yasmin::StateMachine> create_state_machine() {
   auto sm = std::make_shared<yasmin::StateMachine>(
       std::initializer_list<std::string>{
                                          yasmin_ros::basic_outcomes::SUCCEED,
-                                         yasmin_ros::basic_outcomes::CANCEL,
-                                         yasmin_ros::basic_outcomes::ABORT, "error"});
+                                         yasmin_ros::basic_outcomes::ABORT,
+                                         "error"});
 
   return sm;
 }
@@ -213,34 +212,36 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm) {
   sm->add_state("FIND_PIPELINE", std::make_shared<FindPipelineState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_START_OF_PIPELINE"},
-                    {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::CANCEL},
+                    {yasmin_ros::basic_outcomes::CANCEL, "ERROR"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("GO_TO_START_OF_PIPELINE", std::make_shared<GoToStartPipelineState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, "FOLLOW_PIPELINE"},
-                    {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::CANCEL},
+                    {yasmin_ros::basic_outcomes::CANCEL, "ERROR"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(),
                 {
                     {yasmin_ros::basic_outcomes::SUCCEED, yasmin_ros::basic_outcomes::SUCCEED},
-                    {yasmin_ros::basic_outcomes::CANCEL, yasmin_ros::basic_outcomes::CANCEL},
+                    {yasmin_ros::basic_outcomes::CANCEL, "ERROR"},
                     {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                 });
   sm->add_state("ABORT", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{yasmin_ros::basic_outcomes::ABORT}, AbortState),
                 {
                     {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
                 });
+  
   sm->add_state("ERROR", std::make_shared<yasmin::CbState>(std::initializer_list<std::string>{yasmin_ros::basic_outcomes::ABORT}, ErrorState),
                 {
-                    {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
+                    {yasmin_ros::basic_outcomes::ABORT, "error"},
                 });
-
+  
   sm->add_state("FOLLOW_PIPELINE", std::make_shared<FollowPipelineState>(),
                        {
                            {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
                            {yasmin_ros::basic_outcomes::ABORT, yasmin_ros::basic_outcomes::ABORT},
+                           {yasmin_ros::basic_outcomes::CANCEL, "ERROR"},
                        });
 }
 
