@@ -1,5 +1,5 @@
 ## Vortex AUV
-[![Industrial CI](https://github.com/vortexntnu/vortex-auv/actions/workflows/industrial-ci.yaml/badge.svg)](https://github.com/vortexntnu/vortex-auv/actions/workflows/industrial-ci.yaml)
+[![Industrial CI](https://github.com/vortexntnu/vortex-auv/actions/workflows/industrial-ci.yml/badge.svg)](https://github.com/vortexntnu/vortex-auv/actions/workflows/industrial-ci.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/vortexntnu/vortex-auv/main.svg)](https://results.pre-commit.ci/latest/github/vortexntnu/vortex-auv/main)
 
 ![Banner](docs/banner_image.png)
