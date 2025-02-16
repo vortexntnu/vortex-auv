@@ -19,16 +19,16 @@ line_filtering_node:
     pub_point4: "point_4_"
 
     clutter_rate: 0.001
-    probability_of_detection: 0.7
-    probability_of_survival: 0.99
+    probability_of_detection: 0.6
+    probability_of_survival: 0.95
     gate_threshold: 2.5
     min_gate_threshold: 1.0
-    max_gate_threshold: 10.0
-    confirmation_threshold: 0.6
+    max_gate_threshold: 2.0
+    confirmation_threshold: 0.8
     deletion_threshold: 0.2
-    initial_existence_probability: 0.4
-    std_dynmod: 0.2
-    std_sensor: 0.5
+    initial_existence_probability: 0.25
+    std_dynmod: 0.6
+    std_sensor: 0.6
     update_interval_ms: 100
 
     connected_line_threshold: 0.5

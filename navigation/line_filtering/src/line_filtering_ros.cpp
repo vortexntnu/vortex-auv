@@ -114,9 +114,15 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
             this->create_publisher<visualization_msgs::msg::MarkerArray>(
                 "/tracks/points", qos_sensor_data);
 
-        scene_update_pub_ =
+        scene_update_line_pub_ =
             this->create_publisher<foxglove_msgs::msg::SceneUpdate>(
                 "/scene_update", qos_sensor_data);
+
+        scene_update_intersection_pub_ =
+            this->create_publisher<foxglove_msgs::msg::SceneUpdate>(
+                "/scene_update_intersection", qos_sensor_data);
+        
+        
     }
 
     depth_.data = -1.0;
@@ -196,14 +202,15 @@ void LineFilteringNode::line_callback(
 
             measurements_.col(i) << transformed.x(), transformed.y();
             if (i % 2 == 1) {
-                line_params_.col((i - 1) / 2) = measurements_.col(i - 1) +
-                                                measurements_.col(i) / 2.0;
+                line_params_.col((i - 1) / 2) = (measurements_.col(i - 1) +
+                                                measurements_.col(i)) / 2.0;
             }
 
             // Publish the transformed points for visualization
             if (debug_visualization_) {
                 geometry_msgs::msg::PoseStamped pose_msg;
-                pose_msg.header = msg->header;
+                pose_msg.header.stamp = msg->header.stamp;
+                pose_msg.header.frame_id = target_frame_;
                 pose_msg.pose.position.x = transformed.x();
                 pose_msg.pose.position.y = transformed.y();
                 pose_msg.pose.position.z = transformed.z();
@@ -298,146 +305,73 @@ void LineFilteringNode::timer_callback() {
     // delete tracks
     line_tracker_.delete_tracks(deletion_threshold);
 
-    // find line crossings
-    // find_line_intersections();
-
-    // line_intersection_tracker_.update_line_intersection_tracks(
-    //     current_line_intersections_, current_intersection_ids_,
-    //     update_interval, confirmation_threshold, gate_threshold,
-    //     min_gate_threshold, max_gate_threshold, prob_of_detection,
-    //     prob_of_survival, clutter_intensity, initial_existence_probability);
-
-    // current_line_intersections_.resize(2, 0);
-    // current_intersection_ids_.resize(2, 0);
-
-    // line_intersection_tracker_.delete_tracks(deletion_threshold);
-
-    if (debug_visualization_) {
-        visualize_line_tracks();
-        auto scene_update = visualize_track_gates(line_tracker_.get_tracks(),
-                                                  this->now(), target_frame_,
-                                                    gate_threshold, min_gate_threshold,
-                                                    max_gate_threshold);
-
-        scene_update_pub_->publish(scene_update);
-    }
-
-    // int line_intersection_id = find_intersection_id();
-
-    // if (line_intersection_id != -1) {
-    //     RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
-    //                 line_intersection_id);
-    //     auto track = line_intersection_tracker_.get_track(line_intersection_id);
-    //     geometry_msgs::msg::PointStamped intersection_point;
-    //     intersection_point.header.frame_id = target_frame_;
-    //     intersection_point.header.stamp = this->now();
-    //     intersection_point.point.x = track.state.mean()(0);
-    //     intersection_point.point.y = track.state.mean()(1);
-    //     line_intersection_pub_->publish(intersection_point);
-        
-    // }
-
-    // select_line();
-}
-
-void LineFilteringNode::visualize_line_tracks() {
-    visualization_msgs::msg::MarkerArray marker_array;
-    visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = target_frame_;
-    marker.header.stamp = this->now();
-    marker.ns = "track_points";
-    marker.type = visualization_msgs::msg::Marker::LINE_LIST;
-    marker.action = visualization_msgs::msg::Marker::ADD;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = 0.05;
-    marker.color.r = 1.0;
-    marker.color.a = 1.0;
-
-    for (const auto& track : line_tracker_.get_tracks()) {
-        if (!track.confirmed) {
-            continue;
-        }
-
-        geometry_msgs::msg::Point start;
-        start.x = track.line_points(0, 0);
-        start.y = track.line_points(1, 0);
-        start.z = orca_pose_.position.z + depth_.data;
-
-        geometry_msgs::msg::Point end;
-        end.x = track.line_points(0, 1);
-        end.y = track.line_points(1, 1);
-        end.z = orca_pose_.position.z + depth_.data;
-
-        marker.points.push_back(start);
-        marker.points.push_back(end);
-    }
-
-    marker_array.markers.push_back(marker);
-    line_points_pub_->publish(marker_array);
-
-    // visualization_msgs::msg::MarkerArray line_params_array;
-    // visualization_msgs::msg::Marker line_params;
-    // line_params.header.frame_id = target_frame_;
-    // line_params.header.stamp = this->now();
-    // line_params.ns = "line_params";
-    // line_params.type = visualization_msgs::msg::Marker::LINE_LIST;
-    // line_params.action = visualization_msgs::msg::Marker::ADD;
-    // line_params.pose.orientation.w = 1.0;
-    // line_params.scale.x = 0.05;
-    // line_params.color.g = 1.0;
-    // line_params.color.a = 1.0;
-
-    // // Length of the segment to visualize (adjust as needed)
-    // const float segment_length = 20.0f;
-
     // for (const auto& track : line_tracker_.get_tracks()) {
     //     if (!track.confirmed) {
     //         continue;
     //     }
-
-    //     // Extract line parameters
-    //     float line_angle = track.state.mean()(0);
-    //     float line_distance = track.state.mean()(1);
-
-    //     // Compute the normal and tangent vectors of the line
-    //     float cos_angle = std::cos(line_angle);
-    //     float sin_angle = std::sin(line_angle);
-    //     // Unit normal (points from the origin toward the line)
-    //     Eigen::Vector2f n(cos_angle, sin_angle);
-    //     // Tangent (direction along the line)
-    //     Eigen::Vector2f t(-sin_angle, cos_angle);
-
-    //     // Get the current position from orca_pose_
-    //     float pose_x = orca_pose_.position.x;
-    //     float pose_y = orca_pose_.position.y;
-    //     Eigen::Vector2f p(pose_x, pose_y);
-
-    //     // Compute the projection of p onto the line
-    //     float n_dot_p = n.dot(p);
-    //     float distance_from_line = n_dot_p - line_distance;
-    //     Eigen::Vector2f p_closest = p - distance_from_line * n;
-
-    //     // Define endpoints along the tangent direction (half segment in each
-    //     // direction)
-    //     Eigen::Vector2f start_vec = p_closest + (segment_length / 2.0f) * t;
-    //     Eigen::Vector2f end_vec = p_closest - (segment_length / 2.0f) * t;
-
-    //     geometry_msgs::msg::Point start;
-    //     start.x = start_vec.x();
-    //     start.y = start_vec.y();
-    //     start.z = orca_pose_.position.z +
-    //               depth_.data;  // same z as your other markers
-
-    //     geometry_msgs::msg::Point end;
-    //     end.x = end_vec.x();
-    //     end.y = end_vec.y();
-    //     end.z = orca_pose_.position.z + depth_.data;
-
-    //     line_params.points.push_back(start);
-    //     line_params.points.push_back(end);
+    //     RCLCPP_INFO(this->get_logger(), "Line found with id: %d", track.id);
+    //     RCLCPP_INFO(this->get_logger(), "existance probability: %f",
+    //                 track.existence_probability);
+    //     RCLCPP_INFO(this->get_logger(), "line parameters: angle: %f, distance: %f",
+    //                 track.state.mean()(0), track.state.mean()(1));
+    
     // }
-    // line_params_array.markers.push_back(line_params);
-    // line_params_pub_->publish(line_params_array);
+
+    // find line crossings
+    find_line_intersections();
+
+    line_intersection_tracker_.update_line_intersection_tracks(
+        current_line_intersections_, current_intersection_ids_,
+        update_interval, confirmation_threshold, gate_threshold,
+        min_gate_threshold, max_gate_threshold, prob_of_detection,
+        prob_of_survival, clutter_intensity, initial_existence_probability);
+
+    current_line_intersections_.resize(2, 0);
+    current_intersection_ids_.resize(2, 0);
+
+    line_intersection_tracker_.delete_tracks(deletion_threshold);
+
+    if (debug_visualization_) {
+        auto scene_update_line = visualize_track_gates(line_tracker_.get_tracks(),
+                                                  this->now(), target_frame_,
+                                                    gate_threshold, min_gate_threshold,
+                                                    max_gate_threshold, true,
+                                                    orca_pose_.position.z, depth_.data);
+
+        scene_update_line_pub_->publish(scene_update_line);
+
+        auto scene_update_intersection =
+            visualize_track_gates(line_intersection_tracker_.get_tracks(),
+                                  this->now(), target_frame_, gate_threshold,
+                                  min_gate_threshold, max_gate_threshold, false,
+                                  orca_pose_.position.z, depth_.data);
+
+        auto marker_array = visualize_line_tracks(line_tracker_.get_tracks(),
+                                                  this->now(), target_frame_, orca_pose_.position.z, depth_.data);
+        line_points_pub_->publish(marker_array);
+
+        scene_update_intersection_pub_->publish(scene_update_intersection);
+        
+
+
+    }
+
+    int line_intersection_id = find_intersection_id();
+
+    if (line_intersection_id != -1) {
+        RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
+                    line_intersection_id);
+        auto track = line_intersection_tracker_.get_track(line_intersection_id);
+        geometry_msgs::msg::PointStamped intersection_point;
+        intersection_point.header.frame_id = target_frame_;
+        intersection_point.header.stamp = this->now();
+        intersection_point.point.x = track.state.mean()(0);
+        intersection_point.point.y = track.state.mean()(1);
+        line_intersection_pub_->publish(intersection_point);
+        
+    }
+
+    // select_line();
 }
 
 void LineFilteringNode::find_line_intersections() {
@@ -454,37 +388,14 @@ void LineFilteringNode::find_line_intersections() {
             if (!track2.confirmed) continue;
             if (track.id == track2.id) continue;
 
-            // Extract line parameters (angle, distance)
-            Eigen::Vector2d line1_params = track.state.mean();
-            Eigen::Vector2d line2_params = track2.state.mean();
-
-            double theta1 = line1_params(0);
-            double d1 = line1_params(1);
-            double theta2 = line2_params(0);
-            double d2 = line2_params(1);
-
-            // Check if the lines are not nearly parallel
-            if (std::abs(theta1 - theta2) < min_angle) {
-                continue;
-            }
-
-            // Form the system Ax = B
-            Eigen::Matrix2d A;
-            A << std::cos(theta1), std::sin(theta1),
-                    std::cos(theta2), std::sin(theta2);
-
-            Eigen::Vector2d B(d1, d2);
-
+            Eigen::Matrix<double, 2, 2> line1_points = track.line_points;
+            Eigen::Matrix<double, 2, 2> line2_points = track2.line_points;
             Eigen::Vector2d intersection;
-            // Solve for intersection point (x, y)
-            if (A.determinant() != 0) {  // Ensure the lines are not parallel
-                intersection = A.inverse() * B;
-            } else {
+
+            if (!find_intersection(line1_points, line2_points, intersection, min_angle)) {
                 continue;
             }
 
-            Eigen::Matrix<double,2,2> line1_points = track.line_points;
-            Eigen::Matrix<double,2,2> line2_points = track2.line_points;
             Eigen::Vector2d intersection_point_line1;
             Eigen::Vector2d intersection_point_line2;
 
@@ -528,6 +439,59 @@ void LineFilteringNode::find_line_intersections() {
 
 }
 
+bool LineFilteringNode::find_intersection(const Eigen::Matrix<double, 2, 2>& line1, const Eigen::Matrix<double, 2, 2>& line2, Eigen::Vector2d& intersection, double min_angle) {
+    // Extract points from line1 and line2
+    double x1 = line1(0, 0), y1 = line1(1, 0);  // Line 1: Point 1 (x1, y1)
+    double x2 = line1(0, 1), y2 = line1(1, 1);  // Line 1: Point 2 (x2, y2)
+    
+    double x3 = line2(0, 0), y3 = line2(1, 0);  // Line 2: Point 1 (x3, y3)
+    double x4 = line2(0, 1), y4 = line2(1, 1);  // Line 2: Point 2 (x4, y4)
+    
+    // Compute the direction vectors of both lines
+    Eigen::Vector2d dir1(x2 - x1, y2 - y1);  // Direction of Line 1
+    Eigen::Vector2d dir2(x4 - x3, y4 - y3);  // Direction of Line 2
+    
+    // Compute the dot product and magnitudes
+    double dot_product = dir1.dot(dir2);
+    double mag1 = dir1.norm();
+    double mag2 = dir2.norm();
+    
+    // Calculate the cosine of the angle between the two vectors
+    double cos_theta = dot_product / (mag1 * mag2);
+    
+    // Ensure the cosine value is in the valid range [-1, 1] to avoid numerical errors
+    cos_theta = std::max(-1.0, std::min(1.0, cos_theta));
+    
+    // Calculate the angle in radians
+    double angle_rad = std::acos(cos_theta);
+    
+    // Convert angle to degrees
+    // double angle_deg = angle_rad * (180.0 / M_PI);  // Convert radians to degrees manually
+
+    // Check if the angle is smaller than the minimum angle
+    if (angle_rad < min_angle) {
+        return false;
+    }
+
+    // Compute the slopes (m1 and m2) of the lines
+    double m1 = (y2 - y1) / (x2 - x1);
+    double m2 = (y4 - y3) / (x4 - x3);
+
+    // If the lines are parallel (m1 == m2), there's no intersection
+    if (m1 == m2) {
+        return false;
+    }
+
+    // Use the equation to solve for x and y (intersection point)
+    double x = (y3 - y1 + m1 * x1 - m2 * x3) / (m1 - m2);
+    double y = m1 * (x - x1) + y1;
+
+    // Store the intersection point in the 'intersection' vector
+    intersection << x, y;
+    
+    return true;
+}
+
 int LineFilteringNode::find_intersection_id() {
     for (const auto& track : line_intersection_tracker_.get_tracks()) {
         if (!track.confirmed) {
@@ -538,7 +502,6 @@ int LineFilteringNode::find_intersection_id() {
     }
     return -1;
 }
-
 
 void LineFilteringNode::select_line() {
     // Get the robot's position and orientation

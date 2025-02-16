@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
 
-    pose_sub_topic: "/line_pose"
+    pose_sub_topic: "/aruco_board_pose"
     transformed_pose_pub_topic: "/transformed_pose"
     filtered_pose_pub_topic: "/ekf_filtered_pose"
 

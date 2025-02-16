@@ -80,6 +80,8 @@ class LineFilteringNode : public rclcpp::Node {
 
     
     Eigen::Vector2d get_line_params(Eigen::Matrix<double, 2, 2> line_points);
+
+    bool find_intersection(const Eigen::Matrix<double, 2, 2>& line1, const Eigen::Matrix<double, 2, 2>& line2, Eigen::Vector2d& intersection, double min_angle);
     
     // Subscriptions
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
@@ -96,7 +98,8 @@ class LineFilteringNode : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_2_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_3_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
-    rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr scene_update_pub_;
+    rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr scene_update_line_pub_;
+    rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr scene_update_intersection_pub_;
     
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
     line_params_pub_;
@@ -139,8 +142,6 @@ class LineFilteringNode : public rclcpp::Node {
             
             int find_intersection_id();
             
-            void visualize_line_tracks();
-
             // Track manager
             TrackManager line_tracker_;
     TrackManager line_intersection_tracker_;
