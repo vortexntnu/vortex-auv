@@ -25,13 +25,14 @@ def generate_launch_description() -> LaunchDescription:
         package='yasmin_viewer',
         executable='yasmin_viewer_node',
         name='yasmin_viewer',
+        namespace="orca",
         on_exit=launch.actions.LogInfo(msg="Yasmin_viewer exited"),
     )
 
     docking_launch = Node(
         package='docking_cpp',
         executable='docking',
-        name='docking',
+        namespace="orca",
         parameters=[config_dock],
         on_exit=launch.actions.LogInfo(msg="Docking exited"),
     )
@@ -40,6 +41,7 @@ def generate_launch_description() -> LaunchDescription:
         package='dock_action_servers',
         executable='fsm_state_node.py',
         name='fsm_state_node',
+        namespace="orca",
         parameters=[config_dock_state],
         on_exit=launch.actions.LogInfo(msg="fsm_state_node exited"),
     )

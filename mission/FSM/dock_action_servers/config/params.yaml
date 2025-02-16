@@ -1,4 +1,4 @@
-docking:
+/**:
   ros__parameters:
     docking_station_offset: -1.0
     return_home: false

@@ -48,6 +48,12 @@ add_executable(docking
 set(SOURCES
   src/docking.cpp
 )
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
 ament_target_dependencies(docking ${DEPENDENCIES})
 install(TARGETS
   docking
