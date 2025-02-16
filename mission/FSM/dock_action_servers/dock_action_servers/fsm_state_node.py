@@ -47,12 +47,11 @@ class FSMStateNode(Node):
 
     def get_controller_message(self, current_state):
         """Returns the controller message based on the current state."""
-        if current_state in []:
+        if current_state in ['GO_TO_DOCK']:
             return 'LQR'
         elif current_state in [
             'GO_OVER_DOCK',
             'GO_DOWN_DOCK',
-            'GO_TO_DOCK',
             'RETURN_HOME',
             'ABORT_STATE',
         ]:
