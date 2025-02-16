@@ -1,4 +1,4 @@
-thruster_interface_auv_node:
+/**:
   ros__parameters:
     coeffs:
       # 10V:

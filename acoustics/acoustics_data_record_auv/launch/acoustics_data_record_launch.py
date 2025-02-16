@@ -26,6 +26,7 @@ def generate_launch_description() -> LaunchDescription:
                 package="acoustics_data_record_auv",
                 executable="acoustics_data_record_node.py",
                 name="acoustics_data_record_auv",
+                namespace="orca",
                 output="screen",
                 parameters=[yaml_file],
             ),

@@ -66,18 +66,13 @@ class PowerSenseModulePublisher(Node):
         self.get_logger().info('"power_sense_module_publisher" has been started')
 
     def get_topics(self) -> None:
-        namespace = (
-            self.declare_parameter("topics.namespace", "_")
-            .get_parameter_value()
-            .string_value
-        )
         topics = ["current", "voltage"]
         for topic in topics:
             self.declare_parameter(f"topics.{topic}", "_")
             setattr(
                 self,
                 topic + "_topic",
-                namespace + self.get_parameter(f"topics.{topic}").value,
+                self.get_parameter(f"topics.{topic}").value,
             )
 
     def set_publishers(self) -> None:

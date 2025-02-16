@@ -95,11 +95,6 @@ class LinearQuadraticRegulator(Node):
 
     def get_topics(self):
         """Get the topics from the parameter file."""
-        namespace = (
-            self.declare_parameter("topics.namespace", "_")
-            .get_parameter_value()
-            .string_value
-        )
         topics = [
             "pose",
             "twist",
@@ -114,14 +109,14 @@ class LinearQuadraticRegulator(Node):
                 setattr(
                     self,
                     topic + "_topic",
-                    namespace + self.get_parameter("topics.guidance." + topic).value,
+                    self.get_parameter("topics.guidance." + topic).value,
                 )
                 continue
             self.declare_parameter("topics." + topic, "_")
             setattr(
                 self,
                 topic + "_topic",
-                namespace + self.get_parameter("topics." + topic).value,
+                self.get_parameter("topics." + topic).value,
             )
 
     def get_parameters(self):

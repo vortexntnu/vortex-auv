@@ -24,6 +24,7 @@ def generate_launch_description() -> LaunchDescription:
         package="thruster_interface_auv",
         executable="thruster_interface_auv_node",
         name="thruster_interface_auv_node",
+        namespace="orca",
         output="screen",
         parameters=config,
     )

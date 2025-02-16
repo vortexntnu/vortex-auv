@@ -73,16 +73,6 @@ class AcousticsInterfaceNode(Node):
         self.get_logger().info("Successfully connected to Acoustics PCB MCU :D")
 
     def get_topics(self) -> None:
-        orca_namespace = (
-            self.declare_parameter("topics.namespace", "_")
-            .get_parameter_value()
-            .string_value
-        )
-        accoustics_namespace = (
-            self.declare_parameter("topics.acoustics.namespace", "_")
-            .get_parameter_value()
-            .string_value
-        )
         hydrophone_topics = (
             self.declare_parameter("topics.acoustics.hydrophones", ["_"])
             .get_parameter_value()
@@ -92,7 +82,7 @@ class AcousticsInterfaceNode(Node):
             setattr(
                 self,
                 topic + "_topic",
-                orca_namespace + accoustics_namespace + "/" + topic,
+                topic,
             )
 
         topics = ["filter_response", "fft", "peaks", "tdoa", "position"]
@@ -101,9 +91,7 @@ class AcousticsInterfaceNode(Node):
             setattr(
                 self,
                 topic + "_topic",
-                orca_namespace
-                + accoustics_namespace
-                + self.get_parameter(f"topics.acoustics.{topic}")
+                self.get_parameter(f"topics.acoustics.{topic}")
                 .get_parameter_value()
                 .string_value,
             )
