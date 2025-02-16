@@ -113,6 +113,10 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
         line_points_pub_ =
             this->create_publisher<visualization_msgs::msg::MarkerArray>(
                 "/tracks/points", qos_sensor_data);
+
+        scene_update_pub_ =
+            this->create_publisher<foxglove_msgs::msg::SceneUpdate>(
+                "/scene_update", qos_sensor_data);
     }
 
     depth_.data = -1.0;
@@ -309,7 +313,13 @@ void LineFilteringNode::timer_callback() {
     line_intersection_tracker_.delete_tracks(deletion_threshold);
 
     if (debug_visualization_) {
-        visualize_tracks();
+        visualize_line_tracks();
+        auto scene_update = visualize_track_gates(line_tracker_.get_tracks(),
+                                                  this->now(), target_frame_,
+                                                    gate_threshold, min_gate_threshold,
+                                                    max_gate_threshold);
+
+        scene_update_pub_->publish(scene_update);
     }
 
     int line_intersection_id = find_intersection_id();
@@ -330,7 +340,7 @@ void LineFilteringNode::timer_callback() {
     // select_line();
 }
 
-void LineFilteringNode::visualize_tracks() {
+void LineFilteringNode::visualize_line_tracks() {
     visualization_msgs::msg::MarkerArray marker_array;
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = target_frame_;

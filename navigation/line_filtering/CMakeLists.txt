@@ -24,6 +24,7 @@ find_package(OpenCV REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(foxglove_msgs REQUIRED)
 
 include_directories(include)
 
@@ -33,7 +34,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-add_executable(line_filtering_node src/line_filtering_ros.cpp src/track_manager.cpp src/line_filtering_node.cpp)
+add_executable(line_filtering_node src/line_filtering_ros.cpp src/track_manager.cpp src/line_filtering_node.cpp src/line_filtering_visualization.cpp)
 
 # Link against OpenCV libraries
 target_link_libraries(line_filtering_node ${OpenCV_LIBS} Eigen3::Eigen)
@@ -51,6 +52,7 @@ ament_target_dependencies(line_filtering_node
   geometry_msgs
   vortex_filtering
   visualization_msgs
+  foxglove_msgs
 )
 
 

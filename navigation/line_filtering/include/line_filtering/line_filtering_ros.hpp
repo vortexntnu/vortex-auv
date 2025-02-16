@@ -31,6 +31,8 @@
 #include <vortex_filtering/vortex_filtering.hpp>
 
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <line_filtering/line_filtering_visualization.hpp>
+#include <foxglove_msgs/msg/scene_update.hpp>
 
 struct LineIntersection {
     double x;
@@ -76,69 +78,71 @@ class LineFilteringNode : public rclcpp::Node {
      */
     void timer_callback();
 
-    void visualize_tracks();
-
+    
     Eigen::Vector2d get_line_params(Eigen::Matrix<double, 2, 2> line_points);
-
+    
     // Subscriptions
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
-        pose_array_sub_;
+    pose_array_sub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr
-        camera_info_sub_;
+    camera_info_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr depth_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     // Publisher
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
-        point_cloud_pub_;
+    point_cloud_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_1_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_2_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_3_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr point_4_;
-
+    rclcpp::Publisher<foxglove_msgs::msg::SceneUpdate>::SharedPtr scene_update_pub_;
+    
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-        line_params_pub_;
+    line_params_pub_;
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-        line_points_pub_;
-
+    line_points_pub_;
+    
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
-
+    
     // Subscriber and message filter for the input PoseStamped messages
     message_filters::Subscriber<geometry_msgs::msg::PoseArray> line_sub_;
     std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>
-        tf2_filter_;
-
+    tf2_filter_;
+    
     rclcpp::TimerBase::SharedPtr timer_;
 
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_point_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_intersection_pub_;
-
+    
     // only need the odom variable. Transform lines in line_callback and store
     // them in the odom variable.
     geometry_msgs::msg::PoseArray::SharedPtr odomLinePointsArray_;
-
+    
     bool camera_info_received_ = false;
     cv::Mat K_;
-
+    
     std_msgs::msg::Float64 depth_;
     geometry_msgs::msg::Pose orca_pose_;
-
+    
     void camera_info_callback(
         const sensor_msgs::msg::CameraInfo::SharedPtr msg);
-    void depth_callback(const std_msgs::msg::Float64::SharedPtr msg);
-    void line_callback(
-        const std::shared_ptr<const geometry_msgs::msg::PoseArray>& msg);
-    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
-    void select_line();
+        void depth_callback(const std_msgs::msg::Float64::SharedPtr msg);
+        void line_callback(
+            const std::shared_ptr<const geometry_msgs::msg::PoseArray>& msg);
+            void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+            void select_line();
+            
+            void find_line_intersections();
+            
+            int find_intersection_id();
+            
+            void visualize_line_tracks();
 
-    void find_line_intersections();
-
-    int find_intersection_id();
-
-    // Track manager
-    TrackManager line_tracker_;
+            // Track manager
+            TrackManager line_tracker_;
     TrackManager line_intersection_tracker_;
     std::vector<LineIntersection> used_line_intersections_;
 
