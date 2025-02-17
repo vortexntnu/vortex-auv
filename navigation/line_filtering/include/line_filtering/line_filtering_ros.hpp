@@ -119,6 +119,9 @@ class LineFilteringNode : public rclcpp::Node {
 
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_point_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_intersection_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr line_intersection_pose_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr line_pose_pub_;
     
     // only need the odom variable. Transform lines in line_callback and store
     // them in the odom variable.
@@ -140,7 +143,9 @@ class LineFilteringNode : public rclcpp::Node {
             
             void find_line_intersections();
             
-            int find_intersection_id();
+    int find_unused_intersection_id(Track& track);
+
+    void find_and_publish_initial_waypoint();
             
             // Track manager
             TrackManager line_tracker_;

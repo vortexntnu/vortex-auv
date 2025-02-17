@@ -118,8 +118,6 @@ class TrackManager {
      */
     std::vector<Track> get_tracks() const { return tracks_; }
 
-    Track get_track(int id);
-
    private:
     std::vector<Track> tracks_;  ///< The vector of tracks.
 

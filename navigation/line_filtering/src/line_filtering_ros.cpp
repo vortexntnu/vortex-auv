@@ -121,6 +121,14 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
         scene_update_intersection_pub_ =
             this->create_publisher<foxglove_msgs::msg::SceneUpdate>(
                 "/scene_update_intersection", qos_sensor_data);
+
+        line_intersection_pose_pub_ =
+            this->create_publisher<geometry_msgs::msg::PoseStamped>(
+                "/line/intersection_pose", qos_sensor_data);
+        
+        line_pose_pub_ =
+            this->create_publisher<geometry_msgs::msg::PoseStamped>(
+                "/line/pose", qos_sensor_data);
         
         
     }
@@ -251,30 +259,6 @@ void LineFilteringNode::odom_callback(
     orca_pose_ = msg->pose.pose;
 }
 
-Eigen::Vector2d LineFilteringNode::get_line_params(
-    Eigen::Matrix<double, 2, 2> line_points) {
-    // Extract the two points (x1, y1) and (x2, y2)
-    Eigen::Vector2d point1 = line_points.col(0);
-    Eigen::Vector2d point2 = line_points.col(1);
-
-    // Direction vector of the line
-    Eigen::Vector2d direction = point2 - point1;
-
-    // Normal vector to the line (perpendicular to the direction vector)
-    Eigen::Vector2d normal(-direction.y(), direction.x());
-    normal.normalize();  // Ensure the normal vector is of unit length
-
-    // Compute the distance from the origin to the line
-    // Use point1 for this calculation: distance = dot(normal, point1)
-    double distance_to_origin = std::abs(normal.dot(point1));
-
-    // Compute the angle of the normal vector with respect to the x-axis
-    double angle = std::atan2(normal.y(), normal.x());
-
-    // Return the parameters: [angle, distance]
-    return Eigen::Vector2d(angle, distance_to_origin);
-}
-
 void LineFilteringNode::timer_callback() {
     // get parameters
     int update_interval = get_parameter("update_interval_ms").as_int();
@@ -304,18 +288,6 @@ void LineFilteringNode::timer_callback() {
 
     // delete tracks
     line_tracker_.delete_tracks(deletion_threshold);
-
-    // for (const auto& track : line_tracker_.get_tracks()) {
-    //     if (!track.confirmed) {
-    //         continue;
-    //     }
-    //     RCLCPP_INFO(this->get_logger(), "Line found with id: %d", track.id);
-    //     RCLCPP_INFO(this->get_logger(), "existance probability: %f",
-    //                 track.existence_probability);
-    //     RCLCPP_INFO(this->get_logger(), "line parameters: angle: %f, distance: %f",
-    //                 track.state.mean()(0), track.state.mean()(1));
-    
-    // }
 
     // find line crossings
     find_line_intersections();
@@ -352,23 +324,35 @@ void LineFilteringNode::timer_callback() {
 
         scene_update_intersection_pub_->publish(scene_update_intersection);
         
-
-
     }
 
-    int line_intersection_id = find_intersection_id();
+    Track int_track;
+    int line_intersection_id = find_unused_intersection_id(int_track);
 
     if (line_intersection_id != -1) {
         RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
                     line_intersection_id);
-        auto track = line_intersection_tracker_.get_track(line_intersection_id);
+        used_line_intersections_.push_back(LineIntersection{int_track.state.mean()(0), int_track.state.mean()(1), int_track.id1, int_track.id2});
         geometry_msgs::msg::PointStamped intersection_point;
         intersection_point.header.frame_id = target_frame_;
         intersection_point.header.stamp = this->now();
-        intersection_point.point.x = track.state.mean()(0);
-        intersection_point.point.y = track.state.mean()(1);
+        intersection_point.point.x = int_track.state.mean()(0);
+        intersection_point.point.y = int_track.state.mean()(1);
         line_intersection_pub_->publish(intersection_point);
-        
+        if (debug_visualization_) {
+            geometry_msgs::msg::PoseStamped intersection_pose;
+            intersection_pose.header.frame_id = target_frame_;
+            intersection_pose.header.stamp = this->now();
+            intersection_pose.pose.position.x = intersection_point.point.x;
+            intersection_pose.pose.position.y = intersection_point.point.y;
+            intersection_pose.pose.position.z = orca_pose_.position.z;
+            line_intersection_pose_pub_->publish(intersection_pose);
+        }
+        return;
+    }
+    if (used_line_intersections_.size() == 0) {
+        find_and_publish_initial_waypoint();
+        return;
     }
 
     // select_line();
@@ -492,16 +476,166 @@ bool LineFilteringNode::find_intersection(const Eigen::Matrix<double, 2, 2>& lin
     return true;
 }
 
-int LineFilteringNode::find_intersection_id() {
+int LineFilteringNode::find_unused_intersection_id(Track& unused_track) {
     for (const auto& track : line_intersection_tracker_.get_tracks()) {
         if (!track.confirmed) {
             continue;
         }
-        used_line_intersections_.push_back(LineIntersection{track.state.mean()(0), track.state.mean()(1), track.id1, track.id2});
-        return track.id;
+        unused_track = track;
+        return unused_track.id;
     }
     return -1;
 }
+
+void LineFilteringNode::find_and_publish_initial_waypoint(){
+    // Get the robot's position and orientation
+    geometry_msgs::msg::Pose Pose_orca = orca_pose_;
+    double orca_x = Pose_orca.position.x;
+    double orca_y = Pose_orca.position.y;
+
+    // Convert quaternion to yaw (robot's heading)
+    tf2::Quaternion q(Pose_orca.orientation.x, Pose_orca.orientation.y,
+                      Pose_orca.orientation.z, Pose_orca.orientation.w);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    auto tracks = line_tracker_.get_tracks();
+
+    Track chosen_track;
+
+    if (tracks.size() == 0) {
+        return;
+    }
+
+    if (tracks.size() == 1){
+        chosen_track = tracks.front();
+    }
+
+    if (tracks.size() > 1) {
+        double min_distance = std::numeric_limits<double>::max();
+        chosen_track = tracks.front();
+
+        // Robot's current position.
+        double rx = orca_x;
+        double ry = orca_y;
+
+        for (const auto &track : tracks) {
+            // Get endpoints for this track.
+            Eigen::Vector2d a = track.line_points.col(0);
+            Eigen::Vector2d b = track.line_points.col(1);
+
+            double ax = a(0);
+            double ay = a(1);
+            double bx = b(0);
+            double by = b(1);
+    
+            double ABx = bx - ax;
+            double ABy = by - ay;
+            double normAB = std::hypot(ABx, ABy);
+            if (normAB < 1e-6) {
+                // If the endpoints are nearly identical, skip this track.
+                continue;
+            }
+    
+            // Compute the perpendicular distance from the drone to the infinite line.
+            // This is |(B-A) x (R-A)| / |B-A|
+            double ARx = rx - ax;
+            double ARy = ry - ay;
+            double cross_mag = std::fabs(ABx * ARy - ABy * ARx);
+            double distance = cross_mag / normAB;
+    
+            if (distance < min_distance) {
+                min_distance = distance;
+                chosen_track = track;
+            }
+        }
+    }
+
+   // Robot's current position
+   double rx = orca_x;
+   double ry = orca_y;
+
+   // Determine if the robot is between the endpoints
+   double ax = chosen_track.line_points(0, 0);
+   double ay = chosen_track.line_points(1, 0);
+   double bx = chosen_track.line_points(0, 1);
+   double by = chosen_track.line_points(1, 1);
+
+   double ABx = bx - ax;
+   double ABy = by - ay;
+   double ARx = rx - ax;
+   double ARy = ry - ay;
+
+   // Calculate the projection factor (t) of the robot's position onto the line.
+   double ab_squared = ABx * ABx + ABy * ABy;
+   // Avoid division by zero when both endpoints are the same.
+   double t = (ab_squared == 0.0 ? 0.0 : ((ARx * ABx + ARy * ABy) / ab_squared));
+
+   // The robot is "between" if its projection lies between 0 and 1.
+   bool robotBetween = (t >= 0.0 && t <= 1.0);
+
+   geometry_msgs::msg::PointStamped chosen_point;
+
+   if (robotBetween) {
+       // If the robot is between the endpoints, choose the one that aligns best with our heading.
+
+       // Compute vectors from the robot to each endpoint.
+       double dx1 = ax - rx;
+       double dy1 = ay - ry;
+       double dx2 = bx - rx;
+       double dy2 = by - ry;
+
+       // Calculate the angle from the robot to each point.
+       double angle1 = std::atan2(dy1, dx1);
+       double angle2 = std::atan2(dy2, dx2);
+
+       // Determine the angular differences, properly wrapped between -pi and pi.
+       double diff1 = std::fabs(std::atan2(std::sin(angle1 - yaw), std::cos(angle1 - yaw)));
+       double diff2 = std::fabs(std::atan2(std::sin(angle2 - yaw), std::cos(angle2 - yaw)));
+
+       if (diff1 < diff2) {
+           chosen_point.point.x = ax;
+           chosen_point.point.y = ay;
+       } else {
+           chosen_point.point.x = bx;
+           chosen_point.point.y = by;
+       }
+
+   } else {
+       // Otherwise, choose the point that is furthest away.
+       double dx1 = ax - rx;
+       double dy1 = ay - ry;
+       double dx2 = bx - rx;
+       double dy2 = by - ry;
+
+       double dist1 = std::hypot(dx1, dy1);
+       double dist2 = std::hypot(dx2, dy2);
+
+         if (dist1 > dist2) {
+              chosen_point.point.x = ax;
+              chosen_point.point.y = ay;
+         } else {
+              chosen_point.point.x = bx;
+              chosen_point.point.y = by;
+         }
+   }
+
+   chosen_point.header.stamp = this->now();
+   chosen_point.header.frame_id = target_frame_;
+   chosen_point.point.z = orca_pose_.position.z + depth_.data;
+   line_point_pub_->publish(chosen_point);
+
+   if (debug_visualization_) {
+       geometry_msgs::msg::PoseStamped pose_msg;
+       pose_msg.header.stamp = this->now();
+       pose_msg.header.frame_id = target_frame_;
+       pose_msg.pose.position.x = chosen_point.point.x;
+       pose_msg.pose.position.y = chosen_point.point.y;
+       pose_msg.pose.position.z = chosen_point.point.z;
+       line_pose_pub_->publish(pose_msg);
+   }
+}
+
 
 void LineFilteringNode::select_line() {
     // Get the robot's position and orientation
