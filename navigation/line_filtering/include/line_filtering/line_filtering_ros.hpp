@@ -133,22 +133,23 @@ class LineFilteringNode : public rclcpp::Node {
     std_msgs::msg::Float64 depth_;
     geometry_msgs::msg::Pose orca_pose_;
     
-    void camera_info_callback(
-        const sensor_msgs::msg::CameraInfo::SharedPtr msg);
-        void depth_callback(const std_msgs::msg::Float64::SharedPtr msg);
-        void line_callback(
-            const std::shared_ptr<const geometry_msgs::msg::PoseArray>& msg);
-            void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
-            void select_line();
+    void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr msg);
+    void line_callback(const std::shared_ptr<const geometry_msgs::msg::PoseArray>& msg);
+    void depth_callback(const std_msgs::msg::Float64::SharedPtr msg);
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+    
             
-            void find_line_intersections();
+    void find_line_intersections();
             
     int find_unused_intersection_id(Track& track);
 
+    int get_track_by_id(Track& line_track, int id);
+
     void find_and_publish_initial_waypoint();
+
+    void publish_waypoint();
             
-            // Track manager
-            TrackManager line_tracker_;
+    TrackManager line_tracker_;
     TrackManager line_intersection_tracker_;
     std::vector<LineIntersection> used_line_intersections_;
 
@@ -157,9 +158,12 @@ class LineFilteringNode : public rclcpp::Node {
     Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersections_;
     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids_;
 
-    int current_id_;
-    int id_counter_;
-    geometry_msgs::msg::PoseArray current_track_points_;
+    int current_line_id_;
+    int current_line_id_counter_;
+    int next_line_id_;
+
+  
+
 
     bool debug_visualization_ = true;
 };

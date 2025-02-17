@@ -328,16 +328,35 @@ void LineFilteringNode::timer_callback() {
 
     Track int_track;
     int line_intersection_id = find_unused_intersection_id(int_track);
+    RCLCPP_INFO(this->get_logger(), "id counter: %d", current_line_id_counter_);
+    RCLCPP_INFO(this->get_logger(), "intersection id1: %d", int_track.id1);
+    RCLCPP_INFO(this->get_logger(), "intersection id2: %d", int_track.id2);
 
     if (line_intersection_id != -1) {
         RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
                     line_intersection_id);
+        if (current_line_id_counter_ > 5) {
+
+            if(current_line_id_ == int_track.id1){
+                next_line_id_ = int_track.id2;
+            }
+            else if(current_line_id_ == int_track.id2){
+                next_line_id_ = int_track.id1;
+            }
+            else{
+                next_line_id_ = -1;
+            }
+        }
+        else {
+            next_line_id_ = -1;
+        }
         used_line_intersections_.push_back(LineIntersection{int_track.state.mean()(0), int_track.state.mean()(1), int_track.id1, int_track.id2});
         geometry_msgs::msg::PointStamped intersection_point;
         intersection_point.header.frame_id = target_frame_;
         intersection_point.header.stamp = this->now();
         intersection_point.point.x = int_track.state.mean()(0);
         intersection_point.point.y = int_track.state.mean()(1);
+        line_intersection_tracker_.delete_track_by_id(int_track.id);
         line_intersection_pub_->publish(intersection_point);
         if (debug_visualization_) {
             geometry_msgs::msg::PoseStamped intersection_pose;
@@ -354,8 +373,12 @@ void LineFilteringNode::timer_callback() {
         find_and_publish_initial_waypoint();
         return;
     }
+    if (used_line_intersections_.size() > 0) {
+        RCLCPP_INFO(this->get_logger(), "ues intersections greater than 0.");
+       publish_waypoint();
+    }
 
-    // select_line();
+    
 }
 
 void LineFilteringNode::find_line_intersections() {
@@ -483,6 +506,19 @@ int LineFilteringNode::find_unused_intersection_id(Track& unused_track) {
         }
         unused_track = track;
         return unused_track.id;
+    }
+    return -1;
+}
+
+int LineFilteringNode::get_track_by_id(Track& line_track, int id) {
+    for (const auto& track : line_tracker_.get_tracks()) {
+        if (!track.confirmed) {
+            continue;
+        }
+        if (track.id == id) {
+            line_track = track;
+            return id;
+        }
     }
     return -1;
 }
@@ -620,6 +656,13 @@ void LineFilteringNode::find_and_publish_initial_waypoint(){
          }
    }
 
+   if (current_line_id_ == chosen_track.id) {
+       current_line_id_counter_++;
+    } else {
+         current_line_id_ = chosen_track.id;
+         current_line_id_counter_ = 0;
+    }
+
    chosen_point.header.stamp = this->now();
    chosen_point.header.frame_id = target_frame_;
    chosen_point.point.z = orca_pose_.position.z + depth_.data;
@@ -636,97 +679,45 @@ void LineFilteringNode::find_and_publish_initial_waypoint(){
    }
 }
 
-
-void LineFilteringNode::select_line() {
-    // Get the robot's position and orientation
-    geometry_msgs::msg::Pose Pose_orca = orca_pose_;
-    double position_x = Pose_orca.position.x;
-    double position_y = Pose_orca.position.y;
-
-    // Convert quaternion to yaw (robot's heading)
-    tf2::Quaternion q(Pose_orca.orientation.x, Pose_orca.orientation.y,
-                      Pose_orca.orientation.z, Pose_orca.orientation.w);
-    double roll, pitch, yaw;
-    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-    double threshold_distance = 0.1;  // Distance threshold
-    double angular_threshold = 0.1;   // Angular threshold in radians
-
-    const int treshold_count = 5;
-
-    for (const auto& track : line_tracker_.get_tracks()) {
-        if (!track.confirmed) {
-            continue;
-        }
-
-        geometry_msgs::msg::Pose line_start;
-        line_start.position.x = track.line_points(0, 0);
-        line_start.position.y = track.line_points(1, 0);
-
-        geometry_msgs::msg::Pose line_end;
-        line_end.position.x = track.line_points(0, 1);
-        line_end.position.y = track.line_points(1, 1);
-
-        // Compute the line's direction vector
-        double line_dir_x = line_end.position.x - line_start.position.x;
-        double line_dir_y = line_end.position.y - line_start.position.y;
-
-        // Normalize the direction vector
-        double line_length =
-            std::sqrt(line_dir_x * line_dir_x + line_dir_y * line_dir_y);
-        line_dir_x /= line_length;
-        line_dir_y /= line_length;
-
-        // Compute the vector from line start to the robot's position
-        double robot_vec_x = position_x - line_start.position.x;
-        double robot_vec_y = position_y - line_start.position.y;
-
-        // Project the robot's vector onto the line's direction vector (dot
-        // product) double projection = (robot_vec_x * line_dir_x) +
-        // (robot_vec_y * line_dir_y);
-
-        // // Check if the robot is on the line segment
-        // if (projection < 0 || projection > line_length) {
-        //    continue;
-        // }
-
-        // Calculate the perpendicular distance from the robot to the line
-        double perp_dist =
-            std::abs(robot_vec_x * line_dir_y - robot_vec_y * line_dir_x);
-
-        if (perp_dist > threshold_distance) {
-            continue;
-        }
-
-        // Check if the robot's heading aligns with the line's direction
-        double line_angle = std::atan2(line_dir_y, line_dir_x);
-        double angular_difference =
-            std::fmod(yaw - line_angle + M_PI, 2 * M_PI) - M_PI;
-
-        if (std::abs(angular_difference) > angular_threshold) {
-            continue;
-        }
-
-        if (track.id == current_id_) {
-            current_track_points_.poses.clear();
-            id_counter_++;
-            current_track_points_.poses.push_back(line_start);
-            current_track_points_.poses.push_back(line_end);
-        } else {
-            current_track_points_.poses.clear();
-            current_id_ = track.id;
-            id_counter_ = 0;
+void LineFilteringNode::publish_waypoint(){
+    auto intersection = used_line_intersections_.back();
+    RCLCPP_INFO(this->get_logger(), "next_line_id_: %d", next_line_id_);
+    if (next_line_id_ != -1) {
+        Track next_line;
+        if(get_track_by_id(next_line, next_line_id_) != -1){
+            if(current_line_id_ == next_line.id){
+                current_line_id_counter_++;
+            } else {
+                current_line_id_ = next_line.id;
+                current_line_id_counter_ = 0;
+            }
+            geometry_msgs::msg::PointStamped line_point;
+            line_point.header.frame_id = target_frame_;
+            line_point.header.stamp = this->now();
+            double distance1 = std::hypot(intersection.x - next_line.line_points(0, 0), intersection.y - next_line.line_points(1, 0));
+            double distance2 = std::hypot(intersection.x - next_line.line_points(0, 1), intersection.y - next_line.line_points(1, 1));
+            if (distance1 > distance2) {
+                line_point.point.x = next_line.line_points(0, 0);
+                line_point.point.y = next_line.line_points(1, 0);
+            } else {
+                line_point.point.x = next_line.line_points(0, 1);
+                line_point.point.y = next_line.line_points(1, 1);
+            }
+            line_point.point.z = orca_pose_.position.z;
+            RCLCPP_INFO(this->get_logger(), "publishing next line point");
+            line_point_pub_->publish(line_point);
+            if(debug_visualization_){
+                geometry_msgs::msg::PoseStamped pose_msg;
+                pose_msg.header.stamp = this->now();
+                pose_msg.header.frame_id = target_frame_;
+                pose_msg.pose.position.x = line_point.point.x;
+                pose_msg.pose.position.y = line_point.point.y;
+                pose_msg.pose.position.z = line_point.point.z;
+                line_pose_pub_->publish(pose_msg);
+            }
         }
     }
-    if (id_counter_ >= treshold_count) {
-        current_track_points_.header.stamp = this->now();
-        current_track_points_.header.frame_id = target_frame_;
-        current_track_points_.poses.front().position.z =
-            orca_pose_.position.z + depth_.data;
-        current_track_points_.poses.back().position.z =
-            orca_pose_.position.z + depth_.data;
-        pose_array_pub_->publish(current_track_points_);
-    }
+        
 }
 
 void LineFilteringNode::update_timer(int update_interval) {

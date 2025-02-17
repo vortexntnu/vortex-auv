@@ -118,6 +118,8 @@ class TrackManager {
      */
     std::vector<Track> get_tracks() const { return tracks_; }
 
+    void delete_track_by_id(int id);
+
    private:
     std::vector<Track> tracks_;  ///< The vector of tracks.
 

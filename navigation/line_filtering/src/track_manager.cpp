@@ -211,6 +211,14 @@ void TrackManager::delete_tracks(double deletion_threshold) {
                   tracks_.end());
 }
 
+void TrackManager::delete_track_by_id(int id) {
+    tracks_.erase(std::remove_if(tracks_.begin(), tracks_.end(),
+                                 [id](const Track& track) {
+                                     return track.id == id;
+                                 }),
+                  tracks_.end());
+}
+
 void TrackManager::set_dyn_model(double std_velocity) {
     dyn_model_ = std::make_shared<DynMod>(std_velocity);
 }
