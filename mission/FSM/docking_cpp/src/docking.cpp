@@ -54,37 +54,38 @@ void FindDockState::print_feedback(
 }
 
 GoToDockState::GoToDockState()
-    : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
-          "/reference_filter",
+    : yasmin_ros::ActionState<LOSGuidance>(
+          "/los_guidance",
           std::bind(&GoToDockState::create_goal_handler, this, _1),
           std::bind(&GoToDockState::response_handler, this, _1, _2),
           std::bind(&GoToDockState::print_feedback, this, _1, _2)) {};
 
-ReferenceFilterWaypoint::Goal GoToDockState::create_goal_handler(
+LOSGuidance::Goal GoToDockState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = ReferenceFilterWaypoint::Goal();
+    auto goal = LOSGuidance::Goal();
 
     blackboard->set<bool>("is_home", false);
 
     PoseStamped docking_goal =
         blackboard->get<PoseStamped>("docking_offset_goal");
-    goal.goal = docking_goal;
+
+    PointStamped docking_point;
+    docking_point.point = docking_goal.pose.position;
+    docking_point.header = docking_goal.header;
+
+    goal.goal = docking_point;
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Position: x = %f, y = %f, z = %f",
-                docking_goal.pose.position.x, docking_goal.pose.position.y,
-                docking_goal.pose.position.z);
-    fprintf(stderr, "  Orientation: x = %f, y = %f, z = %f, w = %f\n",
-            docking_goal.pose.orientation.x, docking_goal.pose.orientation.y,
-            docking_goal.pose.orientation.z, docking_goal.pose.orientation.w);
+                "  Position: x = %f, y = %f, z = %f", docking_point.point.x,
+                docking_point.point.y, docking_point.point.z);
 
     return goal;
 }
 
 std::string GoToDockState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    ReferenceFilterWaypoint::Result::SharedPtr response) {
+    LOSGuidance::Result::SharedPtr response) {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Response received from action server:");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -101,19 +102,13 @@ std::string GoToDockState::response_handler(
 
 void GoToDockState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
-    Pose current_pose = Pose();
-    current_pose.position.x = feedback->feedback.x;
-    current_pose.position.y = feedback->feedback.y;
-    current_pose.position.z = feedback->feedback.z;
-    current_pose.orientation.x = feedback->feedback.roll;
-    current_pose.orientation.y = feedback->feedback.pitch;
-    current_pose.orientation.z = feedback->feedback.yaw;
-    blackboard->set<Pose>("current_pose", current_pose);
+    std::shared_ptr<const LOSGuidance::Feedback> feedback) {
+    blackboard->set<vortex_msgs::msg::LOSGuidance>("LOS_data",
+                                                   feedback->feedback);
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Current position: x = %f, y = %f, z = %f\n",
-                current_pose.position.x, current_pose.position.y,
-                current_pose.position.z);
+                "Current surge, pitch and yaw: %f, %f, %f",
+                feedback->feedback.surge, feedback->feedback.pitch,
+                feedback->feedback.yaw);
 }
 
 GoOverDockState::GoOverDockState()

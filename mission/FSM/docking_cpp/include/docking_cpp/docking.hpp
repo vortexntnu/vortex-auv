@@ -7,6 +7,7 @@
 #include <string>
 
 #include <vortex_msgs/action/filtered_pose.hpp>
+#include <vortex_msgs/action/los_guidance.hpp>
 #include <vortex_msgs/action/navigate_waypoints.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 
@@ -25,9 +26,11 @@ using std::placeholders::_2;
 using FilteredPose = vortex_msgs::action::FilteredPose;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;
+using PointStamped = geometry_msgs::msg::PointStamped;
 using ReferenceFilterWaypoint = vortex_msgs::action::ReferenceFilterWaypoint;
 using ReferenceFilter = vortex_msgs::msg::ReferenceFilter;
 using NavigateWaypoints = vortex_msgs::action::NavigateWaypoints;
+using LOSGuidance = vortex_msgs::action::LOSGuidance;
 using namespace yasmin;
 
 class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
@@ -46,20 +49,20 @@ class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
         std::shared_ptr<const FilteredPose::Feedback> feedback);
 };
 
-class GoToDockState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
+class GoToDockState : public yasmin_ros::ActionState<LOSGuidance> {
    public:
     GoToDockState();
 
-    ReferenceFilterWaypoint::Goal create_goal_handler(
+    LOSGuidance::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        ReferenceFilterWaypoint::Result::SharedPtr response);
+        LOSGuidance::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback);
+        std::shared_ptr<const LOSGuidance::Feedback> feedback);
 };
 
 class GoOverDockState
