@@ -13,14 +13,13 @@ LOSGuidanceNode::LOSGuidanceNode() : Node("los_guidance_node") {
 void LOSGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.guidance.los");
-    this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
+    this->declare_parameter<std::string>("topics.waypoint");
 
-    std::string pose_topic =
-        this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string guidance_topic =
         this->get_parameter("topics.guidance.los").as_string();
-    std::string aruco_board_pose_camera_topic =
-        this->get_parameter("topics.aruco_board_pose_camera").as_string();
+    std::string waypoint_topic =
+        this->get_parameter("topics.waypoint").as_string();
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
@@ -29,9 +28,9 @@ void LOSGuidanceNode::set_subscribers_and_publisher() {
     reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         guidance_topic, qos_sensor_data);
 
-    reference_sub_ = this->create_subscription<vortex_msgs::msg::Waypoints>(
-        aruco_board_pose_camera_topic, qos_sensor_data,
-        std::bind(&LOSGuidanceNode::reference_callback, this,
+    waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+        waypoint_topic, qos_sensor_data,
+        std::bind(&LOSGuidanceNode::waypoint_callback, this,
                   std::placeholders::_1));
 
     pose_sub_ = this->create_subscription<
@@ -42,12 +41,15 @@ void LOSGuidanceNode::set_subscribers_and_publisher() {
 }
 
 void LOSGuidanceNode::set_action_server() {
+    this->declare_parameter<std::string>("action_servers.los");
+    std::string action_server_name =
+        this->get_parameter("action_servers.los").as_string();
     cb_group_ =
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ =
         rclcpp_action::create_server<vortex_msgs::action::LOSGuidance>(
-            this, "los_guidance",
+            this, action_server_name,
             std::bind(&LOSGuidanceNode::handle_goal, this,
                       std::placeholders::_1, std::placeholders::_2),
             std::bind(&LOSGuidanceNode::handle_cancel, this,
@@ -65,8 +67,10 @@ void LOSGuidanceNode::set_adaptive_los_guidance() {
     this->declare_parameter<double>("time_step");
 
     LOS::Params params;
-    params.lookahead_distance_h = this->get_parameter("lookahead_distance_h").as_double();
-    params.lookahead_distance_v = this->get_parameter("lookahead_distance_v").as_double();
+    params.lookahead_distance_h =
+        this->get_parameter("lookahead_distance_h").as_double();
+    params.lookahead_distance_v =
+        this->get_parameter("lookahead_distance_v").as_double();
     params.gamma_h = this->get_parameter("gamma_h").as_double();
     params.gamma_v = this->get_parameter("gamma_v").as_double();
     params.time_step = this->get_parameter("time_step").as_double();
@@ -74,29 +78,11 @@ void LOSGuidanceNode::set_adaptive_los_guidance() {
     adaptive_los_guidance_ = std::make_unique<AdaptiveLOSGuidance>(params);
 }
 
-void LOSGuidanceNode::reference_callback(
-    const vortex_msgs::msg::Waypoints::SharedPtr los_waypoints) {
-    if (los_waypoints->waypoints.size() == 1) {
-        last_point_.x = eta_.x;
-        last_point_.y = eta_.y;
-        last_point_.z = eta_.z;
-
-        next_point_.x = los_waypoints->waypoints[0].x;
-        next_point_.y = los_waypoints->waypoints[0].y;
-        next_point_.z = los_waypoints->waypoints[0].z;
-
-    } else if (los_waypoints->waypoints.size() == 2) {
-        last_point_.x = los_waypoints->waypoints[0].x;
-        last_point_.y = los_waypoints->waypoints[0].y;
-        last_point_.z = los_waypoints->waypoints[0].z;
-
-        next_point_.x = los_waypoints->waypoints[1].x;
-        next_point_.y = los_waypoints->waypoints[1].y;
-        next_point_.z = los_waypoints->waypoints[1].z;
-    } else {
-        RCLCPP_ERROR(this->get_logger(), "Invalid number of waypoints");
-        return;
-    }
+void LOSGuidanceNode::waypoint_callback(
+    const geometry_msgs::msg::PointStamped::SharedPtr los_waypoint) {
+    fill_los_waypoints(*los_waypoint);
+    adaptive_los_guidance_->update_angles(last_point_, next_point_);
+    RCLCPP_INFO(this->get_logger(), "Received waypoint");
 }
 
 void LOSGuidanceNode::pose_callback(
@@ -144,7 +130,6 @@ void LOSGuidanceNode::handle_accepted(
 
 void LOSGuidanceNode::fill_los_waypoints(
     const geometry_msgs::msg::PointStamped& los_waypoint) {
-    
     last_point_.x = eta_.x;
     last_point_.y = eta_.y;
     last_point_.z = eta_.z;
@@ -174,10 +159,10 @@ void LOSGuidanceNode::execute(
 
     RCLCPP_INFO(this->get_logger(), "Executing goal");
 
-    const geometry_msgs::msg::PointStamped los_waypoints =
+    const geometry_msgs::msg::PointStamped los_waypoint =
         goal_handle->get_goal()->goal;
 
-    fill_los_waypoints(los_waypoints);
+    fill_los_waypoints(los_waypoint);
 
     adaptive_los_guidance_->update_angles(last_point_, next_point_);
 
@@ -222,8 +207,7 @@ void LOSGuidanceNode::execute(
         if ((eta_ - next_point_).as_vector().norm() < 0.5) {
             result->success = true;
             goal_handle->succeed(result);
-            vortex_msgs::msg::LOSGuidance reference_msg =
-                fill_los_reference();
+            vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
             reference_pub_->publish(reference_msg);
             RCLCPP_INFO(this->get_logger(), "Goal reached");
             return;
