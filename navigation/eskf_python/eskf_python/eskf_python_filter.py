@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import tuple
 
 import numpy as np
-
+from scipy.linalg import expm
 
 @dataclass
 class StateVector_quaternion:
@@ -212,7 +212,7 @@ class ErrorStateKalmanFilter:
             * self.dt
         )
 
-        van_loan_matrix = np.linalg.expm(matrix_exp)
+        van_loan_matrix = expm(matrix_exp)
 
         V1 = van_loan_matrix[A_c.shape[0] :, A_c.shape[0] :]
         V2 = van_loan_matrix[: A_c.shape[0], A_c.shape[0] :]
