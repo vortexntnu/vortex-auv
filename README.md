@@ -15,9 +15,9 @@ To build the Docker image (tagged as auv-image:latest) and start a container, ex
 ```bash
 ./entrypoint.sh
 ```
-Once the container is running, your local workspace is mounted at /docker/ws within the container. This means any changes you make locally are immediately reflected inside the container. Also, if you build inside the container (colcon build), the generated build/, log/, and install/ directories will be stored locally. Your local workspace should follow a standard ROS 2 structure:
+Once the container is running, your local workspace is mounted at /ros_ws within the container. This means any changes you make locally are immediately reflected inside the container. Also, if you build inside the container (colcon build), the generated build/, log/, and install/ directories will be stored locally. Your local workspace should follow a standard ROS 2 structure:
 ```
-ws/
+ros_ws/
 │── build/
 │── log/
 │── install/

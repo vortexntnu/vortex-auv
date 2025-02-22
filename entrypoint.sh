@@ -36,5 +36,5 @@ docker run -it --rm \
     --privileged \
     --network host \
     --ipc=host \
-    -v "$WORKSPACE":/docker/ws \
+    -v "$WORKSPACE":/ros_ws \
     "$IMAGE" /bin/bash
