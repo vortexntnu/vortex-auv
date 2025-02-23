@@ -97,6 +97,9 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>(
         pose_array_pub_topic, qos_sensor_data);
 
+    line_termination_pub_ = this->create_publisher<std_msgs::msg::Bool>(
+    "/line/termination", 1);
+
     if (debug_visualization_) {
         point_1_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
             "/line/point_1", qos_sensor_data);
@@ -290,10 +293,10 @@ void LineFilteringNode::timer_callback() {
     line_tracker_.delete_tracks(deletion_threshold);
 
     // find line crossings
-    find_line_intersections();
+    find_new_line_intersections();
 
     line_intersection_tracker_.update_line_intersection_tracks(
-        current_line_intersections_, current_intersection_ids_,
+        current_line_intersections_, current_intersection_ids_, current_line_intersection_points_,
         update_interval, confirmation_threshold, gate_threshold,
         min_gate_threshold, max_gate_threshold, prob_of_detection,
         prob_of_survival, clutter_intensity, initial_existence_probability);
@@ -325,37 +328,39 @@ void LineFilteringNode::timer_callback() {
         scene_update_intersection_pub_->publish(scene_update_intersection);
         
     }
+    if (new_intersection_available()) {
+        publish_intersection();
+        return;
+    }
+    if(line_tracker_.get_tracks().size() == 0){
+        return;
+    }
+    if (used_line_intersections_.size() == 0) {
+        find_and_publish_initial_waypoint();
+        return;
+    }
+    if (used_line_intersections_.size() > 0) {
+       publish_waypoint();
+    }
 
-    Track int_track;
-    int line_intersection_id = find_unused_intersection_id(int_track);
-    RCLCPP_INFO(this->get_logger(), "id counter: %d", current_line_id_counter_);
-    RCLCPP_INFO(this->get_logger(), "intersection id1: %d", int_track.id1);
-    RCLCPP_INFO(this->get_logger(), "intersection id2: %d", int_track.id2);
+    
+}
 
-    if (line_intersection_id != -1) {
-        RCLCPP_INFO(this->get_logger(), "Line intersection found with id: %d",
-                    line_intersection_id);
-        if (current_line_id_counter_ > 5) {
+void LineFilteringNode::publish_intersection(){
 
-            if(current_line_id_ == int_track.id1){
-                next_line_id_ = int_track.id2;
-            }
-            else if(current_line_id_ == int_track.id2){
-                next_line_id_ = int_track.id1;
-            }
-            else{
-                next_line_id_ = -1;
-            }
+    for (const auto& int_track : line_intersection_tracker_.get_tracks()) {
+        if (!int_track.confirmed) {
+            continue;
         }
-        else {
-            next_line_id_ = -1;
-        }
-        used_line_intersections_.push_back(LineIntersection{int_track.state.mean()(0), int_track.state.mean()(1), int_track.id1, int_track.id2});
+        set_next_line(int_track);
+        
+        used_line_intersections_.push_back(LineIntersection{int_track.state.mean()(0), int_track.state.mean()(1), int_track.id1, int_track.id2, int_track.line_points});
         geometry_msgs::msg::PointStamped intersection_point;
         intersection_point.header.frame_id = target_frame_;
         intersection_point.header.stamp = this->now();
         intersection_point.point.x = int_track.state.mean()(0);
         intersection_point.point.y = int_track.state.mean()(1);
+        // Remove so not used again
         line_intersection_tracker_.delete_track_by_id(int_track.id);
         line_intersection_pub_->publish(intersection_point);
         if (debug_visualization_) {
@@ -367,21 +372,73 @@ void LineFilteringNode::timer_callback() {
             intersection_pose.pose.position.z = orca_pose_.position.z;
             line_intersection_pose_pub_->publish(intersection_pose);
         }
-        return;
+        return;    
     }
-    if (used_line_intersections_.size() == 0) {
-        find_and_publish_initial_waypoint();
-        return;
-    }
-    if (used_line_intersections_.size() > 0) {
-        RCLCPP_INFO(this->get_logger(), "ues intersections greater than 0.");
-       publish_waypoint();
-    }
-
-    
 }
 
-void LineFilteringNode::find_line_intersections() {
+bool LineFilteringNode::new_intersection_available() {
+    for (const auto& track : line_intersection_tracker_.get_tracks()) {
+        if (!track.confirmed) {
+            continue;
+        }
+        return true;
+    }
+    return false;
+}
+
+void LineFilteringNode::set_next_line(const Track& int_track) {
+    // Get the yaw from the current orientation.
+    tf2::Quaternion q(orca_pose_.orientation.x, orca_pose_.orientation.y,
+                        orca_pose_.orientation.z, orca_pose_.orientation.w);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    // Get the endpoints of the line and the intersection point.
+    Eigen::Vector2d line1 = int_track.line_points.col(0);
+    Eigen::Vector2d line2 = int_track.line_points.col(1);
+    Eigen::Vector2d intersection = int_track.state.mean();
+
+    // Compute vectors from the line endpoints to the intersection.
+    Eigen::Vector2d vec1 = (intersection - line1).normalized(); // corresponds to id1
+    Eigen::Vector2d vec2 = (intersection - line2).normalized(); // corresponds to id2
+
+    // Create the yaw direction vector.
+    Eigen::Vector2d yaw_dir(std::cos(yaw), std::sin(yaw));
+
+    // Compute the angles between the yaw direction and each vector.
+    double dot1 = std::max(-1.0, std::min(1.0, yaw_dir.dot(vec1)));
+    double dot2 = std::max(-1.0, std::min(1.0, yaw_dir.dot(vec2)));
+    double angle1 = std::acos(dot1);
+    double angle2 = std::acos(dot2);
+
+    // First check: if we've already processed enough lines and one of the ids matches,
+    // choose the "other" line. Also set next_line_yaw_ based on the corresponding vector.
+    if (current_line_id_counter_ > 5 && (current_line_id_ == int_track.id1 || current_line_id_ == int_track.id2)) {
+        if (current_line_id_ == int_track.id1) {
+            next_line_id_ = int_track.id2;
+            // Use vec2 (from line2 to intersection) for id2.
+            next_line_yaw_ = std::atan2(vec2.y(), vec2.x());
+            return;
+        } else if (current_line_id_ == int_track.id2) {
+            next_line_id_ = int_track.id1;
+            // Use vec1 (from line1 to intersection) for id1.
+            next_line_yaw_ = std::atan2(vec1.y(), vec1.x());
+            return;
+        }
+    }
+
+    // Otherwise, choose the candidate with the biggest angle difference from the current yaw.
+    if (angle1 > angle2) {
+        next_line_id_ = int_track.id1;
+        next_line_yaw_ = std::atan2(vec1.y(), vec1.x());
+    } else {
+        next_line_id_ = int_track.id2;
+        next_line_yaw_ = std::atan2(vec2.y(), vec2.x());
+    }
+}
+
+
+void LineFilteringNode::find_new_line_intersections() {
     // Define threshold for connected lines
     double connected_threshold = get_parameter("connected_lines_threshold").as_double();
     double min_angle = get_parameter("crossing_min_angle").as_double();
@@ -405,25 +462,31 @@ void LineFilteringNode::find_line_intersections() {
 
             Eigen::Vector2d intersection_point_line1;
             Eigen::Vector2d intersection_point_line2;
+            LineIntersection line_intersection;
 
+            // Store points not used in intersection in line_points
             if ((intersection - line1_points.col(0)).norm() < (intersection - line1_points.col(1)).norm()) {
                 intersection_point_line1 = line1_points.col(0);
+                line_intersection.line_points.col(0) << line1_points.col(1);
             } else {
                 intersection_point_line1 = line1_points.col(1);
+                line_intersection.line_points.col(0) << line1_points.col(0);
             }
 
             if ((intersection - line2_points.col(0)).norm() < (intersection - line2_points.col(1)).norm()) {
                 intersection_point_line2 = line2_points.col(0);
+                line_intersection.line_points.col(1) << line2_points.col(1);
             } else {
                 intersection_point_line2 = line2_points.col(1);
+                line_intersection.line_points.col(1) << line2_points.col(0);
             }
 
             if ((intersection_point_line1 - intersection_point_line2).norm() < connected_threshold) {
-                LineIntersection line_intersection;
                 line_intersection.x = intersection(0);
                 line_intersection.y = intersection(1);
                 line_intersection.id1 = track.id;
                 line_intersection.id2 = track2.id;
+
                 
                 // Check if the intersection already exists by comparing both ids to the existing intersections
                 if (std::find(used_line_intersections_.begin(), used_line_intersections_.end(), line_intersection) != used_line_intersections_.end()) {
@@ -438,10 +501,13 @@ void LineFilteringNode::find_line_intersections() {
     int size = intersections.size();
     current_line_intersections_ = Eigen::Array<double, 2, Eigen::Dynamic>(2, size);
     current_intersection_ids_ = Eigen::Array<int, 2, Eigen::Dynamic>(2, size);
+    current_line_intersection_points_ = Eigen::Array<double, 2, Eigen::Dynamic>(2, 2*size);
 
     for (size_t i = 0; i < intersections.size(); i++) {
         current_line_intersections_.col(i) << intersections.at(i).x, intersections.at(i).y;
         current_intersection_ids_.col(i) << intersections.at(i).id1, intersections.at(i).id2;
+        current_line_intersection_points_.col(2*i) << intersections.at(i).line_points.col(0);
+        current_line_intersection_points_.col(2*i+1) << intersections.at(i).line_points.col(1);
     }
 
 }
@@ -497,17 +563,6 @@ bool LineFilteringNode::find_intersection(const Eigen::Matrix<double, 2, 2>& lin
     intersection << x, y;
     
     return true;
-}
-
-int LineFilteringNode::find_unused_intersection_id(Track& unused_track) {
-    for (const auto& track : line_intersection_tracker_.get_tracks()) {
-        if (!track.confirmed) {
-            continue;
-        }
-        unused_track = track;
-        return unused_track.id;
-    }
-    return -1;
 }
 
 int LineFilteringNode::get_track_by_id(Track& line_track, int id) {
@@ -681,43 +736,89 @@ void LineFilteringNode::find_and_publish_initial_waypoint(){
 
 void LineFilteringNode::publish_waypoint(){
     auto intersection = used_line_intersections_.back();
-    RCLCPP_INFO(this->get_logger(), "next_line_id_: %d", next_line_id_);
-    if (next_line_id_ != -1) {
-        Track next_line;
-        if(get_track_by_id(next_line, next_line_id_) != -1){
-            if(current_line_id_ == next_line.id){
-                current_line_id_counter_++;
-            } else {
-                current_line_id_ = next_line.id;
-                current_line_id_counter_ = 0;
-            }
-            geometry_msgs::msg::PointStamped line_point;
-            line_point.header.frame_id = target_frame_;
-            line_point.header.stamp = this->now();
-            double distance1 = std::hypot(intersection.x - next_line.line_points(0, 0), intersection.y - next_line.line_points(1, 0));
-            double distance2 = std::hypot(intersection.x - next_line.line_points(0, 1), intersection.y - next_line.line_points(1, 1));
-            if (distance1 > distance2) {
-                line_point.point.x = next_line.line_points(0, 0);
-                line_point.point.y = next_line.line_points(1, 0);
-            } else {
-                line_point.point.x = next_line.line_points(0, 1);
-                line_point.point.y = next_line.line_points(1, 1);
-            }
-            line_point.point.z = orca_pose_.position.z;
-            RCLCPP_INFO(this->get_logger(), "publishing next line point");
-            line_point_pub_->publish(line_point);
-            if(debug_visualization_){
-                geometry_msgs::msg::PoseStamped pose_msg;
-                pose_msg.header.stamp = this->now();
-                pose_msg.header.frame_id = target_frame_;
-                pose_msg.pose.position.x = line_point.point.x;
-                pose_msg.pose.position.y = line_point.point.y;
-                pose_msg.pose.position.z = line_point.point.z;
-                line_pose_pub_->publish(pose_msg);
-            }
+
+    Track next_line;
+    if(get_track_by_id(next_line, next_line_id_) == -1){
+        get_track_by_yaw(next_line);
+    }
+    if(current_line_id_ == next_line.id1){
+        current_line_id_counter_++;
+    } else {
+        current_line_id_ = next_line.id1;
+        current_line_id_counter_ = 0;
+    }
+    geometry_msgs::msg::PointStamped line_point;
+    line_point.header.frame_id = target_frame_;
+    line_point.header.stamp = this->now();
+    Eigen::Vector2d next_line_p1 = next_line.line_points.col(0);
+    Eigen::Vector2d next_line_p2 = next_line.line_points.col(1);
+    double distance1 = std::hypot(intersection.x - next_line_p1(0), intersection.y - next_line_p1(1));
+    double distance2 = std::hypot(intersection.x - next_line_p2(0), intersection.y - next_line_p2(1));
+    if (distance1 > distance2) {
+        line_point.point.x = next_line_p1(0);
+        line_point.point.y = next_line_p1(1);
+    } else {
+        line_point.point.x = next_line_p2(0);
+        line_point.point.y = next_line_p2(1);
+    }
+    line_point.point.z = orca_pose_.position.z;
+    line_point_pub_->publish(line_point);
+    if(debug_visualization_){
+        geometry_msgs::msg::PoseStamped pose_msg;
+        pose_msg.header.stamp = this->now();
+        pose_msg.header.frame_id = target_frame_;
+        pose_msg.pose.position.x = line_point.point.x;
+        pose_msg.pose.position.y = line_point.point.y;
+        pose_msg.pose.position.z = line_point.point.z;
+        line_pose_pub_->publish(pose_msg);
+    }        
+}
+
+void LineFilteringNode::get_track_by_yaw(Track& line_track) {
+    double prev_yaw = next_line_yaw_;
+    double min_diff = std::numeric_limits<double>::max();
+    for (const auto& track : line_tracker_.get_tracks()) {
+        if (!track.confirmed) {
+            continue;
+        }
+        Eigen::Vector2d a = track.line_points.col(0);
+        Eigen::Vector2d b = track.line_points.col(1);
+        double angle = std::atan2(b(1) - a(1), b(0) - a(0));
+        double diff = std::fabs(std::atan2(std::sin(angle - prev_yaw), std::cos(angle - prev_yaw)));
+        if (diff < min_diff) {
+            min_diff = diff;
+            line_track = track;
         }
     }
-        
+}
+
+void LineFilteringNode::termination_check() {
+    Track line_track;
+    if (get_track_by_id(line_track, current_line_id_) == -1) {
+        return;
+        termination_counter_ = 0;
+    }
+    Eigen::Vector2d line_p1 = line_track.line_points.col(0);
+    Eigen::Vector2d line_p2 = line_track.line_points.col(1);
+    auto intersection = used_line_intersections_.back();
+    Eigen::Vector2d orca_position(orca_pose_.position.x, orca_pose_.position.y);
+    double distance1 = std::hypot(intersection.x - line_p1(0), intersection.y - line_p1(1));
+    double distance2 = std::hypot(intersection.x - line_p2(0), intersection.y - line_p2(1));
+    Eigen::Vector2d endpoint;
+    if (distance1 > distance2) {
+        endpoint = line_p1;
+    } else {
+        endpoint = line_p2;
+    }
+    double distance = std::hypot(orca_position(0) - endpoint(0), orca_position(1) - endpoint(1));
+    if (distance < 0.5) {
+        termination_counter_++;
+    } else {
+        termination_counter_ = 0;
+    }
+    if (termination_counter_ > 30) {
+        line_termination_pub_->publish(std_msgs::msg::Bool());
+    }
 }
 
 void LineFilteringNode::update_timer(int update_interval) {

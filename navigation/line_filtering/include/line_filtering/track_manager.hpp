@@ -67,6 +67,7 @@ class TrackManager {
 
     void update_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
                     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
+                    Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersection_points,
                     int update_interval, 
                     double confirmation_threshold, 
                     double gate_theshhold, 
@@ -88,6 +89,7 @@ class TrackManager {
 
     void create_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
                     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
+                    Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersection_points,
                     double initial_existence_probability);
 
     /**

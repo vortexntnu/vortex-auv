@@ -95,6 +95,7 @@ void TrackManager::create_line_tracks(
 
 void TrackManager::update_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
+    Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersection_points,
     int update_interval, 
     double confirmation_threshold, 
     double gate_theshhold, 
@@ -145,12 +146,14 @@ void TrackManager::update_line_intersection_tracks(Eigen::Array<double, 2, Eigen
         // Update the measurement list
         Eigen::Array<double, 2, Eigen::Dynamic> outside(2, intersections.cols());
         Eigen::Array<int, 2, Eigen::Dynamic> outside_ids(2, intersections.cols());
+        Eigen::Array<double, 2, Eigen::Dynamic> outside_points(2, 2*intersections.cols());
         Eigen::Index inside_num = 0;
         for (Eigen::Index i = 0; i < intersections.cols(); ++i)
         {
             if (output.gated_measurements[i])
             {
                 inside_num++;
+                track.line_points = current_line_intersection_points.block<2, 2>(0, i*2);
                 if ((track.id1 == current_intersection_ids(0, i) && track.id2 == current_intersection_ids(1, i)) ||
                 (track.id1 == current_intersection_ids(1, i) && track.id2 == current_intersection_ids(0, i)))
                 {
@@ -159,6 +162,7 @@ void TrackManager::update_line_intersection_tracks(Eigen::Array<double, 2, Eigen
                 }
                 else
                 {
+                    // this track has gated something other than just the expected intersection
                     // mark for deletion
                     track.existence_probability = 0;
                 }
@@ -167,22 +171,27 @@ void TrackManager::update_line_intersection_tracks(Eigen::Array<double, 2, Eigen
             {
                 outside.col(i-inside_num) = intersections.col(i);
                 outside_ids.col(i-inside_num) = current_intersection_ids.col(i);
+                outside_points.block<2, 2>(0, 2*(i-inside_num)) = current_line_intersection_points.block<2, 2>(0, 2*i);
             }
         }
         outside.conservativeResize(2, intersections.cols() - inside_num);
         outside_ids.conservativeResize(2, intersections.cols() - inside_num);
+        outside_points.conservativeResize(2, 2*(intersections.cols() - inside_num));
         if(inside_num != 0)
         {
             intersections = outside;
             current_intersection_ids = outside_ids;
+            current_line_intersection_points = outside_points;
         }
     }
     // Create new tracks based on the remaining measurements
-    create_line_intersection_tracks(intersections, current_intersection_ids, initial_existence_probability);
+    create_line_intersection_tracks(intersections, current_intersection_ids, current_line_intersection_points,
+         initial_existence_probability);
 }
 
 void TrackManager::create_line_intersection_tracks(Eigen::Array<double, 2, Eigen::Dynamic> intersections,
     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids,
+    Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersection_points,
     double initial_existence_probability)
 {
         
@@ -195,6 +204,7 @@ void TrackManager::create_line_intersection_tracks(Eigen::Array<double, 2, Eigen
         track.state = vortex::prob::Gauss2d(state_estimate, Eigen::Matrix2d::Identity());
         track.id1 = current_intersection_ids(0, i);
         track.id2 = current_intersection_ids(1, i);
+        track.line_points = current_line_intersection_points.block<2, 2>(0, i*2);
         track.existence_probability = initial_existence_probability;
         track.confirmed = false;
         tracks_.push_back(track);

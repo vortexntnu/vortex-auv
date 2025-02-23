@@ -18,6 +18,8 @@
 #include <std_msgs/msg/header.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
+#include "std_msgs/msg/bool.hpp"
+
 
 #include <message_filters/subscriber.h>
 #include <tf2_ros/buffer.h>
@@ -39,10 +41,13 @@ struct LineIntersection {
     double y;
     int id1;
     int id2;
+    Eigen::Matrix<double, 2, 2> line_points;
 
+    // Compares both by ids and distance
     bool operator==(const LineIntersection& other) const {
         return (id1 == other.id1 && id2 == other.id2) ||
-               (id1 == other.id2 && id2 == other.id1);
+               (id1 == other.id2 && id2 == other.id1) ||
+               ((Eigen::Vector2d(x, y) - Eigen::Vector2d(other.x, other.y)).norm() < 0.5);
     }
 };
 
@@ -77,11 +82,6 @@ class LineFilteringNode : public rclcpp::Node {
      * @brief Timer callback function.
      */
     void timer_callback();
-
-    
-    Eigen::Vector2d get_line_params(Eigen::Matrix<double, 2, 2> line_points);
-
-    bool find_intersection(const Eigen::Matrix<double, 2, 2>& line1, const Eigen::Matrix<double, 2, 2>& line2, Eigen::Vector2d& intersection, double min_angle);
     
     // Subscriptions
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
@@ -116,12 +116,13 @@ class LineFilteringNode : public rclcpp::Node {
     tf2_filter_;
     
     rclcpp::TimerBase::SharedPtr timer_;
-
+    
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_point_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr line_intersection_pub_;
-
+    
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr line_intersection_pose_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr line_pose_pub_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr line_termination_pub_;
     
     // only need the odom variable. Transform lines in line_callback and store
     // them in the odom variable.
@@ -138,17 +139,27 @@ class LineFilteringNode : public rclcpp::Node {
     void depth_callback(const std_msgs::msg::Float64::SharedPtr msg);
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
     
-            
-    void find_line_intersections();
-            
-    int find_unused_intersection_id(Track& track);
+    
+    void find_new_line_intersections();
 
+    bool find_intersection(const Eigen::Matrix<double, 2, 2>& line1, const Eigen::Matrix<double, 2, 2>& line2, Eigen::Vector2d& intersection, double min_angle);
+    
+    bool new_intersection_available();
+    
+    void publish_intersection();
+    
     int get_track_by_id(Track& line_track, int id);
-
+    
+    void set_next_line(const Track& int_track);
+    
     void find_and_publish_initial_waypoint();
-
+    
     void publish_waypoint();
-            
+    
+    void get_track_by_yaw(Track& line_track);
+
+    void termination_check();
+    
     TrackManager line_tracker_;
     TrackManager line_intersection_tracker_;
     std::vector<LineIntersection> used_line_intersections_;
@@ -156,11 +167,14 @@ class LineFilteringNode : public rclcpp::Node {
     Eigen::Array<double, 2, Eigen::Dynamic> measurements_;
     Eigen::Array<double, 2, Eigen::Dynamic> line_params_;
     Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersections_;
+    Eigen::Array<double, 2, Eigen::Dynamic> current_line_intersection_points_;
     Eigen::Array<int, 2, Eigen::Dynamic> current_intersection_ids_;
 
     int current_line_id_;
     int current_line_id_counter_;
     int next_line_id_;
+    double next_line_yaw_;
+    int termination_counter_;
 
   
 
