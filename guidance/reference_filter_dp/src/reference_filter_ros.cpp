@@ -1,15 +1,71 @@
 #include <reference_filter_dp/reference_filter_ros.hpp>
 
-ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
+ReferenceFilterNode::ReferenceFilterNode()
+    : LifecycleNode("reference_filter_node") {
     time_step_ = std::chrono::milliseconds(10);
 
+    set_refererence_filter();
+    x_ = Vector18d::Zero();
+}
+
+LifecycleCallbackReturn ReferenceFilterNode::on_configure(
+    const rclcpp_lifecycle::State& previous_state) {
+    RCLCPP_INFO(this->get_logger(), "configuration step");
+    (void)previous_state;
+
     set_subscribers_and_publisher();
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn ReferenceFilterNode::on_activate(
+    const rclcpp_lifecycle::State& previous_state) {
+    RCLCPP_INFO(this->get_logger(), "activation step");
+    (void)previous_state;
 
     set_action_server();
+    rclcpp_lifecycle::LifecycleNode::on_activate(previous_state);
 
-    set_refererence_filter();
+    return LifecycleCallbackReturn::SUCCESS;
+}
 
-    x_ = Vector18d::Zero();
+LifecycleCallbackReturn ReferenceFilterNode::on_deactivate(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "deactivation step");
+
+    // cancel this boy.
+
+    this->action_server_.reset();
+    this->cb_group_.reset();
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn ReferenceFilterNode::on_cleanup(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "cleanup step");
+
+    this->reference_pub_.reset();
+    this->reference_sub_.reset();
+    this->pose_sub_.reset();
+    this->twist_sub_.reset();
+
+    return LifecycleCallbackReturn::SUCCESS;
+}
+
+LifecycleCallbackReturn ReferenceFilterNode::on_shutdown(
+    const rclcpp_lifecycle::State& previous_state) {
+    (void)previous_state;
+    RCLCPP_INFO(this->get_logger(), "shutdown step");
+
+    this->action_server_.reset();
+    this->cb_group_.reset();
+    this->reference_pub_.reset();
+    this->reference_sub_.reset();
+    this->pose_sub_.reset();
+    this->twist_sub_.reset();
+
+    return LifecycleCallbackReturn::SUCCESS;
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {

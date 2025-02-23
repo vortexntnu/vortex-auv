@@ -18,6 +18,7 @@ find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
 
 include_directories(include)
 
@@ -31,6 +32,7 @@ add_executable(reference_filter_node
 ament_target_dependencies(reference_filter_node
   rclcpp
   rclcpp_action
+  rclcpp_lifecycle
   geometry_msgs
   vortex_msgs
   Eigen3

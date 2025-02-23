@@ -164,4 +164,4 @@
         position: "/position"
 
     action_servers:
-      reference_filter: "/reference_filter"
+      reference_filter: "reference_filter"

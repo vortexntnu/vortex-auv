@@ -9,15 +9,45 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>
 #include <reference_filter_dp/reference_filter.hpp>
 #include <reference_filter_dp/reference_filter_utils.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include "rclcpp_lifecycle/lifecycle_node.hpp"
 
-class ReferenceFilterNode : public rclcpp::Node {
+using LifecycleCallbackReturn =
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+
+class ReferenceFilterNode : public rclcpp_lifecycle::LifecycleNode {
    public:
     explicit ReferenceFilterNode();
+
+    // @brief function for configuring the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_configure(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for activating the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_activate(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for cleaning up after the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_cleanup(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for deactivating the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_deactivate(
+        const rclcpp_lifecycle::State& previous_state);
+
+    // @brief function for shutting down the node
+    // @param previous_state: lifecycle::State previous state of the node
+    LifecycleCallbackReturn on_shutdown(
+        const rclcpp_lifecycle::State& previous_state);
 
    private:
     // @brief Set the subscribers and publishers
