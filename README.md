@@ -26,6 +26,9 @@ ros_ws/
 │   └── vortex-msgs/
 ```
 
+## Additional Repositories
+This project requires additional repositories, which are listed in the [dependencies.repos](dependencies.repos) file, add these to your workspace.
+
 ## Documentation
 * TODO: Drivers and hardware specifics for each drone will be added to the wiki. Link them here.
 * TODO: How to adapt the software stack to new hardware.
