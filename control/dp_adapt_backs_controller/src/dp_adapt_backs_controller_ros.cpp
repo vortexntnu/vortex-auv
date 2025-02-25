@@ -77,6 +77,10 @@ void DPAdaptBacksControllerNode::killswitch_callback(
 void DPAdaptBacksControllerNode::software_mode_callback(
     const std_msgs::msg::String::SharedPtr msg) {
     software_mode_ = msg->data;
+
+    if (software_mode_ == "autonomous mode") {
+        eta_d_ = eta_;
+    }
 }
 
 void DPAdaptBacksControllerNode::pose_callback(
