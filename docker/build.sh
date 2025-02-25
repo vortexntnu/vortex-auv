@@ -1,35 +1,56 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ------------------------------------------------------------------------------
-# build_image: Function to build the Docker image.
+# Set environment variables for the image, base, and platform.
 # ------------------------------------------------------------------------------
-build_image() {
-    echo "Building for platform '${PLATFORM}' as '${IMAGE}'..."
-
-    # Construct an array of Docker build arguments.
-    DOCKER_ARGS=(
-      --file "$(dirname "$0")/../docker/Dockerfile"  # Dockerfile location
-      --platform "${PLATFORM}"                        # Target platform (e.g., linux/arm64)
-      --tag "${IMAGE}"                                # Tag for the built image
-      --load                                          # Load the image locally
-      "."
-    )
-
-    # Run the Docker build command
-    docker buildx build "${DOCKER_ARGS[@]}"
-
-    echo "Successfully built for platform '${PLATFORM}' as '${IMAGE}'"
-}
+export IMAGE="auv-image:latest"             # Docker image name/tag
+export BASE_IMAGE="ros:humble"     # Base image for Docker builds
 
 # ------------------------------------------------------------------------------
-# Validate environment variables and set defaults.
+# Detect the target platform.
+# On macOS (Darwin), we force 'linux/arm64' (Docker Desktop on Mac).
+# Otherwise, use the host's architecture.
 # ------------------------------------------------------------------------------
-PLATFORM="${PLATFORM:-$(dpkg --print-architecture)}"
+if [[ "$(uname)" == "Darwin" ]]; then
+    export PLATFORM="linux/arm64"
+else
+    export PLATFORM="$(dpkg --print-architecture)"
+fi
+
+# ------------------------------------------------------------------------------
+# Validate the required environment variables.
+# ------------------------------------------------------------------------------
 : "${BASE_IMAGE:?Environment variable BASE_IMAGE is required}"
 : "${IMAGE:?Environment variable IMAGE is required}"
 
 # ------------------------------------------------------------------------------
-# Start the Docker build process.
+# Locate this script and the project root (where your Dockerfile context lives).
 # ------------------------------------------------------------------------------
-build_image
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+WORKSPACE="$(realpath "$SCRIPT_DIR/../../..")"
+
+echo "======================================================================"
+echo " Building Docker image"
+echo "   * PLATFORM:       $PLATFORM"
+echo "   * BASE_IMAGE:     $BASE_IMAGE"
+echo "   * IMAGE:          $IMAGE"
+echo "   * BUILD CONTEXT:  $WORKSPACE"
+echo "======================================================================"
+echo ""
+
+# ------------------------------------------------------------------------------
+# Build the Docker image using Docker Buildx.
+# ------------------------------------------------------------------------------
+docker buildx build \
+    --platform "$PLATFORM" \
+    --build-arg BASE_IMAGE="$BASE_IMAGE" \
+    --tag "$IMAGE" \
+    --file "$SCRIPT_DIR/Dockerfile" \
+    --load \
+    "$WORKSPACE"
+
+echo ""
+echo "======================================================================"
+echo "Successfully built image '$IMAGE' for platform '$PLATFORM'"
+echo "======================================================================"
