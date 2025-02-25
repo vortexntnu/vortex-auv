@@ -137,5 +137,3 @@ bool ThrustAllocator::healthy_wrench(const Eigen::VectorXd& v) const {
 
     return within_max_thrust;
 }
-
-// void check_timeout()
