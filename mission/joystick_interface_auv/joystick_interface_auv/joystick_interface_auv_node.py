@@ -158,7 +158,7 @@ class JoystickInterface(Node):
         )
         reference_msg = self.create_reference_message()
         # Still autonomous mode, but now the reference is being controlled by the joystick
-        self._operational_mode_signal_publisher.publish(String(data="Autonomous mode"))
+        self._operational_mode_signal_publisher.publish(String(data="autonomous mode"))
         self._ref_publisher.publish(reference_msg)
         self._mode = JoyStates.REFERENCE_MODE
         self.get_logger().info("Reference mode")
