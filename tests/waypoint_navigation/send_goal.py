@@ -50,9 +50,11 @@ class ReferenceFilterWaypointClient(Node):
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future.add_done_callback(self.get_result_callback)
 
-    # def feedback_callback(self, feedback_msg):
-    # feedback = feedback_msg.feedback.feedback
-    # self.get_logger().info(f'Received feedback: x={feedback.x}, y={feedback.y}, z={feedback.z}')
+    def feedback_callback(self, feedback_msg):
+        feedback = feedback_msg.feedback.feedback
+        self.get_logger().info(
+            f'Received feedback: x={feedback.x}, y={feedback.y}, z={feedback.z}'
+        )
 
     def get_result_callback(self, future):
         result = future.result().result.success
