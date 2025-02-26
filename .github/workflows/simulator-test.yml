@@ -1,4 +1,4 @@
-name: orca
+name: Simulator Test
 on:
   push:
     branches:
