@@ -13,6 +13,7 @@ cd docker
 ./build.sh
 ```
 This will create (and load) the Docker image locally, tagged by default as auv-image:latest.
+
 4. Run the container:
 ```bash
 ./run.sh
