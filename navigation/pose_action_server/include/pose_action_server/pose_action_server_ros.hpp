@@ -7,8 +7,8 @@
 #include <vortex_msgs/action/filtered_pose.hpp>
 
 class PoseActionServerNode : public rclcpp::Node {
-
-    using GoalHandleFilteredPose = rclcpp_action::ServerGoalHandle<vortex_msgs::action::FilteredPose>;
+    using GoalHandleFilteredPose =
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::FilteredPose>;
 
    public:
     PoseActionServerNode();
@@ -16,8 +16,8 @@ class PoseActionServerNode : public rclcpp::Node {
     ~PoseActionServerNode() {};
 
    private:
-    
-    rclcpp_action::Server<vortex_msgs::action::FilteredPose>::SharedPtr action_server_;
+    rclcpp_action::Server<vortex_msgs::action::FilteredPose>::SharedPtr
+        action_server_;
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
 
@@ -29,18 +29,18 @@ class PoseActionServerNode : public rclcpp::Node {
 
     std::shared_ptr<GoalHandleFilteredPose> active_goal_handle_;
 
-    void pose_callback(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
-
+    void pose_callback(
+        const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
 
     rclcpp_action::GoalResponse handleGoal(
-        const rclcpp_action::GoalUUID & uuid,
+        const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<const vortex_msgs::action::FilteredPose::Goal> goal);
 
     rclcpp_action::CancelResponse handleCancel(
         const std::shared_ptr<GoalHandleFilteredPose> goal_handle);
 
-    void handleAccepted(const std::shared_ptr<GoalHandleFilteredPose> goal_handle);
-
+    void handleAccepted(
+        const std::shared_ptr<GoalHandleFilteredPose> goal_handle);
 };
 
 #endif  // POSE_ACTION_SERVER_ROS_HPP

@@ -15,8 +15,7 @@ void LOSGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.guidance.los");
     this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
 
-    std::string pose_topic =
-        this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string guidance_topic =
         this->get_parameter("topics.guidance.los").as_string();
     std::string aruco_board_pose_camera_topic =
@@ -65,8 +64,10 @@ void LOSGuidanceNode::set_adaptive_los_guidance() {
     this->declare_parameter<double>("time_step");
 
     LOS::Params params;
-    params.lookahead_distance_h = this->get_parameter("lookahead_distance_h").as_double();
-    params.lookahead_distance_v = this->get_parameter("lookahead_distance_v").as_double();
+    params.lookahead_distance_h =
+        this->get_parameter("lookahead_distance_h").as_double();
+    params.lookahead_distance_v =
+        this->get_parameter("lookahead_distance_v").as_double();
     params.gamma_h = this->get_parameter("gamma_h").as_double();
     params.gamma_v = this->get_parameter("gamma_v").as_double();
     params.time_step = this->get_parameter("time_step").as_double();
@@ -144,7 +145,6 @@ void LOSGuidanceNode::handle_accepted(
 
 void LOSGuidanceNode::fill_los_waypoints(
     const geometry_msgs::msg::PointStamped& los_waypoint) {
-    
     last_point_.x = eta_.x;
     last_point_.y = eta_.y;
     last_point_.z = eta_.z;
@@ -222,8 +222,7 @@ void LOSGuidanceNode::execute(
         if ((eta_ - next_point_).as_vector().norm() < 0.5) {
             result->success = true;
             goal_handle->succeed(result);
-            vortex_msgs::msg::LOSGuidance reference_msg =
-                fill_los_reference();
+            vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
             reference_pub_->publish(reference_msg);
             RCLCPP_INFO(this->get_logger(), "Goal reached");
             return;

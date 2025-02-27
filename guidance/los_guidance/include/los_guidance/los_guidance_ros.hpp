@@ -3,8 +3,8 @@
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
-#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <los_guidance/los_guidance.hpp>
@@ -68,15 +68,15 @@ class LOSGuidanceNode : public rclcpp::Node {
 
     // @brief Fill the lost waypoints
     // @param goal The goal message
-    void fill_los_waypoints(const geometry_msgs::msg::PointStamped& los_waypoints);
+    void fill_los_waypoints(
+        const geometry_msgs::msg::PointStamped& los_waypoints);
 
     vortex_msgs::msg::LOSGuidance fill_los_reference();
 
     rclcpp_action::Server<vortex_msgs::action::LOSGuidance>::SharedPtr
         action_server_;
 
-    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr
-        reference_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
 
     rclcpp::Subscription<vortex_msgs::msg::Waypoints>::SharedPtr reference_sub_;
 
