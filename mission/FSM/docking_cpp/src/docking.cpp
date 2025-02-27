@@ -512,7 +512,7 @@ auto initialize_blackboard() {
 }
 
 int main(int argc, char* argv[]) {
-    YASMIN_LOG_INFO("docking");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "docking");
     rclcpp::init(argc, argv);
 
     yasmin_ros::set_ros_loggers();
@@ -545,14 +545,15 @@ int main(int argc, char* argv[]) {
 
     try {
         std::string outcome = (*sm.get())(blackboard);
-        YASMIN_LOG_INFO(outcome.c_str());
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), outcome.c_str());
     } catch (const std::exception& e) {
-        YASMIN_LOG_WARN(e.what());
+        RCLCPP_WARN(rclcpp::get_logger("rclcpp"), e.what());
         rcutils_reset_error();
     }
 
     if (!rclcpp::ok()) {
-        YASMIN_LOG_WARN(
+        RCLCPP_INFO(
+            rclcpp::get_logger("rclcpp"),
             "ROS2 context is already invalid. Skipping publisher destruction.");
         return 1;  // Exit with error
     }
@@ -562,7 +563,8 @@ int main(int argc, char* argv[]) {
         blackboard.reset();
 
         rclcpp::shutdown();
-        YASMIN_LOG_INFO("ROS2 shutdown completed gracefully.");
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
+                    "ROS2 shutdown completed gracefully.");
     }
 
     return 0;

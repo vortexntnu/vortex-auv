@@ -31,7 +31,6 @@ using ReferenceFilterWaypoint = vortex_msgs::action::ReferenceFilterWaypoint;
 using ReferenceFilter = vortex_msgs::msg::ReferenceFilter;
 using NavigateWaypoints = vortex_msgs::action::NavigateWaypoints;
 using LOSGuidance = vortex_msgs::action::LOSGuidance;
-using namespace yasmin;
 
 class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
    public:
