@@ -6,6 +6,7 @@ from MCP342x import MCP342x
 
 
 class GripperFeedback:
+
     def __init__(self):
         # Pressure Sensor Setup
         i2c_adress_MPRLS = 0x21  # Gripper mcu has address 0x21
@@ -20,9 +21,10 @@ class GripperFeedback:
         time.sleep(1)
 
         try:
-            self.i2c_channel = MCP342x(
-                self.bus, self.i2c_adress, channel=0, resolution=18
-            )
+            self.i2c_channel = MCP342x(self.bus,
+                                       self.i2c_adress,
+                                       channel=0,
+                                       resolution=18)
         except Exception as error:
             print(f"ERROR: Failed connecting to PSM: {error}")
 
