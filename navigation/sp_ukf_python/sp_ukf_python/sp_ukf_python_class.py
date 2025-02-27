@@ -1,6 +1,13 @@
-import numpy as np
 from dataclasses import dataclass, field
-from sp_ukf_python_utils import quaternion_super_product, quaternion_error, euler_rotation_quaternion, ssa
+
+import numpy as np
+from sp_ukf_python_utils import (
+    euler_rotation_quaternion,
+    quaternion_error,
+    quaternion_super_product,
+    ssa,
+)
+
 
 @dataclass
 class StateVector_quaternion:
@@ -48,7 +55,7 @@ class StateVector_quaternion:
             self.orientation = state[6:10]
             self.acceleration_bias = state[10:13]
             self.gyro_bias = state[13:]
-        else: 
+        else:
             self.position = state[0:3]
             self.velocity = state[3:6]
             self.orientation = euler_rotation_quaternion(state[6:9])
@@ -103,7 +110,7 @@ class StateVector_quaternion:
         new_state.orientation /= np.linalg.norm(new_state.orientation)
 
         return new_state
-    
+
     def __sub__(self, other: 'StateVector_quaternion') -> np.ndarray:
         """Subtracts two StateVector_quaternion objects.
 
@@ -128,7 +135,7 @@ class StateVector_quaternion:
                 gyro_bias_diff,
             ]
         )
-    
+
     def __add__(self, other: 'np.ndarray') -> 'np.ndarray':
         """Adds a numpy array to this StateVector_quaternion.
 
@@ -229,7 +236,6 @@ class StateVector_euler:
         Returns:
             np.ndarray: The result of the addition.
         """
-
         new_position = self.position + other[:3]
         new_velcoity = self.velocity + other[3:6]
         new_orientation = self.orientation + other[6:9]
@@ -247,9 +253,8 @@ class StateVector_euler:
         )
 
     def __sub__(self, other_state: 'StateVector_euler') -> 'StateVector_euler':
-        """ 
-        Subtracts two StateVector_euler objects.
-        
+        """Subtracts two StateVector_euler objects.
+
         Args:
             other (StateVector_euler): The other StateVector_euler object.
 
@@ -263,7 +268,13 @@ class StateVector_euler:
         gyro_bias_diff = self.gyro_bias - other_state[12:]
 
         return np.concatenate(
-            (position_diff, velocity_diff, orientation_diff, acceleration_bias_diff, gyro_bias_diff)
+            [
+                position_diff,
+                velocity_diff,
+                orientation_diff,
+                acceleration_bias_diff,
+                gyro_bias_diff,
+            ]
         )
 
 
