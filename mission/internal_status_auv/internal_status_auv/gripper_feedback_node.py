@@ -14,7 +14,8 @@ class GripperFeedbackPublisher(Node):
     def __init__(self):
         # Gripper feedback sensor setup ----------
         self.GripperFeedback = (
-            internal_status_auv.gripper_feedback_lib.GripperFeedback())
+            internal_status_auv.gripper_feedback_lib.GripperFeedback()
+        )
 
         # Node setup ----------
         super().__init__("gripper_feedback_publisher")
@@ -22,7 +23,16 @@ class GripperFeedbackPublisher(Node):
         # Create publishers ----------
         # Shoulder, wrist, grip
         self.gripper_feedback_publisher = self.create_publisher(
-            Float32MultiArray, "/auv/gripper_feedback", 5)
+            Float32MultiArray, "/auv/gripper_feedback", 5
+        )
+
+    def timer_callback(self):
+        # Publish gripper feedback ----------
+
+        gripper_feedback = Float32MultiArray()
+        gripper_feedback.data = self.GripperFeedback.get_gripper_feedback()
+
+        self.gripper_feedback_publisher.publish(gripper_feedback)
 
 
 def main(args=None):
