@@ -32,11 +32,17 @@ LifecycleCallbackReturn ReferenceFilterNode::on_deactivate(
     const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     RCLCPP_INFO(this->get_logger(), "deactivation step");
+    
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (goal_handle_ && goal_handle_->is_active()) {
+            RCLCPP_INFO(this->get_logger(), "Canceling active goal during deactivation");
+            auto cancel_response = handle_cancel(goal_handle_);
+        }
+    }
 
-    // cancel this boy.
-
-    this->action_server_.reset();
-    this->cb_group_.reset();
+    destroy_action_server();
+    rclcpp_lifecycle::LifecycleNode::on_deactivate(previous_state);
     return LifecycleCallbackReturn::SUCCESS;
 }
 
@@ -45,11 +51,8 @@ LifecycleCallbackReturn ReferenceFilterNode::on_cleanup(
     (void)previous_state;
     RCLCPP_INFO(this->get_logger(), "cleanup step");
 
-    this->reference_pub_.reset();
-    this->reference_sub_.reset();
-    this->pose_sub_.reset();
-    this->twist_sub_.reset();
-
+    destroy_topics_and_publishers();
+    rclcpp_lifecycle::LifecycleNode::on_cleanup(previous_state);
     return LifecycleCallbackReturn::SUCCESS;
 }
 
@@ -57,14 +60,11 @@ LifecycleCallbackReturn ReferenceFilterNode::on_shutdown(
     const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     RCLCPP_INFO(this->get_logger(), "shutdown step");
+    
+    destroy_action_server();
+    destroy_topics_and_publishers();
 
-    this->action_server_.reset();
-    this->cb_group_.reset();
-    this->reference_pub_.reset();
-    this->reference_sub_.reset();
-    this->pose_sub_.reset();
-    this->twist_sub_.reset();
-
+    rclcpp_lifecycle::LifecycleNode::on_shutdown(previous_state);
     return LifecycleCallbackReturn::SUCCESS;
 }
 
@@ -106,6 +106,13 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
                   std::placeholders::_1));
 }
 
+void ReferenceFilterNode::destroy_topics_and_publishers() {
+    this->reference_pub_.reset();
+    this->reference_sub_.reset();
+    this->pose_sub_.reset();
+    this->twist_sub_.reset();
+}
+
 void ReferenceFilterNode::set_action_server() {
     this->declare_parameter<std::string>("action_servers.reference_filter");
     std::string action_server_name =
@@ -125,6 +132,11 @@ void ReferenceFilterNode::set_action_server() {
         rcl_action_server_get_default_options(), cb_group_);
 }
 
+void ReferenceFilterNode::destroy_action_server() {
+    this->action_server_.reset();
+    this->cb_group_.reset();
+}
+
 void ReferenceFilterNode::set_refererence_filter() {
     this->declare_parameter<std::vector<double>>(
         "zeta", {0.707, 0.707, 0.707, 0.707, 0.707, 0.707});
@@ -139,10 +151,11 @@ void ReferenceFilterNode::set_refererence_filter() {
 
     reference_filter_.set_delta(zeta_eigen);
     reference_filter_.set_omega(omega_eigen);
-
+    
     reference_filter_.calculate_Ad();
     reference_filter_.calculate_Bd();
 }
+
 
 void ReferenceFilterNode::reference_callback(
     const geometry_msgs::msg::PoseStamped::SharedPtr msg) {

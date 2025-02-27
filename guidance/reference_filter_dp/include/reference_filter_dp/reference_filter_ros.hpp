@@ -53,8 +53,14 @@ class ReferenceFilterNode : public rclcpp_lifecycle::LifecycleNode {
     // @brief Set the subscribers and publishers
     void set_subscribers_and_publisher();
 
+    // @brief Destroy the subscribers and publishers
+    void destroy_topics_and_publishers();
+
     // @brief Set the action server
     void set_action_server();
+
+    // @brief Destroy the action server
+    void destroy_action_server();
 
     // @brief Initializes the reference filter with ROS parameters.
     void set_refererence_filter();
