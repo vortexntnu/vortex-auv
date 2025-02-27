@@ -23,6 +23,7 @@ install(PROGRAMS
   internal_status_auv/pressure_sensor_node.py
   internal_status_auv/temperature_sensor_lib.py
   internal_status_auv/temperature_sensor_node.py
+  internal_status_auv/gripper_feedback_lib.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
