@@ -28,7 +28,7 @@ class ReturnHomeServer(Node):
         auv_position.pose.position.x = 5.0
         auv_position.pose.position.y = 5.0
         auv_position.pose.position.z = 10.0
-        rate = self.create_rate(1)  # Simulate 1Hz feedback
+        # rate = self.create_rate(1)  # Simulate 1Hz feedback
 
         while (
             math.sqrt(

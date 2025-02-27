@@ -30,7 +30,7 @@ class GoToDockServer(Node):
         auv_position.pose.position.x = 0.0
         auv_position.pose.position.y = 0.0
         auv_position.pose.position.z = 0.0
-        rate = self.create_rate(1)  # Simulate 1Hz feedback
+        # rate = self.create_rate(1)  # Simulate 1Hz feedback
 
         while (
             math.sqrt(
