@@ -132,11 +132,12 @@ ReferenceFilterWaypoint::Goal GoOverDockState::create_goal_handler(
                 docking_offset_goal.pose.position.x,
                 docking_offset_goal.pose.position.y,
                 docking_offset_goal.pose.position.z);
-    fprintf(stderr, "  Orientation: x = %f, y = %f, z = %f, w = %f\n",
-            docking_offset_goal.pose.orientation.x,
-            docking_offset_goal.pose.orientation.y,
-            docking_offset_goal.pose.orientation.z,
-            docking_offset_goal.pose.orientation.w);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
+                "  Orientation: x = %f, y = %f, z = %f, w = %f\n",
+                docking_offset_goal.pose.orientation.x,
+                docking_offset_goal.pose.orientation.y,
+                docking_offset_goal.pose.orientation.z,
+                docking_offset_goal.pose.orientation.w);
 
     return goal;
 }
