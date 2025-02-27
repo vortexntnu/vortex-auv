@@ -32,11 +32,12 @@ LifecycleCallbackReturn ReferenceFilterNode::on_deactivate(
     const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     RCLCPP_INFO(this->get_logger(), "deactivation step");
-    
+
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (goal_handle_ && goal_handle_->is_active()) {
-            RCLCPP_INFO(this->get_logger(), "Canceling active goal during deactivation");
+            RCLCPP_INFO(this->get_logger(),
+                        "Canceling active goal during deactivation");
             auto cancel_response = handle_cancel(goal_handle_);
         }
     }
@@ -60,7 +61,7 @@ LifecycleCallbackReturn ReferenceFilterNode::on_shutdown(
     const rclcpp_lifecycle::State& previous_state) {
     (void)previous_state;
     RCLCPP_INFO(this->get_logger(), "shutdown step");
-    
+
     destroy_action_server();
     destroy_topics_and_publishers();
 
@@ -151,11 +152,10 @@ void ReferenceFilterNode::set_refererence_filter() {
 
     reference_filter_.set_delta(zeta_eigen);
     reference_filter_.set_omega(omega_eigen);
-    
+
     reference_filter_.calculate_Ad();
     reference_filter_.calculate_Bd();
 }
-
 
 void ReferenceFilterNode::reference_callback(
     const geometry_msgs::msg::PoseStamped::SharedPtr msg) {

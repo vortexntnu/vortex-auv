@@ -1,6 +1,5 @@
 import numpy as np
 import rclpy
-from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from vortex_msgs.action import ReferenceFilterWaypoint
@@ -10,7 +9,9 @@ class ReferenceFilterWaypointClient(Node):
     def __init__(self):
         super().__init__('reference_filter_waypoint_client')
         # Create the action client
-        self._action_client = ActionClient(self, ReferenceFilterWaypoint, '/orca/reference_filter')
+        self._action_client = ActionClient(
+            self, ReferenceFilterWaypoint, '/orca/reference_filter'
+        )
         self.send_goal()
 
     def send_goal(self):
@@ -76,11 +77,13 @@ class ReferenceFilterWaypointClient(Node):
 
         return np.array([w, x, y, z])
 
+
 def main(args=None):
     rclpy.init(args=args)
     action_client = ReferenceFilterWaypointClient()
 
     rclpy.spin(action_client)
+
 
 if __name__ == '__main__':
     main()
