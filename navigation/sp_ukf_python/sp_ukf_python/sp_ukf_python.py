@@ -1,10 +1,9 @@
-from dataclasses import dataclass
-from typing import Tuple
-from sp_ukf_python_class import StateVector_quaternion, StateVector_euler
-from sp_ukf_python_utils import skew_symmetric, quaternion_super_product
-from scipy.linalg import expm
 
 import numpy as np
+from scipy.linalg import expm
+from sp_ukf_python_class import StateVector_euler, StateVector_quaternion
+from sp_ukf_python_utils import quaternion_super_product, skew_symmetric
+
 
 class ErrorStateUnscentedKalmanFilter:
     def __init__(
@@ -24,11 +23,10 @@ class ErrorStateUnscentedKalmanFilter:
         self.R = R
         self.g = np.array([0, 0, g])
         self.dt = dt
-        self.y_i = np.zeros((15, 2*15))
-    
+        self.y_i = np.zeros((15, 2 * 15))
+
     def mean_set(self, set: np.ndarray) -> np.ndarray:
-        """
-        Calculates the mean of a set of values.
+        """Calculates the mean of a set of values.
 
         Args:
             set (np.ndarray): The set of values.
@@ -38,15 +36,14 @@ class ErrorStateUnscentedKalmanFilter:
         """
         # Define the number of columns
         n = set.shape[0]
-        
+
         # Calculate the mean value
         mean_value = (1 / (2 * n)) * np.sum(set, axis=1)
 
         return mean_value
-    
+
     def weighted_mean_set(self, set: np.ndarray, weight: np.ndarray) -> np.ndarray:
-        """
-        Calculates the mean of a set of values.
+        """Calculates the mean of a set of values.
 
         Args:
             set (np.ndarray): The set of values.
@@ -57,86 +54,94 @@ class ErrorStateUnscentedKalmanFilter:
         # Define the number of columns
         n = set.shape[0]
         mean_value = np.zeros(n)
-        
-        for i in range(2*n + 1):
+
+        for i in range(2 * n + 1):
             mean_value += weight[i] * set[:, i]
 
-        mean_value = (1 / (2 * n + 1)) * mean_value       
+        mean_value = (1 / (2 * n + 1)) * mean_value
 
         return mean_value
-    
-    def covariance_set(self, mean: np.ndarray, set: np.ndarray, mean_2: np.ndarray = None, set_2: np.ndarray = None) -> np.ndarray:
-        """
-        Calculate the covarince of a set of sigmapoints
-        
+
+    def covariance_set(self, mean: np.ndarray, set: np.ndarray) -> np.ndarray:
+        """Calculate the covarince of a set of sigmapoints
+
         Args:
             mean (np.ndarray): The mean of the set.
             set (np.ndarray): The set of values.
-        
+
         Returns:
             np.ndarray: The covariance of the set.
         """
-
-        if mean_2 is not None:
-
-            n = set.shape[0]
-            n2 = set_2.shape[0]
-            covariance_set = np.zeros((n, n2))
-
-            for i in range(2*n):
-                vector = StateVector_euler()
-                vector.position = set[:, i][:3]
-                vector.velocity = set[:, i][3:6]
-                vector.orientation = set[:, i][6:9]
-                vector.acceleration_bias = set[:, i][9:12]
-                vector.gyro_bias = set[:, i][12:]
-
-                vector_2 = StateVector_euler()
-                vector_2.position = set_2[:, i][:3]
-                vector_2.velocity = set_2[:, i][3:6]
-                vector_2.orientation = set_2[:, i][6:9]
-                vector_2.acceleration_bias = set_2[:, i][9:12]
-                vector_2.gyro_bias = set_2[:, i][12:]
-                W_i = vector - mean
-                W_i_2 = vector_2 - mean_2
-
-                covariance_set += (1 / (2*n)) * np.outer(W_i, W_i_2)
-   
-            return covariance_set
-        else:
-
-            n = set.shape[0]
-            covariance_set = np.zeros((n, n))
-
-            for i in range(2*n):
-                vector = StateVector_euler()
-                vector.position = set[:, i][:3]
-                vector.velocity = set[:, i][3:6]
-                vector.orientation = set[:, i][6:9]
-                vector.acceleration_bias = set[:, i][9:12]
-                vector.gyro_bias = set[:, i][12:]
-
-                W_i = vector - mean
-                covariance_set += (1 / (2*n)) * np.outer(W_i, W_i)
-            
-            return covariance_set
-
-    def weighted_covariance_set(self, mean: np.ndarray, set: np.ndarray, weight: np.ndarray) -> np.ndarray:
-        """
-        Calculate the covarince of a set of sigmapoints
-        
-        Args:
-            mean (np.ndarray): The mean of the set.
-            set (np.ndarray): The set of values.
-        
-        Returns:
-            np.ndarray: The covariance of the set.
-        """
-
         n = set.shape[0]
         covariance_set = np.zeros((n, n))
 
-        for i in range(2*n):
+        for i in range(2 * n + 1):
+            vector = StateVector_euler()
+            vector.position = set[:, i][:3]
+            vector.velocity = set[:, i][3:6]
+            vector.orientation = set[:, i][6:9]
+            vector.acceleration_bias = set[:, i][9:12]
+            vector.gyro_bias = set[:, i][12:]
+
+            W_i = vector - mean
+
+            covariance_set += (1 / (2 * n + 1)) * np.outer(W_i, W_i)
+
+        return covariance_set
+
+    def cross_covariance_set(
+        self,
+        mean: np.ndarray,
+        set: np.ndarray,
+        mean_2: np.ndarray,
+        set_2: np.ndarray,
+        weight: np.ndarray,
+    ) -> np.ndarray:
+        """Calculate the cross covariance of a set of sigmapoints
+
+        Args:
+            mean (np.ndarray): The mean of the set.
+            set (np.ndarray): The set of values.
+            mean_2 (np.ndarray): The mean of the second set.
+            set_2 (np.ndarray): The second set of values.
+
+        Returns:
+            np.ndarray: The cross covariance of the set.
+        """
+        n_x = set.shape[0]
+        n_z = set_2.shape[0]
+        covariance_mat = np.zeros((n_x, n_z))
+
+        for i in range(2 * n_x + 1):
+            # parse the 15-dim error state
+            err_vec = set[:, i]  # shape (15,)
+            W_i = err_vec - mean  # shape (15,)
+
+            # parse the 3-dim measurement
+            meas_vec = set_2[:, i]  # shape (3,)
+            W_i_2 = meas_vec - mean_2  # shape (3,)
+
+            # outer product -> shape (15,3)
+            covariance_mat += weight[i] * np.outer(W_i, W_i_2)
+
+        return covariance_mat
+
+    def weighted_covariance_set(
+        self, mean: np.ndarray, set: np.ndarray, weight: np.ndarray
+    ) -> np.ndarray:
+        """Calculate the covarince of a set of sigmapoints
+
+        Args:
+            mean (np.ndarray): The mean of the set.
+            set (np.ndarray): The set of values.
+
+        Returns:
+            np.ndarray: The covariance of the set.
+        """
+        n = set.shape[0]
+        covariance_set = np.zeros((n, n))
+
+        for i in range(2 * n + 1):
             vector = StateVector_euler()
             vector.position = set[:, i][:3]
             vector.velocity = set[:, i][3:6]
@@ -146,38 +151,38 @@ class ErrorStateUnscentedKalmanFilter:
 
             W_i = vector - mean
             covariance_set += weight[i] * np.outer(W_i, W_i)
-            
+
         return covariance_set
 
-
-
-    def generate_sigma_points(self, error_state: StateVector_euler, Q_process_noise) -> tuple[list[StateVector_euler], np.ndarray]:
-        """
-        Generates the sigma points for the UKF
+    def generate_sigma_points(
+        self, error_state: StateVector_euler, Q_process_noise
+    ) -> tuple[list[StateVector_euler], np.ndarray]:
+        """Generates the sigma points for the UKF
         This is done using the Cholesky decomposition method
         """
-        
         # Define n
         n = len(error_state.covariance)
         kappa = 3 - n
 
         # Computing S matrix using cholensky decomposition
+        # print(error_state.covariance + Q_process_noise)
         S = np.linalg.cholesky(error_state.covariance + Q_process_noise)
+        # print(S)
 
         S_scaled = np.sqrt(n + kappa) * S
 
-        weighted_points = np.concatenate((S_scaled , -S_scaled), axis=1)
+        weighted_points = np.concatenate((S_scaled, -S_scaled), axis=1)
 
         sigma_points = [StateVector_euler() for _ in range(2 * n + 1)]
 
         sigma_points[0].fill_states(error_state.as_vector())
-        for i in range(2*n):
-            sigma_points[i + 1].fill_states(error_state + weighted_points[:,i])
+        for i in range(2 * n):
+            sigma_points[i + 1].fill_states(error_state + weighted_points[:, i])
 
-        W = np.zeros(2*n + 1)   
+        W = np.zeros(2 * n + 1)
         W[0] = kappa / (n + kappa)
 
-        for i in range(2*n):
+        for i in range(2 * n):
             W[i + 1] = 1 / (2 * (n + kappa))
 
         return sigma_points, W
@@ -214,7 +219,14 @@ class ErrorStateUnscentedKalmanFilter:
         # Define the quaternion derivatives
         current_state_dot.orientation = 0.5 * quaternion_super_product(
             current_state.orientation,
-            np.array([0, imu_gyro[0] - current_state.gyro_bias[0], imu_gyro[1] - current_state.gyro_bias[1], imu_gyro[2] - current_state.gyro_bias[2]]),
+            np.array(
+                [
+                    0,
+                    imu_gyro[0] - current_state.gyro_bias[0],
+                    imu_gyro[1] - current_state.gyro_bias[1],
+                    imu_gyro[2] - current_state.gyro_bias[2],
+                ]
+            ),
         )
 
         # Define the bias
@@ -265,20 +277,24 @@ class ErrorStateUnscentedKalmanFilter:
         next_error_state = A_d @ current_error_state.as_vector()
 
         return next_error_state
-    
-    def unscented_transform(self, sigma_points: list[StateVector_euler], current_state: StateVector_quaternion,
-        imu_reading: np.ndarray,) -> StateVector_euler:
-        """
-        Performs the Unscented Transform
+
+    def unscented_transform(
+        self,
+        sigma_points: list[StateVector_euler],
+        current_state: StateVector_quaternion,
+        imu_reading: np.ndarray,
+    ) -> StateVector_euler:
+        """Performs the Unscented Transform
         This is the corresponding to a preditction step in the EKF
         """
-
         n = len(sigma_points[0].as_vector())
 
-        self.y_i = np.zeros((n, 2*n))
+        self.y_i = np.zeros((n, 2 * n + 1))
 
-        for i in range(2*n):
-            self.y_i[:, i] = self.error_state_update(sigma_points[i], current_state, imu_reading)
+        for i in range(2 * n + 1):
+            self.y_i[:, i] = self.error_state_update(
+                sigma_points[i], current_state, imu_reading
+            )
 
         error_state_estimate = StateVector_euler()
 
@@ -286,9 +302,9 @@ class ErrorStateUnscentedKalmanFilter:
 
         error_state_estimate.fill_states(x)
         error_state_estimate.covariance = self.covariance_set(x, self.y_i)
-        
+
         return error_state_estimate
-    
+
     def H(self) -> np.ndarray:
         """Calculates the measurement matrix.
 
@@ -296,111 +312,27 @@ class ErrorStateUnscentedKalmanFilter:
             np.ndarray: The measurement matrix.
         """
         # Define the measurement matrix
-        H = np.zeros((3, 15))
+        H = np.zeros((3, 16))
 
         # For now assume only velocity is measured
-        H[0:3, 3:6] = np.eye(3)
+        H[:, 3:6] = np.eye(3)
 
         return H
-    
-    def measurement_update(self, sigma_points: list[StateVector_euler], current_error_state: StateVector_euler, dvl_data: np.ndarray, Weight: np.ndarray) -> StateVector_euler:
-        """
-        Updates the state vector with the DVL data
-        """
 
-        H = self.H()
-        R = self.R
+    def injection(
+        self,
+        current_state_nom: StateVector_quaternion,
+        current_state_error: StateVector_euler,
+    ) -> StateVector_quaternion:
+        """Injects the error state into the nominal state
 
-        n = len(sigma_points[0].as_vector())
-
-        Z_i = np.zeros((H.shape[0], 2 * n))
-
-        for i in range(2*n):
-            Z_i[:, i] = np.dot(H, sigma_points[i].as_vector())
-        
-        z = self.weighted_mean_set(Z_i, Weight)
-        S = self.weighted_covariance_set(z, Z_i, Weight)
-
-        x = self.mean_set(self.y_i)
-
-        # Calculate the rest
-        innovation = dvl_data - z
-
-        P_innovation = S + R
-
-        P_xz = self.covariance_set(x, self.y_i, z, Z_i)
-
-        # Kalman gain
-        K_k = np.dot(P_xz, np.linalg.inv(P_innovation))
-
-        updated_error_state = StateVector_euler()
-
-        # Update the state
-        updated_error_state.fill_states(x + np.dot(K_k, innovation))
-
-        # Update the covariance
-        updated_error_state.covariance = current_error_state.covariance - np.dot(K_k, np.dot(P_innovation, K_k.T))
-
-        return updated_error_state 
-
-    def imu_update_states(self, current_state_nom: StateVector_quaternion, current_state_error: StateVector_euler, imu_data: np.ndarray) -> tuple[StateVector_quaternion, StateVector_euler]:
-        """
-        Updates the state vector with the IMU data
-        
         Args:
             current_state_nom (StateVector_quaternion): The current nominal state
             current_state_error (StateVector_euler): The current error state
-            imu_data (np.ndarray): The IMU data
-        
+
         Returns:
-            tuple[StateVector_quaternion, StateVector_euler]: The updated nominal and error states
-
+            StateVector_quaternion: The updated nominal state
         """
-
-        # Update the nominal state
-        current_state_nom = self.nominal_state_update(current_state_nom, imu_data)
-
-        # Generate the sigma points
-        sigma_points, _ = self.generate_sigma_points(current_state_error, self.Q_process_noise)
-
-        # Update the error state
-        current_state_error = self.unscented_transform(sigma_points, current_state_nom, imu_data)
-
-        return current_state_nom, current_state_error
-    
-    def dvl_update_states(self, current_state_nom: StateVector_quaternion, current_state_error: StateVector_euler, dvl_data: np.ndarray) -> tuple[StateVector_quaternion, StateVector_euler]:
-        """
-        Update the error state given the DVL data
-
-        Args:
-            current_state_nom (StateVector_quaternion): The current nominal state
-            current_state_error (StateVector_euler): The current error state
-            dvl_data (np.ndarray): The DVL data to update the state with
-        
-        Returns:
-            tuple[StateVector_quaternion, StateVector_euler]: The updated nominal and error states
-        """
-
-        # Generate the sigma points
-        sigma_points, weight = self.generate_sigma_points(current_state_error, self.Q_process_noise)
-
-        # Update the error state
-        current_state_error = self.measurement_update(sigma_points, current_state_error, dvl_data, weight)
-
-        return current_state_nom, current_state_error
-    
-    def inject_and_reset(self, current_state_nom: StateVector_quaternion, current_state_error: StateVector_euler) -> tuple[StateVector_quaternion, StateVector_euler]:
-        """
-        Injects the error state into the nominal state and resets the error state
-
-        Args:
-            current_state_nom (StateVector_quaternion): The current nominal state
-            current_state_error (StateVector_euler): The current error state
-        
-        Returns:    
-            tuple[StateVector_quaternion, StateVector_euler]: The updated nominal and error states
-        """
-
         inj_state = StateVector_quaternion()
 
         inj_state.position = current_state_nom.position + current_state_error.position
@@ -420,21 +352,146 @@ class ErrorStateUnscentedKalmanFilter:
         inj_state.acceleration_bias = (
             current_state_nom.acceleration_bias + current_state_error.acceleration_bias
         )
-        inj_state.gyro_bias = current_state_nom.gyro_bias + current_state_error.gyro_bias
-
-
-        # Resetting the error state
-        G = np.eye(15)
-        G[6:9, 6:9] = np.eye(3) - skew_symmetric(
-            0.5 * current_state_error.orientation
+        inj_state.gyro_bias = (
+            current_state_nom.gyro_bias + current_state_error.gyro_bias
         )
+
+        return inj_state
+
+    def measurement_update(
+        self,
+        sigma_points: list[StateVector_euler],
+        current_nom_state: StateVector_quaternion,
+        current_error_state: StateVector_euler,
+        dvl_data: np.ndarray,
+        Weight: np.ndarray,
+    ) -> StateVector_euler:
+        """Updates the state vector with the DVL data
+        """
+        H = self.H()
+        R = self.R
+
+        n = len(sigma_points[0].as_vector())
+
+        Z_i = np.zeros((H.shape[0], 2 * n + 1))
+
+        for i in range(2 * n + 1):
+            injected_state = self.injection(current_nom_state, sigma_points[i])
+            Z_i[:, i] = np.dot(H, injected_state.as_vector())
+
+        z = self.weighted_mean_set(Z_i, Weight)
+        S = self.weighted_covariance_set(z, Z_i, Weight)
+
+        x = self.mean_set(self.y_i)
+
+        innovation = dvl_data - z
+
+        P_innovation = S + R
+
+        P_xz = self.cross_covariance_set(x, self.y_i, z, Z_i, Weight)
+
+        # Kalman gain
+        K_k = np.dot(P_xz, np.linalg.inv(P_innovation))
+
+        updated_error_state = StateVector_euler()
+
+        # Update the state
+        updated_error_state.fill_states(x + np.dot(K_k, innovation))
+
+        # Update the covariance
+        updated_error_state.covariance = current_error_state.covariance - np.dot(
+            K_k, np.dot(P_innovation, K_k.T)
+        )
+
+        return updated_error_state
+
+    def imu_update_states(
+        self,
+        current_state_nom: StateVector_quaternion,
+        current_state_error: StateVector_euler,
+        imu_data: np.ndarray,
+    ) -> tuple[StateVector_quaternion, StateVector_euler]:
+        """Updates the state vector with the IMU data
+
+        Args:
+            current_state_nom (StateVector_quaternion): The current nominal state
+            current_state_error (StateVector_euler): The current error state
+            imu_data (np.ndarray): The IMU data
+
+        Returns:
+            tuple[StateVector_quaternion, StateVector_euler]: The updated nominal and error states
+
+        """
+        # Update the nominal state
+        current_state_nom = self.nominal_state_update(current_state_nom, imu_data)
+
+        # Generate the sigma points
+        sigma_points, _ = self.generate_sigma_points(
+            current_state_error, self.Q_process_noise
+        )
+
+        # Update the error state
+        current_state_error = self.unscented_transform(
+            sigma_points, current_state_nom, imu_data
+        )
+
+        return current_state_nom, current_state_error
+
+    def dvl_update_states(
+        self,
+        current_state_nom: StateVector_quaternion,
+        current_state_error: StateVector_euler,
+        dvl_data: np.ndarray,
+    ) -> tuple[StateVector_quaternion, StateVector_euler]:
+        """Update the error state given the DVL data
+
+        Args:
+            current_state_nom (StateVector_quaternion): The current nominal state
+            current_state_error (StateVector_euler): The current error state
+            dvl_data (np.ndarray): The DVL data to update the state with
+
+        Returns:
+            tuple[StateVector_quaternion, StateVector_euler]: The updated nominal and error states
+        """
+        # Generate the sigma points
+        sigma_points, weight = self.generate_sigma_points(
+            current_state_error, self.Q_process_noise
+        )
+
+        # Update the error state
+        current_state_error = self.measurement_update(
+            sigma_points, current_state_nom, current_state_error, dvl_data, weight
+        )
+
+        return current_state_nom, current_state_error
+
+    def inject_and_reset(
+        self,
+        current_state_nom: StateVector_quaternion,
+        current_state_error: StateVector_euler,
+    ) -> tuple[StateVector_quaternion, StateVector_euler]:
+        """Injects the error state into the nominal state and resets the error state
+
+        Args:
+            current_state_nom (StateVector_quaternion): The current nominal state
+            current_state_error (StateVector_euler): The current error state
+
+        Returns:
+            tuple[StateVector_quaternion, StateVector_euler]: The updated nominal and error states
+        """
+        inj_state = self.injection(current_state_nom, current_state_error)
+
+        G = np.eye(15)
+        G[6:9, 6:9] = np.eye(3) - skew_symmetric(0.5 * current_state_error.orientation)
 
         current_state_error.covariance = np.dot(
             np.dot(G, current_state_error.covariance), G.T
         )
+        current_state_error.covariance += np.eye(15) * 1e-4
+
+        eigvals = np.linalg.eigvals(current_state_error.covariance)
+        print("Min eigenvalue:", np.min(eigvals))
 
         current_state_error.fill_states(np.zeros(15))
-        
 
         return inj_state, current_state_error
-    
