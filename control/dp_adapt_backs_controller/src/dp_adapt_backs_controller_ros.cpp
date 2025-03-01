@@ -64,8 +64,8 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
         this->get_parameter("topics.wrench_input").as_string();
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, qos_sensor_data);
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
+        control_topic, qos_sensor_data);
 }
 
 void DPAdaptBacksControllerNode::killswitch_callback(
@@ -78,7 +78,8 @@ void DPAdaptBacksControllerNode::killswitch_callback(
 void DPAdaptBacksControllerNode::software_mode_callback(
     const std_msgs::msg::String::SharedPtr msg) {
     software_mode_ = msg->data;
-    RCLCPP_INFO(this->get_logger(), "Software mode: %s", software_mode_.c_str());
+    RCLCPP_INFO(this->get_logger(), "Software mode: %s",
+                software_mode_.c_str());
 
     if (software_mode_ == "autonomous mode") {
         eta_d_ = eta_;

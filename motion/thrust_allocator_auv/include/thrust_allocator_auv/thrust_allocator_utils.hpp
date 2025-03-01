@@ -103,7 +103,8 @@ inline bool saturate_vector_values(Eigen::VectorXd& vec,
  * converted values.
  * @return The converted vortex_msgs::msg::ThrusterForces message.
  */
-inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(const Eigen::VectorXd& u) {
+inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
+    const Eigen::VectorXd& u) {
     vortex_msgs::msg::ThrusterForces msg;
     msg.thrust = std::vector<double>(u.begin(), u.end());
     return msg;
@@ -139,11 +140,9 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
 }
 
 inline Eigen::Vector6d wrench_to_vector(const geometry_msgs::msg::Wrench& msg) {
-    Eigen::Vector6d msg_vector {
-        msg.force.x, msg.force.y, msg.force.z,
-        msg.torque.x, msg.torque.y, msg.torque.z
-    };
-    
+    Eigen::Vector6d msg_vector{msg.force.x,  msg.force.y,  msg.force.z,
+                               msg.torque.x, msg.torque.y, msg.torque.z};
+
     return msg_vector;
 }
 

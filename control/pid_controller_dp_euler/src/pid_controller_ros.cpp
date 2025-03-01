@@ -63,8 +63,8 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, qos_sensor_data);
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
+        control_topic, qos_sensor_data);
 }
 
 void PIDControllerNode::killswitch_callback(
@@ -77,7 +77,8 @@ void PIDControllerNode::killswitch_callback(
 void PIDControllerNode::software_mode_callback(
     const std_msgs::msg::String::SharedPtr msg) {
     software_mode_ = msg->data;
-    RCLCPP_INFO(this->get_logger(), "Software mode: %s", software_mode_.c_str());
+    RCLCPP_INFO(this->get_logger(), "Software mode: %s",
+                software_mode_.c_str());
 
     if (software_mode_ == "autonomous mode") {
         eta_d_ = eta_;

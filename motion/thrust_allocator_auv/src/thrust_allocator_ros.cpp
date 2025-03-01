@@ -102,7 +102,8 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
         pseudoinverse_allocator_.calculate_allocated_thrust(wrench_vector);
 
     if (is_invalid_matrix(thruster_forces)) {
-        RCLCPP_ERROR(get_logger(), "ThrusterForces vector invalid, publishing zeros.");
+        RCLCPP_ERROR(get_logger(),
+                     "ThrusterForces vector invalid, publishing zeros.");
         thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
         return;
     }
@@ -111,7 +112,8 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
         RCLCPP_WARN(get_logger(), "ThrusterForces vector required saturation.");
     }
 
-    vortex_msgs::msg::ThrusterForces msg_out = array_eigen_to_msg(thruster_forces);
+    vortex_msgs::msg::ThrusterForces msg_out =
+        array_eigen_to_msg(thruster_forces);
     thruster_forces_publisher_->publish(msg_out);
 }
 

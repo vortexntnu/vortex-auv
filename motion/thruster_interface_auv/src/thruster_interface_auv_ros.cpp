@@ -2,7 +2,6 @@
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     : Node("thruster_interface_auv_node") {
-   
     this->extract_all_parameters();
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
@@ -57,11 +56,12 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
 
 void ThrusterInterfaceAUVNode::watchdog_callback() {
     auto now = this->now();
-    if ((now - last_msg_time_) >= watchdog_timeout_  && !watchdog_triggered_) {
+    if ((now - last_msg_time_) >= watchdog_timeout_ && !watchdog_triggered_) {
         thruster_forces_array_.assign(8, 0.00);
         thruster_driver_->drive_thrusters(thruster_forces_array_);
         watchdog_triggered_ = true;
-        RCLCPP_WARN(this->get_logger(), "Watchdog triggered, all thrusters set to 0.00");
+        RCLCPP_WARN(this->get_logger(),
+                    "Watchdog triggered, all thrusters set to 0.00");
     }
 }
 
@@ -133,21 +133,18 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
         this->get_parameter("topics.pwm_output").as_string();
 
     this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
-    
-    std::transform(
-        thruster_mapping.begin(), thruster_mapping.end(),
-        thruster_direction.begin(),
-        std::back_inserter(this->thruster_parameters_),
-        [&](const int64_t& mapping, const int64_t& direction) {
-            size_t index = &mapping - &thruster_mapping[0];
-            return ThrusterParameters{
-                static_cast<uint8_t>(mapping),
-                static_cast<int8_t>(direction),
-                static_cast<uint16_t>(thruster_PWM_min[index]),
-                static_cast<uint16_t>(thruster_PWM_max[index])
-            };
-        }
-    );
+
+    std::transform(thruster_mapping.begin(), thruster_mapping.end(),
+                   thruster_direction.begin(),
+                   std::back_inserter(this->thruster_parameters_),
+                   [&](const int64_t& mapping, const int64_t& direction) {
+                       size_t index = &mapping - &thruster_mapping[0];
+                       return ThrusterParameters{
+                           static_cast<uint8_t>(mapping),
+                           static_cast<int8_t>(direction),
+                           static_cast<uint16_t>(thruster_PWM_min[index]),
+                           static_cast<uint16_t>(thruster_PWM_max[index])};
+                   });
 
     this->poly_coeffs_.push_back(left_coeffs);
     this->poly_coeffs_.push_back(right_coeffs);
