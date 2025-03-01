@@ -13,18 +13,12 @@ ThrustAllocator::ThrustAllocator()
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
     extract_parameters();
 
-    thrust_update_period_ =
-        std::chrono::milliseconds(static_cast<int>(1000 / thrust_update_rate_));
-
     set_allocator();
 
     set_subscriber_and_publisher();
 
-    calculate_thrust_timer_ = this->create_wall_timer(
-        thrust_update_period_,
-        std::bind(&ThrustAllocator::calculate_thrust_timer_cb, this));
-
-    body_frame_forces_.setZero();
+    watchdog_timer_ = this->create_wall_timer(
+        500ms, std::bind(&ThrustAllocator::watchdog_callback, this));
     last_msg_time_ = this->now();
 }
 
@@ -34,7 +28,6 @@ void ThrustAllocator::extract_parameters() {
     this->declare_parameter<int>("propulsion.thrusters.num");
     this->declare_parameter<int>("propulsion.thrusters.min");
     this->declare_parameter<int>("propulsion.thrusters.max");
-    this->declare_parameter<double>("propulsion.thrusters.thrust_update_rate");
     this->declare_parameter<std::vector<double>>(
         "propulsion.thrusters.thruster_force_direction");
     this->declare_parameter<std::vector<double>>(
@@ -47,9 +40,7 @@ void ThrustAllocator::extract_parameters() {
     num_thrusters_ = this->get_parameter("propulsion.thrusters.num").as_int();
     min_thrust_ = this->get_parameter("propulsion.thrusters.min").as_int();
     max_thrust_ = this->get_parameter("propulsion.thrusters.max").as_int();
-    thrust_update_rate_ =
-        this->get_parameter("propulsion.thrusters.thrust_update_rate")
-            .as_double();
+
     double timout_treshold_param =
         this->get_parameter("propulsion.thrusters.watchdog_timeout")
             .as_double();
@@ -75,33 +66,43 @@ void ThrustAllocator::set_allocator() {
         thruster_force_direction_, thruster_position_, center_of_mass_);
 
     pseudoinverse_allocator_.T_pinv =
-        calculate_right_pseudoinverse(thrust_configuration_);
+        calculate_pseudoinverse(thrust_configuration_);
 }
 
 void ThrustAllocator::set_subscriber_and_publisher() {
+    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
+    auto best_effort_qos = rclcpp::QoS(
+        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+
     std::string wrench_input_topic =
         this->get_parameter("topics.wrench_input").as_string();
     std::string thruster_forces_topic =
         this->get_parameter("topics.thruster_forces").as_string();
 
     wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
-        wrench_input_topic, 1,
+        wrench_input_topic, best_effort_qos,
         std::bind(&ThrustAllocator::wrench_cb, this, std::placeholders::_1));
 
     thruster_forces_publisher_ =
         this->create_publisher<vortex_msgs::msg::ThrusterForces>(
-            thruster_forces_topic, 5);
+            thruster_forces_topic, best_effort_qos);
 }
 
-void ThrustAllocator::calculate_thrust_timer_cb() {
-    if ((this->now() - last_msg_time_) > timeout_treshold_) {
-        body_frame_forces_.setZero();
+void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
+    last_msg_time_ = this->now();
+    Eigen::Vector6d wrench_vector = wrench_to_vector(msg);
+
+    if (!healthy_wrench(wrench_vector)) {
+        RCLCPP_ERROR(get_logger(), "Wrench vector invalid, publishing zeros.");
+        thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
+        return;
     }
+
     Eigen::VectorXd thruster_forces =
-        pseudoinverse_allocator_.calculate_allocated_thrust(body_frame_forces_);
+        pseudoinverse_allocator_.calculate_allocated_thrust(wrench_vector);
 
     if (is_invalid_matrix(thruster_forces)) {
-        RCLCPP_ERROR(get_logger(), "ThrusterForces vector invalid");
+        RCLCPP_ERROR(get_logger(), "ThrusterForces vector invalid, publishing zeros.");
         thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
         return;
     }
@@ -110,21 +111,17 @@ void ThrustAllocator::calculate_thrust_timer_cb() {
         RCLCPP_WARN(get_logger(), "ThrusterForces vector required saturation.");
     }
 
-    vortex_msgs::msg::ThrusterForces msg_out;
-    array_eigen_to_msg(thruster_forces, msg_out);
+    vortex_msgs::msg::ThrusterForces msg_out = array_eigen_to_msg(thruster_forces);
     thruster_forces_publisher_->publish(msg_out);
 }
 
-void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
-    last_msg_time_ = this->now();
-    Eigen::Vector6d msg_vector = wrench_to_vector(msg);
-
-    if (!healthy_wrench(msg_vector)) {
-        RCLCPP_ERROR(get_logger(), "Wrench vector invalid, ignoring.");
-        body_frame_forces_.setZero();
-        return;
+void ThrustAllocator::watchdog_callback() {
+    auto now = this->now();
+    if ((now - last_msg_time_) >= timeout_treshold_ && !watchdog_triggered_) {
+        watchdog_triggered_ = true;
+        RCLCPP_WARN(get_logger(), "Watchdog triggered, publishing zeros.");
+        thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
     }
-    std::swap(msg_vector, body_frame_forces_);
 }
 
 bool ThrustAllocator::healthy_wrench(const Eigen::VectorXd& v) const {
