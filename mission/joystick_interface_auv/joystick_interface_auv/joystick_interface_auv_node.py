@@ -86,7 +86,7 @@ class JoystickInterface(Node):
         )
 
         self._joy_subscriber = self.create_subscription(
-            Joy, self.joy_topic, self.joystick_cb, 1
+            Joy, self.joy_topic, self.joystick_cb, qos_profile=best_effort_qos
         )
         self._pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
