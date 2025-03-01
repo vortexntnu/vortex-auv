@@ -91,10 +91,13 @@ void ThrustAllocator::set_subscriber_and_publisher() {
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
     last_msg_time_ = this->now();
     Eigen::Vector6d wrench_vector = wrench_to_vector(msg);
+    Eigen::VectorXd zero_forces = Eigen::VectorXd::Zero(8);
 
     if (!healthy_wrench(wrench_vector)) {
         RCLCPP_ERROR(get_logger(), "Wrench vector invalid, publishing zeros.");
-        thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
+        vortex_msgs::msg::ThrusterForces msg_out =
+            array_eigen_to_msg(zero_forces);
+        thruster_forces_publisher_->publish(msg_out);
         return;
     }
 
@@ -104,7 +107,9 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
     if (is_invalid_matrix(thruster_forces)) {
         RCLCPP_ERROR(get_logger(),
                      "ThrusterForces vector invalid, publishing zeros.");
-        thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
+        vortex_msgs::msg::ThrusterForces msg_out =
+            array_eigen_to_msg(zero_forces);
+        thruster_forces_publisher_->publish(msg_out);
         return;
     }
 
@@ -119,10 +124,13 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
 
 void ThrustAllocator::watchdog_callback() {
     auto now = this->now();
+    Eigen::VectorXd zero_forces = Eigen::VectorXd::Zero(8);
     if ((now - last_msg_time_) >= timeout_treshold_ && !watchdog_triggered_) {
         watchdog_triggered_ = true;
         RCLCPP_WARN(get_logger(), "Watchdog triggered, publishing zeros.");
-        thruster_forces_publisher_->publish(vortex_msgs::msg::ThrusterForces());
+        vortex_msgs::msg::ThrusterForces msg_out =
+            array_eigen_to_msg(zero_forces);
+        thruster_forces_publisher_->publish(msg_out);
     }
 }
 
