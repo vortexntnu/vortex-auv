@@ -25,6 +25,7 @@ ThrustAllocator::ThrustAllocator()
         std::bind(&ThrustAllocator::calculate_thrust_timer_cb, this));
 
     body_frame_forces_.setZero();
+    last_msg_time_ = this->now();
 }
 
 void ThrustAllocator::extract_parameters() {
@@ -38,6 +39,7 @@ void ThrustAllocator::extract_parameters() {
         "propulsion.thrusters.thruster_force_direction");
     this->declare_parameter<std::vector<double>>(
         "propulsion.thrusters.thruster_position");
+    this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
 
     center_of_mass_ = double_array_to_eigen_vector3d(
         this->get_parameter("physical.center_of_mass").as_double_array());
@@ -48,6 +50,11 @@ void ThrustAllocator::extract_parameters() {
     thrust_update_rate_ =
         this->get_parameter("propulsion.thrusters.thrust_update_rate")
             .as_double();
+    double timout_treshold_param =
+        this->get_parameter("propulsion.thrusters.watchdog_timeout")
+            .as_double();
+    timeout_treshold_ = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::duration<double>(timout_treshold_param));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     this->declare_parameter<std::string>("topics.thruster_forces");
@@ -87,6 +94,9 @@ void ThrustAllocator::set_subscriber_and_publisher() {
 }
 
 void ThrustAllocator::calculate_thrust_timer_cb() {
+    if ((this->now() - last_msg_time_) > timeout_treshold_) {
+        body_frame_forces_.setZero();
+    }
     Eigen::VectorXd thruster_forces =
         pseudoinverse_allocator_.calculate_allocated_thrust(body_frame_forces_);
 
@@ -97,8 +107,7 @@ void ThrustAllocator::calculate_thrust_timer_cb() {
     }
 
     if (!saturate_vector_values(thruster_forces, min_thrust_, max_thrust_)) {
-        RCLCPP_WARN(get_logger(),
-                    "Thruster forces vector required saturation.");
+        RCLCPP_WARN(get_logger(), "ThrusterForces vector required saturation.");
     }
 
     vortex_msgs::msg::ThrusterForces msg_out;
@@ -107,10 +116,11 @@ void ThrustAllocator::calculate_thrust_timer_cb() {
 }
 
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
+    last_msg_time_ = this->now();
     Eigen::Vector6d msg_vector = wrench_to_vector(msg);
 
     if (!healthy_wrench(msg_vector)) {
-        RCLCPP_ERROR(get_logger(), "ASV wrench vector invalid, ignoring.");
+        RCLCPP_ERROR(get_logger(), "Wrench vector invalid, ignoring.");
         body_frame_forces_.setZero();
         return;
     }

@@ -1,0 +1,19 @@
+name: Simulator Test
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *' # Runs daily at 01:00 UTC
+jobs:
+  call_reusable_workflow:
+    strategy:
+      matrix:
+        test_script:
+          - "tests/waypoint_navigation/simulator_test.sh"
+    uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
+    with:
+      vcs_repos_file: "tests/dependencies.repos"
+      setup_script: "tests/setup.sh"
+      test_script: "${{ matrix.test_script }}"

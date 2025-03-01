@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Define a base image that can be overridden at build time.
 # ------------------------------------------------------------------------------
-    ARG BASE_IMAGE=ros:humble-ros-base
+    ARG BASE_IMAGE=ros:humble
 
     #######################################
     # Single Stage
@@ -13,9 +13,9 @@
     ARG DEBIAN_FRONTEND=noninteractive
 
     # ------------------------------------------------------------------------------
-    # Create the workspace folder structure.
+    # Set up workspace paths
     # ------------------------------------------------------------------------------
-    ENV WORKSPACE=/docker/ws
+    ENV WORKSPACE=/ros_ws
     WORKDIR $WORKSPACE
 
     # ------------------------------------------------------------------------------
@@ -39,9 +39,17 @@
 
 
     # ------------------------------------------------------------------------------
-    # Run rosdep to install all missing dependencies.
+    # Run rosdep to install missing dependencies.
     # ------------------------------------------------------------------------------
+    RUN apt-get update
     RUN rosdep update && rosdep install --from-paths . --ignore-src -r -y
+
+    # ------------------------------------------------------------------------------
+    # Ensure the CI dependency install script is executable and run it
+    # ------------------------------------------------------------------------------
+    RUN chmod +x src/vortex-auv/scripts/ci_install_dependencies.sh && \
+        src/vortex-auv/scripts/ci_install_dependencies.sh
+
 
     # ------------------------------------------------------------------------------
     # Default command

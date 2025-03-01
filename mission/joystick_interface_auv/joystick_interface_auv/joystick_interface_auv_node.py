@@ -86,7 +86,7 @@ class JoystickInterface(Node):
         )
 
         self._joy_subscriber = self.create_subscription(
-            Joy, self.joy_topic, self.joystick_cb, 5
+            Joy, self.joy_topic, self.joystick_cb, 1
         )
         self._pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
@@ -98,7 +98,7 @@ class JoystickInterface(Node):
             Wrench, self.wrench_input_topic, 10
         )
         self._ref_publisher = self.create_publisher(
-            ReferenceFilter, self.guidance_topic, best_effort_qos
+            ReferenceFilter, self.guidance_topic, 1
         )
         self._software_killswitch_signal_publisher = self.create_publisher(
             Bool, self.killswitch_topic, 5
@@ -157,7 +157,8 @@ class JoystickInterface(Node):
             yaw=self._current_state.yaw,
         )
         reference_msg = self.create_reference_message()
-        self._operational_mode_signal_publisher.publish(String(data="Reference mode"))
+        # Still autonomous mode, but now the reference is being controlled by the joystick
+        self._operational_mode_signal_publisher.publish(String(data="autonomous mode"))
         self._ref_publisher.publish(reference_msg)
         self._mode = JoyStates.REFERENCE_MODE
         self.get_logger().info("Reference mode")
