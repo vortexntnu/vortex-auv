@@ -41,11 +41,11 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 10,
+        software_kill_switch_topic, 1,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, 10,
+        software_operation_mode_topic, 1,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
     pose_sub_ = this->create_subscription<
@@ -63,18 +63,26 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
+        control_topic, qos_sensor_data);
 }
 
 void PIDControllerNode::killswitch_callback(
     const std_msgs::msg::Bool::SharedPtr msg) {
     killswitch_on_ = msg->data;
+    RCLCPP_INFO(this->get_logger(), "Killswitch: %s",
+                killswitch_on_ ? "on" : "off");
 }
 
 void PIDControllerNode::software_mode_callback(
     const std_msgs::msg::String::SharedPtr msg) {
     software_mode_ = msg->data;
+    RCLCPP_INFO(this->get_logger(), "Software mode: %s",
+                software_mode_.c_str());
+
+    if (software_mode_ == "autonomous mode") {
+        eta_d_ = eta_;
+    }
 }
 
 void PIDControllerNode::pose_callback(

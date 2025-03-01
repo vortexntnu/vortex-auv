@@ -28,6 +28,11 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     void pwm_callback();
 
     /**
+     * @brief watchdog callback to check if thruster forces are being received
+     */
+    void watchdog_callback();
+
+    /**
      * @brief extract all parameters from the .yaml file
      */
     void extract_all_parameters();
@@ -61,6 +66,10 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     rclcpp::Publisher<
         std_msgs::msg::Int16MultiArray>::SharedPtr  ///<-- pwm publisher
         thruster_pwm_publisher_;
+    rclcpp::TimerBase::SharedPtr watchdog_timer_;
+    rclcpp::Time last_msg_time_;
+    rclcpp::Duration watchdog_timeout_ = std::chrono::seconds(1);
+    bool watchdog_triggered_ = false;
 
     /**
      * @brief Manages parameter events for the node.

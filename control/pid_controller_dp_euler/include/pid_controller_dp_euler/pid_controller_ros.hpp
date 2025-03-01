@@ -68,7 +68,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     Eta eta_dot_d_;
 
-    bool killswitch_on_;
+    bool killswitch_on_ = false;
 
     std::string software_mode_;
 };

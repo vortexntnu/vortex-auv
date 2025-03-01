@@ -85,7 +85,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_;
 
-    bool killswitch_on_;
+    bool killswitch_on_ = false;
 
     std::string software_mode_;
 };

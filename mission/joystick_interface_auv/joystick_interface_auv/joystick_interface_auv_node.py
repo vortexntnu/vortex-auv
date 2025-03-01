@@ -86,7 +86,7 @@ class JoystickInterface(Node):
         )
 
         self._joy_subscriber = self.create_subscription(
-            Joy, self.joy_topic, self.joystick_cb, 1
+            Joy, self.joy_topic, self.joystick_cb, qos_profile=best_effort_qos
         )
         self._pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
@@ -95,17 +95,17 @@ class JoystickInterface(Node):
             qos_profile=best_effort_qos,
         )
         self._wrench_publisher = self.create_publisher(
-            Wrench, self.wrench_input_topic, 10
+            Wrench, self.wrench_input_topic, qos_profile=best_effort_qos
         )
         self._ref_publisher = self.create_publisher(
-            ReferenceFilter, self.guidance_topic, 1
+            ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
         )
         self._software_killswitch_signal_publisher = self.create_publisher(
-            Bool, self.killswitch_topic, 5
+            Bool, self.killswitch_topic, 1
         )
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.operation_mode_topic, 5
+            String, self.operation_mode_topic, 1
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):

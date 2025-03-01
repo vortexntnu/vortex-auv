@@ -36,6 +36,13 @@ class ThrustAllocator : public rclcpp::Node {
     void wrench_cb(const geometry_msgs::msg::Wrench& msg);
 
     /**
+     * @brief Callback function for the watchdog timer. Checks if the last
+     * received message is older than the timeout threshold and publishes zeros
+     * to the thruster forces topic if it is.
+     */
+    void watchdog_callback();
+
+    /**
      * @brief Checks if the given Eigen vector contains any NaN or Inf values
      * @param v The Eigen vector to check.
      * @return True if the vector is healthy, false otherwise.
@@ -83,6 +90,8 @@ class ThrustAllocator : public rclcpp::Node {
 
     rclcpp::Time last_msg_time_;
     rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);
+    bool watchdog_triggered_ = false;
+    rclcpp::TimerBase::SharedPtr watchdog_timer_;
 };
 
 #endif  // VORTEX_ALLOCATOR_ROS_HPP
