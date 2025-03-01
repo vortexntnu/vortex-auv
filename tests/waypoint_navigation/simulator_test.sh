@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
@@ -9,6 +10,14 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Get the directory of this script dynamically
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Function to terminate processes safely on error
+cleanup() {
+    echo "Error detected. Cleaning up..."
+    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$FILTER_PID" || true
+    exit 1
+}
+trap cleanup ERR
 
 # Launch Stonefish Simulator
 setsid ros2 launch stonefish_sim simulation_nogpu.launch.py &
@@ -21,6 +30,12 @@ timeout 30s bash -c '
         sleep 1
     done || true'
 echo "Simulator started"
+
+# Check for ROS errors in logs
+if journalctl -u ros2 | grep -i "error"; then
+    echo "Error detected in ROS logs. Exiting..."
+    exit 1
+fi
 
 # Wait for odometry data
 echo "Waiting for odom data..."
@@ -36,6 +51,12 @@ echo "Waiting for sim interface to start..."
 timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'
 echo "Simulator started"
 
+# Check for ROS errors again
+if journalctl -u ros2 | grep -i "error"; then
+    echo "Error detected in ROS logs. Exiting..."
+    exit 1
+fi
+
 # Wait for pose data
 echo "Waiting for pose data..."
 timeout 10s ros2 topic echo /orca/pose --once
@@ -49,6 +70,12 @@ echo "Launched controller with PID: $CONTROLLER_PID"
 setsid ros2 launch reference_filter_dp reference_filter.launch.py &
 FILTER_PID=$!
 echo "Launched filter with PID: $FILTER_PID"
+
+# Check for ROS errors before continuing
+if journalctl -u ros2 | grep -i "error"; then
+    echo "Error detected in ROS logs. Exiting..."
+    exit 1
+fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
@@ -72,3 +99,5 @@ fi
 
 # Terminate processes
 kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$FILTER_PID"
+
+echo "Test completed successfully."
