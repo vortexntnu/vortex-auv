@@ -24,6 +24,11 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
 
     thruster_forces_array_ = std::vector<double>(8, 0.00);
 
+    watchdog_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(500),
+        std::bind(&ThrusterInterfaceAUVNode::watchdog_callback, this));
+    last_msg_time_ = this->now();
+
     this->initialize_parameter_handler();
 
     RCLCPP_INFO(this->get_logger(),
@@ -33,6 +38,8 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
     const vortex_msgs::msg::ThrusterForces::SharedPtr msg) {
     thruster_forces_array_ = msg->thrust;
+    last_msg_time_ = this->now();
+
     this->pwm_callback();
 }
 
@@ -45,6 +52,16 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
         pwm_message.data = std::vector<int16_t>(thruster_pwm_array.begin(),
                                                 thruster_pwm_array.end());
         thruster_pwm_publisher_->publish(pwm_message);
+    }
+}
+
+void ThrusterInterfaceAUVNode::watchdog_callback() {
+    auto now = this->now();
+    if ((now - last_msg_time_) >= watchdog_timeout_  && !watchdog_triggered_) {
+        thruster_forces_array_.assign(8, 0.00);
+        thruster_driver_->drive_thrusters(thruster_forces_array_);
+        watchdog_triggered_ = true;
+        RCLCPP_WARN(this->get_logger(), "Watchdog triggered, all thrusters set to 0.00");
     }
 }
 
@@ -84,6 +101,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->declare_parameter<std::string>("topics.pwm_output");
 
     this->declare_parameter<bool>("debug.flag");
+
+    this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
 
     //-----------------------------------------------------------------------
 
@@ -132,4 +151,10 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     this->poly_coeffs_.push_back(left_coeffs);
     this->poly_coeffs_.push_back(right_coeffs);
+
+    double timout_treshold_param =
+        this->get_parameter("propulsion.thrusters.watchdog_timeout")
+            .as_double();
+    watchdog_timeout_ = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::duration<double>(timout_treshold_param));
 }
