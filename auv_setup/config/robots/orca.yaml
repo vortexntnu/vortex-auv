@@ -1,4 +1,4 @@
-# This file defines parameters specific to (Insert Name of New AUV).
+# This file defines parameters specific to Orca.
 #
 # When looking at the AUV from above, the thruster placement is:
 #
@@ -163,4 +163,4 @@
         position: "acoustics/position"
 
     action_servers:
-      reference_filter: "/reference_filter"
+      reference_filter: "reference_filter"
