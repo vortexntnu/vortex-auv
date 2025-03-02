@@ -12,7 +12,7 @@ def generate_launch_description():
         parameters=[
             os.path.join(
                 get_package_share_directory('line_filtering'),
-                'params',
+                'config',
                 'line_filtering_params.yaml',
             ),
             {"use_sim_time": True}  # Enable simulated time

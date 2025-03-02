@@ -18,8 +18,9 @@
 #include <std_msgs/msg/header.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
-#include "std_msgs/msg/bool.hpp"
-
+#include <std_msgs/msg/bool.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <vortex_msgs/action/pipeline_following.hpp>
 
 #include <message_filters/subscriber.h>
 #include <tf2_ros/buffer.h>
@@ -52,6 +53,9 @@ struct LineIntersection {
 };
 
 class LineFilteringNode : public rclcpp::Node {
+
+    using GoalHandlePipelineFollowing = rclcpp_action::ServerGoalHandle<vortex_msgs::action::PipelineFollowing>;
+
    public:
     LineFilteringNode();
 
@@ -82,15 +86,26 @@ class LineFilteringNode : public rclcpp::Node {
      * @brief Timer callback function.
      */
     void timer_callback();
+
+    rclcpp_action::GoalResponse handle_goal(
+        const rclcpp_action::GoalUUID& uuid,
+        std::shared_ptr<const vortex_msgs::action::PipelineFollowing::Goal> goal);
+
+    rclcpp_action::CancelResponse handle_cancel(
+        const std::shared_ptr<GoalHandlePipelineFollowing> goal_handle);
+
+    void handle_accepted(const std::shared_ptr<GoalHandlePipelineFollowing> goal_handle);
+
+    rclcpp_action::Server<vortex_msgs::action::PipelineFollowing>::SharedPtr action_server_;
+
+    std::shared_ptr<GoalHandlePipelineFollowing> active_goal_handle_;
     
-    // Subscriptions
     rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
     pose_array_sub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr
     camera_info_sub_;
     rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr depth_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-    // Publisher
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
     point_cloud_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
@@ -123,9 +138,7 @@ class LineFilteringNode : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr line_intersection_pose_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr line_pose_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr line_termination_pub_;
-    
-    // only need the odom variable. Transform lines in line_callback and store
-    // them in the odom variable.
+
     geometry_msgs::msg::PoseArray::SharedPtr odomLinePointsArray_;
     
     bool camera_info_received_ = false;
@@ -133,6 +146,8 @@ class LineFilteringNode : public rclcpp::Node {
     
     std_msgs::msg::Float64 depth_;
     geometry_msgs::msg::Pose orca_pose_;
+
+    bool is_executing_action_ = false;
     
     void camera_info_callback(const sensor_msgs::msg::CameraInfo::SharedPtr msg);
     void line_callback(const std::shared_ptr<const geometry_msgs::msg::PoseArray>& msg);

@@ -33,19 +33,16 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     geometry_msgs::msg::Quaternion enu_to_ned_quaternion(
         const geometry_msgs::msg::Quaternion& enu_quat);
 
-    // Creating the service
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr service_;
 
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
-    // Subscriber and message filter for the input PoseStamped messages
     message_filters::Subscriber<geometry_msgs::msg::PoseStamped> pose_sub_;
     std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>
         tf2_filter_;
 
-    // Publisher for the transformed poses
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
         transformed_pose_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr

@@ -1,6 +1,7 @@
 #include <line_filtering/line_filtering_ros.hpp>
 
 using std::placeholders::_1;
+using std::placeholders::_2;
 
 LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     declare_parameter<double>("clutter_rate", 0.001);
@@ -17,6 +18,7 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     declare_parameter<double>("std_sensor", 0.5);
     declare_parameter<double>("connected_lines_threshold", 0.5);
     declare_parameter<double>("crossing_min_angle", 0.5236);
+    declare_parameter<int>("termination_counter_threshold", 30);
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
@@ -73,7 +75,6 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     tf2_filter_->registerCallback(
         std::bind(&LineFilteringNode::line_callback, this, _1));
 
-    // Subscriptions
     camera_info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
         camera_info_sub_topic, qos_sensor_data,
         std::bind(&LineFilteringNode::camera_info_callback, this,
@@ -133,8 +134,15 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
             this->create_publisher<geometry_msgs::msg::PoseStamped>(
                 "/line/pose", qos_sensor_data);
         
-        
     }
+
+    auto action_name = this->declare_parameter<std::string>("action_name", "pipeline_following");
+
+    action_server_ = rclcpp_action::create_server<vortex_msgs::action::PipelineFollowing>(
+        this, action_name,
+        std::bind(&LineFilteringNode::handle_goal, this, _1, _2),
+        std::bind(&LineFilteringNode::handle_cancel, this, _1),
+        std::bind(&LineFilteringNode::handle_accepted, this, _1));
 
     depth_.data = -1.0;
 
@@ -155,6 +163,38 @@ LineFilteringNode::LineFilteringNode() : Node("line_filtering_node") {
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(update_interval),
         std::bind(&LineFilteringNode::timer_callback, this));
+}
+
+rclcpp_action::GoalResponse LineFilteringNode::handle_goal(
+    const rclcpp_action::GoalUUID & uuid,
+    std::shared_ptr<const vortex_msgs::action::PipelineFollowing::Goal> goal)
+{
+    RCLCPP_INFO(this->get_logger(), "Received request to start pipeline following");
+    (void)uuid;
+    (void)goal;
+    if (is_executing_action_) {
+        RCLCPP_WARN(this->get_logger(), "Already executing an action, rejecting new goal.");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
+    is_executing_action_ = true;
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+rclcpp_action::CancelResponse LineFilteringNode::handle_cancel(
+    const std::shared_ptr<GoalHandlePipelineFollowing> goal_handle)
+{
+    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    (void)goal_handle;
+    is_executing_action_ = false;
+    active_goal_handle_.reset();
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+void LineFilteringNode::handle_accepted(const std::shared_ptr<GoalHandlePipelineFollowing> goal_handle)
+{
+    RCLCPP_INFO(this->get_logger(), "Goal accepted. Started pipeline following.");
+    is_executing_action_ = true;
+    active_goal_handle_ = goal_handle;
 }
 
 void LineFilteringNode::camera_info_callback(
@@ -263,7 +303,10 @@ void LineFilteringNode::odom_callback(
 }
 
 void LineFilteringNode::timer_callback() {
-    // get parameters
+    if (!is_executing_action_) {
+        return;
+    }
+
     int update_interval = get_parameter("update_interval_ms").as_int();
     double confirmation_threshold =
         get_parameter("confirmation_threshold").as_double();
@@ -339,6 +382,7 @@ void LineFilteringNode::timer_callback() {
         find_and_publish_initial_waypoint();
         return;
     }
+    termination_check();
     if (used_line_intersections_.size() > 0) {
        publish_waypoint();
     }
@@ -816,7 +860,9 @@ void LineFilteringNode::termination_check() {
     } else {
         termination_counter_ = 0;
     }
-    if (termination_counter_ > 30) {
+    if (termination_counter_ > this->get_parameter("termination_counter_threshold").as_int()) {
+        active_goal_handle_->succeed(std::make_shared<vortex_msgs::action::PipelineFollowing::Result>());
+        is_executing_action_ = false;
         line_termination_pub_->publish(std_msgs::msg::Bool());
     }
 }

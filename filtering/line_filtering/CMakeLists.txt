@@ -9,7 +9,6 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
 endif()
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -25,6 +24,7 @@ find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(foxglove_msgs REQUIRED)
+find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
@@ -36,7 +36,6 @@ endif()
 
 add_executable(line_filtering_node src/line_filtering_ros.cpp src/track_manager.cpp src/line_filtering_node.cpp src/line_filtering_visualization.cpp)
 
-# Link against OpenCV libraries
 target_link_libraries(line_filtering_node ${OpenCV_LIBS} Eigen3::Eigen)
 
 ament_target_dependencies(line_filtering_node
@@ -53,8 +52,8 @@ ament_target_dependencies(line_filtering_node
   vortex_filtering
   visualization_msgs
   foxglove_msgs
+  vortex_msgs
 )
-
 
 install(TARGETS
   line_filtering_node
@@ -63,7 +62,7 @@ install(TARGETS
 
 install(DIRECTORY
   launch
-  params
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 

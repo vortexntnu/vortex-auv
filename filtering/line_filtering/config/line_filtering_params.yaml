@@ -18,6 +18,8 @@ line_filtering_node:
     pub_point3: "point_3_"
     pub_point4: "point_4_"
 
+    action_name: "pipeline_following"
+
     clutter_rate: 0.001
     probability_of_detection: 0.6
     probability_of_survival: 0.98
@@ -33,6 +35,8 @@ line_filtering_node:
 
     connected_line_threshold: 0.5
     crossing_min_angle: 0.5236 # 30 degrees
+
+    termination_counter_threshold: 30
 
     line_point_pub_topic: "/line/point"
     line_intersection_pub_topic: "/line/intersection"
