@@ -89,7 +89,7 @@
         watchdog_timeout: 1.0 # [s]
 
         thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
-        thruster_direction: [1, -1, 1, -1, 1, 1, 1, -1] # Disclose during thruster mapping (+/- 1)
+        thruster_direction: [1, 1, -1, -1, 1, -1, -1, -1] # Disclose during thruster mapping (+/- 1)
         thruster_PWM_min: [1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200] # Minimum PWM value, Recommended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
         thruster_PWM_max: [1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800] # Maximum PWM value, Recommended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
 
