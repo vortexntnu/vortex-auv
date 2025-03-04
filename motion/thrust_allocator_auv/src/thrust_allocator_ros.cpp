@@ -90,6 +90,7 @@ void ThrustAllocator::set_subscriber_and_publisher() {
 
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
     last_msg_time_ = this->now();
+    watchdog_triggered_ = false;
     Eigen::Vector6d wrench_vector = wrench_to_vector(msg);
     Eigen::VectorXd zero_forces = Eigen::VectorXd::Zero(8);
 
