@@ -20,8 +20,8 @@
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
    public:
-    explicit DPAdaptBacksControllerNode(const rclcpp::NodeOptions& options =
-                                           rclcpp::NodeOptions());
+    explicit DPAdaptBacksControllerNode(
+        const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
     // @brief Callback function for the killswitch topic
