@@ -3,8 +3,8 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-DPAdaptBacksControllerNode::DPAdaptBacksControllerNode()
-    : Node("dp_adapt_backs_controller_node") {
+DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(const rclcpp::NodeOptions& options)
+    : Node("dp_adapt_backs_controller_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();

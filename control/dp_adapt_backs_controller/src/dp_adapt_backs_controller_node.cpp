@@ -1,4 +1,5 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_ros.hpp"
+#include <memory>
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);

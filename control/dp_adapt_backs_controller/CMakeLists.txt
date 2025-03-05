@@ -11,6 +11,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -19,12 +20,33 @@ find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
+add_library(dp_adapt_backs_controller_component SHARED 
+  src/dp_adapt_backs_controller.cpp 
+  src/dp_adapt_backs_controller_ros.cpp
+  src/dp_adapt_backs_controller_utils.cpp)
+
+ament_target_dependencies(dp_adapt_backs_controller_component
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  nav_msgs
+  Eigen3
+  tf2
+  vortex_msgs
+)
+
+rclcpp_components_register_nodes(dp_adapt_backs_controller_component 
+  "dp_adapt_backs_controller::DpAdaptBacksController")
+
 add_executable(dp_adapt_backs_controller_node
   src/dp_adapt_backs_controller.cpp
   src/dp_adapt_backs_controller_node.cpp
   src/dp_adapt_backs_controller_ros.cpp
   src/dp_adapt_backs_controller_utils.cpp
 )
+
+add_executable(dp_composed_bringup 
+  src/dp_composed_bringup.cpp)
 
 ament_target_dependencies(dp_adapt_backs_controller_node
   rclcpp
@@ -35,8 +57,18 @@ ament_target_dependencies(dp_adapt_backs_controller_node
   vortex_msgs
 )
 
+ament_target_dependencies(dp_composed_bringup
+  rclcpp 
+  rclcpp_components
+)
+
+target_link_libraries(dp_composed_bringup 
+  dp_adapt_backs_controller_component)
+
 install(TARGETS
   dp_adapt_backs_controller_node
+  dp_adapt_backs_controller_component
+  dp_composed_bringup
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
