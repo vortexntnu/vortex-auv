@@ -1,6 +1,8 @@
+#include <rclcpp_components/register_node_macro.hpp>
 #include <reference_filter_dp/reference_filter_ros.hpp>
 
-ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
+ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
+    : Node("reference_filter_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
@@ -286,3 +288,5 @@ void ReferenceFilterNode::execute(
         loop_rate.sleep();
     }
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ReferenceFilterNode)

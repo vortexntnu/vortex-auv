@@ -11,6 +11,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -19,15 +20,16 @@ find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
-add_executable(dp_adapt_backs_controller_node
-  src/dp_adapt_backs_controller.cpp
-  src/dp_adapt_backs_controller_node.cpp
-  src/dp_adapt_backs_controller_ros.cpp
-  src/dp_adapt_backs_controller_utils.cpp
-)
+set(LIB_NAME "${PROJECT_NAME}_component")
 
-ament_target_dependencies(dp_adapt_backs_controller_node
+add_library(${LIB_NAME} SHARED
+  src/dp_adapt_backs_controller.cpp
+  src/dp_adapt_backs_controller_ros.cpp
+  src/dp_adapt_backs_controller_utils.cpp)
+
+ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
+  rclcpp_components
   geometry_msgs
   nav_msgs
   Eigen3
@@ -35,13 +37,29 @@ ament_target_dependencies(dp_adapt_backs_controller_node
   vortex_msgs
 )
 
-install(TARGETS
-  dp_adapt_backs_controller_node
-  DESTINATION lib/${PROJECT_NAME})
+rclcpp_components_register_node(
+  ${LIB_NAME}
+  PLUGIN "DPAdaptBacksControllerNode"
+  EXECUTABLE ${PROJECT_NAME}_node
+)
+
+ament_export_targets(export_${LIB_NAME})
+
+install(TARGETS ${LIB_NAME}
+  EXPORT export_${LIB_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
 
 install(DIRECTORY
-  config
   launch
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 

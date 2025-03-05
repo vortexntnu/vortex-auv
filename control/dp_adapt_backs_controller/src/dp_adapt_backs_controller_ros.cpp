@@ -1,10 +1,12 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_ros.hpp"
 #include <iostream>
+#include <rclcpp_components/register_node_macro.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-DPAdaptBacksControllerNode::DPAdaptBacksControllerNode()
-    : Node("dp_adapt_backs_controller_node") {
+DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
+    const rclcpp::NodeOptions& options)
+    : Node("dp_adapt_backs_controller_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
@@ -188,3 +190,5 @@ void DPAdaptBacksControllerNode::guidance_callback(
     eta_d_.pos << msg->x, msg->y, msg->z;
     eta_d_.ori << msg->roll, msg->pitch, msg->yaw;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)
