@@ -68,8 +68,8 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
 
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::WrenchStamped>(control_topic, qos_sensor_data);
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+        control_topic, qos_sensor_data);
 }
 
 void PIDControllerNode::killswitch_callback(

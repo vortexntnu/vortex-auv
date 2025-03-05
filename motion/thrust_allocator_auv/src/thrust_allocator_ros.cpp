@@ -78,9 +78,11 @@ void ThrustAllocator::set_subscriber_and_publisher() {
     std::string thruster_forces_topic =
         this->get_parameter("topics.thruster_forces").as_string();
 
-    wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
-        wrench_input_topic, best_effort_qos,
-        std::bind(&ThrustAllocator::wrench_cb, this, std::placeholders::_1));
+    wrench_subscriber_ =
+        this->create_subscription<geometry_msgs::msg::WrenchStamped>(
+            wrench_input_topic, best_effort_qos,
+            std::bind(&ThrustAllocator::wrench_cb, this,
+                      std::placeholders::_1));
 
     thruster_forces_publisher_ =
         this->create_publisher<vortex_msgs::msg::ThrusterForces>(
