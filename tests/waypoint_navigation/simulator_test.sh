@@ -62,14 +62,10 @@ echo "Waiting for pose data..."
 timeout 10s ros2 topic echo /orca/pose --once
 echo "Got pose data"
 
-# Launch Controllers
-setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py &
+# Launch controller and reference filter
+setsid ros2 launch auv_setup dp.launch.py &
 CONTROLLER_PID=$!
-echo "Launched controller with PID: $CONTROLLER_PID"
-
-setsid ros2 launch reference_filter_dp reference_filter.launch.py &
-FILTER_PID=$!
-echo "Launched filter with PID: $FILTER_PID"
+echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
 
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
@@ -98,6 +94,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$FILTER_PID"
+kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID"
 
 echo "Test completed successfully."
