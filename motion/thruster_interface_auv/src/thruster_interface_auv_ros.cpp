@@ -1,7 +1,8 @@
 #include "thruster_interface_auv/thruster_interface_auv_ros.hpp"
+#include <rclcpp_components/register_node_macro.hpp>
 
-ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
-    : Node("thruster_interface_auv_node") {
+ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(const rclcpp::NodeOptions& options)
+    : Node("thruster_interface_auv_node", options) {
     this->extract_all_parameters();
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
@@ -156,3 +157,5 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     watchdog_timeout_ = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::duration<double>(timout_treshold_param));
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ThrusterInterfaceAUVNode)
