@@ -38,6 +38,7 @@ void ThrusterInterfaceAUVNode::thruster_forces_callback(
     const vortex_msgs::msg::ThrusterForces::SharedPtr msg) {
     thruster_forces_array_ = msg->thrust;
     last_msg_time_ = this->now();
+    watchdog_triggered_ = false;
 
     this->pwm_callback();
 }
