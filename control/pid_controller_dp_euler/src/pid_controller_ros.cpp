@@ -63,7 +63,7 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
-    tau_pub_ = this->create_publisher<geometry_msgs::msg::Wrench>(
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         control_topic, qos_sensor_data);
 }
 
@@ -123,13 +123,15 @@ void PIDControllerNode::publish_tau() {
 
     Vector6d tau = pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
 
-    geometry_msgs::msg::Wrench tau_msg;
-    tau_msg.force.x = tau(0);
-    tau_msg.force.y = tau(1);
-    tau_msg.force.z = tau(2);
-    tau_msg.torque.x = tau(3);
-    tau_msg.torque.y = tau(4);
-    tau_msg.torque.z = tau(5);
+    geometry_msgs::msg::WrenchStamped tau_msg;
+    tau_msg.header.stamp = this->now();
+    tau_msg.header.frame_id = "base_link";
+    tau_msg.wrench.force.x = tau(0);
+    tau_msg.wrench.force.y = tau(1);
+    tau_msg.wrench.force.z = tau(2);
+    tau_msg.wrench.torque.x = tau(3);
+    tau_msg.wrench.torque.y = tau(4);
+    tau_msg.wrench.torque.z = tau(5);
 
     tau_pub_->publish(tau_msg);
 }
