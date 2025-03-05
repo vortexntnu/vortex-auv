@@ -20,7 +20,7 @@ include_directories(include)
 
 set(LIB_NAME "${PROJECT_NAME}_component")
 
-add_library(${LIB_NAME} SHARED 
+add_library(${LIB_NAME} SHARED
   src/pseudoinverse_allocator.cpp
   src/thrust_allocator_ros.cpp)
 

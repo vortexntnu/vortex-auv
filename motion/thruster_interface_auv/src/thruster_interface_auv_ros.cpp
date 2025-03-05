@@ -1,7 +1,8 @@
 #include "thruster_interface_auv/thruster_interface_auv_ros.hpp"
 #include <rclcpp_components/register_node_macro.hpp>
 
-ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(const rclcpp::NodeOptions& options)
+ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
+    const rclcpp::NodeOptions& options)
     : Node("thruster_interface_auv_node", options) {
     this->extract_all_parameters();
 

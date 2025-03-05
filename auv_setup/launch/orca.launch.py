@@ -19,6 +19,7 @@ thruster_interface_config = os.path.join(
     "thruster_interface_auv_config.yaml",
 )
 
+
 def generate_launch_description() -> LaunchDescription:
     """Generates a launch description for the ORCA AUV setup.
 
@@ -62,6 +63,4 @@ def generate_launch_description() -> LaunchDescription:
         output="screen",
     )
 
-    return LaunchDescription(
-        [set_env_var, container]
-    )
+    return LaunchDescription([set_env_var, container])
