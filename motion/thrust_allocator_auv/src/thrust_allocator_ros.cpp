@@ -1,5 +1,4 @@
 #include "thrust_allocator_auv/thrust_allocator_ros.hpp"
-#include <vortex_msgs/msg/thruster_forces.hpp>
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
@@ -79,7 +78,7 @@ void ThrustAllocator::set_subscriber_and_publisher() {
     std::string thruster_forces_topic =
         this->get_parameter("topics.thruster_forces").as_string();
 
-    wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::Wrench>(
+    wrench_subscriber_ = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
         wrench_input_topic, best_effort_qos,
         std::bind(&ThrustAllocator::wrench_cb, this, std::placeholders::_1));
 
@@ -88,7 +87,7 @@ void ThrustAllocator::set_subscriber_and_publisher() {
             thruster_forces_topic, best_effort_qos);
 }
 
-void ThrustAllocator::wrench_cb(const geometry_msgs::msg::Wrench& msg) {
+void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped& msg) {
     last_msg_time_ = this->now();
     watchdog_triggered_ = false;
     Eigen::Vector6d wrench_vector = wrench_to_vector(msg);

@@ -5,7 +5,7 @@ import rclpy
 from geometry_msgs.msg import (
     PoseWithCovarianceStamped,
     TwistWithCovarianceStamped,
-    Wrench,
+    WrenchStamped,
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -35,7 +35,7 @@ class LinearQuadraticRegulator(Node):
         reliable_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10,
+            depth=1,
         )
 
         # ---------------------------- SUBSCRIBERS ---------------------------
@@ -58,13 +58,13 @@ class LinearQuadraticRegulator(Node):
             String,
             self.operation_mode_topic,
             self.operation_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=reliable_qos,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             self.killswitch_topic,
             self.killswitch_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=reliable_qos,
         )
 
         self.guidance_subscriber = self.create_subscription(
@@ -76,7 +76,7 @@ class LinearQuadraticRegulator(Node):
 
         # ---------------------------- PUBLISHERS ----------------------------
         self.publisherLQR = self.create_publisher(
-            Wrench, self.wrench_input_topic, reliable_qos
+            WrenchStamped, self.wrench_input_topic, best_effort_qos
         )
 
         # ------------------------------ TIMERS ------------------------------
@@ -228,14 +228,16 @@ class LinearQuadraticRegulator(Node):
 
     def control_loop(self):
         """The control loop that calculates the input for the LQR controller."""
-        msg = Wrench()
+        msg = WrenchStamped()
 
         u = self.controller.calculate_lqr_u(
             self.coriolis_matrix, self.states, self.guidance_values
         )
-        msg.force.x = float(u[0])
-        msg.torque.y = float(u[1])
-        msg.torque.z = float(u[2])
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "base_link"
+        msg.wrench.force.x = float(u[0])
+        msg.wrench.torque.y = float(u[1])
+        msg.wrench.torque.z = float(u[2])
 
         if (
             self.controller.killswitch == False

@@ -106,6 +106,8 @@ inline bool saturate_vector_values(Eigen::VectorXd& vec,
 inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
     const Eigen::VectorXd& u) {
     vortex_msgs::msg::ThrusterForces msg;
+    msg.header.stamp = rclcpp::Clock().now();
+    msg.header.frame_id = "base_link";
     msg.thrust = std::vector<double>(u.begin(), u.end());
     return msg;
 }
@@ -139,9 +141,9 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
-inline Eigen::Vector6d wrench_to_vector(const geometry_msgs::msg::Wrench& msg) {
-    Eigen::Vector6d msg_vector{msg.force.x,  msg.force.y,  msg.force.z,
-                               msg.torque.x, msg.torque.y, msg.torque.z};
+inline Eigen::Vector6d wrench_to_vector(const geometry_msgs::msg::WrenchStamped& msg) {
+    Eigen::Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,  msg.wrench.force.z,
+                               msg.wrench.torque.x, msg.wrench.torque.y, msg.wrench.torque.z};
 
     return msg_vector;
 }
