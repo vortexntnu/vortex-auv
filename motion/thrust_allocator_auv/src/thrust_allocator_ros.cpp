@@ -1,14 +1,16 @@
 #include "thrust_allocator_auv/thrust_allocator_ros.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include <rclcpp_components/register_node_macro.hpp>
 
 #include <chrono>
 #include <functional>
 
 using namespace std::chrono_literals;
 
-ThrustAllocator::ThrustAllocator()
-    : Node("thrust_allocator_node"),
+ThrustAllocator::ThrustAllocator(
+    const rclcpp::NodeOptions& options)
+    : Node("thrust_allocator_node", options),
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
     extract_parameters();
 
@@ -146,3 +148,5 @@ bool ThrustAllocator::healthy_wrench(const Eigen::VectorXd& v) const {
 
     return within_max_thrust;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ThrustAllocator)

@@ -11,33 +11,46 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 include_directories(include)
 
-add_executable(${PROJECT_NAME}_node
-  src/thrust_allocator_auv_node.cpp
-  src/thrust_allocator_ros.cpp
+set(LIB_NAME "${PROJECT_NAME}_component")
+
+add_library(${LIB_NAME} SHARED 
   src/pseudoinverse_allocator.cpp
+  src/thrust_allocator_ros.cpp)
+
+  ament_target_dependencies(${LIB_NAME} PUBLIC
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  Eigen3
+  vortex_msgs
 )
 
-ament_target_dependencies(${PROJECT_NAME}_node
-  rclcpp
-  geometry_msgs
-  vortex_msgs
-  Eigen3
+rclcpp_components_register_node(
+  ${LIB_NAME}
+  PLUGIN "ThrustAllocator"
+  EXECUTABLE ${PROJECT_NAME}_node
+)
+
+ament_export_targets(export_${LIB_NAME})
+
+install(TARGETS ${LIB_NAME}
+  EXPORT export_${LIB_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 install(
   DIRECTORY include/
   DESTINATION include
 )
-
-install(TARGETS
-  ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY
   launch
