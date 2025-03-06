@@ -101,11 +101,11 @@ class JoystickInterface(Node):
             ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
         )
         self._software_killswitch_signal_publisher = self.create_publisher(
-            Bool, self.killswitch_topic, 1
+            Bool, self.killswitch_topic, 2
         )
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.operation_mode_topic, 1
+            String, self.operation_mode_topic, 2
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):

@@ -32,12 +32,6 @@ class LinearQuadraticRegulator(Node):
             depth=1,
         )
 
-        reliable_qos = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-        )
-
         # ---------------------------- SUBSCRIBERS ---------------------------
 
         self.pose_subscriber = self.create_subscription(
@@ -58,13 +52,13 @@ class LinearQuadraticRegulator(Node):
             String,
             self.operation_mode_topic,
             self.operation_callback,
-            qos_profile=reliable_qos,
+            qos_profile=2,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             self.killswitch_topic,
             self.killswitch_callback,
-            qos_profile=reliable_qos,
+            qos_profile=2,
         )
 
         self.guidance_subscriber = self.create_subscription(
@@ -218,11 +212,9 @@ class LinearQuadraticRegulator(Node):
         Parameters: String: msg: The killswitch data from the AUV.
 
         """
-        if msg.data == True:
+        self.controller.killswitch = msg.data
+        if self.controller.killswitch:
             self.controller.reset_controller()
-            self.controller.killswitch = True
-        else:
-            self.controller.killswitch = False
 
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
