@@ -108,6 +108,8 @@ class LOSGuidanceNode : public rclcpp::Node {
     double yaw_d_;
 
     double pitch_d_;
+
+    double u_desired_;
 };
 
 #endif

@@ -65,6 +65,9 @@ void LOSGuidanceNode::set_adaptive_los_guidance() {
     this->declare_parameter<double>("gamma_h");
     this->declare_parameter<double>("gamma_v");
     this->declare_parameter<double>("time_step");
+    this->declare_parameter<double>("u_desired");
+
+    u_desired_ = this->get_parameter("u_desired").as_double();
 
     LOS::Params params;
     params.lookahead_distance_h =
@@ -143,7 +146,7 @@ vortex_msgs::msg::LOSGuidance LOSGuidanceNode::fill_los_reference() {
     vortex_msgs::msg::LOSGuidance reference_msg;
     reference_msg.pitch = pitch_d_;
     reference_msg.yaw = yaw_d_;
-    reference_msg.surge = 0.3;
+    reference_msg.surge = u_desired_;
 
     return reference_msg;
 }
