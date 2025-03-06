@@ -7,7 +7,7 @@
 #define VORTEX_ALLOCATOR_ROS_HPP
 
 #include <eigen3/Eigen/Eigen>
-#include <geometry_msgs/msg/wrench.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include "thrust_allocator_auv/eigen_vector6d_typedef.hpp"
@@ -33,7 +33,14 @@ class ThrustAllocator : public rclcpp::Node {
      * msg and stores them in the body_frame_forces_ Eigen vector.
      * @param msg The received geometry_msgs::msg::Wrench message.
      */
-    void wrench_cb(const geometry_msgs::msg::Wrench& msg);
+    void wrench_cb(const geometry_msgs::msg::WrenchStamped& msg);
+
+    /**
+     * @brief Callback function for the watchdog timer. Checks if the last
+     * received message is older than the timeout threshold and publishes zeros
+     * to the thruster forces topic if it is.
+     */
+    void watchdog_callback();
 
     /**
      * @brief Checks if the given Eigen vector contains any NaN or Inf values
@@ -60,7 +67,7 @@ class ThrustAllocator : public rclcpp::Node {
 
     rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
         thruster_forces_publisher_;
-    rclcpp::Subscription<geometry_msgs::msg::Wrench>::SharedPtr
+    rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr
         wrench_subscriber_;
     rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
 
@@ -80,6 +87,11 @@ class ThrustAllocator : public rclcpp::Node {
 
     Eigen::Vector6d body_frame_forces_;
     PseudoinverseAllocator pseudoinverse_allocator_;
+
+    rclcpp::Time last_msg_time_;
+    rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);
+    bool watchdog_triggered_ = false;
+    rclcpp::TimerBase::SharedPtr watchdog_timer_;
 };
 
 #endif  // VORTEX_ALLOCATOR_ROS_HPP
