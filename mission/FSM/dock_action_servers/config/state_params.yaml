@@ -1,3 +1,0 @@
-/**:
-  ros__parameters:
-    publish_topic: "/fsm_active_controller"

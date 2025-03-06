@@ -12,9 +12,11 @@ class FSMStateNode(Node):
             StateMachine, '/fsm_viewer', self.listener_callback, 10
         )
 
-        self.declare_parameter("publish_topic", "")
+        self.declare_parameter("topics.fsm.active_controller", "")
         publish_topic = (
-            self.get_parameter("publish_topic").get_parameter_value().string_value
+            self.get_parameter("topics.fsm.active_controller")
+            .get_parameter_value()
+            .string_value
         )
         self.get_logger().info(f'Publishing to topic: {publish_topic}')
 
