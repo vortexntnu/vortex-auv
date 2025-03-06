@@ -150,6 +150,8 @@
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       aruco_board_pose_camera: "aruco_board_pose_camera"
+      waypoint: "waypoint"
+      waypoint_list: "waypoint_list"
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
@@ -164,3 +166,4 @@
 
     action_servers:
       reference_filter: "reference_filter"
+      los: "los_guidance"
