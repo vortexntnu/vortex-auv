@@ -1,9 +1,4 @@
 /**:
   ros__parameters:
     docking_station_offset: -1.0
-    return_home: false
-    is_docked: false
-    is_home: false
-    is_error: false
-    has_finished_converging: false
     num_measurements: 5

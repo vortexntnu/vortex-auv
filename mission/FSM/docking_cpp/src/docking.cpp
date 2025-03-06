@@ -476,11 +476,6 @@ auto initialize_blackboard() {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating params node");
 
     params->declare_parameter<double>("docking_station_offset");
-    params->declare_parameter<bool>("return_home");
-    params->declare_parameter<bool>("is_docked");
-    params->declare_parameter<bool>("is_home");
-    params->declare_parameter<bool>("is_error");
-    params->declare_parameter<bool>("has_finished_converging");
     params->declare_parameter<int>("num_measurements");
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Parameters declared");
@@ -495,17 +490,11 @@ auto initialize_blackboard() {
     blackboard->set<double>(
         "docking_station_offset",
         params->get_parameter("docking_station_offset").as_double());
-    blackboard->set<bool>("return_home",
-                          params->get_parameter("return_home").as_bool());
-    blackboard->set<bool>("is_docked",
-                          params->get_parameter("is_docked").as_bool());
-    blackboard->set<bool>("is_home",
-                          params->get_parameter("is_home").as_bool());
-    blackboard->set<bool>("is_error",
-                          params->get_parameter("is_error").as_bool());
-    blackboard->set<bool>(
-        "has_finished_converging",
-        params->get_parameter("has_finished_converging").as_bool());
+    blackboard->set<bool>("return_home", false);
+    blackboard->set<bool>("is_docked", false);
+    blackboard->set<bool>("is_home", true);
+    blackboard->set<bool>("is_error", false);
+    blackboard->set<bool>("has_finished_converging", false);
     blackboard->set<int>("num_measurements",
                          params->get_parameter("num_measurements").as_int());
 
