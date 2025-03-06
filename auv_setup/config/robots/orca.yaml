@@ -153,6 +153,8 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+      fsm:
+        active_controller: "fsm/active_controller"
 
       acoustics:
         hydrophones : ["hydrophone1", "hydrophone2", "hydrophone3", "hydrophone4", "hydrophone5"]
