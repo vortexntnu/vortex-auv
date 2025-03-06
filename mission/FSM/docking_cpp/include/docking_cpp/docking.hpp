@@ -21,8 +21,6 @@
 #include <yasmin_ros/yasmin_node.hpp>
 #include <yasmin_viewer/yasmin_viewer_pub.hpp>
 
-using std::placeholders::_1;
-using std::placeholders::_2;
 using FilteredPose = vortex_msgs::action::FilteredPose;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;

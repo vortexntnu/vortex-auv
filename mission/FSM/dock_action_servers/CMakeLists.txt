@@ -3,7 +3,6 @@ project("dock_action_servers")
 
 find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
-find_package(rosidl_default_generators REQUIRED)  # To generate the action interfaces
 
 
 install(
@@ -23,6 +22,8 @@ install(
     dock_action_servers/fsm_state_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
+
+ament_python_install_package(${PROJECT_NAME})
 
 install(DIRECTORY
   config/

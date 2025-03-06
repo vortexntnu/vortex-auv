@@ -1,5 +1,8 @@
 #include <docking_cpp/docking.hpp>
 
+using std::placeholders::_1;
+using std::placeholders::_2;
+
 FindDockState::FindDockState()
     : yasmin_ros::ActionState<FilteredPose>(
           "filtered_pose",

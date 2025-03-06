@@ -12,20 +12,16 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
 find_package(yasmin_viewer REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
 # C++
 include_directories(include)
-include_directories(src)
 
 set(LIB ${CMAKE_PROJECT_NAME}_lib)
 set(DEPENDENCIES
@@ -35,17 +31,12 @@ set(DEPENDENCIES
   yasmin_viewer
   nav_msgs
   vortex_msgs
-  rclcpp
   std_msgs
 )
 
 
 
 add_executable(docking
-  src/docking.cpp
-)
-
-set(SOURCES
   src/docking.cpp
 )
 
