@@ -20,6 +20,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: see contents
+        run: |
+          ls -la
+
       - name: build ws
         run: | 
           mkdir -p ./ros2_ws/src
