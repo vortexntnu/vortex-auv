@@ -14,7 +14,7 @@ IMAGE="${IMAGE:-auv-image:latest}"
 if [[ "$(uname)" == "Darwin" ]]; then
     PLATFORM="linux/arm64"
 else
-    PLATFORM="$(dpkg --print-architecture)"
+    PLATFORM="linux/arm64"
 fi
 
 # ------------------------------------------------------------------------------
