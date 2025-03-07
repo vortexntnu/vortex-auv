@@ -23,10 +23,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: build ws
+        run: | 
+          mkdir -p ./ros2_ws/src
+          mv vortex-auv/vortex-auv ./ros2_ws/src/vortex-auv
+          cd ros2_ws
+          vcs import src < ./src/vortex-auv/dependencies.repos
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+
       - name: Run build script
         run: |
-          chmod +x ./docker/build.sh
-          ./docker/build.sh
+          chmod +x ./src/vortex-auv/docker/build.sh
+          ./src/vortex-auv/docker/build.sh
+          
 
       - name: Retag Docker image for GitHub Container Registry
         run: |
