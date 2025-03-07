@@ -29,7 +29,7 @@ jobs:
         run: | 
           cd ..
           mkdir -p ./ros2_ws/src
-          mv vortex-auv ./ros2_ws/src/vortex-auv
+          cp -r vortex-auv ./ros2_ws/src/vortex-auv
           cd ros2_ws
           vcs import src < ./src/vortex-auv/dependencies.repos
 
