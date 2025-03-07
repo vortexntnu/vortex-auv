@@ -25,6 +25,9 @@ jobs:
           sudo apt update
           pip3 install vcstool
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: build ws and run script
         run: | 
           cd ..
