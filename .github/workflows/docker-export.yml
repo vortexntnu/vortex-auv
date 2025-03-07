@@ -37,8 +37,8 @@ jobs:
 
       - name: Retag Docker image for GitHub Container Registry
         run: |
-          docker tag vortex-auv:latest ghcr.io/${{ github.repository_owner }}/vortex-auv:latest
+          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:latest
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-            docker push ghcr.io/${{ github.repository_owner }}/vortex-auv:latest
+            docker push ghcr.io/${{ github.repository_owner }}/auv-image:latest

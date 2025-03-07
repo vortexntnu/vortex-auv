@@ -4,7 +4,7 @@ set -euo pipefail
 # ------------------------------------------------------------------------------
 # Set environment variables for the image, base, and platform.
 # ------------------------------------------------------------------------------
-export IMAGE="vortex-auv:latest"             # Docker image name/tag
+export IMAGE="auv-image:latest"             # Docker image name/tag
 export BASE_IMAGE="ros:humble"     # Base image for Docker builds
 
 # ------------------------------------------------------------------------------

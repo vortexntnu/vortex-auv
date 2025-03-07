@@ -5,7 +5,7 @@ set -euo pipefail
 # Set environment variables for the image name.
 # If not already set, default to 'auv-image:latest'.
 # ------------------------------------------------------------------------------
-IMAGE="${IMAGE:-vortex-auv:latest}"
+IMAGE="${IMAGE:-auv-image:latest}"
 
 # ------------------------------------------------------------------------------
 # Detect the target platform again if needed (though for 'docker run' it often
