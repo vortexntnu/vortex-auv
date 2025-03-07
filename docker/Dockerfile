@@ -46,9 +46,9 @@
 
     # ------------------------------------------------------------------------------
     # Ensure the CI dependency install script is executable and run it
-    # -----------------------------------------------------------------------------
-    RUN chmod +x ./src/vortex-auv/scripts/ci_install_dependencies.sh && \
-        ./src/vortex-auv/scripts/ci_install_dependencies.sh
+    # ------------------------------------------------------------------------------
+    RUN chmod +x src/vortex-auv/scripts/ci_install_dependencies.sh && \
+        src/vortex-auv/scripts/ci_install_dependencies.sh
 
 
     # ------------------------------------------------------------------------------
