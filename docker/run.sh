@@ -12,9 +12,9 @@ IMAGE="ghcr.io/vortexntnu/auv-image:latest"
 # isn't used unless you do special checks).
 # ------------------------------------------------------------------------------
 if [[ "$(uname)" == "Darwin" ]]; then
-    PLATFORM="linux/arm64"
+    PLATFORM="arm64"
 else
-    PLATFORM="linux/arm64"
+    PLATFORM="arm64"
 fi
 
 # ------------------------------------------------------------------------------
