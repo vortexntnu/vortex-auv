@@ -30,12 +30,12 @@ jobs:
           cd ..
           mkdir -p ./ros2_ws/src
           mv vortex-auv ./ros2_ws/src/vortex-auv
-          cd ros2_ws
+          cd ros2_ws/src
           vcs import src < ./src/vortex-auv/dependencies.repos
 
       - name: whereami
         run: ls -la
-        
+
       - name: Run build script
         run: |
           chmod +x ./src/vortex-auv/docker/build.sh
