@@ -48,8 +48,8 @@
     # Ensure the CI dependency install script is executable and run it
     # -----------------------------------------------------------------------------
     RUN ls -la
-    RUN chmod +x ./vortex-auv/scripts/ci_install_dependencies.sh && \
-        ./vortex-auv/scripts/ci_install_dependencies.sh
+    RUN chmod +x ./src/vortex-auv/scripts/ci_install_dependencies.sh && \
+        ./src/vortex-auv/scripts/ci_install_dependencies.sh
 
 
     # ------------------------------------------------------------------------------
