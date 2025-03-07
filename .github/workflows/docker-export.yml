@@ -32,8 +32,6 @@ jobs:
           mv vortex-auv ./ros2_ws/src/vortex-auv
           cd ros2_ws
           vcs import src < ./src/vortex-auv/dependencies.repos
-          rosdep update
-          rosdep install --from-paths src --ignore-src -r -y
 
       - name: Run build script
         run: |
