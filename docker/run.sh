@@ -5,7 +5,7 @@ set -euo pipefail
 # Set environment variables for the image name.
 # Defaulted to latest image.
 # ------------------------------------------------------------------------------
-IMAGE="ghcr.io/vortexntnu/auv-image:latest"
+IMAGE="auv-image:latest"
 
 # ------------------------------------------------------------------------------
 # Detect the target platform again if needed (though for 'docker run' it often
@@ -34,9 +34,11 @@ echo ""
 # Run the Docker container
 # ------------------------------------------------------------------------------
 docker run -it --rm \
+    --user $(id -u):$(id -g) \
     --privileged \
     --network host \
     --ipc=host \
     -v "$WORKSPACE":/ros_ws \
+    -w /ros_ws \
     "$IMAGE" \
     /bin/bash
