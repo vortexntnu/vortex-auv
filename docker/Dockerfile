@@ -46,9 +46,10 @@
 
     # ------------------------------------------------------------------------------
     # Ensure the CI dependency install script is executable and run it
-    # ------------------------------------------------------------------------------
-    RUN chmod +x scripts/ci_install_dependencies.sh && \
-        scripts/ci_install_dependencies.sh
+    # -----------------------------------------------------------------------------
+    RUN pwd
+    RUN chmod +x ./scripts/ci_install_dependencies.sh && \
+        ./scripts/ci_install_dependencies.sh
 
 
     # ------------------------------------------------------------------------------
