@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - feat/docker_export
+      - main
 
 jobs:
   build-and-push:
@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Log into GitHub Container Registry
         uses: docker/login-action@v2
@@ -22,8 +22,8 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/test-automatic:latest .
+          docker build -t ghcr.io/${{ github.repository_owner }}/my-app:latest -f docker/Dockerfile docker
 
       - name: Push the Docker image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/test-automatic:latest
+          docker push ghcr.io/${{ github.repository_owner }}/my-app:latest
