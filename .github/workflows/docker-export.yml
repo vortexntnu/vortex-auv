@@ -22,6 +22,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Return to ws dir
+        run : |
+          cd ../../
 
       - name: Run build script
         run: |
