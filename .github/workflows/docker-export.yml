@@ -22,10 +22,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        
-      - name: Return to ws dir
-        run : |
-          cd ../../
 
       - name: Run build script
         run: |
@@ -34,8 +30,8 @@ jobs:
 
       - name: Retag Docker image for GitHub Container Registry
         run: |
-          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:latest
+          docker tag vortex-auv:latest ghcr.io/${{ github.repository_owner }}/vortex-auv:latest
 
       - name: Push Docker image to GitHub Container Registry
         run: |
-            docker push ghcr.io/${{ github.repository_owner }}/auv-image:latest
+            docker push ghcr.io/${{ github.repository_owner }}/vortex-auv:latest
