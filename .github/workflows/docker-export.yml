@@ -33,6 +33,9 @@ jobs:
           cd ros2_ws
           vcs import src < ./src/vortex-auv/dependencies.repos
 
+      - name: whereami
+        run: ls -la
+        
       - name: Run build script
         run: |
           chmod +x ./src/vortex-auv/docker/build.sh
