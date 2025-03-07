@@ -25,24 +25,15 @@ jobs:
           sudo apt update
           pip3 install vcstool
 
-      - name: build ws
+      - name: build ws and run script
         run: | 
           cd ..
           mkdir -p ./ros2_ws/src
           cp -r vortex-auv ./ros2_ws/src/vortex-auv
           cd ros2_ws
           vcs import src < ./src/vortex-auv/dependencies.repos
-
-      - name: whereami
-        run: ls -la
-
-      - name: Run build script
-        run: |
-          cd ../../
-          ls -la
           chmod +x ./src/vortex-auv/docker/build.sh
           ./src/vortex-auv/docker/build.sh
-          
 
       - name: Retag Docker image for GitHub Container Registry
         run: |
