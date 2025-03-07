@@ -23,7 +23,7 @@ jobs:
       - name: download vcs
         run: |
           sudo apt update
-          sudo apt install python3-vcstool
+          pip3 install vcstool
 
       - name: build ws
         run: | 
