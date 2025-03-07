@@ -3,9 +3,9 @@ set -euo pipefail
 
 # ------------------------------------------------------------------------------
 # Set environment variables for the image name.
-# If not already set, default to 'auv-image:latest'.
+# Defaulted to latest image.
 # ------------------------------------------------------------------------------
-IMAGE="${IMAGE:-auv-image:latest}"
+IMAGE="ghcr.io/vortexntnu/auv-image:latest"
 
 # ------------------------------------------------------------------------------
 # Detect the target platform again if needed (though for 'docker run' it often
