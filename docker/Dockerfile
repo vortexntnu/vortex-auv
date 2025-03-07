@@ -49,8 +49,8 @@
     # -----------------------------------------------------------------------------
     RUN ls -la
     RUN ls ./vortex-auv/vortex-auv
-    RUN chmod +x ./src/vortex-auv/scripts/ci_install_dependencies.sh && \
-        ./src/vortex-auv/scripts/ci_install_dependencies.sh
+    RUN chmod +x ./vortex-auv/vortex-auv/scripts/ci_install_dependencies.sh && \
+        ./vortex-auv/vortex-auv/scripts/ci_install_dependencies.sh
 
 
     # ------------------------------------------------------------------------------
