@@ -39,6 +39,7 @@ jobs:
       - name: Run build script
         run: |
           cd ../../../
+          ls -la
           chmod +x ./src/vortex-auv/docker/build.sh
           ./src/vortex-auv/docker/build.sh
           
