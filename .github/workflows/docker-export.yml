@@ -25,8 +25,8 @@ jobs:
 
       - name: Run build script
         run: |
-          chmod +x ./build.sh
-          ./build.sh
+          chmod +x ./docker/build.sh
+          ./docker/build.sh
 
       - name: Retag Docker image for GitHub Container Registry
         run: |
