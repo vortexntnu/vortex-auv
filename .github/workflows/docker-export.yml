@@ -20,9 +20,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: see contents
+      - name: download vcs
         run: |
-          ls -la
+          sudo apt update
+          sudo apt install python3-vcstool
 
       - name: build ws
         run: | 
