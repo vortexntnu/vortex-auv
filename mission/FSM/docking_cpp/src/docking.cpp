@@ -114,9 +114,10 @@ void GoToDockState::print_feedback(
                 feedback->feedback.yaw);
 }
 
-GoOverDockState::GoOverDockState()
+GoOverDockState::GoOverDockState(
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
-          "/reference_filter",
+          blackboard->get<std::string>("reference_filter_action"),
           std::bind(&GoOverDockState::create_goal_handler, this, _1),
           std::bind(&GoOverDockState::response_handler, this, _1, _2),
           std::bind(&GoOverDockState::print_feedback, this, _1, _2)) {};
@@ -443,8 +444,10 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                   });
 }
 
-void add_states_nested(std::shared_ptr<yasmin::StateMachine> sm) {
-    sm->add_state("GO_OVER_DOCK", std::make_shared<GoOverDockState>(),
+void add_states_nested(
+    std::shared_ptr<yasmin::StateMachine> sm,
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    sm->add_state("GO_OVER_DOCK", std::make_shared<GoOverDockState>(blackboard),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
                       {yasmin_ros::basic_outcomes::ABORT,
@@ -472,6 +475,7 @@ auto initialize_blackboard() {
 
     params->declare_parameter<double>("docking_station_offset");
     params->declare_parameter<int>("num_measurements");
+    params->declare_parameter<std::string>("action_servers.reference_filter");
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Parameters declared");
 
@@ -492,7 +496,13 @@ auto initialize_blackboard() {
     blackboard->set<bool>("has_finished_converging", false);
     blackboard->set<int>("num_measurements",
                          params->get_parameter("num_measurements").as_int());
+    blackboard->set<std::string>(
+        "reference_filter_action",
+        params->get_parameter("action_servers.reference_filter").as_string());
 
+    RCLCPP_INFO(
+        rclcpp::get_logger("rclcpp"), "Reference filter action: %s",
+        blackboard->get<std::string>("reference_filter_action").c_str());
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Blackboard created");
 
     return blackboard;
@@ -519,8 +529,10 @@ int main(int argc, char* argv[]) {
         }
     });
 
+    auto blackboard = initialize_blackboard();
+
     add_states(sm, nested_sm);
-    add_states_nested(nested_sm);
+    add_states_nested(nested_sm, blackboard);
 
     yasmin_viewer::YasminViewerPub yasmin_pub("Docking", sm);
     yasmin_viewer::YasminViewerPub yasmin_pub_nested("DockingNested",

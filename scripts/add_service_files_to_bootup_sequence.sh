@@ -6,7 +6,7 @@ SERVICE_FILE_PATH_LCD="../mission/LCD/startup_scripts/"
 SERVICE_FILE_NAME_INTERNAL_STATUS_AUV="internal_status_auv.service"
 SERVICE_FILE_PATH_INTERNAL_STATUS_AUV="../mission/internal_status_auv/startup_scripts/"
 SERVICE_FILE_NAME_BLACKBOX="blackbox.service"
-SERVICE_FILE_PATH_BLACKBOX="../mission/blackbox/startup_scripts/"
+SERVICE_FILE_PATH_BLACKBOX="../mission/blackbox_auv/startup_scripts/"
 
 SYSTEMD_PATH="/etc/systemd/system/"
 PYTHON_VERSION="python3.10"

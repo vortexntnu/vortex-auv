@@ -2,19 +2,17 @@
 set -e
 set -o pipefail
 
-# Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
-. /opt/ros/humble/setup.sh
-. ~/ros2_ws/install/setup.bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
-# Get the directory of this script dynamically
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$FILTER_PID" || true
+    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$LOS_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -62,12 +60,12 @@ echo "Waiting for pose data..."
 timeout 10s ros2 topic echo /orca/pose --once
 echo "Got pose data"
 
-# Launch controller and reference filter
-setsid ros2 launch auv_setup dp.launch.py &
-CONTROLLER_PID=$!
-echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
+setsid ros2 launch los_guidance los_guidance.launch.py &
+LOS_PID=$!
 
-# Check for ROS errors before continuing
+setsid ros2 launch velocity_controller_lqr velocity_controller_lqr.launch.py &
+CONTROLLER_PID=$!
+
 if journalctl -u ros2 | grep -i "error"; then
     echo "Error detected in ROS logs. Exiting..."
     exit 1

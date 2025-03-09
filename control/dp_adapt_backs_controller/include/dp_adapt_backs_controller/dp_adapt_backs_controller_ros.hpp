@@ -5,7 +5,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/wrench.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -20,7 +20,8 @@
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
    public:
-    explicit DPAdaptBacksControllerNode();
+    explicit DPAdaptBacksControllerNode(
+        const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
     // @brief Callback function for the killswitch topic
@@ -69,7 +70,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;
 
-    rclcpp::Publisher<geometry_msgs::msg::Wrench>::SharedPtr tau_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_;
 
     rclcpp::TimerBase::SharedPtr tau_pub_timer_;
 
@@ -85,7 +86,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_;
 
-    bool killswitch_on_;
+    bool killswitch_on_ = false;
 
     std::string software_mode_;
 };
