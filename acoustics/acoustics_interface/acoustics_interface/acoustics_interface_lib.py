@@ -5,30 +5,32 @@ from socket import AF_INET, SOCK_DGRAM, socket
 
 
 class TeensyCommunicationUDP:
-    """Class is responsible for the RPI side of teensy-RPI UDP communication.
+    """Handles the RPI side of Teensy-RPI UDP communication.
 
-    It isimplemented with a singleton pattern for convenience.
-    Note: Private members are denoted by _member_name
+    This class is implemented with a singleton pattern for convenience.
+
+    Note:
+        Private members are denoted by `_member_name`.
 
     Attributes:
-    ----------
+    -----------
         _TEENSY_IP (string): self-explanatory
-        _TEENSY_PORT (int): teensy's data port
-        _MY_PORT (int): the device's data port
-        _MAX_PACKAGE_SIZE_RECEIVED (int): max size (in bytes) of UDP receive buffer
-        _TIMEOUT (int): socket timeout when reading data
-        _clientSocket (socket): UDP socket for teensy communication
-        _timeoutMax (int): time to wait before retrying handshake
-        _data_string (str): buffer for received teensy data
-        _data_target (str): the field of `acoustics_data` that is written to
-        acoustics_data (dict[str, list[int]]): container for data from teensy
+        _TEENSY_PORT (int): Teensy's data port
+        _my_port (int): The device's data port
+        _MAX_PACKAGE_SIZE_RECEIVED (int): Max size (in bytes) of UDP receive buffer
+        _timeout (int): Socket timeout when reading data
+        _client_socket (socket): UDP socket for Teensy communication
+        _timeout_max (int): Time to wait before retrying handshake
+        _data_string (str): Buffer for received Teensy data
+        _data_target (str): The field of `acoustics_data` that is written to
+        acoustics_data (dict[str, list[int]]): Container for data from Teensy
 
     Methods:
-    -------
+    --------
         init_communication(frequenciesOfInterest: list[tuple[int, int]]) -> None:
-            Sets up socket for communication with teensy and waits for handshake
+            Sets up socket for communication with Teensy and waits for handshake
         fetch_data() -> None:
-            Reads a full data message from teensy and saves it
+            Reads a full data message from Teensy and saves it
         _write_to_target() -> None:
             Writes _data_string to the correct field of acoustics_data
         _parse_data_string(is_float: bool) -> list[float] | list[int] | None:
@@ -36,20 +38,19 @@ class TeensyCommunicationUDP:
         _get_ip() -> None:
             Gets the IP address of the device
         _send_acknowledge_signal() -> None:
-            Sends the _INITIALIZATION_MESSAGE to teensy
+            Sends the _INITIALIZATION_MESSAGE to Teensy
         _check_if_available() -> None:
             Checks the UDP message buffer for a READY message
         _send_frequencies_of_interest(frequenciesOfInterest: list[tuple[float, float]]) -> None:
-            Sends the list of frequencies and variances to teensy
-
+            Sends the list of frequencies and variances to Teensy
     """
 
     # Teensy networking Setup
     _TEENSY_IP = "10.0.0.111"
     _TEENSY_PORT = 8888
-    _MY_PORT = 9999
+    _my_port = 9999
     _MAX_PACKAGE_SIZE_RECEIVED = 65536
-    _TIMEOUT = 1
+    _timeout = 1
     _address = (_TEENSY_IP, _TEENSY_PORT)
 
     _INITIALIZATION_MESSAGE = "HELLO :D"  # This is a message only sent once to establish 2 way communication between Teensy and client
@@ -74,17 +75,20 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def init_communication(cls, frequencies_of_interest: list[tuple[int, int]]) -> None:
+        """Sets up communication with teensy.
+
+        Args:
+            frequencies_of_interest (list[tuple[int, int]]): List of frequencies to look for
+        """
         assert len(frequencies_of_interest) == 10, (
             "Frequency list has to have exactly 10 entries"
         )
 
-        _frequencies_of_interest = frequencies_of_interest
-
-        cls.MY_IP = cls._get_ip()
+        cls.my_ip = cls._get_ip()
 
         # Socket setup
-        cls._client_socket.settimeout(cls._TIMEOUT)
-        cls._client_socket.bind((cls.MY_IP, cls._MY_PORT))
+        cls._client_socket.settimeout(cls._timeout)
+        cls._client_socket.bind((cls.my_ip, cls._my_port))
         cls._client_socket.setblocking(False)
 
         cls._send_acknowledge_signal()
@@ -112,10 +116,10 @@ class TeensyCommunicationUDP:
         while True:
             data = cls._get_raw_data()
 
-            if data is None:
+            if data == None:
                 return
 
-            if data not in cls.acoustics_data:
+            if data not in cls.acoustics_data.keys():
                 cls._data_string += data
             else:
                 cls._write_to_target()
@@ -132,12 +136,12 @@ class TeensyCommunicationUDP:
     @classmethod
     def _write_to_target(cls) -> None:
         """Writes to the current target in `acoustics_data` and clears the data string."""
-        if cls._data_target in {"TDOA", "LOCATION"}:
+        if cls._data_target == "TDOA" or cls._data_target == "LOCATION":
             data = cls._parse_data_string(is_float=True)
         else:
             data = cls._parse_data_string(is_float=False)
 
-        if data is None:
+        if data == None:
             cls._data_string = ""
             return
 
@@ -151,7 +155,6 @@ class TeensyCommunicationUDP:
 
         Returns:
             The message in the UDP buffer if there is one
-
         """
         try:
             rec_data, _ = cls._client_socket.recvfrom(cls._MAX_PACKAGE_SIZE_RECEIVED)
@@ -165,14 +168,23 @@ class TeensyCommunicationUDP:
 
     @classmethod
     def _parse_data_string(cls, is_float: bool) -> list[float] | list[int] | None:
-        if cls._data_string == "":
+        """Converts _data_string to a list.
+
+        Args:
+            is_float (bool): whether _data_string should be seen as a list of floats or ints
+
+        Returns:
+            The converted list
+        """
+        if cls._data_string == '':
             return
 
         try:
             # Format data from CSV string to floats, ignore last value
             if is_float:
                 return list(map(float, cls._data_string.split(",")[:-1]))
-            return list(map(int, cls._data_string.split(",")[:-1]))
+            else:
+                return list(map(int, cls._data_string.split(",")[:-1]))
         except Exception as e:
             print(f"The string '{cls._data_string}' caused an error when parsing")
             print(f"The exception was: {e}")
@@ -189,7 +201,7 @@ class TeensyCommunicationUDP:
             s.connect((cls._TEENSY_IP, 1))
             ip = s.getsockname()[0]
         except Exception:
-            ip = "127.0.0.1"
+            ip = '127.0.0.1'
         finally:
             s.close()
 
@@ -206,6 +218,7 @@ class TeensyCommunicationUDP:
         except Exception as e:
             print("Error from send_acknowledge_signal")
             print(e)
+            pass
 
     @classmethod
     def _check_if_available(cls) -> None:
@@ -220,7 +233,7 @@ class TeensyCommunicationUDP:
                 # Read data
                 message = cls._get_raw_data()
                 # Check if there is no more data left
-                if message is None:
+                if message == None:
                     return False
 
                 # Check if correct signal was sent
@@ -241,6 +254,11 @@ class TeensyCommunicationUDP:
     def _send_frequencies_of_interest(
         cls, frequencies_of_interest: list[tuple[float, float]]
     ) -> None:
+        """Sends the list of frequencies with variance to teensy.
+
+        Args:
+            frequencies_of_interest (list[tuple[float, float]]): The list of frequencies w/ variance
+        """
         try:
             # Format (CSV): xxx,x,xx,x...,x (frequency list comes first, then variances)
             assert len(frequencies_of_interest) == 10, (
@@ -253,5 +271,5 @@ class TeensyCommunicationUDP:
 
                 # print(self.address);
                 cls._client_socket.sendto(frequency_variance_msg.encode(), cls._address)
-        except Exception as e:
-            print(f"Unexpected error while sending frequency data: {e}")
+        except:
+            print("Couldn't send Frequency data")
