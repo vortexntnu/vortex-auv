@@ -194,7 +194,7 @@ def run_ESUKF_simulation():
         )
         # 2. DVL update (measurement)
         est_state_nom, est_state_error = esukf.dvl_update_states(
-            est_state_nom, est_state_error, dvl_meas
+            est_state_nom, est_state_error, dvl_meas, imu_meas
         )
         # 3. Inject error state
         est_state_nom, est_state_error = esukf.inject_and_reset(

@@ -105,3 +105,12 @@ def ssa(angle: np.ndarray) -> np.ndarray:
         ssa_vector[i] = (angle[i] + np.pi) % (2 * np.pi) - np.pi
 
     return ssa_vector
+
+def quat_norm(quat: np.ndarray) -> np.ndarray:
+    """
+    Function that normalizes a quaternion
+    """
+
+    quat = quat / np.linalg.norm(quat)
+
+    return quat
