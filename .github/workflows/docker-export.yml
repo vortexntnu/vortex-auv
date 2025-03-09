@@ -66,9 +66,9 @@ jobs:
       # Tag image
       - name: Retag Docker image for GitHub Container Registry
         run: |
-          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.release_number }}
+          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.tag }}
 
       # Publish to container registry
       - name: Push Docker image to GitHub Container Registry
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.release_number }}
+          docker push ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.tag }}
