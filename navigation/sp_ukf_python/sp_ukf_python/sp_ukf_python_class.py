@@ -6,6 +6,7 @@ from sp_ukf_python_utils import (
     quaternion_error,
     quaternion_super_product,
     ssa,
+    quat_norm,
 )
 
 
@@ -100,7 +101,7 @@ class StateVector_quaternion:
         # Define the state derivatives
         new_state.position = current_state.position + self.position * dt
         new_state.velocity = current_state.velocity + self.velocity * dt
-        new_state.orientation = current_state.orientation + self.orientation * dt
+        new_state.orientation = quat_norm(current_state.orientation + self.orientation * dt)
         new_state.acceleration_bias = (
             current_state.acceleration_bias + self.acceleration_bias * dt
         )
