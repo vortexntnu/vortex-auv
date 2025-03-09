@@ -113,26 +113,16 @@
     acoustics:
       frequencies_of_interest: # MUST be 20 elements [FREQUENCY [Hz], FREQUENCY_VARIANCE [Hz]...] Recommended: Frequency 1 000 - 50 000 Hz, Variance 1 000 - 10 000 Hz
         [
-          10000,
-          1000,
-          50000,
-          3000,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
+          30000, 5000,
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
+          0, 0,
         ]
       data_logging_rate: 1.0 # [loggings/second], Recommended: 1.0 loggings per second
 
