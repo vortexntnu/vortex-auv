@@ -5,7 +5,7 @@ import rclpy.logging
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray, Int32MultiArray
 
-from acoustics_interface_auv.acoustics_interface_lib import TeensyCommunicationUDP
+from acoustics_interface.acoustics_interface_lib import TeensyCommunicationUDP
 
 
 class AcousticsInterfaceNode(Node):
@@ -16,17 +16,44 @@ class AcousticsInterfaceNode(Node):
             calls fetch_data() from acoustics_interface
         data_publisher(self) -> None:
             publishes data to ROS2 topics
-
     """
 
     def __init__(self) -> None:
         """Sets up acoustics logging and publishers, also sets up teensy communication."""
-        super().__init__("acoustics_interface_auv")
+        super().__init__('acoustics_interface')
         rclpy.logging.initialize()
 
-        self.get_topics()
+        self._hydrophone_1_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/hydrophone1', 5
+        )
+        self._hydrophone_2_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/hydrophone2', 5
+        )
+        self._hydrophone_3_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/hydrophone3', 5
+        )
+        self._hydrophone_4_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/hydrophone4', 5
+        )
+        self._hydrophone_5_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/hydrophone5', 5
+        )
 
-        self.create_publishers_and_subscribers()
+        self._filter_response_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/filter_response', 5
+        )
+        self._fft_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/fft', 5
+        )
+        self._peak_publisher = self.create_publisher(
+            Int32MultiArray, '/acoustics/peaks', 5
+        )
+        self._tdoa_publisher = self.create_publisher(
+            Float32MultiArray, '/acoustics/time_difference_of_arrival', 5
+        )
+        self._position_publisher = self.create_publisher(
+            Float32MultiArray, '/acoustics/position', 5
+        )
 
         # Logs all the newest data
         self.declare_parameter(
@@ -70,69 +97,9 @@ class AcousticsInterfaceNode(Node):
 
         TeensyCommunicationUDP.init_communication(frequencies_of_interest)
 
-        self.get_logger().info("Successfully connected to Acoustics PCB MCU :D")
-
-    def get_topics(self) -> None:
-        hydrophone_topics = (
-            self.declare_parameter("topics.acoustics.hydrophones", ["_"])
-            .get_parameter_value()
-            .string_array_value
-        )
-        for topic in hydrophone_topics:
-            setattr(
-                self,
-                topic + "_topic",
-                topic,
-            )
-
-        topics = ["filter_response", "fft", "peaks", "tdoa", "position"]
-        for topic in topics:
-            self.declare_parameter(f"topics.acoustics.{topic}", "_")
-            setattr(
-                self,
-                topic + "_topic",
-                self.get_parameter(f"topics.acoustics.{topic}")
-                .get_parameter_value()
-                .string_value,
-            )
-
-    def create_publishers_and_subscribers(self) -> None:
-        self._hydrophone_1_publisher = self.create_publisher(
-            Int32MultiArray, self.hydrophone1_topic, 5
-        )
-        self._hydrophone_2_publisher = self.create_publisher(
-            Int32MultiArray, self.hydrophone2_topic, 5
-        )
-        self._hydrophone_3_publisher = self.create_publisher(
-            Int32MultiArray, self.hydrophone3_topic, 5
-        )
-        self._hydrophone_4_publisher = self.create_publisher(
-            Int32MultiArray, self.hydrophone4_topic, 5
-        )
-        self._hydrophone_5_publisher = self.create_publisher(
-            Int32MultiArray, self.hydrophone5_topic, 5
-        )
-
-        self._filter_response_publisher = self.create_publisher(
-            Int32MultiArray, self.filter_response_topic, 5
-        )
-        self._fft_publisher = self.create_publisher(Int32MultiArray, self.fft_topic, 5)
-        self._peak_publisher = self.create_publisher(
-            Int32MultiArray, self.peaks_topic, 5
-        )
-        self._tdoa_publisher = self.create_publisher(
-            Float32MultiArray, self.tdoa_topic, 5
-        )
-        self._position_publisher = self.create_publisher(
-            Float32MultiArray, self.position_topic, 5
-        )
+        self.get_logger().info("Sucsefully connected to Acoustics PCB MCU :D")
 
     def data_update(self) -> None:
-        """Fetches data using the TeensyCommunicationUDP class.
-
-        This method calls the fetch_data method from the TeensyCommunicationUDP class
-        to update the data.
-        """
         TeensyCommunicationUDP.fetch_data()
 
     def data_publisher(self) -> None:
@@ -173,17 +140,7 @@ class AcousticsInterfaceNode(Node):
         )
 
 
-def main(args: list = None) -> None:
-    """Entry point for the acoustics interface node.
-
-    This function initializes the ROS 2 Python client library, creates an instance
-    of the AcousticsInterfaceNode, and starts spinning the node to process callbacks.
-    Once the node is shut down, it destroys the node and shuts down the ROS 2 client library.
-
-    Args:
-        args (list, optional): Command line arguments passed to the ROS 2 client library. Defaults to None.
-
-    """
+def main(args=None):
     rclpy.init(args=args)
 
     node = AcousticsInterfaceNode()
@@ -192,6 +149,7 @@ def main(args: list = None) -> None:
 
     node.destroy_node()
     rclpy.shutdown()
+    pass
 
 
 if __name__ == "__main__":
