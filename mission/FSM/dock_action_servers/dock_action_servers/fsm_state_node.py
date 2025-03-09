@@ -43,7 +43,6 @@ class FSMStateNode(Node):
             self.publisher.publish(msg)
             self.last_state_id = state_id
 
-
     def get_controller_message(self, current_state):
         """Returns the controller message based on the current state."""
         if current_state in ['GO_TO_DOCK']:
