@@ -1,4 +1,4 @@
-# This file defines parameters specific to (Insert Name of New AUV).
+# This file defines parameters specific to Orca.
 #
 # When looking at the AUV from above, the thruster placement is:
 #
@@ -89,7 +89,7 @@
         watchdog_timeout: 1.0 # [s]
 
         thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
-        thruster_direction: [1, -1, 1, -1, 1, 1, 1, -1] # Disclose during thruster mapping (+/- 1)
+        thruster_direction: [1, 1, -1, -1, 1, -1, -1, -1] # Disclose during thruster mapping (+/- 1)
         thruster_PWM_min: [1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200] # Minimum PWM value, Recommended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
         thruster_PWM_max: [1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800] # Maximum PWM value, Recommended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
 
@@ -150,6 +150,8 @@
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       aruco_board_pose_camera: "aruco_board_pose_camera"
+      waypoint: "waypoint"
+      waypoint_list: "waypoint_list"
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
@@ -163,4 +165,5 @@
         position: "acoustics/position"
 
     action_servers:
-      reference_filter: "/reference_filter"
+      reference_filter: "reference_filter"
+      los: "los_guidance"

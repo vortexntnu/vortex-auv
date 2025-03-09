@@ -1,18 +1,17 @@
 cmake_minimum_required(VERSION 3.8)
-project(reference_filter_dp)
-
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
+project(los_guidance)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
-find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -22,38 +21,25 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 include_directories(include)
 
-set(LIB_NAME "${PROJECT_NAME}_component")
+add_executable(los_guidance_node
+  src/los_guidance_node.cpp
+  src/los_guidance_ros.cpp
+  src/los_guidance.cpp
+)
 
-add_library(${LIB_NAME} SHARED
-  src/reference_filter.cpp
-  src/reference_filter_ros.cpp
-  src/reference_filter_utils.cpp)
-
-ament_target_dependencies(${LIB_NAME} PUBLIC
+ament_target_dependencies(los_guidance_node
   rclcpp
-  rclcpp_components
   rclcpp_action
   geometry_msgs
-  nav_msgs
+  vortex_msgs
   Eigen3
   tf2
   tf2_geometry_msgs
-  vortex_msgs
 )
 
-rclcpp_components_register_node(
-  ${LIB_NAME}
-  PLUGIN "ReferenceFilterNode"
-  EXECUTABLE ${PROJECT_NAME}_node
-)
-
-ament_export_targets(export_${LIB_NAME})
-
-install(TARGETS ${LIB_NAME}
-  EXPORT export_${LIB_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+install(TARGETS
+  los_guidance_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(

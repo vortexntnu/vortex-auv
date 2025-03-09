@@ -4,6 +4,18 @@
 - Install [Docker](https://www.docker.com/get-started)
   - On macOS and Windows, Docker Desktop is recommended.
   - On Linux, install Docker Engine via your distribution’s package manager.
+- Standard ROS 2 Workspace Structure
+  - The scripts assume your local file structure follows a standard ROS 2 workspace layout (this will ensure build paths and mounting function as expected):
+```bash
+ros_ws/
+│── build/
+│── log/
+│── install/
+│── src/
+│   └── vortex-auv/
+│   └── vortex-msgs/
+```
+
 ## Building and Running
 1. Clone this repository (if you haven’t already) so you have the local workspace on your machine.
 2. Go to the docker/ folder in the repository.
