@@ -55,13 +55,13 @@ inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
 }
 
 /**
- * @brief Calculates the right pseudoinverse of the given matrix.
+ * @brief Calculates the pseudoinverse of the given matrix.
  *
  * @param M The matrix to calculate the pseudoinverse of.
  * @throws char* if the pseudoinverse is invalid.
  * @return The pseudoinverse of the given matrix.
  */
-inline Eigen::MatrixXd calculate_right_pseudoinverse(const Eigen::MatrixXd& T) {
+inline Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T) {
     Eigen::MatrixXd pseudoinverse =
         T.transpose() * (T * T.transpose()).inverse();
     if (is_invalid_matrix(pseudoinverse)) {
@@ -101,13 +101,15 @@ inline bool saturate_vector_values(Eigen::VectorXd& vec,
  * @param u The Eigen VectorXd to be converted.
  * @param msg The vortex_msgs::msg::ThrusterForces message to store the
  * converted values.
+ * @return The converted vortex_msgs::msg::ThrusterForces message.
  */
-inline void array_eigen_to_msg(const Eigen::VectorXd& u,
-                               vortex_msgs::msg::ThrusterForces& msg) {
-    int r = u.size();
-    std::vector<double> u_vec(r);
-    std::copy_n(u.begin(), r, u_vec.begin());
-    msg.thrust = u_vec;
+inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
+    const Eigen::VectorXd& u) {
+    vortex_msgs::msg::ThrusterForces msg;
+    msg.header.stamp = rclcpp::Clock().now();
+    msg.header.frame_id = "base_link";
+    msg.thrust = std::vector<double>(u.begin(), u.end());
+    return msg;
 }
 
 /**
@@ -139,14 +141,11 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
-inline Eigen::Vector6d wrench_to_vector(const geometry_msgs::msg::Wrench& msg) {
-    Eigen::Vector6d msg_vector;
-    msg_vector(0) = msg.force.x;
-    msg_vector(1) = msg.force.y;
-    msg_vector(2) = msg.force.z;
-    msg_vector(3) = msg.torque.x;
-    msg_vector(4) = msg.torque.y;
-    msg_vector(5) = msg.torque.z;
+inline Eigen::Vector6d wrench_to_vector(
+    const geometry_msgs::msg::WrenchStamped& msg) {
+    Eigen::Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
+                               msg.wrench.force.z,  msg.wrench.torque.x,
+                               msg.wrench.torque.y, msg.wrench.torque.z};
 
     return msg_vector;
 }

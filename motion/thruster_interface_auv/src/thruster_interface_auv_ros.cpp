@@ -2,10 +2,8 @@
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
     : Node("thruster_interface_auv_node") {
-    // extract all .yaml parameters
     this->extract_all_parameters();
 
-    // Set up subscriber and publisher
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
@@ -18,15 +16,17 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
 
     thruster_pwm_publisher_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(
-            publisher_topic_name_, qos_sensor_data);
+            publisher_topic_name_, 1);
 
-    // call constructor for thruster_driver_
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
         i2c_bus_, i2c_address_, thruster_parameters_, poly_coeffs_);
 
-    // Declare thruster_forces_array_ in case no topic comes at the
-    // very beginning
     thruster_forces_array_ = std::vector<double>(8, 0.00);
+
+    watchdog_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(500),
+        std::bind(&ThrusterInterfaceAUVNode::watchdog_callback, this));
+    last_msg_time_ = this->now();
 
     this->initialize_parameter_handler();
 
@@ -37,15 +37,16 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode()
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
     const vortex_msgs::msg::ThrusterForces::SharedPtr msg) {
     thruster_forces_array_ = msg->thrust;
+    last_msg_time_ = this->now();
+    watchdog_triggered_ = false;
+
     this->pwm_callback();
 }
 
 void ThrusterInterfaceAUVNode::pwm_callback() {
-    // drive thrusters...
     std::vector<uint16_t> thruster_pwm_array =
         thruster_driver_->drive_thrusters(this->thruster_forces_array_);
 
-    //..and publish PWM values for debugging purposes
     if (debug_flag_) {
         std_msgs::msg::Int16MultiArray pwm_message;
         pwm_message.data = std::vector<int16_t>(thruster_pwm_array.begin(),
@@ -54,10 +55,20 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
     }
 }
 
+void ThrusterInterfaceAUVNode::watchdog_callback() {
+    auto now = this->now();
+    if ((now - last_msg_time_) >= watchdog_timeout_ && !watchdog_triggered_) {
+        thruster_forces_array_.assign(8, 0.00);
+        thruster_driver_->drive_thrusters(thruster_forces_array_);
+        watchdog_triggered_ = true;
+        RCLCPP_WARN(this->get_logger(),
+                    "Watchdog triggered, all thrusters set to 0.00");
+    }
+}
+
 void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
     param_handler_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
 
-    // Register the parameter event callback directly in the lambda expression
     debug_flag_parameter_cb = param_handler_->add_parameter_callback(
         "debug.flag", std::bind(&ThrusterInterfaceAUVNode::update_debug_flag,
                                 this, std::placeholders::_1));
@@ -71,7 +82,6 @@ void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {
-    // thruster parameters from orca.yaml
     this->declare_parameter<std::vector<int>>(
         "propulsion.thrusters.thruster_to_pin_mapping");
     this->declare_parameter<std::vector<int>>(
@@ -85,18 +95,18 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->declare_parameter<std::vector<double>>("coeffs.16V.LEFT");
     this->declare_parameter<std::vector<double>>("coeffs.16V.RIGHT");
 
-    // i2c parameters
     this->declare_parameter<int>("i2c.bus");
     this->declare_parameter<int>("i2c.address");
 
-    // topics
     this->declare_parameter<std::string>("topics.thruster_forces");
     this->declare_parameter<std::string>("topics.pwm_output");
 
     this->declare_parameter<bool>("debug.flag");
 
+    this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
+
     //-----------------------------------------------------------------------
-    // get them
+
     auto thruster_mapping =
         this->get_parameter("propulsion.thrusters.thruster_to_pin_mapping")
             .as_integer_array();
@@ -125,17 +135,24 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
 
-    // create <ThrusterParameters> and <PolyCoeffs> vectors
-    ThrusterParameters temp;
-    for (size_t i = 0; i < thruster_mapping.size(); ++i) {
-        temp.mapping = static_cast<uint8_t>(thruster_mapping[i]);
-        temp.direction = static_cast<int8_t>(thruster_direction[i]);
-        temp.pwm_min = static_cast<uint16_t>(thruster_PWM_min[i]);
-        temp.pwm_max = static_cast<uint16_t>(thruster_PWM_max[i]);
-
-        this->thruster_parameters_.push_back(temp);
-    }
+    std::transform(thruster_mapping.begin(), thruster_mapping.end(),
+                   thruster_direction.begin(),
+                   std::back_inserter(this->thruster_parameters_),
+                   [&](const int64_t& mapping, const int64_t& direction) {
+                       size_t index = &mapping - &thruster_mapping[0];
+                       return ThrusterParameters{
+                           static_cast<uint8_t>(mapping),
+                           static_cast<int8_t>(direction),
+                           static_cast<uint16_t>(thruster_PWM_min[index]),
+                           static_cast<uint16_t>(thruster_PWM_max[index])};
+                   });
 
     this->poly_coeffs_.push_back(left_coeffs);
     this->poly_coeffs_.push_back(right_coeffs);
+
+    double timout_treshold_param =
+        this->get_parameter("propulsion.thrusters.watchdog_timeout")
+            .as_double();
+    watchdog_timeout_ = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::duration<double>(timout_treshold_param));
 }

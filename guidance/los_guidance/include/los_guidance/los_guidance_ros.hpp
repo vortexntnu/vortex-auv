@@ -4,11 +4,9 @@
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <los_guidance/los_guidance.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -28,12 +26,13 @@ class LOSGuidanceNode : public rclcpp::Node {
     // @brief Set the action server
     void set_action_server();
 
-    // @brief Callback for the reference topic
+    // @brief Set the adaptive LOS guidance parameters
     void set_adaptive_los_guidance();
 
-    // @brief Callback for the reference topic
+    // @brief Callback for the waypoint topic
     // @param msg The reference message
-    void reference_callback(const vortex_msgs::msg::Waypoints::SharedPtr msg);
+    void waypoint_callback(
+        const geometry_msgs::msg::PointStamped::SharedPtr msg);
 
     // @brief Callback for the pose topic
     // @param msg The pose message
@@ -69,7 +68,7 @@ class LOSGuidanceNode : public rclcpp::Node {
     // @brief Fill the lost waypoints
     // @param goal The goal message
     void fill_los_waypoints(
-        const geometry_msgs::msg::PointStamped& los_waypoints);
+        const geometry_msgs::msg::PointStamped& los_waypoint);
 
     vortex_msgs::msg::LOSGuidance fill_los_reference();
 
@@ -78,7 +77,8 @@ class LOSGuidanceNode : public rclcpp::Node {
 
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
 
-    rclcpp::Subscription<vortex_msgs::msg::Waypoints>::SharedPtr reference_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
+        waypoint_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -108,6 +108,8 @@ class LOSGuidanceNode : public rclcpp::Node {
     double yaw_d_;
 
     double pitch_d_;
+
+    double u_desired_;
 };
 
 #endif

@@ -21,7 +21,7 @@ orca_config = os.path.join(
 def generate_launch_description():
     reference_filter_node = Node(
         package='reference_filter_dp',
-        executable='reference_filter_node',
+        executable='reference_filter_dp_node',
         name='reference_filter_node',
         namespace='orca',
         parameters=[
