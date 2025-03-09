@@ -11,7 +11,7 @@
     USER root
     SHELL ["/bin/bash", "-c"]
     ARG DEBIAN_FRONTEND=noninteractive
-     
+
     # ------------------------------------------------------------------------------
     # 1) Create build-time args for user/group, so the container user matches your host
     # ------------------------------------------------------------------------------
