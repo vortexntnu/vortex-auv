@@ -30,9 +30,9 @@ using ReferenceFilter = vortex_msgs::msg::ReferenceFilter;
 using NavigateWaypoints = vortex_msgs::action::NavigateWaypoints;
 using LOSGuidance = vortex_msgs::action::LOSGuidance;
 
-class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
+class FindDockingStationState : public yasmin_ros::ActionState<FilteredPose> {
    public:
-    FindDockState();
+    FindDockingStationState();
 
     FilteredPose::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -46,9 +46,10 @@ class FindDockState : public yasmin_ros::ActionState<FilteredPose> {
         std::shared_ptr<const FilteredPose::Feedback> feedback);
 };
 
-class GoToDockState : public yasmin_ros::ActionState<LOSGuidance> {
+class ApproachDockingStationState
+    : public yasmin_ros::ActionState<LOSGuidance> {
    public:
-    GoToDockState();
+    ApproachDockingStationState();
 
     LOSGuidance::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -62,10 +63,11 @@ class GoToDockState : public yasmin_ros::ActionState<LOSGuidance> {
         std::shared_ptr<const LOSGuidance::Feedback> feedback);
 };
 
-class GoOverDockState
+class GoAboveDockingStationState
     : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
-    GoOverDockState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    GoAboveDockingStationState(
+        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -99,28 +101,16 @@ class ReturnHomeState
         std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback);
 };
 
-class AbortState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
-   public:
-    AbortState();
-
-    ReferenceFilterWaypoint::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
-
-    std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        ReferenceFilterWaypoint::Result::SharedPtr response);
-
-    void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback);
-};
+std::string AbortState(
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
 std::string ErrorState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
-class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
+class ConvergeDockingStationState
+    : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
    public:
-    GoDownState();
+    ConvergeDockingStationState();
 
     ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
