@@ -1,18 +1,15 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - feat/docker_export # TODO: Change to main
-  #workflow_run:
-  #  workflows: ["Semantic Release"]
-  #  types:
-  #    - completed
+  workflow_run:
+    workflows: ["Semantic Release"]
+    types:
+      - completed
 
 jobs:
   build-and-push:
     # Only run if new release from Semantic release
-    
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -33,26 +30,16 @@ jobs:
           sudo apt update
           pip3 install vcstool
 
+      # Get current latest tag from the repository
       - name: get latest tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
         with: 
           semver_only: true
 
-
-      # Get the sematic release number in the current repository
-      #- name: Get Release Version
-      #  id: get_release
-      #  run: |
-      #    # Retrieve the most recent Git tag as the release version.
-      #    RELEASE_NUMBER=$(git describe --abbrev=0 --tags || echo "0.0.0")
-      #    echo "release_number=${RELEASE_NUMBER}" >> $GITHUB_OUTPUT
-
-
       # Needed in order to use arm64 arcitechture on the runner
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-
 
       # Main logic for creating workspace, installing packages and building image
       - name: build ws and run script
@@ -64,7 +51,6 @@ jobs:
           vcs import src < ./src/vortex-auv/dependencies.repos
           chmod +x ./src/vortex-auv/docker/build.sh
           ./src/vortex-auv/docker/build.sh
-
 
       # Tag image
       - name: Retag Docker image for GitHub Container Registry
