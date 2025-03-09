@@ -36,6 +36,8 @@ jobs:
       - name: get latest tag
         uses: actions-ecosystem/action-get-latest-tag@v1
         id: get-latest-tag
+        with: 
+          semver_only: true
 
 
       # Get the sematic release number in the current repository
@@ -50,8 +52,6 @@ jobs:
       # Needed in order to use arm64 arcitechture on the runner
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
-        with: 
-          semver_only: true
 
 
       # Main logic for creating workspace, installing packages and building image
