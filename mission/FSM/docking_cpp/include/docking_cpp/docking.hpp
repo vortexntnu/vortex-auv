@@ -135,7 +135,6 @@ class GoDownState : public yasmin_ros::ActionState<ReferenceFilterWaypoint> {
 };
 
 std::shared_ptr<yasmin::StateMachine> create_state_machines();
-std::shared_ptr<yasmin::StateMachine> create_state_machines_nested();
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                 std::shared_ptr<yasmin::StateMachine> nested_sm);

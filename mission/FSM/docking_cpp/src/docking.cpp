@@ -40,7 +40,7 @@ std::string FindDockState::response_handler(
     docking_offset_goal.pose.position.z +=
         blackboard->get<double>("docking_station_offset");
     blackboard->set<PoseStamped>("docking_offset_goal", docking_offset_goal);
-
+    
     return yasmin_ros::basic_outcomes::SUCCEED;
 }
 
@@ -99,7 +99,7 @@ std::string GoToDockState::response_handler(
     if (blackboard->get<bool>("has_finished_converging")) {
         return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
-        return yasmin_ros::basic_outcomes::ABORT;
+        return yasmin_ros::basic_outcomes::CANCEL;
     }
 }
 
@@ -153,12 +153,12 @@ std::string GoOverDockState::response_handler(
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
                 response->success ? "true" : "false");
 
-    blackboard->set<bool>("is_docked", true);
+    blackboard->set<bool>("is_docked", response->success);
 
     if (blackboard->get<bool>("is_docked")) {
         return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
-        return yasmin_ros::basic_outcomes::ABORT;
+        return yasmin_ros::basic_outcomes::CANCEL;
     }
 }
 
@@ -179,19 +179,18 @@ void GoOverDockState::print_feedback(
 
 std::string DockedState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    // THIS IS NOT A GOOD SOLUTION
-    int i = 0;
-    // This code is a bad way to simulate waiting for 10 seconds
-    while (i < 1000) {
-        blackboard->set<bool>("is_docked", true);
-        if (blackboard->get<bool>("return_home")) {
+    std::chrono::duration<double> elapsed_time = std::chrono::seconds(0);
+    std::chrono::time_point<std::chrono::system_clock> start_time =
+        std::chrono::system_clock::now();
+    while (true) {
+        elapsed_time = (std::chrono::system_clock::now() - start_time);
+        if (elapsed_time.count() > 10) {
             return yasmin_ros::basic_outcomes::SUCCEED;
+        } else if (blackboard->get<bool>("is_error")) {
+            return yasmin_ros::basic_outcomes::ABORT;
         }
+    }
 
-        i++;
-    };
-
-    return yasmin_ros::basic_outcomes::ABORT;
 };
 
 ReturnHomeState::ReturnHomeState()
@@ -229,8 +228,11 @@ std::string ReturnHomeState::response_handler(
                 response->success ? "true" : "false");
 
     blackboard->set<bool>("is_home", response->success);
-
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    if (blackboard->get<bool>("is_home")) {
+        return yasmin_ros::basic_outcomes::SUCCEED;
+    } else {
+        return yasmin_ros::basic_outcomes::CANCEL;
+    }
 }
 
 void ReturnHomeState::print_feedback(
@@ -345,7 +347,7 @@ std::string GoDownState::response_handler(
     if (blackboard->get<bool>("has_finished_converging")) {
         return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
-        return yasmin_ros::basic_outcomes::ABORT;
+        return yasmin_ros::basic_outcomes::CANCEL;
     }
 }
 
@@ -375,20 +377,10 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines() {
         });
     return sm;
 }
-std::shared_ptr<yasmin::StateMachine> create_state_machines_nested() {
-    auto sm = std::make_shared<yasmin::StateMachine>(
-        std::initializer_list<std::string>{
-            "error",
-            yasmin_ros::basic_outcomes::SUCCEED,
-            yasmin_ros::basic_outcomes::CANCEL,
-            yasmin_ros::basic_outcomes::ABORT,
-            yasmin_ros::basic_outcomes::TIMEOUT,
-        });
-    return sm;
-}
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
-                std::shared_ptr<yasmin::StateMachine> nested_sm) {
+                std::shared_ptr<yasmin::StateMachine> nested_sm) {    
+             
     sm->add_state("FIND_DOCK", std::make_shared<FindDockState>(),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "GO_TO_DOCK"},
@@ -398,24 +390,22 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
     sm->add_state("GO_TO_DOCK", std::make_shared<GoToDockState>(),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "dock_fsm"},
-                      {yasmin_ros::basic_outcomes::CANCEL, "error"},
+                      {yasmin_ros::basic_outcomes::CANCEL, "FIND_DOCK"},
                       {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
                   });
 
     sm->add_state("DOCKED",
-                  std::make_shared<yasmin::CbState>(
-                      std::initializer_list<std::string>{
-                          "error", yasmin_ros::basic_outcomes::SUCCEED,
-                          yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT},
-                      DockedState),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED,
-                       yasmin_ros::basic_outcomes::SUCCEED},
-                      {yasmin_ros::basic_outcomes::CANCEL, "RETURN_HOME"},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                std::make_shared<yasmin::CbState>(
+                    std::initializer_list<std::string>{
+                        "error", yasmin_ros::basic_outcomes::SUCCEED,
+                        yasmin_ros::basic_outcomes::ABORT},
+                    DockedState),
+                {
+                    {yasmin_ros::basic_outcomes::SUCCEED,
+                        yasmin_ros::basic_outcomes::SUCCEED},
+                    {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
 
-                  });
+                });       
     sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCK"},
@@ -447,6 +437,7 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
     sm->add_state("dock_fsm", nested_sm,
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
+                      {yasmin_ros::basic_outcomes::CANCEL, "GO_TO_DOCK"},
                       {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
 
                   });
@@ -457,7 +448,9 @@ void add_states_nested(std::shared_ptr<yasmin::StateMachine> sm) {
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED, "GO_DOWN_DOCK"},
                       {yasmin_ros::basic_outcomes::ABORT,
-                       yasmin_ros::basic_outcomes::ABORT},
+                       yasmin_ros::basic_outcomes::ABORT}, 
+                       {yasmin_ros::basic_outcomes::CANCEL,
+                        yasmin_ros::basic_outcomes::CANCEL},
 
                   });
 
@@ -467,6 +460,8 @@ void add_states_nested(std::shared_ptr<yasmin::StateMachine> sm) {
                        yasmin_ros::basic_outcomes::SUCCEED},
                       {yasmin_ros::basic_outcomes::ABORT,
                        yasmin_ros::basic_outcomes::ABORT},
+                        {yasmin_ros::basic_outcomes::CANCEL,
+                          "GO_OVER_DOCK"},
 
                   });
 }
@@ -511,7 +506,7 @@ int main(int argc, char* argv[]) {
 
     std::shared_ptr<yasmin::StateMachine> sm = create_state_machines();
     std::shared_ptr<yasmin::StateMachine> nested_sm =
-        create_state_machines_nested();
+        create_state_machines();
 
     rclcpp::on_shutdown([sm]() {
         if (sm->is_running()) {
@@ -534,7 +529,7 @@ int main(int argc, char* argv[]) {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "State machines created");
 
     auto blackboard = initialize_blackboard();
-
+    
     try {
         std::string outcome = (*sm.get())(blackboard);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), outcome.c_str());
