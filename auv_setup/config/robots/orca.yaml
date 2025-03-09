@@ -109,7 +109,7 @@
 
     blackbox:
       data_logging_rate: 5.0 # [loggings/second], Recommended: 5.0 loggings per second
-      
+
     topics:
       wrench_input: "wrench_input"
       thruster_forces: "thruster_forces"
