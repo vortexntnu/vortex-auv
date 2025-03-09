@@ -11,11 +11,12 @@ export BASE_IMAGE="ros:humble"     # Base image for Docker builds
 # Detect the target platform.
 # On macOS (Darwin), we force 'linux/arm64' (Docker Desktop on Mac).
 # Otherwise, use the host's architecture.
+# WE HARDCODE THIS HEHE
 # ------------------------------------------------------------------------------
 if [[ "$(uname)" == "Darwin" ]]; then
     export PLATFORM="linux/arm64"
 else
-    export PLATFORM="$(dpkg --print-architecture)"
+    export PLATFORM="linux/arm64"
 fi
 
 # ------------------------------------------------------------------------------

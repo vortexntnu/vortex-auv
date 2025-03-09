@@ -3,18 +3,18 @@ set -euo pipefail
 
 # ------------------------------------------------------------------------------
 # Set environment variables for the image name.
-# If not already set, default to 'auv-image:latest'.
+# Defaulted to latest image.
 # ------------------------------------------------------------------------------
-IMAGE="${IMAGE:-auv-image:latest}"
+IMAGE="auv-image:latest"
 
 # ------------------------------------------------------------------------------
 # Detect the target platform again if needed (though for 'docker run' it often
 # isn't used unless you do special checks).
 # ------------------------------------------------------------------------------
 if [[ "$(uname)" == "Darwin" ]]; then
-    PLATFORM="linux/arm64"
+    PLATFORM="arm64"
 else
-    PLATFORM="$(dpkg --print-architecture)"
+    PLATFORM="arm64"
 fi
 
 # ------------------------------------------------------------------------------
@@ -34,9 +34,11 @@ echo ""
 # Run the Docker container
 # ------------------------------------------------------------------------------
 docker run -it --rm \
+    --user $(id -u):$(id -g) \
     --privileged \
     --network host \
     --ipc=host \
     -v "$WORKSPACE":/ros_ws \
+    -w /ros_ws \
     "$IMAGE" \
     /bin/bash
