@@ -536,8 +536,6 @@ int main(int argc, char* argv[]) {
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "State machines created");
 
-    auto blackboard = initialize_blackboard();
-
     try {
         std::string outcome = (*sm.get())(blackboard);
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), outcome.c_str());
