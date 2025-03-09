@@ -24,28 +24,25 @@ class FSMStateNode(Node):
         self.last_state_id = -1
 
     def listener_callback(self, fsm_msg: StateMachine):
-        try:
-            state_id = fsm_msg.states[0].current_state
+        state_id = fsm_msg.states[0].current_state
 
-            if self.last_state_id == state_id or state_id == -1:
-                return
+        if self.last_state_id == state_id or state_id == -1:
+            return
 
-            if state_id != -1:
-                current_state_name = fsm_msg.states[state_id].name
-            else:
-                current_state_name = "None"
+        if state_id != -1:
+            current_state_name = fsm_msg.states[state_id].name
+        else:
+            current_state_name = "None"
 
-            controller_message = self.get_controller_message(current_state_name)
-            msg = String()
-            msg.data = controller_message
+        controller_message = self.get_controller_message(current_state_name)
+        msg = String()
+        msg.data = controller_message
 
-            if msg.data != 'None':
-                self.get_logger().info(f'Message to publish: {msg.data}')
-                self.publisher.publish(msg)
-                self.last_state_id = state_id
+        if msg.data != 'None':
+            self.get_logger().info(f'Message to publish: {msg.data}')
+            self.publisher.publish(msg)
+            self.last_state_id = state_id
 
-        except Exception as e:
-            self.get_logger().error(f'Failed to process message: {e}')
 
     def get_controller_message(self, current_state):
         """Returns the controller message based on the current state."""
