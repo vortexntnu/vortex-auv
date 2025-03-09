@@ -24,6 +24,7 @@ class ErrorStateUnscentedKalmanFilter:
         self.g = np.array([0, 0, g])
         self.dt = dt
         self.y_i = np.zeros((15, 2 * 15))
+        self.W = np.zeros(2 * 15 + 1)
 
     def mean_set(self, set: np.ndarray) -> np.ndarray:
         """Calculates the mean of a set of values.
@@ -34,11 +35,12 @@ class ErrorStateUnscentedKalmanFilter:
         Returns:
             np.ndarray: The mean of the set.
         """
-        # Define the number of columns
+        # Define the number of sigma points based on columns
         n = set.shape[0]
+        mean_value = np.zeros(n)
 
-        # Calculate the mean value
-        mean_value = (1 / (2 * n)) * np.sum(set, axis=1)
+        for i in range(2 * n + 1):
+            mean_value += (1/(2 * n + 1)) * set[:, i]
 
         return mean_value
 
@@ -57,8 +59,6 @@ class ErrorStateUnscentedKalmanFilter:
 
         for i in range(2 * n + 1):
             mean_value += weight[i] * set[:, i]
-
-        mean_value = (1 / (2 * n + 1)) * mean_value
 
         return mean_value
 
@@ -160,31 +160,26 @@ class ErrorStateUnscentedKalmanFilter:
         """Generates the sigma points for the UKF
         This is done using the Cholesky decomposition method
         """
-        # Define n
         n = len(error_state.covariance)
         kappa = 3 - n
 
-        # Computing S matrix using cholensky decomposition
-        # print(error_state.covariance + Q_process_noise)
         S = np.linalg.cholesky(error_state.covariance + Q_process_noise)
-        # print(S)
 
         S_scaled = np.sqrt(n + kappa) * S
 
         weighted_points = np.concatenate((S_scaled, -S_scaled), axis=1)
 
         sigma_points = [StateVector_euler() for _ in range(2 * n + 1)]
+        W = np.zeros(2 * n + 1)
 
         sigma_points[0].fill_states(error_state.as_vector())
-        for i in range(2 * n):
-            sigma_points[i + 1].fill_states(error_state + weighted_points[:, i])
-
-        W = np.zeros(2 * n + 1)
         W[0] = kappa / (n + kappa)
 
         for i in range(2 * n):
+            sigma_points[i + 1].fill_states(error_state + weighted_points[:, i])
             W[i + 1] = 1 / (2 * (n + kappa))
 
+        self.W = W
         return sigma_points, W
 
     def nominal_state_update(
@@ -298,10 +293,10 @@ class ErrorStateUnscentedKalmanFilter:
 
         error_state_estimate = StateVector_euler()
 
-        x = self.mean_set(self.y_i)
+        x = self.weighted_mean_set(self.y_i, self.W)
 
         error_state_estimate.fill_states(x)
-        error_state_estimate.covariance = self.covariance_set(x, self.y_i)
+        error_state_estimate.covariance = self.weighted_covariance_set(x, self.y_i, self.W)
 
         return error_state_estimate
 
@@ -311,10 +306,10 @@ class ErrorStateUnscentedKalmanFilter:
         Returns:
             np.ndarray: The measurement matrix.
         """
-        # Define the measurement matrix
+        # Define the measurement matrix (error state is 15-dim)
         H = np.zeros((3, 16))
 
-        # For now assume only velocity is measured
+        # For now assume only velocity is measured (located at indices 3:6)
         H[:, 3:6] = np.eye(3)
 
         return H
@@ -442,6 +437,7 @@ class ErrorStateUnscentedKalmanFilter:
         current_state_nom: StateVector_quaternion,
         current_state_error: StateVector_euler,
         dvl_data: np.ndarray,
+        imu_data: np.ndarray,
     ) -> tuple[StateVector_quaternion, StateVector_euler]:
         """Update the error state given the DVL data
 
@@ -456,6 +452,11 @@ class ErrorStateUnscentedKalmanFilter:
         # Generate the sigma points
         sigma_points, weight = self.generate_sigma_points(
             current_state_error, self.Q_process_noise
+        )
+
+        # Update the error state
+        current_state_error = self.unscented_transform(
+            sigma_points, current_state_nom, imu_data
         )
 
         # Update the error state
@@ -487,10 +488,7 @@ class ErrorStateUnscentedKalmanFilter:
         current_state_error.covariance = np.dot(
             np.dot(G, current_state_error.covariance), G.T
         )
-        current_state_error.covariance += np.eye(15) * 1e-4
-
-        eigvals = np.linalg.eigvals(current_state_error.covariance)
-        print("Min eigenvalue:", np.min(eigvals))
+        current_state_error.covariance += np.eye(15)
 
         current_state_error.fill_states(np.zeros(15))
 
