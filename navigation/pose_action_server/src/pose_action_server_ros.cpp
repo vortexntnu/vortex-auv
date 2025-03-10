@@ -96,11 +96,11 @@ void PoseActionServerNode::pose_callback(
         size_t mid = num_measurements_ / 2;
 
         if (num_measurements_ % 2 == 0) {
-            filtered_pose.pose.position.x = 
+            filtered_pose.pose.position.x =
                 (x_positions[mid - 1] + x_positions[mid]) / 2.0;
-            filtered_pose.pose.position.y = 
+            filtered_pose.pose.position.y =
                 (y_positions[mid - 1] + y_positions[mid]) / 2.0;
-            filtered_pose.pose.position.z = 
+            filtered_pose.pose.position.z =
                 (z_positions[mid - 1] + z_positions[mid]) / 2.0;
         } else {
             filtered_pose.pose.position.x = x_positions[mid];
@@ -125,7 +125,7 @@ void PoseActionServerNode::pose_callback(
         } else {
             median_yaw = unwrapped_yaw[mid];
         }
-        
+
         double filtered_yaw = median_yaw;
         filtered_pose.pose.orientation.x = 0.0;
         filtered_pose.pose.orientation.y = 0.0;
