@@ -16,4 +16,4 @@ jobs:
       vcs_repos_file: "tests/dependencies.repos"
       setup_script: "tests/setup.sh"
       test_script: "${{ matrix.test_script }}"
-      docker_image: "ghcr.io/vortexntnu/auv-image:latest"
+      docker_image: "ghcr.io/vortexntnu/auv-image"
