@@ -129,6 +129,8 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+      fsm:
+        active_controller: "fsm/active_controller"
 
     action_servers:
       reference_filter: "reference_filter"
