@@ -70,30 +70,71 @@ void PoseActionServerNode::pose_callback(
     active_goal_handle_->publish_feedback(feedback);
 
     if (pose_queue_.size() == num_measurements_) {
-        geometry_msgs::msg::PoseStamped averaged_pose;
-        averaged_pose.header = pose_msg->header;
+        geometry_msgs::msg::PoseStamped filtered_pose;
+        filtered_pose.header = pose_msg->header;
+
+        std::vector<double> x_positions;
+        std::vector<double> y_positions;
+        std::vector<double> z_positions;
+        std::vector<double> yaw_angles;
 
         for (const auto& pose : pose_queue_) {
-            averaged_pose.pose.position.x += pose.pose.position.x;
-            averaged_pose.pose.position.y += pose.pose.position.y;
-            averaged_pose.pose.position.z += pose.pose.position.z;
-            averaged_pose.pose.orientation.x += pose.pose.orientation.x;
-            averaged_pose.pose.orientation.y += pose.pose.orientation.y;
-            averaged_pose.pose.orientation.z += pose.pose.orientation.z;
-            averaged_pose.pose.orientation.w += pose.pose.orientation.w;
+            x_positions.push_back(pose.pose.position.x);
+            y_positions.push_back(pose.pose.position.y);
+            z_positions.push_back(pose.pose.position.z);
+
+            double qz = pose.pose.orientation.z;
+            double qw = pose.pose.orientation.w;
+            double yaw = 2.0 * std::atan2(qz, qw);
+            yaw_angles.push_back(yaw);
         }
 
-        averaged_pose.pose.position.x /= num_measurements_;
-        averaged_pose.pose.position.y /= num_measurements_;
-        averaged_pose.pose.position.z /= num_measurements_;
-        averaged_pose.pose.orientation.x /= num_measurements_;
-        averaged_pose.pose.orientation.y /= num_measurements_;
-        averaged_pose.pose.orientation.z /= num_measurements_;
-        averaged_pose.pose.orientation.w /= num_measurements_;
+        std::sort(x_positions.begin(), x_positions.end());
+        std::sort(y_positions.begin(), y_positions.end());
+        std::sort(z_positions.begin(), z_positions.end());
+
+        size_t mid = num_measurements_ / 2;
+
+        if (num_measurements_ % 2 == 0) {
+            filtered_pose.pose.position.x = 
+                (x_positions[mid - 1] + x_positions[mid]) / 2.0;
+            filtered_pose.pose.position.y = 
+                (y_positions[mid - 1] + y_positions[mid]) / 2.0;
+            filtered_pose.pose.position.z = 
+                (z_positions[mid - 1] + z_positions[mid]) / 2.0;
+        } else {
+            filtered_pose.pose.position.x = x_positions[mid];
+            filtered_pose.pose.position.y = y_positions[mid];
+            filtered_pose.pose.position.z = z_positions[mid];
+        }
+
+        std::vector<double> unwrapped_yaw = yaw_angles;
+        for (size_t i = 1; i < unwrapped_yaw.size(); ++i) {
+            double diff = unwrapped_yaw[i] - unwrapped_yaw[i - 1];
+            if (diff > M_PI) {
+                unwrapped_yaw[i] -= 2.0 * M_PI;
+            } else if (diff < -M_PI) {
+                unwrapped_yaw[i] += 2.0 * M_PI;
+            }
+        }
+
+        std::sort(unwrapped_yaw.begin(), unwrapped_yaw.end());
+        double median_yaw = unwrapped_yaw[mid];
+        if (num_measurements_ % 2 == 0) {
+            median_yaw = (unwrapped_yaw[mid - 1] + unwrapped_yaw[mid]) / 2.0;
+        } else {
+            median_yaw = unwrapped_yaw[mid];
+        }
+        
+        double filtered_yaw = median_yaw;
+        filtered_pose.pose.orientation.x = 0.0;
+        filtered_pose.pose.orientation.y = 0.0;
+        filtered_pose.pose.orientation.z = std::sin(filtered_yaw / 2.0);
+        filtered_pose.pose.orientation.w = std::cos(filtered_yaw / 2.0);
 
         auto result =
             std::make_shared<vortex_msgs::action::FilteredPose::Result>();
-        result->filtered_pose = averaged_pose;
+        result->filtered_pose = filtered_pose;
         active_goal_handle_->succeed(result);
         is_executing_action_ = false;
     }
