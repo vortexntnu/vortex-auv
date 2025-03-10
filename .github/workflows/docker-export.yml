@@ -52,12 +52,12 @@ jobs:
           chmod +x ./src/vortex-auv/docker/build.sh
           ./src/vortex-auv/docker/build.sh
 
-      # Tag image
       - name: Retag Docker image for GitHub Container Registry
         run: |
           docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.tag }}
+          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:latest
 
-      # Publish to container registry
       - name: Push Docker image to GitHub Container Registry
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.tag }}
+          docker push ghcr.io/${{ github.repository_owner }}/auv-image:latest
