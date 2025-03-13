@@ -33,14 +33,9 @@ LifecycleCallbackReturn ReferenceFilterNode::on_deactivate(
     (void)previous_state;
     RCLCPP_INFO(this->get_logger(), "deactivation step");
 
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (goal_handle_ && goal_handle_->is_active()) {
-            RCLCPP_INFO(this->get_logger(),
-                        "Canceling active goal during deactivation");
-            auto cancel_response = handle_cancel(goal_handle_);
-        }
-    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    cancel_all_current_goals();
+    std::lock_guard<std::mutex> unlock(mutex_);
 
     destroy_action_server();
     rclcpp_lifecycle::LifecycleNode::on_deactivate(previous_state);
@@ -67,6 +62,20 @@ LifecycleCallbackReturn ReferenceFilterNode::on_shutdown(
 
     rclcpp_lifecycle::LifecycleNode::on_shutdown(previous_state);
     return LifecycleCallbackReturn::SUCCESS;
+}
+
+void ReferenceFilterNode::cancel_all_current_goals() {
+    RCLCPP_INFO(this->get_logger(), "Canceling all current goals");
+
+    for (auto& goal_handle : this->goal_handle_vector_) {
+        if (goal_handle && goal_handle->is_active()) {
+            auto result = std::make_shared<
+                vortex_msgs::action::ReferenceFilterWaypoint::Result>();
+            handle_cancel(goal_handle);
+        }
+    }
+
+    this->goal_handle_vector_.clear();
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {
@@ -217,6 +226,7 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
+    this->goal_handle_vector_.push_back(goal_handle);
     execute(goal_handle);
 }
 

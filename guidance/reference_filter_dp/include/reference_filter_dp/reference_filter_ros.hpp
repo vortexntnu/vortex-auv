@@ -102,6 +102,9 @@ class ReferenceFilterNode : public rclcpp_lifecycle::LifecycleNode {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
+    // @brief Cancel all current goals
+    void cancel_all_current_goals();
+
     // @brief Execute the goal
     // @param goal_handle The goal handle
     void execute(
@@ -154,6 +157,10 @@ class ReferenceFilterNode : public rclcpp_lifecycle::LifecycleNode {
     std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>>
         goal_handle_;
+
+    std::vector<std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::ReferenceFilterWaypoint>>>
+        goal_handle_vector_;
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
