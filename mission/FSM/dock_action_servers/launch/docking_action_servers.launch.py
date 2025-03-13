@@ -9,13 +9,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description() -> LaunchDescription:
     """Launch file to launch all nodes necessary for docking fsm."""
-    config_dock = os.path.join(
-        get_package_share_directory(package_name='dock_action_servers'),
-        'config',
-        'docking.yaml',
-    )
-
-    config_dock_state = os.path.join(
+    orca_config = os.path.join(
         get_package_share_directory(package_name='auv_setup'),
         'config',
         'robots',
@@ -34,7 +28,7 @@ def generate_launch_description() -> LaunchDescription:
         package='docking_cpp',
         executable='docking',
         namespace="orca",
-        parameters=[config_dock, config_dock_state],
+        parameters=[orca_config],
         on_exit=launch.actions.LogInfo(msg="Docking exited"),
     )
 
@@ -43,7 +37,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='fsm_state_node.py',
         name='fsm_state_node',
         namespace="orca",
-        parameters=[config_dock_state],
+        parameters=[orca_config],
         on_exit=launch.actions.LogInfo(msg="fsm_state_node exited"),
     )
 

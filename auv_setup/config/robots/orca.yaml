@@ -135,3 +135,9 @@
     action_servers:
       reference_filter: "reference_filter"
       los: "los_guidance"
+
+    fsm:
+      docking_station_offset: -1.0
+      num_measurements: 5
+      dock_wait_time: 10.0
+      print_debug: true
