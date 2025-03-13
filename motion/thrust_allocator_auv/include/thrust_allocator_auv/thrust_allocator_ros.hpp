@@ -16,7 +16,7 @@
 
 class ThrustAllocator : public rclcpp::Node {
    public:
-    explicit ThrustAllocator();
+    explicit ThrustAllocator(const rclcpp::NodeOptions& options);
 
     /**
      * @brief Calculates the allocated
