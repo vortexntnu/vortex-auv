@@ -24,10 +24,9 @@ PoseActionServerNode::PoseActionServerNode() : Node("pose_action_server_node") {
 }
 
 rclcpp_action::GoalResponse PoseActionServerNode::handleGoal(
-    const rclcpp_action::GoalUUID& uuid,
+    const rclcpp_action::GoalUUID& /*uuid*/,
     std::shared_ptr<const vortex_msgs::action::FilteredPose::Goal> goal) {
     RCLCPP_INFO(this->get_logger(), "Received request to filter pose.");
-    (void)uuid;
     if (is_executing_action_) {
         RCLCPP_WARN(this->get_logger(),
                     "Already executing an action, rejecting new goal.");
@@ -69,75 +68,72 @@ void PoseActionServerNode::pose_callback(
     feedback->current_pose = feedback_msg;
     active_goal_handle_->publish_feedback(feedback);
 
-    if (pose_queue_.size() == num_measurements_) {
-        geometry_msgs::msg::PoseStamped filtered_pose;
-        filtered_pose.header = pose_msg->header;
+    if (pose_queue_.size() < num_measurements_)
+        return;
 
-        std::vector<double> x_positions;
-        std::vector<double> y_positions;
-        std::vector<double> z_positions;
-        std::vector<double> yaw_angles;
+    geometry_msgs::msg::PoseStamped filtered_pose;
+    filtered_pose.header = pose_msg->header;
 
-        for (const auto& pose : pose_queue_) {
-            x_positions.push_back(pose.pose.position.x);
-            y_positions.push_back(pose.pose.position.y);
-            z_positions.push_back(pose.pose.position.z);
+    auto compute_mean = [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue, 
+            auto position_extractor) {
+    return std::accumulate(pose_queue.begin(), pose_queue.end(), 0.0, 
+                [&](double sum, const auto& pose) {
+                    return sum + position_extractor(pose);
+                }) / pose_queue.size();
+    };
 
-            double qz = pose.pose.orientation.z;
-            double qw = pose.pose.orientation.w;
-            double yaw = 2.0 * std::atan2(qz, qw);
-            yaw_angles.push_back(yaw);
-        }
+    filtered_pose.pose.position.x = compute_mean(pose_queue_, [](const auto& pose) { return pose.pose.position.x; });
+    filtered_pose.pose.position.y = compute_mean(pose_queue_, [](const auto& pose) { return pose.pose.position.y; });
+    filtered_pose.pose.position.z = compute_mean(pose_queue_, [](const auto& pose) { return pose.pose.position.z; });
 
-        std::sort(x_positions.begin(), x_positions.end());
-        std::sort(y_positions.begin(), y_positions.end());
-        std::sort(z_positions.begin(), z_positions.end());
+    auto extract_quaternions = [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue) {
+        std::vector<Eigen::Quaterniond> quaternions;
+        std::transform(pose_queue.begin(), pose_queue.end(), std::back_inserter(quaternions),
+                       [](const auto& pose) {
+                        Eigen::Quaterniond q;
+                        q.x() = pose.pose.orientation.x;
+                        q.y() = pose.pose.orientation.y;
+                        q.z() = pose.pose.orientation.z;
+                        q.w() = pose.pose.orientation.w;
+                        return q;
+                       });
+        return quaternions;
+    };
 
-        size_t mid = num_measurements_ / 2;
+    auto quaternions = extract_quaternions(pose_queue_);
 
-        if (num_measurements_ % 2 == 0) {
-            filtered_pose.pose.position.x =
-                (x_positions[mid - 1] + x_positions[mid]) / 2.0;
-            filtered_pose.pose.position.y =
-                (y_positions[mid - 1] + y_positions[mid]) / 2.0;
-            filtered_pose.pose.position.z =
-                (z_positions[mid - 1] + z_positions[mid]) / 2.0;
-        } else {
-            filtered_pose.pose.position.x = x_positions[mid];
-            filtered_pose.pose.position.y = y_positions[mid];
-            filtered_pose.pose.position.z = z_positions[mid];
-        }
+    auto mean_q = average_quaternions(quaternions);
 
-        std::vector<double> unwrapped_yaw = yaw_angles;
-        for (size_t i = 1; i < unwrapped_yaw.size(); ++i) {
-            double diff = unwrapped_yaw[i] - unwrapped_yaw[i - 1];
-            if (diff > M_PI) {
-                unwrapped_yaw[i] -= 2.0 * M_PI;
-            } else if (diff < -M_PI) {
-                unwrapped_yaw[i] += 2.0 * M_PI;
-            }
-        }
+    filtered_pose.pose.orientation.x = mean_q.x();
+    filtered_pose.pose.orientation.y = mean_q.y();
+    filtered_pose.pose.orientation.z = mean_q.z();
+    filtered_pose.pose.orientation.w = mean_q.w();
+    
+    auto result =
+        std::make_shared<vortex_msgs::action::FilteredPose::Result>();
+    result->filtered_pose = filtered_pose;
+    active_goal_handle_->succeed(result);
+    is_executing_action_ = false;
+}
 
-        std::sort(unwrapped_yaw.begin(), unwrapped_yaw.end());
-        double median_yaw = unwrapped_yaw[mid];
-        if (num_measurements_ % 2 == 0) {
-            median_yaw = (unwrapped_yaw[mid - 1] + unwrapped_yaw[mid]) / 2.0;
-        } else {
-            median_yaw = unwrapped_yaw[mid];
-        }
-
-        double filtered_yaw = median_yaw;
-        filtered_pose.pose.orientation.x = 0.0;
-        filtered_pose.pose.orientation.y = 0.0;
-        filtered_pose.pose.orientation.z = std::sin(filtered_yaw / 2.0);
-        filtered_pose.pose.orientation.w = std::cos(filtered_yaw / 2.0);
-
-        auto result =
-            std::make_shared<vortex_msgs::action::FilteredPose::Result>();
-        result->filtered_pose = filtered_pose;
-        active_goal_handle_->succeed(result);
-        is_executing_action_ = false;
+Eigen::Quaterniond PoseActionServerNode::average_quaternions(
+    const std::vector<Eigen::Quaterniond>& quaternions) {
+    Eigen::Matrix4d M = Eigen::Matrix4d::Zero();
+    for (const auto& q : quaternions) {
+        M += q.coeffs() * q.coeffs().transpose();
     }
+
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> eigensolver(M);
+
+    Eigen::Vector4d eigenvector = eigensolver.eigenvectors().col(3);
+
+    Eigen::Quaterniond avg_q;
+    avg_q.x() = eigenvector(0);
+    avg_q.y() = eigenvector(1);
+    avg_q.z() = eigenvector(2);
+    avg_q.w() = eigenvector(3);
+    
+    return avg_q.normalized();
 }
 
 int main(int argc, char** argv) {

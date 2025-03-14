@@ -4,7 +4,7 @@
   <name>pose_action_server</name>
   <version>1.0.0</version>
   <description>Ros2 Action server that provides a single robust measurement from multiple constant pose measurements.
-  The node only filters pos_x, pos_y, pos_z and yaw with the assumption that roll and pitch align with the odometry frame.</description>
+  The node computes the mean from multiple pose measurements in odom frame.</description>
   <maintainer email="jorgen.fjermedal@hotmail.com">jorgen</maintainer>
   <license>MIT</license>
 
@@ -14,6 +14,7 @@
   <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
+  <depend>eigen</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

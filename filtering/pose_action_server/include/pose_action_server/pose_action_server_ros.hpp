@@ -7,6 +7,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/filtered_pose.hpp>
+#include <Eigen/Dense>
 
 class PoseActionServerNode : public rclcpp::Node {
     using GoalHandleFilteredPose =
@@ -43,6 +44,9 @@ class PoseActionServerNode : public rclcpp::Node {
 
     void handleAccepted(
         const std::shared_ptr<GoalHandleFilteredPose> goal_handle);
+
+    Eigen::Quaterniond average_quaternions(
+        const std::vector<Eigen::Quaterniond>& quaternions);
 };
 
 #endif  // POSE_ACTION_SERVER_ROS_HPP
