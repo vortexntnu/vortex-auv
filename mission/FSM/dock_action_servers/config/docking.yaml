@@ -1,6 +1,0 @@
-/**:
-  ros__parameters:
-    docking_station_offset: -1.0
-    num_measurements: 5
-    dock_wait_time: 10.0
-    print_debug: false

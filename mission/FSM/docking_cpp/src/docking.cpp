@@ -4,15 +4,15 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 FindDockingStationState::FindDockingStationState()
-    : yasmin_ros::ActionState<FilteredPose>(
+    : yasmin_ros::ActionState<docking_fsm::FilteredPose>(
           "filtered_pose",
           std::bind(&FindDockingStationState::create_goal_handler, this, _1),
           std::bind(&FindDockingStationState::response_handler, this, _1, _2),
           std::bind(&FindDockingStationState::print_feedback, this, _1, _2)) {};
 
-FilteredPose::Goal FindDockingStationState::create_goal_handler(
+docking_fsm::FilteredPose::Goal FindDockingStationState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = FilteredPose::Goal();
+    auto goal = docking_fsm::FilteredPose::Goal();
     goal.num_measurements = blackboard->get<bool>("num_measurements");
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
@@ -24,8 +24,9 @@ FilteredPose::Goal FindDockingStationState::create_goal_handler(
 
 std::string FindDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    FilteredPose::Result::SharedPtr response) {
-    blackboard->set<PoseStamped>("dock_pose", response->filtered_pose);
+    docking_fsm::FilteredPose::Result::SharedPtr response) {
+    blackboard->set<docking_fsm::PoseStamped>("dock_pose",
+                                              response->filtered_pose);
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Response received from action server:");
@@ -35,19 +36,21 @@ std::string FindDockingStationState::response_handler(
                 response->filtered_pose.pose.position.y,
                 response->filtered_pose.pose.position.z);
 
-    PoseStamped docking_offset_goal;
+    docking_fsm::PoseStamped docking_offset_goal;
     docking_offset_goal = response->filtered_pose;
     docking_offset_goal.pose.position.z +=
         blackboard->get<double>("docking_station_offset");
-    blackboard->set<PoseStamped>("docking_offset_goal", docking_offset_goal);
+    blackboard->set<docking_fsm::PoseStamped>("docking_offset_goal",
+                                              docking_offset_goal);
 
     return yasmin_ros::basic_outcomes::SUCCEED;
 }
 
 void FindDockingStationState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const FilteredPose::Feedback> feedback) {
-    blackboard->set<Pose>("current_pose", feedback->current_pose.pose);
+    std::shared_ptr<const docking_fsm::FilteredPose::Feedback> feedback) {
+    blackboard->set<docking_fsm::Pose>("current_pose",
+                                       feedback->current_pose.pose);
 
     if (blackboard->get<bool>("print_debug")) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
@@ -59,7 +62,7 @@ void FindDockingStationState::print_feedback(
 }
 
 ApproachDockingStationState::ApproachDockingStationState()
-    : yasmin_ros::ActionState<LOSGuidance>(
+    : yasmin_ros::ActionState<docking_fsm::LOSGuidance>(
           "/los_guidance",
           std::bind(&ApproachDockingStationState::create_goal_handler,
                     this,
@@ -73,16 +76,16 @@ ApproachDockingStationState::ApproachDockingStationState()
                     _1,
                     _2)) {};
 
-LOSGuidance::Goal ApproachDockingStationState::create_goal_handler(
+docking_fsm::LOSGuidance::Goal ApproachDockingStationState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = LOSGuidance::Goal();
+    auto goal = docking_fsm::LOSGuidance::Goal();
 
     blackboard->set<bool>("is_home", false);
 
-    PoseStamped docking_offset_goal =
-        blackboard->get<PoseStamped>("docking_offset_goal");
+    docking_fsm::PoseStamped docking_offset_goal =
+        blackboard->get<docking_fsm::PoseStamped>("docking_offset_goal");
 
-    PointStamped docking_point;
+    docking_fsm::PointStamped docking_point;
     docking_point.point = docking_offset_goal.pose.position;
     docking_point.header = docking_offset_goal.header;
 
@@ -98,7 +101,7 @@ LOSGuidance::Goal ApproachDockingStationState::create_goal_handler(
 
 std::string ApproachDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    LOSGuidance::Result::SharedPtr response) {
+    docking_fsm::LOSGuidance::Result::SharedPtr response) {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Response received from action server:");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -115,10 +118,7 @@ std::string ApproachDockingStationState::response_handler(
 
 void ApproachDockingStationState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const LOSGuidance::Feedback> feedback) {
-    blackboard->set<vortex_msgs::msg::LOSGuidance>("LOS_data",
-                                                   feedback->feedback);
-
+    std::shared_ptr<const docking_fsm::LOSGuidance::Feedback> feedback) {
     if (blackboard->get<bool>("print_debug")) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                     "Current surge, pitch and yaw: %f, %f, %f",
@@ -129,7 +129,7 @@ void ApproachDockingStationState::print_feedback(
 
 GoAboveDockingStationState::GoAboveDockingStationState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
-    : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
+    : yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint>(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&GoAboveDockingStationState::create_goal_handler, this, _1),
           std::bind(&GoAboveDockingStationState::response_handler,
@@ -141,12 +141,13 @@ GoAboveDockingStationState::GoAboveDockingStationState(
                     _1,
                     _2)) {};
 
-ReferenceFilterWaypoint::Goal GoAboveDockingStationState::create_goal_handler(
+docking_fsm::ReferenceFilterWaypoint::Goal
+GoAboveDockingStationState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = ReferenceFilterWaypoint::Goal();
+    auto goal = docking_fsm::ReferenceFilterWaypoint::Goal();
 
     auto docking_offset_goal =
-        blackboard->get<PoseStamped>("docking_offset_goal");
+        blackboard->get<docking_fsm::PoseStamped>("docking_offset_goal");
     goal.goal = docking_offset_goal;
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
@@ -167,7 +168,7 @@ ReferenceFilterWaypoint::Goal GoAboveDockingStationState::create_goal_handler(
 
 std::string GoAboveDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    ReferenceFilterWaypoint::Result::SharedPtr response) {
+    docking_fsm::ReferenceFilterWaypoint::Result::SharedPtr response) {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Response received from action server:");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -184,13 +185,14 @@ std::string GoAboveDockingStationState::response_handler(
 
 void GoAboveDockingStationState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
-    Pose current_pose = Pose();
+    std::shared_ptr<const docking_fsm::ReferenceFilterWaypoint::Feedback>
+        feedback) {
+    docking_fsm::Pose current_pose = docking_fsm::Pose();
     current_pose.position.x = feedback->feedback.x;
     current_pose.position.y = feedback->feedback.y;
     current_pose.position.z = feedback->feedback.z;
 
-    blackboard->set<Pose>("current_pose", current_pose);
+    blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
     if (blackboard->get<bool>("print_debug")) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
@@ -201,7 +203,7 @@ void GoAboveDockingStationState::print_feedback(
 }
 
 ConvergeDockingStationState::ConvergeDockingStationState()
-    : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
+    : yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint>(
           "/reference_filter",
           std::bind(&ConvergeDockingStationState::create_goal_handler,
                     this,
@@ -215,11 +217,13 @@ ConvergeDockingStationState::ConvergeDockingStationState()
                     _1,
                     _2)) {};
 
-ReferenceFilterWaypoint::Goal ConvergeDockingStationState::create_goal_handler(
+docking_fsm::ReferenceFilterWaypoint::Goal
+ConvergeDockingStationState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = ReferenceFilterWaypoint::Goal();
+    auto goal = docking_fsm::ReferenceFilterWaypoint::Goal();
 
-    PoseStamped dock_pose = blackboard->get<PoseStamped>("dock_pose");
+    docking_fsm::PoseStamped dock_pose =
+        blackboard->get<docking_fsm::PoseStamped>("dock_pose");
     goal.goal = dock_pose;
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
@@ -233,7 +237,7 @@ ReferenceFilterWaypoint::Goal ConvergeDockingStationState::create_goal_handler(
 
 std::string ConvergeDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    ReferenceFilterWaypoint::Result::SharedPtr response) {
+    docking_fsm::ReferenceFilterWaypoint::Result::SharedPtr response) {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Response received from action server:");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -249,13 +253,14 @@ std::string ConvergeDockingStationState::response_handler(
 
 void ConvergeDockingStationState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
-    Pose current_pose = Pose();
+    std::shared_ptr<const docking_fsm::ReferenceFilterWaypoint::Feedback>
+        feedback) {
+    docking_fsm::Pose current_pose = docking_fsm::Pose();
     current_pose.position.x = feedback->feedback.x;
     current_pose.position.y = feedback->feedback.y;
     current_pose.position.z = feedback->feedback.z;
 
-    blackboard->set<Pose>("current_pose", current_pose);
+    blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
     if (blackboard->get<bool>("print_debug")) {
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
@@ -268,11 +273,11 @@ void ConvergeDockingStationState::print_feedback(
 std::string DockedState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     std::chrono::duration<double> elapsed_time = std::chrono::seconds(0);
-    std::chrono::time_point<std::chrono::system_clock> start_time =
-        std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::steady_clock> start_time =
+        std::chrono::steady_clock::now();
 
     while (true) {
-        elapsed_time = (std::chrono::system_clock::now() - start_time);
+        elapsed_time = (std::chrono::steady_clock::now() - start_time);
 
         if (elapsed_time.count() > blackboard->get<double>("dock_wait_time")) {
             return yasmin_ros::basic_outcomes::SUCCEED;
@@ -283,19 +288,20 @@ std::string DockedState(
 };
 
 ReturnHomeState::ReturnHomeState()
-    : yasmin_ros::ActionState<ReferenceFilterWaypoint>(
+    : yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint>(
           "/reference_filter",
           std::bind(&ReturnHomeState::create_goal_handler, this, _1),
           std::bind(&ReturnHomeState::response_handler, this, _1, _2),
           std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {};
 
-ReferenceFilterWaypoint::Goal ReturnHomeState::create_goal_handler(
+docking_fsm::ReferenceFilterWaypoint::Goal ReturnHomeState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    auto goal = ReferenceFilterWaypoint::Goal();
+    auto goal = docking_fsm::ReferenceFilterWaypoint::Goal();
 
     blackboard->set<bool>("is_docked", false);
 
-    PoseStamped start_pose = blackboard->get<PoseStamped>("start_pose");
+    docking_fsm::PoseStamped start_pose =
+        blackboard->get<docking_fsm::PoseStamped>("start_pose");
 
     goal.goal = start_pose;
 
@@ -310,7 +316,7 @@ ReferenceFilterWaypoint::Goal ReturnHomeState::create_goal_handler(
 
 std::string ReturnHomeState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    ReferenceFilterWaypoint::Result::SharedPtr response) {
+    docking_fsm::ReferenceFilterWaypoint::Result::SharedPtr response) {
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Response received from action server:");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
@@ -326,8 +332,9 @@ std::string ReturnHomeState::response_handler(
 
 void ReturnHomeState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const ReferenceFilterWaypoint::Feedback> feedback) {
-    Pose current_pose = Pose();
+    std::shared_ptr<const docking_fsm::ReferenceFilterWaypoint::Feedback>
+        feedback) {
+    docking_fsm::Pose current_pose = docking_fsm::Pose();
     current_pose.position.x = feedback->feedback.x;
     current_pose.position.y = feedback->feedback.y;
     current_pose.position.z = feedback->feedback.z;
@@ -335,7 +342,7 @@ void ReturnHomeState::print_feedback(
     current_pose.orientation.y = feedback->feedback.pitch;
     current_pose.orientation.z = feedback->feedback.yaw;
 
-    blackboard->set<Pose>("current_pose", current_pose);
+    blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 "Current position: x = %f, y = %f, z = %f\n",
                 current_pose.position.x, current_pose.position.y,
@@ -474,38 +481,40 @@ auto initialize_blackboard() {
     auto params = std::make_shared<rclcpp::Node>("dock_params");
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating params node");
 
-    params->declare_parameter<double>("docking_station_offset");
-    params->declare_parameter<int>("num_measurements");
+    params->declare_parameter<double>("fsm.docking_station_offset");
+    params->declare_parameter<int>("fsm.num_measurements");
     params->declare_parameter<std::string>("action_servers.reference_filter");
-    params->declare_parameter<double>("dock_wait_time");
-    params->declare_parameter<bool>("print_debug");
+    params->declare_parameter<double>("fsm.dock_wait_time");
+    params->declare_parameter<bool>("fsm.print_debug");
 
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Parameters declared");
 
     auto blackboard = std::make_shared<yasmin::blackboard::Blackboard>();
 
-    PoseStamped dock_pose;
-    PoseStamped start_pose;
-    blackboard->set<PoseStamped>("dock_pose", dock_pose);
-    blackboard->set<PoseStamped>("start_pose", start_pose);
+    docking_fsm::PoseStamped dock_pose;
+    docking_fsm::PoseStamped start_pose;
+    blackboard->set<docking_fsm::PoseStamped>("dock_pose", dock_pose);
+    blackboard->set<docking_fsm::PoseStamped>("start_pose", start_pose);
 
     blackboard->set<double>(
         "docking_station_offset",
-        params->get_parameter("docking_station_offset").as_double());
+        params->get_parameter("fsm.docking_station_offset").as_double());
     blackboard->set<bool>("return_home", false);
     blackboard->set<bool>("is_docked", false);
     blackboard->set<bool>("is_home", true);
     blackboard->set<bool>("is_error", false);
     blackboard->set<bool>("has_finished_converging", false);
-    blackboard->set<int>("num_measurements",
-                         params->get_parameter("num_measurements").as_int());
+    blackboard->set<int>(
+        "num_measurements",
+        params->get_parameter("fsm.num_measurements").as_int());
     blackboard->set<std::string>(
         "reference_filter_action",
         params->get_parameter("action_servers.reference_filter").as_string());
     blackboard->set<double>(
-        "dock_wait_time", params->get_parameter("dock_wait_time").as_double());
+        "dock_wait_time",
+        params->get_parameter("fsm.dock_wait_time").as_double());
     blackboard->set<bool>("print_debug",
-                          params->get_parameter("print_debug").as_bool());
+                          params->get_parameter("fsm.print_debug").as_bool());
 
     RCLCPP_INFO(
         rclcpp::get_logger("rclcpp"), "Reference filter action: %s",

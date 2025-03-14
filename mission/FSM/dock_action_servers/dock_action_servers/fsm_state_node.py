@@ -12,6 +12,13 @@ class FSMStateNode(Node):
             StateMachine, '/fsm_viewer', self.listener_callback, 10
         )
 
+        self.none_state = -1
+
+        self.declare_parameter("fsm.print_debug", False)
+        self.debug = (
+            self.get_parameter("fsm.print_debug").get_parameter_value().bool_value
+        )
+
         self.declare_parameter("topics.fsm.active_controller", "")
         publish_topic = (
             self.get_parameter("topics.fsm.active_controller")
@@ -20,27 +27,26 @@ class FSMStateNode(Node):
         )
         self.get_logger().info(f'Publishing to topic: {publish_topic}')
 
-        self.publisher = self.create_publisher(String, publish_topic, 10)
-        self.last_state_id = -1
+        self.publisher = self.create_publisher(String, publish_topic, 2)
+        self.last_state_id = self.none_state
 
     def listener_callback(self, fsm_msg: StateMachine):
         state_id = fsm_msg.states[0].current_state
 
-        if self.last_state_id == state_id or state_id == -1:
+        if self.last_state_id == state_id or state_id == self.none_state:
             return
 
-        if state_id != -1:
-            current_state_name = fsm_msg.states[state_id].name
-        else:
-            current_state_name = "None"
+        current_state_name = fsm_msg.states[state_id].name
 
         controller_message = self.get_controller_message(current_state_name)
         msg = String()
         msg.data = controller_message
 
-        if msg.data != 'None':
-            self.get_logger().info(f'Message to publish: {msg.data}')
-            self.publisher.publish(msg)
+        if msg.data != "None":
+            if self.debug:
+                self.get_logger().info(f'Message to publish: {msg.data}')
+
+            self.publisher.publish(msg=msg)
             self.last_state_id = state_id
 
     def get_controller_message(self, current_state):
