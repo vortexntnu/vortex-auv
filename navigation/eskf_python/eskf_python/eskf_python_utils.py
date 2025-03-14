@@ -12,6 +12,14 @@ def skew_matrix(vector: np.ndarray) -> np.ndarray:
         ]
     )
 
+def quat_norm(quat: np.ndarray) -> np.ndarray:
+    """
+    Function that normalizes a quaternion
+    """
+    quat = quat / np.linalg.norm(quat)
+
+    return quat
+
 def quaternion_product(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
         """Calculates the quaternion super product of two quaternions.
 
@@ -36,6 +44,17 @@ def quaternion_product(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
         q_new = q_new / np.linalg.norm(q_new)
 
         return q_new
+
+def quaternion_error(quat_1: np.ndarray, quat_2: np.ndarray) -> np.ndarray:
+    """
+    Calculates the error between two quaternions
+    """
+    
+    quat_2_inv = np.array([quat_2[0], -quat_2[1], -quat_2[2], -quat_2[3]])
+
+    error_quat = quaternion_product(quat_1, quat_2_inv)
+
+    return error_quat
 
 def angle_axis_to_quaternion(vector: np.ndarray) -> np.ndarray:
     """Converts an angle-axis representation to a quaternion.
@@ -93,3 +112,37 @@ def R_from_angle_axis(vector: np.ndarray) -> np.ndarray:
     )  
 
     return R
+
+def euler_to_quat(euler_angles: np.ndarray) -> np.ndarray:
+    """
+    Converts Euler angles to a quaternion
+    """
+    psi, theta, phi = euler_angles
+    c_psi = np.cos(psi / 2)
+    s_psi = np.sin(psi / 2) 
+    c_theta = np.cos(theta / 2)
+    s_theta = np.sin(theta / 2)
+    c_phi = np.cos(phi / 2)
+    s_phi = np.sin(phi / 2)
+
+    quat = np.array([
+        c_psi * c_theta * c_phi + s_psi * s_theta * s_phi,
+        c_psi * c_theta * s_phi - s_psi * s_theta * c_phi,
+        s_psi * c_theta * s_phi + c_psi * s_theta * c_phi,
+        s_psi * c_theta * c_phi - c_psi * s_theta * s_phi
+    ])
+
+    return quat
+
+def quat_to_euler(quat: np.ndarray) -> np.ndarray:
+    """
+    Converts a quaternion to Euler angles
+    """
+    nu, eta_1, eta_2, eta_3 = quat
+
+    phi = np.arctan2(2*(eta_2 * eta_3 + nu * eta_1), 1 - 2 * (eta_1 ** 2 + eta_2 ** 2))
+    theta = -np.arcsin(2 * (eta_1 * eta_3 - nu * eta_2))
+    psi = np.arctan2(2 * (nu * eta_3 + eta_1 * eta_2), 1 - 2 * (eta_2 ** 2 + eta_3 ** 2))
+
+    return np.array([phi, theta, psi])
+
