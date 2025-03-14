@@ -4,9 +4,9 @@ from typing import Tuple
 import numpy as np
 from scipy.linalg import expm
 from eskf_python_class import StateEuler, StateQuat, Measurement
-from eskf_python_utils import skew_matrix, quaternion_product, R_from_angle_axis, angle_axis_to_quaternion
-from ukf_okid_class import euler_to_quat
+from eskf_python_utils import skew_matrix, quaternion_product, R_from_angle_axis, angle_axis_to_quaternion, euler_to_quat
 from scipy.linalg import block_diag
+from scipy.spatial.transform import Rotation as R_scipy
 
 class ESKF:
     def __init__(self, Q: np.ndarray, P0, Hx, nom_state: StateQuat, p_accBias, p_gyroBias, dt):
@@ -103,8 +103,6 @@ class ESKF:
         """
         return self.nom_state.velocity
 
-
-
     def nominal_state_discrete(self, imu_data: Measurement) -> None:
         """ 
         Calculates the next nominal state using the discrete-time process model defined in:     
@@ -196,13 +194,18 @@ class ESKF:
         Args:
             dvl_measurement (np.ndarray): The DVL measurement.
         """
-
+ 
         H = self.H()
         P = self.error_state.covariance
-        R= dvl_measurement.aiding_covariance
-        K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R)
-        self.error_state.fill_states(K @ (dvl_measurement.aiding - self.h()))
-        self.error_state.covariance = (np.eye(18) - K @ H) @ P
+        R = dvl_measurement.aiding_covariance
+
+        S = H @ P @ H.T + R
+        K = P @ H.T @ np.linalg.inv(S)
+        innovation = dvl_measurement.aiding - self.h()
+        self.error_state.fill_states(K @ innovation)
+
+        I_KH = np.eye(18) - K @ H
+        self.error_state.covariance = I_KH @ P @ I_KH.T + K @ R @ K.T # Joseph form for more stability
 
     def injection(self) -> None:
         """
@@ -211,7 +214,6 @@ class ESKF:
         Chapter 6.2 eq. 282-283
         
         """
-        
         self.nom_state.position = self.nom_state.position + self.error_state.position
         self.nom_state.velocity = self.nom_state.velocity + self.error_state.velocity
         self.nom_state.orientation = quaternion_product(self.nom_state.orientation, euler_to_quat(self.error_state.orientation))

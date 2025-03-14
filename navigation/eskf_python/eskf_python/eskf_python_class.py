@@ -1,8 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Tuple, List
-from scipy.linalg import expm
 import numpy as np
-from eskf_python_utils import skew_matrix, quaternion_product
 
 
 @dataclass
@@ -85,31 +82,6 @@ class StateQuat:
 
         return R
     
-    # def inject(self, EulerState: 'StateEuler') -> 'StateQuat':
-    #     inj_state = StateQuat()
-
-    #     # Injecting the error state
-    #     inj_state.position = self.position + EulerState.position
-    #     inj_state.velocity = self.velocity + EulerState.velocity
-    #     inj_state.orientation = quaternion_product(
-    #         self.orientation,
-    #         0.5
-    #         * np.array(
-    #             [
-    #                 2,
-    #                 EulerState.orientation[0],
-    #                 EulerState.orientation[1],
-    #                 EulerState.orientation[2],
-    #             ]
-    #         ),
-    #     )
-    #     inj_state.acceleration_bias = self.acceleration_bias + EulerState.acceleration_bias
-    #     inj_state.gyro_bias = self.gyro_bias + EulerState.gyro_bias
-
-    #     return inj_state
-
-
-
 @dataclass
 class StateEuler:
     position: np.ndarray = field(
