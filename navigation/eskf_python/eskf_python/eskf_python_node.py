@@ -4,7 +4,7 @@ import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, qos_profile_sensor_data
-from sensor_msgs.msg import Imu,
+from sensor_msgs.msg import Imu
 import numpy as np
 from geometry_msgs.msg import TwistWithCovarianceStamped
 
