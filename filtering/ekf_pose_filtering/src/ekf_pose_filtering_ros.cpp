@@ -53,11 +53,9 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
         this->create_publisher<geometry_msgs::msg::PoseStamped>(
             filtered_pose_pub_topic, qos_sensor_data);
 
-    double dynmod_stddev =
-        this->declare_parameter("dynmod_stddev", 0.01);
+    double dynmod_stddev = this->declare_parameter("dynmod_stddev", 0.01);
     double sensmod_stddev = this->declare_parameter("sensmod_stddev", 0.01);
-    dynamic_model_ =
-        std::make_shared<DynMod>(dynmod_stddev);
+    dynamic_model_ = std::make_shared<DynMod>(dynmod_stddev);
     sensor_model_ = std::make_shared<SensMod>(sensmod_stddev);
 }
 
@@ -83,9 +81,9 @@ void EKFPoseFilteringNode::pose_callback(
 void EKFPoseFilteringNode::filter_pose(
     geometry_msgs::msg::PoseStamped& pose_msg) {
     if (first_run_) {
-        Eigen::Vector3d initial_measurement = {
-            pose_msg.pose.position.x, pose_msg.pose.position.y,
-            pose_msg.pose.position.z};
+        Eigen::Vector3d initial_measurement = {pose_msg.pose.position.x,
+                                               pose_msg.pose.position.y,
+                                               pose_msg.pose.position.z};
         previous_pose_est_ =
             Gauss3d(initial_measurement, Gauss3d::Mat_nn::Identity());
         previous_time_ = pose_msg.header.stamp;
