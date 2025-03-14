@@ -3,25 +3,27 @@
 
 #include "unordered_map"
 #include "string"
+#include <joystick_interface_auv/joystick_utils.hpp>
 
-Struct Gains
+namespace joystick_interface_auv
 {
-    double x: 0.0;
-    double y: 0.0;
-    double z: 0.0;
-    double roll: 0.0;
-    double pitch: 0.0;
-    double yaw: 0.0;
-}
-
 class JoyProcessor:
 {
     public:
-        JoyProcessor(std::unordered_map<std::string, int> button_map, 
-                     std::unordered_map<std::string, int> axis_map, 
-                     Gains joy_gains, 
-                     Gains reference_gains);
+        JoyProcessor(State joy_gains, 
+                     State reference_gains);
         ~JoyProcessor();
 
-    private
+        void calculate_movement(std::unordered_map<std::string, int> button_map,
+                                std::unordered_map<std::string, int> axis_map);
+
+    private:
+        State joy_gains_;
+        State reference_gains_;
+        State drone_state_;
+        State reference_state_;
+        State 
 }
+}  // namespace joystick_interface_auv
+
+#endif  // JOY_PROCESSOR_AUV_HPP
