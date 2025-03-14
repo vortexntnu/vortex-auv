@@ -14,6 +14,31 @@ class UKF:
         self.sigma_points_list = None
         self.y_i = None
         self.weight = None
+        # self.T = self.generate_T_matrix(len(P_0))
+
+    def generate_T_matrix(n):
+        """
+        Generates the orthonormal transformation matrix T used in the TUKF sigma point generation.
+
+        Parameters:
+            n (int): The state dimension.
+
+        Returns:
+            T (np.ndarray): An n x 2n orthonormal transformation matrix used to generate TUKF sigma points.
+        """
+        T = np.zeros((n, 2 * n))
+
+        for i in range(1, 2 * n + 1):  # indexing matches equation (1, ..., 2n)
+            for j in range(1, (n // 2) + 1):
+                T[2 * j - 2, i - 1] = np.sqrt(2) * np.cos(((2 * j - 1) * i * np.pi) / n)
+                T[2 * j - 1, i - 1] = np.sqrt(2) * np.sin(((2 * j - 1) * i * np.pi) / n)
+
+            if n % 2 == 1:  # if n is odd, add the last term as described in the paper
+                T[n - 1, i - 1] = (-1) ** i
+
+        T = T / np.sqrt(2)  # Normalize matrix for orthonormality (unit scaling)
+
+        return T
     
     def sigma_points(self, current_state: StateQuat) -> tuple[list[StateQuat], np.ndarray]:
         """
@@ -134,10 +159,10 @@ if __name__ == '__main__':
     x0[3] = 1
     x0[7:10] = [0.2, 0.2, 0.2]
     dt = 0.01
-    R = (0.1 / dt) * np.eye(3)
+    R = (0.01) * np.eye(3)
     
-    Q = 0.1 * np.eye(12)
-    P0 = np.eye(12) * 0.1
+    Q = 0.00015 * np.eye(12)
+    P0 = np.eye(12) * 0.0001
 
     model = process_model()
     model.dt = 0.01
@@ -156,16 +181,35 @@ if __name__ == '__main__':
     model.damping_nonlinear = np.array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
     model.added_mass = np.diag([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
 
-    model_ukf = model
+    model_ukf = process_model()
+    model_ukf.dt = 0.01
+    model_ukf.mass_interia_matrix = np.array([
+        [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
+        [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
+        [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
+        [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
+        [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
+        [0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
+    ])
+    model_ukf.m = 30.0
+    model_ukf.r_b_bg = np.array([0.01, 0.0, 0.02])
+    model_ukf.inertia = np.diag([0.68, 3.32, 3.34])
+    model_ukf.damping_linear = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+    model_ukf.damping_nonlinear = np.array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
+    model_ukf.added_mass = np.diag([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
 
     # Simulation parameters
-    simulation_time = 40  # seconds
+    simulation_time = 20  # seconds
     num_steps = int(simulation_time / dt)
 
     # Initialize a dummy StateQuat.
-    test_state = StateQuat()
-    test_state.fill_states(x0)
-    test_state.covariance = P0
+    new_state = StateQuat()
+    new_state.fill_states(x0)
+    new_state.covariance = P0
+
+    test_state_x = StateQuat()
+    test_state_x.fill_states(x0)
+    test_state_x.covariance = P0
 
     # Initialize a estimated state
     estimated_state = StateQuat()
@@ -196,17 +240,14 @@ if __name__ == '__main__':
     # Initialize the okid params
     okid_params = np.zeros((num_steps, 21))
 
-    model.state_vector_prev = test_state
-    model.state_vector = test_state
+    model.state_vector_prev = new_state
+    model.state_vector = new_state
 
-    model_ukf.state_vector_prev = test_state
-    model_ukf.state_vector = test_state
+    model_ukf.state_vector_prev = test_state_x
+    model_ukf.state_vector = test_state_x
 
     # initialize the ukf
     ukf = UKF(model_ukf, x0, P0, Q, R)
-
-    # Test 
-    ukf.unscented_transform(test_state)
 
     elapsed_times = []
 
@@ -219,22 +260,22 @@ if __name__ == '__main__':
         model_ukf.Control_input = u(step * dt)
 
         # Perform the unscented transform
-        model.model_prediction(test_state)
+        model.model_prediction(new_state)
         new_state = model.euler_forward()
 
         # Adding noise in the state vector
-        noisy_state.position = new_state.position  + np.random.normal(0, 0.1, 3)
-        noisy_state.orientation = add_quaternion_noise(new_state.orientation, 0.1)
-        noisy_state.velocity = new_state.velocity  + np.random.normal(0, 0.1, 3)
-        noisy_state.angular_velocity = new_state.angular_velocity  + np.random.normal(0, 0.1, 3)
+        estimated_state.position = estimated_state.position # + np.random.normal(0, 0.01, 3)
+        estimated_state.orientation = estimated_state.orientation #add_quaternion_noise(estimated_state.orientation, 0.01)
+        estimated_state.velocity = estimated_state.velocity # + np.random.normal(0, 0.01, 3)
+        estimated_state.angular_velocity = estimated_state.angular_velocity # + np.random.normal(0, 0.01, 3)
 
         start_time = time.time()
-        estimated_state = ukf.unscented_transform(noisy_state)
+        estimated_state = ukf.unscented_transform(estimated_state)
         elapsed_time = time.time() - start_time
         elapsed_times.append(elapsed_time)
 
-        if step % 20 == 0:
-            measurment_model.measurement = new_state.velocity + np.random.normal(0, 0.2, 3)
+        if step % 10 == 0:
+            measurment_model.measurement = new_state.velocity # + np.random.normal(0, 0.01, 3)
             meas_update, covariance_matrix = ukf.measurement_update(estimated_state, measurment_model)
             estimated_state = ukf.posteriori_estimate(estimated_state, covariance_matrix, measurment_model, meas_update)
 
