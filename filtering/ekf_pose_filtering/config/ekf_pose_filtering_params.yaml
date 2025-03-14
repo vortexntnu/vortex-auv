@@ -1,0 +1,12 @@
+/**:
+  ros__parameters:
+
+    pose_sub_topic: "/valve_pose"
+    transformed_pose_pub_topic: "/transformed_pose"
+    filtered_pose_pub_topic: "/ekf_filtered_pose"
+    target_frame: "odom"
+
+    enu_orientation: true # Set to true to convert the frame of the measurements from ENU to NED
+
+    dynmod_stddev: 0.01
+    sendmod_stddev: 0.01
