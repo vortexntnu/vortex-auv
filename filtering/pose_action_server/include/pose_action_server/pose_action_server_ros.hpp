@@ -1,13 +1,13 @@
 #ifndef POSE_ACTION_SERVER_ROS_HPP
 #define POSE_ACTION_SERVER_ROS_HPP
 
+#include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/filtered_pose.hpp>
-#include <Eigen/Dense>
 
 class PoseActionServerNode : public rclcpp::Node {
     using GoalHandleFilteredPose =

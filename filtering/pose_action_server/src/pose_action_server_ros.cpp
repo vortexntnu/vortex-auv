@@ -74,31 +74,38 @@ void PoseActionServerNode::pose_callback(
     geometry_msgs::msg::PoseStamped filtered_pose;
     filtered_pose.header = pose_msg->header;
 
-    auto compute_mean = [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue, 
-            auto position_extractor) {
-    return std::accumulate(pose_queue.begin(), pose_queue.end(), 0.0, 
-                [&](double sum, const auto& pose) {
-                    return sum + position_extractor(pose);
-                }) / pose_queue.size();
-    };
+    auto compute_mean =
+        [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue,
+           auto position_extractor) {
+            return std::accumulate(pose_queue.begin(), pose_queue.end(), 0.0,
+                                   [&](double sum, const auto& pose) {
+                                       return sum + position_extractor(pose);
+                                   }) /
+                   pose_queue.size();
+        };
 
-    filtered_pose.pose.position.x = compute_mean(pose_queue_, [](const auto& pose) { return pose.pose.position.x; });
-    filtered_pose.pose.position.y = compute_mean(pose_queue_, [](const auto& pose) { return pose.pose.position.y; });
-    filtered_pose.pose.position.z = compute_mean(pose_queue_, [](const auto& pose) { return pose.pose.position.z; });
+    filtered_pose.pose.position.x = compute_mean(
+        pose_queue_, [](const auto& pose) { return pose.pose.position.x; });
+    filtered_pose.pose.position.y = compute_mean(
+        pose_queue_, [](const auto& pose) { return pose.pose.position.y; });
+    filtered_pose.pose.position.z = compute_mean(
+        pose_queue_, [](const auto& pose) { return pose.pose.position.z; });
 
-    auto extract_quaternions = [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue) {
-        std::vector<Eigen::Quaterniond> quaternions;
-        std::transform(pose_queue.begin(), pose_queue.end(), std::back_inserter(quaternions),
-                       [](const auto& pose) {
-                        Eigen::Quaterniond q;
-                        q.x() = pose.pose.orientation.x;
-                        q.y() = pose.pose.orientation.y;
-                        q.z() = pose.pose.orientation.z;
-                        q.w() = pose.pose.orientation.w;
-                        return q;
-                       });
-        return quaternions;
-    };
+    auto extract_quaternions =
+        [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue) {
+            std::vector<Eigen::Quaterniond> quaternions;
+            std::transform(pose_queue.begin(), pose_queue.end(),
+                           std::back_inserter(quaternions),
+                           [](const auto& pose) {
+                               Eigen::Quaterniond q;
+                               q.x() = pose.pose.orientation.x;
+                               q.y() = pose.pose.orientation.y;
+                               q.z() = pose.pose.orientation.z;
+                               q.w() = pose.pose.orientation.w;
+                               return q;
+                           });
+            return quaternions;
+        };
 
     auto quaternions = extract_quaternions(pose_queue_);
 
@@ -108,9 +115,8 @@ void PoseActionServerNode::pose_callback(
     filtered_pose.pose.orientation.y = mean_q.y();
     filtered_pose.pose.orientation.z = mean_q.z();
     filtered_pose.pose.orientation.w = mean_q.w();
-    
-    auto result =
-        std::make_shared<vortex_msgs::action::FilteredPose::Result>();
+
+    auto result = std::make_shared<vortex_msgs::action::FilteredPose::Result>();
     result->filtered_pose = filtered_pose;
     active_goal_handle_->succeed(result);
     is_executing_action_ = false;
@@ -132,7 +138,7 @@ Eigen::Quaterniond PoseActionServerNode::average_quaternions(
     avg_q.y() = eigenvector(1);
     avg_q.z() = eigenvector(2);
     avg_q.w() = eigenvector(3);
-    
+
     return avg_q.normalized();
 }
 
