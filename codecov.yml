@@ -23,4 +23,3 @@ flags:
       - guidance/reference_filter_dp
       - motion/thrust_allocator_auv
       - motion/thruster_interface_auv
-      - acoustics/acoustics_data_record_auv/auv_acoustics_data_record
