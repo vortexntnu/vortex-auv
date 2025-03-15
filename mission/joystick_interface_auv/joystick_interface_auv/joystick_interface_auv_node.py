@@ -9,6 +9,7 @@ from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
 from vortex_utils.ros_converter import pose_from_ros
+import numpy as np
 
 from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
 
@@ -53,9 +54,9 @@ class JoystickInterface(Node):
         ]
 
         for param in gain_params:
-            self.declare_parameter(param, 1.0)
+            self.declare_parameter(f"gains.{param}", 1.0)
             # Get the values and set them as attributes of the class
-            setattr(self, '_' + param, self.get_parameter(param).value)
+            setattr(self, '_' + param, self.get_parameter(f"gains.{param}").value)
 
         topic_params = ['pose', 'joy', 'wrench_input', 'killswitch', 'operation_mode']
 
@@ -280,9 +281,12 @@ class JoystickInterface(Node):
         The position and orientation (roll, pitch, yaw) are updated
         using the current joystick inputs scaled by their respective parameters.
         """
-        self._desired_state.x += self.surge * self._guidance_surge_gain
-        self._desired_state.y += self.sway * self._guidance_sway_gain
-        self._desired_state.z -= self.heave * self._guidance_heave_gain
+        rotation_matrix = self._current_state.as_rotation_matrix()
+        delta_pos_body = np.array([self.surge, self.sway, self.heave])
+        delta_pos_ned = rotation_matrix @ delta_pos_body
+        self._desired_state.x += delta_pos_ned[0] * self._guidance_surge_gain
+        self._desired_state.y += delta_pos_ned[1] * self._guidance_sway_gain
+        self._desired_state.z += delta_pos_ned[2] * self._guidance_heave_gain
         self._desired_state.roll += self.roll * self._guidance_roll_gain
         self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
         self._desired_state.yaw += self.yaw * self._guidance_yaw_gain
