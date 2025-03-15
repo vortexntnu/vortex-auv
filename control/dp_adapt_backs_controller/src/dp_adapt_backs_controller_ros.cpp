@@ -108,14 +108,10 @@ void DPAdaptBacksControllerNode::twist_callback(
 }
 
 void DPAdaptBacksControllerNode::set_adap_params() {
-    this->declare_parameter<std::vector<double>>(
-        "adapt_gain");
-    this->declare_parameter<std::vector<double>>(
-        "d_gain");
-    this->declare_parameter<std::vector<double>>(
-        "K1");
-    this->declare_parameter<std::vector<double>>(
-        "K2");
+    this->declare_parameter<std::vector<double>>("adapt_gain");
+    this->declare_parameter<std::vector<double>>("d_gain");
+    this->declare_parameter<std::vector<double>>("K1");
+    this->declare_parameter<std::vector<double>>("K2");
     this->declare_parameter<std::vector<double>>("r_b_bg");
     this->declare_parameter<std::vector<double>>("inertia_matrix");
     this->declare_parameter<std::vector<double>>("mass_matrix");
@@ -129,7 +125,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     std::vector<double> K2_vec = this->get_parameter("K2").as_double_array();
     std::vector<double> r_b_bg_vec =
         this->get_parameter("r_b_bg").as_double_array();
-    std::vector<double> I_b_vec = this->get_parameter("inertia_matrix").as_double_array();
+    std::vector<double> I_b_vec =
+        this->get_parameter("inertia_matrix").as_double_array();
     std::vector<double> mass_matrix_vec =
         this->get_parameter("mass_matrix").as_double_array();
 
