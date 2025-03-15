@@ -10,5 +10,5 @@ jobs:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-industrial-ci.yml@ci/add-compiler-version-to-industrial-ci
     with:
         upstream_workspace: './dependencies.repos'
-        before_install_target_dependencies: './scripts/ci_install_dependencies.sh'
+        before_install_upstream_dependencies: './scripts/ci_install_dependencies.sh'
         ros_repo: '["testing", "main"]'
