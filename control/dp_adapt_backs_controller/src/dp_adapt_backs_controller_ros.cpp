@@ -109,29 +109,27 @@ void DPAdaptBacksControllerNode::twist_callback(
 
 void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>(
-        "adap_param",
-        {0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8});
+        "adapt_gain");
     this->declare_parameter<std::vector<double>>(
-        "d_gain", {0.3, 0.3, 0.45, 0.2, 0.7, 0.6});
+        "d_gain");
     this->declare_parameter<std::vector<double>>(
-        "K1", {20.5, 15.5, 20.5, 1.2, 6.0, 2.5});
+        "K1");
     this->declare_parameter<std::vector<double>>(
-        "K2", {30.5, 25.5, 30.5, 2.6, 10.0, 6.5});
-    this->declare_parameter<std::vector<double>>("r_b_bg", {0.01, 0.0, 0.02});
-    this->declare_parameter<std::vector<double>>("I_b", {0.68, 3.32, 3.34});
-    this->declare_parameter<std::vector<double>>("mass_matrix",
-                                                 std::vector<double>(36, 1.0));
-    this->declare_parameter<double>("m", {30});
+        "K2");
+    this->declare_parameter<std::vector<double>>("r_b_bg");
+    this->declare_parameter<std::vector<double>>("inertia_matrix");
+    this->declare_parameter<std::vector<double>>("mass_matrix");
+    this->declare_parameter<double>("m");
 
     std::vector<double> adap_param_vec =
-        this->get_parameter("adap_param").as_double_array();
+        this->get_parameter("adapt_gain").as_double_array();
     std::vector<double> d_gain_vec =
         this->get_parameter("d_gain").as_double_array();
     std::vector<double> K1_vec = this->get_parameter("K1").as_double_array();
     std::vector<double> K2_vec = this->get_parameter("K2").as_double_array();
     std::vector<double> r_b_bg_vec =
         this->get_parameter("r_b_bg").as_double_array();
-    std::vector<double> I_b_vec = this->get_parameter("I_b").as_double_array();
+    std::vector<double> I_b_vec = this->get_parameter("inertia_matrix").as_double_array();
     std::vector<double> mass_matrix_vec =
         this->get_parameter("mass_matrix").as_double_array();
 
