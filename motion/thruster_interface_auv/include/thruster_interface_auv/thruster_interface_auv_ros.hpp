@@ -10,7 +10,8 @@
 
 class ThrusterInterfaceAUVNode : public rclcpp::Node {
    public:
-    ThrusterInterfaceAUVNode();
+    ThrusterInterfaceAUVNode(
+        const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
     /**
