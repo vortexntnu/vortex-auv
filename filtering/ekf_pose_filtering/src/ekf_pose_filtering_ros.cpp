@@ -5,12 +5,12 @@ using std::placeholders::_2;
 
 EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
     service_ = this->create_service<std_srvs::srv::SetBool>(
-        "reset_ekf", std::bind(&EKFPoseFilteringNode::reset_EFK_state, this, _2));
+        "reset_ekf",
+        std::bind(&EKFPoseFilteringNode::reset_EFK_state, this, _2));
 
-    target_frame_ =
-        this->declare_parameter<std::string>("target_frame");
-    auto pose_sub_topic = this->declare_parameter<std::string>(
-        "pose_sub_topic");
+    target_frame_ = this->declare_parameter<std::string>("target_frame");
+    auto pose_sub_topic =
+        this->declare_parameter<std::string>("pose_sub_topic");
 
     enu_orientation_ = this->declare_parameter<bool>("enu_orientation");
 
@@ -41,10 +41,10 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    auto transformed_pose_pub_topic = this->declare_parameter<std::string>(
-        "transformed_pose_pub_topic");
-    auto filtered_pose_pub_topic = this->declare_parameter<std::string>(
-        "filtered_pose_pub_topic");
+    auto transformed_pose_pub_topic =
+        this->declare_parameter<std::string>("transformed_pose_pub_topic");
+    auto filtered_pose_pub_topic =
+        this->declare_parameter<std::string>("filtered_pose_pub_topic");
 
     transformed_pose_pub_ =
         this->create_publisher<geometry_msgs::msg::PoseStamped>(

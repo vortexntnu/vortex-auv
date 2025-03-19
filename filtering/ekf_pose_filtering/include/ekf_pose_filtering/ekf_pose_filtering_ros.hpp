@@ -21,7 +21,8 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     ~EKFPoseFilteringNode() {};
 
    private:
-    void reset_EFK_state(std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+    void reset_EFK_state(
+        std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 
     void pose_callback(
         const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
