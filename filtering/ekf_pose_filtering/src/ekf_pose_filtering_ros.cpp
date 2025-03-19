@@ -5,14 +5,14 @@ using std::placeholders::_2;
 
 EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
     service_ = this->create_service<std_srvs::srv::SetBool>(
-        "reset_ekf", std::bind(&EKFPoseFilteringNode::resetEFK, this, _2));
+        "reset_ekf", std::bind(&EKFPoseFilteringNode::reset_EFK_state, this, _2));
 
     target_frame_ =
-        this->declare_parameter<std::string>("target_frame", "odom");
+        this->declare_parameter<std::string>("target_frame");
     auto pose_sub_topic = this->declare_parameter<std::string>(
-        "pose_sub_topic", "/aruco_board_pose_camera");
+        "pose_sub_topic");
 
-    enu_orientation_ = this->declare_parameter("enu_orientation", true);
+    enu_orientation_ = this->declare_parameter<bool>("enu_orientation");
 
     std::chrono::duration<int> buffer_timeout(1);
 
@@ -42,9 +42,9 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
     auto transformed_pose_pub_topic = this->declare_parameter<std::string>(
-        "transformed_pose_pub_topic", "/transformed_pose");
+        "transformed_pose_pub_topic");
     auto filtered_pose_pub_topic = this->declare_parameter<std::string>(
-        "filtered_pose_pub_topic", "/filtered_pose");
+        "filtered_pose_pub_topic");
 
     transformed_pose_pub_ =
         this->create_publisher<geometry_msgs::msg::PoseStamped>(
@@ -53,8 +53,8 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
         this->create_publisher<geometry_msgs::msg::PoseStamped>(
             filtered_pose_pub_topic, qos_sensor_data);
 
-    double dynmod_stddev = this->declare_parameter("dynmod_stddev", 0.01);
-    double sensmod_stddev = this->declare_parameter("sensmod_stddev", 0.01);
+    double dynmod_stddev = this->declare_parameter<double>("dynmod_stddev");
+    double sensmod_stddev = this->declare_parameter<double>("sensmod_stddev");
     dynamic_model_ = std::make_shared<DynMod>(dynmod_stddev);
     sensor_model_ = std::make_shared<SensMod>(sensmod_stddev);
 }
@@ -127,7 +127,7 @@ geometry_msgs::msg::Quaternion EKFPoseFilteringNode::enu_to_ned_quaternion(
     return ned_quat;
 }
 
-void EKFPoseFilteringNode::resetEFK(
+void EKFPoseFilteringNode::reset_EFK_state(
     std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
     first_run_ = false;
     previous_pose_est_ =

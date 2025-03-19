@@ -14,8 +14,6 @@
 #include <tuple>
 #include <vortex_filtering/vortex_filtering.hpp>
 
-using Vector6d = Eigen::Vector<double, 3>;
-
 class EKFPoseFilteringNode : public rclcpp::Node {
    public:
     EKFPoseFilteringNode();
@@ -23,7 +21,7 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     ~EKFPoseFilteringNode() {};
 
    private:
-    void resetEFK(std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+    void reset_EFK_state(std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 
     void pose_callback(
         const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);

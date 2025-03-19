@@ -9,4 +9,4 @@
     enu_orientation: true # Set to true to convert the frame of the measurements from ENU to NED
 
     dynmod_stddev: 0.01
-    sendmod_stddev: 0.01
+    sensmod_stddev: 0.01
