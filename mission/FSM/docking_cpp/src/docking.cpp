@@ -1,4 +1,4 @@
-#include <docking_cpp/docking.hpp>
+#include "docking_cpp/docking.hpp"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -52,13 +52,11 @@ void FindDockingStationState::print_feedback(
     blackboard->set<docking_fsm::Pose>("current_pose",
                                        feedback->current_pose.pose);
 
-    if (blackboard->get<bool>("print_debug")) {
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Current position: x = %f, y = %f, z = %f\n",
-                    feedback->current_pose.pose.position.x,
-                    feedback->current_pose.pose.position.y,
-                    feedback->current_pose.pose.position.z);
-    }
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
+                 "Current position: x = %f, y = %f, z = %f\n",
+                 feedback->current_pose.pose.position.x,
+                 feedback->current_pose.pose.position.y,
+                 feedback->current_pose.pose.position.z);
 }
 
 ApproachDockingStationState::ApproachDockingStationState()
@@ -119,12 +117,13 @@ std::string ApproachDockingStationState::response_handler(
 void ApproachDockingStationState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::LOSGuidance::Feedback> feedback) {
-    if (blackboard->get<bool>("print_debug")) {
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Current surge, pitch and yaw: %f, %f, %f",
-                    feedback->feedback.surge, feedback->feedback.pitch,
-                    feedback->feedback.yaw);
-    }
+    blackboard->set<vortex_msgs::msg::LOSGuidance>("current_LOS",
+                                                   feedback->feedback);
+
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
+                 "Current surge, pitch and yaw: %f, %f, %f",
+                 feedback->feedback.surge, feedback->feedback.pitch,
+                 feedback->feedback.yaw);
 }
 
 GoAboveDockingStationState::GoAboveDockingStationState(
@@ -194,12 +193,10 @@ void GoAboveDockingStationState::print_feedback(
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
-    if (blackboard->get<bool>("print_debug")) {
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Current position: x = %f, y = %f, z = %f\n",
-                    feedback->feedback.x, feedback->feedback.y,
-                    feedback->feedback.z);
-    }
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
+                 "Current position: x = %f, y = %f, z = %f\n",
+                 feedback->feedback.x, feedback->feedback.y,
+                 feedback->feedback.z);
 }
 
 ConvergeDockingStationState::ConvergeDockingStationState()
@@ -262,12 +259,10 @@ void ConvergeDockingStationState::print_feedback(
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
-    if (blackboard->get<bool>("print_debug")) {
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "Current position: x = %f, y = %f, z = %f\n",
-                    feedback->feedback.x, feedback->feedback.y,
-                    feedback->feedback.z);
-    }
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
+                 "Current position: x = %f, y = %f, z = %f\n",
+                 feedback->feedback.x, feedback->feedback.y,
+                 feedback->feedback.z);
 }
 
 std::string DockedState(
@@ -343,15 +338,14 @@ void ReturnHomeState::print_feedback(
     current_pose.orientation.z = feedback->feedback.yaw;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Current position: x = %f, y = %f, z = %f\n",
-                current_pose.position.x, current_pose.position.y,
-                current_pose.position.z);
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
+                 "Current position: x = %f, y = %f, z = %f\n",
+                 current_pose.position.x, current_pose.position.y,
+                 current_pose.position.z);
 }
 
 std::string AbortState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    // Needs some more logic, maybe call return home.
     blackboard->set<bool>("is_abort", true);
     return yasmin_ros::basic_outcomes::ABORT;
 };
@@ -363,15 +357,14 @@ std::string ErrorState(
 };
 
 std::shared_ptr<yasmin::StateMachine> create_state_machines() {
-    auto sm = std::make_shared<yasmin::StateMachine>(
-        std::initializer_list<std::string>{
-            "error",
-            yasmin_ros::basic_outcomes::SUCCEED,
-            yasmin_ros::basic_outcomes::CANCEL,
-            yasmin_ros::basic_outcomes::ABORT,
-            yasmin_ros::basic_outcomes::TIMEOUT,
-        });
-    return sm;
+    std::set<std::string> outcomes = {
+        "error",
+        yasmin_ros::basic_outcomes::SUCCEED,
+        yasmin_ros::basic_outcomes::CANCEL,
+        yasmin_ros::basic_outcomes::ABORT,
+        yasmin_ros::basic_outcomes::TIMEOUT,
+    };
+    return std::make_shared<yasmin::StateMachine>(outcomes);
 }
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
@@ -490,15 +483,14 @@ void add_states_nested(
 
 auto initialize_blackboard() {
     auto params = std::make_shared<rclcpp::Node>("dock_params");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Creating params node");
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Creating params node");
 
     params->declare_parameter<double>("fsm.docking_station_offset");
     params->declare_parameter<int>("fsm.num_measurements");
     params->declare_parameter<std::string>("action_servers.reference_filter");
     params->declare_parameter<double>("fsm.dock_wait_time");
-    params->declare_parameter<bool>("fsm.print_debug");
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Parameters declared");
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Parameters declared");
 
     auto blackboard = std::make_shared<yasmin::blackboard::Blackboard>();
 
@@ -524,19 +516,14 @@ auto initialize_blackboard() {
     blackboard->set<double>(
         "dock_wait_time",
         params->get_parameter("fsm.dock_wait_time").as_double());
-    blackboard->set<bool>("print_debug",
-                          params->get_parameter("fsm.print_debug").as_bool());
 
-    RCLCPP_INFO(
-        rclcpp::get_logger("rclcpp"), "Reference filter action: %s",
-        blackboard->get<std::string>("reference_filter_action").c_str());
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Blackboard created");
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Blackboard created");
 
     return blackboard;
 }
 
 int main(int argc, char* argv[]) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "docking");
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Docking");
     rclcpp::init(argc, argv);
 
     yasmin_ros::set_ros_loggers();
@@ -564,7 +551,7 @@ int main(int argc, char* argv[]) {
     yasmin_viewer::YasminViewerPub yasmin_pub_nested("DockingNested",
                                                      nested_sm);
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "State machines created");
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "State machines created");
 
     try {
         std::string outcome = (*sm.get())(blackboard);
