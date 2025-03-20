@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import numpy as np
-
+from eskf_python_utils import quaternion_error
 
 @dataclass
 class StateQuat:
@@ -81,6 +81,27 @@ class StateQuat:
         )
 
         return R
+    
+    def __sub__(self, other: 'StateQuat') -> 'StateQuat':
+        """Subtracts the values of two state vectors.
+
+        Args:
+            other (StateQuat): The state vector to subtract.
+
+        Returns:
+            np.ndarray: The difference between the two state vectors.
+        """
+        result = StateQuat()
+        result.position = self.position - other.position
+        result.velocity = self.velocity - other.velocity
+        result.orientation = quaternion_error(self.orientation, other.orientation)
+        result.acceleration_bias = self.acceleration_bias - other.acceleration_bias
+        result.gyro_bias = self.gyro_bias - other.gyro_bias
+        result.g = self.g - other.g
+
+        return result
+
+
     
 @dataclass
 class StateEuler:
