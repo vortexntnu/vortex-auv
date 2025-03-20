@@ -120,6 +120,9 @@ class ReferenceFilterNode : public rclcpp_lifecycle::LifecycleNode {
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
 
+    rclcpp_action::Client<
+        vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr cancel_client_;
+
     ReferenceFilter reference_filter_;
 
     rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
@@ -153,6 +156,8 @@ class ReferenceFilterNode : public rclcpp_lifecycle::LifecycleNode {
     std::mutex mutex_;
 
     rclcpp_action::GoalUUID preempted_goal_id_;
+
+    std::string action_server_name;
 
     std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>>

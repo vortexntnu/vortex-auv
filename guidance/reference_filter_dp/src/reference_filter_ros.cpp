@@ -35,7 +35,6 @@ LifecycleCallbackReturn ReferenceFilterNode::on_deactivate(
 
     std::lock_guard<std::mutex> lock(mutex_);
     cancel_all_current_goals();
-    std::lock_guard<std::mutex> unlock(mutex_);
 
     destroy_action_server();
     rclcpp_lifecycle::LifecycleNode::on_deactivate(previous_state);
@@ -65,25 +64,31 @@ LifecycleCallbackReturn ReferenceFilterNode::on_shutdown(
 }
 
 void ReferenceFilterNode::cancel_all_current_goals() {
-    RCLCPP_INFO(this->get_logger(), "Canceling all current goals");
-
-    for (auto& goal_handle : this->goal_handle_vector_) {
-        if (goal_handle && goal_handle->is_active()) {
-            auto result = std::make_shared<
-                vortex_msgs::action::ReferenceFilterWaypoint::Result>();
-            handle_cancel(goal_handle);
-        }
-    }
-
+    RCLCPP_INFO(this->get_logger(),
+                "Canceling all current goals, and clearing vector");
+    auto future = this->cancel_client_->async_cancel_all_goals();
     this->goal_handle_vector_.clear();
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {
-    this->declare_parameter<std::string>("topics.namespace");
-    this->declare_parameter<std::string>("topics.pose");
-    this->declare_parameter<std::string>("topics.twist");
-    this->declare_parameter<std::string>("topics.guidance.dp");
-    this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
+    if (!this->has_parameter("topics.namespace")) {
+        this->declare_parameter<std::string>("topics.namespace");
+    }
+
+    if (!this->has_parameter("topics.pose")) {
+        this->declare_parameter<std::string>("topics.pose");
+    }
+
+    if (!this->has_parameter("topics.twist")) {
+        this->declare_parameter<std::string>("topics.twist");
+    }
+
+    if (!this->has_parameter("topics.guidance.dp")) {
+        this->declare_parameter<std::string>("topics.guidance.dp");
+    }
+    if (!this->has_parameter("topics.aruco_board_pose_camera")) {
+        this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
+    }
 
     std::string ns = this->get_parameter("topics.namespace").as_string();
     std::string pose_topic =
@@ -124,11 +129,16 @@ void ReferenceFilterNode::destroy_topics_and_publishers() {
 }
 
 void ReferenceFilterNode::set_action_server() {
-    this->declare_parameter<std::string>("action_servers.reference_filter");
-    std::string action_server_name =
+    if (!this->has_parameter("action_servers.reference_filter")) {
+        this->declare_parameter<std::string>("action_servers.reference_filter");
+    }
+    this->action_server_name =
         this->get_parameter("action_servers.reference_filter").as_string();
     cb_group_ =
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
+    cancel_client_ = rclcpp_action::create_client<
+        vortex_msgs::action::ReferenceFilterWaypoint>(this, action_server_name);
 
     action_server_ = rclcpp_action::create_server<
         vortex_msgs::action::ReferenceFilterWaypoint>(
@@ -227,6 +237,7 @@ void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     this->goal_handle_vector_.push_back(goal_handle);
+    RCLCPP_INFO(this->get_logger(), "Pushed back goal into vector");
     execute(goal_handle);
 }
 
@@ -336,12 +347,21 @@ void ReferenceFilterNode::execute(
             if (goal_handle->get_goal_id() == preempted_goal_id_) {
                 result->success = false;
                 goal_handle->abort(result);
+                goal_handle_vector_.erase(
+                    std::remove(goal_handle_vector_.begin(),
+                                goal_handle_vector_.end(), goal_handle),
+                    goal_handle_vector_.end());
                 return;
             }
         }
         if (goal_handle->is_canceling()) {
             result->success = false;
             goal_handle->canceled(result);
+            goal_handle_vector_.erase(
+                std::remove(goal_handle_vector_.begin(),
+                            goal_handle_vector_.end(), goal_handle),
+                goal_handle_vector_.end());
+            this->goal_handle_.reset();
             RCLCPP_INFO(this->get_logger(), "Goal canceled");
             return;
         }
