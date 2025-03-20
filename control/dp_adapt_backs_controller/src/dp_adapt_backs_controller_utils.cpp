@@ -114,28 +114,28 @@ dp_types::Matrix3d calculate_T_dot(const dp_types::Eta& eta,
     double inv_cos2 = 1 / (cos_theta * cos_theta);
 
     dp_types::Vector6d eta_dot = J * nu.as_vector();
-    
+
     double phi_dot = eta_dot(3);
     double theta_dot = eta_dot(4);
 
     dp_types::Matrix3d dt_dphi;
-    dt_dphi << 0.0, cos_phi * tan_theta * phi_dot, -sin_phi * tan_theta * phi_dot, 
-               0.0, -sin_phi * phi_dot, -cos_phi * phi_dot, 
-               0.0, (cos_phi * phi_dot)/ cos_theta, (-sin_phi * phi_dot) / cos_theta;
+    dt_dphi << 0.0, cos_phi * tan_theta * phi_dot,
+        -sin_phi * tan_theta * phi_dot, 0.0, -sin_phi * phi_dot,
+        -cos_phi * phi_dot, 0.0, (cos_phi * phi_dot) / cos_theta,
+        (-sin_phi * phi_dot) / cos_theta;
 
     dp_types::Matrix3d dt_dtheta;
-    dt_dtheta << 0.0, sin_phi * inv_cos2 * theta_dot, cos_phi * inv_cos2 * theta_dot, 
-                 0.0, 0.0, 0.0,
-                 0.0, (sin_phi * sin_theta) * inv_cos2 * theta_dot, (cos_phi * sin_theta) * inv_cos2 * theta_dot;
+    dt_dtheta << 0.0, sin_phi * inv_cos2 * theta_dot,
+        cos_phi * inv_cos2 * theta_dot, 0.0, 0.0, 0.0, 0.0,
+        (sin_phi * sin_theta) * inv_cos2 * theta_dot,
+        (cos_phi * sin_theta) * inv_cos2 * theta_dot;
 
-    dp_types::Matrix3d T_dot =
-        dt_dphi + dt_dtheta;
+    dp_types::Matrix3d T_dot = dt_dphi + dt_dtheta;
 
     return T_dot;
 }
 dp_types::Matrix6d calculate_J_dot(const dp_types::Eta& eta,
                                    const dp_types::Nu& nu) {
-
     dp_types::Matrix6d J = calculate_J(eta);
     dp_types::Matrix3d R_dot = calculate_R_dot(eta, nu);
     dp_types::Matrix3d T_dot = calculate_T_dot(eta, nu, J);

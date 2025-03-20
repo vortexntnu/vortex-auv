@@ -38,8 +38,8 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
 
     dp_types::Vector6d z_2 = nu.as_vector() - alpha;
 
-    dp_types::Vector6d alpha_dot =
-        ((J_inv * J_dot * J_inv) * K1_ * z_1) - (J_inv * K1_ * J * nu.as_vector());
+    dp_types::Vector6d alpha_dot = ((J_inv * J_dot * J_inv) * K1_ * z_1) -
+                                   (J_inv * K1_ * J * nu.as_vector());
 
     dp_types::Matrix6x12d Y_v = calculate_Y_v(nu);
 
