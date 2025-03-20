@@ -18,6 +18,12 @@ class DPAdaptBacksController {
                                      const dp_types::Eta& eta_d,
                                      const dp_types::Nu& nu);
 
+    // @brief Reset the adaptive parameters
+    void reset_adap_param();
+
+    // @brief Reset the disturbance estimate
+    void reset_d_est();
+
     // @brief Set the time step
     // @param dt: Time step
     void set_timeStep(double dt);
