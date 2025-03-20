@@ -48,11 +48,11 @@ class StateQuat:
         self.velocity = state[7:10] + state_euler[6:9]
         self.angular_velocity = state[10:13] + state_euler[9:12]
 
-    def subtract(self, other: 'StateQuat') -> np.ndarray:
+    def subtract(self, other: 'StateQuat', error_ori: 'np.ndarray') -> np.ndarray:
         """Subtracts two StateQuat objects, returning the difference with Euler angles."""
         new_array = np.zeros(len(self.as_vector()) - 1)
         new_array[:3] = self.position - other.position
-        new_array[3:6] = quat_to_euler(quaternion_error(self.orientation, other.orientation))
+        new_array[3:6] = error_ori
         new_array[6:9] = self.velocity - other.velocity
         new_array[9:12] = self.angular_velocity - other.angular_velocity
 
@@ -115,7 +115,7 @@ class MeasModel:
     def H(self, state: StateQuat) -> 'MeasModel':
         """Calculates the measurement matrix."""
         H = np.zeros((3, 13))
-        H[:, 7:10] = np.eye(3)
+        H[0:3, 7:10] = np.eye(3)
         z_i = MeasModel()
         z_i.measurement = np.dot(H, state.as_vector())
         return z_i
@@ -309,7 +309,7 @@ def quaternion_error(quat_1: np.ndarray, quat_2: np.ndarray) -> np.ndarray:
 
     return error_quat
 
-def iterative_quaternion_mean_statequat(state_list: list[StateQuat], weights: np.ndarray, tol: float = 1e-6, max_iter: int = 100) -> np.ndarray:
+def iterative_quaternion_mean_statequat(state_list: list[StateQuat], tol: float = 1e-6, max_iter: int = 100) -> np.ndarray:
     """
     Computes the weighted mean of the quaternion orientations from a list of StateQuat objects
     using an iterative approach, without requiring the caller to manually extract the quaternion.
@@ -323,142 +323,151 @@ def iterative_quaternion_mean_statequat(state_list: list[StateQuat], weights: np
     Returns:
         np.ndarray: The averaged quaternion as a 4-element numpy array.
     """
-    # Internally extract the quaternion from each state
+
     sigma_quats = [state.orientation for state in state_list]
-    
-    # Initialize the mean quaternion with the first quaternion
+    n = len(state_list)
+
     mean_q = sigma_quats[0].copy()
     
     for _ in range(max_iter):
         weighted_error_vectors = []
         for i, q in enumerate(sigma_quats):
-            # Compute the error quaternion: e = q * inv(mean_q)
-            # For unit quaternions, the inverse is the conjugate.
             mean_q_conj = np.array([mean_q[0], -mean_q[1], -mean_q[2], -mean_q[3]])
             e = quaternion_super_product(q, mean_q_conj)
             
-            # Clip to avoid numerical issues
             e0_clipped = np.clip(e[0], -1.0, 1.0)
             angle = 2 * np.arccos(e0_clipped)
             if np.abs(angle) < 1e-8:
                 error_vec = np.zeros(3)
             else:
-                # Compute the full rotation vector (angle * axis)
                 error_vec = (angle / np.sin(angle / 2)) * e[1:4]
-            weighted_error_vectors.append(weights[i] * error_vec)
+            weighted_error_vectors.append(error_vec)
         
-        error_avg = np.sum(weighted_error_vectors, axis=0)
+        error_avg = (1 / n) * np.sum(weighted_error_vectors, axis=0)
         if np.linalg.norm(error_avg) < tol:
             break
         
         error_norm = np.linalg.norm(error_avg)
-        delta_q = (np.array([np.cos(error_norm / 2),
-                             *(np.sin(error_norm / 2) * (error_avg / error_norm))])
-                   if error_norm > 0 else np.array([1.0, 0.0, 0.0, 0.0]))
+        if error_norm > 0:
+            delta_q = np.array([np.cos(error_norm / 2),
+                                *(np.sin(error_norm / 2) * (error_avg / error_norm))])
+        else:
+            delta_q = np.array([1.0, 0.0, 0.0, 0.0])
+
         mean_q = quaternion_super_product(delta_q, mean_q)
         mean_q = quat_norm(mean_q)
     
     return mean_q
 
-
-
-def mean_set(set_points: list[StateQuat], weights: np.ndarray = None) -> np.ndarray:
+def mean_set(set_points: list[StateQuat]) -> np.ndarray:
     """
-    Function that calculates the mean of a set of points
+    Functio calculates the mean vector of a set of points
+    
+    Args: 
+        set_points (list[StateQuat]): List of StateQuat objects
+
+    Returns:
+        np.ndarray: The mean vector
     """
-    n = len(set_points[0].as_vector()) - 1
+    n = len(set_points)
     mean_value = StateQuat()
 
-    if weights is None:
-        for i in range(2 * n + 1):
-            weight_temp_list = (1/ (2 * n + 1)) * np.ones(2 * n + 1)
-            mean_value.add_without_quaternions(weight_temp_list[i] * set_points[i])
-        
-        mean_value.orientation = iterative_quaternion_mean_statequat(set_points, weight_temp_list)
+    for state in set_points:
+        mean_value.add_without_quaternions(state)
     
-    else:
-        for i in range(2 * n + 1):
-            mean_value.add_without_quaternions(weights[i] * set_points[i])
+    mean_value = (1 / (n)) * mean_value 
 
-        mean_value.orientation = iterative_quaternion_mean_statequat(set_points, weights)
-    
+    mean_value.orientation = iterative_quaternion_mean_statequat(set_points)
+
     return mean_value.as_vector()
 
-def mean_measurement(set_points: list[MeasModel], weights: np.ndarray = None) -> np.ndarray:
+def mean_measurement(set_points: list[MeasModel]) -> np.ndarray:
     """
     Function that calculates the mean of a set of points
     """
     n = len(set_points)
     mean_value = MeasModel()
 
-    if weights is None:
-        for i in range(n):
-            mean_value = mean_value + set_points[i]
-    else:
-        for i in range(n):
-            mean_value = mean_value + (weights[i] * set_points[i])
+    for state in set_points:
+        mean_value = mean_value + state
     
+    mean_value = (1 / n) * mean_value
+
     return mean_value.measurement
 
-def covariance_set(set_points: list[StateQuat], mean: np.ndarray, weights: np.ndarray = None) -> np.ndarray:
+def covariance_set(set_points: list[StateQuat], mean: StateQuat) -> np.ndarray:
     """
     Function that calculates the covariance of a set of points
     """
-    n = len(set_points[0].as_vector()) - 1
-    covariance = np.zeros((n, n))
+    n = len(set_points)
+    covariance = np.zeros(set_points[0].covariance.shape)
+
     mean_quat = StateQuat()
-    mean_quat.fill_states(mean)
+    mean_quat.fill_states(mean.as_vector())
 
-    if weights is None:
-        for i in range(2 * n + 1):
-            covariance += np.outer(set_points[i].subtract(mean_quat), set_points[i].subtract(mean_quat))
+    mean_q = mean.orientation
 
-        covariance = (1 / (2 * n + 1)) * covariance
+    for state in set_points:
+        q = state.orientation
+        diff_q = quaternion_error(q, mean_q)
+        
+        e0_clipped = np.clip(diff_q[0], -1.0, 1.0)
+        angle = 2.0 * np.arccos(e0_clipped)
+        if abs(angle) < 1e-8:
+            e_vec = np.zeros(3)
+        else:
+            e_vec = (angle / np.sin(angle/2)) * diff_q[1:4]
 
-    else:
-        for i in range(2 * n + 1):
-            covariance += weights[i] * np.outer(set_points[i].subtract(mean_quat), set_points[i].subtract(mean_quat))
+        covariance += np.outer(state.subtract(mean_quat, e_vec), state.subtract(mean_quat, e_vec))
+
+    covariance = (1 / (n)) * covariance
 
     return covariance
 
-def covariance_measurement(set_points: list[MeasModel], mean: np.ndarray, weights: np.ndarray = None) -> np.ndarray:
+def covariance_measurement(set_points: list[MeasModel], mean: np.ndarray) -> np.ndarray:
     """
     Function that calculates the covariance of a set of points
     """
     n = len(set_points)
     co_size = len(set_points[0].measurement)
     covariance = np.zeros((co_size, co_size))
+
     mean_meas = MeasModel()
     mean_meas.measurement = mean
 
-    if weights is None:
-        for i in range(n):
-            temp_model = set_points[i] - mean_meas
-            covariance += np.outer(temp_model.measurement, temp_model.measurement)
+    for state in set_points:
+        temp_state = state - mean_meas
+        covariance += np.outer(temp_state.measurement, temp_state.measurement)
 
-        covariance = (1 / (n)) * covariance
-
-    else:
-        for i in range(n):
-            temp_model = set_points[i] - mean_meas
-            covariance += weights[i] * np.outer(temp_model.measurement, temp_model.measurement)
+    covariance = (1 / n) * covariance
 
     return covariance
 
-def cross_covariance(set_y: list[StateQuat], mean_y: np.ndarray, set_z: list[MeasModel], mean_z: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def cross_covariance(set_y: list[StateQuat], mean_y: np.ndarray, set_z: list[MeasModel], mean_z: np.ndarray) -> np.ndarray:
     """
     Calculates the cross covariance between the measurement and state prediction
     """
+    n = len(set_y)
 
-    n = len(mean_y) - 1
-    m = len(mean_z)
-    cross_covariance = np.zeros((n,m))
+    cross_covariance = np.zeros((len(mean_y) - 1, len(mean_z)))
     mean_quat = StateQuat()
     mean_quat.fill_states(mean_y)
 
+    mean_q = mean_quat.orientation
+
     for i in range(n):
-        cross_covariance += np.outer(set_y[i].subtract(mean_quat), set_z[i].measurement - mean_z)
+        q = set_y[i].orientation
+        diff_q = quaternion_error(q, mean_q)
+        
+        e0_clipped = np.clip(diff_q[0], -1.0, 1.0)
+        angle = 2.0 * np.arccos(e0_clipped)
+        if abs(angle) < 1e-8:
+            e_vec = np.zeros(3)
+        else:
+            e_vec = (angle / np.sin(angle/2)) * diff_q[1:4]
+
+        cross_covariance += np.outer(set_y[i].subtract(mean_quat, e_vec), set_z[i].measurement - mean_z)
     
-    cross_covariance = (1 / len(set_y)) * cross_covariance
+    cross_covariance = (1 / n) * cross_covariance
 
     return cross_covariance

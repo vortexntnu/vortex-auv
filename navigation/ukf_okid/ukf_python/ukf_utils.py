@@ -20,7 +20,7 @@ def print_StateQuat(state: StateQuat, name="StateQuat", print_covariance=True):
     print(f"  Orientation: {state.orientation}")
     print(f"  Velocity: {state.velocity}")
     print(f"  Angular Velocity: {state.angular_velocity}")
-    print(f"  okid_params: {state.okid_params}")
+    # print(f"  okid_params: {state.okid_params}")
     if print_covariance:
         print_matrix(state.covariance, "Covariance")
 

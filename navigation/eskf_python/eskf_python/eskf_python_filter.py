@@ -185,7 +185,7 @@ class ESKF:
 
         self.error_state.covariance = (A_d @ self.error_state.covariance @ A_d.T + GQG_d)
 
-    def measurement_update(self, dvl_measurement:Measurement) -> None:
+    def measurement_update(self, dvl_measurement:Measurement) -> float:
         """
         Updates the error state using the DVL measurement.
         Joan Solà. Quaternion kinematics for the error-state Kalman filter.
@@ -202,10 +202,15 @@ class ESKF:
         S = H @ P @ H.T + R
         K = P @ H.T @ np.linalg.inv(S)
         innovation = dvl_measurement.aiding - self.h()
+
+        NIS_value = self.NIS(S, innovation)
+
         self.error_state.fill_states(K @ innovation)
 
         I_KH = np.eye(18) - K @ H
         self.error_state.covariance = I_KH @ P @ I_KH.T + K @ R @ K.T # Joseph form for more stability
+
+        return NIS_value
 
     def injection(self) -> None:
         """
@@ -241,11 +246,26 @@ class ESKF:
         self.nominal_state_discrete(imu_data)
         self.error_state_prediction(imu_data)
     
-    def dvl_update(self, dvl_measurement: Measurement) -> None:
+    def dvl_update(self, dvl_measurement: Measurement) -> float:
         """
         Updates the state using the DVL measurement.
         """
         
-        self.measurement_update(dvl_measurement)
+        NIS = self.measurement_update(dvl_measurement)
         self.injection()
         self.reset_error_state()
+
+        return NIS
+
+    # functions for tuning the filter
+    def NIS(self, S: np.ndarray, innovation: np.ndarray) -> float:
+        """
+        Calculates the Normalized Innovation Squared (NIS) value.
+        """
+        return innovation.T @ np.linalg.inv(S) @ innovation
+    
+    def NEES(self, P: np.ndarray, true_state: StateQuat, estimate_state: StateQuat) -> float:
+        """
+        Calculates the Normalized Estimation Error Squared (NEES) value.
+        """
+        return (true_state - estimate_state).as_vector().T @ np.linalg.inv(P) @ (true_state - estimate_state).as_vector()
