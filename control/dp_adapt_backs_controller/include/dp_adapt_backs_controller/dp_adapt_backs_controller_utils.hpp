@@ -55,9 +55,12 @@ dp_types::Matrix3d calculate_R_dot(const dp_types::Eta& eta,
 // @brief Calculate the derivative of the transformation matrix
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]
 // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
+// @param J: 6x6 rotation matrix for world to body frame, kinetics and
+// kinematics
 // @return 3x3 derivative of the transformation matrix
 dp_types::Matrix3d calculate_T_dot(const dp_types::Eta& eta,
-                                   const dp_types::Nu& nu);
+                                   const dp_types::Nu& nu,
+                                   const dp_types::Matrix6d& J);
 
 // @brief Calculate the Jacobian matrix
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]
@@ -67,7 +70,7 @@ dp_types::Matrix6d calculate_J(const dp_types::Eta& eta);
 // @brief Calculate the pseudo-inverse of the Jacobian matrix
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]
 // @return 6x6 pseudo-inverse Jacobian matrix
-dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta);
+dp_types::Matrix6d calculate_J_inv(const dp_types::Eta& eta);
 
 // @brief calculate the derivative of the Jacobian matrix
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]

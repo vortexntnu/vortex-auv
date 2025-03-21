@@ -78,13 +78,18 @@ dp_types::Matrix6d calculate_J(const dp_types::Eta& eta) {
     return J.as_matrix();
 }
 
-dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta) {
+dp_types::Matrix6d calculate_J_inv(const dp_types::Eta& eta) {
     dp_types::Matrix6d J = calculate_J(eta);
     dp_types::Matrix6d J_inv = dp_types::Matrix6d::Zero();
 
-    if (J.determinant() == 0) {
-        std::cerr << "Jacobian matrix is singular" << std::endl;
-        return J;
+    constexpr double tolerance = 1e-8;
+
+    if (std::abs(J.determinant()) < tolerance) {
+        std::cerr << "J(eta) is singular" << std::endl;
+
+        // Moore-Penrose pseudoinverse in case of near singular matrix, better
+        // result for smaller singular values
+        J_inv = J.completeOrthogonalDecomposition().pseudoInverse();
     }
 
     J_inv = J.inverse();
@@ -95,41 +100,50 @@ dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta) {
 dp_types::Matrix3d calculate_R_dot(const dp_types::Eta& eta,
                                    const dp_types::Nu& nu) {
     dp_types::Matrix3d R = calculate_R(eta);
-    dp_types::Vector3d vec(0, 0, 1);
 
-    dp_types::Matrix3d S = skew_symmetric(vec);
+    dp_types::Matrix3d S = skew_symmetric(nu.angular_speed);
 
-    dp_types::Matrix3d R_dot = R * S * nu.angular_speed.z();
+    dp_types::Matrix3d R_dot = R * S;
 
     return R_dot;
 }
 
 dp_types::Matrix3d calculate_T_dot(const dp_types::Eta& eta,
-                                   const dp_types::Nu& nu) {
+                                   const dp_types::Nu& nu,
+                                   const dp_types::Matrix6d& J) {
     double cos_phi = std::cos(eta.ori.x());
     double sin_phi = std::sin(eta.ori.x());
     double cos_theta = std::cos(eta.ori.y());
     double sin_theta = std::sin(eta.ori.y());
-    double tan_theta = sin_phi / cos_phi;
+    double tan_theta = sin_theta / cos_theta;
     double inv_cos2 = 1 / (cos_theta * cos_theta);
 
+    dp_types::Vector6d eta_dot = J * nu.as_vector();
+
+    double phi_dot = eta_dot(3);
+    double theta_dot = eta_dot(4);
+
     dp_types::Matrix3d dt_dphi;
-    dt_dphi << 0.0, cos_phi * tan_theta, -sin_phi * tan_theta, 0.0, -sin_phi,
-        -cos_phi, 0.0, cos_phi / cos_theta, -sin_phi / cos_theta;
+    dt_dphi << 0.0, cos_phi * tan_theta * phi_dot,
+        -sin_phi * tan_theta * phi_dot, 0.0, -sin_phi * phi_dot,
+        -cos_phi * phi_dot, 0.0, (cos_phi * phi_dot) / cos_theta,
+        (-sin_phi * phi_dot) / cos_theta;
 
     dp_types::Matrix3d dt_dtheta;
-    dt_dtheta << 0.0, sin_phi * inv_cos2, cos_phi * inv_cos2, 0.0, 0.0, 0.0,
-        0.0, (sin_phi * sin_theta) * inv_cos2, (cos_phi * sin_theta) * inv_cos2;
+    dt_dtheta << 0.0, sin_phi * inv_cos2 * theta_dot,
+        cos_phi * inv_cos2 * theta_dot, 0.0, 0.0, 0.0, 0.0,
+        (sin_phi * sin_theta) * inv_cos2 * theta_dot,
+        (cos_phi * sin_theta) * inv_cos2 * theta_dot;
 
-    dp_types::Matrix3d T_dot =
-        dt_dphi * nu.angular_speed.x() + dt_dtheta * nu.angular_speed.y();
+    dp_types::Matrix3d T_dot = dt_dphi + dt_dtheta;
 
     return T_dot;
 }
 dp_types::Matrix6d calculate_J_dot(const dp_types::Eta& eta,
                                    const dp_types::Nu& nu) {
+    dp_types::Matrix6d J = calculate_J(eta);
     dp_types::Matrix3d R_dot = calculate_R_dot(eta, nu);
-    dp_types::Matrix3d T_dot = calculate_T_dot(eta, nu);
+    dp_types::Matrix3d T_dot = calculate_T_dot(eta, nu, J);
 
     dp_types::J_matrix J_dot;
     J_dot.R = R_dot;

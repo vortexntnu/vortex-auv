@@ -73,6 +73,9 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 void DPAdaptBacksControllerNode::killswitch_callback(
     const std_msgs::msg::Bool::SharedPtr msg) {
     killswitch_on_ = msg->data;
+    dp_adapt_backs_controller_->reset_adap_param();
+    dp_adapt_backs_controller_->reset_d_est();
+
     RCLCPP_INFO(this->get_logger(), "Killswitch: %s",
                 killswitch_on_ ? "on" : "off");
 }
@@ -173,7 +176,8 @@ void DPAdaptBacksControllerNode::publish_tau() {
     tau_msg.wrench.force.x = tau(0);
     tau_msg.wrench.force.y = tau(1);
     tau_msg.wrench.force.z = tau(2);
-    tau_msg.wrench.torque.x = tau(3);
+    // tau_msg.wrench.torque.x = tau(3); commented out since roll control is not
+    // needed and causes minor instability, if needed uncomment
     tau_msg.wrench.torque.y = tau(4);
     tau_msg.wrench.torque.z = tau(5);
 
