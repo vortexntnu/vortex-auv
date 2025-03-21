@@ -90,6 +90,7 @@ dp_types::Matrix6d calculate_J_inv(const dp_types::Eta& eta) {
         // Moore-Penrose pseudoinverse in case of near singular matrix, better
         // result for smaller singular values
         J_inv = J.completeOrthogonalDecomposition().pseudoInverse();
+        return J_inv;
     }
 
     J_inv = J.inverse();
