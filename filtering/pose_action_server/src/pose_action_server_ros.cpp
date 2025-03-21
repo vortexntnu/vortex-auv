@@ -6,7 +6,8 @@ using std::placeholders::_2;
 PoseActionServerNode::PoseActionServerNode() : Node("pose_action_server_node") {
     std::string pose_sub_topic =
         this->declare_parameter<std::string>("pose_sub_topic");
-    std::string action_name = this->declare_parameter<std::string>("action_name");
+    std::string action_name =
+        this->declare_parameter<std::string>("action_name");
 
     rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10))
                           .reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
@@ -107,7 +108,8 @@ void PoseActionServerNode::pose_callback(
             return quaternions;
         };
 
-    const std::vector<Eigen::Quaterniond> quaternions = extract_quaternions(pose_queue_);
+    const std::vector<Eigen::Quaterniond> quaternions =
+        extract_quaternions(pose_queue_);
 
     Eigen::Quaterniond mean_q = average_quaternions(quaternions);
 
