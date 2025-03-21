@@ -86,7 +86,7 @@ class ThrustAllocator : public rclcpp::Node {
     Eigen::MatrixXd thrust_configuration_;
 
     Eigen::Vector6d body_frame_forces_;
-    PseudoinverseAllocator pseudoinverse_allocator_;
+    std::unique_ptr<PseudoinverseAllocator> pseudoinverse_allocator_;
 
     rclcpp::Time last_msg_time_;
     rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);

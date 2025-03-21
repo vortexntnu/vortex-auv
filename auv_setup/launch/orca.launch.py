@@ -13,13 +13,6 @@ orca_config = os.path.join(
     'orca.yaml',
 )
 
-thruster_interface_config = os.path.join(
-    get_package_share_directory("thruster_interface_auv"),
-    "config",
-    "thruster_interface_auv_config.yaml",
-)
-
-
 def generate_launch_description() -> LaunchDescription:
     """Generates a launch description for the ORCA AUV setup.
 
@@ -56,7 +49,7 @@ def generate_launch_description() -> LaunchDescription:
                 plugin="ThrusterInterfaceAUVNode",
                 name="thruster_interface_auv_node",
                 namespace="orca",
-                parameters=[thruster_interface_config, orca_config],
+                parameters=[orca_config],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
         ],

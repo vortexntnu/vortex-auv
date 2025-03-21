@@ -84,58 +84,57 @@ void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {
-    this->declare_parameter<std::vector<int>>(
-        "propulsion.thrusters.thruster_to_pin_mapping");
-    this->declare_parameter<std::vector<int>>(
-        "propulsion.thrusters.thruster_direction");
-    this->declare_parameter<std::vector<int>>(
-        "propulsion.thrusters.thruster_PWM_min");
-    this->declare_parameter<std::vector<int>>(
-        "propulsion.thrusters.thruster_PWM_max");
+    this->declare_parameter<std::string>("thruster_interface.subs.thruster_forces");
+    this->declare_parameter<std::string>("thruster_interface.pubs.pwm_output");
+    this->declare_parameter<bool>("thruster_interface.debug_flag");
+    this->declare_parameter<double>("thruster_interface.watchdog_timeout");
+
+    this->declare_parameter<int>("thruster_interface.i2c_bus");
+    this->declare_parameter<int>("thruster_interface.i2c_address");
 
     // approx poly coeffs for 16V from thruster_interface_auv.yaml
-    this->declare_parameter<std::vector<double>>("coeffs.16V.LEFT");
-    this->declare_parameter<std::vector<double>>("coeffs.16V.RIGHT");
+    this->declare_parameter<std::vector<double>>("thruster_interface.16V_LEFT");
+    this->declare_parameter<std::vector<double>>("thruster_interface.16V_RIGHT");
 
-    this->declare_parameter<int>("i2c.bus");
-    this->declare_parameter<int>("i2c.address");
+    this->declare_parameter<std::vector<int>>(
+        "thruster_interface.thruster_to_pin_mapping");
+    this->declare_parameter<std::vector<int>>(
+        "thruster_interface.thruster_direction");
+    this->declare_parameter<std::vector<int>>(
+        "thruster_interface.thruster_PWM_min");
+    this->declare_parameter<std::vector<int>>(
+        "thruster_interface.thruster_PWM_max");
 
-    this->declare_parameter<std::string>("topics.thruster_forces");
-    this->declare_parameter<std::string>("topics.pwm_output");
-
-    this->declare_parameter<bool>("debug.flag");
-
-    this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
 
     //-----------------------------------------------------------------------
 
     auto thruster_mapping =
-        this->get_parameter("propulsion.thrusters.thruster_to_pin_mapping")
+        this->get_parameter("thruster_interface.thruster_to_pin_mapping")
             .as_integer_array();
     auto thruster_direction =
-        this->get_parameter("propulsion.thrusters.thruster_direction")
+        this->get_parameter("thruster_interface.thruster_direction")
             .as_integer_array();
     auto thruster_PWM_min =
-        this->get_parameter("propulsion.thrusters.thruster_PWM_min")
+        this->get_parameter("thruster_interface.thruster_PWM_min")
             .as_integer_array();
     auto thruster_PWM_max =
-        this->get_parameter("propulsion.thrusters.thruster_PWM_max")
+        this->get_parameter("thruster_interface.thruster_PWM_max")
             .as_integer_array();
 
     std::vector<double> left_coeffs =
-        this->get_parameter("coeffs.16V.LEFT").as_double_array();
+        this->get_parameter("thruster_interface.16V_LEFT").as_double_array();
     std::vector<double> right_coeffs =
-        this->get_parameter("coeffs.16V.RIGHT").as_double_array();
+        this->get_parameter("thruster_interface.16V_RIGHT").as_double_array();
 
-    this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();
-    this->i2c_address_ = this->get_parameter("i2c.address").as_int();
+    this->i2c_bus_ = this->get_parameter("thruster_interface.i2c_bus").as_int();
+    this->i2c_address_ = this->get_parameter("thruster_interface.i2c_address").as_int();
 
     this->subscriber_topic_name_ =
-        this->get_parameter("topics.thruster_forces").as_string();
+        this->get_parameter("thruster_interface.subs.thruster_forces").as_string();
     this->publisher_topic_name_ =
-        this->get_parameter("topics.pwm_output").as_string();
+        this->get_parameter("thruster_interface.pubs.pwm_output").as_string();
 
-    this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
+    this->debug_flag_ = this->get_parameter("thruster_interface.debug_flag").as_bool();
 
     std::transform(thruster_mapping.begin(), thruster_mapping.end(),
                    thruster_direction.begin(),
@@ -153,7 +152,7 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->poly_coeffs_.push_back(right_coeffs);
 
     double timout_treshold_param =
-        this->get_parameter("propulsion.thrusters.watchdog_timeout")
+        this->get_parameter("thruster_interface.watchdog_timeout")
             .as_double();
     watchdog_timeout_ = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::duration<double>(timout_treshold_param));

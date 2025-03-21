@@ -16,82 +16,97 @@
 
 /**:
   ros__parameters:
-    physical:
+    thrust_allocator:
+      subs:
+        wrench_input: "wrench_input"
+      pubs:
+        thruster_forces: "thruster_forces"
+      watchdog_callback_timer: 500 # [ms]
+      watchdog_timeout: 1.0 # [s]
       center_of_mass: [0.0, 0.0, 0.035] # m (x,y,z)
-      mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
+      # mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
+      dofs: 6
+      dimensions: 3
+      num_thrusters: 8
+      force_min: -40 # [N]
+      force_max: 40 
+      thruster_force_direction: [
+          0.70711,
+          0.00000,
+          0.00000,
+          0.70711,
+          0.70711,
+          0.00000,
+          0.00000,
+          0.70711, # Surge
+          -0.70711,
+          0.00000,
+          0.00000,
+          0.70711,
+          -0.70711,
+          0.00000,
+          0.00000,
+          0.70711, # Sway
+          0.00000,
+          1.00000,
+          1.00000,
+          0.00000,
+          0.00000,
+          1.00000,
+          1.00000,
+          0.00000,
+        ] # Heave
+      thruster_position: [
+          0.41500,
+          0.28400,
+          -0.31800,
+          -0.44900,
+          -0.44900,
+          -0.31800,
+          0.28400,
+          0.41500, # x-position of thrusters
+          0.16900,
+          0.16300,
+          0.16300,
+          0.16900,
+          -0.16900,
+          -0.16300,
+          -0.16300,
+          -0.16900, # y-position of thrusters
+          0.07600,
+          0.08200,
+          0.08200,
+          0.07600,
+          0.07600,
+          0.08200,
+          0.08200,
+          0.07600,
+        ] # z-position of thrusters
 
-    propulsion:
-      dofs:
-        num: 6
-      dimensions:
-        num: 3
-      thrusters:
-        num: 8
-        min: -100
-        max: 100
-        thruster_force_direction: [
-            0.70711,
-            0.00000,
-            0.00000,
-            0.70711,
-            0.70711,
-            0.00000,
-            0.00000,
-            0.70711, # Surge
-            -0.70711,
-            0.00000,
-            0.00000,
-            0.70711,
-            -0.70711,
-            0.00000,
-            0.00000,
-            0.70711, # Sway
-            0.00000,
-            1.00000,
-            1.00000,
-            0.00000,
-            0.00000,
-            1.00000,
-            1.00000,
-            0.00000,
-          ] # Heave
-        thruster_position: [
-            0.41500,
-            0.28400,
-            -0.31800,
-            -0.44900,
-            -0.44900,
-            -0.31800,
-            0.28400,
-            0.41500, # x-position of thrusters
-            0.16900,
-            0.16300,
-            0.16300,
-            0.16900,
-            -0.16900,
-            -0.16300,
-            -0.16300,
-            -0.16900, # y-position of thrusters
-            0.07600,
-            0.08200,
-            0.08200,
-            0.07600,
-            0.07600,
-            0.08200,
-            0.08200,
-            0.07600,
-          ] # z-position of thrusters
+    thruster_interface:
+      subs:
+        thruster_forces: "thruster_forces"
+      pubs:
+        pwm_output: "pwm"
+      debug_flag: False
 
-        rate_of_change:
-          max: 1 # Maximum rate of change in newton per second for a thruster
+      watchdog_timeout: 1.0 # [s]
 
-        thrust_update_rate: 100.0 # [Hz]
-        watchdog_timeout: 1.0 # [s]
+      i2c_bus: 7
+      i2c_address: 0x21
 
-        thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
-        thruster_direction: [1, 1, -1, -1, 1, -1, -1, -1] # Disclose during thruster mapping (+/- 1)
-        thruster_PWM_min: [1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200] # Minimum PWM value, Recommended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
-        thruster_PWM_max: [1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800] # Maximum PWM value, Recommended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
+
+      16V_LEFT: [3.31158, 28.90927, 152.1417, 1467.70348]
+      16V_RIGHT: [1.45002, -16.92386, 117.95721, 1533.55911]
+
+      thruster_to_pin_mapping: [0, 1, 2, 3, 4, 6, 5, 7] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
+      thruster_direction: [1, 1, -1, -1, 1, -1, -1, -1] # Disclose during thruster mapping (+/- 1)
+      thruster_PWM_min: [1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200] # Minimum PWM value, Recommended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
+      thruster_PWM_max: [1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800] # Maximum PWM value, Recommended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
+      # thrust_update_rate: 100.0 # [Hz]
+
+      # rate_of_change:
+      #   max: 1 # Maximum rate of change in newton per second for a thruster
 
     internal_status:
       power_sense_module_read_rate: 5.0 # Readings/second, Recommended: 5.0

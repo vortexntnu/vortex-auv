@@ -13,11 +13,11 @@ def generate_launch_description() -> LaunchDescription:
             "robots",
             "orca.yaml",
         ),
-        path.join(
-            get_package_share_directory(package_name="thruster_interface_auv"),
-            "config",
-            "thruster_interface_auv_config.yaml",
-        ),
+        # path.join(
+        #     get_package_share_directory(package_name="thruster_interface_auv"),
+        #     "config",
+        #     "thruster_interface_auv_config.yaml",
+        # ),
     ]
 
     thruster_interface_auv_node = Node(
