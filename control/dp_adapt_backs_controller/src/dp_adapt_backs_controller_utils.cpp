@@ -78,13 +78,18 @@ dp_types::Matrix6d calculate_J(const dp_types::Eta& eta) {
     return J.as_matrix();
 }
 
-dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta) {
+dp_types::Matrix6d calculate_J_inv(const dp_types::Eta& eta) {
     dp_types::Matrix6d J = calculate_J(eta);
     dp_types::Matrix6d J_inv = dp_types::Matrix6d::Zero();
 
-    if (J.determinant() == 0) {
-        std::cerr << "Jacobian matrix is singular" << std::endl;
-        return J;
+    constexpr double tolerance = 1e-8;
+
+    if (std::abs(J.determinant()) < tolerance) {
+        std::cerr << "J(eta) is singular" << std::endl;
+
+        // Moore-Penrose pseudoinverse in case of near singular matrix, better
+        // result for smaller singular values
+        J_inv = J.completeOrthogonalDecomposition().pseudoInverse();
     }
 
     J_inv = J.inverse();

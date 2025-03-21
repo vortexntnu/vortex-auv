@@ -70,7 +70,7 @@ dp_types::Matrix6d calculate_J(const dp_types::Eta& eta);
 // @brief Calculate the pseudo-inverse of the Jacobian matrix
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]
 // @return 6x6 pseudo-inverse Jacobian matrix
-dp_types::Matrix6d calculate_J_sudo_inv(const dp_types::Eta& eta);
+dp_types::Matrix6d calculate_J_inv(const dp_types::Eta& eta);
 
 // @brief calculate the derivative of the Jacobian matrix
 // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch, yaw]

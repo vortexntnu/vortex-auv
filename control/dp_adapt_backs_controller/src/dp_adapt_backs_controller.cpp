@@ -28,7 +28,7 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
 
     dp_types::Matrix6d J = calculate_J(eta);
 
-    dp_types::Matrix6d J_inv = calculate_J_sudo_inv(eta);
+    dp_types::Matrix6d J_inv = calculate_J_inv(eta);
 
     dp_types::Matrix6d J_dot = calculate_J_dot(eta, nu);
 
