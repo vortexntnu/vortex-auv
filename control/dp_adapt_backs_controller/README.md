@@ -202,7 +202,7 @@ For $\dot{\tilde{\Theta}} = \dot{\hat{\Theta}} - \dot{\Theta}^\star$ we assume t
 ```
 
 ```math
-= - z_1^\top K_1z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau - z_2^\top C(\nu)\,\nu + z_2^\top Y(\nu) \Theta\star + z_2^\top d  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
+= - z_1^\top K_1z_1 + z_2^\top J(\eta)^\top z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau - z_2^\top C(\nu)\,\nu + z_2^\top Y(\nu) \Theta\star + z_2^\top d  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 Since we only know the estimate of the adaptive parameters, we can write the controller in two parts:
@@ -214,24 +214,29 @@ Important to notice is that we introduce the estimate (^) for the variables, not
 We insert this into the system and get:
 
 ```math
-= - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu - z_2^\top Y(\nu) (\hat{\Theta} - \Theta\star ) - z_2^\top (\hat{d} - d\star)  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
+= - z_1^\top K_1 z_1 + z_2^\top J(\eta)^\top z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu - z_2^\top Y(\nu) (\hat{\Theta} - \Theta\star ) - z_2^\top (\hat{d} - d\star)  + \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
 We look at the adaptive parameters a little more and try to simplify them as much as possible
 
 ```math
 \hat{\Theta} - \Theta^\star = \hat{\Theta} - (\hat{\Theta} - \tilde{\Theta}) = \tilde{\Theta} \newline
+```
+```math
 \hat{d} - d^\star = \hat{d} - (\hat{d} - \tilde{d}) = \tilde{d}
 ```
 
 Now we have:
 ```math
-= - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu + (-z_2^\top Y(\nu) \tilde{\Theta}+ \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}}) + (-z_2^\top \tilde{d} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}})
+= - z_1^\top K_1 z_1 + z_2^\top J(\eta)^\top z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu + (-z_2^\top Y(\nu) \tilde{\Theta}+ \tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}}) + (-z_2^\top \tilde{d} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}})
 ```
 From this we can separate out the terms with the adaptive parameters. We can write them up as two separate equations:
 
 ```math
--z_2^\top Y(\nu) \tilde{\Theta}+\tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} = - \tilde{\Theta}^\top Y(\nu)^\top z_2 +\tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}}\newline
+-z_2^\top Y(\nu) \tilde{\Theta}+\tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}} = - \tilde{\Theta}^\top Y(\nu)^\top z_2 +\tilde{\Theta}^\top \Gamma^{-1}_{\theta} \dot{\hat{\Theta}}
+```
+
+```math
 -z_2^\top \tilde{d} + \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}} = - \tilde{d}^\top z_2+ \tilde{d}^\top \Gamma^{-1}_{d} \dot{\hat{d}}
 ```
 
@@ -250,10 +255,10 @@ We choose the \(\dot{\hat{\Theta}}\) and \(\dot{\hat{d}}\) to zero this out
 Now that we have defined this we can insert and remove this from the equation, which should leave us with the normal system. An observation made during the construction of the controller was that the adaptive part and backstepping part is decoupled. Maybe this is dependent on the method used for the adaptive part, which is more of a MRAC type. Sadly, I don't have enough information about adaptive controllers to comment on this in detail.
 
 ```math
-= - z_1^\top K_1 z_1 + z_2^\top J(\eta)z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu
+= - z_1^\top K_1 z_1 + z_2^\top J(\eta)^\top z_1 - z_2^\top M \dot{\alpha} + z_2^\top \tau_{controller} - z_2^\top C(\nu)\,\nu
 ```
 ```math
-\tau_{controller} = -K_2 z_2 + M \dot{\alpha} + C(\nu)\nu - J(\eta)z_1
+\tau_{controller} = -K_2 z_2 + M \dot{\alpha} + C(\nu)\nu - J(\eta)^\top z_1
 ```
 
 Combined this gives us the control law:
