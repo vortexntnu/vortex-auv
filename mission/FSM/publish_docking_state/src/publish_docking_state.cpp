@@ -16,7 +16,8 @@ PublishDockingState::PublishDockingState()
         this->create_publisher<std_msgs::msg::String>(publish_topic, 2);
     subscription_ = this->create_subscription<yasmin_msgs::msg::StateMachine>(
         "/fsm_viewer", 10,
-        std::bind(&PublishDockingState::listener_callback, this, _1));
+        std::bind(&PublishDockingState::listener_callback, this,
+                  std::placeholders::_1));
 }
 
 void PublishDockingState::listener_callback(

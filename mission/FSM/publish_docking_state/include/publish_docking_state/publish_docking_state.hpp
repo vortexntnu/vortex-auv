@@ -5,9 +5,6 @@
 #include "std_msgs/msg/string.hpp"
 #include "yasmin_msgs/msg/state_machine.hpp"
 
-using std::string;
-using std::placeholders::_1;
-
 class PublishDockingState : public rclcpp::Node {
    private:
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
