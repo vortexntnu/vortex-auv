@@ -14,35 +14,31 @@ def generate_launch_description() -> LaunchDescription:
         'robots',
         'orca.yaml',
     )
-
-    yasmin_viewer_node = Node(
-        package='yasmin_viewer',
-        executable='yasmin_viewer_node',
-        name='yasmin_viewer',
-        namespace="orca",
-        on_exit=launch.actions.LogInfo(msg="Yasmin_viewer exited"),
+    pose_config = os.path.join(
+        get_package_share_directory(package_name='pose_action_server'),
+        'config',
+        'pose_action_server_params.yaml',
     )
 
     docking_launch = Node(
-        package='docking_cpp',
+        package='docking',
         executable='docking',
         namespace="orca",
-        parameters=[orca_config],
+        parameters=[orca_config, pose_config],
         on_exit=launch.actions.LogInfo(msg="Docking exited"),
     )
 
     state_publisher_node = Node(
-        package='dock_action_servers',
-        executable='fsm_state_node.py',
-        name='fsm_state_node',
+        package='publish_docking_state',
+        executable='publish_docking_state',
+        name='publish_docking_state',
         namespace="orca",
         parameters=[orca_config],
-        on_exit=launch.actions.LogInfo(msg="fsm_state_node exited"),
+        on_exit=launch.actions.LogInfo(msg="Publish docking state node exited"),
     )
 
     return LaunchDescription(
         initial_entities=[
-            yasmin_viewer_node,
             docking_launch,
             state_publisher_node,
         ],

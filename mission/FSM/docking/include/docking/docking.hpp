@@ -33,7 +33,8 @@ using LOSGuidance = vortex_msgs::action::LOSGuidance;
 class FindDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::FilteredPose> {
    public:
-    FindDockingStationState();
+    FindDockingStationState(
+        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     docking_fsm::FilteredPose::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -50,7 +51,8 @@ class FindDockingStationState
 class ApproachDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::LOSGuidance> {
    public:
-    ApproachDockingStationState();
+    ApproachDockingStationState(
+        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     docking_fsm::LOSGuidance::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -89,7 +91,7 @@ std::string DockedState(
 class ReturnHomeState
     : public yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint> {
    public:
-    ReturnHomeState();
+    ReturnHomeState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     docking_fsm::ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -113,7 +115,8 @@ std::string ErrorState(
 class ConvergeDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint> {
    public:
-    ConvergeDockingStationState();
+    ConvergeDockingStationState(
+        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     docking_fsm::ReferenceFilterWaypoint::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);

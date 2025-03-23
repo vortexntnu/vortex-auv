@@ -1,20 +1,16 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>docking_cpp</name>
+  <name>publish_docking_state</name>
   <version>0.0.0</version>
-  <description>Finite state machine for docking task</description>
+  <description>Publisher to publish the docking state</description>
   <maintainer email="vetlets@icloud.com">vetlets</maintainer>
   <license>MIT</license>
 
   <depend>ament_cmake</depend>
 
   <depend>rclcpp</depend>
-  <depend>yasmin</depend>
-  <depend>yasmin_ros</depend>
-  <depend>yasmin_viewer</depend>
-  <depend>nav_msgs</depend>
-  <depend>vortex_msgs</depend>
+  <depend>yasmin_msgs</depend>
   <depend>std_msgs</depend>
 
 

@@ -1,11 +1,12 @@
-#include "docking_cpp/docking.hpp"
+#include "docking/docking.hpp"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-FindDockingStationState::FindDockingStationState()
+FindDockingStationState::FindDockingStationState(
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::FilteredPose>(
-          "filtered_pose",
+          blackboard->get<std::string>("pose_action"),
           std::bind(&FindDockingStationState::create_goal_handler, this, _1),
           std::bind(&FindDockingStationState::response_handler, this, _1, _2),
           std::bind(&FindDockingStationState::print_feedback, this, _1, _2)) {};
@@ -59,9 +60,10 @@ void FindDockingStationState::print_feedback(
                  feedback->current_pose.pose.position.z);
 }
 
-ApproachDockingStationState::ApproachDockingStationState()
+ApproachDockingStationState::ApproachDockingStationState(
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::LOSGuidance>(
-          "/los_guidance",
+          blackboard->get<std::string>("los_guidance_action"),
           std::bind(&ApproachDockingStationState::create_goal_handler,
                     this,
                     _1),
@@ -199,9 +201,10 @@ void GoAboveDockingStationState::print_feedback(
                  feedback->feedback.z);
 }
 
-ConvergeDockingStationState::ConvergeDockingStationState()
+ConvergeDockingStationState::ConvergeDockingStationState(
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint>(
-          "/reference_filter",
+          blackboard->get<std::string>("reference_filter_action"),
           std::bind(&ConvergeDockingStationState::create_goal_handler,
                     this,
                     _1),
@@ -282,9 +285,10 @@ std::string DockedState(
     }
 };
 
-ReturnHomeState::ReturnHomeState()
+ReturnHomeState::ReturnHomeState(
+    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint>(
-          "/reference_filter",
+          blackboard->get<std::string>("reference_filter_action"),
           std::bind(&ReturnHomeState::create_goal_handler, this, _1),
           std::bind(&ReturnHomeState::response_handler, this, _1, _2),
           std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {};
@@ -368,9 +372,11 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines() {
 }
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
-                std::shared_ptr<yasmin::StateMachine> nested_sm) {
+                std::shared_ptr<yasmin::StateMachine> nested_sm,
+                std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     sm->add_state(
-        "FIND_DOCKING_STATION", std::make_shared<FindDockingStationState>(),
+        "FIND_DOCKING_STATION",
+        std::make_shared<FindDockingStationState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "APPROACH_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::CANCEL, "error"},
@@ -378,7 +384,7 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
         });
     sm->add_state(
         "APPROACH_DOCKING_STATION",
-        std::make_shared<ApproachDockingStationState>(),
+        std::make_shared<ApproachDockingStationState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "NESTED_FSM"},
             {yasmin_ros::basic_outcomes::CANCEL, "FIND_DOCKING_STATION"},
@@ -398,7 +404,7 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
 
                   });
     sm->add_state(
-        "RETURN_HOME", std::make_shared<ReturnHomeState>(),
+        "RETURN_HOME", std::make_shared<ReturnHomeState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::CANCEL, "error"},
@@ -459,7 +465,7 @@ void add_states_nested(
 
     sm->add_state(
         "UPDATE_DOCKING_STATION_POSITION",
-        std::make_shared<FindDockingStationState>(),
+        std::make_shared<FindDockingStationState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "CONVERGE_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::ABORT,
@@ -470,7 +476,7 @@ void add_states_nested(
 
     sm->add_state(
         "CONVERGE_DOCKING_STATION",
-        std::make_shared<ConvergeDockingStationState>(),
+        std::make_shared<ConvergeDockingStationState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED,
              yasmin_ros::basic_outcomes::SUCCEED},
@@ -485,10 +491,13 @@ auto initialize_blackboard() {
     auto params = std::make_shared<rclcpp::Node>("dock_params");
     RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Creating params node");
 
-    params->declare_parameter<double>("fsm.docking_station_offset");
-    params->declare_parameter<int>("fsm.num_measurements");
+    params->declare_parameter<double>("fsm.docking.docking_station_offset");
+    params->declare_parameter<int>("fsm.docking.num_measurements");
+    params->declare_parameter<double>("fsm.docking.dock_wait_time");
+
     params->declare_parameter<std::string>("action_servers.reference_filter");
-    params->declare_parameter<double>("fsm.dock_wait_time");
+    params->declare_parameter<std::string>("action_servers.los");
+    params->declare_parameter<std::string>("action_name");
 
     RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Parameters declared");
 
@@ -501,7 +510,8 @@ auto initialize_blackboard() {
 
     blackboard->set<double>(
         "docking_station_offset",
-        params->get_parameter("fsm.docking_station_offset").as_double());
+        params->get_parameter("fsm.docking.docking_station_offset")
+            .as_double());
     blackboard->set<bool>("return_home", false);
     blackboard->set<bool>("is_docked", false);
     blackboard->set<bool>("is_home", true);
@@ -509,13 +519,18 @@ auto initialize_blackboard() {
     blackboard->set<bool>("has_finished_converging", false);
     blackboard->set<int>(
         "num_measurements",
-        params->get_parameter("fsm.num_measurements").as_int());
+        params->get_parameter("fsm.docking.num_measurements").as_int());
     blackboard->set<std::string>(
         "reference_filter_action",
         params->get_parameter("action_servers.reference_filter").as_string());
     blackboard->set<double>(
         "dock_wait_time",
-        params->get_parameter("fsm.dock_wait_time").as_double());
+        params->get_parameter("fsm.docking.dock_wait_time").as_double());
+    blackboard->set<std::string>(
+        "los_guidance_action",
+        params->get_parameter("action_servers.los").as_string());
+    blackboard->set<std::string>(
+        "pose_action", params->get_parameter("action_name").as_string());
 
     RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Blackboard created");
 
@@ -544,7 +559,7 @@ int main(int argc, char* argv[]) {
 
     auto blackboard = initialize_blackboard();
 
-    add_states(sm, nested_sm);
+    add_states(sm, nested_sm, blackboard);
     add_states_nested(nested_sm, blackboard);
 
     yasmin_viewer::YasminViewerPub yasmin_pub("Docking", sm);
