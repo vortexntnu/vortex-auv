@@ -5,7 +5,6 @@ int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
                 R"(
-	Millennium Falcon
                            ____          ____
                           / --.|        |.-- \
                          /,---||        ||---.\
@@ -62,8 +61,10 @@ int main(int argc, char** argv) {
   -Manager          `--..__ /'     ||888  `\ oo8;--'
                            ```-----''-----''''
     )");
-    auto node = std::make_shared<lifecycle_manager::LifecycleManager>();
-    rclcpp::spin(node) rclcpp::shutdown();
+
+    auto node = std::make_shared<LifecycleManagerNode>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
 
     return 0;
 }

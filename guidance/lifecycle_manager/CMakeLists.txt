@@ -15,18 +15,16 @@ find_package(rclcpp_lifecycle REQUIRED)
 include_directories(include)
 
 add_executable(lifecycle_manager_node
-  src/lifecycle_manager.cpp
-  src/lifecycle_manager_client.cpp
   src/lifecycle_service_client.cpp
   src/lifecycle_manager_node.cpp
 )
 
-ament_target_dependencies(reference_filter_node
+ament_target_dependencies(lifecycle_manager
   rclcpp
   rclcpp_action
   rclcpp_lifecycle
-
   vortex_msgs
+  vortex_utils
 )
 
 install(TARGETS
