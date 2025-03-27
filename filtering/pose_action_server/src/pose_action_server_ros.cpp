@@ -6,15 +6,10 @@ using std::placeholders::_2;
 PoseActionServerNode::PoseActionServerNode() : Node("pose_action_server_node") {
     std::string pose_sub_topic =
         this->declare_parameter<std::string>("pose_sub_topic");
-<<<<<<< Updated upstream
-    std::string action_name =
-        this->declare_parameter<std::string>("action_name");
-=======
     std::string action_name =
         this->declare_parameter<std::string>("action_name");
     std::string pose_result_pub_topic =
         this->declare_parameter<std::string>("pose_result_pub_topic");
->>>>>>> Stashed changes
 
     rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10))
                           .reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
