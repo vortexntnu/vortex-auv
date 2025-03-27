@@ -6,8 +6,15 @@ using std::placeholders::_2;
 PoseActionServerNode::PoseActionServerNode() : Node("pose_action_server_node") {
     std::string pose_sub_topic =
         this->declare_parameter<std::string>("pose_sub_topic");
+<<<<<<< Updated upstream
     std::string action_name =
         this->declare_parameter<std::string>("action_name");
+=======
+    std::string action_name =
+        this->declare_parameter<std::string>("action_name");
+    std::string pose_result_pub_topic =
+        this->declare_parameter<std::string>("pose_result_pub_topic");
+>>>>>>> Stashed changes
 
     rclcpp::QoS qos = rclcpp::QoS(rclcpp::KeepLast(10))
                           .reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
@@ -15,6 +22,9 @@ PoseActionServerNode::PoseActionServerNode() : Node("pose_action_server_node") {
     pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         pose_sub_topic, qos,
         std::bind(&PoseActionServerNode::pose_callback, this, _1));
+
+    pose_result_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        pose_result_pub_topic, qos);
 
     action_server_ =
         rclcpp_action::create_server<vortex_msgs::action::FilteredPose>(
@@ -117,6 +127,8 @@ void PoseActionServerNode::pose_callback(
     filtered_pose.pose.orientation.y = mean_q.y();
     filtered_pose.pose.orientation.z = mean_q.z();
     filtered_pose.pose.orientation.w = mean_q.w();
+
+    pose_result_pub_->publish(filtered_pose);
 
     auto result = std::make_shared<vortex_msgs::action::FilteredPose::Result>();
     result->filtered_pose = filtered_pose;

@@ -32,6 +32,9 @@ class PoseActionServerNode : public rclcpp::Node {
 
     std::shared_ptr<GoalHandleFilteredPose> active_goal_handle_;
 
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
+        pose_result_pub_;
+
     void pose_callback(
         const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
 
