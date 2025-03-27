@@ -26,7 +26,6 @@ set(DEPENDENCIES
   yasmin
   yasmin_ros
   yasmin_viewer
-  nav_msgs
   vortex_msgs
   std_msgs
 )

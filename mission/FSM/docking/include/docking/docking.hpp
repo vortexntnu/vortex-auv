@@ -21,67 +21,72 @@
 #include <yasmin_viewer/yasmin_viewer_pub.hpp>
 
 namespace docking_fsm {
-using FilteredPose = vortex_msgs::action::FilteredPose;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;
 using PointStamped = geometry_msgs::msg::PointStamped;
-using ReferenceFilterWaypoint = vortex_msgs::action::ReferenceFilterWaypoint;
-using ReferenceFilter = vortex_msgs::msg::ReferenceFilter;
-using LOSGuidance = vortex_msgs::action::LOSGuidance;
+
+using FindDockingAction = vortex_msgs::action::FilteredPose;
+using ApproachDockingAction = vortex_msgs::action::ReferenceFilterWaypoint;
+using GoAboveDockingAction = vortex_msgs::action::ReferenceFilterWaypoint;
+using ConvergeDockingAction = vortex_msgs::action::ReferenceFilterWaypoint;
+using ReturnHomeAction = vortex_msgs::action::ReferenceFilterWaypoint;
+
 }  // namespace docking_fsm
 
 class FindDockingStationState
-    : public yasmin_ros::ActionState<docking_fsm::FilteredPose> {
+    : public yasmin_ros::ActionState<docking_fsm::FindDockingAction> {
    public:
     FindDockingStationState(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
-    docking_fsm::FilteredPose::Goal create_goal_handler(
+    docking_fsm::FindDockingAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        docking_fsm::FilteredPose::Result::SharedPtr response);
+        docking_fsm::FindDockingAction::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const docking_fsm::FilteredPose::Feedback> feedback);
+        std::shared_ptr<const docking_fsm::FindDockingAction::Feedback>
+            feedback);
 };
 
 class ApproachDockingStationState
-    : public yasmin_ros::ActionState<docking_fsm::LOSGuidance> {
+    : public yasmin_ros::ActionState<docking_fsm::ApproachDockingAction> {
    public:
     ApproachDockingStationState(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
-    docking_fsm::LOSGuidance::Goal create_goal_handler(
+    docking_fsm::ApproachDockingAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        docking_fsm::LOSGuidance::Result::SharedPtr response);
+        docking_fsm::ApproachDockingAction::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const docking_fsm::LOSGuidance::Feedback> feedback);
+        std::shared_ptr<const docking_fsm::ApproachDockingAction::Feedback>
+            feedback);
 };
 
 class GoAboveDockingStationState
-    : public yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint> {
+    : public yasmin_ros::ActionState<docking_fsm::GoAboveDockingAction> {
    public:
     GoAboveDockingStationState(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
-    docking_fsm::ReferenceFilterWaypoint::Goal create_goal_handler(
+    docking_fsm::GoAboveDockingAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        docking_fsm::ReferenceFilterWaypoint::Result::SharedPtr response);
+        docking_fsm::GoAboveDockingAction::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const docking_fsm::ReferenceFilterWaypoint::Feedback>
+        std::shared_ptr<const docking_fsm::GoAboveDockingAction::Feedback>
             feedback);
 };
 
@@ -89,20 +94,20 @@ std::string DockedState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
 class ReturnHomeState
-    : public yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint> {
+    : public yasmin_ros::ActionState<docking_fsm::ReturnHomeAction> {
    public:
     ReturnHomeState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
-    docking_fsm::ReferenceFilterWaypoint::Goal create_goal_handler(
+    docking_fsm::ReturnHomeAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        docking_fsm::ReferenceFilterWaypoint::Result::SharedPtr response);
+        docking_fsm::ReturnHomeAction::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const docking_fsm::ReferenceFilterWaypoint::Feedback>
+        std::shared_ptr<const docking_fsm::ReturnHomeAction::Feedback>
             feedback);
 };
 
@@ -113,21 +118,21 @@ std::string ErrorState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
 class ConvergeDockingStationState
-    : public yasmin_ros::ActionState<docking_fsm::ReferenceFilterWaypoint> {
+    : public yasmin_ros::ActionState<docking_fsm::ConvergeDockingAction> {
    public:
     ConvergeDockingStationState(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
-    docking_fsm::ReferenceFilterWaypoint::Goal create_goal_handler(
+    docking_fsm::ConvergeDockingAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        docking_fsm::ReferenceFilterWaypoint::Result::SharedPtr response);
+        docking_fsm::ConvergeDockingAction::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        std::shared_ptr<const docking_fsm::ReferenceFilterWaypoint::Feedback>
+        std::shared_ptr<const docking_fsm::ConvergeDockingAction::Feedback>
             feedback);
 };
 
