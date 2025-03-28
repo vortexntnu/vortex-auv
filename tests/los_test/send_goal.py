@@ -38,9 +38,17 @@ class LOSGuidanceClient(Node):
     def get_result_callback(self, future):
         result = future.result().result.success
         self.get_logger().info(f'Goal result: {result}')
-        self.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        if result:   
+            self.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+                exit(0)
+        else:
+            self.get_logger().info('Goal failed :(')
+            self.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+                exit(1)
 
 
 def main(args=None):
