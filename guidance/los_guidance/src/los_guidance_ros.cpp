@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <los_guidance/los_guidance_ros.hpp>
 
 LOSGuidanceNode::LOSGuidanceNode() : Node("los_guidance_node") {
@@ -8,6 +9,8 @@ LOSGuidanceNode::LOSGuidanceNode() : Node("los_guidance_node") {
     set_action_server();
 
     set_adaptive_los_guidance();
+
+    spdlog::info("LOS guidance node initialized");
 }
 
 void LOSGuidanceNode::set_subscribers_and_publisher() {
@@ -85,7 +88,7 @@ void LOSGuidanceNode::waypoint_callback(
     const geometry_msgs::msg::PointStamped::SharedPtr los_waypoint) {
     fill_los_waypoints(*los_waypoint);
     adaptive_los_guidance_->update_angles(last_point_, next_point_);
-    RCLCPP_INFO(this->get_logger(), "Received waypoint");
+    spdlog::info("Received waypoint");
 }
 
 void LOSGuidanceNode::pose_callback(
@@ -97,21 +100,19 @@ void LOSGuidanceNode::pose_callback(
 }
 
 rclcpp_action::GoalResponse LOSGuidanceNode::handle_goal(
-    const rclcpp_action::GoalUUID& uuid,
+    const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
-    (void)uuid;
     (void)goal;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (goal_handle_) {
             if (goal_handle_->is_active()) {
-                RCLCPP_INFO(this->get_logger(),
-                            "Aborting current goal and accepting new goal");
+                spdlog::info("Aborting current goal and accepting new goal");
                 preempted_goal_id_ = goal_handle_->get_goal_id();
             }
         }
     }
-    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
+    spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -119,7 +120,7 @@ rclcpp_action::CancelResponse LOSGuidanceNode::handle_cancel(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
         goal_handle) {
-    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -160,7 +161,7 @@ void LOSGuidanceNode::execute(
         this->goal_handle_ = goal_handle;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Executing goal");
+    spdlog::info("Executing goal");
 
     const geometry_msgs::msg::PointStamped los_waypoint =
         goal_handle->get_goal()->goal;
@@ -187,7 +188,7 @@ void LOSGuidanceNode::execute(
         if (goal_handle->is_canceling()) {
             result->success = false;
             goal_handle->canceled(result);
-            RCLCPP_INFO(this->get_logger(), "Goal canceled");
+            spdlog::info("Goal canceled");
             return;
         }
 
@@ -212,7 +213,7 @@ void LOSGuidanceNode::execute(
             goal_handle->succeed(result);
             vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
             reference_pub_->publish(reference_msg);
-            RCLCPP_INFO(this->get_logger(), "Goal reached");
+            spdlog::info("Goal reached");
             return;
         }
 
