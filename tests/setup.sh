@@ -94,6 +94,7 @@ build_ros_workspace() {
 log_info "Starting manual installation of extra dependencies..."
 install_python_dependencies
 install_cpp_dependencies
+install_gcc13_compiler
 install_stonefish
 build_ros_workspace
 
