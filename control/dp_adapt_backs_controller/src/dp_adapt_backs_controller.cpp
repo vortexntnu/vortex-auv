@@ -1,6 +1,5 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include <eigen3/Eigen/Dense>
-#include <iostream>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
