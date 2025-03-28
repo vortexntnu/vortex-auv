@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(thrust_allocator_auv)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -15,6 +15,8 @@ find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(include)
 
@@ -30,6 +32,8 @@ add_library(${LIB_NAME} SHARED
   geometry_msgs
   Eigen3
   vortex_msgs
+  fmt
+  spdlog
 )
 
 rclcpp_components_register_node(
