@@ -37,6 +37,18 @@ install_cpp_dependencies() {
     log_info "C++ dependencies installed."
 }
 
+install_gcc13_compiler() {
+    log_info "Installing GCC 13 compiler..."
+    sudo apt-get update -qq
+    sudo apt-get install -y --no-install-recommends software-properties-common
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+    sudo apt-get update -qq
+
+    sudo apt-get install -y --no-install-recommends gcc-13 g++-13
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
+    sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
+}
+
 # ----------------------------- STONEFISH INSTALLATION -----------------------------
 install_stonefish() {
     if [ -d "$STONEFISH_DIR" ]; then
