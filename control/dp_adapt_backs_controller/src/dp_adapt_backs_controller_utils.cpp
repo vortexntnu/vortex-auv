@@ -1,6 +1,6 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
-#include <algorithm>
 #include <spdlog/spdlog.h>
+#include <algorithm>
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
 double ssa(double angle) {
