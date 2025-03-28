@@ -12,7 +12,7 @@ best_effort_qos = QoSProfile(
     reliability=QoSReliabilityPolicy.BEST_EFFORT,
 )
 
-goal = (10.0, 10.0, 5.0)
+goal = (20.0, 20.0, 5.0)
 tolerance = 0.5  # meters
 
 

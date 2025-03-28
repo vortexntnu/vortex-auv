@@ -15,8 +15,8 @@ class LOSGuidanceClient(Node):
         goal_msg = LOSGuidance.Goal()
 
         # Create a PoseStamped message with the goal
-        goal_msg.goal.point.x = 10.0
-        goal_msg.goal.point.y = 10.0
+        goal_msg.goal.point.x = 20.0
+        goal_msg.goal.point.y = 20.0
         goal_msg.goal.point.z = 5.0
 
         # Send the goal asynchronously
