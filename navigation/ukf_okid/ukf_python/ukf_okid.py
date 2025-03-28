@@ -36,10 +36,10 @@ class UKF:
             if n % 2 == 1:  # if n is odd
                 T[n - 1, i - 1] = (-1) ** i
 
-        T = T / np.sqrt(2) 
+        T = T / np.sqrt(2)
 
         return T
-    
+
     def sigma_points(self, current_state: StateQuat) -> list[StateQuat]:
         """
         Functions that generate the sigma points for the UKF
@@ -53,12 +53,12 @@ class UKF:
         S = np.linalg.cholesky(current_state.covariance + self.Q)
 
         self.sigma_points_list = [StateQuat() for _ in range(2 * n)]
-        
+
         for state in self.sigma_points_list:
-            state.fill_states_different_dim(current_state.as_vector(), delta[:, self.sigma_points_list.index
+            state.fill_states_different_dim(current_state.as_vector(),
 
         return self.sigma_points_list
-    
+
 
     def unscented_transform(self, current_state: StateQuat) -> StateQuat:
         """
@@ -94,18 +94,18 @@ class UKF:
             z_i[i] = measurement.H(self.sigma_points_list[i])
 
         meas_update = MeasModel()
-        
+
         meas_update.measurement = mean_measurement(z_i, self.weight)
-        
+
         meas_update.covariance = covariance_measurement(z_i, meas_update.measurement, self.weight)
-        
+
         cross_correlation = cross_covariance(self.y_i, current_state.as_vector(), z_i, meas_update.measurement, self.weight)
-        
+
         return meas_update, cross_correlation
 
     def posteriori_estimate(self, current_state: StateQuat, cross_correlation: np.ndarray, measurement: MeasModel, ex_measuremnt: MeasModel) -> StateQuat:
         """
-        Calculates the posteriori estimate using measurment and the prior estimate
+        Calculates the posteriori estimate using measurement and the prior estimate
         """
 
         nu_k = MeasModel()
