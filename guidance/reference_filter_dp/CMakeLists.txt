@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(reference_filter_dp)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -19,6 +19,8 @@ find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(include)
 
@@ -39,6 +41,8 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   tf2
   tf2_geometry_msgs
   vortex_msgs
+  spdlog
+  fmt
 )
 
 rclcpp_components_register_node(
