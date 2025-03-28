@@ -1,6 +1,6 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
+#include <spdlog/spdlog.h>
 #include <algorithm>
-#include <iostream>
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
 double ssa(double angle) {
@@ -85,7 +85,7 @@ dp_types::Matrix6d calculate_J_inv(const dp_types::Eta& eta) {
     constexpr double tolerance = 1e-8;
 
     if (std::abs(J.determinant()) < tolerance) {
-        std::cerr << "J(eta) is singular" << std::endl;
+        spdlog::error("J(eta) is singular");
 
         // Moore-Penrose pseudoinverse in case of near singular matrix, better
         // result for smaller singular values

@@ -1,4 +1,5 @@
 #include "thruster_interface_auv/thruster_interface_auv_ros.hpp"
+#include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
@@ -32,8 +33,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
 
     this->initialize_parameter_handler();
 
-    RCLCPP_INFO(this->get_logger(),
-                "\"thruster_interface_auv_node\" correctly initialized");
+    spdlog::info("thruster_interface_auv_node correctly initialized");
 }
 
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
@@ -63,8 +63,7 @@ void ThrusterInterfaceAUVNode::watchdog_callback() {
         thruster_forces_array_.assign(8, 0.00);
         thruster_driver_->drive_thrusters(thruster_forces_array_);
         watchdog_triggered_ = true;
-        RCLCPP_WARN(this->get_logger(),
-                    "Watchdog triggered, all thrusters set to 0.00");
+        spdlog::warn("Watchdog triggered, all thrusters set to 0.00");
     }
 }
 
@@ -78,9 +77,9 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
 
 void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
     debug_flag_ = p.get_value<bool>();
-    RCLCPP_INFO(this->get_logger(),
-                "Received parameter event: debug.flag updated to: %s",
-                debug_flag_ ? "true" : "false");
+
+    spdlog::info("Received parameter event: debug.flag updated to: {}",
+                 debug_flag_ ? "true" : "false");
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {

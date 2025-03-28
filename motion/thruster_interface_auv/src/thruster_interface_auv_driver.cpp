@@ -1,4 +1,6 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
+#include <spdlog/spdlog.h>
+#include <format>
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     short i2c_bus,
@@ -9,14 +11,13 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
       pico_i2c_address_(pico_i2c_address),
       thruster_parameters_(thruster_parameters),
       poly_coeffs_(poly_coeffs) {
-    std::string i2c_filename = "/dev/i2c-" + std::to_string(i2c_bus_);
+    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
     bus_fd_ =
         open(i2c_filename.c_str(),
              O_RDWR);  // Open the i2c bus for reading and writing (0_RDWR)
     if (bus_fd_ < 0) {
-        std::runtime_error("ERROR: Failed to open I2C bus " +
-                           std::to_string(i2c_bus_) + " : " +
-                           std::string(strerror(errno)));
+        std::runtime_error(std::format("ERROR: Failed to open I2C bus {} : {}",
+                                       i2c_bus_, strerror(errno)));
     }
 
     idle_pwm_value_ =
@@ -83,16 +84,15 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
 
     // Set the I2C slave address
     if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
-        throw std::runtime_error("Failed to open I2C bus " +
-                                 std::to_string(i2c_bus_) + " : " +
-                                 std::string(strerror(errno)));
+        throw std::runtime_error(std::format("Failed to open I2C bus {} : {}",
+                                             i2c_bus_, strerror(errno)));
         return;
     }
 
     // Write data to the I2C device
     if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
-        throw std::runtime_error("ERROR: Failed to write to I2C device : " +
-                                 std::string(strerror(errno)));
+        throw std::runtime_error(std::format(
+            "ERROR: Failed to write to I2C device : {}", strerror(errno)));
     }
 }
 
@@ -123,11 +123,9 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     try {
         send_data_to_escs(thruster_pwm_array);
     } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to send PWM values - " << e.what()
-                  << std::endl;
+        spdlog::error("ERROR: Failed to send PWM values - {}", e.what());
     } catch (...) {
-        std::cerr << "ERROR: Failed to send PWM values - Unknown exception"
-                  << std::endl;
+        spdlog::error("ERROR: Failed to send PWM values - Unknown exception");
     }
 
     return thruster_pwm_array;
