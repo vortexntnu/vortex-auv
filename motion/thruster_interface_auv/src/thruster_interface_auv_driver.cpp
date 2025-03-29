@@ -108,11 +108,11 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
 
     std::ranges::transform(thruster_pwm_array, thruster_pwm_array.begin(),
                            [this, i = 0](auto pwm) mutable {
-                                auto result =  std::clamp(
-                                    pwm, thruster_parameters_[i].pwm_min,
-                                    thruster_parameters_[i].pwm_max);
-                                ++i;
-                                return result;
+                               auto result = std::clamp(
+                                   pwm, thruster_parameters_[i].pwm_min,
+                                   thruster_parameters_[i].pwm_max);
+                               ++i;
+                               return result;
                            });
 
     try {
