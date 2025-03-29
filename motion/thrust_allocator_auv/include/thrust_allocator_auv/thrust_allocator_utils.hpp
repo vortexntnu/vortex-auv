@@ -8,6 +8,7 @@
 #define VORTEX_ALLOCATOR_UTILS_HPP
 
 #include <eigen3/Eigen/Eigen>
+#include <ranges>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
@@ -83,11 +84,10 @@ inline Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T) {
 inline bool saturate_vector_values(Eigen::VectorXd& vec,
                                    double min,
                                    double max) {
-    bool all_values_in_range = std::all_of(
-        vec.begin(), vec.end(),
-        [min, max](double val) { return val >= min && val <= max; });
+    bool all_values_in_range = std::ranges::all_of(
+        vec, [min, max](double val) { return val >= min && val <= max; });
 
-    std::transform(vec.begin(), vec.end(), vec.begin(), [min, max](double val) {
+    std::ranges::transform(vec, vec.begin(), [min, max](double val) {
         return std::min(std::max(val, min), max);
     });
 

@@ -142,9 +142,8 @@ bool ThrustAllocator::healthy_wrench(const Eigen::VectorXd& v) const {
     if (is_invalid_matrix(v))
         return false;
 
-    bool within_max_thrust = std::none_of(
-        v.begin(), v.end(),
-        [this](double val) { return std::abs(val) > max_thrust_; });
+    bool within_max_thrust = std::ranges::none_of(
+        v, [this](double val) { return std::abs(val) > max_thrust_; });
 
     return within_max_thrust;
 }
