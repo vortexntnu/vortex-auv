@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>pose_action_server</name>
+  <version>1.0.0</version>
+  <description>Ros2 Action server that provides a single robust measurement from multiple constant pose measurements.
+  The node computes the mean from multiple pose measurements in odom frame.</description>
+  <maintainer email="jorgen.fjermedal@hotmail.com">jorgen</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>vortex_msgs</depend>
+  <depend>eigen</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

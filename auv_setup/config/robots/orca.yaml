@@ -129,7 +129,15 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+      fsm:
+        active_controller: "fsm/active_controller"
 
     action_servers:
       reference_filter: "reference_filter"
       los: "los_guidance"
+
+    fsm:
+      docking:
+        docking_station_offset: -1.0
+        num_measurements: 5
+        dock_wait_time: 10.0
