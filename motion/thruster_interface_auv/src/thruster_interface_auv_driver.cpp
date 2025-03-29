@@ -1,6 +1,7 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 #include <spdlog/spdlog.h>
 #include <format>
+#include <ranges>
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     short i2c_bus,
@@ -36,15 +37,11 @@ ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     const std::vector<double>& thruster_forces_array) {
     // Convert Newtons to Kg (since the thruster datasheet is in Kg)
-    std::vector<double> forces_in_kg(thruster_forces_array.size());
-    std::transform(thruster_forces_array.begin(), thruster_forces_array.end(),
-                   forces_in_kg.begin(), to_kg);
-
-    std::vector<uint16_t> interpolated_pwm;
-    for (const double force : forces_in_kg) {
-        interpolated_pwm.push_back(force_to_pwm(force, poly_coeffs_));
-    }
-    return interpolated_pwm;
+    auto pwm_view = thruster_forces_array | std::views::transform(to_kg) |
+                    std::views::transform([this](double force_in_kg) {
+                        return force_to_pwm(force_in_kg, poly_coeffs_);
+                    });
+    return std::vector<uint16_t>(pwm_view.begin(), pwm_view.end());
 }
 
 std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(
@@ -75,12 +72,10 @@ void ThrusterInterfaceAUVDriver::send_data_to_escs(
     i2c_data_array.reserve(i2c_data_size);
 
     i2c_data_array.push_back(0x00);  // Start byte
-    std::for_each(thruster_pwm_array.begin(), thruster_pwm_array.end(),
-                  [&](std::uint16_t pwm) {
-                      std::array<std::uint8_t, 2> bytes = pwm_to_i2c_data(pwm);
-                      std::copy(bytes.begin(), bytes.end(),
-                                std::back_inserter(i2c_data_array));
-                  });
+    std::ranges::for_each(thruster_pwm_array, [&](std::uint16_t pwm) {
+        std::array<std::uint8_t, 2> bytes = pwm_to_i2c_data(pwm);
+        std::ranges::copy(bytes, std::back_inserter(i2c_data_array));
+    });
 
     // Set the I2C slave address
     if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
@@ -100,25 +95,25 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
     // Apply thruster mapping and direction
     std::vector<double> mapped_forces(thruster_forces_array.size());
-    for (size_t i = 0; i < thruster_parameters_.size(); ++i) {
-        mapped_forces[i] =
-            thruster_forces_array[thruster_parameters_[i].mapping] *
-            thruster_parameters_[i].direction;
-    }
+
+    std::ranges::transform(thruster_parameters_, mapped_forces.begin(),
+                           [this, &thruster_forces_array](const auto& param) {
+                               return thruster_forces_array[param.mapping] *
+                                      param.direction;
+                           });
 
     // Convert forces to PWM
     std::vector<uint16_t> thruster_pwm_array =
         interpolate_forces_to_pwm(mapped_forces);
 
-    // Apply thruster offset and limit PWM if needed
-    for (size_t i = 0; i < thruster_pwm_array.size(); ++i) {
-        // Clamp the PWM signal
-        if (thruster_pwm_array[i] < thruster_parameters_[i].pwm_min) {
-            thruster_pwm_array[i] = thruster_parameters_[i].pwm_min;
-        } else if (thruster_pwm_array[i] > thruster_parameters_[i].pwm_max) {
-            thruster_pwm_array[i] = thruster_parameters_[i].pwm_max;
-        }
-    }
+    std::ranges::transform(thruster_pwm_array, thruster_pwm_array.begin(),
+                           [this, i = 0](auto pwm) mutable {
+                               auto result = std::clamp(
+                                   pwm, thruster_parameters_[i].pwm_min,
+                                   thruster_parameters_[i].pwm_max);
+                               ++i;
+                               return result;
+                           });
 
     try {
         send_data_to_escs(thruster_pwm_array);
