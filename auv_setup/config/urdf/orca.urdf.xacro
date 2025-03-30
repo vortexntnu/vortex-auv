@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- base_link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.2 0.2 0.1"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- dvl_link -->
+  <link name="dvl_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.05" length="0.1"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- base to dvl -->
+  <joint name="base_to_dvl" type="fixed">
+    <parent link="base_link"/>
+    <child link="dvl_link"/>
+    <origin xyz="0.05 0.0 0.1" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <!-- gripper shoulder (entry point) -->
+  <link name="gripper_shoulder"/>
+
+  <joint name="base_to_gripper" type="fixed">
+    <parent link="base_link"/>
+    <child link="gripper_shoulder"/>
+    <origin xyz="0.5 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- pitch joint -->
+  <joint name="gripper_pitch_joint" type="revolute">
+    <parent link="gripper_shoulder"/>
+    <child link="gripper_pitch_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+  </joint>
+  <link name="gripper_pitch_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.02" length="0.5"/>
+      </geometry>
+      <!-- Rotate cylinder from Z-axis to X-axis -->
+      <origin xyz="0.25 0 0" rpy="0 1.5708 0"/>
+      <material name="gray">
+        <color rgba="0.6 0.6 0.6 1"/>
+      </material>
+    </visual>
+  </link>
+
+
+   <!-- zed_camera_link -->
+  <link name="zed_camera_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="gripper_to_zed" type="fixed">
+    <parent link="gripper_pitch_link"/>
+    <child link="zed_camera_link"/>
+    <origin xyz="0.3 0.0 -0.4" rpy="3.14159 0 0"/>
+  </joint>
+
+
+</robot>
