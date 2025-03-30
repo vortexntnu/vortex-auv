@@ -32,10 +32,9 @@ PoseActionServerNode::PoseActionServerNode() : Node("pose_action_server_node") {
 rclcpp_action::GoalResponse PoseActionServerNode::handleGoal(
     const rclcpp_action::GoalUUID& /*uuid*/,
     std::shared_ptr<const vortex_msgs::action::FilteredPose::Goal> goal) {
-    RCLCPP_INFO(this->get_logger(), "Received request to filter pose.");
+    spdlog::info("Received request to filter pose.");
     if (is_executing_action_) {
-        RCLCPP_WARN(this->get_logger(),
-                    "Already executing an action, rejecting new goal.");
+        spdlog::warn("Action already executing. Rejecting new goal.");
         return rclcpp_action::GoalResponse::REJECT;
     }
     is_executing_action_ = true;
@@ -46,7 +45,7 @@ rclcpp_action::GoalResponse PoseActionServerNode::handleGoal(
 
 rclcpp_action::CancelResponse PoseActionServerNode::handleCancel(
     const std::shared_ptr<GoalHandleFilteredPose> goal_handle) {
-    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    spdlog::info("Received request to cancel action.");
     (void)goal_handle;
     is_executing_action_ = false;
     active_goal_handle_.reset();
@@ -56,7 +55,7 @@ rclcpp_action::CancelResponse PoseActionServerNode::handleCancel(
 
 void PoseActionServerNode::handleAccepted(
     const std::shared_ptr<GoalHandleFilteredPose> goal_handle) {
-    RCLCPP_INFO(this->get_logger(), "Goal accepted. Processing poses.");
+    spdlog::info("Accepted goal.");
     is_executing_action_ = true;
     active_goal_handle_ = goal_handle;
 }
@@ -99,17 +98,16 @@ void PoseActionServerNode::pose_callback(
 
     auto extract_quaternions =
         [](const std::vector<geometry_msgs::msg::PoseStamped>& pose_queue) {
-            std::vector<Eigen::Quaterniond> quaternions;
-            std::transform(pose_queue.begin(), pose_queue.end(),
-                           std::back_inserter(quaternions),
-                           [](const auto& pose) {
-                               Eigen::Quaterniond q;
-                               q.x() = pose.pose.orientation.x;
-                               q.y() = pose.pose.orientation.y;
-                               q.z() = pose.pose.orientation.z;
-                               q.w() = pose.pose.orientation.w;
-                               return q;
-                           });
+            std::vector<Eigen::Quaterniond> quaternions(pose_queue.size());
+            std::ranges::transform(pose_queue, quaternions.begin(),
+                                   [](const auto& pose) {
+                                       Eigen::Quaterniond q;
+                                       q.x() = pose.pose.orientation.x;
+                                       q.y() = pose.pose.orientation.y;
+                                       q.z() = pose.pose.orientation.z;
+                                       q.w() = pose.pose.orientation.w;
+                                       return q;
+                                   });
             return quaternions;
         };
 
@@ -134,9 +132,9 @@ void PoseActionServerNode::pose_callback(
 Eigen::Quaterniond PoseActionServerNode::average_quaternions(
     const std::vector<Eigen::Quaterniond>& quaternions) {
     Eigen::Matrix4d M = Eigen::Matrix4d::Zero();
-    for (const auto& q : quaternions) {
+    std::ranges::for_each(quaternions, [&](const auto& q) {
         M += q.coeffs() * q.coeffs().transpose();
-    }
+    });
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> eigensolver(M);
 

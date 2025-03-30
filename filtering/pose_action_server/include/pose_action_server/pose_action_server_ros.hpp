@@ -1,6 +1,7 @@
 #ifndef POSE_ACTION_SERVER_ROS_HPP
 #define POSE_ACTION_SERVER_ROS_HPP
 
+#include <spdlog/spdlog.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
