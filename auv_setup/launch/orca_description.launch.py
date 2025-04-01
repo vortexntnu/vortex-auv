@@ -9,7 +9,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     # Path to your xacro file
     xacro_file = os.path.join(
-        get_package_share_directory('auv_setup'), 'config', 'urdf', 'orca.urdf.xacro'
+        get_package_share_directory('auv_setup'), 'description', 'orca.urdf.xacro'
     )
 
     # Run xacro to convert to URDF
