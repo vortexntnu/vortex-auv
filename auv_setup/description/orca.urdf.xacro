@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:arg name="use_flir_camera" default="true"/>
 
   <!-- base_link -->
   <link name="base_link">
@@ -84,17 +85,16 @@
     <origin xyz="0.3 0.0 -0.4" rpy="3.14159 0 0"/>
   </joint>
 
-  <xacro:include filename="$(find flir_camera_description)/urdf/flir_blackfly_s.urdf.xacro"/>
+  <xacro:if value="$(arg use_flir_camera)">
+    <xacro:include filename="$(find flir_camera_description)/urdf/flir_blackfly_s.urdf.xacro"/>
+    <xacro:flir_blackfly_s frame="flir_camera" name="flir_blackfly"/>
 
-  <xacro:flir_blackfly_s frame="flir_camera" name="flir_blackfly"/>
-
-
-  <joint name="base_link_to_flir" type="fixed">
-  <parent link="base_link"/>
-  <child link="flir_camera"/>
-  <origin xyz="1.0 0.0 0.4" rpy="3.14159 0 0"/>
-</joint>
-
+    <joint name="base_link_to_flir" type="fixed">
+      <parent link="base_link"/>
+      <child link="flir_camera"/>
+      <origin xyz="1.0 0.0 0.4" rpy="3.14159 0 0"/>
+    </joint>
+  </xacro:if>
 
 
 
