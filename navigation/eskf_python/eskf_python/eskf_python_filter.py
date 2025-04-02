@@ -25,54 +25,6 @@ class ESKF:
         self.p_accBias = p_accBias
         self.p_gyroBias = p_gyroBias
 
-    def Fx(self, imu_data: Measurement) -> np.ndarray:
-        """Calculates the state transition matrix.
-
-        Args:
-            imu_data (np.ndarray): The IMU data.
-
-        Returns:
-            np.ndarray: The state transition matrix.
-        """
-        F_x = np.zeros((18, 18))
-        I = np.eye(3)
-
-        F_x[0:3, 0:3] = I
-        F_x[0:3, 3:6] = self.dt * I
-        F_x[3:6, 3:6] = I
-        F_x[3:6, 6:9] = (
-            -self.nom_state.R_q()
-            @ skew_matrix(imu_data.acceleration - self.nom_state.acceleration_bias)
-            * self.dt
-        )
-        F_x[6:9, 6:9] = R_from_angle_axis(
-            (imu_data.angular_velocity - self.nom_state.gyro_bias) * self.dt
-        ).T
-        F_x[3:6, 9:12] = -self.nom_state.R_q() * self.dt
-        F_x[3:6, 15:18] = I * self.dt
-        F_x[6:9, 12:15] = -I * self.dt
-        F_x[9:12, 9:12] = I
-        F_x[12:15, 12:15] = I
-        F_x[15:18, 15:18] = I
-
-        return F_x
-
-    def Fi(self) -> np.ndarray:
-        """Calculates the input matrix.
-
-        Returns:
-            np.ndarray: The input matrix.
-        """
-        F_i = np.zeros((18, 12))
-        I = np.eye(3)
-
-        F_i[3:6, 0:3] = I
-        F_i[6:9, 3:6] = I
-        F_i[9:12, 6:9] = I
-        F_i[12:15, 9:12] = I
-
-        return F_i
-
     def Q_delta_theta(self) -> np.ndarray:
         """Calculates the Q_delta_theta matrix.
         See Joan Solà. Quaternion kinematics for the error-state Kalman filter.
@@ -92,26 +44,58 @@ class ESKF:
         return Q_delta_theta
 
     def Hx(self) -> np.ndarray:
-        """Calculates the Jacobian of the measurement model.
-
-        Returns:
-            np.ndarray: The Jacobian of the measurement model.
         """
+        Computes the true-state measurement Jacobian for the measurement
+            h(x) = R(q) * velocity,
+        where:
+            - R(q) is the rotation matrix from the quaternion (q, q, q, q) with q as the scalar part,
+            - velocity is a 3-vector.
+            
+        The state is assumed to be ordered as:
+            [position (3), velocity (3), quaternion (4), ...]  (total length 19).
+            
+        The Jacobian Hx is a 3x19 matrix with nonzero blocks:
+            - Columns 3:6 (velocity): R(q)
+            - Columns 6:10 (quaternion): 
+        """
+
+        q = self.nom_state.orientation  # shape (4,)
+        v = self.nom_state.velocity       # shape (3,)
+        q0, q1, q2, q3 = q
+        v1, v2, v3 = v
+
+        R = self.nom_state.R_q().transpose()  # shape (3, 3)
+        
+        dhdq0 = 2 * np.array([
+            q0 * v1 - q3 * v2 + q2 * v3,
+            q3 * v1 + q0 * v2 - q1 * v3,
+        -q2 * v1 + q1 * v2 + q0 * v3
+        ])
+        
+        dhdq1 = 2 * np.array([
+            q1 * v1 + q2 * v2 + q3 * v3,
+            q2 * v1 - q1 * v2 - q0 * v3,
+            q3 * v1 + q0 * v2 - q1 * v3
+        ])
+        
+        dhdq2 = 2 * np.array([
+        -q2 * v1 + q1 * v2 + q0 * v3,
+            q1 * v1 + q2 * v2 + q3 * v3,
+        -q0 * v1 + q3 * v2 - q2 * v3
+        ])
+        
+        dhdq3 = 2 * np.array([
+        -q3 * v1 - q0 * v2 + q1 * v3,
+            q0 * v1 - q3 * v2 + q2 * v3,
+            q1 * v1 + q2 * v2 + q3 * v3
+        ])
+        
+        dHdq = np.column_stack((dhdq0, dhdq1, dhdq2, dhdq3))  # shape (3, 4)
+        
         Hx = np.zeros((3, 19))
-
-        q0, q1, q2, q3 = self.nom_state.orientation
-        e = np.array([q1, q2, q3])
-        v = self.nom_state.velocity
-
-        temp_nu = -2 * skew_matrix(e) @ v
-        temp_eps = 2 * (q0 * np.eye(3) + skew_matrix(e)) @ skew_matrix(v)
-
-        Hx[0:3, 3:6] = self.nom_state.R_q()
-        Hx[0:3, 6:10] = np.vstack([temp_nu, temp_eps]).T
-
-        Hx = np.zeros((3, 19))
-        Hx[0:3, 3:6] = np.eye(3)
-
+        Hx[:, 3:6] = R
+        Hx[:, 6:10] = dHdq
+        
         return Hx
 
     def H(self) -> np.ndarray:
@@ -132,7 +116,7 @@ class ESKF:
         Returns:
             np.ndarray: The measurement model.
         """
-        return self.nom_state.velocity  # self.nom_state.R_q() @ self.nom_state.velocity
+        return self.nom_state.R_q() @ self.nom_state.velocity
 
     def nominal_state_discrete(self, imu_data: Measurement) -> None:
         """Calculates the next nominal state using the discrete-time process model defined in:
