@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:arg name="use_flir_camera" default="true"/>
+  <xacro:arg name="include_flir" default="false"/>
+  <xacro:arg name="include_gripper" default="false"/>
+  <xacro:arg name="include_zed" default="false"/>
 
   <!-- base_link -->
   <link name="base_link">
@@ -35,57 +37,7 @@
     <origin xyz="0.05 0.0 0.1" rpy="0.0 0.0 0.0"/>
   </joint>
 
-  <!-- gripper shoulder (entry point) -->
-  <link name="gripper_shoulder"/>
-
-  <joint name="base_to_gripper" type="fixed">
-    <parent link="base_link"/>
-    <child link="gripper_shoulder"/>
-    <origin xyz="0.5 0 0" rpy="0 0 0"/>
-  </joint>
-
-  <!-- pitch joint -->
-  <joint name="gripper_pitch_joint" type="revolute">
-    <parent link="gripper_shoulder"/>
-    <child link="gripper_pitch_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-    <axis xyz="0 1 0"/>
-    <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
-  </joint>
-  <link name="gripper_pitch_link">
-    <visual>
-      <geometry>
-        <cylinder radius="0.02" length="0.5"/>
-      </geometry>
-      <!-- Rotate cylinder from Z-axis to X-axis -->
-      <origin xyz="0.25 0 0" rpy="0 1.5708 0"/>
-      <material name="gray">
-        <color rgba="0.6 0.6 0.6 1"/>
-      </material>
-    </visual>
-  </link>
-
-
-   <!-- zed_camera_link -->
-  <link name="zed_camera_link">
-    <visual>
-      <geometry>
-        <box size="0.1 0.05 0.05"/>
-      </geometry>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <material name="green">
-        <color rgba="0 1 0 1"/>
-      </material>
-    </visual>
-  </link>
-
-  <joint name="gripper_to_zed" type="fixed">
-    <parent link="gripper_pitch_link"/>
-    <child link="zed_camera_link"/>
-    <origin xyz="0.3 0.0 -0.4" rpy="3.14159 0 0"/>
-  </joint>
-
-  <xacro:if value="$(arg use_flir_camera)">
+  <xacro:if value="$(arg include_flir)">
     <xacro:include filename="$(find flir_camera_description)/urdf/flir_blackfly_s.urdf.xacro"/>
     <xacro:flir_blackfly_s frame="flir_camera" name="flir_blackfly"/>
 
@@ -94,6 +46,32 @@
       <child link="flir_camera"/>
       <origin xyz="1.0 0.0 0.4" rpy="3.14159 0 0"/>
     </joint>
+  </xacro:if>
+
+  <xacro:if value="$(arg include_gripper)">
+    <xacro:include filename="$(find gripper_description)/urdf/gripper.urdf.xacro"/>
+
+    <joint name="base_to_gripper" type="fixed">
+      <parent link="base_link"/>
+      <child link="gripper_link"/>
+      <origin xyz="0.5 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Only enable zed if gripper is also enabled -->
+    <xacro:if value="$(arg include_zed)">
+      <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
+      <xacro:zed_camera name="zed" model="zed2i" custom_baseline="0.0" enable_gnss="false">
+        <!-- offset from GNSS to camera mount point, if GNSS fusion is enabled -->
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      </xacro:zed_camera>
+
+      <joint name="gripper_to_zed" type="fixed">
+        <parent link="gripper_pitch_link"/>
+        <child link="zed_camera_link"/>
+        <origin xyz="0.3 0.0 -0.4" rpy="3.14159 0 0"/>
+      </joint>
+
+    </xacro:if>
   </xacro:if>
 
 

@@ -9,12 +9,28 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     flir_camera_arg = DeclareLaunchArgument(
-        'use_flir_camera',
+        'include_flir',
         default_value='true',
         description='Whether to include the FLIR camera in the robot description',
     )
 
-    use_flir_camera = LaunchConfiguration('use_flir_camera')
+    gripper_arg = DeclareLaunchArgument(
+        'include_gripper',
+        default_value='false',
+        description='Whether to include the gripper in the robot description',
+    )
+
+    zed_camera_arg = DeclareLaunchArgument(
+        'include_zed',
+        default_value='true',
+        description='Whether to include the ZED camera in the robot description',
+    )
+
+    include_flir = LaunchConfiguration('include_flir')
+
+    include_gripper = LaunchConfiguration('include_gripper')
+
+    include_zed = LaunchConfiguration('include_zed')
 
     xacro_path = os.path.join(
         get_package_share_directory('auv_setup'), 'description', 'orca.urdf.xacro'
@@ -33,8 +49,14 @@ def generate_launch_description():
                         ' ',
                         str(xacro_path),
                         ' ',
-                        'use_flir_camera:=',
-                        use_flir_camera,
+                        'include_flir:=',
+                        include_flir,
+                        ' ',
+                        'include_gripper:=',
+                        include_gripper,
+                        ' ',
+                        'include_zed:=',
+                        include_zed,
                     ]
                 )
             }
@@ -44,6 +66,8 @@ def generate_launch_description():
     return LaunchDescription(
         [
             flir_camera_arg,
+            gripper_arg,
+            zed_camera_arg,
             robot_state_publisher_node,
         ]
     )
