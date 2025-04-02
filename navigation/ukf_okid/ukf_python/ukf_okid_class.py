@@ -395,7 +395,7 @@ def mean_measurement(set_points: list[MeasModel]) -> np.ndarray:
 
     return mean_value.measurement
 
-def covariance_set(set_points: list[StateQuat], mean: StateQuat) -> np.ndarray:
+def covariance_set(set_points: list[StateQuat], mean: np.ndarray) -> np.ndarray:
     """
     Function that calculates the covariance of a set of points
     """
@@ -403,9 +403,9 @@ def covariance_set(set_points: list[StateQuat], mean: StateQuat) -> np.ndarray:
     covariance = np.zeros(set_points[0].covariance.shape)
 
     mean_quat = StateQuat()
-    mean_quat.fill_states(mean.as_vector())
+    mean_quat.fill_states(mean)
 
-    mean_q = mean.orientation
+    mean_q = mean_quat.orientation
 
     for state in set_points:
         q = state.orientation

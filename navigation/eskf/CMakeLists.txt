@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(eskf)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -16,6 +16,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 if(NOT DEFINED EIGEN3_INCLUDE_DIR)
   set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
@@ -38,6 +40,12 @@ ament_target_dependencies(eskf_node
   Eigen3
   tf2
   vortex_msgs
+  spdlog
+  fmt
+)
+
+target_link_libraries(eskf_node
+  fmt::fmt
 )
 
 install(TARGETS
