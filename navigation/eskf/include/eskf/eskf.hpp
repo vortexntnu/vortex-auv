@@ -1,7 +1,7 @@
 #ifndef ESKF_HPP
 #define ESKF_HPP
 
-#include <eigen3/Eigen/src/Core/Matrix.h>
+#include <eigen3/Eigen/Dense>
 #include <utility>
 #include "eskf/typedefs.hpp"
 #include "typedefs.hpp"

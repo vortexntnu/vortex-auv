@@ -1,5 +1,6 @@
 eskf_node:
   ros__parameters:
-    imu_topic: imu/date_raw
+    imu_topic: imu/data_raw
     dvl_twist: /orca/twist
     odom_topic: odom
+    diag_Q_std: [0.0103, 0.0118, 0.0043, 0.00193, 0.00306, 0.00118, 0.000001, 0.000001, 0.000001, 0.000003, 0.000003, 0.000003]
