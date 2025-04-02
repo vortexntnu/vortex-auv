@@ -16,7 +16,7 @@ class UKF:
         self.weight = None
         self.T = self.generate_T_matrix(len(P_0))
 
-    def generate_T_matrix(n: float) -> np.ndarray:
+    def generate_T_matrix(self, n: float) -> np.ndarray:
         """
         Generates the orthonormal transformation matrix T used in the TUKF sigma point generation.
 
@@ -26,10 +26,10 @@ class UKF:
         Returns:
             T (np.ndarray): An n x 2n orthonormal transformation matrix used to generate TUKF sigma points.
         """
-        T = np.zeros((n, 2 * n))
+        T = np.zeros((n, n))
 
-        for i in range(1, 2 * n + 1):
-            for j in range(1, (n // 2) + 1):
+        for i in range(n):
+            for j in range(n//2):
                 T[2 * j - 2, i - 1] = np.sqrt(2) * np.cos(((2 * j - 1) * i * np.pi) / n)
                 T[2 * j - 1, i - 1] = np.sqrt(2) * np.sin(((2 * j - 1) * i * np.pi) / n)
 
@@ -54,8 +54,9 @@ class UKF:
 
         self.sigma_points_list = [StateQuat() for _ in range(2 * n)]
 
-        for state in self.sigma_points_list:
-            state.fill_states_different_dim(current_state.as_vector(),
+        for index, state in enumerate(self.sigma_points_list):
+            delta_x = S @ delta[:, index]
+            state.fill_states_different_dim(current_state.as_vector(), delta_x)
 
         return self.sigma_points_list
 
@@ -65,20 +66,20 @@ class UKF:
         The unscented transform function generates the priori state estimate
         """
 
-        _ , _ = self.sigma_points(current_state)
+        _  = self.sigma_points(current_state)
         n = len(current_state.covariance)
 
-        self.y_i = [StateQuat() for _ in range(2 * n + 1)]
+        self.y_i = [StateQuat() for _ in range(2 * n)]
 
-        for i in range(2 * n + 1):
+        for i in range(2 * n ):
             self.process_model.model_prediction(self.sigma_points_list[i])
             self.y_i[i] = self.process_model.euler_forward()
 
         state_estimate = StateQuat()
-        x = mean_set(self.y_i, self.weight)
+        x = mean_set(self.y_i)
 
         state_estimate.fill_states(x)
-        state_estimate.covariance = covariance_set(self.y_i, x, self.weight)
+        state_estimate.covariance = covariance_set(self.y_i, x)
         return state_estimate
 
     def measurement_update(self, current_state: StateQuat, measurement: MeasModel) -> tuple[MeasModel, np.ndarray]:
@@ -88,18 +89,18 @@ class UKF:
         """
 
         n = len(current_state.covariance)
-        z_i = [MeasModel() for _ in range(2 * n + 1)]
+        z_i = [MeasModel() for _ in range(2 * n)]
 
-        for i in range(2 * n + 1):
+        for i in range(2 * n):
             z_i[i] = measurement.H(self.sigma_points_list[i])
 
         meas_update = MeasModel()
 
-        meas_update.measurement = mean_measurement(z_i, self.weight)
+        meas_update.measurement = mean_measurement(z_i)
 
-        meas_update.covariance = covariance_measurement(z_i, meas_update.measurement, self.weight)
+        meas_update.covariance = covariance_measurement(z_i, meas_update.measurement)
 
-        cross_correlation = cross_covariance(self.y_i, current_state.as_vector(), z_i, meas_update.measurement, self.weight)
+        cross_correlation = cross_covariance(self.y_i, current_state.as_vector(), z_i, meas_update.measurement)
 
         return meas_update, cross_correlation
 
