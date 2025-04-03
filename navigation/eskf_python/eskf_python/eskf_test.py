@@ -4,7 +4,6 @@ from eskf_python_class import Measurement, StateQuat
 from eskf_python_filter import ESKF
 from eskf_python_utils import quat_to_euler
 from eskf_test_utils import StateQuatModel, process_model
-from scipy.stats import chi2
 
 
 def simulate_eskf():

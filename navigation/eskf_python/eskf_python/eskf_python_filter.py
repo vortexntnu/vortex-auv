@@ -4,7 +4,6 @@ from typing import Tuple
 import numpy as np
 from eskf_python_class import Measurement, StateEuler, StateQuat
 from eskf_python_utils import (
-    R_from_angle_axis,
     angle_axis_to_quaternion,
     euler_to_quat,
     quaternion_product,
@@ -44,58 +43,64 @@ class ESKF:
         return Q_delta_theta
 
     def Hx(self) -> np.ndarray:
-        """
-        Computes the true-state measurement Jacobian for the measurement
+        """Computes the true-state measurement Jacobian for the measurement
             h(x) = R(q) * velocity,
         where:
             - R(q) is the rotation matrix from the quaternion (q, q, q, q) with q as the scalar part,
             - velocity is a 3-vector.
-            
+
         The state is assumed to be ordered as:
             [position (3), velocity (3), quaternion (4), ...]  (total length 19).
-            
+
         The Jacobian Hx is a 3x19 matrix with nonzero blocks:
             - Columns 3:6 (velocity): R(q)
-            - Columns 6:10 (quaternion): 
+            - Columns 6:10 (quaternion):
         """
-
         q = self.nom_state.orientation  # shape (4,)
-        v = self.nom_state.velocity       # shape (3,)
+        v = self.nom_state.velocity  # shape (3,)
         q0, q1, q2, q3 = q
         v1, v2, v3 = v
 
         R = self.nom_state.R_q().transpose()  # shape (3, 3)
-        
-        dhdq0 = 2 * np.array([
-            q0 * v1 - q3 * v2 + q2 * v3,
-            q3 * v1 + q0 * v2 - q1 * v3,
-        -q2 * v1 + q1 * v2 + q0 * v3
-        ])
-        
-        dhdq1 = 2 * np.array([
-            q1 * v1 + q2 * v2 + q3 * v3,
-            q2 * v1 - q1 * v2 - q0 * v3,
-            q3 * v1 + q0 * v2 - q1 * v3
-        ])
-        
-        dhdq2 = 2 * np.array([
-        -q2 * v1 + q1 * v2 + q0 * v3,
-            q1 * v1 + q2 * v2 + q3 * v3,
-        -q0 * v1 + q3 * v2 - q2 * v3
-        ])
-        
-        dhdq3 = 2 * np.array([
-        -q3 * v1 - q0 * v2 + q1 * v3,
-            q0 * v1 - q3 * v2 + q2 * v3,
-            q1 * v1 + q2 * v2 + q3 * v3
-        ])
-        
+
+        dhdq0 = 2 * np.array(
+            [
+                q0 * v1 - q3 * v2 + q2 * v3,
+                q3 * v1 + q0 * v2 - q1 * v3,
+                -q2 * v1 + q1 * v2 + q0 * v3,
+            ]
+        )
+
+        dhdq1 = 2 * np.array(
+            [
+                q1 * v1 + q2 * v2 + q3 * v3,
+                q2 * v1 - q1 * v2 - q0 * v3,
+                q3 * v1 + q0 * v2 - q1 * v3,
+            ]
+        )
+
+        dhdq2 = 2 * np.array(
+            [
+                -q2 * v1 + q1 * v2 + q0 * v3,
+                q1 * v1 + q2 * v2 + q3 * v3,
+                -q0 * v1 + q3 * v2 - q2 * v3,
+            ]
+        )
+
+        dhdq3 = 2 * np.array(
+            [
+                -q3 * v1 - q0 * v2 + q1 * v3,
+                q0 * v1 - q3 * v2 + q2 * v3,
+                q1 * v1 + q2 * v2 + q3 * v3,
+            ]
+        )
+
         dHdq = np.column_stack((dhdq0, dhdq1, dhdq2, dhdq3))  # shape (3, 4)
-        
+
         Hx = np.zeros((3, 19))
         Hx[:, 3:6] = R
         Hx[:, 6:10] = dHdq
-        
+
         return Hx
 
     def H(self) -> np.ndarray:
@@ -262,14 +267,12 @@ class ESKF:
         self.error_state.fill_states(np.zeros(18))
 
     def imu_update(self, imu_data: Measurement) -> None:
-        """Updates the state using the IMU data.
-        """
+        """Updates the state using the IMU data."""
         self.nominal_state_discrete(imu_data)
         self.error_state_prediction(imu_data)
 
     def dvl_update(self, dvl_measurement: Measurement) -> float:
-        """Updates the state using the DVL measurement.
-        """
+        """Updates the state using the DVL measurement."""
         NIS = self.measurement_update(dvl_measurement)
         self.injection()
         self.reset_error_state()
@@ -278,15 +281,13 @@ class ESKF:
 
     # functions for tuning the filter
     def NIS(self, S: np.ndarray, innovation: np.ndarray) -> float:
-        """Calculates the Normalized Innovation Squared (NIS) value.
-        """
+        """Calculates the Normalized Innovation Squared (NIS) value."""
         return innovation.T @ np.linalg.inv(S) @ innovation
 
     def NEEDS(
         self, P: np.ndarray, true_state: StateQuat, estimate_state: StateQuat
     ) -> float:
-        """Calculates the Normalized Estimation Error Squared (NEEDS) value.
-        """
+        """Calculates the Normalized Estimation Error Squared (NEEDS) value."""
         return (
             (true_state - estimate_state).as_vector().T
             @ np.linalg.inv(P)
