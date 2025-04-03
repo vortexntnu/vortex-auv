@@ -1,27 +1,28 @@
-from ukf_okid import UKF
-from ukf_okid_class import StateQuat, process_model, MeasModel
-import numpy as np
 import time
-import matplotlib.pyplot as plt
-from ukf_utils import print_StateQuat_list, print_StateQuat
-from ukf_okid_class import quaternion_super_product, quat_to_euler, mean_set, covariance_set
 
+import matplotlib.pyplot as plt
+import numpy as np
+from ukf_okid import UKF
+from ukf_okid_class import (
+    MeasModel,
+    StateQuat,
+    process_model,
+    quat_to_euler,
+    quaternion_super_product,
+)
 
 
 def add_quaternion_noise(q, noise_std):
-
     noise = np.random.normal(0, noise_std, 3)
 
     theta = np.linalg.norm(noise)
 
     if theta > 0:
-
         axis = noise / theta
 
-        q_noise = np.hstack((np.cos(theta/2), np.sin(theta/2) * axis))
+        q_noise = np.hstack((np.cos(theta / 2), np.sin(theta / 2) * axis))
 
     else:
-
         q_noise = np.array([1.0, 0.0, 0.0, 0.0])
 
     q_new = quaternion_super_product(q, q_noise)
@@ -30,7 +31,6 @@ def add_quaternion_noise(q, noise_std):
 
 
 if __name__ == '__main__':
-
     # Create initial state vector and covariance matrix.
     x0 = np.zeros(13)
     x0[0:3] = [0.3, 0.3, 0.3]
@@ -38,20 +38,22 @@ if __name__ == '__main__':
     x0[7:10] = [0.2, 0.2, 0.2]
     dt = 0.01
     R = (0.01) * np.eye(3)
-    
+
     Q = 0.00015 * np.eye(12)
     P0 = np.eye(12) * 0.0001
 
     model = process_model()
     model.dt = 0.01
-    model.mass_interia_matrix = np.array([
-        [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
-        [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
-        [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
-        [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
-        [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
-        [0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
-    ])
+    model.mass_interia_matrix = np.array(
+        [
+            [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
+            [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
+            [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
+            [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
+            [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
+            [0.6, 0.3, 0.0, 0.0, 0.0, 3.34],
+        ]
+    )
     model.m = 30.0
     model.r_b_bg = np.array([0.01, 0.0, 0.02])
     model.inertia = np.diag([0.68, 3.32, 3.34])
@@ -61,14 +63,16 @@ if __name__ == '__main__':
 
     model_ukf = process_model()
     model_ukf.dt = 0.01
-    model_ukf.mass_interia_matrix = np.array([
-        [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
-        [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
-        [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
-        [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
-        [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
-        [0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
-    ])
+    model_ukf.mass_interia_matrix = np.array(
+        [
+            [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
+            [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
+            [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
+            [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
+            [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
+            [0.6, 0.3, 0.0, 0.0, 0.0, 3.34],
+        ]
+    )
     model_ukf.m = 30.0
     model_ukf.r_b_bg = np.array([0.01, 0.0, 0.02])
     model_ukf.inertia = np.diag([0.68, 3.32, 3.34])
@@ -101,7 +105,7 @@ if __name__ == '__main__':
 
     measurment_model = MeasModel()
     measurment_model.measurement = np.array([0.0, 0.0, 0.0])
-    measurment_model.covariance = R 
+    measurment_model.covariance = R
 
     # Initialize arrays to store the results
     positions = np.zeros((num_steps, 3))
@@ -129,7 +133,16 @@ if __name__ == '__main__':
 
     elapsed_times = []
 
-    u = lambda t: np.array([2 * np.sin(1 * t), 2 * np.sin(1 * t), 2 * np.sin(1 * t), 0.2 * np.cos(1 * t), 0.2 * np.cos(1 * t), 0.2 * np.cos(1 * t)])
+    u = lambda t: np.array(
+        [
+            2 * np.sin(1 * t),
+            2 * np.sin(1 * t),
+            2 * np.sin(1 * t),
+            0.2 * np.cos(1 * t),
+            0.2 * np.cos(1 * t),
+            0.2 * np.cos(1 * t),
+        ]
+    )
 
     # Run the simulation
     for step in range(num_steps):
@@ -142,10 +155,18 @@ if __name__ == '__main__':
         new_state = model.euler_forward()
 
         # Adding noise in the state vector
-        estimated_state.position = estimated_state.position # + np.random.normal(0, 0.01, 3)
-        estimated_state.orientation = estimated_state.orientation #add_quaternion_noise(estimated_state.orientation, 0.01)
-        estimated_state.velocity = estimated_state.velocity # + np.random.normal(0, 0.01, 3)
-        estimated_state.angular_velocity = estimated_state.angular_velocity # + np.random.normal(0, 0.01, 3)
+        estimated_state.position = (
+            estimated_state.position
+        )  # + np.random.normal(0, 0.01, 3)
+        estimated_state.orientation = (
+            estimated_state.orientation
+        )  # add_quaternion_noise(estimated_state.orientation, 0.01)
+        estimated_state.velocity = (
+            estimated_state.velocity
+        )  # + np.random.normal(0, 0.01, 3)
+        estimated_state.angular_velocity = (
+            estimated_state.angular_velocity
+        )  # + np.random.normal(0, 0.01, 3)
 
         start_time = time.time()
         estimated_state = ukf.unscented_transform(estimated_state)
@@ -155,10 +176,15 @@ if __name__ == '__main__':
         elapsed_times.append(elapsed_time)
 
         if step % 20 == 0:
-            measurment_model.measurement = new_state.velocity # + np.random.normal(0, 0.01, 3)
-            meas_update, covariance_matrix = ukf.measurement_update(estimated_state, measurment_model)
-            estimated_state = ukf.posteriori_estimate(estimated_state, covariance_matrix, measurment_model, meas_update)
-
+            measurment_model.measurement = (
+                new_state.velocity
+            )  # + np.random.normal(0, 0.01, 3)
+            meas_update, covariance_matrix = ukf.measurement_update(
+                estimated_state, measurment_model
+            )
+            estimated_state = ukf.posteriori_estimate(
+                estimated_state, covariance_matrix, measurment_model, meas_update
+            )
 
         positions[step, :] = new_state.position
         orientations[step, :] = quat_to_euler(new_state.orientation)
@@ -169,7 +195,7 @@ if __name__ == '__main__':
         orientations_est[step, :] = quat_to_euler(estimated_state.orientation)
         velocities_est[step, :] = estimated_state.velocity
         angular_velocities_est[step, :] = estimated_state.angular_velocity
-        
+
         # Update the state for the next iteration
         model.state_vector_prev = new_state
 

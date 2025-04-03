@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+
 import numpy as np
 from eskf_python_utils import quaternion_error
+
 
 @dataclass
 class StateQuat:
@@ -19,10 +21,8 @@ class StateQuat:
     gyro_bias: np.ndarray = field(
         default_factory=lambda: np.zeros(3)
     )  # Gyro bias vector (b_gx, b_gy, b_gz)
-    g: np.ndarray = field(
-        default_factory=lambda: np.array([0, 0, 0])
-    )  # Gravity vector
-    
+    g: np.ndarray = field(default_factory=lambda: np.array([0, 0, 0]))  # Gravity vector
+
     def as_vector(self) -> np.ndarray:
         """Returns the state vector as a numpy array.
 
@@ -81,7 +81,7 @@ class StateQuat:
         )
 
         return R
-    
+
     def __sub__(self, other: 'StateQuat') -> 'StateQuat':
         """Subtracts the values of two state vectors.
 
@@ -102,7 +102,6 @@ class StateQuat:
         return result
 
 
-    
 @dataclass
 class StateEuler:
     position: np.ndarray = field(
@@ -172,12 +171,8 @@ class StateEuler:
 
 @dataclass
 class MeasurementModel:
-    measurement: np.ndarray = field(
-        default_factory=lambda: np.zeros(6)
-    )
-    measurement_covariance: np.ndarray = field(
-        default_factory=lambda: np.zeros((6, 6))
-    )
+    measurement: np.ndarray = field(default_factory=lambda: np.zeros(6))
+    measurement_covariance: np.ndarray = field(default_factory=lambda: np.zeros((6, 6)))
 
     def H(self) -> np.ndarray:
         """Calculates the measurement matrix.
@@ -190,19 +185,12 @@ class MeasurementModel:
         H[0:3, 3:6] = np.eye(3)
 
         return H
-    
+
+
 @dataclass
 class Measurement:
-    acceleration: np.ndarray = field(
-        default_factory=lambda: np.zeros(3)
-    )
-    angular_velocity: np.ndarray = field(
-        default_factory=lambda: np.zeros(3)
-    )
-    aiding: np.ndarray = field(
-        default_factory=lambda: np.zeros(3)
-    )
+    acceleration: np.ndarray = field(default_factory=lambda: np.zeros(3))
+    angular_velocity: np.ndarray = field(default_factory=lambda: np.zeros(3))
+    aiding: np.ndarray = field(default_factory=lambda: np.zeros(3))
 
-    aiding_covariance: np.ndarray = field(
-        default_factory=lambda: np.zeros((3, 3))
-    )
+    aiding_covariance: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))

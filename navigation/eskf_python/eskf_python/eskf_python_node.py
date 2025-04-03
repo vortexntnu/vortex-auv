@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
+import numpy as np
 import rclpy
+from geometry_msgs.msg import TwistWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, qos_profile_sensor_data
 from sensor_msgs.msg import Imu
-import numpy as np
-from geometry_msgs.msg import TwistWithCovarianceStamped
 
 # NEED TO CHANGE THIS TO THE CORRECT PATH
 from eskf_python.eskf_python_filter import (
@@ -33,7 +33,10 @@ class ESKalmanFilterNode(Node):
         )
 
         self.twist_dvl_subscriber_ = self.create_subscription(
-            TwistWithCovarianceStamped, '/dvl/twist', self.filter_callback, qos_profile=qos_profile
+            TwistWithCovarianceStamped,
+            '/dvl/twist',
+            self.filter_callback,
+            qos_profile=qos_profile,
         )
 
         # This publisher will publish the estimtaed state of the vehicle
@@ -50,14 +53,22 @@ class ESKalmanFilterNode(Node):
         self.get_logger().info("Error State Kalman Filter started")
 
     def imu_callback(self, msg: Imu):
-
         # Get the IMU data
 
         imu_acceleartion = msg.linear_acceleration
         imu_angular_velocity = msg.angular_velocity
 
         # Combine the IMU data
-        imu_data = np.array([imu_acceleartion.x, imu_acceleartion.y, imu_acceleartion.z, imu_angular_velocity.x, imu_angular_velocity.y, imu_angular_velocity.z])
+        imu_data = np.array(
+            [
+                imu_acceleartion.x,
+                imu_acceleartion.y,
+                imu_acceleartion.z,
+                imu_angular_velocity.x,
+                imu_angular_velocity.y,
+                imu_angular_velocity.z,
+            ]
+        )
 
         # Update the filter with the IMU data
         self.current_state_nom, self.current_state_error = (
@@ -84,8 +95,6 @@ class ESKalmanFilterNode(Node):
         # Publish
         self.state_publisher_.publish(self.odom_msg)
 
-
-
     def filter_callback(self, msg: TwistWithCovarianceStamped):
         """Callback function for the filter measurement update,
         this will be called when the filter needs to be updated with the DVL data.
@@ -93,7 +102,13 @@ class ESKalmanFilterNode(Node):
         self.get_logger().info("Filter callback, got DVL data")
 
         # Get the DVL data (linear velocity)
-        dvl_data = np.array([msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z])
+        dvl_data = np.array(
+            [
+                msg.twist.twist.linear.x,
+                msg.twist.twist.linear.y,
+                msg.twist.twist.linear.z,
+            ]
+        )
 
         # Update the filter with the DVL data
         self.current_state_nom, self.current_state_error = (
@@ -122,7 +137,6 @@ class ESKalmanFilterNode(Node):
 
         # Publishing the data
         self.state_publisher_.publish(self.odom_msg)
-
 
 
 def main(args=None):

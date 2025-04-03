@@ -1,7 +1,6 @@
-from ukf_okid_class import *
+
 import numpy as np
-import time
-import matplotlib.pyplot as plt
+from ukf_okid_class import *
 
 
 class UKF:
@@ -17,8 +16,7 @@ class UKF:
         self.T = self.generate_T_matrix(len(P_0))
 
     def generate_T_matrix(self, n: float) -> np.ndarray:
-        """
-        Generates the orthonormal transformation matrix T used in the TUKF sigma point generation.
+        """Generates the orthonormal transformation matrix T used in the TUKF sigma point generation.
 
         Parameters:
             n (int): The state dimension.
@@ -29,7 +27,7 @@ class UKF:
         T = np.zeros((n, n))
 
         for i in range(n):
-            for j in range(n//2):
+            for j in range(n // 2):
                 T[2 * j - 2, i - 1] = np.sqrt(2) * np.cos(((2 * j - 1) * i * np.pi) / n)
                 T[2 * j - 1, i - 1] = np.sqrt(2) * np.sin(((2 * j - 1) * i * np.pi) / n)
 
@@ -41,8 +39,7 @@ class UKF:
         return T
 
     def sigma_points(self, current_state: StateQuat) -> list[StateQuat]:
-        """
-        Functions that generate the sigma points for the UKF
+        """Functions that generate the sigma points for the UKF
         """
         n = len(current_state.covariance)
 
@@ -60,18 +57,15 @@ class UKF:
 
         return self.sigma_points_list
 
-
     def unscented_transform(self, current_state: StateQuat) -> StateQuat:
+        """The unscented transform function generates the priori state estimate
         """
-        The unscented transform function generates the priori state estimate
-        """
-
-        _  = self.sigma_points(current_state)
+        _ = self.sigma_points(current_state)
         n = len(current_state.covariance)
 
         self.y_i = [StateQuat() for _ in range(2 * n)]
 
-        for i in range(2 * n ):
+        for i in range(2 * n):
             self.process_model.model_prediction(self.sigma_points_list[i])
             self.y_i[i] = self.process_model.euler_forward()
 
@@ -82,12 +76,12 @@ class UKF:
         state_estimate.covariance = covariance_set(self.y_i, x)
         return state_estimate
 
-    def measurement_update(self, current_state: StateQuat, measurement: MeasModel) -> tuple[MeasModel, np.ndarray]:
-        """
-        Function that updates the state estimate with a measurement
+    def measurement_update(
+        self, current_state: StateQuat, measurement: MeasModel
+    ) -> tuple[MeasModel, np.ndarray]:
+        """Function that updates the state estimate with a measurement
         Hopefully this is the DVL or GNSS
         """
-
         n = len(current_state.covariance)
         z_i = [MeasModel() for _ in range(2 * n)]
 
@@ -100,15 +94,21 @@ class UKF:
 
         meas_update.covariance = covariance_measurement(z_i, meas_update.measurement)
 
-        cross_correlation = cross_covariance(self.y_i, current_state.as_vector(), z_i, meas_update.measurement)
+        cross_correlation = cross_covariance(
+            self.y_i, current_state.as_vector(), z_i, meas_update.measurement
+        )
 
         return meas_update, cross_correlation
 
-    def posteriori_estimate(self, current_state: StateQuat, cross_correlation: np.ndarray, measurement: MeasModel, ex_measuremnt: MeasModel) -> StateQuat:
+    def posteriori_estimate(
+        self,
+        current_state: StateQuat,
+        cross_correlation: np.ndarray,
+        measurement: MeasModel,
+        ex_measuremnt: MeasModel,
+    ) -> StateQuat:
+        """Calculates the posteriori estimate using measurement and the prior estimate
         """
-        Calculates the posteriori estimate using measurement and the prior estimate
-        """
-
         nu_k = MeasModel()
 
         nu_k.measurement = measurement.measurement - ex_measuremnt.measurement
@@ -118,8 +118,12 @@ class UKF:
 
         posteriori_estimate = StateQuat()
 
-        posteriori_estimate.fill_states_different_dim(current_state.as_vector(), np.dot(K_k, nu_k.measurement))
-        posteriori_estimate.covariance = current_state.covariance - np.dot(K_k, np.dot(nu_k.covariance, np.transpose(K_k)))
+        posteriori_estimate.fill_states_different_dim(
+            current_state.as_vector(), np.dot(K_k, nu_k.measurement)
+        )
+        posteriori_estimate.covariance = current_state.covariance - np.dot(
+            K_k, np.dot(nu_k.covariance, np.transpose(K_k))
+        )
 
         self.process_model.state_vector_prev = posteriori_estimate
 
