@@ -83,41 +83,6 @@ If an error occurs the FSM goes to this state.
     - Abort: Error
 
 
-## How to Run
-
-### 1. Build the Package
-Before running the FSM, build the package:
-```shell
-colcon build --packages-select docking
-```
-
-### 2. Source the Workspace
-After building, source the workspace:
-```shell
-source install/setup.bash
-```
-
-### 3. Run the FSM
-You can run the FSM using one of the following methods:
-
-- Run the script:
-  ```shell
-  ./src/vortex-auv/scripts/docking_fsm.sh
-  ```
-
-- Launch using ROS2 (Only starts the FSM, not other packages):
-  ```shell
-  ros2 launch docking docking.launch.py
-  ```
-
-### 4. Launch Yasmin Viewer (Optional for visualization)
-To visualize the FSM using the Yasmin Viewer, run:
-```shell
-ros2 launch docking YASMIN_viewer.launch.py
-```
-
-
-
 ## Dependencies
 Ensure the following dependencies are installed before running the FSM:
 
