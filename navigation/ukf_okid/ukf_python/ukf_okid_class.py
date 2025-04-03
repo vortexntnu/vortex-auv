@@ -5,8 +5,7 @@ import numpy as np
 
 @dataclass
 class StateQuat:
-    """A class to represent the state to be estimated by the UKF.
-    """
+    """A class to represent the state to be estimated by the UKF."""
 
     position: np.ndarray = field(default_factory=lambda: np.zeros(3))
     orientation: np.ndarray = field(default_factory=lambda: np.array([1, 0, 0, 0]))
@@ -129,8 +128,7 @@ class StateQuat:
 
 @dataclass
 class MeasModel:
-    """A class defined for a general measurement model.
-    """
+    """A class defined for a general measurement model."""
 
     measurement: np.ndarray = field(default_factory=lambda: np.zeros(3))
     covariance: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
@@ -164,8 +162,7 @@ class MeasModel:
 
 @dataclass
 class process_model:
-    """A class defined for a general process model.
-    """
+    """A class defined for a general process model."""
 
     state_vector: StateQuat = field(default_factory=StateQuat)
     state_vector_dot: StateQuat = field(default_factory=StateQuat)
@@ -269,8 +266,7 @@ class process_model:
 
 
 def euler_to_quat(euler_angles: np.ndarray) -> np.ndarray:
-    """Converts Euler angles to a quaternion
-    """
+    """Converts Euler angles to a quaternion"""
     psi, theta, phi = euler_angles
     c_psi = np.cos(psi / 2)
     s_psi = np.sin(psi / 2)
@@ -292,8 +288,7 @@ def euler_to_quat(euler_angles: np.ndarray) -> np.ndarray:
 
 
 def quat_to_euler(quat: np.ndarray) -> np.ndarray:
-    """Converts a quaternion to Euler angles
-    """
+    """Converts a quaternion to Euler angles"""
     nu, eta_1, eta_2, eta_3 = quat
 
     phi = np.arctan2(2 * (eta_2 * eta_3 + nu * eta_1), 1 - 2 * (eta_1**2 + eta_2**2))
@@ -304,8 +299,7 @@ def quat_to_euler(quat: np.ndarray) -> np.ndarray:
 
 
 def quat_norm(quat: np.ndarray) -> np.ndarray:
-    """Function that normalizes a quaternion
-    """
+    """Function that normalizes a quaternion"""
     quat = quat / np.linalg.norm(quat)
 
     return quat
@@ -354,8 +348,7 @@ def quaternion_super_product(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
 
 
 def quaternion_error(quat_1: np.ndarray, quat_2: np.ndarray) -> np.ndarray:
-    """Calculates the error between two quaternions
-    """
+    """Calculates the error between two quaternions"""
     quat_2_inv = np.array([quat_2[0], -quat_2[1], -quat_2[2], -quat_2[3]])
 
     error_quat = quaternion_super_product(quat_1, quat_2_inv)
@@ -441,8 +434,7 @@ def mean_set(set_points: list[StateQuat]) -> np.ndarray:
 
 
 def mean_measurement(set_points: list[MeasModel]) -> np.ndarray:
-    """Function that calculates the mean of a set of points
-    """
+    """Function that calculates the mean of a set of points"""
     n = len(set_points)
     mean_value = MeasModel()
 
@@ -455,8 +447,7 @@ def mean_measurement(set_points: list[MeasModel]) -> np.ndarray:
 
 
 def covariance_set(set_points: list[StateQuat], mean: np.ndarray) -> np.ndarray:
-    """Function that calculates the covariance of a set of points
-    """
+    """Function that calculates the covariance of a set of points"""
     n = len(set_points)
     covariance = np.zeros(set_points[0].covariance.shape)
 
@@ -486,8 +477,7 @@ def covariance_set(set_points: list[StateQuat], mean: np.ndarray) -> np.ndarray:
 
 
 def covariance_measurement(set_points: list[MeasModel], mean: np.ndarray) -> np.ndarray:
-    """Function that calculates the covariance of a set of points
-    """
+    """Function that calculates the covariance of a set of points"""
     n = len(set_points)
     co_size = len(set_points[0].measurement)
     covariance = np.zeros((co_size, co_size))
@@ -510,8 +500,7 @@ def cross_covariance(
     set_z: list[MeasModel],
     mean_z: np.ndarray,
 ) -> np.ndarray:
-    """Calculates the cross covariance between the measurement and state prediction
-    """
+    """Calculates the cross covariance between the measurement and state prediction"""
     n = len(set_y)
 
     cross_covariance = np.zeros((len(mean_y) - 1, len(mean_z)))
