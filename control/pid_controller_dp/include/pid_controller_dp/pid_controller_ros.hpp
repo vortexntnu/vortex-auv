@@ -5,7 +5,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/wrench.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -76,7 +76,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kd_sub_;
 
-    rclcpp::Publisher<geometry_msgs::msg::Wrench>::SharedPtr tau_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_;
 
     rclcpp::TimerBase::SharedPtr tau_pub_timer_;
 

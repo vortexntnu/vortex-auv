@@ -1,11 +1,12 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_ros.hpp"
-#include <iostream>
-#include <variant>
+#include <spdlog/spdlog.h>
+#include <rclcpp_components/register_node_macro.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-DPAdaptBacksControllerNode::DPAdaptBacksControllerNode()
-    : Node("dp_adapt_backs_controller_node") {
+DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
+    const rclcpp::NodeOptions& options)
+    : Node("dp_adapt_backs_controller_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
@@ -14,6 +15,8 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode()
         time_step_, std::bind(&DPAdaptBacksControllerNode::publish_tau, this));
 
     set_adap_params();
+
+    spdlog::info("DPAdaptBacksControllerNode initialized");
 }
 
 void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
@@ -21,12 +24,9 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    this->declare_parameter<std::string>("topics.namespace");
-    std::string ns = this->get_parameter("topics.namespace").as_string();
-
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp").as_string();
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             dp_reference_topic, qos_sensor_data,
@@ -34,8 +34,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
                       std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
@@ -43,8 +42,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
                   std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
@@ -53,35 +51,43 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =
-        ns + this->get_parameter("topics.killswitch").as_string();
+        this->get_parameter("topics.killswitch").as_string();
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 10,
+        software_kill_switch_topic, 1,
         std::bind(&DPAdaptBacksControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
-        ns + this->get_parameter("topics.operation_mode").as_string();
+        this->get_parameter("topics.operation_mode").as_string();
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, 10,
+        software_operation_mode_topic, 1,
         std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
-        ns + this->get_parameter("topics.wrench_input").as_string();
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
+        this->get_parameter("topics.wrench_input").as_string();
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+        control_topic, qos_sensor_data);
 }
 
 void DPAdaptBacksControllerNode::killswitch_callback(
     const std_msgs::msg::Bool::SharedPtr msg) {
     killswitch_on_ = msg->data;
+    dp_adapt_backs_controller_->reset_adap_param();
+    dp_adapt_backs_controller_->reset_d_est();
+    spdlog::info("Killswitch: {}", killswitch_on_ ? "on" : "off");
 }
 
 void DPAdaptBacksControllerNode::software_mode_callback(
     const std_msgs::msg::String::SharedPtr msg) {
     software_mode_ = msg->data;
+    spdlog::info("Software mode: {}", software_mode_);
+
+    if (software_mode_ == "autonomous mode") {
+        eta_d_ = eta_;
+    }
 }
 
 void DPAdaptBacksControllerNode::pose_callback(
@@ -104,30 +110,25 @@ void DPAdaptBacksControllerNode::twist_callback(
 }
 
 void DPAdaptBacksControllerNode::set_adap_params() {
-    this->declare_parameter<std::vector<double>>(
-        "adap_param",
-        {0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8});
-    this->declare_parameter<std::vector<double>>(
-        "d_gain", {0.3, 0.3, 0.45, 0.2, 0.7, 0.6});
-    this->declare_parameter<std::vector<double>>(
-        "K1", {20.5, 15.5, 20.5, 1.2, 6.0, 2.5});
-    this->declare_parameter<std::vector<double>>(
-        "K2", {30.5, 25.5, 30.5, 2.6, 10.0, 6.5});
-    this->declare_parameter<std::vector<double>>("r_b_bg", {0.01, 0.0, 0.02});
-    this->declare_parameter<std::vector<double>>("I_b", {0.68, 3.32, 3.34});
-    this->declare_parameter<std::vector<double>>("mass_matrix",
-                                                 std::vector<double>(36, 1.0));
-    this->declare_parameter<double>("m", {30});
+    this->declare_parameter<std::vector<double>>("adapt_gain");
+    this->declare_parameter<std::vector<double>>("d_gain");
+    this->declare_parameter<std::vector<double>>("K1");
+    this->declare_parameter<std::vector<double>>("K2");
+    this->declare_parameter<std::vector<double>>("r_b_bg");
+    this->declare_parameter<std::vector<double>>("inertia_matrix");
+    this->declare_parameter<std::vector<double>>("mass_matrix");
+    this->declare_parameter<double>("m");
 
     std::vector<double> adap_param_vec =
-        this->get_parameter("adap_param").as_double_array();
+        this->get_parameter("adapt_gain").as_double_array();
     std::vector<double> d_gain_vec =
         this->get_parameter("d_gain").as_double_array();
     std::vector<double> K1_vec = this->get_parameter("K1").as_double_array();
     std::vector<double> K2_vec = this->get_parameter("K2").as_double_array();
     std::vector<double> r_b_bg_vec =
         this->get_parameter("r_b_bg").as_double_array();
-    std::vector<double> I_b_vec = this->get_parameter("I_b").as_double_array();
+    std::vector<double> I_b_vec =
+        this->get_parameter("inertia_matrix").as_double_array();
     std::vector<double> mass_matrix_vec =
         this->get_parameter("mass_matrix").as_double_array();
 
@@ -168,13 +169,16 @@ void DPAdaptBacksControllerNode::publish_tau() {
     dp_types::Vector6d tau =
         dp_adapt_backs_controller_->calculate_tau(eta_, eta_d_, nu_);
 
-    geometry_msgs::msg::Wrench tau_msg;
-    tau_msg.force.x = tau(0);
-    tau_msg.force.y = tau(1);
-    tau_msg.force.z = tau(2);
-    tau_msg.torque.x = tau(3);
-    tau_msg.torque.y = tau(4);
-    tau_msg.torque.z = tau(5);
+    geometry_msgs::msg::WrenchStamped tau_msg;
+    tau_msg.header.stamp = this->now();
+    tau_msg.header.frame_id = "base_link";
+    tau_msg.wrench.force.x = tau(0);
+    tau_msg.wrench.force.y = tau(1);
+    tau_msg.wrench.force.z = tau(2);
+    // tau_msg.wrench.torque.x = tau(3); commented out since roll control is not
+    // needed and causes minor instability, if needed uncomment
+    tau_msg.wrench.torque.y = tau(4);
+    tau_msg.wrench.torque.z = tau(5);
 
     tau_pub_->publish(tau_msg);
 }
@@ -184,3 +188,5 @@ void DPAdaptBacksControllerNode::guidance_callback(
     eta_d_.pos << msg->x, msg->y, msg->z;
     eta_d_.ori << msg->roll, msg->pitch, msg->yaw;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)

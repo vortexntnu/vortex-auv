@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rclpy
-from geometry_msgs.msg import PoseWithCovarianceStamped, Wrench
+from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Joy
@@ -15,7 +15,7 @@ from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXbox
 
 class JoystickInterface(Node):
     def __init__(self):
-        super().__init__('joystick_interface_node')
+        super().__init__('joystick_interface_auv')
 
         self.get_parameters()
         self.init_movement()
@@ -57,12 +57,6 @@ class JoystickInterface(Node):
             # Get the values and set them as attributes of the class
             setattr(self, '_' + param, self.get_parameter(param).value)
 
-        namespace = (
-            self.declare_parameter('topics.namespace', 'orca')
-            .get_parameter_value()
-            .string_value
-        )
-
         topic_params = ['pose', 'joy', 'wrench_input', 'killswitch', 'operation_mode']
 
         for param in topic_params:
@@ -70,7 +64,7 @@ class JoystickInterface(Node):
             setattr(
                 self,
                 param + '_topic',
-                namespace + self.get_parameter(f'topics.{param}').value,
+                self.get_parameter(f'topics.{param}').value,
             )
 
         self.declare_parameter('topics.guidance.dp', "_")
@@ -92,7 +86,7 @@ class JoystickInterface(Node):
         )
 
         self._joy_subscriber = self.create_subscription(
-            Joy, self.joy_topic, self.joystick_cb, 5
+            Joy, self.joy_topic, self.joystick_cb, qos_profile=best_effort_qos
         )
         self._pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
@@ -101,22 +95,22 @@ class JoystickInterface(Node):
             qos_profile=best_effort_qos,
         )
         self._wrench_publisher = self.create_publisher(
-            Wrench, self.wrench_input_topic, 10
+            WrenchStamped, self.wrench_input_topic, qos_profile=best_effort_qos
         )
         self._ref_publisher = self.create_publisher(
-            ReferenceFilter, self.guidance_topic, best_effort_qos
+            ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
         )
         self._software_killswitch_signal_publisher = self.create_publisher(
-            Bool, self.killswitch_topic, best_effort_qos
+            Bool, self.killswitch_topic, 2
         )
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.operation_mode_topic, best_effort_qos
+            String, self.operation_mode_topic, 2
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
-        self._current_state_ = pose_from_ros(msg)
+        self._current_state = pose_from_ros(msg.pose.pose)
 
     def create_reference_message(self) -> ReferenceFilter:
         """Creates a reference message with the desired state values."""
@@ -131,19 +125,21 @@ class JoystickInterface(Node):
         reference_msg.yaw = self._desired_state.yaw
         return reference_msg
 
-    def create_wrench_message(self) -> Wrench:
+    def create_wrench_message(self) -> WrenchStamped:
         """Creates a 3D wrench message with the given x, y, heave, roll, pitch, and yaw values.
 
         Returns:
         Wrench: A 3D wrench message with the given values.
         """
-        wrench_msg = Wrench()
-        wrench_msg.force.x = self.surge
-        wrench_msg.force.y = self.sway
-        wrench_msg.force.z = self.heave
-        wrench_msg.torque.x = self.roll
-        wrench_msg.torque.y = self.pitch
-        wrench_msg.torque.z = self.yaw
+        wrench_msg = WrenchStamped()
+        wrench_msg.header.stamp = self.get_clock().now().to_msg()
+        wrench_msg.header.frame_id = "base_link"
+        wrench_msg.wrench.force.x = self.surge
+        wrench_msg.wrench.force.y = self.sway
+        wrench_msg.wrench.force.z = self.heave
+        wrench_msg.wrench.torque.x = self.roll
+        wrench_msg.wrench.torque.y = self.pitch
+        wrench_msg.wrench.torque.z = self.yaw
         return wrench_msg
 
     def transition_to_xbox_mode(self):
@@ -163,14 +159,17 @@ class JoystickInterface(Node):
             yaw=self._current_state.yaw,
         )
         reference_msg = self.create_reference_message()
-        self._operational_mode_signal_publisher.publish(String(data="Reference mode"))
+        # Still autonomous mode, but now the reference is being controlled by the joystick
+        self._operational_mode_signal_publisher.publish(String(data="autonomous mode"))
         self._ref_publisher.publish(reference_msg)
         self._mode = JoyStates.REFERENCE_MODE
         self.get_logger().info("Reference mode")
 
     def transition_to_autonomous_mode(self):
         """Publishes a zero force wrench message and signals that the system is turning on autonomous mode."""
-        empty_wrench_msg = Wrench()
+        empty_wrench_msg = WrenchStamped()
+        empty_wrench_msg.header.stamp = self.get_clock().now().to_msg()
+        empty_wrench_msg.header.frame_id = "base_link"
         self._wrench_publisher.publish(empty_wrench_msg)
         self._operational_mode_signal_publisher.publish(String(data="autonomous mode"))
         self._mode = JoyStates.AUTONOMOUS_MODE
@@ -238,7 +237,7 @@ class JoystickInterface(Node):
         self.sway = (
             -axes.get("horizontal_axis_left_stick", 0.0) * self._joystick_sway_gain
         )
-        self.heave = (left_trigger - right_trigger) * self._joystick_heave_gain
+        self.heave = -(left_trigger - right_trigger) * self._joystick_heave_gain
         self.roll = (right_shoulder - left_shoulder) * self._joystick_roll_gain
         self.pitch = (
             -axes.get("vertical_axis_right_stick", 0.0) * self._joystick_pitch_gain
@@ -268,7 +267,9 @@ class JoystickInterface(Node):
         else:
             self.get_logger().info("SW killswitch")
             self._software_killswitch_signal_publisher.publish(Bool(data=True))
-            empty_wrench_msg = Wrench()
+            empty_wrench_msg = WrenchStamped()
+            empty_wrench_msg.header.stamp = self.get_clock().now().to_msg()
+            empty_wrench_msg.header.frame_id = "base_link"
             self._wrench_publisher.publish(empty_wrench_msg)
             self._mode = JoyStates.KILLSWITCH
             return
@@ -281,7 +282,7 @@ class JoystickInterface(Node):
         """
         self._desired_state.x += self.surge * self._guidance_surge_gain
         self._desired_state.y += self.sway * self._guidance_sway_gain
-        self._desired_state.z += self.heave * self._guidance_heave_gain
+        self._desired_state.z -= self.heave * self._guidance_heave_gain
         self._desired_state.roll += self.roll * self._guidance_roll_gain
         self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
         self._desired_state.yaw += self.yaw * self._guidance_yaw_gain

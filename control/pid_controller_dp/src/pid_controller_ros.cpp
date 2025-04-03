@@ -19,39 +19,34 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    this->declare_parameter<std::string>("topics.namespace");
-    std::string ns = this->get_parameter("topics.namespace").as_string();
-
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp").as_string();
 
     this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
 
     this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =
-        ns + this->get_parameter("topics.killswitch").as_string();
+        this->get_parameter("topics.killswitch").as_string();
 
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
-        ns + this->get_parameter("topics.operation_mode").as_string();
+        this->get_parameter("topics.operation_mode").as_string();
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
-        ns + this->get_parameter("topics.wrench_input").as_string();
+        this->get_parameter("topics.wrench_input").as_string();
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 10,
+        software_kill_switch_topic, 1,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, 10,
+        software_operation_mode_topic, 1,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
 
@@ -73,8 +68,8 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
 
-    tau_pub_ =
-        this->create_publisher<geometry_msgs::msg::Wrench>(control_topic, 10);
+    tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+        control_topic, qos_sensor_data);
 }
 
 void PIDControllerNode::killswitch_callback(
@@ -105,13 +100,15 @@ void PIDControllerNode::publish_tau() {
     types::Vector6d tau =
         pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
 
-    geometry_msgs::msg::Wrench tau_msg;
-    tau_msg.force.x = tau(0);
-    tau_msg.force.y = tau(1);
-    tau_msg.force.z = tau(2);
-    tau_msg.torque.x = tau(3);
-    tau_msg.torque.y = tau(4);
-    tau_msg.torque.z = tau(5);
+    geometry_msgs::msg::WrenchStamped tau_msg;
+    tau_msg.header.stamp = this->now();
+    tau_msg.header.frame_id = "base_link";
+    tau_msg.wrench.force.x = tau(0);
+    tau_msg.wrench.force.y = tau(1);
+    tau_msg.wrench.force.z = tau(2);
+    tau_msg.wrench.torque.x = tau(3);
+    tau_msg.wrench.torque.y = tau(4);
+    tau_msg.wrench.torque.z = tau(5);
 
     tau_pub_->publish(tau_msg);
 }

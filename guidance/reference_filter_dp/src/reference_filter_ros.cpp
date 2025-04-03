@@ -1,6 +1,9 @@
+#include <spdlog/spdlog.h>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <reference_filter_dp/reference_filter_ros.hpp>
 
-ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
+ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
+    : Node("reference_filter_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
@@ -10,24 +13,22 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
     set_refererence_filter();
 
     x_ = Vector18d::Zero();
+
+    spdlog::info("Reference filter node initialized");
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {
-    this->declare_parameter<std::string>("topics.namespace");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
     this->declare_parameter<std::string>("topics.guidance.dp");
     this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
 
-    std::string ns = this->get_parameter("topics.namespace").as_string();
-    std::string pose_topic =
-        ns + this->get_parameter("topics.pose").as_string();
-    std::string twist_topic =
-        ns + this->get_parameter("topics.twist").as_string();
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
     std::string guidance_topic =
-        ns + this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp").as_string();
     std::string aruco_board_pose_camera_topic =
-        ns + this->get_parameter("topics.aruco_board_pose_camera").as_string();
+        this->get_parameter("topics.aruco_board_pose_camera").as_string();
 
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
@@ -127,20 +128,19 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
         std::lock_guard<std::mutex> lock(mutex_);
         if (goal_handle_) {
             if (goal_handle_->is_active()) {
-                RCLCPP_INFO(this->get_logger(),
-                            "Aborting current goal and accepting new goal");
+                spdlog::info("Aborting current goal and accepting new goal");
                 preempted_goal_id_ = goal_handle_->get_goal_id();
             }
         }
     }
-    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
+    spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -236,7 +236,7 @@ void ReferenceFilterNode::execute(
         this->goal_handle_ = goal_handle;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Executing goal");
+    spdlog::info("Executing goal");
 
     x_ = fill_reference_state();
 
@@ -263,7 +263,7 @@ void ReferenceFilterNode::execute(
         if (goal_handle->is_canceling()) {
             result->success = false;
             goal_handle->canceled(result);
-            RCLCPP_INFO(this->get_logger(), "Goal canceled");
+            spdlog::info("Goal canceled");
             return;
         }
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
@@ -283,10 +283,12 @@ void ReferenceFilterNode::execute(
             vortex_msgs::msg::ReferenceFilter feedback_msg =
                 fill_reference_msg();
             reference_pub_->publish(feedback_msg);
-            RCLCPP_INFO(this->get_logger(), "Goal reached");
+            spdlog::info("Goal reached");
             return;
         }
 
         loop_rate.sleep();
     }
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ReferenceFilterNode)

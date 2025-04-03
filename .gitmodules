@@ -1,3 +1,0 @@
-[submodule "docker/docker-ros"]
-	path = docker/docker-ros
-	url = https://github.com/ika-rwth-aachen/docker-ros.git
