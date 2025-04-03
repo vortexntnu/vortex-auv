@@ -17,6 +17,8 @@ find_package(yasmin_viewer REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(include)
 
@@ -28,12 +30,15 @@ set(DEPENDENCIES
   yasmin_viewer
   vortex_msgs
   std_msgs
+  spdlog
+  fmt
 )
 
 
 add_executable(docking
   src/docking.cpp
 )
+
 
 install(
   DIRECTORY include/
@@ -46,6 +51,7 @@ install(
 )
 
 ament_target_dependencies(docking ${DEPENDENCIES})
+target_link_libraries(docking fmt::fmt)
 install(TARGETS
   docking
   DESTINATION lib/${PROJECT_NAME}

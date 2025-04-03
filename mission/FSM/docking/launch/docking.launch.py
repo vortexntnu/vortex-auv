@@ -26,6 +26,7 @@ def generate_launch_description() -> LaunchDescription:
         namespace="orca",
         parameters=[orca_config, pose_config],
         on_exit=launch.actions.LogInfo(msg="Docking exited"),
+        output='screen',
     )
 
     state_publisher_node = Node(
@@ -35,6 +36,7 @@ def generate_launch_description() -> LaunchDescription:
         namespace="orca",
         parameters=[orca_config],
         on_exit=launch.actions.LogInfo(msg="Publish docking state node exited"),
+        output='screen',
     )
 
     return LaunchDescription(

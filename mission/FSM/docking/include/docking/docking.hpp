@@ -20,6 +20,8 @@
 #include <yasmin_ros/yasmin_node.hpp>
 #include <yasmin_viewer/yasmin_viewer_pub.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace docking_fsm {
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Pose = geometry_msgs::msg::Pose;

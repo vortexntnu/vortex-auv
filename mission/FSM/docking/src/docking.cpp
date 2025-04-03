@@ -17,9 +17,8 @@ FindDockingStationState::create_goal_handler(
     auto goal = docking_fsm::FindDockingAction::Goal();
     goal.num_measurements = blackboard->get<bool>("num_measurements");
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Number of measurements: %d",
-                goal.num_measurements);
+    spdlog::info("Goal sent to action server:");
+    spdlog::info("  Number of measurements: {}", goal.num_measurements);
 
     return goal;
 }
@@ -30,10 +29,9 @@ std::string FindDockingStationState::response_handler(
     blackboard->set<docking_fsm::PoseStamped>("dock_pose",
                                               response->filtered_pose);
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Response received from action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Dock pose: x = %f, y = %f, z = %f\n",
+
+    spdlog::info("Response received from action server:");
+    spdlog::info("Dock pose: x = {}, y = {}, z = {}",
                 response->filtered_pose.pose.position.x,
                 response->filtered_pose.pose.position.y,
                 response->filtered_pose.pose.position.z);
@@ -53,12 +51,10 @@ void FindDockingStationState::print_feedback(
     std::shared_ptr<const docking_fsm::FindDockingAction::Feedback> feedback) {
     blackboard->set<docking_fsm::Pose>("current_pose",
                                        feedback->current_pose.pose);
-
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
-                 "Current position: x = %f, y = %f, z = %f\n",
-                 feedback->current_pose.pose.position.x,
-                 feedback->current_pose.pose.position.y,
-                 feedback->current_pose.pose.position.z);
+    spdlog::debug("Current position: x = {}, y = {}, z = {}",
+                feedback->current_pose.pose.position.x,
+                feedback->current_pose.pose.position.y,
+                feedback->current_pose.pose.position.z);
 }
 
 ApproachDockingStationState::ApproachDockingStationState(
@@ -89,9 +85,8 @@ ApproachDockingStationState::create_goal_handler(
 
     goal.goal = docking_offset_goal;
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Position: x = %f, y = %f, z = %f",
+    spdlog::info("Goal sent to action server:");
+    spdlog::info("  Position: x = {}, y = {}, z = {}",
                 docking_offset_goal.pose.position.x,
                 docking_offset_goal.pose.position.y,
                 docking_offset_goal.pose.position.z);
@@ -102,10 +97,8 @@ ApproachDockingStationState::create_goal_handler(
 std::string ApproachDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     docking_fsm::ApproachDockingAction::Result::SharedPtr response) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Response received from action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
-                response->success ? "true" : "false");
+    spdlog::info("Response received from action server:");
+    spdlog::info("  Success: {}", response->success ? "true" : "false");
 
     blackboard->set<bool>("has_finished_converging", response->success);
 
@@ -127,10 +120,9 @@ void ApproachDockingStationState::print_feedback(
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
-                 "Current position: x = %f, y = %f, z = %f\n",
-                 feedback->feedback.x, feedback->feedback.y,
-                 feedback->feedback.z);
+    spdlog::debug("Current position: x = {}, y = {}, z = {}",
+                feedback->feedback.x, feedback->feedback.y,
+                feedback->feedback.z);
 }
 
 GoAboveDockingStationState::GoAboveDockingStationState(
@@ -156,30 +148,25 @@ GoAboveDockingStationState::create_goal_handler(
         blackboard->get<docking_fsm::PoseStamped>("docking_offset_goal");
     goal.goal = docking_offset_goal;
 
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Position: x = %f, y = %f, z = %f",
+    spdlog::info("Goal sent to action server:");
+    spdlog::info("  Position: x = {}, y = {}, z = {}",
                 docking_offset_goal.pose.position.x,
                 docking_offset_goal.pose.position.y,
                 docking_offset_goal.pose.position.z);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Orientation: x = %f, y = %f, z = %f, w = %f\n",
+    spdlog::info("  Orientation: x = {}, y = {}, z = {}, w = {}",
                 docking_offset_goal.pose.orientation.x,
                 docking_offset_goal.pose.orientation.y,
                 docking_offset_goal.pose.orientation.z,
                 docking_offset_goal.pose.orientation.w);
-
     return goal;
 }
 
 std::string GoAboveDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     docking_fsm::GoAboveDockingAction::Result::SharedPtr response) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Response received from action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
-                response->success ? "true" : "false");
 
+    spdlog::info("Response received from action server:");
+    spdlog::info("  Success: {}", response->success ? "true" : "false");
     blackboard->set<bool>("is_docked", response->success);
 
     if (blackboard->get<bool>("is_docked")) {
@@ -199,11 +186,10 @@ void GoAboveDockingStationState::print_feedback(
     current_pose.position.z = feedback->feedback.z;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
-
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
-                 "Current position: x = %f, y = %f, z = %f\n",
-                 feedback->feedback.x, feedback->feedback.y,
-                 feedback->feedback.z);
+    
+    spdlog::debug("Current position: x = {}, y = {}, z = {}",
+                feedback->feedback.x, feedback->feedback.y,
+                feedback->feedback.z);
 }
 
 ConvergeDockingStationState::ConvergeDockingStationState(
@@ -230,12 +216,11 @@ ConvergeDockingStationState::create_goal_handler(
     docking_fsm::PoseStamped dock_pose =
         blackboard->get<docking_fsm::PoseStamped>("dock_pose");
     goal.goal = dock_pose;
-
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Position: x = %f, y = %f, z = %f\n",
-                goal.goal.pose.position.x, goal.goal.pose.position.y,
-                goal.goal.pose.position.z);
+    
+    spdlog::info("Goal sent to action server:");
+    spdlog::info("  Position: x = {}, y = {}, z = {}",
+                dock_pose.pose.position.x, dock_pose.pose.position.y,
+                dock_pose.pose.position.z);
 
     return goal;
 }
@@ -243,10 +228,8 @@ ConvergeDockingStationState::create_goal_handler(
 std::string ConvergeDockingStationState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     docking_fsm::ConvergeDockingAction::Result::SharedPtr response) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Response received from action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
-                response->success ? "true" : "false");
+    spdlog::info("Response received from action server:");
+    spdlog::info("  Success: {}", response->success ? "true" : "false");
 
     blackboard->set<bool>("has_finished_converging", response->success);
     if (blackboard->get<bool>("has_finished_converging")) {
@@ -266,11 +249,9 @@ void ConvergeDockingStationState::print_feedback(
     current_pose.position.z = feedback->feedback.z;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
-
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
-                 "Current position: x = %f, y = %f, z = %f\n",
-                 feedback->feedback.x, feedback->feedback.y,
-                 feedback->feedback.z);
+    spdlog::debug("Current position: x = {}, y = {}, z = {}",
+                feedback->feedback.x, feedback->feedback.y,
+                feedback->feedback.z);
 }
 
 std::string DockedState(
@@ -308,10 +289,8 @@ docking_fsm::ReturnHomeAction::Goal ReturnHomeState::create_goal_handler(
         blackboard->get<docking_fsm::PoseStamped>("start_pose");
 
     goal.goal = start_pose;
-
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Goal sent to action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "  Start position: x = %f, y = %f, z = %f\n",
+    spdlog::info("Goal sent to action server:");
+    spdlog::info("  Position: x = {}, y = {}, z = {}",
                 start_pose.pose.position.x, start_pose.pose.position.y,
                 start_pose.pose.position.z);
 
@@ -321,10 +300,9 @@ docking_fsm::ReturnHomeAction::Goal ReturnHomeState::create_goal_handler(
 std::string ReturnHomeState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     docking_fsm::ReturnHomeAction::Result::SharedPtr response) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                "Response received from action server:");
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "  Success: %s\n",
-                response->success ? "true" : "false");
+
+    spdlog::info("Response received from action server:");
+    spdlog::info("  Success: {}", response->success ? "true" : "false");
 
     blackboard->set<bool>("is_home", response->success);
     if (blackboard->get<bool>("is_home")) {
@@ -346,10 +324,9 @@ void ReturnHomeState::print_feedback(
     current_pose.orientation.z = feedback->feedback.yaw;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"),
-                 "Current position: x = %f, y = %f, z = %f\n",
-                 current_pose.position.x, current_pose.position.y,
-                 current_pose.position.z);
+    spdlog::debug("Current position: x = {}, y = {}, z = {}",
+                feedback->feedback.x, feedback->feedback.y,
+                feedback->feedback.z);
 }
 
 std::string AbortState(
@@ -493,7 +470,7 @@ void add_states_nested(
 
 auto initialize_blackboard() {
     auto params = std::make_shared<rclcpp::Node>("dock_params");
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Creating params node");
+    spdlog::debug("Creating params node");
 
     params->declare_parameter<double>("fsm.docking.docking_station_offset");
     params->declare_parameter<int>("fsm.docking.num_measurements");
@@ -503,7 +480,7 @@ auto initialize_blackboard() {
     params->declare_parameter<std::string>("action_servers.los");
     params->declare_parameter<std::string>("action_name");
 
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Parameters declared");
+    spdlog::debug("Parameters declared");
 
     auto blackboard = std::make_shared<yasmin::blackboard::Blackboard>();
 
@@ -536,13 +513,13 @@ auto initialize_blackboard() {
     blackboard->set<std::string>(
         "pose_action", params->get_parameter("action_name").as_string());
 
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "Blackboard created");
+    spdlog::debug("Blackboard created");
 
     return blackboard;
 }
 
 int main(int argc, char* argv[]) {
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Docking");
+    spdlog::info("Docking");
     rclcpp::init(argc, argv);
 
     yasmin_ros::set_ros_loggers();
@@ -570,20 +547,18 @@ int main(int argc, char* argv[]) {
     yasmin_viewer::YasminViewerPub yasmin_pub_nested("DockingNested",
                                                      nested_sm);
 
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "State machines created");
+    spdlog::debug("State machines created");
 
     try {
         std::string outcome = (*sm.get())(blackboard);
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), outcome.c_str());
+        spdlog::info("State machine finished with outcome: {}", outcome);
     } catch (const std::exception& e) {
-        RCLCPP_WARN(rclcpp::get_logger("rclcpp"), e.what());
+        spdlog::warn(e.what());
         rcutils_reset_error();
     }
 
     if (!rclcpp::ok()) {
-        RCLCPP_INFO(
-            rclcpp::get_logger("rclcpp"),
-            "ROS2 context is already invalid. Skipping publisher destruction.");
+        spdlog::info("ROS2 context is already invalid. Skipping publisher destruction.");
         return 1;
     }
 
@@ -592,8 +567,7 @@ int main(int argc, char* argv[]) {
         blackboard.reset();
 
         rclcpp::shutdown();
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"),
-                    "ROS2 shutdown completed gracefully.");
+        spdlog::info("ROS2 shutdown completed gracefully.");
     }
 
     return 0;
