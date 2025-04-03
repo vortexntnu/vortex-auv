@@ -376,23 +376,52 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines() {
 }
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
-                std::shared_ptr<yasmin::StateMachine> nested_sm,
                 std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     sm->add_state(
         "FIND_DOCKING_STATION",
         std::make_shared<FindDockingStationState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "APPROACH_DOCKING_STATION"},
-            {yasmin_ros::basic_outcomes::CANCEL, "error"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
         });
     sm->add_state(
         "APPROACH_DOCKING_STATION",
         std::make_shared<ApproachDockingStationState>(blackboard),
         {
-            {yasmin_ros::basic_outcomes::SUCCEED, "NESTED_FSM"},
+            {yasmin_ros::basic_outcomes::SUCCEED, "GO_ABOVE_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::CANCEL, "FIND_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+        });
+
+    sm->add_state(
+        "GO_ABOVE_DOCKING_STATION",
+        std::make_shared<GoAboveDockingStationState>(blackboard),
+        {
+            {yasmin_ros::basic_outcomes::SUCCEED,
+             "UPDATE_DOCKING_STATION_POSITION"},
+            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+            {yasmin_ros::basic_outcomes::CANCEL, "APPROACH_DOCKING_STATION"},
+
+        });
+
+    sm->add_state(
+        "UPDATE_DOCKING_STATION_POSITION",
+        std::make_shared<FindDockingStationState>(blackboard),
+        {
+            {yasmin_ros::basic_outcomes::SUCCEED, "CONVERGE_DOCKING_STATION"},
+            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+            {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
+
+        });
+
+    sm->add_state(
+        "CONVERGE_DOCKING_STATION",
+        std::make_shared<ConvergeDockingStationState>(blackboard),
+        {
+            {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
+            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+            {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
+
         });
 
     sm->add_state("DOCKED",
@@ -442,53 +471,6 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                       {yasmin_ros::basic_outcomes::CANCEL, "error"},
                       {yasmin_ros::basic_outcomes::ABORT, "error"},
                   });
-    sm->add_state(
-        "NESTED_FSM", nested_sm,
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
-            {yasmin_ros::basic_outcomes::CANCEL, "APPROACH_DOCKING_STATION"},
-            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-
-        });
-}
-
-void add_states_nested(
-    std::shared_ptr<yasmin::StateMachine> sm,
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
-    sm->add_state("GO_ABOVE_DOCKING_STATION",
-                  std::make_shared<GoAboveDockingStationState>(blackboard),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED,
-                       "UPDATE_DOCKING_STATION_POSITION"},
-                      {yasmin_ros::basic_outcomes::ABORT,
-                       yasmin_ros::basic_outcomes::ABORT},
-                      {yasmin_ros::basic_outcomes::CANCEL,
-                       yasmin_ros::basic_outcomes::CANCEL},
-
-                  });
-
-    sm->add_state(
-        "UPDATE_DOCKING_STATION_POSITION",
-        std::make_shared<FindDockingStationState>(blackboard),
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED, "CONVERGE_DOCKING_STATION"},
-            {yasmin_ros::basic_outcomes::ABORT,
-             yasmin_ros::basic_outcomes::ABORT},
-            {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
-
-        });
-
-    sm->add_state(
-        "CONVERGE_DOCKING_STATION",
-        std::make_shared<ConvergeDockingStationState>(blackboard),
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED,
-             yasmin_ros::basic_outcomes::SUCCEED},
-            {yasmin_ros::basic_outcomes::ABORT,
-             yasmin_ros::basic_outcomes::ABORT},
-            {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
-
-        });
 }
 
 auto initialize_blackboard() {
@@ -548,29 +530,20 @@ int main(int argc, char* argv[]) {
     yasmin_ros::set_ros_loggers();
 
     std::shared_ptr<yasmin::StateMachine> sm = create_state_machines();
-    std::shared_ptr<yasmin::StateMachine> nested_sm = create_state_machines();
 
     rclcpp::on_shutdown([sm]() {
         if (sm->is_running()) {
             sm->cancel_state();
         }
     });
-    rclcpp::on_shutdown([nested_sm]() {
-        if (nested_sm->is_running()) {
-            nested_sm->cancel_state();
-        }
-    });
 
     auto blackboard = initialize_blackboard();
 
-    add_states(sm, nested_sm, blackboard);
-    add_states_nested(nested_sm, blackboard);
+    add_states(sm, blackboard);
 
     yasmin_viewer::YasminViewerPub yasmin_pub("Docking", sm);
-    yasmin_viewer::YasminViewerPub yasmin_pub_nested("DockingNested",
-                                                     nested_sm);
 
-    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "State machines created");
+    RCLCPP_DEBUG(rclcpp::get_logger("rclcpp"), "State machine created");
 
     try {
         std::string outcome = (*sm.get())(blackboard);

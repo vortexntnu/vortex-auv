@@ -139,11 +139,7 @@ class ConvergeDockingStationState
 std::shared_ptr<yasmin::StateMachine> create_state_machines();
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
-                std::shared_ptr<yasmin::StateMachine> nested_sm);
-
-void add_states_nested(
-    std::shared_ptr<yasmin::StateMachine> sm,
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+                std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
 auto initialize_blackboard();
 
