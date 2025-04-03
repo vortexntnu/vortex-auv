@@ -2,3 +2,6 @@ repositories:
   vortex-msgs:
     type: git
     url: https://github.com/vortexntnu/vortex-msgs.git
+  vortex-vkf:
+    type: git
+    url: https://github.com/vortexntnu/vortex-vkf.git
