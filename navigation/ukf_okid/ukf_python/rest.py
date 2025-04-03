@@ -1,6 +1,5 @@
 def mean_set(set_points: list[StateQuat], weights: np.ndarray = None) -> np.ndarray:
-    """Function that calculates the mean of a set of points
-    """
+    """Function that calculates the mean of a set of points"""
     n = len(set_points[0].as_vector()) - 1
     mean_value = StateQuat()
 
@@ -27,8 +26,7 @@ def mean_set(set_points: list[StateQuat], weights: np.ndarray = None) -> np.ndar
 def mean_measurement(
     set_points: list[MeasModel], weights: np.ndarray = None
 ) -> np.ndarray:
-    """Function that calculates the mean of a set of points
-    """
+    """Function that calculates the mean of a set of points"""
     n = len(set_points)
     mean_value = MeasModel()
 
