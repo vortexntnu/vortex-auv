@@ -1,15 +1,23 @@
-import numpy as np
 from dataclasses import dataclass, field
-from typing import Tuple
-from eskf_python_utils import quaternion_product, euler_to_quat, quat_to_euler, quaternion_error, quat_norm, skew_matrix
+
+import numpy as np
+from eskf_python_utils import (
+    euler_to_quat,
+    quat_norm,
+    quat_to_euler,
+    quaternion_error,
+    quaternion_product,
+    skew_matrix,
+)
 
 # This was the original code from the ukf_okid.py file
 
+
 @dataclass
 class StateQuatModel:
+    """A class to represent the state to be estimated by the UKF.
     """
-    A class to represent the state to be estimated by the UKF.
-    """
+
     position: np.ndarray = field(default_factory=lambda: np.zeros(3))
     orientation: np.ndarray = field(default_factory=lambda: np.array([1, 0, 0, 0]))
     velocity: np.ndarray = field(default_factory=lambda: np.zeros(3))
@@ -18,7 +26,9 @@ class StateQuatModel:
 
     def as_vector(self) -> np.ndarray:
         """Returns the StateVector as a numpy array."""
-        return np.concatenate([self.position, self.orientation, self.velocity, self.angular_velocity])
+        return np.concatenate(
+            [self.position, self.orientation, self.velocity, self.angular_velocity]
+        )
 
     def nu(self) -> np.ndarray:
         """Calculates the nu vector."""
@@ -27,11 +37,25 @@ class StateQuatModel:
     def R_q(self) -> np.ndarray:
         """Calculates the rotation matrix from the orientation quaternion."""
         q0, q1, q2, q3 = self.orientation
-        R = np.array([
-            [1 - 2 * q2**2 - 2 * q3**2, 2 * (q1 * q2 - q0 * q3), 2 * (q0 * q2 + q1 * q3)],
-            [2 * (q1 * q2 + q0 * q3), 1 - 2 * q1**2 - 2 * q3**2, 2 * (q2 * q3 - q0 * q1)],
-            [2 * (q1 * q3 - q0 * q2), 2 * (q0 * q1 + q2 * q3), 1 - 2 * q1**2 - 2 * q2**2]
-        ])
+        R = np.array(
+            [
+                [
+                    1 - 2 * q2**2 - 2 * q3**2,
+                    2 * (q1 * q2 - q0 * q3),
+                    2 * (q0 * q2 + q1 * q3),
+                ],
+                [
+                    2 * (q1 * q2 + q0 * q3),
+                    1 - 2 * q1**2 - 2 * q3**2,
+                    2 * (q2 * q3 - q0 * q1),
+                ],
+                [
+                    2 * (q1 * q3 - q0 * q2),
+                    2 * (q0 * q1 + q2 * q3),
+                    1 - 2 * q1**2 - 2 * q2**2,
+                ],
+            ]
+        )
         return R
 
     def fill_states(self, state: np.ndarray) -> None:
@@ -41,10 +65,14 @@ class StateQuatModel:
         self.velocity = state[7:10]
         self.angular_velocity = state[10:13]
 
-    def fill_states_different_dim(self, state: np.ndarray, state_euler: np.ndarray) -> None:
+    def fill_states_different_dim(
+        self, state: np.ndarray, state_euler: np.ndarray
+    ) -> None:
         """Fills states when the state vector has different dimensions than the default state vector."""
         self.position = state[0:3] + state_euler[0:3]
-        self.orientation = quaternion_product(state[3:7], euler_to_quat(state_euler[3:6]))
+        self.orientation = quaternion_product(
+            state[3:7], euler_to_quat(state_euler[3:6])
+        )
         self.velocity = state[7:10] + state_euler[6:9]
         self.angular_velocity = state[10:13] + state_euler[9:12]
 
@@ -52,7 +80,9 @@ class StateQuatModel:
         """Subtracts two StateQuatModel objects, returning the difference with Euler angles."""
         new_array = np.zeros(len(self.as_vector()) - 1)
         new_array[:3] = self.position - other.position
-        new_array[3:6] = quat_to_euler(quaternion_error(self.orientation, other.orientation))
+        new_array[3:6] = quat_to_euler(
+            quaternion_error(self.orientation, other.orientation)
+        )
         new_array[6:9] = self.velocity - other.velocity
         new_array[9:12] = self.angular_velocity - other.angular_velocity
 
@@ -92,7 +122,9 @@ class StateQuatModel:
         """Inserts the weights into the covariance matrix."""
         new_state = StateQuatModel()
         new_state.position = self.position - weights[:3]
-        new_state.orientation = quaternion_error(self.orientation, euler_to_quat(weights[3:6]))
+        new_state.orientation = quaternion_error(
+            self.orientation, euler_to_quat(weights[3:6])
+        )
         new_state.velocity = self.velocity - weights[6:9]
         new_state.angular_velocity = self.angular_velocity - weights[9:12]
 
@@ -107,9 +139,9 @@ class StateQuatModel:
 
 @dataclass
 class process_model:
+    """A class defined for a general process model.
     """
-    A class defined for a general process model.
-    """
+
     state_vector: StateQuatModel = field(default_factory=StateQuatModel)
     state_vector_dot: StateQuatModel = field(default_factory=StateQuatModel)
     state_vector_prev: StateQuatModel = field(default_factory=StateQuatModel)
@@ -119,7 +151,7 @@ class process_model:
     damping_linear: np.ndarray = field(default_factory=lambda: np.zeros(6))
     damping_nonlinear: np.ndarray = field(default_factory=lambda: np.zeros(6))
     m: float = 0.0
-    inertia: np.ndarray = field(default_factory=lambda: np.zeros((3,3)))
+    inertia: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
     r_b_bg: np.ndarray = field(default_factory=lambda: np.zeros(3))
     dt: float = 0.0
     integral_error_position: np.ndarray = field(default_factory=lambda: np.zeros(3))
@@ -130,22 +162,33 @@ class process_model:
     def R(self) -> np.ndarray:
         """Calculates the rotation matrix."""
         nu, e_1, e_2, e_3 = self.state_vector.orientation
-        R = np.array([
-            [1 - 2 * e_2 ** 2 - 2 * e_3 ** 2, 2 * e_1 * e_2 - 2 * nu * e_3, 2 * e_1 * e_3 + 2 * nu * e_2],
-            [2 * e_1 * e_2 + 2 * nu * e_3, 1 - 2 * e_1 ** 2 - 2 * e_3 ** 2, 2 * e_2 * e_3 - 2 * nu * e_1],
-            [2 * e_1 * e_3 - 2 * nu * e_2, 2 * e_2 * e_3 + 2 * nu * e_1, 1 - 2 * e_1 ** 2 - 2 * e_2 ** 2]
-        ])
+        R = np.array(
+            [
+                [
+                    1 - 2 * e_2**2 - 2 * e_3**2,
+                    2 * e_1 * e_2 - 2 * nu * e_3,
+                    2 * e_1 * e_3 + 2 * nu * e_2,
+                ],
+                [
+                    2 * e_1 * e_2 + 2 * nu * e_3,
+                    1 - 2 * e_1**2 - 2 * e_3**2,
+                    2 * e_2 * e_3 - 2 * nu * e_1,
+                ],
+                [
+                    2 * e_1 * e_3 - 2 * nu * e_2,
+                    2 * e_2 * e_3 + 2 * nu * e_1,
+                    1 - 2 * e_1**2 - 2 * e_2**2,
+                ],
+            ]
+        )
         return R
 
     def T(self) -> np.ndarray:
         """Calculates the transformation matrix."""
         nu, e_1, e_2, e_3 = self.state_vector.orientation
-        T = 0.5 * np.array([
-            [-e_1, -e_2, -e_3],
-            [nu, -e_3, e_2],
-            [e_3, nu, -e_1],
-            [-e_2, e_1, nu]
-        ])
+        T = 0.5 * np.array(
+            [[-e_1, -e_2, -e_3], [nu, -e_3, e_2], [e_3, nu, -e_1], [-e_2, e_1, nu]]
+        )
         return T
 
     def Crb(self) -> np.ndarray:
@@ -170,15 +213,31 @@ class process_model:
         """Calculates the model of the system."""
         self.state_vector = state
         self.state_vector_dot.position = np.dot(self.R(), self.state_vector.velocity)
-        self.state_vector_dot.orientation = np.dot(self.T(), self.state_vector.angular_velocity)
-        Nu = np.linalg.inv(self.mass_interia_matrix + np.diag(self.added_mass)) @ (self.Control_input - np.dot(self.Crb(), self.state_vector.nu()) - np.dot(self.D(), self.state_vector.nu()))
+        self.state_vector_dot.orientation = np.dot(
+            self.T(), self.state_vector.angular_velocity
+        )
+        Nu = np.linalg.inv(self.mass_interia_matrix + np.diag(self.added_mass)) @ (
+            self.Control_input
+            - np.dot(self.Crb(), self.state_vector.nu())
+            - np.dot(self.D(), self.state_vector.nu())
+        )
         self.state_vector_dot.velocity = Nu[:3]
         self.state_vector_dot.angular_velocity = Nu[3:]
 
     def euler_forward(self) -> StateQuatModel:
         """Calculates the forward Euler integration."""
-        self.state_vector.position = self.state_vector_prev.position + self.state_vector_dot.position * self.dt
-        self.state_vector.orientation = quat_norm(self.state_vector_prev.orientation + self.state_vector_dot.orientation * self.dt)
-        self.state_vector.velocity = self.state_vector_prev.velocity + self.state_vector_dot.velocity * self.dt
-        self.state_vector.angular_velocity = self.state_vector_prev.angular_velocity + self.state_vector_dot.angular_velocity * self.dt
+        self.state_vector.position = (
+            self.state_vector_prev.position + self.state_vector_dot.position * self.dt
+        )
+        self.state_vector.orientation = quat_norm(
+            self.state_vector_prev.orientation
+            + self.state_vector_dot.orientation * self.dt
+        )
+        self.state_vector.velocity = (
+            self.state_vector_prev.velocity + self.state_vector_dot.velocity * self.dt
+        )
+        self.state_vector.angular_velocity = (
+            self.state_vector_prev.angular_velocity
+            + self.state_vector_dot.angular_velocity * self.dt
+        )
         return self.state_vector
