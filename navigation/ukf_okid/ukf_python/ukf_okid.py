@@ -1,4 +1,3 @@
-
 import numpy as np
 from ukf_okid_class import *
 
@@ -39,8 +38,7 @@ class UKF:
         return T
 
     def sigma_points(self, current_state: StateQuat) -> list[StateQuat]:
-        """Functions that generate the sigma points for the UKF
-        """
+        """Functions that generate the sigma points for the UKF"""
         n = len(current_state.covariance)
 
         I = np.hstack([np.eye(n), -np.eye(n)])
@@ -58,8 +56,7 @@ class UKF:
         return self.sigma_points_list
 
     def unscented_transform(self, current_state: StateQuat) -> StateQuat:
-        """The unscented transform function generates the priori state estimate
-        """
+        """The unscented transform function generates the priori state estimate"""
         _ = self.sigma_points(current_state)
         n = len(current_state.covariance)
 
@@ -107,8 +104,7 @@ class UKF:
         measurement: MeasModel,
         ex_measuremnt: MeasModel,
     ) -> StateQuat:
-        """Calculates the posteriori estimate using measurement and the prior estimate
-        """
+        """Calculates the posteriori estimate using measurement and the prior estimate"""
         nu_k = MeasModel()
 
         nu_k.measurement = measurement.measurement - ex_measuremnt.measurement
