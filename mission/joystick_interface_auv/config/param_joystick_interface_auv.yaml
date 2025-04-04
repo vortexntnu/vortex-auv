@@ -1,4 +1,4 @@
-joystick_interface_auv_node:
+/**:
   ros__parameters:
     joystick_surge_gain: 60.0
     joystick_sway_gain: 60.0

@@ -14,8 +14,6 @@
 #include <tuple>
 #include <vortex_filtering/vortex_filtering.hpp>
 
-using Vector6d = Eigen::Vector<double, 3>;
-
 class EKFPoseFilteringNode : public rclcpp::Node {
    public:
     EKFPoseFilteringNode();
@@ -23,7 +21,8 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     ~EKFPoseFilteringNode() {};
 
    private:
-    void resetEFK(std::shared_ptr<std_srvs::srv::SetBool::Response> response);
+    void reset_EFK_state(
+        std::shared_ptr<std_srvs::srv::SetBool::Response> response);
 
     void pose_callback(
         const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose_msg);
@@ -48,10 +47,10 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
         filtered_pose_pub_;
 
-    using DynMod = vortex::models::ConstantPose;
-    using SensMod = vortex::models::IdentitySensorModel<4, 4>;
+    using DynMod = vortex::models::ConstantDynamicModel<3>;
+    using SensMod = vortex::models::IdentitySensorModel<3, 3>;
     using EKF = vortex::filter::EKF<DynMod, SensMod>;
-    using Gauss4d = vortex::prob::Gauss<4>;
+    using Gauss3d = vortex::prob::Gauss<3>;
 
     bool first_run_ = true;
     rclcpp::Time previous_time_;
@@ -59,8 +58,8 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     std::shared_ptr<DynMod> dynamic_model_;
     std::shared_ptr<SensMod> sensor_model_;
 
-    Gauss4d previous_pose_est_;
-    Gauss4d object_pose_est_;
+    Gauss3d previous_pose_est_;
+    Gauss3d object_pose_est_;
 
     std::string frame_;
     bool enu_orientation_;

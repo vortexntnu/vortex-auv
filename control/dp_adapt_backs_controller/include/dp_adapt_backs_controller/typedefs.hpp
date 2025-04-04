@@ -52,6 +52,17 @@ struct J_matrix {
     }
 };
 
+struct DPAdaptParams {
+    dp_types::Vector12d adap_param = dp_types::Vector12d::Zero();
+    dp_types::Vector6d d_gain = dp_types::Vector6d::Zero();
+    dp_types::Vector6d K1 = dp_types::Vector6d::Zero();
+    dp_types::Vector6d K2 = dp_types::Vector6d::Zero();
+    dp_types::Vector3d r_b_bg = dp_types::Vector3d::Zero();
+    dp_types::Vector3d I_b = dp_types::Vector3d::Zero();
+    dp_types::Matrix6d mass_matrix = dp_types::Matrix6d::Zero();
+    double m = 0.0;
+};
+
 }  // namespace dp_types
 
 #endif

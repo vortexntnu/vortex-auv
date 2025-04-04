@@ -1,0 +1,59 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_run:
+    workflows: ["Semantic Release"]
+    types:
+      - completed
+
+jobs:
+  build-and-push:
+    # Only run if new release from Semantic release
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      # Log into vortex container registry
+      - name: Log into GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # vcs to add other repos to src
+      - name: download vcs
+        run: |
+          sudo apt update
+          pip3 install vcstool
+
+      # Get current latest tag from the repository
+      - name: get latest tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+        with:
+          semver_only: true
+
+      # Main logic for creating workspace, installing packages and building image
+      - name: build ws and run script
+        run: |
+          cd ..
+          mkdir -p ./ros2_ws/src
+          cp -r vortex-auv ./ros2_ws/src/vortex-auv
+          cd ros2_ws
+          vcs import src < ./src/vortex-auv/dependencies.repos
+          chmod +x ./src/vortex-auv/docker/build.sh
+          ./src/vortex-auv/docker/build.sh
+
+      - name: Retag Docker image for GitHub Container Registry
+        run: |
+          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.tag }}
+          docker tag auv-image:latest ghcr.io/${{ github.repository_owner }}/auv-image:latest
+
+      - name: Push Docker image to GitHub Container Registry
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/auv-image:${{ steps.get-latest-tag.outputs.tag }}
+          docker push ghcr.io/${{ github.repository_owner }}/auv-image:latest

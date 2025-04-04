@@ -1,52 +1,66 @@
+#include <spdlog/spdlog.h>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <reference_filter_dp/reference_filter_ros.hpp>
 
-ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
+ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
+    : Node("reference_filter_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
-    cb_group_ =
-        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+    set_subscribers_and_publisher();
 
-    this->declare_parameter<std::string>("reference_filter_topic",
-                                         "/reference_topic");
-    this->declare_parameter<std::string>("reference_topic", "/dp/reference");
-    this->declare_parameter<std::string>("pose_topic", "/dvl/pose");
-    this->declare_parameter<std::string>("twist_topic", "/dvl/twist");
+    set_action_server();
 
-    std::string reference_filter_topic =
-        this->get_parameter("reference_filter_topic").as_string();
+    set_refererence_filter();
+
+    x_ = Vector18d::Zero();
+
+    spdlog::info("Reference filter node initialized");
+}
+
+void ReferenceFilterNode::set_subscribers_and_publisher() {
+    this->declare_parameter<std::string>("topics.pose");
+    this->declare_parameter<std::string>("topics.twist");
+    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
+
+    std::string pose_topic = this->get_parameter("topics.pose").as_string();
+    std::string twist_topic = this->get_parameter("topics.twist").as_string();
+    std::string guidance_topic =
+        this->get_parameter("topics.guidance.dp").as_string();
+    std::string aruco_board_pose_camera_topic =
+        this->get_parameter("topics.aruco_board_pose_camera").as_string();
+
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
-
-    std::string dp_reference_topic =
-        this->get_parameter("reference_topic").as_string();
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
-        dp_reference_topic, qos_sensor_data);
+        guidance_topic, qos_sensor_data);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-        reference_filter_topic, qos_sensor_data,
+        aruco_board_pose_camera_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::reference_callback, this,
                   std::placeholders::_1));
-
-    std::string pose_topic = this->get_parameter("pose_topic").as_string();
-    std::string twist_topic = this->get_parameter("twist_topic").as_string();
-
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::pose_callback, this,
                   std::placeholders::_1));
-
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::twist_callback, this,
                   std::placeholders::_1));
+}
 
-    set_refererence_filter();
+void ReferenceFilterNode::set_action_server() {
+    this->declare_parameter<std::string>("action_servers.reference_filter");
+    std::string action_server_name =
+        this->get_parameter("action_servers.reference_filter").as_string();
+    cb_group_ =
+        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ = rclcpp_action::create_server<
         vortex_msgs::action::ReferenceFilterWaypoint>(
-        this, "reference_filter",
+        this, action_server_name,
         std::bind(&ReferenceFilterNode::handle_goal, this,
                   std::placeholders::_1, std::placeholders::_2),
         std::bind(&ReferenceFilterNode::handle_cancel, this,
@@ -54,8 +68,6 @@ ReferenceFilterNode::ReferenceFilterNode() : Node("reference_filter_node") {
         std::bind(&ReferenceFilterNode::handle_accepted, this,
                   std::placeholders::_1),
         rcl_action_server_get_default_options(), cb_group_);
-
-    x_ = Vector18d::Zero();
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -116,20 +128,19 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
         std::lock_guard<std::mutex> lock(mutex_);
         if (goal_handle_) {
             if (goal_handle_->is_active()) {
-                RCLCPP_INFO(this->get_logger(),
-                            "Aborting current goal and accepting new goal");
+                spdlog::info("Aborting current goal and accepting new goal");
                 preempted_goal_id_ = goal_handle_->get_goal_id();
             }
         }
     }
-    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
+    spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -225,7 +236,7 @@ void ReferenceFilterNode::execute(
         this->goal_handle_ = goal_handle;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Executing goal");
+    spdlog::info("Executing goal");
 
     x_ = fill_reference_state();
 
@@ -252,7 +263,7 @@ void ReferenceFilterNode::execute(
         if (goal_handle->is_canceling()) {
             result->success = false;
             goal_handle->canceled(result);
-            RCLCPP_INFO(this->get_logger(), "Goal canceled");
+            spdlog::info("Goal canceled");
             return;
         }
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
@@ -272,10 +283,12 @@ void ReferenceFilterNode::execute(
             vortex_msgs::msg::ReferenceFilter feedback_msg =
                 fill_reference_msg();
             reference_pub_->publish(feedback_msg);
-            RCLCPP_INFO(this->get_logger(), "Goal reached");
+            spdlog::info("Goal reached");
             return;
         }
 
         loop_rate.sleep();
     }
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ReferenceFilterNode)

@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    lookahead_distance_h: 1.5
+    lookahead_distance_v: 0.6
+    gamma_h: 0.05
+    gamma_v: 0.1
+    time_step: 0.01
+    u_desired: 0.3

@@ -5,7 +5,7 @@ import rclpy
 from geometry_msgs.msg import (
     PoseWithCovarianceStamped,
     TwistWithCovarianceStamped,
-    Wrench,
+    WrenchStamped,
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
@@ -32,12 +32,6 @@ class LinearQuadraticRegulator(Node):
             depth=1,
         )
 
-        reliable_qos = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
-
         # ---------------------------- SUBSCRIBERS ---------------------------
 
         self.pose_subscriber = self.create_subscription(
@@ -58,13 +52,13 @@ class LinearQuadraticRegulator(Node):
             String,
             self.operation_mode_topic,
             self.operation_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=2,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             self.killswitch_topic,
             self.killswitch_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=2,
         )
 
         self.guidance_subscriber = self.create_subscription(
@@ -76,7 +70,7 @@ class LinearQuadraticRegulator(Node):
 
         # ---------------------------- PUBLISHERS ----------------------------
         self.publisherLQR = self.create_publisher(
-            Wrench, self.wrench_input_topic, reliable_qos
+            WrenchStamped, self.wrench_input_topic, best_effort_qos
         )
 
         # ------------------------------ TIMERS ------------------------------
@@ -95,11 +89,6 @@ class LinearQuadraticRegulator(Node):
 
     def get_topics(self):
         """Get the topics from the parameter file."""
-        namespace = (
-            self.declare_parameter("topics.namespace", "_")
-            .get_parameter_value()
-            .string_value
-        )
         topics = [
             "pose",
             "twist",
@@ -114,14 +103,14 @@ class LinearQuadraticRegulator(Node):
                 setattr(
                     self,
                     topic + "_topic",
-                    namespace + self.get_parameter("topics.guidance." + topic).value,
+                    self.get_parameter("topics.guidance." + topic).value,
                 )
                 continue
             self.declare_parameter("topics." + topic, "_")
             setattr(
                 self,
                 topic + "_topic",
-                namespace + self.get_parameter("topics." + topic).value,
+                self.get_parameter("topics." + topic).value,
             )
 
     def get_parameters(self):
@@ -223,24 +212,24 @@ class LinearQuadraticRegulator(Node):
         Parameters: String: msg: The killswitch data from the AUV.
 
         """
-        if msg.data == True:
+        self.controller.killswitch = msg.data
+        if self.controller.killswitch:
             self.controller.reset_controller()
-            self.controller.killswitch = True
-        else:
-            self.controller.killswitch = False
 
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
     def control_loop(self):
         """The control loop that calculates the input for the LQR controller."""
-        msg = Wrench()
+        msg = WrenchStamped()
 
         u = self.controller.calculate_lqr_u(
             self.coriolis_matrix, self.states, self.guidance_values
         )
-        msg.force.x = float(u[0])
-        msg.torque.y = float(u[1])
-        msg.torque.z = float(u[2])
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = "base_link"
+        msg.wrench.force.x = float(u[0])
+        msg.wrench.torque.y = float(u[1])
+        msg.wrench.torque.z = float(u[2])
 
         if (
             self.controller.killswitch == False

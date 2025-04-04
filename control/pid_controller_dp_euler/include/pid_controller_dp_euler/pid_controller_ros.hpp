@@ -4,7 +4,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/wrench.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <pid_controller_dp_euler/pid_controller.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -37,6 +37,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     void set_pid_params();
 
+    void set_subscribers_and_publisher();
+
     PIDController pid_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
@@ -52,7 +54,7 @@ class PIDControllerNode : public rclcpp::Node {
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;
 
-    rclcpp::Publisher<geometry_msgs::msg::Wrench>::SharedPtr tau_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_;
 
     rclcpp::TimerBase::SharedPtr tau_pub_timer_;
 
@@ -66,11 +68,9 @@ class PIDControllerNode : public rclcpp::Node {
 
     Eta eta_dot_d_;
 
-    bool killswitch_on_;
+    bool killswitch_on_ = false;
 
     std::string software_mode_;
-
-    std::string active_controller_;
 };
 
 #endif

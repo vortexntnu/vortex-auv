@@ -30,6 +30,7 @@ def generate_launch_description() -> LaunchDescription:
         package="thrust_allocator_auv",
         executable="thrust_allocator_auv_node",
         name="thrust_allocator_auv_node",
+        namespace="orca",
         parameters=[config_file],
         output="screen",
     )

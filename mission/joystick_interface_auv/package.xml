@@ -7,9 +7,12 @@
   <maintainer email="andeshog@stud.ntnu.no">Anders</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>joy</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

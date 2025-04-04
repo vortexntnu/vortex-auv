@@ -1,9 +1,4 @@
-reference_filter_node:
+/**:
   ros__parameters:
-    reference_filter_topic: /aruco_board_pose_camera
-    reference_topic: /dp/reference
-    odom_topic: /orca/odom
-    pose_topic: /dvl/pose
-    twist_topic: /dvl/twist
     zeta: [1., 1., 1., 1., 1., 1.]
-    omega: [0.2, 0.2, 0.2, 0.9, 0.9, 0.2]
+    omega: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]

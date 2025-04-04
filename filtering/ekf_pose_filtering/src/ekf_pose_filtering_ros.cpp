@@ -5,14 +5,14 @@ using std::placeholders::_2;
 
 EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
     service_ = this->create_service<std_srvs::srv::SetBool>(
-        "reset_ekf", std::bind(&EKFPoseFilteringNode::resetEFK, this, _2));
+        "reset_ekf",
+        std::bind(&EKFPoseFilteringNode::reset_EFK_state, this, _2));
 
-    target_frame_ =
-        this->declare_parameter<std::string>("target_frame", "odom");
-    auto pose_sub_topic = this->declare_parameter<std::string>(
-        "pose_sub_topic", "/aruco_board_pose_camera");
+    target_frame_ = this->declare_parameter<std::string>("target_frame");
+    auto pose_sub_topic =
+        this->declare_parameter<std::string>("pose_sub_topic");
 
-    enu_orientation_ = this->declare_parameter("enu_orientation", true);
+    enu_orientation_ = this->declare_parameter<bool>("enu_orientation");
 
     std::chrono::duration<int> buffer_timeout(1);
 
@@ -41,10 +41,10 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
-    auto transformed_pose_pub_topic = this->declare_parameter<std::string>(
-        "transformed_pose_pub_topic", "/transformed_pose");
-    auto filtered_pose_pub_topic = this->declare_parameter<std::string>(
-        "filtered_pose_pub_topic", "/filtered_pose");
+    auto transformed_pose_pub_topic =
+        this->declare_parameter<std::string>("transformed_pose_pub_topic");
+    auto filtered_pose_pub_topic =
+        this->declare_parameter<std::string>("filtered_pose_pub_topic");
 
     transformed_pose_pub_ =
         this->create_publisher<geometry_msgs::msg::PoseStamped>(
@@ -53,13 +53,9 @@ EKFPoseFilteringNode::EKFPoseFilteringNode() : Node("ekf_pose_filtering_node") {
         this->create_publisher<geometry_msgs::msg::PoseStamped>(
             filtered_pose_pub_topic, qos_sensor_data);
 
-    double dynmod_stddev_pos =
-        this->declare_parameter("dynmod_stddev_pos", 0.01);
-    double dynmod_stddev_ori =
-        this->declare_parameter("dynmod_stddev_ori", 0.01);
-    double sensmod_stddev = this->declare_parameter("sensmod_stddev", 0.01);
-    dynamic_model_ =
-        std::make_shared<DynMod>(dynmod_stddev_pos, dynmod_stddev_ori);
+    double dynmod_stddev = this->declare_parameter<double>("dynmod_stddev");
+    double sensmod_stddev = this->declare_parameter<double>("sensmod_stddev");
+    dynamic_model_ = std::make_shared<DynMod>(dynmod_stddev);
     sensor_model_ = std::make_shared<SensMod>(sensmod_stddev);
 }
 
@@ -68,7 +64,7 @@ void EKFPoseFilteringNode::pose_callback(
     geometry_msgs::msg::PoseStamped transformed_pose;
     try {
         tf2_buffer_->transform(*pose_msg, transformed_pose, target_frame_,
-                               tf2::Duration(std::chrono::milliseconds(100)));
+                               tf2::Duration(std::chrono::milliseconds(50)));
         transformed_pose.header.frame_id = target_frame_;
         if (enu_orientation_) {
             transformed_pose.pose.orientation =
@@ -85,22 +81,21 @@ void EKFPoseFilteringNode::pose_callback(
 void EKFPoseFilteringNode::filter_pose(
     geometry_msgs::msg::PoseStamped& pose_msg) {
     if (first_run_) {
-        Eigen::Vector4d initial_measurement = {
-            pose_msg.pose.position.x, pose_msg.pose.position.y,
-            pose_msg.pose.position.z, pose_msg.pose.orientation.z};
+        Eigen::Vector3d initial_measurement = {pose_msg.pose.position.x,
+                                               pose_msg.pose.position.y,
+                                               pose_msg.pose.position.z};
         previous_pose_est_ =
-            Gauss4d(initial_measurement, Gauss4d::Mat_nn::Identity());
+            Gauss3d(initial_measurement, Gauss3d::Mat_nn::Identity());
         previous_time_ = pose_msg.header.stamp;
         first_run_ = false;
         return;
     } else {
         rclcpp::Time current_time(pose_msg.header.stamp);
         rclcpp::Duration time_step = current_time - previous_time_;
-        Eigen::Vector4d object_pose;
+        Eigen::Vector3d object_pose;
         object_pose(0) = pose_msg.pose.position.x;
         object_pose(1) = pose_msg.pose.position.y;
         object_pose(2) = pose_msg.pose.position.z;
-        object_pose(3) = pose_msg.pose.orientation.z;
         std::tie(object_pose_est_, std::ignore, std::ignore) =
             EKF::step(*dynamic_model_, *sensor_model_, time_step.seconds(),
                       previous_pose_est_, object_pose);
@@ -110,7 +105,6 @@ void EKFPoseFilteringNode::filter_pose(
         pose_msg.pose.position.x = object_pose_est_.mean()(0);
         pose_msg.pose.position.y = object_pose_est_.mean()(1);
         pose_msg.pose.position.z = object_pose_est_.mean()(2);
-        pose_msg.pose.orientation.z = object_pose_est_.mean()(3);
     }
 }
 
@@ -133,11 +127,11 @@ geometry_msgs::msg::Quaternion EKFPoseFilteringNode::enu_to_ned_quaternion(
     return ned_quat;
 }
 
-void EKFPoseFilteringNode::resetEFK(
+void EKFPoseFilteringNode::reset_EFK_state(
     std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
     first_run_ = false;
     previous_pose_est_ =
-        Gauss4d(Gauss4d::Vec_n::Zero(), Gauss4d::Mat_nn::Identity());
+        Gauss3d(Gauss3d::Vec_n::Zero(), Gauss3d::Mat_nn::Identity());
     response->success = true;
 }
 

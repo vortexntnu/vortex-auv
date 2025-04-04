@@ -3,9 +3,10 @@
 <package format="3">
   <name>ekf_pose_filtering</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="chrisbjoe@hotmail.com">jorgen</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Ros2 package that transforms PoseStamped messages to a specified frame
+  and does EKF filtering of the position component</description>
+  <maintainer email="jorgen.fjermedal@hotmail.com">jorgen</maintainer>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
