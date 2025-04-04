@@ -1,0 +1,7 @@
+/**:
+ ros__parameters:
+   action_servers:
+     waypoint_manager: "waypoint_manager"
+     reference_filter: "reference_filter"
+   topics:
+     pose: "pose"
