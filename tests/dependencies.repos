@@ -14,3 +14,6 @@ repositories:
   vortex-stonefish-sim:
     type: git
     url: https://github.com/vortexntnu/vortex-stonefish-sim.git
+  vortex-vkf:
+    type: git
+    url: https://github.com/vortexntnu/vortex-vkf.git
