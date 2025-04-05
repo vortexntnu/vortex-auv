@@ -13,7 +13,7 @@
 #include <variant>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
-#include "typedefs.hpp"
+#include "spdlog/spdlog.h"
 
 class ESKFNode : public rclcpp::Node {
    public:
