@@ -27,6 +27,13 @@ typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 9, 9> Matrix9d;
 }  // namespace Eigen
 
+template <int N>
+Eigen::Matrix<double, N, N> createDiagonalMatrix(
+    const std::vector<double>& diag) {
+    return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
+        .asDiagonal();
+}
+
 struct state_quat {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
@@ -51,8 +58,6 @@ struct state_quat {
         diff.accel_bias = accel_bias - other.accel_bias;
         return diff;
     }
-
-    Eigen::Matrix3d get_R() const { return quat.toRotationMatrix(); }
 };
 
 struct state_euler {
@@ -91,8 +96,8 @@ struct imu_measurement {
         Eigen::Matrix3d R_nb;
         R_nb << 0, 0, -1, 0, -1, 0, -1, 0, 0;
 
-        accel = R_nb * accel_uncorrected;
-        gyro = R_nb * gyro_uncorrected;
+        accel = (R_nb * accel_uncorrected);
+        gyro = (R_nb * gyro_uncorrected);
     }
 };
 

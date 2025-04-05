@@ -18,7 +18,9 @@ Eigen::Quaterniond vector3d_to_quaternion(const Eigen::Vector3d& vector) {
         return Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
     } else {
         Eigen::Vector3d axis = vector / angle;
-        return Eigen::Quaterniond(Eigen::AngleAxisd(angle, axis));
+        Eigen::Quaterniond quat =
+            Eigen::Quaterniond(Eigen::AngleAxisd(angle, axis));
+        return quat;
     }
 }
 
@@ -27,5 +29,6 @@ Eigen::Quaterniond euler_to_quaternion(const Eigen::Vector3d& euler) {
     q = Eigen::AngleAxisd(euler.z(), Eigen::Vector3d::UnitZ()) *
         Eigen::AngleAxisd(euler.y(), Eigen::Vector3d::UnitY()) *
         Eigen::AngleAxisd(euler.x(), Eigen::Vector3d::UnitX());
+    q.normalize();
     return q;
 }
