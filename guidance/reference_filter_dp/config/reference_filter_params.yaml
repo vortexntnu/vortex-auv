@@ -1,4 +1,12 @@
 /**:
   ros__parameters:
-    zeta: [1., 1., 1., 1., 1., 1.]
+    zeta: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     omega: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
+    topics:
+      pose: "/orca/pose"
+      twist: "/orca/twist"
+      guidance:
+        dp: "/orca/guidance/dp"
+      aruco_board_pose_camera: "/orca/aruco_board_pose_camera"
+    action_servers:
+      reference_filter: "reference_filter"

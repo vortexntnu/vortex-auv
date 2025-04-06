@@ -18,6 +18,8 @@ find_package(vortex_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(include)
 
@@ -35,7 +37,9 @@ ament_target_dependencies(waypoint_manager_node
   tf2
   tf2_geometry_msgs
   Eigen3
+  spdlog
 )
+target_link_libraries(waypoint_manager_node fmt::fmt)
 
 install(TARGETS
   waypoint_manager_node

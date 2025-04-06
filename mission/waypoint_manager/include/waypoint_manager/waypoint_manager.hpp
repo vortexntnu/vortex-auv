@@ -1,6 +1,6 @@
 #ifndef WAYPOINT_MANAGER_HPP
 #define WAYPOINT_MANAGER_HPP
-
+#include <spdlog/spdlog.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <eigen3/Eigen/Dense>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -20,25 +20,18 @@ class WaypointManagerNode : public rclcpp::Node {
     using WaypointManagerAction = vortex_msgs::action::WaypointManager;
     using GoalHandleWaypointManager =
         rclcpp_action::ServerGoalHandle<WaypointManagerAction>;
-
     using ReferenceFilterAction = vortex_msgs::action::ReferenceFilterWaypoint;
 
     rclcpp_action::Server<WaypointManagerAction>::SharedPtr action_server_;
-
     rclcpp_action::Client<ReferenceFilterAction>::SharedPtr
         reference_filter_client_;
-
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
     geometry_msgs::msg::Pose current_pose_;
-
     std::mutex mutex_;
-
     rclcpp::CallbackGroup::SharedPtr server_cb_group_;
-
     rclcpp::CallbackGroup::SharedPtr client_cb_group_;
-
     std::shared_ptr<GoalHandleWaypointManager> current_goal_handle_;
     std::vector<geometry_msgs::msg::PoseStamped> waypoints_;
     size_t current_waypoint_index_{0};
@@ -46,7 +39,6 @@ class WaypointManagerNode : public rclcpp::Node {
     std::string target_server_{"reference_filter"};
     bool navigation_active_{false};
     std::shared_ptr<std::promise<bool>> current_waypoint_promise_;
-
     rclcpp_action::GoalUUID preempted_goal_id_;
 
     void setup_action_server();
@@ -75,5 +67,4 @@ class WaypointManagerNode : public rclcpp::Node {
     void send_waypoint_to_target_server(
         const geometry_msgs::msg::PoseStamped& waypoint);
 };
-
 #endif
