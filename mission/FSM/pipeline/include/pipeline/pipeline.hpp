@@ -92,7 +92,6 @@ class FollowPipelineState
             feedback);
 };
 
-
 class ReturnHomeState
     : public yasmin_ros::ActionState<pipeline_fsm::ReturnHomeAction> {
    public:
@@ -116,7 +115,6 @@ std::string AbortState(
 
 std::string ErrorState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
-
 
 std::shared_ptr<yasmin::StateMachine> create_state_machines();
 

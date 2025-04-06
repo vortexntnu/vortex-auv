@@ -11,8 +11,7 @@ FindPipelineState::FindPipelineState(
           std::bind(&FindPipelineState::response_handler, this, _1, _2),
           std::bind(&FindPipelineState::print_feedback, this, _1, _2)) {};
 
-pipeline_fsm::FindPipelineAction::Goal
-FindPipelineState::create_goal_handler(
+pipeline_fsm::FindPipelineAction::Goal FindPipelineState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     auto goal = pipeline_fsm::FindPipelineAction::Goal();
     goal.num_measurements = blackboard->get<bool>("num_measurements");
@@ -27,7 +26,7 @@ std::string FindPipelineState::response_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     pipeline_fsm::FindPipelineAction::Result::SharedPtr response) {
     blackboard->set<pipeline_fsm::PoseStamped>("pipeline_start_pose",
-                                              response->filtered_pose);
+                                               response->filtered_pose);
 
     spdlog::info("Response received from action server:");
     spdlog::info("Pipeline start pose: x = {}, y = {}, z = {}",
@@ -40,16 +39,17 @@ std::string FindPipelineState::response_handler(
     pipeline_offset_goal.pose.position.z +=
         blackboard->get<double>("pipeline_offset");
     blackboard->set<pipeline_fsm::PoseStamped>("pipeline_offset_goal",
-                                              pipeline_offset_goal);
+                                               pipeline_offset_goal);
 
     return yasmin_ros::basic_outcomes::SUCCEED;
 }
 
 void FindPipelineState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const pipeline_fsm::FindPipelineAction::Feedback> feedback) {
+    std::shared_ptr<const pipeline_fsm::FindPipelineAction::Feedback>
+        feedback) {
     blackboard->set<pipeline_fsm::Pose>("current_pose",
-                                       feedback->current_pose.pose);
+                                        feedback->current_pose.pose);
     spdlog::debug("Current position: x = {}, y = {}, z = {}",
                   feedback->current_pose.pose.position.x,
                   feedback->current_pose.pose.position.y,
@@ -60,17 +60,9 @@ ApproachPipelineState::ApproachPipelineState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<pipeline_fsm::ApproachPipelineAction>(
           blackboard->get<std::string>("reference_filter_action"),
-          std::bind(&ApproachPipelineState::create_goal_handler,
-                    this,
-                    _1),
-          std::bind(&ApproachPipelineState::response_handler,
-                    this,
-                    _1,
-                    _2),
-          std::bind(&ApproachPipelineState::print_feedback,
-                    this,
-                    _1,
-                    _2)) {};
+          std::bind(&ApproachPipelineState::create_goal_handler, this, _1),
+          std::bind(&ApproachPipelineState::response_handler, this, _1, _2),
+          std::bind(&ApproachPipelineState::print_feedback, this, _1, _2)) {};
 
 pipeline_fsm::ApproachPipelineAction::Goal
 ApproachPipelineState::create_goal_handler(
@@ -129,14 +121,8 @@ FollowPipelineState::FollowPipelineState(
     : yasmin_ros::ActionState<pipeline_fsm::FollowPipelineAction>(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&FollowPipelineState::create_goal_handler, this, _1),
-          std::bind(&FollowPipelineState::response_handler,
-                    this,
-                    _1,
-                    _2),
-          std::bind(&FollowPipelineState::print_feedback,
-                    this,
-                    _1,
-                    _2)) {};
+          std::bind(&FollowPipelineState::response_handler, this, _1, _2),
+          std::bind(&FollowPipelineState::print_feedback, this, _1, _2)) {};
 
 pipeline_fsm::FollowPipelineAction::Goal
 FollowPipelineState::create_goal_handler(
@@ -189,7 +175,6 @@ void FollowPipelineState::print_feedback(
                   feedback->feedback.x, feedback->feedback.y,
                   feedback->feedback.z);
 }
-
 
 ReturnHomeState::ReturnHomeState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
@@ -274,41 +259,35 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines() {
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                 std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     sm->add_state(
-        "FIND_PIPELINE",
-        std::make_shared<FindPipelineState>(blackboard),
+        "FIND_PIPELINE", std::make_shared<FindPipelineState>(blackboard),
         {
             {yasmin_ros::basic_outcomes::SUCCEED, "APPROACH_PIPELINE"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
         });
-    sm->add_state(
-        "APPROACH_PIPELINE",
-        std::make_shared<ApproachPipelineState>(blackboard),
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED, "FOLLOW_PIPELINE"},
-            {yasmin_ros::basic_outcomes::CANCEL, "FIND_PIPELINE"},
-            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-        });
+    sm->add_state("APPROACH_PIPELINE",
+                  std::make_shared<ApproachPipelineState>(blackboard),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "FOLLOW_PIPELINE"},
+                      {yasmin_ros::basic_outcomes::CANCEL, "FIND_PIPELINE"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                  });
 
-    sm->add_state(
-        "FOLLOW_PIPELINE",
-        std::make_shared<FollowPipelineState>(blackboard),
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED,
-             "RETURN_HOME"},
-            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-            {yasmin_ros::basic_outcomes::CANCEL, "APPROACH_PIPELINE"},
+    sm->add_state("FOLLOW_PIPELINE",
+                  std::make_shared<FollowPipelineState>(blackboard),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "RETURN_HOME"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+                      {yasmin_ros::basic_outcomes::CANCEL, "APPROACH_PIPELINE"},
 
-        });
+                  });
 
+    sm->add_state("RETURN_HOME", std::make_shared<ReturnHomeState>(blackboard),
+                  {
+                      {yasmin_ros::basic_outcomes::SUCCEED, "FIND_PIPELINE"},
+                      {yasmin_ros::basic_outcomes::CANCEL, "error"},
+                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
 
-    sm->add_state(
-        "RETURN_HOME", std::make_shared<ReturnHomeState>(blackboard),
-        {
-            {yasmin_ros::basic_outcomes::SUCCEED, "FIND_PIPELINE"},
-            {yasmin_ros::basic_outcomes::CANCEL, "error"},
-            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-
-        });
+                  });
     sm->add_state("ABORT",
                   std::make_shared<yasmin::CbState>(
                       std::initializer_list<std::string>{
@@ -344,7 +323,6 @@ auto initialize_blackboard() {
 
     params->declare_parameter<double>("fsm.pipeline.pipeline_offset");
     params->declare_parameter<int>("fsm.pipeline.num_measurements");
-    
 
     params->declare_parameter<std::string>("action_servers.reference_filter");
     params->declare_parameter<std::string>("action_servers.los");
@@ -356,7 +334,8 @@ auto initialize_blackboard() {
 
     pipeline_fsm::PoseStamped pipeline_start_pose;
     pipeline_fsm::PoseStamped start_pose;
-    blackboard->set<pipeline_fsm::PoseStamped>("pipeline_start_pose", pipeline_start_pose);
+    blackboard->set<pipeline_fsm::PoseStamped>("pipeline_start_pose",
+                                               pipeline_start_pose);
     blackboard->set<pipeline_fsm::PoseStamped>("start_pose", start_pose);
     blackboard->set<bool>("return_home", false);
     blackboard->set<bool>("is_home", true);
@@ -377,8 +356,8 @@ auto initialize_blackboard() {
     blackboard->set<double>(
         "pipeline_offset",
         params->get_parameter("fsm.pipeline.pipeline_offset").as_double());
-    blackboard->set<pipeline_fsm::PoseStamped>(
-        "pipeline_offset_goal", pipeline_start_pose);
+    blackboard->set<pipeline_fsm::PoseStamped>("pipeline_offset_goal",
+                                               pipeline_start_pose);
     spdlog::debug("Blackboard created");
 
     return blackboard;

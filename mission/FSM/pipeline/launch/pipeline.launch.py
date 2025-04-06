@@ -29,7 +29,6 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
     )
 
-
     return LaunchDescription(
         initial_entities=[
             pipeline_launch,
