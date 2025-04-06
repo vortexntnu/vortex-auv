@@ -29,19 +29,9 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
     )
 
-    state_publisher_node = Node(
-        package='publish_pipeline_state',
-        executable='publish_pipeline_state',
-        name='publish_pipeline_state',
-        namespace="orca",
-        parameters=[orca_config],
-        on_exit=launch.actions.LogInfo(msg="Publish pipeline state node exited"),
-        output='screen',
-    )
 
     return LaunchDescription(
         initial_entities=[
             pipeline_launch,
-            state_publisher_node,
         ],
     )

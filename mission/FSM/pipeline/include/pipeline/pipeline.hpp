@@ -57,7 +57,7 @@ class FindPipelineState
 class ApproachPipelineState
     : public yasmin_ros::ActionState<pipeline_fsm::ApproachPipelineAction> {
    public:
-    ApproachPipelineStationState(
+    ApproachPipelineState(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     pipeline_fsm::ApproachPipelineAction::Goal create_goal_handler(
@@ -65,7 +65,7 @@ class ApproachPipelineState
 
     std::string response_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-        pipeline_fsm::ApproachPipelinection::Result::SharedPtr response);
+        pipeline_fsm::ApproachPipelineAction::Result::SharedPtr response);
 
     void print_feedback(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,

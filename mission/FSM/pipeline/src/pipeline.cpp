@@ -9,7 +9,7 @@ FindPipelineState::FindPipelineState(
           blackboard->get<std::string>("pose_action"),
           std::bind(&FindPipelineState::create_goal_handler, this, _1),
           std::bind(&FindPipelineState::response_handler, this, _1, _2),
-          std::bind(&FindDPipelineState::print_feedback, this, _1, _2)) {};
+          std::bind(&FindPipelineState::print_feedback, this, _1, _2)) {};
 
 pipeline_fsm::FindPipelineAction::Goal
 FindPipelineState::create_goal_handler(
@@ -47,7 +47,7 @@ std::string FindPipelineState::response_handler(
 
 void FindPipelineState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
-    std::shared_ptr<const pipeline_fsm::FindDockingAction::Feedback> feedback) {
+    std::shared_ptr<const pipeline_fsm::FindPipelineAction::Feedback> feedback) {
     blackboard->set<pipeline_fsm::Pose>("current_pose",
                                        feedback->current_pose.pose);
     spdlog::debug("Current position: x = {}, y = {}, z = {}",
@@ -128,12 +128,12 @@ FollowPipelineState::FollowPipelineState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
     : yasmin_ros::ActionState<pipeline_fsm::FollowPipelineAction>(
           blackboard->get<std::string>("reference_filter_action"),
-          std::bind(&FollowPipelineAction::create_goal_handler, this, _1),
-          std::bind(&FollowPipelineAction::response_handler,
+          std::bind(&FollowPipelineState::create_goal_handler, this, _1),
+          std::bind(&FollowPipelineState::response_handler,
                     this,
                     _1,
                     _2),
-          std::bind(&FollowPipelineAction::print_feedback,
+          std::bind(&FollowPipelineState::print_feedback,
                     this,
                     _1,
                     _2)) {};
@@ -165,9 +165,9 @@ std::string FollowPipelineState::response_handler(
     pipeline_fsm::FollowPipelineAction::Result::SharedPtr response) {
     spdlog::info("Response received from action server:");
     spdlog::info("  Success: {}", response->success ? "true" : "false");
-    blackboard->set<bool>("is_docked", response->success);
+    blackboard->set<bool>("is_finished", response->success);
 
-    if (blackboard->get<bool>("is_docked")) {
+    if (blackboard->get<bool>("is_finished")) {
         return yasmin_ros::basic_outcomes::SUCCEED;
     } else {
         return yasmin_ros::basic_outcomes::CANCEL;
@@ -304,7 +304,7 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
     sm->add_state(
         "RETURN_HOME", std::make_shared<ReturnHomeState>(blackboard),
         {
-            {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCKING_STATION"},
+            {yasmin_ros::basic_outcomes::SUCCEED, "FIND_PIPELINE"},
             {yasmin_ros::basic_outcomes::CANCEL, "error"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
 
@@ -339,10 +339,10 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
 }
 
 auto initialize_blackboard() {
-    auto params = std::make_shared<rclcpp::Node>("dock_params");
+    auto params = std::make_shared<rclcpp::Node>("pipeline_params");
     spdlog::debug("Creating params node");
 
-    params->declare_parameter<double>("fsm.pipeline.docking_station_offset");
+    params->declare_parameter<double>("fsm.pipeline.pipeline_offset");
     params->declare_parameter<int>("fsm.pipeline.num_measurements");
     
 
@@ -360,6 +360,7 @@ auto initialize_blackboard() {
     blackboard->set<pipeline_fsm::PoseStamped>("start_pose", start_pose);
     blackboard->set<bool>("return_home", false);
     blackboard->set<bool>("is_home", true);
+    blackboard->set<bool>("is_finished", false);
     blackboard->set<bool>("is_error", false);
     blackboard->set<bool>("has_finished_converging", false);
     blackboard->set<int>(
