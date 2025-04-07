@@ -4,7 +4,7 @@
   <name>waypoint_manager</name>
   <version>0.0.0</version>
   <description>Waypoint Manager for Orca task execution</description>
-  <maintainer email="abubakb@stud.ntnu.no">your_name</maintainer>
+  <maintainer email="abubakb@stud.ntnu.no">Abubakar Aliyu Badawi</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
