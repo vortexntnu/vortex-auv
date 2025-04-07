@@ -7,6 +7,6 @@ on:
     - cron: '0 1 * * *' # Runs daily to check for dependency issues or flaking tests
 jobs:
   call_reusable_workflow:
-    uses: vortexntnu/vortex-ci/.github/workflows/reusable-pre-commit.yml@feat/reusable-pre-commit
+    uses: vortexntnu/vortex-ci/.github/workflows/reusable-pre-commit.yml@main
     with:
         ros_distro: 'humble'
