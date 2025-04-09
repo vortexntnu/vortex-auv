@@ -1,10 +1,8 @@
 name: pre-commit
 
 on:
-  push:
+  pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: '0 1 * * *' # Runs daily to check for dependency issues or flaking tests
 jobs:
   call_reusable_workflow:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-pre-commit.yml@main
