@@ -10,3 +10,4 @@ jobs:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-pre-commit.yml@main
     with:
         ros_distro: 'humble'
+        config_path: '.pre-commit-config-local.yaml'
