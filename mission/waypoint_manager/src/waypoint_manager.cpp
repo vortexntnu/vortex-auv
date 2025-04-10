@@ -1,40 +1,19 @@
 #include "waypoint_manager/waypoint_manager.hpp"
 #include <functional>
-#include <future>
 #include <memory>
-#include <thread>
-
-using namespace std::placeholders;
 
 WaypointManagerNode::WaypointManagerNode() : Node("waypoint_manager_node") {
-    server_cb_group_ =
+    // Create callback groups to allow concurrent execution
+    auto server_cb_group =
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-    client_cb_group_ =
+    auto client_cb_group =
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     setup_action_server();
-    setup_action_clients();
-    setup_subscribers();
-
-    // Start the worker thread
-    running_ = true;
-    worker_thread_ =
-        std::thread(&WaypointManagerNode::process_waypoints_thread, this);
+    setup_action_client();
+    setup_subscriber();
 
     spdlog::info("Waypoint Manager Node initialized");
-}
-
-WaypointManagerNode::~WaypointManagerNode() {
-    // Signal thread to stop and wait for it to finish
-    {
-        std::lock_guard<std::mutex> lock(queue_mutex_);
-        running_ = false;
-    }
-    waypoint_cv_.notify_all();
-
-    if (worker_thread_.joinable()) {
-        worker_thread_.join();
-    }
 }
 
 void WaypointManagerNode::setup_action_server() {
@@ -43,30 +22,39 @@ void WaypointManagerNode::setup_action_server() {
     std::string action_server_name =
         this->get_parameter("action_servers.waypoint_manager").as_string();
 
+    rclcpp::SubscriptionOptions server_options;
+    server_options.callback_group =
+        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
     action_server_ = rclcpp_action::create_server<WaypointManagerAction>(
         this, action_server_name,
-        std::bind(&WaypointManagerNode::handle_goal, this, _1, _2),
-        std::bind(&WaypointManagerNode::handle_cancel, this, _1),
-        std::bind(&WaypointManagerNode::handle_accepted, this, _1),
-        rcl_action_server_get_default_options(), server_cb_group_);
+        std::bind(&WaypointManagerNode::handle_goal, this,
+                  std::placeholders::_1, std::placeholders::_2),
+        std::bind(&WaypointManagerNode::handle_cancel, this,
+                  std::placeholders::_1),
+        std::bind(&WaypointManagerNode::handle_accepted, this,
+                  std::placeholders::_1),
+        rcl_action_server_get_default_options(), server_options.callback_group);
 
     spdlog::info("Action server '{}' started", action_server_name);
 }
 
-void WaypointManagerNode::setup_action_clients() {
+void WaypointManagerNode::setup_action_client() {
     this->declare_parameter<std::string>("action_servers.reference_filter",
                                          "reference_filter");
     std::string reference_filter_server =
         this->get_parameter("action_servers.reference_filter").as_string();
 
+    auto client_cb_group =
+        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
     reference_filter_client_ =
         rclcpp_action::create_client<ReferenceFilterAction>(
-            this, reference_filter_server, client_cb_group_);
+            this, reference_filter_server, client_cb_group);
 
     spdlog::info("Action client created for '{}'", reference_filter_server);
 }
 
-void WaypointManagerNode::setup_subscribers() {
+void WaypointManagerNode::setup_subscriber() {
     this->declare_parameter<std::string>("topics.pose", "pose");
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
 
@@ -74,10 +62,16 @@ void WaypointManagerNode::setup_subscribers() {
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
 
+    rclcpp::SubscriptionOptions sub_options;
+    sub_options.callback_group =
+        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
-        std::bind(&WaypointManagerNode::pose_callback, this, _1));
+        std::bind(&WaypointManagerNode::pose_callback, this,
+                  std::placeholders::_1),
+        sub_options);
 
     spdlog::info("Subscribed to pose topic: {}", pose_topic);
 }
@@ -97,13 +91,11 @@ rclcpp_action::GoalResponse WaypointManagerNode::handle_goal(
         return rclcpp_action::GoalResponse::REJECT;
     }
 
-    // Check if there's an active goal
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    if (current_goal_handle_ && current_goal_handle_->is_active()) {
-        spdlog::info("Preempting current goal for new goal");
-        preempted_goal_id_ = current_goal_handle_->get_goal_id();
-        // Signal the worker thread to check for preemption
-        waypoint_cv_.notify_all();
+    // If we have an active goal, we'll cancel it when we accept the new one
+    if (nav_state_ != NavState::IDLE) {
+        spdlog::info(
+            "New goal received while already navigating. Previous goal will be "
+            "aborted.");
     }
 
     spdlog::info("Accepting new goal with {} waypoints",
@@ -115,17 +107,35 @@ rclcpp_action::CancelResponse WaypointManagerNode::handle_cancel(
     const std::shared_ptr<GoalHandleWaypointManager> /*goal_handle*/) {
     spdlog::info("Received cancel request");
 
-    // Signal the worker thread to check for cancellation
-    waypoint_cv_.notify_all();
+    // Cancel any ongoing reference filter action
+    if (reference_filter_goal_handle_) {
+        reference_filter_client_->async_cancel_goal(
+            reference_filter_goal_handle_);
+        reference_filter_goal_handle_.reset();
+    }
 
+    nav_state_ = NavState::IDLE;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
 void WaypointManagerNode::handle_accepted(
     const std::shared_ptr<GoalHandleWaypointManager> goal_handle) {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
+    // If we have an active goal, abort it
+    if (current_goal_handle_ && current_goal_handle_->is_active()) {
+        auto result = std::make_shared<WaypointManagerAction::Result>();
+        result->success = false;
+        result->completed_waypoints = completed_waypoints_;
+        current_goal_handle_->abort(result);
 
-    // Store the goal handle
+        // Cancel any ongoing reference filter action
+        if (reference_filter_goal_handle_) {
+            reference_filter_client_->async_cancel_goal(
+                reference_filter_goal_handle_);
+            reference_filter_goal_handle_.reset();
+        }
+    }
+
+    // Store the new goal handle
     current_goal_handle_ = goal_handle;
 
     // Get the goal
@@ -134,151 +144,201 @@ void WaypointManagerNode::handle_accepted(
     // Store goal parameters
     waypoints_ = goal->waypoints;
     target_server_ = goal->target_server;
-    switching_threshold_ = goal->switching_threshold;
     current_waypoint_index_ = 0;
     completed_waypoints_ = 0;
-    navigation_active_ = true;
 
-    // Signal the worker thread that a new goal is available
-    waypoint_cv_.notify_all();
+    // Start navigation process
+    start_navigation();
 }
 
-void WaypointManagerNode::process_waypoints_thread() {
-    auto feedback = std::make_shared<WaypointManagerAction::Feedback>();
+void WaypointManagerNode::start_navigation() {
+    nav_state_ = NavState::NAVIGATING;
+    send_next_waypoint();
+}
 
-    while (true) {
-        std::shared_ptr<GoalHandleWaypointManager> goal_handle;
-        std::vector<geometry_msgs::msg::PoseStamped> waypoints;
-        size_t current_index;
-        double threshold;
-        bool should_process = false;
+void WaypointManagerNode::send_next_waypoint() {
+    if (current_waypoint_index_ >= waypoints_.size()) {
+        // All waypoints completed
+        complete_navigation(true);
+        return;
+    }
 
-        // Wait for work or shutdown signal
-        {
-            std::unique_lock<std::mutex> lock(queue_mutex_);
-
-            waypoint_cv_.wait(lock, [this]() {
-                return !running_ ||
-                       (navigation_active_ &&
-                        current_waypoint_index_ < waypoints_.size());
+    // Check if reference filter server is available
+    if (!reference_filter_client_->wait_for_action_server(
+            std::chrono::seconds(1))) {
+        // Server not available - retry with exponential backoff
+        auto retry_timer =
+            this->create_wall_timer(std::chrono::seconds(1), [this]() {
+                if (reference_filter_client_->wait_for_action_server(
+                        std::chrono::milliseconds(100))) {
+                    send_next_waypoint();
+                }
             });
 
-            // Check if we're shutting down
-            if (!running_) {
-                break;
-            }
-
-            // Check if goal was preempted or canceled
-            if (current_goal_handle_) {
-                if (current_goal_handle_->get_goal_id() == preempted_goal_id_) {
-                    spdlog::info("Goal was preempted");
-                    auto result =
-                        std::make_shared<WaypointManagerAction::Result>();
-                    result->success = false;
-                    result->completed_waypoints = completed_waypoints_;
-                    current_goal_handle_->abort(result);
-                    navigation_active_ = false;
-                    continue;
-                }
-
-                if (current_goal_handle_->is_canceling()) {
-                    spdlog::info("Goal was canceled");
-                    auto result =
-                        std::make_shared<WaypointManagerAction::Result>();
-                    result->success = false;
-                    result->completed_waypoints = completed_waypoints_;
-                    current_goal_handle_->canceled(result);
-                    navigation_active_ = false;
-                    continue;
-                }
-            }
-
-            // Check if we have an active goal and waypoints to process
-            if (navigation_active_ &&
-                current_waypoint_index_ < waypoints_.size()) {
-                goal_handle = current_goal_handle_;
-                waypoints = waypoints_;
-                current_index = current_waypoint_index_;
-                threshold = switching_threshold_;
-                should_process = true;
-            }
-        }
-
-        // Process the current waypoint (outside of lock)
-        if (should_process && goal_handle) {
-            geometry_msgs::msg::PoseStamped current_waypoint =
-                waypoints[current_index];
-
-            // Send waypoint to target server
-            spdlog::info("Sending waypoint {} to target server", current_index);
-            bool waypoint_executed =
-                send_waypoint_to_target_server(current_waypoint);
-
-            if (waypoint_executed) {
-                // Check if we should move to the next waypoint based on
-                // distance
-                geometry_msgs::msg::Pose target_pose = current_waypoint.pose;
-                geometry_msgs::msg::Pose current_pose;
-
-                {
-                    std::lock_guard<std::mutex> lock(queue_mutex_);
-                    current_pose = current_pose_;
-                }
-
-                double distance = calculate_distance(current_pose, target_pose);
-
-                // Update feedback
-                {
-                    std::lock_guard<std::mutex> lock(queue_mutex_);
-                    feedback->current_pose = current_pose;
-                    feedback->current_waypoint_index = current_index;
-                    feedback->distance_to_waypoint = distance;
-                    goal_handle->publish_feedback(feedback);
-                }
-
-                if (distance < threshold) {
-                    spdlog::info("Reached waypoint {}, distance: {}",
-                                 current_index, distance);
-
-                    // Update waypoint index and completed count
-                    {
-                        std::lock_guard<std::mutex> lock(queue_mutex_);
-                        current_waypoint_index_++;
-                        completed_waypoints_++;
-
-                        // Check if we've completed all waypoints
-                        if (current_waypoint_index_ >= waypoints_.size()) {
-                            spdlog::info("All waypoints completed");
-                            auto result = std::make_shared<
-                                WaypointManagerAction::Result>();
-                            result->success = true;
-                            result->completed_waypoints = completed_waypoints_;
-                            goal_handle->succeed(result);
-                            navigation_active_ = false;
-                        }
-                    }
-                } else {
-                    // Wait a bit before checking distance again
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                }
-            } else {
-                // If waypoint execution failed, abort the goal
-                std::lock_guard<std::mutex> lock(queue_mutex_);
-                spdlog::error("Failed to execute waypoint {}", current_index);
-                auto result = std::make_shared<WaypointManagerAction::Result>();
-                result->success = false;
-                result->completed_waypoints = completed_waypoints_;
-                goal_handle->abort(result);
-                navigation_active_ = false;
-            }
-        }
+        spdlog::warn(
+            "Reference filter action server not available, waiting...");
+        return;
     }
+
+    // Send current waypoint to reference filter
+    auto goal_msg = ReferenceFilterAction::Goal();
+    goal_msg.goal = waypoints_[current_waypoint_index_];
+
+    spdlog::info("Sending waypoint {} to reference filter",
+                 current_waypoint_index_);
+
+    auto send_goal_options =
+        rclcpp_action::Client<ReferenceFilterAction>::SendGoalOptions();
+
+    // Use lambda functions instead of std::bind to avoid type mismatches
+    send_goal_options.goal_response_callback =
+        [this](const std::shared_ptr<GoalHandleReferenceFilter>& goal_handle) {
+            if (!goal_handle) {
+                spdlog::error("Reference filter rejected goal");
+                complete_navigation(false);
+                return;
+            }
+
+            reference_filter_goal_handle_ = goal_handle;
+            spdlog::info("Reference filter accepted waypoint {}",
+                         current_waypoint_index_);
+        };
+
+    send_goal_options.feedback_callback =
+        [this](
+            const std::shared_ptr<GoalHandleReferenceFilter>& /*goal_handle*/,
+            const std::shared_ptr<const ReferenceFilterAction::Feedback>&
+                feedback) {
+            if (nav_state_ != NavState::WAITING_FOR_REFERENCE_FILTER ||
+                !current_goal_handle_ || !current_goal_handle_->is_active()) {
+                return;
+            }
+
+            // Forward feedback to our own clients
+            auto wm_feedback =
+                std::make_shared<WaypointManagerAction::Feedback>();
+
+            // Convert reference filter feedback to waypoint manager feedback
+            wm_feedback->current_pose.position.x = feedback->feedback.x;
+            wm_feedback->current_pose.position.y = feedback->feedback.y;
+            wm_feedback->current_pose.position.z = feedback->feedback.z;
+
+            // Convert Euler angles to quaternion
+            tf2::Quaternion q;
+            q.setRPY(feedback->feedback.roll, feedback->feedback.pitch,
+                     feedback->feedback.yaw);
+            wm_feedback->current_pose.orientation = tf2::toMsg(q);
+
+            wm_feedback->current_waypoint_index = current_waypoint_index_;
+
+            // Calculate distance to current waypoint (informational only)
+            if (current_waypoint_index_ < waypoints_.size()) {
+                geometry_msgs::msg::Pose target_pose =
+                    waypoints_[current_waypoint_index_].pose;
+                wm_feedback->distance_to_waypoint =
+                    calculate_distance(wm_feedback->current_pose, target_pose);
+            } else {
+                wm_feedback->distance_to_waypoint = 0.0;
+            }
+
+            current_goal_handle_->publish_feedback(wm_feedback);
+        };
+
+    send_goal_options.result_callback =
+        [this](
+            const typename GoalHandleReferenceFilter::WrappedResult& result) {
+            if (nav_state_ != NavState::WAITING_FOR_REFERENCE_FILTER) {
+                return;
+            }
+
+            reference_filter_goal_handle_.reset();
+
+            if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+                spdlog::info("Waypoint {} reached successfully",
+                             current_waypoint_index_);
+                completed_waypoints_++;
+                current_waypoint_index_++;
+                nav_state_ = NavState::NAVIGATING;
+
+                // Move to next waypoint
+                send_next_waypoint();
+            } else {
+                // Handle failure or cancellation
+                std::string status;
+                switch (result.code) {
+                    case rclcpp_action::ResultCode::ABORTED:
+                        status = "ABORTED";
+                        break;
+                    case rclcpp_action::ResultCode::CANCELED:
+                        status = "CANCELED";
+                        break;
+                    default:
+                        status = "UNKNOWN";
+                        break;
+                }
+
+                spdlog::warn(
+                    "Reference filter action failed for waypoint {}: {}",
+                    current_waypoint_index_, status);
+
+                complete_navigation(false);
+            }
+        };
+
+    nav_state_ = NavState::WAITING_FOR_REFERENCE_FILTER;
+    reference_filter_client_->async_send_goal(goal_msg, send_goal_options);
+}
+
+void WaypointManagerNode::complete_navigation(bool success) {
+    if (!current_goal_handle_ || !current_goal_handle_->is_active()) {
+        return;
+    }
+
+    auto result = std::make_shared<WaypointManagerAction::Result>();
+    result->success = success;
+    result->completed_waypoints = completed_waypoints_;
+
+    if (success) {
+        current_goal_handle_->succeed(result);
+        spdlog::info("All waypoints completed successfully");
+    } else {
+        current_goal_handle_->abort(result);
+        spdlog::error("Navigation failed");
+    }
+
+    nav_state_ = NavState::IDLE;
 }
 
 void WaypointManagerNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
+    // Simple state update, no locks needed as this is atomic
     current_pose_ = msg->pose.pose;
+
+    // Optionally publish feedback if we're actively navigating
+    if (nav_state_ == NavState::WAITING_FOR_REFERENCE_FILTER &&
+        current_goal_handle_ && current_goal_handle_->is_active()) {
+        publish_feedback();
+    }
+}
+
+void WaypointManagerNode::publish_feedback() {
+    // Only called from pose_callback or feedback_callback
+    if (!current_goal_handle_ || !current_goal_handle_->is_active() ||
+        current_waypoint_index_ >= waypoints_.size()) {
+        return;
+    }
+
+    auto feedback = std::make_shared<WaypointManagerAction::Feedback>();
+    feedback->current_pose = current_pose_;
+    feedback->current_waypoint_index = current_waypoint_index_;
+
+    // Calculate distance to target (informational only)
+    geometry_msgs::msg::Pose target_pose =
+        waypoints_[current_waypoint_index_].pose;
+    feedback->distance_to_waypoint =
+        calculate_distance(current_pose_, target_pose);
+
+    current_goal_handle_->publish_feedback(feedback);
 }
 
 double WaypointManagerNode::calculate_distance(
@@ -289,76 +349,4 @@ double WaypointManagerNode::calculate_distance(
     double dz = pose1.position.z - pose2.position.z;
 
     return std::sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-bool WaypointManagerNode::send_waypoint_to_target_server(
-    const geometry_msgs::msg::PoseStamped& waypoint) {
-    std::promise<bool> waypoint_promise;
-    std::future<bool> waypoint_future = waypoint_promise.get_future();
-
-    if (!reference_filter_client_->wait_for_action_server(
-            std::chrono::seconds(1))) {
-        spdlog::error("Reference filter action server not available");
-        return false;
-    }
-
-    auto goal_msg = ReferenceFilterAction::Goal();
-    goal_msg.goal = waypoint;
-
-    auto send_goal_options =
-        rclcpp_action::Client<ReferenceFilterAction>::SendGoalOptions();
-
-    send_goal_options.goal_response_callback =
-        [&waypoint_promise](const typename rclcpp_action::ClientGoalHandle<
-                            ReferenceFilterAction>::SharedPtr& goal_handle) {
-            if (!goal_handle) {
-                spdlog::error("Reference filter goal was rejected");
-                waypoint_promise.set_value(false);
-            } else {
-                spdlog::info("Reference filter goal accepted");
-            }
-        };
-
-    send_goal_options.feedback_callback =
-        [](const typename rclcpp_action::ClientGoalHandle<
-               ReferenceFilterAction>::SharedPtr&,
-           const std::shared_ptr<const ReferenceFilterAction::Feedback>) {
-            // We're not using the feedback from the reference filter
-        };
-
-    send_goal_options.result_callback =
-        [&waypoint_promise](const typename rclcpp_action::ClientGoalHandle<
-                            ReferenceFilterAction>::WrappedResult& result) {
-            switch (result.code) {
-                case rclcpp_action::ResultCode::SUCCEEDED:
-                    spdlog::info("Reference filter goal succeeded");
-                    waypoint_promise.set_value(true);
-                    break;
-                case rclcpp_action::ResultCode::ABORTED:
-                    spdlog::error("Reference filter goal was aborted");
-                    waypoint_promise.set_value(false);
-                    break;
-                case rclcpp_action::ResultCode::CANCELED:
-                    spdlog::info("Reference filter goal was canceled");
-                    waypoint_promise.set_value(false);
-                    break;
-                default:
-                    spdlog::error(
-                        "Unknown result code from reference filter action");
-                    waypoint_promise.set_value(false);
-                    break;
-            }
-        };
-
-    reference_filter_client_->async_send_goal(goal_msg, send_goal_options);
-
-    // Wait for the waypoint execution to complete
-    // This blocks until the reference filter action is complete
-    try {
-        return waypoint_future.get();
-    } catch (const std::exception& e) {
-        spdlog::error("Exception while waiting for waypoint execution: {}",
-                      e.what());
-        return false;
-    }
 }
