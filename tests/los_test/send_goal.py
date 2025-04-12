@@ -15,8 +15,8 @@ class LOSGuidanceClient(Node):
         goal_msg = LOSGuidance.Goal()
 
         # Create a PoseStamped message with the goal
-        goal_msg.goal.point.x = 10.0
-        goal_msg.goal.point.y = 10.0
+        goal_msg.goal.point.x = 20.0
+        goal_msg.goal.point.y = 20.0
         goal_msg.goal.point.z = 5.0
 
         # Send the goal asynchronously
@@ -38,9 +38,17 @@ class LOSGuidanceClient(Node):
     def get_result_callback(self, future):
         result = future.result().result.success
         self.get_logger().info(f'Goal result: {result}')
-        self.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        if result:
+            self.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+                exit(0)
+        else:
+            self.get_logger().info('Goal failed :(')
+            self.destroy_node()
+            if rclpy.ok():
+                rclpy.shutdown()
+                exit(1)
 
 
 def main(args=None):

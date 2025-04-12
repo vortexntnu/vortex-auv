@@ -1,4 +1,5 @@
 #include "thruster_interface_auv/thruster_interface_auv_ros.hpp"
+#include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
@@ -32,8 +33,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
 
     this->initialize_parameter_handler();
 
-    RCLCPP_INFO(this->get_logger(),
-                "\"thruster_interface_auv_node\" correctly initialized");
+    spdlog::info("thruster_interface_auv_node correctly initialized");
 }
 
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
@@ -63,8 +63,7 @@ void ThrusterInterfaceAUVNode::watchdog_callback() {
         thruster_forces_array_.assign(8, 0.00);
         thruster_driver_->drive_thrusters(thruster_forces_array_);
         watchdog_triggered_ = true;
-        RCLCPP_WARN(this->get_logger(),
-                    "Watchdog triggered, all thrusters set to 0.00");
+        spdlog::warn("Watchdog triggered, all thrusters set to 0.00");
     }
 }
 
@@ -78,9 +77,9 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
 
 void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
     debug_flag_ = p.get_value<bool>();
-    RCLCPP_INFO(this->get_logger(),
-                "Received parameter event: debug.flag updated to: %s",
-                debug_flag_ ? "true" : "false");
+
+    spdlog::info("Received parameter event: debug.flag updated to: {}",
+                 debug_flag_ ? "true" : "false");
 }
 
 void ThrusterInterfaceAUVNode::extract_all_parameters() {
@@ -137,17 +136,18 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     this->debug_flag_ = this->get_parameter("debug.flag").as_bool();
 
-    std::transform(thruster_mapping.begin(), thruster_mapping.end(),
-                   thruster_direction.begin(),
-                   std::back_inserter(this->thruster_parameters_),
-                   [&](const int64_t& mapping, const int64_t& direction) {
-                       size_t index = &mapping - &thruster_mapping[0];
-                       return ThrusterParameters{
-                           static_cast<uint8_t>(mapping),
-                           static_cast<int8_t>(direction),
-                           static_cast<uint16_t>(thruster_PWM_min[index]),
-                           static_cast<uint16_t>(thruster_PWM_max[index])};
-                   });
+    auto create_thruster_parameters = [&](const int64_t& mapping,
+                                          const int64_t& direction) {
+        size_t index = &mapping - &thruster_mapping[0];
+        return ThrusterParameters{
+            static_cast<uint8_t>(mapping), static_cast<int8_t>(direction),
+            static_cast<uint16_t>(thruster_PWM_min[index]),
+            static_cast<uint16_t>(thruster_PWM_max[index])};
+    };
+
+    std::ranges::transform(thruster_mapping, thruster_direction,
+                           std::back_inserter(this->thruster_parameters_),
+                           create_thruster_parameters);
 
     this->poly_coeffs_.push_back(left_coeffs);
     this->poly_coeffs_.push_back(right_coeffs);

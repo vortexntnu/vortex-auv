@@ -80,10 +80,6 @@ ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode
 echo "Sending goal"
 python3 "$SCRIPT_DIR/send_goal.py"
 
-# Check if goal reached
-echo "Checking if goal reached"
-python3 "$SCRIPT_DIR/check_goal.py"
-
 if [ $? -ne 0 ]; then
     echo "Test failed: Drone did not reach goal."
     exit 1

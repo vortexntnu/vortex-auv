@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <reference_filter_dp/reference_filter_ros.hpp>
 
@@ -12,6 +13,8 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
     set_refererence_filter();
 
     x_ = Vector18d::Zero();
+
+    spdlog::info("Reference filter node initialized");
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {
@@ -125,20 +128,19 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
         std::lock_guard<std::mutex> lock(mutex_);
         if (goal_handle_) {
             if (goal_handle_->is_active()) {
-                RCLCPP_INFO(this->get_logger(),
-                            "Aborting current goal and accepting new goal");
+                spdlog::info("Aborting current goal and accepting new goal");
                 preempted_goal_id_ = goal_handle_->get_goal_id();
             }
         }
     }
-    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
+    spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -234,7 +236,7 @@ void ReferenceFilterNode::execute(
         this->goal_handle_ = goal_handle;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Executing goal");
+    spdlog::info("Executing goal");
 
     x_ = fill_reference_state();
 
@@ -261,7 +263,7 @@ void ReferenceFilterNode::execute(
         if (goal_handle->is_canceling()) {
             result->success = false;
             goal_handle->canceled(result);
-            RCLCPP_INFO(this->get_logger(), "Goal canceled");
+            spdlog::info("Goal canceled");
             return;
         }
         Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
@@ -281,7 +283,7 @@ void ReferenceFilterNode::execute(
             vortex_msgs::msg::ReferenceFilter feedback_msg =
                 fill_reference_msg();
             reference_pub_->publish(feedback_msg);
-            RCLCPP_INFO(this->get_logger(), "Goal reached");
+            spdlog::info("Goal reached");
             return;
         }
 

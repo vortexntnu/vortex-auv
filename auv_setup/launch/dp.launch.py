@@ -50,6 +50,7 @@ def generate_launch_description():
             ),
         ],
         output="screen",
+        arguments=["--ros-args", "--log-level", "error"],
     )
 
     return LaunchDescription([container])
