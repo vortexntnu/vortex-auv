@@ -34,7 +34,7 @@
   <joint name="base_to_dvl" type="fixed">
     <parent link="base_link"/>
     <child link="dvl_link"/>
-    <origin xyz="0.05 0.0 0.1" rpy="0.0 0.0 0.0"/>
+    <origin xyz="0.0 0.0 0.13" rpy="0.0 0.0 0.0"/>
   </joint>
 
   <xacro:if value="$(arg include_flir)">
@@ -44,7 +44,7 @@
     <joint name="base_link_to_flir" type="fixed">
       <parent link="base_link"/>
       <child link="flir_camera"/>
-      <origin xyz="1.0 0.0 0.4" rpy="3.14159 0 0"/>
+      <origin xyz="0.3 0.0 0.12" rpy="0 -1.570795 3.14159"/>
     </joint>
   </xacro:if>
 
@@ -56,22 +56,22 @@
       <child link="gripper_link"/>
       <origin xyz="0.5 0 0" rpy="0 0 0"/>
     </joint>
+  </xacro:if>
 
-    <!-- Only enable zed if gripper is also enabled -->
-    <xacro:if value="$(arg include_zed)">
-      <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
-      <xacro:zed_camera name="zed" model="zed2i" custom_baseline="0.0" enable_gnss="false">
-        <!-- offset from GNSS to camera mount point, if GNSS fusion is enabled -->
-        <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
-      </xacro:zed_camera>
+  <!-- Only enable zed if gripper is also enabled -->
+  <xacro:if value="$(arg include_zed)">
+    <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
+    <xacro:zed_camera name="zed" model="zed2i" custom_baseline="0.0" enable_gnss="false">
+      <!-- offset from GNSS to camera mount point, if GNSS fusion is enabled -->
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+    </xacro:zed_camera>
 
-      <joint name="gripper_to_zed" type="fixed">
-        <parent link="gripper_pitch_link"/>
-        <child link="zed_camera_link"/>
-        <origin xyz="0.3 0.0 -0.4" rpy="3.14159 0 0"/>
-      </joint>
+    <joint name="gripper_to_zed" type="fixed">
+      <parent link="gripper_pitch_link"/>
+      <child link="zed_camera_link"/>
+      <origin xyz="0.3 0.0 -0.06" rpy="3.14159 0 0"/>
+    </joint>
 
-    </xacro:if>
   </xacro:if>
 
 
