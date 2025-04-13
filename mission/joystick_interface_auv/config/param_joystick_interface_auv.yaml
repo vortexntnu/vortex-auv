@@ -8,12 +8,12 @@
       joystick_pitch_gain: 20.0
       joystick_yaw_gain: 25.0
 
-      guidance_surge_gain: 0.0002
-      guidance_sway_gain: 0.0002
-      guidance_heave_gain: 0.0002
-      guidance_roll_gain: 0.0002
-      guidance_pitch_gain: 0.0002
-      guidance_yaw_gain: 0.0002
+      guidance_surge_gain: 0.3
+      guidance_sway_gain: 0.3
+      guidance_heave_gain: 0.3
+      guidance_roll_gain: 0.3
+      guidance_pitch_gain: 0.3
+      guidance_yaw_gain: 0.3
 
     debounce_duration: 0.25
 

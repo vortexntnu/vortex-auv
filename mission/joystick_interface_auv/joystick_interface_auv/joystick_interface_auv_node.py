@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node
@@ -9,7 +10,6 @@ from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
 from vortex_utils.ros_converter import pose_from_ros
-import numpy as np
 
 from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
 
@@ -30,6 +30,7 @@ class JoystickInterface(Node):
         self._joystick_axes_map = []
         self._joystick_buttons_map = []
         self._last_button_press_time = 0
+        self._last_msg_time = None
 
         self.get_logger().info(
             f"Joystick interface node started. Current mode: {self._mode}"
@@ -275,7 +276,7 @@ class JoystickInterface(Node):
             self._mode = JoyStates.KILLSWITCH
             return
 
-    def update_reference(self):
+    def update_reference(self, dt):
         """Updates the current pose of the AUV based on joystick inputs.
 
         The position and orientation (roll, pitch, yaw) are updated
@@ -284,12 +285,30 @@ class JoystickInterface(Node):
         rotation_matrix = self._current_state.as_rotation_matrix()
         delta_pos_body = np.array([self.surge, self.sway, self.heave])
         delta_pos_ned = rotation_matrix @ delta_pos_body
-        self._desired_state.x += delta_pos_ned[0] * self._guidance_surge_gain
-        self._desired_state.y += delta_pos_ned[1] * self._guidance_sway_gain
-        self._desired_state.z += delta_pos_ned[2] * self._guidance_heave_gain
-        self._desired_state.roll += self.roll * self._guidance_roll_gain
-        self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
-        self._desired_state.yaw += self.yaw * self._guidance_yaw_gain
+        self._desired_state.x += (
+            delta_pos_ned[0]
+            * self._guidance_surge_gain
+            / self._joystick_surge_gain
+            * dt
+        )
+        self._desired_state.y += (
+            delta_pos_ned[1] * self._guidance_sway_gain / self._joystick_sway_gain * dt
+        )
+        self._desired_state.z += (
+            delta_pos_ned[2]
+            * self._guidance_heave_gain
+            / self._joystick_heave_gain
+            * dt
+        )
+        self._desired_state.roll += (
+            self.roll * self._guidance_roll_gain / self._joystick_roll_gain * dt
+        )
+        self._desired_state.pitch += (
+            self.pitch * self._guidance_pitch_gain / self._joystick_pitch_gain * dt
+        )
+        self._desired_state.yaw += (
+            self.yaw * self._guidance_yaw_gain / self._joystick_yaw_gain * dt
+        )
 
     def joystick_cb(self, msg: Joy):
         """Callback function that processes joy messages and converts them into wrench messages.
@@ -301,6 +320,17 @@ class JoystickInterface(Node):
         Args:
             msg: A ROS message containing the joy input data.
         """
+        time_now = (
+            self.get_clock().now().to_msg().sec
+            + self.get_clock().now().to_msg().nanosec / 1e9
+        )
+        if self._last_msg_time is None:
+            self._last_msg_time = (
+                self.get_clock().now().to_msg()._sec
+                + self.get_clock().now().to_msg()._nanosec / 1e9
+            )
+        dt = time_now - self._last_msg_time
+        self._last_msg_time = time_now
         self.check_number_of_buttons(msg)
 
         buttons: dict = self.populate_buttons_dictionary(msg)
@@ -349,7 +379,7 @@ class JoystickInterface(Node):
                 self.transition_to_reference_mode()
 
         elif self._mode == JoyStates.REFERENCE_MODE:
-            self.update_reference()
+            self.update_reference(dt)
             ref_msg = self.create_reference_message()
             self._ref_publisher.publish(ref_msg)
 
