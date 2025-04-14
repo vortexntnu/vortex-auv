@@ -3,7 +3,7 @@
     gains:
       joystick_surge_gain: 60.0
       joystick_sway_gain: 60.0
-      joystick_heave_gain: 17.5
+      joystick_heave_gain: 30.0
       joystick_roll_gain: 30.0
       joystick_pitch_gain: 20.0
       joystick_yaw_gain: 25.0
