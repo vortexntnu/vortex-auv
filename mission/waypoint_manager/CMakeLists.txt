@@ -39,10 +39,28 @@ ament_target_dependencies(waypoint_manager_node
   Eigen3
   spdlog
 )
+
+add_executable(waypoint_manager2
+  src/waypoint_manager2.cpp)
+  
+ament_target_dependencies(waypoint_manager2
+  rclcpp
+  rclcpp_action
+  geometry_msgs
+  nav_msgs
+  vortex_msgs
+  tf2
+  tf2_geometry_msgs
+  Eigen3
+  spdlog
+)
+
 target_link_libraries(waypoint_manager_node fmt::fmt)
+target_link_libraries(waypoint_manager2 fmt::fmt)
 
 install(TARGETS
   waypoint_manager_node
+  waypoint_manager2
   DESTINATION lib/${PROJECT_NAME}
 )
 
