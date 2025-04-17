@@ -20,7 +20,7 @@ Eigen::Quaterniond vector3d_to_quaternion(const Eigen::Vector3d& vector) {
         Eigen::Vector3d axis = vector / angle;
         Eigen::Quaterniond quat =
             Eigen::Quaterniond(Eigen::AngleAxisd(angle, axis));
-        return quat;
+        return quat.normalized();
     }
 }
 

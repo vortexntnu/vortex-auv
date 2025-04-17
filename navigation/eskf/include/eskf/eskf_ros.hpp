@@ -64,6 +64,8 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Time last_imu_time_;
 
     bool first_imu_msg_received_ = false;
+
+    Eigen::Matrix3d R_imu_eskf_;
 };
 
 #endif  // ESKF_ROS_HPP
