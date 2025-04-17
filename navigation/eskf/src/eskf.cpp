@@ -107,21 +107,20 @@ Eigen::Matrix3x1d ESKF::calculate_h() {
     return h;
 }
 
-
 void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
                                   const double dt) {
     Eigen::Vector3d acc =
-        current_nom_state_.quat.normalized().toRotationMatrix() * imu_meas.accel +
+        current_nom_state_.quat.normalized().toRotationMatrix() *
+            imu_meas.accel +
         current_nom_state_.gravity;
-    Eigen::Vector3d gyro = imu_meas.gyro * dt/2;
+    Eigen::Vector3d gyro = imu_meas.gyro * dt / 2;
 
     current_nom_state_.pos = current_nom_state_.pos +
                              current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
 
-
-    current_nom_state_.quat = (current_nom_state_.quat * vector3d_to_quaternion(gyro)); 
-
+    current_nom_state_.quat =
+        (current_nom_state_.quat * vector3d_to_quaternion(gyro));
 
     current_nom_state_.quat.normalize();
 
