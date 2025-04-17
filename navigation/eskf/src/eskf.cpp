@@ -107,20 +107,24 @@ Eigen::Matrix3x1d ESKF::calculate_h() {
     return h;
 }
 
+
 void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
                                   const double dt) {
     Eigen::Vector3d acc =
-        current_nom_state_.quat.normalized().toRotationMatrix() *
-            (imu_meas.accel - current_nom_state_.accel_bias) +
+        current_nom_state_.quat.normalized().toRotationMatrix() * imu_meas.accel +
         current_nom_state_.gravity;
-    Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
+    Eigen::Vector3d gyro = imu_meas.gyro * dt/2;
 
     current_nom_state_.pos = current_nom_state_.pos +
                              current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
-    current_nom_state_.quat =
-        (current_nom_state_.quat * vector3d_to_quaternion(gyro));
+
+
+    current_nom_state_.quat = (current_nom_state_.quat * vector3d_to_quaternion(gyro)); 
+
+
     current_nom_state_.quat.normalize();
+
     current_nom_state_.gyro_bias = current_nom_state_.gyro_bias;
     current_nom_state_.accel_bias = current_nom_state_.accel_bias;
     current_nom_state_.gravity = current_nom_state_.gravity;
@@ -129,8 +133,8 @@ void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
 void ESKF::error_state_prediction(const imu_measurement& imu_meas,
                                   const double dt) {
     Eigen::Matrix3d R = current_nom_state_.quat.normalized().toRotationMatrix();
-    Eigen::Vector3d acc = (imu_meas.accel - current_nom_state_.accel_bias);
-    Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias);
+    Eigen::Vector3d acc = imu_meas.accel;
+    Eigen::Vector3d gyro = imu_meas.gyro;
 
     Eigen::Matrix18d A_c = Eigen::Matrix18d::Zero();
     A_c.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
@@ -148,7 +152,8 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
     G_c.block<3, 3>(9, 6) = Eigen::Matrix3d::Identity();
     G_c.block<3, 3>(12, 9) = Eigen::Matrix3d::Identity();
 
-    auto [A_d, GQG_d] = van_loan_discretization(A_c, G_c, dt);
+    Eigen::Matrix18d A_d, GQG_d;
+    std::tie(A_d, GQG_d) = van_loan_discretization(A_c, G_c, dt);
 
     state_euler next_error_state;
     current_error_state_.covariance =
