@@ -1,323 +1,440 @@
-import time
-
-import matplotlib.pyplot as plt
 import numpy as np
-from ukf_okid import UKF
+import matplotlib.pyplot as plt
+from ukf_utils import print_StateQuat
+# Import your classes and functions.
+# Adjust the import paths as necessary based on your module organization.
 from ukf_okid_class import (
-    MeasModel,
     StateQuat,
-    process_model,
-    quat_to_euler,
+    MeasModel,
+    iterative_quaternion_mean_statequat,
+    mean_set,
+    mean_measurement,
+    covariance_set,
+    covariance_measurement,
+    cross_covariance,
     quaternion_super_product,
+    quaternion_error,
+    quat_to_euler,
+    quat_norm,
 )
 
-
-def add_quaternion_noise(q, noise_std):
-    noise = np.random.normal(0, noise_std, 3)
-
-    theta = np.linalg.norm(noise)
-
-    if theta > 0:
-        axis = noise / theta
-
-        q_noise = np.hstack((np.cos(theta / 2), np.sin(theta / 2) * axis))
-
+# For testing, define a function to create a StateQuat with small perturbations.
+def create_statequat(base_vector, position_perturbation, orientation_perturbation, velocity_perturbation, angular_velocity_perturbation):
+    """
+    Creates a StateQuat object.
+      - base_vector: 1D numpy array for base state (13 elements:
+          position (3), quaternion (4), velocity (3), angular_velocity (3))
+      - ..._perturbation: small perturbation vector to be added to each respective component.
+    Returns a StateQuat.
+    """
+    state = StateQuat()
+    # Base state
+    state.position = base_vector[0:3] + position_perturbation
+    # For orientation, perturb by adding a small rotation:
+    base_quat = base_vector[3:7]
+    noise_angle = np.linalg.norm(orientation_perturbation)
+    if noise_angle < 1e-8:
+        noise_quat = np.array([1.0, 0.0, 0.0, 0.0])
     else:
-        q_noise = np.array([1.0, 0.0, 0.0, 0.0])
+        noise_axis = orientation_perturbation / noise_angle
+        noise_quat = np.concatenate(([np.cos(noise_angle/2)], np.sin(noise_angle/2) * noise_axis))
+    state.orientation = quat_norm(quaternion_super_product(base_quat, noise_quat))
+    state.velocity = base_vector[7:10] + velocity_perturbation
+    state.angular_velocity = base_vector[10:13] + angular_velocity_perturbation
+    
+    # For the augmented parameters (OKID parameters), set a 21-element vector: 
+    # 9 for inertia, 6 for added_mass, and 6 for damping_linear.
+    state.okid_params.fill(np.concatenate((np.zeros(9), np.zeros(6), np.zeros(6))))
+    
+    # Set a default covariance (33x33 for the extended state)
+    state.covariance = np.eye(33) * 0.01
+    return state
 
-    q_new = quaternion_super_product(q, q_noise)
+# Test functions for state statistics
+def test_state_statistics():
+    # Define a base state vector (13 elements: position, quaternion, velocity, angular_velocity)
+    base_vector = np.zeros(13)
+    base_vector[0:3] = np.array([1.0, 2.0, 3.0])
+    base_vector[3:7] = np.array([1.0, 0.0, 0.0, 0.0])  # identity quaternion
+    base_vector[7:10] = np.array([0.1, 0.2, 0.3])
+    base_vector[10:13] = np.array([0.01, 0.02, 0.03])
+    
+    # Create a list of StateQuat objects with small random perturbations.
+    np.random.seed(42)
+    state_list = []
+    num_states = 10
+    for _ in range(num_states):
+        pos_noise = np.random.normal(0, 0.05, 3)
+        ori_noise = np.random.normal(0, 0.01, 3)
+        vel_noise = np.random.normal(0, 0.02, 3)
+        ang_vel_noise = np.random.normal(0, 0.005, 3)
+        state_list.append(create_statequat(base_vector, pos_noise, ori_noise, vel_noise, ang_vel_noise))
+    
+    # Compute the state mean using mean_set.
+    mean_state_vec = mean_set(state_list)
+    print("Computed mean state vector:")
+    print(mean_state_vec)
+    
+    # Compute the covariance of the states.
+    cov_state = covariance_set(state_list, mean_state_vec)
+    print("Computed state covariance matrix:")
+    print(cov_state)
+    
+    # Check symmetry of the covariance:
+    asym_error = np.linalg.norm(cov_state - cov_state.T)
+    print("Covariance symmetry error (should be near 0):", asym_error)
+    
+    # Check eigenvalues for positive semidefiniteness:
+    eigvals = np.linalg.eigvals(cov_state)
+    print("Eigenvalues of state covariance:")
+    print(eigvals)
+    
+def test_measurement_statistics():
+    # Create a list of measurement objects (MeasModel) with measurements in R^3.
+    np.random.seed(24)
+    meas_list = []
+    num_meas = 10
+    base_meas = np.array([1.0, 2.0, 3.0])
+    for _ in range(num_meas):
+        noise = np.random.normal(0, 0.1, 3)
+        meas = MeasModel()
+        meas.measurement = base_meas + noise
+        meas_list.append(meas)
+    
+    # Compute the measurement mean.
+    mean_meas = mean_measurement(meas_list)
+    print("Computed measurement mean:")
+    print(mean_meas)
+    
+    # Compute the measurement covariance.
+    cov_meas = covariance_measurement(meas_list, mean_meas)
+    print("Computed measurement covariance:")
+    print(cov_meas)
+    
+    # Check symmetry and eigenvalues.
+    asym_error = np.linalg.norm(cov_meas - cov_meas.T)
+    print("Measurement covariance symmetry error:", asym_error)
+    eigvals = np.linalg.eigvals(cov_meas)
+    print("Eigenvalues of measurement covariance:")
+    print(eigvals)
 
-    return q_new / np.linalg.norm(q_new)
+def test_cross_covariance():
+    # Create a set of StateQuat and corresponding MeasModel objects.
+    np.random.seed(99)
+    num = 10
+    state_list = []
+    meas_list = []
+    base_vector = np.zeros(13)
+    base_vector[0:3] = np.array([0.5, 1.0, -0.5])
+    base_vector[3:7] = np.array([1.0, 0.0, 0.0, 0.0])
+    base_vector[7:10] = np.array([0.05, 0.1, 0.15])
+    base_vector[10:13] = np.array([0.005, 0.01, 0.015])
+    
+    for _ in range(num):
+        pos_noise = np.random.normal(0, 0.02, 3)
+        ori_noise = np.random.normal(0, 0.005, 3)
+        vel_noise = np.random.normal(0, 0.01, 3)
+        ang_vel_noise = np.random.normal(0, 0.002, 3)
+        state = create_statequat(base_vector, pos_noise, ori_noise, vel_noise, ang_vel_noise)
+        state_list.append(state)
+        
+        # Generate a measurement from each state (e.g., state velocity plus noise).
+        meas = MeasModel()
+        meas.measurement = state.velocity + np.random.normal(0, 0.01, 3)
+        meas_list.append(meas)
+    
+    # Compute the state mean and measurement mean as vectors.
+    mean_state_vec = mean_set(state_list)
+    mean_meas = mean_measurement(meas_list)
+    
+    cross_cov = cross_covariance(state_list, mean_state_vec, meas_list, mean_meas)
+    print("Computed cross-covariance between state and measurement:")
+    print(cross_cov)
 
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Import your classes and functions.
+from ukf_okid_class import (
+    StateQuat,
+    MeasModel,
+    iterative_quaternion_mean_statequat,
+    mean_set,
+    mean_measurement,
+    covariance_set,
+    covariance_measurement,
+    cross_covariance,
+    quaternion_super_product,
+    quaternion_error,
+    quat_norm,
+)
+from ukf_okid import UKF
+from ukf_okid_class import process_model, okid_process_model  # Your process model classes
+
+############################################
+# Helper function to create a StateQuat with perturbations.
+############################################
+def create_statequat(base_vector, pos_noise, ori_noise, vel_noise, ang_vel_noise):
+    """
+    Create a StateQuat object from a base vector (13 elements:
+      position (3), quaternion (4), velocity (3), angular_velocity (3))
+    plus additive noise on each component.
+    
+    For the OKID parameters, we assume a 21-element vector:
+      - first 9: inertia,
+      - next 6: added_mass,
+      - last 6: damping_linear.
+    """
+    state = StateQuat()
+    state.position = base_vector[0:3] + pos_noise
+    base_quat = base_vector[3:7]
+    noise_angle = np.linalg.norm(ori_noise)
+    if noise_angle < 1e-8:
+        noise_quat = np.array([1.0, 0.0, 0.0, 0.0])
+    else:
+        noise_axis = ori_noise / noise_angle
+        noise_quat = np.concatenate(([np.cos(noise_angle/2)],
+                                     np.sin(noise_angle/2) * noise_axis))
+    state.orientation = quat_norm(quaternion_super_product(base_quat, noise_quat))
+    state.velocity = base_vector[7:10] + vel_noise
+    state.angular_velocity = base_vector[10:13] + ang_vel_noise
+
+    # Set OKID parameters to exactly 21 elements (9,6,6)
+    state.okid_params.fill(np.concatenate((np.array([0.0, 0.0, 0.3, 0.0, 0.0, 3.3, 0.0, 0.0, 3.3]), np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0]))))
+    # Set an initial covariance (33x33) for the full augmented state.
+    state.covariance = np.eye(33) * 0.02
+    return state
+
+############################################
+# Full Filter Simulation Test
+############################################
+def run_ukf_simulation():
+    dt = 0.01               # Time step for simulation [s]
+    simulation_time = 10    # Total simulation time in seconds
+    num_steps = int(simulation_time / dt)
+    
+    # Define a base state vector (13 elements: pos, quat, vel, ang_vel)
+    base_vector = np.zeros(13)
+    base_vector[0:3] = np.array([0.0, 0.0, 0.0]) 
+    base_vector[3:7] = np.array([1.0, 0.0, 0.0, 0.0])  # identity quaternion
+    base_vector[7:10] = np.array([0.1, 0.0, 0.0])       # small velocity in x
+    base_vector[10:13] = np.array([0.0, 0.0, 0.0])
+    
+    # Define initial covariance for state (33x33)
+    P0 = np.eye(33)
+    P0[0:3, 0:3] = np.eye(3) * 0.01  # position
+    P0[3:6, 3:6] = np.eye(3) * 0.01  # orientation error (quaternion)
+    P0[6:9, 6:9] = np.eye(3) * 0.01  # velocity
+    P0[9:12, 9:12] = np.eye(3) * 0.01 # angular velocity
+    P0[12:33, 12:33] = np.eye(21) * 0.001 # OKID parameters
+
+    # Define process noise covariance Q (33x33)
+    Q = np.zeros((33, 33))
+    Q[0:3, 0:3] = np.eye(3)*0.001     # for position
+    Q[3:6, 3:6] = np.eye(3)*0.001     # for orientation error (represented with Euler angles)
+    Q[6:9, 6:9] = np.eye(3)*0.001     # for velocity
+    Q[9:12, 9:12] = np.eye(3)*0.001    # for angular velocity
+    Q[12:33, 12:33] = np.eye(21) * 0.001 # OKID parameters
+
+
+    G = np.zeros((33, 12))
+    G[0:3, 0:3] = np.eye(3)
+    G[3:6, 3:6] = np.eye(3)
+    G[6:9, 6:9] = np.eye(3)
+    G[9:12, 9:12] = np.eye(3)
+
+    # Measurement noise covariance R (3x3), assume measurement is velocity
+    R = np.eye(3) * 0.01
+
+    # Create a simulation process model and an independent UKF process model.
+    sim_model = process_model()
+    sim_model.dt = dt
+    sim_model.mass_interia_matrix = np.array([
+        [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
+        [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
+        [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
+        [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
+        [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
+        [0.6, 0.3, 0.0, 0.0, 0.0, 3.34],
+    ])
+    sim_model.m = 30.0
+    sim_model.r_b_bg = np.array([0.01, 0.0, 0.02])
+    sim_model.inertia = np.diag([0.68, 3.32, 3.34])
+    sim_model.damping_linear = np.array([0.1]*6)
+    sim_model.added_mass = np.array([1.0,1.0,1.0,2.0,2.0,2.0])
+
+    # UKF process model copy:
+    ukf_model = okid_process_model()
+    ukf_model.dt = dt
+    ukf_model.mass_interia_matrix = sim_model.mass_interia_matrix.copy()
+    ukf_model.m = sim_model.m
+    ukf_model.r_b_bg = sim_model.r_b_bg.copy()
+    ukf_model.inertia = sim_model.inertia.copy()
+    ukf_model.damping_linear = sim_model.damping_linear.copy()
+    ukf_model.added_mass = sim_model.added_mass.copy()
+
+    # Initialize true state and filter state.
+    true_state = create_statequat(base_vector,
+                                  np.zeros(3),
+                                  np.zeros(3),
+                                  np.zeros(3),
+                                  np.zeros(3))
+    true_state.covariance = P0.copy()
+    
+    filter_state = create_statequat(base_vector,
+                                    np.zeros(3),
+                                    np.zeros(3),
+                                    np.zeros(3),
+                                    np.zeros(3))
+    filter_state.covariance = P0.copy()
+
+    # Initialize measurement model (for example, measuring velocity only)
+    meas_model = MeasModel()
+    meas_model.covariance = R.copy()
+
+    # Initialize UKF.
+    ukf = UKF(ukf_model, true_state, P0.copy(), Q.copy(), G.copy())
+
+    # Arrays to store time histories.
+    pos_true_hist = np.zeros((num_steps, 3))
+    pos_est_hist = np.zeros((num_steps, 3))
+    vel_true_hist = np.zeros((num_steps, 3))
+    vel_est_hist = np.zeros((num_steps, 3))
+    euler_true_hist = np.zeros((num_steps, 3))
+    euler_est_hist = np.zeros((num_steps, 3))
+    time_array = np.linspace(0, simulation_time, num_steps)
+
+    # Control input function (example: oscillatory in all directions)
+    def control_input(t):
+        return np.array([
+            2*np.sin(t),
+            2*np.sin(t+0.5),
+            2*np.sin(t+1.0),
+            0.2*np.cos(t),
+            0.2*np.cos(t+0.5),
+            0.2*np.cos(t+1.0)
+        ])
+
+    # Set previous states.
+    sim_model.state_vector_prev = true_state
+    sim_model.state_vector = true_state
+    ukf_model.state_vector_prev = filter_state
+    ukf_model.state_vector = filter_state
+
+    # Lists for timing diagnostics.
+    ukf_transform_times = []
+    ukf_update_times = []
+    
+    # Simulation loop.
+    for i in range(num_steps):
+        t_current = i*dt
+        
+        # Update control inputs.
+        sim_model.Control_input = control_input(t_current)
+        ukf_model.Control_input = control_input(t_current)
+        
+        # Propagate true state using the simulation model.
+        sim_model.model_prediction(true_state)
+        true_state = sim_model.euler_forward()
+        
+        # Create a measurement from true state.
+        # Here we assume we measure velocity plus noise.
+        meas_noise = np.random.normal(0, 0.01, 3)
+        meas_model.measurement = true_state.velocity + meas_noise
+
+        # UKF prediction: unscented transform.
+        start = time.time()
+        filter_state = ukf.unscented_transform(filter_state)
+        ukf_transform_times.append(time.time() - start)
+        
+        # UKF measurement update every few steps.
+        if i % 5 == 0:
+            try:
+                start = time.time()
+                ukf.measurement_update(filter_state, meas_model)
+                filter_state = ukf.posteriori_estimate(filter_state, meas_model)
+                ukf_update_times.append(time.time() - start)
+            except np.linalg.LinAlgError:
+                # If matrix is not PD, add jitter.
+                filter_state.covariance += np.eye(filter_state.covariance.shape[0])*1e-6
+        
+        # Store true and estimated state for diagnostics.
+        pos_true_hist[i, :] = true_state.position
+        pos_est_hist[i, :] = filter_state.position
+        vel_true_hist[i, :] = true_state.velocity
+        vel_est_hist[i, :] = filter_state.velocity
+        # Convert quaternion to Euler angles for visualization.
+        # Assumes you have a function quat_to_euler.
+        euler_true_hist[i, :] = quat_to_euler(true_state.orientation)
+        euler_est_hist[i, :] = quat_to_euler(filter_state.orientation)
+        
+        # Update previous states.
+        sim_model.state_vector_prev = true_state
+        ukf_model.state_vector_prev = filter_state
+
+    # Print timing diagnostics.
+    print("Average unscented transform time:", np.mean(ukf_transform_times))
+    print("Average measurement update time:", np.mean(ukf_update_times))
+    
+    # Compute error metrics.
+    pos_error = np.linalg.norm(pos_true_hist - pos_est_hist, axis=1)
+    vel_error = np.linalg.norm(vel_true_hist - vel_est_hist, axis=1)
+    euler_error = np.linalg.norm(euler_true_hist - euler_est_hist, axis=1)
+    print("Average position error:", np.mean(pos_error))
+    print("Average velocity error:", np.mean(vel_error))
+    print("Average orientation (Euler) error:", np.mean(euler_error))
+    
+    # Plot estimated vs true trajectory (positions).
+    plt.figure(figsize=(10,8))
+    plt.subplot(3,1,1)
+    plt.plot(time_array, pos_true_hist[:,0], label="True X")
+    plt.plot(time_array, pos_est_hist[:,0], label="Est X", linestyle="--")
+    plt.legend()
+    plt.title("Position X")
+    
+    plt.subplot(3,1,2)
+    plt.plot(time_array, pos_true_hist[:,1], label="True Y")
+    plt.plot(time_array, pos_est_hist[:,1], label="Est Y", linestyle="--")
+    plt.legend()
+    plt.title("Position Y")
+    
+    plt.subplot(3,1,3)
+    plt.plot(time_array, pos_true_hist[:,2], label="True Z")
+    plt.plot(time_array, pos_est_hist[:,2], label="Est Z", linestyle="--")
+    plt.legend()
+    plt.title("Position Z")
+    plt.tight_layout()
+    plt.show()
+    
+    # Plot errors.
+    plt.figure(figsize=(10,4))
+    plt.plot(time_array, pos_error, label="Position Error")
+    plt.plot(time_array, vel_error, label="Velocity Error")
+    plt.plot(time_array, euler_error, label="Euler Angle Error")
+    plt.legend()
+    plt.title("Error Metrics over Time")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Error magnitude")
+    plt.show()
+
+# You can also test the individual statistics functions separately:
+def run_diagnostics():
+    print("Testing state mean and covariance computation:")
+    # Call your pre-written tests:
+    # (Assuming these functions—test_state_statistics, test_measurement_statistics, test_cross_covariance—are defined above)
+    test_state_statistics()
+    print("\nTesting measurement mean and covariance computation:")
+    test_measurement_statistics()
+    print("\nTesting cross-covariance computation:")
+    test_cross_covariance()
 
 if __name__ == '__main__':
-    # Create initial state vector and covariance matrix.
-    x0 = np.zeros(13)
-    x0[0:3] = [0.3, 0.3, 0.3]
-    x0[3] = 1
-    x0[7:10] = [0.2, 0.2, 0.2]
-    dt = 0.01
-    R = (0.01) * np.eye(3)
+    # First, run the diagnostics on the mean/covariance functions.
+    run_diagnostics()
+    
+    # Then run the full UKF simulation test.
+    print("\nRunning full UKF simulation test:")
+    run_ukf_simulation()
 
-    Q = 0.00015 * np.eye(12)
-    P0 = np.eye(12) * 0.0001
 
-    model = process_model()
-    model.dt = 0.01
-    model.mass_interia_matrix = np.array(
-        [
-            [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
-            [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
-            [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
-            [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
-            [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
-            [0.6, 0.3, 0.0, 0.0, 0.0, 3.34],
-        ]
-    )
-    model.m = 30.0
-    model.r_b_bg = np.array([0.01, 0.0, 0.02])
-    model.inertia = np.diag([0.68, 3.32, 3.34])
-    model.damping_linear = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-    model.damping_nonlinear = np.array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
-    model.added_mass = np.diag([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
-
-    model_ukf = process_model()
-    model_ukf.dt = 0.01
-    model_ukf.mass_interia_matrix = np.array(
-        [
-            [30.0, 0.0, 0.0, 0.0, 0.0, 0.6],
-            [0.0, 30.0, 0.0, 0.0, -0.6, 0.3],
-            [0.0, 0.0, 30.0, 0.6, 0.3, 0.0],
-            [0.0, 0.0, 0.6, 0.68, 0.0, 0.0],
-            [0.0, -0.6, 0.3, 0.0, 3.32, 0.0],
-            [0.6, 0.3, 0.0, 0.0, 0.0, 3.34],
-        ]
-    )
-    model_ukf.m = 30.0
-    model_ukf.r_b_bg = np.array([0.01, 0.0, 0.02])
-    model_ukf.inertia = np.diag([0.68, 3.32, 3.34])
-    model_ukf.damping_linear = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-    model_ukf.damping_nonlinear = np.array([0.3, 0.3, 0.3, 0.3, 0.3, 0.3])
-    model_ukf.added_mass = np.diag([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
-
-    # Simulation parameters
-    simulation_time = 5  # seconds
-    num_steps = int(simulation_time / dt)
-
-    # Initialize a dummy StateQuat.
-    new_state = StateQuat()
-    new_state.fill_states(x0)
-    new_state.covariance = P0
-
-    test_state_x = StateQuat()
-    test_state_x.fill_states(x0)
-    test_state_x.covariance = P0
-
-    # Initialize a estimated state
-    estimated_state = StateQuat()
-    estimated_state.fill_states(x0)
-    estimated_state.covariance = P0
-
-    # Initialize a estimated state
-    noisy_state = StateQuat()
-    noisy_state.fill_states(x0)
-    noisy_state.covariance = P0
-
-    measurment_model = MeasModel()
-    measurment_model.measurement = np.array([0.0, 0.0, 0.0])
-    measurment_model.covariance = R
-
-    # Initialize arrays to store the results
-    positions = np.zeros((num_steps, 3))
-    orientations = np.zeros((num_steps, 3))
-    velocities = np.zeros((num_steps, 3))
-    angular_velocities = np.zeros((num_steps, 3))
-
-    # Initialize arrays to store the estimates
-    positions_est = np.zeros((num_steps, 3))
-    orientations_est = np.zeros((num_steps, 3))
-    velocities_est = np.zeros((num_steps, 3))
-    angular_velocities_est = np.zeros((num_steps, 3))
-
-    # Initialize the okid params
-    okid_params = np.zeros((num_steps, 21))
-
-    model.state_vector_prev = new_state
-    model.state_vector = new_state
-
-    model_ukf.state_vector_prev = test_state_x
-    model_ukf.state_vector = test_state_x
-
-    # initialize the ukf
-    ukf = UKF(model_ukf, x0, P0, Q, R)
-
-    elapsed_times = []
-
-    u = lambda t: np.array(
-        [
-            2 * np.sin(1 * t),
-            2 * np.sin(1 * t),
-            2 * np.sin(1 * t),
-            0.2 * np.cos(1 * t),
-            0.2 * np.cos(1 * t),
-            0.2 * np.cos(1 * t),
-        ]
-    )
-
-    # Run the simulation
-    for step in range(num_steps):
-        # Insert control input
-        model.Control_input = u(step * dt)
-        model_ukf.Control_input = u(step * dt)
-
-        # Perform the unscented transform
-        model.model_prediction(new_state)
-        new_state = model.euler_forward()
-
-        # Adding noise in the state vector
-        estimated_state.position = (
-            estimated_state.position
-        )  # + np.random.normal(0, 0.01, 3)
-        estimated_state.orientation = (
-            estimated_state.orientation
-        )  # add_quaternion_noise(estimated_state.orientation, 0.01)
-        estimated_state.velocity = (
-            estimated_state.velocity
-        )  # + np.random.normal(0, 0.01, 3)
-        estimated_state.angular_velocity = (
-            estimated_state.angular_velocity
-        )  # + np.random.normal(0, 0.01, 3)
-
-        start_time = time.time()
-        estimated_state = ukf.unscented_transform(estimated_state)
-        print(estimated_state.as_vector())
-        break
-        elapsed_time = time.time() - start_time
-        elapsed_times.append(elapsed_time)
-
-        if step % 20 == 0:
-            measurment_model.measurement = (
-                new_state.velocity
-            )  # + np.random.normal(0, 0.01, 3)
-            meas_update, covariance_matrix = ukf.measurement_update(
-                estimated_state, measurment_model
-            )
-            estimated_state = ukf.posteriori_estimate(
-                estimated_state, covariance_matrix, measurment_model, meas_update
-            )
-
-        positions[step, :] = new_state.position
-        orientations[step, :] = quat_to_euler(new_state.orientation)
-        velocities[step, :] = new_state.velocity
-        angular_velocities[step, :] = new_state.angular_velocity
-
-        positions_est[step, :] = estimated_state.position
-        orientations_est[step, :] = quat_to_euler(estimated_state.orientation)
-        velocities_est[step, :] = estimated_state.velocity
-        angular_velocities_est[step, :] = estimated_state.angular_velocity
-
-        # Update the state for the next iteration
-        model.state_vector_prev = new_state
-
-    print('Average elapsed time: ', np.mean(elapsed_times))
-    print('Max elapsed time: ', np.max(elapsed_times))
-    print('Min elapsed time: ', np.min(elapsed_times))
-    print('median elapsed time: ', np.median(elapsed_times))
-    # Plot the results
-    time = np.linspace(0, simulation_time, num_steps)
-
-    # Plot positions
-    plt.figure()
-    plt.subplot(3, 1, 1)
-    plt.plot(time, positions[:, 0], label='True')
-    plt.plot(time, positions_est[:, 0], label='Estimated')
-    plt.title('Position X')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Position X [m]')
-    plt.legend()
-
-    plt.subplot(3, 1, 2)
-    plt.plot(time, positions[:, 1], label='True')
-    plt.plot(time, positions_est[:, 1], label='Estimated')
-    plt.title('Position Y')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Position Y [m]')
-    plt.legend()
-
-    plt.subplot(3, 1, 3)
-    plt.plot(time, positions[:, 2], label='True')
-    plt.plot(time, positions_est[:, 2], label='Estimated')
-    plt.title('Position Z')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Position Z [m]')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-    # Plot orientations (Euler angles)
-    plt.figure()
-    plt.subplot(3, 1, 1)
-    plt.plot(time, orientations[:, 0], label='True')
-    plt.plot(time, orientations_est[:, 0], label='Estimated')
-    plt.title('Orientation Roll')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Roll [rad]')
-    plt.legend()
-
-    plt.subplot(3, 1, 2)
-    plt.plot(time, orientations[:, 1], label='True')
-    plt.plot(time, orientations_est[:, 1], label='Estimated')
-    plt.title('Orientation Pitch')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Pitch [rad]')
-    plt.legend()
-
-    plt.subplot(3, 1, 3)
-    plt.plot(time, orientations[:, 2], label='True')
-    plt.plot(time, orientations_est[:, 2], label='Estimated')
-    plt.title('Orientation Yaw')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Yaw [rad]')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-    # Plot velocities
-    plt.figure()
-    plt.subplot(3, 1, 1)
-    plt.plot(time, velocities[:, 0], label='True')
-    plt.plot(time, velocities_est[:, 0], label='Estimated')
-    plt.title('Velocity X')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Velocity X [m/s]')
-    plt.legend()
-
-    plt.subplot(3, 1, 2)
-    plt.plot(time, velocities[:, 1], label='True')
-    plt.plot(time, velocities_est[:, 1], label='Estimated')
-    plt.title('Velocity Y')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Velocity Y [m/s]')
-    plt.legend()
-
-    plt.subplot(3, 1, 3)
-    plt.plot(time, velocities[:, 2], label='True')
-    plt.plot(time, velocities_est[:, 2], label='Estimated')
-    plt.title('Velocity Z')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Velocity Z [m/s]')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-    # Plot angular velocities
-    plt.figure()
-    plt.subplot(3, 1, 1)
-    plt.plot(time, angular_velocities[:, 0], label='True')
-    plt.plot(time, angular_velocities_est[:, 0], label='Estimated')
-    plt.title('Angular Velocity X')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Angular Velocity X [rad/s]')
-    plt.legend()
-
-    plt.subplot(3, 1, 2)
-    plt.plot(time, angular_velocities[:, 1], label='True')
-    plt.plot(time, angular_velocities_est[:, 1], label='Estimated')
-    plt.title('Angular Velocity Y')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Angular Velocity Y [rad/s]')
-    plt.legend()
-
-    plt.subplot(3, 1, 3)
-    plt.plot(time, angular_velocities[:, 2], label='True')
-    plt.plot(time, angular_velocities_est[:, 2], label='Estimated')
-    plt.title('Angular Velocity Z')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Angular Velocity Z [rad/s]')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()

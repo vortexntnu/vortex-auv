@@ -2,6 +2,54 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+@dataclass
+class okid:
+    """A class to represent the parameters for the OKID algorithm."""
+
+    inertia: np.ndarray = field(default_factory=lambda: np.array([0.68, 0.0, 0.0, 0.0, 3.32, 0.0, 0.0, 0.0, 3.34]))
+    added_mass: np.ndarray = field(default_factory=lambda: np.array([1.0,1.0,1.0,2.0,2.0,2.0]))
+    damping_linear: np.ndarray = field(default_factory=lambda: np.array([1.0,1.0,1.0,1.0,1.0,1.0]))
+
+    def fill(self, state: np.ndarray) -> None:
+        """Fills the okid_params object with values from a numpy array."""
+        self.inertia = state[0:9]
+        self.added_mass = state[9:15]
+        self.damping_linear = state[15:]
+
+    def as_vector(self) -> np.ndarray:
+        """Returns the okid_params as a numpy array."""
+        return np.concatenate([self.inertia, self.added_mass, self.damping_linear])
+
+    def __add__(self, other: 'okid') -> 'okid':
+        """Defines the addition operation between two okid_params objects."""
+        result = okid()
+        result.inertia = self.inertia + other.inertia
+        result.added_mass = self.added_mass + other.added_mass
+        result.damping_linear = self.damping_linear + other.damping_linear
+        return result
+    def __sub__(self, other: 'okid') -> 'okid':
+        """Defines the subtraction operation between two okid_params objects."""
+        result = okid()
+        result.inertia = self.inertia - other.inertia
+        result.added_mass = self.added_mass - other.added_mass
+        result.damping_linear = self.damping_linear - other.damping_linear
+        return result
+    
+    def __sub__(self, other: np.ndarray) -> 'okid':
+        """ Defines sub between okid_params and np.ndarray."""
+        result = okid()
+        result.inertia = self.inertia - other[0:9]
+        result.added_mass = self.added_mass - other[9:15]
+        result.damping_linear = self.damping_linear - other[15:]
+        return result
+    
+    def __rmul__(self, scalar: float) -> 'okid':
+        """Defines the multiplication operation between a scalar and okid_params object."""
+        result = okid()
+        result.inertia = scalar * self.inertia
+        result.added_mass = scalar * self.added_mass
+        result.damping_linear = scalar * self.damping_linear
+        return result   
 
 @dataclass
 class StateQuat:
@@ -11,10 +59,16 @@ class StateQuat:
     orientation: np.ndarray = field(default_factory=lambda: np.array([1, 0, 0, 0]))
     velocity: np.ndarray = field(default_factory=lambda: np.zeros(3))
     angular_velocity: np.ndarray = field(default_factory=lambda: np.zeros(3))
-    covariance: np.ndarray = field(default_factory=lambda: np.zeros((12, 12)))
+    okid_params: okid = field(default_factory=okid)
+    covariance: np.ndarray = field(default_factory=lambda: np.zeros((33, 33)))
 
     def as_vector(self) -> np.ndarray:
         """Returns the StateVector as a numpy array."""
+        return np.concatenate(
+            [self.position, self.orientation, self.velocity, self.angular_velocity, self.okid_params.as_vector()]
+        )
+    def dynamic_part(self) -> np.ndarray:
+        """Returns the dynamic part of the state vector."""
         return np.concatenate(
             [self.position, self.orientation, self.velocity, self.angular_velocity]
         )
@@ -53,6 +107,16 @@ class StateQuat:
         self.orientation = state[3:7]
         self.velocity = state[7:10]
         self.angular_velocity = state[10:13]
+        self.okid_params.fill(state[13:])
+    
+    def fill_dynamic_states(self, state: np.ndarray, state_euler: np.ndarray) -> None:
+        """Fills only the dynamic part of the state vector with the values from a numpy array."""
+        self.position = state[0:3] + state_euler[0:3]
+        self.orientation = quaternion_super_product(
+            state[3:7], euler_to_quat(state_euler[3:6])
+        )
+        self.velocity = state[7:10] + state_euler[6:9]
+        self.angular_velocity = state[10:13] + state_euler[9:12]
 
     def fill_states_different_dim(
         self, state: np.ndarray, state_euler: np.ndarray
@@ -64,6 +128,7 @@ class StateQuat:
         )
         self.velocity = state[7:10] + state_euler[6:9]
         self.angular_velocity = state[10:13] + state_euler[9:12]
+        self.okid_params.fill(state[13:] + state_euler[12:])
 
     def subtract(self, other: 'StateQuat', error_ori: 'np.ndarray') -> np.ndarray:
         """Subtracts two StateQuat objects, returning the difference with Euler angles."""
@@ -72,6 +137,7 @@ class StateQuat:
         new_array[3:6] = error_ori
         new_array[6:9] = self.velocity - other.velocity
         new_array[9:12] = self.angular_velocity - other.angular_velocity
+        new_array[12:] = self.okid_params.as_vector() - other.okid_params.as_vector()
 
         return new_array
 
@@ -84,6 +150,7 @@ class StateQuat:
         )
         new_state.velocity = self.velocity + other.velocity
         new_state.angular_velocity = self.angular_velocity + other.angular_velocity
+        new_state.okid_params = self.okid_params + other.okid_params
 
         return new_state
 
@@ -94,6 +161,7 @@ class StateQuat:
         new_state.orientation = quaternion_error(self.orientation, other.orientation)
         new_state.velocity = self.velocity - other.velocity
         new_state.angular_velocity = self.angular_velocity - other.angular_velocity
+        new_state.okid_params = self.okid_params - other.okid_params
 
         return new_state.as_vector()
 
@@ -104,6 +172,7 @@ class StateQuat:
         new_state.orientation = quat_norm(scalar * self.orientation)
         new_state.velocity = scalar * self.velocity
         new_state.angular_velocity = scalar * self.angular_velocity
+        new_state.okid_params = scalar * self.okid_params
 
         return new_state
 
@@ -116,6 +185,7 @@ class StateQuat:
         )
         new_state.velocity = self.velocity - weights[6:9]
         new_state.angular_velocity = self.angular_velocity - weights[9:12]
+        new_state.okid_params = self.okid_params - weights[12:]
 
         return new_state.as_vector()
 
@@ -124,6 +194,7 @@ class StateQuat:
         self.position += other.position
         self.velocity += other.velocity
         self.angular_velocity += other.angular_velocity
+        self.okid_params += other.okid_params
 
 
 @dataclass
@@ -136,9 +207,9 @@ class MeasModel:
     def H(self, state: StateQuat) -> 'MeasModel':
         """Calculates the measurement matrix."""
         H = np.zeros((3, 13))
-        H[0:3, 7:10] = np.eye(3)
+        H[:, 7:10] = np.eye(3)
         z_i = MeasModel()
-        z_i.measurement = np.dot(H, state.as_vector())
+        z_i.measurement = np.dot(H, state.dynamic_part())
         return z_i
 
     def __add__(self, other: 'MeasModel') -> 'MeasModel':
@@ -263,10 +334,112 @@ class process_model:
             + self.state_vector_dot.angular_velocity * self.dt
         )
         return self.state_vector
+@dataclass
+class okid_process_model:
+    state_vector: StateQuat = field(default_factory=StateQuat)
+    state_vector_dot: StateQuat = field(default_factory=StateQuat)
+    state_vector_prev: StateQuat = field(default_factory=StateQuat)
+    Control_input: np.ndarray = field(default_factory=lambda: np.zeros(6))
+    mass_interia_matrix: np.ndarray = field(default_factory=lambda: np.zeros((6, 6)))
+    added_mass: np.ndarray = field(default_factory=lambda: np.zeros(6))
+    damping_linear: np.ndarray = field(default_factory=lambda: np.zeros(6))
+    m: float = 30.0
+    inertia: np.ndarray = field(default_factory=lambda: np.zeros((3, 3)))
+    r_b_bg: np.ndarray = field(default_factory=lambda: np.zeros(3))
+    dt: float = 0.01
 
+    def R(self) -> np.ndarray:
+        """Calculates the rotation matrix."""
+        nu, e_1, e_2, e_3 = self.state_vector.orientation
+        R = np.array(
+            [
+                [
+                    1 - 2 * e_2**2 - 2 * e_3**2,
+                    2 * e_1 * e_2 - 2 * nu * e_3,
+                    2 * e_1 * e_3 + 2 * nu * e_2,
+                ],
+                [
+                    2 * e_1 * e_2 + 2 * nu * e_3,
+                    1 - 2 * e_1**2 - 2 * e_3**2,
+                    2 * e_2 * e_3 - 2 * nu * e_1,
+                ],
+                [
+                    2 * e_1 * e_3 - 2 * nu * e_2,
+                    2 * e_2 * e_3 + 2 * nu * e_1,
+                    1 - 2 * e_1**2 - 2 * e_2**2,
+                ],
+            ]
+        )
+        return R
+
+    def T(self) -> np.ndarray:
+        """Calculates the transformation matrix."""
+        nu, e_1, e_2, e_3 = self.state_vector.orientation
+        T = 0.5 * np.array(
+            [[-e_1, -e_2, -e_3], [nu, -e_3, e_2], [e_3, nu, -e_1], [-e_2, e_1, nu]]
+        )
+        return T
+
+    def Crb(self) -> np.ndarray:
+        """Calculates the Coriolis matrix."""
+        ang_vel = self.state_vector.angular_velocity
+        ang_vel_skew = skew_symmetric(ang_vel)
+        lever_arm_skew = skew_symmetric(self.r_b_bg)
+        Crb = np.zeros((6, 6))
+        Crb[0:3, 0:3] = self.m * ang_vel_skew
+        Crb[3:6, 3:6] = -skew_symmetric(np.dot(self.inertia, ang_vel))
+        Crb[0:3, 3:6] = -self.m * np.dot(ang_vel_skew, lever_arm_skew)
+        Crb[3:6, 0:3] = self.m * np.dot(lever_arm_skew, ang_vel_skew)
+        return Crb
+
+    def D(self) -> np.ndarray:
+        """Calculates the damping matrix."""
+        D_l = -np.diag(self.damping_linear)
+
+        return D_l 
+        
+    def model_prediction(self, state: StateQuat) -> None:
+        """Calculates the model of the system."""
+        self.state_vector = state
+        """
+        separate out the different okid values
+        """
+        self.inertia = state.okid_params.inertia.reshape((3, 3))
+        self.added_mass = state.okid_params.added_mass
+        self.damping_linear = state.okid_params.damping_linear
+
+        self.state_vector_dot.position = np.dot(self.R(), self.state_vector.velocity)
+        self.state_vector_dot.orientation = np.dot(
+            self.T(), self.state_vector.angular_velocity
+        )
+        Nu = np.linalg.inv(self.mass_interia_matrix + np.diag(self.added_mass)) @ (
+            self.Control_input
+            - np.dot(self.Crb(), self.state_vector.nu())
+            - np.dot(self.D(), self.state_vector.nu())
+        )
+        self.state_vector_dot.velocity = Nu[:3]
+        self.state_vector_dot.angular_velocity = Nu[3:]
+
+    def euler_forward(self) -> None:
+        """Calculates the forward Euler integration."""
+        self.state_vector.position = (
+            self.state_vector_prev.position + self.state_vector_dot.position * self.dt
+        )
+        self.state_vector.orientation = quat_norm(
+            self.state_vector_prev.orientation
+            + self.state_vector_dot.orientation * self.dt
+        )
+        self.state_vector.velocity = (
+            self.state_vector_prev.velocity + self.state_vector_dot.velocity * self.dt
+        )
+        self.state_vector.angular_velocity = (
+            self.state_vector_prev.angular_velocity
+            + self.state_vector_dot.angular_velocity * self.dt
+        )
+        return self.state_vector
 
 def euler_to_quat(euler_angles: np.ndarray) -> np.ndarray:
-    """Converts Euler angles to a quaternion"""
+    """Converts Euler angles to a quaternion."""
     psi, theta, phi = euler_angles
     c_psi = np.cos(psi / 2)
     s_psi = np.sin(psi / 2)
@@ -288,7 +461,7 @@ def euler_to_quat(euler_angles: np.ndarray) -> np.ndarray:
 
 
 def quat_to_euler(quat: np.ndarray) -> np.ndarray:
-    """Converts a quaternion to Euler angles"""
+    """Converts a quaternion to Euler angles."""
     nu, eta_1, eta_2, eta_3 = quat
 
     phi = np.arctan2(2 * (eta_2 * eta_3 + nu * eta_1), 1 - 2 * (eta_1**2 + eta_2**2))
@@ -299,7 +472,7 @@ def quat_to_euler(quat: np.ndarray) -> np.ndarray:
 
 
 def quat_norm(quat: np.ndarray) -> np.ndarray:
-    """Function that normalizes a quaternion"""
+    """Function that normalizes a quaternion."""
     quat = quat / np.linalg.norm(quat)
 
     return quat
@@ -348,7 +521,7 @@ def quaternion_super_product(q1: np.ndarray, q2: np.ndarray) -> np.ndarray:
 
 
 def quaternion_error(quat_1: np.ndarray, quat_2: np.ndarray) -> np.ndarray:
-    """Calculates the error between two quaternions"""
+    """Calculates the error between two quaternions."""
     quat_2_inv = np.array([quat_2[0], -quat_2[1], -quat_2[2], -quat_2[3]])
 
     error_quat = quaternion_super_product(quat_1, quat_2_inv)
@@ -359,17 +532,15 @@ def quaternion_error(quat_1: np.ndarray, quat_2: np.ndarray) -> np.ndarray:
 def iterative_quaternion_mean_statequat(
     state_list: list[StateQuat], tol: float = 1e-6, max_iter: int = 100
 ) -> np.ndarray:
-    """Computes the weighted mean of the quaternion orientations from a list of StateQuat objects
-    using an iterative approach, without requiring the caller to manually extract the quaternion.
+    """Computes the iterative mean of quaternion orientations from StateQuat objects.
 
-    Parameters:
-        state_list (list[StateQuat]): List of StateQuat objects.
-        weights (np.ndarray): Weights for each state.
-        tol (float): Convergence tolerance.
-        max_iter (int): Maximum number of iterations.
+    Args:
+        state_list: List of StateQuat objects
+        tol: Convergence tolerance
+        max_iter: Maximum iterations
 
     Returns:
-        np.ndarray: The averaged quaternion as a 4-element numpy array.
+        Mean quaternion as numpy array
     """
     sigma_quats = [state.orientation for state in state_list]
     n = len(state_list)
@@ -412,7 +583,7 @@ def iterative_quaternion_mean_statequat(
 
 
 def mean_set(set_points: list[StateQuat]) -> np.ndarray:
-    """Function calculates the mean vector of a set of points
+    """Function calculates the mean vector of a set of points.
 
     Args:
         set_points (list[StateQuat]): List of StateQuat objects
@@ -426,7 +597,10 @@ def mean_set(set_points: list[StateQuat]) -> np.ndarray:
     for state in set_points:
         mean_value.add_without_quaternions(state)
 
-    mean_value = (1 / (n)) * mean_value
+    mean_value.position = (1 / n) * mean_value.position
+    mean_value.velocity = (1 / n) * mean_value.velocity
+    mean_value.angular_velocity = (1 / n) * mean_value.angular_velocity
+    mean_value.okid_params = (1 / n) * mean_value.okid_params
 
     mean_value.orientation = iterative_quaternion_mean_statequat(set_points)
 
@@ -434,7 +608,7 @@ def mean_set(set_points: list[StateQuat]) -> np.ndarray:
 
 
 def mean_measurement(set_points: list[MeasModel]) -> np.ndarray:
-    """Function that calculates the mean of a set of points"""
+    """Function that calculates the mean of a set of points."""
     n = len(set_points)
     mean_value = MeasModel()
 
@@ -447,7 +621,7 @@ def mean_measurement(set_points: list[MeasModel]) -> np.ndarray:
 
 
 def covariance_set(set_points: list[StateQuat], mean: np.ndarray) -> np.ndarray:
-    """Function that calculates the covariance of a set of points"""
+    """Function that calculates the covariance of a set of points."""
     n = len(set_points)
     covariance = np.zeros(set_points[0].covariance.shape)
 
@@ -477,7 +651,7 @@ def covariance_set(set_points: list[StateQuat], mean: np.ndarray) -> np.ndarray:
 
 
 def covariance_measurement(set_points: list[MeasModel], mean: np.ndarray) -> np.ndarray:
-    """Function that calculates the covariance of a set of points"""
+    """Function that calculates the covariance of a set of points."""
     n = len(set_points)
     co_size = len(set_points[0].measurement)
     covariance = np.zeros((co_size, co_size))
@@ -500,7 +674,7 @@ def cross_covariance(
     set_z: list[MeasModel],
     mean_z: np.ndarray,
 ) -> np.ndarray:
-    """Calculates the cross covariance between the measurement and state prediction"""
+    """Calculates the cross covariance between the measurement and state prediction."""
     n = len(set_y)
 
     cross_covariance = np.zeros((len(mean_y) - 1, len(mean_z)))
