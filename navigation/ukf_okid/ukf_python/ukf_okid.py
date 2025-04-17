@@ -1,5 +1,4 @@
 import numpy as np
-from ukf_utils import print_StateQuat
 from ukf_okid_class import (
     MeasModel,
     StateQuat,
@@ -8,7 +7,6 @@ from ukf_okid_class import (
     cross_covariance,
     mean_measurement,
     mean_set,
-    process_model,
     okid_process_model,
 )
 
@@ -37,15 +35,17 @@ class UKF:
             delta (np.ndarray): An n x 2n orthonormal transformation matrix used to generate TUKF sigma points.
         """
         delta = np.zeros((n, 2 * n))
-        k = 0.01 #Tuning parameter to ensure pos def
+        k = 0.01  # Tuning parameter to ensure pos def
 
-        for i in range(2 * n): 
+        for i in range(2 * n):
             for j in range(n // 2):
-                delta[2 * j + 1, i] = np.sqrt(2) * np.sin((2 * j - 1)) * ((k * np.pi) / n)
-                delta[2 * j, i] = np.sqrt(2) * np.cos((2 * j - 1)) * ((k * np.pi) / n)
-   
+                delta[2 * j + 1, i] = (
+                    np.sqrt(2) * np.sin(2 * j - 1) * ((k * np.pi) / n)
+                )
+                delta[2 * j, i] = np.sqrt(2) * np.cos(2 * j - 1) * ((k * np.pi) / n)
+
             if (n % 2) == 1:
-                delta[n-1, i] = (-1)**i
+                delta[n - 1, i] = (-1) ** i
         return delta
 
     def sigma_points(self, current_state: StateQuat) -> list[StateQuat]:
@@ -96,10 +96,15 @@ class UKF:
 
         self.measurement_updated.measurement = mean_measurement(z_i)
 
-        self.measurement_updated.covariance = covariance_measurement(z_i, self.measurement_updated.measurement)
+        self.measurement_updated.covariance = covariance_measurement(
+            z_i, self.measurement_updated.measurement
+        )
 
         self.cross_correlation = cross_covariance(
-            self.y_i, current_state.as_vector(), z_i, self.measurement_updated.measurement
+            self.y_i,
+            current_state.as_vector(),
+            z_i,
+            self.measurement_updated.measurement,
         )
 
     def posteriori_estimate(
@@ -109,7 +114,9 @@ class UKF:
     ) -> StateQuat:
         """Calculates the posteriori estimate using measurement and the prior estimate."""
         nu_k = MeasModel()
-        nu_k.measurement = measurement.measurement - self.measurement_updated.measurement
+        nu_k.measurement = (
+            measurement.measurement - self.measurement_updated.measurement
+        )
         nu_k.covariance = self.measurement_updated.covariance + measurement.covariance
 
         K_k = np.dot(self.cross_correlation, np.linalg.inv(nu_k.covariance))

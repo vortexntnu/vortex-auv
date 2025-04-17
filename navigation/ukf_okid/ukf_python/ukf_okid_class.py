@@ -2,13 +2,22 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+
 @dataclass
 class okid:
     """A class to represent the parameters for the OKID algorithm."""
 
-    inertia: np.ndarray = field(default_factory=lambda: np.array([0.68, 0.0, 0.0, 0.0, 3.32, 0.0, 0.0, 0.0, 3.34]))
-    added_mass: np.ndarray = field(default_factory=lambda: np.array([1.0,1.0,1.0,2.0,2.0,2.0]))
-    damping_linear: np.ndarray = field(default_factory=lambda: np.array([1.0,1.0,1.0,1.0,1.0,1.0]))
+    inertia: np.ndarray = field(
+        default_factory=lambda: np.array(
+            [0.68, 0.0, 0.0, 0.0, 3.32, 0.0, 0.0, 0.0, 3.34]
+        )
+    )
+    added_mass: np.ndarray = field(
+        default_factory=lambda: np.array([1.0, 1.0, 1.0, 2.0, 2.0, 2.0])
+    )
+    damping_linear: np.ndarray = field(
+        default_factory=lambda: np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    )
 
     def fill(self, state: np.ndarray) -> None:
         """Fills the okid_params object with values from a numpy array."""
@@ -27,6 +36,7 @@ class okid:
         result.added_mass = self.added_mass + other.added_mass
         result.damping_linear = self.damping_linear + other.damping_linear
         return result
+
     def __sub__(self, other: 'okid') -> 'okid':
         """Defines the subtraction operation between two okid_params objects."""
         result = okid()
@@ -34,22 +44,23 @@ class okid:
         result.added_mass = self.added_mass - other.added_mass
         result.damping_linear = self.damping_linear - other.damping_linear
         return result
-    
+
     def __sub__(self, other: np.ndarray) -> 'okid':
-        """ Defines sub between okid_params and np.ndarray."""
+        """Defines sub between okid_params and np.ndarray."""
         result = okid()
         result.inertia = self.inertia - other[0:9]
         result.added_mass = self.added_mass - other[9:15]
         result.damping_linear = self.damping_linear - other[15:]
         return result
-    
+
     def __rmul__(self, scalar: float) -> 'okid':
         """Defines the multiplication operation between a scalar and okid_params object."""
         result = okid()
         result.inertia = scalar * self.inertia
         result.added_mass = scalar * self.added_mass
         result.damping_linear = scalar * self.damping_linear
-        return result   
+        return result
+
 
 @dataclass
 class StateQuat:
@@ -65,8 +76,15 @@ class StateQuat:
     def as_vector(self) -> np.ndarray:
         """Returns the StateVector as a numpy array."""
         return np.concatenate(
-            [self.position, self.orientation, self.velocity, self.angular_velocity, self.okid_params.as_vector()]
+            [
+                self.position,
+                self.orientation,
+                self.velocity,
+                self.angular_velocity,
+                self.okid_params.as_vector(),
+            ]
         )
+
     def dynamic_part(self) -> np.ndarray:
         """Returns the dynamic part of the state vector."""
         return np.concatenate(
@@ -108,7 +126,7 @@ class StateQuat:
         self.velocity = state[7:10]
         self.angular_velocity = state[10:13]
         self.okid_params.fill(state[13:])
-    
+
     def fill_dynamic_states(self, state: np.ndarray, state_euler: np.ndarray) -> None:
         """Fills only the dynamic part of the state vector with the values from a numpy array."""
         self.position = state[0:3] + state_euler[0:3]
@@ -334,6 +352,8 @@ class process_model:
             + self.state_vector_dot.angular_velocity * self.dt
         )
         return self.state_vector
+
+
 @dataclass
 class okid_process_model:
     state_vector: StateQuat = field(default_factory=StateQuat)
@@ -396,8 +416,8 @@ class okid_process_model:
         """Calculates the damping matrix."""
         D_l = -np.diag(self.damping_linear)
 
-        return D_l 
-        
+        return D_l
+
     def model_prediction(self, state: StateQuat) -> None:
         """Calculates the model of the system."""
         self.state_vector = state
@@ -437,6 +457,7 @@ class okid_process_model:
             + self.state_vector_dot.angular_velocity * self.dt
         )
         return self.state_vector
+
 
 def euler_to_quat(euler_angles: np.ndarray) -> np.ndarray:
     """Converts Euler angles to a quaternion."""

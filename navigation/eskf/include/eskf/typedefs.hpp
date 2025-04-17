@@ -5,9 +5,9 @@
 #ifndef ESKF_TYPEDEFS_H
 #define ESKF_TYPEDEFS_H
 
+#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
-#include <eigen3/Eigen/src/Core/Matrix.h>
 
 namespace Eigen {
 typedef Eigen::Matrix<double, 19, 1> Vector19d;
@@ -43,9 +43,7 @@ struct state_quat {
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d gravity = Eigen::Vector3d::Zero();
 
-    state_quat() {
-        gravity << 0, 0, 9.81;
-    }
+    state_quat() { gravity << 0, 0, 9.81; }
 
     Eigen::Vector19d as_vector() const {
         Eigen::Vector19d vec;
@@ -94,7 +92,6 @@ struct state_euler {
 struct imu_measurement {
     Eigen::Vector3d accel = Eigen::Vector3d::Zero();
     Eigen::Vector3d gyro = Eigen::Vector3d::Zero();
-
 };
 
 struct dvl_measurement {
