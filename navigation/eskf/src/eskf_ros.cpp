@@ -42,8 +42,9 @@ void ESKFNode::set_subscribers_and_publisher() {
 void ESKFNode::set_parameters() {
     std::vector<double> R_imu_correction;
     this->declare_parameter<std::vector<double>>("imu_frame");
-    R_imu_correction = get_parameter("imu_rotation_matrix").as_double_array(); 
-    R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>>(R_imu_correction.data());
+    R_imu_correction = get_parameter("imu_rotation_matrix").as_double_array();
+    R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        R_imu_correction.data());
 
     std::vector<double> diag_Q_std;
     this->declare_parameter<std::vector<double>>("diag_Q_std");
@@ -81,15 +82,14 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     last_imu_time_ = current_time;
 
     Eigen::Vector3d raw_accel(msg->linear_acceleration.x,
-                             msg->linear_acceleration.y,
-                             msg->linear_acceleration.z);
+                              msg->linear_acceleration.y,
+                              msg->linear_acceleration.z);
 
     imu_meas_.accel = R_imu_eskf_ * raw_accel;
-    
-    Eigen::Vector3d raw_gyro(msg->angular_velocity.x,
-                            msg->angular_velocity.y,
-                            msg->angular_velocity.z);
-                            
+
+    Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
+                             msg->angular_velocity.z);
+
     imu_meas_.gyro = R_imu_eskf_ * raw_gyro;
 
     std::tie(nom_state_, error_state_) = eskf_->imu_update(imu_meas_, dt);
