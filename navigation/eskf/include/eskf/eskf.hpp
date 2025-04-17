@@ -25,6 +25,7 @@ class ESKF {
         const dvl_measurement& dvl_meas);
 
    private:
+
     // @brief Predict the nominal state
     // @param imu_meas: IMU measurement
     // @param dt: Time step

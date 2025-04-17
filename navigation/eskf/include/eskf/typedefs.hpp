@@ -7,6 +7,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/src/Core/Matrix.h>
 
 namespace Eigen {
 typedef Eigen::Matrix<double, 19, 1> Vector19d;
@@ -40,7 +41,11 @@ struct state_quat {
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
-    Eigen::Vector3d gravity = Eigen::Vector3d(0, 0, 9.81);
+    Eigen::Vector3d gravity = Eigen::Vector3d::Zero();
+
+    state_quat() {
+        gravity << 0, 0, 9.81;
+    }
 
     Eigen::Vector19d as_vector() const {
         Eigen::Vector19d vec;
@@ -89,16 +94,7 @@ struct state_euler {
 struct imu_measurement {
     Eigen::Vector3d accel = Eigen::Vector3d::Zero();
     Eigen::Vector3d gyro = Eigen::Vector3d::Zero();
-    Eigen::Vector3d accel_uncorrected = Eigen::Vector3d::Zero();
-    Eigen::Vector3d gyro_uncorrected = Eigen::Vector3d::Zero();
 
-    void correct() {
-        Eigen::Matrix3d R_nb;
-        R_nb << 0, 0, -1, 0, -1, 0, -1, 0, 0;
-
-        accel = (R_nb * accel_uncorrected);
-        gyro = (R_nb * gyro_uncorrected);
-    }
 };
 
 struct dvl_measurement {
