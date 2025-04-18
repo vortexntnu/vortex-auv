@@ -24,7 +24,6 @@ WaypointManagerNode::WaypointManagerNode() : Node("waypoint_manager_node") {
 
 WaypointManagerNode::~WaypointManagerNode() {
     {
-        std::lock_guard<std::mutex> lock(queue_mutex_);
         running_ = false;
     }
     waypoint_cv_.notify_all();

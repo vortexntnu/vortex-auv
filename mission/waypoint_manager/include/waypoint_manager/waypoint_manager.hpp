@@ -31,9 +31,9 @@ class WaypointManagerNode : public rclcpp::Node {
         reference_filter_client_;
 
     std::mutex queue_mutex_;
+    std::atomic<bool> running_{true};
     std::condition_variable waypoint_cv_;
 
-    bool running_{false};
     std::thread worker_thread_;
 
     rclcpp::CallbackGroup::SharedPtr server_cb_group_;
