@@ -17,7 +17,6 @@ class JoystickInterfaceNode : public rclcpp::Node {
     void joystick_cb(const sensor_msgs::msg::Joy::SharedPtr msg);
 
     void get_parameters();
-
     void set_publishers_and_subscribers();
 
     void transition_to_xbox_mode();
