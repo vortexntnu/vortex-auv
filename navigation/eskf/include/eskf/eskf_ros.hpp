@@ -8,6 +8,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <variant>
@@ -44,6 +45,8 @@ class ESKFNode : public rclcpp::Node {
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
 
     std::chrono::milliseconds time_step;
 

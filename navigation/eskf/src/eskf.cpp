@@ -159,6 +159,11 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
         A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
 }
 
+void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
+    Eigen::Matrix3d S_inv = S.inverse();
+    NIS_ = innovation.transpose() * S_inv * innovation;
+}
+
 void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     Eigen::Matrix3x18d H = calculate_h_jacobian();
     Eigen::Matrix18d P = current_error_state_.covariance;
@@ -167,6 +172,7 @@ void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     Eigen::Matrix3d S = H * P * H.transpose() + R;
     Eigen::Matrix18x3d K = P * H.transpose() * S.inverse();
     Eigen::Vector3d innovation = dvl_meas.vel - calculate_h();
+    NIS(innovation, S);
     current_error_state_.set_from_vector(K * innovation);
 
     Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K * H;
