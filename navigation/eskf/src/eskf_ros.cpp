@@ -37,12 +37,14 @@ void ESKFNode::set_subscribers_and_publisher() {
     std::string odom_topic = this->get_parameter("odom_topic").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
+
+    nis_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nis", 10);
 }
 
 void ESKFNode::set_parameters() {
     std::vector<double> R_imu_correction;
     this->declare_parameter<std::vector<double>>("imu_frame");
-    R_imu_correction = get_parameter("imu_rotation_matrix").as_double_array();
+    R_imu_correction = get_parameter("imu_frame").as_double_array();
     R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
         R_imu_correction.data());
 
@@ -53,7 +55,6 @@ void ESKFNode::set_parameters() {
 
     Eigen::Matrix12d Q;
     Q.setZero();
-    spdlog::info("Q diagonal: {}", diag_Q_std[0]);
     Q.diagonal() << sq(diag_Q_std[0]), sq(diag_Q_std[1]), sq(diag_Q_std[2]),
         sq(diag_Q_std[3]), sq(diag_Q_std[4]), sq(diag_Q_std[5]),
         sq(diag_Q_std[6]), sq(diag_Q_std[7]), sq(diag_Q_std[8]),
@@ -106,6 +107,10 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[14];
 
     std::tie(nom_state_, error_state_) = eskf_->dvl_update(dvl_meas_);
+
+    std_msgs::msg::Float64 nis_msg;
+    nis_msg.data = eskf_->NIS_;
+    nis_pub_->publish(nis_msg);
 }
 
 void ESKFNode::publish_odom() {
