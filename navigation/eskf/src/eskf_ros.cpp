@@ -24,7 +24,7 @@ void ESKFNode::set_subscribers_and_publisher() {
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         "/orca/pose", qos_sensor_data,
         std::bind(&ESKFNode::pose_callback, this, std::placeholders::_1));
-    
+
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         "/orca/twist", qos_sensor_data,
@@ -38,8 +38,7 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("dvl_topic");
     std::string dvl_topic = this->get_parameter("dvl_topic").as_string();
-    dvl_sub_ = this->create_subscription<
-        stonefish_ros2::msg::DVL>(
+    dvl_sub_ = this->create_subscription<stonefish_ros2::msg::DVL>(
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
@@ -49,7 +48,7 @@ void ESKFNode::set_subscribers_and_publisher() {
         odom_topic, qos_sensor_data);
 
     nis_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nis", 10);
-    nees_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nees", 10);
+    nees_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/needs", 10);
 }
 
 void ESKFNode::set_parameters() {
@@ -81,18 +80,20 @@ void ESKFNode::set_parameters() {
     error_state_.covariance = P;
 }
 
-void ESKFNode::pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    g_truth_.pos << msg->pose.pose.position.x,
-        msg->pose.pose.position.y, msg->pose.pose.position.z;
+void ESKFNode::pose_callback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
+    g_truth_.pos << msg->pose.pose.position.x, msg->pose.pose.position.y,
+        msg->pose.pose.position.z;
     g_truth_.quat.w() = msg->pose.pose.orientation.w;
     g_truth_.quat.x() = msg->pose.pose.orientation.x;
     g_truth_.quat.y() = msg->pose.pose.orientation.y;
     g_truth_.quat.z() = msg->pose.pose.orientation.z;
 }
 
-void ESKFNode::twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    g_truth_.vel << msg->twist.twist.linear.x,
-        msg->twist.twist.linear.y, msg->twist.twist.linear.z;
+void ESKFNode::twist_callback(
+    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+    g_truth_.vel << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
+        msg->twist.twist.linear.z;
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -121,30 +122,30 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     std::tie(nom_state_, error_state_) = eskf_->imu_update(imu_meas_, dt);
 }
 
-void ESKFNode::dvl_callback(
-    const stonefish_ros2::msg::DVL::SharedPtr msg) {
-    dvl_meas_.vel << msg->velocity.x,
-        msg->velocity.y, msg->velocity.z;
+void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
+    dvl_meas_.vel << msg->velocity.x, msg->velocity.y, msg->velocity.z;
     dvl_meas_.cov << 0.001, 0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 0.001;
-    
-    // msg->velocity_covariance[0], msg->velocity_covariance[1], msg->velocity_covariance[2],
-    //     msg->velocity_covariance[3], msg->velocity_covariance[4], msg->velocity_covariance[5],
-    //    msg->velocity_covariance[6], msg->velocity_covariance[7], msg->velocity_covariance[8];
-    
+
+    // msg->velocity_covariance[0], msg->velocity_covariance[1],
+    // msg->velocity_covariance[2],
+    //     msg->velocity_covariance[3], msg->velocity_covariance[4],
+    //     msg->velocity_covariance[5],
+    //    msg->velocity_covariance[6], msg->velocity_covariance[7],
+    //    msg->velocity_covariance[8];
 
     // Set biases and gravity as float values
     float gyro_bias_x = 0.00001;
     float gyro_bias_y = 0.00001;
     float gyro_bias_z = 0.00001;
-    
+
     float accel_bias_x = 0.00001;
     float accel_bias_y = 0.00001;
     float accel_bias_z = 0.00001;
-    
+
     float gravity_x = 0.0;
     float gravity_y = 0.0;
     float gravity_z = -9.81;
-    
+
     g_truth_.gyro_bias << gyro_bias_x, gyro_bias_y, gyro_bias_z;
     g_truth_.accel_bias << accel_bias_x, accel_bias_y, accel_bias_z;
     g_truth_.gravity << gravity_x, gravity_y, gravity_z;

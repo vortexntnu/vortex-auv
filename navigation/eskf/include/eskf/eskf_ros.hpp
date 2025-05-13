@@ -7,11 +7,11 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
-#include <stonefish_ros2/msg/dvl.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <stonefish_ros2/msg/dvl.hpp>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
 #include "spdlog/spdlog.h"
@@ -21,10 +21,11 @@ class ESKFNode : public rclcpp::Node {
     explicit ESKFNode();
 
    private:
+    void pose_callback(
+        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
-    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-
-    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+    void twist_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
@@ -47,9 +48,11 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Subscription<stonefish_ros2::msg::DVL>::SharedPtr dvl_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
-    
-    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
