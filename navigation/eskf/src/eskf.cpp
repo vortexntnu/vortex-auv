@@ -58,31 +58,34 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
     double qy = q.y();
     double qz = q.z();
 
-    Eigen::Matrix3d I3   = Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
 
     Eigen::Vector3d eps(qx, qy, qz);
 
-    Eigen::Matrix3d dR_deta =  2*qw * I3 - 2*skew(eps);
+    Eigen::Matrix3d dR_deta = 2 * qw * I3 - 2 * skew(eps);
 
-    Eigen::Vector3d e1_vec(1,0,0), e2_vec(0,1,0), e3_vec(0,0,1);
+    Eigen::Vector3d e1_vec(1, 0, 0), e2_vec(0, 1, 0), e3_vec(0, 0, 1);
 
-    Eigen::Matrix3d dR_dqx = -2*qx*I3
-                        + 2*(e1_vec*eps.transpose() + eps*e1_vec.transpose())
-                        - 2*qw*skew(e1_vec);
+    Eigen::Matrix3d dR_dqx =
+        -2 * qx * I3 +
+        2 * (e1_vec * eps.transpose() + eps * e1_vec.transpose()) -
+        2 * qw * skew(e1_vec);
 
-    Eigen::Matrix3d dR_dqy = -2*qy*I3
-                        + 2*(e2_vec*eps.transpose() + eps*e2_vec.transpose())
-                        - 2*qw*skew(e2_vec);
+    Eigen::Matrix3d dR_dqy =
+        -2 * qy * I3 +
+        2 * (e2_vec * eps.transpose() + eps * e2_vec.transpose()) -
+        2 * qw * skew(e2_vec);
 
-    Eigen::Matrix3d dR_dqz = -2*qz*I3
-                        + 2*(e3_vec*eps.transpose() + eps*e3_vec.transpose())
-                        - 2*qw*skew(e3_vec);
+    Eigen::Matrix3d dR_dqz =
+        -2 * qz * I3 +
+        2 * (e3_vec * eps.transpose() + eps * e3_vec.transpose()) -
+        2 * qw * skew(e3_vec);
 
-    Eigen::Matrix<double,3,4> dR_dq;
-    dR_dq.col(0) = dR_deta * v_n;  
-    dR_dq.col(1) = dR_dqx  * v_n;   
-    dR_dq.col(2) = dR_dqy  * v_n;   
-    dR_dq.col(3) = dR_dqz  * v_n;   
+    Eigen::Matrix<double, 3, 4> dR_dq;
+    dR_dq.col(0) = dR_deta * v_n;
+    dR_dq.col(1) = dR_dqx * v_n;
+    dR_dq.col(2) = dR_dqy * v_n;
+    dR_dq.col(3) = dR_dqz * v_n;
 
     Hx.block<3, 4>(0, 6) = dR_dq;
 
@@ -111,13 +114,18 @@ Eigen::Matrix3x1d ESKF::calculate_h() {
 
 void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
                                   const double dt) {
-    Eigen::Vector3d acc = current_nom_state_.quat.normalized().toRotationMatrix() * (imu_meas.accel - current_nom_state_.accel_bias) + current_nom_state_.gravity;
+    Eigen::Vector3d acc =
+        current_nom_state_.quat.normalized().toRotationMatrix() *
+            (imu_meas.accel - current_nom_state_.accel_bias) +
+        current_nom_state_.gravity;
     Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
 
-    current_nom_state_.pos = current_nom_state_.pos + current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
+    current_nom_state_.pos = current_nom_state_.pos +
+                             current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
 
-    current_nom_state_.quat = (current_nom_state_.quat * vector3d_to_quaternion(gyro));
+    current_nom_state_.quat =
+        (current_nom_state_.quat * vector3d_to_quaternion(gyro));
     current_nom_state_.quat.normalize();
 
     current_nom_state_.gyro_bias = current_nom_state_.gyro_bias;
@@ -160,17 +168,17 @@ void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
     NIS_ = innovation.transpose() * S_inv * innovation;
 }
 
-void ESKF::NEES() {
-
+void ESKF::NEEDS() {
     Eigen::Vector18d error_state = current_nom_state_.nees_error(ground_truth_);
-    
+
     // Use SVD-based pseudo-inverse for better numerical stability
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(current_error_state_.covariance, 
-                                          Eigen::ComputeThinU | Eigen::ComputeThinV);
-    const double epsilon = 1e-10; // Threshold for singular values
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(
+        current_error_state_.covariance,
+        Eigen::ComputeThinU | Eigen::ComputeThinV);
+    const double epsilon = 1e-10;  // Threshold for singular values
     Eigen::VectorXd singular_values = svd.singularValues();
     Eigen::VectorXd singular_values_inv(singular_values.size());
-    
+
     for (int i = 0; i < singular_values.size(); ++i) {
         if (singular_values(i) > epsilon) {
             singular_values_inv(i) = 1.0 / singular_values(i);
@@ -178,9 +186,10 @@ void ESKF::NEES() {
             singular_values_inv(i) = 0.0;
         }
     }
-    
-    Eigen::MatrixXd cov_inv = svd.matrixV() * singular_values_inv.asDiagonal() * svd.matrixU().transpose();
-    
+
+    Eigen::MatrixXd cov_inv = svd.matrixV() * singular_values_inv.asDiagonal() *
+                              svd.matrixU().transpose();
+
     NEES_ = error_state.transpose() * cov_inv * error_state;
 }
 
@@ -199,18 +208,23 @@ void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     current_error_state_.covariance =
         I_KH * P * I_KH.transpose() +
         K * R * K.transpose();  // Used joseph form for more stable calculations
-    
-    NEES();
+
+    NEEDS();
 }
 
 void ESKF::injection_and_reset() {
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
     current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
-    current_nom_state_.quat = current_nom_state_.quat * vector3d_to_quaternion(current_error_state_.euler);
+    current_nom_state_.quat =
+        current_nom_state_.quat *
+        vector3d_to_quaternion(current_error_state_.euler);
     current_nom_state_.quat.normalize();
-    current_nom_state_.gyro_bias = current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
-    current_nom_state_.accel_bias = current_nom_state_.accel_bias + current_error_state_.accel_bias;
-    current_nom_state_.gravity = current_nom_state_.gravity + current_error_state_.gravity;
+    current_nom_state_.gyro_bias =
+        current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
+    current_nom_state_.accel_bias =
+        current_nom_state_.accel_bias + current_error_state_.accel_bias;
+    current_nom_state_.gravity =
+        current_nom_state_.gravity + current_error_state_.gravity;
 
     Eigen::Matrix18d G = Eigen::Matrix18d::Identity();
 
