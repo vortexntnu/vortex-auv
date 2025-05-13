@@ -27,7 +27,7 @@ class ESKF {
     // NIS
     double NIS_;
 
-    // NEES
+    // NEEDS
     double NEES_;
 
     // ground truth
@@ -53,7 +53,7 @@ class ESKF {
     // @param S: Innovation covariance matrix
     void NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
 
-    void NEES();
+    void NEEDS();
 
     // @brief Update the error state
     // @param dvl_meas: DVL measurement

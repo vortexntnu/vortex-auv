@@ -1,9 +1,9 @@
 #ifndef ESKF_UTILS_HPP
 #define ESKF_UTILS_HPP
 
+#include <cmath>
 #include "eigen3/Eigen/Dense"
 #include "eskf/typedefs.hpp"
-#include <cmath>
 
 Eigen::Matrix3d skew(const Eigen::Vector3d& v);
 
