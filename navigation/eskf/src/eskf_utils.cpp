@@ -11,6 +11,11 @@ Eigen::Matrix3d skew(const Eigen::Vector3d& v) {
 double sq(const double& value) {
     return value * value;
 }
+double ssa(const double& angle) {
+    double result = fmod(angle + M_PI, 2 * M_PI);
+    double angle_ssa = result < 0 ? result + M_PI : result - M_PI;
+    return angle_ssa;
+}
 
 Eigen::Quaterniond vector3d_to_quaternion(const Eigen::Vector3d& vector) {
     double angle = vector.norm();

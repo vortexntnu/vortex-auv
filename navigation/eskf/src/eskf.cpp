@@ -5,6 +5,7 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include "eskf/eskf_utils.hpp"
 #include "eskf/typedefs.hpp"
+#include "iostream"
 
 ESKF::ESKF(const eskf_params& params) : Q_(params.Q) {}
 
@@ -50,37 +51,38 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
 
     Eigen::Vector3d v_n = current_nom_state_.vel;
 
-    Hx.block<3, 3>(0, 3) = R_bn;
+    Hx.block<3, 3>(0, 3) = R_bn.transpose();
 
-    Eigen::Matrix<double, 3, 4> dR_dq;
     double qw = q.w();
     double qx = q.x();
     double qy = q.y();
     double qz = q.z();
 
-    Eigen::Vector3d epsilon(qx, qy, qz);
+    Eigen::Matrix3d I3   = Eigen::Matrix3d::Identity();
 
-    Eigen::Vector3d e_1(1, 0, 0);
-    Eigen::Vector3d e_2(0, 1, 0);
-    Eigen::Vector3d e_3(0, 0, 1);
+    Eigen::Vector3d eps(qx, qy, qz);
 
-    dR_dq.col(0) =
-        ((4 * qw * Eigen::Matrix3d::Identity()) + (2 * skew(epsilon))) * v_n;
+    Eigen::Matrix3d dR_deta =  2*qw * I3 - 2*skew(eps);
 
-    dR_dq.col(1) = 2 *
-                   ((e_1 * epsilon.transpose()) + (epsilon * e_1.transpose()) +
-                    (qw * skew(e_1))) *
-                   v_n;
+    Eigen::Vector3d e1_vec(1,0,0), e2_vec(0,1,0), e3_vec(0,0,1);
 
-    dR_dq.col(2) = 2 *
-                   ((e_2 * epsilon.transpose()) + (epsilon * e_2.transpose()) +
-                    (qw * skew(e_2))) *
-                   v_n;
+    Eigen::Matrix3d dR_dqx = -2*qx*I3
+                        + 2*(e1_vec*eps.transpose() + eps*e1_vec.transpose())
+                        - 2*qw*skew(e1_vec);
 
-    dR_dq.col(3) = 2 *
-                   ((e_3 * epsilon.transpose()) + (epsilon * e_3.transpose()) +
-                    (qw * skew(e_3))) *
-                   v_n;
+    Eigen::Matrix3d dR_dqy = -2*qy*I3
+                        + 2*(e2_vec*eps.transpose() + eps*e2_vec.transpose())
+                        - 2*qw*skew(e2_vec);
+
+    Eigen::Matrix3d dR_dqz = -2*qz*I3
+                        + 2*(e3_vec*eps.transpose() + eps*e3_vec.transpose())
+                        - 2*qw*skew(e3_vec);
+
+    Eigen::Matrix<double,3,4> dR_dq;
+    dR_dq.col(0) = dR_deta * v_n;  
+    dR_dq.col(1) = dR_dqx  * v_n;   
+    dR_dq.col(2) = dR_dqy  * v_n;   
+    dR_dq.col(3) = dR_dqz  * v_n;   
 
     Hx.block<3, 4>(0, 6) = dR_dq;
 
@@ -100,7 +102,7 @@ Eigen::Matrix3x18d ESKF::calculate_h_jacobian() {
 Eigen::Matrix3x1d ESKF::calculate_h() {
     Eigen::Matrix3x1d h;
     Eigen::Matrix3d R_bn =
-        current_nom_state_.quat.normalized().toRotationMatrix();
+        current_nom_state_.quat.normalized().toRotationMatrix().transpose();
 
     h = R_bn * current_nom_state_.vel;
 
@@ -109,19 +111,13 @@ Eigen::Matrix3x1d ESKF::calculate_h() {
 
 void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
                                   const double dt) {
-    Eigen::Vector3d acc =
-        current_nom_state_.quat.normalized().toRotationMatrix() *
-            imu_meas.accel +
-        current_nom_state_.gravity;
-    Eigen::Vector3d gyro = imu_meas.gyro * dt / 2;
+    Eigen::Vector3d acc = current_nom_state_.quat.normalized().toRotationMatrix() * (imu_meas.accel - current_nom_state_.accel_bias) + current_nom_state_.gravity;
+    Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
 
-    current_nom_state_.pos = current_nom_state_.pos +
-                             current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
+    current_nom_state_.pos = current_nom_state_.pos + current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
 
-    current_nom_state_.quat =
-        (current_nom_state_.quat * vector3d_to_quaternion(gyro));
-
+    current_nom_state_.quat = (current_nom_state_.quat * vector3d_to_quaternion(gyro));
     current_nom_state_.quat.normalize();
 
     current_nom_state_.gyro_bias = current_nom_state_.gyro_bias;
@@ -132,8 +128,8 @@ void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
 void ESKF::error_state_prediction(const imu_measurement& imu_meas,
                                   const double dt) {
     Eigen::Matrix3d R = current_nom_state_.quat.normalized().toRotationMatrix();
-    Eigen::Vector3d acc = imu_meas.accel;
-    Eigen::Vector3d gyro = imu_meas.gyro;
+    Eigen::Vector3d acc = (imu_meas.accel - current_nom_state_.accel_bias);
+    Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias);
 
     Eigen::Matrix18d A_c = Eigen::Matrix18d::Zero();
     A_c.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
@@ -164,6 +160,30 @@ void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
     NIS_ = innovation.transpose() * S_inv * innovation;
 }
 
+void ESKF::NEES() {
+
+    Eigen::Vector18d error_state = current_nom_state_.nees_error(ground_truth_);
+    
+    // Use SVD-based pseudo-inverse for better numerical stability
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(current_error_state_.covariance, 
+                                          Eigen::ComputeThinU | Eigen::ComputeThinV);
+    const double epsilon = 1e-10; // Threshold for singular values
+    Eigen::VectorXd singular_values = svd.singularValues();
+    Eigen::VectorXd singular_values_inv(singular_values.size());
+    
+    for (int i = 0; i < singular_values.size(); ++i) {
+        if (singular_values(i) > epsilon) {
+            singular_values_inv(i) = 1.0 / singular_values(i);
+        } else {
+            singular_values_inv(i) = 0.0;
+        }
+    }
+    
+    Eigen::MatrixXd cov_inv = svd.matrixV() * singular_values_inv.asDiagonal() * svd.matrixU().transpose();
+    
+    NEES_ = error_state.transpose() * cov_inv * error_state;
+}
+
 void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     Eigen::Matrix3x18d H = calculate_h_jacobian();
     Eigen::Matrix18d P = current_error_state_.covariance;
@@ -179,21 +199,18 @@ void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     current_error_state_.covariance =
         I_KH * P * I_KH.transpose() +
         K * R * K.transpose();  // Used joseph form for more stable calculations
+    
+    NEES();
 }
 
 void ESKF::injection_and_reset() {
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
     current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
-    current_nom_state_.quat =
-        current_nom_state_.quat *
-        vector3d_to_quaternion(current_error_state_.euler);
+    current_nom_state_.quat = current_nom_state_.quat * vector3d_to_quaternion(current_error_state_.euler);
     current_nom_state_.quat.normalize();
-    current_nom_state_.gyro_bias =
-        current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
-    current_nom_state_.accel_bias =
-        current_nom_state_.accel_bias + current_error_state_.accel_bias;
-    current_nom_state_.gravity =
-        current_nom_state_.gravity + current_error_state_.gravity;
+    current_nom_state_.gyro_bias = current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
+    current_nom_state_.accel_bias = current_nom_state_.accel_bias + current_error_state_.accel_bias;
+    current_nom_state_.gravity = current_nom_state_.gravity + current_error_state_.gravity;
 
     Eigen::Matrix18d G = Eigen::Matrix18d::Identity();
 

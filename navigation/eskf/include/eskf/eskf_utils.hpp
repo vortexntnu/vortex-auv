@@ -3,10 +3,13 @@
 
 #include "eigen3/Eigen/Dense"
 #include "eskf/typedefs.hpp"
+#include <cmath>
 
 Eigen::Matrix3d skew(const Eigen::Vector3d& v);
 
 double sq(const double& value);
+
+double ssa(const double& angle);
 
 Eigen::Quaterniond vector3d_to_quaternion(const Eigen::Vector3d& vector);
 

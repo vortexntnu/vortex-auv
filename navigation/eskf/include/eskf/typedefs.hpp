@@ -48,7 +48,22 @@ struct state_quat {
     Eigen::Vector19d as_vector() const {
         Eigen::Vector19d vec;
         vec << pos, vel, quat.w(), quat.x(), quat.y(), quat.z(), gyro_bias,
-            accel_bias;
+            accel_bias, gravity;
+        return vec;
+    }
+
+    Eigen::Vector18d nees_error(const state_quat& other) const {
+        Eigen::Vector18d vec;
+        Eigen::Vector3d euler_diff;
+
+        euler_diff = (quat * other.quat.inverse()).toRotationMatrix().eulerAngles(0, 1, 2);
+
+        vec << pos - other.pos, 
+            vel - other.vel,
+            euler_diff, 
+            gyro_bias - other.gyro_bias,
+            accel_bias - other.accel_bias, 
+            gravity - other.gravity;
         return vec;
     }
 
@@ -59,6 +74,7 @@ struct state_quat {
         diff.quat = quat * other.quat.inverse();
         diff.gyro_bias = gyro_bias - other.gyro_bias;
         diff.accel_bias = accel_bias - other.accel_bias;
+        diff.gravity = gravity - other.gravity;
         return diff;
     }
 };
