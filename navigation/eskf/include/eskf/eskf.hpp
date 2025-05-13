@@ -27,6 +27,12 @@ class ESKF {
     // NIS
     double NIS_;
 
+    // NEES
+    double NEES_;
+
+    // ground truth
+    state_quat ground_truth_;
+
    private:
     // @brief Predict the nominal state
     // @param imu_meas: IMU measurement
@@ -46,6 +52,8 @@ class ESKF {
     // @param innovation: Innovation vector
     // @param S: Innovation covariance matrix
     void NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
+
+    void NEES();
 
     // @brief Update the error state
     // @param dvl_meas: DVL measurement
