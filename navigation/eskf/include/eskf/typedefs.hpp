@@ -56,13 +56,12 @@ struct state_quat {
         Eigen::Vector18d vec;
         Eigen::Vector3d euler_diff;
 
-        euler_diff = (quat * other.quat.inverse()).toRotationMatrix().eulerAngles(0, 1, 2);
+        euler_diff = (quat * other.quat.inverse())
+                         .toRotationMatrix()
+                         .eulerAngles(0, 1, 2);
 
-        vec << pos - other.pos, 
-            vel - other.vel,
-            euler_diff, 
-            gyro_bias - other.gyro_bias,
-            accel_bias - other.accel_bias, 
+        vec << pos - other.pos, vel - other.vel, euler_diff,
+            gyro_bias - other.gyro_bias, accel_bias - other.accel_bias,
             gravity - other.gravity;
         return vec;
     }

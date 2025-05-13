@@ -39,9 +39,7 @@ class UKF:
 
         for i in range(2 * n):
             for j in range(n // 2):
-                delta[2 * j + 1, i] = (
-                    np.sqrt(2) * np.sin(2 * j - 1) * ((k * np.pi) / n)
-                )
+                delta[2 * j + 1, i] = np.sqrt(2) * np.sin(2 * j - 1) * ((k * np.pi) / n)
                 delta[2 * j, i] = np.sqrt(2) * np.cos(2 * j - 1) * ((k * np.pi) / n)
 
             if (n % 2) == 1:
