@@ -1,85 +1,81 @@
 import numpy as np
-from ukf_okid_class import (
+from tukf_class import (
     MeasModel,
-    StateQuat,
+    AUVState,
     covariance_measurement,
     covariance_set,
     cross_covariance,
     mean_measurement,
     mean_set,
     F_dynamics,
+    generate_delta_matrix,
 )
 
+def print_matrix(matrix, name="Matrix"):
+    """Custom print function to print matrices in a formatted form."""
+    print(f"{name}: {matrix.shape}")
+    if isinstance(matrix, np.ndarray):
+        for row in matrix:
+            print(" ".join(f"{val:.2f}" for val in row))
+    else:
+        print(matrix)
 
-class UKF:
-    def __init__(self, x_0: StateQuat, Q):
+class TUKF:
+    def __init__(self, x_0: AUVState, Q):
         self.x = x_0
         self.Q = Q
-        # self.G = G
+        self.delta = generate_delta_matrix(len(x_0.as_vector())) / np.sqrt(len(x_0.as_vector()))
         self.sigma_points_list = None
         self.measurement_updated = MeasModel()
-        self.y_i = None
-        self.weight = None
-        self.delta = self.generate_delta_matrix(len(x_0.as_vector()) - 1)
-        self.cross_correlation = None
         self.dt = 0.01  # Time step for dynamics
+        self.flagg = 0
+        self.filter_failed = False
 
-    def generate_delta_matrix(self, n: float) -> np.ndarray:
-        """Generates the weight matrix used in the TUKF sigma point generation.
-
-        Parameters:
-            n (int): The state dimension.
-
-        Returns:
-            delta (np.ndarray): An n x 2n orthonormal transformation matrix used to generate TUKF sigma points.
-        """
-        delta = np.zeros((n, 2 * n))
-        k = 0.00000001  # Tuning parameter to ensure pos def
-
-        for i in range(2 * n):
-            for j in range(n // 2):
-                delta[2 * j + 1, i] = (
-                    np.sqrt(2) * np.sin((2 * j - 1) * ((k * np.pi) / n))
-                )
-                delta[2 * j, i] = np.sqrt(2) * np.cos((2 * j - 1) * ((k * np.pi) / n))
-
-            if (n % 2) == 1:
-                delta[n - 1, i] = (-1) ** i
-        return delta
-
-    def sigma_points(self, current_state: StateQuat) -> list[StateQuat]:
+    def sigma_points(self, current_state: AUVState) -> list[AUVState]:
         """Functions that generate the sigma points for the UKF."""
         n = len(current_state.covariance)
-
-        S = np.linalg.cholesky(current_state.covariance + self.Q)
-
-        self.sigma_points_list = [StateQuat() for _ in range(2 * n)]
+        self.flagg += 1
+        try:
+            S = np.linalg.cholesky(current_state.covariance)
+        except np.linalg.LinAlgError:
+            print("Cholesky decomposition failed!")
+            print("flagg", self.flagg)
+            print_matrix(current_state.covariance, "Current State Covariance")
+            print_matrix(self.Q, "Process Noise Covariance (Q)")
+            
+            # Set flag to indicate filter has failed
+            self.filter_failed = True
+            
+            # Create a valid but minimal S matrix to avoid crashing
+            # This allows the simulation to continue to the next step where it can be checked
+            S = np.eye(n) * 1e-6
+            
+        self.sigma_points_list = [AUVState() for _ in range(2 * n)]
 
         for index, state in enumerate(self.sigma_points_list):
-            delta_x = S @ self.delta[:, index]
-            state.fill_dynamic_states(current_state.as_vector(), delta_x)
+            state.fill_states(current_state.as_vector() + S @ self.delta[:, index])
 
         return self.sigma_points_list
 
-    def unscented_transform(self, current_state: StateQuat, control_force: np.ndarray) -> StateQuat:
+    def unscented_transform(self, current_state: AUVState, control_force: np.ndarray) -> AUVState:
         """The unscented transform function generates the priori state estimate."""
         self.sigma_points(current_state)
         n = len(current_state.covariance)
 
-        self.y_i = [StateQuat() for _ in range(2 * n)]
+        self.y_i = [AUVState() for _ in range(2 * n)]
 
         for i, sp in enumerate(self.sigma_points_list):
             self.y_i[i] = F_dynamics(sp, self.dt, control_force)
 
-        state_estimate = StateQuat()
+        state_estimate = AUVState()
         x = mean_set(self.y_i)
 
         state_estimate.fill_states(x)
-        state_estimate.covariance = covariance_set(self.y_i, x)
+        state_estimate.covariance = covariance_set(self.y_i, x) + + self.Q
         return state_estimate
 
     def measurement_update(
-        self, current_state: StateQuat, measurement: MeasModel
+        self, current_state: AUVState, measurement: MeasModel
     ) -> None:
         """Function that updates the state estimate with a measurement.
 
@@ -88,7 +84,7 @@ class UKF:
         n = len(current_state.covariance)
         z_i = [MeasModel() for _ in range(2 * n)]
 
-        for i, state in enumerate(self.sigma_points_list):
+        for i, state in enumerate(self.y_i):
             z_i[i] = measurement.H(state)
 
         self.measurement_updated.measurement = mean_measurement(z_i)
@@ -106,9 +102,9 @@ class UKF:
 
     def posteriori_estimate(
         self,
-        current_state: StateQuat,
+        current_state: AUVState,
         measurement: MeasModel,
-    ) -> StateQuat:
+    ) -> AUVState:
         """Calculates the posteriori estimate using measurement and the prior estimate."""
         nu_k = MeasModel()
         nu_k.measurement = (
@@ -118,10 +114,10 @@ class UKF:
 
         K_k = np.dot(self.cross_correlation, np.linalg.inv(nu_k.covariance))
 
-        posteriori_estimate = StateQuat()
+        posteriori_estimate = AUVState()
 
-        posteriori_estimate.fill_states_different_dim(
-            current_state.as_vector(), np.dot(K_k, nu_k.measurement)
+        posteriori_estimate.fill_states(
+            current_state.as_vector() + np.dot(K_k, nu_k.measurement)
         )
         posteriori_estimate.covariance = current_state.covariance - np.dot(
             K_k, np.dot(nu_k.covariance, np.transpose(K_k))
