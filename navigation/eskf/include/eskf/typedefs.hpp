@@ -26,6 +26,8 @@ typedef Eigen::Matrix<double, 18, 3> Matrix18x3d;
 typedef Eigen::Matrix<double, 36, 36> Matrix36d;
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 9, 9> Matrix9d;
+typedef Eigen::Matrix<double, 15, 15> Matrix15d;
+typedef Eigen::Matrix<double, 15, 1> Vector15d;
 }  // namespace Eigen
 
 template <int N>
@@ -36,7 +38,7 @@ Eigen::Matrix<double, N, N> createDiagonalMatrix(
 }
 
 struct state_quat {
-    Eigen::Vector3d pos = Eigen::Vector3d::Zero();
+    Eigen::Vector3d pos = Eigen::Vector3d(0,0,0.125);
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
@@ -58,7 +60,7 @@ struct state_quat {
 
         euler_diff = (quat * other.quat.inverse())
                          .toRotationMatrix()
-                         .eulerAngles(0, 1, 2);
+                         .eulerAngles(0, 1, 2) + Eigen::Vector3d(-M_PI, M_PI, -M_PI);
 
         vec << pos - other.pos, vel - other.vel, euler_diff,
             gyro_bias - other.gyro_bias, accel_bias - other.accel_bias,
