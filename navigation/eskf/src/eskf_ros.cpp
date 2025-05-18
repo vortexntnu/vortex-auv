@@ -48,7 +48,7 @@ void ESKFNode::set_subscribers_and_publisher() {
         odom_topic, qos_sensor_data);
 
     nis_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nis", 10);
-    nees_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/needs", 10);
+    nees_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nees", 10);
 }
 
 void ESKFNode::set_parameters() {
@@ -123,8 +123,10 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 }
 
 void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
+    // Log that we received a DVL message
+    // spdlog::info("DVL message received");
     dvl_meas_.vel << msg->velocity.x, msg->velocity.y, msg->velocity.z;
-    dvl_meas_.cov << 0.001, 0.0, 0.0, 0.0, 0.001, 0.0, 0.0, 0.0, 0.001;
+    dvl_meas_.cov << 0.004*0.004, 0.0, 0.0, 0.0, 0.004*0.004, 0.0, 0.0, 0.0, 0.004*0.004;
 
     // msg->velocity_covariance[0], msg->velocity_covariance[1],
     // msg->velocity_covariance[2],
@@ -144,7 +146,7 @@ void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
 
     float gravity_x = 0.0;
     float gravity_y = 0.0;
-    float gravity_z = -9.81;
+    float gravity_z = 9.81;
 
     g_truth_.gyro_bias << gyro_bias_x, gyro_bias_y, gyro_bias_z;
     g_truth_.accel_bias << accel_bias_x, accel_bias_y, accel_bias_z;
