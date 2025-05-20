@@ -311,7 +311,7 @@ def angular_velocity_transformation(euler_angles: np.ndarray) -> np.ndarray:
     return T
 
 def M_rb(inertia: np.ndarray) -> np.ndarray:
-    m = 30.0
+    m = 25.5
     inertia = inertia.reshape((3, 3))
     r_b_bg = np.array([0.01, 0.0, 0.02])
     M_rb = np.zeros((6, 6))
@@ -330,7 +330,7 @@ def M_a(added_mass: np.ndarray) -> np.ndarray:
 
 def C_rb(inertia: np.ndarray, angular_velocity: np.ndarray) -> np.ndarray:
     """Calculates the Coriolis matrix."""
-    m = 30.0
+    m = 25.5
     r_b_bg = np.array([0.01, 0.0, 0.02])
     inertia = inertia.reshape((3, 3))
     C_rb = np.zeros((6, 6))

@@ -160,22 +160,6 @@ void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
     Eigen::Matrix3d S_inv = S.inverse();
     NIS_ = innovation.transpose() * S_inv * innovation;
 }
-
-void ESKF::NEEDS() {
-    Eigen::Vector18d error_state = current_nom_state_.nees_error(ground_truth_);
-    Eigen::Vector15d error_state_trim = error_state.head<15>();
-    // Set the last 6 elements of error_state_trim to zero
-    for (int i = 9; i < 15; i++) {
-        error_state_trim(i) = 0;
-    }
-    error_state_trim(6) = 0.001;
-    error_state_trim(7) = 0.001;
-    error_state_trim(8) = 0.001;
-    Eigen::Matrix15d P = current_error_state_.covariance.block<15, 15>(0, 0);
-    Eigen::Matrix15d P_inv = P.inverse();
-    NEES_ = error_state_trim.transpose() * P_inv * error_state_trim;
-}
-
 void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     Eigen::Matrix3x18d H = calculate_h_jacobian();
     Eigen::Matrix18d P = current_error_state_.covariance;
@@ -192,8 +176,6 @@ void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     current_error_state_.covariance =
         I_KH * P * I_KH.transpose() +
         K * R * K.transpose();  // Used joseph form for more stable calculations
-
-    NEEDS();
 }
 
 void ESKF::injection_and_reset() {

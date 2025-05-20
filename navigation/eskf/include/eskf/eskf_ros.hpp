@@ -21,11 +21,6 @@ class ESKFNode : public rclcpp::Node {
     explicit ESKFNode();
 
    private:
-    void pose_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-
-    void twist_callback(
-        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
@@ -33,7 +28,7 @@ class ESKFNode : public rclcpp::Node {
 
     // @brief Callback function for the dvl topic
     // @param msg: TwistWithCovarianceStamped message containing the dvl data
-    void dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg);
+    void dvl_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Publish the odometry message
     void publish_odom();
@@ -46,27 +41,17 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
 
-    rclcpp::Subscription<stonefish_ros2::msg::DVL>::SharedPtr dvl_sub_;
-
-    rclcpp::Subscription<
-        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
-
-    rclcpp::Subscription<
-        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
-
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nees_pub_;
 
     std::chrono::milliseconds time_step;
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
 
     state_quat nom_state_;
-
-    state_quat g_truth_;
 
     state_euler error_state_;
 
