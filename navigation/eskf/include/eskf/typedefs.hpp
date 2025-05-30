@@ -38,9 +38,9 @@ Eigen::Matrix<double, N, N> createDiagonalMatrix(
 }
 
 struct state_quat {
-    Eigen::Vector3d pos = Eigen::Vector3d(0,0,0.125);
+    Eigen::Vector3d pos = Eigen::Vector3d(5.58, 0.66, 0.12);
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
-    Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
+    Eigen::Quaterniond quat = Eigen::Quaterniond(0.98, -0.047, 0.028, -0.18);
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d gravity = Eigen::Vector3d::Zero();

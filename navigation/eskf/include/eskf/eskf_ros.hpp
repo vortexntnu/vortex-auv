@@ -21,7 +21,7 @@ class ESKFNode : public rclcpp::Node {
     explicit ESKFNode();
 
    private:
-
+    
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
     void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
