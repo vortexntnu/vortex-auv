@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ukf_python</name>
+  <name>tukf_rsi</name>
   <version>1.0.0</version>
-  <description>Uscented Kalman filter for AUV model</description>
-  <maintainer email="talha@stud.ntnu.no">talha</maintainer>
+  <description>Transformed Unscented Kalman Filter</description>
+  <maintainer email="talhanc@stud.ntnu.no">talhanc</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>rclpy</depend>
+  <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>eigen</depend>
+  <depend>tf2</depend>
   <depend>vortex_msgs</depend>
-  <depend>python-control-pip</depend>
-  <depend>std_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
