@@ -128,6 +128,14 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.y = nom_state_.vel.y();
     odom_msg.twist.twist.linear.z = nom_state_.vel.z();
 
+    // Add bias values to the angular velocity field of twist
+    odom_msg.twist.twist.angular.x = nom_state_.accel_bias.x();
+    odom_msg.twist.twist.angular.y = nom_state_.accel_bias.y();
+    odom_msg.twist.twist.angular.z = nom_state_.accel_bias.z();
+
+    // If you also want to include gyro bias, you could add it to the covariance
+    // matrix or publish a separate topic for biases
+
     odom_msg.header.stamp = this->now();
     odom_pub_->publish(odom_msg);
 }

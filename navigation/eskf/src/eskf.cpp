@@ -43,6 +43,7 @@ Eigen::Matrix4x3d ESKF::calculate_q_delta() {
     q_delta_theta *= 0.5;
     return q_delta_theta;
 }
+
 Eigen::Matrix3x19d ESKF::calculate_hx() {
     Eigen::Matrix3x19d Hx = Eigen::Matrix3x19d::Zero();
 
@@ -51,43 +52,21 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
 
     Eigen::Vector3d v_n = current_nom_state_.vel;
 
+    // Correct derivative w.r.t velocity (nominal state: v_n)
     Hx.block<3, 3>(0, 3) = R_bn.transpose();
 
+    // Derivative w.r.t quaternion (nominal state: q)
+    // Compute partial derivative w.r.t quaternion directly:
     double qw = q.w();
-    double qx = q.x();
-    double qy = q.y();
-    double qz = q.z();
-
+    Eigen::Vector3d q_vec(q.x(), q.y(), q.z());
     Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
 
-    Eigen::Vector3d eps(qx, qy, qz);
+    Eigen::Matrix<double,3,4> dhdq;
+    dhdq.col(0) =  2*( qw*v_n + q_vec.cross(v_n) );
+    dhdq.block<3,3>(0,1) = 2*( q_vec.dot(v_n)*I3 + q_vec*v_n.transpose() - v_n*q_vec.transpose() - qw*skew(v_n) );
 
-    Eigen::Matrix3d dR_deta = 2 * qw * I3 - 2 * skew(eps);
-
-    Eigen::Vector3d e1_vec(1, 0, 0), e2_vec(0, 1, 0), e3_vec(0, 0, 1);
-
-    Eigen::Matrix3d dR_dqx =
-        -2 * qx * I3 +
-        2 * (e1_vec * eps.transpose() + eps * e1_vec.transpose()) -
-        2 * qw * skew(e1_vec);
-
-    Eigen::Matrix3d dR_dqy =
-        -2 * qy * I3 +
-        2 * (e2_vec * eps.transpose() + eps * e2_vec.transpose()) -
-        2 * qw * skew(e2_vec);
-
-    Eigen::Matrix3d dR_dqz =
-        -2 * qz * I3 +
-        2 * (e3_vec * eps.transpose() + eps * e3_vec.transpose()) -
-        2 * qw * skew(e3_vec);
-
-    Eigen::Matrix<double, 3, 4> dR_dq;
-    dR_dq.col(0) = dR_deta * v_n;
-    dR_dq.col(1) = dR_dqx * v_n;
-    dR_dq.col(2) = dR_dqy * v_n;
-    dR_dq.col(3) = dR_dqz * v_n;
-
-    Hx.block<3, 4>(0, 6) = dR_dq;
+    // Assign quaternion derivative (3x4 block at columns 6:9)
+    Hx.block<3,4>(0,6) = dhdq;
 
     return Hx;
 }
@@ -107,7 +86,7 @@ Eigen::Vector3d ESKF::calculate_h() {
     Eigen::Matrix3d R_bn = current_nom_state_.quat.normalized().toRotationMatrix().transpose();
 
     h = R_bn * current_nom_state_.vel;
-
+    //0.027293, 0.028089, 0.028089, 0.00255253, 0.00270035, 0.00280294,
     return h;
 }
 
