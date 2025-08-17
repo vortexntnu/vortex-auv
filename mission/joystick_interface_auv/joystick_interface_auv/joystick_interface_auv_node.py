@@ -21,7 +21,7 @@ class JoystickInterface(Node):
         self.init_movement()
         self.set_publishers_and_subscribers()
 
-        self._mode = JoyStates.KILLSWITCH
+        self._mode = JoyStates.XBOX_MODE
 
         self._current_state = PoseData()
         self._desired_state = PoseData()
