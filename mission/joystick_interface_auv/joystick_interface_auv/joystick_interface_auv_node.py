@@ -4,7 +4,7 @@ import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Joy, JointState
 from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
@@ -106,6 +106,10 @@ class JoystickInterface(Node):
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
             String, self.operation_mode_topic, 2
+        )
+
+        self._gripper_publisher = self.create_publisher(
+            JointState, "/stonefish/servos", 1
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
@@ -354,6 +358,21 @@ class JoystickInterface(Node):
             elif xbox_control_mode_button:
                 self.transition_to_xbox_mode()
 
+        # Gripper control
+        close = float(buttons.get("stick_button_left", 0))
+        open = -float(buttons.get("stick_button_right", 0))
+        rotate = axes.get("dpad_horizontal", 0.0)
+        pitch = axes.get("dpad_vertical", 0.0)
+
+        grip = close + open
+
+        gripper_msg = JointState()
+        gripper_msg.header.stamp = self.get_clock().now().to_msg()
+        gripper_msg.header.frame_id = "base_link"
+        gripper_msg.name = ["Orca/Shoulder_joint", "Orca/Arm_joint", "Orca/Finger_joint1", "Orca/Finger_joint2"]
+        gripper_msg.velocity = [pitch, rotate, grip, grip]
+
+        self._gripper_publisher.publish(gripper_msg)
 
 def main():
     rclpy.init()
