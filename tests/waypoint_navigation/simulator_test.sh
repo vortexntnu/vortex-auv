@@ -20,7 +20,7 @@ cleanup() {
 trap cleanup ERR
 
 # Launch Stonefish Simulator
-setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false &
+setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
 
