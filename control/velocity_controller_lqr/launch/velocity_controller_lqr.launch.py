@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch_ros.actions import Node
+from launch_ros.actions import LifecycleNode
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -22,20 +22,13 @@ def generate_launch_description() -> LaunchDescription:
         "param_velocity_controller_lqr.yaml",
     )
 
-    topic_file = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        "orca.yaml",
-    )
-
-    velocity_controller_node = Node(
+    velocity_controller_node = LifecycleNode(
         package="velocity_controller_lqr",
         executable="velocity_controller_lqr_node.py",
         name="velocity_controller_lqr_node",
-        namespace="orca",
+        namespace="",
         output="screen",
-        parameters=[parameter_file, topic_file],
+        parameters=[parameter_file],
     )
 
     return LaunchDescription([velocity_controller_node])
