@@ -272,14 +272,9 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     def control_loop(self) -> None:
         """The control loop that calculates the input for the LQR controller."""
-        if (
-            self.controller.killswitch == False
-            and self.controller.operation_mode == "autonomous mode"
-        ):
-            self.publisherLQR.publish(msg)
-
-        else:
+        if (self.controller.killswitch == True or self.controller.operation_mode != "autonomous mode"):
             self.controller.reset_controller()
+            return
 
         msg = Wrench()
 
@@ -290,6 +285,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
 
+        self.publisherLQR.publish(msg)
 
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
 
