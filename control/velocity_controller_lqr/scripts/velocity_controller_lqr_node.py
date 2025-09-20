@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
-from geometry_msgs.msg import (
-    PoseWithCovarianceStamped,
-    TwistWithCovarianceStamped,
-    Wrench,
-)
+from geometry_msgs.msg import (PoseWithCovarianceStamped,
+                               TwistWithCovarianceStamped, Wrench)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
-    GuidanceValues,
-    LQRController,
-    LQRParameters,
-    State,
-)
+    GuidanceValues, LQRController, LQRParameters, State)
 from vortex_msgs.msg import LOSGuidance
 
 
@@ -170,7 +163,7 @@ class LinearQuadraticRegulator(LifecycleNode):
             killswitch_topic,
         )
 
-    def get_parameters(self):
+    def get_parameters(self) -> None:
         """Updates the LQR_params in the LQR_parameters Dataclass."""
         self.declare_parameter("LQR_params.q_surge")
         self.declare_parameter("LQR_params.q_pitch")
@@ -207,7 +200,7 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         self.lqr_params.dt = self.get_parameter("LQR_params.dt").value
 
-    def get_and_reshape_inertia_matrix(self):
+    def get_and_reshape_inertia_matrix(self) -> None:
         """Gets the inertia matrix from config and reshapes it to proper np array"""
         self.declare_parameter("inertia_matrix")
         self.inertia_matrix = self.get_parameter("inertia_matrix").value
@@ -217,7 +210,7 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     # ------------------------- CALLBACK FUNCTIONS ---------------------------
 
-    def pose_callback(self, msg: PoseWithCovarianceStamped):
+    def pose_callback(self, msg: PoseWithCovarianceStamped) -> None:
         """Callback function for the pose data from sensors.
 
         Parameters: msg: PoseWithCovarianceStamped The pose data from the DVL.
@@ -230,7 +223,7 @@ class LinearQuadraticRegulator(LifecycleNode):
             msg.pose.pose.orientation.z,
         )
 
-    def operation_callback(self, msg: String):
+    def operation_callback(self, msg: String) -> None:
         """Callback function for the operation mode data.
 
         Parameters: String: msg: The operation mode data from the AUV.
@@ -238,7 +231,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         """
         self.controller.operation_mode = msg.data
 
-    def twist_callback(self, msg: TwistWithCovarianceStamped):
+    def twist_callback(self, msg: TwistWithCovarianceStamped) -> None:
         """Callback function for the Twist data from DVL.
 
         Parameters: msg: TwistWithCovarianceStamped The twist data from the DVL.
@@ -253,7 +246,7 @@ class LinearQuadraticRegulator(LifecycleNode):
             msg.twist.twist.linear.z,
         )
 
-    def guidance_callback(self, msg: LOSGuidance):
+    def guidance_callback(self, msg: LOSGuidance) -> None:
         """Callback function for the guidance data.
 
         Parameters: LOSGuidance: msg: The guidance data from the LOS guidance system.
@@ -263,7 +256,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.guidance_values.pitch = msg.pitch
         self.guidance_values.yaw = msg.yaw
 
-    def killswitch_callback(self, msg: Bool):
+    def killswitch_callback(self, msg: Bool) -> None:
         """Callback function for the killswitch data.
 
         Parameters: String: msg: The killswitch data from the AUV.
@@ -277,7 +270,7 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
-    def control_loop(self):
+    def control_loop(self) -> None:
         """The control loop that calculates the input for the LQR controller."""
         if (
             self.controller.killswitch == False
