@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
-from geometry_msgs.msg import (PoseWithCovarianceStamped,
-                               TwistWithCovarianceStamped, Wrench)
+from geometry_msgs.msg import (
+    PoseWithCovarianceStamped,
+    TwistWithCovarianceStamped,
+    Wrench,
+)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
-    GuidanceValues, LQRController, LQRParameters, State)
+    GuidanceValues,
+    LQRController,
+    LQRParameters,
+    State,
+)
 from vortex_msgs.msg import LOSGuidance
 
 
@@ -272,7 +279,10 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     def control_loop(self) -> None:
         """The control loop that calculates the input for the LQR controller."""
-        if (self.controller.killswitch == True or self.controller.operation_mode != "autonomous mode"):
+        if (
+            self.controller.killswitch == True
+            or self.controller.operation_mode != "autonomous mode"
+        ):
             self.controller.reset_controller()
             return
 
@@ -286,6 +296,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         msg.torque.z = float(u[2])
 
         self.publisherLQR.publish(msg)
+
 
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
 
