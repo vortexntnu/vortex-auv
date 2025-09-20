@@ -38,6 +38,7 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         # ---------------- CALLBACK VARIABLES INITIALIZATION ----------------
         self.coriolis_matrix = np.zeros((3, 3))
+        self.inertia_matrix = np.zeros((3,3))
         self.states = State()
         self.guidance_values = GuidanceValues()
         self.lqr_params = LQRParameters()
@@ -51,10 +52,12 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.control_timer = None
 
         # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
-        inertia_matrix = self.get_parameters()
-        self.controller = LQRController(self.lqr_params, inertia_matrix)
+        self.get_and_reshape_inertia_matrix()
+        self.controller = LQRController(self.lqr_params, self.inertia_matrix)
 
     def on_configure(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        
+        self.get_parameters()
         # -------------------------- GET ALL TOPICS -------------------------
         (
             pose_topic,
@@ -96,7 +99,7 @@ class LinearQuadraticRegulator(LifecycleNode):
             LOSGuidance,
             guidance_topic,
             self.guidance_callback,
-            qos_profile=self.best_effort_qos,
+            qos_profile=self.reliable_qos,
         )
 
         # ---------------------------- PUBLISHERS ----------------------------
@@ -169,31 +172,25 @@ class LinearQuadraticRegulator(LifecycleNode):
         )
 
     def get_parameters(self):
-        """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.
+        """Updates the LQR_params in the LQR_parameters Dataclass."""
+        
+        self.declare_parameter("LQR_params.q_surge")
+        self.declare_parameter("LQR_params.q_pitch")
+        self.declare_parameter("LQR_params.q_yaw")
 
-        Returns:
-        inertia_matrix: np.array: The inertia matrix of the AUV
-        """
-        self.declare_parameter("LQR_params.q_surge", 75)
-        self.declare_parameter("LQR_params.q_pitch", 175)
-        self.declare_parameter("LQR_params.q_yaw", 175)
+        self.declare_parameter("LQR_params.r_surge")
+        self.declare_parameter("LQR_params.r_pitch")
+        self.declare_parameter("LQR_params.r_yaw")
 
-        self.declare_parameter("LQR_params.r_surge", 0.3)
-        self.declare_parameter("LQR_params.r_pitch", 0.4)
-        self.declare_parameter("LQR_params.r_yaw", 0.4)
+        self.declare_parameter("LQR_params.i_surge")
+        self.declare_parameter("LQR_params.i_pitch")
+        self.declare_parameter("LQR_params.i_yaw")
 
-        self.declare_parameter("LQR_params.i_surge", 0.3)
-        self.declare_parameter("LQR_params.i_pitch", 0.4)
-        self.declare_parameter("LQR_params.i_yaw", 0.3)
+        self.declare_parameter("LQR_params.i_weight")
 
-        self.declare_parameter("LQR_params.i_weight", 0.5)
+        self.declare_parameter("LQR_params.dt")
 
-        self.declare_parameter("LQR_params.dt", 0.1)
-
-        self.declare_parameter("max_force", 99.5)
-        self.declare_parameter(
-            "inertia_matrix", [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
-        )
+        self.declare_parameter("max_force")
 
         self.lqr_params.q_surge = self.get_parameter("LQR_params.q_surge").value
         self.lqr_params.q_pitch = self.get_parameter("LQR_params.q_pitch").value
@@ -212,15 +209,20 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         self.lqr_params.dt = self.get_parameter("LQR_params.dt").value
 
-        inertia_matrix_flat = self.get_parameter("inertia_matrix").value
-        inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
 
-        return inertia_matrix
+    def get_and_reshape_inertia_matrix(self):
+        """Gets the inertia matrix from config and reshapes it to proper np array"""
+        self.declare_parameter("inertia_matrix")
+        self.inertia_matrix = self.get_parameter("inertia_matrix").value
+        inertia_matrix_reshaped = np.array(self.inertia_matrix).reshape((3, 3))
+        
+        self.inertia_matrix = inertia_matrix_reshaped
+
 
     # ------------------------- CALLBACK FUNCTIONS ---------------------------
 
     def pose_callback(self, msg: PoseWithCovarianceStamped):
-        """Callback function for the pose data from DVL.
+        """Callback function for the pose data from sensors.
 
         Parameters: msg: PoseWithCovarianceStamped The pose data from the DVL.
 
@@ -281,15 +283,6 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     def control_loop(self):
         """The control loop that calculates the input for the LQR controller."""
-        msg = Wrench()
-
-        u = self.controller.calculate_lqr_u(
-            self.coriolis_matrix, self.states, self.guidance_values
-        )
-        msg.force.x = float(u[0])
-        msg.torque.y = float(u[1])
-        msg.torque.z = float(u[2])
-
         if (
             self.controller.killswitch == False
             and self.controller.operation_mode == "autonomous mode"
@@ -298,8 +291,16 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         else:
             self.controller.reset_controller()
+            
+        msg = Wrench()
+        
 
-
+        u = self.controller.calculate_lqr_u(
+            self.coriolis_matrix, self.states, self.guidance_values
+        )
+        msg.force.x = float(u[0])
+        msg.torque.y = float(u[1])
+        msg.torque.z = float(u[2])
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
 
 
