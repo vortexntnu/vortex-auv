@@ -208,7 +208,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.lqr_params.dt = self.get_parameter("LQR_params.dt").value
 
     def get_and_reshape_inertia_matrix(self) -> None:
-        """Gets the inertia matrix from config and reshapes it to proper np array"""
+        """Gets the inertia matrix from config and reshapes it to proper np array."""
         self.declare_parameter("inertia_matrix")
         self.inertia_matrix = self.get_parameter("inertia_matrix").value
         inertia_matrix_reshaped = np.array(self.inertia_matrix).reshape((3, 3))
