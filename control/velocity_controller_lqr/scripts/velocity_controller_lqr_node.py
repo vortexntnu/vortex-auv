@@ -38,7 +38,7 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         # ---------------- CALLBACK VARIABLES INITIALIZATION ----------------
         self.coriolis_matrix = np.zeros((3, 3))
-        self.inertia_matrix = np.zeros((3,3))
+        self.inertia_matrix = np.zeros((3, 3))
         self.states = State()
         self.guidance_values = GuidanceValues()
         self.lqr_params = LQRParameters()
@@ -56,7 +56,6 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.controller = LQRController(self.lqr_params, self.inertia_matrix)
 
     def on_configure(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
-        
         self.get_parameters()
         # -------------------------- GET ALL TOPICS -------------------------
         (
@@ -173,7 +172,6 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     def get_parameters(self):
         """Updates the LQR_params in the LQR_parameters Dataclass."""
-        
         self.declare_parameter("LQR_params.q_surge")
         self.declare_parameter("LQR_params.q_pitch")
         self.declare_parameter("LQR_params.q_yaw")
@@ -209,15 +207,13 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         self.lqr_params.dt = self.get_parameter("LQR_params.dt").value
 
-
     def get_and_reshape_inertia_matrix(self):
         """Gets the inertia matrix from config and reshapes it to proper np array"""
         self.declare_parameter("inertia_matrix")
         self.inertia_matrix = self.get_parameter("inertia_matrix").value
         inertia_matrix_reshaped = np.array(self.inertia_matrix).reshape((3, 3))
-        
-        self.inertia_matrix = inertia_matrix_reshaped
 
+        self.inertia_matrix = inertia_matrix_reshaped
 
     # ------------------------- CALLBACK FUNCTIONS ---------------------------
 
@@ -291,9 +287,8 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         else:
             self.controller.reset_controller()
-            
+
         msg = Wrench()
-        
 
         u = self.controller.calculate_lqr_u(
             self.coriolis_matrix, self.states, self.guidance_values
@@ -301,6 +296,8 @@ class LinearQuadraticRegulator(LifecycleNode):
         msg.force.x = float(u[0])
         msg.torque.y = float(u[1])
         msg.torque.z = float(u[2])
+
+
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
 
 
