@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
-from geometry_msgs.msg import (PoseWithCovarianceStamped,
-                               TwistWithCovarianceStamped, Wrench)
+from geometry_msgs.msg import (
+    PoseWithCovarianceStamped,
+    TwistWithCovarianceStamped,
+    Wrench,
+)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
-    GuidanceValues, LQRController, LQRParameters, State)
+    GuidanceValues,
+    LQRController,
+    LQRParameters,
+    State,
+)
 from vortex_msgs.msg import LOSGuidance
 
 
@@ -188,10 +195,9 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         self.declare_parameter("LQR_params.dt")
         self.declare_parameter("max_force")
-    
+
     def get_parameters(self) -> None:
         """Gets the declared parameters from the configuration file."""
-
         self.lqr_params.q_surge = self.get_parameter("LQR_params.q_surge").value
         self.lqr_params.q_pitch = self.get_parameter("LQR_params.q_pitch").value
         self.lqr_params.q_yaw = self.get_parameter("LQR_params.q_yaw").value
@@ -281,10 +287,7 @@ class LinearQuadraticRegulator(LifecycleNode):
 
     def control_loop(self) -> None:
         """The control loop that calculates the input for the LQR controller."""
-        if (
-            self.killswitch == True
-            or self.operation_mode != "autonomous mode"
-        ):
+        if self.killswitch == True or self.operation_mode != "autonomous mode":
             self.controller.reset_controller()
             return
 

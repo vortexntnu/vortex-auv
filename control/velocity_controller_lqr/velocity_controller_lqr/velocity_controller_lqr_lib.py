@@ -221,7 +221,7 @@ class LQRController:
         self.i_pitch = parameters.i_pitch
         self.i_yaw = parameters.i_yaw
         self.i_weight = parameters.i_weight
-        
+
         self.max_force = parameters.max_force
         self.operation_mode = parameters.operation_mode
         self.killswitch = parameters.killswitch
