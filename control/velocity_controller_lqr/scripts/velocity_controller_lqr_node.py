@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
-from geometry_msgs.msg import (
-    PoseWithCovarianceStamped,
-    TwistWithCovarianceStamped,
-    Wrench,
-)
+from geometry_msgs.msg import (PoseWithCovarianceStamped,
+                               TwistWithCovarianceStamped, Wrench)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
-    GuidanceValues,
-    LQRController,
-    LQRParameters,
-    State,
-)
+    GuidanceValues, LQRController, LQRParameters, State)
 from vortex_msgs.msg import LOSGuidance
 
 
@@ -33,7 +26,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.reliable_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10,
+            depth=2,
         )
 
         # ---------------- CALLBACK VARIABLES INITIALIZATION ----------------
@@ -62,6 +55,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.controller = LQRController(self.lqr_params, self.inertia_matrix)
 
     def on_configure(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.declare_parameters()
         self.get_parameters()
         # -------------------------- GET ALL TOPICS -------------------------
         (
@@ -176,8 +170,8 @@ class LinearQuadraticRegulator(LifecycleNode):
             killswitch_topic,
         )
 
-    def get_parameters(self) -> None:
-        """Updates the LQR_params in the LQR_parameters Dataclass."""
+    def declare_parameters(self) -> None:
+        """Declares parameters that are to be used from the configuration file."""
         self.declare_parameter("LQR_params.q_surge")
         self.declare_parameter("LQR_params.q_pitch")
         self.declare_parameter("LQR_params.q_yaw")
@@ -194,6 +188,9 @@ class LinearQuadraticRegulator(LifecycleNode):
 
         self.declare_parameter("LQR_params.dt")
         self.declare_parameter("max_force")
+    
+    def get_parameters(self) -> None:
+        """Gets the declared parameters from the configuration file."""
 
         self.lqr_params.q_surge = self.get_parameter("LQR_params.q_surge").value
         self.lqr_params.q_pitch = self.get_parameter("LQR_params.q_pitch").value
