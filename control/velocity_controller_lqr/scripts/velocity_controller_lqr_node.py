@@ -42,13 +42,19 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.states = State()
         self.guidance_values = GuidanceValues()
         self.lqr_params = LQRParameters()
-        # ------------------------ INITIALIZE TO NONE -----------------------
+        self.dt = None
+        # --------------------------- SUBSCRIBERS --------------------------
         self.pose_subscriber = None
         self.twist_subscriber = None
         self.operationmode_subscriber = None
         self.killswitch_subscriber = None
         self.guidance_subscriber = None
+        # ------------------------ CONTROLLER MODES ------------------------
+        self.killswitch = None
+        self.operation_mode = None
+        # --------------------------- PUBLISHERS ---------------------------
         self.publisherLQR = None
+        # ----------------------------- TIMERS -----------------------------
         self.control_timer = None
 
         # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
@@ -85,20 +91,20 @@ class LinearQuadraticRegulator(LifecycleNode):
             String,
             softwareoperation_topic,
             self.operation_callback,
-            qos_profile=self.best_effort_qos,
+            qos_profile=self.reliable_qos,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             killswitch_topic,
             self.killswitch_callback,
-            qos_profile=self.best_effort_qos,
+            qos_profile=self.reliable_qos,
         )
 
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
             guidance_topic,
             self.guidance_callback,
-            qos_profile=self.reliable_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         # ---------------------------- PUBLISHERS ----------------------------
@@ -107,7 +113,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         )
 
         # ------------------------------ TIMERS ------------------------------
-        dt = self.lqr_params.dt
+        dt = self.dt
         self.control_timer = self.create_timer(dt, self.control_loop)
         self.control_timer.cancel()
 
@@ -187,7 +193,6 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.declare_parameter("LQR_params.i_weight")
 
         self.declare_parameter("LQR_params.dt")
-
         self.declare_parameter("max_force")
 
         self.lqr_params.q_surge = self.get_parameter("LQR_params.q_surge").value
@@ -205,7 +210,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         self.lqr_params.i_weight = self.get_parameter("LQR_params.i_weight").value
         self.lqr_params.max_force = self.get_parameter("max_force").value
 
-        self.lqr_params.dt = self.get_parameter("LQR_params.dt").value
+        self.dt = self.get_parameter("LQR_params.dt").value
 
     def get_and_reshape_inertia_matrix(self) -> None:
         """Gets the inertia matrix from config and reshapes it to proper np array."""
@@ -236,7 +241,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         Parameters: String: msg: The operation mode data from the AUV.
 
         """
-        self.controller.operation_mode = msg.data
+        self.operation_mode = msg.data
 
     def twist_callback(self, msg: TwistWithCovarianceStamped) -> None:
         """Callback function for the Twist data from DVL.
@@ -271,17 +276,17 @@ class LinearQuadraticRegulator(LifecycleNode):
         """
         if msg.data == True:
             self.controller.reset_controller()
-            self.controller.killswitch = True
+            self.killswitch = True
         else:
-            self.controller.killswitch = False
+            self.killswitch = False
 
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
     def control_loop(self) -> None:
         """The control loop that calculates the input for the LQR controller."""
         if (
-            self.controller.killswitch == True
-            or self.controller.operation_mode != "autonomous mode"
+            self.killswitch == True
+            or self.operation_mode != "autonomous mode"
         ):
             self.controller.reset_controller()
             return

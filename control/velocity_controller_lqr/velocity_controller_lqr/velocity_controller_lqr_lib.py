@@ -76,9 +76,6 @@ class LQRParameters:
     i_yaw: float = 0.0
     i_weight: float = 0.0
     max_force: float = 0.0
-    operation_mode: str = "xbox mode"
-    killswitch: bool = True
-    dt: float = 0.1
 
 
 class LQRController:
@@ -224,8 +221,8 @@ class LQRController:
         self.i_pitch = parameters.i_pitch
         self.i_yaw = parameters.i_yaw
         self.i_weight = parameters.i_weight
+        
         self.max_force = parameters.max_force
-
         self.operation_mode = parameters.operation_mode
         self.killswitch = parameters.killswitch
         self.dt = parameters.dt
