@@ -223,9 +223,6 @@ class LQRController:
         self.i_weight = parameters.i_weight
 
         self.max_force = parameters.max_force
-        self.operation_mode = parameters.operation_mode
-        self.killswitch = parameters.killswitch
-        self.dt = parameters.dt
 
     def set_matrices(self, inertia_matrix: np.array) -> None:
         """Adjusts the matrices for the LQR controller.
