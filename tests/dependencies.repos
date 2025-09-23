@@ -5,9 +5,6 @@ repositories:
   vortex-utils:
     type: git
     url: https://github.com/vortexntnu/vortex-utils.git
-  vortex-auv:
-    type: git
-    url: https://github.com/vortexntnu/vortex-auv.git
   stonefish_ros2:
     type: git
     url: https://github.com/vortexntnu/stonefish_ros2.git
