@@ -5,7 +5,7 @@ set -o pipefail
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
-. ~/ros2_ws/install/setup.bash
+. "${WORKSPACE:-$HOME/ros2_ws}/install/setup.bash"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Get the directory of this script dynamically
