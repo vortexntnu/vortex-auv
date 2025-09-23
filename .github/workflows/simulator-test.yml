@@ -1,6 +1,8 @@
 name: Simulator Test
 on:
   push:
+    branches:
+      - main
   pull_request:
     types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
@@ -13,7 +15,7 @@ jobs:
         test_script:
           - "tests/waypoint_navigation/simulator_test.sh"
           #- "tests/los_test/simulator_test.sh"
-    uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@ci/simulator-test-checkout-pr-repo
+    uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
     with:
       vcs_repos_file: "tests/dependencies.repos"
       setup_script: "tests/setup.sh"
