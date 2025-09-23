@@ -3,7 +3,7 @@ set -e
 
 # ----------------------------- GLOBAL VARIABLES -----------------------------
 STONEFISH_DIR="$HOME/opt/stonefish"
-ROS_WORKSPACE="$HOME/ros2_ws"
+ROS_WORKSPACE="${WORKSPACE:-$HOME/ros2_ws}"
 LOG_PREFIX="[$(date +%T)]"
 
 # ----------------------------- HELPER FUNCTIONS -----------------------------
