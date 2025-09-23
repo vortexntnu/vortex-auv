@@ -56,7 +56,7 @@ install_stonefish() {
     else
         log_info "Cloning Stonefish repository..."
         mkdir -p "$STONEFISH_DIR"
-        git clone https://github.com/patrykcieslak/stonefish.git "$STONEFISH_DIR"
+        git clone https://github.com/vortexntnu/stonefish.git "$STONEFISH_DIR"
         sed -i '30i#include <cstdint>' /github/home/opt/stonefish/Library/include/sensors/Sample.h
     fi
 
