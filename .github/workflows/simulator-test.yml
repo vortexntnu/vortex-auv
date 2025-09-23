@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
   schedule:
     - cron: '0 1 * * *' # Runs daily at 01:00 UTC
