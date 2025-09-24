@@ -1,6 +1,6 @@
 velocity_controller_node: # Name of the node usually goes here. We use wildcard so that we can change the name from the launch file.
   ros__parameters:
     topic_info_out: "velocity_out_topic"  # parameter name: parameter value
-    topic_w_in: "reference" #reference speed and direction
+    topic_ref_in: "reference" #reference speed and direction
     topic_v_in: "current_velocity" #current speed
     #publish_value: "Hello from config!"  # parameter name: parameter value
