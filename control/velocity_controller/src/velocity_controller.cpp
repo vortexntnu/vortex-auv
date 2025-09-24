@@ -1,5 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "velocity_controller/velocity_controller.hpp"
 //#include "vortex-msgs/msg" kan legge til nye meldinger nå
 
 //Lager en klasse velocity node
@@ -12,7 +13,7 @@ public:
         //Dytter info til log
         RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
 
-        //Parameter from config. !!Needs to create launch file to prevent writing where to get the parameters from
+        //Parameter from config.
         this->declare_parameter<std::string>("topic_info_out");
         this->declare_parameter<std::string>("topic_ref_in");
         info_out_topic = this->get_parameter("topic_info_out").as_string();
