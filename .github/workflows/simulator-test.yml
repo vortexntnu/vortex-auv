@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         test_script:
-          - "tests/waypoint_navigation/simulator_test.sh"
-          #- "tests/los_test/simulator_test.sh"
+          - "tests/simulator_tests/waypoint_navigation/simulator_test.sh"
+          #- "tests/simulator_tests/los_test/simulator_test.sh"
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
     with:
       vcs_repos_file: "tests/dependencies.repos"
