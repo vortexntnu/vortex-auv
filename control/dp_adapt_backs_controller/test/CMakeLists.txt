@@ -11,7 +11,7 @@ add_executable(
 
 target_link_libraries(
     ${TEST_BINARY_NAME}
-    PRIVATE 
+    PRIVATE
     ${LIB_NAME}
     GTest::GTest
 )
