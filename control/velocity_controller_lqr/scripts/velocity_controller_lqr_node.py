@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-
 import numpy as np
 import rclpy
 from geometry_msgs.msg import (
     PoseWithCovarianceStamped,
     TwistWithCovarianceStamped,
-    WrenchStamped,
+    Wrench,
 )
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node
+from rclpy.lifecycle import LifecycleNode
+from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
@@ -20,124 +20,184 @@ from velocity_controller_lqr.velocity_controller_lqr_lib import (
 from vortex_msgs.msg import LOSGuidance
 
 
-class LinearQuadraticRegulator(Node):
+class LinearQuadraticRegulator(LifecycleNode):
     def __init__(self):
+        # ----------------------- DEFINE RELIABILITY ------------------------
         super().__init__("velocity_controller_lqr_node")
-
-        self.get_topics()
-
-        best_effort_qos = QoSProfile(
+        self.best_effort_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
         )
 
-        # ---------------------------- SUBSCRIBERS ---------------------------
+        self.reliable_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=2,
+        )
+
+        # ---------------- CALLBACK VARIABLES INITIALIZATION ----------------
+        self.coriolis_matrix = np.zeros((3, 3))
+        self.inertia_matrix = np.zeros((3, 3))
+        self.states = State()
+        self.guidance_values = GuidanceValues()
+        self.lqr_params = LQRParameters()
+        self.dt = None
+        # --------------------------- SUBSCRIBERS --------------------------
+        self.pose_subscriber = None
+        self.twist_subscriber = None
+        self.operationmode_subscriber = None
+        self.killswitch_subscriber = None
+        self.guidance_subscriber = None
+        # ------------------------ CONTROLLER MODES ------------------------
+        self.killswitch = None
+        self.operation_mode = None
+        # --------------------------- PUBLISHERS ---------------------------
+        self.publisherLQR = None
+        # ----------------------------- TIMERS -----------------------------
+        self.control_timer = None
+
+        # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
+        self.get_and_reshape_inertia_matrix()
+        self.controller = LQRController(self.lqr_params, self.inertia_matrix)
+
+    def on_configure(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.declare_parameters()
+        self.get_parameters()
+        # -------------------------- GET ALL TOPICS -------------------------
+        (
+            pose_topic,
+            twist_topic,
+            guidance_topic,
+            thrust_topic,
+            softwareoperation_topic,
+            killswitch_topic,
+        ) = self.get_topics()
 
         self.pose_subscriber = self.create_subscription(
             PoseWithCovarianceStamped,
-            self.pose_topic,
+            pose_topic,
             self.pose_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         self.twist_subscriber = self.create_subscription(
             TwistWithCovarianceStamped,
-            self.twist_topic,
+            twist_topic,
             self.twist_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         self.operationmode_subscriber = self.create_subscription(
             String,
-            self.operation_mode_topic,
+            softwareoperation_topic,
             self.operation_callback,
-            qos_profile=2,
+            qos_profile=self.reliable_qos,
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
-            self.killswitch_topic,
+            killswitch_topic,
             self.killswitch_callback,
-            qos_profile=2,
+            qos_profile=self.reliable_qos,
         )
 
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
-            self.los_topic,
+            guidance_topic,
             self.guidance_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=self.best_effort_qos,
         )
 
         # ---------------------------- PUBLISHERS ----------------------------
-        self.publisherLQR = self.create_publisher(
-            WrenchStamped, self.wrench_input_topic, best_effort_qos
+        self.publisherLQR = self.create_lifecycle_publisher(
+            Wrench, thrust_topic, self.reliable_qos
         )
 
         # ------------------------------ TIMERS ------------------------------
-        dt = self.declare_parameter("dt", 0.1).get_parameter_value().double_value
+        dt = self.dt
         self.control_timer = self.create_timer(dt, self.control_loop)
+        self.control_timer.cancel()
 
-        # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
-        self.lqr_params = LQRParameters()
-        inertia_matrix = self.get_parameters()
-        self.controller = LQRController(self.lqr_params, inertia_matrix)
+        return TransitionCallbackReturn.SUCCESS
 
-        # ---------------- CALLBACK VARIABLES INITIALIZATION -----------------
-        self.coriolis_matrix = np.zeros((3, 3))
-        self.states = State()
-        self.guidance_values = GuidanceValues()
+    def on_activate(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.control_timer.reset()
+        self.controller.reset_controller()
+        return super().on_activate(previous_state)
 
-    def get_topics(self):
-        """Get the topics from the parameter file."""
-        topics = [
-            "pose",
-            "twist",
-            "los",
-            "wrench_input",
-            "operation_mode",
-            "killswitch",
-        ]
-        for topic in topics:
-            if topic == "los":
-                self.declare_parameter("topics.guidance." + topic, "_")
-                setattr(
-                    self,
-                    topic + "_topic",
-                    self.get_parameter("topics.guidance." + topic).value,
-                )
-                continue
-            self.declare_parameter("topics." + topic, "_")
-            setattr(
-                self,
-                topic + "_topic",
-                self.get_parameter("topics." + topic).value,
-            )
+    def on_deactivate(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.control_timer.cancel()
+        self.controller.reset_controller()
+        return super().on_activate(previous_state)
 
-    def get_parameters(self):
-        """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.
+    def on_cleanup(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.destroy_publisher(self.publisherLQR)
+        self.destroy_timer(self.control_timer)
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_shutdown(self, previous_state: LifecycleState) -> TransitionCallbackReturn:
+        self.destroy_publisher(self.publisherLQR)
+        self.destroy_timer(self.control_timer)
+        return TransitionCallbackReturn.SUCCESS
+
+    def get_topics(self) -> None:
+        """Get the topics from the parameter server.
 
         Returns:
-        inertia_matrix: np.array: The inertia matrix of the AUV
+        odom_topic: str: The topic for accessing the odometry data from the parameter file
+        twist_topic: str: The topic for accessing the twist data from the parameter file
+        pose_topic: str: The topic for accessing the pose data from the parameter file
+        guidance_topic: str: The topic for accessing the guidance data the parameter file
+        thrust_topic: str: The topic for accessing the thrust data from the parameter file
         """
-        self.declare_parameter("LQR_params.q_surge", 75)
-        self.declare_parameter("LQR_params.q_pitch", 175)
-        self.declare_parameter("LQR_params.q_yaw", 175)
-
-        self.declare_parameter("LQR_params.r_surge", 0.3)
-        self.declare_parameter("LQR_params.r_pitch", 0.4)
-        self.declare_parameter("LQR_params.r_yaw", 0.4)
-
-        self.declare_parameter("LQR_params.i_surge", 0.3)
-        self.declare_parameter("LQR_params.i_pitch", 0.4)
-        self.declare_parameter("LQR_params.i_yaw", 0.3)
-
-        self.declare_parameter("LQR_params.i_weight", 0.5)
-
-        self.declare_parameter("max_force", 99.5)
+        self.declare_parameter("topics.pose_topic", "/dvl/pose")
+        self.declare_parameter("topics.twist_topic", "/dvl/twist")
+        self.declare_parameter("topics.guidance_topic", "/guidance/los")
+        self.declare_parameter("topics.thrust_topic", "/thrust/wrench_input")
         self.declare_parameter(
-            "inertia_matrix", [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
+            "topics.softwareoperation_topic", "/softwareOperationMode"
+        )
+        self.declare_parameter("topics.killswitch_topic", "/softwareKillSwitch")
+
+        pose_topic = self.get_parameter("topics.pose_topic").value
+        twist_topic = self.get_parameter("topics.twist_topic").value
+        guidance_topic = self.get_parameter("topics.guidance_topic").value
+        thrust_topic = self.get_parameter("topics.thrust_topic").value
+        softwareoperation_topic = self.get_parameter(
+            "topics.softwareoperation_topic"
+        ).value
+        killswitch_topic = self.get_parameter("topics.killswitch_topic").value
+
+        return (
+            pose_topic,
+            twist_topic,
+            guidance_topic,
+            thrust_topic,
+            softwareoperation_topic,
+            killswitch_topic,
         )
 
+    def declare_parameters(self) -> None:
+        """Declares parameters that are to be used from the configuration file."""
+        self.declare_parameter("LQR_params.q_surge")
+        self.declare_parameter("LQR_params.q_pitch")
+        self.declare_parameter("LQR_params.q_yaw")
+
+        self.declare_parameter("LQR_params.r_surge")
+        self.declare_parameter("LQR_params.r_pitch")
+        self.declare_parameter("LQR_params.r_yaw")
+
+        self.declare_parameter("LQR_params.i_surge")
+        self.declare_parameter("LQR_params.i_pitch")
+        self.declare_parameter("LQR_params.i_yaw")
+
+        self.declare_parameter("LQR_params.i_weight")
+
+        self.declare_parameter("LQR_params.dt")
+        self.declare_parameter("max_force")
+
+    def get_parameters(self) -> None:
+        """Gets the declared parameters from the configuration file."""
         self.lqr_params.q_surge = self.get_parameter("LQR_params.q_surge").value
         self.lqr_params.q_pitch = self.get_parameter("LQR_params.q_pitch").value
         self.lqr_params.q_yaw = self.get_parameter("LQR_params.q_yaw").value
@@ -153,15 +213,20 @@ class LinearQuadraticRegulator(Node):
         self.lqr_params.i_weight = self.get_parameter("LQR_params.i_weight").value
         self.lqr_params.max_force = self.get_parameter("max_force").value
 
-        inertia_matrix_flat = self.get_parameter("inertia_matrix").value
-        inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
+        self.dt = self.get_parameter("LQR_params.dt").value
 
-        return inertia_matrix
+    def get_and_reshape_inertia_matrix(self) -> None:
+        """Gets the inertia matrix from config and reshapes it to proper np array."""
+        self.declare_parameter("inertia_matrix")
+        self.inertia_matrix = self.get_parameter("inertia_matrix").value
+        inertia_matrix_reshaped = np.array(self.inertia_matrix).reshape((3, 3))
 
-    # ---------------------------------------------------------------CALLBACK FUNCTIONS---------------------------------------------------------------
+        self.inertia_matrix = inertia_matrix_reshaped
 
-    def pose_callback(self, msg: PoseWithCovarianceStamped):
-        """Callback function for the pose data from DVL.
+    # ------------------------- CALLBACK FUNCTIONS ---------------------------
+
+    def pose_callback(self, msg: PoseWithCovarianceStamped) -> None:
+        """Callback function for the pose data from sensors.
 
         Parameters: msg: PoseWithCovarianceStamped The pose data from the DVL.
 
@@ -173,15 +238,15 @@ class LinearQuadraticRegulator(Node):
             msg.pose.pose.orientation.z,
         )
 
-    def operation_callback(self, msg: String):
+    def operation_callback(self, msg: String) -> None:
         """Callback function for the operation mode data.
 
         Parameters: String: msg: The operation mode data from the AUV.
 
         """
-        self.controller.operation_mode = msg.data
+        self.operation_mode = msg.data
 
-    def twist_callback(self, msg: TwistWithCovarianceStamped):
+    def twist_callback(self, msg: TwistWithCovarianceStamped) -> None:
         """Callback function for the Twist data from DVL.
 
         Parameters: msg: TwistWithCovarianceStamped The twist data from the DVL.
@@ -196,7 +261,7 @@ class LinearQuadraticRegulator(Node):
             msg.twist.twist.linear.z,
         )
 
-    def guidance_callback(self, msg: LOSGuidance):
+    def guidance_callback(self, msg: LOSGuidance) -> None:
         """Callback function for the guidance data.
 
         Parameters: LOSGuidance: msg: The guidance data from the LOS guidance system.
@@ -206,39 +271,36 @@ class LinearQuadraticRegulator(Node):
         self.guidance_values.pitch = msg.pitch
         self.guidance_values.yaw = msg.yaw
 
-    def killswitch_callback(self, msg: Bool):
+    def killswitch_callback(self, msg: Bool) -> None:
         """Callback function for the killswitch data.
 
         Parameters: String: msg: The killswitch data from the AUV.
 
         """
-        self.controller.killswitch = msg.data
-        if self.controller.killswitch:
+        if msg.data == True:
             self.controller.reset_controller()
+            self.killswitch = True
+        else:
+            self.killswitch = False
 
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
 
-    def control_loop(self):
+    def control_loop(self) -> None:
         """The control loop that calculates the input for the LQR controller."""
-        msg = WrenchStamped()
+        if self.killswitch == True or self.operation_mode != "autonomous mode":
+            self.controller.reset_controller()
+            return
+
+        msg = Wrench()
 
         u = self.controller.calculate_lqr_u(
             self.coriolis_matrix, self.states, self.guidance_values
         )
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = "base_link"
-        msg.wrench.force.x = float(u[0])
-        msg.wrench.torque.y = float(u[1])
-        msg.wrench.torque.z = float(u[2])
+        msg.force.x = float(u[0])
+        msg.torque.y = float(u[1])
+        msg.torque.z = float(u[2])
 
-        if (
-            self.controller.killswitch == False
-            and self.controller.operation_mode == "autonomous mode"
-        ):
-            self.publisherLQR.publish(msg)
-
-        else:
-            self.controller.reset_controller()
+        self.publisherLQR.publish(msg)
 
 
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
