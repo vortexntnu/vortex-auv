@@ -68,10 +68,10 @@ class DPAdaptBacksControllerTests : public ::testing::Test
 };
 
 /* 
-Test that north command only (in body) gives positive surge command only. 
+Test that negative north error only (in body) gives positive surge command only. 
 */
 
-TEST_F(DPAdaptBacksControllerTests, T01_north_error_with_zero_heading_gives_surge_only_command)
+TEST_F(DPAdaptBacksControllerTests, T01_neg_north_error_with_zero_heading_gives_surge_only_command)
 {
     dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
     dp_types::Eta eta_d { generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
@@ -86,11 +86,11 @@ TEST_F(DPAdaptBacksControllerTests, T01_north_error_with_zero_heading_gives_surg
 }
 
 /*
-Test that north command with positive heading gives a positive surge command
+Test that negative north error with positive heading gives a positive surge command
 and negative sway command.
 */
 
-TEST_F(DPAdaptBacksControllerTests, T02_north_error_with_positive_heading_gives_pos_surge_and_neg_sway_command)
+TEST_F(DPAdaptBacksControllerTests, T02_neg_north_error_with_positive_heading_gives_pos_surge_and_neg_sway_command)
 {
     dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5) };
     dp_types::Eta eta_d { generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 1.5) };
@@ -99,6 +99,313 @@ TEST_F(DPAdaptBacksControllerTests, T02_north_error_with_positive_heading_gives_
     EXPECT_GT(tau[0], 0.0);
     EXPECT_LT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative north error with negative heading gives a positive surge command
+and positive sway command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T03_neg_north_error_with_negative_heading_gives_pos_surge_and_pos_sway_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5) };
+    dp_types::Eta eta_d { generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, -1.5) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_GT(tau[0], 0.0);
+    EXPECT_GT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative down error with zero roll and pitch gives a positive heave command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T04_neg_down_error_with_zero_roll_and_pitch_gives_positive_heave_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_GT(tau[2], 0.0);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative down error with zero roll and negative pitch gives a positive heave and positive surge command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T05_neg_down_error_with_zero_roll_and_neg_pitch_gives_positive_heave_and_positive_surge_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, -0.5, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 2.0, 0.0, -0.5, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_GT(tau[0], 0.0);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_GT(tau[2], 0.0);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative down error with zero roll and positive pitch gives a positive heave and negative surge command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T06_neg_down_error_with_zero_roll_and_pos_pitch_gives_positive_heave_and_negative_surge_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.5, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.5, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_LT(tau[0], 0.0);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_GT(tau[2], 0.0);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative east error with zero heading gives a positive sway command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T07_neg_east_error_with_zero_heading_gives_positive_sway_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_GT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that positive east error with zero heading gives a negative sway command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T08_pos_east_error_with_zero_heading_gives_pos_sway_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, -10.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_LT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative east error with positive heading gives a positive surge and sway command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T09_neg_east_error_with_positive_heading_gives_pos_sway_and_pos_surge_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 1.5) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_GT(tau[0], 0.0);
+    EXPECT_GT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative east error with negative heading gives a negative surge and positive sway command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T10_neg_east_error_with_negative_heading_gives_pos_sway_and_neg_surge_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, -1.5) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_LT(tau[0], 0.0);
+    EXPECT_GT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative roll error gives positive roll command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T11_neg_roll_error_gives_positive_roll_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 1.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_GT(tau[3], 0.0);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that positive roll error gives negative roll command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T12_pos_roll_error_gives_neg_roll_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, -1.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_LT(tau[3], 0.0);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative pitch error gives positive pitch command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T13_neg_pitch_error_gives_pos_pitch_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, 1.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_GT(tau[4], 0.0);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that positive pitch error gives negative pitch command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T14_pos_pitch_error_gives_neg_pitch_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, -1.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_LT(tau[4], 0.0);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that negative yaw error gives positive yaw command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T15_neg_yaw_error_gives_pos_yaw_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_GT(tau[5], 0.0);
+}
+
+/*
+Test that positive yaw error gives negative yaw command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T16_pos_yaw_error_gives_neg_yaw_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_LT(tau[5], 0.0);
+}
+
+/*
+Test that positive surge velocity only results in negative surge command (breaking effect).
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T17_pos_surge_vel_gives_negative_surge_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(1.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_LT(tau[0], 0.0);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that positive sway velocity only results in negative sway command (breaking effect).
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T18_pos_sway_vel_gives_negative_sway_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 1.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_LT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
+/*
+Test that positive heave velocity only results in negative heave command (breaking effect).
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T19_pos_heave_vel_gives_negative_heave_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Eta eta_d { generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 1.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_NEAR(tau[0], 0.0, 0.01);
+    EXPECT_NEAR(tau[1], 0.0, 0.01);
+    EXPECT_LT(tau[2], 0.0);
     EXPECT_NEAR(tau[3], 0.0, 0.01);
     EXPECT_NEAR(tau[4], 0.0, 0.01);
     EXPECT_NEAR(tau[5], 0.0, 0.01);
