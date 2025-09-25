@@ -85,6 +85,25 @@ TEST_F(DPAdaptBacksControllerTests, T01_north_error_with_zero_heading_gives_surg
     EXPECT_NEAR(tau[5], 0.0, 0.01);
 }
 
+/*
+Test that north command with positive heading gives a positive surge command
+and negative sway command.
+*/
+
+TEST_F(DPAdaptBacksControllerTests, T02_north_error_with_positive_heading_gives_pos_surge_and_neg_sway_command)
+{
+    dp_types::Eta eta { generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5) };
+    dp_types::Eta eta_d { generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 1.5) };
+    dp_types::Nu nu { generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0) };
+    dp_types::Vector6d tau { dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu) };
+    EXPECT_GT(tau[0], 0.0);
+    EXPECT_LT(tau[1], 0.0);
+    EXPECT_NEAR(tau[2], 0.0, 0.01);
+    EXPECT_NEAR(tau[3], 0.0, 0.01);
+    EXPECT_NEAR(tau[4], 0.0, 0.01);
+    EXPECT_NEAR(tau[5], 0.0, 0.01);
+}
+
 int main(int argc, char** argv)
 {
     testing::InitGoogleTest(&argc, argv);
