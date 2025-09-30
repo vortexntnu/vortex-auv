@@ -14,8 +14,7 @@ def randomize_pose() -> PoseData:
     pose.y = random.uniform(-10.0, 10.0)
     pose.z = random.uniform(0.5, 3.0)
     pose.roll = 0.0
-    # pose.pitch = random.uniform(-1.0, 1.0)
-    pose.pitch = random.uniform(0.6, 1.0)
+    pose.pitch = random.uniform(-1.0, 1.0)
     pose.yaw = random.uniform(-1.57, 1.57)
 
     return pose
@@ -41,7 +40,7 @@ class ReferenceFilterWaypointClient(Node):
         pitch = goal_pose.pitch
         yaw = goal_pose.yaw
 
-        quat = euler_to_quat(roll, pitch, yaw)
+        quat = euler_to_quat(roll=roll, pitch=pitch, yaw=yaw)
 
         goal_msg.goal.pose.orientation.x = quat[0]
         goal_msg.goal.pose.orientation.y = quat[1]

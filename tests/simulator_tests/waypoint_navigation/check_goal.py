@@ -64,7 +64,7 @@ def main(args=None):
             q_x = node.current_pose_.pose.pose.orientation.x
             q_y = node.current_pose_.pose.pose.orientation.y
             q_z = node.current_pose_.pose.pose.orientation.z
-            current_ori = quat_to_euler(q_x, q_y, q_z, q_w)
+            current_ori = quat_to_euler(x=q_x, y=q_y, z=q_z, w=q_w)
             dist = math.sqrt(
                 (goal_pos[0] - x) ** 2 + (goal_pos[1] - y) ** 2 + (goal_pos[2] - z) ** 2
             )
