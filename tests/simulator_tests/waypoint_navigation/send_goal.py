@@ -14,7 +14,8 @@ def randomize_pose() -> PoseData:
     pose.y = random.uniform(-10.0, 10.0)
     pose.z = random.uniform(0.5, 3.0)
     pose.roll = 0.0
-    pose.pitch = random.uniform(-1.0, 1.0)
+    # pose.pitch = random.uniform(-1.0, 1.0)
+    pose.pitch = random.uniform(0.6, 1.0)
     pose.yaw = random.uniform(-1.57, 1.57)
 
     return pose
