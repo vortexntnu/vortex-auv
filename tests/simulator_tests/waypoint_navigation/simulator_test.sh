@@ -19,8 +19,7 @@ cleanup() {
 }
 trap cleanup ERR
 
-# setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
-setsid ros2 bag record -o ${WORKSPACE}/log/recording -s mcap -a &
+setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
 BAG_PID=$!
 echo "Started bagging with PID: $BAG_PID"
 
