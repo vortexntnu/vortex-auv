@@ -19,6 +19,10 @@ cleanup() {
 }
 trap cleanup ERR
 
+setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
+BAG_PID=$!
+echo "Started bagging with PID: $BAG_PID"
+
 # Launch Stonefish Simulator
 setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
 SIM_PID=$!
@@ -94,6 +98,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID"
+kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$BAG_PID"
 
 echo "Test completed successfully."

@@ -33,7 +33,8 @@ install_cpp_dependencies() {
         git \
         libglm-dev \
         libsdl2-dev \
-        libfreetype6-dev
+        libfreetype6-dev \
+        ros-humble-rosbag2-storage-mcap
     log_info "C++ dependencies installed."
 }
 
