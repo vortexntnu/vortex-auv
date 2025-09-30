@@ -26,8 +26,8 @@ print(f"Temp file {file_path} deleted")
 goal_pos = data["pos"]
 goal_ori = data["ori"]
 
-pos_tol = 0.3  # meters
-ori_tol = 0.3  # rad
+pos_tol = 0.1  # meters
+ori_tol = 0.1  # rad
 
 
 class CheckGoalNode(Node):
@@ -77,6 +77,8 @@ def main(args=None):
 
             if dist < pos_tol and dist_ori < ori_tol:
                 print(f"Drone reached goal: {goal_pos} and orientation: {goal_ori}")
+                print(f"Final drone pose: ({x, y, z}), {current_ori}")
+                print(f"Euclidean error: {dist}, {dist_ori}")
                 rclpy.shutdown()
                 exit(0)
 
