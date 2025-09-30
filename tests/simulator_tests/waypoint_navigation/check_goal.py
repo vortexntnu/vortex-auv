@@ -81,6 +81,7 @@ def main(args=None):
                 exit(0)
 
     print(f"Drone did not reach goal: {goal_pos} and orientation: {goal_ori}")
+    print(f"Current_drone pose: ({x, y, z}), {current_ori}")
     rclpy.shutdown()
     exit(1)
 
