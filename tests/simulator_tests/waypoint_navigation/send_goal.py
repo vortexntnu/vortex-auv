@@ -1,36 +1,62 @@
-import numpy as np
+import random
+
 import rclpy
+import yaml
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from vortex_msgs.action import ReferenceFilterWaypoint
+from vortex_utils.python_utils import PoseData, euler_to_quat
+
+
+def randomize_pose() -> PoseData:
+    pose: PoseData = PoseData()
+    pose.x = random.uniform(-10.0, 10.0)
+    pose.y = random.uniform(-10.0, 10.0)
+    pose.z = random.uniform(0.5, 3.0)
+    pose.roll = 0.0
+    pose.pitch = random.uniform(-1.0, 1.0)
+    pose.yaw = random.uniform(-1.57, 1.57)
+
+    return pose
 
 
 class ReferenceFilterWaypointClient(Node):
     def __init__(self):
         super().__init__('reference_filter_waypoint_client')
-        # Create the action client
+
         self._action_client = ActionClient(
             self, ReferenceFilterWaypoint, '/orca/reference_filter'
         )
         self.send_goal()
 
     def send_goal(self):
+        goal_pose = randomize_pose()
         goal_msg = ReferenceFilterWaypoint.Goal()
 
-        # Create a PoseStamped message with the goal
-        goal_msg.goal.pose.position.x = 2.0
-        goal_msg.goal.pose.position.y = 4.5
-        goal_msg.goal.pose.position.z = 3.0
-        roll = 0.0
-        pitch = 0.0
-        yaw = 0.0
+        goal_msg.goal.pose.position.x = goal_pose.x
+        goal_msg.goal.pose.position.y = goal_pose.y
+        goal_msg.goal.pose.position.z = goal_pose.z
+        roll = goal_pose.roll
+        pitch = goal_pose.pitch
+        yaw = goal_pose.yaw
 
-        quat = self.euler_to_quat(roll, pitch, yaw)
+        quat = euler_to_quat(roll, pitch, yaw)
 
-        goal_msg.goal.pose.orientation.w = quat[0]
-        goal_msg.goal.pose.orientation.x = quat[1]
-        goal_msg.goal.pose.orientation.y = quat[2]
-        goal_msg.goal.pose.orientation.z = quat[3]
+        goal_msg.goal.pose.orientation.x = quat[0]
+        goal_msg.goal.pose.orientation.y = quat[1]
+        goal_msg.goal.pose.orientation.z = quat[2]
+        goal_msg.goal.pose.orientation.w = quat[3]
+
+        # Write goal pose to temp file
+        file_path = "goal_pose.yaml"
+
+        data = {
+            "pos": [goal_pose.x, goal_pose.y, goal_pose.z],
+            "ori": [goal_pose.roll, goal_pose.pitch, goal_pose.yaw],
+        }
+
+        with open(file_path, "w") as f:
+            yaml.safe_dump(data, f)
 
         # Send the goal asynchronously
         self._action_client.wait_for_server(timeout_sec=10.0)
@@ -54,22 +80,6 @@ class ReferenceFilterWaypointClient(Node):
         self.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
-
-    @staticmethod
-    def euler_to_quat(roll: float, pitch: float, yaw: float) -> np.ndarray:
-        cy = np.cos(yaw * 0.5)
-        sy = np.sin(yaw * 0.5)
-        cp = np.cos(pitch * 0.5)
-        sp = np.sin(pitch * 0.5)
-        cr = np.cos(roll * 0.5)
-        sr = np.sin(roll * 0.5)
-
-        w = cy * cp * cr + sy * sp * sr
-        x = cy * cp * sr - sy * sp * cr
-        y = sy * cp * sr + cy * sp * cr
-        z = sy * cp * cr - cy * sp * sr
-
-        return np.array([w, x, y, z])
 
 
 def main(args=None):

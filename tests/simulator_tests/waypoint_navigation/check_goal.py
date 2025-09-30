@@ -1,10 +1,13 @@
 import math
+import os
 import time
 
 import rclpy
+import yaml
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from vortex_utils.python_utils import quat_to_euler
 
 best_effort_qos = QoSProfile(
     history=QoSHistoryPolicy.KEEP_LAST,
@@ -12,8 +15,19 @@ best_effort_qos = QoSProfile(
     reliability=QoSReliabilityPolicy.BEST_EFFORT,
 )
 
-goal = (2.0, 4.5, 3.0)
-tolerance = 0.3  # meters
+# Read goal from temp file
+file_path = "goal_pose.yaml"
+with open(file_path) as f:
+    data = yaml.safe_load(f)
+
+# Remove temp file
+os.remove(file_path)
+print(f"Temp file {file_path} deleted")
+goal_pos = data["pos"]
+goal_ori = data["ori"]
+
+pos_tol = 0.1  # meters
+ori_tol = 0.1  # rad
 
 
 class CheckGoalNode(Node):
@@ -35,7 +49,7 @@ def main(args=None):
     rclpy.init(args=args)
     node = CheckGoalNode()
 
-    print(f"Waiting for drone to reach goal: {goal}")
+    print(f"Waiting for drone to reach goal: {goal_pos} with orientation {goal_ori}")
 
     start_time = time.time()
     timeout = 20  # seconds
@@ -46,16 +60,27 @@ def main(args=None):
             x = node.current_pose_.pose.pose.position.x
             y = node.current_pose_.pose.pose.position.y
             z = node.current_pose_.pose.pose.position.z
+            q_w = node.current_pose_.pose.pose.orientation.w
+            q_x = node.current_pose_.pose.pose.orientation.x
+            q_y = node.current_pose_.pose.pose.orientation.y
+            q_z = node.current_pose_.pose.pose.orientation.z
+            current_ori = quat_to_euler(q_x, q_y, q_z, q_w)
             dist = math.sqrt(
-                (goal[0] - x) ** 2 + (goal[1] - y) ** 2 + (goal[2] - z) ** 2
+                (goal_pos[0] - x) ** 2 + (goal_pos[1] - y) ** 2 + (goal_pos[2] - z) ** 2
             )
 
-            if dist < tolerance:
-                print(f"Drone reached goal: {goal}")
+            dist_ori = math.sqrt(
+                (goal_ori[0] - current_ori[0]) ** 2
+                + (goal_ori[1] - current_ori[1]) ** 2
+                + (goal_ori[2] - current_ori[2]) ** 2
+            )
+
+            if dist < pos_tol and dist_ori < ori_tol:
+                print(f"Drone reached goal: {goal_pos} and orientation: {goal_ori}")
                 rclpy.shutdown()
                 exit(0)
 
-    print(f"Drone did not reach goal: {goal}")
+    print(f"Drone did not reach goal: {goal_pos} and orientation: {goal_ori}")
     rclpy.shutdown()
     exit(1)
 
