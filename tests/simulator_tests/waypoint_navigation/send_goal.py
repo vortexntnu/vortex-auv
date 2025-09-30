@@ -60,7 +60,7 @@ class ReferenceFilterWaypointClient(Node):
 
         # Send the goal asynchronously
         self._action_client.wait_for_server(timeout_sec=10.0)
-        self.get_logger().info('Sending goal...')
+        self.get_logger().info(f'Sending goal {goal_pose}...')
         self._send_goal_future = self._action_client.send_goal_async(goal_msg)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 

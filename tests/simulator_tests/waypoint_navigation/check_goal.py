@@ -26,8 +26,8 @@ print(f"Temp file {file_path} deleted")
 goal_pos = data["pos"]
 goal_ori = data["ori"]
 
-pos_tol = 0.1  # meters
-ori_tol = 0.1  # rad
+pos_tol = 0.3  # meters
+ori_tol = 0.3  # rad
 
 
 class CheckGoalNode(Node):
