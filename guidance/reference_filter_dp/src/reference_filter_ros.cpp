@@ -1,6 +1,16 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <reference_filter_dp/reference_filter_ros.hpp>
+#include <string_view>
+
+auto start_message{R"(
+  ____       __                                _____ _ _ _
+ |  _ \ ___ / _| ___ _ __ ___ _ __   ___ ___  |  ___(_) | |_ ___ _ __
+ | |_) / _ \ |_ / _ \ '__/ _ \ '_ \ / __/ _ \ | |_  | | | __/ _ \ '__|
+ |  _ <  __/  _|  __/ | |  __/ | | | (_|  __/ |  _| | | | ||  __/ |
+ |_| \_\___|_|  \___|_|  \___|_| |_|\___\___| |_|   |_|_|\__\___|_|
+
+ )"};
 
 ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
     : Node("reference_filter_node", options) {
@@ -14,7 +24,7 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 
     x_ = Vector18d::Zero();
 
-    spdlog::info("Reference filter node initialized");
+    spdlog::info(start_message);
 }
 
 void ReferenceFilterNode::set_subscribers_and_publisher() {
