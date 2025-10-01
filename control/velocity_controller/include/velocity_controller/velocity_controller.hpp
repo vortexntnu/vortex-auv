@@ -9,8 +9,11 @@
 class Velocity_node : public rclcpp::Node{
     public:
     Velocity_node();
+
     //Timer functions
     void publish_thrust();
+    void calc_thrust();
+
     //Callback functions
     void guidance_callback(const geometry_msgs::msg::WrenchStamped::SharedPtr msg_ptr);
     void killswitch_callback(const geometry_msgs::msg::WrenchStamped::SharedPtr msg_ptr);
@@ -20,7 +23,9 @@ class Velocity_node : public rclcpp::Node{
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr publisher_thrust;
     
     //Timer instance
-    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr timer_PID;
+    rclcpp::TimerBase::SharedPtr timer_publish;
+    
     //Subscriber instance
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr subscriber_twist;
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr subscriber_guidance;
@@ -33,8 +38,20 @@ class Velocity_node : public rclcpp::Node{
     std::string topic_killswitch;
     std::string topic_twist;
 
-    //Stored values
+    //Variables for timers
+    int calculation_rate;
+    int publish_rate;
+
+    //Stored wrenches values
     geometry_msgs::msg::WrenchStamped reference;
     geometry_msgs::msg::WrenchStamped current_velocity_and_orientation;
+    geometry_msgs::msg::WrenchStamped thrust;
+
+    //PID parameters temporary
+    double k_p = 5.0;
+    double k_i = 0.5;
+    double k_d = 0.0;
+    double integral = 0.0;
+    double previous_error = 0.0; //improved Riemanns sums
 };
 

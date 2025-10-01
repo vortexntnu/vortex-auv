@@ -29,6 +29,8 @@
 
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 
+    calculation_rate: 10 #ms integer
+    publish_rate: 10 #ms
     #Clamp parameter
     max_force: 99.5
     #publish_value: "Hello from config!"  # parameter name: parameter value
