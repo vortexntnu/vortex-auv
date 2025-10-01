@@ -1,14 +1,14 @@
 /**:
   ros__parameters:
 
-    topics:
-      odom_topic: /orca/odom
-      twist_topic: /dvl/twist
-      pose_topic: /dvl/pose
-      guidance_topic: /guidance/los
-      thrust_topic: /thrust/wrench_input
-      softwareoperation_topic: /softwareOperationMode
-      killswitch_topic: /softwareKillSwitch
+    # topics:
+    #   odom_topic: /orca/odom
+    #   twist_topic: /dvl/twist
+    #   pose_topic: /dvl/pose
+    #   guidance_topic: /guidance/los
+    #   thrust_topic: /thrust/wrench_input
+    #   softwareoperation_topic: /softwareOperationMode
+    #   killswitch_topic: /softwareKillSwitch
 
     LQR_params:
       q_surge: 75
@@ -25,9 +25,6 @@
 
       i_weight: 0.5
 
-      dt: 0.1
+    dt: 0.1
 
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
-
-    #Clamp parameter
-    max_force: 99.5

@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>velocity_controller_lqr</name>
-  <version>1.0.0</version>
+  <version>0.6.9</version>
   <description>Velocity controller package for the AUV Orca</description>
   <maintainer email="cyprian.github@gmail.com">cyprian</maintainer>
   <license>MIT</license>
