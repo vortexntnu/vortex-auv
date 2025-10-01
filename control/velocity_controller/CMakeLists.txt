@@ -26,7 +26,7 @@ endif()
 ament_package()
 
 add_executable(velocity_controller_node src/velocity_controller.cpp)
-
+add_executable(test_VC_node src/test_VC.cpp)
 target_include_directories(velocity_controller_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -38,11 +38,20 @@ install(DIRECTORY launch
 install(TARGETS velocity_controller_node
   DESTINATION lib/${PROJECT_NAME}
 )
-install(DIRECTORY config 
+install(TARGETS test_VC_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
 
 ament_target_dependencies(velocity_controller_node
+  rclcpp
+  std_msgs
+  vortex_msgs
+  geometry_msgs
+)
+ament_target_dependencies(test_VC_node
   rclcpp
   std_msgs
   vortex_msgs
