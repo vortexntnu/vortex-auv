@@ -21,7 +21,7 @@ def generate_launch_description() -> LaunchDescription:
         "config",
         "param_velocity_controller_lqr.yaml",
     )
-    
+
     topic_file = os.path.join(
         get_package_share_directory("auv_setup"),
         "config",

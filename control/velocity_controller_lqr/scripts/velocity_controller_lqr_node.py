@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 import numpy as np
 import rclpy
-from geometry_msgs.msg import (PoseWithCovarianceStamped,
-                               TwistWithCovarianceStamped, WrenchStamped)
+from geometry_msgs.msg import (
+    PoseWithCovarianceStamped,
+    TwistWithCovarianceStamped,
+    WrenchStamped,
+)
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
-    GuidanceValues, LQRController, LQRParameters, State)
+    GuidanceValues,
+    LQRController,
+    LQRParameters,
+    State,
+)
 from vortex_msgs.msg import LOSGuidance
 
 
@@ -144,7 +151,7 @@ class LinearQuadraticRegulator(LifecycleNode):
         thrust_topic: str: The topic for accessing the thrust data from the parameter file
         software_operation_mode_topic: str: The topic for accessing the operation mode from the parameter file
         killswitch_topic: str: The topic for accessing the killswitch bool from the parameter file
-        
+
         """
         self.declare_parameter("topics.pose", "_")
         self.declare_parameter("topics.twist", "_")
@@ -172,23 +179,23 @@ class LinearQuadraticRegulator(LifecycleNode):
     def declare_params(self) -> None:
         """Declares parameters that are to be used from the configuration file."""
         self.get_logger().info("cool")
-        
+
         self.declare_parameter("LQR_params.q_surge", 0.0)
         self.declare_parameter("LQR_params.q_pitch", 0.0)
         self.declare_parameter("LQR_params.q_yaw", 0.0)
-        
+
         self.get_logger().info("yaw")
 
         self.declare_parameter("LQR_params.r_surge", 0.0)
         self.declare_parameter("LQR_params.r_pitch", 0.0)
         self.declare_parameter("LQR_params.r_yaw", 0.0)
-        
+
         self.get_logger().info("shaw")
 
         self.declare_parameter("LQR_params.i_surge", 0.0)
         self.declare_parameter("LQR_params.i_pitch", 0.0)
         self.declare_parameter("LQR_params.i_yaw", 0.0)
-        
+
         self.get_logger().info("garhamat")
 
         self.declare_parameter("LQR_params.i_weight", 0.0)
@@ -294,9 +301,9 @@ class LinearQuadraticRegulator(LifecycleNode):
         msg = WrenchStamped()
 
         u = self.controller.calculate_lqr_u(
-           self.coriolis_matrix, self.states, self.guidance_values
+            self.coriolis_matrix, self.states, self.guidance_values
         )
-        
+
         msg.wrench.force.x = float(u[0])
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
