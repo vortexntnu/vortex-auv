@@ -3,7 +3,7 @@ set -e
 
 # ----------------------------- GLOBAL VARIABLES -----------------------------
 STONEFISH_DIR="$HOME/opt/stonefish"
-ROS_WORKSPACE="$HOME/ros2_ws"
+ROS_WORKSPACE="${WORKSPACE:-$HOME/ros2_ws}"
 LOG_PREFIX="[$(date +%T)]"
 
 # ----------------------------- HELPER FUNCTIONS -----------------------------
@@ -33,7 +33,8 @@ install_cpp_dependencies() {
         git \
         libglm-dev \
         libsdl2-dev \
-        libfreetype6-dev
+        libfreetype6-dev \
+        ros-humble-rosbag2-storage-mcap
     log_info "C++ dependencies installed."
 }
 
@@ -56,7 +57,7 @@ install_stonefish() {
     else
         log_info "Cloning Stonefish repository..."
         mkdir -p "$STONEFISH_DIR"
-        git clone https://github.com/patrykcieslak/stonefish.git "$STONEFISH_DIR"
+        git clone https://github.com/vortexntnu/stonefish.git "$STONEFISH_DIR"
         sed -i '30i#include <cstdint>' /github/home/opt/stonefish/Library/include/sensors/Sample.h
     fi
 

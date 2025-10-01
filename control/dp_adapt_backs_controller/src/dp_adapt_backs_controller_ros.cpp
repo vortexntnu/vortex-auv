@@ -1,8 +1,18 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <string_view>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
+
+auto start_message{R"(
+  ____  ____     ____            _             _ _
+ |  _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
+ | | | | |_) | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
+ | |_| |  __/  | |__| (_) | | | | |_| | | (_) | | |  __/ |
+ |____/|_|      \____\___/|_| |_|\__|_|  \___/|_|_|\___|_|
+
+)"};
 
 DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     const rclcpp::NodeOptions& options)
@@ -16,7 +26,7 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
 
     set_adap_params();
 
-    spdlog::info("DPAdaptBacksControllerNode initialized");
+    spdlog::info(start_message);
 }
 
 void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {

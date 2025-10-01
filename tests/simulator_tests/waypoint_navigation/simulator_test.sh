@@ -5,7 +5,7 @@ set -o pipefail
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
-. ~/ros2_ws/install/setup.bash
+. "${WORKSPACE:-$HOME/ros2_ws}/install/setup.bash"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Get the directory of this script dynamically
@@ -18,6 +18,10 @@ cleanup() {
     exit 1
 }
 trap cleanup ERR
+
+setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
+BAG_PID=$!
+echo "Started bagging with PID: $BAG_PID"
 
 # Launch Stonefish Simulator
 setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
@@ -94,6 +98,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID"
+kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$BAG_PID"
 
 echo "Test completed successfully."
