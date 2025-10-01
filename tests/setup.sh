@@ -27,7 +27,7 @@ build_ros_workspace() {
     . install/setup.bash
 
     log_info "Building remaining ROS 2 packages..."
-    colcon build --packages-ignore stonefish_ros2 --symlink-install --executor sequential
+    colcon build --packages-ignore stonefish_ros2 --symlink-install
 
     log_info "ROS 2 workspace build complete."
 }
