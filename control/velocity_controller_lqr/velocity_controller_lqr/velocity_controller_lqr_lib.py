@@ -76,8 +76,6 @@ class LQRParameters:
     i_yaw: float = 0.0
     i_weight: float = 0.0
     max_force: float = 0.0
-    operation_mode: str = "xbox mode"
-    killswitch: bool = True
 
 
 class LQRController:
@@ -223,10 +221,8 @@ class LQRController:
         self.i_pitch = parameters.i_pitch
         self.i_yaw = parameters.i_yaw
         self.i_weight = parameters.i_weight
-        self.max_force = parameters.max_force
 
-        self.operation_mode = parameters.operation_mode
-        self.killswitch = parameters.killswitch
+        self.max_force = parameters.max_force
 
     def set_matrices(self, inertia_matrix: np.array) -> None:
         """Adjusts the matrices for the LQR controller.
