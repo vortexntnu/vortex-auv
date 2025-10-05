@@ -21,14 +21,14 @@ class ESKFNode : public rclcpp::Node {
     explicit ESKFNode();
 
    private:
-    
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
     void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
 
     // @brief Callback function for the dvl topic
     // @param msg: TwistWithCovarianceStamped message containing the dvl data
-    void dvl_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+    void dvl_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Publish the odometry message
     void publish_odom();
@@ -41,7 +41,8 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
@@ -63,11 +64,11 @@ class ESKFNode : public rclcpp::Node {
 
     std::unique_ptr<ESKF> eskf_;
 
-    rclcpp::Time last_imu_time_;
-
     bool first_imu_msg_received_ = false;
 
     Eigen::Matrix3d R_imu_eskf_;
+
+    rclcpp::Time last_imu_time_;
 };
 
 #endif  // ESKF_ROS_HPP

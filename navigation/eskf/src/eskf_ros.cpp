@@ -28,7 +28,8 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("dvl_topic");
     std::string dvl_topic = this->get_parameter("dvl_topic").as_string();
-    dvl_sub_ = this->create_subscription<geometry_msgs::msg::TwistWithCovarianceStamped>(
+    dvl_sub_ = this->create_subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>(
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
@@ -95,21 +96,22 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     std::tie(nom_state_, error_state_) = eskf_->imu_update(imu_meas_, dt);
 }
 
-void ESKFNode::dvl_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    // Log that we received a DVL message
-    // spdlog::info("DVL message received");
-    dvl_meas_.vel << msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z;
+void ESKFNode::dvl_callback(
+    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+    dvl_meas_.vel << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
+        msg->twist.twist.linear.z;
 
-    dvl_meas_.cov << msg->twist.covariance[0], msg->twist.covariance[1], msg->twist.covariance[2],
-        msg->twist.covariance[6], msg->twist.covariance[7], msg->twist.covariance[8],
-        msg->twist.covariance[12], msg->twist.covariance[13], msg->twist.covariance[14];
+    dvl_meas_.cov << msg->twist.covariance[0], msg->twist.covariance[1],
+        msg->twist.covariance[2], msg->twist.covariance[6],
+        msg->twist.covariance[7], msg->twist.covariance[8],
+        msg->twist.covariance[12], msg->twist.covariance[13],
+        msg->twist.covariance[14];
 
     std::tie(nom_state_, error_state_) = eskf_->dvl_update(dvl_meas_);
 
     std_msgs::msg::Float64 nis_msg;
     nis_msg.data = eskf_->NIS_;
     nis_pub_->publish(nis_msg);
-
 }
 
 void ESKFNode::publish_odom() {
