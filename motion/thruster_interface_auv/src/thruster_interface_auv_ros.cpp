@@ -1,6 +1,16 @@
 #include "thruster_interface_auv/thruster_interface_auv_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <string_view>
+
+auto start_message{R"(
+  _____ _                    _              ___       _             __
+ |_   _| |__  _ __ _   _ ___| |_ ___ _ __  |_ _|_ __ | |_ ___ _ __ / _| __ _  ___ ___
+   | | | '_ \| '__| | | / __| __/ _ \ '__|  | || '_ \| __/ _ \ '__| |_ / _` |/ __/ _ \
+   | | | | | | |  | |_| \__ \ ||  __/ |     | || | | | ||  __/ |  |  _| (_| | (_|  __/
+   |_| |_| |_|_|   \__,_|___/\__\___|_|    |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
+
+)"};
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
     const rclcpp::NodeOptions& options)
@@ -33,7 +43,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
 
     this->initialize_parameter_handler();
 
-    spdlog::info("thruster_interface_auv_node correctly initialized");
+    spdlog::info(start_message);
 }
 
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
