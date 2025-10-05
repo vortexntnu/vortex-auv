@@ -61,12 +61,14 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
     Eigen::Vector3d q_vec(q.x(), q.y(), q.z());
     Eigen::Matrix3d I3 = Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix<double,3,4> dhdq;
-    dhdq.col(0) =  2*( qw*v_n + q_vec.cross(v_n) );
-    dhdq.block<3,3>(0,1) = 2*( q_vec.dot(v_n)*I3 + q_vec*v_n.transpose() - v_n*q_vec.transpose() - qw*skew(v_n) );
+    Eigen::Matrix<double, 3, 4> dhdq;
+    dhdq.col(0) = 2 * (qw * v_n + q_vec.cross(v_n));
+    dhdq.block<3, 3>(0, 1) =
+        2 * (q_vec.dot(v_n) * I3 + q_vec * v_n.transpose() -
+             v_n * q_vec.transpose() - qw * skew(v_n));
 
     // Assign quaternion derivative (3x4 block at columns 6:9)
-    Hx.block<3,4>(0,6) = dhdq;
+    Hx.block<3, 4>(0, 6) = dhdq;
 
     return Hx;
 }
@@ -83,22 +85,28 @@ Eigen::Matrix3x18d ESKF::calculate_h_jacobian() {
 
 Eigen::Vector3d ESKF::calculate_h() {
     Eigen::Vector3d h;
-    Eigen::Matrix3d R_bn = current_nom_state_.quat.normalized().toRotationMatrix().transpose();
+    Eigen::Matrix3d R_bn =
+        current_nom_state_.quat.normalized().toRotationMatrix().transpose();
 
     h = R_bn * current_nom_state_.vel;
-    //0.027293, 0.028089, 0.028089, 0.00255253, 0.00270035, 0.00280294,
+    // 0.027293, 0.028089, 0.028089, 0.00255253, 0.00270035, 0.00280294,
     return h;
 }
 
 void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
                                   const double dt) {
-    Eigen::Vector3d acc = current_nom_state_.quat.normalized().toRotationMatrix() * (imu_meas.accel - current_nom_state_.accel_bias) + current_nom_state_.gravity;
+    Eigen::Vector3d acc =
+        current_nom_state_.quat.normalized().toRotationMatrix() *
+            (imu_meas.accel - current_nom_state_.accel_bias) +
+        current_nom_state_.gravity;
     Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
 
-    current_nom_state_.pos = current_nom_state_.pos + current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
+    current_nom_state_.pos = current_nom_state_.pos +
+                             current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
 
-    current_nom_state_.quat = (current_nom_state_.quat * vector3d_to_quaternion(gyro));
+    current_nom_state_.quat =
+        (current_nom_state_.quat * vector3d_to_quaternion(gyro));
     current_nom_state_.quat.normalize();
 
     current_nom_state_.gyro_bias = current_nom_state_.gyro_bias;
@@ -132,7 +140,8 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
     std::tie(A_d, GQG_d) = van_loan_discretization(A_c, G_c, dt);
 
     state_euler next_error_state;
-    current_error_state_.covariance = A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
+    current_error_state_.covariance =
+        A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
 }
 
 void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
@@ -160,7 +169,9 @@ void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
 void ESKF::injection_and_reset() {
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
     current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
-    current_nom_state_.quat = current_nom_state_.quat * vector3d_to_quaternion(current_error_state_.euler);
+    current_nom_state_.quat =
+        current_nom_state_.quat *
+        vector3d_to_quaternion(current_error_state_.euler);
     current_nom_state_.quat.normalize();
     current_nom_state_.gyro_bias =
         current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
