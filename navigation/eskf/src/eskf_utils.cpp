@@ -8,10 +8,10 @@ Eigen::Matrix3d skew(const Eigen::Vector3d& v) {
     return S;
 }
 
-double sq(const double& value) {
+double sq(const double value) {
     return value * value;
 }
-double ssa(const double& angle) {
+double ssa(const double angle) {
     double result = fmod(angle + M_PI, 2 * M_PI);
     double angle_ssa = result < 0 ? result + M_PI : result - M_PI;
     return angle_ssa;
