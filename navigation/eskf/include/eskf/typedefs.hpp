@@ -36,16 +36,15 @@ Eigen::Matrix<double, N, N> createDiagonalMatrix(
     return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
         .asDiagonal();
 }
-
 struct state_quat {
-    Eigen::Vector3d pos = Eigen::Vector3d(5.58, 0.66, 0.12);
+    Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
-    Eigen::Quaterniond quat = Eigen::Quaterniond(0.98, -0.047, 0.028, -0.18);
+    Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
-    Eigen::Vector3d gravity = Eigen::Vector3d::Zero();
+    Eigen::Vector3d gravity = Eigen::Vector3d(0, 0, 9.81);
 
-    state_quat() { gravity << 0, 0, 9.81; }
+    state_quat() = default;
 
     Eigen::Vector19d as_vector() const {
         Eigen::Vector19d vec;
@@ -87,7 +86,7 @@ struct state_euler {
     Eigen::Vector3d euler = Eigen::Vector3d::Zero();
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
-    Eigen::Vector3d gravity = Eigen::Vector3d::Zero();
+    Eigen::Vector3d gravity = Eigen::Vector3d(0, 0, 9.81);
 
     Eigen::Matrix18d covariance = Eigen::Matrix18d::Zero();
 

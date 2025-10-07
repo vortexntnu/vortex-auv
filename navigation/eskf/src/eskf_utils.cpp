@@ -17,6 +17,19 @@ double ssa(const double& angle) {
     return angle_ssa;
 }
 
+Eigen::Matrix4x3d calculate_T_q(const Eigen::Quaterniond& quat) {
+    Eigen::Matrix4x3d T_q = Eigen::Matrix4x3d::Zero();
+    double qw = quat.w();
+    double qx = quat.x();
+    double qy = quat.y();
+    double qz = quat.z();
+
+    T_q << -qx, -qy, -qz, qw, -qz, qy, qz, qw, -qx, -qy, qx, qw;
+
+    T_q *= 0.5;
+    return T_q;
+}
+
 Eigen::Quaterniond vector3d_to_quaternion(const Eigen::Vector3d& vector) {
     double angle = vector.norm();
     if (angle < 1e-8) {
