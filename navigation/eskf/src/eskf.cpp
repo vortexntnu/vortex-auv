@@ -31,19 +31,6 @@ std::pair<Eigen::Matrix18d, Eigen::Matrix18d> ESKF::van_loan_discretization(
     return {A_d, GQG_d};
 }
 
-Eigen::Matrix4x3d ESKF::calculate_q_delta() {
-    Eigen::Matrix4x3d q_delta_theta = Eigen::Matrix4x3d::Zero();
-    double qw = current_nom_state_.quat.w();
-    double qx = current_nom_state_.quat.x();
-    double qy = current_nom_state_.quat.y();
-    double qz = current_nom_state_.quat.z();
-
-    q_delta_theta << -qx, -qy, -qz, qw, -qz, qy, qz, qw, -qx, -qy, qx, qw;
-
-    q_delta_theta *= 0.5;
-    return q_delta_theta;
-}
-
 Eigen::Matrix3x19d ESKF::calculate_hx() {
     Eigen::Matrix3x19d Hx = Eigen::Matrix3x19d::Zero();
 
@@ -76,7 +63,7 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
 Eigen::Matrix3x18d ESKF::calculate_h_jacobian() {
     Eigen::Matrix19x18d x_delta = Eigen::Matrix19x18d::Zero();
     x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
-    x_delta.block<4, 3>(6, 6) = calculate_q_delta();
+    x_delta.block<4, 3>(6, 6) = calculate_T_q(current_nom_state_.quat);
     x_delta.block<9, 9>(10, 9) = Eigen::Matrix9d::Identity();
 
     Eigen::Matrix3x18d H = calculate_hx() * x_delta;
