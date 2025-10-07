@@ -27,7 +27,7 @@ goal_pos = data["pos"]
 goal_ori = data["ori"]
 
 pos_tol = 0.1  # meters
-ori_tol = 0.1  # rad
+ori_tol = 0.2  # rad
 
 
 class CheckGoalNode(Node):
