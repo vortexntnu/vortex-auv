@@ -13,12 +13,12 @@ Eigen::Matrix3d skew(const Eigen::Vector3d& v);
 // @brief Square a value
 // @param value: Input value
 // @return Squared value
-double sq(const double& value);
+double sq(double value);
 
 // @brief Normalize an angle to the range [-pi, pi]
 // @param angle: Input angle in radians
 // @return Normalized angle in radians
-double ssa(const double& angle);
+double ssa(double angle);
 
 // @brief Calculate the transformation matrix using a quaternion
 // @param quat: Input quaternion

@@ -76,13 +76,13 @@ class ESKF {
     Eigen::Vector3d calculate_h();
 
     // Process noise covariance matrix
-    Eigen::Matrix12d Q_;
+    Eigen::Matrix12d Q_{};
 
     // Member variable for the current error state
-    state_euler current_error_state_;
+    state_euler current_error_state_{};
 
     // Member variable for the current nominal state
-    state_quat current_nom_state_;
+    state_quat current_nom_state_{};
 };
 
 #endif  // ESKF_HPP
