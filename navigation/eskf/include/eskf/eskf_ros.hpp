@@ -11,7 +11,6 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <stonefish_ros2/msg/dvl.hpp>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
 #include "spdlog/spdlog.h"

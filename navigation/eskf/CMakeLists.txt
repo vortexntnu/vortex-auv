@@ -18,7 +18,6 @@ find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
-find_package(stonefish_ros2 REQUIRED)
 
 if(NOT DEFINED EIGEN3_INCLUDE_DIR)
   set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
@@ -43,7 +42,6 @@ ament_target_dependencies(eskf_node
   vortex_msgs
   spdlog
   fmt
-  stonefish_ros2
 )
 
 target_link_libraries(eskf_node
