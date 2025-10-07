@@ -3,6 +3,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <cmath>
 #include <std_msgs/msg/float64.hpp>
+//#include "LQR_setup.hpp"
 //Denne noden er kun for å teste velocity_controller noden
 
 class test_VC : public rclcpp::Node{
@@ -24,6 +25,8 @@ class test_VC : public rclcpp::Node{
         thrust_pub = this->create_publisher<std_msgs::msg::Float64>("thrust_value", 10);
 
         RCLCPP_INFO(this->get_logger(), "Test_VC node has been started");
+
+        message.wrench.force.x=1;
     }
 
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr publisher_;
@@ -34,16 +37,11 @@ class test_VC : public rclcpp::Node{
     std::string topic_subscription;
     std::vector<double> thrust_vector;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr thrust_pub;
+    geometry_msgs::msg::WrenchStamped message;
 
     void send_velocity()
     {
-        auto message = geometry_msgs::msg::WrenchStamped();
         message.wrench.force.x = std::sin(clock_->now().seconds()*2*3.14159/10); //sinuskurve med periode 10 sekunder og amplitude 1
-        message.wrench.force.y = 0.0;
-        message.wrench.force.z = 0.0;
-        message.wrench.torque.x = 0.0;
-        message.wrench.torque.y = 0.0;
-        message.wrench.torque.z = 0.0;
         publisher_->publish(message);
     }
 
@@ -53,6 +51,7 @@ class test_VC : public rclcpp::Node{
         std_msgs::msg::Float64 pub_info;
         pub_info.data = thrust_vector.back();
         thrust_pub->publish(pub_info);
+        message.wrench.force.x+=0.01*msg->wrench.force.x;
         //RCLCPP_INFO(this->get_logger(), "Received thrust: '%f'", msg->wrench.force.x);
         return;
     }
@@ -60,6 +59,7 @@ class test_VC : public rclcpp::Node{
 };
 int main(int argc, char const *argv[])
 {
+    
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<test_VC>());
     rclcpp::shutdown();

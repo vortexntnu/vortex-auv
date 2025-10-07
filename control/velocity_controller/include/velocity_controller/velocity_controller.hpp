@@ -41,17 +41,20 @@ class Velocity_node : public rclcpp::Node{
     //Variables for timers
     int calculation_rate;
     int publish_rate;
+    double max_force;
 
     //Stored wrenches values
     geometry_msgs::msg::WrenchStamped reference;
-    geometry_msgs::msg::WrenchStamped current_velocity_and_orientation;
+    geometry_msgs::msg::WrenchStamped current_twist;
     geometry_msgs::msg::WrenchStamped thrust;
 
     //PID parameters temporary
     double k_p = 5.0;
-    double k_i = 0.5;
+    double k_i = 2.0;
     double k_d = 0.0;
     double integral = 0.0;
     double previous_error = 0.0; //improved Riemanns sums
 };
+
+
 

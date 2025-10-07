@@ -17,11 +17,13 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node")
   this->declare_parameter<std::string>("topics.guidance_topic");
   this->declare_parameter<std::string>("topics.twist_topic");
   this->declare_parameter<std::string>("topics.killswitch_topic");
+  this->declare_parameter<double>("max_force");
+  this->max_force = this->get_parameter("max_force").as_double();
   this->topic_thrust = this->get_parameter("topics.thrust_topic").as_string();
   this->topic_guidance = this->get_parameter("topics.guidance_topic").as_string();
   this->topic_twist = this->get_parameter("topics.twist_topic").as_string();
   this->topic_killswitch = this->get_parameter("topics.killswitch_topic").as_string();
-  this->
+  
   // Publishers
   publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, 10);
   
@@ -54,12 +56,24 @@ void Velocity_node::publish_thrust()
   publisher_thrust->publish(thrust);
 }
 
+//** må forbedre integrasjon og derivasjons beregningene
 void Velocity_node::calc_thrust()
 {
-  auto error_x = reference.wrench.force.x - current_velocity_and_orientation.wrench.force.x;
-  //PID controller here
-  integral += error_x * (calculation_rate / 1000.0); //integral term
-  thrust.wrench.force.x = k_p*error_x + k_i*integral; //Placeholder
+  auto error_x = reference.wrench.force.x - current_twist.wrench.force.x;
+  /*if (!(thrust.wrench.force.x == max_force || thrust.wrench.force.x == -max_force)){
+    integral += error_x * (calculation_rate / 1000.0); //anti windup
+  }*/
+  integral += error_x * (calculation_rate / 1000.0);
+  double derivative = (error_x - previous_error) / (calculation_rate / 1000.0);
+  previous_error = error_x;
+   
+  thrust.wrench.force.x = k_p*error_x + k_i*integral+k_d*derivative;
+  if (thrust.wrench.force.x > max_force){
+    thrust.wrench.force.x = max_force;
+  }
+  else if (thrust.wrench.force.x < -max_force){
+    thrust.wrench.force.x = -max_force;
+  }
   return;
 }
 
@@ -73,7 +87,7 @@ void Velocity_node::guidance_callback(const geometry_msgs::msg::WrenchStamped::S
 }
 void Velocity_node::twist_callback(const geometry_msgs::msg::WrenchStamped::SharedPtr msg_ptr){
   //RCLCPP_INFO(this->get_logger(), "Received velocity and orientation: '%f'", msg_ptr->wrench.force.x);
-  current_velocity_and_orientation = *msg_ptr;
+  current_twist = *msg_ptr;
   return;
 }
 
@@ -82,8 +96,8 @@ void Velocity_node::killswitch_callback(const geometry_msgs::msg::WrenchStamped:
   RCLCPP_INFO(this->get_logger(), "Received killswitch: '%f'", msg_ptr->wrench.force.x);
   if(msg_ptr->wrench.force.x == 1.0){
     reference = geometry_msgs::msg::WrenchStamped();
-    current_velocity_and_orientation = geometry_msgs::msg::WrenchStamped();
-    RCLCPP_INFO(this->get_logger(), "Killswitch activated, reference and current velocity set to zero");
+    current_twist = geometry_msgs::msg::WrenchStamped();
+    RCLCPP_INFO(this->get_logger(), "Killswitch activated, reference and current twist set to zero");
   }
   return;
 }

@@ -10,6 +10,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(drake REQUIRED)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -31,7 +34,9 @@ target_include_directories(velocity_controller_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-
+include_directories(${EIGEN3_INCLUDE_DIR})
+include_directories(${drake_INCLUDE_DIRS})
+target_link_libraries(velocity_controller_node ${drake_LIBRARIES})
 install(DIRECTORY launch 
   DESTINATION share/${PROJECT_NAME}/
 )
