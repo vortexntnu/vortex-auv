@@ -17,7 +17,8 @@
 
 class ESKFNode : public rclcpp::Node {
    public:
-    explicit ESKFNode();
+    explicit ESKFNode(
+        const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
     // @brief Callback function for the imu topic
@@ -51,23 +52,23 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
 
-    state_quat nom_state_;
+    state_quat nom_state_{};
 
-    state_euler error_state_;
+    state_euler error_state_{};
 
-    imu_measurement imu_meas_;
+    imu_measurement imu_meas_{};
 
-    dvl_measurement dvl_meas_;
+    dvl_measurement dvl_meas_{};
 
-    eskf_params eskf_params_;
+    eskf_params eskf_params_{};
 
     std::unique_ptr<ESKF> eskf_;
 
     bool first_imu_msg_received_ = false;
 
-    Eigen::Matrix3d R_imu_eskf_;
+    Eigen::Matrix3d R_imu_eskf_{};
 
-    rclcpp::Time last_imu_time_;
+    rclcpp::Time last_imu_time_{};
 };
 
 #endif  // ESKF_ROS_HPP

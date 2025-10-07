@@ -1,9 +1,20 @@
 #include "eskf/eskf_ros.hpp"
 #include <spdlog/spdlog.h>
+#include <rclcpp_components/register_node_macro.hpp>
 #include "eskf/eskf_utils.hpp"
 #include "eskf/typedefs.hpp"
 
-ESKFNode::ESKFNode() : Node("eskf_node") {
+auto start_message{R"(
+     ________   ______   ___  ____   ________
+    |_   __  |.' ____ \ |_  ||_  _| |_   __  |
+      | |_ \_|| (___ \_|  | |_/ /     | |_ \_|
+      |  _| _  _.____`.   |  __'.     |  _|
+     _| |__/ || \____) | _| |  \ \_  _| |_
+    |________| \______.'|____||____||_____|
+)"};
+
+ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
+    : Node("eskf_node", options) {
     time_step = std::chrono::milliseconds(1);
     odom_pub_timer_ = this->create_wall_timer(
         time_step, std::bind(&ESKFNode::publish_odom, this));
@@ -12,15 +23,7 @@ ESKFNode::ESKFNode() : Node("eskf_node") {
 
     set_parameters();
 
-    auto start_message{R"(
-     ________   ______   ___  ____   ________
-    |_   __  |.' ____ \ |_  ||_  _| |_   __  |
-      | |_ \_|| (___ \_|  | |_/ /     | |_ \_|
-      |  _| _  _.____`.   |  __'.     |  _|
-     _| |__/ || \____) | _| |  \ \_  _| |_
-    |________| \______.'|____||____||_____|
-    )"};
-    spdlog::info("\n{}", start_message);
+    spdlog::info(start_message);
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
@@ -149,3 +152,5 @@ void ESKFNode::publish_odom() {
     odom_msg.header.stamp = this->now();
     odom_pub_->publish(odom_msg);
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ESKFNode)
