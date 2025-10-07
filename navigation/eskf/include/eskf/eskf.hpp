@@ -24,8 +24,8 @@ class ESKF {
     std::pair<state_quat, state_euler> dvl_update(
         const dvl_measurement& dvl_meas);
 
-    // NIS
-    double NIS_;
+    // Normalized Innovation Squared
+    double NIS_{};
 
    private:
     // @brief Predict the nominal state
@@ -63,23 +63,15 @@ class ESKF {
         const Eigen::Matrix18x12d& G_c,
         const double dt);
 
-    // @brief Calculate the delta quaternion matrix
-    // @param nom_state: Nominal state
-    // @return Delta quaternion matrix
-    Eigen::Matrix4x3d calculate_q_delta();
-
     // @brief Calculate the measurement matrix jakobian
-    // @param nom_state: Nominal state
     // @return Measurement matrix
     Eigen::Matrix3x19d calculate_hx();
 
     // @brief Calculate the full measurement matrix
-    // @param nom_state: Nominal state
     // @return Measurement matrix
     Eigen::Matrix3x18d calculate_h_jacobian();
 
     // @brief Calculate the measurement
-    // @param nom_state: Nominal state
     // @return Measurement
     Eigen::Vector3d calculate_h();
 

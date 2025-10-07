@@ -14,7 +14,7 @@ def generate_launch_description():
         package="eskf",
         executable="eskf_node",
         name="eskf_node",
-        namespace="orca",
+        # namespace="orca",
         parameters=[
             eskf_params,
         ],
