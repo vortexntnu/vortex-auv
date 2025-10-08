@@ -136,7 +136,7 @@ std::vector<double> LQRController::calculate_lqr_u(std::vector<std::vector<doubl
         vector2d_to_matrix3d(state_weight_matrix),
         vector2d_to_matrix3d(input_weight_matrix));
     std::vector<double> state_error = update_error(guidance_values, states);
-    std::vector<double> u= saturate_input(matrix3d_to_vector(-result * vector_to_matrix3d(state_error)));
+    std::vector<double> u= saturate_input(matrix3d_to_vector(- result * vector_to_matrix3d(state_error)));
     return u;
 }
 void LQRController::reset_controller(){
