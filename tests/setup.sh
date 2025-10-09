@@ -21,13 +21,13 @@ build_ros_workspace() {
     . /opt/ros/humble/setup.sh
 
     log_info "Building stonefish_ros2 first (dependency for other packages)..."
-    colcon build --packages-select stonefish_ros2 --symlink-install
+    colcon build --packages-select stonefish_ros2
 
     log_info "Sourcing workspace..."
     . install/setup.bash
 
     log_info "Building remaining ROS 2 packages..."
-    colcon build --packages-ignore stonefish_ros2 --symlink-install
+    colcon build --packages-ignore stonefish_ros2
 
     log_info "ROS 2 workspace build complete."
 }
