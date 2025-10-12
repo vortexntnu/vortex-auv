@@ -2,6 +2,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 
 class PID_controller {
@@ -30,3 +31,14 @@ class angle{
     double psit=0.0;
 };
 angle quaternion_to_euler_angle(double w, double x, double y, double z);
+
+class guidance_data{
+    public:
+    double surge;    double pitch;    double yaw;
+    guidance_data(std_msgs::msg::Float64MultiArray msg);
+    guidance_data(double surge, double pitch, double yaw):surge(surge), pitch(pitch), yaw(yaw) {};
+    guidance_data():surge(0), pitch(0), yaw(0) {};
+    
+    guidance_data operator-(const guidance_data& other) const;
+    guidance_data& operator=(const std_msgs::msg::Float64MultiArray& msg);
+};

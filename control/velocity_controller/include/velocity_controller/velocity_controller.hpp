@@ -12,19 +12,13 @@
 
 //#include "vortex-msgs/msg" kan legge til nye meldinger nå
 
-class guidance_data{
-    public:
-    double surge;    double pitch;    double yaw;
-    guidance_data(std_msgs::msg::Float64MultiArray msg);
-    guidance_data():surge(0.0), pitch(0.0), yaw(0.0) {};
-    
-    guidance_data operator-(const guidance_data& other) const;
-    guidance_data& operator=(const std_msgs::msg::Float64MultiArray& msg);
-};
+
 
 class Velocity_node : public rclcpp::Node{
     public:
     Velocity_node();
+    //Different initializatin functions
+    void get_new_parameters();
 
     //Timer functions
     void publish_thrust();
