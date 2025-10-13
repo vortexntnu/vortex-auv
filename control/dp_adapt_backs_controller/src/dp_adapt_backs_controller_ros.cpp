@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
+#include <vortex_utils/qos_profiles.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
@@ -30,9 +31,9 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
 }
 
 void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    const auto qos_sensor_data{
+        vortex::utils::qos_profiles::sensor_data_profile(1)};
+    const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
@@ -63,7 +64,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     std::string software_kill_switch_topic =
         this->get_parameter("topics.killswitch").as_string();
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 1,
+        software_kill_switch_topic, qos_reliable,
         std::bind(&DPAdaptBacksControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
 
@@ -71,7 +72,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     std::string software_operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
     software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, 1,
+        software_operation_mode_topic, qos_reliable,
         std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
 
