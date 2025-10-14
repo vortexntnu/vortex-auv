@@ -1,5 +1,7 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include <eigen3/Eigen/Dense>
+#include <vortex/utils/math.hpp>
+#include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 

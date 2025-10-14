@@ -2,7 +2,7 @@
 #define DP_ADAPT_BACKS_CONTROLLER_HPP
 
 #include <eigen3/Eigen/Dense>
-#include <vortex_utils/types.hpp>
+#include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
 namespace vortex::control {

@@ -1,7 +1,7 @@
 #ifndef DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP
 #define DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP
 
-#include <vortex_utils/types.hpp>
+#include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/typedefs.hpp"
 #include "typedefs.hpp"
 

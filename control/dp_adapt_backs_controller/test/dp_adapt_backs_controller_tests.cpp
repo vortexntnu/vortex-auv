@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <vortex_utils/types.hpp>
+#include <vortex/utils/types.hpp>
 
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"

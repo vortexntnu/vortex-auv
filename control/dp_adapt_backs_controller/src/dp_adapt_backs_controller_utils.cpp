@@ -1,6 +1,7 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include <spdlog/spdlog.h>
-#include <vortex_utils/types.hpp>
+#include <vortex/utils/math.hpp>
+#include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
 namespace vortex::control {

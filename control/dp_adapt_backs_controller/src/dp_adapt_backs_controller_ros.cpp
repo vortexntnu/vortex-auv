@@ -2,9 +2,9 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string>
-#include <vortex_utils/math.hpp>
-#include <vortex_utils/qos_profiles.hpp>
-#include <vortex_utils/types.hpp>
+#include <vortex/utils/math.hpp>
+#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
