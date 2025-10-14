@@ -12,9 +12,12 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 #include "typedefs.hpp"
+
+namespace vortex::control {
 
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
@@ -56,38 +59,38 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_{};
 
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
-
-    rclcpp::Subscription<
-        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_{};
 
     rclcpp::Subscription<
-        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_{};
+
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_{};
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
-        guidance_sub_;
+        guidance_sub_{};
 
-    rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_{};
 
-    rclcpp::TimerBase::SharedPtr tau_pub_timer_;
+    rclcpp::TimerBase::SharedPtr tau_pub_timer_{};
 
-    std::chrono::milliseconds time_step_;
+    std::chrono::milliseconds time_step_{};
 
-    dp_types::Eta eta_;
+    vortex::utils::types::Eta eta_;
 
-    dp_types::Eta eta_d_;
+    vortex::utils::types::Eta eta_d_;
 
-    dp_types::Nu nu_;
+    vortex::utils::types::Nu nu_;
 
-    dp_types::DPAdaptParams dp_adapt_params_;
+    std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_{};
 
-    std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_;
+    bool killswitch_on_{false};
 
-    bool killswitch_on_ = false;
-
-    std::string software_mode_;
+    std::string software_mode_{};
 };
+
+}  // namespace vortex::control
 
 #endif

@@ -1,11 +1,26 @@
 #ifndef DP_ADAPT_BACKS_CONTROLLER_HPP
 #define DP_ADAPT_BACKS_CONTROLLER_HPP
 
+#include <eigen3/Eigen/Dense>
+#include <vortex_utils/types.hpp>
 #include "dp_adapt_backs_controller/typedefs.hpp"
+
+namespace vortex::control {
+
+struct DPAdaptParams {
+    Eigen::Vector12d adapt_param = Eigen::Vector12d::Zero();
+    Eigen::Vector6d d_gain = Eigen::Vector6d::Zero();
+    Eigen::Vector6d K1 = Eigen::Vector6d::Zero();
+    Eigen::Vector6d K2 = Eigen::Vector6d::Zero();
+    Eigen::Vector3d r_b_bg = Eigen::Vector3d::Zero();
+    Eigen::Vector3d I_b = Eigen::Vector3d::Zero();
+    Eigen::Matrix6d mass_matrix = Eigen::Matrix6d::Zero();
+    double mass{};
+};
 
 class DPAdaptBacksController {
    public:
-    DPAdaptBacksController(const dp_types::DPAdaptParams adap_params);
+    explicit DPAdaptBacksController(const DPAdaptParams& dp_adapt_params);
 
     // @brief Calculate thecontrol input tau
     // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
@@ -14,9 +29,9 @@ class DPAdaptBacksController {
     // roll, pitch, yaw]
     // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
-    dp_types::Vector6d calculate_tau(const dp_types::Eta& eta,
-                                     const dp_types::Eta& eta_d,
-                                     const dp_types::Nu& nu);
+    Eigen::Vector6d calculate_tau(const vortex::utils::types::Eta& eta,
+                                  const vortex::utils::types::Eta& eta_d,
+                                  const vortex::utils::types::Nu& nu);
 
     // @brief Reset the adaptive parameters
     void reset_adap_param();
@@ -26,19 +41,22 @@ class DPAdaptBacksController {
 
     // @brief Set the time step
     // @param dt: Time step
-    void set_timeStep(double dt);
+    void set_time_step(const double dt);
 
    private:
-    dp_types::Matrix6d K1_;
-    dp_types::Matrix6d K2_;
-    dp_types::Vector3d r_b_bg_;
-    dp_types::Matrix12d adapt_gain_;
-    dp_types::Matrix6d d_gain_;
-    dp_types::Vector12d adap_param_;
-    dp_types::Vector6d d_est_;
-    dp_types::Matrix3d I_b_;
-    dp_types::Matrix6d M_;
-    double m_;
-    double dt_;
+    Eigen::Matrix6d K1_;
+    Eigen::Matrix6d K2_;
+    Eigen::Vector3d r_b_bg_;
+    Eigen::Matrix12d adapt_gain_;
+    Eigen::Matrix6d d_gain_;
+    Eigen::Vector12d adapt_param_;
+    Eigen::Vector6d d_est_;
+    Eigen::Matrix3d I_b_;
+    Eigen::Matrix6d mass_matrix_;
+    double m_{};
+    double dt_{};
 };
-#endif
+
+}  // namespace vortex::control
+
+#endif  // DP_ADAPT_BACKS_CONTROLLER_HPP
