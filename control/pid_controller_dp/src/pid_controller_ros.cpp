@@ -100,6 +100,136 @@ void PIDControllerNode::publish_tau() {
     types::Vector6d tau =
         pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
 
+    // print for debug
+    RCLCPP_INFO_STREAM(this->get_logger(), "Tau: [" << tau(0) << ", " << tau(1)
+                                                   << ", " << tau(2) << ", "
+                                                   << tau(3) << ", " << tau(4)
+                                                   << ", " << tau(5) << "]");
+    // print debug
+    RCLCPP_INFO_STREAM(this->get_logger(), "Eta error: [" 
+        << pid_controller_.eta_error_debug.pos(0) << ", "
+        << pid_controller_.eta_error_debug.pos(1) << ", "
+        << pid_controller_.eta_error_debug.pos(2) << ", "
+        << pid_controller_.eta_error_debug.ori.x() << ", "
+        << pid_controller_.eta_error_debug.ori.y() << ", "
+        << pid_controller_.eta_error_debug.ori.z() << ", "
+        << pid_controller_.eta_error_debug.ori.w() << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "Nu desired: ["
+        << pid_controller_.nu_d_debug(0) << ", "
+        << pid_controller_.nu_d_debug(1) << ", "
+        << pid_controller_.nu_d_debug(2) << ", "
+        << pid_controller_.nu_d_debug(3) << ", "
+        << pid_controller_.nu_d_debug(4) << ", "
+        << pid_controller_.nu_d_debug(5) << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "Error nu: ["
+        << pid_controller_.error_nu_debug(0) << ", "
+        << pid_controller_.error_nu_debug(1) << ", "
+        << pid_controller_.error_nu_debug(2) << ", "
+        << pid_controller_.error_nu_debug(3) << ", "
+        << pid_controller_.error_nu_debug(4) << ", "
+        << pid_controller_.error_nu_debug(5) << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "P term: ["
+        << pid_controller_.P_debug(0) << ", "
+        << pid_controller_.P_debug(1) << ", "
+        << pid_controller_.P_debug(2) << ", "
+        << pid_controller_.P_debug(3) << ", "
+        << pid_controller_.P_debug(4) << ", "
+        << pid_controller_.P_debug(5) << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "Kp: ["
+        << pid_controller_.Kp_debug(0,0) << ", "
+        << pid_controller_.Kp_debug(0,1) << ", "
+        << pid_controller_.Kp_debug(0,2) << ", "
+        << pid_controller_.Kp_debug(0,3) << ", "
+        << pid_controller_.Kp_debug(0,4) << ", "
+        << pid_controller_.Kp_debug(0,5) << "; "
+        << pid_controller_.Kp_debug(1,0) << ", "
+        << pid_controller_.Kp_debug(1,1) << ", "
+        << pid_controller_.Kp_debug(1,2) << ", "
+        << pid_controller_.Kp_debug(1,3) << ", "
+        << pid_controller_.Kp_debug(1,4) << ", "
+        << pid_controller_.Kp_debug(1,5) << "; "
+        << pid_controller_.Kp_debug(2,0) << ", "
+        << pid_controller_.Kp_debug(2,1) << ", "
+        << pid_controller_.Kp_debug(2,2) << ", "
+        << pid_controller_.Kp_debug(2,3) << ", "
+        << pid_controller_.Kp_debug(2,4) << ", "
+        << pid_controller_.Kp_debug(2,5) << "; "
+        << pid_controller_.Kp_debug(3,0) << ", "
+        << pid_controller_.Kp_debug(3,1) << ", "
+        << pid_controller_.Kp_debug(3,2) << ", "
+        << pid_controller_.Kp_debug(3,3) << ", "
+        << pid_controller_.Kp_debug(3,4) << ", "
+        << pid_controller_.Kp_debug(3,5) << "; "
+        << pid_controller_.Kp_debug(4,0) << ", "
+        << pid_controller_.Kp_debug(4,1) << ", "
+        << pid_controller_.Kp_debug(4,2) << ", "
+        << pid_controller_.Kp_debug(4,3) << ", "
+        << pid_controller_.Kp_debug(4,4) << ", "
+        << pid_controller_.Kp_debug(4,5) << "; "
+        << pid_controller_.Kp_debug(5,0) << ", "
+        << pid_controller_.Kp_debug(5,1) << ", "
+        << pid_controller_.Kp_debug(5,2) << ", "
+        << pid_controller_.Kp_debug(5,3) << ", "
+        << pid_controller_.Kp_debug(5,4) << ", "
+        << pid_controller_.Kp_debug(5,5) << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "I term: ["
+        << pid_controller_.I_debug(0) << ", "
+        << pid_controller_.I_debug(1) << ", "
+        << pid_controller_.I_debug(2) << ", "
+        << pid_controller_.I_debug(3) << ", "
+        << pid_controller_.I_debug(4) << ", "
+        << pid_controller_.I_debug(5) << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "D term: ["
+        << pid_controller_.D_debug(0) << ", "
+        << pid_controller_.D_debug(1) << ", "
+        << pid_controller_.D_debug(2) << ", "
+        << pid_controller_.D_debug(3) << ", "
+        << pid_controller_.D_debug(4) << ", "
+        << pid_controller_.D_debug(5) << "]");
+    RCLCPP_INFO_STREAM(this->get_logger(), "J inv: ["
+        << pid_controller_.J_inv_debug(0,0) << ", "
+        << pid_controller_.J_inv_debug(0,1) << ", "
+        << pid_controller_.J_inv_debug(0,2) << ", "
+        << pid_controller_.J_inv_debug(0,3) << ", "
+        << pid_controller_.J_inv_debug(0,4) << ", "
+        << pid_controller_.J_inv_debug(0,5) << ", "
+        << pid_controller_.J_inv_debug(0,6) << "; "
+        << pid_controller_.J_inv_debug(1,0) << ", "
+        << pid_controller_.J_inv_debug(1,1) << ", "
+        << pid_controller_.J_inv_debug(1,2) << ", "
+        << pid_controller_.J_inv_debug(1,3) << ", "
+        << pid_controller_.J_inv_debug(1,4) << ", "
+        << pid_controller_.J_inv_debug(1,5) << ", "
+        << pid_controller_.J_inv_debug(1,6) << "; "
+        << pid_controller_.J_inv_debug(2,0) << ", "
+        << pid_controller_.J_inv_debug(2,1) << ", "
+        << pid_controller_.J_inv_debug(2,2) << ", "
+        << pid_controller_.J_inv_debug(2,3) << ", "
+        << pid_controller_.J_inv_debug(2,4) << ", "
+        << pid_controller_.J_inv_debug(2,5) << ", "
+        << pid_controller_.J_inv_debug(2,6) << "; "
+        << pid_controller_.J_inv_debug(3,0) << ", "
+        << pid_controller_.J_inv_debug(3,1) << ", "
+        << pid_controller_.J_inv_debug(3,2) << ", "
+        << pid_controller_.J_inv_debug(3,3) << ", "
+        << pid_controller_.J_inv_debug(3,4) << ", "
+        << pid_controller_.J_inv_debug(3,5) << ", "
+        << pid_controller_.J_inv_debug(3,6) << "; "
+        << pid_controller_.J_inv_debug(4,0) << ", "
+        << pid_controller_.J_inv_debug(4,1) << ", "
+        << pid_controller_.J_inv_debug(4,2) << ", "
+        << pid_controller_.J_inv_debug(4,3) << ", "
+        << pid_controller_.J_inv_debug(4,4) << ", "
+        << pid_controller_.J_inv_debug(4,5) << ", "
+        << pid_controller_.J_inv_debug(4,6) << "; "
+        << pid_controller_.J_inv_debug(5,0) << ", "
+        << pid_controller_.J_inv_debug(5,1) << ", "
+        << pid_controller_.J_inv_debug(5,2) << ", "
+        << pid_controller_.J_inv_debug(5,3) << ", "
+        << pid_controller_.J_inv_debug(5,4) << ", "
+        << pid_controller_.J_inv_debug(5,5) << ", "
+        << pid_controller_.J_inv_debug(5,6) << "]");
+
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
     tau_msg.header.frame_id = "base_link";
@@ -121,13 +251,71 @@ void PIDControllerNode::set_pid_params() {
     this->declare_parameter<std::vector<double>>(
         "Kd", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
 
+    // this->declare_parameter<std::vector<double>>(
+    //     "Kp", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+    // this->declare_parameter<std::vector<double>>(
+    //     "Ki", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+    // this->declare_parameter<std::vector<double>>(
+    //     "Kd", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+
     std::vector<double> Kp_vec = this->get_parameter("Kp").as_double_array();
     std::vector<double> Ki_vec = this->get_parameter("Ki").as_double_array();
     std::vector<double> Kd_vec = this->get_parameter("Kd").as_double_array();
 
-    types::Matrix6d Kp_eigen = Eigen::Map<types::Matrix6d>(Kp_vec.data());
-    types::Matrix6d Ki_eigen = Eigen::Map<types::Matrix6d>(Ki_vec.data());
-    types::Matrix6d Kd_eigen = Eigen::Map<types::Matrix6d>(Kd_vec.data());
+    // TODO use type::vector6d instead of std::vector
+    types::Vector6d Kp_vec_eigen(Kp_vec.data());
+    types::Vector6d Ki_vec_eigen(Ki_vec.data());
+    types::Vector6d Kd_vec_eigen(Kd_vec.data());
+
+    // print out for debug
+    RCLCPP_INFO_STREAM(
+        this->get_logger(), "Kp: [" << Kp_vec[0] << ", " << Kp_vec[1] << ", "
+                                    << Kp_vec[2] << ", " << Kp_vec[3] << ", "
+                                    << Kp_vec[4] << ", " << Kp_vec[5]
+                                    << "]");
+    
+    RCLCPP_INFO_STREAM(
+        this->get_logger(), "Ki: [" << Ki_vec[0] << ", " << Ki_vec[1] << ", "
+                                    << Ki_vec[2] << ", " << Ki_vec[3] << ", "
+                                    << Ki_vec[4] << ", " << Ki_vec[5]
+                                    << "]");
+    RCLCPP_INFO_STREAM(
+        this->get_logger(), "Kd: [" << Kd_vec[0] << ", " << Kd_vec[1] << ", "
+                                    << Kd_vec[2] << ", " << Kd_vec[3] << ", "
+                                    << Kd_vec[4] << ", " << Kd_vec[5]
+                                    << "]");
+
+
+    // types::Matrix6d Kp_eigen = Eigen::Map<types::Matrix6d>(Kp_vec.data());
+    // types::Matrix6d Ki_eigen = Eigen::Map<types::Matrix6d>(Ki_vec.data());
+    // types::Matrix6d Kd_eigen = Eigen::Map<types::Matrix6d>(Kd_vec.data());
+
+    // TODO: use as diagnonal to avoid cross-coupling
+    types::Matrix6d Kp_eigen = Kp_vec_eigen.asDiagonal().toDenseMatrix();
+    types::Matrix6d Ki_eigen = Ki_vec_eigen.asDiagonal().toDenseMatrix();
+    types::Matrix6d Kd_eigen = Kd_vec_eigen.asDiagonal().toDenseMatrix();
+
+    // print out for debug
+    RCLCPP_INFO_STREAM(
+        this->get_logger(), "Kp_eigen: [" << Kp_eigen(0,0) << ", " << Kp_eigen(0,1) << ", "
+                                    << Kp_eigen(0,2) << ", " << Kp_eigen(0,3) << ", "
+                                    << Kp_eigen(0,4) << ", " << Kp_eigen(0,5) << "; "
+                                    << Kp_eigen(1,0) << ", " << Kp_eigen(1,1) << ", "
+                                    << Kp_eigen(1,2) << ", " << Kp_eigen(1,3) << ", "
+                                    << Kp_eigen(1,4) << ", " << Kp_eigen(1,5) << "; "
+                                    << Kp_eigen(2,0) << ", " << Kp_eigen(2,1) << ", "
+                                    << Kp_eigen(2,2) << ", " << Kp_eigen(2,3) << ", "
+                                    << Kp_eigen(2,4) << ", " << Kp_eigen(2,5) << "; "
+                                    << Kp_eigen(3,0) << ", " << Kp_eigen(3,1) << ", "
+                                    << Kp_eigen(3,2) << ", " << Kp_eigen(3,3) << ", "
+                                    << Kp_eigen(3,4) << ", " << Kp_eigen(3,5) << "; "
+                                    << Kp_eigen(4,0) << ", " << Kp_eigen(4,1) << ", "
+                                    << Kp_eigen(4,2) << ", " << Kp_eigen(4,3) << ", "
+                                    << Kp_eigen(4,4) << ", " << Kp_eigen(4,5) << "; "
+                                    << Kp_eigen(5,0) << ", " << Kp_eigen(5,1) << ", "
+                                    << Kp_eigen(5,2) << ", " << Kp_eigen(5,3) << ", "
+                                    << Kp_eigen(5,4) << ", " << Kp_eigen(5,5)
+                                    << "]");
 
     pid_controller_.set_kp(Kp_eigen);
     pid_controller_.set_ki(Ki_eigen);
