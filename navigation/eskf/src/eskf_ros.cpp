@@ -24,6 +24,9 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     set_parameters();
 
     spdlog::info(start_message);
+    #ifndef NDEBUG
+        spdlog::info("__________________________Debug mode is enabled______________________");
+    #endif
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
@@ -76,7 +79,7 @@ void ESKFNode::set_parameters() {
 
     std::vector<double> diag_p_init =
         this->declare_parameter<std::vector<double>>("diag_p_init");
-    Eigen::Matrix18d P = createDiagonalMatrix<18>(diag_p_init);
+    Eigen::Matrix18d P = create_diagonal_matrix<18>(diag_p_init);
 
     error_state_.covariance = P;
 }
@@ -120,9 +123,12 @@ void ESKFNode::dvl_callback(
 
     std::tie(nom_state_, error_state_) = eskf_->dvl_update(dvl_meas_);
 
+    #ifndef NDEBUG
+    // Publish NIS
     std_msgs::msg::Float64 nis_msg;
     nis_msg.data = eskf_->NIS_;
     nis_pub_->publish(nis_msg);
+    #endif
 }
 
 void ESKFNode::publish_odom() {

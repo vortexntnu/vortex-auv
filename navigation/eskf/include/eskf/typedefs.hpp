@@ -31,7 +31,7 @@ typedef Eigen::Matrix<double, 15, 1> Vector15d;
 }  // namespace Eigen
 
 template <int N>
-Eigen::Matrix<double, N, N> createDiagonalMatrix(
+Eigen::Matrix<double, N, N> create_diagonal_matrix(
     const std::vector<double>& diag) {
     return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
         .asDiagonal();
