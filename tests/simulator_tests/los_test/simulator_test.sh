@@ -12,13 +12,17 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$LOS_PID" || true
+    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$AUTOPILOT_PID" || true
     exit 1
 }
 trap cleanup ERR
 
+setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
+BAG_PID=$!
+echo "Started bagging with PID: $BAG_PID"
+
 # Launch Stonefish Simulator
-setsid ros2 launch stonefish_sim simulation_nogpu.launch.py &
+setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
 
@@ -60,11 +64,8 @@ echo "Waiting for pose data..."
 timeout 10s ros2 topic echo /orca/pose --once
 echo "Got pose data"
 
-setsid ros2 launch los_guidance los_guidance.launch.py &
-LOS_PID=$!
-
-setsid ros2 launch velocity_controller_lqr velocity_controller_lqr.launch.py &
-CONTROLLER_PID=$!
+setsid ros2 launch auv_setup autopilot.launch.py &
+AUTOPILOT_PID=$!
 
 if journalctl -u ros2 | grep -i "error"; then
     echo "Error detected in ROS logs. Exiting..."
@@ -73,8 +74,8 @@ fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -1
-ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -1
+ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5
+ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5
 
 # Send waypoint goal
 echo "Sending goal"
@@ -88,6 +89,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID"
+kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$AUTOPILOT_PID" -"$BAG_PID"
 
 echo "Test completed successfully."
