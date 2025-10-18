@@ -3,33 +3,27 @@ from velocity_controller_lqr.velocity_controller_lqr_lib import (
     LQRController,
     LQRParameters,
 )
+from vortex_utils.python_utils import State
 
-lqr_params = LQRParameters()
+lqr_params = LQRParameters(
+    q_surge=1.0,
+    q_pitch=1.0,
+    q_yaw=1.0,
+    r_surge=1.0,
+    r_pitch=1.0,
+    r_yaw=1.0,
+    i_surge=1.0,
+    i_pitch=1.0,
+    i_yaw=1.0,
+    i_weight=1.0,
+    max_force=50.0,
+)
 controller = LQRController(lqr_params, np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
 
 
 class TestVelocityController:
     def test_placeholder(self):
         assert controller is not None
-
-    def test_ssa(self):
-        print("Commencing ssa test: \n")
-
-        assert LQRController.ssa(np.pi + 1) == -np.pi + 1
-
-        assert LQRController.ssa(-np.pi - 1) == (np.pi - 1)
-
-        print("SSA test passed")
-
-    def test_quaternion_to_euler_angle(self):
-        print("Commencing quaternion to euler angle test: \n")
-
-        roll, pitch, yaw = LQRController.quaternion_to_euler_angle(0.5, 0.5, 0.5, 0.5)
-        assert roll == np.pi / 2
-        assert pitch == 0
-        assert yaw == np.pi / 2
-
-        print("Quaternion to euler angle test passed")
 
     def test_saturate(self):
         print("Commencing saturate test: \n")
@@ -71,3 +65,71 @@ class TestVelocityController:
         assert 0 <= controller.max_force <= 99.9, (
             "Max force must be in the range [0, 99.9]."
         )
+
+    def test_zero_command(self):
+        state = State()
+        guidance = State()
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.allclose(u, 0.0, atol=1e-9)
+
+    def test_positive_surge_command(self):
+        state = State()
+        guidance = State()
+        guidance.twist.linear_x = 1.0
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.greater(u[0], 0.0)
+        assert np.allclose(u[1:], 0.0, atol=1e-9)
+
+    def test_negative_surge_command(self):
+        state = State()
+        guidance = State()
+        guidance.twist.linear_x = -1.0
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.less(u[0], 0.0)
+        assert np.allclose(u[1:], 0.0, atol=1e-9)
+
+    def test_positive_pitch_command(self):
+        state = State()
+        guidance = State()
+        guidance.pose.pitch = 1.0
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.greater(u[1], 0.0)
+        assert np.isclose(u[0], 0.0, atol=1e-9)
+        assert np.isclose(u[2], 0.0, atol=1e-9)
+
+    def test_negative_pitch_command(self):
+        state = State()
+        guidance = State()
+        guidance.pose.pitch = -1.0
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.less(u[1], 0.0)
+        assert np.isclose(u[0], 0.0, atol=1e-9)
+        assert np.isclose(u[2], 0.0, atol=1e-9)
+
+    def test_positive_yaw_command(self):
+        state = State()
+        guidance = State()
+        guidance.pose.yaw = 1.0
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.greater(u[2], 0.0)
+        assert np.isclose(u[0], 0.0, atol=1e-9)
+        assert np.isclose(u[1], 0.0, atol=1e-9)
+
+    def test_negative_yaw_command(self):
+        state = State()
+        guidance = State()
+        guidance.pose.yaw = -1.0
+        u = controller.calculate_lqr_u(state=state, guidance_values=guidance)
+        assert np.less(u[2], 0.0)
+        assert np.isclose(u[0], 0.0, atol=1e-9)
+        assert np.isclose(u[1], 0.0, atol=1e-9)
+
+    def test_yaw_ssa(self):
+        state = State()
+        state.pose.yaw = 6.10  # rad
+        guidance = State()
+        guidance.pose.yaw = 0.1  # rad
+        u = controller.calculate_lqr_u(
+            state=state, guidance_values=guidance
+        )  # command should be slightly positive (to the right)
+        assert np.greater(u[2], 0.0)

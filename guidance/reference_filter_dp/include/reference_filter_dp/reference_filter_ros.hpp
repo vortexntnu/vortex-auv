@@ -1,19 +1,17 @@
 #ifndef REFERENCE_FILTER_ROS_HPP
 #define REFERENCE_FILTER_ROS_HPP
 
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <reference_filter_dp/reference_filter.hpp>
-#include <reference_filter_dp/reference_filter_utils.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include "reference_filter_dp/eigen_typedefs.hpp"
+#include "reference_filter_dp/reference_filter.hpp"
+
+namespace vortex::guidance {
 
 class ReferenceFilterNode : public rclcpp::Node {
    public:
@@ -73,16 +71,17 @@ class ReferenceFilterNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-    Vector18d fill_reference_state();
+    Eigen::Vector18d fill_reference_state();
 
-    Vector6d fill_reference_goal(const geometry_msgs::msg::PoseStamped& goal);
+    Eigen::Vector6d fill_reference_goal(
+        const geometry_msgs::msg::PoseStamped& goal);
 
     vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
 
-    ReferenceFilter reference_filter_;
+    std::unique_ptr<ReferenceFilter> reference_filter_{};
 
     rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         reference_pub_;
@@ -98,7 +97,7 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     rclcpp::TimerBase::SharedPtr reference_pub_timer_;
 
-    std::chrono::milliseconds time_step_;
+    std::chrono::milliseconds time_step_{};
 
     geometry_msgs::msg::PoseWithCovarianceStamped current_pose_;
 
@@ -107,10 +106,10 @@ class ReferenceFilterNode : public rclcpp::Node {
     // x is [eta, eta_dot, eta_dot_dot] (ref. page 337 in Fossen, 2021
     // nu and eta are 6 degrees of freedom (position and orientation in 3D
     // space)
-    Vector18d x_;
+    Eigen::Vector18d x_ = Eigen::Vector18d::Zero();
 
     // The reference signal vector with 6 degrees of freedom [eta]
-    Vector6d r_;
+    Eigen::Vector6d r_ = Eigen::Vector6d::Zero();
 
     std::mutex mutex_;
 
@@ -123,4 +122,6 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
 
-#endif
+}  // namespace vortex::guidance
+
+#endif  // REFERENCE_FILTER_ROS_HPP

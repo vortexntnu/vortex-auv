@@ -10,6 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(vortex_utils REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -39,6 +40,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   fmt
   spdlog
   vortex_msgs
+  vortex_utils
 )
 
 rclcpp_components_register_node(

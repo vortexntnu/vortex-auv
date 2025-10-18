@@ -14,7 +14,7 @@ class LOSGuidanceClient(Node):
     def send_goal(self):
         goal_msg = LOSGuidance.Goal()
 
-        # Create a PoseStamped message with the goal
+        # Create a message with the goal
         goal_msg.goal.point.x = 20.0
         goal_msg.goal.point.y = 20.0
         goal_msg.goal.point.z = 5.0

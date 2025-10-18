@@ -2,24 +2,23 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
+#include <vortex/utils/qos_profiles.hpp>
 
-auto start_message{R"(
+const auto start_message = R"(
   _____ _                    _              ___       _             __
  |_   _| |__  _ __ _   _ ___| |_ ___ _ __  |_ _|_ __ | |_ ___ _ __ / _| __ _  ___ ___
    | | | '_ \| '__| | | / __| __/ _ \ '__|  | || '_ \| __/ _ \ '__| |_ / _` |/ __/ _ \
    | | | | | | |  | |_| \__ \ ||  __/ |     | || | | | ||  __/ |  |  _| (_| | (_|  __/
    |_| |_| |_|_|   \__,_|___/\__\___|_|    |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
 
-)"};
+)";
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
     const rclcpp::NodeOptions& options)
     : Node("thruster_interface_auv_node", options) {
     this->extract_all_parameters();
 
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     thruster_forces_subscriber_ =
         this->create_subscription<vortex_msgs::msg::ThrusterForces>(
@@ -29,7 +28,8 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
 
     thruster_pwm_publisher_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(
-            publisher_topic_name_, 1);
+            publisher_topic_name_,
+            vortex::utils::qos_profiles::reliable_profile(1));
 
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
         i2c_bus_, i2c_address_, thruster_parameters_, poly_coeffs_);

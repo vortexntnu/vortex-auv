@@ -1,50 +1,9 @@
 from dataclasses import dataclass
 
 import numpy as np
+from vortex_utils.python_utils import State, ssa
 
 import control as ct
-
-
-@dataclass
-class State:
-    """Dataclass to store the state values for the LQR controller.
-
-    Attributes:
-        surge: float Surge state value
-        pitch: float: Pitch state value
-        yaw: float: Yaw state value
-        integral_surge: float: Surge integral state value
-        integral_pitch: float: Pitch integral state value
-        integral_yaw: float: Yaw integral state value
-    """
-
-    surge: float = 0.0
-    pitch: float = 0.0
-    yaw: float = 0.0
-    integral_surge: float = 0.0
-    integral_pitch: float = 0.0
-    integral_yaw: float = 0.0
-
-
-@dataclass
-class GuidanceValues:
-    """Dataclass to store the guidance values for the LQR controller.
-
-    Attributes:
-        surge: float: Surge guidance value
-        pitch: float: Pitch guidance value
-        yaw: float: Yaw guidance value
-        integral_surge: float: Surge integral guidance value
-        integral_pitch: float: Pitch integral guidance value
-        integral_yaw: float: Yaw integral guidance value
-    """
-
-    surge: float = 0.0
-    pitch: float = 0.0
-    yaw: float = 0.0
-    integral_surge: float = 0.0
-    integral_pitch: float = 0.0
-    integral_yaw: float = 0.0
 
 
 @dataclass
@@ -76,60 +35,12 @@ class LQRParameters:
     i_yaw: float = 0.0
     i_weight: float = 0.0
     max_force: float = 0.0
-    operation_mode: str = "xbox mode"
-    killswitch: bool = True
 
 
 class LQRController:
     def __init__(self, parameters: LQRParameters, inertia_matrix: np.array) -> None:
         self.set_params(parameters)
         self.set_matrices(inertia_matrix)
-
-    @staticmethod
-    def quaternion_to_euler_angle(w: float, x: float, y: float, z: float) -> tuple:
-        """Function to convert quaternion to euler angles.
-
-        Parameters:
-            w: float: w component of quaternion
-            x: float: x component of quaternion
-            y: float: y component of quaternion
-            z: float: z component of quaternion
-
-        Returns:
-            phi: float: roll angle
-            theta: float: pitch angle
-            psi: float: yaw angle
-
-        """
-        y_square = y * y
-
-        t0 = +2.0 * (w * x + y * z)
-        t1 = +1.0 - 2.0 * (x * x + y_square)
-        phi = np.arctan2(t0, t1)
-
-        t2 = +2.0 * (w * y - z * x)
-        t2 = +1.0 if t2 > +1.0 else t2
-        t2 = -1.0 if t2 < -1.0 else t2
-        theta = np.arcsin(t2)
-
-        t3 = +2.0 * (w * z + x * y)
-        t4 = +1.0 - 2.0 * (y_square + z * z)
-        psi = np.arctan2(t3, t4)
-
-        return phi, theta, psi
-
-    @staticmethod
-    def ssa(angle: float) -> float:
-        """Function to convert the angle to the smallest signed angle.
-
-        Parameters:
-            angle: float: angle in radians
-
-        Returns:
-            angle: float: angle in radians
-
-        """
-        return (angle + np.pi) % (2 * np.pi) - np.pi
 
     def saturate(self, value: float, windup: bool, limit: float) -> tuple:
         """Function to saturate the value within the limits, and set the windup flag.
@@ -173,16 +84,11 @@ class LQRController:
         return integral_sum
 
     @staticmethod
-    def calculate_coriolis_matrix(
-        pitch_rate: float, yaw_rate: float, sway_vel: float, heave_vel: float
-    ) -> np.array:
+    def calculate_coriolis_matrix(state: State) -> np.array:
         """Calculates the 3x3 coriolis matrix.
 
         Parameters:
-            pitch_rate: float: pitch rate in rad/s
-            yaw_rate: float: yaw rate in rad/s
-            sway_vel: float: sway velocity in m/s
-            heave_vel: float: heave velocity in m/s
+            state: State: Current Pose and Twist values
 
         Returns:
             C: np.array: 3x3 Coriolis Matrix
@@ -190,9 +96,13 @@ class LQRController:
         """
         return np.array(
             [
-                [0.2, -30 * sway_vel * 0.01, -30 * heave_vel * 0.01],
-                [30 * sway_vel * 0.01, 0, 1.629 * pitch_rate],
-                [30 * heave_vel * 0.01, 1.769 * yaw_rate, 0],
+                [
+                    0.2,
+                    -30 * state.twist.linear_y * 0.01,
+                    -30 * state.twist.linear_z * 0.01,
+                ],
+                [30 * state.twist.linear_y * 0.01, 0, 1.629 * state.twist.angular_y],
+                [30 * state.twist.linear_z * 0.01, 1.769 * state.twist.angular_z, 0],
             ]
         )
 
@@ -224,9 +134,6 @@ class LQRController:
         self.i_yaw = parameters.i_yaw
         self.i_weight = parameters.i_weight
         self.max_force = parameters.max_force
-
-        self.operation_mode = parameters.operation_mode
-        self.killswitch = parameters.killswitch
 
     def set_matrices(self, inertia_matrix: np.array) -> None:
         """Adjusts the matrices for the LQR controller.
@@ -261,21 +168,21 @@ class LQRController:
         )
         self.augmented_input_matrix = np.block([[input_matrix], [np.zeros((3, 3))]])
 
-    def update_error(self, guidance_values: GuidanceValues, states: State) -> np.array:
+    def update_error(self, guidance_values: State, states: State) -> np.array:
         """Updates the error values for the LQR controller.
 
         Parameters:
-            guidance_values: GuidanceValues: 6x1 dataclass containing the guidance values
-            states: State: 6x1 dataclass containing the state values
+            guidance_values: State: Desired Pose and Twist values
+            state: State: Current Pose and Twist values
 
         Returns:
             state_error: np.array: 6x1 array of the state errors
         """
         surge_error = (
-            guidance_values.surge - states.surge
+            guidance_values.twist.linear_x - states.twist.linear_x
         )  # Surge error isn't an angle, no need for angle wrapping
-        pitch_error = self.ssa(guidance_values.pitch - states.pitch)
-        yaw_error = self.ssa(guidance_values.yaw - states.yaw)
+        pitch_error = ssa(guidance_values.pose.pitch - states.pose.pitch)
+        yaw_error = ssa(guidance_values.pose.yaw - states.pose.yaw)
 
         # Update the running integrator sums
         self.integral_error_surge = self.anti_windup(
@@ -317,22 +224,20 @@ class LQRController:
         )
         self.yaw_windup, torque_z = self.saturate(u[2], self.yaw_windup, self.max_force)
 
-        return [force_x, torque_y, torque_z]
+        return np.array([force_x, torque_y, torque_z])
 
-    def calculate_lqr_u(
-        self, coriolis_matrix: np.array, states: State, guidance_values: GuidanceValues
-    ) -> np.array:
+    def calculate_lqr_u(self, state: State, guidance_values: State) -> np.array:
         """Calculates the control input using the control library in python.
 
         Parameters:
-            C: np.array: 3x3 Coriolis Matrix
-            states: State: 6x1 dataclass containing the state values
-            guidance_values: GuidanceValues: 6x1 dataclass containing the guidance values
+            state: State: Current Pose and Twist values
+            guidance_values: State: Desired Pose and Twist values
 
         Returns:
             u: np.array: 3x1 control input
 
         """
+        coriolis_matrix = self.calculate_coriolis_matrix(state)
         self.update_augmented_matrices(coriolis_matrix)
 
         lqr_gain, _, _ = ct.lqr(
@@ -342,7 +247,7 @@ class LQRController:
             self.input_weight_matrix,
         )
 
-        state_error = self.update_error(guidance_values, states)
+        state_error = self.update_error(guidance_values, state)
         u = self.saturate_input(-lqr_gain @ state_error)
 
         return u
