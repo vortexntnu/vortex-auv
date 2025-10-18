@@ -1,5 +1,17 @@
+#include "los_guidance/los_guidance_ros.hpp"
 #include <spdlog/spdlog.h>
-#include <los_guidance/los_guidance_ros.hpp>
+#include <vortex/utils/qos_profiles.hpp>
+
+const auto start_message = R"(
+  _     ___  ____     ____       _     _
+ | |   / _ \/ ___|   / ___|_   _(_) __| | __ _ _ __   ___ ___
+ | |  | | | \___ \  | |  _| | | | |/ _` |/ _` | '_ \ / __/ _ \
+ | |__| |_| |___) | | |_| | |_| | | (_| | (_| | | | | (_|  __/
+ |_____\___/|____/   \____|\__,_|_|\__,_|\__,_|_| |_|\___\___|
+
+)";
+
+namespace vortex::guidance {
 
 LOSGuidanceNode::LOSGuidanceNode() : Node("los_guidance_node") {
     time_step_ = std::chrono::milliseconds(10);
@@ -10,7 +22,7 @@ LOSGuidanceNode::LOSGuidanceNode() : Node("los_guidance_node") {
 
     set_adaptive_los_guidance();
 
-    spdlog::info("LOS guidance node initialized");
+    spdlog::info(start_message);
 }
 
 void LOSGuidanceNode::set_subscribers_and_publisher() {
@@ -24,9 +36,7 @@ void LOSGuidanceNode::set_subscribers_and_publisher() {
     std::string waypoint_topic =
         this->get_parameter("topics.waypoint").as_string();
 
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         guidance_topic, qos_sensor_data);
@@ -63,23 +73,25 @@ void LOSGuidanceNode::set_action_server() {
 }
 
 void LOSGuidanceNode::set_adaptive_los_guidance() {
-    this->declare_parameter<double>("lookahead_distance_h");
-    this->declare_parameter<double>("lookahead_distance_v");
-    this->declare_parameter<double>("gamma_h");
-    this->declare_parameter<double>("gamma_v");
-    this->declare_parameter<double>("time_step");
-    this->declare_parameter<double>("u_desired");
+    this->declare_parameter<double>("los.lookahead_distance_h");
+    this->declare_parameter<double>("los.lookahead_distance_v");
+    this->declare_parameter<double>("los.gamma_h");
+    this->declare_parameter<double>("los.gamma_v");
+    this->declare_parameter<double>("los.time_step");
+    this->declare_parameter<double>("los.u_desired");
+    this->declare_parameter<double>("los.goal_reached_tol");
 
-    u_desired_ = this->get_parameter("u_desired").as_double();
+    u_desired_ = this->get_parameter("los.u_desired").as_double();
+    goal_reached_tol_ = this->get_parameter("los.goal_reached_tol").as_double();
 
     LOS::Params params;
     params.lookahead_distance_h =
-        this->get_parameter("lookahead_distance_h").as_double();
+        this->get_parameter("los.lookahead_distance_h").as_double();
     params.lookahead_distance_v =
-        this->get_parameter("lookahead_distance_v").as_double();
-    params.gamma_h = this->get_parameter("gamma_h").as_double();
-    params.gamma_v = this->get_parameter("gamma_v").as_double();
-    params.time_step = this->get_parameter("time_step").as_double();
+        this->get_parameter("los.lookahead_distance_v").as_double();
+    params.gamma_h = this->get_parameter("los.gamma_h").as_double();
+    params.gamma_v = this->get_parameter("los.gamma_v").as_double();
+    params.time_step = this->get_parameter("los.time_step").as_double();
 
     adaptive_los_guidance_ = std::make_unique<AdaptiveLOSGuidance>(params);
 }
@@ -208,7 +220,7 @@ void LOSGuidanceNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(reference_msg);
 
-        if ((eta_ - next_point_).as_vector().norm() < 0.5) {
+        if ((eta_ - next_point_).as_vector().norm() < goal_reached_tol_) {
             result->success = true;
             goal_handle->succeed(result);
             vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
@@ -220,3 +232,5 @@ void LOSGuidanceNode::execute(
         loop_rate.sleep();
     }
 }
+
+}  // namespace vortex::guidance
