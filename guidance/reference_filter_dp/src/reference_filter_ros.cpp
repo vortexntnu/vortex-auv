@@ -200,7 +200,7 @@ Eigen::Vector6d ReferenceFilterNode::fill_reference_goal(
     double y{goal.pose.position.y};
     double z{goal.pose.position.z};
 
-    const auto& o = current_pose_.pose.pose.orientation;
+    const auto& o = goal.pose.orientation;
     Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
     Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
     double roll{euler_angles(0)};
