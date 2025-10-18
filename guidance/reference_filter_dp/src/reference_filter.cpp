@@ -1,10 +1,11 @@
 #include "reference_filter_dp/reference_filter.hpp"
+#include <spdlog/spdlog.h>
 
 namespace vortex::guidance {
 
 ReferenceFilter::ReferenceFilter(const ReferenceFilterParams& params) {
     calculate_Ad(params.omega, params.zeta);
-    calculate_Bd(params.zeta);
+    calculate_Bd(params.omega);
 }
 
 Eigen::Vector18d ReferenceFilter::calculate_x_dot(const Eigen::Vector18d& x,
