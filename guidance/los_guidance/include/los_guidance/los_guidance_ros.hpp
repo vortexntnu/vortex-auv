@@ -1,5 +1,5 @@
-#ifndef REFERENCE_FILTER_ROS_HPP
-#define REFERENCE_FILTER_ROS_HPP
+#ifndef LOS_GUIDANCE_ROS_HPP
+#define LOS_GUIDANCE_ROS_HPP
 
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -115,4 +115,4 @@ class LOSGuidanceNode : public rclcpp::Node {
 
 }  // namespace vortex::guidance
 
-#endif
+#endif  // LOS_GUIDANCE_ROS_HPP
