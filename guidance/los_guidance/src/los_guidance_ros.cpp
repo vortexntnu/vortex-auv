@@ -81,9 +81,6 @@ void LOSGuidanceNode::set_adaptive_los_guidance() {
     this->declare_parameter<double>("los.u_desired");
     this->declare_parameter<double>("los.goal_reached_tol");
 
-    u_desired_ = this->get_parameter("los.u_desired").as_double();
-    goal_reached_tol_ = this->get_parameter("los.goal_reached_tol").as_double();
-
     LOS::Params params;
     params.lookahead_distance_h =
         this->get_parameter("los.lookahead_distance_h").as_double();
@@ -173,6 +170,9 @@ void LOSGuidanceNode::execute(
         this->goal_handle_ = goal_handle;
     }
 
+    u_desired_ = this->get_parameter("los.u_desired").as_double();
+    goal_reached_tol_ = this->get_parameter("los.goal_reached_tol").as_double();
+
     spdlog::info("Executing goal");
 
     const geometry_msgs::msg::PointStamped los_waypoint =
@@ -223,6 +223,7 @@ void LOSGuidanceNode::execute(
         if ((eta_ - next_point_).as_vector().norm() < goal_reached_tol_) {
             result->success = true;
             goal_handle->succeed(result);
+            u_desired_ = 0.0;
             vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
             reference_pub_->publish(reference_msg);
             spdlog::info("Goal reached");
