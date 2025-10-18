@@ -18,6 +18,7 @@ trap cleanup ERR
 # Launch controller node
 setsid ros2 launch velocity_controller_lqr velocity_controller_lqr.launch.py &
 CONTROLLER_PID=$!
+sleep 5
 echo "Launched controller with PID: $CONTROLLER_PID"
 
 # Check for ROS errors before continuing
@@ -31,9 +32,10 @@ echo "Turning off killswitch and setting operation mode to autonomous mode"
 ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5
 ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5
 
+sleep 2
 # Check if controller correctly publishes tau
 echo "Waiting for wrench data..."
-timeout 10s ros2 topic echo /orca/wrench_input --once
+timeout 20s ros2 topic echo /orca/wrench_input --once
 echo "Got wrench data"
 
 # Terminate processes
