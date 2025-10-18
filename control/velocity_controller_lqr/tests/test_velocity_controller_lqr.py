@@ -21,15 +21,6 @@ lqr_params = LQRParameters(
 controller = LQRController(lqr_params, np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]]))
 
 
-def calculate_coriolis(state: State) -> np.ndarray:
-    return controller.calculate_coriolis_matrix(
-        pitch_rate=state.twist.angular_y,
-        yaw_rate=state.twist.angular_z,
-        sway_vel=state.twist.linear_y,
-        heave_vel=state.twist.linear_z,
-    )
-
-
 class TestVelocityController:
     def test_placeholder(self):
         assert controller is not None
