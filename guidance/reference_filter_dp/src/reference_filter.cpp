@@ -1,5 +1,4 @@
 #include "reference_filter_dp/reference_filter.hpp"
-#include <spdlog/spdlog.h>
 
 namespace vortex::guidance {
 
