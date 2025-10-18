@@ -45,6 +45,14 @@ add_executable(los_guidance_node
 target_link_libraries(los_guidance_node ${LIB_NAME})
 
 install(TARGETS
+  ${LIB_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(TARGETS
   los_guidance_node
   DESTINATION lib/${PROJECT_NAME}
 )
