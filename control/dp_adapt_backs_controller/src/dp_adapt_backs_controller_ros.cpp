@@ -23,14 +23,11 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     const rclcpp::NodeOptions& options)
     : Node("dp_adapt_backs_controller_node", options) {
     time_step_ = std::chrono::milliseconds(10);
-    spdlog::info("test");
 
     set_subscribers_and_publisher();
 
-    spdlog::info("test2");
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&DPAdaptBacksControllerNode::publish_tau, this));
-    spdlog::info("Test3");
     set_adap_params();
 
     spdlog::info(start_message);
