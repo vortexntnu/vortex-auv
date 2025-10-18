@@ -21,13 +21,13 @@ find_package(fmt REQUIRED)
 
 include_directories(include)
 
-add_executable(los_guidance_node
-  src/los_guidance_node.cpp
-  src/los_guidance_ros.cpp
+set(LIB_NAME los_guidance_lib)
+add_library(${LIB_NAME} SHARED
   src/los_guidance.cpp
+  src/los_guidance_ros.cpp
 )
 
-ament_target_dependencies(los_guidance_node
+ament_target_dependencies(${LIB_NAME}
   rclcpp
   rclcpp_action
   geometry_msgs
@@ -38,7 +38,11 @@ ament_target_dependencies(los_guidance_node
   fmt
 )
 
-target_link_libraries(los_guidance_node fmt::fmt)
+add_executable(los_guidance_node
+  src/los_guidance_node.cpp
+)
+
+target_link_libraries(los_guidance_node ${LIB_NAME})
 
 install(TARGETS
   los_guidance_node
@@ -55,5 +59,9 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
 
 ament_package()
