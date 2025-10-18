@@ -13,6 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(vortex_utils REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
@@ -32,6 +33,7 @@ add_library(${LIB_NAME} SHARED
   geometry_msgs
   Eigen3
   vortex_msgs
+  vortex_utils
   fmt
   spdlog
 )
