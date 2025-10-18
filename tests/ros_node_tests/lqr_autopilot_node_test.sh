@@ -28,8 +28,8 @@ fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -1
-ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -1
+ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5
+ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5
 
 # Check if controller correctly publishes tau
 echo "Waiting for wrench data..."

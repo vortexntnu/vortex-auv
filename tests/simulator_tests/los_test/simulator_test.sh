@@ -3,8 +3,8 @@ set -e
 set -o pipefail
 
 echo "Setting up ROS 2 environment..."
-source /opt/ros/humble/setup.bash
-source ~/ros2_ws/install/setup.bash
+. /opt/ros/humble/setup.sh
+. "${WORKSPACE:-$HOME/ros2_ws}/install/setup.bash"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
