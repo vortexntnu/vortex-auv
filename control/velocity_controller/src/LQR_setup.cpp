@@ -8,6 +8,8 @@
 #include <drake/math/discrete_algebraic_riccati_equation.h>
 #include <drake/math/continuous_algebraic_riccati_equation.h>
 #include <drake/systems/controllers/linear_quadratic_regulator.h>
+#include "velocity_controller/PID_setup.hpp"
+#include "velocity_controller/utilities.hpp"
 
 
 LQRController::LQRController(LQRparameters params,std::vector<double> inertia_matrix){
@@ -15,7 +17,8 @@ LQRController::LQRController(LQRparameters params,std::vector<double> inertia_ma
     set_matrices(inertia_matrix);
 };
 
-angle LQRController::quaternion_to_euler_angle(double w, double x, double y, double z){
+
+/*angle LQRController::quaternion_to_euler_angle(double w, double x, double y, double z){
     double ysqr = y * y;
 
     double t0 = +2.0 * (w * x + y * z);
@@ -32,7 +35,7 @@ angle LQRController::quaternion_to_euler_angle(double w, double x, double y, dou
     double psi = std::atan2(t3, t4);
 
     return {phi, theta, psi};
-};
+};*/
 
 double LQRController::ssa(double angle){
     return std::fmod(angle+pi, 2*pi)-pi;
@@ -109,10 +112,10 @@ void LQRController::update_augmented_matrices(std::vector <std::vector<double>> 
                               {inertia_matrix_inv[2][0],inertia_matrix_inv[2][1],inertia_matrix_inv[2][2],0,0,0}};
 
 };
-std::vector<double> LQRController::update_error(Guidance_values guidance_values, State states){
+std::vector<double> LQRController::update_error(Guidance_data guidance_values, State states){
     double surge_error = guidance_values.surge - states.surge;
     double pitch_error = ssa(guidance_values.pitch - states.pitch);
-    double yaw_error = ssa(guidance_values.yaw - states.yaw);
+    double yaw_error = ssa(guidance_values.yaw - states.yaw);   
 
     integral_error_surge = anti_windup(i_surge, surge_error, integral_error_surge, surge_windup);
     integral_error_pitch = anti_windup(i_pitch, pitch_error, integral_error_pitch, pitch_windup);
@@ -128,7 +131,7 @@ std::vector<double> LQRController::saturate_input(std::vector<double> u){
     std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
     return {force_x, torque_y, torque_z};
 }
-std::vector<double> LQRController::calculate_lqr_u(std::vector<std::vector<double>> coriolis_matrix, State states, Guidance_values guidance_values){
+std::vector<double> LQRController::calculate_lqr_u(std::vector<std::vector<double>> coriolis_matrix, State states, Guidance_data guidance_values){
     update_augmented_matrices(coriolis_matrix);
     auto result = drake::systems::controllers::LinearQuadraticRegulator(
         vector2d_to_matrix3d(augmented_system_matrix),
@@ -136,7 +139,7 @@ std::vector<double> LQRController::calculate_lqr_u(std::vector<std::vector<doubl
         vector2d_to_matrix3d(state_weight_matrix),
         vector2d_to_matrix3d(input_weight_matrix));
     std::vector<double> state_error = update_error(guidance_values, states);
-    std::vector<double> u= saturate_input(matrix3d_to_vector(- result * vector_to_matrix3d(state_error)));
+    std::vector<double> u= saturate_input(matrix3d_to_vector(- (result.K * vector_to_matrix3d(state_error))));
     return u;
 }
 void LQRController::reset_controller(){
@@ -151,12 +154,6 @@ void LQRController::reset_controller(){
 }
 
 
-
-
-
-int main(){
-    return 0;
-};
 
 //Hjelpefunksjoner for å konvertere mellom std::vector og Eigen::Matrix3d
 Eigen::Matrix3d vector_to_matrix3d(const std::vector<double> &other_matrix){

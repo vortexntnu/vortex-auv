@@ -8,18 +8,21 @@
 #include "std_msgs/msg/bool.hpp"
 #include "velocity_controller/PID_setup.hpp"
 #include <cmath>
+#include <Eigen/Dense>
 //#include "vortex-msgs/msg" kan legge til nye meldinger nå
 
 //Lager en klasse velocity node
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(1,1,1), PID_yaw(1,1,1), PID_pitch(1,1,1)
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(1,1,1), PID_yaw(1,1,1), PID_pitch(1,1,1), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
 
   //Parameter from config.
   get_new_parameters();
+
+  
   // Publishers
   publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, 10);
   
@@ -43,12 +46,14 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(1,1
   
   timer_calculation = this->create_wall_timer(std::chrono::milliseconds(calculation_rate), std::bind(&Velocity_node::publish_thrust, this));
   timer_publish = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::calc_thrust, this));
-
+  //Controllers
   PID_surge.set_output_limits(-max_force, max_force);
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
-  this->calculation_rate = this->get_parameter("calculation_rate").as_int();
-  this->publish_rate = this->get_parameter("publish_rate").as_int();
+  lqr_controller.set_params(lqr_parameters);
+  lqr_controller.set_matrices(inertia_matrix);
+  
+
 }
 
 
@@ -62,12 +67,22 @@ void Velocity_node::publish_thrust()
 //** må forbedre integrasjon og derivasjons beregningene
 void Velocity_node::calc_thrust()
 {
-  PID_surge.calculate_thrust(reference.surge, current_state.surge,calculation_rate/1000.0);
-  PID_pitch.calculate_thrust(reference.pitch, current_state.pitch,calculation_rate/1000.0);
-  PID_yaw.calculate_thrust(reference.yaw, current_state.yaw,calculation_rate/1000.0);
-  thrust_out.wrench.force.x = PID_surge.output();
-  thrust_out.wrench.torque.y = PID_pitch.output();
-  thrust_out.wrench.torque.z = PID_yaw.output();
+  switch (controller_type)
+  {
+  case 1:
+    PID_surge.calculate_thrust(guidance_values.surge, current_state.surge,calculation_rate/1000.0);
+    PID_pitch.calculate_thrust(guidance_values.pitch, current_state.pitch,calculation_rate/1000.0);
+    PID_yaw.calculate_thrust(guidance_values.yaw, current_state.yaw,calculation_rate/1000.0);
+    thrust_out.wrench.force.x = PID_surge.output();
+    thrust_out.wrench.torque.y = PID_pitch.output();
+    thrust_out.wrench.torque.z = PID_yaw.output();
+    break;
+  case 2:
+    lqr_controller.update_error(guidance_values,current_state);
+  default:
+    break;
+  }
+  
 
   return;
 }
@@ -77,7 +92,7 @@ void Velocity_node::calc_thrust()
 //Callback functions
 void Velocity_node::guidance_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg_ptr){
   //RCLCPP_INFO(this->get_logger(), "Received reference: '%f'", msg_ptr->wrench.force.x);
-  reference = *msg_ptr;
+  guidance_values = *msg_ptr;
   return;
 }
 void Velocity_node::twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg_ptr){
@@ -96,8 +111,8 @@ void Velocity_node::pose_callback(const geometry_msgs::msg::PoseWithCovarianceSt
 void Velocity_node::killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr){
   RCLCPP_INFO(this->get_logger(), "Received killswitch: '%d'", msg_ptr->data);
   if(msg_ptr->data == true){
-    reference = guidance_data();
-    current_state = guidance_data();
+    guidance_values = Guidance_data();
+    current_state = Guidance_data();
     RCLCPP_INFO(this->get_logger(), "Killswitch activated, reference and current state set to zero");
   }
   return;
@@ -121,6 +136,38 @@ void Velocity_node::get_new_parameters(){
   this->calculation_rate = this->get_parameter("calculation_rate").as_int();
   this->declare_parameter<int>("publish_rate");
   this->publish_rate = this->get_parameter("publish_rate").as_int();
+  this->declare_parameter<int>("controller_type");
+  this->controller_type=this->get_parameter("controller_type").as_int();
+  
+
+  //LQR Parameters
+  this->declare_parameter<double>("LQR_params.q_surge");
+  this->declare_parameter<double>("LQR_params.q_pitch");
+  this->declare_parameter<double>("LQR_params.q_yaw");
+  this->declare_parameter<double>("LQR_params.r_surge");
+  this->declare_parameter<double>("LQR_params.r_pitch");
+  this->declare_parameter<double>("LQR_params.r_yaw");
+  this->declare_parameter<double>("LQR_params.i_surge");
+  this->declare_parameter<double>("LQR_params.i_pitch");
+  this->declare_parameter<double>("LQR_params.i_yaw");
+  this->declare_parameter<double>("LQR_params.i_weight");
+  this->declare_parameter<double>("LQR_params.dt");
+  this->declare_parameter<std::vector<double>>("inertia_matrix");
+
+  this->lqr_parameters.q_surge=this->get_parameter("LQR_params.q_surge").as_double();
+  this->lqr_parameters.q_pitch=this->get_parameter("LQR_params.q_pitch").as_double();
+  this->lqr_parameters.q_yaw=this->get_parameter("LQR_params.q_yaw").as_double();
+  this->lqr_parameters.r_surge=this->get_parameter("LQR_params.r_surge").as_double();
+  this->lqr_parameters.r_pitch=this->get_parameter("LQR_params.r_pitch").as_double();
+  this->lqr_parameters.r_yaw=this->get_parameter("LQR_params.r_yaw").as_double();
+  this->lqr_parameters.i_surge=this->get_parameter("LQR_params.i_surge").as_double();
+  this->lqr_parameters.i_pitch=this->get_parameter("LQR_params.i_pitch").as_double();
+  this->lqr_parameters.i_yaw=this->get_parameter("LQR_params.i_yaw").as_double();
+  this->lqr_parameters.i_weight=this->get_parameter("LQR_params.i_weight").as_double();
+  this->lqr_parameters.max_force=max_force;
+  this->inertia_matrix=this->get_parameter("inertia_matrix").as_double_array();
+  
+
 }
 
 int main(int argc, char * argv[])
@@ -156,16 +203,16 @@ geometry_msgs::msg::WrenchStamped operator+(const geometry_msgs::msg::WrenchStam
   return result;
 }
 //operator overloading for guidance_data
-guidance_data guidance_data::operator-(const guidance_data & b) const
+Guidance_data Guidance_data::operator-(const Guidance_data & b) const
 {
-  guidance_data result;
+  Guidance_data result;
   result.surge = this->surge - b.surge;
   result.pitch = this->pitch - b.pitch;
   result.yaw = this->yaw - b.yaw; 
   return result;
 }
 
-guidance_data& guidance_data::operator=(const std_msgs::msg::Float64MultiArray& msg)
+Guidance_data& Guidance_data::operator=(const std_msgs::msg::Float64MultiArray& msg)
 {
   if (msg.data.size()>=3){
     surge=msg.data[0];
@@ -179,7 +226,7 @@ guidance_data& guidance_data::operator=(const std_msgs::msg::Float64MultiArray& 
   return *this;
 }
 
-guidance_data::guidance_data(std_msgs::msg::Float64MultiArray msg){
+Guidance_data::Guidance_data(std_msgs::msg::Float64MultiArray msg){
         if (msg.data.size()>=3){
             surge=msg.data[0];
             pitch=msg.data[1];

@@ -8,6 +8,7 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "velocity_controller/PID_setup.hpp"
+#include "LQR_setup.hpp"
 
 
 //#include "vortex-msgs/msg" kan legge til nye meldinger nå
@@ -58,14 +59,22 @@ class Velocity_node : public rclcpp::Node{
 
     //Stored wrenches values
     std_msgs::msg::Float64MultiArray reference_in;
-    guidance_data reference;
-    guidance_data current_state;
+    Guidance_data guidance_values;
+    Guidance_data current_state;
     geometry_msgs::msg::WrenchStamped thrust_out;
+
+
+    int controller_type; //1 PID, 2 LQR
 
     //PID controllers
     PID_controller PID_surge;
     PID_controller PID_yaw;
     PID_controller PID_pitch;
+
+    //LQR Controller
+    LQRController lqr_controller;
+    LQRparameters lqr_parameters;
+    std::vector<double> inertia_matrix;
 
     
 };

@@ -20,7 +20,7 @@ class test_VC : public rclcpp::Node{
     
     //Variables
     //guidance_data reference;
-    guidance_data current_state;
+    Guidance_data current_state;
     //Subscribers and publishers
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_guidance;
     rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr publisher_twist;

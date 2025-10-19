@@ -11,9 +11,9 @@
       killswitch_topic: /softwareKillSwitch #Kill Switch
 
     LQR_params:
-      q_surge: 75
-      q_pitch: 175
-      q_yaw: 175
+      q_surge: 75.0
+      q_pitch: 175.0
+      q_yaw: 175.0
 
       r_surge: 0.3
       r_pitch: 0.4
@@ -33,4 +33,5 @@
     publish_rate: 200 #ms
     #Clamp parameter
     max_force: 99.5
+    controller_type: 1
     #publish_value: "Hello from config!"  # parameter name: parameter value

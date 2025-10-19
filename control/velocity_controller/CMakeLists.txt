@@ -24,6 +24,8 @@ include_directories(
   include
 )
 
+link_directories("/opt/drake/lib/")
+
 #set(LIB_NAME "${PROJECT_NAME}_component")
 
 #add_library(${LIB_NAME} SHARED
@@ -35,11 +37,15 @@ include_directories(
 add_executable(velocity_controller_node
   src/velocity_controller.cpp
   src/PID_setup.cpp
+  src/LQR_setup.cpp
+  src/utilities.cpp
 )
 
 add_executable(test_VC_node
   src/test_VC.cpp
   src/PID_setup.cpp
+  src/LQR_setup.cpp
+  src/utilities.cpp
 #  src/velocity_controller.cpp
 )
 
@@ -49,6 +55,7 @@ ament_target_dependencies(velocity_controller_node
   vortex_msgs
   geometry_msgs
   Eigen3
+  drake
 )
 
 ament_target_dependencies(test_VC_node

@@ -1,4 +1,6 @@
 #include "velocity_controller/PID_setup.hpp"
+#include "velocity_controller/LQR_setup.hpp"
+#include "velocity_controller/utilities.hpp"
 
 PID_controller::PID_controller( double k_p, double k_i, double k_d, double max_output, double min_output):k_p(k_p), k_i(k_i), k_d(k_d), max_output(max_output), min_output(min_output) {
     integral = 0.0;
@@ -48,21 +50,3 @@ void PID_controller::set_output_limits(double min_output, double max_output){
     return;
 };
 
-angle quaternion_to_euler_angle(double w, double x, double y, double z){
-    double ysqr = y * y;
-
-    double t0 = +2.0 * (w * x + y * z);
-    double t1 = +1.0 - 2.0 * (x * x + ysqr);
-    double phi = std::atan2(t0, t1);
-
-    double t2 = +2.0 * (w * y - z * x);
-    t2 = t2 > 1.0 ? 1.0 : t2;
-    t2 = t2 < -1.0 ? -1.0 : t2;
-    double theta = std::asin(t2);
-
-    double t3 = +2.0 * (w * z + x * y);
-    double t4 = +1.0 - 2.0 * (ysqr + z * z);
-    double psi = std::atan2(t3, t4);
-
-    return {phi, theta, psi};
-};
