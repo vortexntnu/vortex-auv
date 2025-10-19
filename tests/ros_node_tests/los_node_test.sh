@@ -2,8 +2,6 @@
 set -e
 set -o pipefail
 
-echo "Testing that the ESKF node is able to start up and publish odom"
-
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
@@ -12,15 +10,15 @@ echo "Setting up ROS 2 environment..."
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$ESKF_PID" || true
+    kill -TERM -"$LOS_PID" || true
     exit 1
 }
 trap cleanup ERR
 
-# Launch eskf node
-setsid ros2 launch eskf eskf.launch.py &
-ESKF_PID=$!
-echo "Launched eskf with PID: $ESKF_PID"
+# Launch los guidance node
+setsid ros2 launch los_guidance los_guidance.launch.py &
+LOS_PID=$!
+echo "Launched los guidance with PID: $LOS_PID"
 
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
@@ -28,15 +26,15 @@ if journalctl -u ros2 | grep -i "error"; then
     exit 1
 fi
 
-# Publish imu to get odom (in the background)
-ros2 topic pub /imu/data_raw sensor_msgs/msg/Imu -r 10 &
-
-# Check if eskf correctly publishes odom
-echo "Waiting for odom data..."
-timeout 10s ros2 topic echo /odom --once
-echo "Got odom data"
+# Send action goal
+echo "Sending goal..."
+ros2 action send_goal /orca/los_guidance vortex_msgs/action/LOSGuidance "{goal: {point: {x: 20.0, y: 20.0, z: 5.0}}}" &
+# Check if node correctly publishes guidance
+echo "Waiting for guidance data..."
+timeout 10s ros2 topic echo /orca/guidance/los --once
+echo "Got guidance data"
 
 # Terminate processes
-kill -TERM -"$ESKF_PID"
+kill -TERM -"$LOS_PID"
 
 echo "Test completed successfully."
