@@ -19,14 +19,9 @@ class ESKF {
     // @param dvl_meas: DVL measurement
     void dvl_update(const DvlMeasurement& dvl_meas);
 
-    inline StateQuat get_nominal_state() const {
-        return current_nom_state_;
-    }
+    inline StateQuat get_nominal_state() const { return current_nom_state_; }
 
-    inline double get_nis() const {
-        return nis_;
-    }
-
+    inline double get_nis() const { return nis_; }
 
    private:
     // @brief Predict the nominal state

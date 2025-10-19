@@ -5,9 +5,9 @@
 #ifndef ESKF_TYPEDEFS_H
 #define ESKF_TYPEDEFS_H
 
-#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <vector>
 
 namespace Eigen {
 typedef Eigen::Matrix<double, 19, 1> Vector19d;
@@ -28,6 +28,7 @@ typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 9, 9> Matrix9d;
 typedef Eigen::Matrix<double, 15, 15> Matrix15d;
 typedef Eigen::Matrix<double, 15, 1> Vector15d;
+typedef Eigen::Matrix<double, 12, 1> Vector12d;
 }  // namespace Eigen
 
 template <int N>

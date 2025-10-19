@@ -1,7 +1,7 @@
 #include "eskf/eskf_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
-#include "eskf/eskf_utils.hpp"
+#include <vortex/utils/qos_profiles.hpp>
 #include "eskf/typedefs.hpp"
 
 auto start_message{R"(
@@ -27,9 +27,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     this->declare_parameter<std::string>("imu_topic");
     std::string imu_topic = this->get_parameter("imu_topic").as_string();
@@ -49,7 +47,8 @@ void ESKFNode::set_subscribers_and_publisher() {
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
-    nis_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nis", 10);
+    nis_pub_ = create_publisher<std_msgs::msg::Float64>(
+        "dvl/nis", vortex::utils::qos_profiles::reliable_profile());
 }
 
 void ESKFNode::set_parameters() {
@@ -64,22 +63,23 @@ void ESKFNode::set_parameters() {
 
     diag_Q_std = this->get_parameter("diag_Q_std").as_double_array();
 
-    // EskfParams eskf_params{};
+    if (diag_Q_std.size() != 12) {
+        throw std::runtime_error("diag_Q_std must have length 12");
+    }
 
-    Eigen::Matrix12d Q;
-    Q.setZero();
-    Q.diagonal() << sq(diag_Q_std[0]), sq(diag_Q_std[1]), sq(diag_Q_std[2]),
-        sq(diag_Q_std[3]), sq(diag_Q_std[4]), sq(diag_Q_std[5]),
-        sq(diag_Q_std[6]), sq(diag_Q_std[7]), sq(diag_Q_std[8]),
-        sq(diag_Q_std[9]), sq(diag_Q_std[10]), sq(diag_Q_std[11]);
+    Eigen::Matrix12d Q = Eigen::Map<const Eigen::Vector12d>(diag_Q_std.data())
+                             .array()
+                             .square()
+                             .matrix()
+                             .asDiagonal();
 
     std::vector<double> diag_p_init =
         this->declare_parameter<std::vector<double>>("diag_p_init");
+    if (diag_p_init.size() != 18) {
+        throw std::runtime_error("diag_p_init must have length 18");
+    }
     Eigen::Matrix18d P = createDiagonalMatrix<18>(diag_p_init);
-    EskfParams eskf_params{
-        .Q = Q,
-        .P = P
-    };
+    EskfParams eskf_params{.Q = Q, .P = P};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
 }

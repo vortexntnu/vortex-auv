@@ -1,13 +1,12 @@
 #include "eskf/eskf.hpp"
-#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <functional>
 #include <iterator>
 #include <unsupported/Eigen/MatrixFunctions>
-#include "eskf/eskf_utils.hpp"
+#include <vortex/utils/math.hpp>
 #include "eskf/typedefs.hpp"
-#include "iostream"
 
-double compute_nis(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
+double compute_nis(const Eigen::Vector3d& innovation,
+                   const Eigen::Matrix3d& S) {
     Eigen::Matrix3d S_inv = S.inverse();
     return innovation.transpose() * S_inv * innovation;
 }
@@ -59,7 +58,8 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
     dhdq.col(0) = 2 * (qw * v_n + q_vec.cross(v_n));
     dhdq.block<3, 3>(0, 1) =
         2 * (q_vec.dot(v_n) * I3 + q_vec * v_n.transpose() -
-             v_n * q_vec.transpose() - qw * skew(v_n));
+             v_n * q_vec.transpose() -
+             qw * vortex::utils::math::get_skew_symmetric_matrix(v_n));
 
     // Assign quaternion derivative (3x4 block at columns 6:9)
     Hx.block<3, 4>(0, 6) = dhdq;
@@ -70,7 +70,9 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
 Eigen::Matrix3x18d ESKF::calculate_h_jacobian() {
     Eigen::Matrix19x18d x_delta = Eigen::Matrix19x18d::Zero();
     x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
-    x_delta.block<4, 3>(6, 6) = calculate_T_q(current_nom_state_.quat);
+    x_delta.block<4, 3>(6, 6) =
+        vortex::utils::math::get_transformation_matrix_attitude_quat(
+            current_nom_state_.quat);
     x_delta.block<9, 9>(10, 9) = Eigen::Matrix9d::Identity();
 
     Eigen::Matrix3x18d H = calculate_hx() * x_delta;
@@ -96,11 +98,12 @@ void ESKF::nominal_state_discrete(const ImuMeasurement& imu_meas,
     Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
 
     current_nom_state_.pos = current_nom_state_.pos +
-                             current_nom_state_.vel * dt + 0.5 * sq(dt) * acc;
+                             current_nom_state_.vel * dt + 0.5 * dt * dt * acc;
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
 
     current_nom_state_.quat =
-        (current_nom_state_.quat * vector3d_to_quaternion(gyro));
+        (current_nom_state_.quat *
+         vortex::utils::math::eigen_vector3d_to_quaternion(gyro));
     current_nom_state_.quat.normalize();
 
     current_nom_state_.gyro_bias = current_nom_state_.gyro_bias;
@@ -116,8 +119,10 @@ void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
 
     Eigen::Matrix18d A_c = Eigen::Matrix18d::Zero();
     A_c.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
-    A_c.block<3, 3>(3, 6) = -R * skew(acc);
-    A_c.block<3, 3>(6, 6) = -skew(gyro);
+    A_c.block<3, 3>(3, 6) =
+        -R * vortex::utils::math::get_skew_symmetric_matrix(acc);
+    A_c.block<3, 3>(6, 6) =
+        -vortex::utils::math::get_skew_symmetric_matrix(gyro);
     A_c.block<3, 3>(3, 9) = -R;
     A_c.block<3, 3>(9, 9) = -Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(12, 12) = -Eigen::Matrix3d::Identity();
@@ -159,9 +164,9 @@ void ESKF::measurement_update(const DvlMeasurement& dvl_meas) {
 void ESKF::injection_and_reset() {
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
     current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
-    current_nom_state_.quat =
-        current_nom_state_.quat *
-        vector3d_to_quaternion(current_error_state_.euler);
+    current_nom_state_.quat = current_nom_state_.quat *
+                              vortex::utils::math::eigen_vector3d_to_quaternion(
+                                  current_error_state_.euler);
     current_nom_state_.quat.normalize();
     current_nom_state_.gyro_bias =
         current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
@@ -177,15 +182,12 @@ void ESKF::injection_and_reset() {
     current_error_state_.set_from_vector(Eigen::Vector18d::Zero());
 }
 
-void ESKF::imu_update(
-    const ImuMeasurement& imu_meas,
-    const double dt) {
+void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
     nominal_state_discrete(imu_meas, dt);
     error_state_prediction(imu_meas, dt);
 }
 
-void ESKF::dvl_update(
-    const DvlMeasurement& dvl_meas) {
+void ESKF::dvl_update(const DvlMeasurement& dvl_meas) {
     measurement_update(dvl_meas);
     injection_and_reset();
 }
