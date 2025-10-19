@@ -7,7 +7,14 @@
 #include "eskf/typedefs.hpp"
 #include "iostream"
 
-ESKF::ESKF(const eskf_params& params) : Q_(params.Q) {}
+double compute_nis(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
+    Eigen::Matrix3d S_inv = S.inverse();
+    return innovation.transpose() * S_inv * innovation;
+}
+
+ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
+    // current_error_state_.covariance = params.P;
+}
 
 std::pair<Eigen::Matrix18d, Eigen::Matrix18d> ESKF::van_loan_discretization(
     const Eigen::Matrix18d& A_c,
@@ -80,7 +87,7 @@ Eigen::Vector3d ESKF::calculate_h() {
     return h;
 }
 
-void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
+void ESKF::nominal_state_discrete(const ImuMeasurement& imu_meas,
                                   const double dt) {
     Eigen::Vector3d acc =
         current_nom_state_.quat.normalized().toRotationMatrix() *
@@ -101,7 +108,7 @@ void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
     current_nom_state_.gravity = current_nom_state_.gravity;
 }
 
-void ESKF::error_state_prediction(const imu_measurement& imu_meas,
+void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
                                   const double dt) {
     Eigen::Matrix3d R = current_nom_state_.quat.normalized().toRotationMatrix();
     Eigen::Vector3d acc = (imu_meas.accel - current_nom_state_.accel_bias);
@@ -126,16 +133,12 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
     Eigen::Matrix18d A_d, GQG_d;
     std::tie(A_d, GQG_d) = van_loan_discretization(A_c, G_c, dt);
 
-    state_euler next_error_state;
+    StateEuler next_error_state;
     current_error_state_.covariance =
         A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
 }
 
-void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
-    Eigen::Matrix3d S_inv = S.inverse();
-    NIS_ = innovation.transpose() * S_inv * innovation;
-}
-void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
+void ESKF::measurement_update(const DvlMeasurement& dvl_meas) {
     Eigen::Matrix3x18d H = calculate_h_jacobian();
     Eigen::Matrix18d P = current_error_state_.covariance;
     Eigen::Matrix3d R = dvl_meas.cov;
@@ -144,7 +147,7 @@ void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
     Eigen::Matrix18x3d K = P * H.transpose() * S.inverse();
     Eigen::Vector3d innovation = dvl_meas.vel - calculate_h();
 
-    NIS(innovation, S);
+    nis_ = compute_nis(innovation, S);
     current_error_state_.set_from_vector(K * innovation);
 
     Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K * H;
@@ -174,19 +177,15 @@ void ESKF::injection_and_reset() {
     current_error_state_.set_from_vector(Eigen::Vector18d::Zero());
 }
 
-std::pair<state_quat, state_euler> ESKF::imu_update(
-    const imu_measurement& imu_meas,
+void ESKF::imu_update(
+    const ImuMeasurement& imu_meas,
     const double dt) {
     nominal_state_discrete(imu_meas, dt);
     error_state_prediction(imu_meas, dt);
-
-    return {current_nom_state_, current_error_state_};
 }
 
-std::pair<state_quat, state_euler> ESKF::dvl_update(
-    const dvl_measurement& dvl_meas) {
+void ESKF::dvl_update(
+    const DvlMeasurement& dvl_meas) {
     measurement_update(dvl_meas);
     injection_and_reset();
-
-    return {current_nom_state_, current_error_state_};
 }

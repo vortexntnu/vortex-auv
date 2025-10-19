@@ -15,9 +15,9 @@ auto start_message{R"(
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options) {
-    time_step = std::chrono::milliseconds(1);
-    odom_pub_timer_ = this->create_wall_timer(
-        time_step, std::bind(&ESKFNode::publish_odom, this));
+    // time_step = std::chrono::milliseconds(1);
+    // odom_pub_timer_ = this->create_wall_timer(
+    //     time_step, std::bind(&ESKFNode::publish_odom, this));
 
     set_subscribers_and_publisher();
 
@@ -64,21 +64,24 @@ void ESKFNode::set_parameters() {
 
     diag_Q_std = this->get_parameter("diag_Q_std").as_double_array();
 
+    // EskfParams eskf_params{};
+
     Eigen::Matrix12d Q;
     Q.setZero();
     Q.diagonal() << sq(diag_Q_std[0]), sq(diag_Q_std[1]), sq(diag_Q_std[2]),
         sq(diag_Q_std[3]), sq(diag_Q_std[4]), sq(diag_Q_std[5]),
         sq(diag_Q_std[6]), sq(diag_Q_std[7]), sq(diag_Q_std[8]),
         sq(diag_Q_std[9]), sq(diag_Q_std[10]), sq(diag_Q_std[11]);
-    eskf_params_.Q = Q;
-
-    eskf_ = std::make_unique<ESKF>(eskf_params_);
 
     std::vector<double> diag_p_init =
         this->declare_parameter<std::vector<double>>("diag_p_init");
     Eigen::Matrix18d P = createDiagonalMatrix<18>(diag_p_init);
+    EskfParams eskf_params{
+        .Q = Q,
+        .P = P
+    };
 
-    error_state_.covariance = P;
+    eskf_ = std::make_unique<ESKF>(eskf_params);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -97,57 +100,61 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
                               msg->linear_acceleration.y,
                               msg->linear_acceleration.z);
 
-    imu_meas_.accel = R_imu_eskf_ * raw_accel;
+    ImuMeasurement imu_measurement{};
+    imu_measurement.accel = R_imu_eskf_ * raw_accel;
 
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    imu_meas_.gyro = R_imu_eskf_ * raw_gyro;
+    imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
 
-    std::tie(nom_state_, error_state_) = eskf_->imu_update(imu_meas_, dt);
+    eskf_->imu_update(imu_measurement, dt);
+    publish_odom();
 }
 
 void ESKFNode::dvl_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    dvl_meas_.vel << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
+    DvlMeasurement dvl_measurement{};
+    dvl_measurement.vel << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
         msg->twist.twist.linear.z;
 
-    dvl_meas_.cov << msg->twist.covariance[0], msg->twist.covariance[1],
+    dvl_measurement.cov << msg->twist.covariance[0], msg->twist.covariance[1],
         msg->twist.covariance[2], msg->twist.covariance[6],
         msg->twist.covariance[7], msg->twist.covariance[8],
         msg->twist.covariance[12], msg->twist.covariance[13],
         msg->twist.covariance[14];
 
-    std::tie(nom_state_, error_state_) = eskf_->dvl_update(dvl_meas_);
+    eskf_->dvl_update(dvl_measurement);
 
     std_msgs::msg::Float64 nis_msg;
-    nis_msg.data = eskf_->NIS_;
+    nis_msg.data = eskf_->get_nis();
     nis_pub_->publish(nis_msg);
+
+    publish_odom();
 }
 
 void ESKFNode::publish_odom() {
     nav_msgs::msg::Odometry odom_msg;
+    StateQuat nom_state = eskf_->get_nominal_state();
 
-    odom_msg.pose.pose.position.x = nom_state_.pos.x();
-    odom_msg.pose.pose.position.y = nom_state_.pos.y();
-    odom_msg.pose.pose.position.z = nom_state_.pos.z();
+    odom_msg.pose.pose.position.x = nom_state.pos.x();
+    odom_msg.pose.pose.position.y = nom_state.pos.y();
+    odom_msg.pose.pose.position.z = nom_state.pos.z();
 
-    odom_msg.pose.pose.orientation.w = nom_state_.quat.w();
-    odom_msg.pose.pose.orientation.x = nom_state_.quat.x();
-    odom_msg.pose.pose.orientation.y = nom_state_.quat.y();
-    odom_msg.pose.pose.orientation.z = nom_state_.quat.z();
+    odom_msg.pose.pose.orientation.w = nom_state.quat.w();
+    odom_msg.pose.pose.orientation.x = nom_state.quat.x();
+    odom_msg.pose.pose.orientation.y = nom_state.quat.y();
+    odom_msg.pose.pose.orientation.z = nom_state.quat.z();
 
-    odom_msg.twist.twist.linear.x = nom_state_.vel.x();
-    odom_msg.twist.twist.linear.y = nom_state_.vel.y();
-    odom_msg.twist.twist.linear.z = nom_state_.vel.z();
+    odom_msg.twist.twist.linear.x = nom_state.vel.x();
+    odom_msg.twist.twist.linear.y = nom_state.vel.y();
+    odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
-    // Add bias values to the angular velocity field of twist
-    odom_msg.twist.twist.angular.x = nom_state_.accel_bias.x();
-    odom_msg.twist.twist.angular.y = nom_state_.accel_bias.y();
-    odom_msg.twist.twist.angular.z = nom_state_.accel_bias.z();
+    odom_msg.twist.twist.angular.x = nom_state.accel_bias.x();
+    odom_msg.twist.twist.angular.y = nom_state.accel_bias.y();
+    odom_msg.twist.twist.angular.z = nom_state.accel_bias.z();
 
-    // If you also want to include gyro bias, you could add it to the covariance
-    // matrix or publish a separate topic for biases
+    // TODO: Covariance out
 
     odom_msg.header.stamp = this->now();
     odom_pub_->publish(odom_msg);

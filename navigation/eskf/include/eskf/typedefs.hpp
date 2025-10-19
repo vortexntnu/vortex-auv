@@ -36,7 +36,7 @@ Eigen::Matrix<double, N, N> createDiagonalMatrix(
     return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
         .asDiagonal();
 }
-struct state_quat {
+struct StateQuat {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
@@ -44,7 +44,7 @@ struct state_quat {
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d gravity = Eigen::Vector3d(0, 0, 9.81);
 
-    state_quat() = default;
+    StateQuat() = default;
 
     Eigen::Vector19d as_vector() const {
         Eigen::Vector19d vec{};
@@ -53,7 +53,7 @@ struct state_quat {
         return vec;
     }
 
-    Eigen::Vector18d nees_error(const state_quat& other) const {
+    Eigen::Vector18d nees_error(const StateQuat& other) const {
         Eigen::Vector18d vec{};
         Eigen::Vector3d euler_diff{};
 
@@ -68,8 +68,8 @@ struct state_quat {
         return vec;
     }
 
-    state_quat operator-(const state_quat& other) const {
-        state_quat diff{};
+    StateQuat operator-(const StateQuat& other) const {
+        StateQuat diff{};
         diff.pos = pos - other.pos;
         diff.vel = vel - other.vel;
         diff.quat = quat * other.quat.inverse();
@@ -80,7 +80,7 @@ struct state_quat {
     }
 };
 
-struct state_euler {
+struct StateEuler {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Vector3d euler = Eigen::Vector3d::Zero();
@@ -106,20 +106,19 @@ struct state_euler {
     }
 };
 
-struct imu_measurement {
+struct ImuMeasurement {
     Eigen::Vector3d accel = Eigen::Vector3d::Zero();
     Eigen::Vector3d gyro = Eigen::Vector3d::Zero();
 };
 
-struct dvl_measurement {
+struct DvlMeasurement {
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
 };
 
-struct eskf_params {
-    double temp = 0.0;
+struct EskfParams {
     Eigen::Matrix12d Q = Eigen::Matrix12d::Zero();
-    double dt = 0.0;
+    Eigen::Matrix18d P = Eigen::Matrix18d::Zero();
 };
 
 #endif  // ESKF_TYPEDEFS_H
