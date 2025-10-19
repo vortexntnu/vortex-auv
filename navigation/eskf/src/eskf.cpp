@@ -31,7 +31,7 @@ std::pair<Eigen::Matrix18d, Eigen::Matrix18d> ESKF::van_loan_discretization(
     return {A_d, GQG_d};
 }
 
-Eigen::Matrix3x19d ESKF::calculate_hx() {
+Eigen::Matrix3x19d calculate_hx(const state_quat& current_nom_state_) {
     Eigen::Matrix3x19d Hx = Eigen::Matrix3x19d::Zero();
 
     Eigen::Quaterniond q = current_nom_state_.quat.normalized();
@@ -60,23 +60,22 @@ Eigen::Matrix3x19d ESKF::calculate_hx() {
     return Hx;
 }
 
-Eigen::Matrix3x18d ESKF::calculate_h_jacobian() {
+Eigen::Matrix3x18d calculate_h_jacobian(const state_quat& current_nom_state_) {
     Eigen::Matrix19x18d x_delta = Eigen::Matrix19x18d::Zero();
     x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
     x_delta.block<4, 3>(6, 6) = calculate_T_q(current_nom_state_.quat);
     x_delta.block<9, 9>(10, 9) = Eigen::Matrix9d::Identity();
 
-    Eigen::Matrix3x18d H = calculate_hx() * x_delta;
+    Eigen::Matrix3x18d H = calculate_hx(current_nom_state_) * x_delta;
     return H;
 }
 
-Eigen::Vector3d ESKF::calculate_h() {
+Eigen::Vector3d calculate_h(const state_quat& current_nom_state_) {
     Eigen::Vector3d h;
     Eigen::Matrix3d R_bn =
         current_nom_state_.quat.normalized().toRotationMatrix().transpose();
 
     h = R_bn * current_nom_state_.vel;
-    // 0.027293, 0.028089, 0.028089, 0.00255253, 0.00270035, 0.00280294,
     return h;
 }
 
@@ -135,23 +134,6 @@ void ESKF::NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S) {
     Eigen::Matrix3d S_inv = S.inverse();
     NIS_ = innovation.transpose() * S_inv * innovation;
 }
-void ESKF::measurement_update(const dvl_measurement& dvl_meas) {
-    Eigen::Matrix3x18d H = calculate_h_jacobian();
-    Eigen::Matrix18d P = current_error_state_.covariance;
-    Eigen::Matrix3d R = dvl_meas.cov;
-
-    Eigen::Matrix3d S = H * P * H.transpose() + R;
-    Eigen::Matrix18x3d K = P * H.transpose() * S.inverse();
-    Eigen::Vector3d innovation = dvl_meas.vel - calculate_h();
-
-    NIS(innovation, S);
-    current_error_state_.set_from_vector(K * innovation);
-
-    Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K * H;
-    current_error_state_.covariance =
-        I_KH * P * I_KH.transpose() +
-        K * R * K.transpose();  // Used joseph form for more stable calculations
-}
 
 void ESKF::injection_and_reset() {
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
@@ -184,9 +166,26 @@ std::pair<state_quat, state_euler> ESKF::imu_update(
 }
 
 std::pair<state_quat, state_euler> ESKF::dvl_update(
-    const dvl_measurement& dvl_meas) {
+    const sensor_dvl& dvl_meas) {
     measurement_update(dvl_meas);
     injection_and_reset();
 
     return {current_nom_state_, current_error_state_};
+}
+
+// DVL sensor model implementations
+
+Eigen::VectorXd sensor_dvl::innovation(const state_quat &state) const {
+
+    Eigen::Vector3d innovation = this->measurement - calculate_h(state);
+    return innovation;
+}
+
+Eigen::MatrixXd sensor_dvl::jacobian(const state_quat &state) const {
+    Eigen::Matrix3x18d H = calculate_h_jacobian(state);
+    return H;
+}
+
+Eigen::MatrixXd sensor_dvl::noise_covariance() const {
+    return this->measurement_noise;
 }

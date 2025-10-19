@@ -25,7 +25,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     spdlog::info(start_message);
     #ifndef NDEBUG
-        spdlog::info("__________________________Debug mode is enabled______________________");
+        spdlog::info("______________________Debug mode is enabled______________________");
     #endif
 }
 
@@ -112,19 +112,19 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
 void ESKFNode::dvl_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    dvl_meas_.vel << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
+    dvl_sensor_.measurement << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
         msg->twist.twist.linear.z;
 
-    dvl_meas_.cov << msg->twist.covariance[0], msg->twist.covariance[1],
+    dvl_sensor_.measurement_noise << msg->twist.covariance[0], msg->twist.covariance[1],
         msg->twist.covariance[2], msg->twist.covariance[6],
         msg->twist.covariance[7], msg->twist.covariance[8],
         msg->twist.covariance[12], msg->twist.covariance[13],
         msg->twist.covariance[14];
 
-    std::tie(nom_state_, error_state_) = eskf_->dvl_update(dvl_meas_);
+    std::tie(nom_state_, error_state_) = eskf_->dvl_update(dvl_sensor_);
 
     #ifndef NDEBUG
-    // Publish NIS
+    // Publish NIS in Debug mode
     std_msgs::msg::Float64 nis_msg;
     nis_msg.data = eskf_->NIS_;
     nis_pub_->publish(nis_msg);

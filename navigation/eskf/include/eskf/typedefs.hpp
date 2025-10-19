@@ -8,6 +8,7 @@
 #include <eigen3/Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <concepts>
 
 namespace Eigen {
 typedef Eigen::Matrix<double, 19, 1> Vector19d;
@@ -106,20 +107,32 @@ struct state_euler {
     }
 };
 
-struct imu_measurement {
-    Eigen::Vector3d accel = Eigen::Vector3d::Zero();
-    Eigen::Vector3d gyro = Eigen::Vector3d::Zero();
-};
-
-struct dvl_measurement {
-    Eigen::Vector3d vel = Eigen::Vector3d::Zero();
-    Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
-};
-
 struct eskf_params {
     double temp = 0.0;
     Eigen::Matrix12d Q = Eigen::Matrix12d::Zero();
     double dt = 0.0;
 };
+
+struct imu_measurement {
+    Eigen::Vector3d accel = Eigen::Vector3d::Zero();
+    Eigen::Vector3d gyro = Eigen::Vector3d::Zero();
+};
+
+template<typename T>
+concept SensorModelConcept = requires(const T &meas, const state_quat &state)
+{
+    { meas.innovation(state) } -> std::convertible_to<Eigen::VectorXd>;
+    { meas.jacobian(state) } -> std::convertible_to<Eigen::MatrixXd>;
+    { meas.noise_covariance() } -> std::convertible_to<Eigen::MatrixXd>;
+};
+
+struct sensor_dvl {
+    Eigen::Vector3d measurement;
+    Eigen::Matrix3d measurement_noise;
+    Eigen::VectorXd innovation(const state_quat &state) const;
+    Eigen::MatrixXd jacobian(const state_quat &state) const;
+    Eigen::MatrixXd noise_covariance() const;
+};
+
 
 #endif  // ESKF_TYPEDEFS_H
