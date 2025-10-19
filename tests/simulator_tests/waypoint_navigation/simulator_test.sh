@@ -2,7 +2,6 @@
 set -e
 set -o pipefail
 
-# Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
 . "${WORKSPACE:-$HOME/ros2_ws}/install/setup.bash"

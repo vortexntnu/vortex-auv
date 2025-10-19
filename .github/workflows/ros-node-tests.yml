@@ -16,4 +16,7 @@ jobs:
       setup_script: "tests/setup.sh"
       test_scripts: '[
         "tests/ros_node_tests/dp_node_test.sh",
+        "tests/ros_node_tests/lqr_autopilot_node_test.sh",
+        "tests/ros_node_tests/reference_filter_node_test.sh",
+        "tests/ros_node_tests/los_node_test.sh",
       ]'
