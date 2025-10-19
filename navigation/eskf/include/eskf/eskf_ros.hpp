@@ -58,7 +58,7 @@ class ESKFNode : public rclcpp::Node {
 
     imu_measurement imu_meas_{};
 
-    dvl_measurement dvl_meas_{};
+    sensor_dvl dvl_sensor_{};
 
     eskf_params eskf_params_{};
 

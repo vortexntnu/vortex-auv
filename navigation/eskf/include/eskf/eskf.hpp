@@ -22,7 +22,7 @@ class ESKF {
     // @param dvl_meas: DVL measurement
     // @return Updated nominal state and error state
     std::pair<state_quat, state_euler> dvl_update(
-        const dvl_measurement& dvl_meas);
+        const sensor_dvl& dvl_meas);
 
     // Normalized Innovation Squared
     double NIS_{};
@@ -47,9 +47,11 @@ class ESKF {
     // @param S: Innovation covariance matrix
     void NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
 
-    // @brief Update the error state
-    // @param dvl_meas: DVL measurement
-    void measurement_update(const dvl_measurement& dvl_meas);
+    // @brief Update the error state using a generic sensor measurement model
+    // @tparam SensorT Type of the sensor model (must satisfy SensorModelConcept)
+    // @param meas Sensor measurement instance
+    template <SensorModelConcept SensorT>
+    void measurement_update(const SensorT& meas); 
 
     // @brief Inject the error state into the nominal state and reset the error
     void injection_and_reset();
@@ -63,17 +65,6 @@ class ESKF {
         const Eigen::Matrix18x12d& G_c,
         const double dt);
 
-    // @brief Calculate the measurement matrix jakobian
-    // @return Measurement matrix
-    Eigen::Matrix3x19d calculate_hx();
-
-    // @brief Calculate the full measurement matrix
-    // @return Measurement matrix
-    Eigen::Matrix3x18d calculate_h_jacobian();
-
-    // @brief Calculate the measurement
-    // @return Measurement
-    Eigen::Vector3d calculate_h();
 
     // Process noise covariance matrix
     Eigen::Matrix12d Q_{};
@@ -84,5 +75,16 @@ class ESKF {
     // Member variable for the current nominal state
     state_quat current_nom_state_{};
 };
+
+// Measurement in world frame --> h(x)
+Eigen::Vector3d calculate_h(const state_quat& current_nom_state_);
+
+// Jacobian of h(x) with respect to the error state --> H
+Eigen::Matrix3x18d calculate_h_jacobian(const state_quat& current_nom_state_);
+
+// Jacobian of h(x) with respect to the nominal state --> Hx
+Eigen::Matrix3x19d calculate_hx(const state_quat& current_nom_state_);
+
+#include "eskf.tpp"  // including template implementation
 
 #endif  // ESKF_HPP
