@@ -6,8 +6,10 @@
 #include <tf2_ros/create_timer_ros.h>
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -22,18 +24,27 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
    private:
     void setup_publishers_and_subscribers();
 
-    void pose_callback(
-        const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
+    template <typename MsgT>
+    void create_pose_subscription(
+        const std::string& topic_name, const rmw_qos_profile_t& qos_profile);
 
-    void pose_array_callback(
-        const geometry_msgs::msg::PoseArray::ConstSharedPtr msg);
+    template <typename MsgT>
+    void pose_callback(const typename MsgT::ConstSharedPtr& msg);
 
-    message_filters::Subscriber<geometry_msgs::msg::PoseStamped> pose_sub_;
-    message_filters::Subscriber<geometry_msgs::msg::PoseArray> pose_array_sub_;
-    std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>
-        tf2_filter_pose_;
-    std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>
-        tf2_filter_pose_array_;
+    std::variant<
+        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
+        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseWithCovarianceStamped>>
+    > subscriber_;
+
+    std::variant<
+        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
+        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>
+    > tf_filter_;
+
+    rclcpp::SubscriptionBase::SharedPtr sub_;
+    std::shared_ptr<tf2_ros::MessageFilterBase> tf2_filter_;
 
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
