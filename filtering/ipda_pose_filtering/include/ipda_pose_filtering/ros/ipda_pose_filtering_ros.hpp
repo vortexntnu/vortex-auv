@@ -43,9 +43,6 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
         std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>
     > tf_filter_;
 
-    rclcpp::SubscriptionBase::SharedPtr sub_;
-    std::shared_ptr<tf2_ros::MessageFilterBase> tf2_filter_;
-
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
