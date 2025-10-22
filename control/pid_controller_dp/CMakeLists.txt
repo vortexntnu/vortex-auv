@@ -16,6 +16,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(rcl_interfaces REQUIRED)
 
 include_directories(include)
 
@@ -34,6 +35,7 @@ ament_target_dependencies(pid_controller_node
   Eigen3
   tf2
   vortex_msgs
+  rcl_interfaces
 )
 
 install(TARGETS

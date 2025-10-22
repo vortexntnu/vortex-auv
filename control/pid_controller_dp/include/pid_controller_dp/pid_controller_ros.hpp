@@ -7,6 +7,7 @@
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -55,6 +56,10 @@ class PIDControllerNode : public rclcpp::Node {
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
+    // TODO: parameter callback for dynamic reconfigure of PID gains
+    rcl_interfaces::msg::SetParametersResult parametersCallback(
+        const std::vector<rclcpp::Parameter>& parameters);
+
     PIDController pid_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
@@ -93,6 +98,8 @@ class PIDControllerNode : public rclcpp::Node {
     bool killswitch_on_;
 
     std::string software_mode_;
+
+    OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 };
 
 #endif
