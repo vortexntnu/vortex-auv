@@ -4,15 +4,15 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <vector>
 #include <Eigen/Dense>
-#include <drake/common/find_resource.h>
-#include <drake/math/discrete_algebraic_riccati_equation.h>
-#include <drake/math/continuous_algebraic_riccati_equation.h>
-#include <drake/systems/controllers/linear_quadratic_regulator.h>
+//#include <drake/common/find_resource.h>
+//#include <drake/math/discrete_algebraic_riccati_equation.h>
+//#include <drake/math/continuous_algebraic_riccati_equation.h>
+//#include <drake/systems/controllers/linear_quadratic_regulator.h>
 #include "velocity_controller/PID_setup.hpp"
 #include "velocity_controller/utilities.hpp"
 
 
-LQRController::LQRController(LQRparameters params,std::vector<double> inertia_matrix){
+LQRController::LQRController(LQRparameters params,Eigen::Matrix3d inertia_matrix){
     set_params(params);
     set_matrices(inertia_matrix);
 };
@@ -62,11 +62,13 @@ double LQRController::anti_windup(double ki, double error, double integral_sum, 
     return integral_sum;
 }
 
-std::vector<std::vector<double>> LQRController::calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel){
+Eigen::Matrix3d LQRController::calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel){
     //Inertia matrix values??
-    return {{0.2,-30*sway_vel*0.01,-30*heave_vel*0.01},
-            {30 * sway_vel*0.01,0,1.629 * pitchrate},
-            {30 * heave_vel*0.01,1.769 * yaw_rate,0}};
+    Eigen::Matrix3d result;
+    result<<0.2,-30*sway_vel*0.01,-30*heave_vel*0.01,
+            30 * sway_vel*0.01,0,1.629 * pitchrate,
+            30 * heave_vel*0.01,1.769 * yaw_rate,0;
+    return result;
 }
 
 
@@ -81,38 +83,29 @@ void LQRController::set_params(LQRparameters params){
     return;
 
 }
-void LQRController::set_matrices(std::vector<double> inertia_matrix){
-    Eigen::Matrix3d mat= vector_to_matrix3d(inertia_matrix);
-    inertia_matrix_inv = matrix3d_to_vector2d(mat.inverse());
-    state_weight_matrix = {{q_surge,0,0,0,0,0},
-                           {0,q_pitch,0,0,0,0},
-                           {0,0,q_yaw,0,0,0},
-                           {0,0,0,i_weight,0,0},
-                           {0,0,0,0,i_weight,0},
-                           {0,0,0,0,0,i_weight}};
-    input_weight_matrix = {{r_surge,0,0},
-                           {0,r_pitch,0},
-                           {0,0,r_yaw}};
-
+void LQRController::set_matrices(Eigen::Matrix3d inertia_matrix){
+    inertia_matrix_inv = inertia_matrix.inverse();
+    state_weight_matrix.diagonal() <<q_surge,q_pitch,q_yaw,i_weight,i_weight,i_weight;
+    input_weight_matrix.diagonal()<<r_surge,r_pitch,r_yaw;
     return;
 }
 
 
-void LQRController::update_augmented_matrices(std::vector <std::vector<double>> coriolis_matrix){
-    std::vector<std::vector<double>> system_matrix = matrix3d_to_vector2d(vector2d_to_matrix3d(inertia_matrix_inv) * vector2d_to_matrix3d(coriolis_matrix));
+void LQRController::update_augmented_matrices(Eigen::Matrix3d coriolis_matrix){
+    Eigen::Matrix3d system_matrix = inertia_matrix_inv*coriolis_matrix;
     //input_matrix = inertia_matrix_inv;
-    augmented_system_matrix = {{system_matrix[0][0],system_matrix[0][1],system_matrix[0][2],0,0,0},
-                               {system_matrix[1][0],system_matrix[1][1],system_matrix[1][2],0,0,0},
-                               {system_matrix[2][0],system_matrix[2][1],system_matrix[2][2],0,0,0},
-                               {-1,0,0,0,0,0},
-                               {0,-1,0,0,0,0},
-                               {0,0,-1,0,0,0}}; //Skal det være -1 her?
-    augmented_input_matrix = {{inertia_matrix_inv[0][0],inertia_matrix_inv[0][1],inertia_matrix_inv[0][2],0,0,0},
-                              {inertia_matrix_inv[1][0],inertia_matrix_inv[1][1],inertia_matrix_inv[1][2],0,0,0},
-                              {inertia_matrix_inv[2][0],inertia_matrix_inv[2][1],inertia_matrix_inv[2][2],0,0,0}};
-
+    augmented_system_matrix <<system_matrix(0,0),system_matrix(0,1),system_matrix(0,2),0,0,0,
+                               system_matrix(1,0),system_matrix(1,1),system_matrix(1,2),0,0,0,
+                               system_matrix(2,0),system_matrix(2,1),system_matrix(2,2),0,0,0,
+                               -1,0,0,0,0,0,
+                               0,-1,0,0,0,0,
+                               0,0,-1,0,0,0; 
+    augmented_input_matrix << inertia_matrix_inv(0,0),inertia_matrix_inv(0,1),inertia_matrix_inv(0,2),0,0,0,
+                              inertia_matrix_inv(1,0),inertia_matrix_inv(1,1),inertia_matrix_inv(1,2),0,0,0,
+                              inertia_matrix_inv(2,0),inertia_matrix_inv(2,1),inertia_matrix_inv(2,2),0,0,0;
+    return;
 };
-std::vector<double> LQRController::update_error(Guidance_data guidance_values, State states){
+Eigen::Vector<double,6> LQRController::update_error(Guidance_data guidance_values, State states){
     double surge_error = guidance_values.surge - states.surge;
     double pitch_error = ssa(guidance_values.pitch - states.pitch);
     double yaw_error = ssa(guidance_values.yaw - states.yaw);   
@@ -121,25 +114,27 @@ std::vector<double> LQRController::update_error(Guidance_data guidance_values, S
     integral_error_pitch = anti_windup(i_pitch, pitch_error, integral_error_pitch, pitch_windup);
     integral_error_yaw = anti_windup(i_yaw, yaw_error, integral_error_yaw, yaw_windup);
 
-    std::vector<double> state_error= {-surge_error, -pitch_error, -yaw_error, integral_error_surge, integral_error_pitch, integral_error_yaw};
+    Eigen::Vector<double,6> state_error= {-surge_error, -pitch_error, -yaw_error, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
-std::vector<double> LQRController::saturate_input(std::vector<double> u){
+Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,6> u){
     double force_x, torque_y, torque_z;
     std::tie(surge_windup, force_x) = saturate(u[0], surge_windup, max_force);
     std::tie(pitch_windup, torque_y) = saturate(u[1], pitch_windup, max_force);
     std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
     return {force_x, torque_y, torque_z};
 }
-std::vector<double> LQRController::calculate_lqr_u(std::vector<std::vector<double>> coriolis_matrix, State states, Guidance_data guidance_values){
+Eigen::Vector<double,3> LQRController::calculate_lqr_u(Eigen::Matrix3d coriolis_matrix, State states, Guidance_data guidance_values){
     update_augmented_matrices(coriolis_matrix);
-    auto result = drake::systems::controllers::LinearQuadraticRegulator(
+    
+    Eigen::Matrix<double,6,6> result=Eigen::Matrix<double,6,6>::Identity();
+    /*auto result = drake::systems::controllers::LinearQuadraticRegulator(
         vector2d_to_matrix3d(augmented_system_matrix),
         vector2d_to_matrix3d(augmented_input_matrix),
         vector2d_to_matrix3d(state_weight_matrix),
-        vector2d_to_matrix3d(input_weight_matrix));
-    std::vector<double> state_error = update_error(guidance_values, states);
-    std::vector<double> u= saturate_input(matrix3d_to_vector(- (result.K * vector_to_matrix3d(state_error))));
+        vector2d_to_matrix3d(input_weight_matrix));*/
+    Eigen::Vector<double,6> state_error = update_error(guidance_values, states);
+    Eigen::Vector<double,3> u= saturate_input(- (result*state_error));
     return u;
 }
 void LQRController::reset_controller(){

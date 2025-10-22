@@ -9,6 +9,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(DRAKE_DIR /ros2_ws_v/src/drake-build/install/lib/cmake/drake)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -16,7 +17,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(drake REQUIRED)
+#find_package(drake CONFIG REQUIRED)
 
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
@@ -55,7 +56,7 @@ ament_target_dependencies(velocity_controller_node
   vortex_msgs
   geometry_msgs
   Eigen3
-  drake
+  #drake
 )
 
 ament_target_dependencies(test_VC_node

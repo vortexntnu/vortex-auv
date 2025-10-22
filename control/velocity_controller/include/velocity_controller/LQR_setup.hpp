@@ -32,26 +32,33 @@ class LQRparameters{
     double psit=0.0;
     
 };*/
+template<int i, int d>
+struct LQRsolveResult{
+    Eigen::Matrix<double,i,i> K;
+    Eigen::Matrix<double,d,d> P;
+};
 class LQRController{
 
     public:
-    LQRController(LQRparameters params={0,0,0,0,0,0,0,0,0,0,0},std::vector<double> inertia_matrix={0,0,0,0,0,0,0,0,0});
+    LQRController(LQRparameters params={0,0,0,0,0,0,0,0,0,0,0},Eigen::Matrix3d inertia_matrix=Eigen::Matrix3d::Identity());
     
 
     void set_params(LQRparameters params);
-    std::vector<std::vector<double>> calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel);
-    void set_matrices(std::vector<double> inertia_matrix);
-    void update_augmented_matrices(std::vector <std::vector<double>> coriolis_matrix);
+    Eigen::Matrix3d calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel);
+    void set_matrices(Eigen::Matrix3d inertia_matrix);
+    void update_augmented_matrices(Eigen::Matrix3d coriolis_matrix);
 
     //angle quaternion_to_euler_angle(double w, double x, double y, double z);
     double ssa(double angle);
 
     std::tuple<double,double> saturate (double value, bool windup, double limit);
     double anti_windup(double ki, double error, double integral_sum, bool windup);  
-    std::vector<double> saturate_input(std::vector<double> u);
+    Eigen::Vector<double,3> saturate_input(Eigen::Vector<double,6> u);
 
-    std::vector<double> update_error(Guidance_data guidance_values, State states);
-    std::vector<double> calculate_lqr_u(std::vector<std::vector<double>> coriolis_matrix, State states, Guidance_data guidance_values);
+    Eigen::Vector<double,6> update_error(Guidance_data guidance_values, State states);
+    Eigen::Vector<double,3> calculate_lqr_u(Eigen::Matrix3d coriolis_matrix, State states, Guidance_data guidance_values);
+    template<int i,int d>
+    LQRsolveResult<6,6> solve_k_p(Eigen::Matrix<double,6,6> A,Eigen::Matrix<double,3,6> B,Eigen::Matrix<double,6,6> R, Eigen::Matrix<double,3,3> Q);
 
     //Resets controller
     void reset_controller();
@@ -65,11 +72,11 @@ class LQRController{
     double i_surge;    double i_pitch;    double i_yaw;
     double i_weight;   double max_force;
 
-    std::vector<std::vector<double>> inertia_matrix_inv;
-    std::vector<std::vector<double>> state_weight_matrix;
-    std::vector<std::vector<double>> input_weight_matrix;
-    std::vector<std::vector<double>> augmented_system_matrix;
-    std::vector<std::vector<double>> augmented_input_matrix;
+    Eigen::Matrix3d inertia_matrix_inv;
+    Eigen::Matrix<double,6,6> state_weight_matrix;
+    Eigen::Matrix3d input_weight_matrix;
+    Eigen::Matrix<double,6,6> augmented_system_matrix;
+    Eigen::Matrix<double,3,6> augmented_input_matrix;
 
     
 };

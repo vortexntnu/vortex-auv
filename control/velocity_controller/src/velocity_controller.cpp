@@ -51,7 +51,7 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(1,1
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
   lqr_controller.set_params(lqr_parameters);
-  lqr_controller.set_matrices(inertia_matrix);
+  lqr_controller.set_matrices(vector_to_matrix3d(inertia_matrix));
   
 
 }
