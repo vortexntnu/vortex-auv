@@ -57,6 +57,8 @@ class PIDControllerNode : public rclcpp::Node {
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
     // TODO: parameter callback for dynamic reconfigure of PID gains
+    //@brief Callback function for parameter updates
+    // @param parameters: vector of parameters to be set
     rcl_interfaces::msg::SetParametersResult parametersCallback(
         const std::vector<rclcpp::Parameter>& parameters);
 
