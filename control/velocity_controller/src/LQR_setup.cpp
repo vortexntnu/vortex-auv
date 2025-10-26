@@ -1,5 +1,5 @@
 #include "velocity_controller/LQR_setup.hpp"
-#include <rclcpp/rclcpp.hpp>
+#include "rclcpp/rclcpp.hpp"
 #include <std_msgs/msg/string.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <vector>
@@ -10,7 +10,8 @@
 //#include <drake/systems/controllers/linear_quadratic_regulator.h>
 #include "velocity_controller/PID_setup.hpp"
 #include "velocity_controller/utilities.hpp"
-
+#include <casadi/casadi.hpp>
+#include <lapack.h>
 
 LQRController::LQRController(LQRparameters params,Eigen::Matrix3d inertia_matrix){
     set_params(params);
@@ -117,7 +118,7 @@ Eigen::Vector<double,6> LQRController::update_error(Guidance_data guidance_value
     Eigen::Vector<double,6> state_error= {-surge_error, -pitch_error, -yaw_error, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
-Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,6> u){
+Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u){
     double force_x, torque_y, torque_z;
     std::tie(surge_windup, force_x) = saturate(u[0], surge_windup, max_force);
     std::tie(pitch_windup, torque_y) = saturate(u[1], pitch_windup, max_force);
@@ -126,15 +127,9 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,6> u)
 }
 Eigen::Vector<double,3> LQRController::calculate_lqr_u(Eigen::Matrix3d coriolis_matrix, State states, Guidance_data guidance_values){
     update_augmented_matrices(coriolis_matrix);
-    
-    Eigen::Matrix<double,6,6> result=Eigen::Matrix<double,6,6>::Identity();
-    /*auto result = drake::systems::controllers::LinearQuadraticRegulator(
-        vector2d_to_matrix3d(augmented_system_matrix),
-        vector2d_to_matrix3d(augmented_input_matrix),
-        vector2d_to_matrix3d(state_weight_matrix),
-        vector2d_to_matrix3d(input_weight_matrix));*/
-    Eigen::Vector<double,6> state_error = update_error(guidance_values, states);
-    Eigen::Vector<double,3> u= saturate_input(- (result*state_error));
+    LQRsolveResult result = solve_k_p(augmented_system_matrix,augmented_input_matrix,state_weight_matrix,input_weight_matrix);
+    Eigen::Matrix<double,6,1> state_error = update_error(guidance_values, states);
+    Eigen::Vector<double,3> u= saturate_input(- (result.K*state_error));
     return u;
 }
 void LQRController::reset_controller(){
@@ -147,6 +142,51 @@ void LQRController::reset_controller(){
     yaw_windup=false;
     return;
 }
+
+
+extern "C" {
+    // Fortran subroutine for solving symplectic Schur decomposition(double precision version)
+void sb02mt_(
+    const char* JOBG, const char* JOBL, const char* FACT, const char* UPLO, 
+    const int* N, const int* M, double* A, const int* LDA, double* B, const int* LDB,
+    double* Q, const int* LDQ, double* R, const int* LDR, double* L, const int* LDL,
+    int* IPIV, const int* OUFACT, double* G, const int* LDG,
+    int* IWORK, double* DWORK, const int* LDWORK, int* INFO 
+);
+}
+
+
+LQRsolveResult LQRController::solve_k_p(Eigen::Matrix<double,6,6> A,Eigen::Matrix<double,6,3> B, Eigen::Matrix<double,6,6> Q,Eigen::Matrix<double,3,3> R){
+    //First calculate G with sb02mt_
+    char JOBG='G'; //calculate G
+    char JOBL='Z'; //L is zero
+    char FACT='N'; //unfactored R
+    char UPLO='U'; //Upper triangle i think
+    const int N=6; //Order of matrices A, Q, G and X(P)
+    const int M=3; //Order of matrix R and nuber of columns in B and L(is zero)
+    int LDA=N, LDB=M, LDQ=N,LDR=M,LDL=N,LDG=N;
+
+    std::vector<int> IWORK(N);
+    int LDWORK=10*N*N; //Upper bounds
+    std::vector<double> DWORK(LDWORK);
+    std::vector<int> IPIV(N);
+    int OUFACT=0; //Output but initialized JIC
+    Eigen::Matrix<double,6,6> L=Eigen::Matrix<double,6,6>::Zero();
+    Eigen::Matrix<double,6,6> G;
+    int INFO;
+    sb02mt_(&JOBG,&JOBL,&FACT,&UPLO,&N,&M,A.data(),&LDA,B.data(),&LDB,Q.data(),&LDQ,R.data(),&LDR,L.data(),&LDL,IPIV.data(),&OUFACT,G.data(),&LDG,IWORK.data(),DWORK.data(),&LDWORK,&INFO);
+
+    if (INFO!=0){
+        //Some Error handling here. Also check that BRB in invertible
+    }
+    Eigen::Matrix<double,3,6> K;
+    Eigen::Matrix<double,3,3> BRB = R+B.transpose()*G*B;
+    K=BRB.inverse()*B.transpose()*G*A;
+
+    return LQRsolveResult(K,G);    
+
+}
+
 
 
 

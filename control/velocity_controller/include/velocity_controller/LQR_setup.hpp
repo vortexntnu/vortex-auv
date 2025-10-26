@@ -32,10 +32,11 @@ class LQRparameters{
     double psit=0.0;
     
 };*/
-template<int i, int d>
+
 struct LQRsolveResult{
-    Eigen::Matrix<double,i,i> K;
-    Eigen::Matrix<double,d,d> P;
+    Eigen::Matrix<double,3,6> K;
+    Eigen::Matrix<double,6,6> P;
+    LQRsolveResult(Eigen::Matrix<double,3,6> K,Eigen::Matrix<double,6,6> P):K(K),P(P){};
 };
 class LQRController{
 
@@ -53,12 +54,12 @@ class LQRController{
 
     std::tuple<double,double> saturate (double value, bool windup, double limit);
     double anti_windup(double ki, double error, double integral_sum, bool windup);  
-    Eigen::Vector<double,3> saturate_input(Eigen::Vector<double,6> u);
+    Eigen::Vector<double,3> saturate_input(Eigen::Vector<double,3> u);
 
     Eigen::Vector<double,6> update_error(Guidance_data guidance_values, State states);
     Eigen::Vector<double,3> calculate_lqr_u(Eigen::Matrix3d coriolis_matrix, State states, Guidance_data guidance_values);
-    template<int i,int d>
-    LQRsolveResult<6,6> solve_k_p(Eigen::Matrix<double,6,6> A,Eigen::Matrix<double,3,6> B,Eigen::Matrix<double,6,6> R, Eigen::Matrix<double,3,3> Q);
+    
+    LQRsolveResult solve_k_p(Eigen::Matrix<double,6,6> A,Eigen::Matrix<double,6,3> B,Eigen::Matrix<double,6,6> Q, Eigen::Matrix<double,3,3> R);
 
     //Resets controller
     void reset_controller();
@@ -76,7 +77,7 @@ class LQRController{
     Eigen::Matrix<double,6,6> state_weight_matrix;
     Eigen::Matrix3d input_weight_matrix;
     Eigen::Matrix<double,6,6> augmented_system_matrix;
-    Eigen::Matrix<double,3,6> augmented_input_matrix;
+    Eigen::Matrix<double,6,3> augmented_input_matrix;
 
     
 };
