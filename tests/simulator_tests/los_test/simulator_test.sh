@@ -60,7 +60,7 @@ echo "Waiting for pose data..."
 timeout 10s ros2 topic echo /orca/pose --once
 echo "Got pose data"
 
-setsid ros2 launch los_guidance los_guidance.launch.py &
+setsid ros2 launch guidance_velocity_controller launch_Guidance.py &
 LOS_PID=$!
 
 setsid ros2 launch velocity_controller_lqr velocity_controller_lqr.launch.py &
