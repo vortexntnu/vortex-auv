@@ -13,6 +13,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+#include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
+
 namespace vortex::filtering {
 
 class IPDAPoseFilteringNode : public rclcpp::Node {
@@ -24,30 +26,43 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
    private:
     void setup_publishers_and_subscribers();
 
+    void setup_track_manager();
+
     template <typename MsgT>
-    void create_pose_subscription(
-        const std::string& topic_name, const rmw_qos_profile_t& qos_profile);
+    void create_pose_subscription(const std::string& topic_name,
+                                  const rmw_qos_profile_t& qos_profile);
 
     template <typename MsgT>
     void pose_callback(const typename MsgT::ConstSharedPtr& msg);
 
-    std::variant<
-        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
-        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseWithCovarianceStamped>>
-    > subscriber_;
+    void timer_callback();
 
     std::variant<
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<
+            message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<
+            message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
+        std::shared_ptr<message_filters::Subscriber<
+            geometry_msgs::msg::PoseWithCovarianceStamped>>>
+        subscriber_;
+
+    std::variant<
+        std::shared_ptr<
+            tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
         std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>
-    > tf_filter_;
+        std::shared_ptr<tf2_ros::MessageFilter<
+            geometry_msgs::msg::PoseWithCovarianceStamped>>>
+        tf_filter_;
 
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
+
+    rclcpp::TimerBase::SharedPtr pub_timer_;
+
+    std::unique_ptr<IPDAPoseTrackManager> track_manager_;
 };
 
 }  // namespace vortex::filtering
