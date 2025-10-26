@@ -6,33 +6,34 @@
 #include "eskf/eskf_utils.hpp"
 #include "eskf/typedefs.hpp"
 #include "iostream"
+#include <cmath>
 
 ESKF::ESKF(const eskf_params& params) : Q_(params.Q) {}
 
-std::pair<Eigen::Matrix18d, Eigen::Matrix18d> ESKF::van_loan_discretization(
-    const Eigen::Matrix18d& A_c,
-    const Eigen::Matrix18x12d& G_c,
+std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(
+    const Eigen::Matrix15d& A_c,
+    const Eigen::Matrix15x12d& G_c,
     const double dt) {
-    Eigen::Matrix18d GQG_T = G_c * Q_ * G_c.transpose();
-    Eigen::Matrix36d vanLoanMat = Eigen::Matrix36d::Zero();
+    Eigen::Matrix15d GQG_T = G_c * Q_ * G_c.transpose();
+    Eigen::Matrix30d vanLoanMat = Eigen::Matrix30d::Zero();
 
-    vanLoanMat.topLeftCorner<18, 18>() = -A_c;
-    vanLoanMat.topRightCorner<18, 18>() = GQG_T;
-    vanLoanMat.bottomRightCorner<18, 18>() = A_c.transpose();
+    vanLoanMat.topLeftCorner<15, 15>() = -A_c;
+    vanLoanMat.topRightCorner<15, 15>() = GQG_T;
+    vanLoanMat.bottomRightCorner<15, 15>() = A_c.transpose();
 
-    Eigen::Matrix36d vanLoanExp = (vanLoanMat * dt).exp();
+    Eigen::Matrix30d vanLoanExp = (vanLoanMat * dt).exp();
 
-    Eigen::Matrix18d V1 = vanLoanExp.bottomRightCorner<18, 18>().transpose();
-    Eigen::Matrix18d V2 = vanLoanExp.topRightCorner<18, 18>();
+    Eigen::Matrix15d V1 = vanLoanExp.bottomRightCorner<15, 15>().transpose();
+    Eigen::Matrix15d V2 = vanLoanExp.topRightCorner<15, 15>();
 
-    Eigen::Matrix18d A_d = V1;
-    Eigen::Matrix18d GQG_d = A_d * V2;
+    Eigen::Matrix15d A_d = V1;
+    Eigen::Matrix15d GQG_d = A_d * V2;
 
     return {A_d, GQG_d};
 }
 
-Eigen::Matrix3x19d calculate_hx(const state_quat& current_nom_state_) {
-    Eigen::Matrix3x19d Hx = Eigen::Matrix3x19d::Zero();
+Eigen::Matrix3x16d calculate_hx(const state_quat& current_nom_state_) {
+    Eigen::Matrix3x16d Hx = Eigen::Matrix3x16d::Zero();
 
     Eigen::Quaterniond q = current_nom_state_.quat.normalized();
     Eigen::Matrix3d R_bn = q.toRotationMatrix();
@@ -60,13 +61,13 @@ Eigen::Matrix3x19d calculate_hx(const state_quat& current_nom_state_) {
     return Hx;
 }
 
-Eigen::Matrix3x18d calculate_h_jacobian(const state_quat& current_nom_state_) {
-    Eigen::Matrix19x18d x_delta = Eigen::Matrix19x18d::Zero();
+Eigen::Matrix3x15d calculate_h_jacobian(const state_quat& current_nom_state_) {
+    Eigen::Matrix16x15d x_delta = Eigen::Matrix16x15d::Zero();
     x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
     x_delta.block<4, 3>(6, 6) = calculate_T_q(current_nom_state_.quat);
-    x_delta.block<9, 9>(10, 9) = Eigen::Matrix9d::Identity();
+    x_delta.block<6, 6>(10, 9) = Eigen::Matrix6d::Identity();
 
-    Eigen::Matrix3x18d H = calculate_hx(current_nom_state_) * x_delta;
+    Eigen::Matrix3x15d H = calculate_hx(current_nom_state_) * x_delta;
     return H;
 }
 
@@ -84,7 +85,7 @@ void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
     Eigen::Vector3d acc =
         current_nom_state_.quat.normalized().toRotationMatrix() *
             (imu_meas.accel - current_nom_state_.accel_bias) +
-        current_nom_state_.gravity;
+        this->g_;
     Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias) * dt;
 
     current_nom_state_.pos = current_nom_state_.pos +
@@ -95,9 +96,8 @@ void ESKF::nominal_state_discrete(const imu_measurement& imu_meas,
         (current_nom_state_.quat * vector3d_to_quaternion(gyro));
     current_nom_state_.quat.normalize();
 
-    current_nom_state_.gyro_bias = current_nom_state_.gyro_bias;
-    current_nom_state_.accel_bias = current_nom_state_.accel_bias;
-    current_nom_state_.gravity = current_nom_state_.gravity;
+    current_nom_state_.accel_bias = current_nom_state_.accel_bias*std::exp(accm_bias_p_*dt);
+    current_nom_state_.gyro_bias = current_nom_state_.gyro_bias*std::exp(gyro_bias_p_*dt);
 }
 
 void ESKF::error_state_prediction(const imu_measurement& imu_meas,
@@ -106,7 +106,7 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
     Eigen::Vector3d acc = (imu_meas.accel - current_nom_state_.accel_bias);
     Eigen::Vector3d gyro = (imu_meas.gyro - current_nom_state_.gyro_bias);
 
-    Eigen::Matrix18d A_c = Eigen::Matrix18d::Zero();
+    Eigen::Matrix15d A_c = Eigen::Matrix15d::Zero();
     A_c.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(3, 6) = -R * skew(acc);
     A_c.block<3, 3>(6, 6) = -skew(gyro);
@@ -114,15 +114,15 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
     A_c.block<3, 3>(9, 9) = -Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(12, 12) = -Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(6, 12) = -Eigen::Matrix3d::Identity();
-    A_c.block<3, 3>(3, 15) = Eigen::Matrix3d::Identity();
+    // A_c.block<3, 3>(3, 15) = Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix18x12d G_c = Eigen::Matrix18x12d::Zero();
+    Eigen::Matrix15x12d G_c = Eigen::Matrix15x12d::Zero();
     G_c.block<3, 3>(3, 0) = -R;
     G_c.block<3, 3>(6, 3) = -Eigen::Matrix3d::Identity();
     G_c.block<3, 3>(9, 6) = Eigen::Matrix3d::Identity();
     G_c.block<3, 3>(12, 9) = Eigen::Matrix3d::Identity();
 
-    Eigen::Matrix18d A_d, GQG_d;
+    Eigen::Matrix15d A_d, GQG_d;
     std::tie(A_d, GQG_d) = van_loan_discretization(A_c, G_c, dt);
 
     state_euler next_error_state;
@@ -146,14 +146,12 @@ void ESKF::injection_and_reset() {
         current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
     current_nom_state_.accel_bias =
         current_nom_state_.accel_bias + current_error_state_.accel_bias;
-    current_nom_state_.gravity =
-        current_nom_state_.gravity + current_error_state_.gravity;
 
-    Eigen::Matrix18d G = Eigen::Matrix18d::Identity();
+    Eigen::Matrix15d G = Eigen::Matrix15d::Identity();
 
     current_error_state_.covariance =
         G * current_error_state_.covariance * G.transpose();
-    current_error_state_.set_from_vector(Eigen::Vector18d::Zero());
+    current_error_state_.set_from_vector(Eigen::Vector15d::Zero());
 }
 
 std::pair<state_quat, state_euler> ESKF::imu_update(
@@ -182,7 +180,7 @@ Eigen::VectorXd sensor_dvl::innovation(const state_quat &state) const {
 }
 
 Eigen::MatrixXd sensor_dvl::jacobian(const state_quat &state) const {
-    Eigen::Matrix3x18d H = calculate_h_jacobian(state);
+    Eigen::Matrix3x15d H = calculate_h_jacobian(state);
     return H;
 }
 
