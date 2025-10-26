@@ -25,11 +25,11 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
     pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>(
         pub_topic_name, qos_sensor_data_pub);
 
-    int publish_interval_ms =
-        this->declare_parameter<int>("publish_interval_ms");
+    int publish_timer =
+        this->declare_parameter<int>("publish_timer");
 
     pub_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(publish_interval_ms),
+        std::chrono::milliseconds(publish_timer),
         std::bind(&IPDAPoseFilteringNode::timer_callback, this));
 
     target_frame_ = this->declare_parameter<std::string>("target_frame");
@@ -75,6 +75,8 @@ void IPDAPoseFilteringNode::setup_track_manager() {
 
     config.ipda.ipda.prob_of_survival =
         this->declare_parameter<double>("ipda.prob_of_survival");
+    config.ipda.ipda.estimate_clutter =
+        this->declare_parameter<bool>("ipda.estimate_clutter");
     config.ipda.pdaf.prob_of_detection =
         this->declare_parameter<double>("ipda.prob_of_detection");
     config.ipda.pdaf.mahalanobis_threshold =
@@ -130,11 +132,27 @@ void IPDAPoseFilteringNode::create_pose_subscription(
 template <typename MsgT>
 void IPDAPoseFilteringNode::pose_callback(
     const typename MsgT::ConstSharedPtr& msg) {
-    Eigen::Matrix<double, 6, Eigen::Dynamic> measurements =
-        vortex::utils::ros_conversions::ros_to_eigen6d(*msg);
+    Measurements measurements = vortex::utils::ros_conversions::ros_to_eigen6d(*msg);
+    rclcpp::Time current_time(msg->header.stamp);
+    double dt = (current_time - prev_meas_stamp_).seconds();
+    prev_meas_stamp_ = current_time;
+    track_manager_->measurement_update(measurements, dt);
 };
 
-void IPDAPoseFilteringNode::timer_callback() {}
+void IPDAPoseFilteringNode::timer_callback() {
+
+    track_manager_->predict_tracks();
+    
+    geometry_msgs::msg::PoseArray pose_array;
+    pose_array.header.frame_id = target_frame_;
+    pose_array.header.stamp = prev_meas_stamp_;
+    for (auto track : track_manager_->get_tracks()) {
+        if (!track.confirmed) continue;
+        pose_array.poses.push_back(
+            vortex::utils::ros_conversions::eigen6d_to_pose(track.state.mean()));  
+    }
+    pose_array_pub_->publish(pose_array);
+}
 
 template void
 IPDAPoseFilteringNode::pose_callback<geometry_msgs::msg::PoseStamped>(

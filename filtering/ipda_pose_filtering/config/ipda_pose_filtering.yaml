@@ -4,11 +4,12 @@
     pose_sub_topic: "pose"
     pose_array_pub_topic: "filtered_pose_array"
     target_frame: "odom"
-    update_interval_ms: 100
+    publish_timer: 100
 
     # IPDA config
     ipda:
       prob_of_survival: 0.99
+      estimate_clutter: false
       prob_of_detection: 0.7
       mahalanobis_gate_threshold: 2.5 # in std deviations
       min_gate_threshold: 1.0 # in meters

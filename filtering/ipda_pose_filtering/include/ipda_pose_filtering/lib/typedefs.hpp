@@ -5,6 +5,12 @@
 #include <vortex_filtering/filters/ipda.hpp>
 #include <vortex_filtering/vortex_filtering.hpp>
 
+namespace Eigen {
+
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+
+} // namespace eigen
+
 namespace vortex::filtering {
 
 using Measurements = Eigen::Matrix<double, 6, Eigen::Dynamic>;
@@ -42,20 +48,6 @@ struct Track {
     State6d state;
     double existence_probability;
     bool confirmed;
-
-    // For sorting tracks based on existence probability and confirmed track
-    bool operator<(const Track& other) const {
-        if (confirmed != other.confirmed) {
-            return confirmed > other.confirmed;
-        } else {
-            return existence_probability > other.existence_probability;
-        }
-    }
-
-    bool operator==(const Track& other) const {
-        return confirmed == other.confirmed &&
-               existence_probability == other.existence_probability;
-    }
 };
 
 }  // namespace vortex::filtering

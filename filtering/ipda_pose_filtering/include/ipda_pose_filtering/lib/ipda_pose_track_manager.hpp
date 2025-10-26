@@ -9,17 +9,26 @@
 namespace vortex::filtering {
 
 class IPDAPoseTrackManager {
-   public:
+  public:
     IPDAPoseTrackManager(const TrackManagerConfig& config);
 
-    void predict_tracks(const Measurements& measurements, double dt);
+    void predict_tracks();
 
-   private:
-    int track_id_counter_;
+    void measurement_update(Measurements& measurements, double dt);
+
+    const std::vector<Track>& get_tracks() {
+        return tracks_;
+    } 
+
+  private:
+    void create_tracks(const Measurements& measurements);
+
+    int track_id_counter_ = 0;
 
     std::vector<Track> tracks_;
 
     DynMod dyn_mod_;
+
     SensorMod sensor_mod_;
 
     vortex::filter::IPDA<DynMod, SensorMod>::Config ipda_config_;

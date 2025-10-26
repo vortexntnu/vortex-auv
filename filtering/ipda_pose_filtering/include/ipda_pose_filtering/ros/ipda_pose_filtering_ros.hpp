@@ -38,23 +38,19 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
     void timer_callback();
 
     std::variant<
-        std::shared_ptr<
-            message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
-        std::shared_ptr<
-            message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<message_filters::Subscriber<
-            geometry_msgs::msg::PoseWithCovarianceStamped>>>
+        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
+        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseWithCovarianceStamped>>>
         subscriber_;
 
     std::variant<
-        std::shared_ptr<
-            tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
         std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<tf2_ros::MessageFilter<
-            geometry_msgs::msg::PoseWithCovarianceStamped>>>
+        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>>
         tf_filter_;
 
     std::string target_frame_;
+    rclcpp::Time prev_meas_stamp_{0, 0, RCL_ROS_TIME};
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
