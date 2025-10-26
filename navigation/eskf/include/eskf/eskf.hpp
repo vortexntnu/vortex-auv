@@ -60,9 +60,9 @@ class ESKF {
     // @param A_c: Continuous state transition matrix
     // @param G_c: Continuous input matrix
     // @return Discrete state transition matrix and discrete input matrix
-    std::pair<Eigen::Matrix18d, Eigen::Matrix18d> van_loan_discretization(
-        const Eigen::Matrix18d& A_c,
-        const Eigen::Matrix18x12d& G_c,
+    std::pair<Eigen::Matrix15d, Eigen::Matrix15d> van_loan_discretization(
+        const Eigen::Matrix15d& A_c,
+        const Eigen::Matrix15x12d& G_c,
         const double dt);
 
 
@@ -74,16 +74,29 @@ class ESKF {
 
     // Member variable for the current nominal state
     state_quat current_nom_state_{};
+
+    // gravity
+    Eigen::Vector3d g_{0.0, 0.0, 9.82};
+
+    // accelometer noise parameters
+    float accm_std_{0.0};
+    float accm_bias_std_{0.0};
+    float accm_bias_p_{1e-16};
+
+    // gyroscope noise parameters
+    float gyro_std_{0.0};
+    float gyro_bias_std_{0.0};
+    float gyro_bias_p_{1e-16};
 };
 
 // Measurement in world frame --> h(x)
 Eigen::Vector3d calculate_h(const state_quat& current_nom_state_);
 
 // Jacobian of h(x) with respect to the error state --> H
-Eigen::Matrix3x18d calculate_h_jacobian(const state_quat& current_nom_state_);
+Eigen::Matrix3x15d calculate_h_jacobian(const state_quat& current_nom_state_);
 
 // Jacobian of h(x) with respect to the nominal state --> Hx
-Eigen::Matrix3x19d calculate_hx(const state_quat& current_nom_state_);
+Eigen::Matrix3x16d calculate_hx(const state_quat& current_nom_state_);
 
 #include "eskf.tpp"  // including template implementation
 

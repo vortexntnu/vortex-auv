@@ -79,7 +79,7 @@ void ESKFNode::set_parameters() {
 
     std::vector<double> diag_p_init =
         this->declare_parameter<std::vector<double>>("diag_p_init");
-    Eigen::Matrix18d P = create_diagonal_matrix<18>(diag_p_init);
+    Eigen::Matrix15d P = create_diagonal_matrix<15>(diag_p_init);
 
     error_state_.covariance = P;
 }
