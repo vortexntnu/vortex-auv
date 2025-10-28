@@ -1,38 +1,37 @@
-#include <reference_filter_dp/reference_filter.hpp>
+#include "reference_filter_dp/reference_filter.hpp"
 
-ReferenceFilter::ReferenceFilter()
-    : Ad_(Matrix18d::Zero()),
-      Bd_(Matrix18x6d::Zero()),
-      Omega_(Matrix6d::Identity()),
-      Delta_(Matrix6d::Identity()),
-      identity_matrix_(Matrix6d::Identity()) {}
+namespace vortex::guidance {
 
-Vector18d ReferenceFilter::calculate_x_dot(const Vector18d& x,
-                                           const Vector6d& r) {
-    Vector18d x_dot = Ad_ * x + Bd_ * r;
+ReferenceFilter::ReferenceFilter(const ReferenceFilterParams& params) {
+    calculate_Ad(params.omega, params.zeta);
+    calculate_Bd(params.omega);
+}
+
+Eigen::Vector18d ReferenceFilter::calculate_x_dot(const Eigen::Vector18d& x,
+                                                  const Eigen::Vector6d& r) {
+    Eigen::Vector18d x_dot = Ad_ * x + Bd_ * r;
 
     return x_dot;
 }
 
-void ReferenceFilter::calculate_Ad() {
-    Matrix6d OmegaCubed = Omega_ * Omega_ * Omega_;
-    Matrix6d OmegaSquared = Omega_ * Omega_;
-    Ad_.block<6, 6>(0, 6) = identity_matrix_;
-    Ad_.block<6, 6>(12, 0) = -OmegaCubed;
-    Ad_.block<6, 6>(12, 6) = -(2 * Delta_ + identity_matrix_) * OmegaSquared;
-    Ad_.block<6, 6>(12, 12) = -(2 * Delta_ + identity_matrix_) * Omega_;
-    Ad_.block<6, 6>(6, 12) = identity_matrix_;
+void ReferenceFilter::calculate_Ad(const Eigen::Vector6d& omega,
+                                   const Eigen::Vector6d& zeta) {
+    Eigen::Matrix6d omega_diag = omega.asDiagonal();
+    Eigen::Matrix6d delta = zeta.asDiagonal();
+    Eigen::Matrix6d omega_diag_squared = omega_diag * omega_diag;
+    Eigen::Matrix6d omega_diag_cubed = omega_diag * omega_diag * omega_diag;
+    Ad_.block<6, 6>(0, 6) = Eigen::Matrix6d::Identity();
+    Ad_.block<6, 6>(12, 0) = -omega_diag_cubed;
+    Ad_.block<6, 6>(12, 6) =
+        -(2 * delta + Eigen::Matrix6d::Identity()) * omega_diag_squared;
+    Ad_.block<6, 6>(12, 12) =
+        -(2 * delta + Eigen::Matrix6d::Identity()) * omega_diag;
+    Ad_.block<6, 6>(6, 12) = Eigen::Matrix6d::Identity();
 }
 
-void ReferenceFilter::calculate_Bd() {
-    Matrix6d OmegaCubed = Omega_ * Omega_ * Omega_;
-    Bd_.block<6, 6>(12, 0) = OmegaCubed;
+void ReferenceFilter::calculate_Bd(const Eigen::Vector6d& omega) {
+    Eigen::Matrix6d omega_diag = omega.asDiagonal();
+    Bd_.block<6, 6>(12, 0) = omega_diag * omega_diag * omega_diag;
 }
 
-void ReferenceFilter::set_omega(const Vector6d& omega) {
-    Omega_ = omega.asDiagonal();
-}
-
-void ReferenceFilter::set_delta(const Vector6d& zeta) {
-    Delta_ = zeta.asDiagonal();
-}
+}  // namespace vortex::guidance

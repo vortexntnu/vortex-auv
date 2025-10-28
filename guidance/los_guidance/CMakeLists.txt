@@ -13,34 +13,44 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(vortex_utils REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
 include_directories(include)
 
-add_executable(los_guidance_node
-  src/los_guidance_node.cpp
-  src/los_guidance_ros.cpp
+set(LIB_NAME los_guidance_lib)
+add_library(${LIB_NAME} SHARED
   src/los_guidance.cpp
+  src/los_guidance_ros.cpp
 )
 
-ament_target_dependencies(los_guidance_node
+ament_target_dependencies(${LIB_NAME}
   rclcpp
   rclcpp_action
   geometry_msgs
   vortex_msgs
+  vortex_utils
   Eigen3
-  tf2
-  tf2_geometry_msgs
   spdlog
   fmt
 )
 
-target_link_libraries(los_guidance_node fmt::fmt)
+add_executable(los_guidance_node
+  src/los_guidance_node.cpp
+)
+
+target_link_libraries(los_guidance_node ${LIB_NAME})
+
+install(TARGETS
+  ${LIB_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(TARGETS
   los_guidance_node
@@ -57,5 +67,9 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
 
 ament_package()

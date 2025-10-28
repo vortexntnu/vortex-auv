@@ -10,13 +10,11 @@ on:
     - cron: '0 1 * * *' # Runs daily at 01:00 UTC
 jobs:
   call_reusable_workflow:
-    strategy:
-      matrix:
-        test_script:
-          - "tests/simulator_tests/waypoint_navigation/simulator_test.sh"
-          - "tests/simulator_tests/los_test/simulator_test.sh"
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
     with:
       vcs_repos_file: "tests/dependencies.repos"
       setup_script: "tests/setup.sh"
-      test_script: "${{ matrix.test_script }}"
+      test_scripts: '[
+        "tests/simulator_tests/waypoint_navigation/simulator_test.sh",
+        "tests/simulator_tests/los_test/simulator_test.sh"
+      ]'
