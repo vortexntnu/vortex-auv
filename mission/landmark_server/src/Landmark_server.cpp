@@ -30,55 +30,47 @@ LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
 
 }
 
-void LandmarkServerNode::landmarksRecievedCallback(
+void LandmarkServerNode::landmarksReceivedCallback(
     const vortex_msgs::msg::LandmarkArray::SharedPtr msg)
 {
-    if (!storedLandmarks_) {
-        storedLandmarks_ = std::make_shared<vortex_msgs::msg::LandmarkArray>();
-    }
+    std::lock_guard<std::mutex> lock(storedLandmarksMutex_);
 
-    for (const auto &new_landmark : msg->landmarks)
+    for (auto &landmark : msg->landmarks)
     {
-        vortex_msgs::msg::Landmark landmark_with_id = new_landmark;
+        auto landmark_with_id = landmark;
 
-       //Filtrering function that assigns an ID to the landmarkArray, logic not implemented yet
-        uint32_t id = assignID(landmark_with_id);  
+        // Assign unique ID (logic not implemented yet)
+        uint32_t id = assignID(landmark_with_id);
         landmark_with_id.id = id;
 
-        // Check if the ID is already stored, in that case just update position
-        bool found = false;
-        for (auto &stored : storedLandmarks_->landmarks)
-        {
-            if (stored.id == id)
-            {
-                
-                stored.pose = landmark_with_id.pose;
-                found = true;
-                RCLCPP_INFO(this->get_logger(),
-                            "Updated landmark #%u (type=%u, subtype=%u)",
-                            id,
-                            landmark_with_id.type,
-                            landmark_with_id.subtype);
-                break;
-            }
-        }
+        // Check if already stored
+        auto it = std::find_if(
+            storedLandmarks_->landmarks.begin(),
+            storedLandmarks_->landmarks.end(),
+            [id](const auto &stored) { return stored.id == id; });
 
-        //If the ID is new
-        if (!found)
-        {
+        if (it != storedLandmarks_->landmarks.end()) {
+            it->pose = landmark_with_id.pose;
+            RCLCPP_INFO(this->get_logger(),
+                        "Updated landmark #%u (type=%u, subtype=%u)",
+                        id, landmark_with_id.type, landmark_with_id.subtype);
+
+
+
+        } else {
             storedLandmarks_->landmarks.push_back(landmark_with_id);
             RCLCPP_INFO(this->get_logger(),
                         "Added new landmark #%u (type=%u, subtype=%u)",
-                        id,
-                        landmark_with_id.type,
-                        landmark_with_id.subtype);
+                        id, landmark_with_id.type, landmark_with_id.subtype);
         }
     }
 
+    
     RCLCPP_INFO(this->get_logger(),
                 "Total stored landmarks: %zu",
                 storedLandmarks_->landmarks.size());
 }
+
 
 
 

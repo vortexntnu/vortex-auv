@@ -18,6 +18,9 @@
 #include <tf2/transform_datatypes.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
+#include <mutex>
+
+
 namespace landmark_server {
 
 /**
@@ -60,7 +63,7 @@ class LandmarkServerNode : public rclcpp::Node {
      *
      * @param msg The shared pointer to the received landmark array message.
      */
-    void landmarksRecievedCallback(
+    void landmarksReceivedCallback(
         const vortex_msgs::msg::LandmarkArray::SharedPtr msg);
 
     /**
@@ -174,12 +177,18 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::FilteredLandmarks>> goal_handle);
 
-uint32_t assignID(const vortex_msgs::msg::Landmark &landmark);
 
 private:
     rclcpp::TimerBase::SharedPtr timer_;
 
     void publishStoredLandmarks();
+
+    std::mutex storedLandmarksMutex_;
+
+    uint32_t assignID(const vortex_msgs::msg::Landmark &landmark);
+
+    
+
 };
 
 }  // namespace landmark_server
