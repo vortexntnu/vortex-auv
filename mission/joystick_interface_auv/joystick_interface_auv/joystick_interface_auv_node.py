@@ -30,7 +30,7 @@ class JoystickInterface(Node):
         self.init_movement()
         self.set_publishers_and_subscribers()
 
-        self._mode = JoyStates.KILLSWITCH
+        self._mode = JoyStates.AUTONOMOUS_MODE #måtte sette til autonoumous mode
 
         self._current_state = PoseData()
         self._desired_state = PoseData()
@@ -44,6 +44,8 @@ class JoystickInterface(Node):
             f"Joystick interface node started. Current mode: {self._mode}"
         )
 
+        self.transition_to_autonomous_mode()
+        
     def get_parameters(self):
         """Method to get the parameters from the config file."""
         gain_params = [
@@ -110,10 +112,12 @@ class JoystickInterface(Node):
         self._software_killswitch_signal_publisher = self.create_publisher(
             Bool, self.killswitch_topic, reliable_qos
         )
-        self._software_killswitch_signal_publisher.publish(Bool(data=True))
+        self._software_killswitch_signal_publisher.publish(Bool(data=False))
+        
         self._operational_mode_signal_publisher = self.create_publisher(
             String, self.operation_mode_topic, reliable_qos
         )
+        #self._operational_mode_signal_publisher.publish(String(Data="autonmous mode")) #må få publisert data til data = autonomous mode
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
