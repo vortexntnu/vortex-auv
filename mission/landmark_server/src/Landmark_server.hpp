@@ -174,6 +174,8 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::FilteredLandmarks>> goal_handle);
 
+uint32_t assignID(const vortex_msgs::msg::Landmark &landmark);
+
 private:
     rclcpp::TimerBase::SharedPtr timer_;
 

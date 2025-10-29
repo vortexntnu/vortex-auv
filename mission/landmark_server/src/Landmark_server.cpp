@@ -37,31 +37,49 @@ void LandmarkServerNode::landmarksRecievedCallback(
         storedLandmarks_ = std::make_shared<vortex_msgs::msg::LandmarkArray>();
     }
 
-   
     for (const auto &new_landmark : msg->landmarks)
     {
         vortex_msgs::msg::Landmark landmark_with_id = new_landmark;
 
-        
-        landmark_with_id.header.frame_id = "landmark_" + std::to_string(next_id_);
-        next_id_++;
+       //Filtrering function that assigns an ID to the landmarkArray, logic not implemented yet
+        uint32_t id = assignID(landmark_with_id);  
+        landmark_with_id.id = id;
 
-   
-        storedLandmarks_->landmarks.push_back(landmark_with_id);
+        // Check if the ID is already stored, in that case just update position
+        bool found = false;
+        for (auto &stored : storedLandmarks_->landmarks)
+        {
+            if (stored.id == id)
+            {
+                
+                stored.pose = landmark_with_id.pose;
+                found = true;
+                RCLCPP_INFO(this->get_logger(),
+                            "Updated landmark #%u (type=%u, subtype=%u)",
+                            id,
+                            landmark_with_id.type,
+                            landmark_with_id.subtype);
+                break;
+            }
+        }
 
-
-        RCLCPP_INFO(this->get_logger(),
-                    "Stored new landmark #%u (type=%u, subtype=%u, frame_id=%s)",
-                    next_id_ - 1,
-                    new_landmark.type,
-                    new_landmark.subtype,
-                    landmark_with_id.header.frame_id.c_str());
+        //If the ID is new
+        if (!found)
+        {
+            storedLandmarks_->landmarks.push_back(landmark_with_id);
+            RCLCPP_INFO(this->get_logger(),
+                        "Added new landmark #%u (type=%u, subtype=%u)",
+                        id,
+                        landmark_with_id.type,
+                        landmark_with_id.subtype);
+        }
     }
 
     RCLCPP_INFO(this->get_logger(),
                 "Total stored landmarks: %zu",
                 storedLandmarks_->landmarks.size());
 }
+
 
 
 
