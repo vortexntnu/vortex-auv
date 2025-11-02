@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>orca_simple_bt</name>
+  <version>0.0.0</version>
+  <description>Simple BehaviorTree wrapper to send reference filter waypoints</description>
+  <maintainer email="mikaeko@ntnu.no">mikael</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>behaviortree_cpp_v3</depend>
+  <depend>vortex_msgs</depend>
+  <depend>vortex_utils</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
