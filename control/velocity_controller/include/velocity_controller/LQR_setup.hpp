@@ -36,7 +36,8 @@ class LQRparameters{
 struct LQRsolveResult{
     Eigen::Matrix<double,3,6> K;
     Eigen::Matrix<double,6,6> P;
-    LQRsolveResult(Eigen::Matrix<double,3,6> K,Eigen::Matrix<double,6,6> P):K(K),P(P){};
+    int INFO=0;
+    LQRsolveResult(Eigen::Matrix<double,3,6> K,Eigen::Matrix<double,6,6> P, int INFO=0):K(K),P(P),INFO(INFO) {};
 };
 class LQRController{
 
@@ -57,9 +58,9 @@ class LQRController{
     Eigen::Vector<double,3> saturate_input(Eigen::Vector<double,3> u);
 
     Eigen::Vector<double,6> update_error(Guidance_data guidance_values, State states);
-    Eigen::Vector<double,3> calculate_lqr_u(Eigen::Matrix3d coriolis_matrix, State states, Guidance_data guidance_values);
+    Eigen::Vector<double,3> calculate_lqr_u(State states, Guidance_data guidance_values);
     
-    LQRsolveResult solve_k_p(Eigen::Matrix<double,6,6> A,Eigen::Matrix<double,6,3> B,Eigen::Matrix<double,6,6> Q, Eigen::Matrix<double,3,3> R);
+    LQRsolveResult solve_k_p(const Eigen::Matrix<double,6,6> &A,const Eigen::Matrix<double,6,3> &B,const Eigen::Matrix<double,6,6> &Q, const Eigen::Matrix<double,3,3> &R);
 
     //Resets controller
     void reset_controller();

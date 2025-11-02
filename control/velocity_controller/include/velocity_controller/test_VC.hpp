@@ -23,8 +23,7 @@ class test_VC : public rclcpp::Node{
     Guidance_data current_state;
     //Subscribers and publishers
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_guidance;
-    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr publisher_twist;
-    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr publisher_pose;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_odom;
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr subscription_thrust;
     //Timers
     rclcpp::TimerBase::SharedPtr timer_;
@@ -34,14 +33,12 @@ class test_VC : public rclcpp::Node{
     std_msgs::msg::Float64MultiArray reference_msg;
 
     //Topics
-    std::string topic_twist;
-    std::string topic_pose;
+    std::string topic_odom;
     std::string topic_thrust;
     std::string topic_guidance;
 
     //MSGS
-    geometry_msgs::msg::TwistWithCovarianceStamped twist_msg;
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
+    nav_msgs::msg::Odometry odom_msg;
 };
 
 geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll, double pitch, double yaw);

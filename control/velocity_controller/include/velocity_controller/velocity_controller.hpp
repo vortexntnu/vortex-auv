@@ -9,9 +9,8 @@
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "velocity_controller/PID_setup.hpp"
 #include "LQR_setup.hpp"
-
-
-//#include "vortex-msgs/msg" kan legge til nye meldinger nå
+#include "nav_msgs/msg/odometry.hpp"
+#include "vortex_msgs/msg/los_guidance.hpp" 
 
 
 
@@ -26,10 +25,11 @@ class Velocity_node : public rclcpp::Node{
     void calc_thrust();
 
     //Callback functions
-    void guidance_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg_ptr);
+    void guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr);
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr);
-    void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg_ptr);
-    void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg_ptr);
+    //void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg_ptr);
+    //void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg_ptr);
+    void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr);
 
     //Publisher instance
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr publisher_thrust;
@@ -39,9 +39,10 @@ class Velocity_node : public rclcpp::Node{
     rclcpp::TimerBase::SharedPtr timer_publish;
     
     //Subscriber instance
-    rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr subscriber_twist;
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subscriber_pose;
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr subscriber_guidance;
+    //rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr subscriber_twist;
+    //rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subscriber_pose;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscriber_Odometry;
+    rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr subscriber_guidance;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscriber_killswitch;
 
     //Variables for topics
@@ -49,8 +50,9 @@ class Velocity_node : public rclcpp::Node{
     std::string topic_thrust;
     std::string topic_guidance;
     std::string topic_killswitch;
-    std::string topic_twist;
-    std::string topic_pose;
+    //std::string topic_twist;
+    //std::string topic_pose;
+    std::string topic_odometry;
 
     //Variables for timers
     int calculation_rate;
@@ -58,7 +60,7 @@ class Velocity_node : public rclcpp::Node{
     double max_force;
 
     //Stored wrenches values
-    std_msgs::msg::Float64MultiArray reference_in;
+    vortex_msgs::msg::LOSGuidance reference_in;
     Guidance_data guidance_values;
     Guidance_data current_state;
     geometry_msgs::msg::WrenchStamped thrust_out;

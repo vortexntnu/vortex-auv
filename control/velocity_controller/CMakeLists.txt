@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(velocity_controller)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-endif()
+set(CMAKE_CXX_STANDARD 20)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -20,23 +18,14 @@ find_package(CasADi REQUIRED)
 find_package(LAPACK REQUIRED)
 find_package(BLAS REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
-  
   include
 )
 
-
-#set(LIB_NAME "${PROJECT_NAME}_component")
-
-#add_library(${LIB_NAME} SHARED
-#  src/LQR_setup.cpp
-#  src/PID_setup.cpp
-#  src/test_VC.cpp
-#  src/velocity_controller.cpp
-#)
 add_executable(velocity_controller_node
   src/velocity_controller.cpp
   src/PID_setup.cpp
@@ -50,7 +39,11 @@ add_executable(test_VC_node
   src/LQR_setup.cpp
   src/utilities.cpp
 )
-
+add_executable(test_LQR_node
+  src/LQR_test.cpp
+  src/LQR_setup.cpp
+  src/utilities.cpp
+)
 ament_target_dependencies(velocity_controller_node
   rclcpp
   std_msgs
@@ -58,6 +51,7 @@ ament_target_dependencies(velocity_controller_node
   geometry_msgs
   Eigen3
   CasADi
+  nav_msgs
   
 )
 
@@ -67,6 +61,16 @@ ament_target_dependencies(test_VC_node
   vortex_msgs
   geometry_msgs
   Eigen3
+  nav_msgs
+)
+
+ament_target_dependencies(test_LQR_node
+  rclcpp
+  Eigen3
+  vortex_msgs
+  geometry_msgs
+  std_msgs
+  nav_msgs
 )
 
 link_directories(/usr/lib/gcc/x86_64-linux-gnu/11)
@@ -75,11 +79,13 @@ set(GFORTRAN_LIB /usr/lib/gcc/x86_64-linux-gnu/11/libgfortran.so)
 
 target_link_libraries(velocity_controller_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB})
 target_link_libraries(test_VC_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB})
+target_link_libraries(test_LQR_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB})
 
 
 install(TARGETS
   velocity_controller_node
   test_VC_node
+  test_LQR_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -109,38 +115,3 @@ if(BUILD_TESTING)
 endif()
 
 ament_package()
-
-#add_executable(velocity_controller_node src/velocity_controller.cpp src/PID_setup.cpp)
-#add_executable(test_VC_node src/test_VC.cpp src/PID_setup.cpp src/velocity_controller.cpp)
-
-#target_include_directories(velocity_controller_node PUBLIC
-#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#  $<INSTALL_INTERFACE:include>
-#)
-
-#target_link_libraries(velocity_controller_node ${drake_LIBRARIES})
-#install(DIRECTORY launch 
-#  DESTINATION share/${PROJECT_NAME}/
-#)
-#install(TARGETS velocity_controller_node
-#  DESTINATION lib/${PROJECT_NAME}
-#)
-#install(TARGETS test_VC_node
-#  DESTINATION lib/${PROJECT_NAME}
-#)
-#install(DIRECTORY config
-#  DESTINATION share/${PROJECT_NAME}/
-#)
-
-#rclcpp_components_register_node(
-#  ${LIB_NAME}
-#  PLUGIN "velocity_controller_node"
-#  EXECUTABLE ${PROJECT_NAME}_node
-#)
-#ament_export_targets(export_${LIB_NAME})
-#install(TARGETS ${LIB_NAME}
-#  EXPORT export_${LIB_NAME}
-#  ARCHIVE DESTINATION lib
-#  LIBRARY DESTINATION lib
-#  RUNTIME DESTINATION bin
-#)

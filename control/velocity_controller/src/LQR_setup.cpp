@@ -125,10 +125,13 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u)
     std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
     return {force_x, torque_y, torque_z};
 }
-Eigen::Vector<double,3> LQRController::calculate_lqr_u(Eigen::Matrix3d coriolis_matrix, State states, Guidance_data guidance_values){
-    update_augmented_matrices(coriolis_matrix);
+Eigen::Vector<double,3> LQRController::calculate_lqr_u(State state, Guidance_data guidance_values){
+    update_augmented_matrices(calculate_coriolis_matrix(state.pitch_rate,state.yaw_rate,state.sway_vel,state.heave_vel));
     LQRsolveResult result = solve_k_p(augmented_system_matrix,augmented_input_matrix,state_weight_matrix,input_weight_matrix);
-    Eigen::Matrix<double,6,1> state_error = update_error(guidance_values, states);
+    if(result.INFO!=0){
+        return {9999,9999,9999}; //Need to fix
+    }
+    Eigen::Matrix<double,6,1> state_error = update_error(guidance_values, state);
     Eigen::Vector<double,3> u= saturate_input(- (result.K*state_error));
     return u;
 }
@@ -153,37 +156,60 @@ void sb02mt_(
     int* IPIV, const int* OUFACT, double* G, const int* LDG,
     int* IWORK, double* DWORK, const int* LDWORK, int* INFO 
 );
+void sb02md_( const char* DICO, const char* HINV, const char* UPLO, const char* SCAL, const char* SORT, const int*  N, double* A, const int*  LDA, double* G,
+                      const int*  LDG, double* Q, const int* LDQ, const double* RCOND, double* WR, double* WI, double*  S, const int*  LDS, double* U, const int*  LDU,
+                       int* IWORK, double* DWORK, const int*  LDWORK, int* BWORK, const int* INFO 
+                    );
 }
 
 
-LQRsolveResult LQRController::solve_k_p(Eigen::Matrix<double,6,6> A,Eigen::Matrix<double,6,3> B, Eigen::Matrix<double,6,6> Q,Eigen::Matrix<double,3,3> R){
+LQRsolveResult LQRController::solve_k_p(const Eigen::Matrix<double,6,6> &A,const Eigen::Matrix<double,6,3> &B, const Eigen::Matrix<double,6,6> &Q, const Eigen::Matrix<double,3,3> &R){
+    Eigen::Matrix<double,6,6> A_copy=A, Q_copy=Q;
+    Eigen::Matrix<double,6,3> B_copy=B; Eigen::Matrix<double,3,3> R_copy=R;
+    
     //First calculate G with sb02mt_
-    char JOBG='G'; //calculate G
-    char JOBL='Z'; //L is zero
-    char FACT='N'; //unfactored R
-    char UPLO='U'; //Upper triangle i think
-    const int N=6; //Order of matrices A, Q, G and X(P)
-    const int M=3; //Order of matrix R and nuber of columns in B and L(is zero)
-    int LDA=N, LDB=M, LDQ=N,LDR=M,LDL=N,LDG=N;
-
-    std::vector<int> IWORK(N);
-    int LDWORK=10*N*N; //Upper bounds
+    //calculate G, L is zero, unfactored R, Upper triangle i think
+    char JOBG='G',JOBL='Z',FACT='N',UPLO='U';
+    //Order of matrices A, Q, G and X(P), Order of matrix R and nuber of columns in B and L(is zero)
+    const int N=6, M=3;
+    //Dimensions of matrices
+    int LDA=N, LDB=N, LDQ=N,LDR=M,LDL=N,LDG=N;
+    std::vector<int> IWORK(8*N),IPIV(N);
+    //Upper bounds Output but initialized JIC output placeholder
+    int LDWORK=20*N*N,OUFACT=0,INFO=0; 
     std::vector<double> DWORK(LDWORK);
-    std::vector<int> IPIV(N);
-    int OUFACT=0; //Output but initialized JIC
-    Eigen::Matrix<double,6,6> L=Eigen::Matrix<double,6,6>::Zero();
-    Eigen::Matrix<double,6,6> G;
-    int INFO;
-    sb02mt_(&JOBG,&JOBL,&FACT,&UPLO,&N,&M,A.data(),&LDA,B.data(),&LDB,Q.data(),&LDQ,R.data(),&LDR,L.data(),&LDL,IPIV.data(),&OUFACT,G.data(),&LDG,IWORK.data(),DWORK.data(),&LDWORK,&INFO);
-
+    Eigen::Matrix<double,6,6> L=Eigen::Matrix<double,6,6>::Zero(), G=L;
+    sb02mt_(&JOBG,&JOBL,&FACT,&UPLO,&N,&M,A_copy.data(),&LDA,B_copy.data(),&LDB,Q_copy.data(),&LDQ,R_copy.data(),&LDR,L.data(),&LDL,IPIV.data(),&OUFACT,G.data(),&LDG,IWORK.data(),DWORK.data(),&LDWORK,&INFO);
+    Eigen::Matrix<double,3,6> K;
     if (INFO!=0){
         //Some Error handling here. Also check that BRB in invertible
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "sb02mt_ returned INFO=%d", INFO);
+        // Consider throwing or returning a default result. We'll return zeroed K and G for now.
+        Eigen::Matrix<double,3,6> K_zero = Eigen::Matrix<double,3,6>::Zero();
+        return LQRsolveResult(K_zero, G,INFO);
+        
+    }  
+    char DICO='D',HINV='D',SCAL='N',SORT='U';
+    std::vector<double> WR(2*N,0),WI(2*N,0),RCOND(2*N,0);
+    int BWORK[8*N];
+    Eigen::Matrix<double,12,12> S=Eigen::Matrix<double,12,12>::Zero();
+    Eigen::Matrix<double,12,6>U=Eigen::Matrix<double,12,6>::Zero();
+    int LDS=2*N,LDU=2*N,INFO1=0;
+    A_copy=A;Q_copy=Q; R_copy=R;
+    sb02md_(&DICO,&HINV,&UPLO,&SCAL,&SORT,&N,A_copy.data(),&LDA,G.data(),&LDG,Q_copy.data(),&LDQ,RCOND.data(),WR.data(),WI.data(),S.data(),&LDS,U.data(),&LDU,IWORK.data(),DWORK.data(),&LDWORK,BWORK,&INFO1);
+    if (INFO1!=0){
+        //Some Error handling here. Also check that BRB in invertible
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "sb02md_ returned INFO=%d", INFO1);
+        // Consider throwing or returning a default result. We'll return zeroed K and G for now.
+        Eigen::Matrix<double,3,6> K_zero = Eigen::Matrix<double,3,6>::Zero();
+        return LQRsolveResult(K_zero, G,INFO1);
     }
-    Eigen::Matrix<double,3,6> K;
-    Eigen::Matrix<double,3,3> BRB = R+B.transpose()*G*B;
-    K=BRB.inverse()*B.transpose()*G*A;
-
-    return LQRsolveResult(K,G);    
+    Eigen::Matrix<double,6,6>U11=U.topRows(6);
+    Eigen::Matrix<double,6,6>U21=U.bottomRows(6);
+    Eigen::MatrixXd X=U21*U11.inverse();
+    K=R.inverse()*B.transpose()*X;
+    
+    return LQRsolveResult(K,G,INFO1);    
 
 }
 

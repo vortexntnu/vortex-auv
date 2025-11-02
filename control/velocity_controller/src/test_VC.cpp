@@ -15,16 +15,12 @@ test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
 {
     this->declare_parameter<std::string>("topics.guidance_topic");
     this->declare_parameter<std::string>("topics.thrust_topic");
-    this->declare_parameter<std::string>("topics.twist_topic");
-    this->declare_parameter<std::string>("topics.pose_topic");
+    this->declare_parameter<std::string>("topics.odom_topic");
     topic_thrust = this->get_parameter("topics.thrust_topic").as_string();
-    topic_twist = this->get_parameter("topics.twist_topic").as_string();
-    topic_pose = this->get_parameter("topics.pose_topic").as_string();
-
+    topic_odom = this->get_parameter("topics.odom_topic").as_string();
     topic_guidance = this->get_parameter("topics.guidance_topic").as_string();
     publisher_guidance = this->create_publisher<std_msgs::msg::Float64MultiArray>(topic_guidance, 10);
-    publisher_twist = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(topic_twist,10);
-    publisher_pose = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(topic_pose,10);
+    publisher_odom = this->create_publisher<nav_msgs::msg::Odometry>(topic_odom,10);
     
     subscription_thrust = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
         topic_thrust, 10,
@@ -46,28 +42,34 @@ void test_VC::send_guidance()
 
 void test_VC::read_thrust(geometry_msgs::msg::WrenchStamped::SharedPtr msg)
 {
-    current_state.surge += 0.01 * msg->wrench.force.x;
+    /*current_state.surge += 0.01 * msg->wrench.force.x;
     current_state.pitch += 0.01 * msg->wrench.torque.x;
-    current_state.yaw += 0.01 * msg->wrench.torque.y;
-    RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.surge);
-    RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.pitch);
-    RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.yaw);
+    current_state.yaw += 0.01 * msg->wrench.torque.y;*/
+    //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.surge);
+    //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.pitch);
+    //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.yaw);
     return;
 }
 
 void test_VC::send_state()
 {
     
-    twist_msg.header.stamp = clock_->now();
-    twist_msg.header.frame_id = "base_link";
-    twist_msg.twist.twist.linear.x = current_state.surge;
+    odom_msg.header.stamp = clock_->now();
+    odom_msg.header.frame_id = "base_link";
+    odom_msg.twist.twist.linear.x = current_state.surge;
+    odom_msg.pose.pose.orientation = euler_angle_to_quaternion(0.0, current_state.pitch, current_state.yaw);
+    odom_msg.twist.twist.linear.y=1;
+    odom_msg.twist.twist.linear.z=1;
+    odom_msg.twist.twist.angular.x=1;
+    odom_msg.twist.twist.angular.y=1;
+    odom_msg.twist.twist.angular.z=1;
+    odom_msg.twist.twist.linear.y=1;
+    odom_msg.twist.twist.linear.z=1;
 
-    pose_msg.header.stamp = clock_->now();
-    pose_msg.header.frame_id = "base_link";
-    pose_msg.pose.pose.orientation = euler_angle_to_quaternion(0.0, current_state.pitch, current_state.yaw);
 
-    publisher_twist->publish(twist_msg);
-    publisher_pose->publish(pose_msg);
+
+
+    publisher_odom->publish(odom_msg);
 
     //RCLCPP_INFO(this->get_logger(), "Published state: '%f'", current_state.surge);
     return;
