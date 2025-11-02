@@ -109,131 +109,180 @@ void PIDControllerNode::publish_tau() {
                                                     << tau(3) << ", " << tau(4)
                                                     << ", " << tau(5) << "]");
     // print debug
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Eta error: ["
-                           << pid_controller_.eta_error_debug.pos(0) << ", "
-                           << pid_controller_.eta_error_debug.pos(1) << ", "
-                           << pid_controller_.eta_error_debug.pos(2) << ", "
-                           << pid_controller_.eta_error_debug.ori.x() << ", "
-                           << pid_controller_.eta_error_debug.ori.y() << ", "
-                           << pid_controller_.eta_error_debug.ori.z() << ", "
-                           << pid_controller_.eta_error_debug.ori.w() << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Nu desired: [" << pid_controller_.nu_d_debug(0) << ", "
-                                       << pid_controller_.nu_d_debug(1) << ", "
-                                       << pid_controller_.nu_d_debug(2) << ", "
-                                       << pid_controller_.nu_d_debug(3) << ", "
-                                       << pid_controller_.nu_d_debug(4) << ", "
-                                       << pid_controller_.nu_d_debug(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Error nu: ["
-                           << pid_controller_.error_nu_debug(0) << ", "
-                           << pid_controller_.error_nu_debug(1) << ", "
-                           << pid_controller_.error_nu_debug(2) << ", "
-                           << pid_controller_.error_nu_debug(3) << ", "
-                           << pid_controller_.error_nu_debug(4) << ", "
-                           << pid_controller_.error_nu_debug(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "P term: [" << pid_controller_.P_debug(0) << ", "
-                                   << pid_controller_.P_debug(1) << ", "
-                                   << pid_controller_.P_debug(2) << ", "
-                                   << pid_controller_.P_debug(3) << ", "
-                                   << pid_controller_.P_debug(4) << ", "
-                                   << pid_controller_.P_debug(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Kp: [" << pid_controller_.Kp_debug(0, 0) << ", "
-                               << pid_controller_.Kp_debug(0, 1) << ", "
-                               << pid_controller_.Kp_debug(0, 2) << ", "
-                               << pid_controller_.Kp_debug(0, 3) << ", "
-                               << pid_controller_.Kp_debug(0, 4) << ", "
-                               << pid_controller_.Kp_debug(0, 5) << "; "
-                               << pid_controller_.Kp_debug(1, 0) << ", "
-                               << pid_controller_.Kp_debug(1, 1) << ", "
-                               << pid_controller_.Kp_debug(1, 2) << ", "
-                               << pid_controller_.Kp_debug(1, 3) << ", "
-                               << pid_controller_.Kp_debug(1, 4) << ", "
-                               << pid_controller_.Kp_debug(1, 5) << "; "
-                               << pid_controller_.Kp_debug(2, 0) << ", "
-                               << pid_controller_.Kp_debug(2, 1) << ", "
-                               << pid_controller_.Kp_debug(2, 2) << ", "
-                               << pid_controller_.Kp_debug(2, 3) << ", "
-                               << pid_controller_.Kp_debug(2, 4) << ", "
-                               << pid_controller_.Kp_debug(2, 5) << "; "
-                               << pid_controller_.Kp_debug(3, 0) << ", "
-                               << pid_controller_.Kp_debug(3, 1) << ", "
-                               << pid_controller_.Kp_debug(3, 2) << ", "
-                               << pid_controller_.Kp_debug(3, 3) << ", "
-                               << pid_controller_.Kp_debug(3, 4) << ", "
-                               << pid_controller_.Kp_debug(3, 5) << "; "
-                               << pid_controller_.Kp_debug(4, 0) << ", "
-                               << pid_controller_.Kp_debug(4, 1) << ", "
-                               << pid_controller_.Kp_debug(4, 2) << ", "
-                               << pid_controller_.Kp_debug(4, 3) << ", "
-                               << pid_controller_.Kp_debug(4, 4) << ", "
-                               << pid_controller_.Kp_debug(4, 5) << "; "
-                               << pid_controller_.Kp_debug(5, 0) << ", "
-                               << pid_controller_.Kp_debug(5, 1) << ", "
-                               << pid_controller_.Kp_debug(5, 2) << ", "
-                               << pid_controller_.Kp_debug(5, 3) << ", "
-                               << pid_controller_.Kp_debug(5, 4) << ", "
-                               << pid_controller_.Kp_debug(5, 5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "I term: [" << pid_controller_.I_debug(0) << ", "
-                                   << pid_controller_.I_debug(1) << ", "
-                                   << pid_controller_.I_debug(2) << ", "
-                                   << pid_controller_.I_debug(3) << ", "
-                                   << pid_controller_.I_debug(4) << ", "
-                                   << pid_controller_.I_debug(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "D term: [" << pid_controller_.D_debug(0) << ", "
-                                   << pid_controller_.D_debug(1) << ", "
-                                   << pid_controller_.D_debug(2) << ", "
-                                   << pid_controller_.D_debug(3) << ", "
-                                   << pid_controller_.D_debug(4) << ", "
-                                   << pid_controller_.D_debug(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "J inv: [" << pid_controller_.J_inv_debug(0, 0) << ", "
-                                  << pid_controller_.J_inv_debug(0, 1) << ", "
-                                  << pid_controller_.J_inv_debug(0, 2) << ", "
-                                  << pid_controller_.J_inv_debug(0, 3) << ", "
-                                  << pid_controller_.J_inv_debug(0, 4) << ", "
-                                  << pid_controller_.J_inv_debug(0, 5) << ", "
-                                  << pid_controller_.J_inv_debug(0, 6) << "; "
-                                  << pid_controller_.J_inv_debug(1, 0) << ", "
-                                  << pid_controller_.J_inv_debug(1, 1) << ", "
-                                  << pid_controller_.J_inv_debug(1, 2) << ", "
-                                  << pid_controller_.J_inv_debug(1, 3) << ", "
-                                  << pid_controller_.J_inv_debug(1, 4) << ", "
-                                  << pid_controller_.J_inv_debug(1, 5) << ", "
-                                  << pid_controller_.J_inv_debug(1, 6) << "; "
-                                  << pid_controller_.J_inv_debug(2, 0) << ", "
-                                  << pid_controller_.J_inv_debug(2, 1) << ", "
-                                  << pid_controller_.J_inv_debug(2, 2) << ", "
-                                  << pid_controller_.J_inv_debug(2, 3) << ", "
-                                  << pid_controller_.J_inv_debug(2, 4) << ", "
-                                  << pid_controller_.J_inv_debug(2, 5) << ", "
-                                  << pid_controller_.J_inv_debug(2, 6) << "; "
-                                  << pid_controller_.J_inv_debug(3, 0) << ", "
-                                  << pid_controller_.J_inv_debug(3, 1) << ", "
-                                  << pid_controller_.J_inv_debug(3, 2) << ", "
-                                  << pid_controller_.J_inv_debug(3, 3) << ", "
-                                  << pid_controller_.J_inv_debug(3, 4) << ", "
-                                  << pid_controller_.J_inv_debug(3, 5) << ", "
-                                  << pid_controller_.J_inv_debug(3, 6) << "; "
-                                  << pid_controller_.J_inv_debug(4, 0) << ", "
-                                  << pid_controller_.J_inv_debug(4, 1) << ", "
-                                  << pid_controller_.J_inv_debug(4, 2) << ", "
-                                  << pid_controller_.J_inv_debug(4, 3) << ", "
-                                  << pid_controller_.J_inv_debug(4, 4) << ", "
-                                  << pid_controller_.J_inv_debug(4, 5) << ", "
-                                  << pid_controller_.J_inv_debug(4, 6) << "; "
-                                  << pid_controller_.J_inv_debug(5, 0) << ", "
-                                  << pid_controller_.J_inv_debug(5, 1) << ", "
-                                  << pid_controller_.J_inv_debug(5, 2) << ", "
-                                  << pid_controller_.J_inv_debug(5, 3) << ", "
-                                  << pid_controller_.J_inv_debug(5, 4) << ", "
-                                  << pid_controller_.J_inv_debug(5, 5) << ", "
-                                  << pid_controller_.J_inv_debug(5, 6) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "Eta error: ["
+    //                        << pid_controller_.eta_error_debug.pos(0) << ", "
+    //                        << pid_controller_.eta_error_debug.pos(1) << ", "
+    //                        << pid_controller_.eta_error_debug.pos(2) << ", "
+    //                        << pid_controller_.eta_error_debug.ori.x() << ", "
+    //                        << pid_controller_.eta_error_debug.ori.y() << ", "
+    //                        << pid_controller_.eta_error_debug.ori.z() << ", "
+    //                        << pid_controller_.eta_error_debug.ori.w() <<
+    //                        "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "Nu desired: [" << pid_controller_.nu_d_debug(0) << ",
+    //                    "
+    //                                    << pid_controller_.nu_d_debug(1) << ",
+    //                                    "
+    //                                    << pid_controller_.nu_d_debug(2) << ",
+    //                                    "
+    //                                    << pid_controller_.nu_d_debug(3) << ",
+    //                                    "
+    //                                    << pid_controller_.nu_d_debug(4) << ",
+    //                                    "
+    //                                    << pid_controller_.nu_d_debug(5) <<
+    //                                    "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "Error nu: ["
+    //                        << pid_controller_.error_nu_debug(0) << ", "
+    //                        << pid_controller_.error_nu_debug(1) << ", "
+    //                        << pid_controller_.error_nu_debug(2) << ", "
+    //                        << pid_controller_.error_nu_debug(3) << ", "
+    //                        << pid_controller_.error_nu_debug(4) << ", "
+    //                        << pid_controller_.error_nu_debug(5) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "P term: [" << pid_controller_.P_debug(0) << ", "
+    //                                << pid_controller_.P_debug(1) << ", "
+    //                                << pid_controller_.P_debug(2) << ", "
+    //                                << pid_controller_.P_debug(3) << ", "
+    //                                << pid_controller_.P_debug(4) << ", "
+    //                                << pid_controller_.P_debug(5) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "Kp: [" << pid_controller_.Kp_debug(0, 0) << ", "
+    //                            << pid_controller_.Kp_debug(0, 1) << ", "
+    //                            << pid_controller_.Kp_debug(0, 2) << ", "
+    //                            << pid_controller_.Kp_debug(0, 3) << ", "
+    //                            << pid_controller_.Kp_debug(0, 4) << ", "
+    //                            << pid_controller_.Kp_debug(0, 5) << "; "
+    //                            << pid_controller_.Kp_debug(1, 0) << ", "
+    //                            << pid_controller_.Kp_debug(1, 1) << ", "
+    //                            << pid_controller_.Kp_debug(1, 2) << ", "
+    //                            << pid_controller_.Kp_debug(1, 3) << ", "
+    //                            << pid_controller_.Kp_debug(1, 4) << ", "
+    //                            << pid_controller_.Kp_debug(1, 5) << "; "
+    //                            << pid_controller_.Kp_debug(2, 0) << ", "
+    //                            << pid_controller_.Kp_debug(2, 1) << ", "
+    //                            << pid_controller_.Kp_debug(2, 2) << ", "
+    //                            << pid_controller_.Kp_debug(2, 3) << ", "
+    //                            << pid_controller_.Kp_debug(2, 4) << ", "
+    //                            << pid_controller_.Kp_debug(2, 5) << "; "
+    //                            << pid_controller_.Kp_debug(3, 0) << ", "
+    //                            << pid_controller_.Kp_debug(3, 1) << ", "
+    //                            << pid_controller_.Kp_debug(3, 2) << ", "
+    //                            << pid_controller_.Kp_debug(3, 3) << ", "
+    //                            << pid_controller_.Kp_debug(3, 4) << ", "
+    //                            << pid_controller_.Kp_debug(3, 5) << "; "
+    //                            << pid_controller_.Kp_debug(4, 0) << ", "
+    //                            << pid_controller_.Kp_debug(4, 1) << ", "
+    //                            << pid_controller_.Kp_debug(4, 2) << ", "
+    //                            << pid_controller_.Kp_debug(4, 3) << ", "
+    //                            << pid_controller_.Kp_debug(4, 4) << ", "
+    //                            << pid_controller_.Kp_debug(4, 5) << "; "
+    //                            << pid_controller_.Kp_debug(5, 0) << ", "
+    //                            << pid_controller_.Kp_debug(5, 1) << ", "
+    //                            << pid_controller_.Kp_debug(5, 2) << ", "
+    //                            << pid_controller_.Kp_debug(5, 3) << ", "
+    //                            << pid_controller_.Kp_debug(5, 4) << ", "
+    //                            << pid_controller_.Kp_debug(5, 5) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "I term: [" << pid_controller_.I_debug(0) << ", "
+    //                                << pid_controller_.I_debug(1) << ", "
+    //                                << pid_controller_.I_debug(2) << ", "
+    //                                << pid_controller_.I_debug(3) << ", "
+    //                                << pid_controller_.I_debug(4) << ", "
+    //                                << pid_controller_.I_debug(5) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "D term: [" << pid_controller_.D_debug(0) << ", "
+    //                                << pid_controller_.D_debug(1) << ", "
+    //                                << pid_controller_.D_debug(2) << ", "
+    //                                << pid_controller_.D_debug(3) << ", "
+    //                                << pid_controller_.D_debug(4) << ", "
+    //                                << pid_controller_.D_debug(5) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "J inv: [" << pid_controller_.J_inv_debug(0, 0) << ",
+    //                    "
+    //                               << pid_controller_.J_inv_debug(0, 1) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(0, 2) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(0, 3) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(0, 4) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(0, 5) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(0, 6) << ";
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 0) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 1) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 2) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 3) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 4) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 5) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(1, 6) << ";
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 0) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 1) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 2) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 3) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 4) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 5) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(2, 6) << ";
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 0) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 1) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 2) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 3) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 4) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 5) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(3, 6) << ";
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 0) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 1) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 2) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 3) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 4) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 5) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(4, 6) << ";
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 0) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 1) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 2) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 3) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 4) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 5) << ",
+    //                               "
+    //                               << pid_controller_.J_inv_debug(5, 6) <<
+    //                               "]");
 
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
@@ -361,27 +410,105 @@ rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
     result.successful = true;
     result.reason = "success";
 
-    bool kp_updated = false;
-    bool ki_updated = false;
-    bool kd_updated = false;
+    bool kp_x_updated = false;
+    bool kp_y_updated = false;
+    bool kp_z_updated = false;
+    bool kp_roll_updated = false;
+    bool kp_pitch_updated = false;
+    bool kp_yaw_updated = false;
+
+    bool ki_x_updated = false;
+    bool ki_y_updated = false;
+    bool ki_z_updated = false;
+    bool ki_roll_updated = false;
+    bool ki_pitch_updated = false;
+    bool ki_yaw_updated = false;
+
+    bool kd_x_updated = false;
+    bool kd_y_updated = false;
+    bool kd_z_updated = false;
+    bool kd_roll_updated = false;
+    bool kd_pitch_updated = false;
+    bool kd_yaw_updated = false;
 
     types::Vector6d Kp_vec_eigen;
     types::Vector6d Ki_vec_eigen;
     types::Vector6d Kd_vec_eigen;
 
+    for (const auto& param : parameters) {
+        if (param.get_name() == "Kp_x") {
+            Kp_vec_eigen(0) = param.as_double();
+            kp_x_updated = true;
+        } else if (param.get_name() == "Kp_y") {
+            Kp_vec_eigen(1) = param.as_double();
+            kp_y_updated = true;
+        } else if (param.get_name() == "Kp_z") {
+            Kp_vec_eigen(2) = param.as_double();
+            kp_z_updated = true;
+        } else if (param.get_name() == "Kp_roll") {
+            Kp_vec_eigen(3) = param.as_double();
+            kp_roll_updated = true;
+        } else if (param.get_name() == "Kp_pitch") {
+            Kp_vec_eigen(4) = param.as_double();
+            kp_pitch_updated = true;
+        } else if (param.get_name() == "Kp_yaw") {
+            Kp_vec_eigen(5) = param.as_double();
+            kp_yaw_updated = true;
+        } else if (param.get_name() == "Ki_x") {
+            Ki_vec_eigen(0) = param.as_double();
+            ki_x_updated = true;
+        } else if (param.get_name() == "Ki_y") {
+            Ki_vec_eigen(1) = param.as_double();
+            ki_y_updated = true;
+        } else if (param.get_name() == "Ki_z") {
+            Ki_vec_eigen(2) = param.as_double();
+            ki_z_updated = true;
+        } else if (param.get_name() == "Ki_roll") {
+            Ki_vec_eigen(3) = param.as_double();
+            ki_roll_updated = true;
+        } else if (param.get_name() == "Ki_pitch") {
+            Ki_vec_eigen(4) = param.as_double();
+            ki_pitch_updated = true;
+        } else if (param.get_name() == "Ki_yaw") {
+            Ki_vec_eigen(5) = param.as_double();
+            ki_yaw_updated = true;
+        } else if (param.get_name() == "Kd_x") {
+            Kd_vec_eigen(0) = param.as_double();
+            kd_x_updated = true;
+        } else if (param.get_name() == "Kd_y") {
+            Kd_vec_eigen(1) = param.as_double();
+            kd_y_updated = true;
+        } else if (param.get_name() == "Kd_z") {
+            Kd_vec_eigen(2) = param.as_double();
+            kd_z_updated = true;
+        } else if (param.get_name() == "Kd_roll") {
+            Kd_vec_eigen(3) = param.as_double();
+            kd_roll_updated = true;
+        } else if (param.get_name() == "Kd_pitch") {
+            Kd_vec_eigen(4) = param.as_double();
+            kd_pitch_updated = true;
+        } else if (param.get_name() == "Kd_yaw") {
+            Kd_vec_eigen(5) = param.as_double();
+            kd_yaw_updated = true;
+        }
+    }
+
     // Only set the gains if the parameter update was successful
     if (result.successful) {
-        if (kp_updated) {
+        if (kp_x_updated || kp_y_updated || kp_z_updated || kp_roll_updated ||
+            kp_pitch_updated || kp_yaw_updated) {
             types::Matrix6d Kp_eigen =
                 Kp_vec_eigen.asDiagonal().toDenseMatrix();
             pid_controller_.set_kp(Kp_eigen);
         }
-        if (ki_updated) {
+        if (ki_x_updated || ki_y_updated || ki_z_updated || ki_roll_updated ||
+            ki_pitch_updated || ki_yaw_updated) {
             types::Matrix6d Ki_eigen =
                 Ki_vec_eigen.asDiagonal().toDenseMatrix();
             pid_controller_.set_ki(Ki_eigen);
         }
-        if (kd_updated) {
+        if (kd_x_updated || kd_y_updated || kd_z_updated || kd_roll_updated ||
+            kd_pitch_updated || kd_yaw_updated) {
             types::Matrix6d Kd_eigen =
                 Kd_vec_eigen.asDiagonal().toDenseMatrix();
             pid_controller_.set_kd(Kd_eigen);
