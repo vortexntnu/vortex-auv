@@ -4,13 +4,12 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <los_guidance/los_guidance.hpp>
+#include "los_guidance/lib/adaptive_los.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/los_guidance.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
-#include "los_guidance.hpp"
 
 namespace vortex::guidance {
 

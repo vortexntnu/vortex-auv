@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "los_guidance/los_guidance.hpp"
+#include "los_guidance/lib/adaptive_los.hpp"
 
 namespace vortex::guidance {
 

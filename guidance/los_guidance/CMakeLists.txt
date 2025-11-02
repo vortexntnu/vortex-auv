@@ -23,7 +23,7 @@ include_directories(include)
 
 set(LIB_NAME los_guidance_lib)
 add_library(${LIB_NAME} SHARED
-  src/los_guidance.cpp
+  src/lib/adaptive_los.cpp
   src/los_guidance_ros.cpp
 )
 
