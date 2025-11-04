@@ -27,14 +27,11 @@ class KeyboardJoy(Node):
     def __init__(self):
         super().__init__('keyboard_joy')
 
-        # Load configuration
         self.declare_parameter('config', '')
         self.load_key_mappings()
 
-        # Prepare publisher
         self.joy_pub = self.create_publisher(Joy, 'joy', 10)
 
-        # Precompute max indices for axes/buttons
         max_axis_index = max((v[0] for v in self.axis_mappings.values()), default=-1)
         max_button_index = max(self.button_mappings.values(), default=-1)
 
@@ -47,7 +44,6 @@ class KeyboardJoy(Node):
 
         self.lock = threading.Lock()
 
-        # Start keyboard listener
         self.listener = keyboard.Listener(
             on_press=self.on_press, on_release=self.on_release
         )
