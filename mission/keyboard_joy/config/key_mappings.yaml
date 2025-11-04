@@ -1,0 +1,32 @@
+axes:
+  # Left stick (surge/sway)
+  w: [1, 1.0, 'normal']
+  s: [1, -1.0, 'normal']
+  a: [0, 1.0, 'normal']
+  d: [0, -1.0, 'normal']
+
+  # Heave
+  Key.space: [2, 1.0, 'normal'] # Up (RT)
+  Key.shift: [2, -1.0, 'normal'] # Down (LT)
+
+  # Rotation (pitch/yaw)
+  Key.up: [4, 1.0, 'normal']
+  Key.down: [4, -1.0, 'normal']
+  Key.left: [3, 1.0, 'normal']
+  Key.right: [3, -1.0, 'normal']
+
+parameters:
+  axis_increment_rate: 0.02  # update interval (higher = slower response)
+  axis_increment_step: 0.1   # axis change per update (higher = faster movement)
+
+
+buttons:
+  # Roll
+  q: 4 # LB
+  e: 5 # RB
+
+  # Modes
+  '1': 0 # A - Xbox mode
+  '2': 1 # B - Killswitch
+  '3': 2 # X - Auto
+  '4': 3 # Y - Reference
