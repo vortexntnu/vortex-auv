@@ -33,6 +33,7 @@ class test_LQR_node : public rclcpp::Node{
         result.K(0,0),result.K(0,1),result.K(0,2),result.K(0,3),result.K(0,4),result.K(0,5),
         result.K(1,0),result.K(1,1),result.K(1,2),result.K(1,3),result.K(1,4),result.K(1,5),
         result.K(2,0),result.K(2,1),result.K(2,2),result.K(2,3),result.K(2,4),result.K(2,5));
+        
     }
 };
 
