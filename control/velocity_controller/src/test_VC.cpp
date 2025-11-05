@@ -22,8 +22,11 @@ test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
     publisher_guidance = this->create_publisher<std_msgs::msg::Float64MultiArray>(topic_guidance, 10);
     publisher_odom = this->create_publisher<nav_msgs::msg::Odometry>(topic_odom,10);
     
+    rclcpp::QoS orca_QoS(2);
+    orca_QoS.keep_last(2).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+  
     subscription_thrust = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
-        topic_thrust, 10,
+        topic_thrust, orca_QoS,
         std::bind(&test_VC::read_thrust, this, std::placeholders::_1));
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(200),
@@ -37,7 +40,7 @@ test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
 void test_VC::send_guidance()
 {
     publisher_guidance->publish(reference_msg);
-    send_state();
+    //send_state();
 }
 
 void test_VC::read_thrust(geometry_msgs::msg::WrenchStamped::SharedPtr msg)
@@ -48,6 +51,7 @@ void test_VC::read_thrust(geometry_msgs::msg::WrenchStamped::SharedPtr msg)
     //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.surge);
     //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.pitch);
     //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.yaw);
+    (void) msg;
     return;
 }
 

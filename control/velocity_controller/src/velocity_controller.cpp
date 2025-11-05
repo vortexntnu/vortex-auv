@@ -15,7 +15,7 @@
 //Lager en klasse velocity node
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(1,1,1), PID_yaw(1,1,1), PID_pitch(1,1,1), lqr_controller()
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(10,1,1), PID_yaw(10,1,1), PID_pitch(10,1,1), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
@@ -25,7 +25,10 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(1,1
 
   
   // Publishers
-  publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, 10);
+  rclcpp::QoS orca_QoS(2);
+  orca_QoS.keep_last(2).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+  
+  publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, orca_QoS);
   
   //Subscribers  
   subscriber_Odometry = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -66,7 +69,7 @@ void Velocity_node::calc_thrust()
   switch (controller_type)
   {
   case 1:{
-    RCLCPP_INFO(this->get_logger(),"PID controller");
+    //RCLCPP_INFO(this->get_logger(),"PID controller");
     PID_surge.calculate_thrust(guidance_values.surge, current_state.surge,calculation_rate/1000.0);
     PID_pitch.calculate_thrust(guidance_values.pitch, current_state.pitch,calculation_rate/1000.0);
     PID_yaw.calculate_thrust(guidance_values.yaw, current_state.yaw,calculation_rate/1000.0);

@@ -6,7 +6,7 @@
       twist_topic: /dvl/twist #Twist
       pose_topic: /dvl/pose #Pose
       guidance_topic: /guidance/los #Guidance
-      thrust_topic: /thrust/wrench_input #Thrust
+      thrust_topic: /orca/wrench_input #Thrust
       softwareoperation_topic: /softwareOperationMode #Software Operation
       killswitch_topic: /softwareKillSwitch #Kill Switch
 
@@ -30,8 +30,8 @@
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 
     calculation_rate: 200 #ms integer
-    publish_rate: 200 #ms
+    publish_rate: 1000 #ms
     #Clamp parameter
     max_force: 99.5
-    controller_type: 1
-    #publish_value: "Hello from config!"  # parameter name: parameter value
+    controller_type: 1 #1 PID 2 LQR
+    
