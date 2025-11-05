@@ -51,8 +51,20 @@ void ESKFNode::set_subscribers_and_publisher() {
     std::string odom_topic = this->get_parameter("odom_topic").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
+    #ifndef NDEBUG
 
     nis_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nis", 10);
+
+    error_pub_ = create_publisher<std_msgs::msg::Float64MultiArray>("eskf/error", 10);
+
+    odom_cov_pub_ = create_publisher<std_msgs::msg::Float64MultiArray>("eskf/odom_covariance", 10);
+
+    odom_ground_truth_ =  this->create_subscription<nav_msgs::msg::Odometry>(
+        "/orca/odom", qos_sensor_data,
+        std::bind(&ESKFNode::ground_truth_callback, this,
+                  std::placeholders::_1));
+    // incoming_imu_eskf_ = this->create_publisher<sensor_msgs::msg::Imu>("incoming_imu_eskf", rclcpp::SensorDataQoS() );
+    #endif
 }
 
 void ESKFNode::set_parameters() {
@@ -100,14 +112,27 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
                               msg->linear_acceleration.y,
                               msg->linear_acceleration.z);
 
-    imu_meas_.accel = R_imu_eskf_ * raw_accel;
+    // imu_meas_.accel = R_imu_eskf_ * raw_accel;
+    imu_meas_.accel = -raw_accel;
 
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    imu_meas_.gyro = R_imu_eskf_ * raw_gyro;
+    // imu_meas_.gyro = R_imu_eskf_ * raw_gyro;
+    imu_meas_.gyro = raw_gyro;
 
     std::tie(nom_state_, error_state_) = eskf_->imu_update(imu_meas_, dt);
+
+    // to remove
+    // sensor_msgs::msg::Imu imu_out;
+    // imu_out.header = msg->header;
+    // imu_out.linear_acceleration.x = imu_meas_.accel.x();
+    // imu_out.linear_acceleration.y = imu_meas_.accel.y();
+    // imu_out.linear_acceleration.z = imu_meas_.accel.z();
+    // imu_out.angular_velocity.x = imu_meas_.gyro.x();
+    // imu_out.angular_velocity.y = imu_meas_.gyro.y();
+    // imu_out.angular_velocity.z = imu_meas_.gyro.z();
+    // incoming_imu_eskf_->publish(imu_out);
 }
 
 void ESKFNode::dvl_callback(
@@ -130,6 +155,40 @@ void ESKFNode::dvl_callback(
     nis_pub_->publish(nis_msg);
     #endif
 }
+
+#ifndef NDEBUG
+void ESKFNode::ground_truth_callback(
+    const nav_msgs::msg::Odometry::SharedPtr msg) {
+    
+    // Position error
+    last_error_.pos.x() = nom_state_.pos.x() - msg->pose.pose.position.x;
+    last_error_.pos.y() = nom_state_.pos.y() - msg->pose.pose.position.y;
+    last_error_.pos.z() = nom_state_.pos.z() - msg->pose.pose.position.z;
+
+    // Velocity error
+    last_error_.vel.x() = nom_state_.vel.x() - msg->twist.twist.linear.x;
+    last_error_.vel.y() = nom_state_.vel.y() - msg->twist.twist.linear.y;
+    last_error_.vel.z() = nom_state_.vel.z() - msg->twist.twist.linear.z;
+
+    // Orientation error
+    Eigen::Quaterniond q_nom(nom_state_.quat.x(), nom_state_.quat.y(),
+                          nom_state_.quat.z(), nom_state_.quat.w());
+    Eigen::Quaterniond q_gt(msg->pose.pose.orientation.x,
+                         msg->pose.pose.orientation.y,
+                         msg->pose.pose.orientation.z,
+                         msg->pose.pose.orientation.w);
+
+    Eigen::Quaterniond q_err = q_gt.inverse() * q_nom;  // error rotation
+    last_error_.ori = quaternion_to_euler(q_err);
+
+    // Publish
+    std_msgs::msg::Float64MultiArray error_msg;
+    error_msg.data = { last_error_.pos.x(), last_error_.pos.y(), last_error_.pos.z(),
+                       last_error_.vel.x(), last_error_.vel.y(), last_error_.vel.z(),
+                       last_error_.ori.x(), last_error_.ori.y(), last_error_.ori.z() };
+    error_pub_->publish(error_msg);
+}
+#endif
 
 void ESKFNode::publish_odom() {
     nav_msgs::msg::Odometry odom_msg;
@@ -157,6 +216,28 @@ void ESKFNode::publish_odom() {
 
     odom_msg.header.stamp = this->now();
     odom_pub_->publish(odom_msg);
+
+
+    // publish the covariance matrix
+    std_msgs::msg::Float64MultiArray msg;
+
+    msg.layout.dim.resize(2);
+    msg.layout.dim[0].label = "rows";
+    msg.layout.dim[0].size = 15;
+    msg.layout.dim[0].stride = 15 * 15;
+    msg.layout.dim[1].label = "cols";
+    msg.layout.dim[1].size = 15;
+    msg.layout.dim[1].stride = 15;
+
+    // Flatten Eigen matrix into a std::vector<double>
+    msg.data.resize(15 * 15);
+    msg.data.assign(
+        error_state_.covariance.data(),
+        error_state_.covariance.data() + 15 * 15
+    );
+
+    // Publish
+    odom_cov_pub_->publish(msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(ESKFNode)

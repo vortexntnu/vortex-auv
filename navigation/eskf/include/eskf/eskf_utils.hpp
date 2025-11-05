@@ -35,4 +35,7 @@ Eigen::Quaterniond vector3d_to_quaternion(const Eigen::Vector3d& vector);
 // @return Corresponding quaternion
 Eigen::Quaterniond euler_to_quaternion(const Eigen::Vector3d& euler);
 
+
+Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond& q);
+
 #endif  // ESKF_UTILS_HPP

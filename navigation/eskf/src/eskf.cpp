@@ -114,7 +114,6 @@ void ESKF::error_state_prediction(const imu_measurement& imu_meas,
     A_c.block<3, 3>(9, 9) = -Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(12, 12) = -Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(6, 12) = -Eigen::Matrix3d::Identity();
-    // A_c.block<3, 3>(3, 15) = Eigen::Matrix3d::Identity();
 
     Eigen::Matrix15x12d G_c = Eigen::Matrix15x12d::Zero();
     G_c.block<3, 3>(3, 0) = -R;
