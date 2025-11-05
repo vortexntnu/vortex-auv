@@ -1,55 +1,49 @@
-#ifndef types_hpp
-#define types_hpp
+#ifndef TYPES_HPP
+#define TYPES_HPP
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <cmath>
 
-namespace vortex::guidance::lod::types{
+namespace vortex::guidance::los::types{
+    struct Point {
+        double x{};
+        double y{};
+        double z{};
 
-    namespace LOS {
+        Point operator-(const Point& other) const {
+            return Point{x - other.x, y - other.y, z - other.z};
+        }
 
-        struct Point {
-            double x{};
-            double y{};
-            double z{};
+        Eigen::Vector3d as_vector() const { return Eigen::Vector3d(x, y, z); }
+    };
 
-            Point operator-(const Point& other) const {
-                return Point{x - other.x, y - other.y, z - other.z};
-            }
+    struct CrossTrackError {
+        double x_e{};
+        double y_e{};
+        double z_e{};
 
-            Eigen::Vector3d as_vector() const { return Eigen::Vector3d(x, y, z); }
-        };
+        inline static CrossTrackError from_vector(const Eigen::Vector3d& vector) {
+            return CrossTrackError{vector.x(), vector.y(), vector.z()};
+        }
+    };
 
-        struct CrossTrackError {
-            double x_e{};
-            double y_e{};
-            double z_e{};
+    struct Output {
+        double psi_d{};
+        double theta_d{};
+    }; 
 
-            inline static CrossTrackError from_vector(const Eigen::Vector3d& vector) {
-                return CrossTrackError{vector.x(), vector.y(), vector.z()};
-            }
-        };
+    struct Inputs{
+        Point prev_point{};
+        Point next_point{};
+        Point current_position{};
+    };
 
-       struct Output {
-            double psi_d{};
-            double theta_d{};
-        };
-
-        struct Inputs{
-            Point prev_point{};
-            Point next_point{};
-            Point current_position{};
-        };
-
-        enum class Active_LOSMethod {
-            PROPORTIONAL,
-            INTEGRAL,
-            ADAPTIVE
-        };
-        
-
-    } // namespace LOS
+    enum class Active_LOSMethod {
+        PROPORTIONAL,
+        INTEGRAL,
+        ADAPTIVE
+    };
 
 } // namespace vortex::guidance::los::types
 

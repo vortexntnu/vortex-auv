@@ -6,7 +6,10 @@ include(GoogleTest)
 set(TEST_BINARY_NAME ${PROJECT_NAME}_test)
 add_executable(
     ${TEST_BINARY_NAME}
-    test_los_guidance.cpp
+    adaptive_los_test.cpp
+    proportional_los_test.cpp
+    integral_los_test.cpp
+    
 )
 
 target_link_libraries(

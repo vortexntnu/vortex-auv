@@ -1,98 +1,56 @@
 #include "los_guidance/lib/adaptive_los.hpp"
 
-namespace vortex::guidance {
+namespace vortex::guidance::los {
+    
+    AdaptiveLOSGuidance::AdaptiveLOSGuidance(const AdaptiveLosParams& params): m_params{params} {}
 
-AdaptiveLOSGuidance::AdaptiveLOSGuidance(const LOS::Params& params)
-    : params_(params) {}
+    void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
+        const double dx = inputs.next_point.x - inputs.prev_point.x;
+        const double dy = inputs.next_point.y - inputs.prev_point.y;
+        const double dz = inputs.next_point.z - inputs.prev_point.z;
 
-void AdaptiveLOSGuidance::update_angles(const LOS::Point& prev_point,
-                                        const LOS::Point& next_point) {
-    const LOS::Point difference = next_point - prev_point;
+        pi_h_ = std::atan2(dy, dx);
+        pi_v_ = std::atan2(-dz, std::sqrt(dx*dx + dy*dy));
 
-    pi_h_ = atan2(difference.y, difference.x);
-    pi_v_ = atan2(-difference.z, sqrt(difference.x * difference.x +
-                                      difference.y * difference.y));
+        rotation_y_ = Eigen::AngleAxisd(pi_v_, Eigen::Vector3d::UnitY());
+        rotation_z_ = Eigen::AngleAxisd(pi_h_, Eigen::Vector3d::UnitZ());
+    }
 
-    rotation_y_ = Eigen::AngleAxisd(pi_v_, Eigen::Vector3d::UnitY());
-    rotation_z_ = Eigen::AngleAxisd(pi_h_, Eigen::Vector3d::UnitZ());
-}
+    types::CrossTrackError AdaptiveLOSGuidance::calculate_crosstrack_error(const types::Inputs& inputs) const {
 
-LOS::CrossTrackError AdaptiveLOSGuidance::calculate_crosstrack_error(
-    const LOS::Point& prev_point,
-    const LOS::Point& current_position) const {
-    const LOS::Point difference = current_position - prev_point;
-    const Eigen::Vector3d difference_vector = difference.as_vector();
+        const types::Point difference = inputs.current_position - inputs.prev_point;
+        const Eigen::Vector3d difference_vector = difference.as_vector();
 
-    const Eigen::Vector3d cross_track_error =
-        rotation_y_.transpose() * rotation_z_.transpose() * difference_vector;
+        const Eigen::Vector3d cross_track_error =
+            rotation_y_.transpose() * rotation_z_.transpose() * difference_vector;
 
-    return LOS::CrossTrackError::from_vector(cross_track_error);
-}
+        return types::CrossTrackError::from_vector(cross_track_error);
+    }
 
-double AdaptiveLOSGuidance::calculate_psi_d(const double& y_e) const {
-    return pi_h_ - beta_c_hat_ - atan(y_e / params_.lookahead_distance_h);
-}
+    void AdaptiveLOSGuidance::update_adaptive_estimates(const types::CrossTrackError& e) {
+        const double denom_h = std::sqrt(
+            m_params.lookahead_distance_h * m_params.lookahead_distance_h + e.y_e * e.y_e);
+        const double denom_v = std::sqrt(
+            m_params.lookahead_distance_v * m_params.lookahead_distance_v + e.z_e * e.z_e);
 
-double AdaptiveLOSGuidance::calculate_theta_d(const double& z_e) const {
-    return pi_v_ + alpha_c_hat_ + atan(z_e / params_.lookahead_distance_v);
-}
+        const double beta_dot  = m_params.gamma_h * (m_params.lookahead_distance_h / denom_h) * e.y_e;
+        const double alpha_dot = m_params.gamma_v * (m_params.lookahead_distance_v / denom_v) * e.z_e;
 
-void AdaptiveLOSGuidance::update_adaptive_estimates(
-    const LOS::CrossTrackError& crosstrack_error) {
-    double beta_c_hat_dot =
-        params_.gamma_h *
-        (params_.lookahead_distance_h /
-         sqrt(params_.lookahead_distance_h * params_.lookahead_distance_h +
-              crosstrack_error.y_e * crosstrack_error.y_e)) *
-        crosstrack_error.y_e;
-    double alpha_c_hat_dot =
-        params_.gamma_v *
-        (params_.lookahead_distance_v /
-         sqrt(params_.lookahead_distance_v * params_.lookahead_distance_v +
-              crosstrack_error.z_e * crosstrack_error.z_e)) *
-        crosstrack_error.z_e;
+        beta_c_hat_  += beta_dot  * m_params.time_step;
+        alpha_c_hat_ += alpha_dot * m_params.time_step;
+    }
+    
+    types::Output AdaptiveLOSGuidance::calculate_outputs(const types::Inputs& inputs) {
 
-    beta_c_hat_ += beta_c_hat_dot * params_.time_step;
-    alpha_c_hat_ += alpha_c_hat_dot * params_.time_step;
-}
+        update_angles(inputs)
+        const types::CrossTrackError e = calculate_crosstrack_error(inputs);
+        update_adaptive_estimates(e);
 
-// ---------------- Proportional LOS Guidance Implementation ----------------
+        const double psi_d   = pi_h_ - beta_c_hat_ - std::atan(e.y_e / params_.lookahead_distance_h);
+        const double theta_d = pi_v_ + alpha_c_hat_ + std::atan(e.z_e / params_.lookahead_distance_v);
+        
+        return types::Output{psi_d, theta_d};
+    }
 
-ProportionalLOSGuidance::ProportionalLOSGuidance(const LOS::Params& params)
-    : params_(params) {}
-
-void ProportionalLOSGuidance::update_angles(const LOS::Point& prev_point,
-                                            const LOS::Point& next_point) {
-    const LOS::Point difference = next_point - prev_point;
-
-    pi_h_ = std::atan2(difference.y, difference.x);
-    pi_v_ = std::atan2(-difference.z,
-                       std::sqrt(difference.x * difference.x +
-                                 difference.y * difference.y));
-
-    rotation_y_ = Eigen::AngleAxisd(pi_v_, Eigen::Vector3d::UnitY());
-    rotation_z_ = Eigen::AngleAxisd(pi_h_, Eigen::Vector3d::UnitZ());
-}
-
-LOS::CrossTrackError ProportionalLOSGuidance::calculate_crosstrack_error(
-    const LOS::Point& prev_point,
-    const LOS::Point& current_position) const {
-    const Eigen::Vector3d diff_vec = (current_position - prev_point).as_vector();
-
-    const Eigen::Vector3d e_perp =
-        rotation_y_.transpose() * rotation_z_.transpose() * diff_vec;
-
-    return LOS::CrossTrackError::from_vector(e_perp);
-}
-
-double ProportionalLOSGuidance::calculate_psi_d(const double& y_e) const {
-    const double k_p_h = 1.0 / std::max(params_.lookahead_distance_h, 1e-9);
-    return pi_h_ - std::atan(k_p_h * y_e);
-}
-
-double ProportionalLOSGuidance::calculate_theta_d(const double& z_e) const {
-    const double k_p_v = 1.0 / std::max(params_.lookahead_distance_v, 1e-9);
-    return pi_v_ + std::atan(k_p_v * z_e);
-}
-
+    
 }  // namespace vortex::guidance
