@@ -46,7 +46,27 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr odom_cov_pub_;
+
+    #ifndef NDEBUG
+    void ground_truth_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_ground_truth_;
+    
+    struct ESKFError {
+    Eigen::Vector3d pos;   // position error
+    Eigen::Vector3d vel;   // velocity error
+    Eigen::Vector3d ori;   // orientation error (roll, pitch, yaw)
+    };
+
+    ESKFError last_error_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr error_pub_;
+    #endif
+
+    // to remove
+    // rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr incoming_imu_eskf_;
 
     std::chrono::milliseconds time_step;
 
