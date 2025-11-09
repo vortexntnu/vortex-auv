@@ -4,28 +4,40 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include "los_guidance/lib/types.hpp"
-#include <cmath>
-
+#include <cmath> 
+ 
 namespace vortex::guidance::los {
 
-    struct IntergalLosParams {
+    struct IntegralLosParams {
         double lookahead_distance_h{};
         double lookahead_distance_v{};
-        double gamma_h{};
-        double gamma_v{};
+        double k_p_h{};
+        double k_p_v{};
+        double k_i_h{};
+        double k_i_v{};
         double time_step{};
     };
 
-    class IntergalLOSGuidance {
+    class IntegralLOSGuidance {
         public:
-            IntergalLOSGuidance(const IntergalLosParams& params);
-            ~IntergalLOSGuidance() = default;  
+            IntegralLOSGuidance(const IntegralLosParams& params);
+            ~IntegralLOSGuidance() = default;  
+
+            types::Outputs calculate_outputs(const types::Inputs& inputs);
         
         private:
             void update_angles(const types::Inputs& inputs);
-            types::CrossTrackError calculate_crosstrack_error(const tyoes::Inputs& inputs);
+            types::CrossTrackError calculate_crosstrack_error(const types::Inputs& inputs);
 
-            IntergalLosParams m_params{};
+            IntegralLosParams m_params{};
+
+            double int_h{};
+            double int_v{};
+            //again i dont know if i should have them here or just in the functions 
+            double pi_h_{};
+            double pi_v_{};
+            Eigen::AngleAxisd rotation_y_{0.0, Eigen::Vector3d::UnitY()};
+            Eigen::AngleAxisd rotation_z_{0.0, Eigen::Vector3d::UnitZ()};
         };
 }
  

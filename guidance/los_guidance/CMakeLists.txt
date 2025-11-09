@@ -18,12 +18,14 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 
 include_directories(include)
 
 set(LIB_NAME los_guidance_lib)
 add_library(${LIB_NAME} SHARED
-  src/lib/proportional_los.cpp
+  src/lib/proportional_los.cpp 
   src/lib/integral_los.cpp
   src/lib/adaptive_los.cpp
   src/los_guidance_ros.cpp
@@ -44,7 +46,10 @@ add_executable(los_guidance_node
   src/los_guidance_node.cpp
 )
 
-target_link_libraries(los_guidance_node ${LIB_NAME})
+target_link_libraries(los_guidance_node
+  ${LIB_NAME}
+  yaml-cpp           
+)
 
 install(TARGETS
   ${LIB_NAME}
@@ -61,7 +66,7 @@ install(TARGETS
 
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION include/
 )
 
 install(DIRECTORY
@@ -71,6 +76,7 @@ install(DIRECTORY
 )
 
 if(BUILD_TESTING)
+  include(CTest)  
   add_subdirectory(test)
 endif()
 

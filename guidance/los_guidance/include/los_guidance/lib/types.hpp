@@ -3,9 +3,12 @@
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <cmath>
 
 namespace vortex::guidance::los::types{
+    
     struct Point {
         double x{};
         double y{};
@@ -16,6 +19,13 @@ namespace vortex::guidance::los::types{
         }
 
         Eigen::Vector3d as_vector() const { return Eigen::Vector3d(x, y, z); }
+
+        static Point point_from_ros(
+            const geometry_msgs::msg::Point& msg) {
+            return Point{msg.x, msg.y, msg.z};
+        }
+
+
     };
 
     struct CrossTrackError {
@@ -28,7 +38,7 @@ namespace vortex::guidance::los::types{
         }
     };
 
-    struct Output {
+    struct Outputs { 
         double psi_d{};
         double theta_d{};
     }; 
@@ -39,7 +49,7 @@ namespace vortex::guidance::los::types{
         Point current_position{};
     };
 
-    enum class Active_LOSMethod {
+    enum class ActiveLosMethod {
         PROPORTIONAL,
         INTEGRAL,
         ADAPTIVE

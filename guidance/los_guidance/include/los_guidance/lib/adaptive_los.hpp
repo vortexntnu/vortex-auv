@@ -5,7 +5,7 @@
 #include <eigen3/Eigen/Geometry>
 #include "los_guidance/lib/types.hpp"
 #include <cmath>
-
+ 
 /**
  * @brief Adaptive Line-of-Sight (LOS) guidance algorithm based on slide 113
  * in "Fossen 2024 Lecture on 2D and 3D path-following control".
@@ -26,7 +26,7 @@ namespace vortex::guidance::los {
             AdaptiveLOSGuidance(const AdaptiveLosParams& params);
             ~AdaptiveLOSGuidance() = default;
 
-            types::Output calculate_outputs(const types::Inputs& inputs);
+            types::Outputs calculate_outputs(const types::Inputs& inputs);
 
         private:
             void update_angles(const types::Inputs& inputs);

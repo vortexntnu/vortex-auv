@@ -5,13 +5,14 @@
 #include <eigen3/Eigen/Geometry>
 #include "los_guidance/lib/types.hpp" 
 #include <cmath>
-
+ 
 namespace vortex::guidance::los {
     struct ProportionalLosParams {
         double lookahead_distance_h{};
         double lookahead_distance_v{};
         double k_p_h{};
         double k_p_v{};
+        double time_step{};
     };  
 
     class ProportionalLOSGuidance {
@@ -19,7 +20,7 @@ namespace vortex::guidance::los {
             ProportionalLOSGuidance(const ProportionalLosParams& params);
             ~ProportionalLOSGuidance() = default;
 
-            tyes::Output calculate_outputs(const types::Inputs& inputs);
+            types::Outputs calculate_outputs(const types::Inputs& inputs);
 
         private:
             void update_angles(const types::Inputs& inputs);

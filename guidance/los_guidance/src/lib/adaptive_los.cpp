@@ -1,4 +1,5 @@
-#include "los_guidance/lib/adaptive_los.hpp"
+#include "los_guidance/lib/types.hpp"
+#include <los_guidance/lib/adaptive_los.hpp>
 
 namespace vortex::guidance::los {
     
@@ -7,7 +8,7 @@ namespace vortex::guidance::los {
     void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
         const double dx = inputs.next_point.x - inputs.prev_point.x;
         const double dy = inputs.next_point.y - inputs.prev_point.y;
-        const double dz = inputs.next_point.z - inputs.prev_point.z;
+        const double dz = inputs.next_point.z - inputs.prev_point.z;  
 
         pi_h_ = std::atan2(dy, dx);
         pi_v_ = std::atan2(-dz, std::sqrt(dx*dx + dy*dy));
@@ -16,7 +17,7 @@ namespace vortex::guidance::los {
         rotation_z_ = Eigen::AngleAxisd(pi_h_, Eigen::Vector3d::UnitZ());
     }
 
-    types::CrossTrackError AdaptiveLOSGuidance::calculate_crosstrack_error(const types::Inputs& inputs) const {
+    const types::CrossTrackError AdaptiveLOSGuidance::calculate_crosstrack_error(const types::Inputs& inputs) { 
 
         const types::Point difference = inputs.current_position - inputs.prev_point;
         const Eigen::Vector3d difference_vector = difference.as_vector();
@@ -40,16 +41,16 @@ namespace vortex::guidance::los {
         alpha_c_hat_ += alpha_dot * m_params.time_step;
     }
     
-    types::Output AdaptiveLOSGuidance::calculate_outputs(const types::Inputs& inputs) {
+    types::Outputs AdaptiveLOSGuidance::calculate_outputs(const types::Inputs& inputs) {
 
-        update_angles(inputs)
+        update_angles(inputs);
         const types::CrossTrackError e = calculate_crosstrack_error(inputs);
         update_adaptive_estimates(e);
 
-        const double psi_d   = pi_h_ - beta_c_hat_ - std::atan(e.y_e / params_.lookahead_distance_h);
-        const double theta_d = pi_v_ + alpha_c_hat_ + std::atan(e.z_e / params_.lookahead_distance_v);
+        const double psi_d   = pi_h_ - beta_c_hat_ - std::atan(e.y_e / m_params.lookahead_distance_h);
+        const double theta_d = pi_v_ + alpha_c_hat_ + std::atan(e.z_e / m_params.lookahead_distance_v);
         
-        return types::Output{psi_d, theta_d};
+        return types::Outputs{psi_d, theta_d};
     }
 
     

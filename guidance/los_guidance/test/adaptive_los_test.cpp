@@ -17,7 +17,7 @@ namespace vortex::guidance::los{ //new namespace added los
             return p;
         }
         
-        AdaptiveLOSGuidance los_;
+        AdaptiveLOSGuidance los_; 
         const double tol = 1e-9;
     };
     /*
@@ -88,16 +88,16 @@ namespace vortex::guidance::los{ //new namespace added los
     */
 
     // Test commanded angles when drone is to the right of the track
-    TEST_F(AdaptiveLosTests, T06_test_commanded_angles) {
+    TEST_F(AdaptiveLosTest, T06_test_commanded_angles) {
         types::Inputs inputs;
         inputs.prev_point = types::Point{0.0, 0.0, 0.0};
         inputs.next_point = types::Point{1.0, 0.0, 0.0};
         inputs.current_position = types::Point{0.0, 0.5, 0.0};
 
-        const types::Output O = los_.calculate_outputs(inputs);
+        const types::Outputs O = los_.calculate_outputs(inputs); 
 
         // Heading cmd should be between -pi/2 and 0
-        EXPECT_LT(O.psi_d 0.0);
+        EXPECT_LT(O.psi_d, 0.0);
         EXPECT_GT(O.psi_d, -1.57);
 
         // Pitch cmd should be zero
@@ -105,13 +105,13 @@ namespace vortex::guidance::los{ //new namespace added los
     }
 
     // Test commanded angles when drone is to the left of the track
-    TEST_F(AdaptiveLosTests, T07_test_commanded_angles) {
+    TEST_F(AdaptiveLosTest, T07_test_commanded_angles) {
         types::Inputs inputs;
         inputs.prev_point = types::Point{0.0, 0.0, 0.0};
         inputs.next_point = types::Point{1.0, 0.0, 0.0};
         inputs.current_position = types::Point{0.0, -0.5, 0.0};
 
-        const types::Output O = los_.calculate_outputs(inputs);
+        const types::Outputs O = los_.calculate_outputs(inputs);
 
         // Heading cmd should be between 0 and pi/2
         EXPECT_GT(O.psi_d, 0.0);
@@ -121,13 +121,13 @@ namespace vortex::guidance::los{ //new namespace added los
     }
 
     // Test commanded angles when drone is under the track
-    TEST_F(AdaptiveLosTests, T08_test_commanded_angles) {
+    TEST_F(AdaptiveLosTest, T08_test_commanded_angles) {
         types::Inputs inputs;
         inputs.prev_point = types::Point{0.0, 0.0, 0.0};
         inputs.next_point = types::Point{1.0, 0.0, 0.0};
         inputs.current_position = types::Point{0.0, 0.0, 0.5};
 
-        const types::Output O = los_.calculate_outputs(inputs);
+        const types::Outputs O = los_.calculate_outputs(inputs);
 
         // Heading cmd should be 0
         EXPECT_NEAR(O.psi_d, 0.0, tol);
@@ -137,13 +137,13 @@ namespace vortex::guidance::los{ //new namespace added los
     }
 
     // Test commanded angles when drone is over the track
-    TEST_F(AdaptiveLosTests, T09_test_commanded_angles) {
+    TEST_F(AdaptiveLosTest, T09_test_commanded_angles) {
         types::Inputs inputs;
         inputs.prev_point = types::Point{0.0, 0.0, 0.0};
         inputs.next_point = types::Point{1.0, 0.0, 0.0};
         inputs.current_position = types::Point{0.0, 0.0, -0.5};
 
-        const types::Output O = los_.calculate_outputs(inputs);
+        const types::Outputs O = los_.calculate_outputs(inputs);
 
         // Heading cmd should be 0
         EXPECT_NEAR(O.psi_d, 0.0, tol);
@@ -154,13 +154,13 @@ namespace vortex::guidance::los{ //new namespace added los
 
     // Test commanded angles when drone is over and to the right of the track
 
-    TEST_F(AdaptiveLosTests, T10_test_commanded_angles) {
+    TEST_F(AdaptiveLosTest, T10_test_commanded_angles) {
         types::Inputs inputs;
         inputs.prev_point = types::Point{0.0, 0.0, 0.0};
         inputs.next_point = types::Point{1.0, 0.0, 0.0};
         inputs.current_position = types::Point{0.0, 0.5, -0.5};
 
-        const types::Output O = los_.calculate_outputs(inputs);
+        const types::Outputs O = los_.calculate_outputs(inputs);
 
         // Heading cmd should be between -pi/2 and 0
         EXPECT_LT(O.psi_d, 0.0);
@@ -170,10 +170,6 @@ namespace vortex::guidance::los{ //new namespace added los
         EXPECT_GT(O.theta_d, -1.57);
     }
 
-}  // namespace vortex::guidance
+}  // namespace vortex::guidance::los
 
-int main(int argc, char** argv) {
-    testing::InitGoogleTest(&argc, argv);
 
-    return RUN_ALL_TESTS();
-}

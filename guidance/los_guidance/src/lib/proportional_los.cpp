@@ -1,4 +1,4 @@
-  #include "los_guidance/lib/proportional_los.hpp"
+  #include <los_guidance/lib/proportional_los.hpp>
 
 namespace vortex::guidance::los {
 
@@ -12,27 +12,27 @@ namespace vortex::guidance::los {
 
         rotation_y_ = Eigen::AngleAxisd(pi_v_, Eigen::Vector3d::UnitY());
         rotation_z_ = Eigen::AngleAxisd(pi_h_, Eigen::Vector3d::UnitZ());
-    }
+    } 
 
     types::CrossTrackError ProportionalLOSGuidance::calculate_crosstrack_error(const types::Inputs& inputs) const {
 
         const Eigen::Vector3d diff_vec = (inputs.current_position - inputs.prev_point).as_vector();
-        const Eigen::Vector3d e_perp = rotation_y_.transpose() * rotation_z_.transpose() * diff_vec;
+        const Eigen::Vector3d e_perp = rotation_y_.toRotationMatrix().transpose() * rotation_z_.toRotationMatrix().transpose() * diff_vec;
 
         return types::CrossTrackError::from_vector(e_perp);
     }
 
-    types::Output ProportionalLOSGuidance::calculate_outputs(const types::Inputs& inputs) {
+    types::Outputs ProportionalLOSGuidance::calculate_outputs(const types::Inputs& inputs) {
         update_angles(inputs);
         const types::CrossTrackError e = calculate_crosstrack_error(inputs);
 
-        const double k_p_h = 1.0 / std::max(params_.lookahead_distance_h, 1e-9);
-        const double k_p_v = 1.0 / std::max(params_.lookahead_distance_v, 1e-9);
+        const double k_p_h = 1.0 / std::max(m_params.lookahead_distance_h, 1e-9);
+        const double k_p_v = 1.0 / std::max(m_params.lookahead_distance_v, 1e-9);
 
         const double psi_d   = pi_h_ - std::atan(k_p_h * e.y_e);
         const double theta_d = pi_v_ + std::atan(k_p_v * e.z_e);
 
-        return types::Output{psi_d, theta_d};
+        return types::Outputs{psi_d, theta_d};
     }
 
 }  // namespace vortex::guidance::los
