@@ -58,8 +58,6 @@ class ESKFNode : public rclcpp::Node {
 
     bool first_imu_msg_received_ = false;
 
-    bool debug_on_ = false;
-
     Eigen::Matrix3d R_imu_eskf_{};
 
     rclcpp::Time last_imu_time_{};
