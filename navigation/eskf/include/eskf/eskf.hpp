@@ -8,38 +8,36 @@
 
 class ESKF {
    public:
-    ESKF(const eskf_params& params);
+    ESKF(const EskfParams& params);
 
     // @brief Update the nominal state and error state
     // @param imu_meas: IMU measurement
     // @param dt: Time step
-    // @return Updated nominal state and error state
-    std::pair<state_quat, state_euler> imu_update(
-        const imu_measurement& imu_meas,
-        const double dt);
+    void imu_update(const ImuMeasurement& imu_meas, const double dt);
 
     // @brief Update the nominal state and error state
     // @param dvl_meas: DVL measurement
-    // @return Updated nominal state and error state
-    std::pair<state_quat, state_euler> dvl_update(
-        const sensor_dvl& dvl_meas);
+    void dvl_update(const SensorDVL& dvl_meas);
 
-    // Normalized Innovation Squared
-    double NIS_{};
+    inline StateQuat get_nominal_state() const { return current_nom_state_; }
+
+    inline StateEuler get_error_state() const { return current_error_state_; }
+
+    inline double get_nis() const { return nis_; }
 
    private:
     // @brief Predict the nominal state
     // @param imu_meas: IMU measurement
     // @param dt: Time step
     // @return Predicted nominal state
-    void nominal_state_discrete(const imu_measurement& imu_meas,
+    void nominal_state_discrete(const ImuMeasurement& imu_meas,
                                 const double dt);
 
     // @brief Predict the error state
     // @param imu_meas: IMU measurement
     // @param dt: Time step
     // @return Predicted error state
-    void error_state_prediction(const imu_measurement& imu_meas,
+    void error_state_prediction(const ImuMeasurement& imu_meas,
                                 const double dt);
 
     // @brief Calculate the NIS
@@ -69,11 +67,14 @@ class ESKF {
     // Process noise covariance matrix
     Eigen::Matrix12d Q_{};
 
+    // Normalized Innovation Squared
+    double nis_{};
+
     // Member variable for the current error state
-    state_euler current_error_state_{};
+    StateEuler current_error_state_{};
 
     // Member variable for the current nominal state
-    state_quat current_nom_state_{};
+    StateQuat current_nom_state_{};
 
     // gravity
     Eigen::Vector3d g_{0.0, 0.0, 9.82};
@@ -90,13 +91,15 @@ class ESKF {
 };
 
 // Measurement in world frame --> h(x)
-Eigen::Vector3d calculate_h(const state_quat& current_nom_state_);
+Eigen::Vector3d calculate_h(const StateQuat& current_nom_state_);
 
 // Jacobian of h(x) with respect to the error state --> H
-Eigen::Matrix3x15d calculate_h_jacobian(const state_quat& current_nom_state_);
+Eigen::Matrix3x15d calculate_h_jacobian(const StateQuat& current_nom_state_);
 
 // Jacobian of h(x) with respect to the nominal state --> Hx
-Eigen::Matrix3x16d calculate_hx(const state_quat& current_nom_state_);
+Eigen::Matrix3x16d calculate_hx(const StateQuat& current_nom_state_);
+
+double compute_nis(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
 
 #include "eskf.tpp"  // including template implementation
 

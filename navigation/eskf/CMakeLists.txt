@@ -21,6 +21,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(vortex_utils REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
@@ -37,7 +38,6 @@ set(LIB_NAME "${PROJECT_NAME}_component")
 add_library(${LIB_NAME} SHARED
   src/eskf.cpp
   src/eskf_ros.cpp
-  src/eskf_utils.cpp
 )
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
@@ -48,6 +48,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   Eigen3
   tf2
   vortex_msgs
+  vortex_utils
   spdlog
   fmt
 )

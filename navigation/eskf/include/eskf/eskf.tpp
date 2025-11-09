@@ -13,7 +13,7 @@ void ESKF::measurement_update(const SensorT& meas)
     Eigen::MatrixXd K = P * H.transpose() * S.inverse();
 
     #ifndef NDEBUG
-    NIS(innovation, S);
+    nis_ = compute_nis(innovation, S);
     #endif
 
     current_error_state_.set_from_vector(K * innovation);

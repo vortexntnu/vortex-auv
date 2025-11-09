@@ -5,9 +5,9 @@
 #ifndef ESKF_TYPEDEFS_H
 #define ESKF_TYPEDEFS_H
 
-#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <vector>
 #include <concepts>
 
 namespace Eigen {
@@ -28,6 +28,7 @@ typedef Eigen::Matrix<double, 36, 36> Matrix36d;
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
 typedef Eigen::Matrix<double, 9, 9> Matrix9d;
 typedef Eigen::Matrix<double, 15, 15> Matrix15d;
+typedef Eigen::Matrix<double, 12, 1> Vector12d;
 typedef Eigen::Matrix<double, 15, 1> Vector15d;
 typedef Eigen::Matrix<double, 16, 1> Vector16d;
 typedef Eigen::Matrix<double, 15, 12> Matrix15x12d;
@@ -38,20 +39,19 @@ typedef Eigen::Matrix<double, 30, 30> Matrix30d;
 }  // namespace Eigen
 
 template <int N>
-Eigen::Matrix<double, N, N> create_diagonal_matrix(
+Eigen::Matrix<double, N, N> createDiagonalMatrix(
     const std::vector<double>& diag) {
     return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
         .asDiagonal();
 }
-struct state_quat {
+struct StateQuat {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
-    // Eigen::Vector3d gravity = Eigen::Vector3d(0, 0, 9.81);
 
-    state_quat() = default;
+    StateQuat() = default;
 
     Eigen::Vector16d as_vector() const {
         Eigen::Vector16d vec{};
@@ -60,23 +60,8 @@ struct state_quat {
         return vec;
     }
 
-    // Eigen::Vector18d nees_error(const state_quat& other) const {
-    //     Eigen::Vector18d vec{};
-    //     Eigen::Vector3d euler_diff{};
-
-    //     euler_diff = (quat * other.quat.inverse())
-    //                      .toRotationMatrix()
-    //                      .eulerAngles(0, 1, 2) +
-    //                  Eigen::Vector3d(-M_PI, M_PI, -M_PI);
-
-    //     vec << pos - other.pos, vel - other.vel, euler_diff,
-    //         gyro_bias - other.gyro_bias, accel_bias - other.accel_bias,
-    //         gravity - other.gravity;
-    //     return vec;
-    // }
-
-    state_quat operator-(const state_quat& other) const {
-        state_quat diff{};
+    StateQuat operator-(const StateQuat& other) const {
+        StateQuat diff{};
         diff.pos = pos - other.pos;
         diff.vel = vel - other.vel;
         diff.quat = quat * other.quat.inverse();
@@ -86,7 +71,7 @@ struct state_quat {
     }
 };
 
-struct state_euler {
+struct StateEuler {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Vector3d euler = Eigen::Vector3d::Zero();
@@ -110,30 +95,33 @@ struct state_euler {
     }
 };
 
-struct eskf_params {
-    double temp = 0.0;
+struct EskfParams {
     Eigen::Matrix12d Q = Eigen::Matrix12d::Zero();
-    double dt = 0.0;
+    Eigen::Matrix15d P = Eigen::Matrix15d::Zero();
 };
-
-struct imu_measurement {
+struct ImuMeasurement {
     Eigen::Vector3d accel = Eigen::Vector3d::Zero();
     Eigen::Vector3d gyro = Eigen::Vector3d::Zero();
 };
 
+struct DvlMeasurement {
+    Eigen::Vector3d vel = Eigen::Vector3d::Zero();
+    Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
+};
+
 template<typename T>
-concept SensorModelConcept = requires(const T &meas, const state_quat &state)
+concept SensorModelConcept = requires(const T &meas, const StateQuat &state)
 {
     { meas.innovation(state) } -> std::convertible_to<Eigen::VectorXd>;
     { meas.jacobian(state) } -> std::convertible_to<Eigen::MatrixXd>;
     { meas.noise_covariance() } -> std::convertible_to<Eigen::MatrixXd>;
 };
 
-struct sensor_dvl {
+struct SensorDVL {
     Eigen::Vector3d measurement;
     Eigen::Matrix3d measurement_noise;
-    Eigen::VectorXd innovation(const state_quat &state) const;
-    Eigen::MatrixXd jacobian(const state_quat &state) const;
+    Eigen::VectorXd innovation(const StateQuat &state) const;
+    Eigen::MatrixXd jacobian(const StateQuat &state) const;
     Eigen::MatrixXd noise_covariance() const;
 };
 
