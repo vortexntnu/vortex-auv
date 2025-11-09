@@ -87,7 +87,7 @@ void ESKFNode::set_parameters() {
     Eigen::Matrix15d P = createDiagonalMatrix<15>(diag_p_init);
 
     EskfParams eskf_params{.Q = Q, .P = P};
-    //error_state_.covariance = P;
+
     eskf_ = std::make_unique<ESKF>(eskf_params);
 }
 
