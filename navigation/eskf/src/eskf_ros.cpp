@@ -25,9 +25,10 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     spdlog::info(start_message);
 
-    #ifndef NDEBUG
-    spdlog::info("______________________Debug mode is enabled______________________");
-    #endif
+#ifndef NDEBUG
+    spdlog::info(
+        "______________________Debug mode is enabled______________________");
+#endif
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
@@ -50,11 +51,13 @@ void ESKFNode::set_subscribers_and_publisher() {
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
-    #ifndef NDEBUG
-    nis_pub_ = create_publisher<std_msgs::msg::Float64>("dvl/nis", vortex::utils::qos_profiles::reliable_profile());
-    #endif
+#ifndef NDEBUG
+    nis_pub_ = create_publisher<std_msgs::msg::Float64>(
+        "dvl/nis", vortex::utils::qos_profiles::reliable_profile());
+#endif
 
-    cov_pub_ = create_publisher<std_msgs::msg::Float64MultiArray>("eskf/covariance", 10);
+    cov_pub_ = create_publisher<std_msgs::msg::Float64MultiArray>(
+        "eskf/covariance", 10);
 }
 
 void ESKFNode::set_parameters() {
@@ -106,7 +109,7 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     Eigen::Vector3d raw_accel(msg->linear_acceleration.x,
                               msg->linear_acceleration.y,
                               msg->linear_acceleration.z);
-    
+
     ImuMeasurement imu_measurement{};
     imu_measurement.accel = R_imu_eskf_ * raw_accel;
 
@@ -117,30 +120,28 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     imu_measurement.gyro = raw_gyro;
 
     eskf_->imu_update(imu_measurement, dt);
-
-
 }
 
 void ESKFNode::dvl_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
     SensorDVL dvl_sensor;
-    dvl_sensor.measurement << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
-        msg->twist.twist.linear.z;
+    dvl_sensor.measurement << msg->twist.twist.linear.x,
+        msg->twist.twist.linear.y, msg->twist.twist.linear.z;
 
-    dvl_sensor.measurement_noise << msg->twist.covariance[0], msg->twist.covariance[1],
-        msg->twist.covariance[2], msg->twist.covariance[6],
-        msg->twist.covariance[7], msg->twist.covariance[8],
-        msg->twist.covariance[12], msg->twist.covariance[13],
-        msg->twist.covariance[14];
+    dvl_sensor.measurement_noise << msg->twist.covariance[0],
+        msg->twist.covariance[1], msg->twist.covariance[2],
+        msg->twist.covariance[6], msg->twist.covariance[7],
+        msg->twist.covariance[8], msg->twist.covariance[12],
+        msg->twist.covariance[13], msg->twist.covariance[14];
 
     eskf_->dvl_update(dvl_sensor);
 
-    #ifndef NDEBUG
+#ifndef NDEBUG
     // Publish NIS in Debug mode
     std_msgs::msg::Float64 nis_msg;
     nis_msg.data = eskf_->get_nis();
     nis_pub_->publish(nis_msg);
-    #endif
+#endif
 }
 
 void ESKFNode::publish_odom() {
@@ -171,7 +172,6 @@ void ESKFNode::publish_odom() {
     odom_msg.header.stamp = this->now();
     odom_pub_->publish(odom_msg);
 
-
     // publish the covariance matrix
     std_msgs::msg::Float64MultiArray msg;
 
@@ -188,10 +188,8 @@ void ESKFNode::publish_odom() {
 
     // Flatten Eigen matrix into a std::vector<double>
     msg.data.resize(15 * 15);
-    msg.data.assign(
-        error_state_.covariance.data(),
-        error_state_.covariance.data() + 15 * 15
-    );
+    msg.data.assign(error_state_.covariance.data(),
+                    error_state_.covariance.data() + 15 * 15);
 
     // Publish covariance
     cov_pub_->publish(msg);
