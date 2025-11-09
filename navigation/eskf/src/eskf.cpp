@@ -68,9 +68,9 @@ Eigen::Matrix3x16d calculate_hx(const StateQuat& current_nom_state_) {
 Eigen::Matrix3x15d calculate_h_jacobian(const StateQuat& current_nom_state_) {
     Eigen::Matrix16x15d x_delta = Eigen::Matrix16x15d::Zero();
     x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
-    x_delta.block<4, 3>(6, 6) = 
-    vortex::utils::math::get_transformation_matrix_attitude_quat(
-        current_nom_state_.quat);
+    x_delta.block<4, 3>(6, 6) =
+        vortex::utils::math::get_transformation_matrix_attitude_quat(
+            current_nom_state_.quat);
     x_delta.block<6, 6>(10, 9) = Eigen::Matrix6d::Identity();
 
     Eigen::Matrix3x15d H = calculate_hx(current_nom_state_) * x_delta;
@@ -99,12 +99,14 @@ void ESKF::nominal_state_discrete(const ImuMeasurement& imu_meas,
     current_nom_state_.vel = current_nom_state_.vel + dt * acc;
 
     current_nom_state_.quat =
-        (current_nom_state_.quat * 
-            vortex::utils::math::eigen_vector3d_to_quaternion(gyro));
+        (current_nom_state_.quat *
+         vortex::utils::math::eigen_vector3d_to_quaternion(gyro));
     current_nom_state_.quat.normalize();
 
-    current_nom_state_.accel_bias = current_nom_state_.accel_bias*std::exp(accm_bias_p_*dt);
-    current_nom_state_.gyro_bias = current_nom_state_.gyro_bias*std::exp(gyro_bias_p_*dt);
+    current_nom_state_.accel_bias =
+        current_nom_state_.accel_bias * std::exp(accm_bias_p_ * dt);
+    current_nom_state_.gyro_bias =
+        current_nom_state_.gyro_bias * std::exp(gyro_bias_p_ * dt);
 }
 
 void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
@@ -117,7 +119,7 @@ void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
     A_c.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
     A_c.block<3, 3>(3, 6) =
         -R * vortex::utils::math::get_skew_symmetric_matrix(acc);
-    A_c.block<3, 3>(6, 6) = 
+    A_c.block<3, 3>(6, 6) =
         -vortex::utils::math::get_skew_symmetric_matrix(gyro);
     A_c.block<3, 3>(3, 9) = -R;
     A_c.block<3, 3>(9, 9) = -Eigen::Matrix3d::Identity();
@@ -138,13 +140,12 @@ void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
         A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
 }
 
-
 void ESKF::injection_and_reset() {
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
     current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
     current_nom_state_.quat = current_nom_state_.quat *
-        vortex::utils::math::eigen_vector3d_to_quaternion(
-            current_error_state_.euler);
+                              vortex::utils::math::eigen_vector3d_to_quaternion(
+                                  current_error_state_.euler);
     current_nom_state_.quat.normalize();
     current_nom_state_.gyro_bias =
         current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
@@ -170,13 +171,12 @@ void ESKF::dvl_update(const SensorDVL& dvl_meas) {
 
 // DVL sensor model implementations
 
-Eigen::VectorXd SensorDVL::innovation(const StateQuat &state) const {
-
+Eigen::VectorXd SensorDVL::innovation(const StateQuat& state) const {
     Eigen::Vector3d innovation = this->measurement - calculate_h(state);
     return innovation;
 }
 
-Eigen::MatrixXd SensorDVL::jacobian(const StateQuat &state) const {
+Eigen::MatrixXd SensorDVL::jacobian(const StateQuat& state) const {
     Eigen::Matrix3x15d H = calculate_h_jacobian(state);
     return H;
 }

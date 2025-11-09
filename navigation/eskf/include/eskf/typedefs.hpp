@@ -5,10 +5,10 @@
 #ifndef ESKF_TYPEDEFS_H
 #define ESKF_TYPEDEFS_H
 
+#include <concepts>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 #include <vector>
-#include <concepts>
 
 namespace Eigen {
 typedef Eigen::Matrix<double, 19, 1> Vector19d;
@@ -109,9 +109,8 @@ struct DvlMeasurement {
     Eigen::Matrix3d cov = Eigen::Matrix3d::Zero();
 };
 
-template<typename T>
-concept SensorModelConcept = requires(const T &meas, const StateQuat &state)
-{
+template <typename T>
+concept SensorModelConcept = requires(const T& meas, const StateQuat& state) {
     { meas.innovation(state) } -> std::convertible_to<Eigen::VectorXd>;
     { meas.jacobian(state) } -> std::convertible_to<Eigen::MatrixXd>;
     { meas.noise_covariance() } -> std::convertible_to<Eigen::MatrixXd>;
@@ -120,10 +119,9 @@ concept SensorModelConcept = requires(const T &meas, const StateQuat &state)
 struct SensorDVL {
     Eigen::Vector3d measurement;
     Eigen::Matrix3d measurement_noise;
-    Eigen::VectorXd innovation(const StateQuat &state) const;
-    Eigen::MatrixXd jacobian(const StateQuat &state) const;
+    Eigen::VectorXd innovation(const StateQuat& state) const;
+    Eigen::MatrixXd jacobian(const StateQuat& state) const;
     Eigen::MatrixXd noise_covariance() const;
 };
-
 
 #endif  // ESKF_TYPEDEFS_H

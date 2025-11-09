@@ -46,10 +46,11 @@ class ESKF {
     void NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
 
     // @brief Update the error state using a generic sensor measurement model
-    // @tparam SensorT Type of the sensor model (must satisfy SensorModelConcept)
+    // @tparam SensorT Type of the sensor model (must satisfy
+    // SensorModelConcept)
     // @param meas Sensor measurement instance
     template <SensorModelConcept SensorT>
-    void measurement_update(const SensorT& meas); 
+    void measurement_update(const SensorT& meas);
 
     // @brief Inject the error state into the nominal state and reset the error
     void injection_and_reset();
@@ -62,7 +63,6 @@ class ESKF {
         const Eigen::Matrix15d& A_c,
         const Eigen::Matrix15x12d& G_c,
         const double dt);
-
 
     // Process noise covariance matrix
     Eigen::Matrix12d Q_{};
