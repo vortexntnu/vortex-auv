@@ -1,5 +1,5 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_
 
 #include <eigen3/Eigen/Dense>
 #include <vortex/utils/types.hpp>
@@ -59,4 +59,4 @@ class DPAdaptBacksController {
 
 }  // namespace vortex::control
 
-#endif  // DP_ADAPT_BACKS_CONTROLLER_HPP
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_

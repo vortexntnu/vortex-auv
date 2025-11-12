@@ -1,10 +1,13 @@
-#ifndef THRUSTER_INTERFACE_AUV_NODE_HPP
-#define THRUSTER_INTERFACE_AUV_NODE_HPP
+#ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
+#define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 
+#include <memory>
 #include <rclcpp/parameter_event_handler.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
+#include <string>
+#include <vector>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
@@ -94,4 +97,4 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     void update_debug_flag(const rclcpp::Parameter& p);
 };
 
-#endif  // THRUSTER_INTERFACE_AUV_NODE_HPP
+#endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
