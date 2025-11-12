@@ -21,13 +21,15 @@ namespace vortex::guidance::los{
         time_step_ = std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
         //auto config = this->declare_parameter<YAML::Node>("los_config_file");
 
+        const std::string yaml_path =this->declare_parameter<std::string>("los_config_file");
 
-        YAML::Node config = get_los_config("config/guidance_params.yaml");
+
+        YAML::Node config = get_los_config(yaml_path);
 
         parse_common_config(config["common"]);
         set_subscribers_and_publisher();
         set_action_server();
-        //set_los_mode_service();
+        set_service_server();
         set_adaptive_los_guidance(config);
         set_proportional_los_guidance(config);
         set_integral_los_guidance(config);
@@ -83,53 +85,60 @@ namespace vortex::guidance::los{
                 rcl_action_server_get_default_options(), cb_group_);
     }
 
-    
+    void LosGuidanceNode::set_service_server(){
+        this->declare_parameter<std::string>("services.los_mode", "set_los_mode");
+        std::string service_name =
+            this->get_parameter("services.los_mode").as_string();
+
+        los_mode_service_ = this->create_service<vortex_msgs::srv::SetLosMode>(
+                service_name,
+                std::bind(&LosGuidanceNode::set_los_mode, this,
+                    std::placeholders::_1, std::placeholders::_2));
+
+    }
 
     void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
-        auto adaptive_los_config = config["adaptive_los"];
+        auto adaptive_los_config = config["adaptive_los"]; spdlog::info("A0");
         auto params = AdaptiveLosParams{};
         params.lookahead_distance_h =
-            adaptive_los_config["lookahead_distance_h"].as<double>();
+            adaptive_los_config["lookahead_distance_h"].as<double>(); spdlog::info("A1");
         params.lookahead_distance_v =
-            adaptive_los_config["lookahead_distance_v"].as<double>();
+            adaptive_los_config["lookahead_distance_v"].as<double>();spdlog::info("A2");
         params.gamma_h = 
-            adaptive_los_config["gama_h"].as<double>();
+            adaptive_los_config["gamma_h"].as<double>();spdlog::info("A3");
         params.gamma_v = 
-            adaptive_los_config["gama_v"].as<double>();
-        params.time_step =
-            adaptive_los_config["time_step"].as<double>();
+            adaptive_los_config["gamma_v"].as<double>();spdlog::info("A4");
+        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;spdlog::info("A5");
 
         m_adaptive_los = std::make_unique<AdaptiveLOSGuidance>(params);
     }
 
     void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
-        auto proportional_los_config = config["proportional_los"];
+        auto proportional_los_config = config["prop_los"];spdlog::info("P0");
         auto params = ProportionalLosParams{};
         params.lookahead_distance_h =
-            proportional_los_config["lookahead_distance_h"].as<double>();
+            proportional_los_config["lookahead_distance_h"].as<double>();spdlog::info("P1");
         params.lookahead_distance_v =
-            proportional_los_config["lookahead_distance_v"].as<double>();
-        params.k_p_h = proportional_los_config["k_p_h"].as<double>();
-        params.k_p_v = proportional_los_config["k_p_v"].as<double>();
-        params.time_step =
-            proportional_los_config["time_step"].as<double>();
+            proportional_los_config["lookahead_distance_v"].as<double>();spdlog::info("P2");
+        params.k_p_h = proportional_los_config["k_p_h"].as<double>();spdlog::info("P3");
+        params.k_p_v = proportional_los_config["k_p_v"].as<double>();spdlog::info("P4");
+        params.time_step = static_cast<double>(time_step_.count()) / 1000.0; spdlog::info("P5");
 
         m_proportional_los = std::make_unique<ProportionalLOSGuidance>(params);
     }
 
     void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
-        auto integral_los_config = config["integral_los"];
+        auto integral_los_config = config["integer_los"];spdlog::info("I0");
         auto params = IntegralLosParams{};
         params.lookahead_distance_h =
-            integral_los_config["lookahead_distance_h"].as<double>();
+            integral_los_config["lookahead_distance_h"].as<double>();spdlog::info("I1");
         params.lookahead_distance_v =
-            integral_los_config["lookahead_distance_v"].as<double>();
-        params.k_p_h = integral_los_config["k_p_h"].as<double>();
-        params.k_p_v = integral_los_config["k_p_v"].as<double>();
-        params.k_i_h = integral_los_config["k_i_h"].as<double>();
-        params.k_i_v = integral_los_config["k_i_v"].as<double>();
-        params.time_step =
-            integral_los_config["time_step"].as<double>();
+            integral_los_config["lookahead_distance_v"].as<double>();spdlog::info("I2");
+        params.k_p_h = integral_los_config["k_p_h"].as<double>();spdlog::info("I3");
+        params.k_p_v = integral_los_config["k_p_v"].as<double>();spdlog::info("I4");
+        params.k_i_h = integral_los_config["k_i_h"].as<double>();spdlog::info("I5");
+        params.k_i_v = integral_los_config["k_i_v"].as<double>();spdlog::info("I6");
+        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;spdlog::info("I7");
 
         m_integral_los = std::make_unique<IntegralLOSGuidance>(params);
     }
@@ -182,7 +191,14 @@ namespace vortex::guidance::los{
             goal_handle) {
         execute(goal_handle);
     }
-
+    void LosGuidanceNode::set_los_mode(
+        const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
+        std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
+        
+        m_method = static_cast<types::ActiveLosMethod>(request->mode);
+        spdlog::info("LOS mode set to {}", static_cast<int>(m_method));
+        response->success = true;
+    }
     vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(types::Outputs outputs) {
         vortex_msgs::msg::LOSGuidance reference_msg;
         reference_msg.pitch = outputs.theta_d;
@@ -198,8 +214,9 @@ namespace vortex::guidance::los{
     }
 
     void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
-        u_desired_ = common_config["u_desired"].as<double>();
-        goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
+        u_desired_ = common_config["u_desired"].as<double>();  spdlog::info("C1");
+        goal_reached_tol_ = common_config["goal_reached_tol"].as<double>(); spdlog::info("C2");
+        m_method = static_cast<types::ActiveLosMethod>(common_config["active_los_method"].as<int>()); spdlog::info("C3");
     }
 
     void LosGuidanceNode::execute(

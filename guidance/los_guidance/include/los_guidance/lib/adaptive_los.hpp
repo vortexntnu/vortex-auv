@@ -34,7 +34,6 @@ namespace vortex::guidance::los {
             void update_adaptive_estimates(const types::CrossTrackError& cross_track_error);
 
             AdaptiveLosParams m_params{};
-            //usikker om disse skal vaere med i den nye strukturen?
             Eigen::Matrix3d rotation_y_ = Eigen::Matrix3d::Zero();
             Eigen::Matrix3d rotation_z_ = Eigen::Matrix3d::Zero();
             double pi_h_{};

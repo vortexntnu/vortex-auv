@@ -12,7 +12,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/los_guidance.hpp>
 #include <vortex_msgs/srv/set_los_mode.hpp> 
-#include <vortex_msgs/msg/los_guidance.hpp>
+#include <vortex_msgs/msg/los_guidance.hpp> 
 #include <vortex_msgs/msg/waypoints.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -30,7 +30,7 @@ namespace vortex::guidance::los {
         void set_action_server();
 
         // @brief Determine the LOS mode service
-        void set_los_mode_service();
+        void set_service_server();
 
         // @brief Set the adaptive LOS guidance parameters
         void set_adaptive_los_guidance(YAML::Node config);
@@ -76,6 +76,10 @@ namespace vortex::guidance::los {
         // @param goal_handle The goal handle
         void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
                         vortex_msgs::action::LOSGuidance>> goal_handle);
+
+        void set_los_mode(
+            const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
+            std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response);
 
         vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output);
 

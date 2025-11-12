@@ -50,9 +50,9 @@ namespace vortex::guidance::los::types{
     };
 
     enum class ActiveLosMethod {
-        PROPORTIONAL,
-        INTEGRAL,
-        ADAPTIVE
+        PROPORTIONAL,       // 0
+        INTEGRAL,           // 1
+        ADAPTIVE            // 2
     };
 
 } // namespace vortex::guidance::los::types
