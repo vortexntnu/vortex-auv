@@ -31,7 +31,10 @@ repos:
         entry: ament_cpplint
         language: system
         files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
-        args: ["--linelength=100", "--filter=-whitespace/newline,-legal/copyright"]
+        args: [
+          "--linelength=100",
+          "--filter=-whitespace/newline,-legal/copyright,-build/include_order" # ignore build/include_order since it conflicts with .clang-format
+        ]
   # CMake hooks
   - repo: local
     hooks:
