@@ -1,5 +1,5 @@
-#ifndef REFERENCE_FILTER_HPP
-#define REFERENCE_FILTER_HPP
+#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
+#define REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
 
 #include "reference_filter_dp/eigen_typedefs.hpp"
 
@@ -41,4 +41,4 @@ class ReferenceFilter {
 
 }  // namespace vortex::guidance
 
-#endif  // REFERENCE_FILTER_HPP
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_

@@ -1,13 +1,15 @@
-#ifndef POSE_ACTION_SERVER_ROS_HPP
-#define POSE_ACTION_SERVER_ROS_HPP
+#ifndef POSE_ACTION_SERVER__POSE_ACTION_SERVER_ROS_HPP_
+#define POSE_ACTION_SERVER__POSE_ACTION_SERVER_ROS_HPP_
 
 #include <spdlog/spdlog.h>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <vector>
 #include <vortex_msgs/action/filtered_pose.hpp>
 
 class PoseActionServerNode : public rclcpp::Node {
@@ -17,7 +19,7 @@ class PoseActionServerNode : public rclcpp::Node {
    public:
     PoseActionServerNode();
 
-    ~PoseActionServerNode() {};
+    ~PoseActionServerNode() {}
 
    private:
     rclcpp_action::Server<vortex_msgs::action::FilteredPose>::SharedPtr
@@ -53,4 +55,4 @@ class PoseActionServerNode : public rclcpp::Node {
         const std::vector<Eigen::Quaterniond>& quaternions);
 };
 
-#endif  // POSE_ACTION_SERVER_ROS_HPP
+#endif  // POSE_ACTION_SERVER__POSE_ACTION_SERVER_ROS_HPP_
