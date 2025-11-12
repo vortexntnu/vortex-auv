@@ -3,6 +3,7 @@
 [![Simulator Test](https://github.com/vortexntnu/vortex-auv/actions/workflows/simulator-test.yml/badge.svg)](https://github.com/vortexntnu/vortex-auv/actions/workflows/simulator-test.yml)
 [![ROS Node Test](https://github.com/vortexntnu/vortex-auv/actions/workflows/ros-node-tests.yml/badge.svg)](https://github.com/vortexntnu/vortex-auv/actions/workflows/ros-node-tests.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/vortexntnu/vortex-auv/main.svg)](https://results.pre-commit.ci/latest/github/vortexntnu/vortex-auv/main)
+[![pre-commit](https://github.com/vortexntnu/vortex-auv/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/vortexntnu/vortex-auv/actions/workflows/pre-commit.yml)
 [![codecov](https://codecov.io/github/vortexntnu/vortex-auv/graph/badge.svg?token=UXIGc2qG7N)](https://codecov.io/github/vortexntnu/vortex-auv)
 
 ![Banner](docs/banner_image.png)
