@@ -8,29 +8,26 @@ from geometry_msgs.msg import (
     WrenchStamped,
 )
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node
-from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.node import Node, Parameter
 from std_msgs.msg import Bool, String
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
-    GuidanceValues,
     LQRController,
     LQRParameters,
-    State,
 )
 from vortex_msgs.msg import LOSGuidance
+from vortex_utils.python_utils import State
+from vortex_utils.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils.ros_converter import pose_from_ros, twist_from_ros
 
 
 class LinearQuadraticRegulator(Node):
     def __init__(self):
         super().__init__("velocity_controller_lqr_node")
 
-        self.get_topics()
+        self.killswitch_on = True
+        self.operation_mode = "xbox mode"
 
-        best_effort_qos = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-        )
+        self.get_topics()
 
         # ---------------------------- SUBSCRIBERS ---------------------------
 
@@ -38,54 +35,63 @@ class LinearQuadraticRegulator(Node):
             PoseWithCovarianceStamped,
             self.pose_topic,
             self.pose_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=sensor_data_profile(1),
         )
 
         self.twist_subscriber = self.create_subscription(
             TwistWithCovarianceStamped,
             self.twist_topic,
             self.twist_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=sensor_data_profile(1),
         )
 
         self.operationmode_subscriber = self.create_subscription(
             String,
             self.operation_mode_topic,
             self.operation_callback,
-            qos_profile=2,
+            qos_profile=reliable_profile(2),
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             self.killswitch_topic,
             self.killswitch_callback,
-            qos_profile=2,
+            qos_profile=reliable_profile(2),
         )
 
         self.guidance_subscriber = self.create_subscription(
             LOSGuidance,
             self.los_topic,
             self.guidance_callback,
-            qos_profile=best_effort_qos,
+            qos_profile=sensor_data_profile(1),
         )
 
         # ---------------------------- PUBLISHERS ----------------------------
         self.publisherLQR = self.create_publisher(
-            WrenchStamped, self.wrench_input_topic, best_effort_qos
+            WrenchStamped, self.wrench_input_topic, sensor_data_profile(1)
         )
 
         # ------------------------------ TIMERS ------------------------------
-        dt = self.declare_parameter("dt", 0.1).get_parameter_value().double_value
+        dt = (
+            self.declare_parameter("dt", Parameter.Type.DOUBLE)
+            .get_parameter_value()
+            .double_value
+        )
         self.control_timer = self.create_timer(dt, self.control_loop)
 
         # ------------------ ROS2 PARAMETERS AND CONTROLLER ------------------
         self.lqr_params = LQRParameters()
-        inertia_matrix = self.get_parameters()
+        self.fill_lqr_params()
+        inertia_matrix_flat = (
+            self.declare_parameter("inertia_matrix", Parameter.Type.DOUBLE_ARRAY)
+            .get_parameter_value()
+            .double_array_value
+        )
+        inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
         self.controller = LQRController(self.lqr_params, inertia_matrix)
 
         # ---------------- CALLBACK VARIABLES INITIALIZATION -----------------
-        self.coriolis_matrix = np.zeros((3, 3))
-        self.states = State()
-        self.guidance_values = GuidanceValues()
+        self.state = State()
+        self.guidance_values = State()
 
     def get_topics(self):
         """Get the topics from the parameter file."""
@@ -99,44 +105,43 @@ class LinearQuadraticRegulator(Node):
         ]
         for topic in topics:
             if topic == "los":
-                self.declare_parameter("topics.guidance." + topic, "_")
+                self.declare_parameter(
+                    "topics.guidance." + topic, Parameter.Type.STRING
+                )
                 setattr(
                     self,
                     topic + "_topic",
                     self.get_parameter("topics.guidance." + topic).value,
                 )
                 continue
-            self.declare_parameter("topics." + topic, "_")
+            self.declare_parameter("topics." + topic, Parameter.Type.STRING)
             setattr(
                 self,
                 topic + "_topic",
                 self.get_parameter("topics." + topic).value,
             )
 
-    def get_parameters(self):
+    def fill_lqr_params(self):
         """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.
 
         Returns:
         inertia_matrix: np.array: The inertia matrix of the AUV
         """
-        self.declare_parameter("LQR_params.q_surge", 75)
-        self.declare_parameter("LQR_params.q_pitch", 175)
-        self.declare_parameter("LQR_params.q_yaw", 175)
+        self.declare_parameter("LQR_params.q_surge", Parameter.Type.INTEGER)
+        self.declare_parameter("LQR_params.q_pitch", Parameter.Type.INTEGER)
+        self.declare_parameter("LQR_params.q_yaw", Parameter.Type.INTEGER)
 
-        self.declare_parameter("LQR_params.r_surge", 0.3)
-        self.declare_parameter("LQR_params.r_pitch", 0.4)
-        self.declare_parameter("LQR_params.r_yaw", 0.4)
+        self.declare_parameter("LQR_params.r_surge", Parameter.Type.DOUBLE)
+        self.declare_parameter("LQR_params.r_pitch", Parameter.Type.DOUBLE)
+        self.declare_parameter("LQR_params.r_yaw", Parameter.Type.DOUBLE)
 
-        self.declare_parameter("LQR_params.i_surge", 0.3)
-        self.declare_parameter("LQR_params.i_pitch", 0.4)
-        self.declare_parameter("LQR_params.i_yaw", 0.3)
+        self.declare_parameter("LQR_params.i_surge", Parameter.Type.DOUBLE)
+        self.declare_parameter("LQR_params.i_pitch", Parameter.Type.DOUBLE)
+        self.declare_parameter("LQR_params.i_yaw", Parameter.Type.DOUBLE)
 
-        self.declare_parameter("LQR_params.i_weight", 0.5)
+        self.declare_parameter("LQR_params.i_weight", Parameter.Type.DOUBLE)
 
-        self.declare_parameter("max_force", 99.5)
-        self.declare_parameter(
-            "inertia_matrix", [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
-        )
+        self.declare_parameter("max_force", Parameter.Type.DOUBLE)
 
         self.lqr_params.q_surge = self.get_parameter("LQR_params.q_surge").value
         self.lqr_params.q_pitch = self.get_parameter("LQR_params.q_pitch").value
@@ -153,11 +158,6 @@ class LinearQuadraticRegulator(Node):
         self.lqr_params.i_weight = self.get_parameter("LQR_params.i_weight").value
         self.lqr_params.max_force = self.get_parameter("max_force").value
 
-        inertia_matrix_flat = self.get_parameter("inertia_matrix").value
-        inertia_matrix = np.array(inertia_matrix_flat).reshape((3, 3))
-
-        return inertia_matrix
-
     # ---------------------------------------------------------------CALLBACK FUNCTIONS---------------------------------------------------------------
 
     def pose_callback(self, msg: PoseWithCovarianceStamped):
@@ -166,12 +166,7 @@ class LinearQuadraticRegulator(Node):
         Parameters: msg: PoseWithCovarianceStamped The pose data from the DVL.
 
         """
-        _, self.states.pitch, self.states.yaw = LQRController.quaternion_to_euler_angle(
-            msg.pose.pose.orientation.w,
-            msg.pose.pose.orientation.x,
-            msg.pose.pose.orientation.y,
-            msg.pose.pose.orientation.z,
-        )
+        self.state.pose = pose_from_ros(msg.pose.pose)
 
     def operation_callback(self, msg: String):
         """Callback function for the operation mode data.
@@ -179,7 +174,8 @@ class LinearQuadraticRegulator(Node):
         Parameters: String: msg: The operation mode data from the AUV.
 
         """
-        self.controller.operation_mode = msg.data
+        self.operation_mode = msg.data
+        self.get_logger().info(f"Changed operation mode to {self.operation_mode}")
 
     def twist_callback(self, msg: TwistWithCovarianceStamped):
         """Callback function for the Twist data from DVL.
@@ -187,14 +183,7 @@ class LinearQuadraticRegulator(Node):
         Parameters: msg: TwistWithCovarianceStamped The twist data from the DVL.
 
         """
-        self.states.surge = msg.twist.twist.linear.x
-
-        self.coriolis_matrix = LQRController.calculate_coriolis_matrix(
-            msg.twist.twist.angular.y,
-            msg.twist.twist.angular.z,
-            msg.twist.twist.linear.y,
-            msg.twist.twist.linear.z,
-        )
+        self.state.twist = twist_from_ros(msg.twist.twist)
 
     def guidance_callback(self, msg: LOSGuidance):
         """Callback function for the guidance data.
@@ -202,9 +191,9 @@ class LinearQuadraticRegulator(Node):
         Parameters: LOSGuidance: msg: The guidance data from the LOS guidance system.
 
         """
-        self.guidance_values.surge = msg.surge
-        self.guidance_values.pitch = msg.pitch
-        self.guidance_values.yaw = msg.yaw
+        self.guidance_values.twist.linear_x = msg.surge
+        self.guidance_values.pose.pitch = msg.pitch
+        self.guidance_values.pose.yaw = msg.yaw
 
     def killswitch_callback(self, msg: Bool):
         """Callback function for the killswitch data.
@@ -212,8 +201,9 @@ class LinearQuadraticRegulator(Node):
         Parameters: String: msg: The killswitch data from the AUV.
 
         """
-        self.controller.killswitch = msg.data
-        if self.controller.killswitch:
+        self.killswitch_on = msg.data
+        self.get_logger().info(f"Killswitch {'on' if self.killswitch_on else 'off'}")
+        if self.killswitch_on:
             self.controller.reset_controller()
 
     # ---------------------------------------------------------------PUBLISHER FUNCTIONS-------------------------------------------------------------
@@ -223,7 +213,7 @@ class LinearQuadraticRegulator(Node):
         msg = WrenchStamped()
 
         u = self.controller.calculate_lqr_u(
-            self.coriolis_matrix, self.states, self.guidance_values
+            state=self.state, guidance_values=self.guidance_values
         )
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = "base_link"
@@ -231,10 +221,7 @@ class LinearQuadraticRegulator(Node):
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
 
-        if (
-            self.controller.killswitch == False
-            and self.controller.operation_mode == "autonomous mode"
-        ):
+        if self.killswitch_on == False and self.operation_mode == "autonomous mode":
             self.publisherLQR.publish(msg)
 
         else:
@@ -243,13 +230,22 @@ class LinearQuadraticRegulator(Node):
 
 # ----------------------------------------------------------------------MAIN FUNCTION----------------------------------------------------------------
 
+start_message = """
+  _     ___  ____     ____            _             _ _
+ | |   / _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
+ | |  | | | | |_) | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
+ | |__| |_| |  _ <  | |__| (_) | | | | |_| | | (_) | | |  __/ |
+ |_____\__\_\_| \_\  \____\___/|_| |_|\__|_|  \___/|_|_|\___|_|
+
+                                                                  """
+
 
 def main(args=None):
     rclpy.init(args=args)
     lqr_node = LinearQuadraticRegulator()
     executor = MultiThreadedExecutor()
     executor.add_node(lqr_node)
-
+    lqr_node.get_logger().info(start_message)
     try:
         executor.spin()
     except KeyboardInterrupt:

@@ -3,10 +3,21 @@
 #include <chrono>
 #include <functional>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <string_view>
+#include <vortex/utils/qos_profiles.hpp>
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
 using namespace std::chrono_literals;
+
+auto start_message{R"(
+  _____ _                    _        _    _ _                 _
+ |_   _| |__  _ __ _   _ ___| |_     / \  | | | ___   ___ __ _| |_ ___  _ __
+   | | | '_ \| '__| | | / __| __|   / _ \ | | |/ _ \ / __/ _` | __/ _ \| '__|
+   | | | | | | |  | |_| \__ \ |_   / ___ \| | | (_) | (_| (_| | || (_) | |
+   |_| |_| |_|_|   \__,_|___/\__| /_/   \_\_|_|\___/ \___\__,_|\__\___/|_|
+
+)"};
 
 ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions& options)
     : Node("thrust_allocator_node", options),
@@ -21,7 +32,7 @@ ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions& options)
         500ms, std::bind(&ThrustAllocator::watchdog_callback, this));
     last_msg_time_ = this->now();
 
-    spdlog::info("ThrustAllocator initialized");
+    spdlog::info(start_message);
 }
 
 void ThrustAllocator::extract_parameters() {
@@ -72,9 +83,7 @@ void ThrustAllocator::set_allocator() {
 }
 
 void ThrustAllocator::set_subscriber_and_publisher() {
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto best_effort_qos = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto best_effort_qos = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     std::string wrench_input_topic =
         this->get_parameter("topics.wrench_input").as_string();
