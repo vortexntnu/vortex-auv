@@ -30,8 +30,8 @@
     inertia_matrix: [30.0, 0.6, 0.0, 0.6, 1.629, 0.0, 0.0, 0.0, 1.729]
 
     calculation_rate: 200 #ms integer
-    publish_rate: 1000 #ms
+    publish_rate: 100 #ms
     #Clamp parameter
-    max_force: 99.5
-    controller_type: 1 #1 PID 2 LQR
+    max_force: 1000.0 #should maybe be 99.5
+    controller_type: 2 #1 PID 2 LQR
     

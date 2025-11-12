@@ -78,6 +78,10 @@ class Velocity_node : public rclcpp::Node{
     LQRparameters lqr_parameters;
     std::vector<double> inertia_matrix;
 
+
+    //Test
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_reference;
+
     
 };
 

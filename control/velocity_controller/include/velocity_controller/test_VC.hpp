@@ -9,6 +9,7 @@
 #include "velocity_controller/velocity_controller.hpp"
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include "vortex_msgs/msg/los_guidance.hpp" 
 
 class test_VC : public rclcpp::Node{
     public:
@@ -22,7 +23,7 @@ class test_VC : public rclcpp::Node{
     //guidance_data reference;
     Guidance_data current_state;
     //Subscribers and publishers
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_guidance;
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr publisher_guidance;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_odom;
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr subscription_thrust;
     //Timers
@@ -30,7 +31,7 @@ class test_VC : public rclcpp::Node{
     rclcpp::Clock::SharedPtr clock_;
     //Messages
     std::vector<double> thrust_vector;
-    std_msgs::msg::Float64MultiArray reference_msg;
+    vortex_msgs::msg::LOSGuidance reference_msg;
 
     //Topics
     std::string topic_odom;

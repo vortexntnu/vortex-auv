@@ -7,6 +7,7 @@
 #include "velocity_controller/test_VC.hpp"
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include "vortex_msgs/msg/los_guidance.hpp" 
 //#include "velocity_controller/velocity_controller.hpp"
 //#include "LQR_setup.hpp"
 //Denne noden er kun for å teste velocity_controller noden
@@ -19,7 +20,7 @@ test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
     topic_thrust = this->get_parameter("topics.thrust_topic").as_string();
     topic_odom = this->get_parameter("topics.odom_topic").as_string();
     topic_guidance = this->get_parameter("topics.guidance_topic").as_string();
-    publisher_guidance = this->create_publisher<std_msgs::msg::Float64MultiArray>(topic_guidance, 10);
+    publisher_guidance = this->create_publisher<vortex_msgs::msg::LOSGuidance>(topic_guidance, 10);
     publisher_odom = this->create_publisher<nav_msgs::msg::Odometry>(topic_odom,10);
     
     rclcpp::QoS orca_QoS(2);
@@ -33,7 +34,7 @@ test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
         std::bind(&test_VC::send_guidance, this));
     clock_ = this->get_clock();
     RCLCPP_INFO(this->get_logger(), "Test_VC node has been started");
-    reference_msg.data={2.0, 0.0, 0.0}; //Surge, pitch, yaw
+    reference_msg.surge=0.2;reference_msg.pitch=0.3;reference_msg.yaw=0.0; //Surge, pitch, yaw
     
 } 
 

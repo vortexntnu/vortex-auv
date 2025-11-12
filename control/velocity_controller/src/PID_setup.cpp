@@ -13,7 +13,7 @@ void PID_controller::calculate_thrust(double reference, double current_position,
     //P calculation
     last_output=k_p*error;
     //D calculation
-    last_output += k_d * (current_position - previous_position) / dt;
+    last_output += k_d * (error - previous_error) / dt;
     previous_position = current_position;
     //I calculation with anti-windup
     integral += error * dt;
@@ -32,8 +32,9 @@ void PID_controller::calculate_thrust(double reference, double current_position,
     else if (last_output < min_output){
         last_output = min_output;
     }
+
     return;
-};
+}; 
 void PID_controller::reset_controller(){
     integral = 0.0;
     previous_error = 0.0;

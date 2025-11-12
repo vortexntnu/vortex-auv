@@ -15,7 +15,7 @@
 //Lager en klasse velocity node
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(10,1,1), PID_yaw(10,1,1), PID_pitch(10,1,1), lqr_controller()
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(20,1,2), PID_yaw(4,0.5,1), PID_pitch(4,0.5,1), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
@@ -29,6 +29,7 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(10,
   orca_QoS.keep_last(2).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
   
   publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, orca_QoS);
+  publisher_reference = create_publisher<std_msgs::msg::Float64MultiArray>("/reference",2);
   
   //Subscribers  
   subscriber_Odometry = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -41,10 +42,12 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(10,
     topic_killswitch,10,
     std::bind(&Velocity_node::killswitch_callback,this, std::placeholders::_1));
 
+
+  
   //Timer
   
-  timer_calculation = this->create_wall_timer(std::chrono::milliseconds(calculation_rate), std::bind(&Velocity_node::publish_thrust, this));
-  timer_publish = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::calc_thrust, this));
+  timer_calculation = this->create_wall_timer(std::chrono::milliseconds(calculation_rate), std::bind(&Velocity_node::calc_thrust, this));
+  timer_publish = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::publish_thrust, this));
   //Controllers
   PID_surge.set_output_limits(-max_force, max_force);
   PID_pitch.set_output_limits(-max_force, max_force);
@@ -60,7 +63,14 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(10,
 //Publish/timer functions
 void Velocity_node::publish_thrust()
 {
+  /*thrust_out.wrench.force.x=100;
+  thrust_out.wrench.force.y=0;
+  thrust_out.wrench.force.z=0;
+  thrust_out.wrench.torque.x=0;
+  thrust_out.wrench.torque.y=0;
+  thrust_out.wrench.torque.z=0;*/
   publisher_thrust->publish(thrust_out);
+  //RCLCPP_DEBUG(this->get_logger(),"Publishing thrust: %.3f",thrust_out.wrench.force.x);
 }
 
 //** må forbedre integrasjon og derivasjons beregningene
@@ -76,6 +86,7 @@ void Velocity_node::calc_thrust()
     thrust_out.wrench.force.x = PID_surge.output();
     thrust_out.wrench.torque.y = PID_pitch.output();
     thrust_out.wrench.torque.z = PID_yaw.output();
+    
     break;
   }
   case 2:{
@@ -83,6 +94,7 @@ void Velocity_node::calc_thrust()
     Eigen::Vector3d u=lqr_controller.calculate_lqr_u(current_state,guidance_values);
     if (u==Eigen::Vector3d{9999,9999,9999}){
       controller_type=1;
+      RCLCPP_ERROR(this->get_logger(),"Switching to PID");
     }
     else{
       thrust_out.wrench.force.x=u[0];
@@ -95,8 +107,9 @@ void Velocity_node::calc_thrust()
     break;
   }
   }
-  
-  publisher_thrust->publish(thrust_out);
+  std_msgs::msg::Float64MultiArray msg;
+    msg.data={guidance_values.surge,guidance_values.pitch,guidance_values.yaw};
+    publisher_reference->publish(msg);
   return;
 }
 
@@ -105,6 +118,8 @@ void Velocity_node::calc_thrust()
 //Callback functions
 void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr){
   guidance_values = *msg_ptr;
+  //RCLCPP_DEBUG(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",
+  //             guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
   return;
 }
 

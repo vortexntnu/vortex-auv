@@ -4,6 +4,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <vector>
 #include <Eigen/Dense>
+#include <sstream>
 //#include <drake/common/find_resource.h>
 //#include <drake/math/discrete_algebraic_riccati_equation.h>
 //#include <drake/math/continuous_algebraic_riccati_equation.h>
@@ -12,7 +13,7 @@
 #include "velocity_controller/utilities.hpp"
 #include <casadi/casadi.hpp>
 #include <lapack.h>
-
+Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
 LQRController::LQRController(LQRparameters params,Eigen::Matrix3d inertia_matrix){
     set_params(params);
     set_matrices(inertia_matrix);
@@ -86,24 +87,30 @@ void LQRController::set_params(LQRparameters params){
 }
 void LQRController::set_matrices(Eigen::Matrix3d inertia_matrix){
     inertia_matrix_inv = inertia_matrix.inverse();
-    state_weight_matrix.diagonal() <<q_surge,q_pitch,q_yaw,i_weight,i_weight,i_weight;
+    state_weight_matrix.diagonal()<<q_surge,q_pitch,q_yaw,i_weight,i_weight,i_weight;
     input_weight_matrix.diagonal()<<r_surge,r_pitch,r_yaw;
     return;
 }
 
 
 void LQRController::update_augmented_matrices(Eigen::Matrix3d coriolis_matrix){
-    Eigen::Matrix3d system_matrix = inertia_matrix_inv*coriolis_matrix;
+    Eigen::Matrix3d system_matrix = inertia_matrix_inv;//*coriolis_matrix;
     //input_matrix = inertia_matrix_inv;
     augmented_system_matrix <<system_matrix(0,0),system_matrix(0,1),system_matrix(0,2),0,0,0,
                                system_matrix(1,0),system_matrix(1,1),system_matrix(1,2),0,0,0,
                                system_matrix(2,0),system_matrix(2,1),system_matrix(2,2),0,0,0,
                                -1,0,0,0,0,0,
                                0,-1,0,0,0,0,
-                               0,0,-1,0,0,0; 
+                               0,0,-1,0,0,0;
     augmented_input_matrix << inertia_matrix_inv(0,0),inertia_matrix_inv(0,1),inertia_matrix_inv(0,2),0,0,0,
                               inertia_matrix_inv(1,0),inertia_matrix_inv(1,1),inertia_matrix_inv(1,2),0,0,0,
                               inertia_matrix_inv(2,0),inertia_matrix_inv(2,1),inertia_matrix_inv(2,2),0,0,0;
+    {
+        std::ostringstream oss;
+        oss << augmented_system_matrix.format(fmt);
+        std::string A_str = oss.str();
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "A:\n%s", A_str.c_str());
+    }
     return;
 };
 Eigen::Vector<double,6> LQRController::update_error(Guidance_data guidance_values, State states){
@@ -179,10 +186,17 @@ LQRsolveResult LQRController::solve_k_p(const Eigen::Matrix<double,6,6> &A,const
     int LDWORK=20*N*N,OUFACT=0,INFO=0; 
     std::vector<double> DWORK(LDWORK);
     Eigen::Matrix<double,6,6> L=Eigen::Matrix<double,6,6>::Zero(), G=L;
+    {
+      double detA = A_copy.determinant();
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Calling sb02md_: det(A)=%.6g, A(0,0)=%.6g, G(0,0)=%.6g", detA, A_copy(0,0), G(0,0));
+      Eigen::EigenSolver<Eigen::Matrix<double,6,6>> es(A_copy);
+      for (int i=0;i<6;++i){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "eigA[%d]=% .6g%+.6gi", i, es.eigenvalues()[i].real(), es.eigenvalues()[i].imag());
+      }
+    }
     sb02mt_(&JOBG,&JOBL,&FACT,&UPLO,&N,&M,A_copy.data(),&LDA,B_copy.data(),&LDB,Q_copy.data(),&LDQ,R_copy.data(),&LDR,L.data(),&LDL,IPIV.data(),&OUFACT,G.data(),&LDG,IWORK.data(),DWORK.data(),&LDWORK,&INFO);
     Eigen::Matrix<double,3,6> K;
     if (INFO!=0){
-        //Some Error handling here. Also check that BRB in invertible
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "sb02mt_ returned INFO=%d", INFO);
         // Consider throwing or returning a default result. We'll return zeroed K and G for now.
         Eigen::Matrix<double,3,6> K_zero = Eigen::Matrix<double,3,6>::Zero();
@@ -195,7 +209,15 @@ LQRsolveResult LQRController::solve_k_p(const Eigen::Matrix<double,6,6> &A,const
     Eigen::Matrix<double,12,12> S=Eigen::Matrix<double,12,12>::Zero();
     Eigen::Matrix<double,12,6>U=Eigen::Matrix<double,12,6>::Zero();
     int LDS=2*N,LDU=2*N,INFO1=0;
-    A_copy=A;Q_copy=Q; R_copy=R;
+    //A_copy=A;Q_copy=Q; R_copy=R;
+    {
+      double detA = A_copy.determinant();
+      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Calling sb02md_: det(A)=%.6g, A(0,0)=%.6g, G(0,0)=%.6g", detA, A_copy(0,0), G(0,0));
+      Eigen::EigenSolver<Eigen::Matrix<double,6,6>> es(A_copy);
+      for (int i=0;i<6;++i){
+        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "eigA[%d]=% .6g%+.6gi", i, es.eigenvalues()[i].real(), es.eigenvalues()[i].imag());
+      }
+    }
     sb02md_(&DICO,&HINV,&UPLO,&SCAL,&SORT,&N,A_copy.data(),&LDA,G.data(),&LDG,Q_copy.data(),&LDQ,RCOND.data(),WR.data(),WI.data(),S.data(),&LDS,U.data(),&LDU,IWORK.data(),DWORK.data(),&LDWORK,BWORK,&INFO1);
     if (INFO1!=0){
         //Some Error handling here. Also check that BRB in invertible
