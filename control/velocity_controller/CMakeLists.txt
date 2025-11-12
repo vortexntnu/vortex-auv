@@ -52,7 +52,7 @@ ament_target_dependencies(velocity_controller_node
   Eigen3
   CasADi
   nav_msgs
-  
+
 )
 
 ament_target_dependencies(test_VC_node
@@ -98,7 +98,7 @@ install(
 
 install(DIRECTORY
   launch
-  config 
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 if(BUILD_TESTING)

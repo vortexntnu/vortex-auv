@@ -1,7 +1,7 @@
 #include "velocity_controller/utilities.hpp"
 #include "Eigen/Dense"
 
-angle quaternion_to_euler_angle(double w, double x, double y, double z){
+angle quaternion_to_euler_angle(double w, double x, double y, double z) {
     double ysqr = y * y;
 
     double t0 = +2.0 * (w * x + y * z);
