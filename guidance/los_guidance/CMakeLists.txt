@@ -25,7 +25,7 @@ include_directories(include)
 
 set(LIB_NAME los_guidance_lib)
 add_library(${LIB_NAME} SHARED
-  src/lib/proportional_los.cpp 
+  src/lib/proportional_los.cpp
   src/lib/integral_los.cpp
   src/lib/adaptive_los.cpp
   src/los_guidance_ros.cpp
@@ -48,7 +48,7 @@ add_executable(los_guidance_node
 
 target_link_libraries(los_guidance_node
   ${LIB_NAME}
-  yaml-cpp           
+  yaml-cpp
 )
 
 install(TARGETS
@@ -76,7 +76,7 @@ install(DIRECTORY
 )
 
 if(BUILD_TESTING)
-  include(CTest)  
+  include(CTest)
   add_subdirectory(test)
 endif()
 

@@ -22,4 +22,4 @@ common:
   active_los_method: 2  # 0: Proportional, 1: Integral, 2: Adaptive
   u_desired: 0.3
   goal_reached_tol: 1.0
-  
+

@@ -32,5 +32,6 @@ def generate_launch_description():
     )
     return LaunchDescription([los_guidance_node])
 
-# remeber to make them able to swich in the middle of a mission and if you swirch methid the parameters should'nt be reloaded
-# unless its a new section 
+
+# remember to make them able to swich in the middle of a mission and if you swirch method the parameters shouldn't be reloaded
+# unless its a new section

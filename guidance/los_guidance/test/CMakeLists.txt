@@ -10,7 +10,7 @@ add_executable(
     adaptive_los_test.cpp
     proportional_los_test.cpp
     integral_los_test.cpp
-    
+
 )
 
 target_link_libraries(${TEST_BINARY_NAME}
@@ -20,7 +20,7 @@ target_link_libraries(${TEST_BINARY_NAME}
     Eigen3::Eigen
     spdlog::spdlog
     fmt::fmt
-    GTest::GTest  
+    GTest::GTest
 )
 
 ament_target_dependencies(${TEST_BINARY_NAME} PUBLIC Eigen3)
