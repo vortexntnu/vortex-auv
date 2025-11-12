@@ -1,11 +1,13 @@
 #ifndef PID_UTILS_HPP
 #define PID_UTILS_HPP
 
+#include <spdlog/spdlog.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <cmath>
 #include <eigen3/Eigen/Geometry>
 #include <std_msgs/msg/float64_multi_array.hpp>
+#include <vortex/utils/types.hpp>
 #include "pid_controller_dp/typedefs.hpp"
 
 // @brief Calculate the sine of an angle in degrees
@@ -71,4 +73,6 @@ types::Vector7d anti_windup(const double dt,
                             const types::Eta& error,
                             const types::Vector7d& integral);
 
+// void print_J_transformation(const types::J_transformation& J);
+// void print_Jinv_transformation(const types::Matrix6x7d& J_inv);
 #endif
