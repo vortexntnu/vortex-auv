@@ -68,7 +68,7 @@ ament_target_dependencies(pid_controller_node
 )
 
 target_link_libraries(
-    pid_controller_node 
+    pid_controller_node
     ${LIB_NAME}
     spdlog::spdlog
     # vortex_utilis::vortex_utils
