@@ -3,9 +3,16 @@
 
 #include "reference_filter_dp/eigen_typedefs.hpp"
 
+namespace vortex::guidance {
+
+struct ReferenceFilterParams {
+    Eigen::Vector6d omega = Eigen::Vector6d::Zero();
+    Eigen::Vector6d zeta = Eigen::Vector6d::Zero();
+};
+
 class ReferenceFilter {
    public:
-    ReferenceFilter();
+    explicit ReferenceFilter(const ReferenceFilterParams& params);
 
     // @brief Calculate the state derivative
     // @param x The state vector 18x1
@@ -13,32 +20,25 @@ class ReferenceFilter {
     // @return The state derivative 18x1
     // REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen
     // 2021 p. 337 eq: 12.11
-    Vector18d calculate_x_dot(const Vector18d& x, const Vector6d& r);
+    Eigen::Vector18d calculate_x_dot(const Eigen::Vector18d& x,
+                                     const Eigen::Vector6d& r);
 
     // @brief Calculate the state transition matrix
     // REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen
     // 2021 p. 337 eq: 12.12
-    void calculate_Ad();
+    void calculate_Ad(const Eigen::Vector6d& omega,
+                      const Eigen::Vector6d& zeta);
 
     // @brief Calculate the input matrix
     // REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen
     // 2021 p. 337 eq: 12.12
-    void calculate_Bd();
-
-    // @brief Set the omega matrix
-    // @param omega The omega matrix 6x1 vector
-    void set_omega(const Vector6d& omega);
-
-    // @brief Set the delta matrix
-    // @param zeta The delta matrix 6x1 vector
-    void set_delta(const Vector6d& zeta);
+    void calculate_Bd(const Eigen::Vector6d& omega);
 
    private:
-    Matrix18d Ad_;
-    Matrix18x6d Bd_;
-    Matrix6d Omega_;
-    Matrix6d Delta_;
-    Matrix6d identity_matrix_;
+    Eigen::Matrix18d Ad_ = Eigen::Matrix18d::Zero();
+    Eigen::Matrix18x6d Bd_ = Eigen::Matrix18x6d::Zero();
 };
 
-#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
+}  // namespace vortex::guidance
+
+#endif  // REFERENCE_FILTER_HPP

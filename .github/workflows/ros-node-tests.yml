@@ -1,4 +1,4 @@
-name: Simulator Test
+name: ROS Node Test
 on:
   push:
     branches:
@@ -15,6 +15,8 @@ jobs:
       vcs_repos_file: "tests/dependencies.repos"
       setup_script: "tests/setup.sh"
       test_scripts: '[
-        "tests/simulator_tests/waypoint_navigation/simulator_test.sh",
-        "tests/simulator_tests/los_test/simulator_test.sh"
+        "tests/ros_node_tests/dp_node_test.sh",
+        "tests/ros_node_tests/lqr_autopilot_node_test.sh",
+        "tests/ros_node_tests/reference_filter_node_test.sh",
+        "tests/ros_node_tests/los_node_test.sh",
       ]'
