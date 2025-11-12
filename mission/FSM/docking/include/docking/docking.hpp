@@ -98,7 +98,8 @@ std::string DockedState(
 class ReturnHomeState
     : public yasmin_ros::ActionState<docking_fsm::ReturnHomeAction> {
    public:
-    explicit ReturnHomeState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit ReturnHomeState(
+        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     docking_fsm::ReturnHomeAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);

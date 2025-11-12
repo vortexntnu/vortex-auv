@@ -59,4 +59,4 @@ class DPAdaptBacksController {
 
 }  // namespace vortex::control
 
-#endif  // DP_ADAPT_BACKS_CONTROLLER_HPP
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_

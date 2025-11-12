@@ -41,4 +41,4 @@ class ReferenceFilter {
 
 }  // namespace vortex::guidance
 
-#endif  // REFERENCE_FILTER_HPP
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_

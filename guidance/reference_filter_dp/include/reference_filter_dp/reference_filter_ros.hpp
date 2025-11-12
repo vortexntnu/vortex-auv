@@ -4,6 +4,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
@@ -124,4 +125,4 @@ class ReferenceFilterNode : public rclcpp::Node {
 
 }  // namespace vortex::guidance
 
-#endif  // REFERENCE_FILTER_ROS_HPP
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_

@@ -74,4 +74,4 @@ class AdaptiveLOSGuidance {
 
 }  // namespace vortex::guidance
 
-#endif  // LOS_GUIDANCE_HPP
+#endif  // LOS_GUIDANCE__LOS_GUIDANCE_HPP_

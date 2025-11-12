@@ -12,6 +12,7 @@
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
@@ -94,4 +95,4 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
 }  // namespace vortex::control
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_

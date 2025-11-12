@@ -8,7 +8,7 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-const std::string start_message = R"(
+constexpr std::string_view start_message = R"(
   ____  ____     ____            _             _ _
  |  _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
  | | | | |_) | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
