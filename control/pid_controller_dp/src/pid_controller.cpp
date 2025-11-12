@@ -1,6 +1,71 @@
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 
+void print_eta(const types::Eta& eta) {
+    // spdlog::info("Eta values:");
+    spdlog::info("Position - North: {}, East: {}, Down: {}", eta.pos[0],
+                 eta.pos[1], eta.pos[2]);
+    spdlog::info("Orientation - w: {}, x: {}, y: {}, z: {}", eta.ori.w(),
+                 eta.ori.x(), eta.ori.y(), eta.ori.z());
+}
+
+void print_nu(const types::Nu& nu) {
+    spdlog::info("Nu values:");
+    spdlog::info("Linear Speed - u: {}, v: {}, w: {}", nu.linear_speed[0],
+                 nu.linear_speed[1], nu.linear_speed[2]);
+    spdlog::info("Angular Speed - p: {}, q: {}, r: {}", nu.angular_speed[0],
+                 nu.angular_speed[1], nu.angular_speed[2]);
+}
+
+void print_vect_6d(const types::Vector6d& vec) {
+    spdlog::info("Vector6d values:");
+    for (int i = 0; i < 6; ++i) {
+        spdlog::info("Element[{}]: {}", i, vec[i]);
+    }
+}
+
+void print_J_transformation(const types::J_transformation& J) {
+    spdlog::info("J_transformation:");
+
+    spdlog::info("R (3x3) elements:");
+    for (int i = 0; i < J.R.rows(); ++i) {
+        for (int j = 0; j < J.R.cols(); ++j) {
+            spdlog::info("R[{},{}] = {}", i, j, J.R(i, j));
+        }
+    }
+
+    spdlog::info("T (4x3) elements:");
+    for (int i = 0; i < J.T.rows(); ++i) {
+        for (int j = 0; j < J.T.cols(); ++j) {
+            spdlog::info("T[{},{}] = {}", i, j, J.T(i, j));
+        }
+    }
+
+    spdlog::info("Combined Matrix (7x6) elements:");
+    auto M = J.as_matrix();
+    for (int i = 0; i < M.rows(); ++i) {
+        for (int j = 0; j < M.cols(); ++j) {
+            spdlog::info("M[{},{}] = {}", i, j, M(i, j));
+        }
+    }
+}
+
+void print_Jinv_transformation(const types::Matrix6x7d& J_inv) {
+    spdlog::info("J_pseudo_inverse (6x7):");
+    for (int i = 0; i < J_inv.rows(); ++i) {
+        std::string row;
+        row.reserve(128);
+        row += "[";
+        for (int j = 0; j < J_inv.cols(); ++j) {
+            row += std::to_string(J_inv(i, j));
+            if (j < J_inv.cols() - 1)
+                row += ", ";
+        }
+        row += "]";
+        spdlog::info("{}", row);
+    }
+}
+
 PIDController::PIDController()
     : Kp_(types::Matrix6d::Identity()),
       Ki_(types::Matrix6d::Zero()),
@@ -14,30 +79,45 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
                                              const types::Eta& eta_dot_d) {
     types::Eta error = error_eta(eta, eta_d);  // calculate eta error
 
+    // set w = 0
+    error.ori.w() = 0.0;  // only use vector part of quaternion for error
+
+    auto eta_dot_d_copy = eta_dot_d;
+    eta_dot_d_copy.ori.w() = 0.0;  // set w = 0 for desired eta_dot
     // debug
-    eta_error_debug = error;
+    // eta_error_debug = error;
+    spdlog::info("Eta: ");
+    print_eta(eta);
+    spdlog::info("Eta desired: ");
+    print_eta(eta_d);
+    spdlog::info("Eta error:");
+    print_eta(error);
 
     types::Matrix6x7d J_inv =
-        calculate_J_sudo_inv(error);  // calculate J pseudo inverse
+        calculate_J_sudo_inv(eta);  // calculate J pseudo inverse
     J_inv_debug = J_inv;
+    print_Jinv_transformation(J_inv);
 
-    types::Vector6d nu_d = J_inv * eta_dot_d.as_vector();  // calculate velocity
-    nu_d_debug = nu_d;
+    types::Vector6d nu_d =
+        J_inv * eta_dot_d_copy.as_vector();  // calculate velocity
+    // nu_d_debug = nu_d;
+    // print_nu(nu_d);
 
     types::Vector6d error_nu = nu.as_vector() - nu_d;  // calculate vel error
-    error_nu_debug = error_nu;
+    // error_nu_debug = error_nu;
+    // print_vect_6d(error_nu);
 
-    types::Vector6d P = Kp_ * J_inv * error.as_vector();  /// P term
-    P_debug = P;
+    types::Vector6d P = Kp_ * J_inv * error.as_vector();  // P term
+    // P_debug = P;
     Kp_debug = Kp_;
 
     types::Vector6d I = Ki_ * J_inv * integral_;  // I term
-    I_debug = I;
-    Ki_debug = Ki_;
+    // I_debug = I;
+    // Ki_debug = Ki_;
 
     types::Vector6d D = Kd_ * error_nu;  // D term
-    D_debug = D;
-    Kd_debug = Kd_;
+    // D_debug = D;
+    // Kd_debug = Kd_;
     types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
     // types::Vector6d tau = -clamp_values((P), -80.0, 80.0);
 

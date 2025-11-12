@@ -1,6 +1,7 @@
 #ifndef PID_CONTROLLER_HPP
 #define PID_CONTROLLER_HPP
 
+#include <spdlog/spdlog.h>
 #include "pid_controller_dp/typedefs.hpp"
 
 class PIDController {
@@ -45,7 +46,7 @@ class PIDController {
     types::Vector6d D_debug;
     types::Vector6d tau_debug;
     types::Matrix6x7d J_inv_debug;
-    
+
     // debug gain
     types::Matrix6d Kp_debug;
     types::Matrix6d Ki_debug;
