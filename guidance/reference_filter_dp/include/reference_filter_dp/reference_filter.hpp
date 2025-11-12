@@ -1,11 +1,11 @@
-#ifndef REFERENCE_FILTER_HPP
-#define REFERENCE_FILTER_HPP
+#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
+#define REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
 
 #include "reference_filter_dp/eigen_typedefs.hpp"
 
 class ReferenceFilter {
    public:
-    explicit ReferenceFilter();
+    ReferenceFilter();
 
     // @brief Calculate the state derivative
     // @param x The state vector 18x1
@@ -41,4 +41,4 @@ class ReferenceFilter {
     Matrix6d identity_matrix_;
 };
 
-#endif
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_

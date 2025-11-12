@@ -4,8 +4,8 @@
  * and 18x18 Eigen matrix.
  */
 
-#ifndef VORTEX_EIGEN_TYPEDEFS_H
-#define VORTEX_EIGEN_TYPEDEFS_H
+#ifndef REFERENCE_FILTER_DP__EIGEN_TYPEDEFS_HPP_
+#define REFERENCE_FILTER_DP__EIGEN_TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -16,4 +16,4 @@ typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 18, 1> Vector18d;
 typedef Eigen::Matrix<double, 3, 3> Matrix3d;
 
-#endif
+#endif  // REFERENCE_FILTER_DP__EIGEN_TYPEDEFS_HPP_

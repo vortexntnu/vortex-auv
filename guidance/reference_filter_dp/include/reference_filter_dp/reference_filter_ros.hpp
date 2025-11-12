@@ -1,11 +1,12 @@
-#ifndef REFERENCE_FILTER_ROS_HPP
-#define REFERENCE_FILTER_ROS_HPP
+#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
+#define REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -123,4 +124,4 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
 
-#endif
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_

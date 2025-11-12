@@ -1,16 +1,18 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_ROS_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_ROS_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
@@ -90,4 +92,4 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     std::string software_mode_;
 };
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_

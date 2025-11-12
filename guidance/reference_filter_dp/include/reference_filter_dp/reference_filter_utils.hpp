@@ -1,5 +1,5 @@
-#ifndef REFERENCE_FILTER_UTILS_HPP
-#define REFERENCE_FILTER_UTILS_HPP
+#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_UTILS_HPP_
+#define REFERENCE_FILTER_DP__REFERENCE_FILTER_UTILS_HPP_
 
 #include <reference_filter_dp/eigen_typedefs.hpp>
 
@@ -23,4 +23,4 @@ Matrix6d calculate_J(const Vector6d& eta);
 // @return The smallest signed angle
 double ssa(double angle);
 
-#endif
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_UTILS_HPP_

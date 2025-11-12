@@ -1,11 +1,11 @@
-#ifndef PID_CONTROLLER_HPP
-#define PID_CONTROLLER_HPP
+#ifndef PID_CONTROLLER_DP_EULER__PID_CONTROLLER_HPP_
+#define PID_CONTROLLER_DP_EULER__PID_CONTROLLER_HPP_
 
 #include <pid_controller_dp_euler/typedefs.hpp>
 
 class PIDController {
    public:
-    explicit PIDController();
+    PIDController();
 
     Vector6d calculate_tau(const Eta& eta,
                            const Eta& eta_d,
@@ -28,4 +28,4 @@ class PIDController {
     double dt_;
 };
 
-#endif
+#endif  // PID_CONTROLLER_DP_EULER__PID_CONTROLLER_HPP_

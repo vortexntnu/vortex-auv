@@ -1,5 +1,5 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -95,4 +95,4 @@ dp_types::Matrix6d calculate_C(double m,
 // @return 6x6 damping matrix
 dp_types::Matrix6x12d calculate_Y_v(const dp_types::Nu& nu);
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_

@@ -3,8 +3,8 @@
  * @brief Contains the typedef for a 6x1 Eigen vector and a 6x6 Eigen matrix.
  */
 
-#ifndef VORTEX_EIGEN_TYPEDEFS_H
-#define VORTEX_EIGEN_TYPEDEFS_H
+#ifndef PID_CONTROLLER_DP_EULER__TYPEDEFS_HPP_
+#define PID_CONTROLLER_DP_EULER__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
@@ -102,4 +102,4 @@ struct Nu {
     }
 };
 
-#endif
+#endif  // PID_CONTROLLER_DP_EULER__TYPEDEFS_HPP_

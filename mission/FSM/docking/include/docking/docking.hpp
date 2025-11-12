@@ -1,5 +1,5 @@
-#ifndef VORTEX_DOCKING_HPP
-#define VORTEX_DOCKING_HPP
+#ifndef DOCKING__DOCKING_HPP_
+#define DOCKING__DOCKING_HPP_
 
 #include <chrono>
 #include <iostream>
@@ -98,7 +98,7 @@ std::string DockedState(
 class ReturnHomeState
     : public yasmin_ros::ActionState<docking_fsm::ReturnHomeAction> {
    public:
-    ReturnHomeState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit ReturnHomeState(std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
 
     docking_fsm::ReturnHomeAction::Goal create_goal_handler(
         std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
@@ -145,4 +145,4 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
 
 auto initialize_blackboard();
 
-#endif
+#endif  // DOCKING__DOCKING_HPP_

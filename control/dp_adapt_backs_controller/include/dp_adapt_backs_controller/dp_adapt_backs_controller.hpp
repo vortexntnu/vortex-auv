@@ -1,11 +1,11 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_
 
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
 class DPAdaptBacksController {
    public:
-    DPAdaptBacksController(const dp_types::DPAdaptParams adap_params);
+    explicit DPAdaptBacksController(const dp_types::DPAdaptParams adap_params);
 
     // @brief Calculate thecontrol input tau
     // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
@@ -41,4 +41,4 @@ class DPAdaptBacksController {
     double m_;
     double dt_;
 };
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_

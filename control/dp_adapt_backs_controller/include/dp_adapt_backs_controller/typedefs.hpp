@@ -3,8 +3,8 @@
  * @brief Contains the typedef and structs for the controller.
  */
 
-#ifndef VORTEX_DP_ADAPT_BACKSTEPPING_CONTROLLER_TYPEDEFS_H
-#define VORTEX_DP_ADAPT_BACKSTEPPING_CONTROLLER_TYPEDEFS_H
+#ifndef DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -65,4 +65,4 @@ struct DPAdaptParams {
 
 }  // namespace dp_types
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
