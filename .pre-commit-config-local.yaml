@@ -23,6 +23,7 @@ repos:
         entry: env AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1 ament_cppcheck
         language: system
         files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
+        exclude: (^|/)(test|tests)/.*  # exclude test dirs since ament_cppcheck misparses GTest macros and throws false syntax errors
   - repo: local
     hooks:
       - id: ament_cpplint
