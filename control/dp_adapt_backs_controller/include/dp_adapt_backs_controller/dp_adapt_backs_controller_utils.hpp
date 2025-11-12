@@ -1,5 +1,5 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_
 
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/typedefs.hpp"
@@ -50,4 +50,4 @@ Eigen::Matrix6x12d calculate_Y_v(const vortex::utils::types::Nu& nu);
 
 }  // namespace vortex::control
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_

@@ -1,10 +1,12 @@
-#ifndef LOS_GUIDANCE_ROS_HPP
-#define LOS_GUIDANCE_ROS_HPP
+#ifndef LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
+#define LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 
 #include <yaml-cpp/yaml.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <los_guidance/los_guidance.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/los_guidance.hpp>
@@ -20,7 +22,7 @@ namespace vortex::guidance::los {
 
 class LosGuidanceNode : public rclcpp::Node {
    public:
-    explicit LosGuidanceNode();
+    LosGuidanceNode();
 
    private:
     // @brief Set the subscribers and publishers
@@ -128,4 +130,4 @@ class LosGuidanceNode : public rclcpp::Node {
 
 }  // namespace vortex::guidance::los
 
-#endif  // LOS_GUIDANCE_ROS_HPP
+#endif  // LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
