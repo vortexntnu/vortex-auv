@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(waypoint_mamager)
+project(waypoint_manager)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -14,6 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
@@ -29,6 +30,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp_components
   rclcpp_action
   vortex_msgs
+  tf2_geometry_msgs
   spdlog
   fmt
 )
