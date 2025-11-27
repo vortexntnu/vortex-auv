@@ -9,11 +9,6 @@
 #include <vortex_msgs/srv/waypoint_addition.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 
-#include <geometry_msgs/msg/pose.hpp>
-
-#include <mutex>
-#include <vector>
-
 namespace vortex::mission {
 
 using WaypointManager           = vortex_msgs::action::WaypointManager;
@@ -92,9 +87,6 @@ class WaypointManagerNode : public rclcpp::Node {
             const std::shared_ptr<vortex_msgs::srv::WaypointAddition::Request> request,
             std::shared_ptr<vortex_msgs::srv::WaypointAddition::Response> response);
 
-        void execute_waypoint_loop(
-            const std::shared_ptr<WaypointManagerGoalHandle> action_goal);
-
         void execution_step();
 
         void stop_execution_timer();
@@ -112,15 +104,12 @@ class WaypointManagerNode : public rclcpp::Node {
         bool execution_running_{false};
         bool persistent_action_mode_{false};
 
+        ReferenceFilterAction::Feedback latest_ref_feedback_;
         bool have_reference_pose_{false};
-        geometry_msgs::msg::Pose current_reference_pose_;
-
-        std::mutex mission_mutex_;
-        rclcpp::CallbackGroup::SharedPtr cb_group_;
-        rclcpp::TimerBase::SharedPtr execution_timer_;
-
-        std::shared_ptr<WaypointManagerGoalHandle> active_action_goal_;
         std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
+
+        rclcpp::TimerBase::SharedPtr execution_timer_;
+        std::shared_ptr<WaypointManagerGoalHandle> active_action_goal_;
 
 };
 
