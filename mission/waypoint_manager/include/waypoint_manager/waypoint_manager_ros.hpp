@@ -3,19 +3,25 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
-#include <vortex_msgs/srv/waypoint_following.hpp>
 #include <vortex_msgs/srv/waypoint_addition.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 
+#include <geometry_msgs/msg/pose.hpp>
+
+#include <mutex>
+#include <vector>
 
 namespace vortex::mission {
 
 using WaypointManager           = vortex_msgs::action::WaypointManager;
 using WaypointManagerGoalHandle = rclcpp_action::ServerGoalHandle<WaypointManager>;
+
 using ReferenceFilterAction     = vortex_msgs::action::ReferenceFilterWaypoint;
 using ReferenceFilterGoalHandle = rclcpp_action::ClientGoalHandle<ReferenceFilterAction>;
+
 
 class WaypointManagerNode : public rclcpp::Node {
     public:
@@ -30,7 +36,7 @@ class WaypointManagerNode : public rclcpp::Node {
         void set_reference_action_client();
 
         // @brief Create the service servers to handle incoming waypoint requests.
-        void set_waypoint_service_servers();
+        void set_waypoint_addition_service();
 
         // @brief Handle incoming action goal requests
         // @param uuid The goal UUID
@@ -78,15 +84,6 @@ class WaypointManagerNode : public rclcpp::Node {
         void reference_filter_result_callback(
             const ReferenceFilterGoalHandle::WrappedResult & result);
 
-        // @brief Handle incoming waypoint following requests.
-        //        Only accepted if waypoint action is not running. 
-        //        Overwrites current waypoints stored.
-        // @param request Incoming service request containing waypoint information.
-        // @param response Service response that should be populated and sent back to the caller.
-        void handle_waypoint_following_service_request(
-            const std::shared_ptr<vortex_msgs::srv::WaypointFollowing::Request> request,
-            std::shared_ptr<vortex_msgs::srv::WaypointFollowing::Response> response);
-
         // @brief Handle incoming waypoint addition service requests
         //        Only accepted if waypoint action is running.
         // @param request Incoming service request containing waypoint information.
@@ -98,20 +95,15 @@ class WaypointManagerNode : public rclcpp::Node {
         void execute_waypoint_loop(
             const std::shared_ptr<WaypointManagerGoalHandle> action_goal);
 
+        void execution_step();
+
+        void stop_execution_timer();
+
 
         rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr reference_filter_client_;
         rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr waypoint_action_server_;
-        rclcpp::Service<vortex_msgs::srv::WaypointFollowing>::SharedPtr waypoint_following_service_server_;
         rclcpp::Service<vortex_msgs::srv::WaypointAddition>::SharedPtr waypoint_addition_service_server_;
 
-
-        enum class ExecutionOrigin {
-            NONE,
-            ACTION,
-            SERVICE_ONLY
-        };
-
-        ExecutionOrigin exec_origin_{ExecutionOrigin::NONE};
 
         std::vector<vortex_msgs::msg::Waypoint> waypoint_queue_;
         std::size_t current_index_{0};
@@ -124,13 +116,11 @@ class WaypointManagerNode : public rclcpp::Node {
         geometry_msgs::msg::Pose current_reference_pose_;
 
         std::mutex mission_mutex_;
-
+        rclcpp::CallbackGroup::SharedPtr cb_group_;
+        rclcpp::TimerBase::SharedPtr execution_timer_;
 
         std::shared_ptr<WaypointManagerGoalHandle> active_action_goal_;
         std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
-
-        rclcpp::CallbackGroup::SharedPtr cb_group_;
-
 
 };
 
