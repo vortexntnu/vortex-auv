@@ -62,8 +62,7 @@ class WaypointManagerNode : public rclcpp::Node {
         // @brief Callback: goal accepted or rejected
         // @param future A future containing the goal handle if the action server accepted the goal.
         void reference_filter_goal_response_callback(
-            std::shared_future<
-                ReferenceFilterGoalHandle::SharedPtr> future);
+            ReferenceFilterGoalHandle::SharedPtr future);
 
         // @brief Callback: feedback during execution
         // @param goal_handle The handle representing the active action goal sent to the server.

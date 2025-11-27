@@ -2,7 +2,7 @@
 
 #include <rclcpp_components/register_node_macro.hpp>
 #include <spdlog/spdlog.h>
-#include <tf2_geometry_msgs.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <functional>
 #include <cmath>
 
@@ -241,21 +241,25 @@ void WaypointManagerNode::send_reference_filter_goal(
         }
     }
     rclcpp_action::Client<ReferenceFilterAction>::SendGoalOptions options;
-    options.goal_response_callback = std::bind(
-        &WaypointManagerNode::reference_filter_goal_response_callback,
-        this,
-        std::placeholders::_1);
+    options.goal_response_callback =
+    [this](ReferenceFilterGoalHandle::SharedPtr goal_handle)
+    {
+        this->reference_filter_goal_response_callback(goal_handle);
+    };
 
-    options.feedback_callback = std::bind(
-        &WaypointManagerNode::reference_filter_feedback_callback,
-        this,
-        std::placeholders::_1,
-        std::placeholders::_2);
+    options.feedback_callback =
+        [this](ReferenceFilterGoalHandle::SharedPtr goal_handle,
+            const std::shared_ptr<const ReferenceFilterAction::Feedback> feedback)
+        {
+            this->reference_filter_feedback_callback(goal_handle, feedback);
+        };
 
-    options.result_callback = std::bind(
-        &WaypointManagerNode::reference_filter_result_callback,
-        this,
-        std::placeholders::_1);
+    options.result_callback =
+        [this](const ReferenceFilterGoalHandle::WrappedResult & result)
+        {
+            this->reference_filter_result_callback(result);
+        };
+
 
     reference_filter_client_->async_send_goal(goal_msg, options);
 }
@@ -263,9 +267,8 @@ void WaypointManagerNode::send_reference_filter_goal(
 
 
 void WaypointManagerNode::reference_filter_goal_response_callback(
-    std::shared_future<ReferenceFilterGoalHandle::SharedPtr> future)
+    ReferenceFilterGoalHandle::SharedPtr goal_handle)
 {
-    auto goal_handle = future.get();
     if (!goal_handle) {
         spdlog::warn("ReferenceFilterWaypoint goal was rejected");
         return;
@@ -443,6 +446,7 @@ void WaypointManagerNode::execute_waypoint_loop(
     }
 }
 
+RCLCPP_COMPONENTS_REGISTER_NODE(WaypointManagerNode)
+
 } // namespace vortex::mission
 
-RCLCPP_COMPONENTS_REGISTER_NODE(vortex::mission::WaypointManagerNode)
