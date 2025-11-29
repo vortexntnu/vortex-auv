@@ -3,6 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
@@ -24,14 +25,14 @@ class WaypointManagerNode : public rclcpp::Node {
 
     private:
 
-        // @brief Create the action server to handle incoming waypoint goals.
+        // @brief Create the action server for WaypointManager.
         void set_waypoint_action_server();
 
-        // @brief Create the action client for a reference filter waypoint.
+        // @brief Create the action client for ReferenceFilterWaypoint.
         void set_reference_action_client();
 
-        // @brief Create the service servers to handle incoming waypoint requests.
-        void set_waypoint_addition_service();
+        // @brief Create the service servers for WaypointAddition.
+        void set_waypoint_service_server();
 
         // @brief Handle incoming action goal requests
         // @param uuid The goal UUID
@@ -60,25 +61,6 @@ class WaypointManagerNode : public rclcpp::Node {
         void send_reference_filter_goal(
             const vortex_msgs::action::ReferenceFilterWaypoint::Goal & goal_msg);
 
-        // @brief Callback: goal accepted or rejected
-        // @param future A future containing the goal handle if the action server accepted the goal.
-        void reference_filter_goal_response_callback(
-            ReferenceFilterGoalHandle::SharedPtr future);
-
-        // @brief Callback: feedback during execution
-        // @param goal_handle The handle representing the active action goal sent to the server.
-        // @param feedback The feedback message provided by the action server.
-        void reference_filter_feedback_callback(
-            ReferenceFilterGoalHandle::SharedPtr goal_handle,
-            const std::shared_ptr<
-                const vortex_msgs::action::ReferenceFilterWaypoint::Feedback> feedback);
-
-        // @brief Callback: result when action completes
-        // @param result A wrapped result structure returned by the action server,
-        //        containing status (succeeded/aborted/canceled) and the result message.
-        void reference_filter_result_callback(
-            const ReferenceFilterGoalHandle::WrappedResult & result);
-
         // @brief Handle incoming waypoint addition service requests
         //        Only accepted if waypoint action is running.
         // @param request Incoming service request containing waypoint information.
@@ -87,22 +69,40 @@ class WaypointManagerNode : public rclcpp::Node {
             const std::shared_ptr<vortex_msgs::srv::WaypointAddition::Request> request,
             std::shared_ptr<vortex_msgs::srv::WaypointAddition::Response> response);
 
+        void on_reference_filter_succeeded();
+
         void execution_step();
 
         void stop_execution_timer();
 
+        inline geometry_msgs::msg::Pose reference_to_pose(
+            const vortex_msgs::action::ReferenceFilterWaypoint::Feedback & feedback) const {
+            geometry_msgs::msg::Pose pose;
+            pose.position.x = feedback.reference.x;
+            pose.position.y = feedback.reference.y;
+            pose.position.z = feedback.reference.z;
+            
+            tf2::Quaternion q;
+            q.setRPY(feedback.reference.roll,
+                     feedback.reference.pitch,
+                     feedback.reference.yaw);
+            pose.orientation = tf2::toMsg(q);
+
+            return pose;
+        }
+
 
         rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr reference_filter_client_;
         rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr waypoint_action_server_;
-        rclcpp::Service<vortex_msgs::srv::WaypointAddition>::SharedPtr waypoint_addition_service_server_;
+        rclcpp::Service<vortex_msgs::srv::WaypointAddition>::SharedPtr waypoint_service_server_;
 
 
-        std::vector<vortex_msgs::msg::Waypoint> waypoint_queue_;
+        std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
         std::size_t current_index_{0};
-        double switching_threshold_{1.0};
+        double convergence_threshold_{1.0};
 
-        bool execution_running_{false};
         bool persistent_action_mode_{false};
+        bool non_interruptible_mode_{false};
 
         ReferenceFilterAction::Feedback latest_ref_feedback_;
         bool have_reference_pose_{false};
