@@ -23,7 +23,7 @@ void WaypointManagerNode::set_reference_action_client()
 {
     reference_filter_client_ =
         rclcpp_action::create_client<ReferenceFilterAction>(
-            this, "reference_filter_waypoint");
+            this, "reference_filter");
 
     if (!reference_filter_client_->wait_for_action_server(std::chrono::seconds(3))) {
         spdlog::warn("ReferenceFilter server not ready");

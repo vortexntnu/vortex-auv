@@ -24,7 +24,8 @@
   <test_depend>auv_setup</test_depend>
   <test_depend>vortex_sim_interface</test_depend>
   <test_depend>rosbag2_transport</test_depend>
-
+  <test_depend>vortex_msgs</test_depend>
+  <test_depend>thrust_allocator_auv</test_depend>
 
 
   <export>
