@@ -287,6 +287,11 @@ void ReferenceFilterNode::execute(
     double convergence_threshold =
         goal_handle->get_goal()->convergence_threshold;
 
+    if (convergence_threshold <= 0.0) {
+        convergence_threshold = 0.1;
+        spdlog::warn("ReferenceFilter: Invalid convergence_threshold received (<= 0). Using default 0.1");
+    }
+
     Eigen::Vector6d r_temp = fill_reference_goal(goal);
     r_ = apply_mode_logic(r_temp, mode);
 
