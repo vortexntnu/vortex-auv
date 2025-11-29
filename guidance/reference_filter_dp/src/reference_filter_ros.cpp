@@ -284,6 +284,8 @@ void ReferenceFilterNode::execute(
 
     const geometry_msgs::msg::Pose goal = goal_handle->get_goal()->waypoint.pose;
     uint8_t mode = goal_handle->get_goal()->waypoint.mode;
+    double convergence_threshold =
+        goal_handle->get_goal()->convergence_threshold;
 
     Eigen::Vector6d r_temp = fill_reference_goal(goal);
     r_ = apply_mode_logic(r_temp, mode);
@@ -320,7 +322,7 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        if ((x_.head(6) - r_.head(6)).norm() < 0.1) {
+        if ((x_.head(6) - r_.head(6)).norm() < convergence_threshold) {
             result->success = true;
             goal_handle->succeed(result);
             x_.head(6) = r_.head(6);
