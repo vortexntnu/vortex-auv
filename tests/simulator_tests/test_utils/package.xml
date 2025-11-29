@@ -1,0 +1,14 @@
+<package format="3">
+  <name>test_utils</name>
+  <version>0.1.0</version>
+  <description>Shared utilities for simulation-based tests</description>
+  <maintainer email="jorgen.fjermedal@hotmail.com">Jorgen Fjermedal</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>python3</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
