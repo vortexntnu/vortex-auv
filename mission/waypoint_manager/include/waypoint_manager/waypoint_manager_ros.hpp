@@ -34,6 +34,20 @@ class WaypointManagerNode : public rclcpp::Node {
         // @brief Create the service servers for WaypointAddition.
         void set_waypoint_service_server();
 
+        // @brief Convert ReferenceFilter feedback to a Pose message
+        // @param fb The ReferenceFilter feedback message
+        // @return The corresponding Pose message
+        geometry_msgs::msg::Pose reference_to_pose(
+            const ReferenceFilterAction::Feedback &fb) const;
+            
+        // @brief Clean up the mission state after completion or cancellation of a waypoint action.
+        // Cancel active goals and reset internal variables. Make system ready for next action.
+        void cleanup_mission_state();
+
+        // @brief Send the next goal to the ReferenceFilter action server based on the current waypoint index
+        // or finish the waypoint action if all waypoints have been processed.
+        void send_next_reference_filter_goal();
+
         // @brief Handle incoming action goal requests
         // @param uuid The goal UUID
         // @param goal The goal message
@@ -56,11 +70,6 @@ class WaypointManagerNode : public rclcpp::Node {
             const std::shared_ptr<rclcpp_action::ServerGoalHandle<
                 vortex_msgs::action::WaypointManager>> goal_handle);
 
-        // @brief Send a goal to the reference filter
-        // @param goal_msg The action goal
-        void send_reference_filter_goal(
-            const vortex_msgs::action::ReferenceFilterWaypoint::Goal & goal_msg);
-
         // @brief Handle incoming waypoint addition service requests
         //        Only accepted if waypoint action is running.
         // @param request Incoming service request containing waypoint information.
@@ -68,29 +77,16 @@ class WaypointManagerNode : public rclcpp::Node {
         void handle_waypoint_addition_service_request(
             const std::shared_ptr<vortex_msgs::srv::WaypointAddition::Request> request,
             std::shared_ptr<vortex_msgs::srv::WaypointAddition::Response> response);
+        
+        // @brief Send a goal to the reference filter
+        // @param goal_msg The action goal
+        void send_reference_filter_goal(
+            const vortex_msgs::action::ReferenceFilterWaypoint::Goal & goal_msg);
 
+        // @brief Callback for when the reference filter action succeeds.
+        // Iterates to the next waypoint and initiates the next reference filter goal or
+        // completes the waypoint action if all waypoints have been processed.
         void on_reference_filter_succeeded();
-
-        void execution_step();
-
-        void stop_execution_timer();
-
-        inline geometry_msgs::msg::Pose reference_to_pose(
-            const vortex_msgs::action::ReferenceFilterWaypoint::Feedback & feedback) const {
-            geometry_msgs::msg::Pose pose;
-            pose.position.x = feedback.reference.x;
-            pose.position.y = feedback.reference.y;
-            pose.position.z = feedback.reference.z;
-            
-            tf2::Quaternion q;
-            q.setRPY(feedback.reference.roll,
-                     feedback.reference.pitch,
-                     feedback.reference.yaw);
-            pose.orientation = tf2::toMsg(q);
-
-            return pose;
-        }
-
 
         rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr reference_filter_client_;
         rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr waypoint_action_server_;
@@ -99,16 +95,15 @@ class WaypointManagerNode : public rclcpp::Node {
 
         std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
         std::size_t current_index_{0};
-        double convergence_threshold_{1.0};
+        double convergence_threshold_{0.1};
 
         bool persistent_action_mode_{false};
         bool non_interruptible_mode_{false};
 
         ReferenceFilterAction::Feedback latest_ref_feedback_;
         bool have_reference_pose_{false};
-        std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
 
-        rclcpp::TimerBase::SharedPtr execution_timer_;
+        std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
         std::shared_ptr<WaypointManagerGoalHandle> active_action_goal_;
 
 };
