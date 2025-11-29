@@ -79,7 +79,8 @@ def generate_test_description():
 
 
     return generate_sim_test_description(
-        scenario_value="default",
+        scenario_value="orca_no_gpu",
+        rendering_enabled="false",
         extra_nodes=extra_nodes,
         delay=5.0,
         record_bag=True,
@@ -123,4 +124,21 @@ class TestWaypointManagerAfterShutdown(unittest.TestCase):
     """Verify processes exit cleanly after shutdown."""
 
     def test_exit_code(self, proc_info):
-        launch_testing.asserts.assertExitCodes(proc_info)
+        for info in proc_info:
+            name = info.process_name
+
+            # Allow the nogpu simulator to exit with -2 (SIGINT) or 0
+            if "stonefish_simulator_nogpu" in name:
+                self.assertIn(
+                    info.returncode,
+                    (0, -2),
+                    f"{name} exited with unexpected code {info.returncode}",
+                )
+            else:
+                # Everyone else must exit cleanly
+                self.assertEqual(
+                    info.returncode,
+                    0,
+                    f"{name} exited with non-zero code {info.returncode}",
+                )
+

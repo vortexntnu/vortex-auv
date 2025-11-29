@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 import launch_testing.actions
+from launch.substitutions import LaunchConfiguration
 
 
 def _write_temp_config(config: dict) -> str:
@@ -74,6 +75,7 @@ def default_launch_setup(context, modify_config_fn=None, extra_nodes=None, recor
         launch_arguments={
             "scenario": scenario,
             "scenario_config_override": tmp_path,
+            "rendering": LaunchConfiguration("rendering"),
         }.items(),
     )
 
@@ -100,6 +102,7 @@ def generate_sim_test_description(
     modify_config_fn=None,
     delay=5.0,
     scenario_value="docking",
+    rendering_enabled="false",
     extra_nodes=None,
     record_bag=False,
 ):
@@ -107,6 +110,7 @@ def generate_sim_test_description(
     return (
         LaunchDescription([
             DeclareLaunchArgument("scenario", default_value=scenario_value),
+            DeclareLaunchArgument("rendering", default_value=rendering_enabled),
             OpaqueFunction(function=lambda ctx, *a, **k:
                 default_launch_setup(
                     ctx,
