@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>waypoint_manager_test</name>
+  <version>0.0.0</version>
+  <description>waypoint manager test</description>
+  <maintainer email="jorgen.fjermedal@hotmail.com">Jorgen Fjermedal</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_cmake_ros</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>launch_ros</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>rclpy</test_depend>
+  <test_depend>test_utils</test_depend>
+
+  <test_depend>reference_filter_dp</test_depend>
+  <test_depend>dp_adapt_backs_controller</test_depend>
+  <test_depend>waypoint_manager</test_depend>
+  <test_depend>stonefish_sim</test_depend>
+  <test_depend>auv_setup</test_depend>
+  <test_depend>vortex_sim_interface</test_depend>
+  <test_depend>rosbag2_transport</test_depend>
+
+
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
