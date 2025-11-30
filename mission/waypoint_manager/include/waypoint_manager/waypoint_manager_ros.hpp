@@ -39,6 +39,12 @@ class WaypointManagerNode : public rclcpp::Node {
         // @return The corresponding Pose message
         geometry_msgs::msg::Pose reference_to_pose(
             const ReferenceFilterAction::Feedback &fb) const;
+
+        // @brief Construct the result message for the WaypointManager action
+        // @param success Whether the action was successful
+        // @return The constructed result message
+        std::shared_ptr<vortex_msgs::action::WaypointManager_Result>
+            construct_result(bool success) const;
             
         // @brief Clean up the mission state after completion or cancellation of a waypoint action.
         // Cancel active goals and reset internal variables. Make system ready for next action.
@@ -102,6 +108,9 @@ class WaypointManagerNode : public rclcpp::Node {
 
         ReferenceFilterAction::Feedback latest_ref_feedback_;
         bool have_reference_pose_{false};
+        bool cancel_in_progress_{false};
+
+        std::uint64_t mission_id_ = 0;
 
         std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
         std::shared_ptr<WaypointManagerGoalHandle> active_action_goal_;

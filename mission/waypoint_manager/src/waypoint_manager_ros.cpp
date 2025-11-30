@@ -75,6 +75,18 @@ WaypointManagerNode::reference_to_pose(
     return pose;
 }
 
+std::shared_ptr<vortex_msgs::action::WaypointManager_Result>
+WaypointManagerNode::construct_result(bool success) const
+{
+    auto result = std::make_shared<vortex_msgs::action::WaypointManager_Result>();
+    result->success = success;
+    result->pose_valid = have_reference_pose_;
+    if (have_reference_pose_) {
+        result->final_pose = reference_to_pose(latest_ref_feedback_);
+    }
+    return result;
+}
+
 void WaypointManagerNode::cleanup_mission_state()
 {
     waypoints_.clear();
@@ -95,13 +107,8 @@ void WaypointManagerNode::send_next_reference_filter_goal()
 {
     if (current_index_ >= waypoints_.size()) {
         if (!persistent_action_mode_ && active_action_goal_ && active_action_goal_->is_active()) {
-            auto res = std::make_shared<WaypointManager::Result>();
-            res->success = true;
-            res->pose_valid = have_reference_pose_;
-            if (have_reference_pose_) {
-                res->final_pose = reference_to_pose(latest_ref_feedback_);
-            }
-            active_action_goal_->succeed(res);
+            auto wm_res = construct_result(true);
+            active_action_goal_->succeed(wm_res);
             cleanup_mission_state();
         }
         return;
@@ -123,13 +130,8 @@ rclcpp_action::GoalResponse WaypointManagerNode::handle_waypoint_goal(
     std::shared_ptr<const WaypointManager::Goal> goal)
 {
     if (active_action_goal_ && active_action_goal_->is_active()) {
-        auto res = std::make_shared<WaypointManager::Result>();
-        res->success = false;
-        res->pose_valid = have_reference_pose_;
-        if (have_reference_pose_) {
-            res->final_pose = reference_to_pose(latest_ref_feedback_);
-        }
-        active_action_goal_->abort(res);
+        auto wp_res = construct_result(false);
+        active_action_goal_->abort(wp_res);
     }
 
     if (active_reference_filter_goal_) {
@@ -137,12 +139,19 @@ rclcpp_action::GoalResponse WaypointManagerNode::handle_waypoint_goal(
         active_reference_filter_goal_.reset();
     }
 
+    ++mission_id_;
+
     waypoints_ = goal->waypoints;
     current_index_ = 0;
     persistent_action_mode_ = goal->persistent;
     non_interruptible_mode_ = false;
     have_reference_pose_ = false;
     convergence_threshold_ = goal->convergence_threshold;
+
+    if (waypoints_.empty() && !persistent_action_mode_) {
+        spdlog::warn("WaypointManager: received empty waypoint list and non-persistent mode");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
 
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -153,36 +162,29 @@ void WaypointManagerNode::handle_waypoint_accepted(
     spdlog::info("WaypointManager: action goal accepted");
     active_action_goal_ = goal_handle;
 
-    if (!waypoints_.empty()) {
-        send_next_reference_filter_goal();
-    } else if (!persistent_action_mode_) {
-        auto res = std::make_shared<WaypointManager::Result>();
-        res->success = true;
-        res->pose_valid = false;
-        goal_handle->succeed(res);
-        cleanup_mission_state();
-    }
+    send_next_reference_filter_goal();
 }
 
 rclcpp_action::CancelResponse WaypointManagerNode::handle_waypoint_cancel(
     const std::shared_ptr<WaypointManagerGoalHandle> goal_handle)
 {
-    spdlog::info("WaypointManager: cancel requested");
+    spdlog::info("WaypointManagerAction: cancel requested");
 
     if (active_reference_filter_goal_) {
         reference_filter_client_->async_cancel_goal(active_reference_filter_goal_);
         active_reference_filter_goal_.reset();
     }
 
-    auto res = std::make_shared<WaypointManager::Result>();
-    res->success = false;
-    res->pose_valid = have_reference_pose_;
-    if (have_reference_pose_) {
-        res->final_pose = reference_to_pose(latest_ref_feedback_);
-    }
+    // bool action_success = false;
+    // if (persistent_action_mode_ && current_index_ >= waypoints_.size()) {
+    //     action_success = true;
+    // }
 
-    goal_handle->canceled(res);
-    cleanup_mission_state();
+    // auto wp_res = construct_result(action_success);
+
+    // goal_handle->canceled(wp_res); // This is maybe bad.
+
+    (void)goal_handle;  // suppress unused variable warning
 
     return rclcpp_action::CancelResponse::ACCEPT;
 }
@@ -255,71 +257,121 @@ void WaypointManagerNode::send_reference_filter_goal(
         active_reference_filter_goal_.reset();
     }
 
+    const std::uint64_t this_mission = mission_id_;
+
     rclcpp_action::Client<ReferenceFilterAction>::SendGoalOptions options;
 
     options.goal_response_callback =
-        [this](ReferenceFilterGoalHandle::SharedPtr gh)
+        [this, this_mission](ReferenceFilterGoalHandle::SharedPtr gh)
         {
             if (!gh) {
                 spdlog::warn("ReferenceFilter goal rejected");
                 return;
             }
 
-            active_reference_filter_goal_ = gh;
+            if (this_mission == mission_id_) {
+                active_reference_filter_goal_ = gh;
+            } else {
+                spdlog::info("RF goal response for old mission, ignoring handle");
+            }
         };
 
     options.feedback_callback =
-        [this](
+        [this, this_mission](
             ReferenceFilterGoalHandle::SharedPtr,
             const std::shared_ptr<const ReferenceFilterAction::Feedback> fb)
         {
+            if (this_mission != mission_id_) {
+                return;
+            }
+
             latest_ref_feedback_ = *fb;
             have_reference_pose_ = true;
 
             if (!active_action_goal_ || !active_action_goal_->is_active())
                 return;
 
-            geometry_msgs::msg::Pose robot_pose =
-                reference_to_pose(*fb);
+            geometry_msgs::msg::Pose robot_pose = reference_to_pose(*fb);
 
             if (current_index_ < waypoints_.size()) {
                 auto wm_fb = std::make_shared<WaypointManager::Feedback>();
-                wm_fb->current_pose = robot_pose;
+                wm_fb->current_pose    = robot_pose;
                 wm_fb->current_waypoint = waypoints_[current_index_];
                 active_action_goal_->publish_feedback(wm_fb);
             }
         };
 
     options.result_callback =
-        [this](const ReferenceFilterGoalHandle::WrappedResult &res)
+        [this, this_mission](const ReferenceFilterGoalHandle::WrappedResult &res)
         {
+            if (this_mission != mission_id_) {
+                spdlog::info("ReferenceFilter result received for old mission, ignoring.");
+                return;
+            }
+
             active_reference_filter_goal_.reset();
+
+            if (!active_action_goal_) {
+                spdlog::info("ReferenceFilter result received but no active WM goal");
+                return;
+            }
+
+            const bool wm_canceling = active_action_goal_->is_canceling();
+            const bool wm_active    = active_action_goal_->is_active();
 
             switch (res.code) {
 
                 case rclcpp_action::ResultCode::SUCCEEDED:
+                {
                     spdlog::info("ReferenceFilter goal reached waypoint");
-                    on_reference_filter_succeeded();
+
+                    if (wm_canceling) {
+                        bool action_success = false;
+                        if (persistent_action_mode_ && current_index_ >= waypoints_.size()) {
+                            action_success = true;
+                        }
+
+                        auto wp_res = construct_result(action_success);
+
+                        active_action_goal_->canceled(wp_res);
+
+                        cleanup_mission_state();
+                    } else {
+                        current_index_++;
+                        send_next_reference_filter_goal();
+                    }
                     break;
+                }
 
                 case rclcpp_action::ResultCode::CANCELED:
+                {
                     spdlog::info("ReferenceFilter goal cancelled");
-                    break;
 
-                case rclcpp_action::ResultCode::ABORTED:
-                    spdlog::warn("ReferenceFilter goal aborted unexpectedly");
-                    if (active_action_goal_ && active_action_goal_->is_active()) {
-                        auto res_msg = std::make_shared<WaypointManager::Result>();
-                        res_msg->success = false;
-                        res_msg->pose_valid = have_reference_pose_;
-                        if (have_reference_pose_) {
-                            res_msg->final_pose = reference_to_pose(latest_ref_feedback_);
+                    if (wm_canceling && wm_active) {
+                        bool action_success = false;
+                        if (persistent_action_mode_ && current_index_ >= waypoints_.size()) {
+                            action_success = true;
                         }
-                        active_action_goal_->abort(res_msg);
+
+                        auto wp_res = construct_result(action_success);
+
+                        active_action_goal_->canceled(wp_res);
                         cleanup_mission_state();
                     }
                     break;
-                
+                }
+
+                case rclcpp_action::ResultCode::ABORTED:
+                {
+                    spdlog::warn("ReferenceFilter goal aborted unexpectedly");
+                    if (wm_active) {
+                        auto wp_res = construct_result(false);
+                        active_action_goal_->abort(wp_res);
+                        cleanup_mission_state();
+                    }
+                    break;
+                }
+
                 default:
                     spdlog::error("ReferenceFilter goal returned unknown result code");
                     break;
@@ -329,31 +381,6 @@ void WaypointManagerNode::send_reference_filter_goal(
     reference_filter_client_->async_send_goal(goal_msg, options);
 }
 
-void WaypointManagerNode::on_reference_filter_succeeded()
-{
-    if (!active_action_goal_ || !active_action_goal_->is_active()) {
-        return;
-    }
-
-    current_index_++;
-
-    if (current_index_ >= waypoints_.size()) {
-
-        if (!persistent_action_mode_) {
-            auto res = std::make_shared<WaypointManager::Result>();
-            res->success = true;
-            res->pose_valid = have_reference_pose_;
-            if (have_reference_pose_) {
-                res->final_pose = reference_to_pose(latest_ref_feedback_);
-            }
-            active_action_goal_->succeed(res);
-            cleanup_mission_state();
-        }
-        return;
-    }
-
-    send_next_reference_filter_goal();
-}
 
 RCLCPP_COMPONENTS_REGISTER_NODE(WaypointManagerNode)
 

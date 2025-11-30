@@ -8,8 +8,8 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <test_depend>ament_cmake_ros</test_depend>
   <test_depend>launch</test_depend>
   <test_depend>launch_ros</test_depend>
   <test_depend>launch_testing</test_depend>
@@ -27,8 +27,6 @@
   <test_depend>vortex_msgs</test_depend>
   <test_depend>thrust_allocator_auv</test_depend>
 
+  <exec_depend>python3-setuptools</exec_depend>
 
-  <export>
-    <build_type>ament_cmake</build_type>
-  </export>
 </package>
