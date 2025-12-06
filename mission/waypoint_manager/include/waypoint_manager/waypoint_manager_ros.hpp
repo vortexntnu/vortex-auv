@@ -96,12 +96,6 @@ class WaypointManagerNode : public rclcpp::Node {
     void send_reference_filter_goal(
         const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg);
 
-    // @brief Callback for when the reference filter action succeeds.
-    // Iterates to the next waypoint and initiates the next reference filter
-    // goal or completes the waypoint action if all waypoints have been
-    // processed.
-    void on_reference_filter_succeeded();
-
     rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::
         SharedPtr reference_filter_client_;
     rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr
