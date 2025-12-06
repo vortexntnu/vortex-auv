@@ -4,7 +4,6 @@ project(waypoint_manager_test)
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 
-# Install Python module (waypoint_manager_test/ directory)
 ament_python_install_package(${PROJECT_NAME})
 
 if(BUILD_TESTING)

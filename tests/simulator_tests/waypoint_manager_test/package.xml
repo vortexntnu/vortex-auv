@@ -9,24 +9,26 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>ament_python</buildtool_depend>
 
   <test_depend>launch</test_depend>
   <test_depend>launch_ros</test_depend>
   <test_depend>launch_testing</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
-  <test_depend>rclpy</test_depend>
-  <test_depend>test_utils</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
-  <test_depend>reference_filter_dp</test_depend>
-  <test_depend>dp_adapt_backs_controller</test_depend>
-  <test_depend>waypoint_manager</test_depend>
-  <test_depend>stonefish_sim</test_depend>
-  <test_depend>auv_setup</test_depend>
-  <test_depend>vortex_sim_interface</test_depend>
-  <test_depend>rosbag2_transport</test_depend>
-  <test_depend>vortex_msgs</test_depend>
-  <test_depend>thrust_allocator_auv</test_depend>
+  <depend>rclpy</depend>
+  <depend>vortex_stonefish_test_description</depend>
+  <depend>reference_filter_dp</depend>
+  <depend>dp_adapt_backs_controller</depend>
+  <depend>waypoint_manager</depend>
+  <depend>auv_setup</depend>
+  <depend>vortex_msgs</depend>
+  <depend>thrust_allocator_auv</depend>
 
   <exec_depend>python3-setuptools</exec_depend>
 
+  <export>
+  </export>
 </package>
