@@ -232,12 +232,11 @@ vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
 }
 
 Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
-    const Eigen::Vector6d& r_in, uint8_t mode)
-{
+    const Eigen::Vector6d& r_in,
+    uint8_t mode) {
     Eigen::Vector6d r_out = r_in;
 
-    switch (mode)
-    {
+    switch (mode) {
         case vortex_msgs::msg::Waypoint::FULL_POSE:
             break;
 
@@ -247,8 +246,7 @@ Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
             r_out(5) = x_(5);
             break;
 
-        case vortex_msgs::msg::Waypoint::FORWARD_HEADING:
-        {
+        case vortex_msgs::msg::Waypoint::FORWARD_HEADING: {
             double dx = r_in(0) - x_(0);
             double dy = r_in(1) - x_(1);
 
@@ -282,14 +280,17 @@ void ReferenceFilterNode::execute(
 
     x_ = fill_reference_state();
 
-    const geometry_msgs::msg::Pose goal = goal_handle->get_goal()->waypoint.pose;
+    const geometry_msgs::msg::Pose goal =
+        goal_handle->get_goal()->waypoint.pose;
     uint8_t mode = goal_handle->get_goal()->waypoint.mode;
     double convergence_threshold =
         goal_handle->get_goal()->convergence_threshold;
 
     if (convergence_threshold <= 0.0) {
         convergence_threshold = 0.1;
-        spdlog::warn("ReferenceFilter: Invalid convergence_threshold received (<= 0). Using default 0.1");
+        spdlog::warn(
+            "ReferenceFilter: Invalid convergence_threshold received (<= 0). "
+            "Using default 0.1");
     }
 
     Eigen::Vector6d r_temp = fill_reference_goal(goal);
