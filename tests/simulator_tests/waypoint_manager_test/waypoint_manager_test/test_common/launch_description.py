@@ -1,29 +1,28 @@
 import os
-from launch_ros.actions import Node
+
 from ament_index_python.packages import get_package_share_directory
-from test_utils.sim_setup import generate_sim_test_description
+from launch_ros.actions import Node
+from vortex_stonefish_test_description import generate_sim_test_description
 
 ORCA_NS = "orca"
 
+
 def generate_wm_test_description(
-    scenario="default",
-    rendering=True,
-    bag=True,
-    delay=5.0
+    scenario="default", rendering=True, bag=True, delay=5.0
 ):
     """Shared launch description for all WM tests."""
-
     rf_cfg = os.path.join(
         get_package_share_directory("reference_filter_dp"),
-        "config", "reference_filter_params.yaml"
+        "config",
+        "reference_filter_params.yaml",
     )
     adapt_cfg = os.path.join(
         get_package_share_directory("dp_adapt_backs_controller"),
-        "config", "adapt_params.yaml"
+        "config",
+        "adapt_params.yaml",
     )
     orca_cfg = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config", "robots", "orca.yaml"
+        get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
     )
 
     extra_nodes = [

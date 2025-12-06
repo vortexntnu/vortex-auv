@@ -1,15 +1,15 @@
 # waypoint_manager_test/test_common/base_test.py
 import time
-import rclpy
 import unittest
-from rclpy.executors import SingleThreadedExecutor
-from rclpy.action import ActionClient
 
+import rclpy
+from rclpy.action import ActionClient
+from rclpy.executors import SingleThreadedExecutor
 from std_msgs.msg import String
 from vortex_msgs.action import WaypointManager
 from vortex_msgs.srv import WaypointAddition
 
-from .utilities import pose_distance
+from .utils import pose_distance
 
 ORCA_NS = "orca"
 WM_ACTION = f"/{ORCA_NS}/waypoint_manager"
@@ -17,8 +17,8 @@ WP_ADD_SRV = f"/{ORCA_NS}/waypoint_addition"
 OP_MODE_TOPIC = f"/{ORCA_NS}/operation_mode"
 OP_AUTONOMOUS = "autonomous mode"
 
-class WaypointManagerTestBase(unittest.TestCase):
 
+class WaypointManagerTestBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         rclpy.init()
@@ -71,7 +71,7 @@ class WaypointManagerTestBase(unittest.TestCase):
 
         send_fut = self.action_client.send_goal_async(goal)
         handle = self.spin_until_done(send_fut, timeout=120)
-        self.assertTrue(handle.accepted, "Goal was rejected")
+        assert handle.accepted, "Goal was rejected"
 
         result_fut = handle.get_result_async()
         res = self.spin_until_done(result_fut, timeout=180)
@@ -87,4 +87,4 @@ class WaypointManagerTestBase(unittest.TestCase):
 
     def assert_pose_close(self, pose, target, tol=0.5, msg=""):
         d = pose_distance(pose, target)
-        self.assertLess(d, tol, msg or f"Pose too far from target ({d})")
+        assert d < tol, msg or f"Pose too far from target ({d})"
