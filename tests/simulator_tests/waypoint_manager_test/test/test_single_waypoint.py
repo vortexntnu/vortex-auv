@@ -6,7 +6,7 @@ from waypoint_manager_test.test_common.utils import make_waypoint
 
 
 def generate_test_description():
-    return generate_wm_test_description()
+    return generate_wm_test_description(bag=False)
 
 
 class TestSingleWaypoint(WaypointManagerTestBase):

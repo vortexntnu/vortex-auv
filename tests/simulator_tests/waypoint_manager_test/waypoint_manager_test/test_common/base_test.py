@@ -77,10 +77,10 @@ class WaypointManagerTestBase(unittest.TestCase):
         res = self.spin_until_done(result_fut, timeout=180)
         return handle, res.result
 
-    def call_add(self, waypoints, overwrite=False, non_interruptible=False):
+    def call_add(self, waypoints, overwrite=False, priority=False):
         req = WaypointAddition.Request()
         req.overwrite = overwrite
-        req.non_interruptible = non_interruptible
+        req.priority = priority
         req.waypoints = list(waypoints)
         fut = self.wp_add_client.call_async(req)
         return self.spin_until_done(fut)

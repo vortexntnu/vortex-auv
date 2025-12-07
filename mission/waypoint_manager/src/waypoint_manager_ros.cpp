@@ -83,7 +83,7 @@ void WaypointManagerNode::cleanup_mission_state() {
     waypoints_.clear();
     current_index_ = 0;
     persistent_action_mode_ = false;
-    non_interruptible_mode_ = false;
+    priority_mode_ = false;
     have_reference_pose_ = false;
 
     if (active_reference_filter_goal_) {
@@ -136,7 +136,7 @@ rclcpp_action::GoalResponse WaypointManagerNode::handle_waypoint_goal(
     waypoints_ = goal->waypoints;
     current_index_ = 0;
     persistent_action_mode_ = goal->persistent;
-    non_interruptible_mode_ = false;
+    priority_mode_ = false;
     have_reference_pose_ = false;
     convergence_threshold_ = goal->convergence_threshold;
 
@@ -186,12 +186,13 @@ void WaypointManagerNode::handle_waypoint_addition_service_request(
         return;
     }
 
-    if (non_interruptible_mode_ && !request->non_interruptible) {
+    if (priority_mode_ && !request->priority &&
+        current_index_ < waypoints_.size()) {
         response->success = false;
         return;
     }
 
-    non_interruptible_mode_ = request->non_interruptible;
+    priority_mode_ = request->priority;
 
     if (request->overwrite) {
         waypoints_ = request->waypoints;

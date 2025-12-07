@@ -16,7 +16,8 @@ if(BUILD_TESTING)
   endfunction()
 
   add_ros_isolated_launch_test(test/test_single_waypoint.py)
-  # add_ros_isolated_launch_test(test/test_persistent_append.py)
+  add_ros_isolated_launch_test(test/test_service_failure.py)
+  add_ros_isolated_launch_test(test/test_priority_service.py)
 endif()
 
 ament_package()

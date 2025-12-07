@@ -7,6 +7,7 @@ def generate_launch_description():
         package='waypoint_manager',
         executable='waypoint_manager_node',
         name='waypoint_manager_node',
+        namespace='orca',
         parameters=[],
         output='screen',
     )

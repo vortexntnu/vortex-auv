@@ -108,7 +108,7 @@ class WaypointManagerNode : public rclcpp::Node {
     double convergence_threshold_{0.1};
 
     bool persistent_action_mode_{false};
-    bool non_interruptible_mode_{false};
+    bool priority_mode_{false};
 
     ReferenceFilterAction::Feedback latest_ref_feedback_;
     bool have_reference_pose_{false};

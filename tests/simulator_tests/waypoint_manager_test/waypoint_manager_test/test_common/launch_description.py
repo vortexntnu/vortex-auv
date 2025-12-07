@@ -8,7 +8,7 @@ ORCA_NS = "orca"
 
 
 def generate_wm_test_description(
-    scenario="default", rendering=True, bag=True, delay=5.0
+    scenario="default", rendering=True, bag=False, delay=5.0
 ):
     """Shared launch description for all WM tests."""
     rf_cfg = os.path.join(
