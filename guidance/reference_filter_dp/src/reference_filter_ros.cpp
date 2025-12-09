@@ -250,11 +250,11 @@ Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
             double dx = r_in(0) - x_(0);
             double dy = r_in(1) - x_(1);
 
-            double forward_yaw = std::atan2(dy, dx);
+            double forward_heading = std::atan2(dy, dx);
 
             r_out(3) = 0.0;
             r_out(4) = 0.0;
-            r_out(5) = vortex::utils::math::ssa(forward_yaw);
+            r_out(5) = vortex::utils::math::ssa(forward_heading);
             break;
         }
 
