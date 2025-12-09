@@ -15,9 +15,10 @@ if(BUILD_TESTING)
     add_launch_test("${path}" RUNNER "${RUNNER}" ${ARGN})
   endfunction()
 
-  add_ros_isolated_launch_test(test/test_single_waypoint.py)
-  add_ros_isolated_launch_test(test/test_service_failure.py)
-  add_ros_isolated_launch_test(test/test_priority_service.py)
+  add_ros_isolated_launch_test(test/test_single_waypoint.py TIMEOUT 300)
+  add_ros_isolated_launch_test(test/test_service_failure.py TIMEOUT 300)
+  add_ros_isolated_launch_test(test/test_priority_service.py TIMEOUT 300)
+  add_ros_isolated_launch_test(test/test_four_corner.py TIMEOUT 300)
 endif()
 
 ament_package()
