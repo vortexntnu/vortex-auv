@@ -10,7 +10,7 @@
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
-#include <vortex_msgs/srv/waypoint_addition.hpp>
+#include <vortex_msgs/srv/send_waypoints.hpp>
 
 namespace vortex::mission {
 
@@ -34,14 +34,8 @@ class WaypointManagerNode : public rclcpp::Node {
     // @brief Create the action client for ReferenceFilterWaypoint.
     void set_reference_action_client();
 
-    // @brief Create the service servers for WaypointAddition.
+    // @brief Create the service servers for SendWaypoints.
     void set_waypoint_service_server();
-
-    // @brief Convert ReferenceFilter feedback to a Pose message
-    // @param fb The ReferenceFilter feedback message
-    // @return The corresponding Pose message
-    geometry_msgs::msg::Pose reference_to_pose(
-        const ReferenceFilterAction::Feedback& fb) const;
 
     // @brief Construct the result message for the WaypointManager action
     // @param success Whether the action was successful
@@ -81,15 +75,14 @@ class WaypointManagerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::WaypointManager>> goal_handle);
 
-    // @brief Handle incoming waypoint addition service requests
+    // @brief Handle incoming send waypoints service requests
     //        Only accepted if waypoint action is running.
     // @param request Incoming service request containing waypoint information.
     // @param response Service response that should be populated and sent back
     // to the caller.
-    void handle_waypoint_addition_service_request(
-        const std::shared_ptr<vortex_msgs::srv::WaypointAddition::Request>
-            request,
-        std::shared_ptr<vortex_msgs::srv::WaypointAddition::Response> response);
+    void handle_send_waypoints_service_request(
+        const std::shared_ptr<vortex_msgs::srv::SendWaypoints::Request> request,
+        std::shared_ptr<vortex_msgs::srv::SendWaypoints::Response> response);
 
     // @brief Send a goal to the reference filter
     // @param goal_msg The action goal
@@ -100,19 +93,19 @@ class WaypointManagerNode : public rclcpp::Node {
         SharedPtr reference_filter_client_;
     rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr
         waypoint_action_server_;
-    rclcpp::Service<vortex_msgs::srv::WaypointAddition>::SharedPtr
+    rclcpp::Service<vortex_msgs::srv::SendWaypoints>::SharedPtr
         waypoint_service_server_;
 
     std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
     std::size_t current_index_{0};
     double convergence_threshold_{0.1};
 
-    bool persistent_action_mode_{false};
-    bool priority_mode_{false};
+    bool persistent_action_mode_active_{false};
+    bool priority_mode_active_{false};
 
     ReferenceFilterAction::Feedback latest_ref_feedback_;
-    bool have_reference_pose_{false};
-    bool cancel_in_progress_{false};
+    bool has_reference_pose_{false};
+    bool is_cancel_in_progress_{false};
 
     std::uint64_t mission_id_ = 0;
 
