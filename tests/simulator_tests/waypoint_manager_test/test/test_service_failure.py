@@ -1,5 +1,5 @@
 from vortex_msgs.action import WaypointManager
-from vortex_msgs.srv import WaypointAddition
+from vortex_msgs.srv import SendWaypoints
 
 from waypoint_manager_test.test_common.base_test import WaypointManagerTestBase
 from waypoint_manager_test.test_common.launch_description import (
@@ -16,10 +16,10 @@ class TestServiceFailure(WaypointManagerTestBase):
     def test_service_no_active_action(self):
         wp = make_waypoint(2.0, 0.0, 1.0)
 
-        req = WaypointAddition.Request()
+        req = SendWaypoints.Request()
         req.waypoints = [wp]
-        req.overwrite = False
-        req.priority = False
+        req.overwrite_prior_waypoints = False
+        req.take_priority = False
 
         fut = self.wp_add_client.call_async(req)
         resp = self.spin_until_done(fut, timeout=10)
@@ -40,10 +40,10 @@ class TestServiceFailure(WaypointManagerTestBase):
 
         wp2 = make_waypoint(2.0, 0.0, 0.5)
 
-        req = WaypointAddition.Request()
+        req = SendWaypoints.Request()
         req.waypoints = [wp2]
-        req.overwrite = False
-        req.priority = False
+        req.overwrite_prior_waypoints = False
+        req.take_priority = False
 
         fut = self.wp_add_client.call_async(req)
         resp = self.spin_until_done(fut, timeout=10)

@@ -7,7 +7,7 @@ from rclpy.action import ActionClient
 from rclpy.executors import SingleThreadedExecutor
 from std_msgs.msg import String
 from vortex_msgs.action import WaypointManager
-from vortex_msgs.srv import WaypointAddition
+from vortex_msgs.srv import SendWaypoints
 
 from .utils import pose_distance
 
@@ -40,12 +40,12 @@ class WaypointManagerTestBase(unittest.TestCase):
 
         # Action + service clients
         self.action_client = ActionClient(self.node, WaypointManager, WM_ACTION)
-        self.wp_add_client = self.node.create_client(WaypointAddition, WP_ADD_SRV)
+        self.wp_add_client = self.node.create_client(SendWaypoints, WP_ADD_SRV)
 
         if not self.action_client.wait_for_server(timeout_sec=20.0):
             self.fail("WaypointManager action server unavailable")
         if not self.wp_add_client.wait_for_service(timeout_sec=20.0):
-            self.fail("WaypointAddition service unavailable")
+            self.fail("SendWaypoints service unavailable")
 
         self.executor.spin_once(timeout_sec=0.1)
 
@@ -77,10 +77,10 @@ class WaypointManagerTestBase(unittest.TestCase):
         res = self.spin_until_done(result_fut, timeout=180)
         return handle, res.result
 
-    def call_add(self, waypoints, overwrite=False, priority=False):
-        req = WaypointAddition.Request()
-        req.overwrite = overwrite
-        req.priority = priority
+    def call_add(self, waypoints, overwrite_prior_waypoints=False, take_priority=False):
+        req = SendWaypoints.Request()
+        req.overwrite_prior_waypoints = overwrite_prior_waypoints
+        req.take_priority = take_priority
         req.waypoints = list(waypoints)
         fut = self.wp_add_client.call_async(req)
         return self.spin_until_done(fut)

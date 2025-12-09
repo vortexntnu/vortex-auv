@@ -1,7 +1,7 @@
 import time
 
 from vortex_msgs.action import WaypointManager
-from vortex_msgs.srv import WaypointAddition
+from vortex_msgs.srv import SendWaypoints
 
 from waypoint_manager_test.test_common.base_test import WaypointManagerTestBase
 from waypoint_manager_test.test_common.launch_description import (
@@ -28,20 +28,20 @@ class TestPriority(WaypointManagerTestBase):
         handle = self.spin_until_done(send_fut, timeout=120)
         assert handle.accepted, "Goal was rejected"
 
-        req = WaypointAddition.Request()
+        req = SendWaypoints.Request()
         req.waypoints = [wp1]
-        req.overwrite = False
-        req.priority = True
+        req.overwrite_prior_waypoints = False
+        req.take_priority = True
 
         fut = self.wp_add_client.call_async(req)
         resp = self.spin_until_done(fut, timeout=10)
 
         assert resp.success, "Setting priority=True failed"
 
-        req2 = WaypointAddition.Request()
+        req2 = SendWaypoints.Request()
         req2.waypoints = [wp2]
-        req2.overwrite = False
-        req2.priority = False
+        req2.overwrite_prior_waypoints = False
+        req2.take_priority = False
 
         fut2 = self.wp_add_client.call_async(req2)
         resp2 = self.spin_until_done(fut2, timeout=10)
