@@ -5,11 +5,10 @@
   <maintainer email="jorgen.fjermedal@hotmail.com">Jorgen Fjermedal</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
 
-  <exec_depend>stonefish_sim</exec_depend>
-  <test_depend>vortex_sim_interface</test_depend>
-  <test_depend>rosbag2_transport</test_depend>
+  <depend>stonefish_sim</depend>
+  <depend>vortex_sim_interface</depend>
+  <depend>rosbag2_transport</depend>
 
   <export>
     <build_type>ament_python</build_type>

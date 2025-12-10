@@ -9,7 +9,6 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-  <buildtool_depend>ament_python</buildtool_depend>
 
   <test_depend>launch</test_depend>
   <test_depend>launch_ros</test_depend>
