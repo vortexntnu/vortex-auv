@@ -65,8 +65,9 @@ WaypointManagerNode::construct_result(bool success) const {
     result->success = success;
     result->pose_valid = has_reference_pose_;
     if (has_reference_pose_) {
-        result->final_pose = vortex::utils::ros_conversions::reference_to_pose(
-            latest_ref_feedback_.reference);
+        result->final_pose =
+            vortex::utils::ros_conversions::pose_like_to_pose_msg(
+                latest_ref_feedback_.reference);
     }
     return result;
 }
@@ -259,7 +260,7 @@ void WaypointManagerNode::send_reference_filter_goal(
                 return;
 
             geometry_msgs::msg::Pose robot_pose =
-                vortex::utils::ros_conversions::reference_to_pose(
+                vortex::utils::ros_conversions::pose_like_to_pose_msg(
                     fb->reference);
 
             if (current_index_ < waypoints_.size()) {
