@@ -15,7 +15,16 @@
 
 #include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
 
+#include <concepts>
+#include <variant>
+
 namespace vortex::filtering {
+
+template <typename MsgT>
+concept ValidPoseMsg =
+    std::same_as<MsgT, geometry_msgs::msg::PoseStamped> ||
+    std::same_as<MsgT, geometry_msgs::msg::PoseArray> ||
+    std::same_as<MsgT, geometry_msgs::msg::PoseWithCovarianceStamped>;
 
 class IPDAPoseFilteringNode : public rclcpp::Node {
    public:
@@ -28,25 +37,30 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
 
     void setup_track_manager();
 
-    template <typename MsgT>
+    template <ValidPoseMsg MsgT>
     void create_pose_subscription(const std::string& topic_name,
                                   const rmw_qos_profile_t& qos_profile);
 
-    template <typename MsgT>
+    template <ValidPoseMsg MsgT>
     void pose_callback(const typename MsgT::ConstSharedPtr& msg);
 
     void timer_callback();
 
     std::variant<
-        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
-        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseWithCovarianceStamped>>>
+        std::shared_ptr<
+            message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<
+            message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
+        std::shared_ptr<message_filters::Subscriber<
+            geometry_msgs::msg::PoseWithCovarianceStamped>>>
         subscriber_;
 
     std::variant<
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
+        std::shared_ptr<
+            tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
         std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>>
+        std::shared_ptr<tf2_ros::MessageFilter<
+            geometry_msgs::msg::PoseWithCovarianceStamped>>>
         tf_filter_;
 
     std::string target_frame_;

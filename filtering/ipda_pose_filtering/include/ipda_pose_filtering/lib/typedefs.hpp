@@ -9,7 +9,7 @@ namespace Eigen {
 
 using Vector6d = Eigen::Matrix<double, 6, 1>;
 
-} // namespace eigen
+}  // namespace Eigen
 
 namespace vortex::filtering {
 

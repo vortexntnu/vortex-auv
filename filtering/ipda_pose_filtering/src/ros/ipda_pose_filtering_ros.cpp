@@ -25,8 +25,7 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
     pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>(
         pub_topic_name, qos_sensor_data_pub);
 
-    int publish_timer =
-        this->declare_parameter<int>("publish_timer");
+    int publish_timer = this->declare_parameter<int>("publish_timer");
 
     pub_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(publish_timer),
@@ -110,7 +109,7 @@ void IPDAPoseFilteringNode::setup_track_manager() {
     track_manager_ = std::make_unique<IPDAPoseTrackManager>(config);
 }
 
-template <typename MsgT>
+template <ValidPoseMsg MsgT>
 void IPDAPoseFilteringNode::create_pose_subscription(
     const std::string& topic_name,
     const rmw_qos_profile_t& qos_profile) {
@@ -129,10 +128,11 @@ void IPDAPoseFilteringNode::create_pose_subscription(
     tf_filter_ = filter;
 }
 
-template <typename MsgT>
+template <ValidPoseMsg MsgT>
 void IPDAPoseFilteringNode::pose_callback(
     const typename MsgT::ConstSharedPtr& msg) {
-    Measurements measurements = vortex::utils::ros_conversions::ros_to_eigen6d(*msg);
+    Measurements measurements =
+        vortex::utils::ros_conversions::ros_to_eigen6d(*msg);
     rclcpp::Time current_time(msg->header.stamp);
     double dt = (current_time - prev_meas_stamp_).seconds();
     prev_meas_stamp_ = current_time;
@@ -140,16 +140,17 @@ void IPDAPoseFilteringNode::pose_callback(
 };
 
 void IPDAPoseFilteringNode::timer_callback() {
-
     track_manager_->predict_tracks();
-    
+
     geometry_msgs::msg::PoseArray pose_array;
     pose_array.header.frame_id = target_frame_;
     pose_array.header.stamp = prev_meas_stamp_;
     for (auto track : track_manager_->get_tracks()) {
-        if (!track.confirmed) continue;
+        if (!track.confirmed)
+            continue;
         pose_array.poses.push_back(
-            vortex::utils::ros_conversions::eigen6d_to_pose(track.state.mean()));  
+            vortex::utils::ros_conversions::pose_like_to_pose_msg(
+                track.state.mean()));
     }
     pose_array_pub_->publish(pose_array);
 }
