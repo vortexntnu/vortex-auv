@@ -16,9 +16,9 @@
   <test_depend>launch_testing_ament_cmake</test_depend>
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <test_depend>vortex_stonefish_test_description</test_depend>
 
   <depend>rclpy</depend>
-  <depend>vortex_stonefish_test_description</depend>
   <depend>reference_filter_dp</depend>
   <depend>dp_adapt_backs_controller</depend>
   <depend>waypoint_manager</depend>

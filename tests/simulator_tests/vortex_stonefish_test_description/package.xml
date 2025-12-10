@@ -6,9 +6,9 @@
   <license>MIT</license>
 
 
-  <depend>stonefish_sim</depend>
-  <depend>vortex_sim_interface</depend>
-  <depend>rosbag2_transport</depend>
+  <test_depend>stonefish_sim</test_depend>
+  <test_depend>vortex_sim_interface</test_depend>
+  <test_depend>rosbag2_transport</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
