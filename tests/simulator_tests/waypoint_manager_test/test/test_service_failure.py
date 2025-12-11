@@ -1,6 +1,5 @@
 from vortex_msgs.action import WaypointManager
 from vortex_msgs.srv import SendWaypoints
-
 from waypoint_manager_test.test_common.base_test import WaypointManagerTestBase
 from waypoint_manager_test.test_common.launch_description import (
     generate_wm_test_description,
