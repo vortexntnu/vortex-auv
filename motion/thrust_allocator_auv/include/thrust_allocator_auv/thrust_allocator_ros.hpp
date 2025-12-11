@@ -10,7 +10,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
-#include "thrust_allocator_auv/eigen_vector6d_typedef.hpp"
+#include "vortex/utils/eigen_typedefs_extensions.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
