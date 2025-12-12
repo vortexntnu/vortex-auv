@@ -13,8 +13,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
-
 #include <vortex_msgs/msg/thruster_forces.hpp>
+#include <vortex/utils/types.hpp>
+
+using vortex::utils::types::Vector6d;
 
 /**
  * @brief Check if the matrix has any NaN or INF elements.
@@ -54,22 +56,6 @@ inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
 
     thrust_allocation_matrix = thrust_allocation_matrix.array();
     return thrust_allocation_matrix;
-}
-
-/**
- * @brief Calculates the pseudoinverse of the given matrix.
- *
- * @param M The matrix to calculate the pseudoinverse of.
- * @throws char* if the pseudoinverse is invalid.
- * @return The pseudoinverse of the given matrix.
- */
-inline Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T) {
-    Eigen::MatrixXd pseudoinverse =
-        T.transpose() * (T * T.transpose()).inverse();
-    if (is_invalid_matrix(pseudoinverse)) {
-        throw std::runtime_error("Invalid Pseudoinverse Calculated");
-    }
-    return pseudoinverse;
 }
 
 /**
@@ -142,9 +128,9 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
-inline Eigen::Vector6d wrench_to_vector(
+inline Vector6d wrench_to_vector(
     const geometry_msgs::msg::WrenchStamped& msg) {
-    Eigen::Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
+    Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
                                msg.wrench.force.z,  msg.wrench.torque.x,
                                msg.wrench.torque.y, msg.wrench.torque.z};
 

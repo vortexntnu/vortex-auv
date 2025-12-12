@@ -5,10 +5,12 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
 #include <vortex/utils/qos_profiles.hpp>
+#include "vortex/utils/types.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
 using namespace std::chrono_literals;
+using vortex::utils::types::Vector6d;
 
 auto start_message{R"(
   _____ _                    _        _    _ _                 _
@@ -23,15 +25,12 @@ ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions& options)
     : Node("thrust_allocator_node", options),
       pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
     extract_parameters();
-
     set_allocator();
-
     set_subscriber_and_publisher();
 
     watchdog_timer_ = this->create_wall_timer(
         500ms, std::bind(&ThrustAllocator::watchdog_callback, this));
     last_msg_time_ = this->now();
-
     spdlog::info(start_message);
 }
 
@@ -46,6 +45,9 @@ void ThrustAllocator::extract_parameters() {
     this->declare_parameter<std::vector<double>>(
         "propulsion.thrusters.thruster_position");
     this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
+    this->declare_parameter<std::string>("propulsion.type");
+    this->declare_parameter<std::string>("topics.wrench_input");
+    this->declare_parameter<std::string>("topics.thruster_forces");
 
     center_of_mass_ = double_array_to_eigen_vector3d(
         this->get_parameter("physical.center_of_mass").as_double_array());
@@ -53,6 +55,7 @@ void ThrustAllocator::extract_parameters() {
     num_thrusters_ = this->get_parameter("propulsion.thrusters.num").as_int();
     min_thrust_ = this->get_parameter("propulsion.thrusters.min").as_int();
     max_thrust_ = this->get_parameter("propulsion.thrusters.max").as_int();
+    solver_type_ = this->get_parameter("propulsion.type").as_string();
 
     double timout_treshold_param =
         this->get_parameter("propulsion.thrusters.watchdog_timeout")
@@ -60,8 +63,6 @@ void ThrustAllocator::extract_parameters() {
     timeout_treshold_ = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::duration<double>(timout_treshold_param));
 
-    this->declare_parameter<std::string>("topics.wrench_input");
-    this->declare_parameter<std::string>("topics.thruster_forces");
 }
 
 void ThrustAllocator::set_allocator() {
@@ -77,9 +78,16 @@ void ThrustAllocator::set_allocator() {
 
     thrust_configuration_ = calculate_thrust_allocation_matrix(
         thruster_force_direction_, thruster_position_, center_of_mass_);
+    
+    if solver_type_ == "pseudo_inverse" {
+        pseudoinverse_allocator_.T_pinv =
+            calculate_pseudoinverse(thrust_configuration_);
+    }
 
-    pseudoinverse_allocator_.T_pinv =
-        calculate_pseudoinverse(thrust_configuration_);
+    if solver_type_ == "QP" {
+        // TODO: implement solver lol
+    }
+
 }
 
 void ThrustAllocator::set_subscriber_and_publisher() {
@@ -104,7 +112,7 @@ void ThrustAllocator::set_subscriber_and_publisher() {
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped& msg) {
     last_msg_time_ = this->now();
     watchdog_triggered_ = false;
-    Eigen::Vector6d wrench_vector = wrench_to_vector(msg);
+    Vector6d wrench_vector = wrench_to_vector(msg);
     Eigen::VectorXd zero_forces = Eigen::VectorXd::Zero(8);
 
     if (!healthy_wrench(wrench_vector)) {

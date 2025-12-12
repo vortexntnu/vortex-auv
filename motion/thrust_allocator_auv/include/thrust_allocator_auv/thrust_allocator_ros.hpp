@@ -8,11 +8,14 @@
 
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <string.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
-#include "vortex/utils/eigen_typedefs_extensions.hpp"
+#include "vortex/utils/types.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+
+using vortex::utils::types::Vector6d;
 
 class ThrustAllocator : public rclcpp::Node {
    public:
@@ -85,7 +88,8 @@ class ThrustAllocator : public rclcpp::Node {
     Eigen::MatrixXd thruster_position_;
     Eigen::MatrixXd thrust_configuration_;
 
-    Eigen::Vector6d body_frame_forces_;
+    Vector6d body_frame_forces_;
+    std::string solver_type_;
     PseudoinverseAllocator pseudoinverse_allocator_;
 
     rclcpp::Time last_msg_time_;

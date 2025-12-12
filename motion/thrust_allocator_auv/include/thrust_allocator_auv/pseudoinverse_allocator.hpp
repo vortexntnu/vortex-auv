@@ -19,9 +19,22 @@ class PseudoinverseAllocator {
     /**
      * @brief Constructor for the PseudoinverseAllocator class.
      *
-     * @param T_pinv The pseudoinverse of the thruster configuration matrix.
+     * @param thrust_matrix_pseudoinverse_ The pseudoinverse of the thruster configuration matrix.
+     * @param input_weight_matrix Diagonal matrix with weights from Fossen (11.27).
+     * @param extended_thrust_matrix The extended thrust configuration matrix Fossen (11.16).
      */
-    explicit PseudoinverseAllocator(const Eigen::MatrixXd& T_pinv);
+    explicit PseudoinverseAllocator::PseudoinverseAllocator(const Eigen::MatrixXd& extended_thrust_matrix,
+    const Eigen::MatrixXd& input_weight_matrix);
+
+    /**
+     * @brief Calculates the pseudoinverse of the given matrix.
+     *
+     * @param T The extended thrust configuration matrix from Fossen (11.16).
+     * @param W The input weight matrix from Fossen (11.27).
+     * @throws char* if the pseudoinverse is invalid.
+     * @return The pseudoinverse of the given matrix.
+     */
+   Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T, const Eigen::MatrixXd& W) ;
 
     /**
      * @brief Calculates the allocated thrust given the input torques using the
@@ -33,7 +46,9 @@ class PseudoinverseAllocator {
     Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd& tau);
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-    Eigen::MatrixXd T_pinv;
+    Eigen::MatrixXd extended_thrust_matrix_;
+    Eigen::MatrixXd input_weght_matrix_;
+    Eigen::MatrixXd thrust_matrix_pseudoinverse_;
 };
 
 #endif  // THRUST_ALLOCATOR_AUV__PSEUDOINVERSE_ALLOCATOR_HPP_
