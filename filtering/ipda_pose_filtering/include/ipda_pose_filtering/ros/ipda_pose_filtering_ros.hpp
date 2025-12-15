@@ -26,6 +26,19 @@ concept ValidPoseMsg =
     std::same_as<MsgT, geometry_msgs::msg::PoseArray> ||
     std::same_as<MsgT, geometry_msgs::msg::PoseWithCovarianceStamped>;
 
+using PoseSubscriberVariant = std::variant<
+    std::shared_ptr<
+        message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
+    std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
+    std::shared_ptr<message_filters::Subscriber<
+        geometry_msgs::msg::PoseWithCovarianceStamped>>>;
+
+using PoseTFVariant = std::variant<
+    std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
+    std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
+    std::shared_ptr<
+        tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>>;
+
 class IPDAPoseFilteringNode : public rclcpp::Node {
    public:
     IPDAPoseFilteringNode(const rclcpp::NodeOptions& options);
@@ -46,22 +59,9 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
 
     void timer_callback();
 
-    std::variant<
-        std::shared_ptr<
-            message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
-        std::shared_ptr<
-            message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<message_filters::Subscriber<
-            geometry_msgs::msg::PoseWithCovarianceStamped>>>
-        subscriber_;
+    PoseSubscriberVariant subscriber_;
 
-    std::variant<
-        std::shared_ptr<
-            tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
-        std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
-        std::shared_ptr<tf2_ros::MessageFilter<
-            geometry_msgs::msg::PoseWithCovarianceStamped>>>
-        tf_filter_;
+    PoseTFVariant tf_filter_;
 
     std::string target_frame_;
     rclcpp::Time prev_meas_stamp_{0, 0, RCL_ROS_TIME};
