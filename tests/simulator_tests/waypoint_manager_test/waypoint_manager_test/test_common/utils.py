@@ -2,16 +2,21 @@ import math
 
 from geometry_msgs.msg import Pose
 from vortex_msgs.msg import Waypoint
+from vortex_utils.python_utils import euler_to_quat
 
 
-def make_pose(x, y, z, yaw=0.0) -> Pose:
+def make_pose(x, y, z, roll=0.0, pitch=0.0, yaw=0.0) -> Pose:
     pose = Pose()
     pose.position.x = x
     pose.position.y = y
     pose.position.z = z
-    half = yaw * 0.5
-    pose.orientation.z = math.sin(half)
-    pose.orientation.w = math.cos(half)
+
+    qx, qy, qz, qw = euler_to_quat(roll, pitch, yaw)
+    pose.orientation.x = qx
+    pose.orientation.y = qy
+    pose.orientation.z = qz
+    pose.orientation.w = qw
+
     return pose
 
 

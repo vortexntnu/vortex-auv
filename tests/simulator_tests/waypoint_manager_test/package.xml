@@ -24,6 +24,7 @@
   <depend>waypoint_manager</depend>
   <depend>auv_setup</depend>
   <depend>vortex_msgs</depend>
+  <depend>vortex_utils</depend>
   <depend>thrust_allocator_auv</depend>
 
   <exec_depend>python3-setuptools</exec_depend>
