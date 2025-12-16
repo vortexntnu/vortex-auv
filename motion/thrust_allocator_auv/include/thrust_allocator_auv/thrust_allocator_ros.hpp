@@ -12,6 +12,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include "vortex/utils/types.hpp"
+#include "thrust_allocator_auv/allocator.hpp"
+#include "thrust_allocator_auv/qp_allocator.hpp"
+#include "thrust_allocator_auv/allocator_factory.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
@@ -90,7 +93,7 @@ class ThrustAllocator : public rclcpp::Node {
 
     Vector6d body_frame_forces_;
     std::string solver_type_;
-    PseudoinverseAllocator pseudoinverse_allocator_;
+    std::unique_ptr<Allocator> allocator_;
 
     rclcpp::Time last_msg_time_;
     rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);

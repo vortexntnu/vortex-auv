@@ -22,8 +22,7 @@ auto start_message{R"(
 )"};
 
 ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions& options)
-    : Node("thrust_allocator_node", options),
-      pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
+    : Node("thrust_allocator_node", options) {
     extract_parameters();
     set_allocator();
     set_subscriber_and_publisher();
@@ -79,14 +78,7 @@ void ThrustAllocator::set_allocator() {
     thrust_configuration_ = calculate_thrust_allocation_matrix(
         thruster_force_direction_, thruster_position_, center_of_mass_);
     
-    if solver_type_ == "pseudo_inverse" {
-        pseudoinverse_allocator_.T_pinv =
-            calculate_pseudoinverse(thrust_configuration_);
-    }
-
-    if solver_type_ == "QP" {
-        // TODO: implement solver lol
-    }
+    allocator_ = Factory::make_allocator(->get_parameter("propulsion.allocator_type"))
 
 }
 
@@ -123,8 +115,7 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped& msg) {
         return;
     }
 
-    Eigen::VectorXd thruster_forces =
-        pseudoinverse_allocator_.calculate_allocated_thrust(wrench_vector);
+    Eigen::VectorXd thruster_forces = allocator_.calculate_allocated_thrust(wrench_vector);
 
     if (is_invalid_matrix(thruster_forces)) {
         spdlog::error("ThrusterForces vector invalid, publishing zeros.");
