@@ -15,6 +15,7 @@
 #include <vector>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include <vortex/utils/types.hpp>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
 
 using vortex::utils::types::Vector6d;
 
@@ -31,36 +32,13 @@ inline bool is_invalid_matrix(const Eigen::MatrixBase<Derived>& M) {
     bool has_inf = M.array().isInf().any();
     return has_nan || has_inf;
 }
-/**
- * @brief struct containing all configuration parameters for the different solvers
- * 
- * @param extended_thrust_matrix The extended thrust configuration matrix from Fossen 2021 (11.16). 
- * @param min_force Constraint on minimum amount of force from Fossen 2021 (11.38).
- * @param max_force Constraint on maximum amount of force from Fossen 2021 (11.38).
- * @param input_weight_matrix Diagonal matrix with input weights from Fossen 2021 (11.27).
- * @param slack_weight_matrix Diagonal matrix with slack variable weights matrix from Fossen 2021 (11.38).
- * @param beta The extended thrust configuration matrix from Fossen 2021 (11.38).
- */
-struct AllocatorConfig {
-    
-    Eigen::MatrixXd extended_thrust_matrix;
 
-    // Constraints
-    Eigen::VectorXd min_force;
-    Eigen::VectorXd max_force;
-
-    // Weighting matrices
-    Eigen::MatrixXd input_weight_matrix;
-    Eigen::MatrixXd slack_weight_matrix;
-    double beta;
-};
-
-inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
+inline Eigen::MatrixXd calculate_thrust_configuration_matrix(
     const Eigen::MatrixXd& thruster_force_direction,
     const Eigen::MatrixXd& thruster_position,
     const Eigen::Vector3d& center_of_mass) {
     // Initialize thrust allocation matrix
-    Eigen::MatrixXd thrust_allocation_matrix = Eigen::MatrixXd::Zero(6, 8);
+    Eigen::MatrixXd thrust_configuration_matrix = Eigen::MatrixXd::Zero(6, 8);
 
     // Calculate thrust and moment contributions from each thruster
     for (int i = 0; i < thruster_position.cols(); i++) {
@@ -73,12 +51,12 @@ inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
         pos -= center_of_mass;
 
         // Fill in the thrust allocation matrix
-        thrust_allocation_matrix.block<3, 1>(0, i) = F;
-        thrust_allocation_matrix.block<3, 1>(3, i) = pos.cross(F);
+        thrust_configuration_matrix.block<3, 1>(0, i) = F;
+        thrust_configuration_matrix.block<3, 1>(3, i) = pos.cross(F);
     }
 
-    thrust_allocation_matrix = thrust_allocation_matrix.array();
-    return thrust_allocation_matrix;
+    thrust_configuration_matrix = thrust_configuration_matrix.array();
+    return thrust_configuration_matrix;
 }
 
 /**

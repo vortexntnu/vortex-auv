@@ -21,15 +21,13 @@
       mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
 
     propulsion:
-      solver: pseudo_inverse # (availible solvers: pseudoinverse, QP)
+      solver: pseudoinverse # (availible solvers: pseudoinverse, QP)
       dofs:
         num: 6
       dimensions:
         num: 3
       thrusters:
         num: 8
-        min: -100
-        max: 100
         thruster_force_direction: [
             0.70711,
             0.00000,
@@ -80,11 +78,18 @@
             0.07600,
             0.08200,
             0.08200,
-            0.07600,
-          ] # z-position of thrusters
+            0.07600, # z-position of thrusters
+          ]
+        
+        constraints:
+          max_force: 100.0 
+          min_force: -100.0
+          beta: 100.0
+          input_matrix_weights: [1,1,1,1,1,1,1,1]
+          slack_matrix_weights: [100,100,100,100,100,100,100,100]
 
         rate_of_change:
-          max: 1 # Maximum rate of change in newton per second for a thruster
+          max_rate_of_change: 1 # Maximum rate of change in newton per second for a thruster
 
         thrust_update_rate: 100.0 # [Hz]
         watchdog_timeout: 1.0 # [s]

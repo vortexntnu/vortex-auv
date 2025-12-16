@@ -8,7 +8,7 @@
 
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
-#include <string.hpp>
+#include <string>
 #include <rclcpp/rclcpp.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include "vortex/utils/types.hpp"
@@ -94,6 +94,7 @@ class ThrustAllocator : public rclcpp::Node {
     Vector6d body_frame_forces_;
     std::string solver_type_;
     std::unique_ptr<Allocator> allocator_;
+    AllocatorConfig allocator_config_;
 
     rclcpp::Time last_msg_time_;
     rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);

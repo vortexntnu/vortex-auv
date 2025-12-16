@@ -1,13 +1,12 @@
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include "thrust_allocator_auv/allocator_config.hpp"
 
 PseudoinverseAllocator::PseudoinverseAllocator(const AllocatorConfig& cfg) : 
     extended_thrust_matrix_(cfg.extended_thrust_matrix),
-    input_weight_matrix_(cfg.input_weight_matrix) 
-    {
+    input_weight_matrix_(cfg.input_weight_matrix) {
     thrust_matrix_pseudoinverse_ = calculate_pseudoinverse(extended_thrust_matrix_, input_weight_matrix_);
     }
-
 
 Eigen::MatrixXd PseudoinverseAllocator::calculate_pseudoinverse(const Eigen::MatrixXd& T, const Eigen::MatrixXd& W) {
         Eigen::MatrixXd pseudoinverse =
