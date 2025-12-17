@@ -20,6 +20,41 @@
 
 using vortex::utils::types::Vector6d;
 
+/**
+ * @brief Converts an Eigen VectorXd to a vortex_msgs::msg::ThrusterForces
+ * message.
+ *
+ * @param u The Eigen VectorXd to be converted.
+ * @param msg The vortex_msgs::msg::ThrusterForces message to store the
+ * converted values.
+ * @return The converted vortex_msgs::msg::ThrusterForces message.
+ */
+inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
+    const Eigen::VectorXd& u) {
+    vortex_msgs::msg::ThrusterForces msg;
+    msg.header.stamp = rclcpp::Clock().now();
+    msg.header.frame_id = "base_link";
+    msg.thrust = std::vector<double>(u.begin(), u.end());
+    return msg;
+}
+
+/**
+ * @brief Converts a geometry wrench stamped message to a Vector6d to 
+ * message.
+ *
+ * @param msg The geometry_msgs::msg::WrenchStamped message with wrench vector
+ * @return The converted vortex::utils::types::Vector6d message.
+ */
+inline Vector6d wrench_to_vector(
+    const geometry_msgs::msg::WrenchStamped& msg) {
+    Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
+                               msg.wrench.force.z,  msg.wrench.torque.x,
+                               msg.wrench.torque.y, msg.wrench.torque.z};
+
+    return msg_vector;
+}
+
+
 class ThrustAllocator : public rclcpp::Node {
    public:
     explicit ThrustAllocator(const rclcpp::NodeOptions& options);

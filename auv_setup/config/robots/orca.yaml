@@ -89,7 +89,7 @@
           slack_matrix_weights: [100,100,100,100,100,100,100,100]
 
         rate_of_change:
-          max_rate_of_change: 1 # Maximum rate of change in newton per second for a thruster
+          max: 1 # Maximum rate of change in newton per second for a thruster
 
         thrust_update_rate: 100.0 # [Hz]
         watchdog_timeout: 1.0 # [s]

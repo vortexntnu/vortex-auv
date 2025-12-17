@@ -16,7 +16,6 @@ using rclcpp::ParameterType::PARAMETER_DOUBLE;
 using rclcpp::ParameterType::PARAMETER_INTEGER;
 using rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY;
 
-
 auto start_message{R"(
   _____ _                    _        _    _ _                 _
  |_   _| |__  _ __ _   _ ___| |_     / \  | | | ___   ___ __ _| |_ ___  _ __

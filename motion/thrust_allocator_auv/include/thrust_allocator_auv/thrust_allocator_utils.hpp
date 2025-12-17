@@ -10,12 +10,9 @@
 #include <algorithm>
 #include <eigen3/Eigen/Eigen>
 #include <ranges>
-#include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
-#include <vortex_msgs/msg/thruster_forces.hpp>
 #include <vortex/utils/types.hpp>
-#include <geometry_msgs/msg/wrench_stamped.hpp>
 
 using vortex::utils::types::Vector6d;
 
@@ -83,24 +80,6 @@ inline bool saturate_vector_values(Eigen::VectorXd& vec,
 }
 
 /**
- * @brief Converts an Eigen VectorXd to a vortex_msgs::msg::ThrusterForces
- * message.
- *
- * @param u The Eigen VectorXd to be converted.
- * @param msg The vortex_msgs::msg::ThrusterForces message to store the
- * converted values.
- * @return The converted vortex_msgs::msg::ThrusterForces message.
- */
-inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
-    const Eigen::VectorXd& u) {
-    vortex_msgs::msg::ThrusterForces msg;
-    msg.header.stamp = rclcpp::Clock().now();
-    msg.header.frame_id = "base_link";
-    msg.thrust = std::vector<double>(u.begin(), u.end());
-    return msg;
-}
-
-/**
  * @brief Converts a 1D array of doubles to a 2D Eigen matrix.
  *
  * @param matrix The 1D array of doubles to be converted.
@@ -127,15 +106,6 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
 
     // Map the vector to Eigen::Vector3d
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
-}
-
-inline Vector6d wrench_to_vector(
-    const geometry_msgs::msg::WrenchStamped& msg) {
-    Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
-                               msg.wrench.force.z,  msg.wrench.torque.x,
-                               msg.wrench.torque.y, msg.wrench.torque.z};
-
-    return msg_vector;
 }
 
 #endif  // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_

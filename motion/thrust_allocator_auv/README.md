@@ -104,3 +104,7 @@ $$
 
 
 This QP formulation allows thrust limits, load balancing, soft constraint handling.
+
+# Testing
+
+If you wish to run the tests inside of the tests folder
