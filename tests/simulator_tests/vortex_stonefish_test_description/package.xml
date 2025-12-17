@@ -6,8 +6,8 @@
   <license>MIT</license>
 
 
-  <test_depend>stonefish_sim</test_depend>
-  <test_depend>vortex_sim_interface</test_depend>
+  <!-- <test_depend>stonefish_sim</test_depend>
+  <test_depend>vortex_sim_interface</test_depend> -->
   <test_depend>rosbag2_transport</test_depend>
 
   <export>
