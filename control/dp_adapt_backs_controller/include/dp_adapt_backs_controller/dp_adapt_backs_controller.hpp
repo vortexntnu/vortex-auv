@@ -29,9 +29,9 @@ class DPAdaptBacksController {
     // roll, pitch, yaw]
     // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
-    Eigen::Vector6d calculate_tau(const vortex::utils::types::Eta& eta,
-                                  const vortex::utils::types::Eta& eta_d,
-                                  const vortex::utils::types::Nu& nu);
+    Eigen::Vector6d calculate_tau(const vortex::utils::types::PoseEuler& eta,
+                                  const vortex::utils::types::PoseEuler& eta_d,
+                                  const vortex::utils::types::Twist& nu);
 
     // @brief Reset the adaptive parameters
     void reset_adap_param();

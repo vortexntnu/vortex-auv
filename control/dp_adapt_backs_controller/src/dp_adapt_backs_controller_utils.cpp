@@ -6,7 +6,7 @@
 
 namespace vortex::control {
 
-Eigen::Matrix6d calculate_J_inv(const vortex::utils::types::Eta& eta) {
+Eigen::Matrix6d calculate_J_inv(const vortex::utils::types::PoseEuler& eta) {
     Eigen::Matrix6d J = eta.as_j_matrix();
 
     constexpr double tolerance = 1e-8;
@@ -22,15 +22,15 @@ Eigen::Matrix6d calculate_J_inv(const vortex::utils::types::Eta& eta) {
     return J.inverse();
 }
 
-Eigen::Matrix3d calculate_R_dot(const vortex::utils::types::Eta& eta,
-                                const vortex::utils::types::Nu& nu) {
+Eigen::Matrix3d calculate_R_dot(const vortex::utils::types::PoseEuler& eta,
+                                const vortex::utils::types::Twist& nu) {
     return eta.as_rotation_matrix() *
            vortex::utils::math::get_skew_symmetric_matrix(
                nu.to_vector().tail(3));
 }
 
-Eigen::Matrix3d calculate_T_dot(const vortex::utils::types::Eta& eta,
-                                const vortex::utils::types::Nu& nu) {
+Eigen::Matrix3d calculate_T_dot(const vortex::utils::types::PoseEuler& eta,
+                                const vortex::utils::types::Twist& nu) {
     double cos_phi{std::cos(eta.roll)};
     double sin_phi{std::sin(eta.roll)};
     double cos_theta{std::cos(eta.pitch)};
@@ -58,8 +58,8 @@ Eigen::Matrix3d calculate_T_dot(const vortex::utils::types::Eta& eta,
     return dt_dphi + dt_dtheta;
 }
 
-Eigen::Matrix6d calculate_J_dot(const vortex::utils::types::Eta& eta,
-                                const vortex::utils::types::Nu& nu) {
+Eigen::Matrix6d calculate_J_dot(const vortex::utils::types::PoseEuler& eta,
+                                const vortex::utils::types::Twist& nu) {
     Eigen::Matrix3d R_dot = calculate_R_dot(eta, nu);
     Eigen::Matrix3d T_dot = calculate_T_dot(eta, nu);
 
@@ -72,7 +72,7 @@ Eigen::Matrix6d calculate_J_dot(const vortex::utils::types::Eta& eta,
 
 Eigen::Matrix6d calculate_coriolis(const double mass,
                                    const Eigen::Vector3d& r_b_bg,
-                                   const vortex::utils::types::Nu& nu,
+                                   const vortex::utils::types::Twist& nu,
                                    const Eigen::Matrix3d& I_b) {
     using vortex::utils::math::get_skew_symmetric_matrix;
     Eigen::Vector3d linear_speed = nu.to_vector().head(3);
@@ -93,7 +93,7 @@ Eigen::Matrix6d calculate_coriolis(const double mass,
     return C;
 }
 
-Eigen::Matrix6x12d calculate_Y_v(const vortex::utils::types::Nu& nu) {
+Eigen::Matrix6x12d calculate_Y_v(const vortex::utils::types::Twist& nu) {
     Eigen::Matrix6x12d Y_v;
     Y_v.setZero();
 

@@ -7,8 +7,8 @@
 
 namespace vortex::control {
 
-using vortex::utils::types::Eta;
-using vortex::utils::types::Nu;
+using vortex::utils::types::PoseEuler;
+using vortex::utils::types::Twist;
 
 DPAdaptBacksController::DPAdaptBacksController(
     const DPAdaptParams& dp_adapt_params)
@@ -24,10 +24,10 @@ DPAdaptBacksController::DPAdaptBacksController(
       m_(dp_adapt_params.mass),
       dt_(0.01) {}
 
-Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Eta& eta,
-                                                      const Eta& eta_d,
-                                                      const Nu& nu) {
-    Eta error = eta - eta_d;
+Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& eta,
+                                                      const PoseEuler& eta_d,
+                                                      const Twist& nu) {
+    PoseEuler error = eta - eta_d;
     error.roll = vortex::utils::math::ssa(error.roll);
     error.pitch = vortex::utils::math::ssa(error.pitch);
     error.yaw = vortex::utils::math::ssa(error.yaw);

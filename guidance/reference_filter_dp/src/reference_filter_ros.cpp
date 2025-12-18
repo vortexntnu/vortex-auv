@@ -169,19 +169,19 @@ Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
     x(4) = vortex::utils::math::ssa(pitch);
     x(5) = vortex::utils::math::ssa(yaw);
 
-    vortex::utils::types::Eta eta{current_pose_.pose.pose.position.x,
-                                  current_pose_.pose.pose.position.y,
-                                  current_pose_.pose.pose.position.z,
-                                  roll,
-                                  pitch,
-                                  yaw};
+    vortex::utils::types::PoseEuler eta{current_pose_.pose.pose.position.x,
+                                        current_pose_.pose.pose.position.y,
+                                        current_pose_.pose.pose.position.z,
+                                        roll,
+                                        pitch,
+                                        yaw};
     Eigen::Matrix6d J = eta.as_j_matrix();
-    vortex::utils::types::Nu nu{current_twist_.twist.twist.linear.x,
-                                current_twist_.twist.twist.linear.y,
-                                current_twist_.twist.twist.linear.z,
-                                current_twist_.twist.twist.angular.x,
-                                current_twist_.twist.twist.angular.y,
-                                current_twist_.twist.twist.angular.z};
+    vortex::utils::types::Twist nu{current_twist_.twist.twist.linear.x,
+                                   current_twist_.twist.twist.linear.y,
+                                   current_twist_.twist.twist.linear.z,
+                                   current_twist_.twist.twist.angular.x,
+                                   current_twist_.twist.twist.angular.y,
+                                   current_twist_.twist.twist.angular.z};
     Eigen::Vector6d eta_dot = J * nu.to_vector();
 
     x(6) = eta_dot(0);

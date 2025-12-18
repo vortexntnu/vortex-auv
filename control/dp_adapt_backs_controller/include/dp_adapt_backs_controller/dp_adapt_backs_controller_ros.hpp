@@ -80,11 +80,11 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::chrono::milliseconds time_step_{};
 
-    vortex::utils::types::Eta eta_;
+    vortex::utils::types::PoseEuler eta_;
 
-    vortex::utils::types::Eta eta_d_;
+    vortex::utils::types::PoseEuler eta_d_;
 
-    vortex::utils::types::Nu nu_;
+    vortex::utils::types::Twist nu_;
 
     std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_{};
 
