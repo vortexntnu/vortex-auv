@@ -15,6 +15,26 @@ WaypointManagerNode::WaypointManagerNode(const rclcpp::NodeOptions& options)
     spdlog::info("WaypointManagerNode started");
 }
 
+WaypointManagerNode::~WaypointManagerNode() {
+    if (active_action_goal_ && (active_action_goal_->is_active() ||
+                                active_action_goal_->is_canceling())) {
+        try {
+            auto res = construct_result(false);
+            active_action_goal_->abort(res);
+        } catch (...) {
+        }
+    }
+
+    if (active_reference_filter_goal_) {
+        try {
+            reference_filter_client_->async_cancel_goal(
+                active_reference_filter_goal_);
+        } catch (...) {
+        }
+        active_reference_filter_goal_.reset();
+    }
+}
+
 // ---------------------------------------------------------
 // SETUP INTERFACES
 // ---------------------------------------------------------

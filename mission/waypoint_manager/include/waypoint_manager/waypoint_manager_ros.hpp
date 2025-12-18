@@ -27,6 +27,8 @@ class WaypointManagerNode : public rclcpp::Node {
     explicit WaypointManagerNode(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
+    ~WaypointManagerNode() override;
+
    private:
     // @brief Create the action server for WaypointManager.
     void set_waypoint_action_server();

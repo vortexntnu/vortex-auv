@@ -341,6 +341,17 @@ void ReferenceFilterNode::execute(
 
         loop_rate.sleep();
     }
+    if (!rclcpp::ok() && goal_handle->is_active()) {
+        auto result = std::make_shared<
+            vortex_msgs::action::ReferenceFilterWaypoint::Result>();
+        result->success = false;
+
+        try {
+            goal_handle->abort(result);
+        } catch (...) {
+            // Ignore exceptions during shutdown
+        }
+    }
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(ReferenceFilterNode)
