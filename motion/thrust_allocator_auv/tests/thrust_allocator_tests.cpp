@@ -17,6 +17,11 @@
 
 using vortex::utils::types::Vector6d;
 
+void fill_input_from_double_array(Vector6d& tau, const double* double_array){
+    tau << double_array[0], double_array[1], double_array[2],
+           double_array[3], double_array[4], double_array[5];
+}
+
 void print_generalized_force(const Vector6d& tau) {
     spdlog::info("Tau values:");
     spdlog::info("Surge force: {}", tau[0]);
@@ -126,7 +131,7 @@ protected:
     }
 };
 
-TEST_F(ThrustAllocatorYamlTests, T00_correctly_pulled_AllocatorConfig_from_yaml_file)
+TEST_F(ThrustAllocatorYamlTests, T00_CorrectlyPulledConfigFromYamlFile)
 {
     ASSERT_EQ(allocator_config.extended_thrust_matrix.rows(), 6);
     ASSERT_EQ(allocator_config.extended_thrust_matrix.cols(), 8);
@@ -159,13 +164,174 @@ protected:
     }
 };
 
-TEST_F(PseudoinverseAllocatorTests, ZeroWrenchGivesZeroThrust)
+TEST_F(PseudoinverseAllocatorTests, T01_ClampingWorks)
+{
+    Vector6d tau;
+    double fill[6] = {100000.0, 100000.0, 100000.0, 100000.0, 100000.0, 100000.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    saturate_vector_values(u, -100.0, 100.0);
+    print_input(u);
+
+    EXPECT_LE(u[7], 100.0); EXPECT_GE(u[7], -100.0);
+    EXPECT_LE(u[6], 100.0); EXPECT_GE(u[6], -100.0);
+    EXPECT_LE(u[5], 100.0); EXPECT_GE(u[5], -100.0);
+    EXPECT_LE(u[4], 100.0); EXPECT_GE(u[4], -100.0);
+    EXPECT_LE(u[3], 100.0); EXPECT_GE(u[3], -100.0);
+    EXPECT_LE(u[2], 100.0); EXPECT_GE(u[2], -100.0);
+    EXPECT_LE(u[1], 100.0); EXPECT_GE(u[1], -100.0);
+    EXPECT_LE(u[0], 100.0); EXPECT_GE(u[0], -100.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T02_Pseudo_ZeroWrenchGivesZeroThrust)
 {
     Vector6d tau = Vector6d::Zero();
+    print_generalized_force(tau);
+
     Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
     EXPECT_NEAR(u.norm(), 0.0, 1e-9);
 }
 
+TEST_F(PseudoinverseAllocatorTests, T03_Pseudo_ForwardWrenchGivesForwardThrust)
+{
+    Vector6d tau;
+    double fill[6] = {100.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
+    EXPECT_GT(u[7], 0.0);
+    EXPECT_GT(u[4], 0.0);
+    EXPECT_GT(u[3], 0.0);
+    EXPECT_GT(u[0], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T04_Pseudo_BackwardWrenchGivesBackwardThrust)
+{
+    Vector6d tau;
+    double fill[6] = {-100.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+    
+    EXPECT_LT(u[7], 0.0);
+    EXPECT_LT(u[4], 0.0);
+    EXPECT_LT(u[3], 0.0);
+    EXPECT_LT(u[0], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T05_Pseudo_SidewayWrenchGivesSidewayThrust)
+{
+    Vector6d tau;
+    double fill[6] = {0.0, 100.0, 0.0, 0.0, 0.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
+    EXPECT_GT(u[7], 0.0);
+    EXPECT_LT(u[4], 0.0);
+    EXPECT_GT(u[3], 0.0);
+    EXPECT_LT(u[0], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T06_Pseudo_DownwardWrenchGivesDownwardThrust)
+{
+    Vector6d tau;
+    double fill[6] = {0.0, 0.0, 100.0, 0.0, 0.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+    
+    EXPECT_GT(u[6], 0.0);
+    EXPECT_GT(u[5], 0.0);
+    EXPECT_GT(u[2], 0.0);
+    EXPECT_GT(u[1], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T07_Pseudo_UpwardWrenchGivesUpwardThrust)
+{
+    Vector6d tau;
+    double fill[6] = {0.0, 0.0, -100.0, 0.0, 0.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
+    EXPECT_LT(u[6], 0.0);
+    EXPECT_LT(u[5], 0.0);
+    EXPECT_LT(u[2], 0.0);
+    EXPECT_LT(u[1], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T08_Pseudo_PositiveRollWrenchInducesPositiveRollMoment)
+{
+    Vector6d tau;
+    double fill[6] = {0.0, 0.0, 0.0, 100.0, 0.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
+    EXPECT_LT(u[6], 0.0);
+    EXPECT_LT(u[5], 0.0);
+    EXPECT_GT(u[2], 0.0);
+    EXPECT_GT(u[1], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T09_Pseudo_PositivePitchWrenchInducesPositivePitchMoment)
+{
+    Vector6d tau;
+    double fill[6] = {0.0, 0.0, 0.0, 0.0, 100.0, 0.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
+    EXPECT_LT(u[6], 0.0);
+    EXPECT_GT(u[5], 0.0);
+    EXPECT_GT(u[2], 0.0);
+    EXPECT_LT(u[1], 0.0);
+}
+
+TEST_F(PseudoinverseAllocatorTests, T10_Pseudo_PositiveYawWrenchInducesPositiveYawMoment)
+{
+    Vector6d tau;
+    double fill[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 100.0};
+
+    fill_input_from_double_array(tau, fill);
+    print_generalized_force(tau);
+
+    Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+    print_input(u);
+
+    EXPECT_GT(u[7], 0.0);
+    EXPECT_GT(u[4], 0.0);
+    EXPECT_LT(u[3], 0.0);
+    EXPECT_LT(u[0], 0.0);
+}
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

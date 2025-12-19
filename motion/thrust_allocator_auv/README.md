@@ -107,4 +107,17 @@ This QP formulation allows thrust limits, load balancing, soft constraint handli
 
 # Testing
 
-If you wish to run the tests inside of the tests folder
+If you wish to run the tests inside of the tests folder, run the following commands:
+
+#### 1. Build the package together with the tests.
+```bash
+colcon build --packages-select thrust_allocator_auv --cmake-args -DBUILD_TESTING=ON
+```
+#### 2. Run colcon test.
+```bash
+colcon test --packages-select thrust_allocator_auv   --event-handlers console_direct+
+```
+#### 3. print out the results with the --verbose flag.
+```bash
+colcon test-result --verbose
+```
