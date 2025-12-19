@@ -1,0 +1,115 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+echo "Setting up ROS 2 environment..."
+. /opt/ros/humble/setup.sh
+. "${WORKSPACE:-$HOME/ros2_ws}/install/setup.bash"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+# Get the directory of this script dynamically
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Function to terminate processes safely on error
+cleanup() {
+    echo "Error detected. Cleaning up..."
+    # Safely kill any started PIDs (ignore empty values)
+    for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID"; do
+        if [ -n "$_pid" ]; then
+            kill -TERM "$_pid" 2>/dev/null || true
+        fi
+    done
+    exit 1
+}
+trap cleanup ERR
+
+setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
+BAG_PID=$!
+echo "Started bagging with PID: $BAG_PID"
+
+# Launch Stonefish Simulator
+setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
+SIM_PID=$!
+echo "Launched simulator with PID: $SIM_PID"
+
+echo "Waiting for simulator to start..."
+timeout 30s bash -c '
+    while ! ros2 topic list | grep -q "/orca/odom"; do
+        sleep 1
+    done || true'
+echo "Simulator started"
+
+# Check for ROS errors in logs
+if journalctl -u ros2 | grep -i "error"; then
+    echo "Error detected in ROS logs. Exiting..."
+    exit 1
+fi
+
+# Wait for odometry data
+echo "Waiting for odom data..."
+timeout 10s ros2 topic echo /orca/odom --once
+echo "Got odom data"
+
+# Launch ORCA Simulation
+setsid ros2 launch stonefish_sim orca_sim.launch.py &
+ORCA_PID=$!
+echo "Launched orca with PID: $ORCA_PID"
+
+setsid ros2 launch waypoint_manager waypoint_manager.launch.py &
+WM_PID=$!
+echo "Launched waypoint manager with PID: $WM_PID"
+
+echo "Waiting for sim interface to start..."
+timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'
+echo "Simulator started"
+
+# Check for ROS errors again
+if journalctl -u ros2 | grep -i "error"; then
+    echo "Error detected in ROS logs. Exiting..."
+    exit 1
+fi
+
+# Wait for pose data
+echo "Waiting for pose data..."
+timeout 10s ros2 topic echo /orca/pose --once
+echo "Got pose data"
+
+# Launch controller and reference filter
+setsid ros2 launch auv_setup dp.launch.py &
+CONTROLLER_PID=$!
+echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
+
+# Check for ROS errors before continuing
+if journalctl -u ros2 | grep -i "error"; then
+    echo "Error detected in ROS logs. Exiting..."
+    exit 1
+fi
+
+# Set operation mode
+echo "Turning off killswitch and setting operation mode to autonomous mode"
+ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5 # Ensure the message arrives
+ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5 # Ensure the message arrives
+
+# Send waypoint goal
+echo "Sending goal"
+python3 "$SCRIPT_DIR/send_goal.py"
+
+# Check if goal reached
+echo "Checking if goal reached"
+python3 "$SCRIPT_DIR/check_goal.py"
+
+if [ $? -ne 0 ]; then
+    echo "Test failed: Vehicle did not reach final waypoint."
+    exit 1
+else
+    echo "Test passed: Vehicle reached final waypoint."
+fi
+
+# Terminate processes (safely)
+for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$BAG_PID"; do
+    if [ -n "$_pid" ]; then
+        kill -TERM "$_pid" 2>/dev/null || true
+    fi
+done
+
+echo "Test completed successfully."
