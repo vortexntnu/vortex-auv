@@ -68,11 +68,11 @@ Test that negative north error only (in body) gives positive surge command only.
 
 TEST_F(DPAdaptBacksControllerTests,
        T01_neg_north_error_with_zero_heading_gives_surge_only_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_GT(tau[0], 0.0);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -89,11 +89,11 @@ command and negative sway command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T02_neg_north_error_with_positive_heading_gives_pos_surge_and_neg_sway_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
-    PoseEuler eta_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
+    PoseEuler pose_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_GT(tau[0], 0.0);
     EXPECT_LT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -110,11 +110,11 @@ command and positive sway command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T03_neg_north_error_with_negative_heading_gives_pos_surge_and_pos_sway_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
-    PoseEuler eta_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
+    PoseEuler pose_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_GT(tau[0], 0.0);
     EXPECT_GT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -131,11 +131,11 @@ command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T04_neg_down_error_with_zero_roll_and_pitch_gives_positive_heave_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_GT(tau[2], 0.0);
@@ -152,11 +152,11 @@ heave and positive surge command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T05_neg_down_error_with_zero_roll_and_neg_pitch_gives_positive_heave_and_positive_surge_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, -0.5, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, -0.5, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, -0.5, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, -0.5, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_GT(tau[0], 0.0);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_GT(tau[2], 0.0);
@@ -173,11 +173,11 @@ heave and negative surge command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T06_neg_down_error_with_zero_roll_and_pos_pitch_gives_positive_heave_and_negative_surge_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.5, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.5, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.5, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.5, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_LT(tau[0], 0.0);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_GT(tau[2], 0.0);
@@ -192,11 +192,11 @@ Test that negative east error with zero heading gives a positive sway command.
 
 TEST_F(DPAdaptBacksControllerTests,
        T07_neg_east_error_with_zero_heading_gives_positive_sway_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_GT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -211,11 +211,11 @@ Test that positive east error with zero heading gives a negative sway command.
 
 TEST_F(DPAdaptBacksControllerTests,
        T08_pos_east_error_with_zero_heading_gives_pos_sway_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, -10.0, 0.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, -10.0, 0.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_LT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -232,11 +232,11 @@ sway command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T09_neg_east_error_with_positive_heading_gives_pos_sway_and_pos_surge_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 1.5)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 1.5)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_GT(tau[0], 0.0);
     EXPECT_GT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -253,11 +253,11 @@ positive sway command.
 TEST_F(
     DPAdaptBacksControllerTests,
     T10_neg_east_error_with_negative_heading_gives_pos_sway_and_neg_surge_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, -1.5)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, -1.5)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_LT(tau[0], 0.0);
     EXPECT_GT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -272,11 +272,11 @@ Test that negative roll error gives positive roll command.
 
 TEST_F(DPAdaptBacksControllerTests,
        T11_neg_roll_error_gives_positive_roll_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 1.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 1.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -290,11 +290,11 @@ Test that positive roll error gives negative roll command.
 */
 
 TEST_F(DPAdaptBacksControllerTests, T12_pos_roll_error_gives_neg_roll_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, -1.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, -1.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -309,11 +309,11 @@ Test that negative pitch error gives positive pitch command.
 
 TEST_F(DPAdaptBacksControllerTests,
        T13_neg_pitch_error_gives_pos_pitch_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 1.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 1.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -328,11 +328,11 @@ Test that positive pitch error gives negative pitch command.
 
 TEST_F(DPAdaptBacksControllerTests,
        T14_pos_pitch_error_gives_neg_pitch_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, -1.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, -1.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -346,11 +346,11 @@ Test that negative yaw error gives positive yaw command.
 */
 
 TEST_F(DPAdaptBacksControllerTests, T15_neg_yaw_error_gives_pos_yaw_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -364,11 +364,11 @@ Test that positive yaw error gives negative yaw command.
 */
 
 TEST_F(DPAdaptBacksControllerTests, T16_pos_yaw_error_gives_neg_yaw_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -384,11 +384,11 @@ Test that positive surge velocity only results in negative surge command
 
 TEST_F(DPAdaptBacksControllerTests,
        T17_pos_surge_vel_gives_negative_surge_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(1.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(1.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_LT(tau[0], 0.0);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -404,11 +404,11 @@ effect).
 
 TEST_F(DPAdaptBacksControllerTests,
        T18_pos_sway_vel_gives_negative_sway_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 1.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 1.0, 0.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_LT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -424,11 +424,11 @@ Test that positive heave velocity only results in negative heave command
 
 TEST_F(DPAdaptBacksControllerTests,
        T19_pos_heave_vel_gives_negative_heave_command) {
-    PoseEuler eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    PoseEuler eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    Twist nu{generate_current_velocity(0.0, 0.0, 1.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    PoseEuler pose_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    Twist twist{generate_current_velocity(0.0, 0.0, 1.0, 0.0, 0.0, 0.0)};
     Eigen::Vector6d tau{
-        dp_adapt_backs_controller_.calculate_tau(eta, eta_d, nu)};
+        dp_adapt_backs_controller_.calculate_tau(pose, pose_d, twist)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_LT(tau[2], 0.0);
