@@ -24,29 +24,29 @@ DPAdaptBacksController::DPAdaptBacksController(
       m_(dp_adapt_params.mass),
       dt_(0.01) {}
 
-Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& eta,
-                                                      const PoseEuler& eta_d,
-                                                      const Twist& nu) {
-    PoseEuler error = eta - eta_d;
+Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& pose,
+                                                      const PoseEuler& pose_d,
+                                                      const Twist& twist) {
+    PoseEuler error = pose - pose_d;
     error.roll = vortex::utils::math::ssa(error.roll);
     error.pitch = vortex::utils::math::ssa(error.pitch);
     error.yaw = vortex::utils::math::ssa(error.yaw);
 
-    Eigen::Matrix6d C = calculate_coriolis(m_, r_b_bg_, nu, I_b_);
-    Eigen::Matrix6d J_inv = calculate_J_inv(eta);
-    Eigen::Matrix6d J_dot = calculate_J_dot(eta, nu);
+    Eigen::Matrix6d C = calculate_coriolis(m_, r_b_bg_, twist, I_b_);
+    Eigen::Matrix6d J_inv = calculate_J_inv(pose);
+    Eigen::Matrix6d J_dot = calculate_J_dot(pose, twist);
     Eigen::Vector6d alpha = -J_inv * K1_ * error.to_vector();
     Eigen::Vector6d z_1 = error.to_vector();
-    Eigen::Vector6d z_2 = nu.to_vector() - alpha;
+    Eigen::Vector6d z_2 = twist.to_vector() - alpha;
     Eigen::Vector6d alpha_dot =
         ((J_inv * J_dot * J_inv) * K1_ * z_1) -
-        (J_inv * K1_ * eta.as_j_matrix() * nu.to_vector());
-    Eigen::Matrix6x12d Y_v = calculate_Y_v(nu);
+        (J_inv * K1_ * pose.as_j_matrix() * twist.to_vector());
+    Eigen::Matrix6x12d Y_v = calculate_Y_v(twist);
     Eigen::Vector12d adapt_param_dot = adapt_gain_ * Y_v.transpose() * z_2;
     Eigen::Vector6d d_est_dot = d_gain_ * z_2;
     Eigen::Vector6d F_est = Y_v * adapt_param_;
-    Eigen::Vector6d tau = (mass_matrix_ * alpha_dot) + (C * nu.to_vector()) -
-                          (eta.as_j_matrix().transpose() * z_1) - (K2_ * z_2) -
+    Eigen::Vector6d tau = (mass_matrix_ * alpha_dot) + (C * twist.to_vector()) -
+                          (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) -
                           F_est - d_est_;
 
     tau = tau.cwiseMax(-80.0).cwiseMin(80.0);
