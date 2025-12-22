@@ -169,27 +169,27 @@ Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
     x(4) = vortex::utils::math::ssa(pitch);
     x(5) = vortex::utils::math::ssa(yaw);
 
-    vortex::utils::types::Eta eta{current_pose_.pose.pose.position.x,
-                                  current_pose_.pose.pose.position.y,
-                                  current_pose_.pose.pose.position.z,
-                                  roll,
-                                  pitch,
-                                  yaw};
-    Eigen::Matrix6d J = eta.as_j_matrix();
-    vortex::utils::types::Nu nu{current_twist_.twist.twist.linear.x,
-                                current_twist_.twist.twist.linear.y,
-                                current_twist_.twist.twist.linear.z,
-                                current_twist_.twist.twist.angular.x,
-                                current_twist_.twist.twist.angular.y,
-                                current_twist_.twist.twist.angular.z};
-    Eigen::Vector6d eta_dot = J * nu.to_vector();
+    vortex::utils::types::PoseEuler pose{current_pose_.pose.pose.position.x,
+                                         current_pose_.pose.pose.position.y,
+                                         current_pose_.pose.pose.position.z,
+                                         roll,
+                                         pitch,
+                                         yaw};
+    Eigen::Matrix6d J = pose.as_j_matrix();
+    vortex::utils::types::Twist twist{current_twist_.twist.twist.linear.x,
+                                      current_twist_.twist.twist.linear.y,
+                                      current_twist_.twist.twist.linear.z,
+                                      current_twist_.twist.twist.angular.x,
+                                      current_twist_.twist.twist.angular.y,
+                                      current_twist_.twist.twist.angular.z};
+    Eigen::Vector6d pose_dot = J * twist.to_vector();
 
-    x(6) = eta_dot(0);
-    x(7) = eta_dot(1);
-    x(8) = eta_dot(2);
-    x(9) = eta_dot(3);
-    x(10) = eta_dot(4);
-    x(11) = eta_dot(5);
+    x(6) = pose_dot(0);
+    x(7) = pose_dot(1);
+    x(8) = pose_dot(2);
+    x(9) = pose_dot(3);
+    x(10) = pose_dot(4);
+    x(11) = pose_dot(5);
 
     return x;
 }
