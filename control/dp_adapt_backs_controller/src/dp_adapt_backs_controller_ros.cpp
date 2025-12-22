@@ -8,7 +8,7 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-const std::string start_message = R"(
+constexpr std::string_view start_message = R"(
   ____  ____     ____            _             _ _
  |  _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
  | | | | |_) | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
@@ -100,31 +100,31 @@ void DPAdaptBacksControllerNode::software_mode_callback(
     spdlog::info("Software mode: {}", software_mode_);
 
     if (software_mode_ == "autonomous mode") {
-        eta_d_ = eta_;
+        pose_d_ = pose_;
     }
 }
 
 void DPAdaptBacksControllerNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    eta_.x = msg->pose.pose.position.x;
-    eta_.y = msg->pose.pose.position.y;
-    eta_.z = msg->pose.pose.position.z;
+    pose_.x = msg->pose.pose.position.x;
+    pose_.y = msg->pose.pose.position.y;
+    pose_.z = msg->pose.pose.position.z;
     const auto& o = msg->pose.pose.orientation;
     Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
     Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-    eta_.roll = euler_angles(0);
-    eta_.pitch = euler_angles(1);
-    eta_.yaw = euler_angles(2);
+    pose_.roll = euler_angles(0);
+    pose_.pitch = euler_angles(1);
+    pose_.yaw = euler_angles(2);
 }
 
 void DPAdaptBacksControllerNode::twist_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    nu_.u = msg->twist.twist.linear.x;
-    nu_.v = msg->twist.twist.linear.y;
-    nu_.w = msg->twist.twist.linear.z;
-    nu_.p = msg->twist.twist.angular.x;
-    nu_.q = msg->twist.twist.angular.y;
-    nu_.r = msg->twist.twist.angular.z;
+    twist_.u = msg->twist.twist.linear.x;
+    twist_.v = msg->twist.twist.linear.y;
+    twist_.w = msg->twist.twist.linear.z;
+    twist_.p = msg->twist.twist.angular.x;
+    twist_.q = msg->twist.twist.angular.y;
+    twist_.r = msg->twist.twist.angular.z;
 }
 
 void DPAdaptBacksControllerNode::set_adap_params() {
@@ -185,7 +185,7 @@ void DPAdaptBacksControllerNode::publish_tau() {
     }
 
     Eigen::Vector6d tau =
-        dp_adapt_backs_controller_->calculate_tau(eta_, eta_d_, nu_);
+        dp_adapt_backs_controller_->calculate_tau(pose_, pose_d_, twist_);
 
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
@@ -203,12 +203,12 @@ void DPAdaptBacksControllerNode::publish_tau() {
 
 void DPAdaptBacksControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    eta_d_.x = msg->x;
-    eta_d_.y = msg->y;
-    eta_d_.z = msg->z;
-    eta_d_.roll = msg->roll;
-    eta_d_.pitch = msg->pitch;
-    eta_d_.yaw = msg->yaw;
+    pose_d_.x = msg->x;
+    pose_d_.y = msg->y;
+    pose_d_.z = msg->z;
+    pose_d_.roll = msg->roll;
+    pose_d_.pitch = msg->pitch;
+    pose_d_.yaw = msg->yaw;
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)

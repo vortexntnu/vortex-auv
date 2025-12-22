@@ -1,5 +1,5 @@
-#ifndef EKF_POSE_FILTERING_ROS_HPP
-#define EKF_POSE_FILTERING_ROS_HPP
+#ifndef EKF_POSE_FILTERING__EKF_POSE_FILTERING_ROS_HPP_
+#define EKF_POSE_FILTERING__EKF_POSE_FILTERING_ROS_HPP_
 
 #include <message_filters/subscriber.h>
 #include <tf2_ros/buffer.h>
@@ -8,8 +8,10 @@
 #include <tf2_ros/transform_listener.h>
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <string>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tuple>
 #include <vortex_filtering/vortex_filtering.hpp>
@@ -18,7 +20,7 @@ class EKFPoseFilteringNode : public rclcpp::Node {
    public:
     EKFPoseFilteringNode();
 
-    ~EKFPoseFilteringNode() {};
+    ~EKFPoseFilteringNode() {}
 
    private:
     void reset_EFK_state(
@@ -65,4 +67,4 @@ class EKFPoseFilteringNode : public rclcpp::Node {
     bool enu_orientation_;
 };
 
-#endif  // EKF_POSE_FILTERING_ROS_HPP
+#endif  // EKF_POSE_FILTERING__EKF_POSE_FILTERING_ROS_HPP_

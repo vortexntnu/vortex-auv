@@ -1,5 +1,5 @@
-#ifndef PID_CONTROLLER_ROS_HPP
-#define PID_CONTROLLER_ROS_HPP
+#ifndef PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_
+#define PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -17,7 +17,7 @@
 
 class PIDControllerNode : public rclcpp::Node {
    public:
-    explicit PIDControllerNode();
+    PIDControllerNode();
 
    private:
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
@@ -73,4 +73,4 @@ class PIDControllerNode : public rclcpp::Node {
     std::string software_mode_;
 };
 
-#endif
+#endif  // PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_

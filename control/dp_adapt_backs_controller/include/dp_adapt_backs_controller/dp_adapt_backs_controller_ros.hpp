@@ -1,16 +1,18 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_ROS_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_ROS_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
@@ -78,11 +80,11 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::chrono::milliseconds time_step_{};
 
-    vortex::utils::types::Eta eta_;
+    vortex::utils::types::PoseEuler pose_;
 
-    vortex::utils::types::Eta eta_d_;
+    vortex::utils::types::PoseEuler pose_d_;
 
-    vortex::utils::types::Nu nu_;
+    vortex::utils::types::Twist twist_;
 
     std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_{};
 
@@ -93,4 +95,4 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
 }  // namespace vortex::control
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
