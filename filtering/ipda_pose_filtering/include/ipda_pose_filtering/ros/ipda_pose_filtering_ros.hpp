@@ -16,28 +16,19 @@
 #include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
 
 #include <concepts>
-#include <variant>
 
 namespace vortex::filtering {
 
-template <typename MsgT>
+using PoseMsgT = geometry_msgs::msg::PoseStamped;
+
+template <typename T>
 concept ValidPoseMsg =
-    std::same_as<MsgT, geometry_msgs::msg::PoseStamped> ||
-    std::same_as<MsgT, geometry_msgs::msg::PoseArray> ||
-    std::same_as<MsgT, geometry_msgs::msg::PoseWithCovarianceStamped>;
+    std::same_as<T, geometry_msgs::msg::PoseStamped> ||
+    std::same_as<T, geometry_msgs::msg::PoseArray> ||
+    std::same_as<T, geometry_msgs::msg::PoseWithCovarianceStamped>;
 
-using PoseSubscriberVariant = std::variant<
-    std::shared_ptr<
-        message_filters::Subscriber<geometry_msgs::msg::PoseStamped>>,
-    std::shared_ptr<message_filters::Subscriber<geometry_msgs::msg::PoseArray>>,
-    std::shared_ptr<message_filters::Subscriber<
-        geometry_msgs::msg::PoseWithCovarianceStamped>>>;
-
-using PoseTFVariant = std::variant<
-    std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseStamped>>,
-    std::shared_ptr<tf2_ros::MessageFilter<geometry_msgs::msg::PoseArray>>,
-    std::shared_ptr<
-        tf2_ros::MessageFilter<geometry_msgs::msg::PoseWithCovarianceStamped>>>;
+static_assert(ValidPoseMsg<PoseMsgT>,
+              "PoseMsgT must be a supported pose message type");
 
 class IPDAPoseFilteringNode : public rclcpp::Node {
    public:
@@ -50,29 +41,27 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
 
     void setup_track_manager();
 
-    template <ValidPoseMsg MsgT>
     void create_pose_subscription(const std::string& topic_name,
                                   const rmw_qos_profile_t& qos_profile);
 
-    template <ValidPoseMsg MsgT>
-    void pose_callback(const typename MsgT::ConstSharedPtr& msg);
-
     void timer_callback();
 
-    PoseSubscriberVariant subscriber_;
+    std::shared_ptr<message_filters::Subscriber<PoseMsgT>> subscriber_;
 
-    PoseTFVariant tf_filter_;
+    std::shared_ptr<tf2_ros::MessageFilter<PoseMsgT>> tf_filter_;
 
     std::string target_frame_;
-    rclcpp::Time prev_meas_stamp_{0, 0, RCL_ROS_TIME};
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
 
     rclcpp::TimerBase::SharedPtr pub_timer_;
+    double filter_dt_seconds_{0.0};
 
     std::unique_ptr<IPDAPoseTrackManager> track_manager_;
+
+    std::vector<Pose> measurements_;
 };
 
 }  // namespace vortex::filtering

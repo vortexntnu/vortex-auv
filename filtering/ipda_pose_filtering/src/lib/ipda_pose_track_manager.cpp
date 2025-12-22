@@ -1,77 +1,172 @@
 #include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
 #include <algorithm>
 #include <ranges>
+#include <vortex/utils/math.hpp>
 
 namespace vortex::filtering {
 
 IPDAPoseTrackManager::IPDAPoseTrackManager(const TrackManagerConfig& config)
     : track_id_counter_(0),
-      dyn_mod_(config.dyn_mod.std_pos, config.dyn_mod.std_orient),
-      sensor_mod_(config.sensor_mod.std_pos,
-                  config.sensor_mod.std_orient,
-                  config.sensor_mod.max_angle_gate_threshold) {
+      dyn_mod_(config.dyn_mod.std_dev),
+      sensor_mod_(config.sensor_mod.std_dev) {
     ipda_config_ = config.ipda;
     existence_config_ = config.existence;
+    max_angle_gate_threshold_ = config.max_angle_gate_threshold;
 }
 
-void IPDAPoseTrackManager::predict_tracks() {
-    auto new_end = std::ranges::remove_if(tracks_, [this](Track& track) {
-        track.existence_probability = IPDA::existence_prediction(
-            track.existence_probability, ipda_config_.ipda.prob_of_survival);
+void IPDAPoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
+    sort_tracks_by_priority();
 
+    for (Track& track : tracks_) {
+        auto angular_gate_indices =
+            angular_gate_measurements(track, measurements);
+
+        if (angular_gate_indices.empty()) {
+            continue;
+        }
+
+        Eigen::Matrix<double, 3, Eigen::Dynamic> Z =
+            build_position_matrix(measurements, angular_gate_indices);
+
+        const IPDA::State state_est_prev{
+            .x_estimate = track.state,
+            .existence_probability = track.existence_probability};
+
+        auto ipda_output = IPDA::step(dyn_mod_, sensor_mod_, dt, state_est_prev,
+                                      Z, ipda_config_);
+
+        track.state = ipda_output.state.x_estimate;
+        track.existence_probability = ipda_output.state.existence_probability;
+
+        std::vector<Eigen::Index> consumed_indices;
+        auto used_quaternions = collect_used_quaternions(
+            measurements, angular_gate_indices, ipda_output.gated_measurements,
+            consumed_indices);
+
+        update_track_orientation(track, used_quaternions);
+
+        erase_gated_measurements(measurements, consumed_indices);
+    }
+
+    delete_tracks();
+    create_tracks(measurements);
+}
+
+std::vector<Eigen::Index> IPDAPoseTrackManager::angular_gate_measurements(
+    const Track& track,
+    const std::vector<Pose>& measurements) const {
+    std::vector<Eigen::Index> indices;
+    indices.reserve(measurements.size());
+
+    for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(measurements.size());
+         ++i) {
+        if (track.angular_distance(measurements[i]) <
+            max_angle_gate_threshold_) {
+            indices.push_back(i);
+        }
+    }
+    return indices;
+}
+
+Eigen::Matrix<double, 3, Eigen::Dynamic>
+IPDAPoseTrackManager::build_position_matrix(
+    const std::vector<Pose>& measurements,
+    const std::vector<Eigen::Index>& indices) const {
+    Eigen::Matrix<double, 3, Eigen::Dynamic> Z(3, indices.size());
+    for (Eigen::Index k = 0; k < static_cast<Eigen::Index>(indices.size());
+         ++k) {
+        Z.col(k) = measurements[indices[k]].pos_vector();
+    }
+    return Z;
+}
+
+std::vector<Eigen::Quaterniond> IPDAPoseTrackManager::collect_used_quaternions(
+    const std::vector<Pose>& measurements,
+    const std::vector<Eigen::Index>& angular_gate_indices,
+    const Eigen::Array<bool, 1, Eigen::Dynamic>& gated_measurements,
+    std::vector<Eigen::Index>& consumed_indices_out) const {
+    std::vector<Eigen::Quaterniond> quats;
+    quats.reserve(gated_measurements.size());
+
+    for (Eigen::Index k = 0;
+         k < static_cast<Eigen::Index>(angular_gate_indices.size()); ++k) {
+        if (gated_measurements[k]) {
+            Eigen::Index original_idx = angular_gate_indices[k];
+            quats.push_back(measurements[original_idx].ori_quaternion());
+            consumed_indices_out.push_back(original_idx);
+        }
+    }
+    return quats;
+}
+
+void IPDAPoseTrackManager::update_track_orientation(
+    Track& track,
+    const std::vector<Eigen::Quaterniond>& quaternions) {
+    if (quaternions.empty()) {
+        return;
+    }
+
+    Eigen::Quaterniond avg_q =
+        vortex::utils::math::average_quaternions(quaternions);
+
+    double d_prev = track.prev_orientation.angularDistance(avg_q);
+
+    double d_curr = track.current_orientation.angularDistance(avg_q);
+
+    constexpr double eps = 1e-6;
+
+    double alpha = d_prev / (d_curr + eps);
+    alpha = std::clamp(alpha, 0.05, 1.0);
+
+    track.prev_orientation = track.current_orientation;
+
+    track.current_orientation = track.current_orientation.slerp(alpha, avg_q);
+}
+
+void IPDAPoseTrackManager::erase_gated_measurements(
+    std::vector<Pose>& measurements,
+    std::vector<Eigen::Index>& indices) {
+    std::ranges::sort(indices, std::greater<>());
+    for (Eigen::Index idx : indices) {
+        measurements.erase(measurements.begin() + idx);
+    }
+}
+
+void IPDAPoseTrackManager::create_tracks(
+    const std::vector<Pose>& measurements) {
+    tracks_.reserve(tracks_.size() + measurements.size());
+
+    auto make_track = [this](const Pose& measurement) {
+        return Track{.id = track_id_counter_++,
+                     .state = vortex::prob::Gauss3d(
+                         measurement.pos_vector(),
+                         Eigen::Matrix<double, 3, 3>::Identity()),
+                     .current_orientation = measurement.ori_quaternion(),
+                     .prev_orientation = measurement.ori_quaternion(),
+                     .existence_probability =
+                         existence_config_.initial_existence_probability,
+                     .confirmed = false};
+    };
+
+    for (const Pose& m : measurements) {
+        tracks_.push_back(make_track(m));
+    }
+}
+
+void IPDAPoseTrackManager::delete_tracks() {
+    auto new_end = std::ranges::remove_if(tracks_, [this](Track& track) {
         return track.existence_probability <
                existence_config_.deletion_threshold;
     });
     tracks_.erase(new_end.begin(), new_end.end());
 }
 
-void IPDAPoseTrackManager::measurement_update(Measurements& measurements,
-                                              double dt) {
+void IPDAPoseTrackManager::sort_tracks_by_priority() {
     std::ranges::sort(tracks_, [](const Track& a, const Track& b) {
         if (a.confirmed != b.confirmed)
             return a.confirmed > b.confirmed;
         return a.existence_probability > b.existence_probability;
     });
-
-    for (Track& track : tracks_) {
-        const IPDA::State state_est_prev{
-            .x_estimate = track.state,
-            .existence_probability = track.existence_probability};
-
-        auto output = IPDA::step(dyn_mod_, sensor_mod_, dt, state_est_prev,
-                                 measurements, ipda_config_);
-
-        track.state = output.state.x_estimate;
-        track.existence_probability = output.state.existence_probability;
-
-        std::vector<Eigen::Vector6d> outside_cols;
-        outside_cols.reserve(measurements.cols());
-        for (Eigen::Index i = 0; i < measurements.cols(); ++i)
-            if (!output.gated_measurements[i])
-                outside_cols.push_back(measurements.col(i));
-
-        if (!outside_cols.empty()) {
-            Measurements outside(
-                6, static_cast<Eigen::Index>(outside_cols.size()));
-            for (Eigen::Index i = 0; i < outside.cols(); ++i)
-                outside.col(i) = outside_cols[i];
-            measurements = std::move(outside);
-        }
-    }
-    create_tracks(measurements);
-}
-
-void IPDAPoseTrackManager::create_tracks(const Measurements& measurements) {
-    tracks_.reserve(tracks_.size() + measurements.cols());
-    for (auto i : std::views::iota(Eigen::Index{0}, measurements.cols())) {
-        tracks_.emplace_back(Track{
-            .id = track_id_counter_++,
-            .state = vortex::prob::Gauss6d(
-                measurements.col(i), Eigen::Matrix<double, 6, 6>::Identity()),
-            .existence_probability =
-                existence_config_.initial_existence_probability,
-            .confirmed = false});
-    }
 }
 
 }  // namespace vortex::filtering

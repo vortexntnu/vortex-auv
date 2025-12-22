@@ -2,38 +2,30 @@
 #define TYPEDEFS_HPP
 
 #include <eigen3/Eigen/Dense>
+#include <vortex/utils/types.hpp>
 #include <vortex_filtering/filters/ipda.hpp>
 #include <vortex_filtering/vortex_filtering.hpp>
 
-namespace Eigen {
-
-using Vector6d = Eigen::Matrix<double, 6, 1>;
-
-}  // namespace Eigen
-
 namespace vortex::filtering {
 
-using Measurements = Eigen::Matrix<double, 6, Eigen::Dynamic>;
-using State6d = vortex::prob::Gauss6d;
-using DynMod = vortex::models::ConstantPose;
-using SensorMod = vortex::models::IdentityPoseSensor<6, 6>;
+using State3d = vortex::prob::Gauss3d;
+using DynMod = vortex::models::ConstantDynamicModel<3>;
+using SensorMod = vortex::models::IdentitySensorModel<3, 3>;
 using IPDA = vortex::filter::IPDA<DynMod, SensorMod>;
+using Pose = vortex::utils::types::Pose;
 
 struct DynModConfig {
-    double std_pos;
-    double std_orient;
+    double std_dev{1.0};
 };
 
 struct SensorModConfig {
-    double std_pos;
-    double std_orient;
-    double max_angle_gate_threshold;
+    double std_dev{1.0};
 };
 
 struct ExistenceManagementConfig {
-    double confirmation_threshold;
-    double deletion_threshold;
-    double initial_existence_probability;
+    double confirmation_threshold{0.4};
+    double deletion_threshold{0.2};
+    double initial_existence_probability{0.3};
 };
 
 struct TrackManagerConfig {
@@ -41,13 +33,25 @@ struct TrackManagerConfig {
     DynModConfig dyn_mod;
     SensorModConfig sensor_mod;
     ExistenceManagementConfig existence;
+    double max_angle_gate_threshold{};
 };
 
 struct Track {
-    int id;
-    State6d state;
-    double existence_probability;
-    bool confirmed;
+    int id{};
+    State3d state;
+    Eigen::Quaterniond current_orientation;
+    Eigen::Quaterniond prev_orientation;
+    double existence_probability{0.0};
+    bool confirmed{false};
+
+    Pose to_pose() const {
+        return vortex::utils::types::Pose::from_eigen(state.mean(),
+                                                      current_orientation);
+    }
+
+    double angular_distance(const Pose& z) const {
+        return current_orientation.angularDistance(z.ori_quaternion());
+    }
 };
 
 }  // namespace vortex::filtering

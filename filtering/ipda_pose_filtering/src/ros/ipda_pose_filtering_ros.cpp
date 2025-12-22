@@ -25,10 +25,12 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
     pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>(
         pub_topic_name, qos_sensor_data_pub);
 
-    int publish_timer = this->declare_parameter<int>("publish_timer");
+    int timer_rate_ms = this->declare_parameter<int>("timer_rate_ms");
+
+    filter_dt_seconds_ = static_cast<double>(timer_rate_ms) / 1000;
 
     pub_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(publish_timer),
+        std::chrono::milliseconds(timer_rate_ms),
         std::bind(&IPDAPoseFilteringNode::timer_callback, this));
 
     target_frame_ = this->declare_parameter<std::string>("target_frame");
@@ -43,30 +45,34 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
     tf2_buffer_->setCreateTimerInterface(timer_interface);
     tf2_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_buffer_);
 
-    const std::string msg_type =
-        this->declare_parameter<std::string>("pose_message_type");
     const std::string pose_sub_topic =
         this->declare_parameter<std::string>("pose_sub_topic");
 
     const auto qos_sensor_data_sub{
         vortex::utils::qos_profiles::sensor_data_profile(10)};
 
-    if (msg_type == "PoseStamped") {
-        create_pose_subscription<geometry_msgs::msg::PoseStamped>(
-            pose_sub_topic, qos_sensor_data_sub.get_rmw_qos_profile());
-    } else if (msg_type == "PoseArray") {
-        create_pose_subscription<geometry_msgs::msg::PoseArray>(
-            pose_sub_topic, qos_sensor_data_sub.get_rmw_qos_profile());
-    } else if (msg_type == "PoseWithCovarianceStamped") {
-        create_pose_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-            pose_sub_topic, qos_sensor_data_sub.get_rmw_qos_profile());
-    } else {
-        spdlog::error(
-            "IPDAPoseFilteringNode: Unsupported pose message type: {} \n"
-            "Supported types are: Pose, PoseStamped, PoseArray, "
-            "PoseWithCovarianceStamped",
-            msg_type);
-    }
+    create_pose_subscription(pose_sub_topic,
+                             qos_sensor_data_sub.get_rmw_qos_profile());
+}
+
+void IPDAPoseFilteringNode::create_pose_subscription(
+    const std::string& topic_name,
+    const rmw_qos_profile_t& qos_profile) {
+    auto sub = std::make_shared<message_filters::Subscriber<PoseMsgT>>(
+        this, topic_name, qos_profile);
+
+    auto filter = std::make_shared<tf2_ros::MessageFilter<PoseMsgT>>(
+        *sub, *tf2_buffer_, target_frame_, 10,
+        this->get_node_logging_interface(), this->get_node_clock_interface());
+
+    filter->registerCallback(
+        [this](const typename PoseMsgT::ConstSharedPtr msg) {
+            this->measurements_ =
+                vortex::utils::ros_conversions::ros_to_pose_vec(*msg);
+        });
+
+    subscriber_ = sub;
+    tf_filter_ = filter;
 }
 
 void IPDAPoseFilteringNode::setup_track_manager() {
@@ -87,16 +93,13 @@ void IPDAPoseFilteringNode::setup_track_manager() {
     config.ipda.pdaf.clutter_intensity =
         this->declare_parameter<double>("ipda.clutter_intensity");
 
-    config.dyn_mod.std_pos = this->declare_parameter<double>("dyn_mod.std_pos");
-    config.dyn_mod.std_orient =
-        this->declare_parameter<double>("dyn_mod.std_orient");
+    config.dyn_mod.std_dev = this->declare_parameter<double>("dyn_mod.std_dev");
 
-    config.sensor_mod.std_pos =
-        this->declare_parameter<double>("sensor_mod.std_pos");
-    config.sensor_mod.std_orient =
-        this->declare_parameter<double>("sensor_mod.std_orient");
-    config.sensor_mod.max_angle_gate_threshold =
-        this->declare_parameter<double>("sensor_mod.max_angle_gate_threshold");
+    config.sensor_mod.std_dev =
+        this->declare_parameter<double>("sensor_mod.std_dev");
+
+    config.max_angle_gate_threshold =
+        this->declare_parameter<double>("max_angle_gate_threshold");
 
     config.existence.confirmation_threshold =
         this->declare_parameter<double>("existence.confirmation_threshold");
@@ -109,63 +112,25 @@ void IPDAPoseFilteringNode::setup_track_manager() {
     track_manager_ = std::make_unique<IPDAPoseTrackManager>(config);
 }
 
-template <ValidPoseMsg MsgT>
-void IPDAPoseFilteringNode::create_pose_subscription(
-    const std::string& topic_name,
-    const rmw_qos_profile_t& qos_profile) {
-    auto sub = std::make_shared<message_filters::Subscriber<MsgT>>(
-        this, topic_name, qos_profile);
-
-    auto filter = std::make_shared<tf2_ros::MessageFilter<MsgT>>(
-        *sub, *tf2_buffer_, target_frame_, 100,
-        this->get_node_logging_interface(), this->get_node_clock_interface());
-
-    filter->registerCallback([this](const typename MsgT::ConstSharedPtr msg) {
-        this->pose_callback<MsgT>(msg);
-    });
-
-    subscriber_ = sub;
-    tf_filter_ = filter;
-}
-
-template <ValidPoseMsg MsgT>
-void IPDAPoseFilteringNode::pose_callback(
-    const typename MsgT::ConstSharedPtr& msg) {
-    Measurements measurements =
-        vortex::utils::ros_conversions::ros_to_eigen6d(*msg);
-    rclcpp::Time current_time(msg->header.stamp);
-    double dt = (current_time - prev_meas_stamp_).seconds();
-    prev_meas_stamp_ = current_time;
-    track_manager_->measurement_update(measurements, dt);
-};
-
 void IPDAPoseFilteringNode::timer_callback() {
-    track_manager_->predict_tracks();
+    track_manager_->step(measurements_, filter_dt_seconds_);
+    measurements_.clear();
 
     geometry_msgs::msg::PoseArray pose_array;
     pose_array.header.frame_id = target_frame_;
-    pose_array.header.stamp = prev_meas_stamp_;
-    for (auto track : track_manager_->get_tracks()) {
+    pose_array.header.stamp = this->get_clock()->now();
+    for (const Track& track : track_manager_->get_tracks()) {
         if (!track.confirmed)
             continue;
         pose_array.poses.push_back(
-            vortex::utils::ros_conversions::pose_like_to_pose_msg(
-                track.state.mean()));
+            vortex::utils::ros_conversions::to_pose_msg(track.to_pose()));
+    }
+
+    if (pose_array.poses.empty()) {
+        return;
     }
     pose_array_pub_->publish(pose_array);
 }
-
-template void
-IPDAPoseFilteringNode::pose_callback<geometry_msgs::msg::PoseStamped>(
-    const geometry_msgs::msg::PoseStamped::ConstSharedPtr& msg);
-
-template void
-IPDAPoseFilteringNode::pose_callback<geometry_msgs::msg::PoseArray>(
-    const geometry_msgs::msg::PoseArray::ConstSharedPtr& msg);
-
-template void IPDAPoseFilteringNode::pose_callback<
-    geometry_msgs::msg::PoseWithCovarianceStamped>(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
 RCLCPP_COMPONENTS_REGISTER_NODE(IPDAPoseFilteringNode);
 

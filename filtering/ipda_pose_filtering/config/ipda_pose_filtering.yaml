@@ -1,10 +1,11 @@
 /**:
   ros__parameters:
-    pose_message_type: "PoseStamped"
-    pose_sub_topic: "pose"
+    pose_sub_topic: "/aruco_detector/board"
     pose_array_pub_topic: "filtered_pose_array"
     target_frame: "odom"
-    publish_timer: 100
+    timer_rate_ms: 100
+
+    max_angle_gate_threshold: 0.4 # in radians
 
     # IPDA config
     ipda:
@@ -18,14 +19,11 @@
 
     # Dyn model config
     dyn_mod:
-      std_pos: 0.2
-      std_orient: 0.2
+      std_dev: 0.2
 
     # Sensor model config
     sensor_mod:
-      std_pos: 0.1
-      std_orient: 0.1
-      max_angle_gate_threshold: 0.4 # in radians
+      std_dev: 0.2
 
     # Existence management config
     existence:
