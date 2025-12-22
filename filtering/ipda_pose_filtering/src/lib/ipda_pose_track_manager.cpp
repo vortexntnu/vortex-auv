@@ -48,6 +48,7 @@ void IPDAPoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
         erase_gated_measurements(measurements, consumed_indices);
     }
 
+    confirm_tracks();
     delete_tracks();
     create_tracks(measurements);
 }
@@ -150,6 +151,15 @@ void IPDAPoseTrackManager::create_tracks(
 
     for (const Pose& m : measurements) {
         tracks_.push_back(make_track(m));
+    }
+}
+
+void IPDAPoseTrackManager::confirm_tracks() {
+    for (Track& track : tracks_) {
+        if (!track.confirmed && track.existence_probability >=
+                                    existence_config_.confirmation_threshold) {
+            track.confirmed = true;
+        }
     }
 }
 

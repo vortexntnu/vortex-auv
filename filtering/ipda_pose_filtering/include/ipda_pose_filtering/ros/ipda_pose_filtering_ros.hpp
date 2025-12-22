@@ -1,5 +1,5 @@
-#ifndef IPDA_POSE_FILTERING_ROS_HPP
-#define IPDA_POSE_FILTERING_ROS_HPP
+#ifndef IPDA_POSE_FILTERING__ROS__IPDA_POSE_FILTERING_ROS_HPP_
+#define IPDA_POSE_FILTERING__ROS__IPDA_POSE_FILTERING_ROS_HPP_
 
 #include <message_filters/subscriber.h>
 #include <tf2_ros/buffer.h>
@@ -10,9 +10,11 @@
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <string>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-
+#include <vector>
 #include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
 
 #include <concepts>
@@ -32,9 +34,9 @@ static_assert(ValidPoseMsg<PoseMsgT>,
 
 class IPDAPoseFilteringNode : public rclcpp::Node {
    public:
-    IPDAPoseFilteringNode(const rclcpp::NodeOptions& options);
+    explicit IPDAPoseFilteringNode(const rclcpp::NodeOptions& options);
 
-    ~IPDAPoseFilteringNode() {};
+    ~IPDAPoseFilteringNode() {}
 
    private:
     void setup_publishers_and_subscribers();
@@ -66,4 +68,4 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
 
 }  // namespace vortex::filtering
 
-#endif  // IPDA_POSE_FILTERING_ROS_HPP
+#endif  // IPDA_POSE_FILTERING__ROS__IPDA_POSE_FILTERING_ROS_HPP_
