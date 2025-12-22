@@ -12,7 +12,7 @@ Eigen::Matrix6d calculate_J_inv(const vortex::utils::types::PoseEuler& pose) {
     constexpr double tolerance = 1e-8;
 
     if (std::abs(J.determinant()) < tolerance) {
-        spdlog::error("J(pose) is singular");
+        spdlog::error("J is singular");
 
         // Moore-Penrose pseudoinverse in case of near singular matrix, better
         // result for smaller singular values
