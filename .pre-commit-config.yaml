@@ -15,7 +15,7 @@
 repos:
   # Standard hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
       - id: check-ast
@@ -35,7 +35,7 @@ repos:
       - id: requirements-txt-fixer
   # Python hooks
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.4
+    rev: v0.13.3
     hooks:
       - id: ruff-format
       - id: ruff
@@ -70,7 +70,7 @@ repos:
         pass_filenames: true
   # C++ hooks
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v20.1.0
+    rev: v21.1.2
     hooks:
       - id: clang-format
         args: [--style=file]
