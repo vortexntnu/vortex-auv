@@ -14,7 +14,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
-find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
@@ -31,7 +31,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp_components
   rclcpp_action
   vortex_msgs
-  vortex_utils
+  vortex_utils_ros
   tf2_geometry_msgs
   spdlog
   fmt

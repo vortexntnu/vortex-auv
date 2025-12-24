@@ -2,7 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <vortex/utils/ros_conversions.hpp>
+#include <vortex/utils/ros/ros_conversions.hpp>
 
 namespace vortex::mission {
 

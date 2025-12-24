@@ -15,6 +15,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -38,6 +39,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   Eigen3
   vortex_msgs
   vortex_utils
+  vortex_utils_ros
   spdlog
   fmt
 )
