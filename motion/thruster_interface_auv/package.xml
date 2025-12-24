@@ -12,7 +12,7 @@
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
   <depend>vortex_msgs</depend>
-  <depend>vortex_util_ros</depend>
+  <depend>vortex_utils_ros</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
