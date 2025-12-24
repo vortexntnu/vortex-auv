@@ -18,7 +18,10 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
+find_package(vortex_utils_ros_tf REQUIRED)
 find_package(vortex_filtering REQUIRED)
+find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
@@ -37,6 +40,9 @@ target_include_directories(${CORE_LIB_NAME}
 ament_target_dependencies(${CORE_LIB_NAME}
   vortex_filtering
   vortex_utils
+  vortex_utils_ros
+  vortex_utils_ros_tf
+  vortex_msgs
 )
 
 set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
@@ -55,6 +61,8 @@ ament_target_dependencies(${COMPONENT_LIB_NAME}
   message_filters
   vortex_filtering
   vortex_utils
+  vortex_utils_ros
+  vortex_utils_ros_tf
 )
 
 target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})

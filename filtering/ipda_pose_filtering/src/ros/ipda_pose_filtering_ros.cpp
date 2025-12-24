@@ -2,8 +2,9 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/math.hpp>
-#include <vortex/utils/qos_profiles.hpp>
-#include "vortex/utils/ros_conversions.hpp"
+#include <vortex/utils/ros/qos_profiles.hpp>
+#include "vortex/utils/ros/ros_conversions.hpp"
+#include "vortex/utils/ros/ros_transforms.hpp"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -65,11 +66,22 @@ void IPDAPoseFilteringNode::create_pose_subscription(
         *sub, *tf2_buffer_, target_frame_, 10,
         this->get_node_logging_interface(), this->get_node_clock_interface());
 
-    filter->registerCallback(
-        [this](const typename PoseMsgT::ConstSharedPtr msg) {
-            this->measurements_ =
-                vortex::utils::ros_conversions::ros_to_pose_vec(*msg);
-        });
+    filter->registerCallback([this](
+                                 const typename PoseMsgT::ConstSharedPtr msg) {
+        PoseMsgT pose_tf;
+        try {
+            vortex::utils::ros_transforms::transform_pose(
+                *tf2_buffer_, *msg, target_frame_, pose_tf);
+        } catch (const tf2::TransformException& ex) {
+            RCLCPP_WARN(
+                this->get_logger(), "TF transform failed from '%s' to '%s': %s",
+                msg->header.frame_id.c_str(), target_frame_.c_str(), ex.what());
+            return;
+        }
+
+        this->measurements_ =
+            vortex::utils::ros_conversions::ros_to_pose_vec(pose_tf);
+    });
 
     subscriber_ = sub;
     tf_filter_ = filter;

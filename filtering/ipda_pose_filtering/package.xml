@@ -18,7 +18,10 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>message_filters</depend>
   <depend>vortex_utils</depend>
+  <depend>vortex_utils_ros</depend>
+  <depend>vortex_utils_ros_tf</depend>
   <depend>vortex_filtering</depend>
+  <depend>vortex_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

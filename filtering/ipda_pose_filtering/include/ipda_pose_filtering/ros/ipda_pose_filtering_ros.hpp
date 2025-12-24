@@ -15,19 +15,21 @@
 #include <string>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vector>
+#include <vortex_msgs/msg/landmark_array.hpp>
 #include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
 
 #include <concepts>
 
 namespace vortex::filtering {
 
-using PoseMsgT = geometry_msgs::msg::PoseStamped;
+using PoseMsgT = vortex_msgs::msg::LandmarkArray;
 
 template <typename T>
 concept ValidPoseMsg =
     std::same_as<T, geometry_msgs::msg::PoseStamped> ||
     std::same_as<T, geometry_msgs::msg::PoseArray> ||
-    std::same_as<T, geometry_msgs::msg::PoseWithCovarianceStamped>;
+    std::same_as<T, geometry_msgs::msg::PoseWithCovarianceStamped> ||
+    std::same_as<T, vortex_msgs::msg::LandmarkArray>;
 
 static_assert(ValidPoseMsg<PoseMsgT>,
               "PoseMsgT must be a supported pose message type");
