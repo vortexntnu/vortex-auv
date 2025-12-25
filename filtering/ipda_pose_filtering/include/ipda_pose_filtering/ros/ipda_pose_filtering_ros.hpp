@@ -16,6 +16,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vector>
 #include <vortex_msgs/msg/landmark_array.hpp>
+#include <vortex_msgs/msg/pose_euler_stamped.hpp>
 #include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
 
 #include <concepts>
@@ -66,6 +67,15 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
     std::unique_ptr<IPDAPoseTrackManager> track_manager_;
 
     std::vector<Pose> measurements_;
+
+    bool debug_{false};
+    rclcpp::Publisher<vortex_msgs::msg::PoseEulerStamped>::SharedPtr
+        pose_meas_debug_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::PoseEulerStamped>::SharedPtr
+        pose_state_debug_pub_;
+    void setup_debug_publishers();
+    void publish_meas_debug();
+    void publish_state_debug();
 };
 
 }  // namespace vortex::filtering

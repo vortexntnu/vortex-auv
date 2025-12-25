@@ -54,6 +54,11 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
 
     create_pose_subscription(pose_sub_topic,
                              qos_sensor_data_sub.get_rmw_qos_profile());
+
+    debug_ = this->declare_parameter<bool>("debug.enable");
+    if (debug_) {
+        setup_debug_publishers();
+    }
 }
 
 void IPDAPoseFilteringNode::create_pose_subscription(
@@ -125,8 +130,14 @@ void IPDAPoseFilteringNode::setup_track_manager() {
 }
 
 void IPDAPoseFilteringNode::timer_callback() {
+    if (debug_) {
+        publish_meas_debug();
+    }
     track_manager_->step(measurements_, filter_dt_seconds_);
     measurements_.clear();
+    if (debug_) {
+        publish_state_debug();
+    }
 
     geometry_msgs::msg::PoseArray pose_array;
     pose_array.header.frame_id = target_frame_;

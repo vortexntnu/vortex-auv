@@ -30,3 +30,8 @@
       confirmation_threshold: 0.6
       deletion_threshold: 0.2
       initial_existence_probability: 0.4
+
+    debug:
+      enable: true
+      topic_name_meas: "/pose_debug_meas"
+      topic_name_state: "/pose_debug_state"
