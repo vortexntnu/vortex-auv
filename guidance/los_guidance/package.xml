@@ -13,7 +13,7 @@
   <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
-  <depend>vortex_utils</depend>
+  <depend>vortex_utils_ros</depend>
   <depend>eigen</depend>
 
   <export>

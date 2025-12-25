@@ -4,7 +4,7 @@
 #include <functional>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
-#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 

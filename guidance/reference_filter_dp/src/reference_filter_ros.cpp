@@ -3,7 +3,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
 #include <vortex/utils/math.hpp>
-#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/types.hpp>
 
 const auto start_message = R"(
