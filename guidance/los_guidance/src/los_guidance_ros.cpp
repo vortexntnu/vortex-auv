@@ -1,6 +1,6 @@
 #include "los_guidance/los_guidance_ros.hpp"
 #include <spdlog/spdlog.h>
-#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 
 const auto start_message = R"(
   _     ___  ____     ____       _     _
