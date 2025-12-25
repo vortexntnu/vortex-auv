@@ -1,5 +1,5 @@
-#ifndef IPDA_POSE_FILTERING__ROS__IPDA_POSE_FILTERING_ROS_HPP_
-#define IPDA_POSE_FILTERING__ROS__IPDA_POSE_FILTERING_ROS_HPP_
+#ifndef POSE_FILTERING__ROS__POSE_FILTERING_ROS_HPP_
+#define POSE_FILTERING__ROS__POSE_FILTERING_ROS_HPP_
 
 #include <message_filters/subscriber.h>
 #include <tf2_ros/buffer.h>
@@ -17,7 +17,7 @@
 #include <vector>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/pose_euler_stamped.hpp>
-#include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
+#include "pose_filtering/lib/pose_track_manager.hpp"
 
 #include <concepts>
 
@@ -35,11 +35,11 @@ concept ValidPoseMsg =
 static_assert(ValidPoseMsg<PoseMsgT>,
               "PoseMsgT must be a supported pose message type");
 
-class IPDAPoseFilteringNode : public rclcpp::Node {
+class PoseFilteringNode : public rclcpp::Node {
    public:
-    explicit IPDAPoseFilteringNode(const rclcpp::NodeOptions& options);
+    explicit PoseFilteringNode(const rclcpp::NodeOptions& options);
 
-    ~IPDAPoseFilteringNode() {}
+    ~PoseFilteringNode() {}
 
    private:
     void setup_publishers_and_subscribers();
@@ -64,7 +64,7 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr pub_timer_;
     double filter_dt_seconds_{0.0};
 
-    std::unique_ptr<IPDAPoseTrackManager> track_manager_;
+    std::unique_ptr<PoseTrackManager> track_manager_;
 
     std::vector<Pose> measurements_;
 
@@ -80,4 +80,4 @@ class IPDAPoseFilteringNode : public rclcpp::Node {
 
 }  // namespace vortex::filtering
 
-#endif  // IPDA_POSE_FILTERING__ROS__IPDA_POSE_FILTERING_ROS_HPP_
+#endif  // POSE_FILTERING__ROS__POSE_FILTERING_ROS_HPP_

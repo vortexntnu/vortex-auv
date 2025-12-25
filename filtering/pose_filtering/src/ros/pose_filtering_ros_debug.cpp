@@ -1,10 +1,10 @@
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
-#include "ipda_pose_filtering/ros/ipda_pose_filtering_ros.hpp"
+#include "pose_filtering/ros/pose_filtering_ros.hpp"
 
 namespace vortex::filtering {
 
-void IPDAPoseFilteringNode::setup_debug_publishers() {
+void PoseFilteringNode::setup_debug_publishers() {
     std::string meas_topic_name =
         this->declare_parameter<std::string>("debug.topic_name_meas");
     std::string state_topic_name =
@@ -19,7 +19,7 @@ void IPDAPoseFilteringNode::setup_debug_publishers() {
             state_topic_name, qos_sensor_data);
 }
 
-void IPDAPoseFilteringNode::publish_meas_debug() {
+void PoseFilteringNode::publish_meas_debug() {
     if (measurements_.empty()) {
         return;
     }
@@ -42,7 +42,7 @@ void IPDAPoseFilteringNode::publish_meas_debug() {
     pose_meas_debug_pub_->publish(msg);
 }
 
-void IPDAPoseFilteringNode::publish_state_debug() {
+void PoseFilteringNode::publish_state_debug() {
     if (track_manager_->get_tracks().empty()) {
         return;
     }

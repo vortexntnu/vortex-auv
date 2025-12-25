@@ -1,11 +1,11 @@
-#include "ipda_pose_filtering/lib/ipda_pose_track_manager.hpp"
+#include "pose_filtering/lib/pose_track_manager.hpp"
 #include <algorithm>
 #include <ranges>
 #include <vortex/utils/math.hpp>
 
 namespace vortex::filtering {
 
-IPDAPoseTrackManager::IPDAPoseTrackManager(const TrackManagerConfig& config)
+PoseTrackManager::PoseTrackManager(const TrackManagerConfig& config)
     : track_id_counter_(0),
       dyn_mod_(config.dyn_mod.std_dev),
       sensor_mod_(config.sensor_mod.std_dev) {
@@ -14,7 +14,7 @@ IPDAPoseTrackManager::IPDAPoseTrackManager(const TrackManagerConfig& config)
     max_angle_gate_threshold_ = config.max_angle_gate_threshold;
 }
 
-void IPDAPoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
+void PoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
     sort_tracks_by_priority();
 
     for (Track& track : tracks_) {
@@ -53,7 +53,7 @@ void IPDAPoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
     create_tracks(measurements);
 }
 
-std::vector<Eigen::Index> IPDAPoseTrackManager::angular_gate_measurements(
+std::vector<Eigen::Index> PoseTrackManager::angular_gate_measurements(
     const Track& track,
     const std::vector<Pose>& measurements) const {
     std::vector<Eigen::Index> indices;
@@ -70,7 +70,7 @@ std::vector<Eigen::Index> IPDAPoseTrackManager::angular_gate_measurements(
 }
 
 Eigen::Matrix<double, 3, Eigen::Dynamic>
-IPDAPoseTrackManager::build_position_matrix(
+PoseTrackManager::build_position_matrix(
     const std::vector<Pose>& measurements,
     const std::vector<Eigen::Index>& indices) const {
     Eigen::Matrix<double, 3, Eigen::Dynamic> Z(3, indices.size());
@@ -81,7 +81,7 @@ IPDAPoseTrackManager::build_position_matrix(
     return Z;
 }
 
-std::vector<Eigen::Quaterniond> IPDAPoseTrackManager::collect_used_quaternions(
+std::vector<Eigen::Quaterniond> PoseTrackManager::collect_used_quaternions(
     const std::vector<Pose>& measurements,
     const std::vector<Eigen::Index>& angular_gate_indices,
     const Eigen::Array<bool, 1, Eigen::Dynamic>& gated_measurements,
@@ -100,7 +100,7 @@ std::vector<Eigen::Quaterniond> IPDAPoseTrackManager::collect_used_quaternions(
     return quats;
 }
 
-void IPDAPoseTrackManager::update_track_orientation(
+void PoseTrackManager::update_track_orientation(
     Track& track,
     const std::vector<Eigen::Quaterniond>& quaternions) {
     if (quaternions.empty()) {
@@ -124,7 +124,7 @@ void IPDAPoseTrackManager::update_track_orientation(
     track.current_orientation = track.current_orientation.slerp(alpha, avg_q);
 }
 
-void IPDAPoseTrackManager::erase_gated_measurements(
+void PoseTrackManager::erase_gated_measurements(
     std::vector<Pose>& measurements,
     std::vector<Eigen::Index>& indices) {
     std::ranges::sort(indices, std::greater<>());
@@ -133,8 +133,7 @@ void IPDAPoseTrackManager::erase_gated_measurements(
     }
 }
 
-void IPDAPoseTrackManager::create_tracks(
-    const std::vector<Pose>& measurements) {
+void PoseTrackManager::create_tracks(const std::vector<Pose>& measurements) {
     tracks_.reserve(tracks_.size() + measurements.size());
 
     auto make_track = [this](const Pose& measurement) {
@@ -154,7 +153,7 @@ void IPDAPoseTrackManager::create_tracks(
     }
 }
 
-void IPDAPoseTrackManager::confirm_tracks() {
+void PoseTrackManager::confirm_tracks() {
     for (Track& track : tracks_) {
         if (!track.confirmed && track.existence_probability >=
                                     existence_config_.confirmation_threshold) {
@@ -163,7 +162,7 @@ void IPDAPoseTrackManager::confirm_tracks() {
     }
 }
 
-void IPDAPoseTrackManager::delete_tracks() {
+void PoseTrackManager::delete_tracks() {
     auto new_end = std::ranges::remove_if(tracks_, [this](Track& track) {
         return track.existence_probability <
                existence_config_.deletion_threshold;
@@ -171,7 +170,7 @@ void IPDAPoseTrackManager::delete_tracks() {
     tracks_.erase(new_end.begin(), new_end.end());
 }
 
-void IPDAPoseTrackManager::sort_tracks_by_priority() {
+void PoseTrackManager::sort_tracks_by_priority() {
     std::ranges::sort(tracks_, [](const Track& a, const Track& b) {
         if (a.confirmed != b.confirmed)
             return a.confirmed > b.confirmed;

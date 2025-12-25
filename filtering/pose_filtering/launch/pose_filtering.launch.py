@@ -7,17 +7,17 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     config = os.path.join(
-        get_package_share_directory('ipda_pose_filtering'),
+        get_package_share_directory('pose_filtering'),
         'config',
-        'ipda_pose_filtering.yaml',
+        'pose_filtering.yaml',
     )
 
     return LaunchDescription(
         [
             Node(
-                package='ipda_pose_filtering',
-                executable='ipda_pose_filtering_node',
-                name='ipda_pose_filtering',
+                package='pose_filtering',
+                executable='pose_filtering_node',
+                name='pose_filtering',
                 output='screen',
                 parameters=[config, {'use_sim_time': False}],
             ),

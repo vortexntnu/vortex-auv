@@ -1,5 +1,5 @@
-#ifndef TYPEDEFS_HPP
-#define TYPEDEFS_HPP
+#ifndef POSE_FILTERING__LIB__TYPEDEFS_HPP_
+#define POSE_FILTERING__LIB__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 #include <vortex/utils/types.hpp>
@@ -56,4 +56,4 @@ struct Track {
 
 }  // namespace vortex::filtering
 
-#endif  // TYPEDEFS_HPP
+#endif  // POSE_FILTERING__LIB__TYPEDEFS_HPP_

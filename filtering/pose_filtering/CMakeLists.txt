@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ipda_pose_filtering)
+project(pose_filtering)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -28,7 +28,7 @@ include_directories(include)
 set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
-  src/lib/ipda_pose_track_manager.cpp
+  src/lib/pose_track_manager.cpp
 )
 
 target_include_directories(${CORE_LIB_NAME}
@@ -70,7 +70,7 @@ target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
 
 rclcpp_components_register_node(
   ${COMPONENT_LIB_NAME}
-  PLUGIN "IPDAPoseFilteringNode"
+  PLUGIN "PoseFilteringNode"
   EXECUTABLE ${PROJECT_NAME}_node
 )
 

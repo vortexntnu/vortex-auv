@@ -1,5 +1,5 @@
-#ifndef IPDA_POSE_FILTERING__LIB__IPDA_POSE_TRACK_MANAGER_HPP_
-#define IPDA_POSE_FILTERING__LIB__IPDA_POSE_TRACK_MANAGER_HPP_
+#ifndef POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_
+#define POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_
 
 #include <memory>
 #include <vector>
@@ -8,9 +8,9 @@
 
 namespace vortex::filtering {
 
-class IPDAPoseTrackManager {
+class PoseTrackManager {
    public:
-    explicit IPDAPoseTrackManager(const TrackManagerConfig& config);
+    explicit PoseTrackManager(const TrackManagerConfig& config);
 
     void step(std::vector<Pose>& measurements, double dt);
 
@@ -63,4 +63,4 @@ class IPDAPoseTrackManager {
 
 }  // namespace vortex::filtering
 
-#endif  // IPDA_POSE_FILTERING__LIB__IPDA_POSE_TRACK_MANAGER_HPP_
+#endif  // POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_

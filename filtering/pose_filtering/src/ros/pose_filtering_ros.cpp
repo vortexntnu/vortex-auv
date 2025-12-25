@@ -1,4 +1,4 @@
-#include "ipda_pose_filtering/ros/ipda_pose_filtering_ros.hpp"
+#include "pose_filtering/ros/pose_filtering_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/math.hpp>
@@ -11,13 +11,13 @@ using std::placeholders::_2;
 
 namespace vortex::filtering {
 
-IPDAPoseFilteringNode::IPDAPoseFilteringNode(const rclcpp::NodeOptions& options)
-    : rclcpp::Node("ipda_pose_filtering_node", options) {
+PoseFilteringNode::PoseFilteringNode(const rclcpp::NodeOptions& options)
+    : rclcpp::Node("pose_filtering_node", options) {
     setup_publishers_and_subscribers();
     setup_track_manager();
 }
 
-void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
+void PoseFilteringNode::setup_publishers_and_subscribers() {
     const auto qos_sensor_data_pub{
         vortex::utils::qos_profiles::sensor_data_profile(1)};
     std::string pub_topic_name =
@@ -32,7 +32,7 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
 
     pub_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(timer_rate_ms),
-        std::bind(&IPDAPoseFilteringNode::timer_callback, this));
+        std::bind(&PoseFilteringNode::timer_callback, this));
 
     target_frame_ = this->declare_parameter<std::string>("target_frame");
 
@@ -61,7 +61,7 @@ void IPDAPoseFilteringNode::setup_publishers_and_subscribers() {
     }
 }
 
-void IPDAPoseFilteringNode::create_pose_subscription(
+void PoseFilteringNode::create_pose_subscription(
     const std::string& topic_name,
     const rmw_qos_profile_t& qos_profile) {
     auto sub = std::make_shared<message_filters::Subscriber<PoseMsgT>>(
@@ -92,7 +92,7 @@ void IPDAPoseFilteringNode::create_pose_subscription(
     tf_filter_ = filter;
 }
 
-void IPDAPoseFilteringNode::setup_track_manager() {
+void PoseFilteringNode::setup_track_manager() {
     TrackManagerConfig config;
 
     config.ipda.ipda.prob_of_survival =
@@ -126,10 +126,10 @@ void IPDAPoseFilteringNode::setup_track_manager() {
         this->declare_parameter<double>(
             "existence.initial_existence_probability");
 
-    track_manager_ = std::make_unique<IPDAPoseTrackManager>(config);
+    track_manager_ = std::make_unique<PoseTrackManager>(config);
 }
 
-void IPDAPoseFilteringNode::timer_callback() {
+void PoseFilteringNode::timer_callback() {
     if (debug_) {
         publish_meas_debug();
     }
@@ -155,6 +155,6 @@ void IPDAPoseFilteringNode::timer_callback() {
     pose_array_pub_->publish(pose_array);
 }
 
-RCLCPP_COMPONENTS_REGISTER_NODE(IPDAPoseFilteringNode);
+RCLCPP_COMPONENTS_REGISTER_NODE(PoseFilteringNode);
 
 }  // namespace vortex::filtering

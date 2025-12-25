@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ipda_pose_filtering</name>
+  <name>pose_filtering</name>
   <version>0.0.0</version>
-  <description>IPDA pose filtering and tracking package, with a C++ track manager and ROS 2 interface node.</description>
+  <description>Pose filtering and tracking package, with a C++ track manager and ROS 2 interface node.</description>
 
   <maintainer email="jorgen.fjermedal@hotmail.com">jorgen</maintainer>
   <license>MIT</license>
