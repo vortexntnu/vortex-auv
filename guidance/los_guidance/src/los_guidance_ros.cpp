@@ -2,7 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
 #include <string>
-#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include "los_guidance/lib/types.hpp"
 
 const auto start_message = R"(

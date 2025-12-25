@@ -3,7 +3,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string>
 #include <vortex/utils/math.hpp>
-#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
