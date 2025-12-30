@@ -106,14 +106,17 @@ void PoseTrackManager::update_track_orientation(
     Eigen::Quaterniond avg_q =
         vortex::utils::math::average_quaternions(quaternions);
 
-    double d_prev = track.prev_orientation.angularDistance(avg_q);
+    double d_curr_meas = track.current_orientation.angularDistance(avg_q);
 
-    double d_curr = track.current_orientation.angularDistance(avg_q);
+    double d_prev_meas = track.prev_orientation.angularDistance(avg_q);
 
-    constexpr double eps = 1e-6;
+    double w_meas = std::max(d_curr_meas, d_prev_meas);
 
-    double alpha = d_prev / (d_curr + eps);
-    alpha = std::clamp(alpha, 0.05, 1.0);
+    constexpr double sigma_ori = 0.1;
+
+    double alpha = std::exp(-w_meas / sigma_ori);
+
+    alpha = std::clamp(alpha, 0.001, 1.0);
 
     track.prev_orientation = track.current_orientation;
 
