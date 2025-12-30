@@ -21,10 +21,6 @@ void PoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
         auto angular_gate_indices =
             angular_gate_measurements(track, measurements);
 
-        if (angular_gate_indices.empty()) {
-            continue;
-        }
-
         Eigen::Matrix<double, 3, Eigen::Dynamic> Z =
             build_position_matrix(measurements, angular_gate_indices);
 

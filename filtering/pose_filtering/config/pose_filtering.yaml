@@ -9,13 +9,13 @@
 
     # IPDA config
     ipda:
-      prob_of_survival: 0.99
+      prob_of_survival: 0.95
       estimate_clutter: false
-      prob_of_detection: 0.7
+      prob_of_detection: 0.5
       mahalanobis_gate_threshold: 2.5 # in std deviations
       min_gate_threshold: 1.0 # in meters
       max_gate_threshold: 10.0 # in meters
-      clutter_intensity: 0.001
+      clutter_intensity: 0.01
 
     # Dyn model config
     dyn_mod:

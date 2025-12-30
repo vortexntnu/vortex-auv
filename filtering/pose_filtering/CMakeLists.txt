@@ -103,4 +103,8 @@ ament_export_dependencies(
 ament_export_include_directories(include)
 ament_export_libraries(${CORE_LIB_NAME})
 
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
+
 ament_package()
