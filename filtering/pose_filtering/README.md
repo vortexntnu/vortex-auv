@@ -58,74 +58,22 @@ Position (IPDA):
   provides robust data association for cluttered measurements and
   handles tracks appearing/disappearing over time.
 
-Orientation (independent logic):
+Orientation (SO(3) PDAF):
 
-- Orientation is handled separately from the IPDA position filter.
-  Instead of embedding orientation inside the Gaussian state, the
-  track stores a quaternion orientation and updates it with measurement
-  quaternions when appropriate.
-- Angular gating: for each track the manager performs an angular gate
-  test that compares the current track quaternion to a measurement's
-  quaternion. Measurements with an angular distance above the configured
-  `max_angle_gate_threshold` are not associated with that track for
-  orientation updates. This prevents spurious orientation jumps from
-  outlier measurements.
+Orientation is handled by a dedicated PDAF-style filter operating on
+the SO(3) manifold. Each track
+maintains:
 
-Quaternion averaging and Slerp:
+- a quaternion mean q (the track orientation), and
+- a small Gaussian error state in the 3D tangent space (so(3)) around
+  that mean.
 
-- When multiple measurements pass gating and are associated with a
-  track, the manager extracts the corresponding quaternions and computes
-  a (robust) mean orientation. The implementation collects the
-  measurement quaternions and derives a representative quaternion —
-  e.g. via a mean in quaternion space (the
-  implementation collects and reduces the quaternions used for that
-  update).
-- To smoothly update the stored track orientation towards the measured
-  mean, the node performs a spherical linear interpolation (slerp)
-  between the current track quaternion q_current and the measurement
-  mean quaternion q_meas_mean:
 
-  q_new = slerp(q_current, q_meas_mean, alpha)
-
-  where `slerp(q0, q1, t)` returns the interpolation at fraction `t`
-  along the shortest rotation between `q0` and `q1`.
-
-- The `alpha` parameter controls how aggressively the orientation is
-  updated in a single tracking step:
-  - `alpha = 0.0` : keep the current orientation (no change)
-  - `alpha = 1.0` : instantly jump to the measurement mean
-  - `0.0 < alpha < 1.0` : smooth interpolation; the closer alpha is to
-    1.0 the faster the track follows measurements
-
-### Adaptive alpha computation
-
-The package computes the slerp `alpha` parameter adaptively using both the current and previous quaternion stored on the track and the mean quaternion built
-from the current associated measurements.
-
-Let
-- q_k     be the current track orientation
-- q_{k-1} be the previous track orientation
-- q̄_z    be the mean quaternion of the associated measurements
-
-Define angular discrepancies on SO(3):
-
-- θ_k     = d(q_k, q̄_z)
-- θ_{k-1} = d(q_{k-1}, q̄_z)
-
-where d(·,·) is the quaternion geodesic distance (Eigen::Quaterniond::angularDistance).
-
-Effective measurement disagreement:
-
-- θ = max(θ_k, θ_{k-1})
-
-Adaptive SLERP gain:
-
-- α = clamp( exp( -θ / σ_ori ), α_min, 1 )
-  with σ_ori = 0.1
-
-Orientation update:
-
-- q_{k+1} = slerp(q_k, q̄_z; α)
+The log and exp maps are mathematically defined for all unit quaternions
+but the Kalman/PDAF linearization on the tangent space assumes small
+errors. The implementation gates measurements and uses configurable
+covariances to keep tangent residuals small; if large-angle residuals
+occur they will either be gated out or yield small β (limited effect).
 
 ## Library export and usage
 

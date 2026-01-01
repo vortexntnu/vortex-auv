@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
+#include "orientation_filter.hpp"
 #include "typedefs.hpp"
 
 namespace vortex::filtering {
@@ -110,15 +111,6 @@ class PoseTrackManager {
         std::vector<Eigen::Index>& consumed_indices_out) const;
 
     /**
-     * @brief Update a track's orientation using the collected quaternions.
-     * @param track Track to update
-     * @param quaternions Vector of quaternions to fuse / apply
-     */
-    void update_track_orientation(
-        Track& track,
-        const std::vector<Eigen::Quaterniond>& quaternions);
-
-    /**
      * @brief Erase measurements which have been gated / consumed.
      * @param measurements Measurements vector (modified in place)
      * @param indices Indices of measurements to erase
@@ -140,6 +132,11 @@ class PoseTrackManager {
     ExistenceManagementConfig existence_config_;
 
     double max_angle_gate_threshold_{};
+
+    double initial_position_std_{};
+    double initial_orientation_std_{};
+
+    OrientationFilter orientation_filter_;
 };
 
 }  // namespace vortex::filtering

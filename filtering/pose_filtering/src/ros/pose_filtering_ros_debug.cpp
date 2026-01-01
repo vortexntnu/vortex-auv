@@ -47,8 +47,8 @@ void PoseFilteringNode::publish_state_debug() {
         return;
     }
     Track track = track_manager_->get_tracks().at(0);
-    Eigen::Vector3d pos = track.state.mean();
-    Eigen::Quaterniond quat = track.current_orientation;
+    Eigen::Vector3d pos = track.state_pos.mean();
+    Eigen::Quaterniond quat = track.orientation_filter.q;
 
     Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(quat);
 

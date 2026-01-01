@@ -55,7 +55,7 @@ TEST_F(PoseTrackManagerTests, creates_tracks_from_measurements) {
     for (const auto& t : tracks) {
         EXPECT_FALSE(t.confirmed);
         EXPECT_NEAR(t.existence_probability, 0.5, 1e-12);
-        EXPECT_NEAR(t.current_orientation.w(), 1.0, 1e-12);
+        EXPECT_NEAR(t.orientation_filter.q.w(), 1.0, 1e-12);
     }
 }
 

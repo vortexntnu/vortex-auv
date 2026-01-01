@@ -2,13 +2,17 @@
 #include <algorithm>
 #include <ranges>
 #include <vortex/utils/math.hpp>
+#include "pose_filtering/lib/orientation_filter.hpp"
 
 namespace vortex::filtering {
 
 PoseTrackManager::PoseTrackManager(const TrackManagerConfig& config)
     : track_id_counter_(0),
       dyn_mod_(config.dyn_mod.std_dev),
-      sensor_mod_(config.sensor_mod.std_dev) {
+      sensor_mod_(config.sensor_mod.std_dev),
+      orientation_filter_(OrientationFilter(config.ori)) {
+    initial_position_std_ = config.initial_position_std;
+    initial_orientation_std_ = config.initial_orientation_std;
     ipda_config_ = config.ipda;
     existence_config_ = config.existence;
     max_angle_gate_threshold_ = config.max_angle_gate_threshold;
@@ -25,13 +29,13 @@ void PoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
             build_position_matrix(measurements, angular_gate_indices);
 
         const IPDA::State state_est_prev{
-            .x_estimate = track.state,
+            .x_estimate = track.state_pos,
             .existence_probability = track.existence_probability};
 
         auto ipda_output = IPDA::step(dyn_mod_, sensor_mod_, dt, state_est_prev,
                                       Z, ipda_config_);
 
-        track.state = ipda_output.state.x_estimate;
+        track.state_pos = ipda_output.state.x_estimate;
         track.existence_probability = ipda_output.state.existence_probability;
 
         std::vector<Eigen::Index> consumed_indices;
@@ -39,7 +43,8 @@ void PoseTrackManager::step(std::vector<Pose>& measurements, double dt) {
             measurements, angular_gate_indices, ipda_output.gated_measurements,
             consumed_indices);
 
-        update_track_orientation(track, used_quaternions);
+        orientation_filter_.step(used_quaternions, dt,
+                                 track.orientation_filter);
 
         erase_gated_measurements(measurements, consumed_indices);
     }
@@ -96,33 +101,6 @@ std::vector<Eigen::Quaterniond> PoseTrackManager::collect_used_quaternions(
     return quats;
 }
 
-void PoseTrackManager::update_track_orientation(
-    Track& track,
-    const std::vector<Eigen::Quaterniond>& quaternions) {
-    if (quaternions.empty()) {
-        return;
-    }
-
-    Eigen::Quaterniond avg_q =
-        vortex::utils::math::average_quaternions(quaternions);
-
-    double d_curr_meas = track.current_orientation.angularDistance(avg_q);
-
-    double d_prev_meas = track.prev_orientation.angularDistance(avg_q);
-
-    double w_meas = std::max(d_curr_meas, d_prev_meas);
-
-    constexpr double sigma_ori = 0.1;
-
-    double alpha = std::exp(-w_meas / sigma_ori);
-
-    alpha = std::clamp(alpha, 0.001, 1.0);
-
-    track.prev_orientation = track.current_orientation;
-
-    track.current_orientation = track.current_orientation.slerp(alpha, avg_q);
-}
-
 void PoseTrackManager::erase_gated_measurements(
     std::vector<Pose>& measurements,
     std::vector<Eigen::Index>& indices) {
@@ -137,11 +115,17 @@ void PoseTrackManager::create_tracks(const std::vector<Pose>& measurements) {
 
     auto make_track = [this](const Pose& measurement) {
         return Track{.id = track_id_counter_++,
-                     .state = vortex::prob::Gauss3d(
-                         measurement.pos_vector(),
-                         Eigen::Matrix<double, 3, 3>::Identity()),
-                     .current_orientation = measurement.ori_quaternion(),
-                     .prev_orientation = measurement.ori_quaternion(),
+                     .state_pos = vortex::prob::Gauss3d(
+                         measurement.pos_vector(), Eigen::Matrix3d::Identity() *
+                                                       initial_position_std_ *
+                                                       initial_position_std_),
+                     .orientation_filter =
+                         OrientationState{.q = measurement.ori_quaternion(),
+                                          .error_state = State3d(
+                                              Eigen::Vector3d::Zero(),
+                                              Eigen::Matrix3d::Identity() *
+                                                  initial_orientation_std_ *
+                                                  initial_orientation_std_)},
                      .existence_probability =
                          existence_config_.initial_existence_probability,
                      .confirmed = false};
