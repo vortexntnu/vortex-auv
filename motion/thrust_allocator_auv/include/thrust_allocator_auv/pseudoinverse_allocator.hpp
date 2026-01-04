@@ -5,8 +5,8 @@
  * Handbook of Marine Craft Hydrodynamics and Motion Control (chapter 12.3.2).
  */
 
-#ifndef VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_HPP
-#define VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_HPP
+#ifndef THRUST_ALLOCATOR_AUV__PSEUDOINVERSE_ALLOCATOR_HPP_
+#define THRUST_ALLOCATOR_AUV__PSEUDOINVERSE_ALLOCATOR_HPP_
 
 #include <eigen3/Eigen/Eigen>
 
@@ -36,4 +36,4 @@ class PseudoinverseAllocator {
     Eigen::MatrixXd T_pinv;
 };
 
-#endif  // VORTEX_ALLOCATOR_PSEUDOINVERSE_ALLOCATOR_HPP
+#endif  // THRUST_ALLOCATOR_AUV__PSEUDOINVERSE_ALLOCATOR_HPP_

@@ -13,7 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(vortex_msgs REQUIRED)
-find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
@@ -32,7 +32,7 @@ ament_target_dependencies(${LIB_NAME}
   rclcpp_action
   geometry_msgs
   vortex_msgs
-  vortex_utils
+  vortex_utils_ros
   Eigen3
   spdlog
   fmt

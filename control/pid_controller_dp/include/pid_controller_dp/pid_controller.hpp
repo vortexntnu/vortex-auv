@@ -1,11 +1,11 @@
-#ifndef PID_CONTROLLER_HPP
-#define PID_CONTROLLER_HPP
+#ifndef PID_CONTROLLER_DP__PID_CONTROLLER_HPP_
+#define PID_CONTROLLER_DP__PID_CONTROLLER_HPP_
 
 #include "pid_controller_dp/typedefs.hpp"
 
 class PIDController {
    public:
-    explicit PIDController();
+    PIDController();
 
     // @brief Calculate the control input tau
     // @param eta: struct containing the vehicle pose [position, orientation]
@@ -44,4 +44,4 @@ class PIDController {
     double dt_;
 };
 
-#endif
+#endif  // PID_CONTROLLER_DP__PID_CONTROLLER_HPP_

@@ -16,8 +16,8 @@ from velocity_controller_lqr.velocity_controller_lqr_lib import (
 )
 from vortex_msgs.msg import LOSGuidance
 from vortex_utils.python_utils import State
-from vortex_utils.qos_profiles import reliable_profile, sensor_data_profile
-from vortex_utils.ros_converter import pose_from_ros, twist_from_ros
+from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils_ros.ros_converter import pose_from_ros, twist_from_ros
 
 
 class LinearQuadraticRegulator(Node):

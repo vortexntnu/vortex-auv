@@ -4,9 +4,10 @@
  * module.
  */
 
-#ifndef VORTEX_ALLOCATOR_UTILS_HPP
-#define VORTEX_ALLOCATOR_UTILS_HPP
+#ifndef THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_
+#define THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_
 
+#include <algorithm>
 #include <eigen3/Eigen/Eigen>
 #include <ranges>
 #include <rclcpp/rclcpp.hpp>
@@ -150,4 +151,4 @@ inline Eigen::Vector6d wrench_to_vector(
     return msg_vector;
 }
 
-#endif  // VORTEX_ALLOCATOR_UTILS_HPP
+#endif  // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_

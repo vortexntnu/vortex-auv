@@ -9,7 +9,7 @@ FindDockingStationState::FindDockingStationState(
           blackboard->get<std::string>("pose_action"),
           std::bind(&FindDockingStationState::create_goal_handler, this, _1),
           std::bind(&FindDockingStationState::response_handler, this, _1, _2),
-          std::bind(&FindDockingStationState::print_feedback, this, _1, _2)) {};
+          std::bind(&FindDockingStationState::print_feedback, this, _1, _2)) {}
 
 docking_fsm::FindDockingAction::Goal
 FindDockingStationState::create_goal_handler(
@@ -70,7 +70,7 @@ ApproachDockingStationState::ApproachDockingStationState(
           std::bind(&ApproachDockingStationState::print_feedback,
                     this,
                     _1,
-                    _2)) {};
+                    _2)) {}
 
 docking_fsm::ApproachDockingAction::Goal
 ApproachDockingStationState::create_goal_handler(
@@ -79,16 +79,18 @@ ApproachDockingStationState::create_goal_handler(
 
     blackboard->set<bool>("is_home", false);
 
-    docking_fsm::PoseStamped docking_offset_goal =
-        blackboard->get<docking_fsm::PoseStamped>("docking_offset_goal");
+    docking_fsm::Pose docking_offset_goal =
+        blackboard->get<docking_fsm::PoseStamped>("docking_offset_goal").pose;
 
-    goal.goal = docking_offset_goal;
+    vortex_msgs::msg::Waypoint waypoint;
+    waypoint.pose = docking_offset_goal;
+
+    goal.waypoint = waypoint;
 
     spdlog::info("Goal sent to action server:");
     spdlog::info("  Position: x = {}, y = {}, z = {}",
-                 docking_offset_goal.pose.position.x,
-                 docking_offset_goal.pose.position.y,
-                 docking_offset_goal.pose.position.z);
+                 docking_offset_goal.position.x, docking_offset_goal.position.y,
+                 docking_offset_goal.position.z);
 
     return goal;
 }
@@ -113,15 +115,15 @@ void ApproachDockingStationState::print_feedback(
     std::shared_ptr<const docking_fsm::ApproachDockingAction::Feedback>
         feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
-    current_pose.position.x = feedback->feedback.x;
-    current_pose.position.y = feedback->feedback.y;
-    current_pose.position.z = feedback->feedback.z;
+    current_pose.position.x = feedback->reference.x;
+    current_pose.position.y = feedback->reference.y;
+    current_pose.position.z = feedback->reference.z;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
     spdlog::debug("Current position: x = {}, y = {}, z = {}",
-                  feedback->feedback.x, feedback->feedback.y,
-                  feedback->feedback.z);
+                  feedback->reference.x, feedback->reference.y,
+                  feedback->reference.z);
 }
 
 GoAboveDockingStationState::GoAboveDockingStationState(
@@ -136,7 +138,7 @@ GoAboveDockingStationState::GoAboveDockingStationState(
           std::bind(&GoAboveDockingStationState::print_feedback,
                     this,
                     _1,
-                    _2)) {};
+                    _2)) {}
 
 docking_fsm::GoAboveDockingAction::Goal
 GoAboveDockingStationState::create_goal_handler(
@@ -145,7 +147,9 @@ GoAboveDockingStationState::create_goal_handler(
 
     auto docking_offset_goal =
         blackboard->get<docking_fsm::PoseStamped>("docking_offset_goal");
-    goal.goal = docking_offset_goal;
+    vortex_msgs::msg::Waypoint waypoint;
+    waypoint.pose = docking_offset_goal.pose;
+    goal.waypoint = waypoint;
 
     spdlog::info("Goal sent to action server:");
     spdlog::info("  Position: x = {}, y = {}, z = {}",
@@ -179,15 +183,15 @@ void GoAboveDockingStationState::print_feedback(
     std::shared_ptr<const docking_fsm::GoAboveDockingAction::Feedback>
         feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
-    current_pose.position.x = feedback->feedback.x;
-    current_pose.position.y = feedback->feedback.y;
-    current_pose.position.z = feedback->feedback.z;
+    current_pose.position.x = feedback->reference.x;
+    current_pose.position.y = feedback->reference.y;
+    current_pose.position.z = feedback->reference.z;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
 
     spdlog::debug("Current position: x = {}, y = {}, z = {}",
-                  feedback->feedback.x, feedback->feedback.y,
-                  feedback->feedback.z);
+                  feedback->reference.x, feedback->reference.y,
+                  feedback->reference.z);
 }
 
 ConvergeDockingStationState::ConvergeDockingStationState(
@@ -204,7 +208,7 @@ ConvergeDockingStationState::ConvergeDockingStationState(
           std::bind(&ConvergeDockingStationState::print_feedback,
                     this,
                     _1,
-                    _2)) {};
+                    _2)) {}
 
 docking_fsm::ConvergeDockingAction::Goal
 ConvergeDockingStationState::create_goal_handler(
@@ -213,7 +217,9 @@ ConvergeDockingStationState::create_goal_handler(
 
     docking_fsm::PoseStamped dock_pose =
         blackboard->get<docking_fsm::PoseStamped>("dock_pose");
-    goal.goal = dock_pose;
+    vortex_msgs::msg::Waypoint waypoint;
+    waypoint.pose = dock_pose.pose;
+    goal.waypoint = waypoint;
 
     spdlog::info("Goal sent to action server:");
     spdlog::info("  Position: x = {}, y = {}, z = {}",
@@ -242,14 +248,14 @@ void ConvergeDockingStationState::print_feedback(
     std::shared_ptr<const docking_fsm::ConvergeDockingAction::Feedback>
         feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
-    current_pose.position.x = feedback->feedback.x;
-    current_pose.position.y = feedback->feedback.y;
-    current_pose.position.z = feedback->feedback.z;
+    current_pose.position.x = feedback->reference.x;
+    current_pose.position.y = feedback->reference.y;
+    current_pose.position.z = feedback->reference.z;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
     spdlog::debug("Current position: x = {}, y = {}, z = {}",
-                  feedback->feedback.x, feedback->feedback.y,
-                  feedback->feedback.z);
+                  feedback->reference.x, feedback->reference.y,
+                  feedback->reference.z);
 }
 
 std::string DockedState(
@@ -267,7 +273,7 @@ std::string DockedState(
             return yasmin_ros::basic_outcomes::ABORT;
         }
     }
-};
+}
 
 ReturnHomeState::ReturnHomeState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
@@ -275,7 +281,7 @@ ReturnHomeState::ReturnHomeState(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&ReturnHomeState::create_goal_handler, this, _1),
           std::bind(&ReturnHomeState::response_handler, this, _1, _2),
-          std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {};
+          std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {}
 
 docking_fsm::ReturnHomeAction::Goal ReturnHomeState::create_goal_handler(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
@@ -286,7 +292,9 @@ docking_fsm::ReturnHomeAction::Goal ReturnHomeState::create_goal_handler(
     docking_fsm::PoseStamped start_pose =
         blackboard->get<docking_fsm::PoseStamped>("start_pose");
 
-    goal.goal = start_pose;
+    vortex_msgs::msg::Waypoint waypoint;
+    waypoint.pose = start_pose.pose;
+    goal.waypoint = waypoint;
     spdlog::info("Goal sent to action server:");
     spdlog::info("  Position: x = {}, y = {}, z = {}",
                  start_pose.pose.position.x, start_pose.pose.position.y,
@@ -313,30 +321,30 @@ void ReturnHomeState::print_feedback(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::ReturnHomeAction::Feedback> feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
-    current_pose.position.x = feedback->feedback.x;
-    current_pose.position.y = feedback->feedback.y;
-    current_pose.position.z = feedback->feedback.z;
-    current_pose.orientation.x = feedback->feedback.roll;
-    current_pose.orientation.y = feedback->feedback.pitch;
-    current_pose.orientation.z = feedback->feedback.yaw;
+    current_pose.position.x = feedback->reference.x;
+    current_pose.position.y = feedback->reference.y;
+    current_pose.position.z = feedback->reference.z;
+    current_pose.orientation.x = feedback->reference.roll;
+    current_pose.orientation.y = feedback->reference.pitch;
+    current_pose.orientation.z = feedback->reference.yaw;
 
     blackboard->set<docking_fsm::Pose>("current_pose", current_pose);
     spdlog::debug("Current position: x = {}, y = {}, z = {}",
-                  feedback->feedback.x, feedback->feedback.y,
-                  feedback->feedback.z);
+                  feedback->reference.x, feedback->reference.y,
+                  feedback->reference.z);
 }
 
 std::string AbortState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     blackboard->set<bool>("is_abort", true);
     return yasmin_ros::basic_outcomes::ABORT;
-};
+}
 
 std::string ErrorState(
     std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
     blackboard->set<bool>("is_error", true);
     return yasmin_ros::basic_outcomes::SUCCEED;
-};
+}
 
 std::shared_ptr<yasmin::StateMachine> create_state_machines() {
     std::set<std::string> outcomes = {
@@ -375,7 +383,6 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
              "UPDATE_DOCKING_STATION_POSITION"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
             {yasmin_ros::basic_outcomes::CANCEL, "APPROACH_DOCKING_STATION"},
-
         });
 
     sm->add_state(
@@ -385,7 +392,6 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
             {yasmin_ros::basic_outcomes::SUCCEED, "CONVERGE_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
             {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
-
         });
 
     sm->add_state(
@@ -395,7 +401,6 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
             {yasmin_ros::basic_outcomes::SUCCEED, "DOCKED"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
             {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
-
         });
 
     sm->add_state("DOCKED",
@@ -408,7 +413,6 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                       {yasmin_ros::basic_outcomes::SUCCEED,
                        yasmin_ros::basic_outcomes::SUCCEED},
                       {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-
                   });
     sm->add_state(
         "RETURN_HOME", std::make_shared<ReturnHomeState>(blackboard),
@@ -416,7 +420,6 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
             {yasmin_ros::basic_outcomes::SUCCEED, "FIND_DOCKING_STATION"},
             {yasmin_ros::basic_outcomes::CANCEL, "error"},
             {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-
         });
     sm->add_state("ABORT",
                   std::make_shared<yasmin::CbState>(

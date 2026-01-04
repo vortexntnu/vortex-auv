@@ -3,8 +3,8 @@
  * @brief Contains the Eigen typedefs for the controller.
  */
 
-#ifndef VORTEX_DP_ADAPT_BACKSTEPPING_CONTROLLER_TYPEDEFS_H
-#define VORTEX_DP_ADAPT_BACKSTEPPING_CONTROLLER_TYPEDEFS_H
+#ifndef DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -19,4 +19,4 @@ typedef Eigen::Matrix<double, 12, 12> Matrix12d;
 
 }  // namespace Eigen
 
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
