@@ -7,8 +7,8 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
-from vortex_utils.qos_profiles import reliable_profile, sensor_data_profile
-from vortex_utils.ros_converter import pose_from_ros
+from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils_ros.ros_converter import pose_from_ros
 
 from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
 
