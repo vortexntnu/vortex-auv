@@ -25,7 +25,7 @@ def generate_launch_description():
             ),
             Node(
                 package='keyboard_joy',
-                executable='keyboard_joy_node.py',
+                executable='keyboard_joy_node',
                 name='keyboard_joy',
                 namespace='orca',
                 output='screen',
