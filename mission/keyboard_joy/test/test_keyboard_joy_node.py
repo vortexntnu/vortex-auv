@@ -1,11 +1,11 @@
 import pytest
 import rclpy
-
 from keyboard_joy.keyboard_joy_node import KeyboardJoy
 
 
 class DummyListener:
     """Stand-in for pynput.keyboard.Listener that does nothing."""
+
     def __init__(self, on_press=None, on_release=None):
         self.on_press = on_press
         self.on_release = on_release
@@ -20,28 +20,31 @@ class DummyListener:
 
 
 class KeyChar:
-    """Mimics pynput key with .char"""
+    """Mimics pynput key with .char."""
+
     def __init__(self, char):
         self.char = char
 
 
 class KeyName:
-    """Mimics pynput special key with .name"""
+    """Mimics pynput special key with .name."""
+
     def __init__(self, name):
         self.name = name
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def rclpy_ctx():
     rclpy.init()
     yield
     rclpy.shutdown()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def node(monkeypatch, rclpy_ctx):
     # Prevent real keyboard listener from starting
     import keyboard_joy.keyboard_joy_node as mod
+
     monkeypatch.setattr(mod.keyboard, "Listener", DummyListener)
 
     # Inject deterministic mappings (avoid filesystem / YAML / ament index)
