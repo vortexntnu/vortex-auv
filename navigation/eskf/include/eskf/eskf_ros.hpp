@@ -1,9 +1,10 @@
-#ifndef ESKF_ROS_HPP
-#define ESKF_ROS_HPP
+#ifndef ESKF__ESKF_ROS_HPP_
+#define ESKF__ESKF_ROS_HPP_
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -63,4 +64,4 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Time last_imu_time_{};
 };
 
-#endif  // ESKF_ROS_HPP
+#endif  // ESKF__ESKF_ROS_HPP_
