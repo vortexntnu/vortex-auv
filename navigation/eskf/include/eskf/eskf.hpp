@@ -1,5 +1,5 @@
-#ifndef ESKF_HPP
-#define ESKF_HPP
+#ifndef ESKF__ESKF_HPP_
+#define ESKF__ESKF_HPP_
 
 #include <eigen3/Eigen/Dense>
 #include <utility>
@@ -8,7 +8,7 @@
 
 class ESKF {
    public:
-    ESKF(const EskfParams& params);
+    explicit ESKF(const EskfParams& params);
 
     // @brief Update the nominal state and error state
     // @param imu_meas: IMU measurement
@@ -103,4 +103,4 @@ double compute_nis(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
 
 #include "eskf.tpp"  // including template implementation
 
-#endif  // ESKF_HPP
+#endif  // ESKF__ESKF_HPP_
