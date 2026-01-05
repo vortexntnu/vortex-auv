@@ -13,6 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(vortex_utils REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(CasADi REQUIRED)
 find_package(LAPACK REQUIRED)
@@ -20,7 +21,11 @@ find_package(BLAS REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 
-
+#target_include_directories(velocity_controller_node
+#  PUBLIC
+#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#  $<INSTALL_INTERFACE:include>
+#)
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
   include
@@ -49,9 +54,10 @@ ament_target_dependencies(velocity_controller_node
   std_msgs
   vortex_msgs
   geometry_msgs
-  Eigen3
+  #Eigen3
   CasADi
   nav_msgs
+  vortex_utils
   
 )
 
@@ -60,13 +66,13 @@ ament_target_dependencies(test_VC_node
   std_msgs
   vortex_msgs
   geometry_msgs
-  Eigen3
+  #Eigen3
   nav_msgs
 )
 
 ament_target_dependencies(test_LQR_node
   rclcpp
-  Eigen3
+  #Eigen3
   vortex_msgs
   geometry_msgs
   std_msgs
@@ -77,9 +83,9 @@ link_directories(/usr/lib/gcc/x86_64-linux-gnu/11)
 set(SLICOT_LIB /usr/lib/x86_64-linux-gnu/libslicot.so)
 set(GFORTRAN_LIB /usr/lib/gcc/x86_64-linux-gnu/11/libgfortran.so)
 
-target_link_libraries(velocity_controller_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB})
-target_link_libraries(test_VC_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB})
-target_link_libraries(test_LQR_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB})
+target_link_libraries(velocity_controller_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB} Eigen3::Eigen)
+target_link_libraries(test_VC_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB} Eigen3::Eigen)
+target_link_libraries(test_LQR_node ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${SLICOT_LIB} ${GFORTRAN_LIB} Eigen3::Eigen)
 
 
 install(TARGETS

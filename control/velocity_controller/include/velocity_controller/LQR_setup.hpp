@@ -51,7 +51,7 @@ class LQRController{
     void update_augmented_matrices(Eigen::Matrix3d coriolis_matrix);
 
     //angle quaternion_to_euler_angle(double w, double x, double y, double z);
-    double ssa(double angle);
+    //double ssa(double angle);
 
     std::tuple<double,double> saturate (double value, bool windup, double limit);
     double anti_windup(double ki, double error, double integral_sum, bool windup);  

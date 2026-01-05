@@ -10,6 +10,9 @@
 #include <cmath>
 #include <Eigen/Dense>
 #include "vortex_msgs/msg/los_guidance.hpp"
+#include "vortex/utils/math.hpp"
+
+
 //#include "vortex-msgs/msg" kan legge til nye meldinger nå
 
 //Lager en klasse velocity node

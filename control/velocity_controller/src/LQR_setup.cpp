@@ -13,6 +13,9 @@
 #include "velocity_controller/utilities.hpp"
 #include <casadi/casadi.hpp>
 #include <lapack.h>
+#include "vortex/utils/math.hpp"
+
+
 Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
 LQRController::LQRController(LQRparameters params,Eigen::Matrix3d inertia_matrix){
     set_params(params);
@@ -39,9 +42,9 @@ LQRController::LQRController(LQRparameters params,Eigen::Matrix3d inertia_matrix
     return {phi, theta, psi};
 };*/
 
-double LQRController::ssa(double angle){
+/*double LQRController::ssa(double angle){
     return std::fmod(angle+pi, 2*pi)-pi;
-};
+};*/
 
 //Can be optimized
 std::tuple<double,double> LQRController::saturate (double value, bool windup, double limit){
@@ -115,8 +118,8 @@ void LQRController::update_augmented_matrices(Eigen::Matrix3d coriolis_matrix){
 };
 Eigen::Vector<double,6> LQRController::update_error(Guidance_data guidance_values, State states){
     double surge_error = guidance_values.surge - states.surge;
-    double pitch_error = ssa(guidance_values.pitch - states.pitch);
-    double yaw_error = ssa(guidance_values.yaw - states.yaw);   
+    double pitch_error = vortex::utils::math::ssa(guidance_values.pitch - states.pitch);
+    double yaw_error = vortex::utils::math::ssa(guidance_values.yaw - states.yaw);   
 
     integral_error_surge = anti_windup(i_surge, surge_error, integral_error_surge, surge_windup);
     integral_error_pitch = anti_windup(i_pitch, pitch_error, integral_error_pitch, pitch_windup);
