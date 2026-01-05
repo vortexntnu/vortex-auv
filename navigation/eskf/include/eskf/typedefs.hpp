@@ -2,8 +2,8 @@
  * @file typedefs.hpp
  * @brief Contains the typedef and structs for the eskf.
  */
-#ifndef ESKF_TYPEDEFS_H
-#define ESKF_TYPEDEFS_H
+#ifndef ESKF__TYPEDEFS_HPP_
+#define ESKF__TYPEDEFS_HPP_
 
 #include <concepts>
 #include <eigen3/Eigen/Dense>
@@ -114,7 +114,7 @@ concept SensorModelConcept = requires(const T& meas, const StateQuat& state) {
     { meas.innovation(state) } -> std::convertible_to<Eigen::VectorXd>;
     { meas.jacobian(state) } -> std::convertible_to<Eigen::MatrixXd>;
     { meas.noise_covariance() } -> std::convertible_to<Eigen::MatrixXd>;
-};
+};  // NOLINT(readability/braces)
 
 struct SensorDVL {
     Eigen::Vector3d measurement;
@@ -124,4 +124,4 @@ struct SensorDVL {
     Eigen::MatrixXd noise_covariance() const;
 };
 
-#endif  // ESKF_TYPEDEFS_H
+#endif  // ESKF__TYPEDEFS_HPP_
