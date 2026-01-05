@@ -9,6 +9,7 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <vortex/utils/types.hpp>
 #include "pid_controller_dp/typedefs.hpp"
+#include "typedefs.hpp"
 
 // @brief Calculate the sine of an angle in degrees
 // @param angle: Angle in degrees

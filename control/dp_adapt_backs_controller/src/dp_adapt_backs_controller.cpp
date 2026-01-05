@@ -48,6 +48,8 @@ dp_types::Vector6d DPAdaptBacksController::calculate_tau(
 
     dp_types::Vector6d F_est = Y_v * adap_param_;
 
+
+    // control equation
     dp_types::Vector6d tau = (M_ * alpha_dot) + (C * nu.as_vector()) -
                              (J.transpose() * z_1) - (K2_ * z_2) - F_est -
                              d_est_;
