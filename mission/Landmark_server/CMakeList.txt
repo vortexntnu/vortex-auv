@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.8)
+project(landmark_server)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(vortex_msgs REQUIRED)
+
+add_executable(landmark_server src/Landmark_server.cpp)
+ament_target_dependencies(landmark_server rclcpp vortex_msgs)
+
+install(TARGETS
+  landmark_server
+  DESTINATION lib/${PROJECT_NAME})
+
+
+
+ament_package()
