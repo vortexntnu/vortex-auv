@@ -1,5 +1,5 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER_HPP
-#define DP_ADAPT_BACKS_CONTROLLER_HPP
+#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_
 
 #include <eigen3/Eigen/Dense>
 #include <vortex/utils/types.hpp>
@@ -23,15 +23,16 @@ class DPAdaptBacksController {
     explicit DPAdaptBacksController(const DPAdaptParams& dp_adapt_params);
 
     // @brief Calculate thecontrol input tau
-    // @param eta: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
+    // @param pose: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
     // yaw]
-    // @param eta_d: 6D vector containing the desired vehicle pose [x, y, z,
+    // @param pose_d: 6D vector containing the desired vehicle pose [x, y, z,
     // roll, pitch, yaw]
-    // @param nu: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
+    // @param twist: 6D vector containing the vehicle velocity [u, v, w, p, q,
+    // r]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
-    Eigen::Vector6d calculate_tau(const vortex::utils::types::Eta& eta,
-                                  const vortex::utils::types::Eta& eta_d,
-                                  const vortex::utils::types::Nu& nu);
+    Eigen::Vector6d calculate_tau(const vortex::utils::types::PoseEuler& pose,
+                                  const vortex::utils::types::PoseEuler& pose_d,
+                                  const vortex::utils::types::Twist& twist);
 
     // @brief Reset the adaptive parameters
     void reset_adap_param();
@@ -59,4 +60,4 @@ class DPAdaptBacksController {
 
 }  // namespace vortex::control
 
-#endif  // DP_ADAPT_BACKS_CONTROLLER_HPP
+#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_HPP_

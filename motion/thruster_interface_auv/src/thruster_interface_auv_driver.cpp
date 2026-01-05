@@ -1,10 +1,11 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 #include <spdlog/spdlog.h>
+#include <cstdint>
 #include <format>
 #include <ranges>
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
-    short i2c_bus,
+    std::int16_t i2c_bus,
     int pico_i2c_address,
     const std::vector<ThrusterParameters>& thruster_parameters,
     const std::vector<std::vector<double>>& poly_coeffs)

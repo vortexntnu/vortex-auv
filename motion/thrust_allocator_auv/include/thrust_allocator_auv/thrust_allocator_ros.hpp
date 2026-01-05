@@ -3,8 +3,8 @@
  * @brief Contains the ROS logic for the thruster allocator node.
  */
 
-#ifndef VORTEX_ALLOCATOR_ROS_HPP
-#define VORTEX_ALLOCATOR_ROS_HPP
+#ifndef THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_
+#define THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_
 
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
@@ -94,4 +94,4 @@ class ThrustAllocator : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr watchdog_timer_;
 };
 
-#endif  // VORTEX_ALLOCATOR_ROS_HPP
+#endif  // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_

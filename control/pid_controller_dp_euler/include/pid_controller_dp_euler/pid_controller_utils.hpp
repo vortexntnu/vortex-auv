@@ -1,5 +1,5 @@
-#ifndef PID_UTILS_HPP
-#define PID_UTILS_HPP
+#ifndef PID_CONTROLLER_DP_EULER__PID_CONTROLLER_UTILS_HPP_
+#define PID_CONTROLLER_DP_EULER__PID_CONTROLLER_UTILS_HPP_
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -22,4 +22,4 @@ Vector6d clamp_values(const Vector6d& values, double min_val, double max_val);
 
 Vector6d limit_input(const Vector6d& input);
 
-#endif
+#endif  // PID_CONTROLLER_DP_EULER__PID_CONTROLLER_UTILS_HPP_

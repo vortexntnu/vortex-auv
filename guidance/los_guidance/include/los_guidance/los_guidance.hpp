@@ -1,5 +1,5 @@
-#ifndef LOS_GUIDANCE_HPP
-#define LOS_GUIDANCE_HPP
+#ifndef LOS_GUIDANCE__LOS_GUIDANCE_HPP_
+#define LOS_GUIDANCE__LOS_GUIDANCE_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -45,7 +45,7 @@ struct Params {
  */
 class AdaptiveLOSGuidance {
    public:
-    AdaptiveLOSGuidance(const LOS::Params& params);
+    explicit AdaptiveLOSGuidance(const LOS::Params& params);
     ~AdaptiveLOSGuidance() = default;
 
     void update_angles(const LOS::Point& prev_point,
@@ -74,4 +74,4 @@ class AdaptiveLOSGuidance {
 
 }  // namespace vortex::guidance
 
-#endif  // LOS_GUIDANCE_HPP
+#endif  // LOS_GUIDANCE__LOS_GUIDANCE_HPP_
