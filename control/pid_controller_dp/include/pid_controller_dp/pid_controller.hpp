@@ -37,6 +37,10 @@ class PIDController {
     // @param dt: Time step
     void set_time_step(double dt);
 
+    types::Matrix6d get_kp();
+    types::Matrix6d get_ki();
+    types::Matrix6d get_kd();
+
     // parameters for debug
     types::Eta eta_error_debug;
     types::Vector6d nu_d_debug;

@@ -146,3 +146,13 @@ void PIDController::set_kd(const types::Matrix6d& Kd) {
 void PIDController::set_time_step(double dt) {
     this->dt_ = dt;
 }
+
+types::Matrix6d PIDController::get_kp() {
+    return this->Kp_;
+}
+types::Matrix6d PIDController::get_ki() {
+    return this->Ki_;
+}
+types::Matrix6d PIDController::get_kd() {
+    return this->Kd_;
+}
