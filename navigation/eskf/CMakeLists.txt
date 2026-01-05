@@ -22,6 +22,7 @@ find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
@@ -49,6 +50,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   tf2
   vortex_msgs
   vortex_utils
+  vortex_utils_ros
   spdlog
   fmt
 )
