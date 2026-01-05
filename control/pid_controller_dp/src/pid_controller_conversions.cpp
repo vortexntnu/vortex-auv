@@ -7,12 +7,14 @@
 types::Eta eta_convert_from_ros_to_eigen(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
     types::Eta eta;
-    eta.pos << msg->pose.pose.position.x, msg->pose.pose.position.y,
-        msg->pose.pose.position.z;
-    eta.ori.w() = msg->pose.pose.orientation.w;
-    eta.ori.x() = msg->pose.pose.orientation.x;
-    eta.ori.y() = msg->pose.pose.orientation.y;
-    eta.ori.z() = msg->pose.pose.orientation.z;
+    eta.x = msg->pose.pose.position.x;
+    eta.y = msg->pose.pose.position.y;
+    eta.z = msg->pose.pose.position.z;
+
+    eta.qw = msg->pose.pose.orientation.w;
+    eta.qx = msg->pose.pose.orientation.x;
+    eta.qy = msg->pose.pose.orientation.y;
+    eta.qz = msg->pose.pose.orientation.z;
 
     return eta;
 }
@@ -20,9 +22,13 @@ types::Eta eta_convert_from_ros_to_eigen(
 types::Nu nu_convert_from_ros_to_eigen(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
     types::Nu nu;
-    nu.linear_speed << msg->twist.twist.linear.x, msg->twist.twist.linear.y,
-        msg->twist.twist.linear.z;
-    nu.angular_speed << msg->twist.twist.angular.x, msg->twist.twist.angular.y,
-        msg->twist.twist.angular.z;
+    nu.u = msg->twist.twist.linear.x;
+    nu.v = msg->twist.twist.linear.y;
+    nu.w = msg->twist.twist.linear.z;
+
+    nu.p = msg->twist.twist.angular.x;
+    nu.q = msg->twist.twist.angular.y;
+    nu.r = msg->twist.twist.angular.z;
+
     return nu;
 }

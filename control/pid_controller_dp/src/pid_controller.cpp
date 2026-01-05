@@ -3,18 +3,19 @@
 
 void print_eta(const types::Eta& eta) {
     // spdlog::info("Eta values:");
-    spdlog::info("Position - North: {}, East: {}, Down: {}", eta.pos[0],
-                 eta.pos[1], eta.pos[2]);
-    spdlog::info("Orientation - w: {}, x: {}, y: {}, z: {}", eta.ori.w(),
-                 eta.ori.x(), eta.ori.y(), eta.ori.z());
+    auto pos = eta.pos_vector();
+    auto ori = eta.ori_quaternion();
+    spdlog::info("Position - North: {}, East: {}, Down: {}", pos[0], pos[1],
+                 pos[2]);
+    spdlog::info("Orientation - w: {}, x: {}, y: {}, z: {}", ori.w(), ori.x(),
+                 ori.y(), ori.z());
 }
 
 void print_nu(const types::Nu& nu) {
     spdlog::info("Nu values:");
-    spdlog::info("Linear Speed - u: {}, v: {}, w: {}", nu.linear_speed[0],
-                 nu.linear_speed[1], nu.linear_speed[2]);
-    spdlog::info("Angular Speed - p: {}, q: {}, r: {}", nu.angular_speed[0],
-                 nu.angular_speed[1], nu.angular_speed[2]);
+    auto v = nu.to_vector();
+    spdlog::info("Linear Speed - u: {}, v: {}, w: {}", v(0), v(1), v(2));
+    spdlog::info("Angular Speed - p: {}, q: {}, r: {}", v(3), v(4), v(5));
 }
 
 void print_vect_6d(const types::Vector6d& vec) {
@@ -79,11 +80,12 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
                                              const types::Eta& eta_dot_d) {
     types::Eta error = error_eta(eta, eta_d);  // calculate eta error
 
-    // set w = 0
-    error.ori.w() = 0.0;  // only use vector part of quaternion for error
+    // set quaternion scalar part w = 0 (only use vector part of quaternion for
+    // error)
+    error.qw = 0.0;
 
     auto eta_dot_d_copy = eta_dot_d;
-    eta_dot_d_copy.ori.w() = 0.0;  // set w = 0 for desired eta_dot
+    eta_dot_d_copy.qw = 0.0;  // set w = 0 for desired eta_dot
     // debug
     // eta_error_debug = error;
     spdlog::info("Eta: ");
@@ -99,15 +101,15 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
     print_Jinv_transformation(J_inv);
 
     types::Vector6d nu_d =
-        J_inv * eta_dot_d_copy.as_vector();  // calculate velocity
+        J_inv * eta_dot_d_copy.to_vector();  // calculate velocity
     // nu_d_debug = nu_d;
     // print_nu(nu_d);
 
-    types::Vector6d error_nu = nu.as_vector() - nu_d;  // calculate vel error
+    types::Vector6d error_nu = nu.to_vector() - nu_d;  // calculate vel error
     // error_nu_debug = error_nu;
     // print_vect_6d(error_nu);
 
-    types::Vector6d P = Kp_ * J_inv * error.as_vector();  // P term
+    types::Vector6d P = Kp_ * J_inv * error.to_vector();  // P term
     // P_debug = P;
     Kp_debug = Kp_;
 

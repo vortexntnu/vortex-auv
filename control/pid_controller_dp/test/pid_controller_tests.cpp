@@ -1,13 +1,8 @@
-// #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
-// #include <eigen3/Eigen/Dense>
-// #include <eigen3/Eigen/Geometry>
 
-// #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
-// #include "dp_adapt_backs_controller/pid_controller_utils.hpp"
-// #include "dp_adapt_backs_controller/typedefs.hpp"
 #include <vortex/utils/math.hpp>
+#include <vortex/utils/types.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
@@ -42,10 +37,15 @@ class PIDControllerTests : public ::testing::Test {
                                      const double pitch_angle,
                                      const double yaw_angle) {
         types::Eta current_pose;
-        current_pose.pos = types::Vector3d(north_pos, east_pos, down_pos);
-        current_pose.ori = vortex::utils::math::euler_to_quat(
+        current_pose.x = north_pos;
+        current_pose.y = east_pos;
+        current_pose.z = down_pos;
+        Eigen::Quaterniond q = vortex::utils::math::euler_to_quat(
             roll_angle, pitch_angle, yaw_angle);
-
+        current_pose.qw = q.w();
+        current_pose.qx = q.x();
+        current_pose.qy = q.y();
+        current_pose.qz = q.z();
         return current_pose;
     }
 
@@ -56,9 +56,15 @@ class PIDControllerTests : public ::testing::Test {
                                        const double pitch_angle,
                                        const double yaw_angle) {
         types::Eta reference_pose;
-        reference_pose.pos = types::Vector3d(north_pos, east_pos, down_pos);
-        reference_pose.ori = vortex::utils::math::euler_to_quat(
+        reference_pose.x = north_pos;
+        reference_pose.y = east_pos;
+        reference_pose.z = down_pos;
+        Eigen::Quaterniond q = vortex::utils::math::euler_to_quat(
             roll_angle, pitch_angle, yaw_angle);
+        reference_pose.qw = q.w();
+        reference_pose.qx = q.x();
+        reference_pose.qy = q.y();
+        reference_pose.qz = q.z();
         return reference_pose;
     }
 
@@ -69,10 +75,12 @@ class PIDControllerTests : public ::testing::Test {
                                         const double pitch_rate,
                                         const double yaw_rate) {
         types::Nu current_velocity;
-        current_velocity.linear_speed =
-            types::Vector3d(surge_vel, sway_vel, heave_vel);
-        current_velocity.angular_speed =
-            types::Vector3d(roll_rate, pitch_rate, yaw_rate);
+        current_velocity.u = surge_vel;
+        current_velocity.v = sway_vel;
+        current_velocity.w = heave_vel;
+        current_velocity.p = roll_rate;
+        current_velocity.q = pitch_rate;
+        current_velocity.r = yaw_rate;
         return current_velocity;
     }
 

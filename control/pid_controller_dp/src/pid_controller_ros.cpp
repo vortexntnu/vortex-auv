@@ -410,15 +410,24 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    eta_d_.pos << msg->x, msg->y, msg->z;
+    // Set desired position
+    eta_d_.x = msg->x;
+    eta_d_.y = msg->y;
+    eta_d_.z = msg->z;
 
+    // Convert desired attitude (roll, pitch, yaw) to quaternion and store
     double roll = msg->roll;
     double pitch = msg->pitch;
     double yaw = msg->yaw;
 
-    eta_d_.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-                 Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-                 Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+    Eigen::Quaterniond quat = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
+                              Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+                              Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+
+    eta_d_.qw = quat.w();
+    eta_d_.qx = quat.x();
+    eta_d_.qy = quat.y();
+    eta_d_.qz = quat.z();
 }
 
 // TODO: set parameter functions

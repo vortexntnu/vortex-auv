@@ -41,90 +41,47 @@
 // }
 
 types::Matrix3d calculate_R_quat(const types::Eta& eta) {
-    return eta.ori.normalized().toRotationMatrix();
+    return eta.as_rotation_matrix();
 }
 
 types::Matrix4x3d calculate_T_quat(const types::Eta& eta) {
-    types::Quaterniond quaternion_norm = eta.ori.normalized();
-
-    double w = quaternion_norm.w();
-    double x = quaternion_norm.x();
-    double y = quaternion_norm.y();
-    double z = quaternion_norm.z();
-
-    types::Matrix4x3d transformation_matrix;
-
-    transformation_matrix << -x, -y, -z, w, -z, y, z, w, -x, -y, x, w;
-    // transformation_matrix << -x, -y, -z, w, -z, y, -z, w, -x, -y, x, w;
-
-    return transformation_matrix * 0.5;
+    return eta.as_transformation_matrix();
 }
 
 types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta) {
-    types::Eta eta_norm;
+    auto J_matrix = eta.as_j_matrix();
+    Eigen::MatrixXd J_pseudo_inv_dynamic =
+        vortex::utils::math::pseudo_inverse(J_matrix);
 
-    eta_norm.pos = eta.pos;
-    eta_norm.ori = eta.ori;
-
-    types::Matrix3d R = calculate_R_quat(eta_norm);
-    types::Matrix4x3d T = calculate_T_quat(eta_norm);
-
-    types::J_transformation J;
-    J.R = R;
-    J.T = T;
-    // print_J_transformation(J);
-
-    types::Matrix6x7d J_transpose = J.as_matrix().transpose();
-    // spdlog::info("J_transpose (6x7) elements:");
-    // print_Jinv_transformation(J_transpose);
-    // types::Matrix6x7d J_inv = (J.as_matrix() * J_transpose).inverse();
-
-    // spdlog::info("");
-    // print_Jinv_transformation(J_inv);
-
-    // (J_transpose * J.as_matrix()).inverse() * J_transpose
-
-    // types::Matrix6x7d J_pseudo_inv =
-    //     (J_transpose * J.as_matrix()).inverse() * J_transpose;
-
-    types::Matrix6x7d J_pseudo_inv =
-        vortex::utils::math::pseudo_inverse(J.as_matrix());
-
+    types::Matrix6x7d J_pseudo_inv;
+    J_pseudo_inv = J_pseudo_inv_dynamic;
     return J_pseudo_inv;
 }
 
 types::Eta error_eta(const types::Eta& eta, const types::Eta& eta_d) {
-    types::Eta eta_error;
-    // vortex::utils::types::EtaQuat eta_error;
-
-    eta_error.pos = eta.pos - eta_d.pos;
-    eta_error.ori = eta_d.ori.conjugate() * eta.ori;
-
-    eta_error.ori = eta_error.ori.normalized();
-
-    return eta_error;
+    return eta - eta_d;
 }
 
 Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
                              double min_val,
                              double max_val) {
-    return values.cwiseMax(min_val).cwiseMin(max_val);
-    // return vortex::utils::math::clamp_values(values, min_val, max_val);
+    // return values.cwiseMax(min_val).cwiseMin(max_val);
+    return vortex::utils::math::clamp_values(values, min_val, max_val);
 }
 
 types::Vector7d anti_windup(const double dt,
                             const types::Eta& error,
                             const types::Vector7d& integral) {
-    types::Eta error_norm;
+    // Eigen::VectorXd integral_eig = integral;
+    // Eigen::VectorXd updated = vortex::utils::math::anti_windup(
+    //     dt, error.to_vector(), integral_eig, -80.0, 80.0);
 
-    error_norm.pos = error.pos;
-    error_norm.ori = error.ori;
+    // types::Vector7d integral_anti_windup;
+    // for (int i = 0; i < 7; ++i) {
+    //     integral_anti_windup(i) = updated(i);
+    // }
 
-    types::Vector7d integral_anti_windup =
-        integral + (error_norm.as_vector() * dt);
-
-    integral_anti_windup = clamp_values(integral_anti_windup, -80.0, 80.0);
-    return integral_anti_windup;
-    // return vortex::utils::math::anti_windup(dt, error_norm.as_vector(),
-    //                                         integral, -80.0, 80.0);
+    // return integral_anti_windup;
+    return vortex::utils::math::anti_windup(dt, error.to_vector(), integral,
+                                            -80.0, 80.0);
 }
