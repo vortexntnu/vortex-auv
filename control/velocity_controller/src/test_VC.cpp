@@ -12,23 +12,21 @@
 //#include "LQR_setup.hpp"
 //Denne noden er kun for å teste velocity_controller noden
 
-test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
+test_VC::test_VC() : Node("test_VC_node")
 {
     this->declare_parameter<std::string>("topics.guidance_topic");
-    this->declare_parameter<std::string>("topics.thrust_topic");
-    this->declare_parameter<std::string>("topics.odom_topic");
-    topic_thrust = this->get_parameter("topics.thrust_topic").as_string();
-    topic_odom = this->get_parameter("topics.odom_topic").as_string();
-    topic_guidance = this->get_parameter("topics.guidance_topic").as_string();
+    this->declare_parameter<std::string>("topics.odometry_topic");
+    this->topic_guidance=this->get_parameter("topics.guidance_topic").as_string();
+    this->topic_odometry=this->get_parameter("topics.odometry_topic").as_string();
+    topic_state="state";
     publisher_guidance = this->create_publisher<vortex_msgs::msg::LOSGuidance>(topic_guidance, 10);
-    publisher_odom = this->create_publisher<nav_msgs::msg::Odometry>(topic_odom,10);
-    
+    publisher_state = this->create_publisher<vortex_msgs::msg::LOSGuidance>(topic_state,10);
+    subscription_state = this->create_subscription<nav_msgs::msg::Odometry>(
+    topic_odometry,10,
+    std::bind(&test_VC::odometry_callback,this,std::placeholders::_1));
     rclcpp::QoS orca_QoS(2);
     orca_QoS.keep_last(2).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
   
-    subscription_thrust = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
-        topic_thrust, orca_QoS,
-        std::bind(&test_VC::read_thrust, this, std::placeholders::_1));
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(200),
         std::bind(&test_VC::send_guidance, this));
@@ -41,48 +39,16 @@ test_VC::test_VC() : Node("test_VC_node"), current_state(0,2,2)
 void test_VC::send_guidance()
 {
     publisher_guidance->publish(reference_msg);
-    //send_state();
 }
 
-void test_VC::read_thrust(geometry_msgs::msg::WrenchStamped::SharedPtr msg)
-{
-    /*current_state.surge += 0.01 * msg->wrench.force.x;
-    current_state.pitch += 0.01 * msg->wrench.torque.x;
-    current_state.yaw += 0.01 * msg->wrench.torque.y;*/
-    //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.surge);
-    //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.pitch);
-    //RCLCPP_INFO(this->get_logger(),"info: '%f'", current_state.yaw);
-    (void) msg;
-    return;
+void test_VC::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr){
+    vortex_msgs::msg::LOSGuidance msg;
+    angle temp=quaternion_to_euler_angle(msg_ptr->pose.pose.orientation.w, msg_ptr->pose.pose.orientation.x, msg_ptr->pose.pose.orientation.y, msg_ptr->pose.pose.orientation.z);
+    msg.set__pitch(temp.thetat);
+    msg.set__yaw(temp.phit);
+    publisher_state->publish(msg);
+
 }
-
-void test_VC::send_state()
-{
-    
-    odom_msg.header.stamp = clock_->now();
-    odom_msg.header.frame_id = "base_link";
-    odom_msg.twist.twist.linear.x = current_state.surge;
-    odom_msg.pose.pose.orientation = euler_angle_to_quaternion(0.0, current_state.pitch, current_state.yaw);
-    odom_msg.twist.twist.linear.y=1;
-    odom_msg.twist.twist.linear.z=1;
-    odom_msg.twist.twist.angular.x=1;
-    odom_msg.twist.twist.angular.y=1;
-    odom_msg.twist.twist.angular.z=1;
-    odom_msg.twist.twist.linear.y=1;
-    odom_msg.twist.twist.linear.z=1;
-
-
-
-
-    publisher_odom->publish(odom_msg);
-
-    //RCLCPP_INFO(this->get_logger(), "Published state: '%f'", current_state.surge);
-    return;
-    //RCLCPP_INFO(this->get_logger(), "Published state: '%f'", current_state.pitch);
-    //RCLCPP_INFO(this->get_logger(), "Published state: '%f'", current_state.yaw);
-}
-
-
 int main(int argc, char const *argv[])
 {
     
@@ -108,3 +74,4 @@ geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll, double pit
 
     return q;
 }
+   
