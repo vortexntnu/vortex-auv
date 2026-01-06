@@ -3,7 +3,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
-#include "pose_filtering_ros_conversions.hpp"
+#include "pose_filtering/ros/pose_filtering_ros_conversions.hpp"
 #include "vortex/utils/ros/ros_conversions.hpp"
 #include "vortex/utils/ros/ros_transforms.hpp"
 
@@ -81,10 +81,6 @@ void PoseFilteringNode::create_pose_subscription(
 
     filter->registerCallback([this](
                                  const typename PoseMsgT::ConstSharedPtr msg) {
-        Eigen::Quaterniond quat(
-            msg->pose.orientation.w, msg->pose.orientation.x,
-            msg->pose.orientation.y, msg->pose.orientation.z);
-        Eigen::Vector3d rpy = vortex::utils::math::quat_to_euler(quat);
         PoseMsgT pose_tf;
         try {
             vortex::utils::ros_transforms::transform_pose(

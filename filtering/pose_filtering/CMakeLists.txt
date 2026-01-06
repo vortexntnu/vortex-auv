@@ -51,6 +51,7 @@ set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
 add_library(${COMPONENT_LIB_NAME} SHARED
   src/ros/${PROJECT_NAME}_ros.cpp
   src/ros/${PROJECT_NAME}_ros_debug.cpp
+  src/ros/${PROJECT_NAME}_ros_conversions.cpp
 )
 
 ament_target_dependencies(${COMPONENT_LIB_NAME}

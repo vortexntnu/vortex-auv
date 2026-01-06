@@ -19,7 +19,7 @@ def generate_launch_description():
                 executable='pose_filtering_node',
                 name='pose_filtering',
                 output='screen',
-                parameters=[config, {'use_sim_time': False}],
+                parameters=[config, {'use_sim_time': True}],
             ),
         ]
     )
