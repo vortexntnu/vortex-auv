@@ -3,6 +3,7 @@
 #include <pid_controller_dp_euler/pid_controller_ros.hpp>
 #include <pid_controller_dp_euler/pid_controller_utils.hpp>
 #include <string>
+#include <vortex_msgs/msg/operation_mode.hpp>
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     time_step_ = std::chrono::milliseconds(10);
@@ -80,7 +81,7 @@ void PIDControllerNode::software_mode_callback(
     RCLCPP_INFO(this->get_logger(), "Software mode: %s",
                 software_mode_.c_str());
 
-    if (software_mode_ == "autonomous mode") {
+    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS) {
         eta_d_ = eta_;
     }
 }
@@ -117,7 +118,7 @@ void PIDControllerNode::twist_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ || software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
         return;
     }
 

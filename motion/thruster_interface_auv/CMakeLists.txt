@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(thruster_interface_auv)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-endif()
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -13,6 +11,8 @@ find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+
+
 
 include_directories(include)
 

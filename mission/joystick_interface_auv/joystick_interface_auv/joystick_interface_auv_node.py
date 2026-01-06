@@ -6,11 +6,12 @@ from rclpy.node import Node, Parameter
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
+from vortex_msgs.srv import OperationModeSRV
 from vortex_utils.python_utils import PoseData
 from vortex_utils.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils.ros_converter import pose_from_ros
 
-from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
+from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX, modes
 
 start_message = r"""
       _                 _   _      _      ___       _             __
@@ -21,7 +22,6 @@ start_message = r"""
               |___/
 """
 
-
 class JoystickInterface(Node):
     def __init__(self):
         super().__init__('joystick_interface_auv')
@@ -29,8 +29,16 @@ class JoystickInterface(Node):
         self.get_parameters()
         self.init_movement()
         self.set_publishers_and_subscribers()
+        self.operation_mode_client = self.create_client(OperationModeSRV, '/set_operation_mode')
 
-        self._mode = JoyStates.KILLSWITCH
+        self._mode = OperationModeSRV.Request.KILLSWITCH
+
+        request = OperationModeSRV.Request()
+        request.mode = OperationModeSRV.Request.KILLSWITCH
+        request.absolute = True
+        future = self.operation_mode_client.call_async(request)
+        future.add_done_callback(self.operation_mode_response_callback)
+
 
         self._current_state = PoseData()
         self._desired_state = PoseData()
@@ -151,9 +159,12 @@ class JoystickInterface(Node):
 
     def transition_to_xbox_mode(self):
         """Turns off the controller and signals that the operational mode has switched to Xbox mode."""
-        self._operational_mode_signal_publisher.publish(String(data="XBOX"))
-        self._mode = JoyStates.XBOX_MODE
-        self.get_logger().info("XBOX mode")
+        self.get_logger().info("Turning on Xbox controller")
+        request = OperationModeSRV.Request()
+        request.mode = OperationModeSRV.Request.MANUAL
+        future = self.operation_mode_client.call_async(request)
+        future.add_done_callback(self.operation_mode_response_callback)
+        self.get_logger().info("XBOX mode")   
 
     def transition_to_reference_mode(self):
         """Publishes a pose message and signals that the operational mode has switched to Reference mode."""
@@ -167,10 +178,13 @@ class JoystickInterface(Node):
         )
         reference_msg = self.create_reference_message()
         # Still autonomous mode, but now the reference is being controlled by the joystick
-        self._operational_mode_signal_publisher.publish(String(data="autonomous mode"))
-        self._ref_publisher.publish(reference_msg)
-        self._mode = JoyStates.REFERENCE_MODE
+
+        request = OperationModeSRV.Request()
+        request.mode = OperationModeSRV.Request.AUTONOMOUS
+        future = self.operation_mode_client.call_async(request)
+        future.add_done_callback(self.operation_mode_response_callback)
         self.get_logger().info("Reference mode")
+        self._ref_publisher.publish(reference_msg)
 
     def transition_to_autonomous_mode(self):
         """Publishes a zero force wrench message and signals that the system is turning on autonomous mode."""
@@ -178,9 +192,25 @@ class JoystickInterface(Node):
         empty_wrench_msg.header.stamp = self.get_clock().now().to_msg()
         empty_wrench_msg.header.frame_id = "base_link"
         self._wrench_publisher.publish(empty_wrench_msg)
-        self._operational_mode_signal_publisher.publish(String(data="autonomous mode"))
-        self._mode = JoyStates.AUTONOMOUS_MODE
-        self.get_logger().info("autonomous mode")
+
+        request = OperationModeSRV.Request()
+        request.mode = OperationModeSRV.Request.AUTONOMOUS
+        future = self.operation_mode_client.call_async(request)
+        future.add_done_callback(self.operation_mode_response_callback)
+        self.get_logger().info("Autonomous mode")
+
+    
+    def operation_mode_response_callback(self, future):
+        """Callback function for the operation mode service response."""
+        response = future.result()
+        if response.mode in modes:
+            self.get_logger().info(f"Operation mode set to: {modes[response.mode]} : Killswitch {response.killswitch_status}")
+            if response.killswitch_status:
+                self._mode = OperationModeSRV.Request.KILLSWITCH
+            else:
+                self._mode = response.mode
+        else:
+            self.get_logger().error("Failed to set operation mode.")
 
     def check_number_of_buttons(self, msg: Joy):
         """Checks if the controller is wireless (has 16 buttons) or wired and sets the joystick button and axis maps accordingly.
@@ -266,20 +296,11 @@ class JoystickInterface(Node):
         The function ensures that the AUV stops moving when the killswitch is activated
         and allows it to resume operation when the killswitch is deactivated.
         """
-        if self._mode == JoyStates.KILLSWITCH:
-            self._software_killswitch_signal_publisher.publish(Bool(data=False))
-            self.transition_to_xbox_mode()
-            return
-
-        else:
-            self.get_logger().info("SW killswitch")
-            self._software_killswitch_signal_publisher.publish(Bool(data=True))
-            empty_wrench_msg = WrenchStamped()
-            empty_wrench_msg.header.stamp = self.get_clock().now().to_msg()
-            empty_wrench_msg.header.frame_id = "base_link"
-            self._wrench_publisher.publish(empty_wrench_msg)
-            self._mode = JoyStates.KILLSWITCH
-            return
+        request = OperationModeSRV.Request()
+        request.mode = OperationModeSRV.Request.KILLSWITCH
+        future = self.operation_mode_client.call_async(request)
+        future.add_done_callback(self.operation_mode_response_callback)
+        self.get_logger().info("Toggle KILLSWITCH")
 
     def update_reference(self):
         """Updates the current pose of the AUV based on joystick inputs.
@@ -308,7 +329,9 @@ class JoystickInterface(Node):
 
         buttons: dict = self.populate_buttons_dictionary(msg)
         axes: dict = self.populate_axes_dictionary(msg)
-        current_time = self.get_clock().now().to_msg()._sec
+
+        # Timetaking in precise nanoseconds to prevent double triggers on second transitions.
+        current_time = self.get_clock().now().nanoseconds / 1e9
 
         xbox_control_mode_button = buttons.get("A", 0)
         software_killswitch_button = buttons.get("B", 0)
@@ -336,30 +359,21 @@ class JoystickInterface(Node):
 
         if software_killswitch_button:
             self.handle_killswitch_button()
+        elif software_control_mode_button:
+            self.transition_to_autonomous_mode()
+        elif reference_mode_button:
+            self.transition_to_reference_mode()
+        elif xbox_control_mode_button:
+            self.transition_to_xbox_mode()
 
-        if self._mode == JoyStates.XBOX_MODE:
+        if self._mode == OperationModeSRV.Request.MANUAL:
             wrench_msg = self.create_wrench_message()
             self._wrench_publisher.publish(wrench_msg)
-            if software_control_mode_button:
-                self.transition_to_autonomous_mode()
-            elif reference_mode_button:
-                self.transition_to_reference_mode()
 
-        elif self._mode == JoyStates.AUTONOMOUS_MODE:
-            if xbox_control_mode_button:
-                self.transition_to_xbox_mode()
-            elif reference_mode_button:
-                self.transition_to_reference_mode()
-
-        elif self._mode == JoyStates.REFERENCE_MODE:
+        elif self._mode == OperationModeSRV.Request.AUTONOMOUS:
             self.update_reference()
             ref_msg = self.create_reference_message()
             self._ref_publisher.publish(ref_msg)
-
-            if software_control_mode_button:
-                self.transition_to_autonomous_mode()
-            elif xbox_control_mode_button:
-                self.transition_to_xbox_mode()
 
 
 def main():

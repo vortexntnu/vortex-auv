@@ -15,6 +15,7 @@ from velocity_controller_lqr.velocity_controller_lqr_lib import (
     LQRParameters,
 )
 from vortex_msgs.msg import LOSGuidance
+from vortex_msgs.msg import OperationMode
 from vortex_utils.python_utils import State
 from vortex_utils.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils.ros_converter import pose_from_ros, twist_from_ros
@@ -25,7 +26,7 @@ class LinearQuadraticRegulator(Node):
         super().__init__("velocity_controller_lqr_node")
 
         self.killswitch_on = True
-        self.operation_mode = "xbox mode"
+        self.operation_mode = OperationMode.MANUAL
 
         self.get_topics()
 
@@ -221,7 +222,7 @@ class LinearQuadraticRegulator(Node):
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
 
-        if self.killswitch_on == False and self.operation_mode == "autonomous mode":
+        if self.killswitch_on == False and self.operation_mode == OperationMode.AUTONOMOUS:
             self.publisherLQR.publish(msg)
 
         else:

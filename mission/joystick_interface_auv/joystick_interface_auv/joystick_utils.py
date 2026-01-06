@@ -1,9 +1,12 @@
+from vortex_msgs.srv import OperationModeSRV
+
 class JoyStates:
     XBOX_MODE = "xbox"
     AUTONOMOUS_MODE = "autonomous"
     KILLSWITCH = "killswitch"
     REFERENCE_MODE = "reference"
 
+modes = {OperationModeSRV.Request.KILLSWITCH: "KILLSWITCH", OperationModeSRV.Request.AUTONOMOUS: "AUTONOMOUS", OperationModeSRV.Request.MANUAL: "MANUAL"}
 
 class Wired:
     joystick_buttons_map = [

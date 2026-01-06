@@ -3,6 +3,7 @@
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
+#include <vortex_msgs/msg/operation_mode.hpp>
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     time_step_ = std::chrono::milliseconds(10);
@@ -93,7 +94,7 @@ void PIDControllerNode::twist_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ || software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
         return;
     }
 

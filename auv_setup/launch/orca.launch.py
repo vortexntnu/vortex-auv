@@ -62,6 +62,15 @@ def generate_launch_description() -> LaunchDescription:
         ],
         output="screen",
         arguments=["--ros-args", "--log-level", "error"],
+        
+        operation_mode_manager_launch = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    get_package_share_directory("operation_mode_manager"),
+                    "launch/operation_mode_manager.launch.py",
+                )
+            )
+        )
     )
 
-    return LaunchDescription([set_env_var, container])
+    return LaunchDescription([set_env_var, container, operation_mode_manager_launch])

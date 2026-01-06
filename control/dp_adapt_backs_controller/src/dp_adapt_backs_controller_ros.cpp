@@ -7,6 +7,7 @@
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
+#include <vortex_msgs/msg/operation_mode.hpp>
 
 const std::string start_message = R"(
   ____  ____     ____            _             _ _
@@ -99,7 +100,7 @@ void DPAdaptBacksControllerNode::software_mode_callback(
     software_mode_ = msg->data;
     spdlog::info("Software mode: {}", software_mode_);
 
-    if (software_mode_ == "autonomous mode") {
+    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS) {
         eta_d_ = eta_;
     }
 }
@@ -180,7 +181,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ || software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
         return;
     }
 
