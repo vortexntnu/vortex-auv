@@ -28,7 +28,10 @@ fi
 
 # Send action goal
 echo "Sending goal..."
-ros2 action send_goal /orca/reference_filter vortex_msgs/action/ReferenceFilterWaypoint "{goal: {pose: {position: {x: 1.0}}}}" &
+ros2 action send_goal /orca/reference_filter vortex_msgs/action/ReferenceFilterWaypoint \
+"{waypoint: {pose: {position: {x: 1.0,y: 0.0,z: 0.0}, orientation:{x: 0,y: 0,z: 0,w: 1}}, mode: 0}}" &
+
+sleep 2
 
 # Check if controller correctly publishes guidance
 echo "Waiting for guidance data..."

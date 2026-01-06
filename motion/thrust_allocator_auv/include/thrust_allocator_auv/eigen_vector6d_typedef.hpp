@@ -3,8 +3,8 @@
  * @brief Contains the typedef for a 6x1 Eigen vector.
  */
 
-#ifndef VORTEX_EIGEN_TYPEDEFS_H
-#define VORTEX_EIGEN_TYPEDEFS_H
+#ifndef THRUST_ALLOCATOR_AUV__EIGEN_VECTOR6D_TYPEDEF_HPP_
+#define THRUST_ALLOCATOR_AUV__EIGEN_VECTOR6D_TYPEDEF_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -12,4 +12,4 @@ namespace Eigen {
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 }
 
-#endif  // VORTEX_EIGEN_TYPEDEFS_H
+#endif  // THRUST_ALLOCATOR_AUV__EIGEN_VECTOR6D_TYPEDEF_HPP_

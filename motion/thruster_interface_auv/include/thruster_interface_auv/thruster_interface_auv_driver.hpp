@@ -1,5 +1,5 @@
-#ifndef THRUSTER_INTERFACE_AUV_DRIVER_HPP
-#define THRUSTER_INTERFACE_AUV_DRIVER_HPP
+#ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
+#define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
@@ -61,7 +61,7 @@ class ThrusterInterfaceAUVDriver {
      * polynomial coefficients
      */
     ThrusterInterfaceAUVDriver(
-        short i2c_bus,
+        std::int16_t i2c_bus,
         int pico_i2c_address,
         const std::vector<ThrusterParameters>& thruster_parameters,
         const std::vector<std::vector<double>>& poly_coeffs);
@@ -152,4 +152,4 @@ class ThrusterInterfaceAUVDriver {
     }
 };
 
-#endif  // THRUSTER_INTERFACE_AUV_DRIVER_HPP
+#endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_

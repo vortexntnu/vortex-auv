@@ -1,9 +1,10 @@
-#ifndef REFERENCE_FILTER_ROS_HPP
-#define REFERENCE_FILTER_ROS_HPP
+#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
+#define REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
@@ -73,8 +74,9 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     Eigen::Vector18d fill_reference_state();
 
-    Eigen::Vector6d fill_reference_goal(
-        const geometry_msgs::msg::PoseStamped& goal);
+    Eigen::Vector6d fill_reference_goal(const geometry_msgs::msg::Pose& goal);
+
+    Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in, uint8_t mode);
 
     vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
@@ -124,4 +126,4 @@ class ReferenceFilterNode : public rclcpp::Node {
 
 }  // namespace vortex::guidance
 
-#endif  // REFERENCE_FILTER_ROS_HPP
+#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
