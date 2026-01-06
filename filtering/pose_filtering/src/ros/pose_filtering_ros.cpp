@@ -3,6 +3,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include "pose_filtering_ros_conversions.hpp"
 #include "vortex/utils/ros/ros_conversions.hpp"
 #include "vortex/utils/ros/ros_transforms.hpp"
 
@@ -23,8 +24,15 @@ void PoseFilteringNode::setup_publishers_and_subscribers() {
     std::string pub_topic_name =
         this->declare_parameter<std::string>("pose_array_pub_topic");
 
+    std::string landmark_pub_topic =
+        this->declare_parameter<std::string>("landmark_pub_topic");
+
     pose_array_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>(
         pub_topic_name, qos_sensor_data_pub);
+
+    landmark_array_pub_ =
+        this->create_publisher<vortex_msgs::msg::LandmarkArray>(
+            landmark_pub_topic, qos_sensor_data_pub);
 
     int timer_rate_ms = this->declare_parameter<int>("timer_rate_ms");
 
@@ -73,6 +81,10 @@ void PoseFilteringNode::create_pose_subscription(
 
     filter->registerCallback([this](
                                  const typename PoseMsgT::ConstSharedPtr msg) {
+        Eigen::Quaterniond quat(
+            msg->pose.orientation.w, msg->pose.orientation.x,
+            msg->pose.orientation.y, msg->pose.orientation.z);
+        Eigen::Vector3d rpy = vortex::utils::math::quat_to_euler(quat);
         PoseMsgT pose_tf;
         try {
             vortex::utils::ros_transforms::transform_pose(
@@ -171,6 +183,12 @@ void PoseFilteringNode::timer_callback() {
         return;
     }
     pose_array_pub_->publish(pose_array);
+
+    vortex_msgs::msg::LandmarkArray landmark_array_msg =
+        vortex::filtering::ros_conversions::tracks_to_landmark_array_msg(
+            track_manager_->get_tracks(), this->get_clock()->now(),
+            target_frame_);
+    landmark_array_pub_->publish(landmark_array_msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(PoseFilteringNode);

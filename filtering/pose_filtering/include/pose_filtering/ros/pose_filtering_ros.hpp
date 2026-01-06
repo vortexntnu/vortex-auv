@@ -23,7 +23,7 @@
 
 namespace vortex::filtering {
 
-using PoseMsgT = vortex_msgs::msg::LandmarkArray;
+using PoseMsgT = geometry_msgs::msg::PoseStamped;
 
 template <typename T>
 concept ValidPoseMsg =
@@ -60,6 +60,9 @@ class PoseFilteringNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pose_array_pub_;
+
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkArray>::SharedPtr
+        landmark_array_pub_;
 
     rclcpp::TimerBase::SharedPtr pub_timer_;
     double filter_dt_seconds_{0.0};

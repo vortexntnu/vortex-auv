@@ -1,7 +1,8 @@
 /**:
   ros__parameters:
     pose_sub_topic: "/aruco_detector/board"
-    pose_array_pub_topic: "filtered_pose_array"
+    pose_array_pub_topic: "/filtered_pose_array"
+    landmark_pub_topic: "/filtered_landmarks"
     target_frame: "odom"
     timer_rate_ms: 100
 
