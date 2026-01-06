@@ -12,7 +12,7 @@ struct ProportionalLosParams {
     double lookahead_distance_v{};
     double k_p_h{};
     double k_p_v{};
-    double time_step{};
+    double time_step{}; 
 };
 
 class ProportionalLOSGuidance {

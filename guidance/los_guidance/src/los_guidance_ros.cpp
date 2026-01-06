@@ -97,66 +97,57 @@ void LosGuidanceNode::set_service_server() {
 
 void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
     auto adaptive_los_config = config["adaptive_los"];
-    spdlog::info("A0");
     auto params = AdaptiveLosParams{};
     params.lookahead_distance_h =
         adaptive_los_config["lookahead_distance_h"].as<double>();
-    spdlog::info("A1");
     params.lookahead_distance_v =
         adaptive_los_config["lookahead_distance_v"].as<double>();
-    spdlog::info("A2");
-    params.gamma_h = adaptive_los_config["gamma_h"].as<double>();
-    spdlog::info("A3");
-    params.gamma_v = adaptive_los_config["gamma_v"].as<double>();
-    spdlog::info("A4");
-    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
-    spdlog::info("A5");
+    params.gamma_h = 
+        adaptive_los_config["gamma_h"].as<double>();
+    params.gamma_v = 
+        adaptive_los_config["gamma_v"].as<double>();
+    params.time_step = 
+        static_cast<double>(time_step_.count()) / 1000.0;
 
-    m_adaptive_los = std::make_unique<AdaptiveLOSGuidance>(params);
+    adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
 }
 
 void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
     auto proportional_los_config = config["prop_los"];
-    spdlog::info("P0");
     auto params = ProportionalLosParams{};
     params.lookahead_distance_h =
         proportional_los_config["lookahead_distance_h"].as<double>();
-    spdlog::info("P1");
+
     params.lookahead_distance_v =
         proportional_los_config["lookahead_distance_v"].as<double>();
-    spdlog::info("P2");
-    params.k_p_h = proportional_los_config["k_p_h"].as<double>();
-    spdlog::info("P3");
-    params.k_p_v = proportional_los_config["k_p_v"].as<double>();
-    spdlog::info("P4");
-    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
-    spdlog::info("P5");
+    params.k_p_h = 
+        proportional_los_config["k_p_h"].as<double>();
+    params.k_p_v = 
+        proportional_los_config["k_p_v"].as<double>();
+    params.time_step = 
+        static_cast<double>(time_step_.count()) / 1000.0;
 
-    m_proportional_los = std::make_unique<ProportionalLOSGuidance>(params);
+    proportional_los_ = std::make_unique<ProportionalLOSGuidance>(params);
 }
 
 void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     auto integral_los_config = config["integer_los"];
-    spdlog::info("I0");
     auto params = IntegralLosParams{};
     params.lookahead_distance_h =
         integral_los_config["lookahead_distance_h"].as<double>();
-    spdlog::info("I1");
     params.lookahead_distance_v =
         integral_los_config["lookahead_distance_v"].as<double>();
-    spdlog::info("I2");
-    params.k_p_h = integral_los_config["k_p_h"].as<double>();
-    spdlog::info("I3");
-    params.k_p_v = integral_los_config["k_p_v"].as<double>();
-    spdlog::info("I4");
-    params.k_i_h = integral_los_config["k_i_h"].as<double>();
-    spdlog::info("I5");
-    params.k_i_v = integral_los_config["k_i_v"].as<double>();
-    spdlog::info("I6");
-    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
-    spdlog::info("I7");
-
-    m_integral_los = std::make_unique<IntegralLOSGuidance>(params);
+    params.k_p_h = 
+        integral_los_config["k_p_h"].as<double>();
+    params.k_p_v = 
+        integral_los_config["k_p_v"].as<double>();
+    params.k_i_h = 
+        integral_los_config["k_i_h"].as<double>();
+    params.k_i_v = 
+        integral_los_config["k_i_v"].as<double>();
+    params.time_step = 
+        static_cast<double>(time_step_.count()) / 1000.0;
+    integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
 }
 
 void LosGuidanceNode::waypoint_callback(
@@ -209,8 +200,8 @@ void LosGuidanceNode::handle_accepted(
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
-    m_method = static_cast<types::ActiveLosMethod>(request->mode);
-    spdlog::info("LOS mode set to {}", static_cast<int>(m_method));
+    method_ = static_cast<types::ActiveLosMethod>(request->mode);
+    spdlog::info("LOS mode set to {}", static_cast<int>(method_));
     response->success = true;
 }
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
@@ -229,13 +220,11 @@ YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
 }
 
 void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
+    std::lock_guard<std::mutex> lock(mutex_);
     u_desired_ = common_config["u_desired"].as<double>();
-    spdlog::info("C1");
     goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
-    spdlog::info("C2");
-    m_method = static_cast<types::ActiveLosMethod>(
+    method_ = static_cast<types::ActiveLosMethod>(
         common_config["active_los_method"].as<int>());
-    spdlog::info("C3");
 }
 
 void LosGuidanceNode::execute(
@@ -281,15 +270,15 @@ void LosGuidanceNode::execute(
 
         types::Outputs outputs;
 
-        switch (m_method) {
+        switch (method_) {
             case types::ActiveLosMethod::ADAPTIVE:
-                outputs = m_adaptive_los->calculate_outputs(path_inputs_);
+                outputs = adaptive_los_->calculate_outputs(path_inputs_);
                 break;
             case types::ActiveLosMethod::PROPORTIONAL:
-                outputs = m_proportional_los->calculate_outputs(path_inputs_);
+                outputs = proportional_los_->calculate_outputs(path_inputs_);
                 break;
             case types::ActiveLosMethod::INTEGRAL:
-                outputs = m_integral_los->calculate_outputs(path_inputs_);
+                outputs = integral_los_->calculate_outputs(path_inputs_);
                 break;
             default:
                 spdlog::error("Invalid LOS method selected");
@@ -318,4 +307,4 @@ void LosGuidanceNode::execute(
     }
 }
 
-}  // namespace vortex::guidance::los
+}  // namespace vortex::guidance::los 

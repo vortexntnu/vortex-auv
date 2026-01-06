@@ -41,7 +41,7 @@ class AdaptiveLOSGuidance {
     double pi_h_{};
     double pi_v_{};
     double beta_c_hat_{};
-    double alpha_c_hat_{};
+    double alpha_c_hat_{}; 
 
 };  // namespace vortex::guidance::los
 

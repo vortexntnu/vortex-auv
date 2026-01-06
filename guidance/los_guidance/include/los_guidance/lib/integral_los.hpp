@@ -16,7 +16,7 @@ struct IntegralLosParams {
     double k_i_h{};
     double k_i_v{};
     double time_step{};
-};
+}; 
 
 class IntegralLOSGuidance {
    public:

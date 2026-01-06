@@ -5,7 +5,6 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <los_guidance/los_guidance.hpp>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -15,8 +14,8 @@
 #include <vortex_msgs/srv/set_los_mode.hpp>
 #include "los_guidance/lib/adaptive_los.hpp"
 #include "los_guidance/lib/integral_los.hpp"
-#include "los_guidance/lib/proportional_los.hpp"
-#include "los_guidance/lib/types.hpp"
+#include "los_guidance/lib/proportional_los.hpp" 
+#include "los_guidance/lib/types.hpp" 
 
 namespace vortex::guidance::los {
 
@@ -122,10 +121,10 @@ class LosGuidanceNode : public rclcpp::Node {
 
     double goal_reached_tol_{};
 
-    std::unique_ptr<AdaptiveLOSGuidance> m_adaptive_los{};
-    std::unique_ptr<IntegralLOSGuidance> m_integral_los{};
-    std::unique_ptr<ProportionalLOSGuidance> m_proportional_los{};
-    types::ActiveLosMethod m_method{};
+    std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_{};
+    std::unique_ptr<IntegralLOSGuidance> integral_los_{};
+    std::unique_ptr<ProportionalLOSGuidance> proportional_los_{};
+    types::ActiveLosMethod method_{};
 };
 
 }  // namespace vortex::guidance::los

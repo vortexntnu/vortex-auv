@@ -46,6 +46,14 @@ add_executable(los_guidance_node
   src/los_guidance_node.cpp
 )
 
+ament_target_dependencies(los_guidance_node
+  rclcpp
+  rclcpp_action
+  geometry_msgs
+  vortex_msgs
+  vortex_utils_ros
+)
+
 target_link_libraries(los_guidance_node
   ${LIB_NAME}
   yaml-cpp
