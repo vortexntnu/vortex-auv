@@ -37,7 +37,7 @@ class test_VC : public rclcpp::Node{
     //std::string topic_odom;
     //std::string topic_thrust;
     std::string topic_guidance;
-    std::string topic_state;
+    std::string topic_state="/state";
     std::string topic_odometry;
     
 

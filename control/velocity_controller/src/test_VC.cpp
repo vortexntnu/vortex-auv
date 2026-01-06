@@ -15,10 +15,9 @@
 test_VC::test_VC() : Node("test_VC_node")
 {
     this->declare_parameter<std::string>("topics.guidance_topic");
-    this->declare_parameter<std::string>("topics.odometry_topic");
+    this->declare_parameter<std::string>("topics.odom_topic");
     this->topic_guidance=this->get_parameter("topics.guidance_topic").as_string();
-    this->topic_odometry=this->get_parameter("topics.odometry_topic").as_string();
-    topic_state="state";
+    this->topic_odometry=this->get_parameter("topics.odom_topic").as_string();
     publisher_guidance = this->create_publisher<vortex_msgs::msg::LOSGuidance>(topic_guidance, 10);
     publisher_state = this->create_publisher<vortex_msgs::msg::LOSGuidance>(topic_state,10);
     subscription_state = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -32,7 +31,7 @@ test_VC::test_VC() : Node("test_VC_node")
         std::bind(&test_VC::send_guidance, this));
     clock_ = this->get_clock();
     RCLCPP_INFO(this->get_logger(), "Test_VC node has been started");
-    reference_msg.surge=0.2;reference_msg.pitch=0.3;reference_msg.yaw=0.0; //Surge, pitch, yaw
+    reference_msg.surge=0.2;reference_msg.pitch=0.3;reference_msg.yaw=0.3; //Surge, pitch, yaw
     
 } 
 
@@ -45,7 +44,8 @@ void test_VC::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr
     vortex_msgs::msg::LOSGuidance msg;
     angle temp=quaternion_to_euler_angle(msg_ptr->pose.pose.orientation.w, msg_ptr->pose.pose.orientation.x, msg_ptr->pose.pose.orientation.y, msg_ptr->pose.pose.orientation.z);
     msg.set__pitch(temp.thetat);
-    msg.set__yaw(temp.phit);
+    msg.set__yaw(temp.psit);
+    msg.set__surge(msg_ptr->twist.twist.linear.x);
     publisher_state->publish(msg);
 
 }
