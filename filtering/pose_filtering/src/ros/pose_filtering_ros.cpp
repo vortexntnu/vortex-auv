@@ -19,6 +19,7 @@ PoseFilteringNode::PoseFilteringNode(const rclcpp::NodeOptions& options)
 }
 
 void PoseFilteringNode::setup_publishers_and_subscribers() {
+    enu_ned_rotation_ = this->declare_parameter<bool>("enu_ned_rotation");
     const auto qos_sensor_data_pub{
         vortex::utils::qos_profiles::sensor_data_profile(1)};
     std::string pub_topic_name =
@@ -94,6 +95,12 @@ void PoseFilteringNode::create_pose_subscription(
 
         this->measurements_ =
             vortex::utils::ros_conversions::ros_to_pose_vec(pose_tf);
+        if (enu_ned_rotation_) {
+            std::ranges::for_each(this->measurements_, [](auto& m) {
+                m.set_ori(
+                    vortex::utils::math::enu_ned_rotation(m.ori_quaternion()));
+            });
+        }
     });
 
     subscriber_ = sub;

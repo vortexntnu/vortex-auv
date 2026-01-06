@@ -70,6 +70,7 @@ class PoseFilteringNode : public rclcpp::Node {
     std::unique_ptr<PoseTrackManager> track_manager_;
 
     std::vector<Pose> measurements_;
+    bool enu_ned_rotation_{false};
 
     bool debug_{false};
     rclcpp::Publisher<vortex_msgs::msg::PoseEulerStamped>::SharedPtr
