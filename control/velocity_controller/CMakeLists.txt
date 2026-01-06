@@ -20,6 +20,10 @@ find_package(LAPACK REQUIRED)
 find_package(BLAS REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+#find_package(stonefish_ros2 REQUIRED)
+#find_package(auv_setup REQUIRED)
+#find_package(stonefish_sim REQUIRED)
+#find_package(thrust_allocator_auv REQUIRED)
 
 #target_include_directories(velocity_controller_node
 #  PUBLIC
@@ -68,6 +72,7 @@ ament_target_dependencies(test_VC_node
   geometry_msgs
   #Eigen3
   nav_msgs
+  vortex_utils
 )
 
 ament_target_dependencies(test_LQR_node
@@ -77,6 +82,7 @@ ament_target_dependencies(test_LQR_node
   geometry_msgs
   std_msgs
   nav_msgs
+  vortex_utils
 )
 
 link_directories(/usr/lib/gcc/x86_64-linux-gnu/11)
