@@ -34,6 +34,7 @@ LosGuidanceNode::LosGuidanceNode() : Node("los_guidance_node") {
     set_adaptive_los_guidance(config);
     set_proportional_los_guidance(config);
     set_integral_los_guidance(config);
+    set_vector_field_guidance(config);  
 
     spdlog::info(start_message);
 }
@@ -148,6 +149,23 @@ void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     params.time_step = 
         static_cast<double>(time_step_.count()) / 1000.0;
     integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
+}
+
+void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
+    auto vector_field_config = config["vector_field_los"];
+    auto params = VectorFieldLosParams{};
+    params.max_approach_angle_h =
+        vector_field_config["max_approach_angle_h"].as<double>();
+    params.max_approach_angle_v =
+        vector_field_config["max_approach_angle_v"].as<double>();
+    params.k_p_h = 
+        vector_field_config["k_p_h"].as<double>();
+    params.k_p_v =
+        vector_field_config["k_p_v"].as<double>();
+    params.time_step =
+        static_cast<double>(time_step_.count()) / 1000.0;
+
+    vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
 }
 
 void LosGuidanceNode::waypoint_callback(
@@ -279,6 +297,9 @@ void LosGuidanceNode::execute(
                 break;
             case types::ActiveLosMethod::INTEGRAL:
                 outputs = integral_los_->calculate_outputs(path_inputs_);
+                break;
+            case types::ActiveLosMethod::VECTOR_FIELD:
+                outputs = vector_field_los_->calculate_outputs(path_inputs_);
                 break;
             default:
                 spdlog::error("Invalid LOS method selected");

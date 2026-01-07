@@ -21,7 +21,7 @@ types::CrossTrackError VectorFieldLOSGuidance::calculate_crosstrack_error(
     const Eigen::Vector3d diff_vec =
         (inputs.current_position - inputs.prev_point).as_vector();
 
-    const Eigen::Vector3d path_frame_error = rotation_y_.toRotationMatrix().transpose() *
+    const Eigen::Vector3d path_frame_error = rotation_y_.toRotationMatrix().transpose() * 
                                    rotation_z_.toRotationMatrix().transpose() *
                                    diff_vec;
 

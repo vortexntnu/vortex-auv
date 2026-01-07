@@ -15,6 +15,7 @@
 #include "los_guidance/lib/adaptive_los.hpp"
 #include "los_guidance/lib/integral_los.hpp"
 #include "los_guidance/lib/proportional_los.hpp" 
+#include "los_guidance/lib/vector_field_los.hpp"
 #include "los_guidance/lib/types.hpp" 
 
 namespace vortex::guidance::los {
@@ -41,6 +42,9 @@ class LosGuidanceNode : public rclcpp::Node {
 
     // @brief Set the integral LOS guidance parameters
     void set_integral_los_guidance(YAML::Node config);
+
+    // @brief Set the vector field LOS guidance parameters
+    void set_vector_field_guidance(YAML::Node config);
 
     // @brief Callback for the waypoint topic
     // @param msg The reference message
@@ -124,6 +128,7 @@ class LosGuidanceNode : public rclcpp::Node {
     std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_{};
     std::unique_ptr<IntegralLOSGuidance> integral_los_{};
     std::unique_ptr<ProportionalLOSGuidance> proportional_los_{};
+    std::unique_ptr<VectorFieldLOSGuidance> vector_field_los_{};
     types::ActiveLosMethod method_{};
 };
 

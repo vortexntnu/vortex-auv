@@ -18,7 +18,7 @@ struct AdaptiveLosParams {
     double lookahead_distance_v{};
     double gamma_h{};
     double gamma_v{};
-    double time_step{};
+    double time_step{}; 
 };
 
 class AdaptiveLOSGuidance {

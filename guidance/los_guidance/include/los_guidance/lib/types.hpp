@@ -49,7 +49,8 @@ struct Inputs {
 enum class ActiveLosMethod {
     PROPORTIONAL,  // 0
     INTEGRAL,      // 1
-    ADAPTIVE       // 2
+    ADAPTIVE,      // 2
+    VECTOR_FIELD   // 3
 };
 
 }  // namespace vortex::guidance::los::types
