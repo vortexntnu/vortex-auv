@@ -8,7 +8,7 @@
 
 namespace vortex::guidance::los {
 
-struct IntegralLosParams {
+struct IntegralLosParams { 
     double lookahead_distance_h{};
     double lookahead_distance_v{};
     double k_p_h{};
