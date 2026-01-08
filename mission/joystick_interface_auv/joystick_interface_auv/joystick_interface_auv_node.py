@@ -29,7 +29,10 @@ class JoystickInterface(Node):
         self.get_parameters()
         self.init_movement()
         self.set_publishers_and_subscribers()
-        self.operation_mode_client = self.create_client(OperationModeSRV, '/set_operation_mode')
+        self.operation_mode_client = self.create_client(OperationModeSRV, '/orca/set_operation_mode')
+
+        while not self.operation_mode_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Operation Mode service not available, waiting...')
 
         self._mode = OperationModeSRV.Request.KILLSWITCH
 

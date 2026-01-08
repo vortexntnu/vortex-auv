@@ -23,6 +23,7 @@ def generate_launch_description() -> LaunchDescription:
         package='operation_mode_manager',
         executable='operation_mode_manager_cpp',
         name='operation_mode_manager',
+        namespace='orca',
         output="screen",
         parameters=[orca_params],
 

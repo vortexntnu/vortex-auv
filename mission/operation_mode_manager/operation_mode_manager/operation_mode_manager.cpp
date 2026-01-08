@@ -11,7 +11,7 @@
 class OperationModeManager : public rclcpp::Node
 {
   public:
-    OperationModeManager() : Node("operation_mode_manager"),
+    explicit OperationModeManager(const rclcpp::NodeOptions & options) : Node("operation_mode_manager", options),
       killswitch_(true),
       mode_(vortex_msgs::srv::OperationModeSRV::Request::MANUAL)
     {
@@ -162,7 +162,7 @@ class OperationModeManager : public rclcpp::Node
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<OperationModeManager>());
+  rclcpp::spin(std::make_shared<OperationModeManager>(rclcpp::NodeOptions()));
   rclcpp::shutdown();
   return 0;
 }
