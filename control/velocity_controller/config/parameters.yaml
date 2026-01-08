@@ -1,0 +1,41 @@
+/**:
+  ros__parameters:
+
+    topics:
+      odom_topic: /orca/odom #Odometry
+      twist_topic: /dvl/twist #Twist
+      pose_topic: /dvl/pose #Pose
+      guidance_topic: /guidance/los #Guidance
+      thrust_topic: /orca/wrench_input #Thrust
+      softwareoperation_topic: /softwareOperationMode #Software Operation
+      killswitch_topic: /softwareKillSwitch #Kill Switch
+
+    LQR_params:
+      q_surge: 75.0
+      q_pitch: 175.0
+      q_yaw: 175.0
+
+      r_surge: 0.3
+      r_pitch: 0.4
+      r_yaw: 0.4
+
+      i_surge: 0.3
+      i_pitch: 0.4
+      i_yaw: 0.3
+
+      i_weight: 0.5
+
+      dt: 0.1
+
+    inertia_matrix: [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
+
+
+    dampening_matrix_low: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
+    dampening_matrix_high: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
+
+    calculation_rate: 200 #ms integer
+    publish_rate: 100 #ms
+    #Clamp parameter
+    max_force: 1000.0 #should maybe be 99.5
+    controller_type: 1 #1 PID 2 LQR
+    
