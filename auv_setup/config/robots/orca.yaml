@@ -136,6 +136,9 @@
       reference_filter: "reference_filter"
       los: "los_guidance"
 
+    services: # Maybe not the right place for this?
+      los_mode: "set_los_mode"
+
     fsm:
       docking:
         docking_station_offset: -1.0

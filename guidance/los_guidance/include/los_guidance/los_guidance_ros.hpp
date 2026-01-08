@@ -1,23 +1,30 @@
 #ifndef LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 #define LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 
+#include <yaml-cpp/yaml.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
-#include <los_guidance/los_guidance.hpp>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/los_guidance.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
-#include "los_guidance.hpp"
+#include <vortex_msgs/srv/set_los_mode.hpp>
+#include "los_guidance/lib/adaptive_los.hpp"
+#include "los_guidance/lib/integral_los.hpp"
+#include "los_guidance/lib/proportional_los.hpp" 
+#include "los_guidance/lib/vector_field_los.hpp"
+#include "los_guidance/lib/types.hpp" 
+#include <vortex/utils/math.hpp>
+//#include <vortex_msgs/msg/pose_euler_stamped.hpp>
 
-namespace vortex::guidance {
+namespace vortex::guidance::los {
 
-class LOSGuidanceNode : public rclcpp::Node {
+class LosGuidanceNode : public rclcpp::Node {
    public:
-    LOSGuidanceNode();
+    LosGuidanceNode();
 
    private:
     // @brief Set the subscribers and publishers
@@ -26,8 +33,20 @@ class LOSGuidanceNode : public rclcpp::Node {
     // @brief Set the action server
     void set_action_server();
 
+    // @brief Determine the LOS mode service
+    void set_service_server();
+
     // @brief Set the adaptive LOS guidance parameters
-    void set_adaptive_los_guidance();
+    void set_adaptive_los_guidance(YAML::Node config);
+
+    // @brief Set the proportional LOS guidance parameters
+    void set_proportional_los_guidance(YAML::Node config);
+
+    // @brief Set the integral LOS guidance parameters
+    void set_integral_los_guidance(YAML::Node config);
+
+    // @brief Set the vector field LOS guidance parameters
+    void set_vector_field_guidance(YAML::Node config);
 
     // @brief Callback for the waypoint topic
     // @param msg The reference message
@@ -65,17 +84,28 @@ class LOSGuidanceNode : public rclcpp::Node {
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
                      vortex_msgs::action::LOSGuidance>> goal_handle);
 
-    // @brief Fill the lost waypoints
-    // @param goal The goal message
-    void fill_los_waypoints(
-        const geometry_msgs::msg::PointStamped& los_waypoint);
+    void set_los_mode(
+        const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
+        std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response);
 
-    vortex_msgs::msg::LOSGuidance fill_los_reference();
+    vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output);
+
+    YAML::Node get_los_config(std::string yaml_file_path);
+
+    void parse_common_config(YAML::Node common_config);
 
     rclcpp_action::Server<vortex_msgs::action::LOSGuidance>::SharedPtr
         action_server_;
 
+    rclcpp::Service<vortex_msgs::srv::SetLosMode>::SharedPtr los_mode_service_;
+
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
+
+    bool enable_debug_;
+
+    std::string debug_topic_name_;
+
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr debug_pub_;
 
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
         waypoint_sub_;
@@ -97,23 +127,19 @@ class LOSGuidanceNode : public rclcpp::Node {
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 
-    LOS::Point eta_;
-
-    LOS::Point last_point_;
-
-    LOS::Point next_point_;
-
-    std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_guidance_;
-
-    double yaw_d_{};
-
-    double pitch_d_{};
+    types::Inputs path_inputs_{};
 
     double u_desired_{};
 
     double goal_reached_tol_{};
+
+    std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_{};
+    std::unique_ptr<IntegralLOSGuidance> integral_los_{};
+    std::unique_ptr<ProportionalLOSGuidance> proportional_los_{};
+    std::unique_ptr<VectorFieldLOSGuidance> vector_field_los_{};
+    types::ActiveLosMethod method_{};
 };
 
-}  // namespace vortex::guidance
+}  // namespace vortex::guidance::los
 
 #endif  // LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
