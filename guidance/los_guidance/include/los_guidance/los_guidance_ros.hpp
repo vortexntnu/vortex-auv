@@ -17,6 +17,8 @@
 #include "los_guidance/lib/proportional_los.hpp" 
 #include "los_guidance/lib/vector_field_los.hpp"
 #include "los_guidance/lib/types.hpp" 
+#include <vortex/utils/math.hpp>
+//#include <vortex_msgs/msg/pose_euler_stamped.hpp>
 
 namespace vortex::guidance::los {
 
@@ -98,6 +100,12 @@ class LosGuidanceNode : public rclcpp::Node {
     rclcpp::Service<vortex_msgs::srv::SetLosMode>::SharedPtr los_mode_service_;
 
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
+
+    bool enable_debug_;
+
+    std::string debug_topic_name_;
+
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr debug_pub_;
 
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
         waypoint_sub_;

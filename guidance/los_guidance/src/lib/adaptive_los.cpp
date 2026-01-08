@@ -61,4 +61,6 @@ types::Outputs AdaptiveLOSGuidance::calculate_outputs(
     return types::Outputs{psi_d, theta_d};
 }
 
+
+
 }  // namespace vortex::guidance::los

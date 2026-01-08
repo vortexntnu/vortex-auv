@@ -43,12 +43,17 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.guidance.los");
     this->declare_parameter<std::string>("topics.waypoint");
+    this->declare_parameter<std::string>("debug.debug_topic_name");
+    this->declare_parameter<bool>("debug.enable_debug");
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string guidance_topic =
         this->get_parameter("topics.guidance.los").as_string();
     std::string waypoint_topic =
         this->get_parameter("topics.waypoint").as_string();
+
+     debug_topic_name_ = this->get_parameter("debug.debug_topic_name").as_string();
+    enable_debug_ = this->get_parameter("debug.enable_debug").as_bool();
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
@@ -65,6 +70,12 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         pose_topic, qos_sensor_data,
         std::bind(&LosGuidanceNode::pose_callback, this,
                   std::placeholders::_1));
+
+
+    if (enable_debug_) {
+        debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
+            debug_topic_name_, qos_sensor_data);
+    }
 }
 
 void LosGuidanceNode::set_action_server() {
