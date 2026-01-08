@@ -4,7 +4,7 @@
   <name>pool_exploration</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="jorgen.fjermedal@hotmail.com">jorgen</maintainer>
+  <maintainer email="aanstadsina@gmail.com">sina</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
