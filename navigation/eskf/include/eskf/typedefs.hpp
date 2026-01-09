@@ -19,7 +19,6 @@ typedef Eigen::Matrix<double, 4, 3> Matrix4x3d;
 typedef Eigen::Matrix<double, 3, 19> Matrix3x19d;
 typedef Eigen::Matrix<double, 3, 18> Matrix3x18d;
 typedef Eigen::Matrix<double, 12, 12> Matrix12d;
-typedef Eigen::Matrix<double, 18, 18> Matrix18d;
 typedef Eigen::Matrix<double, 3, 1> Matrix3x1d;
 typedef Eigen::Matrix<double, 19, 18> Matrix19x18d;
 typedef Eigen::Matrix<double, 18, 3> Matrix18x3d;
@@ -121,5 +120,19 @@ struct EskfParams {
     Eigen::Matrix12d Q = Eigen::Matrix12d::Zero();
     Eigen::Matrix18d P = Eigen::Matrix18d::Zero();
 };
+
+struct VisualMeasurement {
+    Eigen::Vector3d pos;
+    Eigen::Quaterniond quat;
+    Eigen::Matrix<double, 6, 6> R;
+    double stamp_sec = 0.0;
+};
+
+namespace Eigen {
+    typedef Matrix<double, 6, 6> Matrix6d;
+    typedef Matrix<double, 6, 1> Vector6d;
+    typedef Matrix<double, 18, 6> Matrix18x6d;
+    typedef Matrix<double, 6, 18> Matrix6x18d;
+}
 
 #endif  // ESKF_TYPEDEFS_H

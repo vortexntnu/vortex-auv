@@ -3,7 +3,6 @@
 
 #include <eigen3/Eigen/Dense>
 #include <utility>
-#include "eskf/typedefs.hpp"
 #include "typedefs.hpp"
 
 class ESKF {
@@ -19,9 +18,19 @@ class ESKF {
     // @param dvl_meas: DVL measurement
     void dvl_update(const DvlMeasurement& dvl_meas);
 
+    // @brief Update the nominal state and error state
+    // @param visual_meas: Visual measurement
+    void visualEgomotion_update(const VisualMeasurement& visual_meas);
+
     inline StateQuat get_nominal_state() const { return current_nom_state_; }
 
     inline double get_nis() const { return nis_; }
+    bool have_vo_anchor_ = false;
+    Eigen::Quaterniond q_nav_vo_{1, 0, 0, 0};
+    Eigen::Vector3d p_nav_vo_{0, 0, 0};
+
+    double last_vo_stamp_sec_ = -1.0;
+    double vo_reset_gap_sec_ = 0.5;
 
    private:
     // @brief Predict the nominal state

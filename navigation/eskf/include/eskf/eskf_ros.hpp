@@ -30,6 +30,8 @@ class ESKFNode : public rclcpp::Node {
     void dvl_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
+    void visualEgomotion_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
     // @brief Publish the odometry message
     void publish_odom();
 
@@ -43,6 +45,9 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
+
+    rclcpp::Subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr visualEgomotion_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 

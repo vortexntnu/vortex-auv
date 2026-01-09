@@ -49,6 +49,13 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
         "dvl/nis", vortex::utils::qos_profiles::reliable_profile());
+
+    this->declare_parameter<std::string>("pose_topic", "/landmark/pose_cov");
+    std::string pose_topic = this->get_parameter("pose_topic").as_string();
+
+    visualEgomotion_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+    pose_topic, qos_sensor_data,
+    std::bind(&ESKFNode::visualEgomotion_callback, this, std::placeholders::_1));
 }
 
 void ESKFNode::set_parameters() {
@@ -130,6 +137,29 @@ void ESKFNode::dvl_callback(
     nis_msg.data = eskf_->get_nis();
     nis_pub_->publish(nis_msg);
 
+    publish_odom();
+}
+
+void ESKFNode::visualEgomotion_callback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
+    VisualMeasurement visual_meas{};
+
+    visual_meas.pos << msg->pose.pose.position.x,
+                     msg->pose.pose.position.y,
+                     msg->pose.pose.position.z;
+
+    visual_meas.quat = Eigen::Quaterniond(
+        msg->pose.pose.orientation.w,
+        msg->pose.pose.orientation.x,
+        msg->pose.pose.orientation.y,
+        msg->pose.pose.orientation.z);
+
+    visual_meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+        msg->pose.covariance.data());
+
+    visual_meas.stamp_sec = rclcpp::Time(msg->header.stamp).seconds();
+
+    eskf_->visualEgomotion_update(visual_meas);
     publish_odom();
 }
 

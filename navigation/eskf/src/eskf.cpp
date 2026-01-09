@@ -1,4 +1,5 @@
 #include "eskf/eskf.hpp"
+#include <spdlog/spdlog.h>
 #include <functional>
 #include <iterator>
 #include <unsupported/Eigen/MatrixFunctions>
@@ -12,7 +13,7 @@ double compute_nis(const Eigen::Vector3d& innovation,
 }
 
 ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
-    // current_error_state_.covariance = params.P;
+    current_error_state_.covariance = params.P;
 }
 
 std::pair<Eigen::Matrix18d, Eigen::Matrix18d> ESKF::van_loan_discretization(
@@ -189,5 +190,58 @@ void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
 
 void ESKF::dvl_update(const DvlMeasurement& dvl_meas) {
     measurement_update(dvl_meas);
+    injection_and_reset();
+}
+
+void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
+    if (last_vo_stamp_sec_ > 0.0) {
+        const double gap = visual_meas.stamp_sec - last_vo_stamp_sec_;
+        if (gap > vo_reset_gap_sec_) {
+            have_vo_anchor_ = false;
+        }
+    }
+    last_vo_stamp_sec_ = visual_meas.stamp_sec;
+
+    if (!have_vo_anchor_) {
+        q_nav_vo_ = (current_nom_state_.quat * visual_meas.quat.inverse()).normalized();
+        p_nav_vo_ = current_nom_state_.pos - q_nav_vo_ * visual_meas.pos;
+        have_vo_anchor_ = true;
+        return;
+    }
+
+    const Eigen::Vector3d p_meas_nav = p_nav_vo_ + q_nav_vo_ * visual_meas.pos;
+    const Eigen::Quaterniond q_meas_nav = (q_nav_vo_ * visual_meas.quat).normalized();
+
+    Eigen::Vector3d pos_err_vec = p_meas_nav - current_nom_state_.pos;
+    double error_mag = pos_err_vec.norm();
+
+    spdlog::info("ESKF: Visual Update. Error: {:.3f}m", error_mag);
+
+    if (error_mag > 0.2) {
+        return;
+    }
+
+    Eigen::Matrix<double, 6, 1> y;
+    y.head<3>() = pos_err_vec;
+
+    Eigen::Quaterniond q_err = current_nom_state_.quat.inverse() * q_meas_nav;
+    q_err.normalize();
+    y.segment<3>(3) = (q_err.w() < 0) ? -2.0 * q_err.vec() : 2.0 * q_err.vec();
+
+    Eigen::Matrix<double, 6, 18> H = Eigen::Matrix<double, 6, 18>::Zero();
+    H.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
+    H.block<3, 3>(3, 6) = Eigen::Matrix3d::Identity();
+
+    Eigen::Matrix18d P = current_error_state_.covariance;
+    Eigen::Matrix<double, 6, 6> R = visual_meas.R;
+    Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
+    Eigen::Matrix<double, 18, 6> K = P * H.transpose() * S.inverse();
+
+    current_error_state_.set_from_vector(K * y);
+
+    Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K * H;
+    current_error_state_.covariance =
+        I_KH * P * I_KH.transpose() + K * R * K.transpose();
+
     injection_and_reset();
 }
