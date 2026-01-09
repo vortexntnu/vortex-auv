@@ -222,7 +222,7 @@ class LinearQuadraticRegulator(Node):
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
 
-        if self.killswitch_on == False and self.operation_mode == OperationMode.AUTONOMOUS:
+        if self.killswitch_on == False and (self.operation_mode == OperationMode.AUTONOMOUS or self.operation_mode == OperationMode.REFERENCE):
             self.publisherLQR.publish(msg)
 
         else:

@@ -70,7 +70,7 @@ def generate_launch_description() -> LaunchDescription:
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
         ],
-        output="screen",killswitch
+        output="screen"
         arguments=["--ros-args", "--log-level", "error"],
         
         

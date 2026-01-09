@@ -6,8 +6,10 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
-
-ament_python_install_package(${PROJECT_NAME})
+find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 install(DIRECTORY
   launch
@@ -15,7 +17,12 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-add_executable(operation_mode_manager_cpp operation_mode_manager/operation_mode_manager.cpp)
+add_executable(operation_mode_manager_cpp src/operation_mode_manager.cpp)
+
+target_include_directories(operation_mode_manager_cpp PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
 ament_target_dependencies(
   operation_mode_manager_cpp
@@ -23,6 +30,9 @@ ament_target_dependencies(
   std_msgs
   geometry_msgs
   vortex_msgs
+  vortex_utils_ros
+  spdlog
+  fmt
 )
 
 install(

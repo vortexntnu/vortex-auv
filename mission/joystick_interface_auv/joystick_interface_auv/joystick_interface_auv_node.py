@@ -6,7 +6,9 @@ from rclpy.node import Node, Parameter
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
+from vortex_msgs.msg import OperationMode
 from vortex_msgs.srv import OperationModeSRV
+from vortex_msgs.srv import ToggleKillswitch
 from vortex_utils.python_utils import PoseData
 from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils_ros.ros_converter import pose_from_ros
@@ -29,31 +31,28 @@ class JoystickInterface(Node):
         self.get_parameters()
         self.init_movement()
         self.set_publishers_and_subscribers()
-        self.operation_mode_client = self.create_client(OperationModeSRV, '/orca/set_operation_mode')
+
+        self.operation_mode_client = self.create_client(OperationModeSRV, 'set_operation_mode')
 
         while not self.operation_mode_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Operation Mode service not available, waiting...')
 
-        self._mode = OperationModeSRV.Request.KILLSWITCH
+        self.toggle_killswitch_client = self.create_client(ToggleKillswitch, 'toggle_killswitch')
 
-        request = OperationModeSRV.Request()
-        request.mode = OperationModeSRV.Request.KILLSWITCH
-        request.absolute = True
-        future = self.operation_mode_client.call_async(request)
-        future.add_done_callback(self.operation_mode_response_callback)
-
+        while not self.toggle_killswitch_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Toggle Killswitch service not available, waiting...')
 
         self._current_state = PoseData()
         self._desired_state = PoseData()
+
+        self._killswitch = 0
+        self._mode = 0
 
         self._joystick_axes_map = []
         self._joystick_buttons_map = []
         self._last_button_press_time = 0
 
         self.get_logger().info(start_message)
-        self.get_logger().info(
-            f"Joystick interface node started. Current mode: {self._mode}"
-        )
 
     def get_parameters(self):
         """Method to get the parameters from the config file."""
@@ -112,23 +111,28 @@ class JoystickInterface(Node):
             self.pose_cb,
             qos_profile=best_effort_qos,
         )
+        self._mode_subscriber = self.create_subscription(
+            OperationMode, self.operation_mode_topic, self.operation_mode_cb, qos_profile=reliable_qos
+        )
+        self._killswitch_subscriber = self.create_subscription(
+            Bool, self.killswitch_topic, self.killswitch_cb, qos_profile=reliable_qos
+        )
         self._wrench_publisher = self.create_publisher(
             WrenchStamped, self.wrench_input_topic, qos_profile=best_effort_qos
         )
         self._ref_publisher = self.create_publisher(
             ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
         )
-        self._software_killswitch_signal_publisher = self.create_publisher(
-            Bool, self.killswitch_topic, reliable_qos
-        )
-        self._software_killswitch_signal_publisher.publish(Bool(data=True))
-        self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.operation_mode_topic, reliable_qos
-        )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
         self._current_state = pose_from_ros(msg.pose.pose)
+    
+    def operation_mode_cb(self, msg: OperationMode):
+        self._mode = msg.mode
+    
+    def killswitch_cb(self, msg: Bool):
+        self._killswitch = msg
 
     def create_reference_message(self) -> ReferenceFilter:
         """Creates a reference message with the desired state values."""
@@ -164,7 +168,7 @@ class JoystickInterface(Node):
         """Turns off the controller and signals that the operational mode has switched to Xbox mode."""
         self.get_logger().info("Turning on Xbox controller")
         request = OperationModeSRV.Request()
-        request.mode = OperationModeSRV.Request.MANUAL
+        request.mode = OperationMode.MANUAL
         future = self.operation_mode_client.call_async(request)
         future.add_done_callback(self.operation_mode_response_callback)
         self.get_logger().info("XBOX mode")   
@@ -183,7 +187,7 @@ class JoystickInterface(Node):
         # Still autonomous mode, but now the reference is being controlled by the joystick
 
         request = OperationModeSRV.Request()
-        request.mode = OperationModeSRV.Request.AUTONOMOUS
+        request.mode = OperationMode.REFERENCE
         future = self.operation_mode_client.call_async(request)
         future.add_done_callback(self.operation_mode_response_callback)
         self.get_logger().info("Reference mode")
@@ -197,7 +201,7 @@ class JoystickInterface(Node):
         self._wrench_publisher.publish(empty_wrench_msg)
 
         request = OperationModeSRV.Request()
-        request.mode = OperationModeSRV.Request.AUTONOMOUS
+        request.mode = OperationMode.AUTONOMOUS
         future = self.operation_mode_client.call_async(request)
         future.add_done_callback(self.operation_mode_response_callback)
         self.get_logger().info("Autonomous mode")
@@ -208,10 +212,6 @@ class JoystickInterface(Node):
         response = future.result()
         if response.mode in modes:
             self.get_logger().info(f"Operation mode set to: {modes[response.mode]} : Killswitch {response.killswitch_status}")
-            if response.killswitch_status:
-                self._mode = OperationModeSRV.Request.KILLSWITCH
-            else:
-                self._mode = response.mode
         else:
             self.get_logger().error("Failed to set operation mode.")
 
@@ -299,11 +299,9 @@ class JoystickInterface(Node):
         The function ensures that the AUV stops moving when the killswitch is activated
         and allows it to resume operation when the killswitch is deactivated.
         """
-        request = OperationModeSRV.Request()
-        request.mode = OperationModeSRV.Request.KILLSWITCH
-        future = self.operation_mode_client.call_async(request)
+        request = ToggleKillswitch.Request()
+        future = self.toggle_killswitch_client.call_async(request)
         future.add_done_callback(self.operation_mode_response_callback)
-        self.get_logger().info("Toggle KILLSWITCH")
 
     def update_reference(self):
         """Updates the current pose of the AUV based on joystick inputs.
@@ -369,11 +367,11 @@ class JoystickInterface(Node):
         elif xbox_control_mode_button:
             self.transition_to_xbox_mode()
 
-        if self._mode == OperationModeSRV.Request.MANUAL:
+        if (self._mode == OperationMode.MANUAL and not self._killswitch):
             wrench_msg = self.create_wrench_message()
             self._wrench_publisher.publish(wrench_msg)
 
-        elif self._mode == OperationModeSRV.Request.AUTONOMOUS:
+        elif (self._mode == OperationMode.REFERENCE and not self._killswitch):
             self.update_reference()
             ref_msg = self.create_reference_message()
             self._ref_publisher.publish(ref_msg)

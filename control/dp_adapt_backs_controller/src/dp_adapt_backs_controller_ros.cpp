@@ -7,7 +7,7 @@
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
-#include <vortex_msgs/msg/operation_mode.hpp>
+
 
 constexpr std::string_view start_message = R"(
   ____  ____     ____            _             _ _
@@ -75,7 +75,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
-    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
+    software_mode_sub_ = this->create_subscription<vortex_msgs::msg::OperationMode>(
         software_operation_mode_topic, qos_reliable,
         std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
@@ -96,12 +96,12 @@ void DPAdaptBacksControllerNode::killswitch_callback(
 }
 
 void DPAdaptBacksControllerNode::software_mode_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    software_mode_ = msg->data;
-    spdlog::info("Software mode: {}", software_mode_);
+    const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+    software_mode_ = msg->mode;
+    spdlog::info("Software mode: {}");
 
-    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS) {
-        eta_d_ = eta_;
+    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS || software_mode_ == vortex_msgs::msg::OperationMode::REFERENCE) {
+        pose_d_ = pose_;
     }
 }
 

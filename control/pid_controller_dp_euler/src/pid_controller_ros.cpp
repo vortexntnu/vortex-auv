@@ -45,7 +45,7 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         software_kill_switch_topic, 1,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
-    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
+    software_mode_sub_ = this->create_subscription<vortex_msgs::msg::OperationMode>(
         software_operation_mode_topic, 1,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
@@ -76,12 +76,12 @@ void PIDControllerNode::killswitch_callback(
 }
 
 void PIDControllerNode::software_mode_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    software_mode_ = msg->data;
-    RCLCPP_INFO(this->get_logger(), "Software mode: %s",
-                software_mode_.c_str());
+    const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+    software_mode_ = msg->mode;
+    RCLCPP_INFO(this->get_logger(), "Software mode: %d",
+                software_mode_);
 
-    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS) {
+    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS || software_mode_ == vortex_msgs::msg::OperationMode::REFERENCE) {
         eta_d_ = eta_;
     }
 }
