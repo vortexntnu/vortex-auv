@@ -72,11 +72,11 @@ void OperationModeManager::setup_service()
       toggle_killswitch_callback(response);
     });  
 
-  set_killswitch_service_ = this->create_service<vortex_msgs::srv::SetKillswitchSRV>(
+  set_killswitch_service_ = this->create_service<vortex_msgs::srv::SetKillswitch>(
     "set_killswitch",
     [this](
-      const std::shared_ptr<vortex_msgs::srv::SetKillswitchSRV::Request> request,
-      std::shared_ptr<vortex_msgs::srv::SetKillswitchSRV::Response> response)
+      const std::shared_ptr<vortex_msgs::srv::SetKillswitch::Request> request,
+      std::shared_ptr<vortex_msgs::srv::SetKillswitch::Response> response)
     {
       set_killswitch_callback(request, response);
     });  
@@ -124,8 +124,8 @@ void OperationModeManager::toggle_killswitch_callback(
 }
 
 void OperationModeManager::set_killswitch_callback(
-  const std::shared_ptr<vortex_msgs::srv::SetKillswitchSRV::Request> request,
-  std::shared_ptr<vortex_msgs::srv::SetKillswitchSRV::Response> response)
+  const std::shared_ptr<vortex_msgs::srv::SetKillswitch::Request> request,
+  std::shared_ptr<vortex_msgs::srv::SetKillswitch::Response> response)
 {
   killswitch_ = request->killswitch_on;
   RCLCPP_INFO(this->get_logger(), "Killswitch set to %s", killswitch_ ? "true" : "false");

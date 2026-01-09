@@ -12,7 +12,7 @@
 
 #include "vortex_msgs/srv/operation_mode_srv.hpp"
 #include "vortex_msgs/srv/toggle_killswitch.hpp"
-#include "vortex_msgs/srv/set_killswitch_srv.hpp"
+#include "vortex_msgs/srv/set_killswitch.hpp"
 #include "vortex_msgs/msg/operation_mode.hpp"
 
 class OperationModeManager : public rclcpp::Node
@@ -34,8 +34,8 @@ private:
         std::shared_ptr<vortex_msgs::srv::ToggleKillswitch::Response> response);
 
     void set_killswitch_callback(
-        const std::shared_ptr<vortex_msgs::srv::SetKillswitchSRV::Request> request,
-        std::shared_ptr<vortex_msgs::srv::SetKillswitchSRV::Response> response);
+        const std::shared_ptr<vortex_msgs::srv::SetKillswitch::Request> request,
+        std::shared_ptr<vortex_msgs::srv::SetKillswitch::Response> response);
     
     void publish_mode();
 
@@ -48,5 +48,5 @@ private:
 
     rclcpp::Service<vortex_msgs::srv::OperationModeSRV>::SharedPtr operation_mode_service_;
     rclcpp::Service<vortex_msgs::srv::ToggleKillswitch>::SharedPtr toggle_killswitch_service_;
-    rclcpp::Service<vortex_msgs::srv::SetKillswitchSRV>::SharedPtr set_killswitch_service_;
+    rclcpp::Service<vortex_msgs::srv::SetKillswitch>::SharedPtr set_killswitch_service_;
 };
