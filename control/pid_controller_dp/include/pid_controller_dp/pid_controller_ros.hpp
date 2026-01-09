@@ -1,5 +1,5 @@
-#ifndef PID_CONTROLLER_ROS_HPP
-#define PID_CONTROLLER_ROS_HPP
+#ifndef PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
+#define PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -12,6 +12,7 @@
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include <variant>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
@@ -20,7 +21,7 @@
 // @brief Class for the PID controller node
 class PIDControllerNode : public rclcpp::Node {
    public:
-    explicit PIDControllerNode();
+    PIDControllerNode();
 
    private:
     // @brief Callback function for the killswitch topic
@@ -104,4 +105,4 @@ class PIDControllerNode : public rclcpp::Node {
     OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 };
 
-#endif
+#endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_

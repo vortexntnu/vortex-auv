@@ -4,6 +4,7 @@
 #include <functional>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
@@ -82,9 +83,7 @@ void ThrustAllocator::set_allocator() {
 }
 
 void ThrustAllocator::set_subscriber_and_publisher() {
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto best_effort_qos = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto best_effort_qos = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     std::string wrench_input_topic =
         this->get_parameter("topics.wrench_input").as_string();

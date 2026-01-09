@@ -1,16 +1,21 @@
+#include "reference_filter_dp/reference_filter_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <reference_filter_dp/reference_filter_ros.hpp>
 #include <string_view>
+#include <vortex/utils/math.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
+#include <vortex/utils/types.hpp>
 
-auto start_message{R"(
+const auto start_message = R"(
   ____       __                                _____ _ _ _
  |  _ \ ___ / _| ___ _ __ ___ _ __   ___ ___  |  ___(_) | |_ ___ _ __
  | |_) / _ \ |_ / _ \ '__/ _ \ '_ \ / __/ _ \ | |_  | | | __/ _ \ '__|
  |  _ <  __/  _|  __/ | |  __/ | | | (_|  __/ |  _| | | | ||  __/ |
  |_| \_\___|_|  \___|_|  \___|_| |_|\___\___| |_|   |_|_|\__\___|_|
 
- )"};
+ )";
+
+namespace vortex::guidance {
 
 ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
     : Node("reference_filter_node", options) {
@@ -21,8 +26,6 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
     set_action_server();
 
     set_refererence_filter();
-
-    x_ = Vector18d::Zero();
 
     spdlog::info(start_message);
 }
@@ -40,9 +43,7 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     std::string aruco_board_pose_camera_topic =
         this->get_parameter("topics.aruco_board_pose_camera").as_string();
 
-    rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-    auto qos_sensor_data = rclcpp::QoS(
-        rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
         guidance_topic, qos_sensor_data);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -81,22 +82,17 @@ void ReferenceFilterNode::set_action_server() {
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
-    this->declare_parameter<std::vector<double>>(
-        "zeta", {0.707, 0.707, 0.707, 0.707, 0.707, 0.707});
-    this->declare_parameter<std::vector<double>>(
-        "omega", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
+    this->declare_parameter<std::vector<double>>("zeta");
+    this->declare_parameter<std::vector<double>>("omega");
 
     std::vector<double> zeta = this->get_parameter("zeta").as_double_array();
     std::vector<double> omega = this->get_parameter("omega").as_double_array();
 
-    const Vector6d zeta_eigen = Eigen::Map<Vector6d>(zeta.data());
-    const Vector6d omega_eigen = Eigen::Map<Vector6d>(omega.data());
+    Eigen::Vector6d zeta_eigen = Eigen::Map<Eigen::Vector6d>(zeta.data());
+    Eigen::Vector6d omega_eigen = Eigen::Map<Eigen::Vector6d>(omega.data());
 
-    reference_filter_.set_delta(zeta_eigen);
-    reference_filter_.set_omega(omega_eigen);
-
-    reference_filter_.calculate_Ad();
-    reference_filter_.calculate_Bd();
+    ReferenceFilterParams filter_params{omega_eigen, zeta_eigen};
+    reference_filter_ = std::make_unique<ReferenceFilter>(filter_params);
 }
 
 void ReferenceFilterNode::reference_callback(
@@ -104,17 +100,12 @@ void ReferenceFilterNode::reference_callback(
     double x = msg->pose.position.x;
     double y = msg->pose.position.y;
     double z = msg->pose.position.z;
-
-    tf2::Quaternion q;
-    q.setX(msg->pose.orientation.x);
-    q.setY(msg->pose.orientation.y);
-    q.setZ(msg->pose.orientation.z);
-    q.setW(msg->pose.orientation.w);
-
-    tf2::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-
+    const auto& o = msg->pose.orientation;
+    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
+    double roll{euler_angles(0)};
+    double pitch{euler_angles(1)};
+    double yaw{euler_angles(2)};
     r_ << x, y, z, roll, pitch, yaw;
 }
 
@@ -161,61 +152,63 @@ void ReferenceFilterNode::handle_accepted(
     execute(goal_handle);
 }
 
-Vector18d ReferenceFilterNode::fill_reference_state() {
-    Vector18d x = Vector18d::Zero();
+Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
+    Eigen::Vector18d x = Eigen::Vector18d::Zero();
     x(0) = current_pose_.pose.pose.position.x;
     x(1) = current_pose_.pose.pose.position.y;
     x(2) = current_pose_.pose.pose.position.z;
 
-    tf2::Quaternion q;
-    tf2::fromMsg(current_pose_.pose.pose.orientation, q);
-    tf2::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
+    const auto& o = current_pose_.pose.pose.orientation;
+    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
+    double roll{euler_angles(0)};
+    double pitch{euler_angles(1)};
+    double yaw{euler_angles(2)};
 
-    x(3) = ssa(roll);
-    x(4) = ssa(pitch);
-    x(5) = ssa(yaw);
+    x(3) = vortex::utils::math::ssa(roll);
+    x(4) = vortex::utils::math::ssa(pitch);
+    x(5) = vortex::utils::math::ssa(yaw);
 
-    Vector6d eta;
-    eta << current_pose_.pose.pose.position.x,
-        current_pose_.pose.pose.position.y, current_pose_.pose.pose.position.z,
-        roll, pitch, yaw;
-    Matrix6d J = calculate_J(eta);
-    Vector6d nu;
-    nu << current_twist_.twist.twist.linear.x,
-        current_twist_.twist.twist.linear.y,
-        current_twist_.twist.twist.linear.z,
-        current_twist_.twist.twist.angular.x,
-        current_twist_.twist.twist.angular.y,
-        current_twist_.twist.twist.angular.z;
-    Vector6d eta_dot = J * nu;
+    vortex::utils::types::PoseEuler pose{current_pose_.pose.pose.position.x,
+                                         current_pose_.pose.pose.position.y,
+                                         current_pose_.pose.pose.position.z,
+                                         roll,
+                                         pitch,
+                                         yaw};
+    Eigen::Matrix6d J = pose.as_j_matrix();
+    vortex::utils::types::Twist twist{current_twist_.twist.twist.linear.x,
+                                      current_twist_.twist.twist.linear.y,
+                                      current_twist_.twist.twist.linear.z,
+                                      current_twist_.twist.twist.angular.x,
+                                      current_twist_.twist.twist.angular.y,
+                                      current_twist_.twist.twist.angular.z};
+    Eigen::Vector6d pose_dot = J * twist.to_vector();
 
-    x(6) = eta_dot(0);
-    x(7) = eta_dot(1);
-    x(8) = eta_dot(2);
-    x(9) = eta_dot(3);
-    x(10) = eta_dot(4);
-    x(11) = eta_dot(5);
+    x(6) = pose_dot(0);
+    x(7) = pose_dot(1);
+    x(8) = pose_dot(2);
+    x(9) = pose_dot(3);
+    x(10) = pose_dot(4);
+    x(11) = pose_dot(5);
 
     return x;
 }
 
-Vector6d ReferenceFilterNode::fill_reference_goal(
-    const geometry_msgs::msg::PoseStamped& goal) {
-    double x = goal.pose.position.x;
-    double y = goal.pose.position.y;
-    double z = goal.pose.position.z;
+Eigen::Vector6d ReferenceFilterNode::fill_reference_goal(
+    const geometry_msgs::msg::Pose& goal) {
+    double x{goal.position.x};
+    double y{goal.position.y};
+    double z{goal.position.z};
 
-    tf2::Quaternion q_goal;
-    tf2::fromMsg(goal.pose.orientation, q_goal);
+    const auto& o = goal.orientation;
+    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
+    double roll{euler_angles(0)};
+    double pitch{euler_angles(1)};
+    double yaw{euler_angles(2)};
 
-    tf2::Matrix3x3 m_goal(q_goal);
-    double roll_goal, pitch_goal, yaw_goal;
-    m_goal.getRPY(roll_goal, pitch_goal, yaw_goal);
-
-    Vector6d r;
-    r << x, y, z, roll_goal, pitch_goal, yaw_goal;
+    Eigen::Vector6d r;
+    r << x, y, z, roll, pitch, yaw;
 
     return r;
 }
@@ -225,9 +218,9 @@ vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
     feedback_msg.x = x_(0);
     feedback_msg.y = x_(1);
     feedback_msg.z = x_(2);
-    feedback_msg.roll = ssa(x_(3));
-    feedback_msg.pitch = ssa(x_(4));
-    feedback_msg.yaw = ssa(x_(5));
+    feedback_msg.roll = vortex::utils::math::ssa(x_(3));
+    feedback_msg.pitch = vortex::utils::math::ssa(x_(4));
+    feedback_msg.yaw = vortex::utils::math::ssa(x_(5));
     feedback_msg.x_dot = x_(6);
     feedback_msg.y_dot = x_(7);
     feedback_msg.z_dot = x_(8);
@@ -236,6 +229,43 @@ vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
     feedback_msg.yaw_dot = x_(11);
 
     return feedback_msg;
+}
+
+Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
+    const Eigen::Vector6d& r_in,
+    uint8_t mode) {
+    Eigen::Vector6d r_out = r_in;
+
+    switch (mode) {
+        case vortex_msgs::msg::Waypoint::FULL_POSE:
+            break;
+
+        case vortex_msgs::msg::Waypoint::ONLY_POSITION:
+            r_out(3) = x_(3);
+            r_out(4) = x_(4);
+            r_out(5) = x_(5);
+            break;
+
+        case vortex_msgs::msg::Waypoint::FORWARD_HEADING: {
+            double dx = r_in(0) - x_(0);
+            double dy = r_in(1) - x_(1);
+
+            double forward_heading = std::atan2(dy, dx);
+
+            r_out(3) = 0.0;
+            r_out(4) = 0.0;
+            r_out(5) = vortex::utils::math::ssa(forward_heading);
+            break;
+        }
+
+        case vortex_msgs::msg::Waypoint::ONLY_ORIENTATION:
+            r_out(0) = x_(0);
+            r_out(1) = x_(1);
+            r_out(2) = x_(2);
+            break;
+    }
+
+    return r_out;
 }
 
 void ReferenceFilterNode::execute(
@@ -250,9 +280,21 @@ void ReferenceFilterNode::execute(
 
     x_ = fill_reference_state();
 
-    const geometry_msgs::msg::PoseStamped goal = goal_handle->get_goal()->goal;
+    const geometry_msgs::msg::Pose goal =
+        goal_handle->get_goal()->waypoint.pose;
+    uint8_t mode = goal_handle->get_goal()->waypoint.mode;
+    double convergence_threshold =
+        goal_handle->get_goal()->convergence_threshold;
 
-    r_ = fill_reference_goal(goal);
+    if (convergence_threshold <= 0.0) {
+        convergence_threshold = 0.1;
+        spdlog::warn(
+            "ReferenceFilter: Invalid convergence_threshold received (<= 0). "
+            "Using default 0.1");
+    }
+
+    Eigen::Vector6d r_temp = fill_reference_goal(goal);
+    r_ = apply_mode_logic(r_temp, mode);
 
     auto feedback = std::make_shared<
         vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
@@ -276,17 +318,17 @@ void ReferenceFilterNode::execute(
             spdlog::info("Goal canceled");
             return;
         }
-        Vector18d x_dot = reference_filter_.calculate_x_dot(x_, r_);
+        Eigen::Vector18d x_dot = reference_filter_->calculate_x_dot(x_, r_);
         x_ += x_dot * time_step_.count() / 1000.0;
 
         vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
 
-        feedback->feedback = feedback_msg;
+        feedback->reference = feedback_msg;
 
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        if ((x_.head(6) - r_.head(6)).norm() < 0.1) {
+        if ((x_.head(6) - r_.head(6)).norm() < convergence_threshold) {
             result->success = true;
             goal_handle->succeed(result);
             x_.head(6) = r_.head(6);
@@ -299,6 +341,19 @@ void ReferenceFilterNode::execute(
 
         loop_rate.sleep();
     }
+    if (!rclcpp::ok() && goal_handle->is_active()) {
+        auto result = std::make_shared<
+            vortex_msgs::action::ReferenceFilterWaypoint::Result>();
+        result->success = false;
+
+        try {
+            goal_handle->abort(result);
+        } catch (...) {
+            // Ignore exceptions during shutdown
+        }
+    }
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(ReferenceFilterNode)
+
+}  // namespace vortex::guidance

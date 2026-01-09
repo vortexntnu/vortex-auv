@@ -2,15 +2,24 @@
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
-from rclpy.node import Node
-from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.node import Node, Parameter
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool, String
 from vortex_msgs.msg import ReferenceFilter
 from vortex_utils.python_utils import PoseData
-from vortex_utils.ros_converter import pose_from_ros
+from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils_ros.ros_converter import pose_from_ros
 
 from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX
+
+start_message = r"""
+      _                 _   _      _      ___       _             __
+     | | ___  _   _ ___| |_(_) ___| | __ |_ _|_ __ | |_ ___ _ __ / _| __ _  ___ ___
+  _  | |/ _ \| | | / __| __| |/ __| |/ /  | || '_ \| __/ _ \ '__| |_ / _` |/ __/ _ \
+ | |_| | (_) | |_| \__ \ |_| | (__|   <   | || | | | ||  __/ |  |  _| (_| | (_|  __/
+  \___/ \___/ \__, |___/\__|_|\___|_|\_\ |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
+              |___/
+"""
 
 
 class JoystickInterface(Node):
@@ -30,6 +39,7 @@ class JoystickInterface(Node):
         self._joystick_buttons_map = []
         self._last_button_press_time = 0
 
+        self.get_logger().info(start_message)
         self.get_logger().info(
             f"Joystick interface node started. Current mode: {self._mode}"
         )
@@ -53,21 +63,21 @@ class JoystickInterface(Node):
         ]
 
         for param in gain_params:
-            self.declare_parameter(param, 1.0)
+            self.declare_parameter(param, Parameter.Type.DOUBLE)
             # Get the values and set them as attributes of the class
             setattr(self, '_' + param, self.get_parameter(param).value)
 
         topic_params = ['pose', 'joy', 'wrench_input', 'killswitch', 'operation_mode']
 
         for param in topic_params:
-            self.declare_parameter(f'topics.{param}', "_")
+            self.declare_parameter(f'topics.{param}', Parameter.Type.STRING)
             setattr(
                 self,
                 param + '_topic',
                 self.get_parameter(f'topics.{param}').value,
             )
 
-        self.declare_parameter('topics.guidance.dp', "_")
+        self.declare_parameter('topics.guidance.dp', Parameter.Type.STRING)
         self.guidance_topic = self.get_parameter('topics.guidance.dp').value
 
     def init_movement(self):
@@ -79,11 +89,8 @@ class JoystickInterface(Node):
         self.yaw = 0.0
 
     def set_publishers_and_subscribers(self):
-        best_effort_qos = QoSProfile(
-            reliability=ReliabilityPolicy.BEST_EFFORT,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1,
-        )
+        best_effort_qos = sensor_data_profile(1)
+        reliable_qos = reliable_profile(2)
 
         self._joy_subscriber = self.create_subscription(
             Joy, self.joy_topic, self.joystick_cb, qos_profile=best_effort_qos
@@ -101,11 +108,11 @@ class JoystickInterface(Node):
             ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
         )
         self._software_killswitch_signal_publisher = self.create_publisher(
-            Bool, self.killswitch_topic, 2
+            Bool, self.killswitch_topic, reliable_qos
         )
         self._software_killswitch_signal_publisher.publish(Bool(data=True))
         self._operational_mode_signal_publisher = self.create_publisher(
-            String, self.operation_mode_topic, 2
+            String, self.operation_mode_topic, reliable_qos
         )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):

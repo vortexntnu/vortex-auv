@@ -33,19 +33,18 @@ class ReferenceFilterWaypointClient(Node):
         goal_pose = randomize_pose()
         goal_msg = ReferenceFilterWaypoint.Goal()
 
-        goal_msg.goal.pose.position.x = goal_pose.x
-        goal_msg.goal.pose.position.y = goal_pose.y
-        goal_msg.goal.pose.position.z = goal_pose.z
+        goal_msg.waypoint.pose.position.x = goal_pose.x
+        goal_msg.waypoint.pose.position.y = goal_pose.y
+        goal_msg.waypoint.pose.position.z = goal_pose.z
         roll = goal_pose.roll
         pitch = goal_pose.pitch
         yaw = goal_pose.yaw
 
         quat = euler_to_quat(roll=roll, pitch=pitch, yaw=yaw)
-
-        goal_msg.goal.pose.orientation.x = quat[0]
-        goal_msg.goal.pose.orientation.y = quat[1]
-        goal_msg.goal.pose.orientation.z = quat[2]
-        goal_msg.goal.pose.orientation.w = quat[3]
+        goal_msg.waypoint.pose.orientation.x = quat[0]
+        goal_msg.waypoint.pose.orientation.y = quat[1]
+        goal_msg.waypoint.pose.orientation.z = quat[2]
+        goal_msg.waypoint.pose.orientation.w = quat[3]
 
         # Write goal pose to temp file
         file_path = "goal_pose.yaml"

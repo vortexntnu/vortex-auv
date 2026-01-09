@@ -10,6 +10,7 @@
   <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
+  <depend>vortex_utils_ros</depend>
   <depend>eigen</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

@@ -1,68 +1,22 @@
 /**
  * @file typedefs.hpp
- * @brief Contains the typedef and structs for the controller.
+ * @brief Contains the Eigen typedefs for the controller.
  */
 
-#ifndef VORTEX_DP_ADAPT_BACKSTEPPING_CONTROLLER_TYPEDEFS_H
-#define VORTEX_DP_ADAPT_BACKSTEPPING_CONTROLLER_TYPEDEFS_H
+#ifndef DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 
-namespace dp_types {
-typedef Eigen::Matrix<double, 3, 1> Vector3d;
+namespace Eigen {
+
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::Matrix<double, 12, 1> Vector12d;
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
-typedef Eigen::Matrix<double, 3, 3> Matrix3d;
 typedef Eigen::Matrix<double, 6, 12> Matrix6x12d;
 typedef Eigen::Matrix<double, 12, 6> Matrix12x6d;
 typedef Eigen::Matrix<double, 12, 12> Matrix12d;
 
-struct Eta {
-    dp_types::Vector3d pos = dp_types::Vector3d::Zero();
-    dp_types::Vector3d ori = dp_types::Vector3d::Zero();
+}  // namespace Eigen
 
-    dp_types::Vector6d as_vector() const {
-        dp_types::Vector6d vec;
-        vec << pos, ori;
-        return vec;
-    }
-};
-
-struct Nu {
-    dp_types::Vector3d linear_speed = dp_types::Vector3d::Zero();
-    dp_types::Vector3d angular_speed = dp_types::Vector3d::Zero();
-
-    dp_types::Vector6d as_vector() const {
-        dp_types::Vector6d vec;
-        vec << linear_speed, angular_speed;
-        return vec;
-    }
-};
-
-struct J_matrix {
-    dp_types::Matrix3d R = dp_types::Matrix3d::Identity();
-    dp_types::Matrix3d T = dp_types::Matrix3d::Identity();
-
-    dp_types::Matrix6d as_matrix() const {
-        dp_types::Matrix6d mat = dp_types::Matrix6d::Zero();
-        mat.block<3, 3>(0, 0) = R;
-        mat.block<3, 3>(3, 3) = T;
-        return mat;
-    }
-};
-
-struct DPAdaptParams {
-    dp_types::Vector12d adap_param = dp_types::Vector12d::Zero();
-    dp_types::Vector6d d_gain = dp_types::Vector6d::Zero();
-    dp_types::Vector6d K1 = dp_types::Vector6d::Zero();
-    dp_types::Vector6d K2 = dp_types::Vector6d::Zero();
-    dp_types::Vector3d r_b_bg = dp_types::Vector3d::Zero();
-    dp_types::Vector3d I_b = dp_types::Vector3d::Zero();
-    dp_types::Matrix6d mass_matrix = dp_types::Matrix6d::Zero();
-    double m = 0.0;
-};
-
-}  // namespace dp_types
-
-#endif
+#endif  // DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_

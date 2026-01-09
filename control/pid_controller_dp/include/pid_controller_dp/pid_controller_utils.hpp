@@ -1,5 +1,5 @@
-#ifndef PID_UTILS_HPP
-#define PID_UTILS_HPP
+#ifndef PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_
+#define PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_
 
 #include <spdlog/spdlog.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -76,4 +76,4 @@ types::Vector7d anti_windup(const double dt,
 
 // void print_J_transformation(const types::J_transformation& J);
 // void print_Jinv_transformation(const types::Matrix6x7d& J_inv);
-#endif
+#endif  // PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_

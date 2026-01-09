@@ -14,11 +14,11 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
+find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
@@ -28,8 +28,7 @@ set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
   src/reference_filter.cpp
-  src/reference_filter_ros.cpp
-  src/reference_filter_utils.cpp)
+  src/reference_filter_ros.cpp)
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
@@ -38,9 +37,9 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   geometry_msgs
   nav_msgs
   Eigen3
-  tf2
-  tf2_geometry_msgs
   vortex_msgs
+  vortex_utils
+  vortex_utils_ros
   spdlog
   fmt
 )
@@ -70,5 +69,9 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
 
 ament_package()
