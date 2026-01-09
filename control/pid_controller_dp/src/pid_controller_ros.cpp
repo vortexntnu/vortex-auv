@@ -3,6 +3,7 @@
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
+#include <vortex_msgs/msg/operation_mode.hpp>
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     time_step_ = std::chrono::milliseconds(10);
@@ -45,7 +46,7 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         software_kill_switch_topic, 1,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
-    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
+    software_mode_sub_ = this->create_subscription<vortex_msgs::msg::OperationMode>(
         software_operation_mode_topic, 1,
         std::bind(&PIDControllerNode::software_mode_callback, this,
                   std::placeholders::_1));
@@ -78,8 +79,8 @@ void PIDControllerNode::killswitch_callback(
 }
 
 void PIDControllerNode::software_mode_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    software_mode_ = msg->data;
+    const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+    software_mode_ = msg->mode;
 }
 
 void PIDControllerNode::pose_callback(
@@ -93,7 +94,7 @@ void PIDControllerNode::twist_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ || software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
         return;
     }
 
