@@ -19,7 +19,10 @@ def generate_launch_description():
                 executable='pose_filtering_node',
                 name='pose_filtering',
                 output='screen',
-                parameters=[config, {'use_sim_time': True}],
+                parameters=[
+                    config,
+                    # {'use_sim_time': True} # If testing with rosbags sim_time might be preferred if bag is looped
+                ],
             ),
         ]
     )

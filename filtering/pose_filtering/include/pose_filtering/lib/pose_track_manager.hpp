@@ -50,7 +50,7 @@ class PoseTrackManager {
      * @brief Get the list of currently maintained tracks.
      * @return const reference to internal track vector
      */
-    const std::vector<Track>& get_tracks() { return tracks_; }
+    const std::vector<Track>& get_tracks() const { return tracks_; }
 
    private:
     /**
@@ -119,7 +119,7 @@ class PoseTrackManager {
                                   std::vector<Eigen::Index>& indices);
 
     // Internal bookkeeping
-    int track_id_counter_ = 0;
+    int track_id_counter_{0};
 
     std::vector<Track> tracks_;
 

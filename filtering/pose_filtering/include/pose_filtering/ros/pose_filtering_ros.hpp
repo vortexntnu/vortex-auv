@@ -51,6 +51,12 @@ class PoseFilteringNode : public rclcpp::Node {
 
     void timer_callback();
 
+    void setup_debug_publishers();
+
+    void publish_meas_debug();
+
+    void publish_state_debug();
+
     std::shared_ptr<message_filters::Subscriber<PoseMsgT>> subscriber_;
 
     std::shared_ptr<tf2_ros::MessageFilter<PoseMsgT>> tf_filter_;
@@ -77,9 +83,6 @@ class PoseFilteringNode : public rclcpp::Node {
         pose_meas_debug_pub_;
     rclcpp::Publisher<vortex_msgs::msg::PoseEulerStamped>::SharedPtr
         pose_state_debug_pub_;
-    void setup_debug_publishers();
-    void publish_meas_debug();
-    void publish_state_debug();
 };
 
 }  // namespace vortex::filtering

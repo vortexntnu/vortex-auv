@@ -20,13 +20,15 @@ void OrientationFilter::step(
         return;
     }
 
-    Eigen::Matrix<double, 3, Eigen::Dynamic> Z(3, measurements.size());
+    Eigen::Matrix<double, 3, Eigen::Dynamic> measurements_error_space(
+        3, measurements.size());
     for (size_t i = 0; i < measurements.size(); ++i) {
-        Z.col(i) = so3_log_quat(measurements.at(i) * state.q.conjugate());
+        measurements_error_space.col(i) =
+            so3_log_quat(measurements.at(i) * state.q.conjugate());
     }
 
-    auto result = PDAF::step(dyn_mod_, sensor_mod_, dt, state.error_state, Z,
-                             pdaf_config_);
+    auto result = PDAF::step(dyn_mod_, sensor_mod_, dt, state.error_state,
+                             measurements_error_space, pdaf_config_);
 
     Eigen::Vector3d delta = result.x_post.mean();
     state.q = so3_exp_quat(delta) * state.q;
@@ -41,12 +43,16 @@ Eigen::Vector3d OrientationFilter::so3_log_quat(
     Eigen::Quaterniond q = q_in.normalized();
 
     if (q.w() < 0.0) {
+        // Quat sign ambiguity q == -q
+        // Enforce consistent sign convention
         q.coeffs() *= -1.0;
     }
 
     double norm_v = q.vec().norm();
 
     if (norm_v < 1e-6) {
+        // Small-angle approximation of log map:
+        // for θ → 0, log(q) ≈ 2 * v since q ≈ [1, v]
         return 2.0 * q.vec();
     }
 
