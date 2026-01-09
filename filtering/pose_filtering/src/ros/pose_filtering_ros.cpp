@@ -7,9 +7,6 @@
 #include "vortex/utils/ros/ros_conversions.hpp"
 #include "vortex/utils/ros/ros_transforms.hpp"
 
-using std::placeholders::_1;
-using std::placeholders::_2;
-
 namespace vortex::filtering {
 
 PoseFilteringNode::PoseFilteringNode(const rclcpp::NodeOptions& options)
@@ -44,8 +41,6 @@ void PoseFilteringNode::setup_publishers_and_subscribers() {
         std::bind(&PoseFilteringNode::timer_callback, this));
 
     target_frame_ = this->declare_parameter<std::string>("target_frame");
-
-    std::chrono::duration<int> buffer_timeout(1);
 
     tf2_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
 

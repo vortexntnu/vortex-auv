@@ -1,7 +1,6 @@
 #ifndef POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_
 #define POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_
 
-#include <memory>
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
 #include "orientation_filter.hpp"

@@ -1,5 +1,4 @@
 #include "pose_filtering/lib/orientation_filter.hpp"
-#include <algorithm>
 #include <cmath>
 
 namespace vortex::filtering {
