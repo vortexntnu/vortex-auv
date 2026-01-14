@@ -189,8 +189,11 @@ void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
 }
 
 void ESKF::dvl_update(const DvlMeasurement& dvl_meas) {
-    measurement_update(dvl_meas);
-    injection_and_reset();
+    // for testing the visual odom
+    return;
+    
+    // measurement_update(dvl_meas);
+    // injection_and_reset();
 }
 
 void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
@@ -218,6 +221,7 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     spdlog::info("ESKF: Visual Update. Error: {:.3f}m", error_mag);
 
     if (error_mag > 0.2) {
+        spdlog::warn("VO rejected: error_mag={:.3f}m", error_mag);
         return;
     }
 

@@ -1,226 +1,179 @@
 #include "valve_egomotion/valve_egomotion.hpp"
+
 #include <algorithm>
+#include <cmath>
 
 namespace valve_egomotion {
 
-ValveEgomotionNode::ValveEgomotionNode() : Node("valve_egomotion") {
-    std::string valve_topic =
-        declare_parameter("valve_topic", "/aruco_detector/markers");
-    ref_frame_ = declare_parameter("ref_frame", "vo_ref");
-    base_frame_ = declare_parameter("base_frame", "base_link");
-    cam_frame_ = declare_parameter("cam_frame", "Orca/camera_front");
+SlidingWindowSO3Mean::SlidingWindowSO3Mean(Config cfg) : cfg_(cfg) {}
 
-    win_size_ = declare_parameter("window_size", 20);
-    win_age_sec_ = declare_parameter("max_age_sec", 1.0);
-    huber_deg_ = declare_parameter("huber_threshold_deg", 2.5);
-    gate_deg_ = declare_parameter("gate_threshold_deg", 15.0);
-    use_mad_ = declare_parameter("use_mad", false);
-    pub_rate_hz_ = declare_parameter("pub_rate_hz", 30.0);
-    publish_tf_ = declare_parameter("publish_tf", false);
-
-    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
-
-    sub_marker_ = create_subscription<geometry_msgs::msg::PoseArray>(
-        valve_topic, rclcpp::SensorDataQoS(),
-        std::bind(&ValveEgomotionNode::valvePoseCallback, this,
-                  std::placeholders::_1));
-
-    pub_pose_cov_ =
-        create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-            "/landmark/pose_cov", 10);
-
-    last_pub_time_ = this->now();
-    RCLCPP_INFO(get_logger(), "Valve Estimator Node Online. Watching: %s",
-                valve_topic.c_str());
+void SlidingWindowSO3Mean::clear() {
+    buf_.clear();
 }
 
-void ValveEgomotionNode::valvePoseCallback(
-    const geometry_msgs::msg::PoseArray::SharedPtr msg) {
-    if (msg->poses.empty())
-        return;
-
-    tf2::Transform T_cam_marker;
-    tf2::fromMsg(msg->poses[0], T_cam_marker);
-
-    tf2::Transform T_base_cam;
-
-try {
-    auto ts_base_cam = tf_buffer_->lookupTransform(base_frame_, cam_frame_,
-                                                   tf2::TimePointZero);
-    tf2::fromMsg(ts_base_cam.transform, T_base_cam);
-} catch (const tf2::TransformException& ex) {
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-                         "Waiting for TF frames : %s", ex.what());
-    return;
+void SlidingWindowSO3Mean::addSample(const rclcpp::Time& stamp,
+                                     const tf2::Transform& T_ref_base,
+                                     double weight) {
+    buf_.push_back(Sample{stamp, T_ref_base, weight});
 }
 
-// base <- marker (measured)
-tf2::Transform T_base_marker_now = T_base_cam * T_cam_marker;
-
-// latch reference at first good detection
-if (!have_ref_) {
-    T_base_marker0_ = T_base_marker_now;
-    have_ref_ = true;
-}
-
-// ref(base0) <- base(now)
-tf2::Transform T_ref_base_meas = T_base_marker0_ * T_base_marker_now.inverse();
-
-buf_.push_back({msg->header.stamp, T_ref_base_meas, 1.0});
-    prune(this->now());
-
-    if ((this->now() - last_pub_time_).seconds() < (1.0 / pub_rate_hz_))
-        return;
-    last_pub_time_ = this->now();
-
-    tf2::Transform T_est;
-    double cov[36];
-
-    if (estimateWindow(T_est, cov, this->now())) {
-        geometry_msgs::msg::PoseWithCovarianceStamped pc;
-        pc.header.frame_id = ref_frame_;
-        pc.header.stamp = msg->header.stamp;  // For ESKF time synchronization
-        tf2::toMsg(T_est, pc.pose.pose);
-        std::copy(std::begin(cov), std::end(cov), pc.pose.covariance.begin());
-        pub_pose_cov_->publish(pc);
-
-        if (publish_tf_) {
-            geometry_msgs::msg::TransformStamped tfs;
-            tfs.header = pc.header;
-            tfs.child_frame_id = base_frame_ + "/refined";
-            tfs.transform = tf2::toMsg(T_est);
-            tf_broadcaster_->sendTransform(tfs);
-        }
+void SlidingWindowSO3Mean::prune(const rclcpp::Time& now) {
+    while (!buf_.empty() &&
+           (now - buf_.front().stamp).seconds() > cfg_.win_age_sec) {
+        buf_.pop_front();
+    }
+    while (static_cast<int>(buf_.size()) > cfg_.win_size) {
+        buf_.pop_front();
     }
 }
 
-bool ValveEgomotionNode::estimateWindow(tf2::Transform& T_est,
-                                        double* cov6x6,
-                                        const rclcpp::Time& nowt) {
+bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
+                                    tf2::Transform& T_est,
+                                    std::array<double, 36>& cov6x6) const {
+    (void)now;
     if (buf_.empty())
         return false;
 
+    // Init around the newest sample rotation; translation init at origin.
     tf2::Quaternion q_avg = buf_.back().T_ref_base.getRotation();
     tf2::Vector3 p_avg(0, 0, 0);
-    double current_gate = gate_deg_ * M_PI / 180.0;
-    const double huber = huber_deg_ * M_PI / 180.0;
 
-    if (use_mad_ && buf_.size() >= 5) {
+    double gate = cfg_.gate_threshold_deg * M_PI / 180.0;
+    const double huber = cfg_.huber_threshold_deg * M_PI / 180.0;
+
+    if (cfg_.use_mad_gate && buf_.size() >= 5) {
         std::vector<double> dists;
-        for (auto& s : buf_)
+        dists.reserve(buf_.size());
+        for (const auto& s : buf_) {
             dists.push_back(angularDist(q_avg, s.T_ref_base.getRotation()));
-        double med = getMedian(dists);
+        }
+        const double med = median(dists);
         for (auto& d : dists)
             d = std::abs(d - med);
-        current_gate = std::min(current_gate, med + 3.0 * getMedian(dists));
+        const double mad = median(dists);
+        // 3*MAD is a common robust spread heuristic. Clamp with configured
+        // gate.
+        gate = std::min(gate, med + 3.0 * mad);
     }
 
+    // Robust mean on SO(3) using log/exp in the tangent space at q_avg.
     for (int i = 0; i < 5; ++i) {
-        tf2::Vector3 sum_p(0, 0, 0), sum_q(0, 0, 0);
-        double w_total = 0;
-        for (auto& s : buf_) {
-            double dist = angularDist(q_avg, s.T_ref_base.getRotation());
-            if (dist > current_gate)
+        tf2::Vector3 sum_p(0, 0, 0);
+        tf2::Vector3 sum_w(0, 0, 0);
+        double w_total = 0.0;
+
+        for (const auto& s : buf_) {
+            const tf2::Quaternion q_i = s.T_ref_base.getRotation();
+            const double dist = angularDist(q_avg, q_i);
+            if (dist > gate)
                 continue;
-            tf2::Vector3 wi =
-                logMapSO3(q_avg.inverse() * s.T_ref_base.getRotation());
-            double weight = (huber > 0 && wi.length() > huber)
-                                ? (huber / wi.length())
-                                : 1.0;
-            sum_p += s.T_ref_base.getOrigin() * weight;
-            sum_q += wi * weight;
-            w_total += weight;
+
+            const tf2::Vector3 w_i = logMapSO3(q_avg.inverse() * q_i);
+
+            double w = s.weight;
+            if (huber > 0.0) {
+                const double a = w_i.length();
+                if (a > huber && a > 1e-12)
+                    w *= (huber / a);
+            }
+
+            sum_p += s.T_ref_base.getOrigin() * w;
+            sum_w += w_i * w;
+            w_total += w;
         }
-        if (w_total < 1e-6)
+
+        if (w_total < 1e-9)
             return false;
+
         p_avg = sum_p / w_total;
-        tf2::Vector3 dq = sum_q / w_total;
-        q_avg = (q_avg * expMapSO3(dq)).normalized();
-        if (dq.length() < 1e-4)
+
+        const tf2::Vector3 dw = sum_w / w_total;
+        q_avg = (q_avg * expMapSO3(dw)).normalized();
+
+        if (dw.length() < 1e-4)
             break;
     }
+
     T_est.setOrigin(p_avg);
     T_est.setRotation(q_avg);
 
-    std::fill(cov6x6, cov6x6 + 36, 0.0);
-    double inliers = 0;
-    for (auto& s : buf_) {
-        if (angularDist(q_avg, s.T_ref_base.getRotation()) > current_gate)
-            continue;
-        tf2::Vector3 dp = s.T_ref_base.getOrigin() - p_avg;
-        tf2::Vector3 dq =
-            logMapSO3(q_avg.inverse() * s.T_ref_base.getRotation());
+    // Diagonal covariance proxy.
+    cov6x6.fill(0.0);
+    double inliers = 0.0;
 
-        cov6x6[0] += dp.x() * dp.x();   // x
-        cov6x6[7] += dp.y() * dp.y();   // y
-        cov6x6[14] += dp.z() * dp.z();  // z
-        cov6x6[21] += dq.x() * dq.x();  // roll
-        cov6x6[28] += dq.y() * dq.y();  // pitch
-        cov6x6[35] += dq.z() * dq.z();  // yaw
+    for (const auto& s : buf_) {
+        const tf2::Quaternion q_i = s.T_ref_base.getRotation();
+        if (angularDist(q_avg, q_i) > gate)
+            continue;
+
+        const tf2::Vector3 dp = s.T_ref_base.getOrigin() - p_avg;
+        const tf2::Vector3 dq = logMapSO3(q_avg.inverse() * q_i);
+
+        cov6x6[0] += dp.x() * dp.x();
+        cov6x6[7] += dp.y() * dp.y();
+        cov6x6[14] += dp.z() * dp.z();
+        cov6x6[21] += dq.x() * dq.x();
+        cov6x6[28] += dq.y() * dq.y();
+        cov6x6[35] += dq.z() * dq.z();
+
         inliers += 1.0;
     }
-    for (int i = 0; i < 36; i++)
-        cov6x6[i] /= std::max(1.0, inliers);
 
-    const double pos_floor = 1e-6;  // 1mm variance
-    const double rot_floor = 1e-6;  // ~0.05 degree variance
+    const double denom = std::max(1.0, inliers);
+    for (double& v : cov6x6)
+        v /= denom;
 
+    // Floors to avoid exact zeros.
+    const double pos_floor = 1e-6;  // ~1mm^2
+    const double rot_floor = 1e-6;  // ~ (0.057 deg)^2 in rad^2 order
     cov6x6[0] += pos_floor;
     cov6x6[7] += pos_floor;
     cov6x6[14] += pos_floor;
     cov6x6[21] += rot_floor;
     cov6x6[28] += rot_floor;
     cov6x6[35] += rot_floor;
+
     return true;
 }
 
-tf2::Vector3 ValveEgomotionNode::logMapSO3(const tf2::Quaternion& q) {
-    double w = std::clamp((double)q.getW(), -1.0, 1.0);
-    double th = 2.0 * acos(w);
-    double s = sqrt(std::max(0.0, 1.0 - w * w));
+tf2::Vector3 SlidingWindowSO3Mean::logMapSO3(const tf2::Quaternion& q) {
+    const double w = std::clamp(static_cast<double>(q.getW()), -1.0, 1.0);
+    const double th = 2.0 * std::acos(w);
+    const double s = std::sqrt(std::max(0.0, 1.0 - w * w));
 
-    if (s < 1e-9)
+    // Small-angle: log(q) ≈ 2*v where q ≈ [v, 1]
+    if (s < 1e-9) {
         return tf2::Vector3(2 * q.getX(), 2 * q.getY(), 2 * q.getZ());
-
+    }
     return tf2::Vector3(q.getX(), q.getY(), q.getZ()) * (th / s);
 }
-tf2::Quaternion ValveEgomotionNode::expMapSO3(const tf2::Vector3& w) {
-    double th = w.length();
 
-    if (th < 1e-9)
-        return tf2::Quaternion(w.x() * 0.5, w.y() * 0.5, w.z() * 0.5, 1.0)
+tf2::Quaternion SlidingWindowSO3Mean::expMapSO3(const tf2::Vector3& w) {
+    const double th = w.length();
+    if (th < 1e-9) {
+        return tf2::Quaternion(0.5 * w.x(), 0.5 * w.y(), 0.5 * w.z(), 1.0)
             .normalized();
-    tf2::Vector3 a = w / th;
+    }
+    const tf2::Vector3 a = w / th;
+    return tf2::Quaternion(a.x() * std::sin(0.5 * th),
+                           a.y() * std::sin(0.5 * th),
+                           a.z() * std::sin(0.5 * th), std::cos(0.5 * th));
+}
 
-    return tf2::Quaternion(a.x() * sin(th * 0.5), a.y() * sin(th * 0.5),
-                           a.z() * sin(th * 0.5), cos(th * 0.5));
+double SlidingWindowSO3Mean::angularDist(const tf2::Quaternion& q1,
+                                         const tf2::Quaternion& q2) {
+    // Use abs(dot) to account for q and -q representing same rotation.
+    const double d = std::abs(static_cast<double>(q1.dot(q2)));
+    return 2.0 * std::acos(std::clamp(d, -1.0, 1.0));
 }
-double ValveEgomotionNode::angularDist(const tf2::Quaternion& q1,
-                                       const tf2::Quaternion& q2) {
-    return 2.0 * acos(std::clamp(std::abs((double)q1.dot(q2)), -1.0, 1.0));
-}
+
 template <typename T>
-T ValveEgomotionNode::getMedian(std::vector<T> v) {
-    size_t n = v.size() / 2;
+T SlidingWindowSO3Mean::median(std::vector<T> v) {
+    const size_t n = v.size() / 2;
     std::nth_element(v.begin(), v.begin() + n, v.end());
     return v[n];
 }
-void ValveEgomotionNode::prune(const rclcpp::Time& nowt) {
-    while (!buf_.empty() &&
-           (nowt - buf_.front().stamp).seconds() > win_age_sec_)
-        buf_.pop_front();
 
-    while ((int)buf_.size() > win_size_)
-        buf_.pop_front();
-}
+template double SlidingWindowSO3Mean::median<double>(std::vector<double>);
+
 }  // namespace valve_egomotion
-
-int main(int argc, char** argv) {
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<valve_egomotion::ValveEgomotionNode>());
-    rclcpp::shutdown();
-
-    return 0;
-}
