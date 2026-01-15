@@ -220,8 +220,10 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
 
     spdlog::info("ESKF: Visual Update. Error: {:.3f}m", error_mag);
 
-    if (error_mag > 0.2) {
-        spdlog::warn("VO rejected: error_mag={:.3f}m", error_mag);
+    const double nis = y.transpose() * S.inverse() * y;
+    // chi2 threshold for 6 dof: ~12.59 (95%), ~16.81 (99%)
+    if (nis > 16.81) {
+        spdlog::warn("VO rejected by NIS: nis={:.2f}", nis);
         return;
     }
 

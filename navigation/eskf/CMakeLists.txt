@@ -16,6 +16,9 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(spdlog REQUIRED)
@@ -43,6 +46,9 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   nav_msgs
   Eigen3
   tf2
+  tf2_ros
+  tf2_msgs
+  tf2_geometry_msgs
   vortex_msgs
   vortex_utils
   spdlog
