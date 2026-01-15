@@ -25,10 +25,10 @@ vector_field_los:
   k_p_v: 0.5
 
 common:
-  active_los_method: 2  # 0: Proportional, 1: Integral, 2: Adaptive
+  active_los_method: 0  # 0: Proportional, 1: Integral, 2: Adaptive
   u_desired: 0.3
   goal_reached_tol: 1.0
 
 debug:
-  enable_debug: false
-  debug_topic_name: /los_guidance_debug
+  enable_debug: true
+  debug_topic_name: "/los_guidance_debug"

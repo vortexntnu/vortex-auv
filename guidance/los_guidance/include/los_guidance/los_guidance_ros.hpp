@@ -5,6 +5,7 @@
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -18,7 +19,8 @@
 #include "los_guidance/lib/vector_field_los.hpp"
 #include "los_guidance/lib/types.hpp" 
 #include <vortex/utils/math.hpp>
-//#include <vortex_msgs/msg/pose_euler_stamped.hpp>
+#include <string>
+#include <vortex_msgs/msg/pose_euler_stamped.hpp>
 
 namespace vortex::guidance::los {
 
@@ -28,7 +30,7 @@ class LosGuidanceNode : public rclcpp::Node {
 
    private:
     // @brief Set the subscribers and publishers
-    void set_subscribers_and_publisher();
+    void set_subscribers_and_publisher(YAML::Node config);
 
     // @brief Set the action server
     void set_action_server();
@@ -57,6 +59,9 @@ class LosGuidanceNode : public rclcpp::Node {
     // @param msg The pose message
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+    void odom_callback(
+        const nav_msgs::msg::Odometry::SharedPtr msg);
 
     // @brief Handle the goal request
     // @param uuid The goal UUID
@@ -88,6 +93,9 @@ class LosGuidanceNode : public rclcpp::Node {
         const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
         std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response);
 
+    void publish_state_debug(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+        current_pose);
+
     vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output);
 
     YAML::Node get_los_config(std::string yaml_file_path);
@@ -105,10 +113,12 @@ class LosGuidanceNode : public rclcpp::Node {
 
     std::string debug_topic_name_;
 
-    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr debug_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::PoseEulerStamped>::SharedPtr debug_pub_;
 
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
         waypoint_sub_;
+
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -141,5 +151,5 @@ class LosGuidanceNode : public rclcpp::Node {
 };
 
 }  // namespace vortex::guidance::los
-
+ 
 #endif  // LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
