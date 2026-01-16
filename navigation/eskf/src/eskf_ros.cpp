@@ -53,19 +53,22 @@ void ESKFNode::set_subscribers_and_publisher() {
 
 #ifndef NDEBUG
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
-        "dvl/nis", vortex::utils::qos_profiles::reliable_profile());
+        "eskf/nis", vortex::utils::qos_profiles::reliable_profile());
 #endif
-
-    cov_pub_ = create_publisher<std_msgs::msg::Float64MultiArray>(
-        "eskf/covariance", 10);
 }
 
 void ESKFNode::set_parameters() {
-    std::vector<double> R_imu_correction;
-    this->declare_parameter<std::vector<double>>("imu_frame");
-    R_imu_correction = get_parameter("imu_frame").as_double_array();
-    R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        R_imu_correction.data());
+    std::vector<double> R_imu_acc_correction;
+    this->declare_parameter<std::vector<double>>("imu_acc_frame");
+    R_imu_acc_correction = get_parameter("imu_acc_frame").as_double_array();
+    R_imu_acc_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        R_imu_acc_correction.data());
+
+    std::vector<double> R_imu_gyro_correction;
+    this->declare_parameter<std::vector<double>>("imu_gyro_frame");
+    R_imu_gyro_correction = get_parameter("imu_gyro_frame").as_double_array();
+    R_imu_gyro_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        R_imu_gyro_correction.data());
 
     std::vector<double> diag_Q_std;
     this->declare_parameter<std::vector<double>>("diag_Q_std");
@@ -111,13 +114,12 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
                               msg->linear_acceleration.z);
 
     ImuMeasurement imu_measurement{};
-    imu_measurement.accel = R_imu_eskf_ * raw_accel;
+    imu_measurement.accel = R_imu_acc_eskf_ * raw_accel;
 
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
-    imu_measurement.gyro = raw_gyro;
+    imu_measurement.gyro = R_imu_gyro_eskf_ * raw_gyro;
 
     eskf_->imu_update(imu_measurement, dt);
 }
@@ -147,6 +149,7 @@ void ESKFNode::dvl_callback(
 void ESKFNode::publish_odom() {
     nav_msgs::msg::Odometry odom_msg;
     StateQuat nom_state = eskf_->get_nominal_state();
+    StateEuler error_state_ = eskf_->get_error_state();
 
     odom_msg.pose.pose.position.x = nom_state.pos.x();
     odom_msg.pose.pose.position.y = nom_state.pos.y();
@@ -170,29 +173,35 @@ void ESKFNode::publish_odom() {
     // matrix or publish a separate topic for biases
 
     odom_msg.header.stamp = this->now();
+    odom_msg.header.frame_id = "odom";
+
+    // The covariance is published in a way that some cross terms are ignored, 
+    // if using this cov with other estimator, the whole 15*15 should be published
+    // Covariance of pos and orientation needs to be mapped from 6*6 matrix to an array
+    // Position covariance (states 0-2)
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            odom_msg.pose.covariance[i * 6 + j] =
+                error_state_.covariance(i, j);
+        }
+    }
+
+    // Orientation covariance (states 6–8)
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            odom_msg.pose.covariance[(i + 3) * 6 + (j + 3)] =
+                error_state_.covariance(i + 6, j + 6);
+        }
+    }
+
+    // Linear velocity covariance
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            odom_msg.twist.covariance[i * 6 + j] =
+                error_state_.covariance(i + 3, j + 3);
+        }
+    }
     odom_pub_->publish(odom_msg);
-
-    // publish the covariance matrix
-    std_msgs::msg::Float64MultiArray msg;
-
-    msg.layout.dim.resize(2);
-    msg.layout.dim[0].label = "rows";
-    msg.layout.dim[0].size = 15;
-    msg.layout.dim[0].stride = 15 * 15;
-    msg.layout.dim[1].label = "cols";
-    msg.layout.dim[1].size = 15;
-    msg.layout.dim[1].stride = 15;
-
-    // get error state covariance
-    StateEuler error_state_ = eskf_->get_error_state();
-
-    // Flatten Eigen matrix into a std::vector<double>
-    msg.data.resize(15 * 15);
-    msg.data.assign(error_state_.covariance.data(),
-                    error_state_.covariance.data() + 15 * 15);
-
-    // Publish covariance
-    cov_pub_->publish(msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(ESKFNode)

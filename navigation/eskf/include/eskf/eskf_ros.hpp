@@ -47,8 +47,6 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr cov_pub_;
-
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
 
     std::chrono::milliseconds time_step;
@@ -59,7 +57,9 @@ class ESKFNode : public rclcpp::Node {
 
     bool first_imu_msg_received_ = false;
 
-    Eigen::Matrix3d R_imu_eskf_{};
+    Eigen::Matrix3d R_imu_acc_eskf_{};
+
+    Eigen::Matrix3d R_imu_gyro_eskf_{};
 
     rclcpp::Time last_imu_time_{};
 };
