@@ -175,14 +175,13 @@ void ESKFNode::publish_odom() {
     odom_msg.header.stamp = this->now();
     odom_msg.header.frame_id = "odom";
 
-    // The covariance is published in a way that some cross terms are ignored, 
-    // if using this cov with other estimator, the whole 15*15 should be published
-    // Covariance of pos and orientation needs to be mapped from 6*6 matrix to an array
-    // Position covariance (states 0-2)
+    // Some cross terms of the covariance are ignored, and the acc/gyro biases
+    // cov are not published. Pos and orientation cov needs to be mapped from
+    // 6*6 matrix to an array (states 0-2)
+
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            odom_msg.pose.covariance[i * 6 + j] =
-                error_state_.covariance(i, j);
+            odom_msg.pose.covariance[i * 6 + j] = error_state_.covariance(i, j);
         }
     }
 
