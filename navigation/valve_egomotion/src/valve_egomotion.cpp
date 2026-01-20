@@ -34,7 +34,7 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
     if (buf_.empty())
         return false;
 
-    // Init around the newest sample rotation; translation init at origin.
+    // Init around the newest sample rotation; translation init at origin
     tf2::Quaternion q_avg = buf_.back().T_ref_base.getRotation();
     tf2::Vector3 p_avg(0, 0, 0);
 
@@ -51,12 +51,10 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
         for (auto& d : dists)
             d = std::abs(d - med);
         const double mad = median(dists);
-        // 3*MAD is a common robust spread heuristic. Clamp with configured
-        // gate.
         gate = std::min(gate, med + 3.0 * mad);
     }
 
-    // Robust mean on SO(3) using log/exp in the tangent space at q_avg.
+    // Robust mean on SO(3) using log/exp in the tangent space at q_avg
     for (int i = 0; i < 5; ++i) {
         tf2::Vector3 sum_p(0, 0, 0);
         tf2::Vector3 sum_w(0, 0, 0);
@@ -97,7 +95,7 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
     T_est.setOrigin(p_avg);
     T_est.setRotation(q_avg);
 
-    // Diagonal covariance proxy.
+    // Diagonal covariance proxy
     cov6x6.fill(0.0);
     double inliers = 0.0;
 
@@ -123,9 +121,8 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
     for (double& v : cov6x6)
         v /= denom;
 
-    // Floors to avoid exact zeros.
-    const double pos_floor = 1e-6;  // ~1mm^2
-    const double rot_floor = 1e-6;  // ~ (0.057 deg)^2 in rad^2 order
+    const double pos_floor = 1e-6;  
+    const double rot_floor = 1e-6;  
     cov6x6[0] += pos_floor;
     cov6x6[7] += pos_floor;
     cov6x6[14] += pos_floor;
@@ -162,7 +159,7 @@ tf2::Quaternion SlidingWindowSO3Mean::expMapSO3(const tf2::Vector3& w) {
 
 double SlidingWindowSO3Mean::angularDist(const tf2::Quaternion& q1,
                                          const tf2::Quaternion& q2) {
-    // Use abs(dot) to account for q and -q representing same rotation.
+    // Use abs(dot) to account for q and -q representing same rotation
     const double d = std::abs(static_cast<double>(q1.dot(q2)));
     return 2.0 * std::acos(std::clamp(d, -1.0, 1.0));
 }

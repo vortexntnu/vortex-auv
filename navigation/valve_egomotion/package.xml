@@ -3,7 +3,7 @@
   <name>valve_egomotion</name>
   <version>0.1.0</version>
   <description>Compute AUV pose from valve detections and publish to ESKF</description>
-  <maintainer email="antontr@stud.ntnu.no">Anton Tran</maintainer>
+  <maintainer email="anton.tran@live.no">Anton Tran</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

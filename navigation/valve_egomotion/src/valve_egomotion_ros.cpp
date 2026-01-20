@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <sstream>
 
 namespace valve_egomotion {
 
@@ -18,7 +19,7 @@ ValveEgomotionNode::ValveEgomotionNode(const rclcpp::NodeOptions& options)
           return cfg;
       }()) {
     valve_topic_ = this->declare_parameter<std::string>(
-        "valve_topic", "/aruco_detector/markers");
+        "valve_topic", "/aruco_detector/landmarks");
     ref_frame_ = this->declare_parameter<std::string>("ref_frame", "vo_ref");
     base_frame_ =
         this->declare_parameter<std::string>("base_frame", "base_link");
@@ -30,6 +31,8 @@ ValveEgomotionNode::ValveEgomotionNode(const rclcpp::NodeOptions& options)
     lost_timeout_sec_ =
         this->declare_parameter<double>("lost_timeout_sec", 0.5);
 
+    anchor_id_ = this->declare_parameter<int>("anchor_id", -1);
+
     pub_pose_cov_ =
         this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
             "/landmark/pose_cov", rclcpp::QoS(10));
@@ -38,9 +41,10 @@ ValveEgomotionNode::ValveEgomotionNode(const rclcpp::NodeOptions& options)
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
 
-    sub_marker_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
+    sub_landmarks_ = this->create_subscription<vortex_msgs::msg::LandmarkArray>(
         valve_topic_, rclcpp::SensorDataQoS(),
-        std::bind(&ValveEgomotionNode::onMarkers, this, std::placeholders::_1));
+        std::bind(&ValveEgomotionNode::onLandmarks, this,
+                  std::placeholders::_1));
 
     last_det_stamp_ = this->now();
     last_pub_stamp_ = this->now();
@@ -58,14 +62,91 @@ ValveEgomotionNode::ValveEgomotionNode(const rclcpp::NodeOptions& options)
         ref_frame_.c_str());
 }
 
-void ValveEgomotionNode::onMarkers(
-    const geometry_msgs::msg::PoseArray::SharedPtr msg) {
-    if (!msg || msg->poses.empty())
+void ValveEgomotionNode::onLandmarks(
+    const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
+    if (!msg || msg->landmarks.empty())
         return;
 
-    // Take the first detection (keep your selector policy here if needed).
-    tf2::Transform T_cam_marker;
-    tf2::fromMsg(msg->poses[0], T_cam_marker);
+    // Runtime-updateable
+    this->get_parameter("anchor_id", anchor_id_);
+
+    // Collect ARUCO_MARKER detections (board disabled for now)
+    const vortex_msgs::msg::Landmark* board = nullptr;
+    std::vector<const vortex_msgs::msg::Landmark*> markers;
+    markers.reserve(msg->landmarks.size());
+
+    for (const auto& lm : msg->landmarks) {
+        if (lm.type == vortex_msgs::msg::Landmark::ARUCO_MARKER) {
+            markers.push_back(&lm);
+        }
+    }
+
+    if (!board && markers.empty())
+        return;
+
+    const vortex_msgs::msg::Landmark* chosen = nullptr;
+    uint16_t chosen_id = 0xFFFF;
+
+    if (board) {
+        chosen = board;
+        chosen_id = 0;
+    } else {
+        if (markers.size() == 1) {
+            chosen = markers[0];
+            chosen_id = chosen->subtype;
+        } else {
+            // Multi-marker: choose by explicit anchor_id, else implicit locked id
+            uint16_t aid = 0xFFFF;
+            bool have_aid = false;
+
+            if (anchor_id_ >= 0) {
+                aid = static_cast<uint16_t>(anchor_id_);
+                have_aid = true;
+            } else if (have_ref_ && last_used_marker_id_ != 0xFFFF) {
+                aid = last_used_marker_id_;
+                have_aid = true;
+            }
+
+            if (!have_aid) {
+                if ((++multi_skip_count_ % 20) == 1) {
+                    std::ostringstream oss;
+                    oss << "Multi-marker frame and no anchor yet. Seen ids: ";
+                    for (auto* m : markers)
+                        oss << m->subtype << " ";
+                    RCLCPP_WARN(this->get_logger(), "%s", oss.str().c_str());
+                }
+                return;
+            }
+
+            for (auto* m : markers) {
+                if (m->subtype == aid) {
+                    chosen = m;
+                    chosen_id = aid;
+                    break;
+                }
+            }
+
+            if (!chosen) {
+                if ((++multi_skip_count_ % 20) == 1) {
+                    std::ostringstream oss;
+                    oss << "Multi-marker frame: anchor_id=" << aid
+                        << " not present. Seen ids: ";
+                    for (auto* m : markers)
+                        oss << m->subtype << " ";
+                    RCLCPP_WARN(this->get_logger(), "%s", oss.str().c_str());
+                }
+                return;
+            }
+        }
+    }
+
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
+                         "Chosen=%s id=%u (anchor_id=%d) markers=%zu",
+                         (chosen == board) ? "BOARD" : "MARKER", chosen_id,
+                         anchor_id_, markers.size());
+
+    tf2::Transform T_cam_landmark;
+    tf2::fromMsg(chosen->pose.pose, T_cam_landmark);
 
     tf2::Transform T_base_cam;
     try {
@@ -79,27 +160,73 @@ void ValveEgomotionNode::onMarkers(
         return;
     }
 
-    const tf2::Transform T_base_marker_now = T_base_cam * T_cam_marker;
+    const tf2::Transform T_base_landmark_now = T_base_cam * T_cam_landmark;
+
+    if (have_ref_ && chosen != board && last_used_marker_id_ != 0xFFFF &&
+        chosen_id != last_used_marker_id_) {
+        tf2::Transform T_ref_base_curr;
+        std::array<double, 36> tmp_cov;
+
+        if (smoother_.estimate(this->now(), T_ref_base_curr, tmp_cov)) {
+            last_T_ref_base_ = T_ref_base_curr;
+            have_last_ref_base_ = true;
+        } else if (have_last_ref_base_) {
+            T_ref_base_curr = last_T_ref_base_;
+        } else {
+            T_ref_base_curr =
+                T_base_marker0_ * T_base_landmark_now.inverse();
+            last_T_ref_base_ = T_ref_base_curr;
+            have_last_ref_base_ = true;
+        }
+
+        // Re-anchor so T_ref<-base stays the same under the new marker
+        T_base_marker0_ = T_ref_base_curr * T_base_landmark_now;
+
+        RCLCPP_WARN(this->get_logger(),
+                    "Marker switch %u -> %u: re-anchored to preserve continuity",
+                    last_used_marker_id_, chosen_id);
+    }
 
     if (!have_ref_) {
-        // Anchor at first valid detection.
-        T_base_marker0_ = T_base_marker_now;
+        T_base_marker0_ = T_base_landmark_now;
         have_ref_ = true;
+
+        if (chosen != board) {
+            last_used_marker_id_ = chosen_id;  
+        }
+
+        if (chosen == board) {
+            RCLCPP_INFO(this->get_logger(), "Anchor set to ARUCO_BOARD");
+        } else {
+            RCLCPP_INFO(this->get_logger(), "Anchor set to ARUCO_MARKER id=%u",
+                        chosen_id);
+        }
+    } else {
+        if (chosen != board) {
+            const bool changed = (last_used_marker_id_ != 0xFFFF) &&
+                                 (chosen_id != last_used_marker_id_);
+            if (changed) {
+                RCLCPP_INFO(this->get_logger(), "Using marker id=%u (prev=%u)",
+                            chosen_id, last_used_marker_id_);
+            }
+            last_used_marker_id_ = chosen_id;
+        }
     }
 
     const tf2::Transform T_ref_base_meas =
-        T_base_marker0_ * T_base_marker_now.inverse();
+        T_base_marker0_ * T_base_landmark_now.inverse();
+
+    last_T_ref_base_ = T_ref_base_meas;
+    have_last_ref_base_ = true;
 
     smoother_.addSample(msg->header.stamp, T_ref_base_meas, 1.0);
     smoother_.prune(this->now());
-
     last_det_stamp_ = msg->header.stamp;
 }
 
 void ValveEgomotionNode::onPublishTimer() {
     const rclcpp::Time now = this->now();
 
-    // If we haven't received detections for a while, stop publishing.
     if (!have_ref_)
         return;
     if ((now - last_det_stamp_).seconds() > lost_timeout_sec_)
@@ -113,9 +240,7 @@ void ValveEgomotionNode::onPublishTimer() {
 
     geometry_msgs::msg::PoseWithCovarianceStamped pc;
     pc.header.frame_id = ref_frame_;
-    // Publish with current time; consumers doing time-sync can use header
-    // stamps from message filters.
-    pc.header.stamp = now;
+    pc.header.stamp = last_det_stamp_;
     tf2::toMsg(T_est, pc.pose.pose);
     std::copy(cov.begin(), cov.end(), pc.pose.covariance.begin());
     pub_pose_cov_->publish(pc);

@@ -3,10 +3,12 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
-#include <geometry_msgs/msg/pose_array.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <vortex_msgs/msg/landmark_array.hpp>
+#include <vortex_msgs/msg/landmark.hpp>
 
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_ros/buffer.h>
@@ -32,7 +34,7 @@ class ValveEgomotionNode final : public rclcpp::Node {
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
-    void onMarkers(const geometry_msgs::msg::PoseArray::SharedPtr msg);
+    void onLandmarks(const vortex_msgs::msg::LandmarkArray::SharedPtr msg);
     void onPublishTimer();
 
     // Params
@@ -41,9 +43,13 @@ class ValveEgomotionNode final : public rclcpp::Node {
     std::string base_frame_;
     std::string cam_frame_;
     bool publish_tf_ = false;
-
     double pub_rate_hz_ = 30.0;
     double lost_timeout_sec_ = 0.5;
+
+    // Anchor selection
+    int anchor_id_{-1};
+    uint16_t last_used_marker_id_{0xFFFF};
+    size_t multi_skip_count_{0};
 
     // TF
     std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -51,7 +57,8 @@ class ValveEgomotionNode final : public rclcpp::Node {
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     // ROS I/O
-    rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr sub_marker_;
+    rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
+        sub_landmarks_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
         pub_pose_cov_;
     rclcpp::TimerBase::SharedPtr pub_timer_;
@@ -64,6 +71,9 @@ class ValveEgomotionNode final : public rclcpp::Node {
     tf2::Transform T_base_marker0_;
     rclcpp::Time last_det_stamp_;
     rclcpp::Time last_pub_stamp_;
+
+    bool have_last_ref_base_ = false;
+    tf2::Transform last_T_ref_base_;
 };
 
 }  // namespace valve_egomotion

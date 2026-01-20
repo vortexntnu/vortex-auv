@@ -1,0 +1,13 @@
+[wrap-file]
+directory = SDL2_mixer-2.6.2
+source_url = https://www.libsdl.org/projects/SDL_mixer/release/SDL2_mixer-2.6.2.tar.gz
+source_filename = SDL2_mixer-2.6.2.tar.gz
+source_hash = 8cdea810366decba3c33d32b8071bccd1c309b2499a54946d92b48e6922aa371
+patch_filename = sdl2_mixer_2.6.2-4_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/sdl2_mixer_2.6.2-4/get_patch
+patch_hash = 127025fa0666dd3ea66fb7c334182c393a748fb78810c6a44cdc1a85d619d934
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/sdl2_mixer_2.6.2-4/SDL2_mixer-2.6.2.tar.gz
+wrapdb_version = 2.6.2-4
+
+[provide]
+sdl2_mixer = sdl2_mixer_dep
