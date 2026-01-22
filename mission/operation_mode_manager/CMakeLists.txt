@@ -8,8 +8,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
 
 install(DIRECTORY
   launch
@@ -31,8 +29,6 @@ ament_target_dependencies(
   geometry_msgs
   vortex_msgs
   vortex_utils_ros
-  spdlog
-  fmt
 )
 
 install(

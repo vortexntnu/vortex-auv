@@ -4,13 +4,12 @@
 #include <string>
 
 #include "rclcpp/rclcpp.hpp"
-#include <spdlog/spdlog.h>
 #include "std_msgs/msg/bool.hpp"
 #include "geometry_msgs/msg/wrench_stamped.hpp"
 
 #include "vortex/utils/ros/qos_profiles.hpp"
 
-#include "vortex_msgs/srv/operation_mode_srv.hpp"
+#include "vortex_msgs/srv/request_operation_mode.hpp"
 #include "vortex_msgs/srv/toggle_killswitch.hpp"
 #include "vortex_msgs/srv/set_killswitch.hpp"
 #include "vortex_msgs/msg/operation_mode.hpp"
@@ -27,8 +26,8 @@ private:
     void set_initial_values();
 
     void set_operation_mode_callback(
-        const std::shared_ptr<vortex_msgs::srv::OperationModeSRV::Request> request,
-        std::shared_ptr<vortex_msgs::srv::OperationModeSRV::Response> response);
+        const std::shared_ptr<vortex_msgs::srv::RequestOperationMode::Request> request,
+        std::shared_ptr<vortex_msgs::srv::RequestOperationMode::Response> response);
 
     void toggle_killswitch_callback(
         std::shared_ptr<vortex_msgs::srv::ToggleKillswitch::Response> response);
@@ -46,7 +45,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr killswitch_pub_;
     rclcpp::Publisher<vortex_msgs::msg::OperationMode>::SharedPtr mode_pub_;
 
-    rclcpp::Service<vortex_msgs::srv::OperationModeSRV>::SharedPtr operation_mode_service_;
+    rclcpp::Service<vortex_msgs::srv::RequestOperationMode>::SharedPtr operation_mode_service_;
     rclcpp::Service<vortex_msgs::srv::ToggleKillswitch>::SharedPtr toggle_killswitch_service_;
     rclcpp::Service<vortex_msgs::srv::SetKillswitch>::SharedPtr set_killswitch_service_;
 };

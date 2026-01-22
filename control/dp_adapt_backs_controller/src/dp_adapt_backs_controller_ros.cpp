@@ -97,8 +97,8 @@ void DPAdaptBacksControllerNode::killswitch_callback(
 
 void DPAdaptBacksControllerNode::software_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
-    software_mode_ = msg->mode;
-    spdlog::info("Software mode: {}");
+    software_mode_ = msg->operation_mode;
+    spdlog::info("Software mode: {}", software_mode_);
 
     if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS || software_mode_ == vortex_msgs::msg::OperationMode::REFERENCE) {
         pose_d_ = pose_;

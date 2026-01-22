@@ -77,7 +77,7 @@ void PIDControllerNode::killswitch_callback(
 
 void PIDControllerNode::software_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
-    software_mode_ = msg->mode;
+    software_mode_ = msg->operation_mode;
     RCLCPP_INFO(this->get_logger(), "Software mode: %d",
                 software_mode_);
 

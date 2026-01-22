@@ -1,5 +1,4 @@
 #include "operation_mode_manager.hpp"
-#include <spdlog/spdlog.h>
 
 OperationModeManager::OperationModeManager(const rclcpp::NodeOptions & options)
 : Node("operation_mode_manager", options)
@@ -53,11 +52,11 @@ void OperationModeManager::setup_publishers()
 
 void OperationModeManager::setup_service()
 {
-  operation_mode_service_ = this->create_service<vortex_msgs::srv::OperationModeSRV>(
+  operation_mode_service_ = this->create_service<vortex_msgs::srv::RequestOperationMode>(
     "set_operation_mode",
     [this](
-      const std::shared_ptr<vortex_msgs::srv::OperationModeSRV::Request> request,
-      std::shared_ptr<vortex_msgs::srv::OperationModeSRV::Response> response)
+      const std::shared_ptr<vortex_msgs::srv::RequestOperationMode::Request> request,
+      std::shared_ptr<vortex_msgs::srv::RequestOperationMode::Response> response)
     {
       set_operation_mode_callback(request, response);
     });  
@@ -83,22 +82,22 @@ void OperationModeManager::setup_service()
 }
 
 void OperationModeManager::set_operation_mode_callback(
-  const std::shared_ptr<vortex_msgs::srv::OperationModeSRV::Request> request,
-  std::shared_ptr<vortex_msgs::srv::OperationModeSRV::Response> response)
+  const std::shared_ptr<vortex_msgs::srv::RequestOperationMode::Request> request,
+  std::shared_ptr<vortex_msgs::srv::RequestOperationMode::Response> response)
 {
-  switch (request->mode) {
+  switch (request->operation_mode) {
     case vortex_msgs::msg::OperationMode::AUTONOMOUS:
       RCLCPP_INFO(this->get_logger(), "Mode set to AUTONOMOUS");
-      mode_ = request->mode;
+      mode_ = request->operation_mode;
       break;
 
     case vortex_msgs::msg::OperationMode::MANUAL:
       RCLCPP_INFO(this->get_logger(), "Mode set to MANUAL");
-      mode_ = request->mode;
+      mode_ = request->operation_mode;
       break;
     case vortex_msgs::msg::OperationMode::REFERENCE:
       RCLCPP_INFO(this->get_logger(), "Mode set to REFERENCE");
-      mode_ = request->mode;
+      mode_ = request->operation_mode;
       break;
     default:
       RCLCPP_WARN(this->get_logger(), "Invalid mode requested");
@@ -107,7 +106,7 @@ void OperationModeManager::set_operation_mode_callback(
 
   publish_mode();
 
-  response->mode = mode_;
+  response->operation_mode = mode_;
   response->killswitch_status = killswitch_;
 }
 
@@ -119,7 +118,7 @@ void OperationModeManager::toggle_killswitch_callback(
 
   publish_mode();
 
-  response->mode = mode_;
+  response->operation_mode = mode_;
   response->killswitch_status = killswitch_;
 }
 
@@ -132,14 +131,14 @@ void OperationModeManager::set_killswitch_callback(
 
   publish_mode();
 
-  response->mode = mode_;
+  response->operation_mode = mode_;
   response->killswitch_status = killswitch_;
 }
 
 void OperationModeManager::publish_mode()
 {
   vortex_msgs::msg::OperationMode mode_msg;
-  mode_msg.mode = mode_;
+  mode_msg.operation_mode = mode_;
   mode_pub_->publish(mode_msg);
 
   std_msgs::msg::Bool killswitch_msg;

@@ -80,7 +80,7 @@ void PIDControllerNode::killswitch_callback(
 
 void PIDControllerNode::software_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
-    software_mode_ = msg->mode;
+    software_mode_ = msg->operation_mode;
 }
 
 void PIDControllerNode::pose_callback(
