@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import IncludeLaunchDescription, TimerAction,  ExecuteProcess, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -42,9 +42,28 @@ def generate_launch_description():
         ]
     )
 
+    set_autonomy = TimerAction(
+        period=12.0, 
+        actions=[
+            ExecuteProcess(
+                cmd=[
+                    "bash", "-lc",
+                    "for i in {1..5}; do "
+                    "  ros2 topic pub --once /orca/killswitch std_msgs/msg/Bool \"{data: false}\"; "
+                    "  ros2 topic pub --once /orca/operation_mode std_msgs/msg/String \"{data: 'autonomous mode'}\"; "
+                    "  sleep 1; "
+                    "done"
+                ],
+                output="screen",
+            ),
+        ],
+    )
+
+
     return LaunchDescription([
         stonefish_sim,
         los_guidance_launch,
         velocity_controller_launch,
         orca_sim,
+        set_autonomy,
     ])

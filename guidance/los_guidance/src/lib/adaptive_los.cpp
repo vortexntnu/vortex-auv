@@ -4,7 +4,7 @@
 namespace vortex::guidance::los {
 
 AdaptiveLOSGuidance::AdaptiveLOSGuidance(const AdaptiveLosParams& params)
-    : params_{params} {}
+    : params_{params} {} 
 
 void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
     const double dx = inputs.next_point.x - inputs.prev_point.x;

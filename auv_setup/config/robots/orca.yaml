@@ -121,6 +121,7 @@
       joy: "joy"
       pose: "pose"
       twist: "twist"
+      odom: "odom"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       aruco_board_pose_camera: "aruco_board_pose_camera"

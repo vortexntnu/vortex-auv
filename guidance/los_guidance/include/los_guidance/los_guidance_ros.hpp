@@ -1,6 +1,7 @@
 #ifndef LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 #define LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 
+#include <vortex_msgs/msg/detail/los_guidance__struct.hpp>
 #include <yaml-cpp/yaml.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -20,7 +21,7 @@
 #include "los_guidance/lib/types.hpp" 
 #include <vortex/utils/math.hpp>
 #include <string>
-#include <vortex_msgs/msg/pose_euler_stamped.hpp>
+
 
 namespace vortex::guidance::los {
 
@@ -30,7 +31,7 @@ class LosGuidanceNode : public rclcpp::Node {
 
    private:
     // @brief Set the subscribers and publishers
-    void set_subscribers_and_publisher(YAML::Node config);
+    void set_subscribers_and_publisher();
 
     // @brief Set the action server
     void set_action_server();
@@ -109,19 +110,19 @@ class LosGuidanceNode : public rclcpp::Node {
 
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
 
-    bool enable_debug_;
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr los_debug_pub_;
 
-    std::string debug_topic_name_;
-
-    rclcpp::Publisher<vortex_msgs::msg::PoseEulerStamped>::SharedPtr debug_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr state_debug_pub_;
 
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
         waypoint_sub_;
 
-    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+
+    rclcpp::Subscription<
+        nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+
 
     rclcpp::TimerBase::SharedPtr reference_pub_timer_;
 
@@ -148,6 +149,8 @@ class LosGuidanceNode : public rclcpp::Node {
     std::unique_ptr<ProportionalLOSGuidance> proportional_los_{};
     std::unique_ptr<VectorFieldLOSGuidance> vector_field_los_{};
     types::ActiveLosMethod method_{};
+
+    nav_msgs::msg::Odometry::SharedPtr debug_current_odom_{};
 };
 
 }  // namespace vortex::guidance::los

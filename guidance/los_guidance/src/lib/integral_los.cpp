@@ -14,7 +14,7 @@ void IntegralLOSGuidance::update_angles(const types::Inputs& inputs) {
 
     rotation_y_ = Eigen::AngleAxisd(pi_v_, Eigen::Vector3d::UnitY());
     rotation_z_ = Eigen::AngleAxisd(pi_h_, Eigen::Vector3d::UnitZ()); 
-}
+} 
 
 types::CrossTrackError IntegralLOSGuidance::calculate_crosstrack_error(
     const types::Inputs& inputs) {

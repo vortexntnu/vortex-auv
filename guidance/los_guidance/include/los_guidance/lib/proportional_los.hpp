@@ -10,12 +10,9 @@ namespace vortex::guidance::los {
 struct ProportionalLosParams {
     double lookahead_distance_h{};
     double lookahead_distance_v{};
-    double k_p_h{};
-    double k_p_v{};
-    double time_step{}; 
 };
 
-class ProportionalLOSGuidance {
+class ProportionalLOSGuidance { 
    public:
     ProportionalLOSGuidance(const ProportionalLosParams& params);
     ~ProportionalLOSGuidance() = default;
@@ -28,7 +25,6 @@ class ProportionalLOSGuidance {
         const types::Inputs& inputs) const;
 
     ProportionalLosParams m_params{};
-    // again i dont know if i should have them here or just in the functions
     double pi_h_{0.0};
     double pi_v_{0.0};
     Eigen::AngleAxisd rotation_y_{0.0, Eigen::Vector3d::UnitY()};

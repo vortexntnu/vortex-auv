@@ -49,6 +49,6 @@ types::Outputs ProportionalLOSGuidance::calculate_outputs(
     const double theta_d = pi_v_ + std::atan(k_p_v * cross_track_error.z_e);
 
     return types::Outputs{psi_d, theta_d};
-}
+} 
 
 }  // namespace vortex::guidance::los
