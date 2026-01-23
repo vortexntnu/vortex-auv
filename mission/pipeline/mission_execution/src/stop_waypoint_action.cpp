@@ -17,9 +17,6 @@ StopWaypointAction::StopWaypointAction(
   {
     throw std::runtime_error("StopWaypointAction: ROS node is not available");
   }
-
-  // Get action name from port (will be read in onStart)
-  // Create action client
   action_client_ = rclcpp_action::create_client<vortex_msgs::action::WaypointManager>(
     node, action_name_);
 }

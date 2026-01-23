@@ -1,58 +1,99 @@
 <?xml version="1.0"?>
 <root BTCPP_format="4" main_tree_to_execute="MissionExecution">
-    <BehaviorTree ID="MissionExecution">
-        <ReactiveSequence>
-            <!-- Mission execution gate: controls mission lifecycle and state -->
-            <MissionExecutionGate
-                mission_phase="{mission_phase}"
-                mission_id="{mission_id}"
-                mission_phase_request="{phase_request}" />
-            
-            
-            <!-- Keep looping through phases until DONE returns FAILURE -->
-            <KeepRunningUntilFailure>
-                <Switch4 variable="{mission_phase}" case_1="SEARCH" case_2="CONVERGE" case_3="PIPELINE" case_4="DONE">
-                    <!-- Case 1: SEARCH + LANDMARK ENUM (PARALLEL) -->
-                    <Sequence>
-                        <Parallel success_count="1" failure_count="1">
-                            <Sequence>
-                                <StartWaypointAction action_name="/orca/waypoint_manager"/>
-                                <SearchPattern duration="300.0"/>
-                            </Sequence>
-                            <LandmarkEnumPolling 
-                                landmark_type="1"
-                                landmark_id="{landmark_id}"
-                                landmark_pose="{landmark_pose}"/>
-                        </Parallel>
-                        <StopWaypointAction action_name="/orca/waypoint_manager"/>
-                        <SetMissionPhase value="CONVERGE" mission_phase_request="{phase_request}"/>
-                    </Sequence>
-                    
-                    <!-- Case 2: LANDMARK CONVERGE (EXCLUSIVE) -->
-                    <Sequence>
-                        <LandmarkConverge 
-                            landmark_id="{landmark_id}"
-                            landmark_pose="{landmark_pose}"
-                            convergence_threshold="0.5"
-                            duration="2.0"/>
-                        <SetMissionPhase value="PIPELINE" mission_phase_request="{phase_request}"/>
-                    </Sequence>
-                    
-                    <!-- Case 3: PIPELINE FOLLOWING -->
-                    <Sequence>
-                        <StartWaypointAction action_name="/orca/waypoint_manager"/>
-                        <PipelineFollowing/>
-                        <StopWaypointAction action_name="/orca/waypoint_manager"/>
-                        <SetMissionPhase value="DONE" mission_phase_request="{phase_request}"/>
-                    </Sequence>
-                    
-                    <!-- Case 4: DONE - Return FAILURE to stop the loop -->
-                    <AlwaysFailure/>
-                    
-                    <!-- Default case: if mission_phase doesn't match any case -->
-                    <AlwaysSuccess/>
-                </Switch4>
-            </KeepRunningUntilFailure>
-        </ReactiveSequence>
-    </BehaviorTree>
+
+  <BehaviorTree ID="MissionExecution">
+
+    <ReactiveSequence>
+
+      <MissionExecutionGate
+        mission_phase="{mission_phase}"
+        mission_id="{mission_id}"
+        mission_phase_request="{phase_request}"
+        exec_state="{exec_state}" />
+
+
+      <IfThenElse>
+
+        <IsMissionPaused exec_state="{exec_state}" />
+
+
+        <KeepRunningUntilFailure>
+          <AlwaysSuccess/>
+        </KeepRunningUntilFailure>
+
+        <KeepRunningUntilFailure>
+
+          <Switch4 variable="{mission_phase}"
+                   case_1="SEARCH"
+                   case_2="CONVERGE"
+                   case_3="PIPELINE"
+                   case_4="DONE">
+
+
+            <Sequence>
+
+              <StartWaypointAction action_name="/orca/waypoint_manager"/>
+
+              <Parallel success_count="1" failure_count="1">
+
+                <SearchPattern
+                  duration="300.0"
+                  square_size="10.0"/>
+
+                <LandmarkEnumPolling
+                  landmark_type="1"
+                  duration="30.0"
+                  landmark_id="{landmark_id}"
+                  landmark_pose="{landmark_pose}"/>
+
+              </Parallel>
+
+              <StopWaypointAction action_name="/orca/waypoint_manager"/>
+
+              <SetMissionPhase value="CONVERGE"
+                               mission_phase_request="{phase_request}"/>
+
+            </Sequence>
+
+
+            <Sequence>
+
+              <LandmarkConverge
+                landmark_id="{landmark_id}"
+                landmark_pose="{landmark_pose}"
+                duration="5.0"/>
+
+              <SetMissionPhase value="PIPELINE"
+                               mission_phase_request="{phase_request}"/>
+
+            </Sequence>
+
+            <Sequence>
+
+              <StartWaypointAction action_name="/orca/waypoint_manager"/>
+
+              <PipelineFollowing duration="60.0"/>
+
+              <StopWaypointAction action_name="/orca/waypoint_manager"/>
+
+              <SetMissionPhase value="DONE"
+                               mission_phase_request="{phase_request}"/>
+
+            </Sequence>
+
+
+            <AlwaysFailure/>
+
+            <AlwaysSuccess/>
+
+          </Switch4>
+
+        </KeepRunningUntilFailure>
+
+      </IfThenElse>
+
+    </ReactiveSequence>
+
+  </BehaviorTree>
+
 </root>

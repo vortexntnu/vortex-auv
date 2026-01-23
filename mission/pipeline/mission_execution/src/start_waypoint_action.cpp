@@ -5,38 +5,92 @@ namespace mission_execution
 {
 
 StartWaypointAction::StartWaypointAction(
-  const std::string& name, const BT::NodeConfig& conf,
+  const std::string& name,
+  const BT::NodeConfig& config,
   const BT::RosNodeParams& params)
-  : BT::RosActionNode<vortex_msgs::action::WaypointManager>(name, conf, params)
+: BT::StatefulActionNode(name, config),
+  node_(params.nh),
+  action_name_("/orca/waypoint_manager")
 {
+  auto node = node_.lock();
+  if (!node)
+    throw std::runtime_error("StartWaypointAction: ROS node not available");
+
+  client_ =
+    rclcpp_action::create_client<vortex_msgs::action::WaypointManager>(
+      node, action_name_);
 }
 
-bool StartWaypointAction::setGoal(Goal& goal)
+BT::NodeStatus StartWaypointAction::onStart()
 {
-  // Start WaypointAction with persistent=true and empty waypoints
-  // This allows external nodes to send waypoints continuously
+  goal_sent_ = false;
+  goal_accepted_ = false;
+
+  auto node = node_.lock();
+  if (!node)
+    return BT::NodeStatus::FAILURE;
+
+  if (auto input = getInput<std::string>("action_name"))
+  {
+    if (input.value() != action_name_)
+    {
+      action_name_ = input.value();
+      client_ =
+        rclcpp_action::create_client<vortex_msgs::action::WaypointManager>(
+          node, action_name_);
+    }
+  }
+
+  if (!client_->wait_for_action_server(std::chrono::seconds(2)))
+  {
+    RCLCPP_ERROR(logger(), "WaypointManager action server not available");
+    return BT::NodeStatus::FAILURE;
+  }
+
+  vortex_msgs::action::WaypointManager::Goal goal;
   goal.waypoints.clear();
   goal.convergence_threshold = 0.5;
-  goal.persistent = true;  // Critical: keeps action active to accept external waypoints
+  goal.persistent = true;
 
-  RCLCPP_INFO(logger(), "StartWaypointAction: Starting persistent waypoint action");
-  return true;
+  auto send_opts =
+    rclcpp_action::Client<vortex_msgs::action::WaypointManager>::SendGoalOptions();
+
+  send_opts.goal_response_callback =
+    [this](auto future)
+    {
+      auto handle = future.get();
+      if (handle)
+      {
+        goal_accepted_ = true;
+        RCLCPP_INFO(logger(), "StartWaypointAction: Persistent waypoint action accepted");
+      }
+      else
+      {
+        RCLCPP_ERROR(logger(), "StartWaypointAction: Goal rejected");
+      }
+    };
+
+  client_->async_send_goal(goal, send_opts);
+  goal_sent_ = true;
+
+  return BT::NodeStatus::RUNNING;
 }
 
-BT::NodeStatus StartWaypointAction::onResultReceived(const WrappedResult& /*wr*/)
+BT::NodeStatus StartWaypointAction::onRunning()
 {
-  // This should not normally be called since persistent=true keeps action running
-  // But if it is, we consider it success
-  RCLCPP_INFO(logger(), "StartWaypointAction: Waypoint action started successfully");
-  return BT::NodeStatus::SUCCESS;
+  if (!goal_sent_)
+    return BT::NodeStatus::FAILURE;
+
+  if (goal_accepted_)
+    return BT::NodeStatus::SUCCESS;
+
+  return BT::NodeStatus::RUNNING;
 }
 
-BT::NodeStatus StartWaypointAction::onFailure(BT::ActionNodeErrorCode error)
+void StartWaypointAction::onHalted()
 {
-  RCLCPP_ERROR(logger(), "StartWaypointAction: Failed to start waypoint action: %s",
-               BT::toStr(error));
-  return BT::NodeStatus::FAILURE;
+  goal_sent_ = false;
+  goal_accepted_ = false;
 }
 
 }  // namespace mission_execution
-

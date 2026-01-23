@@ -34,44 +34,42 @@ MissionExecutionGate::MissionExecutionGate(
 
 BT::NodeStatus MissionExecutionGate::tick()
 {
-
-  // Check for phase update request from blackboard (from SetMissionPhase)
   auto phase_request = getInput<std::string>("mission_phase_request");
   if (phase_request)
   {
     std::lock_guard<std::mutex> lock(state_mutex_);
-    MissionPhase requested_phase = stringToPhase(phase_request.value());
-    if (requested_phase != mission_phase_)
-    {
-      mission_phase_ = requested_phase;
-      RCLCPP_INFO(logger(), "MissionExecutionGate: Phase updated to %s",
-                  phaseToString(mission_phase_).c_str());
-    }
+    mission_phase_ = stringToPhase(phase_request.value());
   }
 
   {
     std::lock_guard<std::mutex> lock(state_mutex_);
-    // Write state to blackboard
+
     setOutput("mission_phase", phaseToString(mission_phase_));
     setOutput("mission_id", mission_id_);
 
-    // Return status based on execution state
-    // IMPORTANT: Return RUNNING for IDLE and PAUSED to keep tree ticking
-    // Tree only terminates when explicitly aborted (abort service resets to IDLE then calls haltTree)
-    if (exec_state_ == ExecState::IDLE)
+    setOutput(
+    "exec_state",
+    exec_state_ == ExecState::RUNNING ? "RUNNING" :
+    exec_state_ == ExecState::PAUSED  ? "PAUSED"  :
+                                        "IDLE"
+    );
+
+    switch (exec_state_)
     {
-      return BT::NodeStatus::RUNNING;  // Keep ticking, wait for mission/start
-    }
-    else if (exec_state_ == ExecState::PAUSED)
-    {
-      return BT::NodeStatus::RUNNING;  // Keep ticking but blocked
-    }
-    else  // RUNNING
-    {
-      return BT::NodeStatus::SUCCESS;  // Allow tree to progress
+      case ExecState::IDLE:
+        return BT::NodeStatus::RUNNING;   
+
+      case ExecState::PAUSED:
+        return BT::NodeStatus::RUNNING; 
+
+      case ExecState::RUNNING:
+        return BT::NodeStatus::SUCCESS;
     }
   }
+
+  return BT::NodeStatus::FAILURE;
 }
+
 
 void MissionExecutionGate::missionControlCallback(
   const std::shared_ptr<vortex_msgs::srv::MissionControl::Request> request,
@@ -178,7 +176,7 @@ MissionPhase MissionExecutionGate::stringToPhase(const std::string& phase_str) c
   else if (phase_str == "DONE")
     return MissionPhase::DONE;
   else
-    return MissionPhase::SEARCH;  // Default
+    return MissionPhase::SEARCH;
 }
 
 }  // namespace mission_execution

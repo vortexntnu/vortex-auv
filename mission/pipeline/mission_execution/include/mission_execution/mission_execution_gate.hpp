@@ -38,6 +38,7 @@ public:
   {
     return {
       BT::InputPort<std::string>("mission_phase_request", "", "Requested mission phase (from SetMissionPhase)"),
+      BT::OutputPort<std::string>("exec_state", "Execution state: IDLE | RUNNING | PAUSED"),
       BT::OutputPort<std::string>("mission_phase", "Current mission phase"),
       BT::OutputPort<std::string>("mission_id", "Current mission ID")
     };
