@@ -1,0 +1,13 @@
+mission_execution_executor:
+  ros__parameters:
+    action_name: "mission_execution"
+    tick_frequency: 100
+    groot2_port: 2420
+    ros_plugins_timeout: 1000
+
+    plugins:
+      - mission_execution/bt_plugins
+
+    behavior_trees:
+      - mission_execution/behavior_trees
+
