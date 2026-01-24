@@ -10,7 +10,7 @@ class PID_controller {
     public:
     PID_controller( double k_p, double k_i, double k_d, double max_output, double min_output);
     PID_controller(double k_p, double k_i, double k_d) : PID_controller(k_p, k_i, k_d, 100.0, -100.0) {};
-    void calculate_thrust(double reference, double current_position, double dt);
+    void calculate_thrust(double error, double dt);
     void reset_controller();
     double output();
     void set_output_limits(double min_output, double max_output);
@@ -20,7 +20,6 @@ class PID_controller {
     double k_d;
     double integral;
     double previous_error;
-    double previous_position;
     double last_output;
     double max_output;
     double min_output;
