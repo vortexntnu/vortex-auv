@@ -3,7 +3,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <cmath>
 #include <std_msgs/msg/float64_multi_array.hpp>
-#include "velocity_controller/PID_setup.hpp"
+///#include "velocity_controller/PID_setup.hpp"
 #include "velocity_controller/test_VC.hpp"
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
@@ -31,7 +31,7 @@ test_VC::test_VC() : Node("test_VC_node")
         std::bind(&test_VC::send_guidance, this));
     clock_ = this->get_clock();
     RCLCPP_INFO(this->get_logger(), "Test_VC node has been started");
-    reference_msg.surge=0.2;reference_msg.pitch=0.3;reference_msg.yaw=0.3; //Surge, pitch, yaw
+    reference_msg.surge=0.2;reference_msg.pitch=-1.22;reference_msg.yaw=0.0; //Surge, pitch, yaw
     
 } 
 

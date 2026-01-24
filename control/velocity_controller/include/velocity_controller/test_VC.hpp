@@ -22,7 +22,7 @@ class test_VC : public rclcpp::Node{
     
     //Variables
     
-    //Subscribers and publishers
+    //Subscribers and publishers 
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr publisher_guidance;
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr publisher_state;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_state;
@@ -37,7 +37,7 @@ class test_VC : public rclcpp::Node{
     //std::string topic_odom;
     //std::string topic_thrust;
     std::string topic_guidance;
-    std::string topic_state="/state";
+    std::string topic_state="state";
     std::string topic_odometry;
     
 

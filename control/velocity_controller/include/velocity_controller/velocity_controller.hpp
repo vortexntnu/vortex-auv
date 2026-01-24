@@ -55,7 +55,7 @@ class Velocity_node : public rclcpp::Node{
     std::string topic_odometry;
 
     //Variables for timers
-    int calculation_rate;
+    //int calculation_rate;
     int publish_rate;
     double max_force;
 
@@ -75,8 +75,14 @@ class Velocity_node : public rclcpp::Node{
 
     //LQR Controller
     LQRController lqr_controller;
-    LQRparameters lqr_parameters;
+    //LQRparameters lqr_parameters;
+    std::vector<double> Q;
+    std::vector<double> R;
+    std::vector<double> Qi;
+    std::vector<double> Ri;
     std::vector<double> inertia_matrix;
+    std::vector<double> dampening_matrix_low;
+    std::vector<double> dampening_matrix_high;
 
 
     //Test

@@ -11,31 +11,33 @@
       killswitch_topic: /softwareKillSwitch #Kill Switch
 
     LQR_params:
-      q_surge: 75.0
-      q_pitch: 175.0
-      q_yaw: 175.0
+      Q: [400.0,32.84,32.84,0.33,0.33,400.0,32.84,32.84]
+      R: [0.0005,3.1,3.10] #0.1,0.1,0.1]
+      #q_surge: 75.0
+      #q_pitch: 175.0
+      #q_yaw: 175.0
 
-      r_surge: 0.3
-      r_pitch: 0.4
-      r_yaw: 0.4
+      #r_surge: 0.3
+      #r_pitch: 0.4
+      #r_yaw: 0.4
 
-      i_surge: 0.3
-      i_pitch: 0.4
-      i_yaw: 0.3
+      #i_surge: 0.3
+      #i_pitch: 0.4
+      #i_yaw: 0.3
 
-      i_weight: 0.5
+      #i_weight: 0.5
 
-      dt: 0.1
+      #dt: 0.1
 
     inertia_matrix: [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
 
 
-    dampening_matrix_low: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
+    dampening_matrix_low:  [23.0,0.0,0.0,0.0,0.0,0.0, 0.0,46.0,0.0,0.0,0.0,0.0,  0.0,0.0,46.0,0.0,0.0,0.0,  0.0,0.0,0.0,46.0,0.0,0.0,  0.0,0.0,0.0,0.0,46.0,0.0, 0.0,0.0,0.0,0.0,0.0,46.0]
     dampening_matrix_high: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
 
-    calculation_rate: 200 #ms integer
-    publish_rate: 100 #ms
+    #calculation_rate: 200 #ms integer
+    publish_rate: 10 #ms
     #Clamp parameter
-    max_force: 1000.0 #should maybe be 99.5
-    controller_type: 1 #1 PID 2 LQR
+    max_force: 99.5 #should maybe be 99.5
+    controller_type: 2 #1 PID 2 LQR
     

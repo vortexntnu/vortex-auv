@@ -3,22 +3,19 @@
 #include "velocity_controller/velocity_controller.hpp"
 #include "geometry_msgs/msg/wrench_stamped.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+//#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+//#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "std_msgs/msg/bool.hpp"
 #include "velocity_controller/PID_setup.hpp"
 #include <cmath>
 #include <Eigen/Dense>
 #include "vortex_msgs/msg/los_guidance.hpp"
 #include "vortex/utils/math.hpp"
+#include "velocity_controller/utilities.hpp"
 
-
-//#include "vortex-msgs/msg" kan legge til nye meldinger nå
-
-//Lager en klasse velocity node
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(20,1,2), PID_yaw(4,0.5,1), PID_pitch(4,0.5,1), lqr_controller()
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100,5,0), PID_yaw(1,0.1,0), PID_pitch(35,1,0), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
@@ -49,43 +46,43 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(20,
   
   //Timer
   
-  timer_calculation = this->create_wall_timer(std::chrono::milliseconds(calculation_rate), std::bind(&Velocity_node::calc_thrust, this));
+  timer_calculation = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::calc_thrust, this));
   timer_publish = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::publish_thrust, this));
   //Controllers
   PID_surge.set_output_limits(-max_force, max_force);
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
-  lqr_controller.set_params(lqr_parameters);
-  lqr_controller.set_matrices(vector_to_matrix3d(inertia_matrix));
-  
+  if(!lqr_controller.set_matrices(Q,R,inertia_matrix,max_force,dampening_matrix_low,dampening_matrix_high)||!lqr_controller.set_interval(publish_rate/1000)){
+    controller_type=1;
+    RCLCPP_INFO(this->get_logger(),"Switching to PID");
+  };
 
 }
+
+
 
 
 
 //Publish/timer functions
 void Velocity_node::publish_thrust()
 {
-  /*thrust_out.wrench.force.x=100;
-  thrust_out.wrench.force.y=0;
-  thrust_out.wrench.force.z=0;
-  thrust_out.wrench.torque.x=0;
-  thrust_out.wrench.torque.y=0;
-  thrust_out.wrench.torque.z=0;*/
   publisher_thrust->publish(thrust_out);
-  //RCLCPP_DEBUG(this->get_logger(),"Publishing thrust: %.3f",thrust_out.wrench.force.x);
 }
 
 //** må forbedre integrasjon og derivasjons beregningene
 void Velocity_node::calc_thrust()
 {
+  angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
+  angle error=NED_to_BODY(NED_error,current_state);
+  Guidance_data mod_g_values=guidance_values;
+  mod_g_values.surge=guidance_values.surge*cos(error.psit)*cos(error.thetat);
   switch (controller_type)
   {
   case 1:{
-    //RCLCPP_INFO(this->get_logger(),"PID controller");
-    PID_surge.calculate_thrust(guidance_values.surge, current_state.surge,calculation_rate/1000.0);
-    PID_pitch.calculate_thrust(guidance_values.pitch, current_state.pitch,calculation_rate/1000.0);
-    PID_yaw.calculate_thrust(guidance_values.yaw, current_state.yaw,calculation_rate/1000.0);
+    
+    PID_surge.calculate_thrust(mod_g_values.surge-current_state.surge,publish_rate/1000.0);
+    PID_pitch.calculate_thrust(error.thetat,publish_rate/1000.0);
+    PID_yaw.calculate_thrust(error.psit,publish_rate/1000.0);
     thrust_out.wrench.force.x = PID_surge.output();
     thrust_out.wrench.torque.y = PID_pitch.output();
     thrust_out.wrench.torque.z = PID_yaw.output();
@@ -93,8 +90,8 @@ void Velocity_node::calc_thrust()
     break;
   }
   case 2:{
-    //RCLCPP_INFO(this->get_logger(),"LQR controller");
-    Eigen::Vector3d u=lqr_controller.calculate_lqr_u(current_state,guidance_values);
+    
+    Eigen::Vector3d u=lqr_controller.calculate_thrust(current_state,mod_g_values);
     if (u==Eigen::Vector3d{9999,9999,9999}){
       controller_type=1;
       RCLCPP_ERROR(this->get_logger(),"Switching to PID");
@@ -107,6 +104,8 @@ void Velocity_node::calc_thrust()
     break;
   }
   default:{
+    //Some crash handling here
+    RCLCPP_ERROR(this->get_logger(),"Unknown controller set");
     break;
   }
   }
@@ -129,12 +128,18 @@ void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::Share
 void Velocity_node::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr){
   //RCLCPP_INFO(this->get_logger(),"Recieved odometry");
   angle temp=quaternion_to_euler_angle(msg_ptr->pose.pose.orientation.w, msg_ptr->pose.pose.orientation.x, msg_ptr->pose.pose.orientation.y, msg_ptr->pose.pose.orientation.z);
+  //angles
+  current_state.roll = temp.phit;
   current_state.pitch = temp.thetat;
   current_state.yaw = temp.psit;
-  current_state.surge = msg_ptr->twist.twist.linear.x;
+  //angular velocity
+  current_state.roll_rate=msg_ptr->twist.twist.angular.x;
   current_state.pitch_rate=msg_ptr->twist.twist.angular.y;
   current_state.yaw_rate=msg_ptr->twist.twist.angular.z;
-  //Need to update angular speed NB!!.
+  //velocity
+  current_state.surge = msg_ptr->twist.twist.linear.x;
+  current_state.sway = msg_ptr->twist.twist.linear.y;
+  current_state.heave = msg_ptr->twist.twist.linear.z;
   return;
 }
 
@@ -155,18 +160,12 @@ void Velocity_node::get_new_parameters(){
   this->topic_thrust = this->get_parameter("topics.thrust_topic").as_string();
   this->declare_parameter<std::string>("topics.guidance_topic");
   this->topic_guidance = this->get_parameter("topics.guidance_topic").as_string();
-  //this->declare_parameter<std::string>("topics.twist_topic");
-  //this->topic_twist = this->get_parameter("topics.twist_topic").as_string();
-  //this->declare_parameter<std::string>("topics.pose_topic");
-  //this->topic_pose = this->get_parameter("topics.pose_topic").as_string();
   this->declare_parameter<std::string>("topics.odom_topic");
   this->topic_odometry = this->get_parameter("topics.odom_topic").as_string();
   this->declare_parameter<std::string>("topics.killswitch_topic");
   this->topic_killswitch = this->get_parameter("topics.killswitch_topic").as_string();
   this->declare_parameter<double>("max_force");
   this->max_force = this->get_parameter("max_force").as_double();  
-  this->declare_parameter<int>("calculation_rate");
-  this->calculation_rate = this->get_parameter("calculation_rate").as_int();
   this->declare_parameter<int>("publish_rate");
   this->publish_rate = this->get_parameter("publish_rate").as_int();
   this->declare_parameter<int>("controller_type");
@@ -174,31 +173,22 @@ void Velocity_node::get_new_parameters(){
   
 
   //LQR Parameters
-  this->declare_parameter<double>("LQR_params.q_surge");
-  this->declare_parameter<double>("LQR_params.q_pitch");
-  this->declare_parameter<double>("LQR_params.q_yaw");
-  this->declare_parameter<double>("LQR_params.r_surge");
-  this->declare_parameter<double>("LQR_params.r_pitch");
-  this->declare_parameter<double>("LQR_params.r_yaw");
-  this->declare_parameter<double>("LQR_params.i_surge");
-  this->declare_parameter<double>("LQR_params.i_pitch");
-  this->declare_parameter<double>("LQR_params.i_yaw");
-  this->declare_parameter<double>("LQR_params.i_weight");
-  this->declare_parameter<double>("LQR_params.dt");
+  
+  this->declare_parameter<std::vector<double>>("LQR_params.Q");
+  Q=this->get_parameter("LQR_params.Q").as_double_array();
+  this->declare_parameter<std::vector<double>>("LQR_params.R");
+  R=this->get_parameter("LQR_params.R").as_double_array();
   this->declare_parameter<std::vector<double>>("inertia_matrix");
+  this->get_parameter("inertia_matrix", inertia_matrix);
 
-  this->lqr_parameters.q_surge=this->get_parameter("LQR_params.q_surge").as_double();
-  this->lqr_parameters.q_pitch=this->get_parameter("LQR_params.q_pitch").as_double();
-  this->lqr_parameters.q_yaw=this->get_parameter("LQR_params.q_yaw").as_double();
-  this->lqr_parameters.r_surge=this->get_parameter("LQR_params.r_surge").as_double();
-  this->lqr_parameters.r_pitch=this->get_parameter("LQR_params.r_pitch").as_double();
-  this->lqr_parameters.r_yaw=this->get_parameter("LQR_params.r_yaw").as_double();
-  this->lqr_parameters.i_surge=this->get_parameter("LQR_params.i_surge").as_double();
-  this->lqr_parameters.i_pitch=this->get_parameter("LQR_params.i_pitch").as_double();
-  this->lqr_parameters.i_yaw=this->get_parameter("LQR_params.i_yaw").as_double();
-  this->lqr_parameters.i_weight=this->get_parameter("LQR_params.i_weight").as_double();
-  this->lqr_parameters.max_force=max_force;
-  this->inertia_matrix=this->get_parameter("inertia_matrix").as_double_array();
+  //D
+  this->declare_parameter<std::vector<double>>("dampening_matrix_low");
+  this->declare_parameter<std::vector<double>>("dampening_matrix_high");
+  this->dampening_matrix_low=this->get_parameter("dampening_matrix_low").as_double_array();
+  this->dampening_matrix_high=this->get_parameter("dampening_matrix_high").as_double_array();
+
+
+
   
 
 }

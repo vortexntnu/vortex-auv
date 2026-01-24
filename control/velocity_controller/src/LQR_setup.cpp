@@ -1,3 +1,4 @@
+
 #include "velocity_controller/LQR_setup.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <std_msgs/msg/string.hpp>
@@ -12,15 +13,57 @@
 #include "velocity_controller/PID_setup.hpp"
 #include "velocity_controller/utilities.hpp"
 #include <casadi/casadi.hpp>
-#include <lapack.h>
+//#include <lapack.h>
 #include "vortex/utils/math.hpp"
+#include "ct/optcon/lqr/LQR.hpp"    
+
 
 
 Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
-LQRController::LQRController(LQRparameters params,Eigen::Matrix3d inertia_matrix){
-    set_params(params);
-    set_matrices(inertia_matrix);
+LQRController::LQRController()
+{
+    
 };
+int LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix_,double max_force_, std::vector<double> water_r_low,std::vector<double> water_r_high){
+    //Possible error handling here to check for size and allowed values.
+    if (Q_.size()!=8){
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The Q matrix has the wrong amount of elements");
+        return 0;
+    }
+    if(R_.size()!=3){
+                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The R matrix has the wrong amount of elements");
+        return 0;
+    }
+    if(inertia_matrix_.size()!=36){
+                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The M matrix has the wrong amount of elements");
+        return 0;
+    }
+    if(water_r_low.size()!=36||water_r_high.size()!=36){
+                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The D matrix has the wrong amount of elements");
+        return 0;
+    }
+    max_force=max_force_;
+    Q.diagonal()=Eigen::Map<Eigen::VectorXd>(Q_.data(),Q_.size());
+    R.diagonal()=Eigen::Map<Eigen::VectorXd>(R_.data(),R_.size());
+    Eigen::Matrix<double,6,6> inertia_matrix = Eigen::Map<const Eigen::Matrix<double,6,6>>(inertia_matrix_.data(),6,6);
+    D_low=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_low.data(),6,6);
+    D_high=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_high.data(),6,6);
+    inertia_matrix_inv=inertia_matrix.inverse();
+    
+    Eigen::Matrix<double, 6,3>B_t=inertia_matrix_inv*(Eigen::Matrix<double,6,3>()<<1,0,0, 0,0,0, 0,0,0, 0,0,0, 0,1,0, 0,0,1).finished();
+    B.setZero();
+    Eigen::Matrix<double,9,3> B_m;
+    B_m.setZero();
+    B_m.block<6,3>(0,0)=B_t;
+    std::vector<std::vector<int>> swaplines{{1,7},{2,8},{3,4},{4,5}};
+    for (long unsigned int i=0;i<swaplines.size();i++){
+        B_m.row(swaplines[i][0]).swap(B_m.row(swaplines[i][1]));
+    }
+    B.block<5,3>(0,0)=B_m.block<5,3>(0,0);   
+    integral_error_surge= 0.0;    integral_error_pitch= 0.0;    integral_error_yaw= 0.0;
+    surge_windup= false;    pitch_windup= false;    yaw_windup= false; mass=inertia_matrix_[0];
+    return 1;
+}
 
 
 /*angle LQRController::quaternion_to_euler_angle(double w, double x, double y, double z){
@@ -60,72 +103,77 @@ std::tuple<double,double> LQRController::saturate (double value, bool windup, do
 
 
 
-double LQRController::anti_windup(double ki, double error, double integral_sum, bool windup){
+double LQRController::anti_windup(double error, double integral_sum, bool windup){
     if (!windup){
-        integral_sum += error * ki;
+        integral_sum += error*interval_;
     }
     return integral_sum;
 }
 
-Eigen::Matrix3d LQRController::calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel){
+/*Eigen::Matrix3d LQRController::calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel){
     //Inertia matrix values??
     Eigen::Matrix3d result;
     result<<0.2,-30*sway_vel*0.01,-30*heave_vel*0.01,
             30 * sway_vel*0.01,0,1.629 * pitchrate,
             30 * heave_vel*0.01,1.769 * yaw_rate,0;
     return result;
-}
+}*/
 
 
-void LQRController::set_params(LQRparameters params){
-    //set LQR parameters
-    integral_error_surge= 0.0;    integral_error_pitch= 0.0;    integral_error_yaw= 0.0;
-    surge_windup= false;    pitch_windup= false;    yaw_windup= false;
-    q_surge= params.q_surge;    q_pitch= params.q_pitch;    q_yaw= params.q_yaw;
-    r_surge= params.r_surge;    r_pitch= params.r_pitch;    r_yaw= params.r_yaw;
-    i_surge= params.i_surge;    i_pitch= params.i_pitch;    i_yaw= params.i_yaw;
-    i_weight= params.i_weight;   max_force= params.max_force;
-    return;
 
-}
-void LQRController::set_matrices(Eigen::Matrix3d inertia_matrix){
-    inertia_matrix_inv = inertia_matrix.inverse();
-    state_weight_matrix.diagonal()<<q_surge,q_pitch,q_yaw,i_weight,i_weight,i_weight;
-    input_weight_matrix.diagonal()<<r_surge,r_pitch,r_yaw;
-    return;
-}
+Eigen::Matrix<double,8,8> LQRController::linearize(State s){
+    //Eigen::Matrix<double,12,12> A;
+    Eigen::Matrix<double,6,6> D;
 
-
-void LQRController::update_augmented_matrices(Eigen::Matrix3d coriolis_matrix){
-    Eigen::Matrix3d system_matrix = inertia_matrix_inv;//*coriolis_matrix;
-    //input_matrix = inertia_matrix_inv;
-    augmented_system_matrix <<system_matrix(0,0),system_matrix(0,1),system_matrix(0,2),0,0,0,
-                               system_matrix(1,0),system_matrix(1,1),system_matrix(1,2),0,0,0,
-                               system_matrix(2,0),system_matrix(2,1),system_matrix(2,2),0,0,0,
-                               -1,0,0,0,0,0,
-                               0,-1,0,0,0,0,
-                               0,0,-1,0,0,0;
-    augmented_input_matrix << inertia_matrix_inv(0,0),inertia_matrix_inv(0,1),inertia_matrix_inv(0,2),0,0,0,
-                              inertia_matrix_inv(1,0),inertia_matrix_inv(1,1),inertia_matrix_inv(1,2),0,0,0,
-                              inertia_matrix_inv(2,0),inertia_matrix_inv(2,1),inertia_matrix_inv(2,2),0,0,0;
-    {
-        std::ostringstream oss;
-        oss << augmented_system_matrix.format(fmt);
-        std::string A_str = oss.str();
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "A:\n%s", A_str.c_str());
+    if (s.surge<100){ //Threshold tbd
+        D=-inertia_matrix_inv*D_low;
     }
-    return;
+    else {
+        D=-inertia_matrix_inv*D_high;
+    }
+    Eigen::Matrix<double,6,6> C;
+    C.setZero(); //Unødvendig kanskje
+    C(1,5)=-mass*s.surge;
+    C(2,4)=mass*s.surge;
+    D-=inertia_matrix_inv*C; //To avoid unneccessary allocation
+    /*Eigen::Matrix<double,3,6> T(1.0,sin(s.psi)*tan(s.theta),cos(s.psi)*tan(s.theta),s.pitch*cos(s.psi)*tan(s.theta)-s.yaw*sin(s.psi)*tan(s.theta),(s.pitch*sin(s.psi)+s.yaw*cos(s.psi))/(cos(s.theta)*cos(s.theta)),
+                                0,cos(s.psi),-sin(s.psi),s.yaw*sin(s.psi)+s.pitch*cos(s.psi),0,0,
+                                0,sin(s.psi)*1/cos(s.theta),cos(s.psi)/cos(s.theta),s.sway*cos(s.psi)/cos(s.theta)-s.pitch*sin(s.psi)/cos(s.theta),(s.yaw*sin(s.psi)+s.pitch*cos(s.psi)*sin(s.theta)/(cos(s.theta)*cos(s.theta))));
+*/
+    Eigen::Matrix<double,3,3> T;
+    T<<1,sin(s.yaw)*tan(s.pitch),cos(s.yaw)*tan(s.pitch),
+        0,cos(s.yaw),-sin(s.yaw),
+        0,sin(s.yaw)/cos(s.pitch),cos(s.yaw)/cos(s.pitch);
+    Eigen::Matrix<double,9,9> A;
+    A.block<6,6>(0,0)=D;
+    A.block<3,3>(0,6)=A.block<3,3>(6,0)=A.block<3,3>(6,6)=Eigen::Matrix3d::Zero();
+    A.block<3,3>(6,3)=T;
+    std::vector<std::vector<int>> swaplines{{1,7},{2,8},{3,4},{4,5}};
+    for (long unsigned int i=0;i<swaplines.size();i++){
+
+        A.row(swaplines[i][0]).swap(A.row(swaplines[i][1]));
+        A.col(swaplines[i][0]).swap(A.col(swaplines[i][1]));
+
+    }
+    
+    Eigen::Matrix<double,8,8> ret;
+    ret.setZero();
+    ret.block<5,5>(0,0)=A.block<5,5>(0,0);
+    //legge inn integral state #TODO
+    ret.block<3,3>(5,0)=-Eigen::Matrix3d::Identity();
+    
+    return ret;
 };
-Eigen::Vector<double,6> LQRController::update_error(Guidance_data guidance_values, State states){
+Eigen::Vector<double,8> LQRController::update_error(Guidance_data guidance_values, State states){
     double surge_error = guidance_values.surge - states.surge;
     double pitch_error = vortex::utils::math::ssa(guidance_values.pitch - states.pitch);
     double yaw_error = vortex::utils::math::ssa(guidance_values.yaw - states.yaw);   
-
-    integral_error_surge = anti_windup(i_surge, surge_error, integral_error_surge, surge_windup);
-    integral_error_pitch = anti_windup(i_pitch, pitch_error, integral_error_pitch, pitch_windup);
-    integral_error_yaw = anti_windup(i_yaw, yaw_error, integral_error_yaw, yaw_windup);
-
-    Eigen::Vector<double,6> state_error= {-surge_error, -pitch_error, -yaw_error, integral_error_surge, integral_error_pitch, integral_error_yaw};
+    
+    integral_error_surge = anti_windup(surge_error, integral_error_surge, surge_windup);
+    integral_error_pitch = anti_windup(pitch_error, integral_error_pitch, pitch_windup);
+    integral_error_yaw = anti_windup(yaw_error, integral_error_yaw, yaw_windup);
+    
+    Eigen::Vector<double,8> state_error= {-surge_error, -pitch_error, -yaw_error, -states.pitch_rate, -states.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
 Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u){
@@ -135,15 +183,21 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u)
     std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
     return {force_x, torque_y, torque_z};
 }
-Eigen::Vector<double,3> LQRController::calculate_lqr_u(State state, Guidance_data guidance_values){
-    update_augmented_matrices(calculate_coriolis_matrix(state.pitch_rate,state.yaw_rate,state.sway_vel,state.heave_vel));
-    LQRsolveResult result = solve_k_p(augmented_system_matrix,augmented_input_matrix,state_weight_matrix,input_weight_matrix);
-    if(result.INFO!=0){
+Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_data guidance_values){
+    ct::optcon::LQR<8,3> lqr;
+    Eigen::Matrix<double,3,8> K_l;
+    bool INFO= lqr.compute(Q,R,linearize(state),B,K_l,true,false);
+    if(INFO==0){
         return {9999,9999,9999}; //Need to fix
     }
-    Eigen::Matrix<double,6,1> state_error = update_error(guidance_values, state);
-    Eigen::Vector<double,3> u= saturate_input(- (result.K*state_error));
-    return u;
+    /*
+    Eigen::Matrix<double,3,6> K;
+    K.block<3,3>(0,0)=K_l.block<3,3>(0,0);
+    K.block<3,3>(0,3)=K_l.block<3,3>(0,5);
+    */
+
+    Eigen::Matrix<double,8,1> state_error = update_error(guidance_values, state);
+    return saturate_input(- (K_l*state_error));
 }
 void LQRController::reset_controller(){
     integral_error_surge=0.0;
@@ -155,7 +209,10 @@ void LQRController::reset_controller(){
     yaw_windup=false;
     return;
 }
-
+int LQRController::set_interval(double interval){
+    interval_=interval;
+    return 1;
+}
 
 extern "C" {
     // Fortran subroutine for solving symplectic Schur decomposition(double precision version)
@@ -172,8 +229,16 @@ void sb02md_( const char* DICO, const char* HINV, const char* UPLO, const char* 
                     );
 }
 
+/*
+LQRsolveResult LQRController::solve_lqr(const Eigen::MatrixXd &A,const Eigen::MatrixXd &B, const Eigen::MatrixXd &Q, const Eigen::MatrixXd &R){
 
-LQRsolveResult LQRController::solve_k_p(const Eigen::Matrix<double,6,6> &A,const Eigen::Matrix<double,6,3> &B, const Eigen::Matrix<double,6,6> &Q, const Eigen::Matrix<double,3,3> &R){
+    const int N=A.rows();
+    const int M=B.cols();
+    if (A.cols()!=N||B.rows()!=N||R.rows()!=M||R.cols()!=M||Q.rows()!=N||Q.cols()!=N){
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The dimensions of the matrices for solve_lqr are wrong");
+        return LQRsolveResult{};
+    }
+
     Eigen::Matrix<double,6,6> A_copy=A, Q_copy=Q;
     Eigen::Matrix<double,6,3> B_copy=B; Eigen::Matrix<double,3,3> R_copy=R;
     
@@ -181,7 +246,6 @@ LQRsolveResult LQRController::solve_k_p(const Eigen::Matrix<double,6,6> &A,const
     //calculate G, L is zero, unfactored R, Upper triangle i think
     char JOBG='G',JOBL='Z',FACT='N',UPLO='U';
     //Order of matrices A, Q, G and X(P), Order of matrix R and nuber of columns in B and L(is zero)
-    const int N=6, M=3;
     //Dimensions of matrices
     int LDA=N, LDB=N, LDQ=N,LDR=M,LDL=N,LDG=N;
     std::vector<int> IWORK(8*N),IPIV(N);
@@ -237,6 +301,7 @@ LQRsolveResult LQRController::solve_k_p(const Eigen::Matrix<double,6,6> &A,const
     return LQRsolveResult(K,G,INFO1);    
 
 }
+    */
 
 
 
