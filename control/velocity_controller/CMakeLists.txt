@@ -80,7 +80,7 @@ if(BUILD_TESTING)
   set(TEST_BINARY_NAME ${PROJECT_NAME}_test)
 
   ament_add_gtest(${TEST_BINARY_NAME}
-    test/test_Node.cpp
+    test/test_PID.cpp
     src/utilities.cpp
     src/ct_instantiations.cpp
     src/LQR_setup.cpp

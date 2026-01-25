@@ -17,8 +17,8 @@
   <depend>ct_optcon</depend>
   <depend>ct_core</depend>
   <depend>vortex_utils</depend>
-  <!-- Fjerne før ferdig -->
-  <!-- <depend>stonefish_sim</depend> -->
+  <test_depend>ament_cmake_gtest</test_depend>
+  
   
   
 

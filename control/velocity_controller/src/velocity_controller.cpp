@@ -83,9 +83,9 @@ void Velocity_node::calc_thrust()
     PID_surge.calculate_thrust(mod_g_values.surge-current_state.surge,publish_rate/1000.0);
     PID_pitch.calculate_thrust(error.thetat,publish_rate/1000.0);
     PID_yaw.calculate_thrust(error.psit,publish_rate/1000.0);
-    thrust_out.wrench.force.x = PID_surge.output();
-    thrust_out.wrench.torque.y = PID_pitch.output();
-    thrust_out.wrench.torque.z = PID_yaw.output();
+    thrust_out.wrench.force.x = PID_surge.get_output();
+    thrust_out.wrench.torque.y = PID_pitch.get_output();
+    thrust_out.wrench.torque.z = PID_yaw.get_output();
     
     break;
   }

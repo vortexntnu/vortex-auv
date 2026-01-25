@@ -6,43 +6,47 @@ PID_controller::PID_controller( double k_p, double k_i, double k_d, double max_o
     integral = 0.0;
     previous_error = 0.0;
 };
-void PID_controller::calculate_thrust(double error, double dt){
-    //P calculation
-    last_output=k_p*error;
-    //D calculation
-    last_output += k_d * (error - previous_error) / dt;
-    //I calculation with anti-windup
-    integral += error * dt;
-    if (integral > max_output) {
-        integral -= error * dt; //anti windup
-    } else if (integral < min_output) {
-        integral -= error * dt; //anti windup
+double PID_controller::calculate_thrust(double error, double dt){
+    if (dt<=0){
+        return 0;
     }
-    last_output += k_i * integral;
-    previous_error = error;
-    //Output calculation with saturation
+    //P + I + D
+    output=k_p*error+k_i*integral + k_d * (error - previous_error) / dt;
 
-    if (last_output > max_output){
-        last_output = max_output;
+    //Saturation
+    if (output>max_output){
+        output = max_output;
     }
-    else if (last_output < min_output){
-        last_output = min_output;
+    else if (output < min_output){
+        output = min_output;
     }
+    else{
+        integral+=error*dt; //anti-wind up
+    }
+    previous_error = error; 
 
-    return;
+    return output;
 }; 
 void PID_controller::reset_controller(){
     integral = 0.0;
     previous_error = 0.0;
+    output=0.0;
 }
 
-double PID_controller::output(){
-    return last_output;
+double PID_controller::get_output(){
+    return output;
 };
 
-void PID_controller::set_output_limits(double min_output, double max_output){
+bool PID_controller::set_output_limits(double min_output, double max_output){
+    if (max_output<min_output){
+        return false;
+    }
     this->min_output = min_output;
     this->max_output = max_output;
-    return;
+    return true;
 };
-
+void PID_controller::set_parameters(double k_p,double k_i, double k_d){
+    this->k_p=k_p;
+    this->k_i=k_i;
+    this->k_d=k_d;
+}
