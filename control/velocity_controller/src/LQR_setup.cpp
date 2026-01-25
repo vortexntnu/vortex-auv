@@ -19,27 +19,31 @@
 
 
 
-Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
+//Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
 LQRController::LQRController()
 {
     
 };
-int LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix_,double max_force_, std::vector<double> water_r_low,std::vector<double> water_r_high){
+bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix_,double max_force_, std::vector<double> water_r_low,std::vector<double> water_r_high){
     //Possible error handling here to check for size and allowed values.
     if (Q_.size()!=8){
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The Q matrix has the wrong amount of elements");
         return 0;
     }
     if(R_.size()!=3){
-                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The R matrix has the wrong amount of elements");
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The R matrix has the wrong amount of elements");
         return 0;
     }
     if(inertia_matrix_.size()!=36){
-                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The M matrix has the wrong amount of elements");
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The M matrix has the wrong amount of elements");
         return 0;
     }
     if(water_r_low.size()!=36||water_r_high.size()!=36){
-                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The D matrix has the wrong amount of elements");
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The D matrix has the wrong amount of elements");
+        return 0;
+    }
+    if (max_force_<0){
+        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The max_force need to be >0");
         return 0;
     }
     max_force=max_force_;

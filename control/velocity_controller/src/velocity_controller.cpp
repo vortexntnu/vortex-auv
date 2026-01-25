@@ -75,7 +75,12 @@ void Velocity_node::calc_thrust()
   angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
   angle error=NED_to_BODY(NED_error,current_state);
   Guidance_data mod_g_values=guidance_values;
+  if (error.psit<3.14/2 && error.thetat<3.14/2){ //Need to fix to pi
   mod_g_values.surge=guidance_values.surge*cos(error.psit)*cos(error.thetat);
+  }
+  else{
+    mod_g_values.surge=0;
+  }
   switch (controller_type)
   {
   case 1:{

@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include <Eigen/Dense>
-#include <vortex/utils/math.hpp>
+//#include <Eigen/Dense>
+//#include <vortex/utils/math.hpp>
 #include <velocity_controller/PID_setup.hpp>
-#include <velocity_controller/LQR_setup.hpp>
+//#include <velocity_controller/LQR_setup.hpp>
 
 class PID_test : public ::testing::Test{
     protected:
@@ -31,9 +31,7 @@ class Node_test : public ::testing:Test{
 
 };
 
-class LQR_test : public ::testing:Test{
-    
-};
+
 */
 TEST_F(PID_test,reset_controller){
     PID.set_parameters(0,1,0);
