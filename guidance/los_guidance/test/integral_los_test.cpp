@@ -10,8 +10,6 @@ class IntegralLosTest : public ::testing::Test {
 
     IntegralLosParams get_params() {
         IntegralLosParams params;
-        params.lookahead_distance_h = 1.0;
-        params.lookahead_distance_v = 1.0;
         params.k_i_h = 0.1;    // needs tuning
         params.k_i_v = 0.1;    // needs tuning
         params.k_p_h = 0.667;  // needs tuning

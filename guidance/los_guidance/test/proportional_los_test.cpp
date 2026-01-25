@@ -11,9 +11,6 @@ class ProportionalLosTest : public ::testing::Test {
         ProportionalLosParams params;
         params.lookahead_distance_h = 10.0;
         params.lookahead_distance_v = 10.0;
-        params.k_p_h = 0.667;  // needs tuning
-        params.k_p_v = 0.582;  // needs tuning
-        params.time_step = 0.01;
         return params;
     }
 

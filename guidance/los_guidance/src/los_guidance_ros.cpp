@@ -65,7 +65,8 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     state_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         "state_debug", qos_sensor_data);
 
-    waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+    waypoint_sub_ = this->create_subscription<
+        geometry_msgs::msg::PointStamped>(
         waypoint_topic, qos_sensor_data,
         std::bind(&LosGuidanceNode::waypoint_callback, this,
                   std::placeholders::_1));
@@ -76,7 +77,8 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         std::bind(&LosGuidanceNode::pose_callback, this,
                   std::placeholders::_1));
 
-    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    odom_sub_ = this->create_subscription<
+        nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data,
         std::bind(&LosGuidanceNode::odom_callback, this,
                     std::placeholders::_1));
