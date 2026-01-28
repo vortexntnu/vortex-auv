@@ -74,8 +74,8 @@ fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5
-ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5
+ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 # Send waypoint goal
 echo "Sending goal"
