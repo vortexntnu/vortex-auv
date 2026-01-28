@@ -1,5 +1,6 @@
 #include "reference_filter_dp/reference_filter_ros.hpp"
 #include <spdlog/spdlog.h>
+#include <mutex>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
 #include <vortex/utils/math.hpp>
@@ -111,11 +112,13 @@ void ReferenceFilterNode::reference_callback(
 
 void ReferenceFilterNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock(mutex_);
     current_pose_ = *msg;
 }
 
 void ReferenceFilterNode::twist_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock(mutex_);
     current_twist_ = *msg;
 }
 
@@ -269,8 +272,6 @@ Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
 }
 
 void ReferenceFilterNode::publish_hold_reference() {
-    std::lock_guard<std::mutex> lock(mutex_);
-
     if (!reference_pub_) {
         return;
     }
@@ -350,12 +351,15 @@ void ReferenceFilterNode::execute(
                 return;
             }
         }
-        if (goal_handle->is_canceling()) {
-            publish_hold_reference();
-            result->success = false;
-            goal_handle->canceled(result);
-            spdlog::info("Goal canceled");
-            return;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (goal_handle->is_canceling()) {
+                publish_hold_reference();
+                result->success = false;
+                goal_handle->canceled(result);
+                spdlog::info("Goal canceled");
+                return;
+            }
         }
         Eigen::Vector18d x_dot = reference_filter_->calculate_x_dot(x_, r_);
         x_ += x_dot * time_step_.count() / 1000.0;
