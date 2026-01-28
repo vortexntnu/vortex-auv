@@ -37,8 +37,6 @@ class JoystickInterface(Node):
         self.set_publishers_and_subscribers()
         self.set_services()
 
-        add_heartbeat_publisher(self, "joystick_interface_auv")
-
         self._current_state = PoseData()
         self._desired_state = PoseData()
 
