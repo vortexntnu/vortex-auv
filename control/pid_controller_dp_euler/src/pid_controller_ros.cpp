@@ -45,10 +45,11 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         software_kill_switch_topic, 1,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
-    software_mode_sub_ = this->create_subscription<vortex_msgs::msg::OperationMode>(
-        software_operation_mode_topic, 1,
-        std::bind(&PIDControllerNode::software_mode_callback, this,
-                  std::placeholders::_1));
+    software_mode_sub_ =
+        this->create_subscription<vortex_msgs::msg::OperationMode>(
+            software_operation_mode_topic, 1,
+            std::bind(&PIDControllerNode::software_mode_callback, this,
+                      std::placeholders::_1));
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
@@ -78,10 +79,10 @@ void PIDControllerNode::killswitch_callback(
 void PIDControllerNode::software_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
     software_mode_ = msg->operation_mode;
-    RCLCPP_INFO(this->get_logger(), "Software mode: %d",
-                software_mode_);
+    RCLCPP_INFO(this->get_logger(), "Software mode: %d", software_mode_);
 
-    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS || software_mode_ == vortex_msgs::msg::OperationMode::REFERENCE) {
+    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS ||
+        software_mode_ == vortex_msgs::msg::OperationMode::REFERENCE) {
         eta_d_ = eta_;
     }
 }
@@ -118,7 +119,8 @@ void PIDControllerNode::twist_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
+    if (killswitch_on_ ||
+        software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
         return;
     }
 

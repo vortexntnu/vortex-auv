@@ -8,7 +8,6 @@
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 
-
 constexpr std::string_view start_message = R"(
   ____  ____     ____            _             _ _
  |  _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
@@ -75,10 +74,11 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
-    software_mode_sub_ = this->create_subscription<vortex_msgs::msg::OperationMode>(
-        software_operation_mode_topic, qos_reliable,
-        std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
-                  std::placeholders::_1));
+    software_mode_sub_ =
+        this->create_subscription<vortex_msgs::msg::OperationMode>(
+            software_operation_mode_topic, qos_reliable,
+            std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
+                      std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
@@ -100,7 +100,8 @@ void DPAdaptBacksControllerNode::software_mode_callback(
     software_mode_ = convert_from_ros(*msg);
     spdlog::info("Software mode: {}", modetoString(software_mode_));
 
-    if (software_mode_ == Mode::autonomous || software_mode_ == Mode::reference) {
+    if (software_mode_ == Mode::autonomous ||
+        software_mode_ == Mode::reference) {
         pose_d_ = pose_;
     }
 }

@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import SetEnvironmentVariable, IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
@@ -21,14 +21,15 @@ thruster_interface_config = os.path.join(
 )
 
 operation_mode_manager_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("operation_mode_manager"),
-                "launch",
-                "operation_mode_manager.launch.py",
-            )
+    PythonLaunchDescriptionSource(
+        os.path.join(
+            get_package_share_directory("operation_mode_manager"),
+            "launch",
+            "operation_mode_manager.launch.py",
         )
     )
+)
+
 
 def generate_launch_description() -> LaunchDescription:
     """Generates a launch description for the ORCA AUV setup.
@@ -70,10 +71,8 @@ def generate_launch_description() -> LaunchDescription:
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
         ],
-        output="screen"
+        output="screen",
         arguments=["--ros-args", "--log-level", "error"],
-        
-        
     )
 
     return LaunchDescription([set_env_var, container, operation_mode_manager_launch])

@@ -12,8 +12,8 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <string>
-#include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
+#include <vortex_msgs/msg/reference_filter.hpp>
 #include "pid_controller_dp_euler/typedefs.hpp"
 
 class PIDControllerNode : public rclcpp::Node {
@@ -23,7 +23,8 @@ class PIDControllerNode : public rclcpp::Node {
    private:
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
-    void software_mode_callback(const vortex_msgs::msg::OperationMode::SharedPtr msg);
+    void software_mode_callback(
+        const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
@@ -44,7 +45,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
-    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr software_mode_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
+        software_mode_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;

@@ -9,8 +9,11 @@ orca_params = os.path.join(
 )
 
 operation_mode_params = os.path.join(
-    get_package_share_directory("operation_mode_manager"), "config", "operation_mode_manager.yaml"
+    get_package_share_directory("operation_mode_manager"),
+    "config",
+    "operation_mode_manager.yaml",
 )
+
 
 def generate_launch_description() -> LaunchDescription:
     """Generates a launch description for the operation_mode_manager node.
@@ -30,7 +33,6 @@ def generate_launch_description() -> LaunchDescription:
         namespace='orca',
         output="screen",
         parameters=[orca_params, operation_mode_params],
-
     )
 
     return LaunchDescription([operation_mode_manager_node])

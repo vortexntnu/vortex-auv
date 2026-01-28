@@ -2,4 +2,3 @@
   ros__parameters:
     initial_killswitch: true
     initial_mode: 2 # 1=AUTONOMOUS, 2=MANUAL, 3=REFERENCE
-      

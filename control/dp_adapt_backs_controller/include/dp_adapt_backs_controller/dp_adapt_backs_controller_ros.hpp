@@ -14,15 +14,15 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vortex/utils/types.hpp>
+#include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 #include "typedefs.hpp"
-#include <vortex_msgs/msg/operation_mode.hpp>
 
 namespace vortex::control {
 
-enum class Mode : uint8_t {manual, autonomous, reference};
+enum class Mode : uint8_t { manual, autonomous, reference };
 
 Mode convert_from_ros(const vortex_msgs::msg::OperationMode& mode_msg) {
     switch (mode_msg.operation_mode) {
@@ -61,7 +61,8 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     // @brief Callback function for the software mode topic
     // @param msg: String message containing the software mode
-    void software_mode_callback(const vortex_msgs::msg::OperationMode::SharedPtr msg);
+    void software_mode_callback(
+        const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     // @brief Callback function for the pose topic
     // @param msg: PoseWithCovarianceStamped message containing the AUV pose
@@ -90,7 +91,8 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_{};
 
-    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr software_mode_sub_{};
+    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
+        software_mode_sub_{};
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_{};

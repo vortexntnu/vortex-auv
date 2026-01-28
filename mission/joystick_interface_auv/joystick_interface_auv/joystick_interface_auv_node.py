@@ -4,17 +4,19 @@ import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node, Parameter
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool, String
-from vortex_msgs.msg import ReferenceFilter
-from vortex_msgs.msg import OperationMode
-from vortex_msgs.srv import SetOperationMode
-from vortex_msgs.srv import ToggleKillswitch
+from std_msgs.msg import Bool
+from vortex_msgs.msg import OperationMode, ReferenceFilter
+from vortex_msgs.srv import SetOperationMode, ToggleKillswitch
 from vortex_utils.python_utils import PoseData
-from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils_ros.heartbeatpublisher import add_heartbeat_publisher
+from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils_ros.ros_converter import pose_from_ros
 
-from joystick_interface_auv.joystick_utils import JoyStates, Wired, WirelessXboxSeriesX, modes
+from joystick_interface_auv.joystick_utils import (
+    Wired,
+    WirelessXboxSeriesX,
+    modes,
+)
 
 start_message = r"""
       _                 _   _      _      ___       _             __
@@ -25,6 +27,7 @@ start_message = r"""
               |___/
 """
 
+
 class JoystickInterface(Node):
     def __init__(self):
         super().__init__('joystick_interface_auv')
@@ -33,7 +36,7 @@ class JoystickInterface(Node):
         self.init_movement()
         self.set_publishers_and_subscribers()
         self.set_services()
-        
+
         add_heartbeat_publisher(self, "joystick_interface_auv")
 
         self._current_state = PoseData()
@@ -106,7 +109,10 @@ class JoystickInterface(Node):
             qos_profile=best_effort_qos,
         )
         self._mode_subscriber = self.create_subscription(
-            OperationMode, self.operation_mode_topic, self.operation_mode_cb, qos_profile=reliable_qos
+            OperationMode,
+            self.operation_mode_topic,
+            self.operation_mode_cb,
+            qos_profile=reliable_qos,
         )
         self._killswitch_subscriber = self.create_subscription(
             Bool, self.killswitch_topic, self.killswitch_cb, qos_profile=reliable_qos
@@ -119,23 +125,29 @@ class JoystickInterface(Node):
         )
 
     def set_services(self):
-        self.operation_mode_client = self.create_client(SetOperationMode, 'set_operation_mode')
+        self.operation_mode_client = self.create_client(
+            SetOperationMode, 'set_operation_mode'
+        )
 
         while not self.operation_mode_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Operation Mode service not available, waiting...')
 
-        self.toggle_killswitch_client = self.create_client(ToggleKillswitch, 'toggle_killswitch')
+        self.toggle_killswitch_client = self.create_client(
+            ToggleKillswitch, 'toggle_killswitch'
+        )
 
         while not self.toggle_killswitch_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Toggle Killswitch service not available, waiting...')
+            self.get_logger().info(
+                'Toggle Killswitch service not available, waiting...'
+            )
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""
         self._current_state = pose_from_ros(msg.pose.pose)
-    
+
     def operation_mode_cb(self, msg: OperationMode):
         self._mode = msg.operation_mode
-    
+
     def killswitch_cb(self, msg: Bool):
         self._killswitch = msg
 
@@ -176,7 +188,7 @@ class JoystickInterface(Node):
         request.requested_operation_mode.operation_mode = OperationMode.MANUAL
         future = self.operation_mode_client.call_async(request)
         future.add_done_callback(self.operation_mode_response_callback)
-        self.get_logger().info("XBOX mode")   
+        self.get_logger().info("XBOX mode")
 
     def transition_to_reference_mode(self):
         """Publishes a pose message and signals that the operational mode has switched to Reference mode."""
@@ -211,12 +223,13 @@ class JoystickInterface(Node):
         future.add_done_callback(self.operation_mode_response_callback)
         self.get_logger().info("Autonomous mode")
 
-    
     def operation_mode_response_callback(self, future):
         """Callback function for the operation mode service response."""
         response = future.result()
         if response.current_operation_mode.operation_mode in modes:
-            self.get_logger().info(f"Operation mode set to: {modes[response.current_operation_mode.operation_mode]} : Killswitch {response.killswitch_status}")
+            self.get_logger().info(
+                f"Operation mode set to: {modes[response.current_operation_mode.operation_mode]} : Killswitch {response.killswitch_status}"
+            )
         else:
             self.get_logger().error("Failed to set operation mode.")
 
@@ -372,11 +385,11 @@ class JoystickInterface(Node):
         elif xbox_control_mode_button:
             self.transition_to_xbox_mode()
 
-        if (self._mode == OperationMode.MANUAL and not self._killswitch):
+        if self._mode == OperationMode.MANUAL and not self._killswitch:
             wrench_msg = self.create_wrench_message()
             self._wrench_publisher.publish(wrench_msg)
 
-        elif (self._mode == OperationMode.REFERENCE and not self._killswitch):
+        elif self._mode == OperationMode.REFERENCE and not self._killswitch:
             self.update_reference()
             ref_msg = self.create_reference_message()
             self._ref_publisher.publish(ref_msg)
