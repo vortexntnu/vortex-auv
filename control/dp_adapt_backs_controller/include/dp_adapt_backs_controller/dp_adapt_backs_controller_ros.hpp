@@ -22,6 +22,32 @@
 
 namespace vortex::control {
 
+enum class Mode : uint8_t {manual, autonomous, reference};
+
+Mode convert_from_ros(const vortex_msgs::msg::OperationMode& mode_msg) {
+    switch (mode_msg.operation_mode) {
+        case vortex_msgs::msg::OperationMode::MANUAL:
+            return Mode::manual;
+        case vortex_msgs::msg::OperationMode::AUTONOMOUS:
+            return Mode::autonomous;
+        case vortex_msgs::msg::OperationMode::REFERENCE:
+            return Mode::reference;
+    }
+    assert(false && "Unknown operation mode");
+}
+
+std::string modetoString(Mode mode) {
+    switch (mode) {
+        case Mode::manual:
+            return "manual mode";
+        case Mode::autonomous:
+            return "autonomous mode";
+        case Mode::reference:
+            return "reference mode";
+    }
+    return "UNKNOWN";
+}
+
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
    public:
@@ -91,7 +117,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     bool killswitch_on_{false};
 
-    uint8_t software_mode_{};
+    Mode software_mode_{};
 };
 
 }  // namespace vortex::control

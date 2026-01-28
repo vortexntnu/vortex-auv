@@ -97,10 +97,10 @@ void DPAdaptBacksControllerNode::killswitch_callback(
 
 void DPAdaptBacksControllerNode::software_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
-    software_mode_ = msg->operation_mode;
-    spdlog::info("Software mode: {}", software_mode_);
+    software_mode_ = convert_from_ros(*msg);
+    spdlog::info("Software mode: {}", modetoString(software_mode_));
 
-    if (software_mode_ == vortex_msgs::msg::OperationMode::AUTONOMOUS || software_mode_ == vortex_msgs::msg::OperationMode::REFERENCE) {
+    if (software_mode_ == Mode::autonomous || software_mode_ == Mode::reference) {
         pose_d_ = pose_;
     }
 }
@@ -181,7 +181,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
+    if (killswitch_on_ || software_mode_ == Mode::manual) {
         return;
     }
 
