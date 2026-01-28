@@ -34,20 +34,20 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
     this->declare_parameter<std::string>("topics.guidance.dp");
-    this->declare_parameter<std::string>("topics.aruco_board_pose_camera");
+    this->declare_parameter<std::string>("topics.reference_pose");
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string twist_topic = this->get_parameter("topics.twist").as_string();
     std::string guidance_topic =
         this->get_parameter("topics.guidance.dp").as_string();
-    std::string aruco_board_pose_camera_topic =
-        this->get_parameter("topics.aruco_board_pose_camera").as_string();
+    std::string reference_pose_topic =
+        this->get_parameter("topics.reference_pose").as_string();
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
         guidance_topic, qos_sensor_data);
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-        aruco_board_pose_camera_topic, qos_sensor_data,
+        reference_pose_topic, qos_sensor_data,
         std::bind(&ReferenceFilterNode::reference_callback, this,
                   std::placeholders::_1));
     pose_sub_ = this->create_subscription<
@@ -268,6 +268,43 @@ Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
     return r_out;
 }
 
+void ReferenceFilterNode::publish_hold_reference() {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (!reference_pub_) {
+        return;
+    }
+
+    const auto& p = current_pose_.pose.pose.position;
+    const auto& o = current_pose_.pose.pose.orientation;
+
+    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+    if (q.norm() < 1e-9) {
+        q = Eigen::Quaterniond::Identity();
+    } else {
+        q.normalize();
+    }
+
+    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
+
+    vortex_msgs::msg::ReferenceFilter hold_msg;
+    hold_msg.x = p.x;
+    hold_msg.y = p.y;
+    hold_msg.z = p.z;
+    hold_msg.roll = vortex::utils::math::ssa(euler_angles(0));
+    hold_msg.pitch = vortex::utils::math::ssa(euler_angles(1));
+    hold_msg.yaw = vortex::utils::math::ssa(euler_angles(2));
+
+    hold_msg.x_dot = 0.0;
+    hold_msg.y_dot = 0.0;
+    hold_msg.z_dot = 0.0;
+    hold_msg.roll_dot = 0.0;
+    hold_msg.pitch_dot = 0.0;
+    hold_msg.yaw_dot = 0.0;
+
+    reference_pub_->publish(hold_msg);
+}
+
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
@@ -307,12 +344,14 @@ void ReferenceFilterNode::execute(
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->get_goal_id() == preempted_goal_id_) {
+                publish_hold_reference();
                 result->success = false;
                 goal_handle->abort(result);
                 return;
             }
         }
         if (goal_handle->is_canceling()) {
+            publish_hold_reference();
             result->success = false;
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
