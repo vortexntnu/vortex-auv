@@ -8,7 +8,6 @@ from std_msgs.msg import Bool
 from vortex_msgs.msg import OperationMode, ReferenceFilter
 from vortex_msgs.srv import SetOperationMode, ToggleKillswitch
 from vortex_utils.python_utils import PoseData
-from vortex_utils_ros.heartbeatpublisher import add_heartbeat_publisher
 from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils_ros.ros_converter import pose_from_ros
 
