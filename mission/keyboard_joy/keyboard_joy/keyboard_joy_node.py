@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import threading
-
 import rclpy
 from pynput import keyboard
 from rclpy.node import Node
@@ -41,8 +39,6 @@ class KeyboardJoy(Node):
         self.joy_msg = Joy()
         self.joy_msg.header.frame_id = "keyboard"
 
-        self.lock = threading.Lock()
-
         self.listener = keyboard.Listener(
             on_press=self.on_press,
             on_release=self.on_release,
@@ -58,15 +54,13 @@ class KeyboardJoy(Node):
         key_str = self.key_to_string(key)
         if not key_str:
             return
-        with self.lock:
-            self.core.press(key_str)
+        self.core.press(key_str)
 
     def on_release(self, key):
         key_str = self.key_to_string(key)
         if not key_str:
             return
-        with self.lock:
-            self.core.release(key_str)
+        self.core.release(key_str)
 
     @staticmethod
     def key_to_string(key):
@@ -77,14 +71,11 @@ class KeyboardJoy(Node):
         return None
 
     def update_active_axes(self):
-        with self.lock:
-            self.core.update_active_axes()
+        self.core.update_active_axes()
 
     def publish_joy(self):
-        with self.lock:
-            state = self.core.get_state()
+        state = self.core.get_state()
 
-        # Convert core state -> ROS Joy
         self.joy_msg.header.stamp = self.get_clock().now().to_msg()
         self.joy_msg.header.frame_id = state.frame_id
         self.joy_msg.axes = state.axes
