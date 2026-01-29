@@ -2,8 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import SetEnvironmentVariable
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
@@ -18,16 +17,6 @@ thruster_interface_config = os.path.join(
     get_package_share_directory("thruster_interface_auv"),
     "config",
     "thruster_interface_auv_config.yaml",
-)
-
-operation_mode_manager_launch = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource(
-        os.path.join(
-            get_package_share_directory("operation_mode_manager"),
-            "launch",
-            "operation_mode_manager.launch.py",
-        )
-    )
 )
 
 
@@ -75,4 +64,4 @@ def generate_launch_description() -> LaunchDescription:
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    return LaunchDescription([set_env_var, container, operation_mode_manager_launch])
+    return LaunchDescription([set_env_var, container])

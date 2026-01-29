@@ -119,7 +119,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     bool killswitch_on_{false};
 
-    Mode software_mode_{};
+    Mode software_mode_{Mode::manual};
 };
 
 }  // namespace vortex::control
