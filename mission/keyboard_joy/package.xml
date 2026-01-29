@@ -12,7 +12,6 @@
   <depend>python3-pynput</depend>
   <depend>python3-yaml</depend>
 
-  <test_depend>ament_pytest</test_depend>
   <test_depend>python3-pytest</test_depend>
 
   <export>
