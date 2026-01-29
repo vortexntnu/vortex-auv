@@ -1,4 +1,3 @@
-# keyboard_joy_core.py
 from __future__ import annotations
 
 import threading

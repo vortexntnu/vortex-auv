@@ -1,5 +1,3 @@
-# test/test_keyboard_joy_core.py
-
 from keyboard_joy.keyboard_joy_core import AxisBinding, AxisMode, KeyboardJoyCore
 
 
