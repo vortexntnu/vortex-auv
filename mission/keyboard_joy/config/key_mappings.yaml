@@ -20,6 +20,14 @@ axes:
   Key.left: [3, 1.0, 'hold']
   Key.right: [3, -1.0, 'hold']
 
+  # Vertical (axis 7)
+  Key.home: [7, 1.0, 'hold']        # Numpad 7 → D-pad up
+  Key.end:  [7, -1.0, 'hold']       # Numpad 1 → D-pad down
+
+  # Horizontal (axis 6)
+  Key.page_up:   [6, 1.0, 'hold']   # Numpad 9 → D-pad right
+  Key.page_down: [6, -1.0, 'hold']  # Numpad 3 → D-pad left
+
 parameters:
   axis_update_period: 0.02 # seconds per update
   publish_period: 0.02 # seconds per publish
