@@ -1,8 +1,6 @@
 #ifndef DOCKING__DOCKING_HPP_
 #define DOCKING__DOCKING_HPP_
 
-#include <chrono>
-#include <iostream>
 #include <memory>
 #include <string>
 
@@ -38,18 +36,18 @@ using ReturnHomeAction = vortex_msgs::action::ReferenceFilterWaypoint;
 class FindDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::FindDockingAction> {
    public:
-    FindDockingStationState(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit FindDockingStationState(
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     docking_fsm::FindDockingAction::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         docking_fsm::FindDockingAction::Result::SharedPtr response);
 
     void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         std::shared_ptr<const docking_fsm::FindDockingAction::Feedback>
             feedback);
 };
@@ -57,18 +55,18 @@ class FindDockingStationState
 class ApproachDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::ApproachDockingAction> {
    public:
-    ApproachDockingStationState(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit ApproachDockingStationState(
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     docking_fsm::ApproachDockingAction::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         docking_fsm::ApproachDockingAction::Result::SharedPtr response);
 
     void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         std::shared_ptr<const docking_fsm::ApproachDockingAction::Feedback>
             feedback);
 };
@@ -76,65 +74,61 @@ class ApproachDockingStationState
 class GoAboveDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::GoAboveDockingAction> {
    public:
-    GoAboveDockingStationState(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit GoAboveDockingStationState(
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     docking_fsm::GoAboveDockingAction::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         docking_fsm::GoAboveDockingAction::Result::SharedPtr response);
 
     void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         std::shared_ptr<const docking_fsm::GoAboveDockingAction::Feedback>
             feedback);
 };
 
-std::string DockedState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+std::string DockedState(std::shared_ptr<yasmin::Blackboard> blackboard);
 
 class ReturnHomeState
     : public yasmin_ros::ActionState<docking_fsm::ReturnHomeAction> {
    public:
-    explicit ReturnHomeState(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit ReturnHomeState(std::shared_ptr<yasmin::Blackboard> blackboard);
 
     docking_fsm::ReturnHomeAction::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         docking_fsm::ReturnHomeAction::Result::SharedPtr response);
 
     void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         std::shared_ptr<const docking_fsm::ReturnHomeAction::Feedback>
             feedback);
 };
 
-std::string AbortState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+std::string AbortState(std::shared_ptr<yasmin::Blackboard> blackboard);
 
-std::string ErrorState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+std::string ErrorState(std::shared_ptr<yasmin::Blackboard> blackboard);
 
 class ConvergeDockingStationState
     : public yasmin_ros::ActionState<docking_fsm::ConvergeDockingAction> {
    public:
-    ConvergeDockingStationState(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+    explicit ConvergeDockingStationState(
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     docking_fsm::ConvergeDockingAction::Goal create_goal_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+        std::shared_ptr<yasmin::Blackboard> blackboard);
 
     std::string response_handler(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         docking_fsm::ConvergeDockingAction::Result::SharedPtr response);
 
     void print_feedback(
-        std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+        std::shared_ptr<yasmin::Blackboard> blackboard,
         std::shared_ptr<const docking_fsm::ConvergeDockingAction::Feedback>
             feedback);
 };
@@ -142,8 +136,8 @@ class ConvergeDockingStationState
 std::shared_ptr<yasmin::StateMachine> create_state_machines();
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
-                std::shared_ptr<yasmin::blackboard::Blackboard> blackboard);
+                std::shared_ptr<yasmin::Blackboard> blackboard);
 
-auto initialize_blackboard();
+std::shared_ptr<yasmin::Blackboard> initialize_blackboard();
 
 #endif  // DOCKING__DOCKING_HPP_
