@@ -34,7 +34,8 @@ void OperationModeManager::setup_publishers() {
         this->get_parameter("topics.operation_mode").as_string();
 
     wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
-        wrench_input_topic, vortex::utils::qos_profiles::sensor_data_profile(1));
+        wrench_input_topic,
+        vortex::utils::qos_profiles::sensor_data_profile(1));
 
     killswitch_pub_ = this->create_publisher<std_msgs::msg::Bool>(
         killswitch_topic, vortex::utils::qos_profiles::reliable_profile(1));
