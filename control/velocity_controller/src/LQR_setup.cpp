@@ -1,6 +1,7 @@
 
 #include "velocity_controller/LQR_setup.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <rclcpp/logger.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <vector>
@@ -22,7 +23,21 @@
 //Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
 LQRController::LQRController()
 {
-    
+    interval_ = 0.0;
+    integral_error_surge = 0.0;
+    integral_error_pitch = 0.0;
+    integral_error_yaw = 0.0;
+    surge_windup = false;
+    pitch_windup = false;
+    yaw_windup = false;
+    max_force = 0.0;
+    mass = 0.0;
+    Q.setZero();
+    R.setZero();
+    B.setZero();
+    D_low.setZero();
+    D_high.setZero();
+    inertia_matrix_inv.setZero();
 };
 bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix_,double max_force_, std::vector<double> water_r_low,std::vector<double> water_r_high){
     //Possible error handling here to check for size and allowed values.
@@ -47,8 +62,11 @@ bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,s
         return 0;
     }
     max_force=max_force_;
-    Q.diagonal()=Eigen::Map<Eigen::VectorXd>(Q_.data(),Q_.size());
-    R.diagonal()=Eigen::Map<Eigen::VectorXd>(R_.data(),R_.size());
+    // Ensure full matrices are zeroed before assigning diagonals
+    Q.setZero();
+    R.setZero();
+    Q.diagonal() = Eigen::Map<Eigen::VectorXd>(Q_.data(), Q_.size());
+    R.diagonal() = Eigen::Map<Eigen::VectorXd>(R_.data(), R_.size());
     Eigen::Matrix<double,6,6> inertia_matrix = Eigen::Map<const Eigen::Matrix<double,6,6>>(inertia_matrix_.data(),6,6);
     D_low=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_low.data(),6,6);
     D_high=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_high.data(),6,6);
@@ -68,30 +86,6 @@ bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,s
     surge_windup= false;    pitch_windup= false;    yaw_windup= false; mass=inertia_matrix_[0];
     return 1;
 }
-
-
-/*angle LQRController::quaternion_to_euler_angle(double w, double x, double y, double z){
-    double ysqr = y * y;
-
-    double t0 = +2.0 * (w * x + y * z);
-    double t1 = +1.0 - 2.0 * (x * x + ysqr);
-    double phi = std::atan2(t0, t1);
-
-    double t2 = +2.0 * (w * y - z * x);
-    t2 = t2 > 1.0 ? 1.0 : t2;
-    t2 = t2 < -1.0 ? -1.0 : t2;
-    double theta = std::asin(t2);
-
-    double t3 = +2.0 * (w * z + x * y);
-    double t4 = +1.0 - 2.0 * (ysqr + z * z);
-    double psi = std::atan2(t3, t4);
-
-    return {phi, theta, psi};
-};*/
-
-/*double LQRController::ssa(double angle){
-    return std::fmod(angle+pi, 2*pi)-pi;
-};*/
 
 //Can be optimized
 std::tuple<double,double> LQRController::saturate (double value, bool windup, double limit){
@@ -114,20 +108,11 @@ double LQRController::anti_windup(double error, double integral_sum, bool windup
     return integral_sum;
 }
 
-/*Eigen::Matrix3d LQRController::calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel){
-    //Inertia matrix values??
-    Eigen::Matrix3d result;
-    result<<0.2,-30*sway_vel*0.01,-30*heave_vel*0.01,
-            30 * sway_vel*0.01,0,1.629 * pitchrate,
-            30 * heave_vel*0.01,1.769 * yaw_rate,0;
-    return result;
-}*/
-
 
 
 Eigen::Matrix<double,8,8> LQRController::linearize(State s){
     //Eigen::Matrix<double,12,12> A;
-    Eigen::Matrix<double,6,6> D;
+    Eigen::Matrix<double,6,6> D=Eigen::Matrix<double,6,6>::Zero();
 
     if (s.surge<100){ //Threshold tbd
         D=-inertia_matrix_inv*D_low;
@@ -176,7 +161,10 @@ Eigen::Vector<double,8> LQRController::update_error(Guidance_data guidance_value
     integral_error_surge = anti_windup(surge_error, integral_error_surge, surge_windup);
     integral_error_pitch = anti_windup(pitch_error, integral_error_pitch, pitch_windup);
     integral_error_yaw = anti_windup(yaw_error, integral_error_yaw, yaw_windup);
-    
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"integral errors: %f, %f, %f",integral_error_surge,integral_error_pitch,integral_error_yaw);
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"windup status: %d, %d, %d",surge_windup,pitch_windup,yaw_windup);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"pitch value n state %f, %f",guidance_values.pitch,states.pitch);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"errors: %f, %f, %f",surge_error,pitch_error,yaw_error);
     Eigen::Vector<double,8> state_error= {-surge_error, -pitch_error, -yaw_error, -states.pitch_rate, -states.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
@@ -190,6 +178,13 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u)
 Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_data guidance_values){
     ct::optcon::LQR<8,3> lqr;
     Eigen::Matrix<double,3,8> K_l;
+    /*RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"A matrix: %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f; ...",linearize(state)(0,0),linearize(state)(0,1),linearize(state)(0,2),linearize(state)(0,3),linearize(state)(0,4),linearize(state)(0,5),linearize(state)(0,6),linearize(state)(0,7),
+                linearize(state)(1,0),linearize(state)(1,1),linearize(state)(1,2),linearize(state)(1,3),linearize(state)(1,4),linearize(state)(1,5),linearize(state)(1,6),linearize(state)(1,7));
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"B matrix: %f, %f, %f; %f, %f, %f; %f, %f, %f; %f, %f, %f; ...",B(0,0),B(0,1),B(0,2),
+                B(1,0),B(1,1),B(1,2),
+                B(2,0),B(2,1),B(2,2),
+                B(3,0),B(3,1),B(3,2));
+                */
     bool INFO= lqr.compute(Q,R,linearize(state),B,K_l,true,false);
     if(INFO==0){
         return {9999,9999,9999}; //Need to fix
@@ -201,6 +196,16 @@ Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_da
     */
 
     Eigen::Matrix<double,8,1> state_error = update_error(guidance_values, state);
+    /*RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Guidance values: %f, %f, %f",guidance_values.surge,guidance_values.pitch,guidance_values.yaw);
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Current states: %f, %f, %f, %f, %f",state.surge,state.pitch,state.yaw,state.pitch_rate,state.yaw_rate);   
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"State error: %f, %f, %f, %f, %f, %f, %f, %f",state_error(0),state_error(1),state_error(2),state_error(3),state_error(4),state_error(5),state_error(6),state_error(7));
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Control input: %f, %f, %f",- (K_l*state_error)(0),- (K_l*state_error)(1),- (K_l*state_error)(2));
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"saturated_input: %f, %f, %f",saturate_input(- (K_l*state_error))(0),saturate_input(- (K_l*state_error))(1),saturate_input(- (K_l*state_error))(2));
+    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"K matrix: %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f",
+                K_l(0,0),K_l(0,1),K_l(0,2),K_l(0,3),K_l(0,4),K_l(0,5),K_l(0,6),K_l(0,7),
+                K_l(1,0),K_l(1,1),K_l(1,2),K_l(1,3),K_l(1,4),K_l(1,5),K_l(1,6),K_l(1,7),
+                K_l(2,0),K_l(2,1),K_l(2,2),K_l(2,3),K_l(2,4),K_l(2,5),K_l(2,6),K_l(2,7));
+                */
     return saturate_input(- (K_l*state_error));
 }
 void LQRController::reset_controller(){

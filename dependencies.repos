@@ -5,3 +5,6 @@ repositories:
   vortex-vkf:
     type: git
     url: https://github.com/vortexntnu/vortex-vkf.git
+  control-toolbox:
+    type: git
+    url: https://github.com/ethz-adrl/control-toolbox.git

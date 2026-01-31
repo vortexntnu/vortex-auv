@@ -52,7 +52,7 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
   PID_surge.set_output_limits(-max_force, max_force);
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
-  if(!lqr_controller.set_matrices(Q,R,inertia_matrix,max_force,dampening_matrix_low,dampening_matrix_high)||!lqr_controller.set_interval(publish_rate/1000)){
+  if(!lqr_controller.set_matrices(Q,R,inertia_matrix,max_force,dampening_matrix_low,dampening_matrix_high)||!lqr_controller.set_interval(static_cast<double>(publish_rate)/1000)){
     controller_type=1;
     RCLCPP_INFO(this->get_logger(),"Switching to PID");
   };

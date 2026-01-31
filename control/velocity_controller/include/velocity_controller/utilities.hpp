@@ -20,6 +20,8 @@ class State{
     double surge=0.0, sway=0.0, heave=0.0,  roll_rate=0.0, pitch_rate=0.0, yaw_rate=0.0; //roll_rate=0.0, pitch_rate=0.0, yaw_rate=0.0;
     double roll=0.0, pitch=0.0, yaw=0.0; //phi, theta, psi
     //double integral_surge=0.0;    double integral_pitch=0.0;    double integral_yaw=0.0;
+    State(double surge=0,double pitch=0, double yaw=0):surge{surge}, pitch{pitch},yaw{yaw}{};
+    State(){};
 };
 
 class Guidance_data:public State{

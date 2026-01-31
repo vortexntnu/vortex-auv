@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include <vortex/utils/math.hpp>
 #include <velocity_controller/LQR_setup.hpp>
+#include "velocity_controller/utilities.hpp"
 #include <yaml-cpp/yaml.h>
 
 class LQR_test : public ::testing::Test{
@@ -50,12 +51,42 @@ TEST_F(LQR_test,wrong_setup){
     EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,100,thirty_six,eight));
     EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,-100,thirty_six,thirty_six));
 };
-
+/*
 TEST_F(LQR_test,solve){
-
-};
+    State states{1,1,1,2,2,2,1,2,1};
+    Guidance_data value{1,3,2};
+    Eigen::Vector <double,3> result=controller.calculate_thrust(states,value);
+    EXPECT_NEAR(result(0),0,delta);
+    EXPECT_NEAR(result(1),0,delta);
+    EXPECT_NEAR(result(2),0,delta);
+};*/
 TEST_F(LQR_test,Direction){
+    Guidance_data value;
+    State state{};
+    value.surge=0.2;
+    Eigen::Vector<double, 3> result=controller.calculate_thrust(state,value);
+    EXPECT_TRUE(result(0)>0);
     
+}
+TEST_F(LQR_test,zero_input){
+    State states{};
+    states.surge=1;
+    states.yaw=0.2;
+    states.pitch=0.3;
+    Guidance_data value{1,0.3,0.2};
+    value.pitch=0.3;
+    value.yaw=0.2;
+    Eigen::Vector <double,3> result=controller.calculate_thrust(states,value);
+    EXPECT_NEAR(result(0),0,delta);
+    EXPECT_NEAR(result(1),0,delta);
+    EXPECT_NEAR(result(2),0,delta);
+    controller.reset_controller();
+    states={0,0,0,0,0,0,0,0,0};
+    value={0,0,0};
+    result=controller.calculate_thrust(states, value);
+    EXPECT_NEAR(result(0),0,delta);
+    EXPECT_NEAR(result(1),0,delta);
+    EXPECT_NEAR(result(2),0,delta);
 }
 
 int main(int argc,char** argv){
