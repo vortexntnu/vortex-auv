@@ -4,7 +4,7 @@ set -euo pipefail
 echo "Installing CasADi from pinned commit..."
 
 # ---- Config ----
-CASADI_COMMIT="f959d3175a444d763e4eda4aece48f4c5f4a6f90"   # example – change to what you want
+CASADI_COMMIT="f959d3175a444d763e4eda4aece48f4c5f4a6f90" 
 CASADI_DIR="/tmp/casadi-src"
 
 # ---- System deps ----
