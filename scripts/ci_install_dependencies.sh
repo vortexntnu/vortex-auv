@@ -27,6 +27,6 @@ sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 
 # Install casadi using CasADi install script
 ls
-.scripts/install_casadi.sh
+./scripts/install_casadi.sh
 
 echo "Done installing additional dependencies."
