@@ -26,6 +26,7 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 
 # Install casadi using CasADi install script
+ls
 ./install_casadi.sh
 
 echo "Done installing additional dependencies."
