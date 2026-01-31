@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs dependencies not handled by rosdep.
 
-set -e  # Exit on any error
+set -e # Exit on any error
 
 echo "Installing additional Python dependencies..."
 
@@ -26,6 +26,6 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 
 # Install casadi using CasADi install script
-sudo ./install_casadi.sh
+./install_casadi.sh
 
 echo "Done installing additional dependencies."
