@@ -34,16 +34,15 @@ class QPAllocator final : public Allocator {
      * @return The allocated thrust as a vector.
      */
     Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd& tau) override;
-
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Fossen 2021 (11.41)
     Eigen::VectorXd extended_state_vec_;
     Eigen::VectorXd extended_constraint_vec_;
-    Eigen::MatrixXd square_term_matrix;
-    Eigen::MatrixXd linear_term_matrix;
-    Eigen::MatrixXd extended_equality_state_matrix;
-    Eigen::MatrixXd extended_equality_constraint_matrix;
-    Eigen::MatrixXd extended_inqeuality_state_matrix;
-    Eigen::MatrixXd extended_inequality_constraint_matrix;
+    Eigen::MatrixXd square_term_matrix_;
+    Eigen::MatrixXd linear_term_matrix_;
+    Eigen::MatrixXd extended_equality_state_matrix_;
+    Eigen::MatrixXd extended_equality_constraint_matrix_;
+    Eigen::MatrixXd extended_inequality_state_matrix_;
+    Eigen::MatrixXd extended_inequality_constraint_matrix_;
 
 };
 
