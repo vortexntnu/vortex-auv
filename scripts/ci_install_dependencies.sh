@@ -25,4 +25,7 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 
+# Install casadi using CasADi install script
+sudo ./install_casadi.sh
+
 echo "Done installing additional dependencies."
