@@ -84,6 +84,7 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
     if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
         return -1;
     }
+
     return 0;
 }
 
@@ -92,17 +93,20 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     // Apply thruster mapping and direction
     std::vector<double> mapped_forces(thruster_forces_array.size());
 
-    std::ranges::transform(thruster_parameters_, mapped_forces.begin(),
-                           [this, &thruster_forces_array](const auto& param) {
-                               return thruster_forces_array[param.mapping] *
-                                      param.direction;
-                           });
+    for (std::size_t i = 0; i < thruster_parameters_.size(); ++i) {
+        const auto& param = thruster_parameters_[i];
+
+        const std::size_t idx = param.mapping;
+
+        const double raw_force = thruster_forces_array[idx];
+        mapped_forces[i] = raw_force * param.direction;
+    }
 
     // Convert forces to PWM
     std::vector<uint16_t> thruster_pwm_array =
         interpolate_forces_to_pwm(mapped_forces);
 
-    if (send_data_to_escs(thruster_pwm_array)){
+    if (send_data_to_escs(thruster_pwm_array)) {
         return {};
     }
 
