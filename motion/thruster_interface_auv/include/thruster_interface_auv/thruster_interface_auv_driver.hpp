@@ -65,6 +65,12 @@ class ThrusterInterfaceAUVDriver {
         int pico_i2c_address,
         const std::vector<ThrusterParameters>& thruster_parameters,
         const std::vector<std::vector<double>>& poly_coeffs);
+
+    /**
+     * @brief initializes i2c
+     * @return 0 on success, negative number on failure
+     */
+    int init_i2c();
     /**
      * @brief calls both 1) interpolate_forces_to_pwm() to
      * convert the thruster forces to PWM values and 2) send_data_to_escs() to
@@ -126,8 +132,9 @@ class ThrusterInterfaceAUVDriver {
      * to the ESCs via I2C
      *
      * @param thruster_pwm_array vector of pwm values to send
+     * @return 0 on success, -1 on failure
      */
-    void send_data_to_escs(const std::vector<uint16_t>& thruster_pwm_array);
+    int send_data_to_escs(const std::vector<uint16_t>& thruster_pwm_array);
 
     /**
      * @brief convert Newtons to Kg

@@ -1,6 +1,7 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 #include <spdlog/spdlog.h>
 #include <cstdint>
+#include <cstring>
 #include <format>
 #include <ranges>
 
@@ -13,18 +14,22 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
       pico_i2c_address_(pico_i2c_address),
       thruster_parameters_(thruster_parameters),
       poly_coeffs_(poly_coeffs) {
-    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
-    bus_fd_ =
-        open(i2c_filename.c_str(),
-             O_RDWR);  // Open the i2c bus for reading and writing (0_RDWR)
-    if (bus_fd_ < 0) {
-        std::runtime_error(std::format("ERROR: Failed to open I2C bus {} : {}",
-                                       i2c_bus_, strerror(errno)));
-    }
-
     idle_pwm_value_ =
         (calc_poly(0, poly_coeffs_[LEFT]) + calc_poly(0, poly_coeffs_[RIGHT])) /
         2;
+}
+
+int ThrusterInterfaceAUVDriver::init_i2c() {
+    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
+    bus_fd_ = open(i2c_filename.c_str(), O_RDWR);
+    if (bus_fd_ < 0) {
+        return bus_fd_;
+    }
+
+    if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
+        return -1;
+    }
+    return 0;
 }
 
 ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
@@ -65,31 +70,21 @@ std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
                                       coeffs[2] * force + coeffs[3]);
 }
 
-void ThrusterInterfaceAUVDriver::send_data_to_escs(
+int ThrusterInterfaceAUVDriver::send_data_to_escs(
     const std::vector<uint16_t>& thruster_pwm_array) {
     constexpr std::size_t i2c_data_size =
         1 + 8 * 2;  // 8 thrusters * (1xMSB + 1xLSB)
-    std::vector<std::uint8_t> i2c_data_array;
-    i2c_data_array.reserve(i2c_data_size);
+    std::array<uint8_t, i2c_data_array> i2c_data_array;
 
-    i2c_data_array.push_back(0x00);  // Start byte
-    std::ranges::for_each(thruster_pwm_array, [&](std::uint16_t pwm) {
-        std::array<std::uint8_t, 2> bytes = pwm_to_i2c_data(pwm);
-        std::ranges::copy(bytes, std::back_inserter(i2c_data_array));
-    });
+    i2c_data_array[0] = 0;
 
-    // Set the I2C slave address
-    if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
-        throw std::runtime_error(std::format("Failed to open I2C bus {} : {}",
-                                             i2c_bus_, strerror(errno)));
-        return;
-    }
+    std::memcpy(i2c_data_array.data() + 1, thruster_pwm_array.data(),
+                i2c_data_size - 1);
 
-    // Write data to the I2C device
     if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
-        throw std::runtime_error(std::format(
-            "ERROR: Failed to write to I2C device : {}", strerror(errno)));
+        return -1;
     }
+    return 0;
 }
 
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
@@ -116,12 +111,8 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
                                return result;
                            });
 
-    try {
-        send_data_to_escs(thruster_pwm_array);
-    } catch (const std::exception& e) {
-        spdlog::error("ERROR: Failed to send PWM values - {}", e.what());
-    } catch (...) {
-        spdlog::error("ERROR: Failed to send PWM values - Unknown exception");
+    if (send_data_to_escs(thruster_pwm_array)){
+        return {};
     }
 
     return thruster_pwm_array;
