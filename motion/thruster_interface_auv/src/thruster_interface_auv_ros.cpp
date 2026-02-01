@@ -33,6 +33,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
 
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
         i2c_bus_, i2c_address_, thruster_parameters_, poly_coeffs_);
+    thruster_driver_.init_i2c();
 
     thruster_forces_array_ = std::vector<double>(8, 0.00);
 
