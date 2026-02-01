@@ -57,14 +57,16 @@ class ThrusterInterfaceAUVDriver {
      * @param pico_i2c_address      i2c address of the ESC that drive the
      * @param thruster_parameters   describe mapping, direction, min and max pwm
      * value for each thruster
-     * @param poly_coeffs           LEFT(<0) and RIGHT(>0) third order
+     * @param left_coeffs           LEFT(<0) and RIGHT(>0) third order
+     * @param right_coeffs
      * polynomial coefficients
      */
-    ThrusterInterfaceAUVDriver(
+    ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
         std::int16_t i2c_bus,
         int pico_i2c_address,
         const std::vector<ThrusterParameters>& thruster_parameters,
-        const std::vector<std::vector<double>>& poly_coeffs);
+        const std::vector<double>& right_coeffs,
+        const std::vector<double>& left_coeffs);
 
     /**
      * @brief initializes i2c
@@ -84,15 +86,13 @@ class ThrusterInterfaceAUVDriver {
         const std::vector<double>& thruster_forces_array);
 
    private:
-    int bus_fd_;  ///< file descriptor for the I2C bus (integer >0 that uniquely
-                  ///< identifies the device. -1 if it fails)
-
+    int bus_fd_;
     int i2c_bus_;
     int pico_i2c_address_;
     std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<std::vector<double>> poly_coeffs_;
-
-    uint16_t idle_pwm_value_;  ///< pwm value when force = 0.00
+    std::vector<double> right_coeffs_;
+    std::vector<double> left_coeffs_;
+    uint16_t idle_pwm_value_;
 
     /**
      * @brief only take the thruster forces and return PWM values
@@ -115,8 +115,7 @@ class ThrusterInterfaceAUVDriver {
      *
      * @return std::uint16_t scalar pwm value
      */
-    std::uint16_t force_to_pwm(double force,
-                               const std::vector<std::vector<double>>& coeffs);
+    std::uint16_t force_to_pwm(double force);
 
     /**
      * @brief compute y = a*x^3 + b*x^2 + c*x + d
@@ -144,19 +143,6 @@ class ThrusterInterfaceAUVDriver {
      * @return double Kg
      */
     static constexpr double to_kg(double force) { return force / 9.80665; }
-
-    /**
-     * @brief convert pwm values to i2c bytes
-     *
-     * @param pwm pwm value
-     *
-     * @return std::array<std::uint8_t, 2> i2c data
-     */
-    static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
-        std::uint16_t pwm) {
-        return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
-                static_cast<std::uint8_t>(pwm & 0xFF)};
-    }
 };
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_

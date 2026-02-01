@@ -32,7 +32,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             vortex::utils::qos_profiles::reliable_profile(1));
 
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
-        i2c_bus_, i2c_address_, thruster_parameters_, poly_coeffs_);
+        i2c_bus_, i2c_address_, thruster_parameters_, right_coeffs_, left_coeffs_);
     thruster_driver_.init_i2c();
 
     thruster_forces_array_ = std::vector<double>(8, 0.00);
@@ -132,9 +132,9 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
         this->get_parameter("propulsion.thrusters.thruster_PWM_max")
             .as_integer_array();
 
-    std::vector<double> left_coeffs =
+    this->left_coeffs_ =
         this->get_parameter("coeffs.16V.LEFT").as_double_array();
-    std::vector<double> right_coeffs =
+    this->right_coeffs_ =
         this->get_parameter("coeffs.16V.RIGHT").as_double_array();
 
     this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();
@@ -159,9 +159,6 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     std::ranges::transform(thruster_mapping, thruster_direction,
                            std::back_inserter(this->thruster_parameters_),
                            create_thruster_parameters);
-
-    this->poly_coeffs_.push_back(left_coeffs);
-    this->poly_coeffs_.push_back(right_coeffs);
 
     double timout_treshold_param =
         this->get_parameter("propulsion.thrusters.watchdog_timeout")

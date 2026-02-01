@@ -9,14 +9,15 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     std::int16_t i2c_bus,
     int pico_i2c_address,
     const std::vector<ThrusterParameters>& thruster_parameters,
-    const std::vector<std::vector<double>>& poly_coeffs)
+    const std::vector<double>& right_coeffs,
+    const std::vector<double>& left_coeffs)
     : i2c_bus_(i2c_bus),
       pico_i2c_address_(pico_i2c_address),
       thruster_parameters_(thruster_parameters),
-      poly_coeffs_(poly_coeffs) {
+      right_coeffs_(right_coeffs),
+      left_coeffs_(left_coeffs) {
     idle_pwm_value_ =
-        (calc_poly(0, poly_coeffs_[LEFT]) + calc_poly(0, poly_coeffs_[RIGHT])) /
-        2;
+        (calc_poly(0, left_coeffs_) + calc_poly(0, right_coeffs_)) / 2;
 }
 
 int ThrusterInterfaceAUVDriver::init_i2c() {
@@ -43,23 +44,21 @@ ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     const std::vector<double>& thruster_forces_array) {
     std::vector<uint16_t> pwm;
-    pwm.resize(thruster_forces_array.size());  // exactly one allocation
+    pwm.resize(thruster_forces_array.size());
 
     for (std::size_t i = 0; i < thruster_forces_array.size(); ++i) {
         const double force_in_kg = to_kg(thruster_forces_array[i]);
-        pwm[i] = force_to_pwm(force_in_kg, poly_coeffs_);
+        pwm[i] = force_to_pwm(force_in_kg);
     }
 
     return pwm;
 }
 
-std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(
-    double force,
-    const std::vector<std::vector<double>>& coeffs) {
+std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(double force) {
     if (force < 0) {
-        return calc_poly(force, coeffs[LEFT]);
+        return calc_poly(force, left_coeffs_);
     } else if (force > 0) {
-        return calc_poly(force, coeffs[RIGHT]);
+        return calc_poly(force, right_coeffs_);
     } else {
         return idle_pwm_value_;  // 1500
     }

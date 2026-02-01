@@ -57,7 +57,8 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     std::string subscriber_topic_name_;
     std::string publisher_topic_name_;
     std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<std::vector<double>> poly_coeffs_;
+    std::vector<double>> left_coeffs_;
+    std::vector<double>> right_coeffs_;
 
     std::vector<double> thruster_forces_array_;
     bool debug_flag_;
