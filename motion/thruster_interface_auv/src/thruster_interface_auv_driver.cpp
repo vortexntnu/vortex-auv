@@ -89,7 +89,6 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
 
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
-
     std::vector<double> mapped_forces(thruster_forces_array.size());
 
     for (std::size_t i = 0; i < thruster_parameters_.size(); ++i) {

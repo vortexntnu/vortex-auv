@@ -32,7 +32,8 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             vortex::utils::qos_profiles::reliable_profile(1));
 
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
-        i2c_bus_, i2c_address_, thruster_parameters_, right_coeffs_, left_coeffs_);
+        i2c_bus_, i2c_address_, thruster_parameters_, right_coeffs_,
+        left_coeffs_);
     thruster_driver_.init_i2c();
 
     thruster_forces_array_ = std::vector<double>(8, 0.00);
