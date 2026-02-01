@@ -102,15 +102,6 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     std::vector<uint16_t> thruster_pwm_array =
         interpolate_forces_to_pwm(mapped_forces);
 
-    std::ranges::transform(thruster_pwm_array, thruster_pwm_array.begin(),
-                           [this, i = 0](auto pwm) mutable {
-                               auto result = std::clamp(
-                                   pwm, thruster_parameters_[i].pwm_min,
-                                   thruster_parameters_[i].pwm_max);
-                               ++i;
-                               return result;
-                           });
-
     if (send_data_to_escs(thruster_pwm_array)){
         return {};
     }
