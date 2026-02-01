@@ -42,12 +42,15 @@ ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
 
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     const std::vector<double>& thruster_forces_array) {
-    // Convert Newtons to Kg (since the thruster datasheet is in Kg)
-    auto pwm_view = thruster_forces_array | std::views::transform(to_kg) |
-                    std::views::transform([this](double force_in_kg) {
-                        return force_to_pwm(force_in_kg, poly_coeffs_);
-                    });
-    return std::vector<uint16_t>(pwm_view.begin(), pwm_view.end());
+    std::vector<uint16_t> pwm;
+    pwm.resize(thruster_forces_array.size());  // exactly one allocation
+
+    for (std::size_t i = 0; i < thruster_forces_array.size(); ++i) {
+        const double force_in_kg = to_kg(thruster_forces_array[i]);
+        pwm[i] = force_to_pwm(force_in_kg, poly_coeffs_);
+    }
+
+    return pwm;
 }
 
 std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(
