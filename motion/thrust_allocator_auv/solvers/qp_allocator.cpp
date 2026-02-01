@@ -2,19 +2,24 @@
 #include "casadi/casadi.hpp"
 #include "thrust_allocator_auv/allocator_config.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include <eigen3/Eigen/src/Core/Matrix.h>
 
 QPAllocator::QPAllocator(const AllocatorConfig &cfg)
     : casadi_solver_initialized_(false) {
   formulate_as_qp(cfg);
-  formulate_as_qp_CasADi(cfg);
+  formulate_as_qp_CasADi();
 };
 
 void QPAllocator::formulate_as_qp(const AllocatorConfig &cfg) {
 
   const int r = cfg.input_weight_matrix.rows(); // number of thrusters = 8
   const int n = cfg.slack_weight_matrix.rows(); // degrees of freedom = 6
+
+  // Save important constants from cfg that will be used in bulding CasADi
+  // formulation
   this->number_of_thrusters = r;
   this->degrees_of_freedom_ = n;
+  this->max_force_ = cfg.max_force[0];
 
   // create and set the square term matrix.
   Eigen::MatrixXd phi = Eigen::MatrixXd::Zero(r + n + 1, r + n + 1);
@@ -74,11 +79,7 @@ void QPAllocator::formulate_as_qp(const AllocatorConfig &cfg) {
   extended_constraint_vec_(n + 2 * r) = beta_;
 };
 
-void QPAllocator::formulate_as_qp_CasADi(const AllocatorConfig &cfg) {
-
-  const int r = cfg.input_weight_matrix.rows(); // number of thrusters = 8
-  const int n = cfg.slack_weight_matrix.rows(); // degrees of freedom = 6
-
+void QPAllocator::formulate_as_qp_CasADi() {
   const int decision_variable_dimension =
       static_cast<int>(square_term_matrix_.rows());
 
@@ -131,8 +132,13 @@ void QPAllocator::formulate_as_qp_CasADi(const AllocatorConfig &cfg) {
   stacked_constraint_matrix_.bottomRows(inequality_constraint_count) =
       extended_inequality_state_matrix_;
 
+  // Set the correct H and A matrix utilizing the
   H_matrix = eigen_to_dm(square_term_matrix_);
   A_matrix = eigen_to_dm(stacked_constraint_matrix_);
+
+  // Preallocate the size of the previous soltuion.
+  previous_solution_ = casadi::DM::zeros(decision_variable_dimension, 1);
+  have_previous_solution_ = false;
 
   casadi_solver_initialized_ = true;
 }
@@ -156,7 +162,8 @@ QPAllocator::calculate_allocated_thrust(const Eigen::VectorXd &tau) {
       equality_constraint_count + inequality_constraint_count;
 
   // fill the part of p that corresponds to tau
-  extended_constraint_vec_.head(degrees_of_freedom_) = tau;
+  Eigen::VectorXd tau_scaled = normalizeWrenchVector(tau, max_force_);
+  extended_constraint_vec_.head(degrees_of_freedom_) = tau_scaled;
 
   // create the combination R*p after filling in tau
   Eigen::VectorXd linear_cost_vector =
@@ -170,7 +177,7 @@ QPAllocator::calculate_allocated_thrust(const Eigen::VectorXd &tau) {
   Eigen::VectorXd inequality_rhs =
       extended_inequality_constraint_matrix_ * extended_constraint_vec_;
 
-  //  Build lba/uba
+  //  Build lower and upper bounds constraint vectors
   Eigen::VectorXd lower_bound_constraints(total_constraint_count);
   Eigen::VectorXd upper_bound_constraints(total_constraint_count);
 
@@ -183,6 +190,7 @@ QPAllocator::calculate_allocated_thrust(const Eigen::VectorXd &tau) {
       .setConstant(-std::numeric_limits<double>::infinity());
   upper_bound_constraints.tail(inequality_constraint_count) = inequality_rhs;
 
+  // cast the matrices from Eigen to Double Matrix for CasADi
   lower_bound_constraint_matrix = eigen_to_dm(lower_bound_constraints);
   upper_bound_constraint_matrix = eigen_to_dm(upper_bound_constraints);
 
@@ -197,10 +205,20 @@ QPAllocator::calculate_allocated_thrust(const Eigen::VectorXd &tau) {
       {"ubx", upper_bound_state_matrix},
   };
 
+  // If we have access to a previous solution we warm start the solver
+  if (warm_start_enabled_ && have_previous_solution_) {
+    arg["x0"] = previous_solution_;
+  }
+
+  // Use the CasADi solver
   casadi::DMDict res = casadi_qp_solver_(arg);
 
   // Extract the decision-variable solution z from CasADi
   casadi::DM extended_state_solution = res.at("x");
+
+  // Remember the solution and enable warm starting
+  previous_solution_ = res.at("x");
+  have_previous_solution_ = true;
 
   // Convert CasADi DM -> raw doubles
   std::vector<double> extended_state_solution_raw =

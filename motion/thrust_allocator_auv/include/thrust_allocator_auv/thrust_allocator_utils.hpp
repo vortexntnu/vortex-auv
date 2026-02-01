@@ -10,7 +10,9 @@
 #include "casadi/casadi.hpp"
 #include <algorithm>
 #include <eigen3/Eigen/Eigen>
+#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <ranges>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
 #include <vortex/utils/types.hpp>
@@ -87,7 +89,7 @@ inline bool saturate_vector_values(Eigen::VectorXd &vec, double min,
  * @param cols The number of columns in the resulting Eigen matrix.
  * @return The resulting Eigen matrix.
  */
-inline Eigen::MatrixXd
+inline Eigen ::MatrixXd
 double_array_to_eigen_matrix(const std::vector<double> &matrix, int rows,
                              int cols) {
   return Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
@@ -124,6 +126,28 @@ inline Eigen::VectorXd dmToEigenVector(const casadi::DM &dm) {
   for (int i = 0; i < out.size(); ++i)
     out[i] = data[static_cast<size_t>(i)];
   return out;
+}
+
+/**
+ * @brief Clamps the wrench vector in a way that preserves scale between
+ * elements, will spdlog if intervention was needed if in debug
+ *
+ * @param &tau reference to the desired wrench vector
+ * @param tau_max the maximum allowed value of thrust
+ * @return The normalized tau vector
+ */
+inline Eigen::VectorXd normalizeWrenchVector(const Eigen::VectorXd &tau,
+                                             const double tau_max) {
+  const double max_abs_component = tau.cwiseAbs().maxCoeff();
+  const double scale = std::max(1.0, max_abs_component / tau_max);
+
+#if !defined(NDEBUG)
+  if (scale > 1.0) {
+    spdlog::warn("Wrench scaled by factor {:.3f} for QP conditioning", scale);
+  }
+#endif
+
+  return tau / scale;
 }
 
 #endif // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_

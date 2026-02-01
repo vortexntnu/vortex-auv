@@ -41,10 +41,11 @@ private:
   /**
    * @brief transforms the problem from QP standardform to CasADi formulation
    */
-  void formulate_as_qp_CasADi(const AllocatorConfig &cfg);
+  void formulate_as_qp_CasADi();
 
   int degrees_of_freedom_;
   int number_of_thrusters;
+  double max_force_;
   // Fossen formulation of QP, Fossen 2021 (11.41)
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   Eigen::VectorXd extended_state_vec_;                  // z in fossen's book
@@ -58,7 +59,6 @@ private:
   int beta_;
 
   // CasADi fomulation of QP
-  // TODO: Remember to implement warm starting after testing with QP
   Eigen::MatrixXd stacked_constraint_matrix_;
   casadi::Function casadi_qp_solver_;
   casadi::Sparsity H_sparsity_pattern_;
@@ -70,6 +70,14 @@ private:
   casadi::DM upper_bound_constraint_matrix;
   casadi::DM lower_bound_state_matrix;
   casadi::DM upper_bound_state_matrix;
+
+  // Remember the last solution to warm start the solver every iteration after
+  // initializing it
+  bool warm_start_enabled_{true};
+  bool have_previous_solution_{false};
+  casadi::DM previous_solution_;
+
+  // DEBUG variable
   bool casadi_solver_initialized_;
 };
 
