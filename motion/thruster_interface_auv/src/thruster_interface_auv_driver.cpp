@@ -74,14 +74,11 @@ std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
 
 int ThrusterInterfaceAUVDriver::send_data_to_escs(
     const std::vector<uint16_t>& thruster_pwm_array) {
-    constexpr std::size_t i2c_data_size =
-        1 + 8 * 2;  // 8 thrusters * (1xMSB + 1xLSB)
+    constexpr std::size_t i2c_data_size = 8 * 2;
     std::array<uint8_t, i2c_data_array> i2c_data_array;
 
-    i2c_data_array[0] = 0;
-
-    std::memcpy(i2c_data_array.data() + 1, thruster_pwm_array.data(),
-                i2c_data_size - 1);
+    std::memcpy(i2c_data_array.data(), thruster_pwm_array.data(),
+                i2c_data_size);
 
     if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
         return -1;
@@ -92,7 +89,7 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
 
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
-    // Apply thruster mapping and direction
+
     std::vector<double> mapped_forces(thruster_forces_array.size());
 
     for (std::size_t i = 0; i < thruster_parameters_.size(); ++i) {
@@ -104,7 +101,6 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
         mapped_forces[i] = raw_force * param.direction;
     }
 
-    // Convert forces to PWM
     std::vector<uint16_t> thruster_pwm_array =
         interpolate_forces_to_pwm(mapped_forces);
 
