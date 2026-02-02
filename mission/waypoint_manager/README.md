@@ -85,7 +85,7 @@ ros2 service call /orca/waypoint_addition vortex_msgs/srv/SendWaypoints "{
       mode: 1
     }
   ],
-  overwrite: false,
-  priority: false
+  overwrite_prior_waypoints: false,
+  take_priority: false
 }"
 ```
