@@ -1,9 +1,9 @@
-#include "valve_egomotion/valve_egomotion.hpp"
+#include "visual_egomotion/visual_egomotion.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-namespace valve_egomotion {
+namespace visual_egomotion {
 
 SlidingWindowSO3Mean::SlidingWindowSO3Mean(Config cfg) : cfg_(cfg) {}
 
@@ -121,10 +121,10 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
     for (double& v : cov6x6)
         v /= denom;
 
-    const double pos_floor = 1e-6;  
-    const double rot_floor = 1e-6;  
-    cov6x6[0] += pos_floor;
-    cov6x6[7] += pos_floor;
+    const double pos_floor = std::pow(0.05, 2);  
+    const double rot_floor = std::pow(5.0*M_PI/180.0, 2); 
+    cov6x6[0]  += pos_floor;
+    cov6x6[7]  += pos_floor;
     cov6x6[14] += pos_floor;
     cov6x6[21] += rot_floor;
     cov6x6[28] += rot_floor;
@@ -138,7 +138,7 @@ tf2::Vector3 SlidingWindowSO3Mean::logMapSO3(const tf2::Quaternion& q) {
     const double th = 2.0 * std::acos(w);
     const double s = std::sqrt(std::max(0.0, 1.0 - w * w));
 
-    // Small-angle: log(q) ≈ 2*v where q ≈ [v, 1]
+    // Small-angle: log(q) approx 2*v where q approx [v, 1]
     if (s < 1e-9) {
         return tf2::Vector3(2 * q.getX(), 2 * q.getY(), 2 * q.getZ());
     }
@@ -159,7 +159,6 @@ tf2::Quaternion SlidingWindowSO3Mean::expMapSO3(const tf2::Vector3& w) {
 
 double SlidingWindowSO3Mean::angularDist(const tf2::Quaternion& q1,
                                          const tf2::Quaternion& q2) {
-    // Use abs(dot) to account for q and -q representing same rotation
     const double d = std::abs(static_cast<double>(q1.dot(q2)));
     return 2.0 * std::acos(std::clamp(d, -1.0, 1.0));
 }
@@ -173,4 +172,4 @@ T SlidingWindowSO3Mean::median(std::vector<T> v) {
 
 template double SlidingWindowSO3Mean::median<double>(std::vector<double>);
 
-}  // namespace valve_egomotion
+}  // namespace visual_egomotion

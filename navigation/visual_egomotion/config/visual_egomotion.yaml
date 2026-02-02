@@ -1,0 +1,19 @@
+visual_egomotion:
+  ros__parameters:
+    visual_topic: /aruco_detector/landmarks
+    use_sim_time: true
+
+    ref_frame: vo_ref
+    base_frame: base_link
+    cam_frame: Orca/camera_front
+
+    max_age_sec: 15.0 # Sliding-window
+    window_size: 20
+
+    publish_tf: false
+    pub_rate_hz: 20.0
+    lost_timeout_sec: 15.0
+    anchor_id: -1
+    huber_threshold_deg: 2.5
+    gate_threshold_deg: 15.0
+    use_mad: false

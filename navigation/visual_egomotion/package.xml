@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>valve_egomotion</name>
+  <name>visual_egomotion</name>
   <version>0.1.0</version>
-  <description>Compute AUV pose from valve detections and publish to ESKF</description>
+  <description>Compute AUV pose from visual detections and publish to ESKF</description>
   <maintainer email="anton.tran@live.no">Anton Tran</maintainer>
   <license>MIT</license>
 

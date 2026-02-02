@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(valve_egomotion)
+project(visual_egomotion)
 
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
@@ -15,25 +15,25 @@ find_package(vortex_msgs REQUIRED)
 
 include_directories(include)
 
-add_library(valve_egomotion_core
-    src/valve_egomotion.cpp
+add_library(visual_egomotion_core
+    src/visual_egomotion.cpp
 )
-ament_target_dependencies(valve_egomotion_core
+ament_target_dependencies(visual_egomotion_core
     rclcpp
     tf2
 )
 
-target_include_directories(valve_egomotion_core PUBLIC
+target_include_directories(visual_egomotion_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
-add_executable(valve_egomotion_node
-    src/valve_egomotion_ros.cpp
+add_executable(visual_egomotion_node
+    src/visual_egomotion_ros.cpp
 )
-target_link_libraries(valve_egomotion_node valve_egomotion_core)
+target_link_libraries(visual_egomotion_node visual_egomotion_core)
 
-ament_target_dependencies(valve_egomotion_node
+ament_target_dependencies(visual_egomotion_node
     rclcpp
     geometry_msgs
     tf2
@@ -43,8 +43,8 @@ ament_target_dependencies(valve_egomotion_node
 )
 
 install(TARGETS
-    valve_egomotion_core
-    valve_egomotion_node
+    visual_egomotion_core
+    visual_egomotion_node
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION lib/${PROJECT_NAME}

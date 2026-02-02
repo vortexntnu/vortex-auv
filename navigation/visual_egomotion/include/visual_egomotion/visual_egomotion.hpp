@@ -9,11 +9,11 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <rclcpp/time.hpp>
 
-namespace valve_egomotion {
+namespace visual_egomotion {
 
 /**
  * Sliding-window smoother for the relative pose T_ref<-base measured from a
- * valve/marker.
+ * visual/marker.
  *
  * Notes:
  * - Keeps a time/size bounded buffer.
@@ -68,4 +68,4 @@ class SlidingWindowSO3Mean {
     std::deque<Sample> buf_;
 };
 
-}  // namespace valve_egomotion
+}  // namespace visual_egomotion

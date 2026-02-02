@@ -16,9 +16,9 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
-#include "valve_egomotion/valve_egomotion.hpp"
+#include "visual_egomotion/visual_egomotion.hpp"
 
-namespace valve_egomotion {
+namespace visual_egomotion {
 
 /**
  * ROS2 node:
@@ -28,9 +28,9 @@ namespace valve_egomotion {
  * - computes T_ref<-base = T_base<-marker0 * (T_base<-marker_now)^-1
  * - smoothes in a window and publishes PoseWithCovarianceStamped in ref_frame
  */
-class ValveEgomotionNode final : public rclcpp::Node {
+class VisualEgomotionNode final : public rclcpp::Node {
    public:
-    explicit ValveEgomotionNode(
+    explicit VisualEgomotionNode(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
@@ -38,21 +38,28 @@ class ValveEgomotionNode final : public rclcpp::Node {
     void onPublishTimer();
 
     // Params
-    std::string valve_topic_;
+    std::string visual_topic_;
     std::string ref_frame_;
     std::string base_frame_;
     std::string cam_frame_;
-    bool publish_tf_ = false;
-    double pub_rate_hz_ = 30.0;
-    double lost_timeout_sec_ = 0.5;
-
+    bool publish_tf_; 
+    double pub_rate_hz_; 
+    double lost_timeout_sec_;
+    rclcpp::Time last_pub_det_stamp;
+    
     // Anchor selection
-    int anchor_id_{-1};
+    int anchor_id_;
     uint16_t last_used_marker_id_{0xFFFF};
     size_t multi_skip_count_{0};
 
+    // Anchor and timing
+    bool have_ref = false;
+    tf2::Transform T_base_marker0_;
+    rclcpp::Time last_det_stamp;
+    rclcpp::Time last_pub_stamp;
+    
     // TF
-    std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -64,16 +71,14 @@ class ValveEgomotionNode final : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr pub_timer_;
 
     // Estimator
-    SlidingWindowSO3Mean smoother_;
-
-    // Anchor and timing
-    bool have_ref_ = false;
-    tf2::Transform T_base_marker0_;
-    rclcpp::Time last_det_stamp_;
-    rclcpp::Time last_pub_stamp_;
+    std::unique_ptr<SlidingWindowSO3Mean> smoother_;
 
     bool have_last_ref_base_ = false;
     tf2::Transform last_T_ref_base_;
+
+    void set_subscribers_and_publisher();
+    void set_parameters();
+
 };
 
-}  // namespace valve_egomotion
+}  // namespace visual_egomotion

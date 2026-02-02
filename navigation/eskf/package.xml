@@ -12,6 +12,7 @@
   <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
+  <depend>std_srvs</depend>
   <depend>eigen</depend>
   <depend>tf2</depend>
   <depend>vortex_msgs</depend>

@@ -5,6 +5,13 @@
 #include <utility>
 #include "typedefs.hpp"
 
+struct VoDebug {
+    double pos_innov_norm = 0.0;   // [m]
+    double ang_innov_norm = 0.0;   // [rad]
+    double nis_pose = 0.0;         // [-]
+    bool   have = false;
+};
+
 class ESKF {
    public:
     ESKF(const EskfParams& params);
@@ -25,12 +32,44 @@ class ESKF {
     inline StateQuat get_nominal_state() const { return current_nom_state_; }
 
     inline double get_nis() const { return nis_; }
-    bool have_vo_anchor_ = false;
+    bool have_vo_anchor = false;
     Eigen::Quaterniond q_nav_vo_{1, 0, 0, 0};
     Eigen::Vector3d p_nav_vo_{0, 0, 0};
 
-    double last_vo_stamp_sec_ = -1.0;
-    double vo_reset_gap_sec_ = 0.5;
+    double last_vo_stamp_sec_ = 0.0;
+    double vo_reset_gap_sec_ = 20.0;
+
+    int consecutive_vo_rejects_ = 0;
+    bool disable_nis_gating_ = false;
+
+    const VoDebug& debug_vo() const { return debug_vo_; }
+
+        /**
+     * @brief Enable/disable NIS gating
+     * When disabled, all measurements are accepted (for debugging)
+     */
+    void set_nis_gating_enabled(bool enabled);
+
+        /**
+     * @brief Force anchor reset on next VO measurement
+     */
+    void force_anchor_reset();
+    
+    /**
+     * @brief Get consecutive rejection count
+     */
+    int get_consecutive_vo_rejects() const;
+    
+    /**
+     * @brief Check if VO anchor is valid
+     */
+    bool is_anchor_valid() const;
+    
+    /**
+     * @brief Set dropout detection gap threshold
+     */
+    void set_vo_reset_gap(double gap_sec);
+
 
    private:
     // @brief Predict the nominal state
@@ -91,6 +130,16 @@ class ESKF {
 
     // Member variable for the current nominal state
     StateQuat current_nom_state_{};
+
+    void vo_velocity_update_(const Eigen::Vector3d& v_meas_nav,
+                            const Eigen::Matrix3d& Rv);
+
+    bool have_vo_prev{false};
+    double prev_vo_stamp_sec{0.0};
+    Eigen::Vector3d prev_p_meas_nav_{Eigen::Vector3d::Zero()};
+    // Debug
+    VoDebug debug_vo_;
+
 };
 
 #endif  // ESKF_HPP

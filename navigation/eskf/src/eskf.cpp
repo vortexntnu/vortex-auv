@@ -12,8 +12,59 @@ double compute_nis(const Eigen::Vector3d& innovation,
     return innovation.transpose() * S_inv * innovation;
 }
 
+static double compute_nisN(const Eigen::VectorXd& innovation,
+                           const Eigen::MatrixXd& S) {
+    return innovation.transpose() * S.inverse() * innovation;
+}
+    
+namespace vo_config {
+    // NIS thresholds, 99% confidence
+    constexpr double NIS_GATE_3DOF = 11.345;  
+    constexpr double NIS_GATE_6DOF = 16.812;  
+    
+    // after this many consecutive rejections, reset anchor
+    constexpr int CONSECUTIVE_REJECTS_FOR_RESET = 5;
+    
+    // Measurement noise floors
+    constexpr double POS_NOISE_FLOOR_M = 0.05;      // 5 cm minimum position uncertainty
+    constexpr double ATT_NOISE_FLOOR_RAD = 0.02;   // ~2 degrees minimum orientation uncertainty
+    constexpr double VEL_NOISE_FLOOR_MS = 0.2;     // 20 cm/s minimum velocity uncertainty
+    
+    constexpr double VO_RESET_GAP_SEC = 15.0;
+    
+    // damping normalized 
+    constexpr double VELOCITY_UPDATE_ALPHA = 0.4;
+}
+
 ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
     current_error_state_.covariance = params.P;
+
+    // VO history for finite-difference velocity update
+    have_vo_prev = false;
+    prev_vo_stamp_sec = 0.0;
+    prev_p_meas_nav_.setZero();
+}
+
+static Eigen::Vector3d compute_quaternion_error(const Eigen::Quaterniond& q_meas,
+                                                 const Eigen::Quaterniond& q_est) {
+    Eigen::Quaterniond q_err = (q_meas * q_est.inverse()).normalized();
+    
+    // Ensure shortest path by keeping w >= 0
+    if (q_err.w() < 0.0) {
+        q_err.coeffs() = -q_err.coeffs();
+    }
+    
+    // Convert to rotation vector using log map
+    const double w = q_err.w();
+    const Eigen::Vector3d v(q_err.x(), q_err.y(), q_err.z());
+    const double v_norm = v.norm();
+    
+    if (v_norm < 1e-10) {
+        return 2.0 * v;
+    }
+    
+    const double theta = 2.0 * std::atan2(v_norm, w);
+    return (theta / v_norm) * v;
 }
 
 std::pair<Eigen::Matrix18d, Eigen::Matrix18d> ESKF::van_loan_discretization(
@@ -192,67 +243,203 @@ void ESKF::dvl_update(const DvlMeasurement& dvl_meas) {
     // for testing the visual odom
     return;
     
-    // measurement_update(dvl_meas);
-    // injection_and_reset();
+    //measurement_update(dvl_meas);
+    //injection_and_reset();
+}
+
+void ESKF::vo_velocity_update_(const Eigen::Vector3d& v_meas_nav,
+                               const Eigen::Matrix3d& Rv) {
+    // Measurement: h(x) = v_nav
+    Eigen::Matrix<double, 3, 18> H = Eigen::Matrix<double, 3, 18>::Zero();
+    H.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
+
+    const Eigen::Matrix18d P = current_error_state_.covariance;
+    const Eigen::Vector3d y = v_meas_nav - current_nom_state_.vel;
+
+    const Eigen::Matrix3d S = H * P * H.transpose() + Rv;
+    const double nis = compute_nis(y, S);
+
+    // NIS gating
+    const double gate = disable_nis_gating_ ? 1e9 : vo_config::NIS_GATE_3DOF;
+    if (nis > gate) {
+        spdlog::debug("VO velocity rejected: NIS={:.2f} > {:.2f}", nis, gate);
+        return;
+    }
+
+    // Kalman gain with damping to let IMU "breathe"
+    Eigen::Matrix<double, 18, 3> K = P * H.transpose() * S.inverse();
+    K *= vo_config::VELOCITY_UPDATE_ALPHA;
+
+    current_error_state_.set_from_vector(K * y);
+
+    // Joseph form (use undamped K for covariance)
+    Eigen::Matrix<double, 18, 3> K_full = P * H.transpose() * S.inverse();
+    const Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K_full * H;
+    current_error_state_.covariance =
+        I_KH * P * I_KH.transpose() + K_full * Rv * K_full.transpose();
+
+    injection_and_reset();
 }
 
 void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
-    // Detect VO dropouts and reset anchor if gap is too large
+    // reset anchor if gap too large
     if (last_vo_stamp_sec_ > 0.0) {
         const double gap = visual_meas.stamp_sec - last_vo_stamp_sec_;
         if (gap > vo_reset_gap_sec_) {
-            have_vo_anchor_ = false;
+            spdlog::info("VO dropout detected ({:.2f}s), resetting anchor", gap);
+            have_vo_anchor = false;
+            have_vo_prev = false;
+            consecutive_vo_rejects_ = 0;
         }
     }
     last_vo_stamp_sec_ = visual_meas.stamp_sec;
 
-    // reinitialize VO->nav anchor using current nominal state as reference
-    if (!have_vo_anchor_) {
+    // if too many consecutive rejections, reset anchor
+    const bool need_smart_reset = 
+        (consecutive_vo_rejects_ >= vo_config::CONSECUTIVE_REJECTS_FOR_RESET);
+
+    if (!have_vo_anchor || need_smart_reset) {
+        if (need_smart_reset) {
+            spdlog::warn("Smart anchor reset: {} consecutive rejections", 
+                        consecutive_vo_rejects_);
+        }
+        
+        // Initialize anchor: maps from VO frame to Nav frame
+        // p_nav = p_nav_vo + R(q_nav_vo) * p_vo
+        // q_nav = q_nav_vo * q_vo
         q_nav_vo_ =
             (current_nom_state_.quat * visual_meas.quat.inverse()).normalized();
         p_nav_vo_ = current_nom_state_.pos - q_nav_vo_ * visual_meas.pos;
-        have_vo_anchor_ = true;
+
+        have_vo_anchor = true;
+        have_vo_prev = false;
+        consecutive_vo_rejects_ = 0;
+        debug_vo_.have = false;
+        
+        spdlog::info("VO anchor initialized at pos=[{:.2f}, {:.2f}, {:.2f}]",
+                    p_nav_vo_.x(), p_nav_vo_.y(), p_nav_vo_.z());
         return;
     }
 
-    // Map VO pose into nav frame using anchor
+    // transform VO measurement to navigation frame
     const Eigen::Vector3d p_meas_nav = p_nav_vo_ + q_nav_vo_ * visual_meas.pos;
     const Eigen::Quaterniond q_meas_nav =
         (q_nav_vo_ * visual_meas.quat).normalized();
 
-    // Innovation
+    // finite-difference velocity update
+    if (have_vo_prev) {
+        const double dt = visual_meas.stamp_sec - prev_vo_stamp_sec;
+        if (dt > 0.02 && dt < 15) {  
+            const Eigen::Vector3d v_meas_nav = (p_meas_nav - prev_p_meas_nav_) / dt;
+
+            Eigen::Matrix3d Rp = visual_meas.R.topLeftCorner<3, 3>();
+            Eigen::Matrix3d Rv = 2.0 * Rp / (dt * dt);
+
+            // noise floor
+            const double v_floor_sq = 
+                vo_config::VEL_NOISE_FLOOR_MS * vo_config::VEL_NOISE_FLOOR_MS;
+            for (int i = 0; i < 3; ++i) {
+                Rv(i, i) = std::max(Rv(i, i), v_floor_sq);
+            }
+
+            vo_velocity_update_(v_meas_nav, Rv);
+        }
+    }
+    prev_vo_stamp_sec = visual_meas.stamp_sec;
+    prev_p_meas_nav_ = p_meas_nav;
+    have_vo_prev = true;
+
+    // compute pose innovation
     Eigen::Matrix<double, 6, 1> y;
+    
+    // position innovation
     y.head<3>() = p_meas_nav - current_nom_state_.pos;
 
-    Eigen::Quaterniond q_err =
-        (current_nom_state_.quat.inverse() * q_meas_nav).normalized();
-    const Eigen::Vector3d dtheta =
-        (q_err.w() < 0.0) ? (-2.0 * q_err.vec()) : (2.0 * q_err.vec());
-    y.segment<3>(3) = dtheta;
+    y.segment<3>(3) = compute_quaternion_error(q_meas_nav, current_nom_state_.quat);
 
+    // measurement Jacobian
     Eigen::Matrix<double, 6, 18> H = Eigen::Matrix<double, 6, 18>::Zero();
     H.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();  // position
-    H.block<3, 3>(3, 6) = Eigen::Matrix3d::Identity();  // attitude ES
+    H.block<3, 3>(3, 6) = Eigen::Matrix3d::Identity();  // attitude error-state
 
-    Eigen::Matrix18d P = current_error_state_.covariance;
-    const Eigen::Matrix<double, 6, 6> R = visual_meas.R;
+    // measurement noise floors
+    Eigen::Matrix<double, 6, 6> R = visual_meas.R;
+    
+    const double p_floor_sq = 
+        vo_config::POS_NOISE_FLOOR_M * vo_config::POS_NOISE_FLOOR_M;
+    const double a_floor_sq = 
+        vo_config::ATT_NOISE_FLOOR_RAD * vo_config::ATT_NOISE_FLOOR_RAD;
+    
+    for (int i = 0; i < 3; ++i) {
+        R(i, i) = std::max(R(i, i), p_floor_sq);
+    }
+    for (int i = 3; i < 6; ++i) {
+        R(i, i) = std::max(R(i, i), a_floor_sq);
+    }
 
-    Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
+    // innovation covariance and NIS
+    const Eigen::Matrix18d P = current_error_state_.covariance;
+    const Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
+    const double nis = compute_nisN(y, S);
 
-    const double nis = y.transpose() * S.inverse() * y;
-    // chi2 threshold for 6 dof: ~12.59 (95%), ~16.81 (99%)
-    if (nis > 16.81) {
-        spdlog::warn("VO rejected by NIS: nis={:.2f}", nis);
+    // Debug output
+    debug_vo_.pos_innov_norm = y.head<3>().norm();
+    debug_vo_.ang_innov_norm = y.segment<3>(3).norm();
+    debug_vo_.nis_pose = nis;
+    debug_vo_.have = true;
+
+    // NIS Gating
+    const double gate = disable_nis_gating_ ? 1e9 : vo_config::NIS_GATE_6DOF;
+
+    if (nis > gate) {
+        consecutive_vo_rejects_++;
+        
+        spdlog::warn("VO pose REJECTED: NIS={:.1f} (gate={:.1f}), "
+                    "pos_err={:.3f}m, att_err={:.1f}deg, rejects={}",
+                    nis, gate,
+                    y.head<3>().norm(),
+                    y.segment<3>(3).norm() * 180.0 / M_PI,
+                    consecutive_vo_rejects_);
         return;
     }
 
+    // update
     Eigen::Matrix<double, 18, 6> K = P * H.transpose() * S.inverse();
-
     current_error_state_.set_from_vector(K * y);
 
+    // Joseph form covariance update
     Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K * H;
     current_error_state_.covariance =
         I_KH * P * I_KH.transpose() + K * R * K.transpose();
 
     injection_and_reset();
+    
+    consecutive_vo_rejects_ = 0;
+    
+    spdlog::debug("VO pose ACCEPTED: NIS={:.1f}, pos_corr={:.3f}m, att_corr={:.2f}deg",
+                 nis, y.head<3>().norm(), y.segment<3>(3).norm() * 180.0 / M_PI);
+}
+
+void ESKF::set_nis_gating_enabled(bool enabled) {
+    disable_nis_gating_ = !enabled;
+    spdlog::info("NIS gating {}", enabled ? "ENABLED" : "DISABLED (accepting all)");
+}
+
+void ESKF::force_anchor_reset() {
+    have_vo_anchor = false;
+    have_vo_prev = false;
+    consecutive_vo_rejects_ = 0;
+    spdlog::info("VO anchor reset forced");
+}
+
+int ESKF::get_consecutive_vo_rejects() const {
+    return consecutive_vo_rejects_;
+}
+
+bool ESKF::is_anchor_valid() const {
+    return have_vo_anchor;
+}
+
+void ESKF::set_vo_reset_gap(double gap_sec) {
+    vo_reset_gap_sec_ = gap_sec;
 }

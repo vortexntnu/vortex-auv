@@ -3,6 +3,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include "eskf/typedefs.hpp"
+#include <std_msgs/msg/float64.hpp>
 
 auto start_message{R"(
      ________   ______   ___  ____   ________
@@ -13,6 +14,33 @@ auto start_message{R"(
     |________| \______.'|____||____||_____|
 )"};
 
+static inline void pub_f64(
+    const rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr& pub,
+    double v) {
+    if (!pub) return;
+    std_msgs::msg::Float64 m;
+    m.data = v;
+    pub->publish(m);
+}
+
+static inline void pub_i32(
+    const rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr& pub,
+    int v) {
+    if (!pub) return;
+    std_msgs::msg::Int32 m;
+    m.data = v;
+    pub->publish(m);
+}
+
+static inline void pub_bool(
+    const rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr& pub,
+    bool v) {
+    if (!pub) return;
+    std_msgs::msg::Bool m;
+    m.data = v;
+    pub->publish(m);
+}
+
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options) {
     // time_step = std::chrono::milliseconds(1);
@@ -22,6 +50,8 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     set_subscribers_and_publisher();
 
     set_parameters();
+
+    setup_services();
 
     spdlog::info(start_message);
 }
@@ -50,12 +80,31 @@ void ESKFNode::set_subscribers_and_publisher() {
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
         "dvl/nis", vortex::utils::qos_profiles::reliable_profile());
 
+    pub_imu_dt_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/debug/imu_dt", vortex::utils::qos_profiles::reliable_profile());
+
+    pub_vo_pos_norm_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/debug/vo_pos_innov_norm", vortex::utils::qos_profiles::reliable_profile());
+
+    pub_vo_ang_norm_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/debug/vo_ang_innov_norm", vortex::utils::qos_profiles::reliable_profile());
+
+    pub_vo_nis_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/debug/vo_nis", vortex::utils::qos_profiles::reliable_profile());
+
+    pub_vo_rejects_ = create_publisher<std_msgs::msg::Int32>(
+        "eskf/debug/vo_consecutive_rejects", vortex::utils::qos_profiles::reliable_profile());
+
+    pub_vo_anchor_valid_ = create_publisher<std_msgs::msg::Bool>(
+        "eskf/debug/vo_anchor_valid", vortex::utils::qos_profiles::reliable_profile());
+
+        
     this->declare_parameter<std::string>("pose_topic", "/landmark/pose_cov");
     std::string pose_topic = this->get_parameter("pose_topic").as_string();
 
     visualEgomotion_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-    pose_topic, qos_sensor_data,
-    std::bind(&ESKFNode::visualEgomotion_callback, this, std::placeholders::_1));
+        pose_topic, qos_sensor_data,
+        std::bind(&ESKFNode::visualEgomotion_callback, this, std::placeholders::_1));
 }
 
 void ESKFNode::set_parameters() {
@@ -75,10 +124,10 @@ void ESKFNode::set_parameters() {
     }
 
     Eigen::Matrix12d Q = Eigen::Map<const Eigen::Vector12d>(diag_Q_std.data())
-                             .array()
-                             .square()
-                             .matrix()
-                             .asDiagonal();
+        .array()
+        .square()
+        .matrix()
+        .asDiagonal();
 
     std::vector<double> diag_p_init =
         this->declare_parameter<std::vector<double>>("diag_p_init");
@@ -89,6 +138,55 @@ void ESKFNode::set_parameters() {
     EskfParams eskf_params{.Q = Q, .P = P};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
+
+        this->declare_parameter<double>("vo_reset_gap_sec", 1.0);
+    double vo_gap = this->get_parameter("vo_reset_gap_sec").as_double();
+    eskf_->set_vo_reset_gap(vo_gap);
+    
+    this->declare_parameter<bool>("disable_nis_gating", false);
+    bool disable_gating = this->get_parameter("disable_nis_gating").as_bool();
+    eskf_->set_nis_gating_enabled(!disable_gating);
+    
+    if (disable_gating) { // For testing
+        RCLCPP_WARN(this->get_logger(), 
+            "NIS gating disabled");
+    }
+    
+    RCLCPP_INFO(this->get_logger(), "VO reset gap: %.2f s", vo_gap);
+}
+
+void ESKFNode::setup_services() {
+    toggle_gating_srv_ = this->create_service<std_srvs::srv::SetBool>(
+        "~/toggle_nis_gating",
+        [this](const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+               std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
+            if (eskf_) {
+                eskf_->set_nis_gating_enabled(request->data);
+                response->success = true;
+                response->message = request->data ? 
+                    "NIS gating ENABLED (proper rejection)" : 
+                    "NIS gating DISABLED (accepting all - DEBUG ONLY!)";
+                RCLCPP_INFO(this->get_logger(), "%s", response->message.c_str());
+            } else {
+                response->success = false;
+                response->message = "ESKF not initialized";
+            }
+        });
+
+    reset_anchor_srv_ = this->create_service<std_srvs::srv::Trigger>(
+        "~/force_anchor_reset",
+        [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+               std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+            if (eskf_) {
+                eskf_->force_anchor_reset();
+                response->success = true;
+                response->message = "VO anchor will reset on next measurement";
+                RCLCPP_INFO(this->get_logger(), "Anchor reset forced via service");
+            } else {
+                response->success = false;
+                response->message = "ESKF not initialized";
+            }
+        });
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -126,8 +224,8 @@ void ESKFNode::dvl_callback(
         msg->twist.twist.linear.z;
 
     dvl_measurement.cov << msg->twist.covariance[0], msg->twist.covariance[1],
-        msg->twist.covariance[2], msg->twist.covariance[6],
-        msg->twist.covariance[7], msg->twist.covariance[8],
+        msg->twist.covariance[2],  msg->twist.covariance[6],
+        msg->twist.covariance[7],  msg->twist.covariance[8],
         msg->twist.covariance[12], msg->twist.covariance[13],
         msg->twist.covariance[14];
 
@@ -145,8 +243,8 @@ void ESKFNode::visualEgomotion_callback(
     VisualMeasurement visual_meas{};
 
     visual_meas.pos << msg->pose.pose.position.x,
-                     msg->pose.pose.position.y,
-                     msg->pose.pose.position.z;
+                       msg->pose.pose.position.y,
+                       msg->pose.pose.position.z;
 
     visual_meas.quat = Eigen::Quaterniond(
         msg->pose.pose.orientation.w,
@@ -160,6 +258,17 @@ void ESKFNode::visualEgomotion_callback(
     visual_meas.stamp_sec = rclcpp::Time(msg->header.stamp).seconds();
 
     eskf_->visualEgomotion_update(visual_meas);
+
+    const auto& dbg = eskf_->debug_vo();
+    if (dbg.have) {
+        pub_f64(pub_vo_pos_norm_, dbg.pos_innov_norm);
+        pub_f64(pub_vo_ang_norm_, dbg.ang_innov_norm);
+        pub_f64(pub_vo_nis_, dbg.nis_pose);
+    }
+    
+    pub_i32(pub_vo_rejects_, eskf_->get_consecutive_vo_rejects());
+    pub_bool(pub_vo_anchor_valid_, eskf_->is_anchor_valid());
+
     publish_odom();
 }
 
