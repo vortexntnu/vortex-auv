@@ -197,6 +197,31 @@ Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
     return x;
 }
 
+Eigen::Vector6d ReferenceFilterNode::measured_pose_vector6() {
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        pose_msg = current_pose_;
+    }
+
+    const auto& p = pose_msg.pose.pose.position;
+    const auto& o = pose_msg.pose.pose.orientation;
+
+    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+    if (q.norm() < 1e-9) {
+        q = Eigen::Quaterniond::Identity();
+    } else {
+        q.normalize();
+    }
+
+    Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(q);
+
+    Eigen::Vector6d y;
+    y << p.x, p.y, p.z, vortex::utils::math::ssa(euler(0)),
+        vortex::utils::math::ssa(euler(1)), vortex::utils::math::ssa(euler(2));
+    return y;
+}
+
 Eigen::Vector6d ReferenceFilterNode::fill_reference_goal(
     const geometry_msgs::msg::Pose& goal) {
     double x{goal.position.x};
@@ -269,6 +294,42 @@ Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
     }
 
     return r_out;
+}
+
+bool ReferenceFilterNode::has_converged_against_pose(
+    const Eigen::Vector6d& y,
+    const Eigen::Vector6d& r,
+    uint8_t mode,
+    double convergence_threshold) const {
+    const Eigen::Vector3d ep = y.head<3>() - r.head<3>();
+
+    Eigen::Vector3d ea;
+    ea(0) = vortex::utils::math::ssa(y(3) - r(3));
+    ea(1) = vortex::utils::math::ssa(y(4) - r(4));
+    ea(2) = vortex::utils::math::ssa(y(5) - r(5));
+
+    double err = 0.0;
+
+    switch (mode) {
+        case vortex_msgs::msg::Waypoint::ONLY_POSITION:
+            err = ep.norm();
+            break;
+
+        case vortex_msgs::msg::Waypoint::ONLY_ORIENTATION:
+            err = ea.norm();
+            break;
+
+        case vortex_msgs::msg::Waypoint::FORWARD_HEADING:
+            err = std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
+            break;
+
+        case vortex_msgs::msg::Waypoint::FULL_POSE:
+        default:
+            err = std::sqrt(ep.squaredNorm() + ea.squaredNorm());
+            break;
+    }
+
+    return err < convergence_threshold;
 }
 
 void ReferenceFilterNode::publish_hold_reference() {
@@ -371,7 +432,9 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        if ((x_.head(6) - r_.head(6)).norm() < convergence_threshold) {
+        Eigen::Vector6d y = measured_pose_vector6();
+
+        if (has_converged_against_pose(y, r_, mode, convergence_threshold)) {
             result->success = true;
             goal_handle->succeed(result);
             x_.head(6) = r_.head(6);
