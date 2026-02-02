@@ -21,7 +21,7 @@
       mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
 
     propulsion:
-      solver: qp # (availible solvers: pseudoinverse, qp)
+      solver: qp # (available solvers: pseudoinverse, qp)
       dofs:
         num: 6
       dimensions:
@@ -80,9 +80,9 @@
             0.08200,
             0.07600, # z-position of thrusters
           ]
-        
+
         constraints:
-          max_force: 100.0 
+          max_force: 100.0
           min_force: -100.0
           beta: 3.5
           input_matrix_weights: [1,1,1,1,1,1,1,1]

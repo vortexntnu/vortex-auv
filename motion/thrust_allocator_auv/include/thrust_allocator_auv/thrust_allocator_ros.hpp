@@ -8,15 +8,15 @@
 
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
-#include <string>
 #include <rclcpp/rclcpp.hpp>
+#include <string>
 #include <vortex_msgs/msg/thruster_forces.hpp>
-#include "vortex/utils/types.hpp"
 #include "thrust_allocator_auv/allocator.hpp"
-#include "thrust_allocator_auv/qp_allocator.hpp"
 #include "thrust_allocator_auv/allocator_factory.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
+#include "thrust_allocator_auv/qp_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include "vortex/utils/types.hpp"
 
 using vortex::utils::types::Vector6d;
 
@@ -39,21 +39,19 @@ inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
 }
 
 /**
- * @brief Converts a geometry wrench stamped message to a Vector6d to 
+ * @brief Converts a geometry wrench stamped message to a Vector6d to
  * message.
  *
  * @param msg The geometry_msgs::msg::WrenchStamped message with wrench vector
  * @return The converted vortex::utils::types::Vector6d message.
  */
-inline Vector6d wrench_to_vector(
-    const geometry_msgs::msg::WrenchStamped& msg) {
+inline Vector6d wrench_to_vector(const geometry_msgs::msg::WrenchStamped& msg) {
     Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
-                               msg.wrench.force.z,  msg.wrench.torque.x,
-                               msg.wrench.torque.y, msg.wrench.torque.z};
+                        msg.wrench.force.z,  msg.wrench.torque.x,
+                        msg.wrench.torque.y, msg.wrench.torque.z};
 
     return msg_vector;
 }
-
 
 class ThrustAllocator : public rclcpp::Node {
    public:

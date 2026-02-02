@@ -10,14 +10,15 @@
 #include <eigen3/Eigen/Eigen>
 
 /**
- * @brief The Allocator class structure that the solvers will inherit and override.
+ * @brief The Allocator class structure that the solvers will inherit and
+ * override.
  */
 class Allocator {
    public:
     /**
      * @brief Constructor for the Allocator class.
      */
-    
+
     virtual ~Allocator() = default;
 
     /**
@@ -27,7 +28,8 @@ class Allocator {
      * @param tau The input torques as a vector.
      * @return The allocated thrust as a vector.
      */
-    virtual Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd& tau) = 0;
+    virtual Eigen::VectorXd calculate_allocated_thrust(
+        const Eigen::VectorXd& tau) = 0;
 };
 
 #endif  // THRUST_ALLOCATOR_AUV__ALLOCATOR_HPP_

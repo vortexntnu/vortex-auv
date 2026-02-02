@@ -33,7 +33,8 @@ class PseudoinverseAllocator final : public Allocator {
      * @throws char* if the pseudoinverse is invalid.
      * @return The pseudoinverse of the given matrix.
      */
-   Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T, const Eigen::MatrixXd& W) ;
+    Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T,
+                                            const Eigen::MatrixXd& W);
 
     /**
      * @brief Calculates the allocated thrust given the input torques using the
@@ -42,7 +43,8 @@ class PseudoinverseAllocator final : public Allocator {
      * @param tau The input torques as a vector.
      * @return The allocated thrust as a vector.
      */
-    Eigen::VectorXd calculate_allocated_thrust(const Eigen::VectorXd& tau) override;
+    Eigen::VectorXd calculate_allocated_thrust(
+        const Eigen::VectorXd& tau) override;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     Eigen::MatrixXd extended_thrust_matrix_;
