@@ -61,10 +61,15 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
     std::vector<uint16_t> thruster_pwm_array =
         thruster_driver_->drive_thrusters(this->thruster_forces_array_);
 
+    if (thruster_pwm_array.has_value() == false){
+      spdlog::warn("Sending PWM values to thrusters failed");
+    }
+
+
     if (debug_flag_) {
         std_msgs::msg::Int16MultiArray pwm_message;
-        pwm_message.data = std::vector<int16_t>(thruster_pwm_array.begin(),
-                                                thruster_pwm_array.end());
+        pwm_message.data = std::vector<int16_t>(thruster_pwm_array.value().begin(),
+                                                thruster_pwm_array.value().end());
         thruster_pwm_publisher_->publish(pwm_message);
     }
 }

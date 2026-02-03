@@ -1,9 +1,7 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
-#include <spdlog/spdlog.h>
 #include <cstdint>
 #include <cstring>
 #include <format>
-#include <ranges>
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     std::int16_t i2c_bus,
@@ -87,7 +85,7 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
     return 0;
 }
 
-std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
+std::optional<std::vector<uint16_t>> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
     std::vector<double> mapped_forces(thruster_forces_array.size());
 
