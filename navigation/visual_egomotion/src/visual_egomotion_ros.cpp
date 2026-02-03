@@ -65,7 +65,6 @@ void VisualEgomotionNode::set_parameters()
     this->declare_parameter<bool>("publish_tf");
     this->declare_parameter<double>("pub_rate_hz");
     this->declare_parameter<double>("lost_timeout_sec");
-    this->declare_parameter<int>("anchor_id");
 
     // smoother params
     this->declare_parameter<int>("window_size");
@@ -83,15 +82,12 @@ void VisualEgomotionNode::set_parameters()
     pub_rate_hz_ = this->get_parameter("pub_rate_hz").as_double();
     lost_timeout_sec_ = this->get_parameter("lost_timeout_sec").as_double();
 
-    anchor_id_ = this->get_parameter("anchor_id").as_int();
 }
 
 void VisualEgomotionNode::onLandmarks(
     const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
     if (!msg || msg->landmarks.empty())
         return;
-
-    this->get_parameter("anchor_id", anchor_id_);
 
     const vortex_msgs::msg::Landmark* board = nullptr;
     std::vector<const vortex_msgs::msg::Landmark*> markers;
@@ -119,9 +115,9 @@ void VisualEgomotionNode::onLandmarks(
     }
 
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
-                         "Chosen=%s id=%u (anchor_id=%d) markers=%zu",
+                         "Chosen=%s id=%u (anchored=%d) markers=%zu",
                          (chosen == board) ? "BOARD" : "MARKER", chosen_id,
-                         anchor_id_, markers.size());
+                         last_used_marker_id_, markers.size());
 
     tf2::Transform T_cam_landmark;
     tf2::fromMsg(chosen->pose.pose, T_cam_landmark);

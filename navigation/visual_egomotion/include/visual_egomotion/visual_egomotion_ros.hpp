@@ -48,7 +48,6 @@ class VisualEgomotionNode final : public rclcpp::Node {
     rclcpp::Time last_pub_det_stamp;
     
     // Anchor selection
-    int anchor_id_;
     uint16_t last_used_marker_id_{0xFFFF};
     size_t multi_skip_count_{0};
 

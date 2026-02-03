@@ -13,7 +13,6 @@ visual_egomotion:
     publish_tf: false
     pub_rate_hz: 20.0
     lost_timeout_sec: 15.0
-    anchor_id: -1
     huber_threshold_deg: 2.5
     gate_threshold_deg: 15.0
     use_mad: false
