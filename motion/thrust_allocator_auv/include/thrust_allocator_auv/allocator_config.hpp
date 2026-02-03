@@ -27,16 +27,15 @@
  * (11.38).
  */
 struct AllocatorConfig {
-    Eigen::MatrixXd extended_thrust_matrix;
+  Eigen::MatrixXd extended_thrust_matrix;
 
-    // Constraints
-    Eigen::VectorXd min_force;
-    Eigen::VectorXd max_force;
+  // Constraints
+  Eigen::VectorXd min_force;
+  Eigen::VectorXd max_force;
 
-    // Weighting matrices
-    Eigen::MatrixXd input_weight_matrix;
-    Eigen::MatrixXd slack_weight_matrix;
-    double beta;
+  // Weighting matrices
+  Eigen::MatrixXd input_weight_matrix;
+  Eigen::MatrixXd slack_weight_matrix;
 };
 
-#endif  // THRUST_ALLOCATOR_AUV__ALLOCATOR_CONFIG_HPP_
+#endif // THRUST_ALLOCATOR_AUV__ALLOCATOR_CONFIG_HPP_

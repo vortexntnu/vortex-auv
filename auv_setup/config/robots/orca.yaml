@@ -84,9 +84,8 @@
         constraints:
           max_force: 100.0
           min_force: -100.0
-          beta: 3.5
           input_matrix_weights: [1,1,1,1,1,1,1,1]
-          slack_matrix_weights: [5000,5000,5000,5000,5000,5000]
+          slack_matrix_weights: [2000,2000,2000,2000,2000,2000]
 
         rate_of_change:
           max: 1 # Maximum rate of change in newton per second for a thruster
