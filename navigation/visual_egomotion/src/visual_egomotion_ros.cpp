@@ -113,53 +113,9 @@ void VisualEgomotionNode::onLandmarks(
         chosen = board;
         chosen_id = 0;
     } else {
-        if (markers.size() == 1) {
-            chosen = markers[0];
-            chosen_id = chosen->subtype;
-        } else {
-            // Multi-marker: choose by explicit anchor_id, else implicit locked id
-            uint16_t aid = 0xFFFF;
-            bool have_aid = false;
-
-            if (anchor_id_ >= 0) {
-                aid = static_cast<uint16_t>(anchor_id_);
-                have_aid = true;
-            } else if (have_ref && last_used_marker_id_ != 0xFFFF) {
-                aid = last_used_marker_id_;
-                have_aid = true;
-            }
-
-            if (!have_aid) {
-                if ((++multi_skip_count_ % 20) == 1) {
-                    std::ostringstream oss;
-                    oss << "Multi-marker frame and no anchor yet. Seen ids: ";
-                    for (auto* m : markers)
-                        oss << m->subtype << " ";
-                    RCLCPP_WARN(this->get_logger(), "%s", oss.str().c_str());
-                }
-                return;
-            }
-
-            for (auto* m : markers) {
-                if (m->subtype == aid) {
-                    chosen = m;
-                    chosen_id = aid;
-                    break;
-                }
-            }
-
-            if (!chosen) {
-                if ((++multi_skip_count_ % 20) == 1) {
-                    std::ostringstream oss;
-                    oss << "Multi-marker frame: anchor_id=" << aid
-                        << " not present. Seen ids: ";
-                    for (auto* m : markers)
-                        oss << m->subtype << " ";
-                    RCLCPP_WARN(this->get_logger(), "%s", oss.str().c_str());
-                }
-                return;
-            }
-        }
+        auto it = std::min_element(markers.begin(), markers.end(), [](const auto* a, const auto* b) { return a->subtype < b->subtype; });
+        chosen = *it;
+        chosen_id = chosen->subtype;
     }
 
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
