@@ -55,30 +55,37 @@ beware of namespace!
 ## Example Action Goal (CLI)
 
 ```bash
-ros2 action send_goal /orca/waypoint_manager vortex_msgs/action/WaypointManager \
-'{
-  waypoints:[
+ros2 action send_goal /orca/waypoint_manager vortex_msgs/action/WaypointManager "{
+  waypoints: [
     {
-      pose:{position:{x:5.0,y:0.0,z:0.0},
-            orientation:{x:0,y:0,z:0,w:1}},
-      mode:1
+      pose: {
+        position: {x: 5.0, y: 0.0, z: 0.0},
+        orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+      },
+      mode: 1
     }
   ],
-  convergence_threshold:0.1,
-  persistent:false
-}'
+  convergence_threshold: 0.1,
+  persistent: false
+}" --feedback
+
 ```
 
 
 ## Example Waypoint Addition Service Call
 
 ```bash
-ros2 service call /orca/waypoint_addition vortex_msgs/srv/WaypointAddition \
-'{
-  waypoints:[
-    {pose:{position:{x:2,y:3,z:0},orientation:{x:0,y:0,z:0,w:1}},mode:1}
+ros2 service call /orca/waypoint_addition vortex_msgs/srv/SendWaypoints "{
+  waypoints: [
+    {
+      pose: {
+        position: {x: 2.0, y: 3.0, z: 0.0},
+        orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+      },
+      mode: 1
+    }
   ],
-  overwrite:false,
-  priority:true
-}'
+  overwrite_prior_waypoints: false,
+  take_priority: false
+}"
 ```
