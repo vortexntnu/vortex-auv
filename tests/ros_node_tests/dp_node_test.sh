@@ -20,11 +20,17 @@ setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py
 CONTROLLER_PID=$!
 echo "Launched controller with PID: $CONTROLLER_PID"
 
+# launch operation mode service
+setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
+OP_MODE_PID=$!
+echo "Launched operation mode service with PID: $OP_MODE_PID"
+
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
     echo "Error detected in ROS logs. Exiting..."
     exit 1
 fi
+
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"

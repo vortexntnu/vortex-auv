@@ -50,6 +50,11 @@ setsid ros2 launch stonefish_sim orca_sim.launch.py &
 ORCA_PID=$!
 echo "Launched orca with PID: $ORCA_PID"
 
+# launch operation mode service
+setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
+OP_MODE_PID=$!
+echo "Launched operation mode service with PID: $OP_MODE_PID"
+
 echo "Waiting for sim interface to start..."
 timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'
 echo "Simulator started"

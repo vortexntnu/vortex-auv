@@ -21,6 +21,11 @@ CONTROLLER_PID=$!
 sleep 5
 echo "Launched controller with PID: $CONTROLLER_PID"
 
+# launch operation mode service
+setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
+OP_MODE_PID=$!
+echo "Launched operation mode service with PID: $OP_MODE_PID"
+
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
     echo "Error detected in ROS logs. Exiting..."
