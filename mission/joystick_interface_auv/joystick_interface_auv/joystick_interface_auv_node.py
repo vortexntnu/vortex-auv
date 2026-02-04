@@ -146,7 +146,7 @@ class JoystickInterface(Node):
         self._mode = msg.operation_mode
 
     def killswitch_cb(self, msg: Bool):
-        self._killswitch = msg
+        self._killswitch = msg.data
 
     def create_reference_message(self) -> ReferenceFilter:
         """Creates a reference message with the desired state values."""
