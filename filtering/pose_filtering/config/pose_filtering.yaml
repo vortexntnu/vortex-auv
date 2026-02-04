@@ -1,0 +1,54 @@
+/**:
+  ros__parameters:
+    pose_sub_topic: "/aruco_detector/board"
+    pose_array_pub_topic: "/filtered_pose_array"
+    landmark_pub_topic: "/filtered_landmarks"
+    target_frame: "odom"
+    timer_rate_ms: 100
+    enu_ned_rotation: true
+
+    max_angle_gate_threshold: 0.4 # in radians
+
+    # IPDA config
+    position:
+      ipda:
+        prob_of_survival: 0.95
+        estimate_clutter: false
+        prob_of_detection: 0.5
+        mahalanobis_gate_threshold: 2.5 # in std deviations
+        min_gate_threshold: 1.0 # in meters
+        max_gate_threshold: 10.0 # in meters
+        clutter_intensity: 0.01
+      initial_position_std: 0.1
+
+      # Dyn model config
+      dyn_mod:
+        std_dev: 0.2
+
+      # Sensor model config
+      sensor_mod:
+        std_dev: 0.2
+
+      # Existence management config
+      existence:
+        confirmation_threshold: 0.6
+        deletion_threshold: 0.2
+        initial_existence_probability: 0.4
+
+    orientation:
+      pdaf:
+        prob_of_detection: 0.95
+        clutter_intensity: 0.01
+        mahalanobis_gate_threshold: 2.0 # in std deviations
+      initial_orientation_std: 0.1
+
+      dyn_mod:
+        std_dev: 0.05
+
+      sensor_mod:
+        std_dev: 0.05
+
+    debug:
+      enable: true
+      topic_name_meas: "/pose_debug_meas"
+      topic_name_state: "/pose_debug_state"
