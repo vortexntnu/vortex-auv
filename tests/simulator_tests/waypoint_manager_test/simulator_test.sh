@@ -14,7 +14,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cleanup() {
     echo "Error detected. Cleaning up..."
     # Safely kill any started PIDs (ignore empty values)
-    for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID"; do
+    for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID" ; do
         if [ -n "$_pid" ]; then
             kill -TERM "$_pid" 2>/dev/null || true
         fi
@@ -111,7 +111,7 @@ else
 fi
 
 # Terminate processes (safely)
-for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$BAG_PID"; do
+for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID"; do
     if [ -n "$_pid" ]; then
         kill -TERM "$_pid" 2>/dev/null || true
     fi

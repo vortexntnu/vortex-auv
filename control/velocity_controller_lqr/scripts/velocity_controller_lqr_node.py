@@ -46,7 +46,7 @@ class LinearQuadraticRegulator(Node):
         )
 
         self.operationmode_subscriber = self.create_subscription(
-            String,
+            OperationMode,
             self.operation_mode_topic,
             self.operation_callback,
             qos_profile=reliable_profile(2),
@@ -168,13 +168,13 @@ class LinearQuadraticRegulator(Node):
         """
         self.state.pose = pose_from_ros(msg.pose.pose)
 
-    def operation_callback(self, msg: String):
+    def operation_callback(self, msg: OperationMode):
         """Callback function for the operation mode data.
 
         Parameters: String: msg: The operation mode data from the AUV.
 
         """
-        self.operation_mode = msg.data
+        self.operation_mode = msg.operation_mode
         self.get_logger().info(f"Changed operation mode to {self.operation_mode}")
 
     def twist_callback(self, msg: TwistWithCovarianceStamped):

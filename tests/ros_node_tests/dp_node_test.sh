@@ -11,6 +11,7 @@ echo "Setting up ROS 2 environment..."
 cleanup() {
     echo "Error detected. Cleaning up..."
     kill -TERM -"$CONTROLLER_PID" || true
+    kill -TERM -"$OP_MODE_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -44,5 +45,6 @@ echo "Got wrench data"
 
 # Terminate processes
 kill -TERM -"$CONTROLLER_PID"
+kill -TERM -"$OP_MODE_PID"
 
 echo "Test completed successfully."

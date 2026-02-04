@@ -133,3 +133,4 @@ class TestVelocityController:
             state=state, guidance_values=guidance
         )  # command should be slightly positive (to the right)
         assert np.greater(u[2], 0.0)
+
