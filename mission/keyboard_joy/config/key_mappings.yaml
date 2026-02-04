@@ -1,0 +1,48 @@
+axes:
+  # Each mapping is [axis_index, value, mode]
+  # axis_index is which Joy.axes[] index to control
+  # value is the target value while the key is held (-1.0 to 1.0)
+  # mode is 'hold' or 'sticky'
+
+  # Left stick (surge/sway)
+  w: [1, 1.0, 'hold']
+  s: [1, -1.0, 'hold']
+  a: [0, 1.0, 'hold']
+  d: [0, -1.0, 'hold']
+
+  # Heave
+  Key.space: [2, 1.0, 'hold'] # Up (RT)
+  Key.shift: [2, -1.0, 'hold'] # Down (LT)
+
+  # Rotation (pitch/yaw)
+  Key.up: [4, 1.0, 'hold']
+  Key.down: [4, -1.0, 'hold']
+  Key.left: [3, 1.0, 'hold']
+  Key.right: [3, -1.0, 'hold']
+
+  # Vertical (axis 7)
+  Key.home: [7, 1.0, 'hold']        # Numpad 7 → D-pad up
+  Key.end:  [7, -1.0, 'hold']       # Numpad 1 → D-pad down
+
+  # Horizontal (axis 6)
+  Key.page_up:   [6, 1.0, 'hold']   # Numpad 9 → D-pad right
+  Key.page_down: [6, -1.0, 'hold']  # Numpad 3 → D-pad left
+
+parameters:
+  axis_update_period: 0.02 # seconds per update
+  publish_period: 0.02 # seconds per publish
+
+  # Motion tuning
+  axis_increment_step: 0.1 # axis change per update (higher = faster movement)
+
+
+buttons:
+  # Roll
+  q: 4 # LB
+  e: 5 # RB
+
+  # Modes
+  '1': 0 # A - Xbox mode
+  '2': 1 # B - Killswitch
+  '3': 2 # X - Auto
+  '4': 3 # Y - Reference
