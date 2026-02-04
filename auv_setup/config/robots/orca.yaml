@@ -121,6 +121,7 @@
       joy: "joy"
       pose: "pose"
       twist: "twist"
+      odom: "odom"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       reference_pose: "reference_pose"
@@ -135,6 +136,9 @@
     action_servers:
       reference_filter: "reference_filter"
       los: "los_guidance"
+
+    services: # Maybe not the right place for this?
+      los_mode: "set_los_mode"
 
     fsm:
       docking:
