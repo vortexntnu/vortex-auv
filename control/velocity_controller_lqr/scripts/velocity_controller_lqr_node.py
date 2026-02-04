@@ -9,12 +9,12 @@ from geometry_msgs.msg import (
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node, Parameter
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
     LQRController,
     LQRParameters,
 )
-from vortex_msgs.msg import LOSGuidance
+from vortex_msgs.msg import LOSGuidance, OperationMode
 from vortex_utils.python_utils import State
 from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
 from vortex_utils_ros.ros_converter import pose_from_ros, twist_from_ros
@@ -25,7 +25,7 @@ class LinearQuadraticRegulator(Node):
         super().__init__("velocity_controller_lqr_node")
 
         self.killswitch_on = True
-        self.operation_mode = "xbox mode"
+        self.operation_mode = OperationMode.MANUAL
 
         self.get_topics()
 
@@ -46,7 +46,7 @@ class LinearQuadraticRegulator(Node):
         )
 
         self.operationmode_subscriber = self.create_subscription(
-            String,
+            OperationMode,
             self.operation_mode_topic,
             self.operation_callback,
             qos_profile=reliable_profile(2),
@@ -168,13 +168,13 @@ class LinearQuadraticRegulator(Node):
         """
         self.state.pose = pose_from_ros(msg.pose.pose)
 
-    def operation_callback(self, msg: String):
+    def operation_callback(self, msg: OperationMode):
         """Callback function for the operation mode data.
 
         Parameters: String: msg: The operation mode data from the AUV.
 
         """
-        self.operation_mode = msg.data
+        self.operation_mode = msg.operation_mode
         self.get_logger().info(f"Changed operation mode to {self.operation_mode}")
 
     def twist_callback(self, msg: TwistWithCovarianceStamped):
@@ -221,7 +221,10 @@ class LinearQuadraticRegulator(Node):
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
 
-        if self.killswitch_on == False and self.operation_mode == "autonomous mode":
+        if self.killswitch_on == False and (
+            self.operation_mode == OperationMode.AUTONOMOUS
+            or self.operation_mode == OperationMode.REFERENCE
+        ):
             self.publisherLQR.publish(msg)
 
         else:

@@ -74,10 +74,11 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
-    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, qos_reliable,
-        std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
-                  std::placeholders::_1));
+    software_mode_sub_ =
+        this->create_subscription<vortex_msgs::msg::OperationMode>(
+            software_operation_mode_topic, qos_reliable,
+            std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
+                      std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
@@ -95,11 +96,12 @@ void DPAdaptBacksControllerNode::killswitch_callback(
 }
 
 void DPAdaptBacksControllerNode::software_mode_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    software_mode_ = msg->data;
-    spdlog::info("Software mode: {}", software_mode_);
+    const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+    software_mode_ = convert_from_ros(*msg);
+    spdlog::info("Software mode: {}", modetoString(software_mode_));
 
-    if (software_mode_ == "autonomous mode") {
+    if (software_mode_ == Mode::autonomous ||
+        software_mode_ == Mode::reference) {
         pose_d_ = pose_;
     }
 }
@@ -180,7 +182,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ || software_mode_ == Mode::manual) {
         return;
     }
 

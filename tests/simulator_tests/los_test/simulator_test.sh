@@ -12,7 +12,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$AUTOPILOT_PID" || true
+    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$AUTOPILOT_PID" -"$OP_MODE_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -49,6 +49,11 @@ setsid ros2 launch stonefish_sim orca_sim.launch.py &
 ORCA_PID=$!
 echo "Launched orca with PID: $ORCA_PID"
 
+# launch operation mode service (temporary)
+setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
+OP_MODE_PID=$!
+echo "Launched operation mode service with PID: $OP_MODE_PID"
+
 echo "Waiting for sim interface to start..."
 timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'
 echo "Simulator started"
@@ -74,8 +79,8 @@ fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5
-ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5
+ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 # Send waypoint goal
 echo "Sending goal"
@@ -89,6 +94,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$AUTOPILOT_PID" -"$BAG_PID"
+kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$AUTOPILOT_PID" -"$BAG_PID" -"$OP_MODE_PID"
 
 echo "Test completed successfully."

@@ -13,6 +13,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <variant>
+#include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
@@ -29,7 +30,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     // @brief Callback function for the software mode topic
     // @param msg: String message containing the software mode
-    void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
+    void software_mode_callback(
+        const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     // @brief Callback function for the pose topic
     // @param msg: PoseWithCovarianceStamped message containing the AUV pose
@@ -60,7 +62,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
+        software_mode_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -93,7 +96,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     bool killswitch_on_;
 
-    std::string software_mode_;
+    uint8_t software_mode_;
 };
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
