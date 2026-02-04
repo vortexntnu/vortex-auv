@@ -327,9 +327,8 @@ void LosGuidanceNode::execute(
 
         los_debug_pub_->publish(reference_msg);
 
-        double surge = std::sqrt(debug_current_odom_->twist.twist.linear.x +
-                       debug_current_odom_->twist.twist.linear.y +
-                       debug_current_odom_->twist.twist.linear.z);
+        const auto& v = debug_current_odom_->twist.twist.linear;
+        double surge = std::sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
 
         vortex_msgs::msg::LOSGuidance state_debug_msg;
         Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
