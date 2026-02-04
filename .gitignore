@@ -58,7 +58,4 @@ qtcreator-*
 # Emacs
 .#*
 
-# Catkin custom files
-COLCON_IGNORE
-
 # End of https://www.gitignore.io/api/ros

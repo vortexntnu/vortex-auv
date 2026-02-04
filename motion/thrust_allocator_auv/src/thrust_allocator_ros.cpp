@@ -9,7 +9,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <spdlog/spdlog.h>
 #include <string_view>
-#include <vortex/utils/qos_profiles.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 
 using namespace std::chrono_literals;
 using rclcpp::ParameterType::PARAMETER_DOUBLE;

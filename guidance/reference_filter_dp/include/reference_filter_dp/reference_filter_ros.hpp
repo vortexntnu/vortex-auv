@@ -74,8 +74,11 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     Eigen::Vector18d fill_reference_state();
 
-    Eigen::Vector6d fill_reference_goal(
-        const geometry_msgs::msg::PoseStamped& goal);
+    Eigen::Vector6d fill_reference_goal(const geometry_msgs::msg::Pose& goal);
+
+    Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in, uint8_t mode);
+
+    void publish_hold_reference();
 
     vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
