@@ -123,12 +123,11 @@ void OperationModeManager::toggle_killswitch_callback(
         empty_wrench_msg.header.stamp = rclcpp::Clock().now();
         empty_wrench_msg.header.frame_id = "base_link";
         wrench_pub_->publish(empty_wrench_msg);
-    }      
+    }
 
     response->current_operation_mode.operation_mode = mode_;
     response->killswitch_status = killswitch_;
 }
-    
 
 void OperationModeManager::set_killswitch_callback(
     const std::shared_ptr<vortex_msgs::srv::SetKillswitch::Request> request,
