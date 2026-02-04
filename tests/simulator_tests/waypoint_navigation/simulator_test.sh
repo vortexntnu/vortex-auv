@@ -102,6 +102,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$BAG_PID" "-"$OP_MODE_PID"
+kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$BAG_PID" -"$OP_MODE_PID"
 
 echo "Test completed successfully."
