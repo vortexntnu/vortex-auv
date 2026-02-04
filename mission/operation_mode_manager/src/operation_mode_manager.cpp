@@ -23,6 +23,13 @@ void OperationModeManager::declare_parameters() {
 void OperationModeManager::set_initial_values() {
     mode_ = this->get_parameter("initial_mode").as_int();
     killswitch_ = this->get_parameter("initial_killswitch").as_bool();
+
+    publish_mode();
+
+    auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
+    empty_wrench_msg.header.stamp = rclcpp::Clock().now();
+    empty_wrench_msg.header.frame_id = "base_link";
+    wrench_pub_->publish(empty_wrench_msg);
 }
 
 void OperationModeManager::setup_publishers() {
@@ -111,9 +118,17 @@ void OperationModeManager::toggle_killswitch_callback(
 
     publish_mode();
 
+    if (killswitch_) {
+        auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
+        empty_wrench_msg.header.stamp = rclcpp::Clock().now();
+        empty_wrench_msg.header.frame_id = "base_link";
+        wrench_pub_->publish(empty_wrench_msg);
+    }      
+
     response->current_operation_mode.operation_mode = mode_;
     response->killswitch_status = killswitch_;
 }
+    
 
 void OperationModeManager::set_killswitch_callback(
     const std::shared_ptr<vortex_msgs::srv::SetKillswitch::Request> request,
@@ -123,6 +138,13 @@ void OperationModeManager::set_killswitch_callback(
                 killswitch_ ? "true" : "false");
 
     publish_mode();
+
+    if (killswitch_) {
+        auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
+        empty_wrench_msg.header.stamp = rclcpp::Clock().now();
+        empty_wrench_msg.header.frame_id = "base_link";
+        wrench_pub_->publish(empty_wrench_msg);
+    }
 
     response->current_operation_mode.operation_mode = mode_;
     response->killswitch_status = killswitch_;
