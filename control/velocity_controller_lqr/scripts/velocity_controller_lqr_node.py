@@ -9,7 +9,7 @@ from geometry_msgs.msg import (
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node, Parameter
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
     LQRController,
     LQRParameters,
