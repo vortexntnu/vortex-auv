@@ -16,6 +16,10 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
 
     callback_handle_ = this->add_on_set_parameters_callback(std::bind(
         &PIDControllerNode::parametersCallback, this, std::placeholders::_1));
+
+    // Initialize a tf2 buffer and listener
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 }
 
 void PIDControllerNode::set_subscribers_and_publisher() {
@@ -100,9 +104,65 @@ void PIDControllerNode::publish_tau() {
     if (killswitch_on_ || software_mode_ != "autonomous mode") {
         return;
     }
+    // TODO transform odom -> base_link (auv frame)
+    // Reconstruct the global reference filter msg
+    vortex_msgs::msg::ReferenceFilter ref_global;
+    ref_global.header.frame_id = "odom";
+    ref_global.header.stamp = this->now();
+    // Position
+    ref_global.x = eta_d_.x;
+    ref_global.y = eta_d_.y;
+    ref_global.z = eta_d_.z;
 
+    auto eta_euler = eta_d_.as_pose_euler();
+
+    ref_global.roll = eta_euler.roll;
+    ref_global.pitch = eta_euler.pitch;
+    ref_global.yaw = eta_euler.yaw;
+
+    // Transform to base_link (body frame)
+    vortex_msgs::msg::ReferenceFilter ref_base_link;
+    try {
+        // This calculates: "Where is the target relative to my nose right now?"
+        vortex::utils::ros_transforms::transform_pose(
+            *tf_buffer_, ref_global, "base_link", ref_base_link,
+            tf2::durationFromSec(0.0));
+    } catch (tf2::TransformException& ex) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                             "Cannot transform Odom -> Base_Link: %s",
+                             ex.what());
+        return;
+    }
+    // Prepare inputs for PID controller
+    types::Eta eta_d_body_;
+    eta_d_body_.x = ref_base_link.x;
+    eta_d_body_.y = ref_base_link.y;
+    eta_d_body_.z = ref_base_link.z;
+
+    // Convert desired attitude (roll, pitch, yaw) to quaternion and store
+    Eigen::Quaterniond q_des =
+        Eigen::AngleAxisd(ref_base_link.roll, Eigen::Vector3d::UnitX()) *
+        Eigen::AngleAxisd(ref_base_link.pitch, Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd(ref_base_link.yaw, Eigen::Vector3d::UnitZ());
+    eta_d_body_.qw = q_des.w();
+    eta_d_body_.qx = q_des.x();
+    eta_d_body_.qy = q_des.y();
+    eta_d_body_.qz = q_des.z();
+
+    // Since we transfomed the target to body_frame, our current position
+    // relative to ourself is zero
+    types::Eta eta_body_;
+    eta_body_.x = 0.0;
+    eta_body_.y = 0.0;
+    eta_body_.z = 0.0;
+    eta_body_.qw = 1.0;
+    eta_body_.qx = 0.0;
+    eta_body_.qy = 0.0;
+    eta_body_.qz = 0.0;
+
+    // calculate pid control
     types::Vector6d tau =
-        pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
+        pid_controller_.calculate_tau(eta_body_, eta_d_body_, nu_, eta_dot_d_);
     // print for debug
     RCLCPP_INFO_STREAM(this->get_logger(), "Tau: [" << tau(0) << ", " << tau(1)
                                                     << ", " << tau(2) << ", "
@@ -230,12 +290,12 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    // Set desired position
+    // Store desired position
     eta_d_.x = msg->x;
     eta_d_.y = msg->y;
     eta_d_.z = msg->z;
 
-    // Convert desired attitude (roll, pitch, yaw) to quaternion and store
+    // Convert desired attitude(roll, pitch, yaw) to quaternion and store
     double roll = msg->roll;
     double pitch = msg->pitch;
     double yaw = msg->yaw;
@@ -251,7 +311,6 @@ void PIDControllerNode::guidance_callback(
     eta_d_.qz = quat.z();
 }
 
-// TODO: set parameter functions
 rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
     const std::vector<rclcpp::Parameter>& parameters) {
     rcl_interfaces::msg::SetParametersResult result;

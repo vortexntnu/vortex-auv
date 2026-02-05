@@ -20,6 +20,7 @@ find_package(rcl_interfaces REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(vortex_utils_ros_tf REQUIRED)
 
 include_directories(include)
 set(LIB_NAME ${PROJECT_NAME}_lib)
@@ -41,6 +42,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   vortex_utils
   spdlog
   fmt
+  vortex_utils_ros_tf
 )
 
 
@@ -65,6 +67,7 @@ ament_target_dependencies(pid_controller_node
   vortex_utils
   spdlog
   fmt
+  vortex_utils_ros_tf
 )
 
 target_link_libraries(
