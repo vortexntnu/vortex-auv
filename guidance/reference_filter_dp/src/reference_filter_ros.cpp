@@ -3,6 +3,7 @@
 #include <mutex>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
+#include <thread>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/types.hpp>
@@ -67,8 +68,6 @@ void ReferenceFilterNode::set_action_server() {
     this->declare_parameter<std::string>("action_servers.reference_filter");
     std::string action_server_name =
         this->get_parameter("action_servers.reference_filter").as_string();
-    cb_group_ =
-        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ = rclcpp_action::create_server<
         vortex_msgs::action::ReferenceFilterWaypoint>(
@@ -79,7 +78,7 @@ void ReferenceFilterNode::set_action_server() {
                   std::placeholders::_1),
         std::bind(&ReferenceFilterNode::handle_accepted, this,
                   std::placeholders::_1),
-        rcl_action_server_get_default_options(), cb_group_);
+        rcl_action_server_get_default_options());
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -152,7 +151,7 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    execute(goal_handle);
+    std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
 }
 
 Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
