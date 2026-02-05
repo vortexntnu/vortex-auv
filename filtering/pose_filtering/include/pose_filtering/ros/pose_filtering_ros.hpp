@@ -19,8 +19,6 @@
 #include <vortex_msgs/msg/pose_euler_stamped.hpp>
 #include "pose_filtering/lib/pose_track_manager.hpp"
 
-#include <concepts>
-
 namespace vortex::filtering {
 
 using PoseMsgT = geometry_msgs::msg::PoseStamped;
@@ -75,7 +73,7 @@ class PoseFilteringNode : public rclcpp::Node {
 
     std::unique_ptr<PoseTrackManager> track_manager_;
 
-    std::vector<Pose> measurements_;
+    std::vector<Landmark> measurements_;
     bool enu_ned_rotation_{false};
 
     bool debug_{false};

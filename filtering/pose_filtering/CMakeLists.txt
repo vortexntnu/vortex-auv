@@ -29,7 +29,6 @@ set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
   src/lib/pose_track_manager.cpp
-  src/lib/orientation_filter.cpp
 )
 
 target_include_directories(${CORE_LIB_NAME}

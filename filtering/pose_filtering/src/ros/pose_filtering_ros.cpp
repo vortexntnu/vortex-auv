@@ -89,11 +89,11 @@ void PoseFilteringNode::create_pose_subscription(
         }
 
         this->measurements_ =
-            vortex::utils::ros_conversions::ros_to_pose_vec(pose_tf);
+            vortex::filtering::ros_conversions::ros_to_landmarks(pose_tf);
         if (enu_ned_rotation_) {
             std::ranges::for_each(this->measurements_, [](auto& m) {
-                m.set_ori(
-                    vortex::utils::math::enu_ned_rotation(m.ori_quaternion()));
+                m.pose.set_ori(vortex::utils::math::enu_ned_rotation(
+                    m.pose.ori_quaternion()));
             });
         }
     });
@@ -105,55 +105,44 @@ void PoseFilteringNode::create_pose_subscription(
 void PoseFilteringNode::setup_track_manager() {
     TrackManagerConfig config;
 
-    config.ipda.ipda.prob_of_survival =
-        this->declare_parameter<double>("position.ipda.prob_of_survival");
-    config.ipda.ipda.estimate_clutter =
-        this->declare_parameter<bool>("position.ipda.estimate_clutter");
-    config.ipda.pdaf.prob_of_detection =
-        this->declare_parameter<double>("position.ipda.prob_of_detection");
-    config.ipda.pdaf.mahalanobis_threshold = this->declare_parameter<double>(
-        "position.ipda.mahalanobis_gate_threshold");
-    config.ipda.pdaf.min_gate_threshold =
-        this->declare_parameter<double>("position.ipda.min_gate_threshold");
-    config.ipda.pdaf.max_gate_threshold =
-        this->declare_parameter<double>("position.ipda.max_gate_threshold");
-    config.ipda.pdaf.clutter_intensity =
-        this->declare_parameter<double>("position.ipda.clutter_intensity");
-
-    config.initial_position_std =
-        this->declare_parameter<double>("position.initial_position_std");
-    config.initial_orientation_std =
-        this->declare_parameter<double>("orientation.initial_orientation_std");
-
-    config.dyn_mod.std_dev =
-        this->declare_parameter<double>("position.dyn_mod.std_dev");
-
-    config.sensor_mod.std_dev =
-        this->declare_parameter<double>("position.sensor_mod.std_dev");
-
-    config.max_angle_gate_threshold =
-        this->declare_parameter<double>("max_angle_gate_threshold");
-
     config.existence.confirmation_threshold = this->declare_parameter<double>(
-        "position.existence.confirmation_threshold");
-    config.existence.deletion_threshold = this->declare_parameter<double>(
-        "position.existence.deletion_threshold");
+        "config.existence.confirmation_threshold");
+    config.existence.deletion_threshold =
+        this->declare_parameter<double>("config.existence.deletion_threshold");
     config.existence.initial_existence_probability =
         this->declare_parameter<double>(
-            "position.existence.initial_existence_probability");
+            "config.existence.initial_existence_probability");
 
-    config.ori.pdaf.pdaf.prob_of_detection =
-        this->declare_parameter<double>("orientation.pdaf.prob_of_detection");
-    config.ori.pdaf.pdaf.clutter_intensity =
-        this->declare_parameter<double>("orientation.pdaf.clutter_intensity");
-    config.ori.pdaf.pdaf.mahalanobis_threshold =
-        this->declare_parameter<double>(
-            "orientation.pdaf.mahalanobis_gate_threshold");
+    config.default_class_config.min_pos_error =
+        this->declare_parameter<double>("config.gate.min_pos_error");
+    config.default_class_config.max_pos_error =
+        this->declare_parameter<double>("config.gate.max_pos_error");
+    config.default_class_config.min_ori_error =
+        this->declare_parameter<double>("config.gate.min_ori_error");
+    config.default_class_config.max_ori_error =
+        this->declare_parameter<double>("config.gate.max_ori_error");
 
-    config.ori.dyn_mod.std_dev =
-        this->declare_parameter<double>("orientation.dyn_mod.std_dev");
-    config.ori.sensor_mod.std_dev =
-        this->declare_parameter<double>("orientation.sensor_mod.std_dev");
+    config.default_class_config.dyn_std_dev =
+        this->declare_parameter<double>("config.dyn_mod_std_dev");
+    config.default_class_config.sens_std_dev =
+        this->declare_parameter<double>("config.sens_mod_std_dev");
+
+    config.default_class_config.init_pos_std =
+        this->declare_parameter<double>("config.init_pos_std_dev");
+    config.default_class_config.init_ori_std =
+        this->declare_parameter<double>("config.init_ori_std_dev");
+
+    config.default_class_config.mahalanobis_threshold =
+        this->declare_parameter<double>("config.mahalanobis_gate_threshold");
+    config.default_class_config.prob_of_detection =
+        this->declare_parameter<double>("config.prob_of_detection");
+    config.default_class_config.clutter_intensity =
+        this->declare_parameter<double>("config.clutter_intensity");
+    config.default_class_config.prob_of_survival =
+        this->declare_parameter<double>("config.prob_of_survival");
+    config.default_class_config.estimate_clutter =
+        this->declare_parameter<bool>("config.estimate_clutter");
+
     track_manager_ = std::make_unique<PoseTrackManager>(config);
 }
 
