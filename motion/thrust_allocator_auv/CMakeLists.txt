@@ -18,13 +18,16 @@ find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(casadi REQUIRED)
 
 include_directories(include)
 
 set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
-  src/pseudoinverse_allocator.cpp
+  solvers/qp_allocator.cpp
+  solvers/allocator_factory.cpp
+  solvers/pseudoinverse_allocator.cpp
   src/thrust_allocator_ros.cpp)
 
   ament_target_dependencies(${LIB_NAME} PUBLIC
@@ -37,6 +40,8 @@ add_library(${LIB_NAME} SHARED
   fmt
   spdlog
 )
+
+target_link_libraries(${LIB_NAME} PRIVATE casadi)
 
 rclcpp_components_register_node(
   ${LIB_NAME}
@@ -62,5 +67,9 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
 ament_package()
