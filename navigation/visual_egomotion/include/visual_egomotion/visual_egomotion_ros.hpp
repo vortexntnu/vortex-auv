@@ -48,12 +48,12 @@ class VisualEgomotionNode final : public rclcpp::Node {
     rclcpp::Time last_pub_det_stamp;
     
     // Anchor selection
-    uint16_t last_used_marker_id_{0xFFFF};
+    uint16_t current_marker_id_{0xFFFF};
     size_t multi_skip_count_{0};
 
     // Anchor and timing
     bool have_ref = false;
-    tf2::Transform T_base_marker0_;
+    tf2::Transform T_anchor_; // Transform landmark anchor to base
     rclcpp::Time last_det_stamp;
     rclcpp::Time last_pub_stamp;
     

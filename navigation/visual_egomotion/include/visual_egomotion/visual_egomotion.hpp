@@ -31,7 +31,6 @@ class SlidingWindowSO3Mean {
         double win_age_sec = 1.0;
         double huber_threshold_deg = 2.5;
         double gate_threshold_deg = 15.0;
-        bool use_mad_gate = false;
     };
 
     struct Sample {

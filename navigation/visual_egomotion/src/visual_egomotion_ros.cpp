@@ -18,7 +18,6 @@ VisualEgomotionNode::VisualEgomotionNode(const rclcpp::NodeOptions& options)
     cfg.win_age_sec = this->get_parameter("max_age_sec").as_double();
     cfg.huber_threshold_deg = this->get_parameter("huber_threshold_deg").as_double();
     cfg.gate_threshold_deg = this->get_parameter("gate_threshold_deg").as_double();
-    cfg.use_mad_gate = this->get_parameter("use_mad").as_bool();
     smoother_ = std::make_unique<SlidingWindowSO3Mean>(cfg);
 
     last_det_stamp = this->now();
@@ -33,7 +32,7 @@ VisualEgomotionNode::VisualEgomotionNode(const rclcpp::NodeOptions& options)
 
     RCLCPP_INFO(
         this->get_logger(),
-        "VisualEgomotionNode online. Sub: %s, base: %s, cam: %s, ref: %s",
+        "VisualEgomotion online. Sub: %s, base: %s, cam: %s, ref: %s",
         visual_topic_.c_str(), base_frame_.c_str(), cam_frame_.c_str(),
         ref_frame_.c_str());
 }
@@ -71,7 +70,6 @@ void VisualEgomotionNode::set_parameters()
     this->declare_parameter<double>("max_age_sec");
     this->declare_parameter<double>("huber_threshold_deg");
     this->declare_parameter<double>("gate_threshold_deg");
-    this->declare_parameter<bool>("use_mad");
 
     // get
     ref_frame_ = this->get_parameter("ref_frame").as_string();
@@ -117,7 +115,7 @@ void VisualEgomotionNode::onLandmarks(
     RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
                          "Chosen=%s id=%u (anchored=%d) markers=%zu",
                          (chosen == board) ? "BOARD" : "MARKER", chosen_id,
-                         last_used_marker_id_, markers.size());
+                         current_marker_id_, markers.size());
 
     tf2::Transform T_cam_landmark;
     tf2::fromMsg(chosen->pose.pose, T_cam_landmark);
@@ -134,10 +132,10 @@ void VisualEgomotionNode::onLandmarks(
         return;
     }
 
-    const tf2::Transform T_base_landmark_now = T_base_cam * T_cam_landmark;
+    const tf2::Transform T_base_current_landmark_ = T_base_cam * T_cam_landmark;
 
-    if (have_ref && chosen != board && last_used_marker_id_ != 0xFFFF &&
-        chosen_id != last_used_marker_id_) {
+    if (have_ref && chosen != board && current_marker_id_ != 0xFFFF &&
+        chosen_id != current_marker_id_) {
         tf2::Transform T_ref_base_curr;
         std::array<double, 36> tmp_cov;
 
@@ -148,25 +146,25 @@ void VisualEgomotionNode::onLandmarks(
             T_ref_base_curr = last_T_ref_base_;
         } else {
             T_ref_base_curr =
-                T_base_marker0_ * T_base_landmark_now.inverse();
+                T_anchor_ * T_base_current_landmark_.inverse();
             last_T_ref_base_ = T_ref_base_curr;
             have_last_ref_base_ = true;
         }
 
         // Re-anchor so T_ref<-base stays the same under the new marker
-        T_base_marker0_ = T_ref_base_curr * T_base_landmark_now;
+        T_anchor_ = T_ref_base_curr * T_base_current_landmark_;
 
         RCLCPP_WARN(this->get_logger(),
-                    "Marker switch %u -> %u: re-anchored to preserve continuity",
-                    last_used_marker_id_, chosen_id);
+                    "Marker switch %u -> %u",
+                    current_marker_id_, chosen_id);
     }
 
     if (!have_ref) {
-        T_base_marker0_ = T_base_landmark_now;
+        T_anchor_ = T_base_current_landmark_;
         have_ref = true;
 
         if (chosen != board) {
-            last_used_marker_id_ = chosen_id;  
+            current_marker_id_ = chosen_id;  
         }
 
         if (chosen == board) {
@@ -177,18 +175,18 @@ void VisualEgomotionNode::onLandmarks(
         }
     } else {
         if (chosen != board) {
-            const bool changed = (last_used_marker_id_ != 0xFFFF) &&
-                                 (chosen_id != last_used_marker_id_);
+            const bool changed = (current_marker_id_ != 0xFFFF) &&
+                                 (chosen_id != current_marker_id_);
             if (changed) {
                 RCLCPP_INFO(this->get_logger(), "Using marker id=%u (prev=%u)",
-                            chosen_id, last_used_marker_id_);
+                            chosen_id, current_marker_id_);
             }
-            last_used_marker_id_ = chosen_id;
+            current_marker_id_ = chosen_id;
         }
     }
 
     const tf2::Transform T_ref_base_meas =
-        T_base_marker0_ * T_base_landmark_now.inverse();
+        T_anchor_ * T_base_current_landmark_.inverse();
 
     last_T_ref_base_ = T_ref_base_meas;
     have_last_ref_base_ = true;
@@ -203,12 +201,10 @@ void VisualEgomotionNode::onPublishTimer() {
 
     if (!have_ref)
         return;
-    //if ((now - last_det_stamp).seconds() > lost_timeout_sec_)
     if ((now - last_det_stamp).seconds() > lost_timeout_sec_) {
         have_ref = false;
         return;
     }
-    //    return;
 
     if (last_det_stamp == last_pub_det_stamp) return;
 

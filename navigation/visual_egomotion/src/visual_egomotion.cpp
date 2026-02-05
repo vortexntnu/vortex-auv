@@ -41,19 +41,6 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
     double gate = cfg_.gate_threshold_deg * M_PI / 180.0;
     const double huber = cfg_.huber_threshold_deg * M_PI / 180.0;
 
-    if (cfg_.use_mad_gate && buf_.size() >= 5) {
-        std::vector<double> dists;
-        dists.reserve(buf_.size());
-        for (const auto& s : buf_) {
-            dists.push_back(angularDist(q_avg, s.T_ref_base.getRotation()));
-        }
-        const double med = median(dists);
-        for (auto& d : dists)
-            d = std::abs(d - med);
-        const double mad = median(dists);
-        gate = std::min(gate, med + 3.0 * mad);
-    }
-
     // Robust mean on SO(3) using log/exp in the tangent space at q_avg
     for (int i = 0; i < 5; ++i) {
         tf2::Vector3 sum_p(0, 0, 0);
@@ -107,8 +94,8 @@ bool SlidingWindowSO3Mean::estimate(const rclcpp::Time& now,
         const tf2::Vector3 dp = s.T_ref_base.getOrigin() - p_avg;
         const tf2::Vector3 dq = logMapSO3(q_avg.inverse() * q_i);
 
-        cov6x6[0] += dp.x() * dp.x();
-        cov6x6[7] += dp.y() * dp.y();
+        cov6x6[0]  += dp.x() * dp.x();
+        cov6x6[7]  += dp.y() * dp.y();
         cov6x6[14] += dp.z() * dp.z();
         cov6x6[21] += dq.x() * dq.x();
         cov6x6[28] += dq.y() * dq.y();

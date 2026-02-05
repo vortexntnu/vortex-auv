@@ -7,7 +7,8 @@ visual_egomotion:
     base_frame: base_link
     cam_frame: Orca/camera_front
 
-    max_age_sec: 15.0 # Sliding-window
+    # Sliding-window
+    max_age_sec: 15.0 
     window_size: 20
 
     publish_tf: false
@@ -15,4 +16,3 @@ visual_egomotion:
     lost_timeout_sec: 15.0
     huber_threshold_deg: 2.5
     gate_threshold_deg: 15.0
-    use_mad: false
