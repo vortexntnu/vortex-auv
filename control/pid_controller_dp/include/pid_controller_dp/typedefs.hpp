@@ -23,8 +23,8 @@ using Matrix7d = Eigen::Matrix<double, 7, 7>;
 using Quaterniond = Eigen::Quaterniond;
 
 // Alias canonical types from vortex utils
-using Eta = ::vortex::utils::types::EtaQuat;
-using Nu = ::vortex::utils::types::Nu;
+using Eta = ::vortex::utils::types::Pose;
+using Nu = ::vortex::utils::types::Twist;
 
 struct J_transformation {
     Matrix3d R = Matrix3d::Identity();
