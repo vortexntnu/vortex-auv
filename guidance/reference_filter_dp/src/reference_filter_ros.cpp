@@ -331,41 +331,6 @@ bool ReferenceFilterNode::has_converged_against_pose(
     return err < convergence_threshold;
 }
 
-void ReferenceFilterNode::publish_hold_reference() {
-    if (!reference_pub_) {
-        return;
-    }
-
-    const auto& p = current_pose_.pose.pose.position;
-    const auto& o = current_pose_.pose.pose.orientation;
-
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    if (q.norm() < 1e-9) {
-        q = Eigen::Quaterniond::Identity();
-    } else {
-        q.normalize();
-    }
-
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-
-    vortex_msgs::msg::ReferenceFilter hold_msg;
-    hold_msg.x = p.x;
-    hold_msg.y = p.y;
-    hold_msg.z = p.z;
-    hold_msg.roll = vortex::utils::math::ssa(euler_angles(0));
-    hold_msg.pitch = vortex::utils::math::ssa(euler_angles(1));
-    hold_msg.yaw = vortex::utils::math::ssa(euler_angles(2));
-
-    hold_msg.x_dot = 0.0;
-    hold_msg.y_dot = 0.0;
-    hold_msg.z_dot = 0.0;
-    hold_msg.roll_dot = 0.0;
-    hold_msg.pitch_dot = 0.0;
-    hold_msg.yaw_dot = 0.0;
-
-    reference_pub_->publish(hold_msg);
-}
-
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
@@ -406,7 +371,6 @@ void ReferenceFilterNode::execute(
             std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->get_goal_id() == preempted_goal_id_ &&
                 !goal_handle->is_canceling()) {
-                publish_hold_reference();
                 result->success = false;
                 goal_handle->abort(result);
                 return;
@@ -415,7 +379,6 @@ void ReferenceFilterNode::execute(
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->is_canceling()) {
-                publish_hold_reference();
                 result->success = false;
                 goal_handle->canceled(result);
                 spdlog::info("Goal canceled");
