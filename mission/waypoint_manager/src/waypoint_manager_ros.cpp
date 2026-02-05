@@ -205,6 +205,7 @@ void WaypointManagerNode::handle_send_waypoints_service_request(
     priority_mode_active_ = request->take_priority;
 
     if (request->overwrite_prior_waypoints) {
+        mission_id_++;
         waypoints_ = request->waypoints;
         current_index_ = 0;
         has_reference_pose_ = false;
