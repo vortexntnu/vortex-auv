@@ -404,7 +404,8 @@ void ReferenceFilterNode::execute(
     while (rclcpp::ok()) {
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            if (goal_handle->get_goal_id() == preempted_goal_id_) {
+            if (goal_handle->get_goal_id() == preempted_goal_id_ &&
+                !goal_handle->is_canceling()) {
                 publish_hold_reference();
                 result->success = false;
                 goal_handle->abort(result);
