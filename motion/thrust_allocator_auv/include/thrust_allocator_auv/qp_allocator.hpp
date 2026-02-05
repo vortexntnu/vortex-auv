@@ -7,6 +7,7 @@
 #define THRUST_ALLOCATOR_AUV__QP_ALLOCATOR_HPP_
 
 #include "casadi/casadi.hpp"
+#include "optional"
 #include "thrust_allocator_auv/allocator.hpp"
 #include "thrust_allocator_auv/allocator_config.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
@@ -17,33 +18,35 @@ public:
   /**
    * @brief Constructor for the QPAllocator class.
    *
-   * @param cfg all configuration parameters needed in the constructor
+   * @param allocator_config all configuration parameters needed in the
+   * constructor
    */
-  explicit QPAllocator(const AllocatorConfig &cfg);
+  explicit QPAllocator(const AllocatorConfig &allocator_config);
 
   /**
    * @brief Calculates the allocated thrust using CasADi's conic library
    * @param tau The input torques as a vector.
    * @return The allocated thrust as a vector.
    */
-  Eigen::VectorXd
+  std::optional<Eigen::VectorXd>
   calculate_allocated_thrust(const Eigen::VectorXd &tau) override;
 
 private:
   /**
    * @brief Calculates the necessary matrices to formulate the problem
    * as a convex QP.
-   * @param cfg all configuration parameters needed in the constructor
+   * @param allocator_config all configuration parameters needed in the
+   * constructor
    */
-  void formulate_as_qp(const AllocatorConfig &cfg);
+  void formulate_as_qp(const AllocatorConfig &allocator_config);
 
   /**
    * @brief transforms the problem from QP standardform to CasADi formulation
    */
-  void formulate_as_qp_CasADi();
+  void formulate_as_qp_casadi();
 
   int degrees_of_freedom_;
-  int number_of_thrusters;
+  int number_of_thrusters_;
   double max_force_;
   // Fossen formulation of QP, Fossen 2021 (11.41)
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

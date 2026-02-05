@@ -6,6 +6,7 @@
 #include "vortex/utils/types.hpp"
 #include <chrono>
 #include <functional>
+#include <rclcpp/parameter_value.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <spdlog/spdlog.h>
 #include <string_view>
@@ -28,7 +29,7 @@ auto start_message{R"(
 )"};
 
 ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions &options)
-    : Node("thrust_allocator_node", options) {
+    : Node("thrust_allocator_auv_node", options) {
   extract_parameters();
   set_allocator();
   set_subscriber_and_publisher();
@@ -59,6 +60,9 @@ void ThrustAllocator::extract_parameters() {
   num_thrusters_ =
       this->declare_parameter("propulsion.thrusters.num", PARAMETER_INTEGER)
           .get<int>();
+  degrees_of_freedom_ =
+      this->declare_parameter("propulsion.dofs.num", PARAMETER_INTEGER)
+          .get<int>();
   min_thrust_ =
       this->declare_parameter("propulsion.thrusters.constraints.min_force",
                               PARAMETER_DOUBLE)
@@ -87,8 +91,8 @@ void ThrustAllocator::set_allocator() {
 
   // allocation_config params
 
-  std::string allocator_type =
-      this->declare_parameter("propulsion.allocator_type", PARAMETER_STRING)
+  std::string solver_type =
+      this->declare_parameter("propulsion.solver.type", PARAMETER_STRING)
           .get<std::string>();
   thruster_position_ = double_array_to_eigen_matrix(
       this->get_parameter("propulsion.thrusters.thruster_position")
@@ -99,17 +103,19 @@ void ThrustAllocator::set_allocator() {
       thruster_force_direction_, thruster_position_, center_of_mass_);
 
   Eigen::MatrixXd input_weight_matrix =
-      double_array_to_eigen_vector3d(
+      double_array_to_eigen_matrix(
           this->get_parameter(
                   "propulsion.thrusters.constraints.input_matrix_weights")
-              .as_double_array())
+              .as_double_array(),
+          1, num_thrusters_)
           .asDiagonal();
 
   Eigen::MatrixXd slack_weight_matrix =
-      double_array_to_eigen_vector3d(
+      double_array_to_eigen_matrix(
           this->get_parameter(
                   "propulsion.thrusters.constraints.slack_matrix_weights")
-              .as_double_array())
+              .as_double_array(),
+          1, degrees_of_freedom_)
           .asDiagonal();
 
   Eigen::VectorXd min_force_vec =
@@ -118,13 +124,13 @@ void ThrustAllocator::set_allocator() {
       Eigen::VectorXd::Constant(num_thrusters_, max_thrust_);
 
   allocator_ = Factory::make_allocator(
-      allocator_type, AllocatorConfig{
-                          .extended_thrust_matrix = thrust_configuration_,
-                          .min_force = min_force_vec,
-                          .max_force = max_force_vec,
-                          .input_weight_matrix = input_weight_matrix,
-                          .slack_weight_matrix = slack_weight_matrix,
-                      });
+      solver_type, AllocatorConfig{
+                       .extended_thrust_matrix = thrust_configuration_,
+                       .min_force = min_force_vec,
+                       .max_force = max_force_vec,
+                       .input_weight_matrix = input_weight_matrix,
+                       .slack_weight_matrix = slack_weight_matrix,
+                   });
 
   if (!allocator_) {
     throw std::runtime_error(
@@ -164,9 +170,17 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped &msg) {
     thruster_forces_publisher_->publish(msg_out);
     return;
   }
-
-  Eigen::VectorXd thruster_forces =
+  // if the allocator isnt ready it will return a nullopt. then we will publish
+  // zeros
+  auto thruster_forces_opt =
       allocator_->calculate_allocated_thrust(wrench_vector);
+
+  if (!thruster_forces_opt) {
+    spdlog::error("Allocator not ready, publishing zeros.");
+    thruster_forces_publisher_->publish(array_eigen_to_msg(zero_forces));
+    return;
+  }
+  Eigen::VectorXd thruster_forces = *thruster_forces_opt;
 
   if (is_invalid_matrix(thruster_forces)) {
     spdlog::error("ThrusterForces vector invalid, publishing zeros.");

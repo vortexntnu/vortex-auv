@@ -23,7 +23,7 @@ public:
    *
    * @param cfg all configuration parameters needed in the constructor
    */
-  explicit PseudoinverseAllocator(const AllocatorConfig &cfg);
+  explicit PseudoinverseAllocator(const AllocatorConfig &allocator_config);
 
   /**
    * @brief Calculates the pseudoinverse of the given matrix.
@@ -43,7 +43,7 @@ public:
    * @param tau The input torques as a vector.
    * @return The allocated thrust as a vector.
    */
-  Eigen::VectorXd
+  std::optional<Eigen::VectorXd>
   calculate_allocated_thrust(const Eigen::VectorXd &tau) override;
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

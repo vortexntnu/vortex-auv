@@ -113,7 +113,7 @@ $$
 ### **Implemented QP Formulation (QP standard form)**
 
 $$
-J = \min_{f_e,\, s}}
+J = \min_{f_e,\, s}
 \; ( f_e^\top W_f f_e + s^\top Q s)
 $$
 

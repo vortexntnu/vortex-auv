@@ -1,7 +1,6 @@
 /**
  * @file allocator_config.hpp
- * @brief Contains the Allocator Config, which makes it easier
- * to choose allocator at runtime i..
+ * @brief Contains the Allocator Config struct
  */
 
 #ifndef THRUST_ALLOCATOR_AUV__ALLOCATOR_CONFIG_HPP_

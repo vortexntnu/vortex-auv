@@ -16,6 +16,11 @@
 #include "vortex/utils/types.hpp"
 #include <vortex/utils/math.hpp>
 
+// ------------------- Constants -------------------
+const double tau_tol = 7e-1; // Tolerance value for how far the reconstructed
+                             // wrench vector by the thruster allocator module
+                             // can maximally be from the desired wrench vector
+
 using vortex::utils::types::Vector6d;
 
 void fill_input_from_double_array(Vector6d &tau, const double *double_array) {
@@ -69,6 +74,33 @@ static void expect_valid_qp_output(const Eigen::VectorXd &u,
     EXPECT_LE(u[i], cfg.max_force[i] + tol);
     EXPECT_GE(u[i], cfg.min_force[i] - tol);
   }
+}
+
+static void expect_group_dominance(const Eigen::VectorXd &u,
+                                   const std::vector<int> &active,
+                                   const std::vector<int> &quiet,
+                                   double ratio = 10.0) {
+  double sum_active = 0.0, sum_quiet = 0.0;
+  for (int i : active) {
+    sum_active += std::abs(u[i]);
+  }
+  for (int i : quiet) {
+    sum_quiet += std::abs(u[i]);
+  }
+  EXPECT_GT(sum_active, ratio * (sum_quiet + 1e-12));
+}
+
+static Eigen::VectorXd require_thrust(std::unique_ptr<Allocator> &allocator,
+                                      const Eigen::VectorXd &tau) {
+  auto u_opt = allocator->calculate_allocated_thrust(tau);
+
+  EXPECT_TRUE(u_opt.has_value()) << "Allocator returned nullopt";
+
+  if (!u_opt.has_value()) {
+    return Eigen::VectorXd(); // unreachable if EXPECT fails, but required
+  }
+
+  return *u_opt;
 }
 
 AllocatorConfig load_allocator_config(const std::string &yaml_path) {
@@ -176,7 +208,7 @@ TEST_F(PseudoinverseAllocatorTests, P01_ClampingWorks) {
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   saturate_vector_values(u, -100.0, 100.0);
   print_input(u);
 
@@ -202,7 +234,7 @@ TEST_F(PseudoinverseAllocatorTests, P02_Pseudo_ZeroWrenchGivesZeroThrust) {
   Vector6d tau = Vector6d::Zero();
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_NEAR(u.norm(), 0.0, 1e-9);
@@ -216,7 +248,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_GT(u[7], 0.0);
@@ -233,7 +265,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_LT(u[7], 0.0);
@@ -250,7 +282,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_GT(u[7], 0.0);
@@ -267,7 +299,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_GT(u[6], 0.0);
@@ -283,7 +315,7 @@ TEST_F(PseudoinverseAllocatorTests, P07_Pseudo_UpwardWrenchGivesUpwardThrust) {
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_LT(u[6], 0.0);
@@ -300,7 +332,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_LT(u[6], 0.0);
@@ -317,7 +349,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   // Sanity tests for direction
@@ -335,7 +367,7 @@ TEST_F(PseudoinverseAllocatorTests,
   fill_input_from_double_array(tau, fill);
   print_generalized_force(tau);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
   print_input(u);
 
   EXPECT_GT(u[7], 0.0);
@@ -356,7 +388,7 @@ TEST_F(QPAllocatorTests, Q0_QP_ThrowsOnTauDimensionMismatch) {
 
 TEST_F(QPAllocatorTests, Q01_QP_ZeroWrenchGivesFeasibleBoundedThrust) {
   Vector6d tau = Vector6d::Zero();
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
 
@@ -368,7 +400,7 @@ TEST_F(QPAllocatorTests, Q02_QP_OutputRespectsBoundsUnderHugeWrench) {
   double fill[6] = {100000.0, 100000.0, 100000.0, 100000.0, 100000.0, 100000.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -381,7 +413,7 @@ TEST_F(QPAllocatorTests, Q03_QP_ForwardWrenchGivesForwardThrust) {
   double fill[6] = {100.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -392,7 +424,7 @@ TEST_F(QPAllocatorTests, Q03_QP_ForwardWrenchGivesForwardThrust) {
   EXPECT_GT(u[0], eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q04_QP_BackwardWrenchGivesBackwardThrust) {
@@ -402,7 +434,7 @@ TEST_F(QPAllocatorTests, Q04_QP_BackwardWrenchGivesBackwardThrust) {
   double fill[6] = {-100.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -413,7 +445,7 @@ TEST_F(QPAllocatorTests, Q04_QP_BackwardWrenchGivesBackwardThrust) {
   EXPECT_LT(u[0], -eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q05_QP_SidewaysWrenchGivesSidewaysThrust) {
@@ -423,7 +455,7 @@ TEST_F(QPAllocatorTests, Q05_QP_SidewaysWrenchGivesSidewaysThrust) {
   double fill[6] = {0.0, 100.0, 0.0, 0.0, 0.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -434,7 +466,7 @@ TEST_F(QPAllocatorTests, Q05_QP_SidewaysWrenchGivesSidewaysThrust) {
   EXPECT_LT(u[0], -eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q06_QP_HeavePlusGivesPositiveVerticalThrust) {
@@ -444,7 +476,7 @@ TEST_F(QPAllocatorTests, Q06_QP_HeavePlusGivesPositiveVerticalThrust) {
   double fill[6] = {0.0, 0.0, 100.0, 0.0, 0.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -455,7 +487,7 @@ TEST_F(QPAllocatorTests, Q06_QP_HeavePlusGivesPositiveVerticalThrust) {
   EXPECT_GT(u[1], eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q07_QP_HeaveMinusGivesNegativeVerticalThrust) {
@@ -465,7 +497,7 @@ TEST_F(QPAllocatorTests, Q07_QP_HeaveMinusGivesNegativeVerticalThrust) {
   double fill[6] = {0.0, 0.0, -100.0, 0.0, 0.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -476,7 +508,7 @@ TEST_F(QPAllocatorTests, Q07_QP_HeaveMinusGivesNegativeVerticalThrust) {
   EXPECT_LT(u[1], -eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q08_QP_PositiveRollWrenchInducesPositiveRollMoment) {
@@ -486,7 +518,7 @@ TEST_F(QPAllocatorTests, Q08_QP_PositiveRollWrenchInducesPositiveRollMoment) {
   double fill[6] = {0.0, 0.0, 0.0, 60.0, 0.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -499,7 +531,7 @@ TEST_F(QPAllocatorTests, Q08_QP_PositiveRollWrenchInducesPositiveRollMoment) {
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
   std::cout << "tau_hat: " << tau_hat << std::endl;
   std::cout << "tau: " << tau << std::endl;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q09_QP_PositivePitchWrenchInducesPositivePitchMoment) {
@@ -509,7 +541,7 @@ TEST_F(QPAllocatorTests, Q09_QP_PositivePitchWrenchInducesPositivePitchMoment) {
   double fill[6] = {0.0, 0.0, 0.0, 0.0, 100.0, 0.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -520,7 +552,7 @@ TEST_F(QPAllocatorTests, Q09_QP_PositivePitchWrenchInducesPositivePitchMoment) {
   EXPECT_LT(u[1], -eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 TEST_F(QPAllocatorTests, Q10_QP_PositiveYawWrenchInducesPositiveYawMoment) {
@@ -530,7 +562,7 @@ TEST_F(QPAllocatorTests, Q10_QP_PositiveYawWrenchInducesPositiveYawMoment) {
   double fill[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 100.0};
   fill_input_from_double_array(tau, fill);
 
-  Eigen::VectorXd u = allocator->calculate_allocated_thrust(tau);
+  Eigen::VectorXd u = require_thrust(allocator, tau);
 
   expect_valid_qp_output(u, allocator_config);
   print_input(u);
@@ -541,7 +573,81 @@ TEST_F(QPAllocatorTests, Q10_QP_PositiveYawWrenchInducesPositiveYawMoment) {
   EXPECT_LT(u[0], -eps);
 
   Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
-  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, 5e-1);
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
+}
+
+// ---------------------------- Non-trivial testing ----------------------------
+
+TEST_F(QPAllocatorTests, Q11_QP_HeavePlusAndRollPlus_UsesVerticalThrusters) {
+  Vector6d tau;
+  double fill[6] = {0.0, 0.0, 80.0, 40.0, 0.0, 0.0};
+  fill_input_from_double_array(tau, fill);
+  print_generalized_force(tau);
+
+  Eigen::VectorXd u = require_thrust(allocator, tau);
+  expect_valid_qp_output(u, allocator_config);
+  print_input(u);
+
+  // Active set (vertical): 1,2,5,6
+  // Quiet set  (horizontal): 0,3,4,7
+  expect_group_dominance(u, {1, 2, 5, 6}, {0, 3, 4, 7});
+
+  const double eps_active = 1; // must be "meaningfully used"
+
+  EXPECT_GT(std::abs(u[1]), eps_active);
+  EXPECT_GT(std::abs(u[2]), eps_active);
+  EXPECT_GT(std::abs(u[5]), eps_active);
+  EXPECT_GT(std::abs(u[6]), eps_active);
+
+  // Compute mean absolute thrust of active (vertical) thrusters and use it as a
+  // relative threshold
+  double mean_active =
+      (std::abs(u[1]) + std::abs(u[2]) + std::abs(u[5]) + std::abs(u[6])) / 4.0;
+  double eps_quiet = mean_active * 0.1;
+
+  EXPECT_NEAR(u[0], 0.0, eps_quiet);
+  EXPECT_NEAR(u[3], 0.0, eps_quiet);
+  EXPECT_NEAR(u[4], 0.0, eps_quiet);
+  EXPECT_NEAR(u[7], 0.0, eps_quiet);
+
+  Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
+}
+
+TEST_F(QPAllocatorTests, Q12_QP_SurgePlusAndYawPlus_UsesHorizontalThrusters) {
+  Vector6d tau;
+  double fill[6] = {80.0, 0.0, 0.0, 0.0, 0.0, 40.0};
+  fill_input_from_double_array(tau, fill);
+  print_generalized_force(tau);
+
+  Eigen::VectorXd u = require_thrust(allocator, tau);
+  expect_valid_qp_output(u, allocator_config);
+  print_input(u);
+
+  // Active set (horizontal): 0,3,4,7
+  // Quiet set  (vertical):   1,2,5,6
+  expect_group_dominance(u, {0, 3, 4, 7}, {1, 2, 5, 6});
+
+  const double eps_active = 1; // must be "meaningfully used"
+
+  EXPECT_GT(std::abs(u[0]), eps_active);
+  EXPECT_GT(std::abs(u[3]), eps_active);
+  EXPECT_GT(std::abs(u[4]), eps_active);
+  EXPECT_GT(std::abs(u[7]), eps_active);
+
+  // Compute mean absolute thrust of active (vertical) thrusters and use it as a
+  // relative threshold
+  double mean_active =
+      (std::abs(u[0]) + std::abs(u[3]) + std::abs(u[4]) + std::abs(u[7])) / 4.0;
+  double eps_quiet = mean_active * 0.1;
+
+  EXPECT_NEAR(u[1], 0.0, eps_quiet);
+  EXPECT_NEAR(u[2], 0.0, eps_quiet);
+  EXPECT_NEAR(u[5], 0.0, eps_quiet);
+  EXPECT_NEAR(u[6], 0.0, eps_quiet);
+
+  Eigen::VectorXd tau_hat = allocator_config.extended_thrust_matrix * u;
+  EXPECT_NEAR((tau_hat - tau).norm(), 0.0, tau_tol);
 }
 
 int main(int argc, char **argv) {

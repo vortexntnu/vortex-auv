@@ -6,17 +6,17 @@
 #ifndef THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_
 #define THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_
 
-#include <eigen3/Eigen/Eigen>
-#include <geometry_msgs/msg/wrench_stamped.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <string>
-#include <vortex_msgs/msg/thruster_forces.hpp>
 #include "thrust_allocator_auv/allocator.hpp"
 #include "thrust_allocator_auv/allocator_factory.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/qp_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 #include "vortex/utils/types.hpp"
+#include <eigen3/Eigen/Eigen>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <string>
+#include <vortex_msgs/msg/thruster_forces.hpp>
 
 using vortex::utils::types::Vector6d;
 
@@ -29,13 +29,13 @@ using vortex::utils::types::Vector6d;
  * converted values.
  * @return The converted vortex_msgs::msg::ThrusterForces message.
  */
-inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
-    const Eigen::VectorXd& u) {
-    vortex_msgs::msg::ThrusterForces msg;
-    msg.header.stamp = rclcpp::Clock().now();
-    msg.header.frame_id = "base_link";
-    msg.thrust = std::vector<double>(u.begin(), u.end());
-    return msg;
+inline vortex_msgs::msg::ThrusterForces
+array_eigen_to_msg(const Eigen::VectorXd &u) {
+  vortex_msgs::msg::ThrusterForces msg;
+  msg.header.stamp = rclcpp::Clock().now();
+  msg.header.frame_id = "base_link";
+  msg.thrust = std::vector<double>(u.begin(), u.end());
+  return msg;
 }
 
 /**
@@ -45,94 +45,95 @@ inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
  * @param msg The geometry_msgs::msg::WrenchStamped message with wrench vector
  * @return The converted vortex::utils::types::Vector6d message.
  */
-inline Vector6d wrench_to_vector(const geometry_msgs::msg::WrenchStamped& msg) {
-    Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
-                        msg.wrench.force.z,  msg.wrench.torque.x,
-                        msg.wrench.torque.y, msg.wrench.torque.z};
+inline Vector6d wrench_to_vector(const geometry_msgs::msg::WrenchStamped &msg) {
+  Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
+                      msg.wrench.force.z,  msg.wrench.torque.x,
+                      msg.wrench.torque.y, msg.wrench.torque.z};
 
-    return msg_vector;
+  return msg_vector;
 }
 
 class ThrustAllocator : public rclcpp::Node {
-   public:
-    explicit ThrustAllocator(const rclcpp::NodeOptions& options);
+public:
+  explicit ThrustAllocator(const rclcpp::NodeOptions &options);
 
-    /**
-     * @brief Calculates the allocated
-     * thrust based on the body frame forces. It then saturates the output
-     * vector between min and max values and publishes the thruster forces to
-     * the topic "thrust/thruster_forces".
-     */
-    void calculate_thrust_timer_cb();
+  /**
+   * @brief Calculates the allocated
+   * thrust based on the body frame forces. It then saturates the output
+   * vector between min and max values and publishes the thruster forces to
+   * the topic "thrust/thruster_forces".
+   */
+  void calculate_thrust_timer_cb();
 
-   private:
-    /**
-     * @brief Callback function for the wrench input subscription. Extracts the
-     * surge, sway, heave, roll, pitch and yaw values from the received wrench
-     * msg and stores them in the body_frame_forces_ Eigen vector.
-     * @param msg The received geometry_msgs::msg::Wrench message.
-     */
-    void wrench_cb(const geometry_msgs::msg::WrenchStamped& msg);
+private:
+  /**
+   * @brief Callback function for the wrench input subscription. Extracts the
+   * surge, sway, heave, roll, pitch and yaw values from the received wrench
+   * msg and stores them in the body_frame_forces_ Eigen vector.
+   * @param msg The received geometry_msgs::msg::Wrench message.
+   */
+  void wrench_cb(const geometry_msgs::msg::WrenchStamped &msg);
 
-    /**
-     * @brief Callback function for the watchdog timer. Checks if the last
-     * received message is older than the timeout threshold and publishes zeros
-     * to the thruster forces topic if it is.
-     */
-    void watchdog_callback();
+  /**
+   * @brief Callback function for the watchdog timer. Checks if the last
+   * received message is older than the timeout threshold and publishes zeros
+   * to the thruster forces topic if it is.
+   */
+  void watchdog_callback();
 
-    /**
-     * @brief Checks if the given Eigen vector contains any NaN or Inf values
-     * @param v The Eigen vector to check.
-     * @return True if the vector is healthy, false otherwise.
-     */
-    bool healthy_wrench(const Eigen::VectorXd& v) const;
+  /**
+   * @brief Checks if the given Eigen vector contains any NaN or Inf values
+   * @param v The Eigen vector to check.
+   * @return True if the vector is healthy, false otherwise.
+   */
+  bool healthy_wrench(const Eigen::VectorXd &v) const;
 
-    /**
-     * @brief Extracts the parameters from the config file.
-     */
-    void extract_parameters();
+  /**
+   * @brief Extracts the parameters from the config file.
+   */
+  void extract_parameters();
 
-    /**
-     * @brief Creates the configuration matrix and calculates the pseudoinverse
-     * matrix for the thrust allocator.
-     */
-    void set_allocator();
+  /**
+   * @brief Creates the configuration matrix and calculates the pseudoinverse
+   * matrix for the thrust allocator.
+   */
+  void set_allocator();
 
-    /**
-     * @brief Sets the wrench subscriber and thrust publisher for the node.
-     */
-    void set_subscriber_and_publisher();
+  /**
+   * @brief Sets the wrench subscriber and thrust publisher for the node.
+   */
+  void set_subscriber_and_publisher();
 
-    rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
-        thruster_forces_publisher_;
-    rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr
-        wrench_subscriber_;
-    rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
+  rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
+      thruster_forces_publisher_;
+  rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr
+      wrench_subscriber_;
+  rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;
 
-    size_t count_;
-    Eigen::Vector3d center_of_mass_;
-    int num_dimensions_;
-    int num_thrusters_;
-    int min_thrust_;
-    int max_thrust_;
-    double thrust_update_rate_;
+  size_t count_;
+  Eigen::Vector3d center_of_mass_;
+  int num_dimensions_;
+  int degrees_of_freedom_;
+  int num_thrusters_;
+  int min_thrust_;
+  int max_thrust_;
+  double thrust_update_rate_;
 
-    std::chrono::milliseconds thrust_update_period_;
+  std::chrono::milliseconds thrust_update_period_;
 
-    Eigen::MatrixXd thruster_force_direction_;
-    Eigen::MatrixXd thruster_position_;
-    Eigen::MatrixXd thrust_configuration_;
+  Eigen::MatrixXd thruster_force_direction_;
+  Eigen::MatrixXd thruster_position_;
+  Eigen::MatrixXd thrust_configuration_;
 
-    Vector6d body_frame_forces_;
-    std::string solver_type_;
-    std::unique_ptr<Allocator> allocator_;
-    AllocatorConfig allocator_config_;
+  Vector6d body_frame_forces_;
+  std::string solver_type_;
+  std::unique_ptr<Allocator> allocator_;
+  AllocatorConfig allocator_config_;
 
-    rclcpp::Time last_msg_time_;
-    rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);
-    bool watchdog_triggered_ = false;
-    rclcpp::TimerBase::SharedPtr watchdog_timer_;
+  rclcpp::Time last_msg_time_;
+  rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);
+  bool watchdog_triggered_ = false;
+  rclcpp::TimerBase::SharedPtr watchdog_timer_;
 };
 
-#endif  // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_
+#endif // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_ROS_HPP_
