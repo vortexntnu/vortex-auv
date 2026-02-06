@@ -49,6 +49,12 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
 
+    // temp debug
+    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_rotated_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_rotated_pub_;
+
+    // end temp debug
+
     std::chrono::milliseconds time_step;
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
@@ -57,11 +63,14 @@ class ESKFNode : public rclcpp::Node {
 
     bool first_imu_msg_received_ = false;
 
-    Eigen::Matrix3d R_imu_acc_eskf_{};
+    Eigen::Matrix3d R_imu_eskf_{};
 
-    Eigen::Matrix3d R_imu_gyro_eskf_{};
+    Eigen::Matrix3d R_dvl_eskf_{};
 
     rclcpp::Time last_imu_time_{};
+
+    // Latest gyro measurement (used for publishing odom output of eskf)
+    Eigen::Vector3d latest_gyro_measurement_{};
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_
