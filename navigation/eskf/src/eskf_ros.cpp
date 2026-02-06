@@ -51,6 +51,13 @@ void ESKFNode::set_subscribers_and_publisher() {
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
+    // temp debug
+    imu_rotated_pub_ = this->create_publisher<sensor_msgs::msg::Imu>(
+        "eskf/imu_rotated", vortex::utils::qos_profiles::sensor_data_profile());
+    
+    dvl_rotated_pub_ = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+        "eskf/dvl_rotated", vortex::utils::qos_profiles::sensor_data_profile());
+
 #ifndef NDEBUG
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
         "eskf/nis", vortex::utils::qos_profiles::reliable_profile());
@@ -58,17 +65,18 @@ void ESKFNode::set_subscribers_and_publisher() {
 }
 
 void ESKFNode::set_parameters() {
-    std::vector<double> R_imu_acc_correction;
-    this->declare_parameter<std::vector<double>>("imu_acc_frame");
-    R_imu_acc_correction = get_parameter("imu_acc_frame").as_double_array();
-    R_imu_acc_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        R_imu_acc_correction.data());
 
-    std::vector<double> R_imu_gyro_correction;
-    this->declare_parameter<std::vector<double>>("imu_gyro_frame");
-    R_imu_gyro_correction = get_parameter("imu_gyro_frame").as_double_array();
-    R_imu_gyro_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        R_imu_gyro_correction.data());
+    std::vector<double> R_imu_correction;
+    this->declare_parameter<std::vector<double>>("imu_frame");
+    R_imu_correction = get_parameter("imu_frame").as_double_array();
+    R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        R_imu_correction.data());
+    
+    std::vector<double> R_dvl_correction;
+    this->declare_parameter<std::vector<double>>("dvl_frame");
+    R_dvl_correction = get_parameter("dvl_frame").as_double_array();
+    R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+        R_dvl_correction.data());
 
     std::vector<double> diag_Q_std;
     this->declare_parameter<std::vector<double>>("diag_Q_std");
@@ -114,12 +122,31 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
                               msg->linear_acceleration.z);
 
     ImuMeasurement imu_measurement{};
-    imu_measurement.accel = R_imu_acc_eskf_ * raw_accel;
+    imu_measurement.accel = R_imu_eskf_ * raw_accel;
 
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    imu_measurement.gyro = R_imu_gyro_eskf_ * raw_gyro;
+    imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
+    // imu_measurement.gyro = raw_gyro;
+
+    // used for publishing odom output of eskf
+    latest_gyro_measurement_ = imu_measurement.gyro;
+
+    // temp debug
+    // ==========================================
+    sensor_msgs::msg::Imu imu_msg_out = *msg; // Copy header and covariances
+    
+    // Overwrite vectors with corrected data
+    imu_msg_out.linear_acceleration.x = imu_measurement.accel.x();
+    imu_msg_out.linear_acceleration.y = imu_measurement.accel.y();
+    imu_msg_out.linear_acceleration.z = imu_measurement.accel.z();
+
+    imu_msg_out.angular_velocity.x = imu_measurement.gyro.x();
+    imu_msg_out.angular_velocity.y = imu_measurement.gyro.y();
+    imu_msg_out.angular_velocity.z = imu_measurement.gyro.z();
+    imu_rotated_pub_->publish(imu_msg_out);
+    //
 
     eskf_->imu_update(imu_measurement, dt);
 }
@@ -136,7 +163,23 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[8], msg->twist.covariance[12],
         msg->twist.covariance[13], msg->twist.covariance[14];
 
+    // Apply the rotation correction to the DVL measurement    
+    dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
+    dvl_sensor.measurement_noise = R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
+
+    // temp debug
+    // ==========================================
+    geometry_msgs::msg::TwistWithCovarianceStamped dvl_msg_out = *msg; // Copy header
+    
+    // 1. Update Linear Velocity
+    dvl_msg_out.twist.twist.linear.x = dvl_sensor.measurement.x();
+    dvl_msg_out.twist.twist.linear.y = dvl_sensor.measurement.y();
+    dvl_msg_out.twist.twist.linear.z = dvl_sensor.measurement.z();
+    
+    dvl_rotated_pub_->publish(dvl_msg_out);
+
     eskf_->dvl_update(dvl_sensor);
+
 
 #ifndef NDEBUG
     // Publish NIS in Debug mode
@@ -165,9 +208,10 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
     // Add bias values to the angular velocity field of twist
-    odom_msg.twist.twist.angular.x = nom_state.accel_bias.x();
-    odom_msg.twist.twist.angular.y = nom_state.accel_bias.y();
-    odom_msg.twist.twist.angular.z = nom_state.accel_bias.z();
+    Eigen::Vector3d body_angular_vel = latest_gyro_measurement_ - nom_state.gyro_bias;
+    odom_msg.twist.twist.angular.x = body_angular_vel.x();
+    odom_msg.twist.twist.angular.y = body_angular_vel.y();
+    odom_msg.twist.twist.angular.z = body_angular_vel.z();
 
     // If you also want to include gyro bias, you could add it to the covariance
     // matrix or publish a separate topic for biases
