@@ -56,6 +56,9 @@ vortex_msgs::msg::LandmarkArray tracks_to_landmark_array_msg(
     for (const auto& track : tracks) {
         vortex_msgs::msg::Landmark landmark;
         landmark.pose = track_to_pose_with_covariance(track);
+        landmark.type_class.type = track.type;
+        landmark.type_class.subtype = track.subtype;
+        landmark.id = track.id;
         landmark_array_msg.landmarks.push_back(landmark);
     }
 

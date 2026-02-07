@@ -1,9 +1,16 @@
 #ifndef LANDMARK_SERVER__LANDMARK_SERVER_ROS_HPP_
 #define LANDMARK_SERVER__LANDMARK_SERVER_ROS_HPP_
 
+#include <message_filters/subscriber.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/create_timer_ros.h>
+#include <tf2_ros/message_filter.h>
+#include <tf2_ros/transform_listener.h>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <string>
+#include <vector>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <rclcpp_action/client.hpp>
@@ -24,6 +31,8 @@ using LandmarkConvergenceGoalHandle =
 using ReferenceFilterGoalHandle =
     rclcpp_action::ClientGoalHandle<vortex_msgs::msg::ReferenceFilter>;
 
+using vortex::filtering::Landmark;
+
 class LandmarkServerNode : public rclcpp::Node {
    public:
     explicit LandmarkServerNode(
@@ -33,7 +42,12 @@ class LandmarkServerNode : public rclcpp::Node {
    private:
     void setup_ros_communicators();
 
-    void landmark_callback(const vortex_msgs::msg::LandmarkArray& msg);
+    void create_reference_publisher();
+
+    void create_pose_subscription();
+
+    std::vector<Landmark> ros_msg_to_landmarks(
+        const vortex_msgs::msg::LandmarkArray& msg) const;
 
     void create_polling_action_server();
 
@@ -85,11 +99,15 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void create_reference_action_client();
 
+    std::shared_ptr<
+        message_filters::Subscriber<vortex_msgs::msg::LandmarkArray>>
+        landmark_sub_;
+
+    std::shared_ptr<tf2_ros::MessageFilter<vortex_msgs::msg::LandmarkArray>>
+        tf_filter_;
+
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
         reference_pose_pub_;
-
-    rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
-        landmark_array_sub_;
 
     rclcpp_action::Server<vortex_msgs::action::LandmarkPolling>::SharedPtr
         landmark_polling_server_;
@@ -101,6 +119,15 @@ class LandmarkServerNode : public rclcpp::Node {
         SharedPtr reference_filter_client_;
 
     std::unique_ptr<vortex::filtering::PoseTrackManager> track_manager_;
+
+    std::vector<Landmark> measurements_;
+
+    double filter_dt_seconds_{0.0};
+    std::string target_frame_;
+    std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
+
+    bool enu_ned_rotation_{false};
 };
 
 }  // namespace vortex::mission

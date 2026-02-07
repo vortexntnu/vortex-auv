@@ -137,7 +137,7 @@
       reference_filter: "reference_filter"
       los: "los_guidance"
       landmark_polling: "landmark_polling"
-      landmark_convergance: "landmark_convergance"
+      landmark_convergence: "landmark_convergence"
 
     fsm:
       docking:

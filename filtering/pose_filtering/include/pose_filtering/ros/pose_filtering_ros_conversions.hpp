@@ -84,7 +84,7 @@ inline std::vector<Landmark> ros_to_landmarks(
         lm.pose =
             vortex::utils::ros_conversions::ros_pose_to_pose(lm_msg.pose.pose);
         lm.class_key =
-            LandmarkClassKey{lm_msg.identifier.type, lm_msg.identifier.subtype};
+            LandmarkClassKey{lm_msg.type_class.type, lm_msg.type_class.subtype};
         out.push_back(lm);
     }
     return out;
