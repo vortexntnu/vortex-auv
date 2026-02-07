@@ -12,13 +12,8 @@ PoseTrackManager::PoseTrackManager(const TrackManagerConfig& config)
 
 void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
     sort_tracks_by_priority();
-    std::cout << "Step called with " << tracks_.size() << " tracks and "
-              << measurements.size() << " measurements." << std::endl;
     for (Track& track : tracks_) {
         const auto& cfg = cfg_for(track);
-        std::cout << "Processing track " << track.id << " with type "
-                  << track.type << " and subtype " << track.subtype
-                  << std::endl;
         auto type_gate_indices = type_gate_measurements(track, measurements);
         auto Z = compute_measurement_residuals(track, measurements,
                                                type_gate_indices);
