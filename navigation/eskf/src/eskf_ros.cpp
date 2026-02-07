@@ -80,18 +80,6 @@ void ESKFNode::set_subscribers_and_publisher() {
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
         "dvl/nis", vortex::utils::qos_profiles::reliable_profile());
 
-    pub_imu_dt_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/debug/imu_dt", vortex::utils::qos_profiles::reliable_profile());
-
-    pub_vo_pos_norm_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/debug/vo_pos_innov_norm", vortex::utils::qos_profiles::reliable_profile());
-
-    pub_vo_ang_norm_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/debug/vo_ang_innov_norm", vortex::utils::qos_profiles::reliable_profile());
-
-    pub_vo_nis_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/debug/vo_nis", vortex::utils::qos_profiles::reliable_profile());
-
     pub_vo_rejects_ = create_publisher<std_msgs::msg::Int32>(
         "eskf/debug/vo_consecutive_rejects", vortex::utils::qos_profiles::reliable_profile());
 
@@ -164,8 +152,8 @@ void ESKFNode::setup_services() {
                 eskf_->set_nis_gating_enabled(request->data);
                 response->success = true;
                 response->message = request->data ? 
-                    "NIS gating ENABLED (proper rejection)" : 
-                    "NIS gating DISABLED (accepting all - DEBUG ONLY!)";
+                    "NIS gating ENABLED" : 
+                    "NIS gating DISABLED";
                 RCLCPP_INFO(this->get_logger(), "%s", response->message.c_str());
             } else {
                 response->success = false;
@@ -258,7 +246,7 @@ void ESKFNode::visualEgomotion_callback(
     visual_meas.stamp_sec = rclcpp::Time(msg->header.stamp).seconds();
 
     eskf_->visualEgomotion_update(visual_meas);
-
+    
     pub_i32(pub_vo_rejects_, eskf_->get_consecutive_vo_rejects());
     pub_bool(pub_vo_anchor_valid_, eskf_->is_anchor_valid());
 
@@ -269,22 +257,22 @@ void ESKFNode::publish_odom() {
     nav_msgs::msg::Odometry odom_msg;
     StateQuat nom_state = eskf_->get_nominal_state();
 
-    odom_msg.pose.pose.position.x = nom_state.pos.x();
-    odom_msg.pose.pose.position.y = nom_state.pos.y();
-    odom_msg.pose.pose.position.z = nom_state.pos.z();
+    odom_msg.pose.pose.position.x    = nom_state.pos.x();
+    odom_msg.pose.pose.position.y    = nom_state.pos.y();
+    odom_msg.pose.pose.position.z    = nom_state.pos.z();
 
     odom_msg.pose.pose.orientation.w = nom_state.quat.w();
     odom_msg.pose.pose.orientation.x = nom_state.quat.x();
     odom_msg.pose.pose.orientation.y = nom_state.quat.y();
     odom_msg.pose.pose.orientation.z = nom_state.quat.z();
 
-    odom_msg.twist.twist.linear.x = nom_state.vel.x();
-    odom_msg.twist.twist.linear.y = nom_state.vel.y();
-    odom_msg.twist.twist.linear.z = nom_state.vel.z();
+    odom_msg.twist.twist.linear.x    = nom_state.vel.x();
+    odom_msg.twist.twist.linear.y    = nom_state.vel.y();
+    odom_msg.twist.twist.linear.z    = nom_state.vel.z();
 
-    odom_msg.twist.twist.angular.x = nom_state.accel_bias.x();
-    odom_msg.twist.twist.angular.y = nom_state.accel_bias.y();
-    odom_msg.twist.twist.angular.z = nom_state.accel_bias.z();
+    odom_msg.twist.twist.angular.x   = nom_state.accel_bias.x();
+    odom_msg.twist.twist.angular.y   = nom_state.accel_bias.y();
+    odom_msg.twist.twist.angular.z   = nom_state.accel_bias.z();
 
     // TODO: Covariance out
 

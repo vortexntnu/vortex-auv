@@ -62,11 +62,6 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
 
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pub_imu_dt_;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pub_vo_pos_norm_;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pub_vo_ang_norm_;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pub_vo_nis_;
-
     rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr pub_vo_rejects_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pub_vo_anchor_valid_;
 
