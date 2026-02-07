@@ -249,7 +249,7 @@ void ESKF::dvl_update(const DvlMeasurement& dvl_meas) {
 
 void ESKF::vo_velocity_update_(const Eigen::Vector3d& v_meas_nav,
                                const Eigen::Matrix3d& Rv) {
-    // Measurement: h(x) = v_nav
+    if (!use_vo) { return; }
     Eigen::Matrix<double, 3, 18> H = Eigen::Matrix<double, 3, 18>::Zero();
     H.block<3, 3>(0, 3) = Eigen::Matrix3d::Identity();
 
@@ -259,20 +259,17 @@ void ESKF::vo_velocity_update_(const Eigen::Vector3d& v_meas_nav,
     const Eigen::Matrix3d S = H * P * H.transpose() + Rv;
     const double nis = compute_nis(y, S);
 
-    // NIS gating
     const double gate = disable_nis_gating_ ? 1e9 : vo_config::NIS_GATE_3DOF;
     if (nis > gate) {
         spdlog::debug("VO velocity rejected: NIS={:.2f} > {:.2f}", nis, gate);
         return;
     }
 
-    // Kalman gain with damping to let IMU "breathe"
     Eigen::Matrix<double, 18, 3> K = P * H.transpose() * S.inverse();
     K *= vo_config::VELOCITY_UPDATE_ALPHA;
 
     current_error_state_.set_from_vector(K * y);
 
-    // Joseph form (use undamped K for covariance)
     Eigen::Matrix<double, 18, 3> K_full = P * H.transpose() * S.inverse();
     const Eigen::Matrix18d I_KH = Eigen::Matrix18d::Identity() - K_full * H;
     current_error_state_.covariance =
@@ -282,7 +279,8 @@ void ESKF::vo_velocity_update_(const Eigen::Vector3d& v_meas_nav,
 }
 
 void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
-    // reset anchor if gap too large
+    if (!use_vo) { return; }
+
     if (last_vo_stamp_sec_ > 0.0) {
         const double gap = visual_meas.stamp_sec - last_vo_stamp_sec_;
         if (gap > vo_reset_gap_sec_) {
@@ -294,7 +292,6 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     }
     last_vo_stamp_sec_ = visual_meas.stamp_sec;
 
-    // if too many consecutive rejections, reset anchor
     const bool need_smart_reset = 
         (consecutive_vo_rejects_ >= vo_config::CONSECUTIVE_REJECTS_FOR_RESET);
 
@@ -304,7 +301,6 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
                         consecutive_vo_rejects_);
         }
         
-        // Initialize anchor: maps from VO frame to Nav frame
         // p_nav = p_nav_vo + R(q_nav_vo) * p_vo
         // q_nav = q_nav_vo * q_vo
         q_nav_vo_ =
@@ -314,7 +310,6 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
         have_vo_anchor = true;
         have_vo_prev = false;
         consecutive_vo_rejects_ = 0;
-        debug_vo_.have = false;
         
         spdlog::info("VO anchor initialized at pos=[{:.2f}, {:.2f}, {:.2f}]",
                     p_nav_vo_.x(), p_nav_vo_.y(), p_nav_vo_.z());
@@ -382,12 +377,6 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     const Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
     const double nis = compute_nisN(y, S);
 
-    // Debug output
-    debug_vo_.pos_innov_norm = y.head<3>().norm();
-    debug_vo_.ang_innov_norm = y.segment<3>(3).norm();
-    debug_vo_.nis_pose = nis;
-    debug_vo_.have = true;
-
     // NIS Gating
     const double gate = disable_nis_gating_ ? 1e9 : vo_config::NIS_GATE_6DOF;
 
@@ -415,10 +404,8 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     injection_and_reset();
     
     consecutive_vo_rejects_ = 0;
-    
-    spdlog::debug("VO pose ACCEPTED: NIS={:.1f}, pos_corr={:.3f}m, att_corr={:.2f}deg",
-                 nis, y.head<3>().norm(), y.segment<3>(3).norm() * 180.0 / M_PI);
 }
+
 
 void ESKF::set_nis_gating_enabled(bool enabled) {
     disable_nis_gating_ = !enabled;

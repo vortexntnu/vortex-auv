@@ -5,13 +5,6 @@
 #include <utility>
 #include "typedefs.hpp"
 
-struct VoDebug {
-    double pos_innov_norm = 0.0;   // [m]
-    double ang_innov_norm = 0.0;   // [rad]
-    double nis_pose = 0.0;         // [-]
-    bool   have = false;
-};
-
 class ESKF {
    public:
     ESKF(const EskfParams& params);
@@ -40,6 +33,7 @@ class ESKF {
     double vo_reset_gap_sec_ = 20.0;
 
     int consecutive_vo_rejects_ = 0;
+    bool use_vo = false;
     bool disable_nis_gating_ = false;
 
     const VoDebug& debug_vo() const { return debug_vo_; }
@@ -137,8 +131,6 @@ class ESKF {
     bool have_vo_prev{false};
     double prev_vo_stamp_sec{0.0};
     Eigen::Vector3d prev_p_meas_nav_{Eigen::Vector3d::Zero()};
-    // Debug
-    VoDebug debug_vo_;
 
 };
 

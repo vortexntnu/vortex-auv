@@ -259,13 +259,6 @@ void ESKFNode::visualEgomotion_callback(
 
     eskf_->visualEgomotion_update(visual_meas);
 
-    const auto& dbg = eskf_->debug_vo();
-    if (dbg.have) {
-        pub_f64(pub_vo_pos_norm_, dbg.pos_innov_norm);
-        pub_f64(pub_vo_ang_norm_, dbg.ang_innov_norm);
-        pub_f64(pub_vo_nis_, dbg.nis_pose);
-    }
-    
     pub_i32(pub_vo_rejects_, eskf_->get_consecutive_vo_rejects());
     pub_bool(pub_vo_anchor_valid_, eskf_->is_anchor_valid());
 

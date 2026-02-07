@@ -146,13 +146,13 @@ void VisualEgomotionNode::onLandmarks(
             T_ref_base_curr = last_T_ref_base_;
         } else {
             T_ref_base_curr =
-                T_anchor_ * T_base_current_landmark_.inverse();
+                T_base_anchor_ * T_base_current_landmark_.inverse();
             last_T_ref_base_ = T_ref_base_curr;
             have_last_ref_base_ = true;
         }
 
         // Re-anchor so T_ref<-base stays the same under the new marker
-        T_anchor_ = T_ref_base_curr * T_base_current_landmark_;
+        T_base_anchor_ = T_ref_base_curr * T_base_current_landmark_;
 
         RCLCPP_WARN(this->get_logger(),
                     "Marker switch %u -> %u",
@@ -160,7 +160,7 @@ void VisualEgomotionNode::onLandmarks(
     }
 
     if (!have_ref) {
-        T_anchor_ = T_base_current_landmark_;
+        T_base_anchor_ = T_base_current_landmark_;
         have_ref = true;
 
         if (chosen != board) {
@@ -186,7 +186,7 @@ void VisualEgomotionNode::onLandmarks(
     }
 
     const tf2::Transform T_ref_base_meas =
-        T_anchor_ * T_base_current_landmark_.inverse();
+        T_base_anchor_ * T_base_current_landmark_.inverse();
 
     last_T_ref_base_ = T_ref_base_meas;
     have_last_ref_base_ = true;

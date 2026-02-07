@@ -53,7 +53,7 @@ class VisualEgomotionNode final : public rclcpp::Node {
 
     // Anchor and timing
     bool have_ref = false;
-    tf2::Transform T_anchor_; // Transform landmark anchor to base
+    tf2::Transform T_base_anchor_; // Transform landmark anchor to base
     rclcpp::Time last_det_stamp;
     rclcpp::Time last_pub_stamp;
     
