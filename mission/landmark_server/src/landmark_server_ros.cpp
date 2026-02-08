@@ -132,6 +132,46 @@ void LandmarkServerNode::create_convergence_action_server() {
             });
 }
 
+rclcpp_action::GoalResponse
+LandmarkServerNode::handle_landmark_convergence_goal(
+    const rclcpp_action::GoalUUID& /*uuid*/,
+    std::shared_ptr<const vortex_msgs::action::LandmarkConvergence::Goal>
+        goal_msg) {
+    const int requested_id = goal_msg->id;
+    if (!track_manager_->has_track(requested_id)) {
+        spdlog::warn(
+            "Requested landmark id for LandmarkConvergence action does not "
+            "exist.");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
+    if (active_reference_filter_goal_) {
+        reference_filter_client_->async_cancel_goal(
+            active_reference_filter_goal_);
+        // active_reference_filter_goal_.reset();  // should i call reset here?
+    }
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+void LandmarkServerNode::handle_landmark_convergence_accepted(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::LandmarkConvergence>> goal_handle) {
+    auto status = active_reference_filter_goal_->get_status();
+}
+
+rclcpp_action::CancelResponse
+LandmarkServerNode::handle_landmark_convergence_cancel(
+    const std::shared_ptr<LandmarkConvergenceGoalHandle> /*goal_handle*/) {
+    spdlog::info("LandmarkConvergence: cancel requested");
+
+    if (active_reference_filter_goal_) {
+        reference_filter_client_->async_cancel_goal(
+            active_reference_filter_goal_);
+        active_reference_filter_goal_.reset();
+    }
+
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
 void LandmarkServerNode::create_reference_action_client() {
     std::string reference_action_name =
         this->declare_parameter<std::string>("action_servers.reference_filter");

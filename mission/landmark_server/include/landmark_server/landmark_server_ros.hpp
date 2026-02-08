@@ -28,8 +28,8 @@ using LandmarkPollingGoalHandle =
     rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkPolling>;
 using LandmarkConvergenceGoalHandle =
     rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkConvergence>;
-using ReferenceFilterGoalHandle =
-    rclcpp_action::ClientGoalHandle<vortex_msgs::msg::ReferenceFilter>;
+using ReferenceFilterGoalHandle = rclcpp_action::ClientGoalHandle<
+    vortex_msgs::action::ReferenceFilterWaypoint>;
 
 using vortex::filtering::Landmark;
 
@@ -139,6 +139,9 @@ class LandmarkServerNode : public rclcpp::Node {
     bool enu_ned_rotation_{false};
 
     std::shared_ptr<LandmarkPollingGoalHandle> active_landmark_polling_goal_;
+    std::shared_ptr<LandmarkConvergenceGoalHandle>
+        active_landmark_convergence_goal_;
+    std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
 };
 
 }  // namespace vortex::mission
