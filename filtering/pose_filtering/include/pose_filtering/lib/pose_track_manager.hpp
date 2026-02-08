@@ -93,6 +93,12 @@ class PoseTrackManager {
         });
     }
 
+    bool has_track(int id) const {
+        return std::any_of(tracks_.begin(), tracks_.end(), [&](const Track& t) {
+            return t.confirmed && t.id == id;
+        });
+    }
+
     std::vector<const Track*> get_tracks_by_type(uint16_t type,
                                                  uint16_t subtype) const {
         std::vector<const Track*> out;
