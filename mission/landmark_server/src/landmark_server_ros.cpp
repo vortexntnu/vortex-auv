@@ -5,6 +5,7 @@
 #include <rclcpp_action/create_server.hpp>
 #include <rclcpp_action/server.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_transforms.hpp>
 
@@ -168,9 +169,9 @@ void LandmarkServerNode::handle_landmark_polling_accepted(
 }
 
 rclcpp_action::CancelResponse
-LandmarkServerNode::handle_landmark_convergence_cancel(
+LandmarkServerNode::handle_landmark_polling_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::LandmarkConvergence>> /*goal_handle*/) {
+        vortex_msgs::action::LandmarkPolling>> /*goal_handle*/) {
     spdlog::info("LandmarkPolling action cancelled");
     return rclcpp_action::CancelResponse::ACCEPT;
 }
