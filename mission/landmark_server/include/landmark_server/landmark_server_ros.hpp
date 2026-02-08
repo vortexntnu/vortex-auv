@@ -49,6 +49,10 @@ class LandmarkServerNode : public rclcpp::Node {
     std::vector<Landmark> ros_msg_to_landmarks(
         const vortex_msgs::msg::LandmarkArray& msg) const;
 
+    vortex_msgs::msg::LandmarkArray tracks_to_landmark_msgs(
+        uint16_t type,
+        uint16_t subtype) const;
+
     void create_polling_action_server();
 
     // @brief Handle incoming landmark polling action goal requests
@@ -84,6 +88,12 @@ class LandmarkServerNode : public rclcpp::Node {
         std::shared_ptr<const vortex_msgs::action::LandmarkConvergence::Goal>
             goal_msg);
 
+    // @brief Handle the accepted landmark convergence goal request
+    // @param goal_handle The goal handle
+    void handle_landmark_convergence_accepted(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+            vortex_msgs::action::LandmarkConvergence>> goal_handle);
+
     // @brief Handle requests to cancel the landmark convergence action
     // @param goal_handle The goal handle
     // @return The cancel response
@@ -91,13 +101,11 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
 
-    // @brief Handle the accepted landmark convergence goal request
-    // @param goal_handle The goal handle
-    void handle_landmark_convergence_accepted(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::LandmarkConvergence>> goal_handle);
-
     void create_reference_action_client();
+
+    void create_track_manager();
+
+    void timer_callback();
 
     std::shared_ptr<
         message_filters::Subscriber<vortex_msgs::msg::LandmarkArray>>
@@ -122,12 +130,15 @@ class LandmarkServerNode : public rclcpp::Node {
 
     std::vector<Landmark> measurements_;
 
+    rclcpp::TimerBase::SharedPtr timer_;
     double filter_dt_seconds_{0.0};
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
     bool enu_ned_rotation_{false};
+
+    std::shared_ptr<LandmarkPollingGoalHandle> active_landmark_polling_goal_;
 };
 
 }  // namespace vortex::mission

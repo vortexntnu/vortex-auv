@@ -80,6 +80,32 @@ class PoseTrackManager {
      */
     const std::vector<Track>& get_tracks() const { return tracks_; }
 
+    /**
+     * @brief Return whether we have a track of the specified type and subtype.
+     * @param type of the track
+     * @param subtype of the track
+     * @return Whether at least one track with the specified type and subtype
+     * exists.
+     */
+    bool has_track(uint16_t type, uint16_t subtype) const {
+        return std::any_of(tracks_.begin(), tracks_.end(), [&](const Track& t) {
+            return t.confirmed && t.type == type && t.subtype == subtype;
+        });
+    }
+
+    std::vector<const Track*> get_tracks_by_type(uint16_t type,
+                                                 uint16_t subtype) const {
+        std::vector<const Track*> out;
+        out.reserve(tracks_.size());
+        for (const auto& t : tracks_) {
+            if (!(t.type == type && t.subtype == subtype && !t.confirmed)) {
+                continue;
+            }
+            out.push_back(&t);
+        }
+        return out;
+    }
+
    private:
     std::vector<Eigen::Index> type_gate_measurements(
         const Track& track,
