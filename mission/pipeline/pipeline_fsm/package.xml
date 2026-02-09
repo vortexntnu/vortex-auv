@@ -1,22 +1,21 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>mission_execution</name>
-  <version>0.0.0</version>
-  <description>Mission execution system with BehaviorTree.CPP and pause/resume support</description>
-  <maintainer email="user@example.com">user</maintainer>
+  <name>pipeline_fsm</name>
+  <version>0.0.1</version>
+  <description>YASMIN-based pipeline mission FSM</description>
+  <maintainer email="vortex@todo.todo">vortex</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
-  <depend>rclcpp_components</depend>
-  <depend>geometry_msgs</depend>
-  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>yasmin</depend>
+  <depend>yasmin_ros</depend>
+  <depend>yasmin_viewer</depend>
   <depend>vortex_msgs</depend>
-  <depend>behaviortree_ros2</depend>
-  <depend>behaviortree_cpp</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
