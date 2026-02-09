@@ -11,7 +11,7 @@
 #include "LQR_setup.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp" 
-
+#include "velocity_controller/NMPC_setup.hpp"
 
 
 class Velocity_node : public rclcpp::Node{
@@ -27,8 +27,6 @@ class Velocity_node : public rclcpp::Node{
     //Callback functions
     void guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr);
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr);
-    //void twist_callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg_ptr);
-    //void pose_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg_ptr);
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr);
 
     //Publisher instance
@@ -39,8 +37,6 @@ class Velocity_node : public rclcpp::Node{
     rclcpp::TimerBase::SharedPtr timer_publish;
     
     //Subscriber instance
-    //rclcpp::Subscription<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr subscriber_twist;
-    //rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subscriber_pose;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscriber_Odometry;
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr subscriber_guidance;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscriber_killswitch;
@@ -50,12 +46,9 @@ class Velocity_node : public rclcpp::Node{
     std::string topic_thrust;
     std::string topic_guidance;
     std::string topic_killswitch;
-    //std::string topic_twist;
-    //std::string topic_pose;
     std::string topic_odometry;
 
     //Variables for timers
-    //int calculation_rate;
     int publish_rate;
     double max_force;
 
@@ -78,13 +71,16 @@ class Velocity_node : public rclcpp::Node{
     //LQRparameters lqr_parameters;
     std::vector<double> Q;
     std::vector<double> R;
-    std::vector<double> Qi;
-    std::vector<double> Ri;
+    //std::vector<double> Qi;
+    //std::vector<double> Ri;
     std::vector<double> inertia_matrix;
     std::vector<double> dampening_matrix_low;
     std::vector<double> dampening_matrix_high;
-
-
+    //NMPC controller
+    NMPC_controller NMPC;
+    //NMPC parameters
+    std::vector<double> Q2;
+    std::vector<double> R2;
     //Test
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_reference;
 

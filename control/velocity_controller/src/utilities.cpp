@@ -1,5 +1,7 @@
 #include "velocity_controller/utilities.hpp"
 #include "Eigen/Dense"
+#include <casadi/casadi.hpp>
+#include <stdexcept>
 
 angle quaternion_to_euler_angle(double w, double x, double y, double z){
     double ysqr = y * y;
@@ -59,3 +61,19 @@ Eigen::Vector3d NED_to_BODY(const Eigen::Vector3d &a, const State &s){
     return v_body;
 
 }
+/*
+casadi::MX mtimes(const casadi::MX& A, const casadi::MX& B){
+    if (A.size2()!=B.size1()){
+        throw std::invalid_argument("Wrong dimensions size. A has %f columns and B has %f rows");
+    }
+    casadi::MX result=casadi::MX::zeros(A.size1(),B.size2());
+    for (int i=0;i<A.size1();i++){
+        for (int j=0;j<B.size2();j++){
+            for (int k=0;k<A.size2();k++){
+                result(i,j)=A(i,k)*B(k,j);
+            }
+        }
+    }
+    return result;
+}
+*/

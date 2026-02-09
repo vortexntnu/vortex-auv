@@ -1,3 +1,4 @@
+#include <numbers>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
@@ -32,11 +33,14 @@ test_VC::test_VC() : Node("test_VC_node")
     clock_ = this->get_clock();
     RCLCPP_INFO(this->get_logger(), "Test_VC node has been started");
     reference_msg.surge=0.2;reference_msg.pitch=-1.22;reference_msg.yaw=0.0; //Surge, pitch, yaw
-    
+
 } 
 
 void test_VC::send_guidance()
 {
+    time1+=0.2;
+    reference_msg.yaw=0.6*sin(time1*std::numbers::pi/9);
+    reference_msg.pitch=0.3*sin(time1*std::numbers::pi/9);
     publisher_guidance->publish(reference_msg);
 }
 

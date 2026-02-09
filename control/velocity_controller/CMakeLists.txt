@@ -16,14 +16,14 @@ find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(CasADi REQUIRED)
+#find_package(CasADi REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(ct_optcon REQUIRED)
 find_package(ct_core REQUIRED)
+find_package(casadi REQUIRED)
 
 include_directories(
-  ${EIGEN3_INCLUDE_DIR}
   include
 )
 
@@ -33,6 +33,7 @@ add_executable(velocity_controller_node
   src/LQR_setup.cpp
   src/utilities.cpp
   src/ct_instantiations.cpp
+  src/NMPC_setup.cpp
 )
 
 
@@ -48,13 +49,12 @@ ament_target_dependencies(velocity_controller_node
   std_msgs
   vortex_msgs
   geometry_msgs
-  CasADi
+ # CasADi
   nav_msgs
   vortex_utils
 )
-
-target_link_libraries(velocity_controller_node Eigen3::Eigen ct_optcon ct_core)
-
+#target_include_directories(velocity_controller_node PRIVATE casadi Eigen3)
+target_link_libraries(velocity_controller_node Eigen3::Eigen casadi::casadi ct_optcon ct_core)
 install(TARGETS
   velocity_controller_node
   DESTINATION lib/${PROJECT_NAME}

@@ -4,6 +4,7 @@
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp"
 #include <Eigen/Dense>
+#include <casadi/casadi.hpp>
 
 
 class angle{
@@ -38,4 +39,6 @@ class Guidance_data:public State{
 
 angle NED_to_BODY(const angle &a,const State &s);
 Eigen::Vector3d NED_to_BODY(const Eigen::Vector3d &a, const State &s);
+
+//casadi::MX mtimes(const casadi::MX& A, const casadi::MX& B);
 

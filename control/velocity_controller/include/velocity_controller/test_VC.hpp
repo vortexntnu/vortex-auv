@@ -43,6 +43,7 @@ class test_VC : public rclcpp::Node{
 
     //MSGS
     //nav_msgs::msg::Odometry odom_msg;
+    double time1=0;
 };
 
 geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll, double pitch, double yaw);

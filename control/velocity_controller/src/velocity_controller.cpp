@@ -15,7 +15,7 @@
 
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100,5,0), PID_yaw(1,0.1,0), PID_pitch(35,1,0), lqr_controller()
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100,5,0), PID_yaw(35,1,0), PID_pitch(35,1,0), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
@@ -56,6 +56,10 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
     controller_type=1;
     RCLCPP_INFO(this->get_logger(),"Switching to PID");
   };
+  //NMPC controller
+  NMPC.set_matrices(Q2,R2, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
+  NMPC.set_interval(publish_rate/1000.0);
+  NMPC.initialize_MPC();
 
 }
 
@@ -106,6 +110,21 @@ void Velocity_node::calc_thrust()
       thrust_out.wrench.torque.y=u[1];
       thrust_out.wrench.torque.z=u[2];
     }
+    break;
+  }
+  case 3:{
+    Eigen::Matrix<double,3,1> u;
+    u=NMPC.calculate_thrust(guidance_values, current_state);
+    if (u==Eigen::Matrix<double,3,1>{9999,9999,9999}){
+      controller_type=1;
+      RCLCPP_ERROR(this->get_logger(),"Switching to PID");
+    }
+    else{
+    thrust_out.wrench.force.x=u[0];
+    thrust_out.wrench.torque.x=u[1];
+    thrust_out.wrench.torque.x=u[2];
+    }
+
     break;
   }
   default:{
@@ -191,6 +210,12 @@ void Velocity_node::get_new_parameters(){
   this->declare_parameter<std::vector<double>>("dampening_matrix_high");
   this->dampening_matrix_low=this->get_parameter("dampening_matrix_low").as_double_array();
   this->dampening_matrix_high=this->get_parameter("dampening_matrix_high").as_double_array();
+
+  //NMPC Parameters
+  this->declare_parameter<std::vector<double>>("NMPC_params.Q");
+  this->declare_parameter<std::vector<double>>("NMPC_params.R");
+  Q2=this->get_parameter("NMPC_params.Q").as_double_array();
+  R2=this->get_parameter("NMPC_params.R").as_double_array();
 
 
 

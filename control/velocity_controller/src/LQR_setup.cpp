@@ -16,7 +16,8 @@
 #include <casadi/casadi.hpp>
 //#include <lapack.h>
 #include "vortex/utils/math.hpp"
-#include "ct/optcon/lqr/LQR.hpp"    
+#include "ct/optcon/lqr/LQR.hpp"   
+#include "velocity_controller/NMPC_setup.hpp" 
 
 
 
@@ -163,8 +164,8 @@ Eigen::Vector<double,8> LQRController::update_error(Guidance_data guidance_value
     integral_error_yaw = anti_windup(yaw_error, integral_error_yaw, yaw_windup);
     //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"integral errors: %f, %f, %f",integral_error_surge,integral_error_pitch,integral_error_yaw);
     //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"windup status: %d, %d, %d",surge_windup,pitch_windup,yaw_windup);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"pitch value n state %f, %f",guidance_values.pitch,states.pitch);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"errors: %f, %f, %f",surge_error,pitch_error,yaw_error);
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"pitch value n state %f, %f",guidance_values.pitch,states.pitch);
+    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"errors: %f, %f, %f",surge_error,pitch_error,yaw_error);
     Eigen::Vector<double,8> state_error= {-surge_error, -pitch_error, -yaw_error, -states.pitch_rate, -states.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
@@ -222,97 +223,6 @@ int LQRController::set_interval(double interval){
     interval_=interval;
     return 1;
 }
-
-extern "C" {
-    // Fortran subroutine for solving symplectic Schur decomposition(double precision version)
-void sb02mt_(
-    const char* JOBG, const char* JOBL, const char* FACT, const char* UPLO, 
-    const int* N, const int* M, double* A, const int* LDA, double* B, const int* LDB,
-    double* Q, const int* LDQ, double* R, const int* LDR, double* L, const int* LDL,
-    int* IPIV, const int* OUFACT, double* G, const int* LDG,
-    int* IWORK, double* DWORK, const int* LDWORK, int* INFO 
-);
-void sb02md_( const char* DICO, const char* HINV, const char* UPLO, const char* SCAL, const char* SORT, const int*  N, double* A, const int*  LDA, double* G,
-                      const int*  LDG, double* Q, const int* LDQ, const double* RCOND, double* WR, double* WI, double*  S, const int*  LDS, double* U, const int*  LDU,
-                       int* IWORK, double* DWORK, const int*  LDWORK, int* BWORK, const int* INFO 
-                    );
-}
-
-/*
-LQRsolveResult LQRController::solve_lqr(const Eigen::MatrixXd &A,const Eigen::MatrixXd &B, const Eigen::MatrixXd &Q, const Eigen::MatrixXd &R){
-
-    const int N=A.rows();
-    const int M=B.cols();
-    if (A.cols()!=N||B.rows()!=N||R.rows()!=M||R.cols()!=M||Q.rows()!=N||Q.cols()!=N){
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The dimensions of the matrices for solve_lqr are wrong");
-        return LQRsolveResult{};
-    }
-
-    Eigen::Matrix<double,6,6> A_copy=A, Q_copy=Q;
-    Eigen::Matrix<double,6,3> B_copy=B; Eigen::Matrix<double,3,3> R_copy=R;
-    
-    //First calculate G with sb02mt_
-    //calculate G, L is zero, unfactored R, Upper triangle i think
-    char JOBG='G',JOBL='Z',FACT='N',UPLO='U';
-    //Order of matrices A, Q, G and X(P), Order of matrix R and nuber of columns in B and L(is zero)
-    //Dimensions of matrices
-    int LDA=N, LDB=N, LDQ=N,LDR=M,LDL=N,LDG=N;
-    std::vector<int> IWORK(8*N),IPIV(N);
-    //Upper bounds Output but initialized JIC output placeholder
-    int LDWORK=20*N*N,OUFACT=0,INFO=0; 
-    std::vector<double> DWORK(LDWORK);
-    Eigen::Matrix<double,6,6> L=Eigen::Matrix<double,6,6>::Zero(), G=L;
-    {
-      double detA = A_copy.determinant();
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Calling sb02md_: det(A)=%.6g, A(0,0)=%.6g, G(0,0)=%.6g", detA, A_copy(0,0), G(0,0));
-      Eigen::EigenSolver<Eigen::Matrix<double,6,6>> es(A_copy);
-      for (int i=0;i<6;++i){
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "eigA[%d]=% .6g%+.6gi", i, es.eigenvalues()[i].real(), es.eigenvalues()[i].imag());
-      }
-    }
-    sb02mt_(&JOBG,&JOBL,&FACT,&UPLO,&N,&M,A_copy.data(),&LDA,B_copy.data(),&LDB,Q_copy.data(),&LDQ,R_copy.data(),&LDR,L.data(),&LDL,IPIV.data(),&OUFACT,G.data(),&LDG,IWORK.data(),DWORK.data(),&LDWORK,&INFO);
-    Eigen::Matrix<double,3,6> K;
-    if (INFO!=0){
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "sb02mt_ returned INFO=%d", INFO);
-        // Consider throwing or returning a default result. We'll return zeroed K and G for now.
-        Eigen::Matrix<double,3,6> K_zero = Eigen::Matrix<double,3,6>::Zero();
-        return LQRsolveResult(K_zero, G,INFO);
-        
-    }  
-    char DICO='D',HINV='D',SCAL='N',SORT='U';
-    std::vector<double> WR(2*N,0),WI(2*N,0),RCOND(2*N,0);
-    int BWORK[8*N];
-    Eigen::Matrix<double,12,12> S=Eigen::Matrix<double,12,12>::Zero();
-    Eigen::Matrix<double,12,6>U=Eigen::Matrix<double,12,6>::Zero();
-    int LDS=2*N,LDU=2*N,INFO1=0;
-    //A_copy=A;Q_copy=Q; R_copy=R;
-    {
-      double detA = A_copy.determinant();
-      RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Calling sb02md_: det(A)=%.6g, A(0,0)=%.6g, G(0,0)=%.6g", detA, A_copy(0,0), G(0,0));
-      Eigen::EigenSolver<Eigen::Matrix<double,6,6>> es(A_copy);
-      for (int i=0;i<6;++i){
-        RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "eigA[%d]=% .6g%+.6gi", i, es.eigenvalues()[i].real(), es.eigenvalues()[i].imag());
-      }
-    }
-    sb02md_(&DICO,&HINV,&UPLO,&SCAL,&SORT,&N,A_copy.data(),&LDA,G.data(),&LDG,Q_copy.data(),&LDQ,RCOND.data(),WR.data(),WI.data(),S.data(),&LDS,U.data(),&LDU,IWORK.data(),DWORK.data(),&LDWORK,BWORK,&INFO1);
-    if (INFO1!=0){
-        //Some Error handling here. Also check that BRB in invertible
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "sb02md_ returned INFO=%d", INFO1);
-        // Consider throwing or returning a default result. We'll return zeroed K and G for now.
-        Eigen::Matrix<double,3,6> K_zero = Eigen::Matrix<double,3,6>::Zero();
-        return LQRsolveResult(K_zero, G,INFO1);
-    }
-    Eigen::Matrix<double,6,6>U11=U.topRows(6);
-    Eigen::Matrix<double,6,6>U21=U.bottomRows(6);
-    Eigen::MatrixXd X=U21*U11.inverse();
-    K=R.inverse()*B.transpose()*X;
-    
-    return LQRsolveResult(K,G,INFO1);    
-
-}
-    */
-
-
 
 
 //Hjelpefunksjoner for å konvertere mellom std::vector og Eigen::Matrix3d
