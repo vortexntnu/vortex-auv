@@ -51,13 +51,6 @@ void ESKFNode::set_subscribers_and_publisher() {
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
-    // temp debug
-    imu_rotated_pub_ = this->create_publisher<sensor_msgs::msg::Imu>(
-        "eskf/imu_rotated", vortex::utils::qos_profiles::sensor_data_profile());
-    
-    dvl_rotated_pub_ = this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
-        "eskf/dvl_rotated", vortex::utils::qos_profiles::sensor_data_profile());
-
 #ifndef NDEBUG
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
         "eskf/nis", vortex::utils::qos_profiles::reliable_profile());
@@ -127,26 +120,12 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
-    // imu_measurement.gyro = raw_gyro;
+    // currently the gyro and the accelorometer are rotated differently. should be changed with the actual drone.
+    // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
+    imu_measurement.gyro = raw_gyro;
 
     // used for publishing odom output of eskf
     latest_gyro_measurement_ = imu_measurement.gyro;
-
-    // temp debug
-    // ==========================================
-    sensor_msgs::msg::Imu imu_msg_out = *msg; // Copy header and covariances
-    
-    // Overwrite vectors with corrected data
-    imu_msg_out.linear_acceleration.x = imu_measurement.accel.x();
-    imu_msg_out.linear_acceleration.y = imu_measurement.accel.y();
-    imu_msg_out.linear_acceleration.z = imu_measurement.accel.z();
-
-    imu_msg_out.angular_velocity.x = imu_measurement.gyro.x();
-    imu_msg_out.angular_velocity.y = imu_measurement.gyro.y();
-    imu_msg_out.angular_velocity.z = imu_measurement.gyro.z();
-    imu_rotated_pub_->publish(imu_msg_out);
-    //
 
     eskf_->imu_update(imu_measurement, dt);
 }
@@ -166,17 +145,6 @@ void ESKFNode::dvl_callback(
     // Apply the rotation correction to the DVL measurement    
     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
     dvl_sensor.measurement_noise = R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
-
-    // temp debug
-    // ==========================================
-    geometry_msgs::msg::TwistWithCovarianceStamped dvl_msg_out = *msg; // Copy header
-    
-    // 1. Update Linear Velocity
-    dvl_msg_out.twist.twist.linear.x = dvl_sensor.measurement.x();
-    dvl_msg_out.twist.twist.linear.y = dvl_sensor.measurement.y();
-    dvl_msg_out.twist.twist.linear.z = dvl_sensor.measurement.z();
-    
-    dvl_rotated_pub_->publish(dvl_msg_out);
 
     eskf_->dvl_update(dvl_sensor);
 
