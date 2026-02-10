@@ -33,12 +33,10 @@ class ESKF {
     double vo_reset_gap_sec_ = 20.0;
 
     int consecutive_vo_rejects_ = 0;
-    bool use_vo = false;
+    bool use_vo; //= false;
     bool disable_nis_gating_ = false;
 
-    const VoDebug& debug_vo() const { return debug_vo_; }
-
-        /**
+    /**
      * @brief Enable/disable NIS gating
      * When disabled, all measurements are accepted (for debugging)
      */

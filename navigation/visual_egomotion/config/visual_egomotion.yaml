@@ -16,3 +16,6 @@ visual_egomotion:
     lost_timeout_sec: 15.0
     huber_threshold_deg: 2.5
     gate_threshold_deg: 15.0
+
+    have_ref: false
+    bool have_last_ref_base_: false

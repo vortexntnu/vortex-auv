@@ -344,7 +344,6 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     prev_p_meas_nav_ = p_meas_nav;
     have_vo_prev = true;
 
-    // compute pose innovation
     Eigen::Matrix<double, 6, 1> y;
     
     // position innovation
@@ -377,7 +376,6 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     const Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
     const double nis = compute_nisN(y, S);
 
-    // NIS Gating
     const double gate = disable_nis_gating_ ? 1e9 : vo_config::NIS_GATE_6DOF;
 
     if (nis > gate) {
@@ -406,10 +404,14 @@ void ESKF::visualEgomotion_update(const VisualMeasurement& visual_meas) {
     consecutive_vo_rejects_ = 0;
 }
 
+void ESKF::set_vo_enabled(bool enabled) {
+    use_vo = enabled;
+    spdlog::info("VO gating {}", enabled ? "ENABLED" : "DISABLED");
+}
 
 void ESKF::set_nis_gating_enabled(bool enabled) {
     disable_nis_gating_ = !enabled;
-    spdlog::info("NIS gating {}", enabled ? "ENABLED" : "DISABLED (accepting all)");
+    spdlog::info("NIS gating {}", enabled ? "ENABLED" : "DISABLED");
 }
 
 void ESKF::force_anchor_reset() {

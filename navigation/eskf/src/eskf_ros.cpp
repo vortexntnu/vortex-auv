@@ -127,7 +127,16 @@ void ESKFNode::set_parameters() {
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
 
-        this->declare_parameter<double>("vo_reset_gap_sec", 1.0);
+    this->declare_parameter<bool>("use_vo", false);
+    bool use_vo = this->declare_parameter("use_vo").as_bool();
+    eskf_->set_vo_enabled(!use_vo);
+
+    if (use_vo) { 
+        RCLCPP_WARN(this->get_logger(), 
+            "VO disabled");
+    }
+
+    this->declare_parameter<double>("vo_reset_gap_sec", 1.0);
     double vo_gap = this->get_parameter("vo_reset_gap_sec").as_double();
     eskf_->set_vo_reset_gap(vo_gap);
     

@@ -52,7 +52,7 @@ class VisualEgomotionNode final : public rclcpp::Node {
     size_t multi_skip_count_{0};
 
     // Anchor and timing
-    bool have_ref = false;
+    bool have_ref;
     tf2::Transform T_base_anchor_; // Transform landmark anchor to base
     rclcpp::Time last_det_stamp;
     rclcpp::Time last_pub_stamp;
@@ -72,7 +72,7 @@ class VisualEgomotionNode final : public rclcpp::Node {
     // Estimator
     std::unique_ptr<SlidingWindowSO3Mean> smoother_;
 
-    bool have_last_ref_base_ = false;
+    bool have_last_ref_base_;
     tf2::Transform last_T_ref_base_;
 
     void set_subscribers_and_publisher();
