@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64
+from std_msgs.msg import Float64MultiArray
 import message_filters
 import numpy as np
 from scipy.spatial.transform import Rotation as R
@@ -27,6 +28,10 @@ class EskfValidator(Node):
         self.pub_rmse_pos = self.create_publisher(Float64, 'eskf_metrics/rmse/position', 10)
         self.pub_rmse_ori = self.create_publisher(Float64, 'eskf_metrics/rmse/orientation_rad', 10)
         self.pub_rmse_vel = self.create_publisher(Float64, 'eskf_metrics/rmse/velocity', 10)
+
+        # Euler Angles (for visual comparison)
+        self.pub_euler_est = self.create_publisher(Float64MultiArray, 'debug/euler/est', 10)
+        self.pub_euler_gt = self.create_publisher(Float64MultiArray, 'debug/euler/gt', 10)
 
         # NEES (Normalized Estimation Error Squared)
         self.pub_nees_pos = self.create_publisher(Float64, 'eskf_metrics/nees/position', 10)
@@ -77,6 +82,23 @@ class EskfValidator(Node):
         r_est = R.from_quat(q_est)
         r_gt = R.from_quat(q_gt)
 
+        # ---------------------------------------------------------
+        # Extract Euler Angles (Roll, Pitch, Yaw)
+        # Using 'xyz' sequence (standard for ROS aerospace/underwater)
+        # degrees=True makes it easier to read in plots (0-360 or +/-180)
+        # ---------------------------------------------------------
+        euler_est = r_est.as_euler('xyz', degrees=True) # [roll, pitch, yaw]
+        euler_gt = r_gt.as_euler('xyz', degrees=True)   # [roll, pitch, yaw]
+
+        # Publish Estimated Euler
+        msg_euler_est = Float64MultiArray()
+        msg_euler_est.data = euler_est.tolist()
+        self.pub_euler_est.publish(msg_euler_est)
+
+        # Publish GT Euler
+        msg_euler_gt = Float64MultiArray()
+        msg_euler_gt.data = euler_gt.tolist()
+        self.pub_euler_gt.publish(msg_euler_gt)
         # Calculate Error Rotation: R_err = R_gt^T * R_est
         # This gives the relative rotation needed to go from GT to Est
         r_err = r_gt.inv() * r_est
