@@ -49,12 +49,6 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
 
-    // temp debug
-    rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_rotated_pub_;
-    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_rotated_pub_;
-
-    // end temp debug
-
     std::chrono::milliseconds time_step;
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
