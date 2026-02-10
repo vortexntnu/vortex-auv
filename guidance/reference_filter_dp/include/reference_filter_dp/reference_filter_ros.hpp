@@ -78,8 +78,6 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in, uint8_t mode);
 
-    void publish_hold_reference();
-
     vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
     rclcpp_action::Server<

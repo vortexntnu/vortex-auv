@@ -123,7 +123,7 @@
       twist: "twist"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
-      reference_pose: "reference_pose"
+      aruco_board_pose_camera: "aruco_board_pose_camera"
       waypoint: "waypoint"
       waypoint_list: "waypoint_list"
       guidance:
