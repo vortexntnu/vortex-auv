@@ -55,8 +55,6 @@ void OperationModeManager::setup_publishers() {
 
     mode_pub_ = this->create_publisher<vortex_msgs::msg::OperationMode>(
         operation_mode_topic, vortex::utils::qos_profiles::reliable_profile(1));
-
-    publish_mode();
 }
 
 void OperationModeManager::setup_service() {
