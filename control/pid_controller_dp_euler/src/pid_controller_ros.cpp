@@ -3,6 +3,7 @@
 #include <pid_controller_dp_euler/pid_controller_ros.hpp>
 #include <pid_controller_dp_euler/pid_controller_utils.hpp>
 #include <string>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 
