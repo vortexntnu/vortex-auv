@@ -125,7 +125,26 @@ struct VisualMeasurement {
     Eigen::Vector3d pos;
     Eigen::Quaterniond quat;
     Eigen::Matrix<double, 6, 6> R;
-    double stamp_sec = 0.0;
+    double stamp_ = 0.0;
+};
+
+struct VoConfig {
+    double nis_gate_pose;
+    double nis_gate_vel;
+    double dropout_timeout_sec;
+    double pos_floor;
+    double att_floor;
+    double vel_floor;
+    double vel_alpha;
+    double dt_min;
+    double dt_max;
+    double sw_max_age;
+    double sw_huber_deg;
+    double sw_gate_deg;
+    int sw_window_size;
+    int rejects_limit;
+    bool use_sw;
+
 };
 
 namespace Eigen {

@@ -14,43 +14,18 @@ auto start_message{R"(
     |________| \______.'|____||____||_____|
 )"};
 
-static inline void pub_f64(
-    const rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr& pub,
-    double v) {
-    if (!pub) return;
-    std_msgs::msg::Float64 m;
-    m.data = v;
-    pub->publish(m);
-}
-
-static inline void pub_i32(
-    const rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr& pub,
-    int v) {
-    if (!pub) return;
-    std_msgs::msg::Int32 m;
-    m.data = v;
-    pub->publish(m);
-}
-
-static inline void pub_bool(
-    const rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr& pub,
-    bool v) {
-    if (!pub) return;
-    std_msgs::msg::Bool m;
-    m.data = v;
-    pub->publish(m);
-}
-
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
-    : Node("eskf_node", options) {
+    : Node("eskf_node", options),
+      first_imu_msg_received_(false),
+      use_vo_(false),
+      last_marker_id_(INVALID_ID),
+      have_last_marker_(false) {
     // time_step = std::chrono::milliseconds(1);
     // odom_pub_timer_ = this->create_wall_timer(
     //     time_step, std::bind(&ESKFNode::publish_odom, this));
 
     set_subscribers_and_publisher();
-
     set_parameters();
-
     setup_services();
 
     spdlog::info(start_message);
@@ -85,14 +60,6 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     pub_vo_anchor_valid_ = create_publisher<std_msgs::msg::Bool>(
         "eskf/debug/vo_anchor_valid", vortex::utils::qos_profiles::reliable_profile());
-
-        
-    this->declare_parameter<std::string>("pose_topic", "/landmark/pose_cov");
-    std::string pose_topic = this->get_parameter("pose_topic").as_string();
-
-    visualEgomotion_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        pose_topic, qos_sensor_data,
-        std::bind(&ESKFNode::visualEgomotion_callback, this, std::placeholders::_1));
 }
 
 void ESKFNode::set_parameters() {
@@ -127,62 +94,88 @@ void ESKFNode::set_parameters() {
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
 
-    this->declare_parameter<bool>("use_vo", false);
-    bool use_vo = this->declare_parameter("use_vo").as_bool();
-    eskf_->set_vo_enabled(!use_vo);
+    this->declare_parameter<bool>("vo.use_vo");
+    this->declare_parameter<std::string>("vo.landmarks_topic");
+    this->declare_parameter<std::string>("vo.base_frame");
+    this->declare_parameter<std::string>("vo.camera_frame");
+    this->declare_parameter<bool>("vo.disable_gating");
 
-    if (use_vo) { 
-        RCLCPP_WARN(this->get_logger(), 
-            "VO disabled");
+    this->declare_parameter<double>("vo.nis_gate_pose");
+    this->declare_parameter<double>("vo.nis_gate_velocity");
+    this->declare_parameter<double>("vo.dropout_timeout_sec");
+    this->declare_parameter<int>("vo.rejects_limit");
+    this->declare_parameter<double>("vo.pos_floor");
+    this->declare_parameter<double>("vo.att_floor");
+    this->declare_parameter<double>("vo.vel_floor");
+    this->declare_parameter<double>("vo.vel_alpha");
+    this->declare_parameter<double>("vo.dt_min");
+    this->declare_parameter<double>("vo.dt_max");
+    this->declare_parameter<bool>("vo.use_sw");
+    this->declare_parameter<int>("vo.window_size");
+    this->declare_parameter<double>("vo.max_age");
+    this->declare_parameter<double>("vo.huber_deg");
+    this->declare_parameter<double>("vo.gate_deg");
+
+    use_vo_ = this->get_parameter("vo.use_vo").as_bool();
+    vo_base_frame_ = this->get_parameter("vo.base_frame").as_string();
+    vo_cam_frame_ = this->get_parameter("vo.camera_frame").as_string();
+
+    VoConfig vo_cfg;
+    vo_cfg.nis_gate_pose       = this->get_parameter("vo.nis_gate_pose").as_double();
+    vo_cfg.nis_gate_vel        = this->get_parameter("vo.nis_gate_velocity").as_double();
+    vo_cfg.dropout_timeout_sec = this->get_parameter("vo.dropout_timeout_sec").as_double();
+    vo_cfg.rejects_limit       = this->get_parameter("vo.rejects_limit").as_int();
+    vo_cfg.pos_floor           = this->get_parameter("vo.pos_floor").as_double();
+    vo_cfg.att_floor           = this->get_parameter("vo.att_floor").as_double();
+    vo_cfg.vel_floor           = this->get_parameter("vo.vel_floor").as_double();
+    vo_cfg.vel_alpha           = this->get_parameter("vo.vel_alpha").as_double();
+    vo_cfg.dt_min              = this->get_parameter("vo.dt_min").as_double();
+    vo_cfg.dt_max              = this->get_parameter("vo.dt_max").as_double();
+    vo_cfg.use_sw              = this->get_parameter("vo.use_sw").as_bool();
+    vo_cfg.sw_window_size      = this->get_parameter("vo.window_size").as_int();
+    vo_cfg.sw_max_age          = this->get_parameter("vo.max_age").as_double();
+    vo_cfg.sw_huber_deg        = this->get_parameter("vo.huber_deg").as_double();
+    vo_cfg.sw_gate_deg         = this->get_parameter("vo.gate_deg").as_double();
+
+    eskf_->set_vo_enabled(use_vo_);
+    eskf_->set_nis_gating_enabled(!this->get_parameter("vo.disable_gating").as_bool());
+    eskf_->set_vo_config(vo_cfg);
+
+    if (use_vo_) {
+        tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+        std::string landmarks_topic = this->get_parameter("vo.landmarks_topic").as_string();
+        landmark_sub_ = this->create_subscription<vortex_msgs::msg::LandmarkArray>(
+            landmarks_topic, rclcpp::SensorDataQoS(),
+            std::bind(&ESKFNode::landmark_callback, this, std::placeholders::_1));
+
+        RCLCPP_INFO(this->get_logger(), "VO enabled: %s -> %s",
+            vo_cam_frame_.c_str(), vo_base_frame_.c_str());
     }
 
-    this->declare_parameter<double>("vo_reset_gap_sec", 1.0);
-    double vo_gap = this->get_parameter("vo_reset_gap_sec").as_double();
-    eskf_->set_vo_reset_gap(vo_gap);
-    
-    this->declare_parameter<bool>("disable_nis_gating", false);
-    bool disable_gating = this->get_parameter("disable_nis_gating").as_bool();
-    eskf_->set_nis_gating_enabled(!disable_gating);
-    
-    if (disable_gating) { // For testing
-        RCLCPP_WARN(this->get_logger(), 
-            "NIS gating disabled");
+    if (this->get_parameter("vo.disable_gating").as_bool()) {
+        RCLCPP_WARN(this->get_logger(), "NIS gating disabled");
     }
-    
-    RCLCPP_INFO(this->get_logger(), "VO reset gap: %.2f s", vo_gap);
 }
 
 void ESKFNode::setup_services() {
     toggle_gating_srv_ = this->create_service<std_srvs::srv::SetBool>(
         "~/toggle_nis_gating",
-        [this](const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-               std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
-            if (eskf_) {
-                eskf_->set_nis_gating_enabled(request->data);
-                response->success = true;
-                response->message = request->data ? 
-                    "NIS gating ENABLED" : 
-                    "NIS gating DISABLED";
-                RCLCPP_INFO(this->get_logger(), "%s", response->message.c_str());
-            } else {
-                response->success = false;
-                response->message = "ESKF not initialized";
-            }
+        [this](const std::shared_ptr<std_srvs::srv::SetBool::Request> req,
+               std::shared_ptr<std_srvs::srv::SetBool::Response> res) {
+            eskf_->set_nis_gating_enabled(req->data);
+            res->success = true;
+            res->message = req->data ? "NIS gating enabled" : "NIS gating disabled";
         });
 
     reset_anchor_srv_ = this->create_service<std_srvs::srv::Trigger>(
         "~/force_anchor_reset",
         [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-               std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-            if (eskf_) {
-                eskf_->force_anchor_reset();
-                response->success = true;
-                response->message = "VO anchor will reset on next measurement";
-                RCLCPP_INFO(this->get_logger(), "Anchor reset forced via service");
-            } else {
-                response->success = false;
-                response->message = "ESKF not initialized";
-            }
+               std::shared_ptr<std_srvs::srv::Trigger::Response> res) {
+            eskf_->force_anchor_reset();
+            res->success = true;
+            res->message = "Anchor reset";
         });
 }
 
@@ -235,29 +228,74 @@ void ESKFNode::dvl_callback(
     publish_odom();
 }
 
-void ESKFNode::visualEgomotion_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    VisualMeasurement visual_meas{};
+void ESKFNode::landmark_callback(
+    const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
+    if (!msg || msg->landmarks.empty()) return;
 
-    visual_meas.pos << msg->pose.pose.position.x,
-                       msg->pose.pose.position.y,
-                       msg->pose.pose.position.z;
+    std::vector<const vortex_msgs::msg::Landmark*> markers;
+    for (const auto& lm : msg->landmarks) {
+        if (lm.type == vortex_msgs::msg::Landmark::ARUCO_MARKER) {
+            markers.push_back(&lm);
+        }
+    }
+    if (markers.empty()) return;
 
-    visual_meas.quat = Eigen::Quaterniond(
-        msg->pose.pose.orientation.w,
-        msg->pose.pose.orientation.x,
-        msg->pose.pose.orientation.y,
-        msg->pose.pose.orientation.z);
+    auto it = std::min_element(markers.begin(), markers.end(),
+        [](const auto* a, const auto* b) { return a->subtype < b->subtype; });
+    const auto* chosen = *it;
+    uint16_t chosen_id = chosen->subtype;
 
-    visual_meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
-        msg->pose.covariance.data());
+    geometry_msgs::msg::TransformStamped tf_msg;
+    try {
+        tf_msg = tf_buffer_->lookupTransform(vo_base_frame_, vo_cam_frame_, tf2::TimePointZero);
+    } catch (const tf2::TransformException& ex) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+            "TF %s <- %s: %s", vo_base_frame_.c_str(), vo_cam_frame_.c_str(), ex.what());
+        return;
+    }
 
-    visual_meas.stamp_sec = rclcpp::Time(msg->header.stamp).seconds();
+    Eigen::Vector3d t_base_cam(tf_msg.transform.translation.x,
+                               tf_msg.transform.translation.y,
+                               tf_msg.transform.translation.z);
+    Eigen::Quaterniond q_base_cam(tf_msg.transform.rotation.w,
+                                  tf_msg.transform.rotation.x,
+                                  tf_msg.transform.rotation.y,
+                                  tf_msg.transform.rotation.z);
 
-    eskf_->visualEgomotion_update(visual_meas);
-    
-    pub_i32(pub_vo_rejects_, eskf_->get_consecutive_vo_rejects());
-    pub_bool(pub_vo_anchor_valid_, eskf_->is_anchor_valid());
+    Eigen::Vector3d t_cam_marker(chosen->pose.pose.position.x,
+                                 chosen->pose.pose.position.y,
+                                 chosen->pose.pose.position.z);
+    Eigen::Quaterniond q_cam_marker(chosen->pose.pose.orientation.w,
+                                    chosen->pose.pose.orientation.x,
+                                    chosen->pose.pose.orientation.y,
+                                    chosen->pose.pose.orientation.z);
+
+    Eigen::Vector3d t_base_marker = t_base_cam + q_base_cam * t_cam_marker;
+    Eigen::Quaterniond q_base_marker = (q_base_cam * q_cam_marker).normalized();
+
+    if (have_last_marker_ && chosen_id != last_marker_id_) {
+        RCLCPP_INFO(this->get_logger(), "Marker switch %u -> %u", last_marker_id_, chosen_id);
+        eskf_->handle_marker_switch(t_base_marker, q_base_marker);
+    }
+    last_marker_id_ = chosen_id;
+    have_last_marker_ = true;
+
+    VisualMeasurement meas;
+    meas.pos = t_base_marker;
+    meas.quat = q_base_marker;
+    meas.stamp_ = rclcpp::Time(msg->header.stamp).seconds();
+    meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+        chosen->pose.covariance.data());
+
+    eskf_->landmark_update(meas);
+
+    std_msgs::msg::Int32 rejects_msg;
+    rejects_msg.data = eskf_->get_consecutive_rejects();
+    pub_vo_rejects_->publish(rejects_msg);
+
+    std_msgs::msg::Bool anchor_msg;
+    anchor_msg.data = eskf_->is_anchor_valid();
+    pub_vo_anchor_valid_->publish(anchor_msg);
 
     publish_odom();
 }
