@@ -102,7 +102,7 @@ void ESKFNode::set_parameters() {
 
     this->declare_parameter<double>("vo.nis_gate_pose");
     this->declare_parameter<double>("vo.nis_gate_velocity");
-    this->declare_parameter<double>("vo.dropout_timeout_sec");
+    this->declare_parameter<double>("vo.dropout_timeout");
     this->declare_parameter<int>("vo.rejects_limit");
     this->declare_parameter<double>("vo.pos_floor");
     this->declare_parameter<double>("vo.att_floor");
@@ -123,7 +123,7 @@ void ESKFNode::set_parameters() {
     VoConfig vo_cfg;
     vo_cfg.nis_gate_pose       = this->get_parameter("vo.nis_gate_pose").as_double();
     vo_cfg.nis_gate_vel        = this->get_parameter("vo.nis_gate_velocity").as_double();
-    vo_cfg.dropout_timeout_sec = this->get_parameter("vo.dropout_timeout_sec").as_double();
+    vo_cfg.dropout_timeout     = this->get_parameter("vo.dropout_timeout").as_double();
     vo_cfg.rejects_limit       = this->get_parameter("vo.rejects_limit").as_int();
     vo_cfg.pos_floor           = this->get_parameter("vo.pos_floor").as_double();
     vo_cfg.att_floor           = this->get_parameter("vo.att_floor").as_double();

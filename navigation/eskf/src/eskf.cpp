@@ -321,10 +321,10 @@ void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
 
 void ESKF::dvl_update(const DvlMeasurement& dvl_meas) {
     // for testing the visual odom
-    return;
+    //return;
     
-    //measurement_update(dvl_meas);
-    //injection_and_reset();
+    measurement_update(dvl_meas);
+    injection_and_reset();
 }
 
 void ESKF::landmark_vel_update_(const Eigen::Vector3d& v_meas_nav,

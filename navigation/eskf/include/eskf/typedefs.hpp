@@ -131,7 +131,7 @@ struct VisualMeasurement {
 struct VoConfig {
     double nis_gate_pose;
     double nis_gate_vel;
-    double dropout_timeout_sec;
+    double dropout_timeout;
     double pos_floor;
     double att_floor;
     double vel_floor;
