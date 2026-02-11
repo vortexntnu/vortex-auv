@@ -20,6 +20,8 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    const auto qos_reliable_transient{
+        vortex::utils::qos_profiles::reliable_transient_local_profile(1)};
 
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
@@ -44,12 +46,12 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.wrench_input").as_string();
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 1,
+        software_kill_switch_topic, qos_reliable_transient,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
     operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
-            software_operation_mode_topic, 1,
+            software_operation_mode_topic, qos_reliable_transient,
             std::bind(&PIDControllerNode::operation_mode_callback, this,
                       std::placeholders::_1));
 

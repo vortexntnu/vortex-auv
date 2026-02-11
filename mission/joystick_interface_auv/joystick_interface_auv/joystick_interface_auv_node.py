@@ -8,7 +8,10 @@ from std_msgs.msg import Bool
 from vortex_msgs.msg import OperationMode, ReferenceFilter
 from vortex_msgs.srv import SetOperationMode, ToggleKillswitch
 from vortex_utils.python_utils import PoseData
-from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils_ros.qos_profiles import (
+    reliable_transient_local_profile,
+    sensor_data_profile,
+)
 from vortex_utils_ros.ros_converter import pose_from_ros
 
 from joystick_interface_auv.joystick_utils import (
@@ -94,7 +97,7 @@ class JoystickInterface(Node):
 
     def set_publishers_and_subscribers(self):
         best_effort_qos = sensor_data_profile(1)
-        reliable_qos = reliable_profile(2)
+        reliable_transient_local_qos = reliable_transient_local_profile(1)
 
         self._joy_subscriber = self.create_subscription(
             Joy, self.joy_topic, self.joystick_cb, qos_profile=best_effort_qos
@@ -109,10 +112,13 @@ class JoystickInterface(Node):
             OperationMode,
             self.operation_mode_topic,
             self.operation_mode_cb,
-            qos_profile=reliable_qos,
+            qos_profile=reliable_transient_local_qos,
         )
         self._killswitch_subscriber = self.create_subscription(
-            Bool, self.killswitch_topic, self.killswitch_cb, qos_profile=reliable_qos
+            Bool,
+            self.killswitch_topic,
+            self.killswitch_cb,
+            qos_profile=reliable_transient_local_qos,
         )
         self._wrench_publisher = self.create_publisher(
             WrenchStamped, self.wrench_input_topic, qos_profile=best_effort_qos

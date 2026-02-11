@@ -47,10 +47,12 @@ void OperationModeManager::setup_publishers() {
         vortex::utils::qos_profiles::sensor_data_profile(1));
 
     killswitch_pub_ = this->create_publisher<std_msgs::msg::Bool>(
-        killswitch_topic, vortex::utils::qos_profiles::reliable_profile(1));
+        killswitch_topic,
+        vortex::utils::qos_profiles::reliable_transient_local_profile(1));
 
     mode_pub_ = this->create_publisher<vortex_msgs::msg::OperationMode>(
-        operation_mode_topic, vortex::utils::qos_profiles::reliable_profile(1));
+        operation_mode_topic,
+        vortex::utils::qos_profiles::reliable_transient_local_profile(1));
 
     publish_mode();
 }

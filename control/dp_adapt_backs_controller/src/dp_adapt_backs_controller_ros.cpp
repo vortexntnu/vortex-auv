@@ -37,7 +37,8 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
 void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     const auto qos_sensor_data{
         vortex::utils::qos_profiles::sensor_data_profile(1)};
-    const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
+    const auto qos_reliable_transient{
+        vortex::utils::qos_profiles::reliable_transient_local_profile(1)};
 
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
@@ -68,7 +69,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     std::string software_kill_switch_topic =
         this->get_parameter("topics.killswitch").as_string();
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, qos_reliable,
+        software_kill_switch_topic, qos_reliable_transient,
         std::bind(&DPAdaptBacksControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
 
@@ -77,7 +78,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.operation_mode").as_string();
     operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
-            software_operation_mode_topic, qos_reliable,
+            software_operation_mode_topic, qos_reliable_transient,
             std::bind(&DPAdaptBacksControllerNode::operation_mode_callback,
                       this, std::placeholders::_1));
 

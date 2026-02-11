@@ -16,7 +16,10 @@ from velocity_controller_lqr.velocity_controller_lqr_lib import (
 )
 from vortex_msgs.msg import LOSGuidance, OperationMode
 from vortex_utils.python_utils import State
-from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils_ros.qos_profiles import (
+    reliable_transient_local_profile,
+    sensor_data_profile,
+)
 from vortex_utils_ros.ros_converter import pose_from_ros, twist_from_ros
 
 
@@ -49,13 +52,13 @@ class LinearQuadraticRegulator(Node):
             OperationMode,
             self.operation_mode_topic,
             self.operation_callback,
-            qos_profile=reliable_profile(2),
+            qos_profile=reliable_transient_local_profile(1),
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             self.killswitch_topic,
             self.killswitch_callback,
-            qos_profile=reliable_profile(2),
+            qos_profile=reliable_transient_local_profile(1),
         )
 
         self.guidance_subscriber = self.create_subscription(
