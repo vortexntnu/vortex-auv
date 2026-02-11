@@ -81,7 +81,7 @@ void PIDControllerNode::operation_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
     operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
     RCLCPP_INFO(this->get_logger(), "Operation mode: %s",
-                vortex::utils::types::mode_to_string(operation_mode_));
+                vortex::utils::types::mode_to_string(operation_mode_).c_str());
 
     if (operation_mode_ == vortex::utils::types::Mode::autonomous ||
         operation_mode_ == vortex::utils::types::Mode::reference) {
