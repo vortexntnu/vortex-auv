@@ -347,9 +347,14 @@ void LosGuidanceNode::execute(
         reference_pub_->publish(reference_msg);
 
 
-        if ((path_inputs_.current_position - path_inputs_.next_point)
-                .as_vector()
-                .norm() < goal_reached_tol_) {
+        if ((path_inputs_.current_position - path_inputs_.next_point).as_vector().norm() < goal_reached_tol_) {
+
+            auto stop_ref = reference_msg; 
+            stop_ref.surge = 0.0;
+            stop_ref.pitch = 0.0;
+            stop_ref.yaw = reference_msg.yaw;
+
+            reference_pub_->publish(stop_ref);
             result->success = true;
             goal_handle->succeed(result);
             spdlog::info("Goal reached");

@@ -6,6 +6,7 @@ import os
 
 def generate_launch_description():
     stonefish_dir = get_package_share_directory('stonefish_sim')
+    vortex_sim_interface_dir = get_package_share_directory('vortex_sim_interface')
     los_guidance_dir = get_package_share_directory('los_guidance')
     velocity_controller_dir = get_package_share_directory('velocity_controller_lqr')
 
@@ -17,6 +18,12 @@ def generate_launch_description():
             'scenario': 'tacc',
             'rendering': 'false',
         }.items(),
+    )
+
+    vortex_sim_interface = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(vortex_sim_interface_dir, 'launch', 'vortex_sim_interface.launch.py')
+        )
     )
 
     los_guidance_launch = IncludeLaunchDescription(
@@ -62,6 +69,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         stonefish_sim,
+        vortex_sim_interface,
         los_guidance_launch,
         velocity_controller_launch,
         orca_sim,
