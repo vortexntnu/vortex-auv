@@ -95,11 +95,10 @@ TEST_F(PIDControllerTests,
        T01_neg_north_error_with_zero_heading_gives_surge_only_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_GT(tau[0], 0.0);
@@ -120,11 +119,10 @@ TEST_F(
     T02_neg_north_error_with_positive_heading_gives_pos_surge_and_neg_sway_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
     types::Eta eta_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
     EXPECT_GT(tau[0], 0.0);
     EXPECT_LT(tau[1], 0.0);
@@ -144,11 +142,10 @@ TEST_F(
     T03_neg_north_error_with_negative_heading_gives_pos_surge_and_pos_sway_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
     types::Eta eta_d{generate_reference_pose(10.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_GT(tau[0], 0.0);
@@ -169,11 +166,10 @@ TEST_F(
     T04_neg_down_error_with_zero_roll_and_pitch_gives_positive_heave_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_GT(tau[2], 0.0);
@@ -192,11 +188,10 @@ TEST_F(
     T05_neg_down_error_with_zero_roll_and_neg_pitch_gives_positive_heave_and_positive_surge_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, -0.5, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, -0.5, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_GT(tau[0], 0.0);
@@ -217,11 +212,10 @@ TEST_F(
     T06_neg_down_error_with_zero_roll_and_pos_pitch_gives_positive_heave_and_negative_surge_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.5, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 2.0, 0.0, 0.5, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_LT(tau[0], 0.0);
@@ -240,11 +234,10 @@ TEST_F(PIDControllerTests,
        T07_neg_east_error_with_zero_heading_gives_positive_sway_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_NEAR(tau[0], 0.0, 0.01);
@@ -263,11 +256,10 @@ TEST_F(PIDControllerTests,
        T08_pos_east_error_with_zero_heading_gives_pos_sway_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, -10.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_NEAR(tau[0], 0.0, 0.01);
@@ -288,11 +280,10 @@ TEST_F(
     T09_neg_east_error_with_positive_heading_gives_pos_sway_and_pos_surge_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.5)};
     types::Eta eta_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, 1.5)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_GT(tau[0], 0.0);
     EXPECT_GT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -311,11 +302,10 @@ TEST_F(
     T10_neg_east_error_with_negative_heading_gives_pos_sway_and_neg_surge_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.5)};
     types::Eta eta_d{generate_reference_pose(0.0, 10.0, 0.0, 0.0, 0.0, -1.5)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_LT(tau[0], 0.0);
@@ -333,11 +323,10 @@ Test that negative roll error gives positive roll command.
 TEST_F(PIDControllerTests, T11_neg_roll_error_gives_positive_roll_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 1.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_NEAR(tau[0], 0.0, 0.01);
@@ -355,11 +344,10 @@ Test that positive roll error gives negative roll command.
 TEST_F(PIDControllerTests, T12_pos_roll_error_gives_neg_roll_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, -1.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -375,11 +363,10 @@ Test that negative pitch error gives positive pitch command.
 TEST_F(PIDControllerTests, T13_neg_pitch_error_gives_pos_pitch_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 1.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -395,11 +382,10 @@ Test that positive pitch error gives negative pitch command.
 TEST_F(PIDControllerTests, T14_pos_pitch_error_gives_neg_pitch_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, -1.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -415,11 +401,10 @@ Test that negative yaw error gives positive yaw command.
 TEST_F(PIDControllerTests, T15_neg_yaw_error_gives_pos_yaw_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 1.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_NEAR(tau[0], 0.0, 0.01);
@@ -437,11 +422,10 @@ Test that positive yaw error gives negative yaw command.
 TEST_F(PIDControllerTests, T16_pos_yaw_error_gives_neg_yaw_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, -1.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     print_tau(tau);
 
     EXPECT_NEAR(tau[0], 0.0, 0.01);
@@ -460,11 +444,10 @@ Test that positive surge velocity only results in negative surge command
 TEST_F(PIDControllerTests, T17_pos_surge_vel_gives_negative_surge_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(1.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_LT(tau[0], 0.0);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -481,11 +464,10 @@ effect).
 TEST_F(PIDControllerTests, T18_pos_sway_vel_gives_negative_sway_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 1.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_LT(tau[1], 0.0);
     EXPECT_NEAR(tau[2], 0.0, 0.01);
@@ -502,11 +484,10 @@ Test that positive heave velocity only results in negative heave command
 TEST_F(PIDControllerTests, T19_pos_heave_vel_gives_negative_heave_command) {
     types::Eta eta{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
     types::Eta eta_d{generate_reference_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
-    types::Eta eta_dot_d{generate_current_pose(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
+    types::Nu nu_d{generate_current_velocity(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)};
 
     types::Nu nu{generate_current_velocity(0.0, 0.0, 1.0, 0.0, 0.0, 0.0)};
-    types::Vector6d tau{
-        pid_controller_.calculate_tau(eta, eta_d, nu, eta_dot_d)};
+    types::Vector6d tau{pid_controller_.calculate_tau(eta, eta_d, nu, nu_d)};
     EXPECT_NEAR(tau[0], 0.0, 0.01);
     EXPECT_NEAR(tau[1], 0.0, 0.01);
     EXPECT_LT(tau[2], 0.0);

@@ -77,15 +77,15 @@ PIDController::PIDController()
 types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
                                              const types::Eta& eta_d,
                                              const types::Nu& nu,
-                                             const types::Eta& eta_dot_d) {
+                                             const types::Nu& nu_d) {
     types::Eta error = error_eta(eta, eta_d);  // calculate eta error
 
     // set quaternion scalar part w = 0 (only use vector part of quaternion for
     // error)
     error.qw = 0.0;
 
-    auto eta_dot_d_copy = eta_dot_d;
-    eta_dot_d_copy.qw = 0.0;  // set w = 0 for desired eta_dot
+    // auto eta_dot_d_copy = eta_dot_d;
+    // eta_dot_d_copy.qw = 0.0;  // set w = 0 for desired eta_dot
     // debug
     // eta_error_debug = error;
     spdlog::info("Eta: ");
@@ -97,21 +97,22 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
 
     types::Matrix6x7d J_inv =
         calculate_J_sudo_inv(eta);  // calculate J pseudo inverse
-    J_inv_debug = J_inv;
+    // J_inv_debug = J_inv;
     print_Jinv_transformation(J_inv);
 
-    types::Vector6d nu_d =
-        J_inv * eta_dot_d_copy.to_vector();  // calculate velocity
+    // types::Vector6d nu_d =
+    //     J_inv * eta_dot_d_copy.to_vector();  // calculate velocity
     // nu_d_debug = nu_d;
     // print_nu(nu_d);
 
-    types::Vector6d error_nu = nu.to_vector() - nu_d;  // calculate vel error
+    types::Vector6d error_nu =
+        nu.to_vector() - nu_d.to_vector();  // calculate vel error
     // error_nu_debug = error_nu;
     // print_vect_6d(error_nu);
 
     types::Vector6d P = Kp_ * J_inv * error.to_vector();  // P term
     // P_debug = P;
-    Kp_debug = Kp_;
+    // Kp_debug = Kp_;
 
     types::Vector6d I = Ki_ * J_inv * integral_;  // I term
     // I_debug = I;

@@ -19,7 +19,7 @@ class PIDController {
     types::Vector6d calculate_tau(const types::Eta& eta,
                                   const types::Eta& eta_d,
                                   const types::Nu& nu,
-                                  const types::Eta& eta_dot_d);
+                                  const types::Nu& nu_d);
 
     // @brief Set the proportional gain matrix
     // @param Kp: 6x6 matrix containing the proportional gain matrix

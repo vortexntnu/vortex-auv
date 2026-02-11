@@ -99,7 +99,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     types::Nu nu_;
 
-    types::Eta eta_dot_d_;
+    types::Nu nu_d_;
 
     bool killswitch_on_;
 

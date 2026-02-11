@@ -108,7 +108,8 @@ void PIDControllerNode::publish_tau() {
     // Reconstruct the global reference filter msg
     vortex_msgs::msg::ReferenceFilter ref_global;
     ref_global.header.frame_id = "odom";
-    ref_global.header.stamp = this->now();
+    // ref_global.header.stamp = this->now();
+    ref_global.header.stamp = rclcpp::Time(0);
     // Position
     ref_global.x = eta_d_.x;
     ref_global.y = eta_d_.y;
@@ -119,6 +120,14 @@ void PIDControllerNode::publish_tau() {
     ref_global.roll = eta_euler.roll;
     ref_global.pitch = eta_euler.pitch;
     ref_global.yaw = eta_euler.yaw;
+
+    // Velocity
+    ref_global.x_dot = nu_d_.u;
+    ref_global.y_dot = nu_d_.v;
+    ref_global.z_dot = nu_d_.w;
+    ref_global.roll_dot = nu_d_.p;
+    ref_global.pitch_dot = nu_d_.q;
+    ref_global.yaw_dot = nu_d_.r;
 
     // Transform to base_link (body frame)
     vortex_msgs::msg::ReferenceFilter ref_base_link;
@@ -149,6 +158,14 @@ void PIDControllerNode::publish_tau() {
     eta_d_body_.qy = q_des.y();
     eta_d_body_.qz = q_des.z();
 
+    types::Nu nu_d_body_;
+    nu_d_body_.u = ref_base_link.x_dot;
+    nu_d_body_.v = ref_base_link.y_dot;
+    nu_d_body_.w = ref_base_link.z_dot;
+    nu_d_body_.p = ref_base_link.roll_dot;
+    nu_d_body_.q = ref_base_link.pitch_dot;
+    nu_d_body_.r = ref_base_link.yaw_dot;
+
     // Since we transfomed the target to body_frame, our current position
     // relative to ourself is zero
     types::Eta eta_body_;
@@ -162,49 +179,62 @@ void PIDControllerNode::publish_tau() {
 
     // calculate pid control
     types::Vector6d tau =
-        pid_controller_.calculate_tau(eta_body_, eta_d_body_, nu_, eta_dot_d_);
+        pid_controller_.calculate_tau(eta_body_, eta_d_body_, nu_, nu_d_body_);
     // print for debug
-    RCLCPP_INFO_STREAM(this->get_logger(), "Tau: [" << tau(0) << ", " << tau(1)
-                                                    << ", " << tau(2) << ", "
-                                                    << tau(3) << ", " << tau(4)
-                                                    << ", " << tau(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Kp: [" << pid_controller_.Kp_debug(0, 0) << ", "
-                               << pid_controller_.Kp_debug(0, 1) << ", "
-                               << pid_controller_.Kp_debug(0, 2) << ", "
-                               << pid_controller_.Kp_debug(0, 3) << ", "
-                               << pid_controller_.Kp_debug(0, 4) << ", "
-                               << pid_controller_.Kp_debug(0, 5) << "; "
-                               << pid_controller_.Kp_debug(1, 0) << ", "
-                               << pid_controller_.Kp_debug(1, 1) << ", "
-                               << pid_controller_.Kp_debug(1, 2) << ", "
-                               << pid_controller_.Kp_debug(1, 3) << ", "
-                               << pid_controller_.Kp_debug(1, 4) << ", "
-                               << pid_controller_.Kp_debug(1, 5) << "; "
-                               << pid_controller_.Kp_debug(2, 0) << ", "
-                               << pid_controller_.Kp_debug(2, 1) << ", "
-                               << pid_controller_.Kp_debug(2, 2) << ", "
-                               << pid_controller_.Kp_debug(2, 3) << ", "
-                               << pid_controller_.Kp_debug(2, 4) << ", "
-                               << pid_controller_.Kp_debug(2, 5) << "; "
-                               << pid_controller_.Kp_debug(3, 0) << ", "
-                               << pid_controller_.Kp_debug(3, 1) << ", "
-                               << pid_controller_.Kp_debug(3, 2) << ", "
-                               << pid_controller_.Kp_debug(3, 3) << ", "
-                               << pid_controller_.Kp_debug(3, 4) << ", "
-                               << pid_controller_.Kp_debug(3, 5) << "; "
-                               << pid_controller_.Kp_debug(4, 0) << ", "
-                               << pid_controller_.Kp_debug(4, 1) << ", "
-                               << pid_controller_.Kp_debug(4, 2) << ", "
-                               << pid_controller_.Kp_debug(4, 3) << ", "
-                               << pid_controller_.Kp_debug(4, 4) << ", "
-                               << pid_controller_.Kp_debug(4, 5) << "; "
-                               << pid_controller_.Kp_debug(5, 0) << ", "
-                               << pid_controller_.Kp_debug(5, 1) << ", "
-                               << pid_controller_.Kp_debug(5, 2) << ", "
-                               << pid_controller_.Kp_debug(5, 3) << ", "
-                               << pid_controller_.Kp_debug(5, 4) << ", "
-                               << pid_controller_.Kp_debug(5, 5) << "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Tau: [" << tau(0) << ", " <<
+    // tau(1)
+    //                                                 << ", " << tau(2) << ", "
+    //                                                 << tau(3) << ", " <<
+    //                                                 tau(4)
+    //                                                 << ", " << tau(5) <<
+    //                                                 "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "Kp: [" << pid_controller_.Kp_debug(0, 0) << ", "
+    //                            << pid_controller_.Kp_debug(0, 1) << ", "
+    //                            << pid_controller_.Kp_debug(0, 2) << ", "
+    //                            << pid_controller_.Kp_debug(0, 3) << ", "
+    //                            << pid_controller_.Kp_debug(0, 4) << ", "
+    //                            << pid_controller_.Kp_debug(0, 5) << "; "
+    //                            << pid_controller_.Kp_debug(1, 0) << ", "
+    //                            << pid_controller_.Kp_debug(1, 1) << ", "
+    //                            << pid_controller_.Kp_debug(1, 2) << ", "
+    //                            << pid_controller_.Kp_debug(1, 3) << ", "
+    //                            << pid_controller_.Kp_debug(1, 4) << ", "
+    //                            << pid_controller_.Kp_debug(1, 5) << "; "
+    //                            << pid_controller_.Kp_debug(2, 0) << ", "
+    //                            << pid_controller_.Kp_debug(2, 1) << ", "
+    //                            << pid_controller_.Kp_debug(2, 2) << ", "
+    //                            << pid_controller_.Kp_debug(2, 3) << ", "
+    //                            << pid_controller_.Kp_debug(2, 4) << ", "
+    //                            << pid_controller_.Kp_debug(2, 5) << "; "
+    //                            << pid_controller_.Kp_debug(3, 0) << ", "
+    //                            << pid_controller_.Kp_debug(3, 1) << ", "
+    //                            << pid_controller_.Kp_debug(3, 2) << ", "
+    //                            << pid_controller_.Kp_debug(3, 3) << ", "
+    //                            << pid_controller_.Kp_debug(3, 4) << ", "
+    //                            << pid_controller_.Kp_debug(3, 5) << "; "
+    //                            << pid_controller_.Kp_debug(4, 0) << ", "
+    //                            << pid_controller_.Kp_debug(4, 1) << ", "
+    //                            << pid_controller_.Kp_debug(4, 2) << ", "
+    //                            << pid_controller_.Kp_debug(4, 3) << ", "
+    //                            << pid_controller_.Kp_debug(4, 4) << ", "
+    //                            << pid_controller_.Kp_debug(4, 5) << "; "
+    //                            << pid_controller_.Kp_debug(5, 0) << ", "
+    //                            << pid_controller_.Kp_debug(5, 1) << ", "
+    //                            << pid_controller_.Kp_debug(5, 2) << ", "
+    //                            << pid_controller_.Kp_debug(5, 3) << ", "
+    //                            << pid_controller_.Kp_debug(5, 4) << ", "
+    //                            << pid_controller_.Kp_debug(5, 5) << "]");
+
+    // debug print for frame tf
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                         "GLOBAL TARGET (Odom): X: %.2f, Y: %.2f, Yaw: %.2f",
+                         ref_global.x, ref_global.y, ref_global.yaw);
+
+    RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "LOCAL TARGET (Body):  X (Surge): %.2f, Y (Sway): %.2f, Yaw: %.2f",
+        ref_base_link.x, ref_base_link.y, ref_base_link.yaw);
 
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
@@ -309,6 +339,14 @@ void PIDControllerNode::guidance_callback(
     eta_d_.qx = quat.x();
     eta_d_.qy = quat.y();
     eta_d_.qz = quat.z();
+
+    // Store desired velocity
+    nu_d_.u = msg->x_dot;
+    nu_d_.v = msg->y_dot;
+    nu_d_.w = msg->z_dot;
+    nu_d_.p = msg->roll_dot;
+    nu_d_.q = msg->pitch_dot;
+    nu_d_.r = msg->yaw_dot;
 }
 
 rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
