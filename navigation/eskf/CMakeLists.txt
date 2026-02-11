@@ -67,7 +67,6 @@ rclcpp_components_register_node(
 
 ament_export_targets(export_${LIB_NAME})
 
-# --- THE FIX: INSTALL THE EXECUTABLE ---
 install(TARGETS 
   ${LIB_NAME}
   ${PROJECT_NAME}_node  
