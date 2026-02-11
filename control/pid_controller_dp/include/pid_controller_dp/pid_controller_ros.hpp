@@ -6,16 +6,21 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <memory>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <variant>
+#include <vortex/utils/ros/ros_transforms.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 // @brief Class for the PID controller node
 class PIDControllerNode : public rclcpp::Node {
@@ -56,6 +61,11 @@ class PIDControllerNode : public rclcpp::Node {
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
+    //@brief Callback function for parameter updates
+    // @param parameters: vector of parameters to be set
+    rcl_interfaces::msg::SetParametersResult parametersCallback(
+        const std::vector<rclcpp::Parameter>& parameters);
+
     PIDController pid_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
@@ -89,11 +99,17 @@ class PIDControllerNode : public rclcpp::Node {
 
     types::Nu nu_;
 
-    types::Eta eta_dot_d_;
+    types::Nu nu_d_;
 
     bool killswitch_on_;
 
     std::string software_mode_;
+
+    OnSetParametersCallbackHandle::SharedPtr callback_handle_;
+
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 };
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_

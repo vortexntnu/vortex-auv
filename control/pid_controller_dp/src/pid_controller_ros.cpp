@@ -1,4 +1,5 @@
 #include <pid_controller_dp/pid_controller_ros.hpp>
+#include <rclcpp/logging.hpp>
 #include <variant>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
@@ -12,6 +13,13 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();
+
+    callback_handle_ = this->add_on_set_parameters_callback(std::bind(
+        &PIDControllerNode::parametersCallback, this, std::placeholders::_1));
+
+    // Initialize a tf2 buffer and listener
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 }
 
 void PIDControllerNode::set_subscribers_and_publisher() {
@@ -96,9 +104,137 @@ void PIDControllerNode::publish_tau() {
     if (killswitch_on_ || software_mode_ != "autonomous mode") {
         return;
     }
+    // TODO transform odom -> base_link (auv frame)
+    // Reconstruct the global reference filter msg
+    vortex_msgs::msg::ReferenceFilter ref_global;
+    ref_global.header.frame_id = "odom";
+    // ref_global.header.stamp = this->now();
+    ref_global.header.stamp = rclcpp::Time(0);
+    // Position
+    ref_global.x = eta_d_.x;
+    ref_global.y = eta_d_.y;
+    ref_global.z = eta_d_.z;
 
+    auto eta_euler = eta_d_.as_pose_euler();
+
+    ref_global.roll = eta_euler.roll;
+    ref_global.pitch = eta_euler.pitch;
+    ref_global.yaw = eta_euler.yaw;
+
+    // Velocity
+    ref_global.x_dot = nu_d_.u;
+    ref_global.y_dot = nu_d_.v;
+    ref_global.z_dot = nu_d_.w;
+    ref_global.roll_dot = nu_d_.p;
+    ref_global.pitch_dot = nu_d_.q;
+    ref_global.yaw_dot = nu_d_.r;
+
+    // Transform to base_link (body frame)
+    vortex_msgs::msg::ReferenceFilter ref_base_link;
+    try {
+        // This calculates: "Where is the target relative to my nose right now?"
+        vortex::utils::ros_transforms::transform_pose(
+            *tf_buffer_, ref_global, "base_link", ref_base_link,
+            tf2::durationFromSec(0.0));
+    } catch (tf2::TransformException& ex) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                             "Cannot transform Odom -> Base_Link: %s",
+                             ex.what());
+        return;
+    }
+    // Prepare inputs for PID controller
+    types::Eta eta_d_body_;
+    eta_d_body_.x = ref_base_link.x;
+    eta_d_body_.y = ref_base_link.y;
+    eta_d_body_.z = ref_base_link.z;
+
+    // Convert desired attitude (roll, pitch, yaw) to quaternion and store
+    Eigen::Quaterniond q_des =
+        Eigen::AngleAxisd(ref_base_link.roll, Eigen::Vector3d::UnitX()) *
+        Eigen::AngleAxisd(ref_base_link.pitch, Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd(ref_base_link.yaw, Eigen::Vector3d::UnitZ());
+    eta_d_body_.qw = q_des.w();
+    eta_d_body_.qx = q_des.x();
+    eta_d_body_.qy = q_des.y();
+    eta_d_body_.qz = q_des.z();
+
+    types::Nu nu_d_body_;
+    nu_d_body_.u = ref_base_link.x_dot;
+    nu_d_body_.v = ref_base_link.y_dot;
+    nu_d_body_.w = ref_base_link.z_dot;
+    nu_d_body_.p = ref_base_link.roll_dot;
+    nu_d_body_.q = ref_base_link.pitch_dot;
+    nu_d_body_.r = ref_base_link.yaw_dot;
+
+    // Since we transfomed the target to body_frame, our current position
+    // relative to ourself is zero
+    types::Eta eta_body_;
+    eta_body_.x = 0.0;
+    eta_body_.y = 0.0;
+    eta_body_.z = 0.0;
+    eta_body_.qw = 1.0;
+    eta_body_.qx = 0.0;
+    eta_body_.qy = 0.0;
+    eta_body_.qz = 0.0;
+
+    // calculate pid control
     types::Vector6d tau =
-        pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
+        pid_controller_.calculate_tau(eta_body_, eta_d_body_, nu_, nu_d_body_);
+    // print for debug
+    // RCLCPP_INFO_STREAM(this->get_logger(), "Tau: [" << tau(0) << ", " <<
+    // tau(1)
+    //                                                 << ", " << tau(2) << ", "
+    //                                                 << tau(3) << ", " <<
+    //                                                 tau(4)
+    //                                                 << ", " << tau(5) <<
+    //                                                 "]");
+    // RCLCPP_INFO_STREAM(this->get_logger(),
+    //                    "Kp: [" << pid_controller_.Kp_debug(0, 0) << ", "
+    //                            << pid_controller_.Kp_debug(0, 1) << ", "
+    //                            << pid_controller_.Kp_debug(0, 2) << ", "
+    //                            << pid_controller_.Kp_debug(0, 3) << ", "
+    //                            << pid_controller_.Kp_debug(0, 4) << ", "
+    //                            << pid_controller_.Kp_debug(0, 5) << "; "
+    //                            << pid_controller_.Kp_debug(1, 0) << ", "
+    //                            << pid_controller_.Kp_debug(1, 1) << ", "
+    //                            << pid_controller_.Kp_debug(1, 2) << ", "
+    //                            << pid_controller_.Kp_debug(1, 3) << ", "
+    //                            << pid_controller_.Kp_debug(1, 4) << ", "
+    //                            << pid_controller_.Kp_debug(1, 5) << "; "
+    //                            << pid_controller_.Kp_debug(2, 0) << ", "
+    //                            << pid_controller_.Kp_debug(2, 1) << ", "
+    //                            << pid_controller_.Kp_debug(2, 2) << ", "
+    //                            << pid_controller_.Kp_debug(2, 3) << ", "
+    //                            << pid_controller_.Kp_debug(2, 4) << ", "
+    //                            << pid_controller_.Kp_debug(2, 5) << "; "
+    //                            << pid_controller_.Kp_debug(3, 0) << ", "
+    //                            << pid_controller_.Kp_debug(3, 1) << ", "
+    //                            << pid_controller_.Kp_debug(3, 2) << ", "
+    //                            << pid_controller_.Kp_debug(3, 3) << ", "
+    //                            << pid_controller_.Kp_debug(3, 4) << ", "
+    //                            << pid_controller_.Kp_debug(3, 5) << "; "
+    //                            << pid_controller_.Kp_debug(4, 0) << ", "
+    //                            << pid_controller_.Kp_debug(4, 1) << ", "
+    //                            << pid_controller_.Kp_debug(4, 2) << ", "
+    //                            << pid_controller_.Kp_debug(4, 3) << ", "
+    //                            << pid_controller_.Kp_debug(4, 4) << ", "
+    //                            << pid_controller_.Kp_debug(4, 5) << "; "
+    //                            << pid_controller_.Kp_debug(5, 0) << ", "
+    //                            << pid_controller_.Kp_debug(5, 1) << ", "
+    //                            << pid_controller_.Kp_debug(5, 2) << ", "
+    //                            << pid_controller_.Kp_debug(5, 3) << ", "
+    //                            << pid_controller_.Kp_debug(5, 4) << ", "
+    //                            << pid_controller_.Kp_debug(5, 5) << "]");
+
+    // debug print for frame tf
+    RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                         "GLOBAL TARGET (Odom): X: %.2f, Y: %.2f, Yaw: %.2f",
+                         ref_global.x, ref_global.y, ref_global.yaw);
+
+    RCLCPP_INFO_THROTTLE(
+        this->get_logger(), *this->get_clock(), 1000,
+        "LOCAL TARGET (Body):  X (Surge): %.2f, Y (Sway): %.2f, Yaw: %.2f",
+        ref_base_link.x, ref_base_link.y, ref_base_link.yaw);
 
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
@@ -114,20 +250,68 @@ void PIDControllerNode::publish_tau() {
 }
 
 void PIDControllerNode::set_pid_params() {
-    this->declare_parameter<std::vector<double>>(
-        "Kp", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
-    this->declare_parameter<std::vector<double>>(
-        "Ki", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
-    this->declare_parameter<std::vector<double>>(
-        "Kd", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
+    this->declare_parameter<double>("Kp_x", 1.0);
+    this->declare_parameter<double>("Kp_y", 1.0);
+    this->declare_parameter<double>("Kp_z", 1.0);
+    this->declare_parameter<double>("Kp_roll", 1.0);
+    this->declare_parameter<double>("Kp_pitch", 1.0);
+    this->declare_parameter<double>("Kp_yaw", 1.0);
+    this->declare_parameter<double>("Ki_x", 0.1);
+    this->declare_parameter<double>("Ki_y", 0.1);
+    this->declare_parameter<double>("Ki_z", 0.1);
+    this->declare_parameter<double>("Ki_roll", 0.1);
+    this->declare_parameter<double>("Ki_pitch", 0.1);
+    this->declare_parameter<double>("Ki_yaw", 0.1);
+    this->declare_parameter<double>("Kd_x", 0.1);
+    this->declare_parameter<double>("Kd_y", 0.1);
+    this->declare_parameter<double>("Kd_z", 0.1);
+    this->declare_parameter<double>("Kd_roll", 0.1);
+    this->declare_parameter<double>("Kd_pitch", 0.1);
+    this->declare_parameter<double>("Kd_yaw", 0.1);
 
-    std::vector<double> Kp_vec = this->get_parameter("Kp").as_double_array();
-    std::vector<double> Ki_vec = this->get_parameter("Ki").as_double_array();
-    std::vector<double> Kd_vec = this->get_parameter("Kd").as_double_array();
+    // this->declare_parameter<std::vector<double>>(
+    //     "Kp", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+    // this->declare_parameter<std::vector<double>>(
+    //     "Ki", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
+    // this->declare_parameter<std::vector<double>>(
+    //     "Kd", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
 
-    types::Matrix6d Kp_eigen = Eigen::Map<types::Matrix6d>(Kp_vec.data());
-    types::Matrix6d Ki_eigen = Eigen::Map<types::Matrix6d>(Ki_vec.data());
-    types::Matrix6d Kd_eigen = Eigen::Map<types::Matrix6d>(Kd_vec.data());
+    // std::vector<double> Kp_vec = this->get_parameter("Kp").as_double_array();
+    // std::vector<double> Ki_vec = this->get_parameter("Ki").as_double_array();
+    // std::vector<double> Kd_vec = this->get_parameter("Kd").as_double_array();
+
+    std::vector<double> Kp_vec = {
+        this->get_parameter("Kp_x").as_double(),
+        this->get_parameter("Kp_y").as_double(),
+        this->get_parameter("Kp_z").as_double(),
+        this->get_parameter("Kp_roll").as_double(),
+        this->get_parameter("Kp_pitch").as_double(),
+        this->get_parameter("Kp_yaw").as_double(),
+    };
+    std::vector<double> Ki_vec = {
+        this->get_parameter("Ki_x").as_double(),
+        this->get_parameter("Ki_y").as_double(),
+        this->get_parameter("Ki_z").as_double(),
+        this->get_parameter("Ki_roll").as_double(),
+        this->get_parameter("Ki_pitch").as_double(),
+        this->get_parameter("Ki_yaw").as_double(),
+    };
+    std::vector<double> Kd_vec = {
+        this->get_parameter("Kd_x").as_double(),
+        this->get_parameter("Kd_y").as_double(),
+        this->get_parameter("Kd_z").as_double(),
+        this->get_parameter("Kd_roll").as_double(),
+        this->get_parameter("Kd_pitch").as_double(),
+        this->get_parameter("Kd_yaw").as_double(),
+    };
+
+    types::Vector6d Kp_vec_eigen(Kp_vec.data());
+    types::Vector6d Ki_vec_eigen(Ki_vec.data());
+    types::Vector6d Kd_vec_eigen(Kd_vec.data());
+
+    types::Matrix6d Kp_eigen = Kp_vec_eigen.asDiagonal().toDenseMatrix();
+    types::Matrix6d Ki_eigen = Ki_vec_eigen.asDiagonal().toDenseMatrix();
+    types::Matrix6d Kd_eigen = Kd_vec_eigen.asDiagonal().toDenseMatrix();
 
     pid_controller_.set_kp(Kp_eigen);
     pid_controller_.set_ki(Ki_eigen);
@@ -136,13 +320,151 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    eta_d_.pos << msg->x, msg->y, msg->z;
+    // Store desired position
+    eta_d_.x = msg->x;
+    eta_d_.y = msg->y;
+    eta_d_.z = msg->z;
 
+    // Convert desired attitude(roll, pitch, yaw) to quaternion and store
     double roll = msg->roll;
     double pitch = msg->pitch;
     double yaw = msg->yaw;
 
-    eta_d_.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-                 Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-                 Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+    Eigen::Quaterniond quat =
+        Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
+        Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+
+    eta_d_.qw = quat.w();
+    eta_d_.qx = quat.x();
+    eta_d_.qy = quat.y();
+    eta_d_.qz = quat.z();
+
+    // Store desired velocity
+    nu_d_.u = msg->x_dot;
+    nu_d_.v = msg->y_dot;
+    nu_d_.w = msg->z_dot;
+    nu_d_.p = msg->roll_dot;
+    nu_d_.q = msg->pitch_dot;
+    nu_d_.r = msg->yaw_dot;
+}
+
+rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
+    const std::vector<rclcpp::Parameter>& parameters) {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    result.reason = "success";
+
+    bool kp_x_updated = false;
+    bool kp_y_updated = false;
+    bool kp_z_updated = false;
+    bool kp_roll_updated = false;
+    bool kp_pitch_updated = false;
+    bool kp_yaw_updated = false;
+
+    bool ki_x_updated = false;
+    bool ki_y_updated = false;
+    bool ki_z_updated = false;
+    bool ki_roll_updated = false;
+    bool ki_pitch_updated = false;
+    bool ki_yaw_updated = false;
+
+    bool kd_x_updated = false;
+    bool kd_y_updated = false;
+    bool kd_z_updated = false;
+    bool kd_roll_updated = false;
+    bool kd_pitch_updated = false;
+    bool kd_yaw_updated = false;
+
+    types::Vector6d Kp_vec_eigen = pid_controller_.get_kp().diagonal();
+    types::Vector6d Ki_vec_eigen = pid_controller_.get_ki().diagonal();
+    types::Vector6d Kd_vec_eigen = pid_controller_.get_kd().diagonal();
+
+    for (const auto& param : parameters) {
+        if (param.get_name() == "Kp_x") {
+            Kp_vec_eigen(0) = param.as_double();
+            kp_x_updated = true;
+        } else if (param.get_name() == "Kp_y") {
+            Kp_vec_eigen(1) = param.as_double();
+            kp_y_updated = true;
+        } else if (param.get_name() == "Kp_z") {
+            Kp_vec_eigen(2) = param.as_double();
+            kp_z_updated = true;
+        } else if (param.get_name() == "Kp_roll") {
+            Kp_vec_eigen(3) = param.as_double();
+            kp_roll_updated = true;
+        } else if (param.get_name() == "Kp_pitch") {
+            Kp_vec_eigen(4) = param.as_double();
+            kp_pitch_updated = true;
+        } else if (param.get_name() == "Kp_yaw") {
+            Kp_vec_eigen(5) = param.as_double();
+            kp_yaw_updated = true;
+        } else if (param.get_name() == "Ki_x") {
+            Ki_vec_eigen(0) = param.as_double();
+            ki_x_updated = true;
+        } else if (param.get_name() == "Ki_y") {
+            Ki_vec_eigen(1) = param.as_double();
+            ki_y_updated = true;
+        } else if (param.get_name() == "Ki_z") {
+            Ki_vec_eigen(2) = param.as_double();
+            ki_z_updated = true;
+        } else if (param.get_name() == "Ki_roll") {
+            Ki_vec_eigen(3) = param.as_double();
+            ki_roll_updated = true;
+        } else if (param.get_name() == "Ki_pitch") {
+            Ki_vec_eigen(4) = param.as_double();
+            ki_pitch_updated = true;
+        } else if (param.get_name() == "Ki_yaw") {
+            Ki_vec_eigen(5) = param.as_double();
+            ki_yaw_updated = true;
+        } else if (param.get_name() == "Kd_x") {
+            Kd_vec_eigen(0) = param.as_double();
+            kd_x_updated = true;
+        } else if (param.get_name() == "Kd_y") {
+            Kd_vec_eigen(1) = param.as_double();
+            kd_y_updated = true;
+        } else if (param.get_name() == "Kd_z") {
+            Kd_vec_eigen(2) = param.as_double();
+            kd_z_updated = true;
+        } else if (param.get_name() == "Kd_roll") {
+            Kd_vec_eigen(3) = param.as_double();
+            kd_roll_updated = true;
+        } else if (param.get_name() == "Kd_pitch") {
+            Kd_vec_eigen(4) = param.as_double();
+            kd_pitch_updated = true;
+        } else if (param.get_name() == "Kd_yaw") {
+            Kd_vec_eigen(5) = param.as_double();
+            kd_yaw_updated = true;
+        }
+    }
+
+    // Only set the gains if the parameter update was successful
+    if (result.successful) {
+        if (kp_x_updated || kp_y_updated || kp_z_updated || kp_roll_updated ||
+            kp_pitch_updated || kp_yaw_updated) {
+            types::Matrix6d Kp_eigen =
+                Kp_vec_eigen.asDiagonal().toDenseMatrix();
+            pid_controller_.set_kp(Kp_eigen);
+        }
+        if (ki_x_updated || ki_y_updated || ki_z_updated || ki_roll_updated ||
+            ki_pitch_updated || ki_yaw_updated) {
+            types::Matrix6d Ki_eigen =
+                Ki_vec_eigen.asDiagonal().toDenseMatrix();
+            pid_controller_.set_ki(Ki_eigen);
+        }
+        if (kd_x_updated || kd_y_updated || kd_z_updated || kd_roll_updated ||
+            kd_pitch_updated || kd_yaw_updated) {
+            types::Matrix6d Kd_eigen =
+                Kd_vec_eigen.asDiagonal().toDenseMatrix();
+            pid_controller_.set_kd(Kd_eigen);
+        }
+    }
+
+    // print
+    for (const auto& param : parameters) {
+        RCLCPP_INFO(this->get_logger(), "%s", param.get_name().c_str());
+        RCLCPP_INFO(this->get_logger(), "%s", param.get_type_name().c_str());
+        RCLCPP_INFO(this->get_logger(), "%s", param.value_to_string().c_str());
+    }
+    return result;
 }

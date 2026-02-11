@@ -1,6 +1,7 @@
 #ifndef PID_CONTROLLER_DP__PID_CONTROLLER_HPP_
 #define PID_CONTROLLER_DP__PID_CONTROLLER_HPP_
 
+#include <spdlog/spdlog.h>
 #include "pid_controller_dp/typedefs.hpp"
 
 class PIDController {
@@ -18,7 +19,7 @@ class PIDController {
     types::Vector6d calculate_tau(const types::Eta& eta,
                                   const types::Eta& eta_d,
                                   const types::Nu& nu,
-                                  const types::Eta& eta_dot_d);
+                                  const types::Nu& nu_d);
 
     // @brief Set the proportional gain matrix
     // @param Kp: 6x6 matrix containing the proportional gain matrix
@@ -35,6 +36,25 @@ class PIDController {
     // @brief Set the time step
     // @param dt: Time step
     void set_time_step(double dt);
+
+    types::Matrix6d get_kp();
+    types::Matrix6d get_ki();
+    types::Matrix6d get_kd();
+
+    // parameters for debug
+    types::Eta eta_error_debug;
+    types::Vector6d nu_d_debug;
+    types::Vector6d error_nu_debug;
+    types::Vector6d P_debug;
+    types::Vector6d I_debug;
+    types::Vector6d D_debug;
+    types::Vector6d tau_debug;
+    types::Matrix6x7d J_inv_debug;
+
+    // debug gain
+    types::Matrix6d Kp_debug;
+    types::Matrix6d Ki_debug;
+    types::Matrix6d Kd_debug;
 
    private:
     types::Matrix6d Kp_;
