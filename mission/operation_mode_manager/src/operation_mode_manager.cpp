@@ -9,6 +9,10 @@ OperationModeManager::OperationModeManager(const rclcpp::NodeOptions& options)
     setup_service();
     set_initial_values();
 
+    publish_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(1000),
+        std::bind(&OperationModeManager::publish_mode, this));
+
     RCLCPP_INFO(this->get_logger(),
                 "Operation Mode Manager Node started. Initial mode: Manual, "
                 "Killswitch: true");
@@ -47,12 +51,10 @@ void OperationModeManager::setup_publishers() {
         vortex::utils::qos_profiles::sensor_data_profile(1));
 
     killswitch_pub_ = this->create_publisher<std_msgs::msg::Bool>(
-        killswitch_topic,
-        vortex::utils::qos_profiles::reliable_transient_local_profile(1));
+        killswitch_topic, vortex::utils::qos_profiles::reliable_profile(1));
 
     mode_pub_ = this->create_publisher<vortex_msgs::msg::OperationMode>(
-        operation_mode_topic,
-        vortex::utils::qos_profiles::reliable_transient_local_profile(1));
+        operation_mode_topic, vortex::utils::qos_profiles::reliable_profile(1));
 
     publish_mode();
 }

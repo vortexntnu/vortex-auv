@@ -28,6 +28,8 @@ class OperationModeManager : public rclcpp::Node {
     void setup_service();
     void set_initial_values();
 
+    rclcpp::TimerBase::SharedPtr publish_timer_;
+
     void set_operation_mode_callback(
         const std::shared_ptr<vortex_msgs::srv::SetOperationMode::Request>
             request,
