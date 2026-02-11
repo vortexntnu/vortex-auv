@@ -24,7 +24,7 @@ eskf_node:
       pos_floor: 0.05
       att_floor: 0.02
       vel_floor: 0.2
-      vel_alpha: 0.5
+      vel_alpha: 0.5 # gain scaling factor
       dt_min: 0.02
       dt_max: 15.0
 

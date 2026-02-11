@@ -60,7 +60,7 @@ static Eigen::Vector3d compute_quaternion_error(const Eigen::Quaterniond& q_meas
     return (theta / v_norm) * v;
 }
 
-Eigen::Vector3d ESKF::log_quat(const Eigen::Quaterniond& q) {
+Eigen::Vector3d ESKF::log_quat(const Eigen::Quaterniond& q) { // quat to rotvec
     const double w = std::clamp(static_cast<double>(q.w()), -1.0, 1.0);
     const double theta = 2.0 * std::acos(w);
     const double s = std::sqrt(std::max(0.0, 1.0 - w * w));
@@ -71,7 +71,7 @@ Eigen::Vector3d ESKF::log_quat(const Eigen::Quaterniond& q) {
     return Eigen::Vector3d(q.x(), q.y(), q.z()) * (theta / s);
 }
 
-Eigen::Quaterniond ESKF::exp_rotvec(const Eigen::Vector3d& w) {
+Eigen::Quaterniond ESKF::exp_rotvec(const Eigen::Vector3d& w) { // rotvec to quat
     const double theta = w.norm();
     if (theta < 1e-9) {
         return Eigen::Quaterniond(1.0, 0.5 * w.x(), 0.5 * w.y(), 0.5 * w.z()).normalized();
