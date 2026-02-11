@@ -13,6 +13,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <variant>
+#include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
@@ -30,7 +31,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     // @brief Callback function for the software mode topic
     // @param msg: String message containing the software mode
-    void software_mode_callback(
+    void operation_mode_callback(
         const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     // @brief Callback function for the pose topic
@@ -63,7 +64,7 @@ class PIDControllerNode : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
     rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
-        software_mode_sub_;
+        operation_mode_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -96,7 +97,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     bool killswitch_on_;
 
-    uint8_t software_mode_;
+    vortex::utils::types::Mode operation_mode_;
 };
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_

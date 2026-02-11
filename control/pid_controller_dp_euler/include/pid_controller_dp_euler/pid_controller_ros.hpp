@@ -23,7 +23,7 @@ class PIDControllerNode : public rclcpp::Node {
    private:
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
-    void software_mode_callback(
+    void operation_mode_callback(
         const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     void pose_callback(
@@ -46,7 +46,7 @@ class PIDControllerNode : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
     rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
-        software_mode_sub_;
+        operation_mode_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -73,7 +73,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     bool killswitch_on_ = false;
 
-    uint8_t software_mode_;
+    vortex::utils::types::Mode operation_mode_;
 };
 
 #endif  // PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_

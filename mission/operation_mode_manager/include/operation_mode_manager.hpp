@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OPERATION_MODE_MANAGER_HPP_
+#define OPERATION_MODE_MANAGER_HPP_
 
 #include <memory>
 #include <string>
@@ -9,10 +10,13 @@
 
 #include "vortex/utils/ros/qos_profiles.hpp"
 
+#include "vortex/utils/types.hpp"
 #include "vortex_msgs/msg/operation_mode.hpp"
 #include "vortex_msgs/srv/set_killswitch.hpp"
 #include "vortex_msgs/srv/set_operation_mode.hpp"
 #include "vortex_msgs/srv/toggle_killswitch.hpp"
+
+namespace vortex::mission {
 
 class OperationModeManager : public rclcpp::Node {
    public:
@@ -52,3 +56,7 @@ class OperationModeManager : public rclcpp::Node {
     rclcpp::Service<vortex_msgs::srv::SetKillswitch>::SharedPtr
         set_killswitch_service_;
 };
+
+}  // namespace vortex::mission
+
+#endif  // OPERATION_MODE_MANAGER_HPP_

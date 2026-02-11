@@ -22,32 +22,6 @@
 
 namespace vortex::control {
 
-enum class Mode : uint8_t { manual, autonomous, reference };
-
-Mode convert_from_ros(const vortex_msgs::msg::OperationMode& mode_msg) {
-    switch (mode_msg.operation_mode) {
-        case vortex_msgs::msg::OperationMode::MANUAL:
-            return Mode::manual;
-        case vortex_msgs::msg::OperationMode::AUTONOMOUS:
-            return Mode::autonomous;
-        case vortex_msgs::msg::OperationMode::REFERENCE:
-            return Mode::reference;
-    }
-    assert(false && "Unknown operation mode");
-}
-
-std::string modetoString(Mode mode) {
-    switch (mode) {
-        case Mode::manual:
-            return "manual mode";
-        case Mode::autonomous:
-            return "autonomous mode";
-        case Mode::reference:
-            return "reference mode";
-    }
-    return "UNKNOWN";
-}
-
 // @brief Class for the DP Adaptive Backstepping controller node
 class DPAdaptBacksControllerNode : public rclcpp::Node {
    public:
@@ -61,7 +35,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     // @brief Callback function for the software mode topic
     // @param msg: String message containing the software mode
-    void software_mode_callback(
+    void operation_mode_callback(
         const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     // @brief Callback function for the pose topic
@@ -92,7 +66,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_{};
 
     rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
-        software_mode_sub_{};
+        operation_mode_sub_{};
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_{};
@@ -119,7 +93,8 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     bool killswitch_on_{false};
 
-    Mode software_mode_{Mode::manual};
+    vortex::utils::types::Mode operation_mode_{
+        vortex::utils::types::Mode::manual};
 };
 
 }  // namespace vortex::control

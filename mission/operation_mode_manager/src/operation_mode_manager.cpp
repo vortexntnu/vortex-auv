@@ -1,5 +1,7 @@
 #include "operation_mode_manager.hpp"
 
+namespace vortex::mission {
+
 OperationModeManager::OperationModeManager(const rclcpp::NodeOptions& options)
     : Node("operation_mode_manager", options) {
     declare_parameters();
@@ -158,6 +160,8 @@ void OperationModeManager::publish_mode() {
     killswitch_msg.data = killswitch_;
     killswitch_pub_->publish(killswitch_msg);
 }
+
+}  // namespace vortex::mission
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);

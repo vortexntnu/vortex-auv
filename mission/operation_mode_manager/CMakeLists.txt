@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.8)
 project(operation_mode_manager)
 
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 20)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)

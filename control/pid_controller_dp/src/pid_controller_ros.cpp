@@ -46,10 +46,10 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         software_kill_switch_topic, 1,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
-    software_mode_sub_ =
+    operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
             software_operation_mode_topic, 1,
-            std::bind(&PIDControllerNode::software_mode_callback, this,
+            std::bind(&PIDControllerNode::operation_mode_callback, this,
                       std::placeholders::_1));
 
     pose_sub_ = this->create_subscription<
@@ -79,9 +79,9 @@ void PIDControllerNode::killswitch_callback(
     killswitch_on_ = msg->data;
 }
 
-void PIDControllerNode::software_mode_callback(
+void PIDControllerNode::operation_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
-    software_mode_ = msg->operation_mode;
+    operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
 }
 
 void PIDControllerNode::pose_callback(
@@ -96,7 +96,7 @@ void PIDControllerNode::twist_callback(
 
 void PIDControllerNode::publish_tau() {
     if (killswitch_on_ ||
-        software_mode_ == vortex_msgs::msg::OperationMode::MANUAL) {
+        operation_mode_ == vortex::utils::types::Mode::manual) {
         return;
     }
 

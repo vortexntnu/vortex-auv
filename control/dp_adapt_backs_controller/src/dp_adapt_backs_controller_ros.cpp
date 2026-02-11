@@ -4,6 +4,7 @@
 #include <string>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
@@ -74,11 +75,11 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
-    software_mode_sub_ =
+    operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
             software_operation_mode_topic, qos_reliable,
-            std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
-                      std::placeholders::_1));
+            std::bind(&DPAdaptBacksControllerNode::operation_mode_callback,
+                      this, std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
@@ -95,13 +96,14 @@ void DPAdaptBacksControllerNode::killswitch_callback(
     spdlog::info("Killswitch: {}", killswitch_on_ ? "on" : "off");
 }
 
-void DPAdaptBacksControllerNode::software_mode_callback(
+void DPAdaptBacksControllerNode::operation_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
-    software_mode_ = convert_from_ros(*msg);
-    spdlog::info("Software mode: {}", modetoString(software_mode_));
+    operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
+    spdlog::info("Operation mode: {}",
+                 vortex::utils::types::mode_to_string(operation_mode_));
 
-    if (software_mode_ == Mode::autonomous ||
-        software_mode_ == Mode::reference) {
+    if (operation_mode_ == vortex::utils::types::Mode::autonomous ||
+        operation_mode_ == vortex::utils::types::Mode::reference) {
         pose_d_ = pose_;
     }
 }
@@ -182,7 +184,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ == Mode::manual) {
+    if (killswitch_on_ ||
+        operation_mode_ == vortex::utils::types::Mode::manual) {
         return;
     }
 
