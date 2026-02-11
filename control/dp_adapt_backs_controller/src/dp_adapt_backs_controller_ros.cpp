@@ -77,10 +77,9 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.operation_mode").as_string();
     operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
-            software_operation_mode_topic,
-            qos_reliable std::bind(
-                &DPAdaptBacksControllerNode::operation_mode_callback, this,
-                std::placeholders::_1));
+            software_operation_mode_topic, qos_reliable,
+            std::bind(&DPAdaptBacksControllerNode::operation_mode_callback,
+                      this, std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
