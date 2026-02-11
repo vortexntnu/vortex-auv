@@ -165,7 +165,7 @@ void OperationModeManager::publish_mode() {
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<OperationModeManager>(rclcpp::NodeOptions()));
+    rclcpp::spin(std::make_shared<vortex::mission::OperationModeManager>(rclcpp::NodeOptions()));
     rclcpp::shutdown();
     return 0;
 }
