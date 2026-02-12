@@ -100,33 +100,17 @@ void OperationModeManager::setup_services() {
 void OperationModeManager::set_operation_mode_callback(
     const std::shared_ptr<vortex_msgs::srv::SetOperationMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetOperationMode::Response> response) {
-    switch (request->requested_operation_mode.operation_mode) {
-        case vortex_msgs::msg::OperationMode::AUTONOMOUS:
-            RCLCPP_INFO(this->get_logger(), "Mode set to AUTONOMOUS");
-            mode_ = vortex::utils::ros_conversions::convert_from_ros(
-                request->requested_operation_mode);
-            break;
-
-        case vortex_msgs::msg::OperationMode::MANUAL:
-            RCLCPP_INFO(this->get_logger(), "Mode set to MANUAL");
-            mode_ = vortex::utils::ros_conversions::convert_from_ros(
-                request->requested_operation_mode);
-            break;
-        case vortex_msgs::msg::OperationMode::REFERENCE:
-            RCLCPP_INFO(this->get_logger(), "Mode set to REFERENCE");
-            mode_ = vortex::utils::ros_conversions::convert_from_ros(
-                request->requested_operation_mode);
-            break;
-        default:
-            RCLCPP_WARN(this->get_logger(), "Invalid mode requested");
-            break;
-    }
+    mode_ = vortex::utils::ros_conversions::convert_from_ros(
+        request->requested_operation_mode);
+    RCLCPP_INFO(this->get_logger(), "Mode set to to %s",
+                mode_to_string(mode_).c_str());
 
     publish_mode();
 
     response->current_operation_mode =
         vortex::utils::ros_conversions::convert_to_ros(mode_);
     response->killswitch_status = killswitch_;
+    response->success = true;
 }
 
 void OperationModeManager::toggle_killswitch_callback(
@@ -144,6 +128,7 @@ void OperationModeManager::toggle_killswitch_callback(
     response->current_operation_mode =
         vortex::utils::ros_conversions::convert_to_ros(mode_);
     response->killswitch_status = killswitch_;
+    response->success = true;
 }
 
 void OperationModeManager::set_killswitch_callback(
@@ -162,6 +147,7 @@ void OperationModeManager::set_killswitch_callback(
     response->current_operation_mode =
         vortex::utils::ros_conversions::convert_to_ros(mode_);
     response->killswitch_status = killswitch_;
+    response->success = true;
 }
 
 void OperationModeManager::publish_mode() {
