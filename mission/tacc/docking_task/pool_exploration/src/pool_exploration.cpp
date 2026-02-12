@@ -1,7 +1,6 @@
 #include <pool_exploration/pool_exploration.hpp>
 
-//change namespace name??
-namespace vortex::docking_task{
+namespace vortex::pool_exploration{
 
 PoolExplorationMap::PoolExplorationMap(
     double size_x,
@@ -12,7 +11,6 @@ PoolExplorationMap::PoolExplorationMap(
       size_y_(size_y),
       resolution_(resolution)
 {
-    //HVA ER grid_ OG HVOR KOMMER DEN FRA ?? <33
     grid_.header.frame_id = frame_id;
     initialize_grid();
 }
@@ -39,4 +37,12 @@ const nav_msgs::msg::OccupancyGrid& PoolExplorationMap::grid() const {
     return grid_;
 }
 
-}  // namespace vortex::docking_task
+}  // namespace vortex::pool_exploration
+
+
+//odom_frame
+//map_frame
+//optical_frame
+
+//enu
+//ned

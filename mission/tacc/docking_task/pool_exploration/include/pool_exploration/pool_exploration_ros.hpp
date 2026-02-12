@@ -5,7 +5,7 @@
 #include <pool_exploration/pool_exploration.hpp>
 
 
-namespace vortex::docking_task{
+namespace vortex::pool_exploration{
 
 class PoolExplorationNode : public rclcpp::Node {
 public:
@@ -21,6 +21,6 @@ private:
 
 };
 
-}  // namespace vortex::docking_task
+}  // namespace vortex::pool_exploration
 
 #endif  // POOL_EXPLORATION_ROS_HPP

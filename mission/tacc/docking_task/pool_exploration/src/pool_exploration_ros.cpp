@@ -1,7 +1,6 @@
 #include <pool_exploration/pool_exploration_ros.hpp>
 
-//change namespace name??
-namespace vortex::docking_task{
+namespace vortex::pool_exploration{
 
 PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
     : Node("pool_exploration_node", options) {
@@ -26,4 +25,4 @@ void PoolExplorationNode::publish_grid()
     map_pub_->publish(grid_msg_);
 }
 
-}  // namespace vortex::docking_task
+}  // namespace vortex::pool_exploration

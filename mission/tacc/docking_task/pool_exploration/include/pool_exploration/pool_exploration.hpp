@@ -4,11 +4,11 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <string>
 
-namespace vortex::docking_task{
+namespace vortex::pool_exploration{
 
 class PoolExplorationMap {
 public:
-    PoolExplorationMap(double size_x,
+    PoolExplorationMap( double size_x,
                         double size_y,
                         double resolution,
                         const std::string& frame_id);
@@ -26,13 +26,20 @@ private:
     double resolution_;
 };
 
-}  // namespace vortex::docking_task
+}  // namespace vortex::pool_exploration
 
 #endif  // POOL_EXPLORATION_HPP
 
 
 
 
+
+
+
+
+/*
+DETTE SKAL I .cpp FILA:
+initialize_mapper_params()*/
 
 //Lage structs for occupancy grid?
 /*
