@@ -184,7 +184,7 @@ class LinearQuadraticRegulator(Node):
         """
         try:
             response = future.result()
-            self.operation_mode = response.current_operation_mode
+            self.operation_mode = response.current_operation_mode.operation_mode
             self.killswitch_on = response.killswitch_status
             self.get_logger().info(
                 f"Initial operation mode: {self.operation_mode} | Initial killswitch status: {'on' if self.killswitch_on else 'off'}"
@@ -252,7 +252,6 @@ class LinearQuadraticRegulator(Node):
         msg.wrench.force.x = float(u[0])
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
-
         if self.killswitch_on == False and (
             self.operation_mode == OperationMode.AUTONOMOUS
             or self.operation_mode == OperationMode.REFERENCE
