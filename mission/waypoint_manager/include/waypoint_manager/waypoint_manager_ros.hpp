@@ -5,6 +5,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+
 
 #include <vector>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
@@ -90,6 +93,9 @@ class WaypointManagerNode : public rclcpp::Node {
     // @param goal_msg The action goal
     void send_reference_filter_goal(
         const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg);
+
+    void publish_waypoint_markers();
+    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr wp_markers_pub_;
 
     rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::
         SharedPtr reference_filter_client_;

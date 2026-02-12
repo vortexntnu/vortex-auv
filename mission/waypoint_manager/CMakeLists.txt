@@ -18,6 +18,7 @@ find_package(vortex_utils_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(visualization_msgs REQUIRED)
 
 include_directories(include)
 
@@ -35,6 +36,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   tf2_geometry_msgs
   spdlog
   fmt
+  visualization_msgs
 )
 
 rclcpp_components_register_node(

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
+#include <algorithm>
 
 namespace vortex::mission {
 
@@ -11,6 +12,8 @@ WaypointManagerNode::WaypointManagerNode(const rclcpp::NodeOptions& options)
     set_reference_action_client();
     set_waypoint_action_server();
     set_waypoint_service_server();
+
+    wp_markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/waypoint_manager/waypoint_markers", 10);
 
     spdlog::info("WaypointManagerNode started");
 }
@@ -93,6 +96,7 @@ WaypointManagerNode::construct_result(bool success) const {
 
 void WaypointManagerNode::cleanup_mission_state() {
     waypoints_.clear();
+    publish_waypoint_markers();
     current_index_ = 0;
     persistent_action_mode_active_ = false;
     priority_mode_active_ = false;
@@ -109,6 +113,7 @@ void WaypointManagerNode::cleanup_mission_state() {
 
 void WaypointManagerNode::send_next_reference_filter_goal() {
     if (current_index_ >= waypoints_.size()) {
+        publish_waypoint_markers();
         if (!persistent_action_mode_active_ && active_action_goal_ &&
             active_action_goal_->is_active()) {
             auto wm_res = construct_result(true);
@@ -123,6 +128,66 @@ void WaypointManagerNode::send_next_reference_filter_goal() {
     rf_goal.convergence_threshold = convergence_threshold_;
 
     send_reference_filter_goal(rf_goal);
+}
+
+// ---------------------------------------------------------
+// FOXGLOVE MARKER PUBLISHER
+// ---------------------------------------------------------
+
+void WaypointManagerNode::publish_waypoint_markers() {
+    visualization_msgs::msg::MarkerArray markers;
+
+    visualization_msgs::msg::Marker clear;
+    clear.action = visualization_msgs::msg::Marker::DELETEALL;
+    markers.markers.push_back(clear);
+
+    if (waypoints_.empty() || current_index_ >= waypoints_.size()) {
+        wp_markers_pub_->publish(markers);
+        return;
+    }
+
+    size_t end = std::min(current_index_ + 10, waypoints_.size());
+    for (size_t i = current_index_; i < end; ++i) {
+        visualization_msgs::msg::Marker marker;
+
+        marker.header.frame_id = "odom";
+        marker.header.stamp = this->now();
+        marker.ns = "waypoints";
+        marker.id = static_cast<int>(i);
+        marker.type = visualization_msgs::msg::Marker::SPHERE;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.pose = waypoints_[i].pose;
+        
+        marker.scale.x = marker.scale.y = marker.scale.z = 0.1;
+
+        switch (waypoints_[i].mode) {
+            case 0:
+                marker.color.g = 1.0;   // Green - FULL_POSE
+                break;
+            case 1:
+                marker.color.r = 1.0;   // Red - ONLY_POSITION
+                break;
+            case 2:
+                marker.color.b = 1.0;   // Blue - FORWARD_HEADING
+                break;
+            case 3:
+                marker.color.r = marker.color.g = 1.0;   // Yellow - ONLY_ORIENTATION
+                break;
+        }
+
+        if (i == current_index_) {
+            marker.type = visualization_msgs::msg::Marker::SPHERE;
+            marker.color.a = 0.8;
+        } else {
+            marker.type = visualization_msgs::msg::Marker::CUBE;
+            marker.color.a = 0.4;
+        }
+
+        markers.markers.push_back(marker);
+    }
+        
+
+    wp_markers_pub_->publish(markers);
 }
 
 // ---------------------------------------------------------
@@ -158,6 +223,8 @@ rclcpp_action::GoalResponse WaypointManagerNode::handle_waypoint_goal(
             "mode");
         return rclcpp_action::GoalResponse::REJECT;
     }
+    
+    publish_waypoint_markers();
 
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -219,6 +286,8 @@ void WaypointManagerNode::handle_send_waypoints_service_request(
             send_next_reference_filter_goal();
         }
 
+        publish_waypoint_markers();
+
         response->success = true;
         return;
     }
@@ -229,6 +298,8 @@ void WaypointManagerNode::handle_send_waypoints_service_request(
     if (!active_reference_filter_goal_ && current_index_ < waypoints_.size()) {
         send_next_reference_filter_goal();
     }
+
+    publish_waypoint_markers();
 
     response->success = true;
 }
@@ -329,6 +400,7 @@ void WaypointManagerNode::send_reference_filter_goal(
                 } else {
                     current_index_++;
                     send_next_reference_filter_goal();
+                    publish_waypoint_markers();
                 }
                 break;
             }
