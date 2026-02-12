@@ -26,10 +26,8 @@ class OperationModeManager : public rclcpp::Node {
    private:
     void declare_parameters();
     void setup_publishers();
-    void setup_service();
+    void setup_services();
     void set_initial_values();
-
-    rclcpp::TimerBase::SharedPtr publish_timer_;
 
     void set_operation_mode_callback(
         const std::shared_ptr<vortex_msgs::srv::SetOperationMode::Request>
@@ -45,15 +43,17 @@ class OperationModeManager : public rclcpp::Node {
 
     void publish_mode();
 
+    void publish_empty_wrench();
+
     bool killswitch_;
-    int mode_;
+    vortex::utils::types::Mode mode_;
 
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr killswitch_pub_;
     rclcpp::Publisher<vortex_msgs::msg::OperationMode>::SharedPtr mode_pub_;
 
     rclcpp::Service<vortex_msgs::srv::SetOperationMode>::SharedPtr
-        operation_mode_service_;
+        set_operation_mode_service_;
     rclcpp::Service<vortex_msgs::srv::ToggleKillswitch>::SharedPtr
         toggle_killswitch_service_;
     rclcpp::Service<vortex_msgs::srv::SetKillswitch>::SharedPtr

@@ -1,3 +1,4 @@
+#include <vortex/utils/ros/ros_conversions.hpp>
 #include "operation_mode_manager.hpp"
 
 namespace vortex::mission {
@@ -6,16 +7,12 @@ OperationModeManager::OperationModeManager(const rclcpp::NodeOptions& options)
     : Node("operation_mode_manager", options) {
     declare_parameters();
     setup_publishers();
-    setup_service();
+    setup_services();
     set_initial_values();
 
-    // publish_timer_ = this->create_wall_timer(
-    //     std::chrono::milliseconds(1000),
-    //     std::bind(&OperationModeManager::publish_mode, this));
-
     RCLCPP_INFO(this->get_logger(),
-                "Operation Mode Manager Node started. Initial mode: Manual, "
-                "Killswitch: true");
+                "Operation Mode Manager Node started. Initial mode: %s, Killswitch: %s",
+                mode_to_string(mode_).c_str(), killswitch_ ? "true" : "false");
 }
 
 void OperationModeManager::declare_parameters() {
@@ -27,7 +24,7 @@ void OperationModeManager::declare_parameters() {
 }
 
 void OperationModeManager::set_initial_values() {
-    mode_ = this->get_parameter("initial_mode").as_int();
+    mode_ = static_cast<vortex::utils::types::Mode>(this->get_parameter("initial_mode").as_int());
     killswitch_ = this->get_parameter("initial_killswitch").as_bool();
 
     publish_mode();
@@ -57,8 +54,8 @@ void OperationModeManager::setup_publishers() {
         operation_mode_topic, vortex::utils::qos_profiles::reliable_profile(1));
 }
 
-void OperationModeManager::setup_service() {
-    operation_mode_service_ =
+void OperationModeManager::setup_services() {
+    set_operation_mode_service_ =
         this->create_service<vortex_msgs::srv::SetOperationMode>(
             "set_operation_mode",
             [this](const std::shared_ptr<
@@ -92,7 +89,7 @@ void OperationModeManager::setup_service() {
                        vortex_msgs::srv::GetOperationMode::Request> /*request*/,
                    std::shared_ptr<vortex_msgs::srv::GetOperationMode::Response>
                        response) {
-                response->current_operation_mode.operation_mode = mode_;
+                response->current_operation_mode = vortex::utils::ros_conversions::convert_to_ros(mode_);
                 response->killswitch_status = killswitch_;
             });
 }
@@ -103,16 +100,16 @@ void OperationModeManager::set_operation_mode_callback(
     switch (request->requested_operation_mode.operation_mode) {
         case vortex_msgs::msg::OperationMode::AUTONOMOUS:
             RCLCPP_INFO(this->get_logger(), "Mode set to AUTONOMOUS");
-            mode_ = request->requested_operation_mode.operation_mode;
+            mode_ = vortex::utils::ros_conversions::convert_from_ros(request->requested_operation_mode);
             break;
 
         case vortex_msgs::msg::OperationMode::MANUAL:
             RCLCPP_INFO(this->get_logger(), "Mode set to MANUAL");
-            mode_ = request->requested_operation_mode.operation_mode;
+            mode_ = vortex::utils::ros_conversions::convert_from_ros(request->requested_operation_mode);
             break;
         case vortex_msgs::msg::OperationMode::REFERENCE:
             RCLCPP_INFO(this->get_logger(), "Mode set to REFERENCE");
-            mode_ = request->requested_operation_mode.operation_mode;
+            mode_ = vortex::utils::ros_conversions::convert_from_ros(request->requested_operation_mode);
             break;
         default:
             RCLCPP_WARN(this->get_logger(), "Invalid mode requested");
@@ -121,7 +118,7 @@ void OperationModeManager::set_operation_mode_callback(
 
     publish_mode();
 
-    response->current_operation_mode.operation_mode = mode_;
+    response->current_operation_mode = vortex::utils::ros_conversions::convert_to_ros(mode_);
     response->killswitch_status = killswitch_;
 }
 
@@ -134,13 +131,10 @@ void OperationModeManager::toggle_killswitch_callback(
     publish_mode();
 
     if (killswitch_) {
-        auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
-        empty_wrench_msg.header.stamp = rclcpp::Clock().now();
-        empty_wrench_msg.header.frame_id = "base_link";
-        wrench_pub_->publish(empty_wrench_msg);
+        publish_empty_wrench();
     }
 
-    response->current_operation_mode.operation_mode = mode_;
+    response->current_operation_mode = vortex::utils::ros_conversions::convert_to_ros(mode_);
     response->killswitch_status = killswitch_;
 }
 
@@ -154,19 +148,15 @@ void OperationModeManager::set_killswitch_callback(
     publish_mode();
 
     if (killswitch_) {
-        auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
-        empty_wrench_msg.header.stamp = rclcpp::Clock().now();
-        empty_wrench_msg.header.frame_id = "base_link";
-        wrench_pub_->publish(empty_wrench_msg);
+        publish_empty_wrench();
     }
 
-    response->current_operation_mode.operation_mode = mode_;
+    response->current_operation_mode = vortex::utils::ros_conversions::convert_to_ros(mode_);
     response->killswitch_status = killswitch_;
 }
 
 void OperationModeManager::publish_mode() {
-    vortex_msgs::msg::OperationMode mode_msg;
-    mode_msg.operation_mode = mode_;
+    vortex_msgs::msg::OperationMode mode_msg = vortex::utils::ros_conversions::convert_to_ros(mode_);
     mode_pub_->publish(mode_msg);
 
     std_msgs::msg::Bool killswitch_msg;
@@ -174,6 +164,12 @@ void OperationModeManager::publish_mode() {
     killswitch_pub_->publish(killswitch_msg);
 }
 
+void OperationModeManager::publish_empty_wrench() {
+    auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
+    empty_wrench_msg.header.stamp = rclcpp::Clock().now();
+    empty_wrench_msg.header.frame_id = "base_link";
+    wrench_pub_->publish(empty_wrench_msg);
+}   
 }  // namespace vortex::mission
 
 int main(int argc, char** argv) {
