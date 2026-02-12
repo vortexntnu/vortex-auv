@@ -6,7 +6,7 @@ from rclpy.node import Node, Parameter
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 from vortex_msgs.msg import OperationMode, ReferenceFilter
-from vortex_msgs.srv import SetOperationMode, ToggleKillswitch
+from vortex_msgs.srv import GetOperationMode, SetOperationMode, ToggleKillswitch
 from vortex_utils.python_utils import PoseData
 from vortex_utils_ros.qos_profiles import (
     reliable_profile,
@@ -42,8 +42,12 @@ class JoystickInterface(Node):
         self._current_state = PoseData()
         self._desired_state = PoseData()
 
+        self._mode = OperationMode.MANUAL
         self._killswitch = True
-        self._mode = OperationMode.AUTONOMOUS
+
+        request = GetOperationMode.Request()
+        future = self.get_operation_mode_client.call_async(request)
+        future.add_done_callback(self.handle_initial_operation_mode_response)
 
         self._joystick_axes_map = []
         self._joystick_buttons_map = []
@@ -143,6 +147,31 @@ class JoystickInterface(Node):
             self.get_logger().info(
                 'Toggle Killswitch service not available, waiting...'
             )
+
+        self.get_operation_mode_client = self.create_client(
+            GetOperationMode, 'get_operation_mode'
+        )
+
+        while not self.get_operation_mode_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info(
+                'Get Operation Mode service not available, waiting...'
+            )
+
+    def handle_initial_operation_mode_response(self, future):
+        """Handle the response from the GetOperationMode service call to initialize the operation mode.
+
+        Parameters: future: The future object containing the response from the service call.
+
+        """
+        try:
+            response = future.result()
+            self._mode = response.current_operation_mode
+            self._killswitch = response.killswitch_status
+            self.get_logger().info(
+                f"Initial operation mode: {self._mode} | Initial killswitch status: {'on' if self._killswitch else 'off'}"
+            )
+        except Exception as e:
+            self.get_logger().error(f"Service call failed: {e}")
 
     def pose_cb(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose subscriber. Updates the current state of the AUV."""

@@ -15,6 +15,7 @@
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "pid_controller_dp_euler/typedefs.hpp"
 
 class PIDControllerNode : public rclcpp::Node {
@@ -41,6 +42,11 @@ class PIDControllerNode : public rclcpp::Node {
     void set_pid_params();
 
     void set_subscribers_and_publisher();
+
+    void initialize_operation_mode();
+
+    rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_client_;
 
     PIDController pid_controller_;
 

@@ -16,6 +16,7 @@
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
@@ -53,11 +54,18 @@ class PIDControllerNode : public rclcpp::Node {
     // @brief Set the subscriber and publisher for the node
     void set_subscribers_and_publisher();
 
+    // @brief Initialize the operation mode by calling the GetOperationMode
+    // service
+    void initialize_operation_mode();
+
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+
+    rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_client_;
 
     PIDController pid_controller_;
 

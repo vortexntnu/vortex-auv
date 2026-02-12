@@ -12,6 +12,7 @@
 
 #include "vortex/utils/types.hpp"
 #include "vortex_msgs/msg/operation_mode.hpp"
+#include "vortex_msgs/srv/get_operation_mode.hpp"
 #include "vortex_msgs/srv/set_killswitch.hpp"
 #include "vortex_msgs/srv/set_operation_mode.hpp"
 #include "vortex_msgs/srv/toggle_killswitch.hpp"
@@ -57,6 +58,8 @@ class OperationModeManager : public rclcpp::Node {
         toggle_killswitch_service_;
     rclcpp::Service<vortex_msgs::srv::SetKillswitch>::SharedPtr
         set_killswitch_service_;
+    rclcpp::Service<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_service_;
 };
 
 }  // namespace vortex::mission

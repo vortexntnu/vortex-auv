@@ -11,6 +11,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
+    initialize_operation_mode();
 
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
@@ -70,6 +71,28 @@ void PIDControllerNode::set_subscribers_and_publisher() {
                       std::placeholders::_1));
     tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         control_topic, qos_sensor_data);
+}
+
+void PIDControllerNode::initialize_operation_mode() {
+    get_operation_mode_client_ =
+        this->create_client<vortex_msgs::srv::GetOperationMode>(
+            "get_operation_mode");
+
+    while (!get_operation_mode_client_->wait_for_service(
+        std::chrono::seconds(1))) {
+    }
+
+    auto request =
+        std::make_shared<vortex_msgs::srv::GetOperationMode::Request>();
+    get_operation_mode_client_->async_send_request(
+        request,
+        [this](rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedFuture
+                   future) {
+            auto response = future.get();
+            operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(
+                response->current_operation_mode);
+            killswitch_on_ = response->killswitch_status;
+        });
 }
 
 void PIDControllerNode::killswitch_callback(

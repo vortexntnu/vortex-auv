@@ -26,6 +26,7 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
+    initialize_operation_mode();
 
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&DPAdaptBacksControllerNode::publish_tau, this));
@@ -86,6 +87,39 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.wrench_input").as_string();
     tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         control_topic, qos_sensor_data);
+}
+
+void DPAdaptBacksControllerNode::initialize_operation_mode() {
+    get_operation_mode_client_ =
+        this->create_client<vortex_msgs::srv::GetOperationMode>(
+            "get_operation_mode");
+
+    while (!get_operation_mode_client_->wait_for_service(
+        std::chrono::seconds(1))) {
+        spdlog::warn("Waiting for GetOperationMode service to be available...");
+    }
+
+    auto request =
+        std::make_shared<vortex_msgs::srv::GetOperationMode::Request>();
+    get_operation_mode_client_->async_send_request(
+        request,
+        [this](rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedFuture
+                   future) {
+            try {
+                auto response = future.get();
+                operation_mode_ =
+                    vortex::utils::ros_conversions::convert_from_ros(
+                        response->current_operation_mode);
+                killswitch_on_ = response->killswitch_status;
+                spdlog::info(
+                    "Initial operation mode: {} | Killswitch status: {}",
+                    vortex::utils::types::mode_to_string(operation_mode_),
+                    killswitch_on_ ? "on" : "off");
+            } catch (const std::exception& e) {
+                spdlog::error("Failed to get initial operation mode: {}",
+                              e.what());
+            }
+        });
 }
 
 void DPAdaptBacksControllerNode::killswitch_callback(

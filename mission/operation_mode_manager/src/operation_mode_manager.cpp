@@ -9,9 +9,9 @@ OperationModeManager::OperationModeManager(const rclcpp::NodeOptions& options)
     setup_service();
     set_initial_values();
 
-    publish_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(1000),
-        std::bind(&OperationModeManager::publish_mode, this));
+    // publish_timer_ = this->create_wall_timer(
+    //     std::chrono::milliseconds(1000),
+    //     std::bind(&OperationModeManager::publish_mode, this));
 
     RCLCPP_INFO(this->get_logger(),
                 "Operation Mode Manager Node started. Initial mode: Manual, "
@@ -84,6 +84,17 @@ void OperationModeManager::setup_service() {
                     request,
                 std::shared_ptr<vortex_msgs::srv::SetKillswitch::Response>
                     response) { set_killswitch_callback(request, response); });
+
+    get_operation_mode_service_ =
+        this->create_service<vortex_msgs::srv::GetOperationMode>(
+            "get_operation_mode",
+            [this](const std::shared_ptr<
+                       vortex_msgs::srv::GetOperationMode::Request> /*request*/,
+                   std::shared_ptr<vortex_msgs::srv::GetOperationMode::Response>
+                       response) {
+                response->current_operation_mode.operation_mode = mode_;
+                response->killswitch_status = killswitch_;
+            });
 }
 
 void OperationModeManager::set_operation_mode_callback(

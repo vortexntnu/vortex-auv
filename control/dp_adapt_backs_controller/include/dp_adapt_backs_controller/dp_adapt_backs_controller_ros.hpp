@@ -16,6 +16,7 @@
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 #include "typedefs.hpp"
@@ -29,6 +30,10 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
+    // @brief Client for the GetOperationMode service
+    rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_client_;
+
     // @brief Callback function for the killswitch topic
     // @param msg: Bool message containing the killswitch status
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
@@ -56,6 +61,10 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     // @brief Set the subscriber and publisher for the node
     void set_subscribers_and_publisher();
+
+    // @brief Initialize the operation mode by calling the GetOperationMode
+    // service
+    void initialize_operation_mode();
 
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose
