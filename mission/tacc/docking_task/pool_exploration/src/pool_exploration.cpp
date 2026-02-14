@@ -11,6 +11,7 @@ PoolExplorationMap::PoolExplorationMap(
       size_y_(size_y),
       resolution_(resolution)
 {
+    //send in map to constructor
     grid_.header.frame_id = frame_id;
     initialize_grid();
 }
@@ -37,12 +38,42 @@ const nav_msgs::msg::OccupancyGrid& PoolExplorationMap::grid() const {
     return grid_;
 }
 
+//Får inn parametrisering av linjene som rho, theta (?)
+LineSegment PoolExplorationMap::rhoThetaToSegment(double rho, double theta, float length) {
+    // Finn punkt på linjen nærmest origo
+    double x0 = rho * cos(theta);
+    double y0 = rho * sin(theta);
+
+    // Retningsvektor for linjen
+    double dx = -sin(theta);
+    double dy = cos(theta);
+
+    LineSegment seg;
+    seg.p1 = Eigen::Vector2f(x0 + (length)/2*dx, y0 + (length)/2*dy);
+    seg.p2 = Eigen::Vector2f(x0 - (length)/2*dx, y0 - (length)/2*dy);
+    return seg;
+}
+
+void PoolExplorationMap::setLineSegmentInMapFrame(
+    const LineSegment& seg,
+    const Eigen::Matrix4f& map_to_odom_tf,
+    int8_t value) // value is feks 100 if occupied, to be decided
+{
+    // 1. Transform fra odom → map
+    // Konvertere fra 2d vektor til 4d for å matche transformasjonen
+    Eigen::Vector4f p1_4d(seg.p1.x(), seg.p1.y(), 0.0f, 1.0f);
+    Eigen::Vector4f p2_4d(seg.p2.x(), seg.p2.y(), 0.0f, 1.0f);
+
+    Eigen::Vector4f p1_map = map_to_odom_tf.inverse() * p1_4d;
+    Eigen::Vector4f p2_map = map_to_odom_tf.inverse() * p2_4d;
+
+    // 2. Tegn linjen i gridet med enkel interpolasjon
+    // USE BRESENHAM LINE ALGORITHM
+    //IMPLEMENT HERE 
+    // :-)
+}
+
+
+
 }  // namespace vortex::pool_exploration
 
-
-//odom_frame
-//map_frame
-//optical_frame
-
-//enu
-//ned

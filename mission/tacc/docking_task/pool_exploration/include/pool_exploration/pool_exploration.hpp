@@ -3,8 +3,16 @@
 
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <string>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace vortex::pool_exploration{
+
+//start og sluttverdi for linjen som hentes inn
+struct LineSegment {
+    Eigen::Vector2f p1;
+    Eigen::Vector2f p2;
+};
 
 class PoolExplorationMap {
 public:
@@ -14,6 +22,10 @@ public:
                         const std::string& frame_id);
 
     const nav_msgs::msg::OccupancyGrid& grid() const;
+    static LineSegment rhoThetaToSegment(double rho, double theta, float length); //Bestem om den er static/vanlig medlem eller utenfor senere
+    void setLineSegmentInMapFrame(const LineSegment& seg,
+                                  const Eigen::Matrix4f& map_to_odom_tf,
+                                  int8_t value);
 
 private:
     //Occupancy grid
