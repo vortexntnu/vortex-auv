@@ -32,13 +32,11 @@ void PoseFilteringNode::setup_publishers_and_subscribers() {
         this->create_publisher<vortex_msgs::msg::LandmarkArray>(
             landmark_pub_topic, qos_sensor_data_pub);
 
-    int timer_rate_ms = this->declare_parameter<int>("timer_rate_ms");
+    filter_dt_ = std::chrono::milliseconds(
+        this->declare_parameter<int>("timer_rate_ms"));
 
-    filter_dt_seconds_ = static_cast<double>(timer_rate_ms) / 1000;
-
-    pub_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(timer_rate_ms),
-        std::bind(&PoseFilteringNode::timer_callback, this));
+    pub_timer_ = this->create_wall_timer(filter_dt_,
+                                         [this]() { this->timer_callback(); });
 
     target_frame_ = this->declare_parameter<std::string>("target_frame");
 
@@ -75,28 +73,28 @@ void PoseFilteringNode::create_pose_subscription(
         *sub, *tf2_buffer_, target_frame_, 10,
         this->get_node_logging_interface(), this->get_node_clock_interface());
 
-    filter->registerCallback([this](
-                                 const typename PoseMsgT::ConstSharedPtr msg) {
-        PoseMsgT pose_tf;
-        try {
-            vortex::utils::ros_transforms::transform_pose(
-                *tf2_buffer_, *msg, target_frame_, pose_tf);
-        } catch (const tf2::TransformException& ex) {
-            RCLCPP_WARN(
-                this->get_logger(), "TF transform failed from '%s' to '%s': %s",
-                msg->header.frame_id.c_str(), target_frame_.c_str(), ex.what());
-            return;
-        }
+    filter->registerCallback(
+        [this](const typename PoseMsgT::ConstSharedPtr msg) {
+            PoseMsgT pose_tf;
+            try {
+                vortex::utils::ros_transforms::transform_pose(
+                    *tf2_buffer_, *msg, target_frame_, pose_tf);
+            } catch (const tf2::TransformException& ex) {
+                spdlog::warn("TF transform failed from '{}' to '{}': {}",
+                             msg->header.frame_id.c_str(),
+                             target_frame_.c_str(), ex.what());
+                return;
+            }
 
-        this->measurements_ =
-            vortex::utils::ros_conversions::ros_to_pose_vec(pose_tf);
-        if (enu_ned_rotation_) {
-            std::ranges::for_each(this->measurements_, [](auto& m) {
-                m.set_ori(
-                    vortex::utils::math::enu_ned_rotation(m.ori_quaternion()));
-            });
-        }
-    });
+            this->measurements_ =
+                vortex::filtering::ros_conversions::ros_to_landmarks(pose_tf);
+            if (enu_ned_rotation_) {
+                std::ranges::for_each(this->measurements_, [](auto& m) {
+                    m.pose.set_ori(vortex::utils::math::enu_ned_rotation(
+                        m.pose.ori_quaternion()));
+                });
+            }
+        });
 
     subscriber_ = sub;
     tf_filter_ = filter;
@@ -105,55 +103,44 @@ void PoseFilteringNode::create_pose_subscription(
 void PoseFilteringNode::setup_track_manager() {
     TrackManagerConfig config;
 
-    config.ipda.ipda.prob_of_survival =
-        this->declare_parameter<double>("position.ipda.prob_of_survival");
-    config.ipda.ipda.estimate_clutter =
-        this->declare_parameter<bool>("position.ipda.estimate_clutter");
-    config.ipda.pdaf.prob_of_detection =
-        this->declare_parameter<double>("position.ipda.prob_of_detection");
-    config.ipda.pdaf.mahalanobis_threshold = this->declare_parameter<double>(
-        "position.ipda.mahalanobis_gate_threshold");
-    config.ipda.pdaf.min_gate_threshold =
-        this->declare_parameter<double>("position.ipda.min_gate_threshold");
-    config.ipda.pdaf.max_gate_threshold =
-        this->declare_parameter<double>("position.ipda.max_gate_threshold");
-    config.ipda.pdaf.clutter_intensity =
-        this->declare_parameter<double>("position.ipda.clutter_intensity");
-
-    config.initial_position_std =
-        this->declare_parameter<double>("position.initial_position_std");
-    config.initial_orientation_std =
-        this->declare_parameter<double>("orientation.initial_orientation_std");
-
-    config.dyn_mod.std_dev =
-        this->declare_parameter<double>("position.dyn_mod.std_dev");
-
-    config.sensor_mod.std_dev =
-        this->declare_parameter<double>("position.sensor_mod.std_dev");
-
-    config.max_angle_gate_threshold =
-        this->declare_parameter<double>("max_angle_gate_threshold");
-
     config.existence.confirmation_threshold = this->declare_parameter<double>(
-        "position.existence.confirmation_threshold");
-    config.existence.deletion_threshold = this->declare_parameter<double>(
-        "position.existence.deletion_threshold");
+        "config.existence.confirmation_threshold");
+    config.existence.deletion_threshold =
+        this->declare_parameter<double>("config.existence.deletion_threshold");
     config.existence.initial_existence_probability =
         this->declare_parameter<double>(
-            "position.existence.initial_existence_probability");
+            "config.existence.initial_existence_probability");
 
-    config.ori.pdaf.pdaf.prob_of_detection =
-        this->declare_parameter<double>("orientation.pdaf.prob_of_detection");
-    config.ori.pdaf.pdaf.clutter_intensity =
-        this->declare_parameter<double>("orientation.pdaf.clutter_intensity");
-    config.ori.pdaf.pdaf.mahalanobis_threshold =
-        this->declare_parameter<double>(
-            "orientation.pdaf.mahalanobis_gate_threshold");
+    config.default_class_config.min_pos_error =
+        this->declare_parameter<double>("config.gate.min_pos_error");
+    config.default_class_config.max_pos_error =
+        this->declare_parameter<double>("config.gate.max_pos_error");
+    config.default_class_config.min_ori_error =
+        this->declare_parameter<double>("config.gate.min_ori_error");
+    config.default_class_config.max_ori_error =
+        this->declare_parameter<double>("config.gate.max_ori_error");
 
-    config.ori.dyn_mod.std_dev =
-        this->declare_parameter<double>("orientation.dyn_mod.std_dev");
-    config.ori.sensor_mod.std_dev =
-        this->declare_parameter<double>("orientation.sensor_mod.std_dev");
+    config.default_class_config.dyn_std_dev =
+        this->declare_parameter<double>("config.dyn_mod_std_dev");
+    config.default_class_config.sens_std_dev =
+        this->declare_parameter<double>("config.sens_mod_std_dev");
+
+    config.default_class_config.init_pos_std =
+        this->declare_parameter<double>("config.init_pos_std_dev");
+    config.default_class_config.init_ori_std =
+        this->declare_parameter<double>("config.init_ori_std_dev");
+
+    config.default_class_config.mahalanobis_threshold =
+        this->declare_parameter<double>("config.mahalanobis_gate_threshold");
+    config.default_class_config.prob_of_detection =
+        this->declare_parameter<double>("config.prob_of_detection");
+    config.default_class_config.clutter_intensity =
+        this->declare_parameter<double>("config.clutter_intensity");
+    config.default_class_config.prob_of_survival =
+        this->declare_parameter<double>("config.prob_of_survival");
+    config.default_class_config.estimate_clutter =
+        this->declare_parameter<bool>("config.estimate_clutter");
+
     track_manager_ = std::make_unique<PoseTrackManager>(config);
 }
 
@@ -161,7 +148,8 @@ void PoseFilteringNode::timer_callback() {
     if (debug_) {
         publish_meas_debug();
     }
-    track_manager_->step(measurements_, filter_dt_seconds_);
+    track_manager_->step(measurements_,
+                         std::chrono::duration<double>(filter_dt_).count());
     measurements_.clear();
     if (debug_) {
         publish_state_debug();

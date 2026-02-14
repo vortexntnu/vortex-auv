@@ -6,6 +6,7 @@
 #include <tf2_ros/create_timer_ros.h>
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
+#include <chrono>
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -18,8 +19,6 @@
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/pose_euler_stamped.hpp>
 #include "pose_filtering/lib/pose_track_manager.hpp"
-
-#include <concepts>
 
 namespace vortex::filtering {
 
@@ -71,11 +70,11 @@ class PoseFilteringNode : public rclcpp::Node {
         landmark_array_pub_;
 
     rclcpp::TimerBase::SharedPtr pub_timer_;
-    double filter_dt_seconds_{0.0};
+    std::chrono::milliseconds filter_dt_{0};
 
     std::unique_ptr<PoseTrackManager> track_manager_;
 
-    std::vector<Pose> measurements_;
+    std::vector<Landmark> measurements_;
     bool enu_ned_rotation_{false};
 
     bool debug_{false};

@@ -2,6 +2,8 @@
 #define POSE_FILTERING__LIB__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
+#include <utility>
+#include <vector>
 #include <vortex/utils/types.hpp>
 #include <vortex_filtering/filters/ipda.hpp>
 #include <vortex_filtering/vortex_filtering.hpp>
@@ -19,19 +21,19 @@ namespace vortex::filtering {
  */
 
 /**
- * @brief Gaussian 3d state representation (mean + covariance).
+ * @brief Gaussian 6d state representation (mean + covariance).
  */
-using State3d = vortex::prob::Gauss3d;
+using State6d = vortex::prob::Gauss6d;
 
 /**
- * @brief Discrete-time constant dynamic model of order 3.
+ * @brief Discrete-time constant dynamic model of order 6.
  */
-using DynMod = vortex::models::ConstantDynamicModel<3>;
+using DynMod = vortex::models::ConstantDynamicModel<6>;
 
 /**
  * @brief Identity sensor model mapping state to measurement space.
  */
-using SensorMod = vortex::models::IdentitySensorModel<3, 3>;
+using SensorMod = vortex::models::IdentitySensorModel<6, 6>;
 
 /**
  * @brief IPDA filter type specialized for the chosen dynamic and sensor models.
@@ -49,22 +51,6 @@ using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
 using Pose = vortex::utils::types::Pose;
 
 /**
- * @brief Configuration for the dynamic model (process noise standard
- * deviation).
- */
-struct DynModConfig {
-    double std_dev{1.0};
-};
-
-/**
- * @brief Configuration for the sensor model (measurement noise standard
- * deviation).
- */
-struct SensorModConfig {
-    double std_dev{1.0};
-};
-
-/**
  * @brief Parameters for existence management (track confirmation / deletion).
  */
 struct ExistenceManagementConfig {
@@ -73,13 +59,33 @@ struct ExistenceManagementConfig {
     double initial_existence_probability{0.5};
 };
 
-/**
- * @brief Configuration struct for the orientation filter.
- */
-struct OrientationFilterConfig {
-    vortex::filter::PDAF<DynMod, SensorMod>::Config pdaf;
-    DynModConfig dyn_mod;
-    SensorModConfig sensor_mod;
+struct LandmarkClassKey {
+    uint16_t type{};
+    uint16_t subtype{};
+
+    bool operator==(const LandmarkClassKey&) const = default;
+};
+
+struct LandmarkClassConfig {
+    // noise (simple version: one std_dev for all 6 dims)
+    double dyn_std_dev = 1.0;
+    double sens_std_dev = 1.0;
+
+    // initial cov (separate pos/orientation)
+    double init_pos_std = 0.1;
+    double init_ori_std = 0.05;
+
+    // gating thresholds (your min-pass + hard max + mahal)
+    double min_pos_error = 0.0;  // meters
+    double max_pos_error = 1.0;  // meters
+    double min_ori_error = 0.0;  // radians
+    double max_ori_error = 0.5;  // radians
+
+    double mahalanobis_threshold = 2.5;
+    double prob_of_detection = 0.5;
+    double clutter_intensity = 0.01;
+    double prob_of_survival = 0.95;
+    bool estimate_clutter = false;
 };
 
 /**
@@ -89,22 +95,33 @@ struct OrientationFilterConfig {
  * sensor model, existence management and gating thresholds.
  */
 struct TrackManagerConfig {
-    vortex::filter::IPDA<DynMod, SensorMod>::Config ipda;
-    double initial_position_std{1.0};
-    double initial_orientation_std{1.0};
-    DynModConfig dyn_mod;
-    SensorModConfig sensor_mod;
     ExistenceManagementConfig existence;
-    double max_angle_gate_threshold{};
-    OrientationFilterConfig ori;
+    LandmarkClassConfig default_class_config;
+    std::vector<std::pair<LandmarkClassKey, LandmarkClassConfig>>
+        per_class_configs;
 };
 
 /**
- * @brief Orientation filter state representation.
+ * @brief Struct representing the error state of a track (position and
+ * orientation errors in local tangent space).
  */
-struct OrientationState {
-    Eigen::Quaterniond q;
-    State3d error_state;
+struct ErrorState {
+    Eigen::Vector3d pos_error;
+    Eigen::Vector3d ori_error;
+};
+
+/**
+ * @brief Struct representing the nominal state of a track (position and
+ * orientation).
+ */
+struct NominalState {
+    Eigen::Vector3d pos;
+    Eigen::Quaterniond ori;
+};
+
+struct Landmark {
+    vortex::utils::types::Pose pose{};
+    LandmarkClassKey class_key{};
 };
 
 /**
@@ -117,10 +134,14 @@ struct Track {
     /// Unique track identifier
     int id{};
 
-    /// Filter position state (mean + covariance)
-    State3d state_pos;
+    /// Landmark class (type + subtype)
+    LandmarkClassKey class_key{};
 
-    OrientationState orientation_filter;
+    /// Nominal state representation (position and orientation)
+    NominalState nominal_state;
+
+    /// Error state representation (position and orientation errors)
+    State6d error_state;
 
     /// Probability that the track exists (0..1)
     double existence_probability{0.0};
@@ -134,18 +155,8 @@ struct Track {
      * current_orientation
      */
     Pose to_pose() const {
-        return vortex::utils::types::Pose::from_eigen(state_pos.mean(),
-                                                      orientation_filter.q);
-    }
-
-    /**
-     * @brief Compute angular distance between the track orientation and a
-     * measurement pose orientation.
-     * @param z Measurement pose to compare against
-     * @return Angular distance in radians (double)
-     */
-    double angular_distance(const Pose& z) const {
-        return orientation_filter.q.angularDistance(z.ori_quaternion());
+        return vortex::utils::types::Pose::from_eigen(nominal_state.pos,
+                                                      nominal_state.ori);
     }
 };
 

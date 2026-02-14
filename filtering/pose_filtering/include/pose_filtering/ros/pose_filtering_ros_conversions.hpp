@@ -5,6 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
+#include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include "pose_filtering/lib/typedefs.hpp"
 
@@ -30,6 +31,32 @@ vortex_msgs::msg::LandmarkArray tracks_to_landmark_array_msg(
     const std::vector<Track>& tracks,
     const rclcpp::Time& timestamp,
     const std::string& frame_id);
+
+/**
+ * @brief Create a Landmark object from a Pose message and a class key.
+ * @param pose The Pose message to convert.
+ * @param key The class key for the landmark.
+ * @return Landmark object representing the pose.
+ */
+Landmark make_landmark_from_pose(const geometry_msgs::msg::Pose& pose,
+                                 const LandmarkClassKey& key);
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseStamped& msg);
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseWithCovarianceStamped& msg);
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseWithCovariance& msg);
+
+std::vector<Landmark> ros_to_landmarks(const geometry_msgs::msg::Pose& msg);
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseArray& msg);
+
+std::vector<Landmark> ros_to_landmarks(
+    const vortex_msgs::msg::LandmarkArray& msg);
 
 }  // namespace vortex::filtering::ros_conversions
 

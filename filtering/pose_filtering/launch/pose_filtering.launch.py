@@ -21,7 +21,9 @@ def generate_launch_description():
                 output='screen',
                 parameters=[
                     config,
-                    # {'use_sim_time': True} # If testing with rosbags sim_time might be preferred if bag is looped
+                    {
+                        'use_sim_time': False,
+                    },  # If testing with rosbags sim_time might be preferred if bag is looped
                 ],
             ),
         ]

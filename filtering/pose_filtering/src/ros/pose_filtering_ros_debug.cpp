@@ -23,18 +23,17 @@ void PoseFilteringNode::publish_meas_debug() {
     if (measurements_.empty()) {
         return;
     }
-    Pose meas = measurements_.at(0);
+    Landmark meas = measurements_.at(0);
 
     vortex_msgs::msg::PoseEulerStamped msg;
     msg.header.frame_id = target_frame_;
     msg.header.stamp = this->get_clock()->now();
-    msg.x = meas.x;
-    msg.y = meas.y;
-    msg.z = meas.z;
+    msg.x = meas.pose.x;
+    msg.y = meas.pose.y;
+    msg.z = meas.pose.z;
 
     Eigen::Vector3d euler =
-        vortex::utils::math::quat_to_euler(meas.ori_quaternion());
-
+        vortex::utils::math::quat_to_euler(meas.pose.ori_quaternion());
     msg.roll = euler(0);
     msg.pitch = euler(1);
     msg.yaw = euler(2);
@@ -47,8 +46,8 @@ void PoseFilteringNode::publish_state_debug() {
         return;
     }
     Track track = track_manager_->get_tracks().at(0);
-    Eigen::Vector3d pos = track.state_pos.mean();
-    Eigen::Quaterniond quat = track.orientation_filter.q;
+    Eigen::Vector3d pos = track.nominal_state.pos;
+    Eigen::Quaterniond quat = track.nominal_state.ori;
 
     Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(quat);
 
