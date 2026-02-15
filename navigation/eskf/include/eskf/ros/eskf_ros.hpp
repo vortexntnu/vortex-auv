@@ -1,5 +1,5 @@
-#ifndef ESKF__ESKF_ROS_HPP_
-#define ESKF__ESKF_ROS_HPP_
+#ifndef ESKF__ROS__ESKF_ROS_HPP_
+#define ESKF__ROS__ESKF_ROS_HPP_
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -9,6 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <string>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include "eskf/lib/eskf.hpp"
 #include "eskf/lib/typedefs.hpp"
@@ -93,4 +94,4 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Vector3d latest_gyro_measurement_{};
 };
 
-#endif  // ESKF__ESKF_ROS_HPP_
+#endif  // ESKF__ROS__ESKF_ROS_HPP_

@@ -58,13 +58,12 @@ void ESKFNode::set_subscribers_and_publisher() {
 }
 
 void ESKFNode::set_parameters() {
-
     std::vector<double> R_imu_correction;
     this->declare_parameter<std::vector<double>>("imu_frame");
     R_imu_correction = get_parameter("imu_frame").as_double_array();
     R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
         R_imu_correction.data());
-    
+
     std::vector<double> R_dvl_correction;
     this->declare_parameter<std::vector<double>>("dvl_frame");
     R_dvl_correction = get_parameter("dvl_frame").as_double_array();
@@ -95,16 +94,15 @@ void ESKFNode::set_parameters() {
 
     EskfParams eskf_params{.Q = Q, .P = P};
 
-    #ifdef ESKF_HAS_LANDMARK_EGOMOTION
+#ifdef ESKF_HAS_LANDMARK_EGOMOTION
     this->declare_parameter<bool>("use_landmark_egomotion", false);
     if (this->get_parameter("use_landmark_egomotion").as_bool()) {
         setup_vo(eskf_params);
         return;
     }
-    #endif
+#endif
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
-
 }
 
 #ifdef ESKF_HAS_LANDMARK_EGOMOTION
@@ -139,14 +137,12 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     vo_cam_frame_ = this->get_parameter("vo.camera_frame").as_string();
 
     VoConfig vo_cfg;
-    vo_cfg.nis_gate_pose =
-        this->get_parameter("vo.nis_gate_pose").as_double();
+    vo_cfg.nis_gate_pose = this->get_parameter("vo.nis_gate_pose").as_double();
     vo_cfg.nis_gate_vel =
         this->get_parameter("vo.nis_gate_velocity").as_double();
     vo_cfg.dropout_timeout =
         this->get_parameter("vo.dropout_timeout").as_double();
-    vo_cfg.rejects_limit =
-        this->get_parameter("vo.rejects_limit").as_int();
+    vo_cfg.rejects_limit = this->get_parameter("vo.rejects_limit").as_int();
     vo_cfg.pos_floor = this->get_parameter("vo.pos_floor").as_double();
     vo_cfg.att_floor = this->get_parameter("vo.att_floor").as_double();
     vo_cfg.vel_floor = this->get_parameter("vo.vel_floor").as_double();
@@ -169,19 +165,18 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
 
     std::string landmarks_topic =
         this->get_parameter("vo.landmarks_topic").as_string();
-    landmark_sub_ =
-        this->create_subscription<vortex_msgs::msg::LandmarkArray>(
-            landmarks_topic, rclcpp::SensorDataQoS(),
-            std::bind(&ESKFNode::landmark_callback, this,
-                      std::placeholders::_1));
+    landmark_sub_ = this->create_subscription<vortex_msgs::msg::LandmarkArray>(
+        landmarks_topic, rclcpp::SensorDataQoS(),
+        std::bind(&ESKFNode::landmark_callback, this, std::placeholders::_1));
 
-    spdlog::info("Landmark egomotion enabled: {} -> {}",
-                 vo_cam_frame_, vo_base_frame_);
+    spdlog::info("Landmark egomotion enabled: {} -> {}", vo_cam_frame_,
+                 vo_base_frame_);
 }
 
 void ESKFNode::landmark_callback(
     const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
-    if (!msg || msg->landmarks.empty()) return;
+    if (!msg || msg->landmarks.empty())
+        return;
 
     std::vector<const vortex_msgs::msg::Landmark*> markers;
     for (const auto& lm : msg->landmarks) {
@@ -189,7 +184,8 @@ void ESKFNode::landmark_callback(
             markers.push_back(&lm);
         }
     }
-    if (markers.empty()) return;
+    if (markers.empty())
+        return;
 
     auto it = std::min_element(
         markers.begin(), markers.end(),
@@ -211,18 +207,16 @@ void ESKFNode::landmark_callback(
     Eigen::Vector3d t_base_cam(tf_msg.transform.translation.x,
                                tf_msg.transform.translation.y,
                                tf_msg.transform.translation.z);
-    Eigen::Quaterniond q_base_cam(tf_msg.transform.rotation.w,
-                                  tf_msg.transform.rotation.x,
-                                  tf_msg.transform.rotation.y,
-                                  tf_msg.transform.rotation.z);
+    Eigen::Quaterniond q_base_cam(
+        tf_msg.transform.rotation.w, tf_msg.transform.rotation.x,
+        tf_msg.transform.rotation.y, tf_msg.transform.rotation.z);
 
     Eigen::Vector3d t_cam_marker(chosen->pose.pose.position.x,
                                  chosen->pose.pose.position.y,
                                  chosen->pose.pose.position.z);
-    Eigen::Quaterniond q_cam_marker(chosen->pose.pose.orientation.w,
-                                    chosen->pose.pose.orientation.x,
-                                    chosen->pose.pose.orientation.y,
-                                    chosen->pose.pose.orientation.z);
+    Eigen::Quaterniond q_cam_marker(
+        chosen->pose.pose.orientation.w, chosen->pose.pose.orientation.x,
+        chosen->pose.pose.orientation.y, chosen->pose.pose.orientation.z);
 
     Eigen::Vector3d t_base = t_base_cam + q_base_cam * t_cam_marker;
     Eigen::Quaterniond q_base = (q_base_cam * q_cam_marker).normalized();
@@ -268,8 +262,9 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    // currently the gyro and the accelorometer are rotated differently. should be changed with the actual drone.
-    // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
+    // currently the gyro and the accelorometer are rotated differently. should
+    // be changed with the actual drone. imu_measurement.gyro = R_imu_eskf_ *
+    // raw_gyro;
     imu_measurement.gyro = raw_gyro;
 
     // used for publishing odom output of eskf
@@ -290,12 +285,12 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[8], msg->twist.covariance[12],
         msg->twist.covariance[13], msg->twist.covariance[14];
 
-    // Apply the rotation correction to the DVL measurement    
+    // Apply the rotation correction to the DVL measurement
     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
-    dvl_sensor.measurement_noise = R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
+    dvl_sensor.measurement_noise =
+        R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
     eskf_->dvl_update(dvl_sensor);
-
 
 #ifndef NDEBUG
     // Publish NIS in Debug mode
@@ -324,7 +319,8 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
     // Add bias values to the angular velocity field of twist
-    Eigen::Vector3d body_angular_vel = latest_gyro_measurement_ - nom_state.gyro_bias;
+    Eigen::Vector3d body_angular_vel =
+        latest_gyro_measurement_ - nom_state.gyro_bias;
     odom_msg.twist.twist.angular.x = body_angular_vel.x();
     odom_msg.twist.twist.angular.y = body_angular_vel.y();
     odom_msg.twist.twist.angular.z = body_angular_vel.z();
