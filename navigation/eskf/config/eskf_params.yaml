@@ -2,35 +2,13 @@ eskf_node:
   ros__parameters:
     imu_topic: /imu/data_raw
     dvl_topic: /orca/twist
-    odom_topic: odom
-    # diag_Q_std: [0.0124, 0.0124, 0.0124, 0.0026, 0.0026, 0.0026, 0.000392, 0.000392, 0.000392, 0.00001145, 0.0000145, 0.0000145]
-    diag_Q_std: [0.1, 0.1, 0.1, 0.05, 0.05, 0.05, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
-    diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
-    imu_frame: [0.0, 0.0, -1.0, 0.0, -1.0,  0.0, -1.0,  0.0,  0.0]
-
-    vo:
-      use_vo: true
-      landmarks_topic: /aruco_detector/landmarks
-
-      base_frame: base_link
-      camera_frame: Orca/camera_front
-
-      nis_gate_pose: 16.812
-      nis_gate_velocity: 11.345
-      disable_gating: true
-      dropout_timeout: 10.0
-      rejects_limit: 5
-
-      pos_floor: 0.05
-      att_floor: 0.02
-      vel_floor: 0.2
-      vel_alpha: 0.5 # gain scaling factor
-      dt_min: 0.02
-      dt_max: 15.0
-
-      # Sliding-window smoother
-      use_sw: true
-      window_size: 20
-      max_age: 15.0
-      huber_deg: 20.0
-      gate_deg: 60.0
+    odom_topic: odom_ESKF
+    diag_Q_std: [0.05, 0.05, 0.1, 0.01, 0.01, 0.02, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
+    diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+    imu_frame: [ -1.0,  0.0,  0.0,
+                0.0, 1.0,  0.0,
+                0.0,  0.0, -1.0 ]
+    dvl_frame: [ 1.0,  0.0,  0.0,
+                  0.0,  1.0,  0.0,
+                  0.0,  0.0, 1.0 ]
+    use_landmark_egomotion: true

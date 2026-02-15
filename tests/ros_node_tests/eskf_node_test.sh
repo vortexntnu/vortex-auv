@@ -28,12 +28,9 @@ if journalctl -u ros2 | grep -i "error"; then
     exit 1
 fi
 
-# Publish imu to get odom (in the background)
-ros2 topic pub /imu/data_raw sensor_msgs/msg/Imu -r 10 &
-
 # Check if eskf correctly publishes odom
 echo "Waiting for odom data..."
-timeout 10s ros2 topic echo /odom --once
+timeout 10s ros2 topic echo /orca/odom --once
 echo "Got odom data"
 
 # Terminate processes

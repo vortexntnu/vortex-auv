@@ -1,0 +1,27 @@
+eskf_node:
+  ros__parameters:
+    vo:
+      landmarks_topic: /aruco_detector/landmarks
+
+      base_frame: base_link
+      camera_frame: Orca/camera_front
+
+      nis_gate_pose: 16.812
+      nis_gate_velocity: 11.345
+      disable_gating: true
+      dropout_timeout: 10.0
+      rejects_limit: 5
+
+      pos_floor: 0.05
+      att_floor: 0.02
+      vel_floor: 0.2
+      vel_alpha: 0.5
+      dt_min: 0.02
+      dt_max: 15.0
+
+      # Sliding-window smoother
+      use_sw: true
+      window_size: 20
+      max_age: 15.0
+      huber_deg: 20.0
+      gate_deg: 60.0
