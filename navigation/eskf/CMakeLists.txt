@@ -77,13 +77,8 @@ ament_target_dependencies(${COMPONENT_LIB_NAME}
 
 target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
 
-# Optional landmark egomotion integration
-find_package(landmark_egomotion QUIET)
-if(landmark_egomotion_FOUND)
-  target_compile_definitions(${COMPONENT_LIB_NAME} PRIVATE ESKF_HAS_LANDMARK_EGOMOTION)
-  target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
-  message(STATUS "landmark_egomotion found – landmark updates enabled")
-endif()
+find_package(landmark_egomotion REQUIRED)
+target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
 
 rclcpp_components_register_node(
   ${COMPONENT_LIB_NAME}

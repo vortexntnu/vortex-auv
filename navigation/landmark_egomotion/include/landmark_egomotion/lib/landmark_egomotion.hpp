@@ -3,7 +3,7 @@
 
 #include <deque>
 #include <eskf/lib/eskf.hpp>
-#include "vo_typedefs.hpp"
+#include "landmark_typedefs.hpp"
 
 class LandmarkESKF : public ESKF {
    public:

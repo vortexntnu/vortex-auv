@@ -15,13 +15,11 @@
 #include "eskf/lib/typedefs.hpp"
 #include "spdlog/spdlog.h"
 
-#ifdef ESKF_HAS_LANDMARK_EGOMOTION
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include "landmark_egomotion/lib/landmark_egomotion.hpp"
-#include "landmark_egomotion/lib/vo_typedefs.hpp"
-#endif
+#include "landmark_egomotion/lib/landmark_typedefs.hpp"
 
 class ESKFNode : public rclcpp::Node {
    public:
@@ -47,7 +45,6 @@ class ESKFNode : public rclcpp::Node {
     // @brief Set the parameters for the eskf
     void set_parameters();
 
-#ifdef ESKF_HAS_LANDMARK_EGOMOTION
     void setup_vo(const EskfParams& eskf_params);
 
     void landmark_callback(
@@ -65,7 +62,6 @@ class ESKFNode : public rclcpp::Node {
     std::string vo_cam_frame_;
     bool have_last_marker_{false};
     uint16_t last_marker_id_{0};
-#endif
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
 

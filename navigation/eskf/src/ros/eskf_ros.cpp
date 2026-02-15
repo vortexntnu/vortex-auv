@@ -94,18 +94,14 @@ void ESKFNode::set_parameters() {
 
     EskfParams eskf_params{.Q = Q, .P = P};
 
-#ifdef ESKF_HAS_LANDMARK_EGOMOTION
-    this->declare_parameter<bool>("use_landmark_egomotion", false);
+    this->declare_parameter<bool>("use_landmark_egomotion");
     if (this->get_parameter("use_landmark_egomotion").as_bool()) {
         setup_vo(eskf_params);
         return;
     }
-#endif
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
 }
-
-#ifdef ESKF_HAS_LANDMARK_EGOMOTION
 
 void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     auto landmark_eskf = std::make_unique<LandmarkESKF>(eskf_params);
@@ -237,8 +233,6 @@ void ESKFNode::landmark_callback(
 
     landmark_eskf_->landmark_update(meas);
 }
-
-#endif  // ESKF_HAS_LANDMARK_EGOMOTION
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     rclcpp::Time current_time = msg->header.stamp;
