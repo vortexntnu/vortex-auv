@@ -133,7 +133,7 @@ Eigen::Quaterniond PoseActionServerNode::average_quaternions(
     const std::vector<Eigen::Quaterniond>& quaternions) {
     Eigen::Matrix4d M = Eigen::Matrix4d::Zero();
     std::ranges::for_each(quaternions, [&](const auto& q) {
-        M += q.coeffs() * q.coeffs().transpose();
+        M += q.normalized().coeffs() * q.normalized().coeffs().transpose();
     });
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> eigensolver(M);
