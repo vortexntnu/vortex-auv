@@ -178,6 +178,7 @@ void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
 }
 
 void ESKF::dvl_update(const SensorDVL& dvl_meas) {
+    //return;
     measurement_update(dvl_meas);
     injection_and_reset();
 }

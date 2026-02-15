@@ -169,71 +169,6 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
                  vo_base_frame_);
 }
 
-void ESKFNode::landmark_callback(
-    const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
-    if (!msg || msg->landmarks.empty())
-        return;
-
-    std::vector<const vortex_msgs::msg::Landmark*> markers;
-    for (const auto& lm : msg->landmarks) {
-        if (lm.type == vortex_msgs::msg::Landmark::ARUCO_MARKER) {
-            markers.push_back(&lm);
-        }
-    }
-    if (markers.empty())
-        return;
-
-    auto it = std::min_element(
-        markers.begin(), markers.end(),
-        [](const auto* a, const auto* b) { return a->subtype < b->subtype; });
-    const auto* chosen = *it;
-    uint16_t chosen_id = chosen->subtype;
-
-    geometry_msgs::msg::TransformStamped tf_msg;
-    try {
-        tf_msg = tf_buffer_->lookupTransform(vo_base_frame_, vo_cam_frame_,
-                                             tf2::TimePointZero);
-    } catch (const tf2::TransformException& ex) {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-                             "TF %s <- %s: %s", vo_base_frame_.c_str(),
-                             vo_cam_frame_.c_str(), ex.what());
-        return;
-    }
-
-    Eigen::Vector3d t_base_cam(tf_msg.transform.translation.x,
-                               tf_msg.transform.translation.y,
-                               tf_msg.transform.translation.z);
-    Eigen::Quaterniond q_base_cam(
-        tf_msg.transform.rotation.w, tf_msg.transform.rotation.x,
-        tf_msg.transform.rotation.y, tf_msg.transform.rotation.z);
-
-    Eigen::Vector3d t_cam_marker(chosen->pose.pose.position.x,
-                                 chosen->pose.pose.position.y,
-                                 chosen->pose.pose.position.z);
-    Eigen::Quaterniond q_cam_marker(
-        chosen->pose.pose.orientation.w, chosen->pose.pose.orientation.x,
-        chosen->pose.pose.orientation.y, chosen->pose.pose.orientation.z);
-
-    Eigen::Vector3d t_base = t_base_cam + q_base_cam * t_cam_marker;
-    Eigen::Quaterniond q_base = (q_base_cam * q_cam_marker).normalized();
-
-    if (have_last_marker_ && chosen_id != last_marker_id_) {
-        spdlog::info("Marker switch {} -> {}", last_marker_id_, chosen_id);
-        landmark_eskf_->handle_marker_switch(t_base, q_base);
-    }
-    last_marker_id_ = chosen_id;
-    have_last_marker_ = true;
-
-    LandmarkMeasurement meas;
-    meas.pos = t_base;
-    meas.quat = q_base;
-    meas.stamp_ = rclcpp::Time(msg->header.stamp).seconds();
-    meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
-        chosen->pose.covariance.data());
-
-    landmark_eskf_->landmark_update(meas);
-}
-
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     rclcpp::Time current_time = msg->header.stamp;
 
@@ -292,6 +227,73 @@ void ESKFNode::dvl_callback(
     nis_msg.data = eskf_->get_nis();
     nis_pub_->publish(nis_msg);
 #endif
+}
+
+void ESKFNode::landmark_callback(
+    const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
+    if (!msg || msg->landmarks.empty())
+        return;
+
+    std::vector<const vortex_msgs::msg::Landmark*> markers;
+    for (const auto& lm : msg->landmarks) {
+        if (lm.type == vortex_msgs::msg::Landmark::ARUCO_MARKER) {
+            markers.push_back(&lm);
+        }
+    }
+    if (markers.empty())
+        return;
+
+    auto it = std::min_element(
+        markers.begin(), markers.end(),
+        [](const auto* a, const auto* b) { return a->subtype < b->subtype; });
+    const auto* chosen = *it;
+    uint16_t chosen_id = chosen->subtype;
+    spdlog::debug("Received {} markers, chosen id: {}", markers.size(),
+                  chosen_id);
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    try {
+        tf_msg = tf_buffer_->lookupTransform(vo_base_frame_, vo_cam_frame_,
+                                             tf2::TimePointZero);
+    } catch (const tf2::TransformException& ex) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                             "TF %s <- %s: %s", vo_base_frame_.c_str(),
+                             vo_cam_frame_.c_str(), ex.what());
+        return;
+    }
+
+    Eigen::Vector3d t_base_cam(tf_msg.transform.translation.x,
+                               tf_msg.transform.translation.y,
+                               tf_msg.transform.translation.z);
+    Eigen::Quaterniond q_base_cam(
+        tf_msg.transform.rotation.w, tf_msg.transform.rotation.x,
+        tf_msg.transform.rotation.y, tf_msg.transform.rotation.z);
+
+    Eigen::Vector3d t_cam_marker(chosen->pose.pose.position.x,
+                                 chosen->pose.pose.position.y,
+                                 chosen->pose.pose.position.z);
+    Eigen::Quaterniond q_cam_marker(
+        chosen->pose.pose.orientation.w, chosen->pose.pose.orientation.x,
+        chosen->pose.pose.orientation.y, chosen->pose.pose.orientation.z);
+
+    Eigen::Vector3d t_base = t_base_cam + q_base_cam * t_cam_marker;
+    Eigen::Quaterniond q_base = (q_base_cam * q_cam_marker).normalized();
+
+    if (have_last_marker_ && chosen_id != last_marker_id_) {
+        spdlog::info("Marker switch {} -> {}", last_marker_id_, chosen_id);
+        landmark_eskf_->handle_marker_switch(t_base, q_base);
+    }
+    last_marker_id_ = chosen_id;
+    have_last_marker_ = true;
+
+    LandmarkMeasurement meas;
+    meas.pos = t_base;
+    meas.quat = q_base;
+    meas.stamp_ = rclcpp::Time(msg->header.stamp).seconds();
+    meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+        chosen->pose.covariance.data());
+
+    landmark_eskf_->landmark_update(meas);
 }
 
 void ESKFNode::publish_odom() {
