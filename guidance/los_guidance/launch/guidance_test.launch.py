@@ -1,3 +1,4 @@
+from yaml import Node
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, TimerAction,  ExecuteProcess, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -55,17 +56,26 @@ def generate_launch_description():
             ExecuteProcess(
                 cmd=[
                     "bash", "-lc",
-                    "for i in {1..5}; do "
-                    "  ros2 topic pub --once /orca/killswitch std_msgs/msg/Bool \"{data: false}\"; "
-                    "  ros2 topic pub --once /orca/operation_mode std_msgs/msg/String \"{data: 'autonomous mode'}\"; "
-                    "  sleep 1; "
-                    "done"
+                    "ros2 topic pub --once /orca/killswitch std_msgs/msg/Bool \"{data: false}\"; "
+                    "ros2 topic pub --once /orca/operation_mode std_msgs/msg/String \"{data: 'autonomous mode'}\"; "
                 ],
                 output="screen",
             ),
         ],
     )
 
+    square_test = TimerAction(
+        period=14.0,
+        actions=[
+            ExecuteProcess(
+                cmd=[
+                    "bash", "-lc",
+                    f"python3 {os.path.join(los_guidance_dir, 'scripts', 'square_test.py')}"
+                ],
+                output="screen",
+            )
+        ],
+    )
 
     return LaunchDescription([
         stonefish_sim,
@@ -74,4 +84,5 @@ def generate_launch_description():
         velocity_controller_launch,
         orca_sim,
         set_autonomy,
+        square_test,
     ])

@@ -58,6 +58,7 @@ types::Outputs AdaptiveLOSGuidance::calculate_outputs(
     const double theta_d =
         pi_v_ + alpha_c_hat_ + std::atan(cross_track_error.z_e / params_.lookahead_distance_v);
 
+    
     return types::Outputs{psi_d, theta_d};
 }
 
