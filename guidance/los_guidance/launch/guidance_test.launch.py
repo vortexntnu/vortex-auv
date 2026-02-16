@@ -65,7 +65,7 @@ def generate_launch_description():
     )
 
     square_test = TimerAction(
-        period=14.0,
+        period=20.0,
         actions=[
             ExecuteProcess(
                 cmd=[

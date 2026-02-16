@@ -86,8 +86,14 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(PROGRAMS
+  scripts/square_test.py
+  DESTINATION share/${PROJECT_NAME}/scripts
+)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()
 
 ament_package()
+

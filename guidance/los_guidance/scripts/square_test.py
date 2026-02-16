@@ -5,12 +5,15 @@ from rclpy.action import ActionClient
 from vortex_msgs.action import LOSGuidance
 from geometry_msgs.msg import Point
 from std_msgs.msg import Header
+from launch.actions import LogInfo
 
 
 class SquareTest(Node):
 
     def __init__(self):
         super().__init__('square_test_client')
+
+        self.get_logger().info("Square test started")
 
         self._action_client = ActionClient(
             self,
