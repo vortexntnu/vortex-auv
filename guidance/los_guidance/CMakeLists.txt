@@ -15,22 +15,29 @@ find_package(rclcpp_action REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 
 include_directories(include)
 
 set(LIB_NAME los_guidance_lib)
 add_library(${LIB_NAME} SHARED
-  src/los_guidance.cpp
+  src/lib/proportional_los.cpp
+  src/lib/integral_los.cpp
+  src/lib/adaptive_los.cpp
   src/los_guidance_ros.cpp
+  src/lib/vector_field_los.cpp
 )
 
 ament_target_dependencies(${LIB_NAME}
   rclcpp
   rclcpp_action
   geometry_msgs
+  nav_msgs
   vortex_msgs
   vortex_utils_ros
   Eigen3
@@ -42,7 +49,18 @@ add_executable(los_guidance_node
   src/los_guidance_node.cpp
 )
 
-target_link_libraries(los_guidance_node ${LIB_NAME})
+ament_target_dependencies(los_guidance_node
+  rclcpp
+  rclcpp_action
+  geometry_msgs
+  vortex_msgs
+  vortex_utils_ros
+)
+
+target_link_libraries(los_guidance_node
+  ${LIB_NAME}
+  yaml-cpp
+)
 
 install(TARGETS
   ${LIB_NAME}
@@ -59,7 +77,7 @@ install(TARGETS
 
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION include/
 )
 
 install(DIRECTORY
@@ -68,8 +86,14 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+install(PROGRAMS
+  scripts/square_test.py
+  DESTINATION share/${PROJECT_NAME}/scripts
+)
+
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()
 
 ament_package()
+
