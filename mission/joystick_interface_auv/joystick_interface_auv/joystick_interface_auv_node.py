@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node, Parameter
@@ -286,10 +287,22 @@ class JoystickInterface(Node):
 
         The position and orientation (roll, pitch, yaw) are updated
         using the current joystick inputs scaled by their respective parameters.
+        The linear velocities (surge, sway, heave) are transformed from the
+        body frame to the world frame using the current orientation.
         """
-        self._desired_state.x += self.surge * self._guidance_surge_gain
-        self._desired_state.y += self.sway * self._guidance_sway_gain
-        self._desired_state.z -= self.heave * self._guidance_heave_gain
+        surge_vector = self.surge * self._guidance_surge_gain
+        sway_vector = self.sway * self._guidance_sway_gain
+        heave_vector = -self.heave * self._guidance_heave_gain
+
+        body_frame_vector = np.array([surge_vector, sway_vector, heave_vector])
+        
+        rotation_matrix = self._desired_state.as_rotation_matrix()
+        world_frame_vector = rotation_matrix @ body_frame_vector
+        
+        self._desired_state.x += world_frame_vector[0]
+        self._desired_state.y += world_frame_vector[1]
+        self._desired_state.z += world_frame_vector[2]
+
         self._desired_state.roll += self.roll * self._guidance_roll_gain
         self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
         self._desired_state.yaw += self.yaw * self._guidance_yaw_gain
