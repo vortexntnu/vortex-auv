@@ -28,7 +28,7 @@ const types::CrossTrackError AdaptiveLOSGuidance::calculate_crosstrack_error(
 
     return types::CrossTrackError::from_vector(cross_track_error);
 }
-
+ 
 void AdaptiveLOSGuidance::update_adaptive_estimates(
     const types::CrossTrackError& cross_track_error) {
     const double denom_h = std::sqrt(params_.lookahead_distance_h *
@@ -47,10 +47,16 @@ void AdaptiveLOSGuidance::update_adaptive_estimates(
     alpha_c_hat_ += alpha_dot * params_.time_step;
 }
 
+void AdaptiveLOSGuidance::reset_adaptive_params(){
+    beta_c_hat_= 0; 
+    alpha_c_hat_ = 0; 
+}
+
 types::Outputs AdaptiveLOSGuidance::calculate_outputs(
     const types::Inputs& inputs) {
     update_angles(inputs);
     const types::CrossTrackError cross_track_error = calculate_crosstrack_error(inputs);
+    void reset_adaptive_params();
     update_adaptive_estimates(cross_track_error);
 
     const double psi_d =

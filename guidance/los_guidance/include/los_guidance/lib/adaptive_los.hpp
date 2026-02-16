@@ -34,6 +34,7 @@ class AdaptiveLOSGuidance {
         const types::Inputs& inputs);
     void update_adaptive_estimates(
         const types::CrossTrackError& cross_track_error);
+    void reset_adaptive_params();
 
     AdaptiveLosParams params_{};
     Eigen::Matrix3d rotation_y_ = Eigen::Matrix3d::Zero();
