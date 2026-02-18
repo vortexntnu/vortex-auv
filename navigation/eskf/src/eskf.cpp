@@ -12,10 +12,10 @@ double compute_nis(const Eigen::Vector3d& innovation,
 }
 
 ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
-    // Initialize Covariance 
+    // Initialize Covariance
     current_error_state_.covariance = params.P;
 
-    // Initialize Nominal Quaternion to Identity 
+    // Initialize Nominal Quaternion to Identity
     current_nom_state_.quat = Eigen::Quaterniond::Identity();
 }
 
@@ -158,7 +158,7 @@ void ESKF::injection_and_reset() {
         current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
     current_nom_state_.accel_bias =
         current_nom_state_.accel_bias + current_error_state_.accel_bias;
-    
+
     // reset
     current_error_state_.set_from_vector(Eigen::Vector15d::Zero());
 }

@@ -23,6 +23,31 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     set_parameters();
 
+    // Initialize TF Buffer & Listener
+    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+    // Initialize Broadcaster (for odom -> base_link)
+    tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+
+    // flag to determine whether to use TF-based transforms or parameter-based
+    // transforms
+    this->declare_parameter<bool>("use_tf_transforms", true);
+    use_tf_transforms_ = this->get_parameter("use_tf_transforms").as_bool();
+
+    // if we have parameters, we skip the TF lookup
+    tf_sensors_loaded_ = !use_tf_transforms_;
+
+    if (use_tf_transforms_) {
+        // Check for static transforms every 0.5 seconds
+        tf_timer_ = this->create_wall_timer(
+            std::chrono::milliseconds(500),
+            std::bind(&ESKFNode::initialize_static_transforms, this));
+    } else {
+        spdlog::info(
+            "Using parameter-based sensor transforms. TF lookup disabled.");
+    }
+
     spdlog::info(start_message);
 
 #ifndef NDEBUG
@@ -58,18 +83,34 @@ void ESKFNode::set_subscribers_and_publisher() {
 }
 
 void ESKFNode::set_parameters() {
-
+    // Load sensor frame Rotation correction parameters
     std::vector<double> R_imu_correction;
-    this->declare_parameter<std::vector<double>>("imu_frame");
-    R_imu_correction = get_parameter("imu_frame").as_double_array();
+    this->declare_parameter<std::vector<double>>("imu_frame_r");
+    R_imu_correction = get_parameter("imu_frame_r").as_double_array();
     R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
         R_imu_correction.data());
-    
+
+    // Load sensor frame Translation correction parameters
+    std::vector<double> T_imu_correction;
+    this->declare_parameter<std::vector<double>>("imu_frame_t");
+    T_imu_correction = get_parameter("imu_frame_t").as_double_array();
+    T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu_correction.data());
+
     std::vector<double> R_dvl_correction;
-    this->declare_parameter<std::vector<double>>("dvl_frame");
-    R_dvl_correction = get_parameter("dvl_frame").as_double_array();
+    this->declare_parameter<std::vector<double>>("dvl_frame_r");
+    R_dvl_correction = get_parameter("dvl_frame_r").as_double_array();
     R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
         R_dvl_correction.data());
+
+    std::vector<double> T_dvl_correction;
+    this->declare_parameter<std::vector<double>>("dvl_frame_t");
+    T_dvl_correction = get_parameter("dvl_frame_t").as_double_array();
+    T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl_correction.data());
+
+    std::vector<double> T_depth_correction;
+    this->declare_parameter<std::vector<double>>("depth_frame_t");
+    T_depth_correction = get_parameter("depth_frame_t").as_double_array();
+    T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth_correction.data());
 
     std::vector<double> diag_Q_std;
     this->declare_parameter<std::vector<double>>("diag_Q_std");
@@ -120,7 +161,8 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    // currently the gyro and the accelorometer are rotated differently. should be changed with the actual drone.
+    // currently the gyro and the accelorometer are rotated differently.
+    // should be changed with the actual drone params.
     // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
     imu_measurement.gyro = raw_gyro;
 
@@ -142,12 +184,12 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[8], msg->twist.covariance[12],
         msg->twist.covariance[13], msg->twist.covariance[14];
 
-    // Apply the rotation correction to the DVL measurement    
+    // Apply the rotation correction to the DVL measurement
     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
-    dvl_sensor.measurement_noise = R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
+    dvl_sensor.measurement_noise =
+        R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
     eskf_->dvl_update(dvl_sensor);
-
 
 #ifndef NDEBUG
     // Publish NIS in Debug mode
@@ -176,7 +218,8 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
     // Add bias values to the angular velocity field of twist
-    Eigen::Vector3d body_angular_vel = latest_gyro_measurement_ - nom_state.gyro_bias;
+    Eigen::Vector3d body_angular_vel =
+        latest_gyro_measurement_ - nom_state.gyro_bias;
     odom_msg.twist.twist.angular.x = body_angular_vel.x();
     odom_msg.twist.twist.angular.y = body_angular_vel.y();
     odom_msg.twist.twist.angular.z = body_angular_vel.z();
@@ -213,6 +256,81 @@ void ESKFNode::publish_odom() {
         }
     }
     odom_pub_->publish(odom_msg);
+
+    publish_tf(nom_state);
+}
+
+void ESKFNode::initialize_static_transforms() {
+    // if already loaded, no need to lookup again.
+    if (tf_sensors_loaded_) {
+        tf_timer_->cancel();
+        return;
+    }
+
+    try {
+        // Lookup IMU -> Base Link
+        geometry_msgs::msg::TransformStamped tf_imu =
+            tf_buffer_->lookupTransform("base_link", "imu_frame",
+                                        tf2::TimePointZero);
+
+        Tf_base_imu_ = tf2::transformToEigen(tf_imu);
+
+        // Overwrite the parameter-based matrix
+        R_imu_eskf_ = Tf_base_imu_.rotation();
+        spdlog::info("TF: Loaded base_link <- imu_frame transform");
+
+        // Lookup DVL -> Base Link
+        geometry_msgs::msg::TransformStamped tf_dvl =
+            tf_buffer_->lookupTransform("base_link", "dvl_frame",
+                                        tf2::TimePointZero);
+
+        Tf_base_dvl_ = tf2::transformToEigen(tf_dvl);
+
+        // Overwrite the parameter-based matrix
+        R_dvl_eskf_ = Tf_base_dvl_.rotation();
+        spdlog::info("TF: Loaded base_link <- dvl_frame transform");
+
+        // Lookup Depth sensor -> Base Link
+        geometry_msgs::msg::TransformStamped tf_depth =
+            tf_buffer_->lookupTransform("base_link", "depth_sensor_frame",
+                                        tf2::TimePointZero);
+
+        Tf_base_depth_ = tf2::transformToEigen(tf_depth);
+
+        // Overwrite the parameter-based matrix
+        T_depth_eskf_ = Tf_base_depth_.translation();
+        spdlog::info("TF: Loaded base_link <- depth_sensor_frame transform");
+
+        // If we reach this point, all transforms were loaded successfully
+        tf_sensors_loaded_ = true;
+
+        spdlog::info("All static transforms loaded successfully.");
+
+        // Turn off the timer so this function never runs again
+        tf_timer_->cancel();
+    } catch (const tf2::TransformException& ex) {
+        // It is common to fail on startup before static_publisher is ready
+        spdlog::warn("TF Lookup failed (will retry): {}", ex.what());
+    }
+}
+
+void ESKFNode::publish_tf(const StateQuat& nom_state) {
+    geometry_msgs::msg::TransformStamped tf_msg;
+
+    tf_msg.header.stamp = this->now();
+    tf_msg.header.frame_id = "odom";
+    tf_msg.child_frame_id = "base_link";
+
+    tf_msg.transform.translation.x = nom_state.pos.x();
+    tf_msg.transform.translation.y = nom_state.pos.y();
+    tf_msg.transform.translation.z = nom_state.pos.z();
+
+    tf_msg.transform.rotation.w = nom_state.quat.w();
+    tf_msg.transform.rotation.x = nom_state.quat.x();
+    tf_msg.transform.rotation.y = nom_state.quat.y();
+    tf_msg.transform.rotation.z = nom_state.quat.z();
+
+    tf_broadcaster_->sendTransform(tf_msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(ESKFNode)

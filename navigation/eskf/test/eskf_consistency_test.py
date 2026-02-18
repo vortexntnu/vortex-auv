@@ -5,7 +5,7 @@ from std_msgs.msg import Float64
 from std_msgs.msg import Float64MultiArray
 import message_filters
 import numpy as np
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation
 
 # --- IMPORT YOUR EXISTING QOS FUNCTION ---
 try:
@@ -79,8 +79,8 @@ class EskfValidator(Node):
         q_gt = [gt_msg.pose.pose.orientation.x, gt_msg.pose.pose.orientation.y, gt_msg.pose.pose.orientation.z, gt_msg.pose.pose.orientation.w]
 
         # Convert to Rotation objects
-        r_est = R.from_quat(q_est)
-        r_gt = R.from_quat(q_gt)
+        r_est = Rotation.from_quat(q_est)
+        r_gt = Rotation.from_quat(q_gt)
 
         # ---------------------------------------------------------
         # Extract Euler Angles (Roll, Pitch, Yaw)

@@ -25,6 +25,8 @@ find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 if(NOT DEFINED EIGEN3_INCLUDE_DIR)
   set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
@@ -53,6 +55,8 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   vortex_utils_ros
   spdlog
   fmt
+  tf2_ros
+  tf2_eigen
 )
 
 rclcpp_components_register_node(
