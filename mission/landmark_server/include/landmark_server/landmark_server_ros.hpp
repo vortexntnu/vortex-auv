@@ -22,6 +22,12 @@
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 
+#include <mutex>
+#include <optional>
+#include <vortex/utils/ros/ros_conversions.hpp>
+#include <cmath>
+
+
 namespace vortex::mission {
 
 using LandmarkPollingGoalHandle =
@@ -100,6 +106,22 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp_action::CancelResponse handle_landmark_convergence_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
+    
+    // Convergence
+
+    void send_reference_filter_goal(
+      const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
+      uint64_t seq);
+
+    // Compute target pose = landmark_pose * convergence_offset
+    geometry_msgs::msg::PoseStamped compute_target_pose(
+      int landmark_id,
+      const geometry_msgs::msg::Pose& convergence_offset,
+      const rclcpp::Time& stamp);
+
+    // Publish reference pose (topic)
+    void publish_reference_pose(const geometry_msgs::msg::PoseStamped& pose);
+    // Convergence
 
     void create_reference_action_client();
 
@@ -142,6 +164,22 @@ class LandmarkServerNode : public rclcpp::Node {
     std::shared_ptr<LandmarkConvergenceGoalHandle>
         active_landmark_convergence_goal_;
     std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
+
+    // Convergence state variables
+    uint64_t convergence_session_id_{0};
+    bool convergence_active_{false};
+    int convergence_landmark_id_{-1};
+    geometry_msgs::msg::Pose convergence_offset_{};
+    double convergence_threshold_{0.0};
+    double convergence_dead_reckoning_offset_{0.0};
+    bool convergence_dead_reckoning_handoff_{false};
+    std::optional<geometry_msgs::msg::PoseStamped> convergence_last_target_pose_;
+
+    void handle_convergence_update();
+    
+    // Cache RF feedback (used to compute distance-to-target)
+    std::mutex rf_fb_mtx_;
+    std::optional<vortex_msgs::action::ReferenceFilterWaypoint::Feedback> last_rf_feedback_;
 };
 
 }  // namespace vortex::mission
