@@ -1,4 +1,6 @@
 #include "operation_mode_manager.hpp"
+#include <spdlog/spdlog.h>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 
 namespace vortex::mission {
@@ -9,11 +11,9 @@ OperationModeManager::OperationModeManager(const rclcpp::NodeOptions& options)
     setup_publishers();
     setup_services();
     set_initial_values();
-
-    RCLCPP_INFO(
-        this->get_logger(),
-        "Operation Mode Manager Node started. Initial mode: %s, Killswitch: %s",
-        mode_to_string(mode_).c_str(), killswitch_ ? "true" : "false");
+    spdlog::info(
+        "Operation Mode Manager Node started. Initial mode: {}, Killswitch: {}",
+        mode_to_string(mode_), killswitch_ ? "true" : "false");
 }
 
 void OperationModeManager::declare_parameters() {
@@ -99,8 +99,7 @@ void OperationModeManager::set_operation_mode_callback(
     std::shared_ptr<vortex_msgs::srv::SetOperationMode::Response> response) {
     mode_ = vortex::utils::ros_conversions::convert_from_ros(
         request->requested_operation_mode);
-    RCLCPP_INFO(this->get_logger(), "Mode set to to %s",
-                mode_to_string(mode_).c_str());
+    spdlog::info("Mode set to to {}", mode_to_string(mode_));
 
     publish_mode();
 
@@ -113,8 +112,7 @@ void OperationModeManager::set_operation_mode_callback(
 void OperationModeManager::toggle_killswitch_callback(
     std::shared_ptr<vortex_msgs::srv::ToggleKillswitch::Response> response) {
     killswitch_ = !killswitch_;
-    RCLCPP_INFO(this->get_logger(), "Killswitch set to %s",
-                killswitch_ ? "true" : "false");
+    spdlog::info("Killswitch set to {}", killswitch_ ? "true" : "false");
 
     publish_mode();
 
@@ -132,8 +130,7 @@ void OperationModeManager::set_killswitch_callback(
     const std::shared_ptr<vortex_msgs::srv::SetKillswitch::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetKillswitch::Response> response) {
     killswitch_ = request->killswitch_on;
-    RCLCPP_INFO(this->get_logger(), "Killswitch set to %s",
-                killswitch_ ? "true" : "false");
+    spdlog::info("Killswitch set to {}", killswitch_ ? "true" : "false");
 
     publish_mode();
 

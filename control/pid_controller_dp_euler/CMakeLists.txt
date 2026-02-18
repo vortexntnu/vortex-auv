@@ -19,6 +19,8 @@ find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(include)
 
@@ -39,6 +41,8 @@ ament_target_dependencies(pid_controller_node
   vortex_utils
   vortex_utils_ros
 )
+
+target_link_libraries(pid_controller_node spdlog::spdlog fmt::fmt)
 
 install(TARGETS
   pid_controller_node

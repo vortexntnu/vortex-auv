@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <pid_controller_dp_euler/pid_controller_ros.hpp>
@@ -99,8 +100,8 @@ void PIDControllerNode::initialize_operation_mode() {
                         response->current_operation_mode);
                 killswitch_on_ = response->killswitch_status;
             } catch (const std::exception& e) {
-                RCLCPP_ERROR(this->get_logger(),
-                             "Failed to get operation mode: %s", e.what());
+                spdlog::error("Failed to call get_operation_mode service: {}",
+                              e.what());
                 killswitch_on_ = true;
             }
         });
@@ -109,15 +110,14 @@ void PIDControllerNode::initialize_operation_mode() {
 void PIDControllerNode::killswitch_callback(
     const std_msgs::msg::Bool::SharedPtr msg) {
     killswitch_on_ = msg->data;
-    RCLCPP_INFO(this->get_logger(), "Killswitch: %s",
-                killswitch_on_ ? "on" : "off");
+    spdlog::info("Killswitch: {}", killswitch_on_ ? "on" : "off");
 }
 
 void PIDControllerNode::operation_mode_callback(
     const vortex_msgs::msg::OperationMode::SharedPtr msg) {
     operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
-    RCLCPP_INFO(this->get_logger(), "Operation mode: %s",
-                vortex::utils::types::mode_to_string(operation_mode_).c_str());
+    spdlog::info("Operation mode: {}",
+                 vortex::utils::types::mode_to_string(operation_mode_));
 
     if (operation_mode_ == vortex::utils::types::Mode::autonomous ||
         operation_mode_ == vortex::utils::types::Mode::reference) {

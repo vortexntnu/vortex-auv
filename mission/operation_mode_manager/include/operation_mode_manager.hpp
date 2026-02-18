@@ -2,21 +2,17 @@
 #define OPERATION_MODE_MANAGER_HPP_
 
 #include <memory>
-#include <string>
 
-#include "geometry_msgs/msg/wrench_stamped.hpp"
-#include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/bool.hpp"
+#include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/bool.hpp>
 
-#include "vortex/utils/ros/qos_profiles.hpp"
-
-#include "vortex/utils/types.hpp"
-#include "vortex_msgs/msg/operation_mode.hpp"
-#include "vortex_msgs/srv/get_operation_mode.hpp"
-#include "vortex_msgs/srv/set_killswitch.hpp"
-#include "vortex_msgs/srv/set_operation_mode.hpp"
-#include "vortex_msgs/srv/toggle_killswitch.hpp"
-
+#include <vortex/utils/types.hpp>
+#include <vortex_msgs/msg/operation_mode.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
+#include <vortex_msgs/srv/set_killswitch.hpp>
+#include <vortex_msgs/srv/set_operation_mode.hpp>
+#include <vortex_msgs/srv/toggle_killswitch.hpp>
 namespace vortex::mission {
 
 class OperationModeManager : public rclcpp::Node {
@@ -45,8 +41,8 @@ class OperationModeManager : public rclcpp::Node {
 
     void publish_empty_wrench();
 
-    bool killswitch_;
-    vortex::utils::types::Mode mode_;
+    bool killswitch_{true};
+    vortex::utils::types::Mode mode_{vortex::utils::types::Mode::manual};
 
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr killswitch_pub_;

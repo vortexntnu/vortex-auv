@@ -12,6 +12,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 install(DIRECTORY
   launch
@@ -25,6 +27,8 @@ target_include_directories(operation_mode_manager_cpp PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+target_link_libraries(operation_mode_manager_cpp spdlog::spdlog fmt::fmt)
 
 ament_target_dependencies(
   operation_mode_manager_cpp
