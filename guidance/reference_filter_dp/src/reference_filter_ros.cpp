@@ -3,6 +3,7 @@
 #include <mutex>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
+#include <thread>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/types.hpp>
@@ -67,8 +68,6 @@ void ReferenceFilterNode::set_action_server() {
     this->declare_parameter<std::string>("action_servers.reference_filter");
     std::string action_server_name =
         this->get_parameter("action_servers.reference_filter").as_string();
-    cb_group_ =
-        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ = rclcpp_action::create_server<
         vortex_msgs::action::ReferenceFilterWaypoint>(
@@ -79,7 +78,7 @@ void ReferenceFilterNode::set_action_server() {
                   std::placeholders::_1),
         std::bind(&ReferenceFilterNode::handle_accepted, this,
                   std::placeholders::_1),
-        rcl_action_server_get_default_options(), cb_group_);
+        rcl_action_server_get_default_options());
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -152,7 +151,7 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    execute(goal_handle);
+    std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
 }
 
 Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
@@ -195,6 +194,31 @@ Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
     x(11) = pose_dot(5);
 
     return x;
+}
+
+Eigen::Vector6d ReferenceFilterNode::measured_pose_vector6() {
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        pose_msg = current_pose_;
+    }
+
+    const auto& p = pose_msg.pose.pose.position;
+    const auto& o = pose_msg.pose.pose.orientation;
+
+    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
+    if (q.norm() < 1e-9) {
+        q = Eigen::Quaterniond::Identity();
+    } else {
+        q.normalize();
+    }
+
+    Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(q);
+
+    Eigen::Vector6d y;
+    y << p.x, p.y, p.z, vortex::utils::math::ssa(euler(0)),
+        vortex::utils::math::ssa(euler(1)), vortex::utils::math::ssa(euler(2));
+    return y;
 }
 
 Eigen::Vector6d ReferenceFilterNode::fill_reference_goal(
@@ -271,39 +295,40 @@ Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
     return r_out;
 }
 
-void ReferenceFilterNode::publish_hold_reference() {
-    if (!reference_pub_) {
-        return;
+bool ReferenceFilterNode::has_converged_against_pose(
+    const Eigen::Vector6d& y,
+    const Eigen::Vector6d& r,
+    uint8_t mode,
+    double convergence_threshold) const {
+    const Eigen::Vector3d ep = y.head<3>() - r.head<3>();
+
+    Eigen::Vector3d ea;
+    ea(0) = vortex::utils::math::ssa(y(3) - r(3));
+    ea(1) = vortex::utils::math::ssa(y(4) - r(4));
+    ea(2) = vortex::utils::math::ssa(y(5) - r(5));
+
+    double err = 0.0;
+
+    switch (mode) {
+        case vortex_msgs::msg::Waypoint::ONLY_POSITION:
+            err = ep.norm();
+            break;
+
+        case vortex_msgs::msg::Waypoint::ONLY_ORIENTATION:
+            err = ea.norm();
+            break;
+
+        case vortex_msgs::msg::Waypoint::FORWARD_HEADING:
+            err = std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
+            break;
+
+        case vortex_msgs::msg::Waypoint::FULL_POSE:
+        default:
+            err = std::sqrt(ep.squaredNorm() + ea.squaredNorm());
+            break;
     }
 
-    const auto& p = current_pose_.pose.pose.position;
-    const auto& o = current_pose_.pose.pose.orientation;
-
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    if (q.norm() < 1e-9) {
-        q = Eigen::Quaterniond::Identity();
-    } else {
-        q.normalize();
-    }
-
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-
-    vortex_msgs::msg::ReferenceFilter hold_msg;
-    hold_msg.x = p.x;
-    hold_msg.y = p.y;
-    hold_msg.z = p.z;
-    hold_msg.roll = vortex::utils::math::ssa(euler_angles(0));
-    hold_msg.pitch = vortex::utils::math::ssa(euler_angles(1));
-    hold_msg.yaw = vortex::utils::math::ssa(euler_angles(2));
-
-    hold_msg.x_dot = 0.0;
-    hold_msg.y_dot = 0.0;
-    hold_msg.z_dot = 0.0;
-    hold_msg.roll_dot = 0.0;
-    hold_msg.pitch_dot = 0.0;
-    hold_msg.yaw_dot = 0.0;
-
-    reference_pub_->publish(hold_msg);
+    return err < convergence_threshold;
 }
 
 void ReferenceFilterNode::execute(
@@ -344,8 +369,8 @@ void ReferenceFilterNode::execute(
     while (rclcpp::ok()) {
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            if (goal_handle->get_goal_id() == preempted_goal_id_) {
-                publish_hold_reference();
+            if (goal_handle->get_goal_id() == preempted_goal_id_ &&
+                !goal_handle->is_canceling()) {
                 result->success = false;
                 goal_handle->abort(result);
                 return;
@@ -354,7 +379,6 @@ void ReferenceFilterNode::execute(
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->is_canceling()) {
-                publish_hold_reference();
                 result->success = false;
                 goal_handle->canceled(result);
                 spdlog::info("Goal canceled");
@@ -371,7 +395,9 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        if ((x_.head(6) - r_.head(6)).norm() < convergence_threshold) {
+        Eigen::Vector6d y = measured_pose_vector6();
+
+        if (has_converged_against_pose(y, r_, mode, convergence_threshold)) {
             result->success = true;
             goal_handle->succeed(result);
             x_.head(6) = r_.head(6);
