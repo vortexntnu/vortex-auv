@@ -99,7 +99,7 @@ void PIDControllerNode::initialize_operation_mode() {
                         response->current_operation_mode);
                 killswitch_on_ = response->killswitch_status;
             } catch (const std::exception& e) {
-                spdlog::error("Failed to get operation mode: {}", e.what());
+                RCLCPP_ERROR(this->get_logger(), "Failed to get operation mode: {}", e.what());
                 killswitch_on_ = true;
             }
         });
