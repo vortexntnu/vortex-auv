@@ -9,7 +9,11 @@ void ESKF::measurement_update(const SensorT& meas) {
     Eigen::MatrixXd P = current_error_state_.covariance;
 
     Eigen::MatrixXd S = H * P * H.transpose() + R;
-    Eigen::MatrixXd K = P * H.transpose() * S.inverse();
+
+    Eigen::MatrixXd PHt = P * H.transpose();
+
+    // More stable and faster than P * H.transpose() * S.inverse()
+    Eigen::MatrixXd K = S.ldlt().solve(PHt.transpose()).transpose();  
 
 #ifndef NDEBUG
     nis_ = compute_nis(innovation, S);

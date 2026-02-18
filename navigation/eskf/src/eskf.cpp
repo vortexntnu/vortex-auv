@@ -15,14 +15,8 @@ ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
     // Initialize Covariance 
     current_error_state_.covariance = params.P;
 
-    // // Initialize Nominal Quaternion to Identity 
-    // current_nom_state_.quat = Eigen::Quaterniond::Identity();
-
-    // 2. Initialize Quaternion: -90 degrees Yaw because of initial drone_orientation
-    Eigen::AngleAxisd init_rotation(-M_PI / 2.0, Eigen::Vector3d::UnitZ());
-    
-    current_nom_state_.quat = Eigen::Quaterniond(init_rotation);
-    current_nom_state_.quat.normalize();
+    // Initialize Nominal Quaternion to Identity 
+    current_nom_state_.quat = Eigen::Quaterniond::Identity();
 }
 
 std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(
@@ -153,6 +147,7 @@ void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
 }
 
 void ESKF::injection_and_reset() {
+    // injection
     current_nom_state_.pos = current_nom_state_.pos + current_error_state_.pos;
     current_nom_state_.vel = current_nom_state_.vel + current_error_state_.vel;
     current_nom_state_.quat = current_nom_state_.quat *
@@ -163,11 +158,8 @@ void ESKF::injection_and_reset() {
         current_nom_state_.gyro_bias + current_error_state_.gyro_bias;
     current_nom_state_.accel_bias =
         current_nom_state_.accel_bias + current_error_state_.accel_bias;
-
-    Eigen::Matrix15d G = Eigen::Matrix15d::Identity();
-
-    current_error_state_.covariance =
-        G * current_error_state_.covariance * G.transpose();
+    
+    // reset
     current_error_state_.set_from_vector(Eigen::Vector15d::Zero());
 }
 
