@@ -1,8 +1,12 @@
 #ifndef ESKF__ESKF_ROS_HPP_
 #define ESKF__ESKF_ROS_HPP_
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
 #include <chrono>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
@@ -12,6 +16,7 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
 #include "spdlog/spdlog.h"
@@ -40,6 +45,14 @@ class ESKFNode : public rclcpp::Node {
     // @brief Set the parameters for the eskf
     void set_parameters();
 
+    // @brief lookup transforms
+    void initialize_static_transforms();
+
+    // @brief broadcast the State as a TF
+    void publish_tf(const StateQuat& nom_state);
+
+    // Subscribers and Publishers
+
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
 
     rclcpp::Subscription<
@@ -48,6 +61,8 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+
+    // Member variable for the ESKF instance
 
     std::chrono::milliseconds time_step;
 
@@ -58,13 +73,32 @@ class ESKFNode : public rclcpp::Node {
     bool first_imu_msg_received_ = false;
 
     Eigen::Matrix3d R_imu_eskf_{};
+    Eigen::Vector3d T_imu_eskf_{};
 
     Eigen::Matrix3d R_dvl_eskf_{};
+    Eigen::Vector3d T_dvl_eskf_{};
+
+    Eigen::Vector3d T_depth_eskf_{};
 
     rclcpp::Time last_imu_time_{};
 
     // Latest gyro measurement (used for publishing odom output of eskf)
     Eigen::Vector3d latest_gyro_measurement_{};
+
+    // TF2 Handling
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    rclcpp::TimerBase::SharedPtr tf_timer_;
+
+    // Flags and Storage
+    bool use_tf_transforms_ = false;
+    bool tf_sensors_loaded_ = false;
+
+    // hold the transfer from Sensor -> Base Link
+    Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();
+    Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
+    Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_

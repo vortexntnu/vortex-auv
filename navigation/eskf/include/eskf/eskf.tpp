@@ -13,7 +13,7 @@ void ESKF::measurement_update(const SensorT& meas) {
     Eigen::MatrixXd PHt = P * H.transpose();
 
     // More stable and faster than P * H.transpose() * S.inverse()
-    Eigen::MatrixXd K = S.ldlt().solve(PHt.transpose()).transpose();  
+    Eigen::MatrixXd K = S.ldlt().solve(PHt.transpose()).transpose();
 
 #ifndef NDEBUG
     nis_ = compute_nis(innovation, S);
