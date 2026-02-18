@@ -90,9 +90,13 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
 }
 
 void DPAdaptBacksControllerNode::initialize_operation_mode() {
+    this->declare_parameter<std::string>("services.get_operation_mode");
+    std::string get_operation_mode_service =
+        this->get_parameter("services.get_operation_mode").as_string();
+
     get_operation_mode_client_ =
         this->create_client<vortex_msgs::srv::GetOperationMode>(
-            "get_operation_mode");
+            get_operation_mode_service);
 
     while (!get_operation_mode_client_->wait_for_service(
         std::chrono::seconds(1))) {
@@ -118,6 +122,7 @@ void DPAdaptBacksControllerNode::initialize_operation_mode() {
             } catch (const std::exception& e) {
                 spdlog::error("Failed to get initial operation mode: {}",
                               e.what());
+                killswitch_on_ = true;
             }
         });
 }

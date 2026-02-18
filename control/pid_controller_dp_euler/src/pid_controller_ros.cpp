@@ -74,9 +74,13 @@ void PIDControllerNode::set_subscribers_and_publisher() {
 }
 
 void PIDControllerNode::initialize_operation_mode() {
+    this->declare_parameter<std::string>("services.get_operation_mode");
+    std::string get_operation_mode_service =
+        this->get_parameter("services.get_operation_mode").as_string();
+
     get_operation_mode_client_ =
         this->create_client<vortex_msgs::srv::GetOperationMode>(
-            "get_operation_mode");
+            get_operation_mode_service);
 
     while (!get_operation_mode_client_->wait_for_service(
         std::chrono::seconds(1))) {
@@ -88,10 +92,16 @@ void PIDControllerNode::initialize_operation_mode() {
         request,
         [this](rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedFuture
                    future) {
-            auto response = future.get();
-            operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(
-                response->current_operation_mode);
-            killswitch_on_ = response->killswitch_status;
+            try {
+                auto response = future.get();
+                operation_mode_ =
+                    vortex::utils::ros_conversions::convert_from_ros(
+                        response->current_operation_mode);
+                killswitch_on_ = response->killswitch_status;
+            } catch (const std::exception& e) {
+                spdlog::error("Failed to get operation mode: {}", e.what());
+                killswitch_on_ = true;
+            }
         });
 }
 

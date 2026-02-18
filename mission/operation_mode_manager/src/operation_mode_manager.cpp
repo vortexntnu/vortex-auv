@@ -31,10 +31,7 @@ void OperationModeManager::set_initial_values() {
 
     publish_mode();
 
-    auto empty_wrench_msg = geometry_msgs::msg::WrenchStamped();
-    empty_wrench_msg.header.stamp = rclcpp::Clock().now();
-    empty_wrench_msg.header.frame_id = "base_link";
-    wrench_pub_->publish(empty_wrench_msg);
+    publish_empty_wrench();
 }
 
 void OperationModeManager::setup_publishers() {

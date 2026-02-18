@@ -103,9 +103,10 @@ class PIDControllerNode : public rclcpp::Node {
 
     types::Eta eta_dot_d_;
 
-    bool killswitch_on_;
+    bool killswitch_on_{true};
 
-    vortex::utils::types::Mode operation_mode_;
+    vortex::utils::types::Mode operation_mode_{
+        vortex::utils::types::Mode::manual};
 };
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_

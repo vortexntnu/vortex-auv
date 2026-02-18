@@ -45,9 +45,13 @@ class JoystickInterface(Node):
         self._mode = OperationMode.MANUAL
         self._killswitch = True
 
-        request = GetOperationMode.Request()
-        future = self.get_operation_mode_client.call_async(request)
-        future.add_done_callback(self.handle_initial_operation_mode_response)
+        try:
+            request = GetOperationMode.Request()
+            future = self.get_operation_mode_client.call_async(request)
+            future.add_done_callback(self.handle_initial_operation_mode_response)
+        except Exception as e:
+            self.get_logger().error(f"Failed to call GetOperationMode service: {e}")
+            self._killswitch = True
 
         self._joystick_axes_map = []
         self._joystick_buttons_map = []
@@ -86,6 +90,20 @@ class JoystickInterface(Node):
                 self,
                 param + '_topic',
                 self.get_parameter(f'topics.{param}').value,
+            )
+
+        service_params = [
+            'set_operation_mode',
+            'toggle_killswitch',
+            'get_operation_mode',
+        ]
+
+        for param in service_params:
+            self.declare_parameter(f'services.{param}', Parameter.Type.STRING)
+            setattr(
+                self,
+                param + '_service',
+                self.get_parameter(f'services.{param}').value,
             )
 
         self.declare_parameter('topics.guidance.dp', Parameter.Type.STRING)
@@ -133,14 +151,14 @@ class JoystickInterface(Node):
 
     def set_services(self):
         self.operation_mode_client = self.create_client(
-            SetOperationMode, 'set_operation_mode'
+            SetOperationMode, self.set_operation_mode_service
         )
 
         while not self.operation_mode_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Operation Mode service not available, waiting...')
 
         self.toggle_killswitch_client = self.create_client(
-            ToggleKillswitch, 'toggle_killswitch'
+            ToggleKillswitch, self.toggle_killswitch_service
         )
 
         while not self.toggle_killswitch_client.wait_for_service(timeout_sec=1.0):
@@ -149,7 +167,7 @@ class JoystickInterface(Node):
             )
 
         self.get_operation_mode_client = self.create_client(
-            GetOperationMode, 'get_operation_mode'
+            GetOperationMode, self.get_operation_mode_service
         )
 
         while not self.get_operation_mode_client.wait_for_service(timeout_sec=1.0):

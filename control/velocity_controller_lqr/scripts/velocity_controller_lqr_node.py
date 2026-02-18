@@ -32,6 +32,7 @@ class LinearQuadraticRegulator(Node):
         self.operation_mode = OperationMode.MANUAL
 
         self.get_topics()
+        self.get_services()
 
         # ---------------------------- SUBSCRIBERS ---------------------------
 
@@ -76,15 +77,19 @@ class LinearQuadraticRegulator(Node):
 
         # ------------------------------ SERVICES ------------------------------
         self.get_operation_mode_client = self.create_client(
-            GetOperationMode, 'get_operation_mode'
+            GetOperationMode, self.get_operation_mode_service
         )
 
         while not self.get_operation_mode_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Operation Mode service not available, waiting...')
 
-        request = GetOperationMode.Request()
-        future = self.get_operation_mode_client.call_async(request)
-        future.add_done_callback(self.handle_initial_operation_mode_response)
+        try:
+            request = GetOperationMode.Request()
+            future = self.get_operation_mode_client.call_async(request)
+            future.add_done_callback(self.handle_initial_operation_mode_response)
+        except Exception as e:
+            self.get_logger().error(f"Failed to call GetOperationMode service: {e}")
+            self.killswitch_on = True
 
         # ------------------------------ TIMERS ------------------------------
         dt = (
@@ -136,6 +141,13 @@ class LinearQuadraticRegulator(Node):
                 topic + "_topic",
                 self.get_parameter("topics." + topic).value,
             )
+
+    def get_services(self):
+        """Get the services from the parameter file."""
+        self.declare_parameter("services.get_operation_mode", Parameter.Type.STRING)
+        self.get_operation_mode_service = self.get_parameter(
+            "services.get_operation_mode"
+        ).value
 
     def fill_lqr_params(self):
         """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.
