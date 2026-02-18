@@ -58,13 +58,12 @@ void ESKFNode::set_subscribers_and_publisher() {
 }
 
 void ESKFNode::set_parameters() {
-
     std::vector<double> R_imu_correction;
     this->declare_parameter<std::vector<double>>("imu_frame");
     R_imu_correction = get_parameter("imu_frame").as_double_array();
     R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
         R_imu_correction.data());
-    
+
     std::vector<double> R_dvl_correction;
     this->declare_parameter<std::vector<double>>("dvl_frame");
     R_dvl_correction = get_parameter("dvl_frame").as_double_array();
@@ -120,7 +119,8 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    // currently the gyro and the accelorometer are rotated differently. should be changed with the actual drone.
+    // currently the gyro and the accelorometer are rotated differently.
+    // should be changed with the actual drone params.
     // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
     imu_measurement.gyro = raw_gyro;
 
@@ -142,12 +142,12 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[8], msg->twist.covariance[12],
         msg->twist.covariance[13], msg->twist.covariance[14];
 
-    // Apply the rotation correction to the DVL measurement    
+    // Apply the rotation correction to the DVL measurement
     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
-    dvl_sensor.measurement_noise = R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
+    dvl_sensor.measurement_noise =
+        R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
     eskf_->dvl_update(dvl_sensor);
-
 
 #ifndef NDEBUG
     // Publish NIS in Debug mode
@@ -176,7 +176,8 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
     // Add bias values to the angular velocity field of twist
-    Eigen::Vector3d body_angular_vel = latest_gyro_measurement_ - nom_state.gyro_bias;
+    Eigen::Vector3d body_angular_vel =
+        latest_gyro_measurement_ - nom_state.gyro_bias;
     odom_msg.twist.twist.angular.x = body_angular_vel.x();
     odom_msg.twist.twist.angular.y = body_angular_vel.y();
     odom_msg.twist.twist.angular.z = body_angular_vel.z();
