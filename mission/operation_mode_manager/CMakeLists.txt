@@ -33,6 +33,7 @@ ament_target_dependencies(
   geometry_msgs
   vortex_msgs
   vortex_utils_ros
+  vortex_utils
 )
 
 install(

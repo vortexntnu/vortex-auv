@@ -100,7 +100,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_{};
 
-    bool killswitch_on_{false};
+    bool killswitch_on_{true};
 
     vortex::utils::types::Mode operation_mode_{
         vortex::utils::types::Mode::manual};
