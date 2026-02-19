@@ -2,23 +2,24 @@
 
 #include <Eigen/Dense>
 
+#include <vortex/utils/types.hpp>
 #include "pose_filtering/lib/pose_track_manager.hpp"
-#include "vortex/utils/types.hpp"
 
 namespace vortex::filtering {
-using vortex::utils::types::Pose;
 
 class PoseTrackManagerTests : public ::testing::Test {
    protected:
     TrackManagerConfig make_default_config() {
         TrackManagerConfig cfg{};
+        cfg.default_class_config.dyn_std_dev = 0.1;
+        cfg.default_class_config.sens_std_dev = 0.1;
         return cfg;
     }
 
     Landmark make_landmark(
         const Eigen::Vector3d& pos,
         const Eigen::Quaterniond& q = Eigen::Quaterniond::Identity()) {
-        return Landmark{Pose::from_eigen(pos, q)};
+        return Landmark{Pose::from_eigen(pos, q), LandmarkClassKey{0, 0}};
     }
 };
 
@@ -65,8 +66,8 @@ TEST_F(PoseTrackManagerTests, angular_gate_filters_measurements) {
     double t2_exist_prob_step1 = mgr.get_tracks().at(1).existence_probability;
 
     measurements = {
-        make_landmark({0, 0.5, 1}, q_ref),
-        make_landmark({0, 0.5, 1}, q_far),
+        make_landmark({0, 0.25, 1}, q_ref),
+        make_landmark({0, 0.25, 1}, q_far),
     };
 
     mgr.step(measurements, 0.1);
