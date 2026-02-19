@@ -18,9 +18,11 @@ find_package(spdlog REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(vortex_msgs REQUIRED)
-# find_package(vortex_utils REQUIRED)
+#find_package(vortex_utils REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_eigen REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -43,9 +45,13 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
   rclcpp_action
+  tf2_geometry_msgs
+  tf2_eigen
   geometry_msgs
   vortex_msgs
-  # vortex_utils_ros
+  nav_msgs
+  #vortex_utils
+  #vortex_utils_ros
   Eigen3
   spdlog
   fmt

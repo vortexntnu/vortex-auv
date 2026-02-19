@@ -1,18 +1,28 @@
 #include <pool_exploration/pool_exploration_ros.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 
 namespace vortex::pool_exploration{
 
 PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
-    : Node("pool_exploration_node", options) {
+    : Node("pool_exploration_node", options), map_(
+          this->declare_parameter<double>("size_x", 10.0),
+          this->declare_parameter<double>("size_y", 10.0),
+          this->declare_parameter<double>("resolution", 0.1),
+          this->declare_parameter<std::string>("frame_id", "map")
+      ) 
+    {
 
     this->declare_parameter<bool>("enu_to_ned", false); //når bestemmes denne verdien?? skal være false??
 
+
     odom_frame_ =
-        this->declare_parameter<std::string>("odom_frame");
+        this->declare_parameter<std::string>("odom_frame", "odom");
 
     map_frame_ =
-        this->declare_parameter<std::string>("map_frame");
-
+        this->declare_parameter<std::string>("map_frame", "map");
+    //forward_camera_frame
+    //downward_camera_frame
+    //sonar_frame
     tf_broadcaster_ =
         std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
 
@@ -33,7 +43,18 @@ PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
 
     map_pub_ = create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
-    publish_grid();
+    //må subscribe på linjene
+    //line_sub_
+
+    /*
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        odom_sub_topic, 
+        qos, 
+        std::bind(&MappingInterfaceNode::odometry_callback, this, _1),
+        sub_options);
+    */
+
+    publish_grid(); //må endre hvor ofte publiseres, evt hele funksjonen
 }
 
 
@@ -75,5 +96,7 @@ geometry_msgs::msg::TransformStamped PoolExplorationNode::compute_map_odom_trans
 
     return map_to_odom;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(PoolExplorationNode)
 
 }  // namespace vortex::pool_exploration
