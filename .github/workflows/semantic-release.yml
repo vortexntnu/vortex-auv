@@ -5,5 +5,5 @@ on:
     branches:
       - main
 jobs:
-  call_reusable_workflow:
+  semantic-release:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-semantic-release.yml@main
