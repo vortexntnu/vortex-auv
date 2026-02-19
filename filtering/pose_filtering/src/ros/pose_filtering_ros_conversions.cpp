@@ -56,8 +56,8 @@ vortex_msgs::msg::LandmarkArray tracks_to_landmark_array_msg(
     for (const auto& track : tracks) {
         vortex_msgs::msg::Landmark landmark;
         landmark.pose = track_to_pose_with_covariance(track);
-        landmark.type_class.type = track.class_key.type;
-        landmark.type_class.subtype = track.class_key.subtype;
+        landmark.type.value = track.class_key.type;
+        landmark.subtype.value = track.class_key.subtype;
         landmark.id = track.id;
         landmark_array_msg.landmarks.push_back(landmark);
     }
@@ -116,7 +116,7 @@ std::vector<Landmark> ros_to_landmarks(
         lm.pose =
             vortex::utils::ros_conversions::ros_pose_to_pose(lm_msg.pose.pose);
         lm.class_key =
-            LandmarkClassKey{lm_msg.type_class.type, lm_msg.type_class.subtype};
+            LandmarkClassKey{lm_msg.type.value, lm_msg.subtype.value};
         out.push_back(lm);
     }
     return out;
