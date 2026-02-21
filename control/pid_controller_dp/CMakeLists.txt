@@ -40,6 +40,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   vortex_msgs
   rcl_interfaces
   vortex_utils
+  vortex_utils_ros
   spdlog
   fmt
 )
@@ -64,6 +65,7 @@ ament_target_dependencies(pid_controller_node
   vortex_msgs
   rcl_interfaces
   vortex_utils
+  vortex_utils_ros
   spdlog
   fmt
 )
@@ -82,8 +84,6 @@ install(TARGETS ${LIB_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-  vortex_utils
-  vortex_utils_ros
 )
 
 install(TARGETS
