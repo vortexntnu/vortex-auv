@@ -14,7 +14,10 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <variant>
+#include <vortex/utils/types.hpp>
+#include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
@@ -30,7 +33,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     // @brief Callback function for the software mode topic
     // @param msg: String message containing the software mode
-    void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
+    void operation_mode_callback(
+        const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     // @brief Callback function for the pose topic
     // @param msg: PoseWithCovarianceStamped message containing the AUV pose
@@ -51,6 +55,10 @@ class PIDControllerNode : public rclcpp::Node {
     // @brief Set the subscriber and publisher for the node
     void set_subscribers_and_publisher();
 
+    // @brief Initialize the operation mode by calling the GetOperationMode
+    // service
+    void initialize_operation_mode();
+
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity
@@ -63,11 +71,15 @@ class PIDControllerNode : public rclcpp::Node {
     rcl_interfaces::msg::SetParametersResult parametersCallback(
         const std::vector<rclcpp::Parameter>& parameters);
 
+    rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_client_;
+
     PIDController pid_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
+        operation_mode_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -98,9 +110,10 @@ class PIDControllerNode : public rclcpp::Node {
 
     types::Eta eta_dot_d_;
 
-    bool killswitch_on_;
+    bool killswitch_on_{true};
 
-    std::string software_mode_;
+    vortex::utils::types::Mode operation_mode_{
+        vortex::utils::types::Mode::manual};
 
     OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 };

@@ -123,7 +123,7 @@
       twist: "twist"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
-      aruco_board_pose_camera: "aruco_board_pose_camera"
+      reference_pose: "reference_pose"
       waypoint: "waypoint"
       waypoint_list: "waypoint_list"
       guidance:
@@ -135,6 +135,12 @@
     action_servers:
       reference_filter: "reference_filter"
       los: "los_guidance"
+
+    services:
+      set_operation_mode: "set_operation_mode"
+      set_killswitch: "set_killswitch"
+      toggle_killswitch: "toggle_killswitch"
+      get_operation_mode: "get_operation_mode"
 
     fsm:
       docking:

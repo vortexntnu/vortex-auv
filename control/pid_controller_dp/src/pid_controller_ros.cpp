@@ -1,6 +1,9 @@
 #include <pid_controller_dp/pid_controller_ros.hpp>
 #include <rclcpp/logging.hpp>
 #include <variant>
+#include <vortex/utils/ros/qos_profiles.hpp>
+#include <vortex/utils/ros/ros_conversions.hpp>
+#include <vortex_msgs/msg/operation_mode.hpp>
 #include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
@@ -9,6 +12,7 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
+    initialize_operation_mode();
 
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
@@ -22,6 +26,7 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
     auto qos_sensor_data = rclcpp::QoS(
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
+    const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
     this->declare_parameter<std::string>("topics.guidance.dp");
     std::string dp_reference_topic =
@@ -46,13 +51,14 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.wrench_input").as_string();
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
-        software_kill_switch_topic, 1,
+        software_kill_switch_topic, qos_reliable,
         std::bind(&PIDControllerNode::killswitch_callback, this,
                   std::placeholders::_1));
-    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, 1,
-        std::bind(&PIDControllerNode::software_mode_callback, this,
-                  std::placeholders::_1));
+    operation_mode_sub_ =
+        this->create_subscription<vortex_msgs::msg::OperationMode>(
+            software_operation_mode_topic, qos_reliable,
+            std::bind(&PIDControllerNode::operation_mode_callback, this,
+                      std::placeholders::_1));
 
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -76,14 +82,47 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         control_topic, qos_sensor_data);
 }
 
+void PIDControllerNode::initialize_operation_mode() {
+    this->declare_parameter<std::string>("services.get_operation_mode");
+    std::string get_operation_mode_service =
+        this->get_parameter("services.get_operation_mode").as_string();
+
+    get_operation_mode_client_ =
+        this->create_client<vortex_msgs::srv::GetOperationMode>(
+            get_operation_mode_service);
+
+    while (!get_operation_mode_client_->wait_for_service(
+        std::chrono::seconds(1))) {
+    }
+
+    auto request =
+        std::make_shared<vortex_msgs::srv::GetOperationMode::Request>();
+    get_operation_mode_client_->async_send_request(
+        request,
+        [this](rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedFuture
+                   future) {
+            try {
+                auto response = future.get();
+                operation_mode_ =
+                    vortex::utils::ros_conversions::convert_from_ros(
+                        response->current_operation_mode);
+                killswitch_on_ = response->killswitch_status;
+            } catch (const std::exception& e) {
+                RCLCPP_ERROR(this->get_logger(),
+                             "Failed to get operation mode: %s", e.what());
+                killswitch_on_ = true;
+            }
+        });
+}
+
 void PIDControllerNode::killswitch_callback(
     const std_msgs::msg::Bool::SharedPtr msg) {
     killswitch_on_ = msg->data;
 }
 
-void PIDControllerNode::software_mode_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    software_mode_ = msg->data;
+void PIDControllerNode::operation_mode_callback(
+    const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+    operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
 }
 
 void PIDControllerNode::pose_callback(
@@ -97,7 +136,8 @@ void PIDControllerNode::twist_callback(
 }
 
 void PIDControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ ||
+        operation_mode_ == vortex::utils::types::Mode::manual) {
         return;
     }
 

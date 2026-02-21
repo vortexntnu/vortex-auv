@@ -17,6 +17,7 @@
   <depend>vortex_msgs</depend>
   <depend>rcl_interfaces</depend>
   <depend>vortex_utils</depend>
+  <depend>vortex_utils_ros</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

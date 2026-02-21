@@ -20,6 +20,7 @@ find_package(rcl_interfaces REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 
 include_directories(include)
 set(LIB_NAME ${PROJECT_NAME}_lib)
@@ -81,6 +82,8 @@ install(TARGETS ${LIB_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  vortex_utils
+  vortex_utils_ros
 )
 
 install(TARGETS
