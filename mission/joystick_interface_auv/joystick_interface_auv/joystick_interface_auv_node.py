@@ -9,11 +9,11 @@ from std_msgs.msg import Bool
 from vortex_msgs.msg import OperationMode, ReferenceFilter
 from vortex_msgs.srv import GetOperationMode, SetOperationMode, ToggleKillswitch
 from vortex_utils.python_utils import PoseData
+from vortex_utils_ros.ros_converter import pose_from_ros
 from vortex_utils_ros.qos_profiles import (
     reliable_profile,
     sensor_data_profile,
 )
-from vortex_utils_ros.ros_converter import pose_from_ros
 
 from joystick_interface_auv.joystick_utils import (
     Wired,
@@ -206,7 +206,8 @@ class JoystickInterface(Node):
         """Creates a reference message with the desired state values."""
         reference_msg = ReferenceFilter()
         reference_msg.header.stamp = self.get_clock().now().to_msg()
-        reference_msg.header.frame_id = "odom"
+        # reference_msg.header.frame_id = "odom"
+        reference_msg.header.frame_id = "base_link"
         reference_msg.x = self._desired_state.x
         reference_msg.y = self._desired_state.y
         reference_msg.z = self._desired_state.z
