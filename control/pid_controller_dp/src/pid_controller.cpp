@@ -86,45 +86,22 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
 
     auto eta_dot_d_copy = eta_dot_d;
     eta_dot_d_copy.qw = 0.0;  // set w = 0 for desired eta_dot
-    // debug
-    // eta_error_debug = error;
-    spdlog::info("Eta: ");
-    print_eta(eta);
-    spdlog::info("Eta desired: ");
-    print_eta(eta_d);
-    spdlog::info("Eta error:");
-    print_eta(error);
 
     types::Matrix6x7d J_inv =
         calculate_J_sudo_inv(eta);  // calculate J pseudo inverse
-    J_inv_debug = J_inv;
-    print_Jinv_transformation(J_inv);
 
     types::Vector6d nu_d =
         J_inv * eta_dot_d_copy.to_vector();  // calculate velocity
-    // nu_d_debug = nu_d;
-    // print_nu(nu_d);
 
     types::Vector6d error_nu = nu.to_vector() - nu_d;  // calculate vel error
-    // error_nu_debug = error_nu;
-    // print_vect_6d(error_nu);
 
     types::Vector6d P = Kp_ * J_inv * error.to_vector();  // P term
-    // P_debug = P;
-    Kp_debug = Kp_;
 
     types::Vector6d I = Ki_ * J_inv * integral_;  // I term
-    // I_debug = I;
-    // Ki_debug = Ki_;
 
     types::Vector6d D = Kd_ * error_nu;  // D term
-    // D_debug = D;
-    // Kd_debug = Kd_;
-    types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
-    // types::Vector6d tau = -clamp_values((P), -80.0, 80.0);
 
-    // debug: tau = 0
-    //  types::Vector6d tau = types::Vector6d::Zero();
+    types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
 
     integral_ = anti_windup(dt_, error, integral_);
 

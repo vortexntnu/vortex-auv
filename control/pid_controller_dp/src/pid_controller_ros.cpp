@@ -143,48 +143,6 @@ void PIDControllerNode::publish_tau() {
 
     types::Vector6d tau =
         pid_controller_.calculate_tau(eta_, eta_d_, nu_, eta_dot_d_);
-    // print for debug
-    RCLCPP_INFO_STREAM(this->get_logger(), "Tau: [" << tau(0) << ", " << tau(1)
-                                                    << ", " << tau(2) << ", "
-                                                    << tau(3) << ", " << tau(4)
-                                                    << ", " << tau(5) << "]");
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Kp: [" << pid_controller_.Kp_debug(0, 0) << ", "
-                               << pid_controller_.Kp_debug(0, 1) << ", "
-                               << pid_controller_.Kp_debug(0, 2) << ", "
-                               << pid_controller_.Kp_debug(0, 3) << ", "
-                               << pid_controller_.Kp_debug(0, 4) << ", "
-                               << pid_controller_.Kp_debug(0, 5) << "; "
-                               << pid_controller_.Kp_debug(1, 0) << ", "
-                               << pid_controller_.Kp_debug(1, 1) << ", "
-                               << pid_controller_.Kp_debug(1, 2) << ", "
-                               << pid_controller_.Kp_debug(1, 3) << ", "
-                               << pid_controller_.Kp_debug(1, 4) << ", "
-                               << pid_controller_.Kp_debug(1, 5) << "; "
-                               << pid_controller_.Kp_debug(2, 0) << ", "
-                               << pid_controller_.Kp_debug(2, 1) << ", "
-                               << pid_controller_.Kp_debug(2, 2) << ", "
-                               << pid_controller_.Kp_debug(2, 3) << ", "
-                               << pid_controller_.Kp_debug(2, 4) << ", "
-                               << pid_controller_.Kp_debug(2, 5) << "; "
-                               << pid_controller_.Kp_debug(3, 0) << ", "
-                               << pid_controller_.Kp_debug(3, 1) << ", "
-                               << pid_controller_.Kp_debug(3, 2) << ", "
-                               << pid_controller_.Kp_debug(3, 3) << ", "
-                               << pid_controller_.Kp_debug(3, 4) << ", "
-                               << pid_controller_.Kp_debug(3, 5) << "; "
-                               << pid_controller_.Kp_debug(4, 0) << ", "
-                               << pid_controller_.Kp_debug(4, 1) << ", "
-                               << pid_controller_.Kp_debug(4, 2) << ", "
-                               << pid_controller_.Kp_debug(4, 3) << ", "
-                               << pid_controller_.Kp_debug(4, 4) << ", "
-                               << pid_controller_.Kp_debug(4, 5) << "; "
-                               << pid_controller_.Kp_debug(5, 0) << ", "
-                               << pid_controller_.Kp_debug(5, 1) << ", "
-                               << pid_controller_.Kp_debug(5, 2) << ", "
-                               << pid_controller_.Kp_debug(5, 3) << ", "
-                               << pid_controller_.Kp_debug(5, 4) << ", "
-                               << pid_controller_.Kp_debug(5, 5) << "]");
 
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
@@ -218,17 +176,6 @@ void PIDControllerNode::set_pid_params() {
     this->declare_parameter<double>("Kd_roll", 0.1);
     this->declare_parameter<double>("Kd_pitch", 0.1);
     this->declare_parameter<double>("Kd_yaw", 0.1);
-
-    // this->declare_parameter<std::vector<double>>(
-    //     "Kp", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
-    // this->declare_parameter<std::vector<double>>(
-    //     "Ki", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
-    // this->declare_parameter<std::vector<double>>(
-    //     "Kd", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
-
-    // std::vector<double> Kp_vec = this->get_parameter("Kp").as_double_array();
-    // std::vector<double> Ki_vec = this->get_parameter("Ki").as_double_array();
-    // std::vector<double> Kd_vec = this->get_parameter("Kd").as_double_array();
 
     std::vector<double> Kp_vec = {
         this->get_parameter("Kp_x").as_double(),
@@ -291,7 +238,6 @@ void PIDControllerNode::guidance_callback(
     eta_d_.qz = quat.z();
 }
 
-// TODO: set parameter functions
 rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
     const std::vector<rclcpp::Parameter>& parameters) {
     rcl_interfaces::msg::SetParametersResult result;

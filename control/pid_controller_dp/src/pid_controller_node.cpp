@@ -11,7 +11,6 @@ auto start_msg = R"(
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
-    // RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Started PID Controller Node");
     spdlog::info(start_msg);
     rclcpp::spin(std::make_shared<PIDControllerNode>());
     rclcpp::shutdown();

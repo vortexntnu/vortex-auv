@@ -74,6 +74,4 @@ types::Vector7d anti_windup(const double dt,
                             const types::Eta& error,
                             const types::Vector7d& integral);
 
-// void print_J_transformation(const types::J_transformation& J);
-// void print_Jinv_transformation(const types::Matrix6x7d& J_inv);
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_
