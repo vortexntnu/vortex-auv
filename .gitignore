@@ -58,3 +58,8 @@ qtcreator-*
 .#*
 
 # End of https://www.gitignore.io/api/ros
+control/pid_controller_dp/test/test_main.cpp
+control/pid_controller_dp/test/test_pid_basic.cpp
+control/pid_controller_dp/test/test_pid_controller.cpp
+control/pid_controller_dp/test/test_type_casting.cpp
+scripts/ci_install_dependencies.sh
