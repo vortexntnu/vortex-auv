@@ -4,13 +4,12 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
+    types: [ opened, synchronize, reopened, ready_for_review ]
 jobs:
-  call_reusable_workflow:
+  code-coverage:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-code-coverage.yml@main
     with:
       vcs-repo-file-url: './dependencies.repos'
       before_install_target_dependencies: './scripts/ci_install_dependencies.sh'
     secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # Set in the repository secrets
