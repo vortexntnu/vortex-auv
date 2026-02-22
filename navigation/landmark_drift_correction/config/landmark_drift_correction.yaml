@@ -1,0 +1,38 @@
+/**:
+  ros__parameters:
+    landmark_sub_topic: "/filtered_landmarks"
+
+    drift_pose_pub_topic: "drift_correction/pose"
+
+    body_frame: "base_link"
+    filter_frame: "odom"
+    corrected_frame: "odom_corrected"
+
+    publish_tf: true
+    timer_rate_filter_ms: 300.0
+    timer_rate_pose_update_ms: 5000.0
+
+    track_config:
+      existence:
+        confirmation_threshold: 0.6
+        deletion_threshold: 0.2
+        initial_existence_probability: 0.4
+
+      default:
+        gate:
+          min_pos_error: 0.0 # in meters
+          max_pos_error: 0.5 # in meters
+          min_ori_error: 0.0 # in radians
+          max_ori_error: 0.5 # in radians
+
+        dyn_mod_std_dev: 0.2
+        sens_mod_std_dev: 0.2
+
+        init_pos_std_dev: 0.1
+        init_ori_std_dev: 0.05
+
+        mahalanobis_gate_threshold: 2.5 # in std deviations
+        prob_of_detection: 0.5
+        clutter_intensity: 0.01
+        prob_of_survival: 0.95
+        estimate_clutter: false
