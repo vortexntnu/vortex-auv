@@ -1,5 +1,7 @@
 #include <pool_exploration/pool_exploration.hpp>
 
+#include <iostream>
+
 namespace vortex::pool_exploration{
 
 PoolExplorationMap::PoolExplorationMap(
@@ -38,54 +40,27 @@ const nav_msgs::msg::OccupancyGrid& PoolExplorationMap::grid() const {
     return grid_;
 }
 
-//Får ikke inn parametrisering av linjene som rho, theta likevel (?)
-/*
-LineSegment PoolExplorationMap::rhoThetaToSegment(double rho, double theta, float length) {
-    // Finn punkt på linjen nærmest origo
-    double x0 = rho * cos(theta);
-    double y0 = rho * sin(theta);
-
-    // Retningsvektor for linjen
-    double dx = -sin(theta);
-    double dy = cos(theta);
-
-    LineSegment seg;
-    seg.p1 = Eigen::Vector2f(x0 + (length)/2*dx, y0 + (length)/2*dy);
-    seg.p2 = Eigen::Vector2f(x0 - (length)/2*dx, y0 - (length)/2*dy);
-    return seg;
-}
-
-*/
-
-
-//FUNKSJON SOM TAR FLERE LINJER
-/*
-void PoolExplorationMap::drawLines(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msg){
-    uint32_t num_lines =  msg->lines.size();
-
-    }
-*/
-
-
 void PoolExplorationMap::setLineSegmentInMapFrame(
-    const vortex_msgs::msg::LineSegment2D::SharedPtr msg,
+    const vortex_msgs::msg::LineSegment2DArray::SharedPtr msgs,
     const Eigen::Matrix4f& map_to_odom_tf)
 {
-    // 1. Transform fra odom → map
-    // Konvertere fra 2d vektor til 4d for å matche transformasjonen
-    Eigen::Vector4f p0_4d(msg->p0.x, msg->p0.y, 0.0f, 1.0f);
-    Eigen::Vector4f p1_4d(msg->p1.x, msg->p1.y, 0.0f, 1.0f);
-    Eigen::Vector4f p0_map = map_to_odom_tf.inverse() * p0_4d;
-    Eigen::Vector4f p1_map = map_to_odom_tf.inverse() * p1_4d;
+    for (const auto &line : msgs->lines) {
+        // 1. Transform fra odom → map
+        // Konvertere fra 2d vektor til 4d for å matche transformasjonen
+        Eigen::Vector4f p0_4d(line.p0.x, line.p0.y, 0.0f, 1.0f);
+        Eigen::Vector4f p1_4d(line.p1.x, line.p1.y, 0.0f, 1.0f);
+        Eigen::Vector4f p0_map = map_to_odom_tf.inverse() * p0_4d;
+        Eigen::Vector4f p1_map = map_to_odom_tf.inverse() * p1_4d;
 
-    //2. Transform fra map coordinate -> grid index
-    int x0 = (p0_map.x() - grid_.info.origin.position.x) / grid_.info.resolution; 
-    int y0 = (p0_map.y() - grid_.info.origin.position.y) / grid_.info.resolution; 
-    int x1 = (p1_map.x() - grid_.info.origin.position.x) / grid_.info.resolution; 
-    int y1 = (p1_map.y() - grid_.info.origin.position.y) / grid_.info.resolution; 
+        //2. Transform fra map coordinate -> grid index
+        int x0 = (p0_map.x() - grid_.info.origin.position.x) / grid_.info.resolution; 
+        int y0 = (p0_map.y() - grid_.info.origin.position.y) / grid_.info.resolution; 
+        int x1 = (p1_map.x() - grid_.info.origin.position.x) / grid_.info.resolution; 
+        int y1 = (p1_map.y() - grid_.info.origin.position.y) / grid_.info.resolution; 
 
-    //3. Bresenham line algoritm
-    bresenhamLineAlgoritm(x0, y0, x1, y1);
+        //3. Bresenham line algoritm
+        bresenhamLineAlgoritm(x0, y0, x1, y1);
+    }
 }
 
 void PoolExplorationMap::setGridCell(int x, int y, int value)
@@ -157,5 +132,26 @@ void PoolExplorationMap::bresenhamLineAlgoritm(int x0, int y0, int x1, int y1){
 }
 
 
+
+
+
+//FUNKSJON BRUKT TIL TESTING, FJERNE?
+void PoolExplorationMap::printGridToConsole() const
+{
+    for (int y = grid_.info.height - 1; y >= 0; --y) {
+        for (int x = 0; x < grid_.info.width; ++x) {
+
+            int index = y * grid_.info.width + x;
+
+            if (grid_.data[index] == OCCUPIED)
+                std::cout << "X ";
+            else if (grid_.data[index] == -1)
+                std::cout << ". ";
+            else
+                std::cout << "? ";
+        }
+        std::cout << ::std::endl;
+    }
+}
 
 }  // namespace vortex::pool_exploration

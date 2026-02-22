@@ -12,15 +12,6 @@ static constexpr int8_t OCCUPIED = 100;
 
 namespace vortex::pool_exploration{
 
-//start og sluttverdi for linjen som hentes inn
-//erstatte med faktiske punkter senere
-
-struct LineSegment {
-    Eigen::Vector2f p1;
-    Eigen::Vector2f p2;
-};
-
-
 class PoolExplorationMap {
 public:
     PoolExplorationMap( double size_x,
@@ -29,14 +20,15 @@ public:
                         const std::string& frame_id);
 
     const nav_msgs::msg::OccupancyGrid& grid() const;
-    //static LineSegment rhoThetaToSegment(double rho, double theta, float length); //Bestem om den er static/vanlig medlem eller utenfor senere
-    
-    void drawLines(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msg);
+   
     void setGridCell(int x, int y, int value);
     void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
     
-    void setLineSegmentInMapFrame(const vortex_msgs::msg::LineSegment2D::SharedPtr msg,
+    void setLineSegmentInMapFrame(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msgs,
                                     const Eigen::Matrix4f& map_to_odom_tf);
+    
+    //MIDLERTIDIG TEST-FUNKSJON
+    void printGridToConsole() const;
 
 private:
     //Occupancy grid
