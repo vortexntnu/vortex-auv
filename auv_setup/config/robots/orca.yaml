@@ -142,8 +142,6 @@
       set_killswitch: "set_killswitch"
       toggle_killswitch: "toggle_killswitch"
       get_operation_mode: "get_operation_mode"
-
-    services: # Maybe not the right place for this?
       los_mode: "set_los_mode"
 
     fsm:
