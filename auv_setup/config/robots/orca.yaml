@@ -139,6 +139,12 @@
       landmark_polling: "landmark_polling"
       landmark_convergence: "landmark_convergence"
 
+    services:
+      set_operation_mode: "set_operation_mode"
+      set_killswitch: "set_killswitch"
+      toggle_killswitch: "toggle_killswitch"
+      get_operation_mode: "get_operation_mode"
+
     fsm:
       docking:
         docking_station_offset: -1.0

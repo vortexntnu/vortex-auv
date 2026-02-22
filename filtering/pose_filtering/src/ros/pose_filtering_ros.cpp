@@ -32,13 +32,11 @@ void PoseFilteringNode::setup_publishers_and_subscribers() {
         this->create_publisher<vortex_msgs::msg::LandmarkArray>(
             landmark_pub_topic, qos_sensor_data_pub);
 
-    int timer_rate_ms = this->declare_parameter<int>("timer_rate_ms");
+    filter_dt_ = std::chrono::milliseconds(
+        this->declare_parameter<int>("timer_rate_ms"));
 
-    filter_dt_seconds_ = static_cast<double>(timer_rate_ms) / 1000;
-
-    pub_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(timer_rate_ms),
-        std::bind(&PoseFilteringNode::timer_callback, this));
+    pub_timer_ = this->create_wall_timer(filter_dt_,
+                                         [this]() { this->timer_callback(); });
 
     target_frame_ = this->declare_parameter<std::string>("target_frame");
 
@@ -75,28 +73,28 @@ void PoseFilteringNode::create_pose_subscription(
         *sub, *tf2_buffer_, target_frame_, 10,
         this->get_node_logging_interface(), this->get_node_clock_interface());
 
-    filter->registerCallback([this](
-                                 const typename PoseMsgT::ConstSharedPtr msg) {
-        PoseMsgT pose_tf;
-        try {
-            vortex::utils::ros_transforms::transform_pose(
-                *tf2_buffer_, *msg, target_frame_, pose_tf);
-        } catch (const tf2::TransformException& ex) {
-            RCLCPP_WARN(
-                this->get_logger(), "TF transform failed from '%s' to '%s': %s",
-                msg->header.frame_id.c_str(), target_frame_.c_str(), ex.what());
-            return;
-        }
+    filter->registerCallback(
+        [this](const typename PoseMsgT::ConstSharedPtr msg) {
+            PoseMsgT pose_tf;
+            try {
+                vortex::utils::ros_transforms::transform_pose(
+                    *tf2_buffer_, *msg, target_frame_, pose_tf);
+            } catch (const tf2::TransformException& ex) {
+                spdlog::warn("TF transform failed from '{}' to '{}': {}",
+                             msg->header.frame_id.c_str(),
+                             target_frame_.c_str(), ex.what());
+                return;
+            }
 
-        this->measurements_ =
-            vortex::filtering::ros_conversions::ros_to_landmarks(pose_tf);
-        if (enu_ned_rotation_) {
-            std::ranges::for_each(this->measurements_, [](auto& m) {
-                m.pose.set_ori(vortex::utils::math::enu_ned_rotation(
-                    m.pose.ori_quaternion()));
-            });
-        }
-    });
+            this->measurements_ =
+                vortex::filtering::ros_conversions::ros_to_landmarks(pose_tf);
+            if (enu_ned_rotation_) {
+                std::ranges::for_each(this->measurements_, [](auto& m) {
+                    m.pose.set_ori(vortex::utils::math::enu_ned_rotation(
+                        m.pose.ori_quaternion()));
+                });
+            }
+        });
 
     subscriber_ = sub;
     tf_filter_ = filter;
@@ -150,7 +148,8 @@ void PoseFilteringNode::timer_callback() {
     if (debug_) {
         publish_meas_debug();
     }
-    track_manager_->step(measurements_, filter_dt_seconds_);
+    track_manager_->step(measurements_,
+                         std::chrono::duration<double>(filter_dt_).count());
     measurements_.clear();
     if (debug_) {
         publish_state_debug();

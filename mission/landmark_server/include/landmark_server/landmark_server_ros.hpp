@@ -19,6 +19,7 @@
 #include <vortex_msgs/action/landmark_polling.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
+#include <vortex_msgs/msg/landmark_track_array.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 
@@ -127,6 +128,10 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void create_track_manager();
 
+    void setup_debug_publishers();
+
+    void publish_debug_tracks();
+
     void timer_callback();
 
     std::shared_ptr<
@@ -180,6 +185,10 @@ class LandmarkServerNode : public rclcpp::Node {
     // Cache RF feedback (used to compute distance-to-target)
     std::mutex rf_fb_mtx_;
     std::optional<vortex_msgs::action::ReferenceFilterWaypoint::Feedback> last_rf_feedback_;
+
+    bool debug_{false};
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
+        landmark_track_debug_pub_;
 };
 
 }  // namespace vortex::mission

@@ -62,6 +62,8 @@ struct ExistenceManagementConfig {
 struct LandmarkClassKey {
     uint16_t type{};
     uint16_t subtype{};
+
+    bool operator==(const LandmarkClassKey&) const = default;
 };
 
 struct LandmarkClassConfig {
@@ -132,11 +134,8 @@ struct Track {
     /// Unique track identifier
     int id{};
 
-    /// Type identifier used by landmarks
-    uint16_t type{0};
-
-    /// Subtype identifier used by landmarks
-    uint16_t subtype{0};
+    /// Landmark class (type + subtype)
+    LandmarkClassKey class_key{};
 
     /// Nominal state representation (position and orientation)
     NominalState nominal_state;

@@ -56,13 +56,70 @@ vortex_msgs::msg::LandmarkArray tracks_to_landmark_array_msg(
     for (const auto& track : tracks) {
         vortex_msgs::msg::Landmark landmark;
         landmark.pose = track_to_pose_with_covariance(track);
-        landmark.type_class.type = track.type;
-        landmark.type_class.subtype = track.subtype;
+        landmark.type.value = track.class_key.type;
+        landmark.subtype.value = track.class_key.subtype;
         landmark.id = track.id;
         landmark_array_msg.landmarks.push_back(landmark);
     }
 
     return landmark_array_msg;
+}
+
+Landmark make_landmark_from_pose(const geometry_msgs::msg::Pose& pose,
+                                 const LandmarkClassKey& key) {
+    Landmark lm;
+    lm.pose = vortex::utils::ros_conversions::ros_pose_to_pose(pose);
+    lm.class_key = key;
+    return lm;
+}
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseStamped& msg) {
+    return {make_landmark_from_pose(msg.pose,
+                                    LandmarkClassKey{.type = 0, .subtype = 0})};
+}
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseWithCovarianceStamped& msg) {
+    return {make_landmark_from_pose(msg.pose.pose,
+                                    LandmarkClassKey{.type = 0, .subtype = 0})};
+}
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseWithCovariance& msg) {
+    return {make_landmark_from_pose(msg.pose,
+                                    LandmarkClassKey{.type = 0, .subtype = 0})};
+}
+
+std::vector<Landmark> ros_to_landmarks(const geometry_msgs::msg::Pose& msg) {
+    return {make_landmark_from_pose(msg,
+                                    LandmarkClassKey{.type = 0, .subtype = 0})};
+}
+
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseArray& msg) {
+    std::vector<Landmark> out;
+    out.reserve(msg.poses.size());
+    for (const auto& p : msg.poses) {
+        out.push_back(make_landmark_from_pose(
+            p, LandmarkClassKey{.type = 0, .subtype = 0}));
+    }
+    return out;
+}
+
+std::vector<Landmark> ros_to_landmarks(
+    const vortex_msgs::msg::LandmarkArray& msg) {
+    std::vector<Landmark> out;
+    out.reserve(msg.landmarks.size());
+    for (const auto& lm_msg : msg.landmarks) {
+        Landmark lm;
+        lm.pose =
+            vortex::utils::ros_conversions::ros_pose_to_pose(lm_msg.pose.pose);
+        lm.class_key =
+            LandmarkClassKey{lm_msg.type.value, lm_msg.subtype.value};
+        out.push_back(lm);
+    }
+    return out;
 }
 
 }  // namespace vortex::filtering::ros_conversions

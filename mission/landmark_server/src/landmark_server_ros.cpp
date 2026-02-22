@@ -8,6 +8,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_transforms.hpp>
+#include <vortex_msgs/msg/landmark_track_array.hpp>
 
 namespace vortex::mission {
 
@@ -29,6 +30,11 @@ void LandmarkServerNode::setup_ros_communicators() {
     create_polling_action_server();
     create_convergence_action_server();
     create_reference_action_client();
+
+    debug_ = this->declare_parameter<bool>("debug.enable");
+    if (debug_) {
+        setup_debug_publishers();
+    }
 }
 
 void LandmarkServerNode::create_reference_publisher() {
@@ -552,6 +558,46 @@ void LandmarkServerNode::publish_reference_pose(const geometry_msgs::msg::PoseSt
   reference_pose_pub_->publish(pose);
 }
 
+void LandmarkServerNode::setup_debug_publishers() {
+    std::string debug_topic =
+        this->declare_parameter<std::string>("debug.topic_name");
+    auto qos = vortex::utils::qos_profiles::sensor_data_profile(10);
+    landmark_track_debug_pub_ =
+        this->create_publisher<vortex_msgs::msg::LandmarkTrackArray>(
+            debug_topic, qos);
+}
+
+void LandmarkServerNode::publish_debug_tracks() {
+    vortex_msgs::msg::LandmarkTrackArray msg;
+    msg.header.stamp = this->now();
+    msg.header.frame_id = target_frame_;
+
+    for (const auto& t : track_manager_->get_tracks()) {
+        vortex_msgs::msg::LandmarkTrack track_msg;
+
+        track_msg.landmark.id = t.id;
+        track_msg.landmark.type.value = t.class_key.type;
+        track_msg.landmark.subtype.value = t.class_key.subtype;
+        track_msg.landmark.header.stamp = this->now();
+        track_msg.landmark.header.frame_id = target_frame_;
+
+        const auto pose = t.to_pose();
+        track_msg.landmark.pose.pose.position.x = pose.pos_vector().x();
+        track_msg.landmark.pose.pose.position.y = pose.pos_vector().y();
+        track_msg.landmark.pose.pose.position.z = pose.pos_vector().z();
+        track_msg.landmark.pose.pose.orientation.x = pose.ori_quaternion().x();
+        track_msg.landmark.pose.pose.orientation.y = pose.ori_quaternion().y();
+        track_msg.landmark.pose.pose.orientation.z = pose.ori_quaternion().z();
+        track_msg.landmark.pose.pose.orientation.w = pose.ori_quaternion().w();
+
+        track_msg.existence_probability = t.existence_probability;
+
+        msg.landmark_tracks.push_back(track_msg);
+    }
+
+    landmark_track_debug_pub_->publish(msg);
+}
+
 
 void LandmarkServerNode::create_reference_action_client() {
     std::string reference_action_name =
@@ -584,8 +630,8 @@ void LandmarkServerNode::handle_landmark_polling_accepted(
         goal_handle) {
     spdlog::info(
         "Accepted landmark polling action for type: {} and subtype: {}",
-        goal_handle->get_goal()->identifier.type,
-        goal_handle->get_goal()->identifier.subtype);
+        goal_handle->get_goal()->type.value,
+        goal_handle->get_goal()->subtype.value);
     active_landmark_polling_goal_ = goal_handle;
 }
 
@@ -649,13 +695,19 @@ void LandmarkServerNode::create_track_manager() {
 void LandmarkServerNode::timer_callback() {
     track_manager_->step(measurements_, filter_dt_seconds_);
     measurements_.clear();
+
+    if (debug_) {
+        publish_debug_tracks();
+    }
+
     handle_convergence_update();
     if (active_landmark_polling_goal_ &&
         active_landmark_polling_goal_->is_active()) {
         const auto goal = active_landmark_polling_goal_->get_goal();
-        const auto type = goal->identifier.type;
-        const auto subtype = goal->identifier.subtype;
-        if (!track_manager_->has_track(type, subtype)) {
+        const auto type = goal->type.value;
+        const auto subtype = goal->subtype.value;
+        if (!track_manager_->has_track(
+                vortex::filtering::LandmarkClassKey{type, subtype})) {
             return;
         }
         vortex_msgs::msg::LandmarkArray landmarks =

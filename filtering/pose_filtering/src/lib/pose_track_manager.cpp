@@ -14,9 +14,10 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
     sort_tracks_by_priority();
     for (Track& track : tracks_) {
         const auto& cfg = cfg_for(track);
-        auto type_gate_indices = type_gate_measurements(track, measurements);
-        auto Z = compute_measurement_residuals(track, measurements,
-                                               type_gate_indices);
+        auto type_gate_indices =
+            gate_measurements_by_class(track, measurements);
+        auto type_matched_measurements = compute_measurement_residuals(
+            track, measurements, type_gate_indices);
 
         PoseGate6D gate;
         gate.min_pos_error = cfg.min_pos_error;
@@ -39,8 +40,9 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
             .x_estimate = track.error_state,
             .existence_probability = track.existence_probability};
 
-        auto ipda_output = IPDA::step(dyn_mod, sensor_mod, dt, state_est_prev,
-                                      Z, ipda_cfg, gate);
+        auto ipda_output =
+            IPDA::step(dyn_mod, sensor_mod, dt, state_est_prev,
+                       type_matched_measurements, ipda_cfg, gate);
 
         track.error_state = ipda_output.state.x_estimate;
         track.existence_probability = ipda_output.state.existence_probability;
@@ -53,7 +55,7 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
     create_tracks(measurements);
 }
 
-std::vector<Eigen::Index> PoseTrackManager::type_gate_measurements(
+std::vector<Eigen::Index> PoseTrackManager::gate_measurements_by_class(
     const Track& track,
     const std::vector<Landmark>& measurements) const {
     std::vector<Eigen::Index> idx;
@@ -62,8 +64,7 @@ std::vector<Eigen::Index> PoseTrackManager::type_gate_measurements(
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(measurements.size());
          ++i) {
         const auto& m = measurements[i];
-        if (m.class_key.type == track.type &&
-            m.class_key.subtype == track.subtype) {
+        if (m.class_key == track.class_key) {
             idx.push_back(i);
         }
     }
@@ -189,8 +190,7 @@ void PoseTrackManager::create_tracks(
         P0.block<3, 3>(3, 3) *= cfg.init_ori_std * cfg.init_ori_std;
 
         return Track{.id = track_id_counter_++,
-                     .type = measurement.class_key.type,
-                     .subtype = measurement.class_key.subtype,
+                     .class_key = measurement.class_key,
                      .nominal_state =
                          NominalState{.pos = measurement.pose.pos_vector(),
                                       .ori = measurement.pose.ori_quaternion()},

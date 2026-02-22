@@ -28,3 +28,7 @@
         clutter_intensity: 0.01
         prob_of_survival: 0.95
         estimate_clutter: false
+
+    debug:
+      enable: false
+      topic_name: "landmark_server/debug/landmark_tracks"
