@@ -132,12 +132,105 @@ void PoolExplorationMap::bresenhamLineAlgoritm(int x0, int y0, int x1, int y1){
 }
 
 
+std::vector<CandidateCorner> PoolExplorationMap::findCorner(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msg, 
+                                                            const Eigen::Vector2f& drone_pos,
+                                                            float drone_heading,
+                                                            float min_dist, float max_dist,
+                                                            float angle_threshold,
+                                                            float min_angle, float max_angle) {
+    std::vector<LineSegment> right_candidates;
+    std::vector<LineSegment> far_candidates;
 
+    // Finne mulige linjer
+    for (auto& msg_line : msg->lines) {
+        LineSegment line(msg_line);  // konverter her
+        auto projection = projectPointToLine(drone_pos, line.asEigen());
+        float dist = (projection - drone_pos).norm(); //Lengden til vektoren
+        float angle = lineAngleDifference(line.asEigen(), drone_heading);
 
+        if (projection.y() < 0 && dist >= min_dist && dist <= max_dist && angle < angle_threshold)
+            right_candidates.push_back(line);
+        if (projection.x() > 0 && dist >= min_dist && dist <= max_dist && angle > angle_threshold)
+            far_candidates.push_back(line);
+    }
 
-//FUNKSJON BRUKT TIL TESTING, FJERNE?
-void PoolExplorationMap::printGridToConsole() const
-{
+    // Finne gyldige skjæringspunkt
+    std::vector<CandidateCorner> corners;
+    for (auto& r : right_candidates) {
+        for (auto& f : far_candidates) {
+            Eigen::Vector2f intersection_coordinates{};
+            bool intersect = lineIntersection(r.asEigen(), f.asEigen(), intersection_coordinates);
+            if (intersect){
+                float wall_angle = angleBetweenLines(r.asEigen(), f.asEigen());
+                if (wall_angle >= min_angle && wall_angle <= max_angle) {
+                    corners.push_back({r, f, intersection_coordinates});
+                }
+            }
+        }
+    } 
+    return corners;   
+}
+    
+
+Eigen::Vector2f PoolExplorationMap::projectPointToLine( const Eigen::Vector2f& drone_pos,
+                                    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line) {
+    const Eigen::Vector2f& p0 = line.first;
+    const Eigen::Vector2f& p00 = line.second;
+
+    Eigen::Vector2f dir_vec = p00 - p0;
+    float t = (drone_pos - p0).dot(dir_vec) / dir_vec.dot(dir_vec);
+    return p0 + t * dir_vec;
+    }
+
+float PoolExplorationMap::lineAngleDifference( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, const float& drone_heading){
+    float line_angle = atan2(line.second.y() - line.first.y(), line.second.x() - line.first.x());
+    float diff       = std::fmod(line_angle - drone_heading, 2*M_PI);
+    
+    if (diff < -M_PI) diff += 2*M_PI;
+    if (diff >  M_PI) diff -= 2*M_PI;
+
+    return std::abs(diff);
+}
+
+ bool PoolExplorationMap::lineIntersection( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+                                            const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
+                                            Eigen::Vector2f& intersection) {
+    const Eigen::Vector2f p00 = line0.first;
+    const Eigen::Vector2f p01 = line0.second;
+    const Eigen::Vector2f p10 = line1.first;
+    const Eigen::Vector2f p11 = line1.second;
+
+    float denom = (p00.x()-p01.x())*(p10.y()-p11.y()) - (p00.y()-p01.y())*(p10.x()-p11.x());
+
+    if (std::abs(denom) < 1e-6) 
+        return false; // parallelle linjer
+
+    intersection.x() = ((p00.x()*p01.y()-p00.y()*p01.x())*(p10.x()-p11.x()) -
+                        (p00.x()-p01.x())*(p10.x()*p11.y()-p10.y()*p11.x()))/denom;
+    intersection.y() = ((p00.x()*p01.y()-p00.y()*p01.x())*(p10.y()-p11.y()) -
+                        (p00.y()-p01.y())*(p10.x()*p11.y()-p10.y()*p11.x()))/denom;
+    return true;
+}
+
+float PoolExplorationMap::angleBetweenLines(const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+                                            const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1) {
+    Eigen::Vector2f v0 = (line0.second - line0.first).normalized();
+    Eigen::Vector2f v1 = (line1.second - line1.first).normalized();
+
+    return std::acos(v0.dot(v1));     
+}
+
+/*
+int PoolExplorationMap::computeScore( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+                                      const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
+                                      const Eigen::Vector2f& intersection){
+    //TO DO: Prioriteze the lines
+    return 0;
+}
+*/
+
+//FUNKSJON BRUKT TIL TESTING, FJERNE SENERE:))?
+void PoolExplorationMap::printGridToConsole() const{
     for (int y = grid_.info.height - 1; y >= 0; --y) {
         for (int x = 0; x < grid_.info.width; ++x) {
 
