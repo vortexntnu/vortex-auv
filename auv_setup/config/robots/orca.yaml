@@ -124,6 +124,7 @@
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       reference_pose: "reference_pose"
+      landmarks: "landmarks"
       waypoint: "waypoint"
       waypoint_list: "waypoint_list"
       guidance:
@@ -135,6 +136,8 @@
     action_servers:
       reference_filter: "reference_filter"
       los: "los_guidance"
+      landmark_polling: "landmark_polling"
+      landmark_convergence: "landmark_convergence"
 
     fsm:
       docking:
