@@ -175,12 +175,24 @@ void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
 }
 
 void LosGuidanceNode::waypoint_callback(
-    const geometry_msgs::msg::PointStamped::SharedPtr los_waypoint) {
-    path_inputs_.prev_point = path_inputs_.current_position;
-    path_inputs_.next_point = types::Point::point_from_ros(los_waypoint->point);
-    spdlog::info(
-        "Received waypoint");  // remember to print waypoint that you get
+    const geometry_msgs::msg::PointStamped::SharedPtr wp_msg)
+{
+    const auto new_wp = types::Point::point_from_ros(wp_msg->point);
+
+    if (!has_active_segment_) {
+        path_inputs_.prev_point = path_inputs_.current_position;
+        path_inputs_.next_point = new_wp;
+        has_active_segment_ = true;
+    } else {
+        path_inputs_.prev_point = path_inputs_.next_point;  
+        path_inputs_.next_point = new_wp;
+    }
+
+    spdlog::info("Received waypoint: ({}, {}, {})",
+                 new_wp.x, new_wp.y, new_wp.z);
 }
+
+
 
 void LosGuidanceNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
@@ -273,8 +285,16 @@ void LosGuidanceNode::execute(
     const geometry_msgs::msg::PointStamped los_waypoint =
         goal_handle->get_goal()->goal;
 
-    path_inputs_.prev_point = path_inputs_.current_position;
-    path_inputs_.next_point = types::Point::point_from_ros(los_waypoint.point);
+    const auto new_wp = types::Point::point_from_ros(los_waypoint.point);
+
+    if (!has_active_segment_) {
+        path_inputs_.prev_point = path_inputs_.current_position;
+        path_inputs_.next_point = new_wp;
+        has_active_segment_ = true;
+    } else {
+        path_inputs_.prev_point = path_inputs_.next_point;
+        path_inputs_.next_point = new_wp;
+    }
 
     auto feedback =
         std::make_shared<vortex_msgs::action::LOSGuidance::Feedback>();

@@ -87,6 +87,8 @@ class LosGuidanceNode : public rclcpp::Node {
 
     // @brief Execute the goal
     // @param goal_handle The goal handle
+
+    bool has_active_segment_{false};
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
                      vortex_msgs::action::LOSGuidance>> goal_handle);
 

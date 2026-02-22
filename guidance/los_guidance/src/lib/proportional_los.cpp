@@ -4,15 +4,6 @@ namespace vortex::guidance::los {
 
 ProportionalLOSGuidance::ProportionalLOSGuidance(
     const ProportionalLosParams& params) : m_params{params} {
-
-        if (m_params.lookahead_distance_h <= 0.0) {
-            m_params.lookahead_distance_h = 1e-9; 
-        }
-
-        if (m_params.lookahead_distance_v <= 0.0) {
-            m_params.lookahead_distance_v = 1e-9;
-        }
-
     }
 
 void ProportionalLOSGuidance::update_angles(const types::Inputs& inputs) {

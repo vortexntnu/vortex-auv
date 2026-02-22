@@ -34,15 +34,14 @@ class AdaptiveLOSGuidance {
         const types::Inputs& inputs);
     void update_adaptive_estimates(
         const types::CrossTrackError& cross_track_error);
-    void reset_adaptive_params();
 
     AdaptiveLosParams params_{};
     Eigen::Matrix3d rotation_y_ = Eigen::Matrix3d::Zero();
     Eigen::Matrix3d rotation_z_ = Eigen::Matrix3d::Zero();
     double pi_h_{};
     double pi_v_{};
-    double beta_c_hat_{};
-    double alpha_c_hat_{}; 
+    double beta_c_hat_ = 0.0;
+    double alpha_c_hat_ = 0.0;
 
 };  // namespace vortex::guidance::los
 

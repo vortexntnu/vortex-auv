@@ -1,29 +1,29 @@
 adaptive_los:
-  lookahead_distance_h: 1.5
-  lookahead_distance_v: 0.6
-  gamma_h: 0.05
-  gamma_v: 0.1
+  lookahead_distance_h: 0.9 #Done
+  lookahead_distance_v: 1.4 #Done
+  gamma_h: 0.03 #Done
+  gamma_v: 0.02 #Done
 
 prop_los:
-  lookahead_distance_h: 1.5
-  lookahead_distance_v: 0.6
+  lookahead_distance_h: 0.74 #Done
+  lookahead_distance_v: 0.8 #Done
 
 integer_los:
-  k_p_h: 0.5
-  k_p_v: 0.5
-  k_i_h: 0.1
-  k_i_v: 0.1
+  k_p_h: 0.5 #Done
+  k_p_v: 0.5 #Done
+  k_i_h: 0.1 #Done
+  k_i_v: 0.1 #Done
 
 vector_field_los:
   max_approach_angle_h: 1.0  
-  max_approach_angle_v: 0.6 
-  k_p_h: 0.5
-  k_p_v: 0.5
+  max_approach_angle_v: 0.6
+  k_p_h: 1.5
+  k_p_v: 0.3
 
 common:
-  active_los_method: 2  # 0: Proportional, 1: Integral, 2: Adaptive, 3: VFLos
-  u_desired: 0.3
-  goal_reached_tol: 0.5
+  active_los_method: 3 # 0: Proportional, 1: Integral, 2: Adaptive, 3: VFLos
+  u_desired: 0.3 # Done
+  goal_reached_tol: 0.35 # Done  
 
 debug:
   enable_debug: true
