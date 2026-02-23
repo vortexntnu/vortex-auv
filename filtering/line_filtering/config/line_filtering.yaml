@@ -1,0 +1,40 @@
+/**:
+  ros__parameters:
+    line_sub_topic: "/line_detection/line_segments"
+    sonar_info_sub_topic: "/orca/sonar_info"
+    line_pub_topic: "/filtered_lines"
+    marker_pub_topic: "/filtered_lines_markers"
+
+    target_frame: "odom"
+    sonar_frame: "Orca/FLS"
+
+    timer_rate_ms: 200
+
+    config:
+      existence:
+        confirmation_threshold: 0.6
+        deletion_threshold: 0.2
+        initial_existence_probability: 0.4
+
+      gate:
+        min_rho_error: 1.50    # meters  – below this, gate always passes
+        max_rho_error: 1.0    # meters
+        min_phi_error: 0.5    # radians – below this, gate always passes
+        max_phi_error: 0.5    # radians
+
+      dyn_mod_std_dev: 0.05
+      sens_mod_std_dev: 0.1
+
+      init_rho_std_dev: 0.3
+      init_phi_std_dev: 0.15
+
+      mahalanobis_gate_threshold: 3.0
+      prob_of_detection: 0.5
+      clutter_intensity: 0.01
+      prob_of_survival: 0.95
+      estimate_clutter: false
+
+    debug:
+      enable: true
+      meas_marker_topic: "/line_debug/raw_markers"
+      state_marker_topic: "/line_debug/filtered_markers"
