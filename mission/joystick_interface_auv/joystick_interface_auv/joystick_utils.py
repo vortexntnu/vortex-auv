@@ -1,8 +1,18 @@
+from vortex_msgs.msg import OperationMode
+
+
 class JoyStates:
     XBOX_MODE = "xbox"
     AUTONOMOUS_MODE = "autonomous"
     KILLSWITCH = "killswitch"
     REFERENCE_MODE = "reference"
+
+
+modes = {
+    OperationMode.AUTONOMOUS: "Autonomous",
+    OperationMode.MANUAL: "Manual",
+    OperationMode.REFERENCE: "Reference",
+}
 
 
 class Wired:
