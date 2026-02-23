@@ -97,7 +97,7 @@ static Eigen::VectorXd require_thrust(std::unique_ptr<Allocator> &allocator,
   EXPECT_TRUE(u_opt.has_value()) << "Allocator returned nullopt";
 
   if (!u_opt.has_value()) {
-    return Eigen::VectorXd(); // unreachable if EXPECT fails, but required
+    return Eigen::VectorXd();
   }
 
   return *u_opt;

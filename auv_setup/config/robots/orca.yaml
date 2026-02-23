@@ -22,7 +22,7 @@
       # 6x6 mass_inertia_matrix
 
     propulsion:
-      solver_type: qp # (available solvers: pseudoinverse, qp)
+      solver_type: "qp" # (available solvers: pseudoinverse, qp)
       dofs:
         num: 6
       dimensions:

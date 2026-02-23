@@ -29,7 +29,10 @@ auto start_message{R"(
 )"};
 
 ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions &options)
-    : Node("thrust_allocator_auv_node", options) {
+    : Node("thrust_allocator_auv_node",
+           rclcpp::NodeOptions(options)
+               .allow_undeclared_parameters(false)
+               .automatically_declare_parameters_from_overrides(false)) {
   extract_parameters();
   set_allocator();
   set_subscriber_and_publisher();
@@ -90,10 +93,10 @@ void ThrustAllocator::set_allocator() {
       num_dimensions_, num_thrusters_);
 
   // allocation_config params
-
   std::string solver_type =
-      this->declare_parameter("propulsion.solver.type", PARAMETER_STRING)
+      this->declare_parameter("propulsion.solver_type", PARAMETER_STRING)
           .get<std::string>();
+
   thruster_position_ = double_array_to_eigen_matrix(
       this->get_parameter("propulsion.thrusters.thruster_position")
           .as_double_array(),
@@ -102,21 +105,34 @@ void ThrustAllocator::set_allocator() {
   thrust_configuration_ = calculate_thrust_configuration_matrix(
       thruster_force_direction_, thruster_position_, center_of_mass_);
 
-  Eigen::MatrixXd input_weight_matrix =
-      double_array_to_eigen_matrix(
-          this->get_parameter(
-                  "propulsion.thrusters.constraints.input_matrix_weights")
-              .as_double_array(),
-          1, num_thrusters_)
-          .asDiagonal();
+  Eigen::VectorXd input_weights = Eigen::Map<const Eigen::VectorXd>(
+      this->get_parameter(
+              "propulsion.thrusters.constraints.input_matrix_weights")
+          .as_double_array()
+          .data(),
+      num_thrusters_);
 
-  Eigen::MatrixXd slack_weight_matrix =
-      double_array_to_eigen_matrix(
-          this->get_parameter(
-                  "propulsion.thrusters.constraints.slack_matrix_weights")
-              .as_double_array(),
-          1, degrees_of_freedom_)
-          .asDiagonal();
+  if (input_weights.size() != num_thrusters_) {
+    throw std::runtime_error(
+        "input_matrix_weights size must equal number of thrusters");
+  }
+
+  Eigen::MatrixXd input_weight_matrix = input_weights.asDiagonal();
+
+  spdlog::info("before slack weights");
+  Eigen::VectorXd slack_weights = Eigen::Map<const Eigen::VectorXd>(
+      this->get_parameter(
+              "propulsion.thrusters.constraints.slack_matrix_weights")
+          .as_double_array()
+          .data(),
+      degrees_of_freedom_);
+
+  if (slack_weights.size() != degrees_of_freedom_) {
+    throw std::runtime_error(
+        "slack_matrix_weights size must equal number of DOFs");
+  }
+
+  Eigen::MatrixXd slack_weight_matrix = slack_weights.asDiagonal();
 
   Eigen::VectorXd min_force_vec =
       Eigen::VectorXd::Constant(num_thrusters_, min_thrust_);

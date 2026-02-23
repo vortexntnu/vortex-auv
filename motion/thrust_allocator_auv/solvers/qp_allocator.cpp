@@ -3,6 +3,12 @@
 #include "thrust_allocator_auv/allocator_config.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
 
+#ifdef NDEBUG
+constexpr bool casadi_debug = false; // Release
+#else
+constexpr bool casadi_debug = true; // Debug
+#endif
+
 QPAllocator::QPAllocator(const AllocatorConfig &allocator_config)
     : casadi_solver_initialized_(false) {
   formulate_as_qp(allocator_config);
@@ -62,6 +68,7 @@ void QPAllocator::formulate_as_qp(const AllocatorConfig &allocator_config) {
   extended_constraint_vec_.setZero(n + 2 * r);
   extended_constraint_vec_.segment(n, r) = allocator_config.min_force;
   extended_constraint_vec_.segment(n + r, r) = allocator_config.max_force;
+  spdlog::info("Successfully formulated as QP standardform");
 };
 
 void QPAllocator::formulate_as_qp_casadi() {
@@ -83,9 +90,16 @@ void QPAllocator::formulate_as_qp_casadi() {
   A_sparsity_pattern_ = casadi::Sparsity::dense(total_constraint_count,
                                                 decision_variable_dimension);
 
-  casadi_qp_solver_ =
-      casadi::conic("thrust_allocation_qp", "qrqp",
-                    {{"h", H_sparsity_pattern_}, {"a", A_sparsity_pattern_}});
+  casadi::Dict opts;
+  opts["print_time"] = casadi_debug;
+  opts["verbose"] = casadi_debug;
+  opts["print_iter"] = casadi_debug;
+  opts["print_header"] = casadi_debug;
+  opts["print_info"] = casadi_debug;
+
+  casadi_qp_solver_ = casadi::conic(
+      "thrust_allocation_qp", "qrqp",
+      {{"h", H_sparsity_pattern_}, {"a", A_sparsity_pattern_}}, opts);
 
   stacked_constraint_matrix_.setZero(total_constraint_count,
                                      decision_variable_dimension);
@@ -124,6 +138,7 @@ void QPAllocator::formulate_as_qp_casadi() {
   previous_solution_ = casadi::DM::zeros(decision_variable_dimension, 1);
   have_previous_solution_ = false;
 
+  spdlog::info("Successfully formulated into valid CasADi formulation");
   casadi_solver_initialized_ = true;
 }
 
