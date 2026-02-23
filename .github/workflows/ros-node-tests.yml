@@ -9,7 +9,7 @@ on:
   schedule:
     - cron: '0 1 * * *' # Runs daily at 01:00 UTC
 jobs:
-  call_reusable_workflow:
+  ros-node-test:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
     with:
       vcs_repos_file: "tests/dependencies.repos"
@@ -19,4 +19,4 @@ jobs:
         "tests/ros_node_tests/lqr_autopilot_node_test.sh",
         "tests/ros_node_tests/reference_filter_node_test.sh",
         "tests/ros_node_tests/los_node_test.sh",
-      ]'
+        ]'
