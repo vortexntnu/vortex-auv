@@ -149,3 +149,11 @@ colcon test --packages-select thrust_allocator_auv   --event-handlers console_di
 ```bash
 colcon test-result --verbose
 ```
+
+# Debugging (CasADi)
+
+If the solver behaves unexpectedly it is possible to turn on CasADi's inbuilt spdlogs which show iterations, objective function value and report if the convergence was sucessfull or not.
+
+```bash
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug
+```

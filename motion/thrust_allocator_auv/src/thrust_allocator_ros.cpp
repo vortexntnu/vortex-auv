@@ -119,7 +119,6 @@ void ThrustAllocator::set_allocator() {
 
   Eigen::MatrixXd input_weight_matrix = input_weights.asDiagonal();
 
-  spdlog::info("before slack weights");
   Eigen::VectorXd slack_weights = Eigen::Map<const Eigen::VectorXd>(
       this->get_parameter(
               "propulsion.thrusters.constraints.slack_matrix_weights")
