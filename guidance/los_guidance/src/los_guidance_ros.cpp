@@ -177,6 +177,8 @@ void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
 void LosGuidanceNode::waypoint_callback(
     const geometry_msgs::msg::PointStamped::SharedPtr wp_msg)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     const auto new_wp = types::Point::point_from_ros(wp_msg->point);
 
     if (!has_active_segment_) {
@@ -184,19 +186,18 @@ void LosGuidanceNode::waypoint_callback(
         path_inputs_.next_point = new_wp;
         has_active_segment_ = true;
     } else {
-        path_inputs_.prev_point = path_inputs_.next_point;  
+        path_inputs_.prev_point = path_inputs_.next_point;
         path_inputs_.next_point = new_wp;
     }
 
-    spdlog::info("Received waypoint: ({}, {}, {})",
-                 new_wp.x, new_wp.y, new_wp.z);
+    spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y, new_wp.z);
 }
 
 
 
 void LosGuidanceNode::pose_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
-        current_pose) {
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr current_pose) {
+    std::lock_guard<std::mutex> lock(mutex_);
     path_inputs_.current_position =
         types::Point::point_from_ros(current_pose->pose.pose.position);
 }
@@ -317,6 +318,12 @@ void LosGuidanceNode::execute(
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
             return;
+        }
+
+        types::Inputs inputs_copy;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            inputs_copy = path_inputs_;
         }
 
         types::Outputs outputs;
