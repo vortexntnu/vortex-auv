@@ -1,14 +1,18 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "velocity_controller/velocity_controller.hpp"
+#include <rmw/types.h>
 #include "geometry_msgs/msg/wrench_stamped.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
 //#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 //#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "std_msgs/msg/bool.hpp"
 #include "velocity_controller/PID_setup.hpp"
+#include <array>
 #include <cmath>
 #include <Eigen/Dense>
+#include <rclcpp/utilities.hpp>
+#include <vector>
 #include "vortex_msgs/msg/los_guidance.hpp"
 #include "vortex/utils/math.hpp"
 #include "velocity_controller/utilities.hpp"
@@ -24,25 +28,43 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
   get_new_parameters();
 
   
-  // Publishers
-  rclcpp::QoS orca_QoS(2);
-  orca_QoS.keep_last(2).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+  // Publishers - use TRANSIENT_LOCAL for internal topics
+  rclcpp::QoS pub_QoS(10);
+  pub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
   
-  publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, orca_QoS);
-  publisher_reference = create_publisher<std_msgs::msg::Float64MultiArray>("/reference",2);
+  publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, pub_QoS);
+  publisher_reference = create_publisher<std_msgs::msg::Float64MultiArray>("/reference", pub_QoS);
   
-  //Subscribers  
+  //Subscribers - use VOLATILE for external topics (simulator, sensors)
+  rclcpp::QoS sub_QoS(10);
+  sub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+  
   subscriber_Odometry = this->create_subscription<nav_msgs::msg::Odometry>(
-    topic_odometry,10,
+    topic_odometry,sub_QoS,
     std::bind(&Velocity_node::odometry_callback,this,std::placeholders::_1));
   subscriber_guidance = this->create_subscription<vortex_msgs::msg::LOSGuidance>(
-    topic_guidance,10,
+    topic_guidance,sub_QoS,
     std::bind(&Velocity_node::guidance_callback,this, std::placeholders::_1));
   subscriber_killswitch = this->create_subscription<std_msgs::msg::Bool>(
-    topic_killswitch,10,
+    topic_killswitch,sub_QoS,
     std::bind(&Velocity_node::killswitch_callback,this, std::placeholders::_1));
 
 
+  //NMPC controller
+  NMPC.set_matrices(Q2,R2, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
+  NMPC.set_interval(publish_rate/1000.0);
+  NMPC.initialize_MPC();
+
+  //NMPC acados controller
+  NMPC_acados.init();
+  NMPC_acados.set_max_force(max_force);
+  std::vector<double> W=Q2;
+  W.insert(W.end(),R2.begin(),R2.end());
+  std::vector<double> We=Q2;
+  for (int i=0;i<(int)We.size();i++){
+    We[i]+=1e-6;
+  }
+  NMPC_acados.set_weights(W, We);
   
   //Timer
   
@@ -56,10 +78,7 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
     controller_type=1;
     RCLCPP_INFO(this->get_logger(),"Switching to PID");
   };
-  //NMPC controller
-  NMPC.set_matrices(Q2,R2, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
-  NMPC.set_interval(publish_rate/1000.0);
-  NMPC.initialize_MPC();
+  
 
 }
 
@@ -68,8 +87,8 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
 
 
 //Publish/timer functions
-void Velocity_node::publish_thrust()
-{
+void Velocity_node::publish_thrust(){
+  RCLCPP_INFO(this->get_logger(),"sending thrust");
   publisher_thrust->publish(thrust_out);
 }
 
@@ -113,6 +132,7 @@ void Velocity_node::calc_thrust()
     break;
   }
   case 3:{
+    RCLCPP_INFO(this->get_logger(),"Guidance: %f, %f, %f",guidance_values.surge,guidance_values.pitch,guidance_values.yaw);
     Eigen::Matrix<double,3,1> u;
     u=NMPC.calculate_thrust(guidance_values, current_state);
     if (u==Eigen::Matrix<double,3,1>{9999,9999,9999}){
@@ -121,10 +141,28 @@ void Velocity_node::calc_thrust()
     }
     else{
     thrust_out.wrench.force.x=u[0];
-    thrust_out.wrench.torque.x=u[1];
-    thrust_out.wrench.torque.x=u[2];
+    thrust_out.wrench.torque.y=u[1];
+    thrust_out.wrench.torque.z=u[2];
+    RCLCPP_INFO(this->get_logger(),"NMPC: surge: %f, pitch %f, yaw %f",u(0),u(1),u(2));
     }
 
+    break;
+  }
+  case 4:{
+    std::vector<double>u;
+    std::array<double, 9> x_ref={guidance_values.surge,guidance_values.sway,guidance_values.heave,guidance_values.roll_rate,guidance_values.pitch_rate,guidance_values.yaw_rate,guidance_values.roll,guidance_values.pitch,guidance_values.yaw};
+    std::array<double, 3> u_ref={0,0,0};
+
+    NMPC_acados.setReference(x_ref,u_ref);
+    std::array<double,9> state_array={current_state.surge,current_state.sway,current_state.heave,current_state.roll_rate,current_state.pitch_rate,current_state.yaw_rate,current_state.roll,current_state.pitch,current_state.yaw};
+    NMPC_acados.setState(state_array);
+    if(NMPC_acados.solve_once()){
+      rclcpp::shutdown();
+    };
+    u=NMPC_acados.getU0();
+    thrust_out.wrench.force.x=u[0];
+    thrust_out.wrench.torque.y=u[1];
+    thrust_out.wrench.torque.z=u[2];
     break;
   }
   default:{
@@ -144,8 +182,9 @@ void Velocity_node::calc_thrust()
 //Callback functions
 void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr){
   guidance_values = *msg_ptr;
-  //RCLCPP_DEBUG(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",
-  //             guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
+  //RCLCPP_INFO(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",
+            //   guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
+  //RCLCPP_INFO(this->get_logger(),"message: s: %f, p:%f, y:%f", msg_ptr->surge,msg_ptr->pitch,msg_ptr->yaw);
   return;
 }
 
@@ -226,7 +265,10 @@ void Velocity_node::get_new_parameters(){
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<Velocity_node>());
+  auto node = std::make_shared<Velocity_node>();
+  rclcpp::executors::MultiThreadedExecutor exec;
+  exec.add_node(node);
+  exec.spin();
   rclcpp::shutdown();
   return 0;
 }

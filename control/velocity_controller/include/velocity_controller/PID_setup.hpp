@@ -22,7 +22,7 @@ class PID_controller {
     double integral=0;
     double previous_error=0;
     double output=0;
-    double max_output;
-    double min_output;
+    double max_output_;
+    double min_output_;
 };
 

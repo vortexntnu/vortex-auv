@@ -67,21 +67,6 @@ target_link_libraries(LQR_test
 
 #System tests
 
-add_executable(test_VC_node
-../src/test_VC.cpp
-../src/utilities.cpp
-../src/ct_instantiations.cpp
-)
-
-target_include_directories(test_VC_node PUBLIC
-$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-$<INSTALL_INTERFACE:include>
-${EIGEN3_INCLUDE_DIR} 
-)
-
-
-target_link_libraries(test_VC_node Eigen3::Eigen ct_optcon ct_core)
-
 
 target_link_libraries(
     ${TEST_BINARY_NAME}
@@ -94,16 +79,5 @@ target_link_libraries(
     ct_core
 )
 
-ament_target_dependencies(test_VC_node
-rclcpp
-std_msgs
-vortex_msgs
-geometry_msgs
-nav_msgs
-vortex_utils
-)
 
-install(TARGETS test_VC_node
-DESTINATION lib/${PROJECT_NAME}
-)
 #gtest_discover_tests(${TEST_BINARY_NAME})

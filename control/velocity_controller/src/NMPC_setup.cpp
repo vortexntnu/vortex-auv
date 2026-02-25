@@ -57,7 +57,7 @@ void NMPC_controller::reset_controller(){
 }
 bool NMPC_controller::set_interval(double interval){
     interval_=interval;
-    return false;
+    return true;
 }
 bool NMPC_controller::initialize_MPC(){
     using SYM=casadi::MX;
@@ -241,8 +241,12 @@ bool NMPC_controller::initialize_MPC(){
     nlp["f"]=J;
     nlp["g"]=G;
     nlp["p"]=P;
+    casadi::Dict opts1;
+    opts1["ipopt.print_level"]=0;
+    opts1["print_time"]=false;
+    opts1["ipopt.sb"]="yes";
 
-    solver=casadi::nlpsol("solver","ipopt",nlp);
+    solver=casadi::nlpsol("solver","ipopt",nlp,opts1);
     
     // --------------------------------------------------------
     // Prepare parameter vector Pval and initial guess Z0

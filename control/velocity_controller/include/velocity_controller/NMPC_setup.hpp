@@ -23,7 +23,7 @@ class NMPC_controller{
     double Iz;
     double Ix;
     double Iy;
-    int N=20;
+    int N=3;
     int n=9;
     int m=3;
     casadi::DM Z0_next; //For warm start

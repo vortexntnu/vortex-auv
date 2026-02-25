@@ -2,7 +2,7 @@
 #include "velocity_controller/LQR_setup.hpp"
 #include "velocity_controller/utilities.hpp"
 
-PID_controller::PID_controller( double k_p, double k_i, double k_d, double max_output, double min_output):k_p(k_p), k_i(k_i), k_d(k_d), max_output(max_output), min_output(min_output) {
+PID_controller::PID_controller( double k_p, double k_i, double k_d, double max_output, double min_output):k_p(k_p), k_i(k_i), k_d(k_d), max_output_(max_output), min_output_(min_output) {
     integral = 0.0;
     previous_error = 0.0;
 };
@@ -14,11 +14,11 @@ double PID_controller::calculate_thrust(double error, double dt){
     output=k_p*error+k_i*integral + k_d * (error - previous_error) / dt;
 
     //Saturation
-    if (output>max_output){
-        output = max_output;
+    if (output>max_output_){
+        output = max_output_;
     }
-    else if (output < min_output){
-        output = min_output;
+    else if (output < min_output_){
+        output = min_output_;
     }
     else{
         integral+=error*dt; //anti-wind up
@@ -41,8 +41,8 @@ bool PID_controller::set_output_limits(double min_output, double max_output){
     if (max_output<min_output){
         return false;
     }
-    this->min_output = min_output;
-    this->max_output = max_output;
+    min_output_ = min_output;
+    max_output_ = max_output;
     return true;
 };
 void PID_controller::set_parameters(double k_p,double k_i, double k_d){

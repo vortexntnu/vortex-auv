@@ -18,7 +18,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
         ),
-        launch_arguments={'rendering_quality': 'low','rendering':'true'}.items(),
+        launch_arguments={'rendering_quality': 'low','rendering':'false'}.items(),
     )
     orca_sim = TimerAction(
         period=12.0,
@@ -32,31 +32,31 @@ def generate_launch_description():
     )
 
 
-    node_name_arg = DeclareLaunchArgument(
-        'node_name', default_value='velocity_controller_node',
-        description='Name of the velocity controller node'
-    )
+    #node_name_arg = DeclareLaunchArgument(
+    #    'node_name', default_value='velocity_controller_node',
+    #    description='Name of the velocity controller node'
+    #)
 
     node_name_arg2 = DeclareLaunchArgument(
         'node_name_1', default_value='test_VC_node',
         description='Name of the test VC node'
     )
 
-    velocity_controller_name = LaunchConfiguration('node_name')
+    #velocity_controller_name = LaunchConfiguration('node_name')
     test_VC_name = LaunchConfiguration('node_name_1')
 
     return LaunchDescription([
         stonefish_sim,
         orca_sim,
-        node_name_arg,
+        #node_name_arg,
         node_name_arg2,
-        Node(package='velocity_controller',
-             executable='velocity_controller_node',
-             name=velocity_controller_name,
-             output='screen',
-             parameters=[config_path]
+        #Node(package='velocity_controller',
+        #     executable='velocity_controller_node',
+        #     name=velocity_controller_name,
+        #     output='screen',
+        #     parameters=[config_path]
              #arguments=['--ros-args','--log-level','debug']
-             ),
+        #     ),
         Node(package='velocity_controller',
              executable='test_VC_node',
              name=test_VC_name,

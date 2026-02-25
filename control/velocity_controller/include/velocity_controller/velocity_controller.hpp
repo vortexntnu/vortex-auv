@@ -12,6 +12,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp" 
 #include "velocity_controller/NMPC_setup.hpp"
+#include "velocity_controller/NMPC_acados.hpp"
 
 
 class Velocity_node : public rclcpp::Node{
@@ -78,6 +79,8 @@ class Velocity_node : public rclcpp::Node{
     std::vector<double> dampening_matrix_high;
     //NMPC controller
     NMPC_controller NMPC;
+    //NMPC acados
+    AuvNMPC NMPC_acados;
     //NMPC parameters
     std::vector<double> Q2;
     std::vector<double> R2;
