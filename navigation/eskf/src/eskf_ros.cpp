@@ -66,8 +66,7 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("dvl_topic");
     std::string dvl_topic = this->get_parameter("dvl_topic").as_string();
-    dvl_sub_ = this->create_subscription<
-        geometry_msgs::msg::TwistWithCovarianceStamped>(
+    dvl_sub_ = this->create_subscription<stonefish_ros2::msg::DVL>(
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
@@ -157,8 +156,6 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
     // currently the gyro and the accelorometer are rotated differently.
     // should be changed with the actual drone params.
-    // currently the gyro and the accelorometer are rotated differently.
-    // should be changed with the actual drone params.
     // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
     imu_measurement.gyro = raw_gyro;
 
@@ -168,23 +165,19 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     eskf_->imu_update(imu_measurement, dt);
 }
 
-void ESKFNode::dvl_callback(
-    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
     SensorDVL dvl_sensor;
-    dvl_sensor.measurement << msg->twist.twist.linear.x,
-        msg->twist.twist.linear.y, msg->twist.twist.linear.z;
 
-    dvl_sensor.measurement_noise << msg->twist.covariance[0],
-        msg->twist.covariance[1], msg->twist.covariance[2],
-        msg->twist.covariance[6], msg->twist.covariance[7],
-        msg->twist.covariance[8], msg->twist.covariance[12],
-        msg->twist.covariance[13], msg->twist.covariance[14];
+    dvl_sensor.measurement << msg->velocity.x, msg->velocity.y, msg->velocity.z;
 
-    // Apply the rotation correction to the DVL measurement
+    dvl_sensor.measurement_noise << msg->velocity_covariance[0],
+        msg->velocity_covariance[1], msg->velocity_covariance[2],
+        msg->velocity_covariance[3], msg->velocity_covariance[4],
+        msg->velocity_covariance[5], msg->velocity_covariance[6],
+        msg->velocity_covariance[7], msg->velocity_covariance[8];
+
     // Apply the rotation correction to the DVL measurement
     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
-    dvl_sensor.measurement_noise =
-        R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
     dvl_sensor.measurement_noise =
         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
@@ -217,8 +210,6 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
     // Add bias values to the angular velocity field of twist
-    Eigen::Vector3d body_angular_vel =
-        latest_gyro_measurement_ - nom_state.gyro_bias;
     Eigen::Vector3d body_angular_vel =
         latest_gyro_measurement_ - nom_state.gyro_bias;
     odom_msg.twist.twist.angular.x = body_angular_vel.x();
