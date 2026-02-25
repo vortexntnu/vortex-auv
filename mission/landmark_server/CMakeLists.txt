@@ -29,6 +29,7 @@ set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
   src/landmark_server_ros.cpp
+  src/landmark_server_ros_debug.cpp
   src/landmark_ros_conversion.cpp)
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
