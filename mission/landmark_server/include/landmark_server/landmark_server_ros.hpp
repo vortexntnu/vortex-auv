@@ -114,21 +114,18 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
     
-    // Convergence
 
     void send_reference_filter_goal(
       const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
       uint64_t seq);
-
-    // Compute target pose = landmark_pose ⊕ convergence_offset
+    
     geometry_msgs::msg::PoseStamped compute_target_pose(
       const vortex::filtering::Track& track,
       const geometry_msgs::msg::Pose& convergence_offset,
       const rclcpp::Time& stamp);
 
-    // Publish reference pose (topic)
+
     void publish_reference_pose(const geometry_msgs::msg::PoseStamped& pose);
-    // Convergence
 
     void create_reference_action_client();
 
@@ -164,7 +161,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::vector<Landmark> measurements_;
 
     rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::TimerBase::SharedPtr rf_check_timer_;
+
     double filter_dt_seconds_{0.0};
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
@@ -189,8 +186,6 @@ class LandmarkServerNode : public rclcpp::Node {
     bool convergence_dead_reckoning_handoff_{false};
     std::optional<geometry_msgs::msg::PoseStamped> convergence_last_target_pose_;
 
-    // Last confirmed track snapshot used to populate the action result.
-    // Updated every timer tick while a convergence session is active.
     std::optional<vortex::filtering::Track> convergence_last_known_track_;
 
     // Track-loss timeout
@@ -200,35 +195,32 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void handle_convergence_update();
 
-    // Returns the first confirmed track matching (type, subtype), or nullptr
     const vortex::filtering::Track* get_convergence_track() const;
 
-    // Called when the convergence track is absent. Starts the track-loss
-    // timeout and aborts the goal if the timeout is exceeded.
-    // @return true  – caller should return immediately (track still missing)
-    // @return false – should never happen (function always returns true)
-    bool handle_track_loss();
 
-    // Sends a new RF goal when none is active, or refreshes the published
-    // reference pose while an RF goal is already running.
-    // @param track  The current confirmed track
+    bool is_convergence_goal_active() const;
+
+    void cancel_reference_filter_goal();
+
+    void handle_rf_result(rclcpp_action::ResultCode code);
+
+    bool track_loss_timeout_exceeded() const;
+
+    void abort_convergence_due_to_track_loss();
+
+    void handle_track_loss();
+
     void update_convergence_target(const vortex::filtering::Track& track);
 
-    // Checks whether the vehicle is within dead-reckoning-offset of the
-    // current target and, if so, sets the handoff flag.
     void check_dead_reckoning_handoff();
 
-    // Builds a LandmarkConvergence::Result populated with the last known
-    // convergence track (landmark field) and the given success flag.
-    // If no track is available, landmark will be default-initialised.
     vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
         bool success) const;
 
-    // Cache RF feedback (used to compute distance-to-target)
+    // Cach RF feedback, used to distance to target
     std::mutex rf_fb_mtx_;
     std::optional<vortex_msgs::action::ReferenceFilterWaypoint::Feedback> last_rf_feedback_;
 
-    // Odometry subscription — vehicle position used for dead-reckoning handoff check
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     std::mutex odom_mtx_;
     std::optional<geometry_msgs::msg::Point> last_odom_position_;
@@ -236,6 +228,12 @@ class LandmarkServerNode : public rclcpp::Node {
     bool debug_{false};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
         landmark_track_debug_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::Landmark>::SharedPtr
+        convergence_landmark_debug_pub_;
+
+    // Publishes the landmark the active convergence session is tracking.
+    // No-op when no convergence session is active or debug is disabled.
+    void publish_convergence_landmark_debug();
 };
 
 }  // namespace vortex::mission

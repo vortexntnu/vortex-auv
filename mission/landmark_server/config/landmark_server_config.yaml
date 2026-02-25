@@ -29,8 +29,9 @@
         prob_of_survival: 0.95
         estimate_clutter: false
 
-    body_z_offset: -0.233 # [m] Constant z offset applied to reference filter target pose to account for body protrusion
+    body_z_offset: -0.233 # meter Constant z offset applied to reference filter target pose
 
     debug:
       enable: false
       topic_name: "landmark_server/debug/landmark_tracks"
+      convergence_landmark_topic: "landmark_server/debug/convergence_landmark"
