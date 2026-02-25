@@ -32,6 +32,6 @@
       estimate_clutter: false
 
     debug:
-      enable: true
+      enable: false
       topic_name_meas: "/pose_debug_meas"
       topic_name_state: "/pose_debug_state"

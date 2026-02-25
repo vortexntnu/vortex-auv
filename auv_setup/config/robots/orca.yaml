@@ -125,6 +125,7 @@
       killswitch: "killswitch"
       reference_pose: "reference_pose"
       landmarks: "landmarks"
+      odom: "odom"
       waypoint: "waypoint"
       waypoint_list: "waypoint_list"
       guidance:

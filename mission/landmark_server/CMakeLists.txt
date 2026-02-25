@@ -15,6 +15,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
@@ -39,6 +40,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   vortex_utils_ros_tf
   tf2_geometry_msgs
   geometry_msgs
+  nav_msgs
   pose_filtering
   spdlog
   fmt
