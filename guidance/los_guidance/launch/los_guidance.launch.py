@@ -4,7 +4,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-adapt_params = path.join(
+los_params = path.join(
     get_package_share_directory("los_guidance"),
     "config",
     "guidance_params.yaml",
@@ -25,8 +25,13 @@ def generate_launch_description():
         namespace="orca",
         parameters=[
             orca_params,
-            adapt_params,
+            {"los_config_file": los_params},
+            {"time_step": 0.01},
         ],
         output="screen",
     )
     return LaunchDescription([los_guidance_node])
+
+
+# remember to make them able to swich in the middle of a mission and if you swirch method the parameters shouldn't be reloaded
+# unless its a new section

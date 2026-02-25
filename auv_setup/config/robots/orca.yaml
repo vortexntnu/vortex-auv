@@ -121,6 +121,7 @@
       joy: "joy"
       pose: "pose"
       twist: "twist"
+      odom: "odom"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       reference_pose: "reference_pose"
@@ -141,6 +142,7 @@
       set_killswitch: "set_killswitch"
       toggle_killswitch: "toggle_killswitch"
       get_operation_mode: "get_operation_mode"
+      los_mode: "set_los_mode"
 
     fsm:
       docking:
