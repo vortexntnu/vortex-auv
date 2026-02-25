@@ -90,12 +90,6 @@ void ESKFNode::set_parameters() {
     R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
         R_imu_correction.data());
 
-    // Load sensor frame Translation correction parameters
-    std::vector<double> T_imu_correction;
-    this->declare_parameter<std::vector<double>>("imu_frame_t");
-    T_imu_correction = get_parameter("imu_frame_t").as_double_array();
-    T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu_correction.data());
-
     std::vector<double> R_dvl_correction;
     this->declare_parameter<std::vector<double>>("dvl_frame_r");
     R_dvl_correction = get_parameter("dvl_frame_r").as_double_array();
@@ -163,6 +157,8 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
     // currently the gyro and the accelorometer are rotated differently.
     // should be changed with the actual drone params.
+    // currently the gyro and the accelorometer are rotated differently.
+    // should be changed with the actual drone params.
     // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
     imu_measurement.gyro = raw_gyro;
 
@@ -185,7 +181,10 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[13], msg->twist.covariance[14];
 
     // Apply the rotation correction to the DVL measurement
+    // Apply the rotation correction to the DVL measurement
     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
+    dvl_sensor.measurement_noise =
+        R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
     dvl_sensor.measurement_noise =
         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
@@ -218,6 +217,8 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.linear.z = nom_state.vel.z();
 
     // Add bias values to the angular velocity field of twist
+    Eigen::Vector3d body_angular_vel =
+        latest_gyro_measurement_ - nom_state.gyro_bias;
     Eigen::Vector3d body_angular_vel =
         latest_gyro_measurement_ - nom_state.gyro_bias;
     odom_msg.twist.twist.angular.x = body_angular_vel.x();
