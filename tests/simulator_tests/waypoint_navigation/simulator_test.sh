@@ -86,6 +86,9 @@ echo "Turning off killswitch and setting operation mode to autonomous mode"
 ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
 ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
+echo "Sleeping for 5 seconds to make sure operation is stable..."
+sleep 5
+
 # Send waypoint goal
 echo "Sending goal"
 python3 "$SCRIPT_DIR/send_goal.py"
