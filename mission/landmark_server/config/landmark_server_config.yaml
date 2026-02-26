@@ -1,0 +1,37 @@
+/**:
+  ros__parameters:
+    target_frame: "odom"
+    timer_rate_ms: 200
+    enu_ned_rotation: true
+
+    track_config:
+      existence:
+        confirmation_threshold: 0.6
+        deletion_threshold: 0.2
+        initial_existence_probability: 0.4
+
+      default:
+        gate:
+          min_pos_error: 0.0 # in meters
+          max_pos_error: 0.5 # in meters
+          min_ori_error: 0.0 # in radians
+          max_ori_error: 0.5 # in radians
+
+        dyn_mod_std_dev: 0.2
+        sens_mod_std_dev: 0.2
+
+        init_pos_std_dev: 0.1
+        init_ori_std_dev: 0.05
+
+        mahalanobis_gate_threshold: 2.5 # in std deviations
+        prob_of_detection: 0.5
+        clutter_intensity: 0.01
+        prob_of_survival: 0.95
+        estimate_clutter: false
+
+    body_z_offset: -0.233 # meter Constant z offset applied to reference filter target pose
+
+    debug:
+      enable: false
+      topic_name: "landmark_server/debug/landmark_tracks"
+      convergence_landmark_topic: "landmark_server/debug/convergence_landmark"
