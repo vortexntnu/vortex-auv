@@ -193,26 +193,26 @@ class LandmarkServerNode : public rclcpp::Node {
     bool convergence_track_lost_{false};
     rclcpp::Time convergence_track_lost_since_{0, 0, RCL_ROS_TIME};
 
-    void handle_convergence_update();
+    void convergence_update();
 
     const vortex::filtering::Track* get_convergence_track() const;
 
 
-    bool is_convergence_goal_active() const;
+    bool convergence_goal_active() const;
 
     void cancel_reference_filter_goal();
 
     void handle_rf_result(rclcpp_action::ResultCode code);
 
-    bool track_loss_timeout_exceeded() const;
+    bool convergence_track_timeout() const;
 
-    void abort_convergence_due_to_track_loss();
+    void convergence_abort_track_loss();
 
-    void handle_track_loss();
+    void convergence_handle_track_loss();
 
-    void update_convergence_target(const vortex::filtering::Track& track);
+    void convergence_update_target(const vortex::filtering::Track& track);
 
-    void check_dead_reckoning_handoff();
+    void convergence_check_dr_handoff();
 
     vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
         bool success) const;
