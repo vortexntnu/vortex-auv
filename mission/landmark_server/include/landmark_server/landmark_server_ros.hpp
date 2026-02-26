@@ -25,11 +25,10 @@
 #include <pose_filtering/lib/pose_track_manager.hpp>
 #include <pose_filtering/ros/pose_filtering_ros_conversions.hpp>
 
+#include <cmath>
 #include <mutex>
 #include <optional>
 #include <vortex/utils/ros/ros_conversions.hpp>
-#include <cmath>
-
 
 namespace vortex::mission {
 
@@ -113,17 +112,15 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp_action::CancelResponse handle_landmark_convergence_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
-    
 
     void send_reference_filter_goal(
-      const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
-      uint64_t seq);
-    
-    geometry_msgs::msg::PoseStamped compute_target_pose(
-      const vortex::filtering::Track& track,
-      const geometry_msgs::msg::Pose& convergence_offset,
-      const rclcpp::Time& stamp);
+        const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
+        uint64_t seq);
 
+    geometry_msgs::msg::PoseStamped compute_target_pose(
+        const vortex::filtering::Track& track,
+        const geometry_msgs::msg::Pose& convergence_offset,
+        const rclcpp::Time& stamp);
 
     void publish_reference_pose(const geometry_msgs::msg::PoseStamped& pose);
 
