@@ -184,11 +184,8 @@ class LandmarkServerNode : public rclcpp::Node {
     double convergence_threshold_{0.0};
     double convergence_dead_reckoning_offset_{0.0};
     bool convergence_dead_reckoning_handoff_{false};
-    std::optional<geometry_msgs::msg::PoseStamped> convergence_last_target_pose_;
-
     std::optional<vortex::filtering::Track> convergence_last_known_track_;
 
-    // Track-loss timeout
     double convergence_track_loss_timeout_sec_{0.0};
     bool convergence_track_lost_{false};
     rclcpp::Time convergence_track_lost_since_{0, 0, RCL_ROS_TIME};
@@ -196,7 +193,6 @@ class LandmarkServerNode : public rclcpp::Node {
     void convergence_update();
 
     const vortex::filtering::Track* get_convergence_track() const;
-
 
     bool convergence_goal_active() const;
 
@@ -217,10 +213,6 @@ class LandmarkServerNode : public rclcpp::Node {
     vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
         bool success) const;
 
-    // Cach RF feedback, used to distance to target
-    std::mutex rf_fb_mtx_;
-    std::optional<vortex_msgs::action::ReferenceFilterWaypoint::Feedback> last_rf_feedback_;
-
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     std::mutex odom_mtx_;
     std::optional<geometry_msgs::msg::Point> last_odom_position_;
@@ -231,8 +223,6 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp::Publisher<vortex_msgs::msg::Landmark>::SharedPtr
         convergence_landmark_debug_pub_;
 
-    // Publishes the landmark the active convergence session is tracking.
-    // No-op when no convergence session is active or debug is disabled.
     void publish_convergence_landmark_debug();
 };
 

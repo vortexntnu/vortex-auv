@@ -205,7 +205,6 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     convergence_threshold_ = goal->convergence_threshold;
     convergence_dead_reckoning_offset_ = goal->dead_reckoning_offset;
     convergence_dead_reckoning_handoff_ = false;
-    convergence_last_target_pose_.reset();
     convergence_last_known_track_.reset();
     convergence_track_loss_timeout_sec_ = goal->track_loss_timeout_sec;
     convergence_track_lost_ = false;
@@ -232,7 +231,6 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     try
     {
         auto target = compute_target_pose(*track, convergence_offset_, now());
-        convergence_last_target_pose_ = target;
 
         vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
         vortex_msgs::msg::Waypoint wp;
@@ -350,7 +348,6 @@ void LandmarkServerNode::convergence_update_target(
     if (!active_reference_filter_goal_) {
         try {
             auto target = compute_target_pose(track, convergence_offset_, now());
-            convergence_last_target_pose_ = target;
 
             vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
             vortex_msgs::msg::Waypoint wp;
@@ -368,7 +365,6 @@ void LandmarkServerNode::convergence_update_target(
 
     try {
         auto target = compute_target_pose(track, convergence_offset_, now());
-        convergence_last_target_pose_ = target;
         publish_reference_pose(target);
     } catch (const std::exception& e) {
         spdlog::warn("Convergence target recompute failed: {}", e.what());
@@ -377,7 +373,7 @@ void LandmarkServerNode::convergence_update_target(
 
 void LandmarkServerNode::convergence_check_dr_handoff()
 {
-    if (convergence_dead_reckoning_handoff_ || !convergence_last_target_pose_)
+    if (convergence_dead_reckoning_handoff_ || !convergence_last_known_track_)
         return;
 
     std::optional<geometry_msgs::msg::Point> odom_pos;
@@ -392,11 +388,11 @@ void LandmarkServerNode::convergence_check_dr_handoff()
         return;
     }
 
+    const auto track_pos = convergence_last_known_track_->to_pose().pos_vector();
     const auto& cur = *odom_pos;
-    const auto& tgt = convergence_last_target_pose_->pose.position;
-    const double dx = cur.x - tgt.x;
-    const double dy = cur.y - tgt.y;
-    const double dz = cur.z - tgt.z;
+    const double dx = cur.x - track_pos.x();
+    const double dy = cur.y - track_pos.y();
+    const double dz = cur.z - track_pos.z();
     const double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
 
     if (!std::isfinite(dist)) {
@@ -406,8 +402,7 @@ void LandmarkServerNode::convergence_check_dr_handoff()
 
     if (dist <= convergence_dead_reckoning_offset_) {
         convergence_dead_reckoning_handoff_ = true;
-        spdlog::info("Dead reckoning handoff triggered at distance={:.3f}",
-                     dist);
+        spdlog::info("Dead reckoning handoff triggered at distance={:.3f}", dist);
     }
 }
 
@@ -446,20 +441,6 @@ void LandmarkServerNode::send_reference_filter_goal(
         active_reference_filter_goal_ = gh;
     };
 
-
-    options.feedback_callback =
-        [this, session_id](
-            ReferenceFilterGoalHandle::SharedPtr,
-            const std::shared_ptr<const RF::Feedback> fb)
-    {
-        if (session_id != convergence_session_id_)
-            return;
-
-        {
-            std::lock_guard<std::mutex> lock(rf_fb_mtx_);
-            last_rf_feedback_ = *fb;
-        }
-    };
 
     options.result_callback =
         [this, session_id](
