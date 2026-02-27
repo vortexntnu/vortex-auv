@@ -7,14 +7,17 @@
 #ifndef THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_
 #define THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_
 
+#include <eigen3/Eigen/src/Core/Matrix.h>
+#include <spdlog/spdlog.h>
 #include <algorithm>
 #include <eigen3/Eigen/Eigen>
 #include <ranges>
-#include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
+#include <vortex/utils/types.hpp>
+#include "casadi/casadi.hpp"
 
-#include <vortex_msgs/msg/thruster_forces.hpp>
+using vortex::utils::types::Vector6d;
 
 /**
  * @brief Check if the matrix has any NaN or INF elements.
@@ -30,12 +33,12 @@ inline bool is_invalid_matrix(const Eigen::MatrixBase<Derived>& M) {
     return has_nan || has_inf;
 }
 
-inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
+inline Eigen::MatrixXd calculate_thrust_configuration_matrix(
     const Eigen::MatrixXd& thruster_force_direction,
     const Eigen::MatrixXd& thruster_position,
     const Eigen::Vector3d& center_of_mass) {
     // Initialize thrust allocation matrix
-    Eigen::MatrixXd thrust_allocation_matrix = Eigen::MatrixXd::Zero(6, 8);
+    Eigen::MatrixXd thrust_configuration_matrix = Eigen::MatrixXd::Zero(6, 8);
 
     // Calculate thrust and moment contributions from each thruster
     for (int i = 0; i < thruster_position.cols(); i++) {
@@ -48,28 +51,12 @@ inline Eigen::MatrixXd calculate_thrust_allocation_matrix(
         pos -= center_of_mass;
 
         // Fill in the thrust allocation matrix
-        thrust_allocation_matrix.block<3, 1>(0, i) = F;
-        thrust_allocation_matrix.block<3, 1>(3, i) = pos.cross(F);
+        thrust_configuration_matrix.block<3, 1>(0, i) = F;
+        thrust_configuration_matrix.block<3, 1>(3, i) = pos.cross(F);
     }
 
-    thrust_allocation_matrix = thrust_allocation_matrix.array();
-    return thrust_allocation_matrix;
-}
-
-/**
- * @brief Calculates the pseudoinverse of the given matrix.
- *
- * @param M The matrix to calculate the pseudoinverse of.
- * @throws char* if the pseudoinverse is invalid.
- * @return The pseudoinverse of the given matrix.
- */
-inline Eigen::MatrixXd calculate_pseudoinverse(const Eigen::MatrixXd& T) {
-    Eigen::MatrixXd pseudoinverse =
-        T.transpose() * (T * T.transpose()).inverse();
-    if (is_invalid_matrix(pseudoinverse)) {
-        throw std::runtime_error("Invalid Pseudoinverse Calculated");
-    }
-    return pseudoinverse;
+    thrust_configuration_matrix = thrust_configuration_matrix.array();
+    return thrust_configuration_matrix;
 }
 
 /**
@@ -96,24 +83,6 @@ inline bool saturate_vector_values(Eigen::VectorXd& vec,
 }
 
 /**
- * @brief Converts an Eigen VectorXd to a vortex_msgs::msg::ThrusterForces
- * message.
- *
- * @param u The Eigen VectorXd to be converted.
- * @param msg The vortex_msgs::msg::ThrusterForces message to store the
- * converted values.
- * @return The converted vortex_msgs::msg::ThrusterForces message.
- */
-inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
-    const Eigen::VectorXd& u) {
-    vortex_msgs::msg::ThrusterForces msg;
-    msg.header.stamp = rclcpp::Clock().now();
-    msg.header.frame_id = "base_link";
-    msg.thrust = std::vector<double>(u.begin(), u.end());
-    return msg;
-}
-
-/**
  * @brief Converts a 1D array of doubles to a 2D Eigen matrix.
  *
  * @param matrix The 1D array of doubles to be converted.
@@ -121,7 +90,7 @@ inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
  * @param cols The number of columns in the resulting Eigen matrix.
  * @return The resulting Eigen matrix.
  */
-inline Eigen::MatrixXd double_array_to_eigen_matrix(
+inline Eigen ::MatrixXd double_array_to_eigen_matrix(
     const std::vector<double>& matrix,
     int rows,
     int cols) {
@@ -142,13 +111,47 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
-inline Eigen::Vector6d wrench_to_vector(
-    const geometry_msgs::msg::WrenchStamped& msg) {
-    Eigen::Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
-                               msg.wrench.force.z,  msg.wrench.torque.x,
-                               msg.wrench.torque.y, msg.wrench.torque.z};
+inline casadi::DM eigen_to_dm(const Eigen::MatrixXd& M) {
+    std::vector<double> data(M.data(), M.data() + M.size());
+    casadi::Sparsity sp = casadi::Sparsity::dense(M.rows(), M.cols());
+    return casadi::DM(sp, data, true);
+}
 
-    return msg_vector;
+inline casadi::DM eigen_to_dm(const Eigen::VectorXd& v) {
+    std::vector<double> data(v.data(), v.data() + v.size());
+    // This already becomes (N x 1)
+    return casadi::DM(data);
+}
+
+inline Eigen::VectorXd dmToEigenVector(const casadi::DM& dm) {
+    std::vector<double> data = static_cast<std::vector<double>>(dm);
+    Eigen::VectorXd out(static_cast<int>(data.size()));
+    for (int i = 0; i < out.size(); ++i)
+        out[i] = data[static_cast<size_t>(i)];
+    return out;
+}
+
+/**
+ * @brief Clamps the wrench vector in a way that preserves scale between
+ * elements, will spdlog if intervention was needed if in debug
+ *
+ * @param &tau reference to the desired wrench vector
+ * @param tau_max the maximum allowed value of thrust
+ * @return The normalized tau vector
+ */
+inline Eigen::VectorXd normalizeWrenchVector(const Eigen::VectorXd& tau,
+                                             const double tau_max) {
+    const double max_abs_component = tau.cwiseAbs().maxCoeff();
+    const double scale = std::max(1.0, max_abs_component / tau_max);
+
+#if !defined(NDEBUG)
+    if (scale > 1.0) {
+        spdlog::warn("Wrench scaled by factor {:.3f} for QP conditioning",
+                     scale);
+    }
+#endif
+
+    return tau / scale;
 }
 
 #endif  // THRUST_ALLOCATOR_AUV__THRUST_ALLOCATOR_UTILS_HPP_
