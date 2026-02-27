@@ -1,4 +1,5 @@
 #include <pid_controller_dp/pid_controller_ros.hpp>
+#include <rclcpp/logging.hpp>
 #include <variant>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
@@ -16,6 +17,9 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&PIDControllerNode::publish_tau, this));
     set_pid_params();
+
+    callback_handle_ = this->add_on_set_parameters_callback(std::bind(
+        &PIDControllerNode::parametersCallback, this, std::placeholders::_1));
 }
 
 void PIDControllerNode::set_subscribers_and_publisher() {
@@ -154,20 +158,57 @@ void PIDControllerNode::publish_tau() {
 }
 
 void PIDControllerNode::set_pid_params() {
-    this->declare_parameter<std::vector<double>>(
-        "Kp", {1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
-    this->declare_parameter<std::vector<double>>(
-        "Ki", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
-    this->declare_parameter<std::vector<double>>(
-        "Kd", {0.1, 0.1, 0.1, 0.1, 0.1, 0.1});
+    this->declare_parameter<double>("Kp_x", 1.0);
+    this->declare_parameter<double>("Kp_y", 1.0);
+    this->declare_parameter<double>("Kp_z", 1.0);
+    this->declare_parameter<double>("Kp_roll", 1.0);
+    this->declare_parameter<double>("Kp_pitch", 1.0);
+    this->declare_parameter<double>("Kp_yaw", 1.0);
+    this->declare_parameter<double>("Ki_x", 0.1);
+    this->declare_parameter<double>("Ki_y", 0.1);
+    this->declare_parameter<double>("Ki_z", 0.1);
+    this->declare_parameter<double>("Ki_roll", 0.1);
+    this->declare_parameter<double>("Ki_pitch", 0.1);
+    this->declare_parameter<double>("Ki_yaw", 0.1);
+    this->declare_parameter<double>("Kd_x", 0.1);
+    this->declare_parameter<double>("Kd_y", 0.1);
+    this->declare_parameter<double>("Kd_z", 0.1);
+    this->declare_parameter<double>("Kd_roll", 0.1);
+    this->declare_parameter<double>("Kd_pitch", 0.1);
+    this->declare_parameter<double>("Kd_yaw", 0.1);
 
-    std::vector<double> Kp_vec = this->get_parameter("Kp").as_double_array();
-    std::vector<double> Ki_vec = this->get_parameter("Ki").as_double_array();
-    std::vector<double> Kd_vec = this->get_parameter("Kd").as_double_array();
+    std::vector<double> Kp_vec = {
+        this->get_parameter("Kp_x").as_double(),
+        this->get_parameter("Kp_y").as_double(),
+        this->get_parameter("Kp_z").as_double(),
+        this->get_parameter("Kp_roll").as_double(),
+        this->get_parameter("Kp_pitch").as_double(),
+        this->get_parameter("Kp_yaw").as_double(),
+    };
+    std::vector<double> Ki_vec = {
+        this->get_parameter("Ki_x").as_double(),
+        this->get_parameter("Ki_y").as_double(),
+        this->get_parameter("Ki_z").as_double(),
+        this->get_parameter("Ki_roll").as_double(),
+        this->get_parameter("Ki_pitch").as_double(),
+        this->get_parameter("Ki_yaw").as_double(),
+    };
+    std::vector<double> Kd_vec = {
+        this->get_parameter("Kd_x").as_double(),
+        this->get_parameter("Kd_y").as_double(),
+        this->get_parameter("Kd_z").as_double(),
+        this->get_parameter("Kd_roll").as_double(),
+        this->get_parameter("Kd_pitch").as_double(),
+        this->get_parameter("Kd_yaw").as_double(),
+    };
 
-    types::Matrix6d Kp_eigen = Eigen::Map<types::Matrix6d>(Kp_vec.data());
-    types::Matrix6d Ki_eigen = Eigen::Map<types::Matrix6d>(Ki_vec.data());
-    types::Matrix6d Kd_eigen = Eigen::Map<types::Matrix6d>(Kd_vec.data());
+    types::Vector6d Kp_vec_eigen(Kp_vec.data());
+    types::Vector6d Ki_vec_eigen(Ki_vec.data());
+    types::Vector6d Kd_vec_eigen(Kd_vec.data());
+
+    types::Matrix6d Kp_eigen = Kp_vec_eigen.asDiagonal().toDenseMatrix();
+    types::Matrix6d Ki_eigen = Ki_vec_eigen.asDiagonal().toDenseMatrix();
+    types::Matrix6d Kd_eigen = Kd_vec_eigen.asDiagonal().toDenseMatrix();
 
     pid_controller_.set_kp(Kp_eigen);
     pid_controller_.set_ki(Ki_eigen);
@@ -176,13 +217,143 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    eta_d_.pos << msg->x, msg->y, msg->z;
+    // Set desired position
+    eta_d_.x = msg->x;
+    eta_d_.y = msg->y;
+    eta_d_.z = msg->z;
 
+    // Convert desired attitude (roll, pitch, yaw) to quaternion and store
     double roll = msg->roll;
     double pitch = msg->pitch;
     double yaw = msg->yaw;
 
-    eta_d_.ori = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-                 Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-                 Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+    Eigen::Quaterniond quat =
+        Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
+        Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+
+    eta_d_.qw = quat.w();
+    eta_d_.qx = quat.x();
+    eta_d_.qy = quat.y();
+    eta_d_.qz = quat.z();
+}
+
+rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
+    const std::vector<rclcpp::Parameter>& parameters) {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    result.reason = "success";
+
+    bool kp_x_updated = false;
+    bool kp_y_updated = false;
+    bool kp_z_updated = false;
+    bool kp_roll_updated = false;
+    bool kp_pitch_updated = false;
+    bool kp_yaw_updated = false;
+
+    bool ki_x_updated = false;
+    bool ki_y_updated = false;
+    bool ki_z_updated = false;
+    bool ki_roll_updated = false;
+    bool ki_pitch_updated = false;
+    bool ki_yaw_updated = false;
+
+    bool kd_x_updated = false;
+    bool kd_y_updated = false;
+    bool kd_z_updated = false;
+    bool kd_roll_updated = false;
+    bool kd_pitch_updated = false;
+    bool kd_yaw_updated = false;
+
+    types::Vector6d Kp_vec_eigen = pid_controller_.get_kp().diagonal();
+    types::Vector6d Ki_vec_eigen = pid_controller_.get_ki().diagonal();
+    types::Vector6d Kd_vec_eigen = pid_controller_.get_kd().diagonal();
+
+    for (const auto& param : parameters) {
+        if (param.get_name() == "Kp_x") {
+            Kp_vec_eigen(0) = param.as_double();
+            kp_x_updated = true;
+        } else if (param.get_name() == "Kp_y") {
+            Kp_vec_eigen(1) = param.as_double();
+            kp_y_updated = true;
+        } else if (param.get_name() == "Kp_z") {
+            Kp_vec_eigen(2) = param.as_double();
+            kp_z_updated = true;
+        } else if (param.get_name() == "Kp_roll") {
+            Kp_vec_eigen(3) = param.as_double();
+            kp_roll_updated = true;
+        } else if (param.get_name() == "Kp_pitch") {
+            Kp_vec_eigen(4) = param.as_double();
+            kp_pitch_updated = true;
+        } else if (param.get_name() == "Kp_yaw") {
+            Kp_vec_eigen(5) = param.as_double();
+            kp_yaw_updated = true;
+        } else if (param.get_name() == "Ki_x") {
+            Ki_vec_eigen(0) = param.as_double();
+            ki_x_updated = true;
+        } else if (param.get_name() == "Ki_y") {
+            Ki_vec_eigen(1) = param.as_double();
+            ki_y_updated = true;
+        } else if (param.get_name() == "Ki_z") {
+            Ki_vec_eigen(2) = param.as_double();
+            ki_z_updated = true;
+        } else if (param.get_name() == "Ki_roll") {
+            Ki_vec_eigen(3) = param.as_double();
+            ki_roll_updated = true;
+        } else if (param.get_name() == "Ki_pitch") {
+            Ki_vec_eigen(4) = param.as_double();
+            ki_pitch_updated = true;
+        } else if (param.get_name() == "Ki_yaw") {
+            Ki_vec_eigen(5) = param.as_double();
+            ki_yaw_updated = true;
+        } else if (param.get_name() == "Kd_x") {
+            Kd_vec_eigen(0) = param.as_double();
+            kd_x_updated = true;
+        } else if (param.get_name() == "Kd_y") {
+            Kd_vec_eigen(1) = param.as_double();
+            kd_y_updated = true;
+        } else if (param.get_name() == "Kd_z") {
+            Kd_vec_eigen(2) = param.as_double();
+            kd_z_updated = true;
+        } else if (param.get_name() == "Kd_roll") {
+            Kd_vec_eigen(3) = param.as_double();
+            kd_roll_updated = true;
+        } else if (param.get_name() == "Kd_pitch") {
+            Kd_vec_eigen(4) = param.as_double();
+            kd_pitch_updated = true;
+        } else if (param.get_name() == "Kd_yaw") {
+            Kd_vec_eigen(5) = param.as_double();
+            kd_yaw_updated = true;
+        }
+    }
+
+    // Only set the gains if the parameter update was successful
+    if (result.successful) {
+        if (kp_x_updated || kp_y_updated || kp_z_updated || kp_roll_updated ||
+            kp_pitch_updated || kp_yaw_updated) {
+            types::Matrix6d Kp_eigen =
+                Kp_vec_eigen.asDiagonal().toDenseMatrix();
+            pid_controller_.set_kp(Kp_eigen);
+        }
+        if (ki_x_updated || ki_y_updated || ki_z_updated || ki_roll_updated ||
+            ki_pitch_updated || ki_yaw_updated) {
+            types::Matrix6d Ki_eigen =
+                Ki_vec_eigen.asDiagonal().toDenseMatrix();
+            pid_controller_.set_ki(Ki_eigen);
+        }
+        if (kd_x_updated || kd_y_updated || kd_z_updated || kd_roll_updated ||
+            kd_pitch_updated || kd_yaw_updated) {
+            types::Matrix6d Kd_eigen =
+                Kd_vec_eigen.asDiagonal().toDenseMatrix();
+            pid_controller_.set_kd(Kd_eigen);
+        }
+    }
+
+    // print
+    for (const auto& param : parameters) {
+        RCLCPP_INFO(this->get_logger(), "%s", param.get_name().c_str());
+        RCLCPP_INFO(this->get_logger(), "%s", param.get_type_name().c_str());
+        RCLCPP_INFO(this->get_logger(), "%s", param.value_to_string().c_str());
+    }
+    return result;
 }
