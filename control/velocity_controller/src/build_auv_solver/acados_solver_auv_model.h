@@ -41,7 +41,7 @@
 #define AUV_MODEL_NU     3
 #define AUV_MODEL_NP     0
 #define AUV_MODEL_NP_GLOBAL     0
-#define AUV_MODEL_NBX    0
+#define AUV_MODEL_NBX    1
 #define AUV_MODEL_NBX0   9
 #define AUV_MODEL_NBU    3
 #define AUV_MODEL_NSBX   0
@@ -61,9 +61,9 @@
 #define AUV_MODEL_NG     0
 #define AUV_MODEL_NBXN   0
 #define AUV_MODEL_NGN    0
-#define AUV_MODEL_NY0    12
-#define AUV_MODEL_NY     12
-#define AUV_MODEL_NYN    9
+#define AUV_MODEL_NY0    8
+#define AUV_MODEL_NY     8
+#define AUV_MODEL_NYN    5
 #define AUV_MODEL_N      20
 #define AUV_MODEL_NH     0
 #define AUV_MODEL_NHN    0

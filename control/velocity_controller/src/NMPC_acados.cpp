@@ -35,73 +35,24 @@ bool AuvNMPC::init() {
     dims_   = auv_model_acados_get_nlp_dims(capsule_);
     nlp_in_ = auv_model_acados_get_nlp_in(capsule_);
     nlp_out_= auv_model_acados_get_nlp_out(capsule_);
-
-    // Get N from generated getter if available; else use override.
-    // If your header doesn’t have *_get_N, pass N in the constructor.
-    #ifdef auv_model_acados_get_N
-    N_ = auv_model_acados_get_N(capsule_);
-    #else
-    N_ = (N_override_ > 0) ? N_override_ : 20; // fallback
-    #endif
-
-    // Provide some safe default weights, tune later or call set_weights()
-    if (W_diag_.size() == NY) {
-        // Example diag: [Q; R]
-        // states:  5,5,8, 1,1,1, 10,15,10
-        // inputs:  1,0.5,0.5
-        double Wd[NY] = {5,5,8, 1,1,1, 10,15,10, 1,0.5,0.5};
-        W_diag_.assign(Wd, Wd + NY);
-    }
-    if (W_e_diag_.size() == NY_E) {
-        double Wed[NY_E] = {10,10,15, 2,2,2, 30,40,30};
-        W_e_diag_.assign(Wed, Wed + NY_E);
-    }
-
-    // Initialize per-stage yref & W (zeros ref by default)
-    std::vector<double> W(NY * NY, 0.0);
-    set_diag(W.data(), NY, W_diag_);
-    for (int k = 0; k < N_; ++k) {
-        double yref[NY] = {0};
-        ocp_nlp_cost_model_set(config_, dims_, nlp_in_, k, "yref", yref);
-        ocp_nlp_cost_model_set(config_, dims_, nlp_in_, k, "W",    W.data());
-    }
-    {
-        std::vector<double> W_e(NY_E * NY_E, 0.0);
-        set_diag(W_e.data(), NY_E, W_e_diag_);
-        double yref_e[NY_E] = {0};
-        ocp_nlp_cost_model_set(config_, dims_, nlp_in_, N_, "yref", yref_e);
-        ocp_nlp_cost_model_set(config_, dims_, nlp_in_, N_, "W",    W_e.data());
-    }
-
-    // Initialize nonlinear constraint bounds at stage 0 (if you defined con_h_expr with nh=1)
-    double lh0[1] = { 0.0 };
-    double uh0[1] = { max_force2_ };
-    ocp_nlp_constraints_model_set(config_, dims_, nlp_in_, nlp_out_, 0, "lh", lh0);
-    ocp_nlp_constraints_model_set(config_, dims_, nlp_in_, nlp_out_, 0, "uh", uh0);
+    N_ = (N_override_ > 0) ? N_override_ : AUV_MODEL_N; // fallback
 
     return true;
 }
 
 void AuvNMPC::set_weights(const std::vector<double>& Wd, const std::vector<double>& We) {
-    for (int i=0;i<(int)Wd.size();i++){
-        std::cout<<Wd[i]<<",";
-    }
-    std::cout<<std::endl;
-    if ((int)Wd.size() == NY){
-        std::cout<<"initializing Wd"<<std::endl;
+    if ((int)Wd.size() == NY) {
         W_diag_ = Wd;
+    } else {
+        std::cerr << "[AuvNMPC] set_weights: W size mismatch, got " 
+                  << Wd.size() << " expected " << NY << std::endl;
     }
-    if ((int)We.size() == NY_E){ 
-        std::cout<<"Initializing We"<<std::endl;
-        W_e_diag_ = We;}
-    for (int i=0;i<NY;i++){
-        std::cout<<"Weights "<<i<<":"<<W_diag_[i]<<",";
+    if ((int)We.size() == NY_E) {
+        W_e_diag_ = We;
+    } else {
+        std::cerr << "[AuvNMPC] set_weights: W_e size mismatch, got "
+                  << We.size() << " expected " << NY_E << std::endl;
     }
-    std::cout<<std::endl;
-    for (int i=0;i<NY_E;i++){
-        std::cout<<"Weights "<<i<<":"<<W_e_diag_[i]<<",";
-    }
-    std::cout<<std::endl;
 }
 
 void AuvNMPC::set_max_force(double max_force) {
@@ -113,7 +64,6 @@ void AuvNMPC::set_max_force(double max_force) {
 int AuvNMPC::solve_once()
 {
     // Pin x0 at stage 0: idxbx = 0..NX-1; lbx=ubx=x0
-    std::cout<<"N:"<<N_<<std::endl;
     //int idxbx0[NX]; for (int i=0;i<NX;++i) idxbx0[i]=i;
     //ocp_nlp_constraints_model_set(config_, dims_, nlp_in_, nlp_out_, 0, "idxbx", idxbx0);
     ocp_nlp_constraints_model_set(config_, dims_, nlp_in_, nlp_out_, 0, "lbx",   const_cast<double*>(x0.data()));
@@ -126,28 +76,44 @@ int AuvNMPC::solve_once()
     set_diag(W_e.data(), NY_E, W_e_diag_);
 
     // Update stages
+    // Stage yref: [u, q, r, theta, psi, tau1, tau2, tau3]
+    // Matches Vx selecting states [0,4,5,7,8] and Vu selecting all 3 inputs
+    double yref[NY] = {
+        xr[0],  // u     (surge velocity)
+        xr[4],  // q     (pitch rate)
+        xr[5],  // r     (yaw rate)
+        xr[7],  // theta (pitch)
+        xr[8],  // psi   (yaw)
+        ur[0],  // tau_surge
+        ur[1],  // tau_pitch
+        ur[2]   // tau_yaw
+    };
     for (int k = 0; k < N_; ++k) {
-        double yref[NY] = {0};
-        std::memcpy(yref,      xr.data(), NX*sizeof(double));
-        std::memcpy(yref+NX,   ur.data(), NU*sizeof(double));
         ocp_nlp_cost_model_set(config_, dims_, nlp_in_, k, "yref", yref);
         ocp_nlp_cost_model_set(config_, dims_, nlp_in_, k, "W",    W.data());
-
-        double lh[1] = { 0.0 };
-        double uh[1] = { max_force2_ };
-        ocp_nlp_constraints_model_set(config_, dims_, nlp_in_, nlp_out_, k, "lh", lh);
-        ocp_nlp_constraints_model_set(config_, dims_, nlp_in_, nlp_out_, k, "uh", uh);
     }
-    
+    // Terminal yref_e: [u, q, r, theta, psi]
+    double yref_e[NY_E] = {
+        xr[0],  // u
+        xr[4],  // q
+        xr[5],  // r
+        xr[7],  // theta
+        xr[8]   // psi
+    };
 
-    {
-        double yref_e[NY_E] = {0};
-        std::memcpy(yref_e, xr.data(), NX*sizeof(double));
-        ocp_nlp_cost_model_set(config_, dims_, nlp_in_, N_, "yref", yref_e);
-        ocp_nlp_cost_model_set(config_, dims_, nlp_in_, N_, "W",    W_e.data());
-    }
+    ocp_nlp_cost_model_set(config_, dims_, nlp_in_, N_, "yref", yref_e);
+    ocp_nlp_cost_model_set(config_, dims_, nlp_in_, N_, "W",    W_e.data());
 
     // Solve (blocking)
+    /*
+    for (int k = 0; k <= N_; ++k) {
+        ocp_nlp_out_set(config_, dims_, nlp_out_, nlp_in_,k, "x", const_cast<double*>(x0.data()));
+    }
+    double u_init[NU] = {0.0, 0.0, 0.0};
+    for (int k = 0; k < N_; ++k) {
+        ocp_nlp_out_set(config_, dims_, nlp_out_,nlp_in_, k, "u", u_init);
+    }
+    */
     int status = auv_model_acados_solve(capsule_);
 
     // Read u0
@@ -162,9 +128,9 @@ std::vector<double> AuvNMPC::getU0(){
     return u0_out;
 } 
 
-void AuvNMPC::setState(const std::array<double, NX>& x){
+void AuvNMPC::setState(const std::array<double, 9>& x){
     x0=x;
-    for (int i=0;i<NX;i++){
+    for (int i=0;i<x.size();i++){
         if (std::isnan(x0[i])){
             std::cout << "x0[" << i << "] is NaN!" << std::endl;
         }

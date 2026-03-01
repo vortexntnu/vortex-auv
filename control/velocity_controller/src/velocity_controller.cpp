@@ -50,11 +50,12 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
     std::bind(&Velocity_node::killswitch_callback,this, std::placeholders::_1));
 
 
-  //NMPC controller
-  NMPC.set_matrices(Q2,R2, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
+    //NMPC controller
+  /*
+    NMPC.set_matrices(Q2,R2, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
   NMPC.set_interval(publish_rate/1000.0);
   NMPC.initialize_MPC();
-
+  */  
   //NMPC acados controller
   NMPC_acados.init();
   NMPC_acados.set_max_force(max_force);
@@ -78,8 +79,6 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
     controller_type=1;
     RCLCPP_INFO(this->get_logger(),"Switching to PID");
   };
-  
-
 }
 
 
@@ -156,7 +155,9 @@ void Velocity_node::calc_thrust()
     NMPC_acados.setReference(x_ref,u_ref);
     std::array<double,9> state_array={current_state.surge,current_state.sway,current_state.heave,current_state.roll_rate,current_state.pitch_rate,current_state.yaw_rate,current_state.roll,current_state.pitch,current_state.yaw};
     NMPC_acados.setState(state_array);
-    if(NMPC_acados.solve_once()){
+    int status=NMPC_acados.solve_once();
+    if(status){
+      RCLCPP_ERROR(this->get_logger(),"Error status %i",status);
       rclcpp::shutdown();
     };
     u=NMPC_acados.getU0();

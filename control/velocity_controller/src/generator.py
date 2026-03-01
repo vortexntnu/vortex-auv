@@ -12,6 +12,7 @@ Generates a solver in ./build_auv_solver/
 import numpy as np
 import yaml
 from pathlib import Path
+import scipy.linalg
 
 from acados_template import AcadosOcp, AcadosOcpSolver, AcadosModel
 from casadi import SX, vertcat
@@ -40,11 +41,8 @@ def load_matrices(path="../config/parameters.yaml"):
         delta_t=data[node_key]["ros__parameters"]["publish_rate"]
         max_force=data[node_key]["ros__parameters"]["max_force"]
     else:
-        print("[INFO] Using default Q/R/Qe weights.")
-        # Default weights — to be removed
-        Q  = np.diag([ 5, 5, 8, 1, 1, 1, 10, 15, 10 ])
-        R  = np.diag([ 1.0, 0.5, 0.5 ])
-        Qe = np.diag([10,10,15, 2,2,2, 30,40,30 ])
+        print("[ERROR], yaml file not found")
+        
     return Q, R, Qe, inertia_M, D_lin, D_quad,N,delta_t,max_force
 
 
@@ -77,7 +75,7 @@ def create_auv_ocp():
 
     ocp.solver_options.integrator_type="ERK"
     ocp.solver_options.sim_method_num_stages=4
-    ocp.solver_options.sim_method_num_steps=2
+    ocp.solver_options.sim_method_num_steps=4
 
     nx = acados_model.x.size()[0]
     nu = acados_model.u.size()[0]
@@ -85,34 +83,56 @@ def create_auv_ocp():
     # ----------------------------------
     # Cost: LINEAR_LS (yref-based)
     # ----------------------------------
-    ocp.cost.cost_type = "LINEAR_LS"
+    # ----------------------------------
+    ocp.cost.cost_type   = "LINEAR_LS"
     ocp.cost.cost_type_e = "LINEAR_LS"
 
-    # Select which states and inputs enter the cost
+    # States you care about: u=0, q=4, r=5
+    idx_states   = [0, 1, 2,3,4]
+    idx_controls = [0, 1, 2]
 
-    Vx = np.zeros((nx + nu, nx))  # 12×9
-    Vu = np.zeros((nx + nu, nu))  # 12×3
+    n_y  = len(idx_states) + len(idx_controls)  # 8
+    n_ye = len(idx_states)                       # 5
 
-    # Top-left block (state tracking)
-    Vx[0:nx, 0:nx] = np.eye(nx)
+    # Vx: (8, nx) — selects only u, q, r from state vector
+    Vx = np.zeros((n_y, nx))
+    for i, idx in enumerate(idx_states):
+        Vx[i, idx] = 1.0
 
-    # Bottom-right block (input tracking)
-    Vu[nx:nx + nu, 0:nu] = np.eye(nu)
+    # Vu: (8, nu) — selects all 3 controls, placed in lower block
+    Vu = np.zeros((n_y, nu))
+    for i, idx in enumerate(idx_controls):
+        Vu[len(idx_states) + i, idx] = 1.0
 
-    ocp.cost.Vx = Vx
-    ocp.cost.Vu = Vu
+    # W: (8, 8) — only track what you care about, well conditioned
+    Q_tracked = np.diag([
+    Q[0, 0],   # u
+    Q[1, 1],   # q
+    Q[2, 2],   # r
+    Q[3, 3],   # theta
+    Q[4, 4],   # psi
+])
+    R_tracked = np.diag([R[0,0], R[1,1], R[2,2]])  # weights for controls
 
-    ocp.cost.W = np.block([
-        [Q, np.zeros((nx, nu))],
-        [np.zeros((nu, nx)), R]
-    ])
+    W = scipy.linalg.block_diag(Q_tracked, R_tracked)
 
-    ocp.cost.Vx_e = np.eye(nx)
-    ocp.cost.W_e = Qe
+    ocp.cost.Vx = Vx  # (8, nx)
+    ocp.cost.Vu = Vu  # (8, nu)
+    ocp.cost.W  = W   # (8, 8)
 
-    # Default references (0 until updated at runtime)
-    ocp.cost.yref  = np.zeros(nx + nu)
-    ocp.cost.yref_e = np.zeros(nx)
+    # Terminal cost — same state selection, no controls
+    Vx_e = np.zeros((n_ye, nx))
+    for i, idx in enumerate(idx_states):
+        Vx_e[i, idx] = 1.0
+
+    Q_e_tracked = np.diag([Qe[0,0], Qe[1,1], Qe[2,2], Qe[3,3],Qe[4,4]])
+
+    ocp.cost.Vx_e = Vx_e       # (5, nx)
+    ocp.cost.W_e  = Q_e_tracked # (5, 5)
+
+    # References must match ny=6 and ny_e=3
+    ocp.cost.yref   = np.zeros(n_y)   # [u, q, r, theta, psi, u1, u2, u3]
+    ocp.cost.yref_e = np.zeros(n_ye)  # [u, q, r, theta, psi]
 
     # ----------------------------------
     # Nonlinear input constraint:
@@ -141,6 +161,10 @@ def create_auv_ocp():
     ocp.constraints.lbu = -u_max * np.ones(nu)
     ocp.constraints.ubu =  u_max * np.ones(nu)
     ocp.constraints.idxbu = np.arange(nu, dtype=int)
+    ocp.constraints.idxbx = np.array([7]) 
+    ocp.constraints.lbx = np.array([-1.4])
+    ocp.constraints.ubx = np.array([1.4])  
+    ocp.dims.nbx = 1 
 
     # ----------------------------------
     # Initial state constraint (must be updated before solve)
@@ -150,17 +174,26 @@ def create_auv_ocp():
     # ----------------------------------
     # Solver options
     # ----------------------------------
+    print("W shape:", ocp.cost.W.shape)
+    print("W diagonal:", np.diag(ocp.cost.W))
+    print("W_e shape:", ocp.cost.W_e.shape)  
+    print("W_e diagonal:", np.diag(ocp.cost.W_e))
+    print("Vx shape:", ocp.cost.Vx.shape)
+    print("Vx_e shape:", ocp.cost.Vx_e.shape)
+    print("yref:", ocp.cost.yref)
+    print("yref_e:", ocp.cost.yref_e)
+    print("ny:", ocp.dims.ny)
+    print("ny_e:", ocp.dims.ny_e)
     ocp.solver_options.qp_solver = "FULL_CONDENSING_HPIPM"
     ocp.solver_options.qp_solver_warm_start=1
     ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
     #ocp.solver_options.integrator_type = "ERK"
-    #cp.solver_options.nlp_solver_type = "SQP"   # fast real-time iteration
-    ocp.solver_options.nlp_solver_max_iter = 100
+    ocp.solver_options.nlp_solver_type = "SQP_RTI"   # fast real-time iteration
+    #ocp.solver_options.nlp_solver_max_iter = 100
 
-    ocp.solver_options.globalization = 'MERIT_BACKTRACKING'
+    #ocp.solver_options.globalization = 'MERIT_BACKTRACKING'
     ocp.solver_options.levenberg_marquardt = 1e-4
     ocp.solver_options.print_level = 2
-    ocp.constraints.idxe = np.array([], dtype=int)
 
     # ----------------------------------
     # Output directory

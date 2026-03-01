@@ -20,10 +20,10 @@ extern "C" {
 class AuvNMPC {
 public:
     // Adjust sizes if your model differs
-    static constexpr int NX = 9;   // [u v w p q r phi theta psi]
-    static constexpr int NU = 3;   // [Fx My Mz]
-    static constexpr int NY = NX + NU;
-    static constexpr int NY_E = NX;
+    static constexpr int NX = AUV_MODEL_NX;   // [u v w p q r phi theta psi]
+    static constexpr int NU = AUV_MODEL_NU;   // [Fx My Mz]
+    static constexpr int NY = AUV_MODEL_NY;
+    static constexpr int NY_E = AUV_MODEL_NYN;
 
     
 // Pass N if your generated header does not provide <model>_acados_get_N()
@@ -83,7 +83,7 @@ public:
     //U out
     std::vector<double> u0_out={0,0,0};
     //Recorded states states
-    std::array<double,NX> x0;
+    std::array<double,9> x0;
     std::array<double,NX> xr;
     std::array<double,NU> ur={0,0,0};
 };
