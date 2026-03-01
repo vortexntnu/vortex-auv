@@ -77,6 +77,9 @@ if journalctl -u ros2 | grep -i "error"; then
     exit 1
 fi
 
+echo "Sleeping for 5 seconds to make sure operation is stable..."
+sleep 5
+
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
 ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
