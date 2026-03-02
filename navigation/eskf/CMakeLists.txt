@@ -37,44 +37,77 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 include_directories(include)
 
-set(LIB_NAME "${PROJECT_NAME}_component")
+set(CORE_LIB_NAME "${PROJECT_NAME}")
 
-add_library(${LIB_NAME} SHARED
-  src/eskf.cpp
-  src/eskf_ros.cpp
+add_library(${CORE_LIB_NAME} SHARED
+  src/lib/eskf.cpp
 )
 
-ament_target_dependencies(${LIB_NAME} PUBLIC
-  rclcpp
-  rclcpp_components
-  geometry_msgs
-  nav_msgs
+target_include_directories(${CORE_LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(${CORE_LIB_NAME}
   Eigen3
-  tf2
-  vortex_msgs
   vortex_utils
-  vortex_utils_ros
-  spdlog
-  fmt
-  tf2_ros
-  tf2_eigen
-  stonefish_ros2
 )
 
-rclcpp_components_register_node(
-  ${LIB_NAME}
-  PLUGIN "ESKFNode"
-  EXECUTABLE ${PROJECT_NAME}_node
-)
+add_library(${PROJECT_NAME}::${CORE_LIB_NAME} ALIAS ${CORE_LIB_NAME})
 
-ament_export_targets(export_${LIB_NAME})
+option(BOOTSTRAP_CORE_ONLY "Build only the core ESKF library, without the ROS component" OFF)
 
-install(TARGETS ${LIB_NAME}
-  EXPORT export_${LIB_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+if(NOT BOOTSTRAP_CORE_ONLY)
+  set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
+
+  add_library(${COMPONENT_LIB_NAME} SHARED
+    src/ros/eskf_ros.cpp
+  )
+
+  ament_target_dependencies(${COMPONENT_LIB_NAME}
+    rclcpp
+    rclcpp_components
+    Eigen3
+    geometry_msgs
+    nav_msgs
+    tf2
+    tf2_ros
+    vortex_msgs
+    vortex_utils
+    vortex_utils_ros
+    spdlog
+    fmt
+  )
+
+  target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
+
+  find_package(landmark_egomotion REQUIRED)
+  target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
+
+  rclcpp_components_register_node(
+    ${COMPONENT_LIB_NAME}
+    PLUGIN "ESKFNode"
+    EXECUTABLE ${PROJECT_NAME}_node
+  )
+endif()
+
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+if(NOT BOOTSTRAP_CORE_ONLY)
+  install(TARGETS ${CORE_LIB_NAME} ${COMPONENT_LIB_NAME}
+    EXPORT export_${PROJECT_NAME}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+  )
+else()
+  install(TARGETS ${CORE_LIB_NAME}
+    EXPORT export_${PROJECT_NAME}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+  )
+endif()
 
 install(
   DIRECTORY include/
@@ -86,5 +119,12 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}/
 )
+
+ament_export_dependencies(
+  Eigen3
+  vortex_utils
+)
+ament_export_include_directories(include)
+ament_export_libraries(${CORE_LIB_NAME})
 
 ament_package()
