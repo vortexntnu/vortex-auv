@@ -51,49 +51,61 @@ ament_target_dependencies(${CORE_LIB_NAME}
   vortex_utils
 )
 
-# Alias so that in-tree consumers (landmark_egomotion) can resolve eskf::eskf
 add_library(${PROJECT_NAME}::${CORE_LIB_NAME} ALIAS ${CORE_LIB_NAME})
 
-set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
+option(BOOTSTRAP_CORE_ONLY "Build only the core ESKF library, without the ROS component" OFF)
 
-add_library(${COMPONENT_LIB_NAME} SHARED
-  src/ros/eskf_ros.cpp
-)
+if(NOT BOOTSTRAP_CORE_ONLY)
+  set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
 
-ament_target_dependencies(${COMPONENT_LIB_NAME}
-  rclcpp
-  rclcpp_components
-  Eigen3
-  geometry_msgs
-  nav_msgs
-  tf2
-  tf2_ros
-  vortex_msgs
-  vortex_utils
-  vortex_utils_ros
-  spdlog
-  fmt
-)
+  add_library(${COMPONENT_LIB_NAME} SHARED
+    src/ros/eskf_ros.cpp
+  )
 
-target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
+  ament_target_dependencies(${COMPONENT_LIB_NAME}
+    rclcpp
+    rclcpp_components
+    Eigen3
+    geometry_msgs
+    nav_msgs
+    tf2
+    tf2_ros
+    vortex_msgs
+    vortex_utils
+    vortex_utils_ros
+    spdlog
+    fmt
+  )
 
-find_package(landmark_egomotion REQUIRED)
-target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
+  target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
 
-rclcpp_components_register_node(
-  ${COMPONENT_LIB_NAME}
-  PLUGIN "ESKFNode"
-  EXECUTABLE ${PROJECT_NAME}_node
-)
+  find_package(landmark_egomotion REQUIRED)
+  target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
+
+  rclcpp_components_register_node(
+    ${COMPONENT_LIB_NAME}
+    PLUGIN "ESKFNode"
+    EXECUTABLE ${PROJECT_NAME}_node
+  )
+endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
-install(TARGETS ${CORE_LIB_NAME} ${COMPONENT_LIB_NAME}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+if(NOT BOOTSTRAP_CORE_ONLY)
+  install(TARGETS ${CORE_LIB_NAME} ${COMPONENT_LIB_NAME}
+    EXPORT export_${PROJECT_NAME}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+  )
+else()
+  install(TARGETS ${CORE_LIB_NAME}
+    EXPORT export_${PROJECT_NAME}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+  )
+endif()
 
 install(
   DIRECTORY include/

@@ -26,8 +26,20 @@ build_ros_workspace() {
     log_info "Sourcing workspace..."
     . install/setup.bash
 
+    log_info "Bootstrapping eskf core library..."
+    colcon build --packages-select eskf --cmake-args -DBOOTSTRAP_CORE_ONLY=ON
+
+    log_info "Sourcing workspace..."
+    . install/setup.bash
+
+    log_info "Building landmark_egomotion..."
+    colcon build --packages-select landmark_egomotion
+
+    log_info "Sourcing workspace..."
+    . install/setup.bash
+
     log_info "Building remaining ROS 2 packages..."
-    colcon build --packages-ignore stonefish_ros2 vortex_utils
+    colcon build --packages-ignore stonefish_ros2 vortex_utils --cmake-args -DBOOTSTRAP_CORE_ONLY=OFF
 
     log_info "ROS 2 workspace build complete."
 }
