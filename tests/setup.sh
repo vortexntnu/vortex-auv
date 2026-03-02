@@ -27,7 +27,7 @@ build_ros_workspace() {
     . install/setup.bash
 
     log_info "Bootstrapping eskf core library..."
-    colcon build --packages-select eskf --cmake-args -DBOOTSTRAP_CORE_ONLY=ON
+    colcon build --packages-up-to eskf --cmake-args -DBOOTSTRAP_CORE_ONLY=ON
 
     log_info "Sourcing workspace..."
     . install/setup.bash
