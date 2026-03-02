@@ -1,23 +1,21 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>pid_controller_dp_euler</name>
+  <name>operation_mode_manager</name>
   <version>0.0.0</version>
-  <description>PID controller for DP using Euler angles</description>
-  <maintainer email="andeshog@stud.ntnu.no">andeshog</maintainer>
+  <description>Operation mode manager package</description>
+  <maintainer email="eirisak@stud.ntnu.no">Eirik</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>eigen</depend>
-  <depend>tf2</depend>
   <depend>vortex_msgs</depend>
-  <depend>vortex_utils</depend>
+  <depend>joy</depend>
   <depend>vortex_utils_ros</depend>
+  <depend>vortex_utils</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

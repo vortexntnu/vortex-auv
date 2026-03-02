@@ -4,6 +4,7 @@
 #include <string>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
@@ -25,6 +26,7 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
+    initialize_operation_mode();
 
     tau_pub_timer_ = this->create_wall_timer(
         time_step_, std::bind(&DPAdaptBacksControllerNode::publish_tau, this));
@@ -74,16 +76,55 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.operation_mode");
     std::string software_operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
-    software_mode_sub_ = this->create_subscription<std_msgs::msg::String>(
-        software_operation_mode_topic, qos_reliable,
-        std::bind(&DPAdaptBacksControllerNode::software_mode_callback, this,
-                  std::placeholders::_1));
+    operation_mode_sub_ =
+        this->create_subscription<vortex_msgs::msg::OperationMode>(
+            software_operation_mode_topic, qos_reliable,
+            std::bind(&DPAdaptBacksControllerNode::operation_mode_callback,
+                      this, std::placeholders::_1));
 
     this->declare_parameter<std::string>("topics.wrench_input");
     std::string control_topic =
         this->get_parameter("topics.wrench_input").as_string();
     tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         control_topic, qos_sensor_data);
+}
+
+void DPAdaptBacksControllerNode::initialize_operation_mode() {
+    this->declare_parameter<std::string>("services.get_operation_mode");
+    std::string get_operation_mode_service =
+        this->get_parameter("services.get_operation_mode").as_string();
+
+    get_operation_mode_client_ =
+        this->create_client<vortex_msgs::srv::GetOperationMode>(
+            get_operation_mode_service);
+
+    while (!get_operation_mode_client_->wait_for_service(
+        std::chrono::seconds(1))) {
+        spdlog::warn("Waiting for GetOperationMode service to be available...");
+    }
+
+    auto request =
+        std::make_shared<vortex_msgs::srv::GetOperationMode::Request>();
+    get_operation_mode_client_->async_send_request(
+        request,
+        [this](rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedFuture
+                   future) {
+            try {
+                auto response = future.get();
+                operation_mode_ =
+                    vortex::utils::ros_conversions::convert_from_ros(
+                        response->current_operation_mode);
+                killswitch_on_ = response->killswitch_status;
+                spdlog::info(
+                    "Initial operation mode: {} | Killswitch status: {}",
+                    vortex::utils::types::mode_to_string(operation_mode_),
+                    killswitch_on_ ? "on" : "off");
+            } catch (const std::exception& e) {
+                spdlog::error("Failed to get initial operation mode: {}",
+                              e.what());
+                killswitch_on_ = true;
+            }
+        });
 }
 
 void DPAdaptBacksControllerNode::killswitch_callback(
@@ -94,12 +135,14 @@ void DPAdaptBacksControllerNode::killswitch_callback(
     spdlog::info("Killswitch: {}", killswitch_on_ ? "on" : "off");
 }
 
-void DPAdaptBacksControllerNode::software_mode_callback(
-    const std_msgs::msg::String::SharedPtr msg) {
-    software_mode_ = msg->data;
-    spdlog::info("Software mode: {}", software_mode_);
+void DPAdaptBacksControllerNode::operation_mode_callback(
+    const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+    operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
+    spdlog::info("Operation mode: {}",
+                 vortex::utils::types::mode_to_string(operation_mode_));
 
-    if (software_mode_ == "autonomous mode") {
+    if (operation_mode_ == vortex::utils::types::Mode::autonomous ||
+        operation_mode_ == vortex::utils::types::Mode::reference) {
         pose_d_ = pose_;
     }
 }
@@ -180,7 +223,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {
-    if (killswitch_on_ || software_mode_ != "autonomous mode") {
+    if (killswitch_on_ ||
+        operation_mode_ == vortex::utils::types::Mode::manual) {
         return;
     }
 

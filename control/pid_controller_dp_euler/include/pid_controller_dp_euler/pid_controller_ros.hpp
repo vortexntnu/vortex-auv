@@ -11,8 +11,10 @@
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <string>
+#include <vortex/utils/types.hpp>
+#include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "pid_controller_dp_euler/typedefs.hpp"
 
 class PIDControllerNode : public rclcpp::Node {
@@ -22,7 +24,8 @@ class PIDControllerNode : public rclcpp::Node {
    private:
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
-    void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
+    void operation_mode_callback(
+        const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
@@ -39,11 +42,17 @@ class PIDControllerNode : public rclcpp::Node {
 
     void set_subscribers_and_publisher();
 
+    void initialize_operation_mode();
+
+    rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_client_;
+
     PIDController pid_controller_;
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_;
 
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
+        operation_mode_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -70,7 +79,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     bool killswitch_on_ = false;
 
-    std::string software_mode_;
+    vortex::utils::types::Mode operation_mode_;
 };
 
 #endif  // PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_

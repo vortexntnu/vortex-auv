@@ -76,7 +76,14 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     Eigen::Vector6d fill_reference_goal(const geometry_msgs::msg::Pose& goal);
 
+    Eigen::Vector6d measured_pose_vector6();
+
     Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in, uint8_t mode);
+
+    bool has_converged_against_pose(const Eigen::Vector6d& y,
+                                    const Eigen::Vector6d& r,
+                                    uint8_t mode,
+                                    double convergence_threshold) const;
 
     void publish_hold_reference();
 

@@ -1,5 +1,4 @@
 name: pre-commit
-
 on:
   push:
     branches:
@@ -8,8 +7,8 @@ on:
     types: [ opened, synchronize, reopened, ready_for_review ]
   workflow_dispatch:
 jobs:
-  call_reusable_workflow:
+  pre-commit:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-pre-commit.yml@main
     with:
-        ros_distro: 'humble'
-        config_path: '.pre-commit-config.yaml'
+      ros_distro: 'humble'
+      config_path: '.pre-commit-config.yaml'

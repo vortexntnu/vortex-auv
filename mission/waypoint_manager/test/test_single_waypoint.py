@@ -9,7 +9,7 @@ import launch_testing
 import launch_testing.actions
 import rclpy
 from ament_index_python.packages import get_package_share_directory
-from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.action import ActionClient
 from rclpy.qos import qos_profile_sensor_data
 from vortex_msgs.action import WaypointManager
@@ -66,19 +66,27 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
     def tearDown(self):
         self.node.destroy_node()
 
-    def _publish_fake_odom(self, x, y, z, duration_sec=5.0, rate_hz=10.0):
+    def _publish_fake_pose(self, x, y, z, duration_sec=5.0, rate_hz=10.0):
         pub = self.node.create_publisher(
-            Odometry,
-            '/orca/odom',
+            PoseWithCovarianceStamped,
+            '/orca/pose',
             qos_profile_sensor_data,
         )
 
-        msg = Odometry()
+        msg = PoseWithCovarianceStamped()
         msg.header.frame_id = 'odom'
-        msg.child_frame_id = 'base_link'
+
         msg.pose.pose.position.x = x
         msg.pose.pose.position.y = y
         msg.pose.pose.position.z = z
+
+        # Valid orientation
+        msg.pose.pose.orientation.w = 1.0
+        msg.pose.pose.orientation.x = 0.0
+        msg.pose.pose.orientation.y = 0.0
+        msg.pose.pose.orientation.z = 0.0
+
+        # Covariance can be left as all zeros (default) for this test.
 
         end_time = time.time() + duration_sec
         period = 1.0 / rate_hz
@@ -100,9 +108,11 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
 
         goal_msg = WaypointManager.Goal()
         wp = Waypoint()
+        wp.mode = Waypoint.FULL_POSE
         wp.pose.position.x = 0.0
         wp.pose.position.y = 0.0
         wp.pose.position.z = 1.0
+        wp.pose.orientation.w = 1.0  # valid quaternion
 
         goal_msg.waypoints = [wp]
         goal_msg.persistent = False
@@ -120,8 +130,7 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
         goal_handle = send_fut.result()
         assert goal_handle.accepted, 'Goal was rejected'
 
-        # Publish fake odometry at the goal position
-        self._publish_fake_odom(
+        self._publish_fake_pose(
             x=wp.pose.position.x,
             y=wp.pose.position.y,
             z=wp.pose.position.z,

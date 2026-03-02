@@ -14,7 +14,9 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <vortex/utils/types.hpp>
+#include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller/typedefs.hpp"
 #include "typedefs.hpp"
@@ -28,13 +30,18 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
+    // @brief Client for the GetOperationMode service
+    rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
+        get_operation_mode_client_;
+
     // @brief Callback function for the killswitch topic
     // @param msg: Bool message containing the killswitch status
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
     // @brief Callback function for the software mode topic
     // @param msg: String message containing the software mode
-    void software_mode_callback(const std_msgs::msg::String::SharedPtr msg);
+    void operation_mode_callback(
+        const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
     // @brief Callback function for the pose topic
     // @param msg: PoseWithCovarianceStamped message containing the AUV pose
@@ -55,6 +62,10 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     // @brief Set the subscriber and publisher for the node
     void set_subscribers_and_publisher();
 
+    // @brief Initialize the operation mode by calling the GetOperationMode
+    // service
+    void initialize_operation_mode();
+
     // @brief Callback function for the guidance topic
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity
@@ -63,7 +74,8 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_{};
 
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr software_mode_sub_{};
+    rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
+        operation_mode_sub_{};
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_{};
@@ -88,9 +100,10 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::unique_ptr<DPAdaptBacksController> dp_adapt_backs_controller_{};
 
-    bool killswitch_on_{false};
+    bool killswitch_on_{true};
 
-    std::string software_mode_{};
+    vortex::utils::types::Mode operation_mode_{
+        vortex::utils::types::Mode::manual};
 };
 
 }  // namespace vortex::control
