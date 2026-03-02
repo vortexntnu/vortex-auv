@@ -236,18 +236,19 @@ void ESKFNode::landmark_callback(
 
     std::vector<const vortex_msgs::msg::Landmark*> markers;
     for (const auto& lm : msg->landmarks) {
-        if (lm.type == vortex_msgs::msg::Landmark::ARUCO_MARKER) {
+        if (lm.type.value == vortex_msgs::msg::LandmarkType::ARUCO_MARKER) {
             markers.push_back(&lm);
         }
     }
     if (markers.empty())
         return;
 
-    auto it = std::min_element(
-        markers.begin(), markers.end(),
-        [](const auto* a, const auto* b) { return a->subtype < b->subtype; });
+    auto it = std::min_element(markers.begin(), markers.end(),
+                               [](const auto* a, const auto* b) {
+                                   return a->subtype.value < b->subtype.value;
+                               });
     const auto* chosen = *it;
-    uint16_t chosen_id = chosen->subtype;
+    uint16_t chosen_id = chosen->subtype.value;
     spdlog::debug("Received {} markers, chosen id: {}", markers.size(),
                   chosen_id);
 
