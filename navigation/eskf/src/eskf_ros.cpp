@@ -144,22 +144,32 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     double dt = (current_time - last_imu_time_).nanoseconds() * 1e-9;
     last_imu_time_ = current_time;
 
+    ImuMeasurement imu_measurement{};
+
     Eigen::Vector3d raw_accel(msg->linear_acceleration.x,
                               msg->linear_acceleration.y,
                               msg->linear_acceleration.z);
 
-    ImuMeasurement imu_measurement{};
-    imu_measurement.accel = R_imu_eskf_ * raw_accel;
-
     Eigen::Vector3d raw_gyro(msg->angular_velocity.x, msg->angular_velocity.y,
                              msg->angular_velocity.z);
 
-    // currently the gyro and the accelorometer are rotated differently.
-    // should be changed with the actual drone params.
-    // imu_measurement.gyro = R_imu_eskf_ * raw_gyro;
-    imu_measurement.gyro = raw_gyro;
+    Eigen::Vector3d accel_aligned = R_imu_eskf_ * raw_accel;
 
-    // used for publishing odom output of eskf
+    // currently the gyro and the accelorometer are rotated differently in sim.
+    // should be changed with the actual drone params.
+    // Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
+    Eigen::Vector3d gyro_aligned = raw_gyro;
+    imu_measurement.gyro = gyro_aligned;
+
+    // lever arm correction for accelerometer
+    StateQuat nom_state = eskf_->get_nominal_state();
+    Eigen::Vector3d omega = gyro_aligned - nom_state.gyro_bias;
+
+    // a_corrected = a_meas - omega x (omega x T)
+    Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
+    imu_measurement.accel = accel_aligned - centripetal_accel;
+
+    // save latest gyro readings (used for DVL correction and odom output)
     latest_gyro_measurement_ = imu_measurement.gyro;
 
     eskf_->imu_update(imu_measurement, dt);
@@ -176,8 +186,14 @@ void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
         msg->velocity_covariance[5], msg->velocity_covariance[6],
         msg->velocity_covariance[7], msg->velocity_covariance[8];
 
-    // Apply the rotation correction to the DVL measurement
-    dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement;
+    // Apply the rotation and translation corrections to the DVL measurement
+    StateQuat nom_state = eskf_->get_nominal_state();
+    // get the angular velocity
+    Eigen::Vector3d omega_corrected =
+        latest_gyro_measurement_ - nom_state.gyro_bias;
+    // correct rotation and translation: v_base = v_sensor - omega x T
+    dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement -
+                             omega_corrected.cross(T_dvl_eskf_);
     dvl_sensor.measurement_noise =
         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
