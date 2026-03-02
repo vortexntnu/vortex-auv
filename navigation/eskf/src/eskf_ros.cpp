@@ -221,9 +221,14 @@ void ESKFNode::publish_odom() {
     odom_msg.pose.pose.orientation.y = nom_state.quat.y();
     odom_msg.pose.pose.orientation.z = nom_state.quat.z();
 
-    odom_msg.twist.twist.linear.x = nom_state.vel.x();
-    odom_msg.twist.twist.linear.y = nom_state.vel.y();
-    odom_msg.twist.twist.linear.z = nom_state.vel.z();
+    // publishing the velocity in the body frame
+    Eigen::Matrix3d R_body_to_world = nom_state.quat.toRotationMatrix();
+
+    Eigen::Vector3d v_body = R_body_to_world.transpose() * nom_state.vel;
+
+    odom_msg.twist.twist.linear.x = v_body.x();
+    odom_msg.twist.twist.linear.y = v_body.y();
+    odom_msg.twist.twist.linear.z = v_body.z();
 
     // Add bias values to the angular velocity field of twist
     Eigen::Vector3d body_angular_vel =
