@@ -94,6 +94,16 @@ private:
     int computeScore( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
                       const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
                       const Eigen::Vector2f& intersection);
+
+    CandidateCorner selectBestCorner( const std::vector<CandidateCorner>& possible_corners,
+                                      const Eigen::Vector2f& drone_position);
+
+    Eigen::Vector2f computeNormal(const LineSegment& line);
+
+    Eigen::Vector2f estimateDockingPosition(
+        const CandidateCorner estimated_corner,
+        float right_wall_offset,
+        float far_wall_offset);
 //private:
 
     //Parameters for Occupancy grid

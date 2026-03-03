@@ -1,6 +1,7 @@
 #include <pool_exploration/pool_exploration.hpp>
 
 #include <iostream>
+#include <vector>
 
 namespace vortex::pool_exploration{
 
@@ -131,7 +132,7 @@ void PoolExplorationMap::bresenhamLineAlgoritm(int x0, int y0, int x1, int y1){
     }
 }
 
-
+//Funksjon som finner hjørner basert på krav om vinkler
 std::vector<CandidateCorner> PoolExplorationMap::findCorner(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msg, 
                                                             const Eigen::Vector2f& drone_pos,
                                                             float drone_heading,
@@ -228,6 +229,62 @@ int PoolExplorationMap::computeScore( const std::pair<Eigen::Vector2f, Eigen::Ve
     return 0;
 }
 */
+
+//Lage en funksjon som faktisk velger ut de to beste linjene som er hjørnet
+//returnerer estimated corner som er nærmest dronen (foreløpig, gjøre bedre estimat?)
+CandidateCorner PoolExplorationMap::selectBestCorner(
+    const std::vector<CandidateCorner>& possible_corners,
+    const Eigen::Vector2f& drone_position)
+{
+    //finne bedre unnntakshåndtering?
+    if (possible_corners.empty()) {
+        throw std::runtime_error("No candidate corners available");
+    }
+
+    // Setter til størst mulige float og vil oppdateres etterpå
+    float min_distance = std::numeric_limits<float>::max();
+    CandidateCorner best_corner = possible_corners.front();
+
+    for (const auto& corner : possible_corners) {
+        float distance = (corner.corner_point - drone_position).squaredNorm();
+
+        if (distance < min_distance) {
+            min_distance = distance;
+            best_corner = corner;
+        }
+    }
+
+    return best_corner;
+}
+
+
+Eigen::Vector2f PoolExplorationMap::computeNormal(const LineSegment& line) {
+    Eigen::Vector2f p0 = line.asEigen().first;
+    Eigen::Vector2f p1 = line.asEigen().second;
+
+    Eigen::Vector2f dir = (p1 - p0).normalized();
+    Eigen::Vector2f n(-dir.y(), dir.x());
+
+    return n.normalized();
+}
+
+Eigen::Vector2f PoolExplorationMap::estimateDockingPosition(
+        const CandidateCorner estimated_corner,
+        float right_wall_offset,
+        float far_wall_offset)
+{
+    //Linje normalt på
+    Eigen::Vector2f right_normal = computeNormal(estimated_corner.right_wall);
+    Eigen::Vector2f far_normal   = computeNormal(estimated_corner.far_wall);
+
+    //må hente intersection som ligger lagret i corner
+    Eigen::Vector2f docking_estimate = estimated_corner.corner_point
+        + right_normal * right_wall_offset
+        + far_normal   * far_wall_offset;
+
+    return docking_estimate;
+}
+
 
 //FUNKSJON BRUKT TIL TESTING, FJERNE SENERE:))?
 void PoolExplorationMap::printGridToConsole() const{
