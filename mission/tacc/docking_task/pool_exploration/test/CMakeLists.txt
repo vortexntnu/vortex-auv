@@ -1,15 +1,20 @@
-cmake_minimum_required(VERSION 3.8)
-project(pool_exploration_test)
+find_package(ament_cmake_gtest REQUIRED)
 
-find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
+ament_add_gtest(test_pool_exploration
+  test_pool_exploration.cpp
+)
 
-find_package(ament_cmake_ros REQUIRED)
-find_package(launch_testing_ament_cmake REQUIRED)
+target_include_directories(test_pool_exploration PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
 
-function(add_ros_isolated_launch_test path)
-  set(RUNNER "${ament_cmake_ros_DIR}/run_test_isolated.py")
-  add_launch_test("${path}" RUNNER "${RUNNER}" ${ARGN})
-endfunction()
+ament_target_dependencies(test_pool_exploration
+  rclcpp
+  nav_msgs
+  vortex_msgs
+  Eigen3
+)
 
-add_ros_isolated_launch_test(test_grid.cpp TIMEOUT 300)
+target_link_libraries(test_pool_exploration
+  ${PROJECT_NAME}_lib
+)

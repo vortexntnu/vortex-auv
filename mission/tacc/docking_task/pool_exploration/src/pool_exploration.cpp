@@ -54,29 +54,6 @@ void PoolExplorationMap::insertSegmentsMapFrame(
         bresenhamLineAlgoritm(x0, y0, x1, y1);
     }
 }
-/* DENNE DELEN SKAL JEG NÅ SPLITTE TIL ROS UAVHENGIG
-void PoolExplorationMap::setLineSegmentInMapFrame(
-    const vortex_msgs::msg::LineSegment3DArray::SharedPtr msgs,
-    const Eigen::Matrix4f& map_to_odom_tf) {
-    for (const auto &line : msgs->lines) {
-        // 1. Transform fra odom → map
-        // Konvertere fra 3d vektor til 4d for å matche transformasjonen
-        Eigen::Vector4f p0_4d(line.p0.x, line.p0.y, line.p0.z, 1.0f);
-        Eigen::Vector4f p1_4d(line.p1.x, line.p1.y, line.p1.z, 1.0f);
-        Eigen::Vector4f p0_map = map_to_odom_tf.inverse() * p0_4d;
-        Eigen::Vector4f p1_map = map_to_odom_tf.inverse() * p1_4d;
-
-        //2. Transform fra map coordinate -> grid index
-        int x0 = (p0_map.x() - grid_.info.origin.position.x) / grid_.info.resolution; 
-        int y0 = (p0_map.y() - grid_.info.origin.position.y) / grid_.info.resolution; 
-        int x1 = (p1_map.x() - grid_.info.origin.position.x) / grid_.info.resolution; 
-        int y1 = (p1_map.y() - grid_.info.origin.position.y) / grid_.info.resolution; 
-
-        //3. Bresenham line algoritm
-        bresenhamLineAlgoritm(x0, y0, x1, y1);
-    }
-}
-*/
 
 void PoolExplorationMap::setGridCell(
     int x, 

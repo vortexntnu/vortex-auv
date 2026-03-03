@@ -23,13 +23,7 @@ struct Point {
 struct LineSegment {
     Point p0;
     Point p1;
-
-    // Konverter fra ROS LineSegment3D MÅ ENDRE OG LEGGE I ROSDELEN
-/*    LineSegment(const vortex_msgs::msg::LineSegment3D& msg)
-        : p0{static_cast<float>(msg.p0.x), static_cast<float>(msg.p0.y)}, 
-          p1{static_cast<float>(msg.p1.x), static_cast<float>(msg.p1.y)} {}
-
-*/    
+  
     // Lage Eigen til beregninger
     std::pair<Eigen::Vector2f, Eigen::Vector2f> asEigen() const {
         return { {p0.x, p0.y}, {p1.x, p1.y} };
