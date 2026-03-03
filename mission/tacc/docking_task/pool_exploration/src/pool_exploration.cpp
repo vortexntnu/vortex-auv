@@ -1,6 +1,6 @@
 #include <pool_exploration/pool_exploration.hpp>
 
-#include <iostream>
+//#include <iostream> Brukt til testinga
 #include <vector>
 
 namespace vortex::pool_exploration{
@@ -12,8 +12,7 @@ PoolExplorationMap::PoolExplorationMap(
     const std::string& frame_id)
     : size_x_(size_x),
       size_y_(size_y),
-      resolution_(resolution)
-{
+      resolution_(resolution) {
     //send in map to constructor
     grid_.header.frame_id = frame_id;
     initialize_grid();
@@ -41,15 +40,29 @@ const nav_msgs::msg::OccupancyGrid& PoolExplorationMap::grid() const {
     return grid_;
 }
 
-void PoolExplorationMap::setLineSegmentInMapFrame(
-    const vortex_msgs::msg::LineSegment2DArray::SharedPtr msgs,
-    const Eigen::Matrix4f& map_to_odom_tf)
+void PoolExplorationMap::insertSegmentsMapFrame(
+    const std::vector<LineSegment>& segments)
 {
+    for (const LineSegment& seg : segments) {
+
+        // map (meter) -> grid index
+        int x0 = static_cast<int>((seg.p0.x - grid_.info.origin.position.x) / grid_.info.resolution);
+        int y0 = static_cast<int>((seg.p0.y - grid_.info.origin.position.y) / grid_.info.resolution);
+        int x1 = static_cast<int>((seg.p1.x - grid_.info.origin.position.x) / grid_.info.resolution);
+        int y1 = static_cast<int>((seg.p1.y - grid_.info.origin.position.y) / grid_.info.resolution);
+
+        bresenhamLineAlgoritm(x0, y0, x1, y1);
+    }
+}
+/* DENNE DELEN SKAL JEG NÅ SPLITTE TIL ROS UAVHENGIG
+void PoolExplorationMap::setLineSegmentInMapFrame(
+    const vortex_msgs::msg::LineSegment3DArray::SharedPtr msgs,
+    const Eigen::Matrix4f& map_to_odom_tf) {
     for (const auto &line : msgs->lines) {
         // 1. Transform fra odom → map
-        // Konvertere fra 2d vektor til 4d for å matche transformasjonen
-        Eigen::Vector4f p0_4d(line.p0.x, line.p0.y, 0.0f, 1.0f);
-        Eigen::Vector4f p1_4d(line.p1.x, line.p1.y, 0.0f, 1.0f);
+        // Konvertere fra 3d vektor til 4d for å matche transformasjonen
+        Eigen::Vector4f p0_4d(line.p0.x, line.p0.y, line.p0.z, 1.0f);
+        Eigen::Vector4f p1_4d(line.p1.x, line.p1.y, line.p1.z, 1.0f);
         Eigen::Vector4f p0_map = map_to_odom_tf.inverse() * p0_4d;
         Eigen::Vector4f p1_map = map_to_odom_tf.inverse() * p1_4d;
 
@@ -63,9 +76,12 @@ void PoolExplorationMap::setLineSegmentInMapFrame(
         bresenhamLineAlgoritm(x0, y0, x1, y1);
     }
 }
+*/
 
-void PoolExplorationMap::setGridCell(int x, int y, int value)
-{
+void PoolExplorationMap::setGridCell(
+    int x, 
+    int y, 
+    int value) {
     // Sjekk at koordinatene er innenfor kartet
     if (x < 0 || x >= static_cast<int>(grid_.info.width) ||
         y < 0 || y >= static_cast<int>(grid_.info.height)) {
@@ -78,8 +94,11 @@ void PoolExplorationMap::setGridCell(int x, int y, int value)
 }
 
 
-void PoolExplorationMap::bresenhamLineAlgoritm(int x0, int y0, int x1, int y1){
-
+void PoolExplorationMap::bresenhamLineAlgoritm(
+    int x0, 
+    int y0, 
+    int x1, 
+    int y1) {
     bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
     if (!steep){
         if (x0 > x1){
@@ -133,18 +152,20 @@ void PoolExplorationMap::bresenhamLineAlgoritm(int x0, int y0, int x1, int y1){
 }
 
 //Funksjon som finner hjørner basert på krav om vinkler
-std::vector<CandidateCorner> PoolExplorationMap::findCorner(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msg, 
-                                                            const Eigen::Vector2f& drone_pos,
-                                                            float drone_heading,
-                                                            float min_dist, float max_dist,
-                                                            float angle_threshold,
-                                                            float min_angle, float max_angle) {
+std::vector<CandidateCorner> PoolExplorationMap::findCorner(
+    const std::vector<LineSegment>& lines,
+    const Eigen::Vector2f& drone_pos,
+    float drone_heading,
+    float min_dist, 
+    float max_dist,
+    float angle_threshold,
+    float min_angle, 
+    float max_angle) {
     std::vector<LineSegment> right_candidates;
     std::vector<LineSegment> far_candidates;
 
     // Finne mulige linjer
-    for (auto& msg_line : msg->lines) {
-        LineSegment line(msg_line);  // konverter her
+    for (const auto& line : lines) {
         auto projection = projectPointToLine(drone_pos, line.asEigen());
         float dist = (projection - drone_pos).norm(); //Lengden til vektoren
         float angle = lineAngleDifference(line.asEigen(), drone_heading);
@@ -173,17 +194,32 @@ std::vector<CandidateCorner> PoolExplorationMap::findCorner(const vortex_msgs::m
 }
     
 
-Eigen::Vector2f PoolExplorationMap::projectPointToLine( const Eigen::Vector2f& drone_pos,
-                                    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line) {
+Eigen::Vector2f PoolExplorationMap::projectPointToLine( 
+    const Eigen::Vector2f& drone_pos,
+    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line) {
     const Eigen::Vector2f& p0 = line.first;
-    const Eigen::Vector2f& p00 = line.second;
+    const Eigen::Vector2f& p1 = line.second;
 
-    Eigen::Vector2f dir_vec = p00 - p0;
-    float t = (drone_pos - p0).dot(dir_vec) / dir_vec.dot(dir_vec);
-    return p0 + t * dir_vec;
+    Eigen::Vector2f dir_vec = p1 - p0;
+    float len_sq = dir_vec.squaredNorm();
+
+    // Unngå deling på null hvis segmentet er degenerert
+    if (len_sq < 1e-6f) {
+        return p0;  // segmentet er egentlig bare ett punkt, endre dette??
     }
+    //prosjeksjon formel
+    float t = (drone_pos - p0).dot(dir_vec) / len_sq;
 
-float PoolExplorationMap::lineAngleDifference( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, const float& drone_heading){
+    // projeksjon må ligge på segmentet
+    t = std::clamp(t, 0.0f, 1.0f);
+
+    return p0 + t * dir_vec;
+}
+
+
+float PoolExplorationMap::lineAngleDifference( 
+    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
+    const float& drone_heading) {
     float line_angle = atan2(line.second.y() - line.first.y(), line.second.x() - line.first.x());
     float diff       = std::fmod(line_angle - drone_heading, 2*M_PI);
     
@@ -193,9 +229,10 @@ float PoolExplorationMap::lineAngleDifference( const std::pair<Eigen::Vector2f, 
     return std::abs(diff);
 }
 
- bool PoolExplorationMap::lineIntersection( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-                                            const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
-                                            Eigen::Vector2f& intersection) {
+ bool PoolExplorationMap::lineIntersection( 
+    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
+    Eigen::Vector2f& intersection) {
     const Eigen::Vector2f p00 = line0.first;
     const Eigen::Vector2f p01 = line0.second;
     const Eigen::Vector2f p10 = line1.first;
@@ -213,8 +250,9 @@ float PoolExplorationMap::lineAngleDifference( const std::pair<Eigen::Vector2f, 
     return true;
 }
 
-float PoolExplorationMap::angleBetweenLines(const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-                                            const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1) {
+float PoolExplorationMap::angleBetweenLines(
+    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1) {
     Eigen::Vector2f v0 = (line0.second - line0.first).normalized();
     Eigen::Vector2f v1 = (line1.second - line1.first).normalized();
 
@@ -258,7 +296,8 @@ CandidateCorner PoolExplorationMap::selectBestCorner(
 }
 
 
-Eigen::Vector2f PoolExplorationMap::computeNormal(const LineSegment& line) {
+Eigen::Vector2f PoolExplorationMap::computeNormal(
+    const LineSegment& line) {
     Eigen::Vector2f p0 = line.asEigen().first;
     Eigen::Vector2f p1 = line.asEigen().second;
 
@@ -269,10 +308,9 @@ Eigen::Vector2f PoolExplorationMap::computeNormal(const LineSegment& line) {
 }
 
 Eigen::Vector2f PoolExplorationMap::estimateDockingPosition(
-        const CandidateCorner estimated_corner,
-        float right_wall_offset,
-        float far_wall_offset)
-{
+    const CandidateCorner estimated_corner,
+    float right_wall_offset,
+    float far_wall_offset) {
     //Linje normalt på
     Eigen::Vector2f right_normal = computeNormal(estimated_corner.right_wall);
     Eigen::Vector2f far_normal   = computeNormal(estimated_corner.far_wall);
@@ -285,7 +323,7 @@ Eigen::Vector2f PoolExplorationMap::estimateDockingPosition(
     return docking_estimate;
 }
 
-
+/*
 //FUNKSJON BRUKT TIL TESTING, FJERNE SENERE:))?
 void PoolExplorationMap::printGridToConsole() const{
     for (int y = grid_.info.height - 1; y >= 0; --y) {
@@ -303,5 +341,5 @@ void PoolExplorationMap::printGridToConsole() const{
         std::cout << ::std::endl;
     }
 }
-
+*/
 }  // namespace vortex::pool_exploration

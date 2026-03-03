@@ -1,34 +1,35 @@
 #ifndef POOL_EXPLORATION_HPP
 #define POOL_EXPLORATION_HPP
 
-#include <geometry_msgs/msg/detail/point__struct.hpp>
+//#include <geometry_msgs/msg/detail/point__struct.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <string>
+#include <vector>
+#include <utility>
+#include <cmath>
+//#include <algorithm> //brukes ikke av clamp?
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <vortex_msgs/msg/detail/line_segment2_d__struct.hpp>
-#include <vortex_msgs/msg/detail/line_segment2_d_array__struct.hpp>
-#include <vortex_msgs/msg/line_segment2_d_array.hpp>
 
 static constexpr int8_t OCCUPIED = 100;
 
-
 namespace vortex::pool_exploration{
-
+// Punkt i map frame
 struct Point {
     float x{};
     float y{};
 };
-
+// Lager eget linjesegment i 2d, ikke bruk vortex_msgs sin
 struct LineSegment {
     Point p0;
     Point p1;
 
-    // Konverter fra ROS LineSegment2D
-    LineSegment(const vortex_msgs::msg::LineSegment2D& msg)
+    // Konverter fra ROS LineSegment3D MÅ ENDRE OG LEGGE I ROSDELEN
+/*    LineSegment(const vortex_msgs::msg::LineSegment3D& msg)
         : p0{static_cast<float>(msg.p0.x), static_cast<float>(msg.p0.y)}, 
           p1{static_cast<float>(msg.p1.x), static_cast<float>(msg.p1.y)} {}
 
+*/    
     // Lage Eigen til beregninger
     std::pair<Eigen::Vector2f, Eigen::Vector2f> asEigen() const {
         return { {p0.x, p0.y}, {p1.x, p1.y} };
@@ -58,11 +59,13 @@ public:
     */
     void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
     
-    //MÅ ENDRE INPUT PÅ DENNE:)
-    void setLineSegmentInMapFrame(const vortex_msgs::msg::LineSegment2DArray::SharedPtr msgs,
-                                    const Eigen::Matrix4f& map_to_odom_tf);
-    //
-    std::vector<CandidateCorner> findCorner( const vortex_msgs::msg::LineSegment2DArray::SharedPtr msg, 
+    //ENDRE INPUT PÅ DENNE (SJEKK AT _ROS oppfyller samme som denne gjorde)
+    //void setLineSegmentInMapFrame(const vortex_msgs::msg::LineSegment3DArray::SharedPtr msgs,
+    //                                const Eigen::Matrix4f& map_to_odom_tf);
+                        
+    void insertSegmentsMapFrame(const std::vector<LineSegment>& segments);
+    //ENDRET
+    std::vector<CandidateCorner> findCorner( const std::vector<LineSegment>& lines, 
                                              const Eigen::Vector2f& drone_pos,
                                              float drone_heading,
                                              float min_dist, float max_dist,
