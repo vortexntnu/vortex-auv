@@ -12,7 +12,8 @@ add_executable(
 )
 
 target_compile_definitions(thrust_allocator_auv_test PRIVATE
-  YAML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../../../auv_setup/config/robots/orca.yaml"
+  # YAML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../../../auv_setup/config/robots/orca.yaml"
+  YAML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../../../auv_setup/config/robots/moby.yaml"
 )
 
 target_link_libraries(
