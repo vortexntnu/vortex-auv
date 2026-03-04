@@ -40,6 +40,7 @@ const nav_msgs::msg::OccupancyGrid& PoolExplorationMap::grid() const {
     return grid_;
 }
 
+// Denne kalles på fra ros noden
 void PoolExplorationMap::insertSegmentsMapFrame(
     const std::vector<LineSegment>& segments)
 {
@@ -55,21 +56,21 @@ void PoolExplorationMap::insertSegmentsMapFrame(
     }
 }
 
-void PoolExplorationMap::setGridCell(
-    int x, 
-    int y, 
-    int value) {
-    // Sjekk at koordinatene er innenfor kartet
-    if (x < 0 || x >= static_cast<int>(grid_.info.width) ||
-        y < 0 || y >= static_cast<int>(grid_.info.height)) {
-        return;
-    }
+Eigen::Vector2f PoolExplorationMap::estimateDockingPosition(
+    const CandidateCorner estimated_corner,
+    float right_wall_offset,
+    float far_wall_offset) {
+    //Linje normalt på
+    Eigen::Vector2f right_normal = computeNormal(estimated_corner.right_wall);
+    Eigen::Vector2f far_normal   = computeNormal(estimated_corner.far_wall);
 
-    int index = y * grid_.info.width + x;
+    //må hente intersection som ligger lagret i corner
+    Eigen::Vector2f docking_estimate = estimated_corner.corner_point
+        + right_normal * right_wall_offset
+        + far_normal   * far_wall_offset;
 
-    grid_.data[index] = value;
+    return docking_estimate;
 }
-
 
 void PoolExplorationMap::bresenhamLineAlgoritm(
     int x0, 
@@ -126,6 +127,21 @@ void PoolExplorationMap::bresenhamLineAlgoritm(
             p += 2 * dx;
         }
     }
+}
+
+void PoolExplorationMap::setGridCell(
+    int x, 
+    int y, 
+    int value) {
+    // Sjekk at koordinatene er innenfor kartet
+    if (x < 0 || x >= static_cast<int>(grid_.info.width) ||
+        y < 0 || y >= static_cast<int>(grid_.info.height)) {
+        return;
+    }
+
+    int index = y * grid_.info.width + x;
+
+    grid_.data[index] = value;
 }
 
 //Funksjon som finner hjørner basert på krav om vinkler
@@ -284,21 +300,6 @@ Eigen::Vector2f PoolExplorationMap::computeNormal(
     return n.normalized();
 }
 
-Eigen::Vector2f PoolExplorationMap::estimateDockingPosition(
-    const CandidateCorner estimated_corner,
-    float right_wall_offset,
-    float far_wall_offset) {
-    //Linje normalt på
-    Eigen::Vector2f right_normal = computeNormal(estimated_corner.right_wall);
-    Eigen::Vector2f far_normal   = computeNormal(estimated_corner.far_wall);
-
-    //må hente intersection som ligger lagret i corner
-    Eigen::Vector2f docking_estimate = estimated_corner.corner_point
-        + right_normal * right_wall_offset
-        + far_normal   * far_wall_offset;
-
-    return docking_estimate;
-}
 
 /*
 //FUNKSJON BRUKT TIL TESTING, FJERNE SENERE:))?

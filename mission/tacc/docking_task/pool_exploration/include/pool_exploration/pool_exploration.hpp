@@ -51,6 +51,7 @@ public:
     * @brief Draws a straight line on the occupancy grid using Bresenham's algorithm.
     * Reference: https://www.youtube.com/watch?v=CceepU1vIKo
     */
+    //brukes i insertSegmentsMapFrame
     void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
     
     //ENDRE INPUT PÅ DENNE (SJEKK AT _ROS oppfyller samme som denne gjorde)
@@ -66,6 +67,14 @@ public:
                                              float angle_threshold,
                                              float min_angle, float max_angle);
 
+    CandidateCorner selectBestCorner( const std::vector<CandidateCorner>& possible_corners,
+                                    const Eigen::Vector2f& drone_position);
+
+    Eigen::Vector2f estimateDockingPosition(
+        const CandidateCorner estimated_corner,
+        float right_wall_offset,
+        float far_wall_offset);
+
     //MIDLERTIDIG TEST-FUNKSJON
     void printGridToConsole() const;
     
@@ -73,6 +82,7 @@ public:
 private:
     //Occupancy grid
     void initialize_grid();
+    // brukes i bresenham
     void setGridCell(int x, int y, int value);
 
     Eigen::Vector2f projectPointToLine( const Eigen::Vector2f& drone_pos, // punktet som projiseres
@@ -92,15 +102,9 @@ private:
                       const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
                       const Eigen::Vector2f& intersection);
 
-    CandidateCorner selectBestCorner( const std::vector<CandidateCorner>& possible_corners,
-                                      const Eigen::Vector2f& drone_position);
-
     Eigen::Vector2f computeNormal(const LineSegment& line);
 
-    Eigen::Vector2f estimateDockingPosition(
-        const CandidateCorner estimated_corner,
-        float right_wall_offset,
-        float far_wall_offset);
+   
 //private:
 
     //Parameters for Occupancy grid

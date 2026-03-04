@@ -1,7 +1,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 // #include <nav_msgs/msg/detail/occupancy_grid__struct.hpp>
-#include <vortex_msgs/msg/line_segment3_d_array.hpp>
+// #include <vortex_msgs/msg/line_segment2_d_array.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/create_timer_ros.h>
 #include <tf2_ros/static_transform_broadcaster.h>
@@ -40,10 +40,16 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
 
     this->declare_parameter<bool>("enu_to_ned", false); // skal ha med??
 
+    // const std::string line_sub_topic =
+    //    this->declare_parameter<std::string>("line_sub_topic", "/filtered_lines");
+
     const std::string line_sub_topic =
-        this->declare_parameter<std::string>("line_sub_topic", "/filtered_lines");
+        this->declare_parameter<std::string>("line_sub_topic", "/line_detection/line_segments");
+
     const std::string map_pub_topic =
         this->declare_parameter<std::string>("map_pub_topic", "/map");
+    // const std::string pose_sub_topic = 
+    //     this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // navn på denne????
 
     // TF broadcaster
     tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -67,7 +73,7 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
         .transient_local();
 
     // subscriber (HAR BYTTA UT?)
-    // line_sub_ = this->create_subscription<vortex_msgs::msg::LineSegment3DArray>(
+    // line_sub_ = this->create_subscription<vortex_msgs::msg::LineSegment2DArray>(
     //     line_sub_topic, qos_sub,
     //    std::bind(&PoolExplorationNode::line_callback, this, std::placeholders::_1));
     auto sub_options = rclcpp::SubscriptionOptions();
@@ -77,9 +83,16 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
         line_sub_topic,
         qos_sub.get_rmw_qos_profile(),
         sub_options);
+/*
+    pose_sub_ = this->create_subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>(
+        pose_sub_topic, qos_sensor_data,
+        std::bind(&LOSGuidanceNode::pose_callback, this,
+                  std::placeholders::_1));
 
+*/
     // MessageFilter: slipper bare gjennom meldinger når TF til map_frame_ finnes
-    line_filter_ = std::make_shared<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment3DArray>>(
+    line_filter_ = std::make_shared<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>>(
         line_sub_, *tf_buffer_, map_frame_, 10,  // queue size
         this->get_node_logging_interface(),
         this->get_node_clock_interface());
@@ -90,6 +103,9 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     // publisher
     //map_pub_ = create_publisher<nav_msgs::msg::OccupancyGrid>(map_pub_topic, qos_pub); 
     map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(map_pub_topic, map_qos);
+
+    // service client
+    waypoint_client_ = this->create_client<vortex_msgs::srv::SendWaypoints>("/send_waypoints"); //endre /send_waypoints navnet
 
     //timer 
     timer_ = this->create_wall_timer(pub_dt_, [this]() { this->timer_callback(); });
@@ -129,7 +145,7 @@ geometry_msgs::msg::TransformStamped PoolExplorationNode::compute_map_odom_trans
 
 //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
 std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
-    const vortex_msgs::msg::LineSegment3DArray& msg,
+    const vortex_msgs::msg::LineSegment2DArray& msg,
     const Eigen::Matrix4f& T_map_src)
 {
     //const Eigen::Matrix4f odom_to_map = map_to_odom_tf.inverse(); //Skal ikke inverse likevel, håndteres av lookupTransform
@@ -139,8 +155,8 @@ std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
     segVector.reserve(msg.lines.size());
 
     for (const auto& line : msg.lines) {
-        Eigen::Vector4f p0_src(line.p0.x, line.p0.y, line.p0.z, 1.0f);
-        Eigen::Vector4f p1_src(line.p1.x, line.p1.y, line.p1.z, 1.0f);
+        Eigen::Vector4f p0_src(line.p0.x, line.p0.y, 0.0f, 1.0f);
+        Eigen::Vector4f p1_src(line.p1.x, line.p1.y, 0.0f, 1.0f);
 
         Eigen::Vector4f p0_map = T_map_src * p0_src;
         Eigen::Vector4f p1_map = T_map_src * p1_src;
@@ -155,7 +171,7 @@ std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
 
 
 void PoolExplorationNode::line_callback(
-    const vortex_msgs::msg::LineSegment3DArray::ConstSharedPtr& msg) {
+    const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg) {
 
     geometry_msgs::msg::TransformStamped tf_stamped;
     try {
@@ -173,7 +189,54 @@ void PoolExplorationNode::line_callback(
     //se nærmere på denne transform logikken
     auto segs = toMapSegments2D(*msg, T_map_src);
     // oppdaterer griddet direkte
+    // bruker logikk fra pool_exploration.h
     map_.insertSegmentsMapFrame(segs);
+    spdlog::info("[PoolExploration] {} line segments drawn in map", segs.size());
+
+    // MÅ LEGGE INN DOCKING POSE ESTIMATION
+        // ===== DOCKING ESTIMATE START =====
+
+    // Midlertidige defaults til har ekte pose
+    // MÅ ENDRE OG PLASSERE ANNET STED
+    Eigen::Vector2f drone_pos = {0.0f, 0.0f};
+    float drone_heading = 0.0f;
+
+    float min_dist_ = 0.0f;        
+    float max_dist_ = 5.0f;       
+    float angle_threshold_ = 0.3f;  
+    float min_angle_ = 1.2f;    
+    float max_angle_  = 1.9f;
+    float right_wall_offset_ = 0.5f;
+    float far_wall_offset_ = 0.5f;
+    
+    auto corners = map_.findCorner(
+        segs,
+        drone_pos,
+        drone_heading,
+        min_dist_,          // float
+        max_dist_,          // float
+        angle_threshold_,   // float
+        min_angle_,         // float (radians)
+        max_angle_          // float (radians)
+    );
+
+    if (!corners.empty()) {
+        CandidateCorner best = map_.selectBestCorner(corners, drone_pos);
+
+        Eigen::Vector2f docking = map_.estimateDockingPosition(
+            best,
+            right_wall_offset_,   
+            far_wall_offset_     
+        );
+        sendDockingWaypoint(docking);
+
+        spdlog::info("[PoolExploration] Docking estimate (map): x={} y={}",
+                    docking.x(), docking.y());
+    } else {
+        spdlog::info("[PoolExploration] No valid corners -> no docking estimate");
+    }
+
+    // ===== DOCKING ESTIMATE END =====
 
    // publish_grid();
 }
@@ -189,6 +252,45 @@ void PoolExplorationNode::publish_grid() {
     msg.header.stamp = this->get_clock()->now();
 
     map_pub_->publish(msg);
+}
+
+void PoolExplorationNode::sendDockingWaypoint(const Eigen::Vector2f& docking_estimate)
+{
+    if (waypoint_sent_) { //må lage en bool her som bestemmer dette
+        return;
+    }
+
+    if (!waypoint_client_->service_is_ready()) {
+        spdlog::warn("Waypoint service not available");
+        return;
+    }
+
+    auto request =
+        std::make_shared<vortex_msgs::srv::SendWaypoints::Request>();
+
+    vortex_msgs::msg::Waypoint wp;
+
+    wp.pose.position.x = docking_estimate.x();
+    wp.pose.position.y = docking_estimate.y();
+    wp.pose.position.z = 0.0f; //Hva skal denne være
+    
+    // hva skal orientation være??
+    wp.pose.orientation.x = 0.0f;
+    wp.pose.orientation.y = 0.0f;
+    wp.pose.orientation.z = 0.0f;
+    wp.pose.orientation.w = 1.0f;
+
+    request->waypoints.push_back(wp);
+
+    request->switching_threshold = 0.5;
+    request->overwrite_prior_waypoints = true;
+    request->take_priority = true;
+
+    waypoint_client_->async_send_request(request);
+
+    waypoint_sent_ = true;
+
+    spdlog::info("Docking waypoint sent to WaypointManager");
 }
 
 /*
