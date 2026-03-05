@@ -27,7 +27,15 @@
         num: 3
       thrusters:
         num: 8
-        thruster_force_direction: [ # Direction of forces X,Y,Z, same logic as thruster_position thruster0 produces thrust in (X0,Y0,Z0) and ||(X0,Y0,Z0)|| = 1 
+        thruster_force_direction: [ # Direction of forces X,Y,Z, same logic as thruster_position thruster0 produces thrust in (X0,Y0,Z0) and ||(X0,Y0,Z0)|| = 1
+            0.70711,
+            0.00000,
+            0.00000,
+            -0.70711,
+            -0.70711,
+            0.00000,
+            0.00000,
+            0.70711, # Surge
             0.70711,
             0.00000,
             0.00000,
@@ -35,15 +43,7 @@
             -0.70711,
             0.00000,
             0.00000,
-            -0.70711, # Surge
-            -0.70711,
-            0.00000,
-            0.00000,
-            -0.70711,
-            0.70711,
-            0.00000,
-            0.00000,
-            0.70711, # Sway
+            -0.70711, # Sway
             0.00000,
             1.00000,
             1.00000,
