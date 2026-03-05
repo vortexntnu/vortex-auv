@@ -5,10 +5,6 @@
     # pose_sub_tocic: "" #Må ta inn pose også TO DO
     map_pub_topic: "/map" #skal jeg publishe til map??
 
-    #gå over å sjekke disse TO DO
-    target_frame: "odom"
-    sonar_frame: "Orca/FLS"
-
     # Publish
     publish_rate_ms: 200
 
@@ -16,6 +12,7 @@
 
     map_frame: "map"
     odom_frame: "odom"
+    base_frame: "base_link"
     sonar_frame: "Orca/FLS"
     enu_to_ned: false
 
@@ -24,6 +21,10 @@
     size_y: 10.0
     resolution: 0.1
     frame_id: "map"
+
+    # Map cells
+    unknown_cell: -1
+    occupied cell: 100
 
 
     # Corner/docking params
