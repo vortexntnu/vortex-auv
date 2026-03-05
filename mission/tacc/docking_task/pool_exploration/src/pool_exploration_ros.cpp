@@ -13,22 +13,31 @@ namespace vortex::pool_exploration{
 
 PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
     : rclcpp::Node("pool_exploration_node", options),
-        size_x_(this->declare_parameter<double>("size_x", 10.0)),
-        size_y_(this->declare_parameter<double>("size_y", 10.0)),
-        resolution_(this->declare_parameter<double>("resolution", 0.1)),
-        map_frame_(this->declare_parameter<std::string>("map_frame", "map")),
+        size_x_(this->declare_parameter<double>("size_x")),
+        size_y_(this->declare_parameter<double>("size_y")),
+        resolution_(this->declare_parameter<double>("resolution")),
+        map_frame_(this->declare_parameter<std::string>("map_frame")),
         map_(size_x_, size_y_, resolution_, map_frame_) {
     setup_publishers_and_subscribers();
+
+    min_dist_ = this->declare_parameter<double>("min_dist");
+    max_dist_ = this->declare_parameter<double>("max_dist");
+    angle_threshold_ = this->declare_parameter<double>("angle_threshold");
+    min_angle_ = this->declare_parameter<double>("min_angle");
+    max_angle_ = this->declare_parameter<double>("max_angle");
+    right_wall_offset_ = this->declare_parameter<double>("right_wall_offset");
+    far_wall_offset_ = this->declare_parameter<double>("far_wall_offset");
 } 
 
 void PoolExplorationNode::setup_publishers_and_subscribers() {
     // map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
-    odom_frame_ = this->declare_parameter<std::string>("odom_frame", "odom");
-    sonar_frame_ = this->declare_parameter<std::string>("sonar_frame", "sonar");
+    odom_frame_ = this->declare_parameter<std::string>("odom_frame");
+    //sonar_frame_ = this->declare_parameter<std::string>("sonar_frame");
+    base_frame_ = this->declare_parameter<std::string>("base_frame");
 
     
     pub_dt_ = std::chrono::milliseconds(
-        this->declare_parameter<int>("publish_rate_ms", 200));
+        this->declare_parameter<int>("publish_rate_ms"));
 
     // velge enu eller ned
     this->declare_parameter<bool>("enu_to_ned", false);
@@ -159,14 +168,24 @@ std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
 
 void PoolExplorationNode::line_callback(
     const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg) {
+    
+    estimateAndSendDockingWaypoint(*msg);
+    // vente med denne:
+    //drawSegmentsInMapFrame(*msg);
+}
 
+// VENTE MED DENNE LOGIKK TIL SENERE
+void PoolExplorationNode::drawSegmentsInMapFrame(
+    const vortex_msgs::msg::LineSegment2DArray& msg)
+{
     geometry_msgs::msg::TransformStamped tf_stamped;
+
     try {
         tf_stamped = tf_buffer_->lookupTransform(
-            map_frame_, msg->header.frame_id, msg->header.stamp);
+            map_frame_, msg.header.frame_id, msg.header.stamp);
     } catch (const tf2::TransformException& ex) {
         spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
-                    msg->header.frame_id, map_frame_, ex.what());
+                     msg.header.frame_id, map_frame_, ex.what());
         return;
     }
 
@@ -174,50 +193,66 @@ void PoolExplorationNode::line_callback(
     const Eigen::Matrix4f T_map_src = T.matrix().cast<float>();
 
     //se nærmere på denne transform logikken
-    auto segs = toMapSegments2D(*msg, T_map_src);
+    auto segs = toMapSegments2D(msg, T_map_src);
     // bruker logikk fra pool_exploration.h
-    map_.insertSegmentsMapFrame(segs);
-    spdlog::info("[PoolExploration] {} line segments drawn in map", segs.size());
 
-    // Midlertidige defaults til har ekte pose
+    map_.insertSegmentsMapFrame(segs);
+
+    spdlog::info("[PoolExploration] {} line segments drawn in map", segs.size());
+}
+
+// GJØRE I base_frame ELLER odom??
+void PoolExplorationNode::estimateAndSendDockingWaypoint(
+    const vortex_msgs::msg::LineSegment2DArray& msg)
+{
+    geometry_msgs::msg::TransformStamped tf_stamped;
+
+    try {
+        tf_stamped = tf_buffer_->lookupTransform(
+            odom_frame_, msg.header.frame_id, msg.header.stamp);
+    } catch (const tf2::TransformException& ex) {
+        spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
+                     msg.header.frame_id, odom_frame_, ex.what());
+        return;
+    }
+
+    const Eigen::Affine3d T = tf2::transformToEigen(tf_stamped.transform);
+    const Eigen::Matrix4f T_odom_src = T.matrix().cast<float>();
+
+    auto segs = toMapSegments2D(msg, T_odom_src);
+
+    // midlertidig drone pose: MÅ HENTES TO DO
     Eigen::Vector2f drone_pos = {0.0f, 0.0f};
     float drone_heading = 0.0f;
 
-    min_dist_ = this->declare_parameter<double>("min_dist", 0.0);
-    max_dist_ = this->declare_parameter<double>("max_dist", 50.0);
-    angle_threshold_ = this->declare_parameter<double>("angle_threshold", 0.3);
-    min_angle_ = this->declare_parameter<double>("min_angle", 0.7);
-    max_angle_ = this->declare_parameter<double>("max_angle", 2.4);
-    right_wall_offset_ = this->declare_parameter<double>("right_wall_offset", 0.5);
-    far_wall_offset_ = this->declare_parameter<double>("far_wall_offset", 0.5);
-    
     auto corners = map_.findCorner(
         segs,
         drone_pos,
         drone_heading,
-        min_dist_,          
-        max_dist_,          
-        angle_threshold_,   
-        min_angle_,       
-        max_angle_       
+        min_dist_,
+        max_dist_,
+        angle_threshold_,
+        min_angle_,
+        max_angle_
     );
 
-    if (!corners.empty()) {
-        CandidateCorner best = map_.selectBestCorner(corners, drone_pos);
-
-        Eigen::Vector2f docking = map_.estimateDockingPosition(
-            best,
-            right_wall_offset_,   
-            far_wall_offset_     
-        );
-        sendDockingWaypoint(docking);
-
-        spdlog::info("[PoolExploration] Docking estimate (map): x={} y={}",
-                    docking.x(), docking.y());
-    } else {
+    if (corners.empty()) {
         spdlog::info("[PoolExploration] No valid corners -> no docking estimate");
+        return;
     }
-   // publish_grid();
+
+    CandidateCorner best = map_.selectBestCorner(corners, drone_pos);
+
+    Eigen::Vector2f docking = map_.estimateDockingPosition(
+        best,
+        right_wall_offset_,
+        far_wall_offset_
+    );
+
+    sendDockingWaypoint(docking);
+
+    spdlog::info("[PoolExploration] Docking estimate (odom): x={} y={}",
+                 docking.x(), docking.y());
 }
 
 void PoolExplorationNode::timer_callback() {

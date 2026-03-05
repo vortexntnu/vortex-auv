@@ -60,6 +60,12 @@ class PoolExplorationNode : public rclcpp::Node {
 
         void sendDockingWaypoint(const Eigen::Vector2f& docking_estimate);
         bool waypoint_sent_{false};
+        
+        //kaller på sendwaypoint service og se
+        void estimateAndSendDockingWaypoint(const vortex_msgs::msg::LineSegment2DArray& msg);
+
+        // Logikk til senere bruk:
+        void drawSegmentsInMapFrame(const vortex_msgs::msg::LineSegment2DArray& msg);
 
         // parametere - endre disse senere?
         double size_x_{10.0};
@@ -77,7 +83,8 @@ class PoolExplorationNode : public rclcpp::Node {
         // frames
         std::string odom_frame_;
         std::string map_frame_;
-        std::string sonar_frame_;
+        // std::string sonar_frame_;
+        std::string base_frame_;
         std::chrono::milliseconds pub_dt_{200};
 
         // TF publishing
@@ -113,7 +120,7 @@ class PoolExplorationNode : public rclcpp::Node {
     #endif  // POOL_EXPLORATION_ROS_HPP
 
     // TO DO 
-    // riktig transform
     // service client
     // pose_subscriber
     // se på map publisheren
+    // sjekke map vs odom transformene og hvordan det er i filter
