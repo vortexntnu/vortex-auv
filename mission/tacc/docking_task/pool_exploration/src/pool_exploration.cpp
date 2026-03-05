@@ -72,6 +72,80 @@ Eigen::Vector2f PoolExplorationMap::estimateDockingPosition(
     return docking_estimate;
 }
 
+
+//Lage en funksjon som faktisk velger ut de to beste linjene som er hjørnet
+//returnerer estimated corner som er nærmest dronen (foreløpig, gjøre bedre estimat?)
+CandidateCorner PoolExplorationMap::selectBestCorner(
+    const std::vector<CandidateCorner>& possible_corners,
+    const Eigen::Vector2f& drone_position)
+{
+    //finne bedre unnntakshåndtering?
+    if (possible_corners.empty()) {
+        throw std::runtime_error("No candidate corners available");
+    }
+
+    // Setter til størst mulige float og vil oppdateres etterpå
+    float min_distance = std::numeric_limits<float>::max();
+    CandidateCorner best_corner = possible_corners.front();
+
+    for (const auto& corner : possible_corners) {
+        float distance = (corner.corner_point - drone_position).squaredNorm();
+
+        if (distance < min_distance) {
+            min_distance = distance;
+            best_corner = corner;
+        }
+    }
+
+    return best_corner;
+}
+
+//Funksjon som finner hjørner basert på krav om vinkler
+// Denne må ta inn linjer i odom frame for at projec\ksjonkravene oppfylles riktig
+std::vector<CandidateCorner> PoolExplorationMap::findCorner(
+    const std::vector<LineSegment>& lines,
+    const Eigen::Vector2f& drone_pos, //frame til denne?
+    float drone_heading, // få inn denne?
+    float min_dist, 
+    float max_dist,
+    float angle_threshold,
+    float min_angle, 
+    float max_angle) {
+    std::vector<LineSegment> right_candidates;
+    std::vector<LineSegment> far_candidates;
+
+    // Finne mulige linjer
+    for (const auto& line : lines) {
+        Eigen::Vector2f projection = projectPointToLine(drone_pos, line.asEigen());
+        // Må få relativt til droneposisjon
+        float dist = (projection - drone_pos).norm(); //Lengden til vektoren
+        
+        float angle = lineAngleDifference(line.asEigen(), drone_heading);
+
+        if (projection.y() < 0 && dist >= min_dist && dist <= max_dist && angle < angle_threshold)
+            right_candidates.push_back(line);
+        if (projection.x() > 0 && dist >= min_dist && dist <= max_dist && angle > angle_threshold)
+            far_candidates.push_back(line);
+    }
+
+    // Finne gyldige skjæringspunkt
+    std::vector<CandidateCorner> corners;
+    for (auto& r : right_candidates) {
+        for (auto& f : far_candidates) {
+            Eigen::Vector2f intersection_coordinates{};
+            bool intersect = lineIntersection(r.asEigen(), f.asEigen(), intersection_coordinates);
+            if (intersect){
+                float wall_angle = angleBetweenLines(r.asEigen(), f.asEigen());
+                if (wall_angle >= min_angle && wall_angle <= max_angle) {
+                    corners.push_back({r, f, intersection_coordinates});
+                }
+            }
+        }
+    } 
+    return corners;   
+}
+  
+
 void PoolExplorationMap::bresenhamLineAlgoritm(
     int x0, 
     int y0, 
@@ -130,9 +204,7 @@ void PoolExplorationMap::bresenhamLineAlgoritm(
 }
 
 void PoolExplorationMap::setGridCell(
-    int x, 
-    int y, 
-    int value) {
+    int x, int y, int value) {
     // Sjekk at koordinatene er innenfor kartet
     if (x < 0 || x >= static_cast<int>(grid_.info.width) ||
         y < 0 || y >= static_cast<int>(grid_.info.height)) {
@@ -143,49 +215,7 @@ void PoolExplorationMap::setGridCell(
 
     grid_.data[index] = value;
 }
-
-//Funksjon som finner hjørner basert på krav om vinkler
-std::vector<CandidateCorner> PoolExplorationMap::findCorner(
-    const std::vector<LineSegment>& lines,
-    const Eigen::Vector2f& drone_pos,
-    float drone_heading,
-    float min_dist, 
-    float max_dist,
-    float angle_threshold,
-    float min_angle, 
-    float max_angle) {
-    std::vector<LineSegment> right_candidates;
-    std::vector<LineSegment> far_candidates;
-
-    // Finne mulige linjer
-    for (const auto& line : lines) {
-        auto projection = projectPointToLine(drone_pos, line.asEigen());
-        float dist = (projection - drone_pos).norm(); //Lengden til vektoren
-        float angle = lineAngleDifference(line.asEigen(), drone_heading);
-
-        if (projection.y() < 0 && dist >= min_dist && dist <= max_dist && angle < angle_threshold)
-            right_candidates.push_back(line);
-        if (projection.x() > 0 && dist >= min_dist && dist <= max_dist && angle > angle_threshold)
-            far_candidates.push_back(line);
-    }
-
-    // Finne gyldige skjæringspunkt
-    std::vector<CandidateCorner> corners;
-    for (auto& r : right_candidates) {
-        for (auto& f : far_candidates) {
-            Eigen::Vector2f intersection_coordinates{};
-            bool intersect = lineIntersection(r.asEigen(), f.asEigen(), intersection_coordinates);
-            if (intersect){
-                float wall_angle = angleBetweenLines(r.asEigen(), f.asEigen());
-                if (wall_angle >= min_angle && wall_angle <= max_angle) {
-                    corners.push_back({r, f, intersection_coordinates});
-                }
-            }
-        }
-    } 
-    return corners;   
-}
-    
+  
 
 Eigen::Vector2f PoolExplorationMap::projectPointToLine( 
     const Eigen::Vector2f& drone_pos,
@@ -251,43 +281,6 @@ float PoolExplorationMap::angleBetweenLines(
 
     return std::acos(v0.dot(v1));     
 }
-
-/*
-int PoolExplorationMap::computeScore( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-                                      const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
-                                      const Eigen::Vector2f& intersection){
-    //TO DO: Prioriteze the lines
-    return 0;
-}
-*/
-
-//Lage en funksjon som faktisk velger ut de to beste linjene som er hjørnet
-//returnerer estimated corner som er nærmest dronen (foreløpig, gjøre bedre estimat?)
-CandidateCorner PoolExplorationMap::selectBestCorner(
-    const std::vector<CandidateCorner>& possible_corners,
-    const Eigen::Vector2f& drone_position)
-{
-    //finne bedre unnntakshåndtering?
-    if (possible_corners.empty()) {
-        throw std::runtime_error("No candidate corners available");
-    }
-
-    // Setter til størst mulige float og vil oppdateres etterpå
-    float min_distance = std::numeric_limits<float>::max();
-    CandidateCorner best_corner = possible_corners.front();
-
-    for (const auto& corner : possible_corners) {
-        float distance = (corner.corner_point - drone_position).squaredNorm();
-
-        if (distance < min_distance) {
-            min_distance = distance;
-            best_corner = corner;
-        }
-    }
-
-    return best_corner;
-}
-
 
 Eigen::Vector2f PoolExplorationMap::computeNormal(
     const LineSegment& line) {

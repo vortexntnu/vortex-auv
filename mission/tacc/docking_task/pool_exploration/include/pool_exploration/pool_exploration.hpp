@@ -7,12 +7,12 @@
 #include <vector>
 #include <utility>
 #include <cmath>
-#include <algorithm> //brukes ikke av clamp?
+//#include <algorithm> //brukes ikke av clamp?
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <limits>
-#include <stdexcept>
+//#include <limits>
+//#include <stdexcept>
 
 static constexpr int8_t OCCUPIED = 100;
 
@@ -33,6 +33,7 @@ struct LineSegment {
     }
 };
 
+//linjer som oppfyller hjørnekrav
 struct CandidateCorner {
     LineSegment right_wall;
     LineSegment far_wall;
@@ -42,65 +43,72 @@ struct CandidateCorner {
 
 class PoolExplorationMap {
 public:
-    PoolExplorationMap( double size_x,
-                        double size_y,
-                        double resolution,
-                        const std::string& frame_id);
+    // Konstruktør
+    PoolExplorationMap(
+        double size_x,
+        double size_y,
+        double resolution,
+        const std::string& frame_id);
 
     const nav_msgs::msg::OccupancyGrid& grid() const;
-   
 
     /**
     * @brief Draws a straight line on the occupancy grid using Bresenham's algorithm.
     * Reference: https://www.youtube.com/watch?v=CceepU1vIKo
     */
-    //brukes i insertSegmentsMapFrame
-    void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
           
     void insertSegmentsMapFrame(const std::vector<LineSegment>& segments);
-    //ENDRET
-    std::vector<CandidateCorner> findCorner( const std::vector<LineSegment>& lines, 
-                                             const Eigen::Vector2f& drone_pos,
-                                             float drone_heading,
-                                             float min_dist, float max_dist,
-                                             float angle_threshold,
-                                             float min_angle, float max_angle);
-
-    CandidateCorner selectBestCorner( const std::vector<CandidateCorner>& possible_corners,
-                                    const Eigen::Vector2f& drone_position);
-
+    
     Eigen::Vector2f estimateDockingPosition(
         const CandidateCorner estimated_corner,
         float right_wall_offset,
         float far_wall_offset);
 
-    //MIDLERTIDIG TEST-FUNKSJON
-    void printGridToConsole() const;
-    
+    // brukes i selectBestCorner og deretter estimateDockingPosition
+    std::vector<CandidateCorner> findCorner( 
+        const std::vector<LineSegment>& lines, 
+        const Eigen::Vector2f& drone_pos,
+        float drone_heading,
+        float min_dist, float max_dist,
+        float angle_threshold,
+        float min_angle, float max_angle);
 
+    // brukes i estimateDockingPosition
+    CandidateCorner selectBestCorner( 
+        const std::vector<CandidateCorner>& possible_corners,
+        const Eigen::Vector2f& drone_position);
+
+    //MIDLERTIDIG TEST-FUNKSJON
+    // void printGridToConsole() const;
+    
 private:
     //Occupancy grid
     void initialize_grid();
-    // brukes i bresenham
+
+     //brukes i insertSegmentsMapFrame
+    void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
+
+    // brukes i bresenhamLineAlgoritm
     void setGridCell(int x, int y, int value);
 
-    Eigen::Vector2f projectPointToLine( const Eigen::Vector2f& drone_pos, // punktet som projiseres
-                                        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line);
+    //Antar får inn drone_pos i map frame
+    Eigen::Vector2f projectPointToLine(
+        const Eigen::Vector2f& drone_pos, // punktet som projiseres
+        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line);
 
-    float lineAngleDifference( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
-                               const float& drone_heading);
+    float lineAngleDifference(
+        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
+        const float& drone_heading);
 
     //uavhengig av at det er segment
-    bool lineIntersection( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-                                            const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
-                                            Eigen::Vector2f& intersection_coordinates);
+    bool lineIntersection( 
+        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
+        Eigen::Vector2f& intersection_coordinates);
     
-    float angleBetweenLines(const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-                            const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
-
-    int computeScore( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-                      const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
-                      const Eigen::Vector2f& intersection);
+    float angleBetweenLines(
+        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
+        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
 
     Eigen::Vector2f computeNormal(const LineSegment& line);
 
