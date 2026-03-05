@@ -42,13 +42,13 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     // velge enu eller ned
     this->declare_parameter<bool>("enu_to_ned", false);
 
+    // Ta inn som string fra yaml i stedet
     const std::string line_sub_topic =
         this->declare_parameter<std::string>("line_sub_topic", "/line_detection/line_segments");
-
     const std::string map_pub_topic =
         this->declare_parameter<std::string>("map_pub_topic", "/map");
-    // const std::string pose_sub_topic = 
-    //     this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // ta inn drone pos
+    const std::string pose_sub_topic = 
+         this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // ta inn drone pos
 
     // Lager transformasjonen
     tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -62,7 +62,7 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
 
-    const auto qos_sub = rclcpp::SensorDataQoS(); //standard for sensordata
+    const auto qos_sub = rclcpp::SensorDataQoS(); //standard for sensordata, ta inn vortex sin i stedet??
     const auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)) //bare siste kart
         .reliable() //meldinger må leveres
         .transient_local(); //subscribers fr siste melding
@@ -74,14 +74,13 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
         line_sub_topic,
         qos_sub.get_rmw_qos_profile(),
         sub_options); 
-/*  ta inn drone pos
-    pose_sub_ = this->create_subscription<
-        geometry_msgs::msg::PoseWithCovarianceStamped>(
-        pose_sub_topic, qos_sensor_data,
-        std::bind(&LOSGuidanceNode::pose_callback, this,
+//  ta inn drone pos
+    pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+        pose_sub_topic, qos_sub,
+        std::bind(&PoolExplorationNode::pose_callback, this,
                   std::placeholders::_1));
 
-*/
+
     // MessageFilter: slipper bare gjennom meldinger når TF til map_frame_ finnes
     line_filter_ = std::make_shared<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>>(
         line_sub_, *tf_buffer_, map_frame_, 10,  // queue size
@@ -174,6 +173,24 @@ void PoolExplorationNode::line_callback(
     //drawSegmentsInMapFrame(*msg);
 }
 
+void PoolExplorationNode::pose_callback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg) {
+    drone_state_.x = msg->pose.pose.position.x;
+    drone_state_.y = msg->pose.pose.position.y;
+    drone_state_.z = msg->pose.pose.position.z;
+
+    // kvaternioner til yaw
+    const auto &q = msg->pose.pose.orientation;
+
+    tf2::Quaternion quat(q.x, q.y, q.z, q.w);
+
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+
+    drone_state_.yaw = yaw;
+    }
+
+
 // VENTE MED DENNE LOGIKK TIL SENERE
 void PoolExplorationNode::drawSegmentsInMapFrame(
     const vortex_msgs::msg::LineSegment2DArray& msg)
@@ -221,9 +238,9 @@ void PoolExplorationNode::estimateAndSendDockingWaypoint(
 
     auto segs = toMapSegments2D(msg, T_odom_src);
 
-    // midlertidig drone pose: MÅ HENTES TO DO
-    Eigen::Vector2f drone_pos = {0.0f, 0.0f};
-    float drone_heading = 0.0f;
+    // Teste om fungerer?
+    Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y};
+    float drone_heading = drone_state_.yaw;
 
     auto corners = map_.findCorner(
         segs,

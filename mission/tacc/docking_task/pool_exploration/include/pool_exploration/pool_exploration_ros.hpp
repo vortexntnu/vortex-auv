@@ -12,6 +12,7 @@
 #include <chrono> // trenger denne?
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 
 #include <vortex_msgs/msg/line_segment2_d_array.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
@@ -48,6 +49,9 @@ class PoolExplorationNode : public rclcpp::Node {
         // callbacks
         void line_callback(
             const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg);
+
+        void pose_callback(
+            const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
         void timer_callback();
 
@@ -98,8 +102,7 @@ class PoolExplorationNode : public rclcpp::Node {
         // Har gjor tlitt annen filtering uten peker enn line_filtering eksempel
         message_filters::Subscriber<vortex_msgs::msg::LineSegment2DArray> line_sub_;
         std::shared_ptr<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>> line_filter_;
-      //rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped> 
-      //    pose_sub_;
+        rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
         // publisher
         rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr 
@@ -112,6 +115,9 @@ class PoolExplorationNode : public rclcpp::Node {
 
         // map
         PoolExplorationMap map_;
+
+        // Position and heading
+        DroneState drone_state_;
 
     };
 

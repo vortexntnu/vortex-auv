@@ -2,7 +2,7 @@
   ros__parameters:
     # Topics
     line_sub_topic: "/line_detection/line_segments"
-    # pose_sub_tocic: "" #Må ta inn pose også TO DO
+    pose_sub_topic: "/pose" #Hente fra dronen senere?
     map_pub_topic: "/map" #skal jeg publishe til map??
 
     # Publish
@@ -17,8 +17,8 @@
     enu_to_ned: false
 
     # Map / grid
-    size_x: 10.0
-    size_y: 10.0
+    size_x: 1000.0
+    size_y: 1000.0
     resolution: 0.1
     frame_id: "map"
 
@@ -29,10 +29,10 @@
 
     # Corner/docking params
     min_dist: 0.0
-    max_dist: 50.0
-    angle_threshold: 0.3
+    max_dist: 1000.0
+    angle_threshold: 1.5
     min_angle: 0.7
-    max_angle: 2.4
+    max_angle: 3.0
     right_wall_offset: 0.5
     far_wall_offset: 0.5
 

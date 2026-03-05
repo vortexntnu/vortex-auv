@@ -102,6 +102,7 @@ CandidateCorner PoolExplorationMap::selectBestCorner(
 
 //Funksjon som finner hjørner basert på krav om vinkler
 // Denne må ta inn linjer i odom frame for at projec\ksjonkravene oppfylles riktig
+
 std::vector<CandidateCorner> PoolExplorationMap::findCorner(
     const std::vector<LineSegment>& lines,
     const Eigen::Vector2f& drone_pos, //frame til denne?

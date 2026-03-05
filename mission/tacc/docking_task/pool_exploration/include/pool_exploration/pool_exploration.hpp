@@ -33,6 +33,14 @@ struct LineSegment {
     }
 };
 
+// brukes i node for å sette subscriber til dronepos verdi lik
+struct DroneState {
+    double x;
+    double y;
+    double z;
+    double yaw;
+};
+
 //linjer som oppfyller hjørnekrav
 struct CandidateCorner {
     LineSegment right_wall;
@@ -121,7 +129,6 @@ private:
     double size_y_;
     double resolution_;
 
-    
 };
 
 }  // namespace vortex::pool_exploration
