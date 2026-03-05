@@ -1,47 +1,35 @@
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-// #include <nav_msgs/msg/detail/occupancy_grid__struct.hpp>
-// #include <vortex_msgs/msg/line_segment2_d_array.hpp>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_ros/create_timer_ros.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <spdlog/spdlog.h>
-
-// #include <rmw/types.h>
-#include <chrono>
-#include <memory>
 #include <pool_exploration/pool_exploration_ros.hpp>
 
-#include <rclcpp/qos.hpp>
-#include <rclcpp_components/register_node_macro.hpp>
+#include <spdlog/spdlog.h>
 #include <tf2/exceptions.hpp>
-#include <tf2_eigen/tf2_eigen.hpp>
-#include <tf2_ros/buffer.hpp>
+#include <tf2/time.h>
 
+#include <rclcpp_components/register_node_macro.hpp>
+// #include <vortex/utils/ros/qos_profiles.hpp>
+#include <rclcpp/qos.hpp> //bytte med ovenfor?
+#include "pool_exploration/pool_exploration.hpp"
 
 namespace vortex::pool_exploration{
 
 PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
-    : Node("pool_exploration_node", options), 
-    map_(
-          this->declare_parameter<double>("size_x", 10.0),
-          this->declare_parameter<double>("size_y", 10.0),
-          this->declare_parameter<double>("resolution", 0.1),
-          this->declare_parameter<std::string>("frame_id", "map")) {
-            setup_publishers_and_subscribers();
+    : rclcpp::Node("pool_exploration_node", options),
+        size_x_(this->declare_parameter<double>("size_x", 10.0)),
+        size_y_(this->declare_parameter<double>("size_y", 10.0)),
+        resolution_(this->declare_parameter<double>("resolution", 0.1)),
+        map_frame_(this->declare_parameter<std::string>("map_frame", "map")),
+        map_(size_x_, size_y_, resolution_, map_frame_) {
+    setup_publishers_and_subscribers();
 } 
 
 void PoolExplorationNode::setup_publishers_and_subscribers() {
     map_frame_ = this->declare_parameter<std::string>("map_frame", "map");
     odom_frame_ = this->declare_parameter<std::string>("odom_frame", "odom");
-
+    
     pub_dt_ = std::chrono::milliseconds(
         this->declare_parameter<int>("publish_rate_ms", 200));
 
-    this->declare_parameter<bool>("enu_to_ned", false); // skal ha med??
-
-    // const std::string line_sub_topic =
-    //    this->declare_parameter<std::string>("line_sub_topic", "/filtered_lines");
+    // velge enu eller ned
+    this->declare_parameter<bool>("enu_to_ned", false);
 
     const std::string line_sub_topic =
         this->declare_parameter<std::string>("line_sub_topic", "/line_detection/line_segments");
@@ -51,38 +39,30 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     // const std::string pose_sub_topic = 
     //     this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // navn på denne????
 
-    // TF broadcaster
+    // Lager transformasjonen
     tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
     const auto map_to_odom_tf = compute_map_odom_transform(); //const?
     tf_broadcaster_->sendTransform(map_to_odom_tf);
 
-    //legge til spdlog??
-
-    // TF buffer/listener (HVA GJØR DENNE??)
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
         this->get_node_base_interface(), this->get_node_timers_interface());
     tf_buffer_->setCreateTimerInterface(timer_interface);
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
-    const auto qos_sub = rclcpp::SensorDataQoS();
-    // BYTTA UT MED
-    //const auto qos_pub = rclcpp::QoS(1).best_effort().durability_volatile();
-    auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1))
-        .reliable()
-        .transient_local();
 
-    // subscriber (HAR BYTTA UT?)
-    // line_sub_ = this->create_subscription<vortex_msgs::msg::LineSegment2DArray>(
-    //     line_sub_topic, qos_sub,
-    //    std::bind(&PoolExplorationNode::line_callback, this, std::placeholders::_1));
-    auto sub_options = rclcpp::SubscriptionOptions();
+    const auto qos_sub = rclcpp::SensorDataQoS(); //standard for sensordata
+    const auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)) //bare siste kart
+        .reliable() //meldinger må leveres
+        .transient_local(); //subscribers fr siste melding
 
+    // subscriber
+    auto sub_options = rclcpp::SubscriptionOptions(); //hva gjør denne, fjerne?
     line_sub_.subscribe(
         this,
         line_sub_topic,
         qos_sub.get_rmw_qos_profile(),
-        sub_options);
+        sub_options); 
 /*
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -102,7 +82,9 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
 
     // publisher
     //map_pub_ = create_publisher<nav_msgs::msg::OccupancyGrid>(map_pub_topic, qos_pub); 
-    map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(map_pub_topic, map_qos);
+    map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+        map_pub_topic, 
+        map_qos);
 
     // service client
     waypoint_client_ = this->create_client<vortex_msgs::srv::SendWaypoints>("/send_waypoints"); //endre /send_waypoints navnet
@@ -164,6 +146,11 @@ std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
         LineSegment seg;
         seg.p0 = {p0_map.x(), p0_map.y()};
         seg.p1 = {p1_map.x(), p1_map.y()};
+
+        spdlog::info("[PoolExploration] Line received: ({:.2f}, {:.2f}) -> ({:.2f}, {:.2f})",
+             seg.p0.x, seg.p0.y, seg.p1.x, seg.p1.y);
+
+
         segVector.push_back(seg);
     }
     return segVector;
@@ -202,10 +189,10 @@ void PoolExplorationNode::line_callback(
     float drone_heading = 0.0f;
 
     float min_dist_ = 0.0f;        
-    float max_dist_ = 5.0f;       
+    float max_dist_ = 50.0f;       
     float angle_threshold_ = 0.3f;  
-    float min_angle_ = 1.2f;    
-    float max_angle_  = 1.9f;
+    float min_angle_ = 0.7f;    
+    float max_angle_  = 2.4f;
     float right_wall_offset_ = 0.5f;
     float far_wall_offset_ = 0.5f;
     
@@ -256,7 +243,7 @@ void PoolExplorationNode::publish_grid() {
 
 void PoolExplorationNode::sendDockingWaypoint(const Eigen::Vector2f& docking_estimate)
 {
-    if (waypoint_sent_) { //må lage en bool her som bestemmer dette
+    if (waypoint_sent_) {
         return;
     }
 
@@ -292,14 +279,6 @@ void PoolExplorationNode::sendDockingWaypoint(const Eigen::Vector2f& docking_est
 
     spdlog::info("Docking waypoint sent to WaypointManager");
 }
-
-/*
-
-    map_to_odom_tf_ = eigen_transform.matrix();
-    map_ = PoolExplorationMap(size_x, size_y, resolution, frame_id);
-
- */
-
 
 RCLCPP_COMPONENTS_REGISTER_NODE(PoolExplorationNode)
 
