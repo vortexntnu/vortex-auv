@@ -66,9 +66,18 @@ class PoolExplorationNode : public rclcpp::Node {
         double size_y_{10.0};
         double resolution_{0.1};
 
+        double min_dist_{0.0f};
+        double max_dist_{50.0f};
+        double angle_threshold_{0.3f};
+        double min_angle_{0.7f};
+        double max_angle_{2.4f};
+        double right_wall_offset_{0.5f};
+        double far_wall_offset_{0.5f};
+
         // frames
         std::string odom_frame_;
         std::string map_frame_;
+        std::string sonar_frame_;
         std::chrono::milliseconds pub_dt_{200};
 
         // TF publishing
@@ -104,7 +113,7 @@ class PoolExplorationNode : public rclcpp::Node {
     #endif  // POOL_EXPLORATION_ROS_HPP
 
     // TO DO 
+    // riktig transform
     // service client
     // pose_subscriber
     // se på map publisheren
-    // sensor frame

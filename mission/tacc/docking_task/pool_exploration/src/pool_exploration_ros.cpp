@@ -22,8 +22,10 @@ PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
 } 
 
 void PoolExplorationNode::setup_publishers_and_subscribers() {
-    map_frame_ = this->declare_parameter<std::string>("map_frame", "map");
+    // map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
     odom_frame_ = this->declare_parameter<std::string>("odom_frame", "odom");
+    sonar_frame_ = this->declare_parameter<std::string>("sonar_frame", "sonar");
+
     
     pub_dt_ = std::chrono::milliseconds(
         this->declare_parameter<int>("publish_rate_ms", 200));
@@ -37,7 +39,7 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     const std::string map_pub_topic =
         this->declare_parameter<std::string>("map_pub_topic", "/map");
     // const std::string pose_sub_topic = 
-    //     this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // navn på denne????
+    //     this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // ta inn drone pos
 
     // Lager transformasjonen
     tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
@@ -63,7 +65,7 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
         line_sub_topic,
         qos_sub.get_rmw_qos_profile(),
         sub_options); 
-/*
+/*  ta inn drone pos
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_sub_topic, qos_sensor_data,
@@ -128,11 +130,8 @@ geometry_msgs::msg::TransformStamped PoolExplorationNode::compute_map_odom_trans
 //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
 std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
     const vortex_msgs::msg::LineSegment2DArray& msg,
-    const Eigen::Matrix4f& T_map_src)
+    const Eigen::Matrix4f& T_map_src) //hva blir src her
 {
-    //const Eigen::Matrix4f odom_to_map = map_to_odom_tf.inverse(); //Skal ikke inverse likevel, håndteres av lookupTransform
-    
-    //src er odom i dette tilfellet
     std::vector<LineSegment> segVector;
     segVector.reserve(msg.lines.size());
 
@@ -147,6 +146,7 @@ std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
         seg.p0 = {p0_map.x(), p0_map.y()};
         seg.p1 = {p1_map.x(), p1_map.y()};
 
+        // til debugging
         spdlog::info("[PoolExploration] Line received: ({:.2f}, {:.2f}) -> ({:.2f}, {:.2f})",
              seg.p0.x, seg.p0.y, seg.p1.x, seg.p1.y);
 
@@ -175,36 +175,31 @@ void PoolExplorationNode::line_callback(
 
     //se nærmere på denne transform logikken
     auto segs = toMapSegments2D(*msg, T_map_src);
-    // oppdaterer griddet direkte
     // bruker logikk fra pool_exploration.h
     map_.insertSegmentsMapFrame(segs);
     spdlog::info("[PoolExploration] {} line segments drawn in map", segs.size());
 
-    // MÅ LEGGE INN DOCKING POSE ESTIMATION
-        // ===== DOCKING ESTIMATE START =====
-
     // Midlertidige defaults til har ekte pose
-    // MÅ ENDRE OG PLASSERE ANNET STED
     Eigen::Vector2f drone_pos = {0.0f, 0.0f};
     float drone_heading = 0.0f;
 
-    float min_dist_ = 0.0f;        
-    float max_dist_ = 50.0f;       
-    float angle_threshold_ = 0.3f;  
-    float min_angle_ = 0.7f;    
-    float max_angle_  = 2.4f;
-    float right_wall_offset_ = 0.5f;
-    float far_wall_offset_ = 0.5f;
+    min_dist_ = this->declare_parameter<double>("min_dist", 0.0);
+    max_dist_ = this->declare_parameter<double>("max_dist", 50.0);
+    angle_threshold_ = this->declare_parameter<double>("angle_threshold", 0.3);
+    min_angle_ = this->declare_parameter<double>("min_angle", 0.7);
+    max_angle_ = this->declare_parameter<double>("max_angle", 2.4);
+    right_wall_offset_ = this->declare_parameter<double>("right_wall_offset", 0.5);
+    far_wall_offset_ = this->declare_parameter<double>("far_wall_offset", 0.5);
     
     auto corners = map_.findCorner(
         segs,
         drone_pos,
         drone_heading,
-        min_dist_,          // float
-        max_dist_,          // float
-        angle_threshold_,   // float
-        min_angle_,         // float (radians)
-        max_angle_          // float (radians)
+        min_dist_,          
+        max_dist_,          
+        angle_threshold_,   
+        min_angle_,       
+        max_angle_       
     );
 
     if (!corners.empty()) {
@@ -222,9 +217,6 @@ void PoolExplorationNode::line_callback(
     } else {
         spdlog::info("[PoolExploration] No valid corners -> no docking estimate");
     }
-
-    // ===== DOCKING ESTIMATE END =====
-
    // publish_grid();
 }
 
