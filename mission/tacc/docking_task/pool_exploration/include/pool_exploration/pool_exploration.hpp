@@ -7,9 +7,12 @@
 #include <vector>
 #include <utility>
 #include <cmath>
-//#include <algorithm> //brukes ikke av clamp?
+#include <algorithm> //brukes ikke av clamp?
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include <limits>
+#include <stdexcept>
 
 static constexpr int8_t OCCUPIED = 100;
 
@@ -53,11 +56,7 @@ public:
     */
     //brukes i insertSegmentsMapFrame
     void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
-    
-    //ENDRE INPUT PÅ DENNE (SJEKK AT _ROS oppfyller samme som denne gjorde)
-    //void setLineSegmentInMapFrame(const vortex_msgs::msg::LineSegment3DArray::SharedPtr msgs,
-    //                                const Eigen::Matrix4f& map_to_odom_tf);
-                        
+          
     void insertSegmentsMapFrame(const std::vector<LineSegment>& segments);
     //ENDRET
     std::vector<CandidateCorner> findCorner( const std::vector<LineSegment>& lines, 
@@ -91,6 +90,7 @@ private:
     float lineAngleDifference( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
                                const float& drone_heading);
 
+    //uavhengig av at det er segment
     bool lineIntersection( const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
                                             const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
                                             Eigen::Vector2f& intersection_coordinates);
