@@ -1,3 +1,43 @@
 /**:
   ros__parameters:
-    parameter: value
+    # Topics
+    line_sub_topic: "/line_detection/line_segments"
+    # pose_sub_tocic: "" #Må ta inn pose også TO DO
+    map_pub_topic: "/map" #skal jeg publishe til map??
+
+    #gå over å sjekke disse TO DO
+    target_frame: "odom"
+    sonar_frame: "Orca/FLS"
+
+    # Publish
+    publish_rate_ms: 200
+
+    # Frames / TF
+
+    map_frame: "map"
+    odom_frame: "odom"
+    sonar_frame: "Orca/FLS"
+    enu_to_ned: false
+
+    # Map / grid
+    size_x: 10.0
+    size_y: 10.0
+    resolution: 0.1
+    frame_id: "map"
+
+
+    # Corner/docking params
+    min_dist: 0.0
+    max_dist: 50.0
+    angle_threshold: 0.3
+    min_angle: 0.7
+    max_angle: 2.4
+    right_wall_offset: 0.5
+    far_wall_offset: 0.5
+
+    # Waypoint
+    switching_threshold: 0.5
+    overwrite_prior_waypoints: true
+    take_priority: true
+
+#TO DO: organisere bedre
