@@ -115,7 +115,6 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
 
-            
     vortex_msgs::action::ReferenceFilterWaypoint::Goal make_rf_goal(
         const geometry_msgs::msg::Pose& target,
         double convergence_threshold) const;
@@ -186,7 +185,8 @@ class LandmarkServerNode : public rclcpp::Node {
     bool convergence_track_lost_{false};
     rclcpp::Time convergence_track_lost_since_{0, 0, RCL_ROS_TIME};
 
-    const vortex_msgs::action::LandmarkConvergence::Goal* convergence_goal() const {
+    const vortex_msgs::action::LandmarkConvergence::Goal* convergence_goal()
+        const {
         return active_landmark_convergence_goal_->get_goal().get();
     }
 
@@ -220,7 +220,6 @@ class LandmarkServerNode : public rclcpp::Node {
     std::optional<geometry_msgs::msg::Point> last_odom_position_;
 
     std::mutex measurements_mtx_;
-
 
     bool debug_{false};
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr

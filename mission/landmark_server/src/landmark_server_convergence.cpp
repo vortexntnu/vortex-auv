@@ -1,12 +1,13 @@
-#include "landmark_server/landmark_server_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_action/client.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
+#include "landmark_server/landmark_server_ros.hpp"
 
 namespace vortex::mission {
 
-rclcpp_action::GoalResponse LandmarkServerNode::handle_landmark_convergence_goal(
+rclcpp_action::GoalResponse
+LandmarkServerNode::handle_landmark_convergence_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LandmarkConvergence::Goal>
         goal_msg) {
@@ -69,8 +70,10 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
         "Starting convergence session {}: type={}, subtype={}, "
         "threshold={:.3f}, dr_offset={:.3f}, track_loss_timeout_sec={:.3f}",
         convergence_session_id_, convergence_goal()->type.value,
-        convergence_goal()->subtype.value, convergence_goal()->convergence_threshold,
-        convergence_goal()->dead_reckoning_threshold, convergence_goal()->track_loss_timeout_sec);
+        convergence_goal()->subtype.value,
+        convergence_goal()->convergence_threshold,
+        convergence_goal()->dead_reckoning_threshold,
+        convergence_goal()->track_loss_timeout_sec);
 
     const auto track = get_convergence_track();
     if (!track) {
@@ -86,7 +89,8 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     }
 
     try {
-        const auto target = compute_target_pose(*track, convergence_goal()->convergence_offset);
+        const auto target =
+            compute_target_pose(*track, convergence_goal()->convergence_offset);
         send_reference_filter_goal(
             make_rf_goal(target, convergence_goal()->convergence_threshold),
             convergence_session_id_);
@@ -100,7 +104,8 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     }
 }
 
-rclcpp_action::CancelResponse LandmarkServerNode::handle_landmark_convergence_cancel(
+rclcpp_action::CancelResponse
+LandmarkServerNode::handle_landmark_convergence_cancel(
     const std::shared_ptr<LandmarkConvergenceGoalHandle> /*goal_handle*/) {
     spdlog::info("Canceling convergence session {}", convergence_session_id_);
 
@@ -153,8 +158,7 @@ void LandmarkServerNode::convergence_abort_track_loss() {
         "Convergence: track loss timeout ({:.1f} s) exceeded, "
         "aborting (type={}, subtype={})",
         convergence_goal()->track_loss_timeout_sec,
-        convergence_goal()->type.value,
-        convergence_goal()->subtype.value);
+        convergence_goal()->type.value, convergence_goal()->subtype.value);
 
     cancel_reference_filter_goal();
 
@@ -199,7 +203,8 @@ void LandmarkServerNode::convergence_update_target(
         geometry_msgs::msg::PoseStamped target;
         target.header.stamp = now();
         target.header.frame_id = target_frame_;
-        target.pose = compute_target_pose(track, convergence_goal()->convergence_offset);
+        target.pose =
+            compute_target_pose(track, convergence_goal()->convergence_offset);
         reference_pose_pub_->publish(target);
     } catch (const std::exception& e) {
         spdlog::warn("Convergence target recompute failed: {}", e.what());
@@ -242,9 +247,9 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
     }
 }
 
-vortex_msgs::action::ReferenceFilterWaypoint::Goal LandmarkServerNode::make_rf_goal(
-    const geometry_msgs::msg::Pose& target,
-    double convergence_threshold) const {
+vortex_msgs::action::ReferenceFilterWaypoint::Goal
+LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
+                                 double convergence_threshold) const {
     vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
@@ -337,12 +342,11 @@ void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
     convergence_active_ = false;
 }
 
-std::optional<vortex::filtering::Track> LandmarkServerNode::get_convergence_track() const {
+std::optional<vortex::filtering::Track>
+LandmarkServerNode::get_convergence_track() const {
     const auto tracks =
-        track_manager_->get_tracks_by_type(
-            vortex::filtering::LandmarkClassKey{
-                convergence_goal()->type.value,
-                convergence_goal()->subtype.value});
+        track_manager_->get_tracks_by_type(vortex::filtering::LandmarkClassKey{
+            convergence_goal()->type.value, convergence_goal()->subtype.value});
     if (tracks.empty())
         return std::nullopt;
     return *tracks.front();
@@ -384,24 +388,25 @@ geometry_msgs::msg::Pose LandmarkServerNode::compute_target_pose(
     const auto landmark_pose = track.to_pose();
 
     const Eigen::Vector3d p_landmark = landmark_pose.pos_vector();
-    const Eigen::Quaterniond q_landmark = landmark_pose.ori_quaternion().normalized();
+    const Eigen::Quaterniond q_landmark =
+        landmark_pose.ori_quaternion().normalized();
 
     const Eigen::Vector3d p_offset(convergence_offset.position.x,
                                    convergence_offset.position.y,
                                    convergence_offset.position.z);
 
     const Eigen::Quaterniond q_offset =
-        Eigen::Quaterniond(convergence_offset.orientation.w,
-                           convergence_offset.orientation.x,
-                           convergence_offset.orientation.y,
-                           convergence_offset.orientation.z)
+        Eigen::Quaterniond(
+            convergence_offset.orientation.w, convergence_offset.orientation.x,
+            convergence_offset.orientation.y, convergence_offset.orientation.z)
             .normalized();
 
     Eigen::Vector3d p_target = p_landmark + q_landmark * p_offset;
 
     const Eigen::Quaterniond q_target = (q_landmark * q_offset).normalized();
 
-    return vortex::utils::ros_conversions::eigen_to_pose_msg(p_target, q_target);
+    return vortex::utils::ros_conversions::eigen_to_pose_msg(p_target,
+                                                             q_target);
 }
 
 }  // namespace vortex::mission

@@ -14,8 +14,8 @@ namespace vortex::mission {
 
 LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
     : rclcpp::Node("landmark_server_node", options) {
-    timer_cb_group_ =
-        this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    timer_cb_group_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive);
 
     create_track_manager();
     setup_ros_communicators();
@@ -41,8 +41,7 @@ void LandmarkServerNode::create_timer() {
     filter_dt_seconds_ = static_cast<double>(timer_rate_ms) / 1000;
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(timer_rate_ms),
-        std::bind(&LandmarkServerNode::timer_callback, this),
-        timer_cb_group_);
+        std::bind(&LandmarkServerNode::timer_callback, this), timer_cb_group_);
 }
 
 void LandmarkServerNode::create_reference_publisher() {
@@ -185,7 +184,8 @@ rclcpp_action::GoalResponse LandmarkServerNode::handle_landmark_polling_goal(
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-rclcpp_action::CancelResponse LandmarkServerNode::handle_landmark_polling_cancel(
+rclcpp_action::CancelResponse
+LandmarkServerNode::handle_landmark_polling_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::LandmarkPolling>> /*goal_handle*/) {
     spdlog::info("LandmarkPolling action cancelled");
