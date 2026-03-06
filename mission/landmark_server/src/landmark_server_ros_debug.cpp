@@ -1,4 +1,3 @@
-#include <pose_filtering/ros/pose_filtering_ros_conversions.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
 
@@ -16,7 +15,7 @@ void LandmarkServerNode::setup_debug_publishers() {
         this->declare_parameter<std::string>(
             "debug.convergence_landmark_topic");
     convergence_landmark_debug_pub_ =
-        this->create_publisher<vortex_msgs::msg::Landmark>(
+        this->create_publisher<vortex_msgs::msg::LandmarkTrack>(
             convergence_landmark_topic, qos);
 }
 
@@ -57,15 +56,11 @@ void LandmarkServerNode::publish_convergence_landmark_debug() {
 
     const auto& track = *convergence_last_known_track_;
 
-    vortex_msgs::msg::Landmark msg;
+    vortex_msgs::msg::LandmarkTrack msg;
     msg.header.stamp = this->now();
     msg.header.frame_id = target_frame_;
-    msg.id = track.id;
-    msg.type.value = track.class_key.type;
-    msg.subtype.value = track.class_key.subtype;
-    msg.pose =
-        vortex::filtering::ros_conversions::track_to_pose_with_covariance(
-            track);
+    msg.landmark = track_to_landmark_msg(track);
+    msg.existence_probability = track.existence_probability;
 
     convergence_landmark_debug_pub_->publish(msg);
 }

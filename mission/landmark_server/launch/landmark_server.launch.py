@@ -27,9 +27,9 @@ def generate_launch_description():
         parameters=[
             landmark_config,
             orca_config,
-            # {
-            #     'use_sim_time': True
-            # },  # If testing with rosbags sim_time might be preferred if bag is looped
+            {
+                'use_sim_time': False
+            },  # If testing with rosbags sim_time might be preferred if bag is looped
         ],
         output='screen',
     )
