@@ -8,7 +8,7 @@ config_file = path.join(
     get_package_share_directory("auv_setup"),
     "config",
     "robots",
-    "orca.yaml",
+    "moby.yaml",
 )
 
 
