@@ -43,9 +43,6 @@ class PoolExplorationNode : public rclcpp::Node {
         // setup
         void setup_publishers_and_subscribers();
 
-        // Lager en transformasjon TF map->odom
-        geometry_msgs::msg::TransformStamped compute_map_odom_transform();
-
         // callbacks
         void line_callback(
             const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg);
@@ -56,20 +53,15 @@ class PoolExplorationNode : public rclcpp::Node {
         void timer_callback();
 
         // helpers (se på disse nærmere)
-        static std::vector<LineSegment> toMapSegments2D( //static?
+        static std::vector<LineSegment> to_map_segments2D( //static?
             const vortex_msgs::msg::LineSegment2DArray& msg,
             const Eigen::Matrix4f& T_map_src); 
 
-        void publish_grid();
-
-        void sendDockingWaypoint(const Eigen::Vector2f& docking_estimate);
+        void send_docking_waypoint(const Eigen::Vector2f& docking_estimate);
         bool waypoint_sent_{false};
         
         //kaller på sendwaypoint service og se
-        void estimateAndSendDockingWaypoint(const vortex_msgs::msg::LineSegment2DArray& msg);
-
-        // Logikk til senere bruk:
-        void drawSegmentsInMapFrame(const vortex_msgs::msg::LineSegment2DArray& msg);
+        void estimate_and_send_docking_waypoint(const vortex_msgs::msg::LineSegment2DArray& msg);
 
         // parametere - endre disse senere?
         double size_x_{10.0};
@@ -87,7 +79,6 @@ class PoolExplorationNode : public rclcpp::Node {
         // frames
         std::string odom_frame_;
         std::string map_frame_;
-        // std::string sonar_frame_;
         std::string base_frame_;
         std::chrono::milliseconds pub_dt_{200};
 
@@ -104,21 +95,33 @@ class PoolExplorationNode : public rclcpp::Node {
         std::shared_ptr<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>> line_filter_;
         rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
 
-        // publisher
-        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr 
-            map_pub_;
-
         rclcpp::TimerBase::SharedPtr timer_;
 
         // service client
         rclcpp::Client<vortex_msgs::srv::SendWaypoints>::SharedPtr waypoint_client_;
 
-        // map
-        PoolExplorationMap map_;
-
         // Position and heading
         DroneState drone_state_;
 
+    // GRID LOGIKK TIL SENERE
+    # if 1
+    private:
+        // Lager en transformasjon TF map->odom
+        geometry_msgs::msg::TransformStamped compute_map_odom_transform();
+        
+        void publish_grid();
+
+        // Logikk til senere bruk:
+        void draw_segments_in_map_frame(const vortex_msgs::msg::LineSegment2DArray& msg);
+
+        // publisher
+        rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr 
+            map_pub_;
+
+        // map
+        PoolExplorationPlanner map_;
+
+    #endif
     };
 
     }  // namespace vortex::pool_exploration
