@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="flir_blackfly_s">
+
+  <!--
+    Minimal helper xacro that only defines the link frames and fixed joints
+    for the FLIR Blackfly S camera. This intentionally omits visuals,
+    collisions, inertial and Gazebo sensor/plugin blocks so it can be
+    included in robot descriptions when only TF frames are required.
+
+    Usage (similar to realsense helper):
+      <xacro:include filename="flir_blackfly_s.urdf.xacro"/>
+      <xacro:flir_blackfly_s parent="base_link" name="realsense" frame="flir_camera"/>
+  -->
+
+  <xacro:macro name="flir_blackfly_s" params="parent *origin frame:=camera name:=camera lens_h:=0.04">
+
+    <!-- Mount joint: attach the camera base link to the given parent -->
+    <joint name="${frame}_mount_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}"/>
+      <child link="${frame}"/>
+    </joint>
+
+    <!-- Camera body link (minimal) -->
+    <link name="${frame}"/>
+
+    <!-- Lens and optical links (minimal) -->
+    <link name="${frame}_lens"/>
+    <link name="${frame}_optical"/>
+
+    <!-- Fixed joint from body to lens (keeps original relative origin) -->
+    <joint name="${frame}_lens_joint" type="fixed">
+      <!-- origin taken from flir_blackfly_s xacro: 0.02685 0 0.01425 -->
+      <origin xyz="0.02685 0 0.01425" rpy="0 0 0"/>
+      <parent link="${frame}"/>
+      <child link="${frame}_lens"/>
+    </joint>
+
+    <!-- Fixed joint from lens to optical frame. Lens length is parameterized. -->
+    <joint name="${frame}_optical_joint" type="fixed">
+      <origin xyz="${lens_h} 0 0" rpy="-1.570796 0 -1.570796"/>
+      <parent link="${frame}_lens"/>
+      <child link="${frame}_optical"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>
