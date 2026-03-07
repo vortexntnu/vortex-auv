@@ -401,7 +401,7 @@ geometry_msgs::msg::Pose LandmarkServerNode::compute_target_pose(
             convergence_offset.orientation.y, convergence_offset.orientation.z)
             .normalized();
 
-    Eigen::Vector3d p_target = p_landmark + q_landmark * p_offset;
+    const Eigen::Vector3d p_target = p_landmark + q_landmark * p_offset;
 
     const Eigen::Quaterniond q_target = (q_landmark * q_offset).normalized();
 
