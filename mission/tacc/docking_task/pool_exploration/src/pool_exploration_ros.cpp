@@ -32,10 +32,8 @@ PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
 void PoolExplorationNode::setup_publishers_and_subscribers() {
     // map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
     odom_frame_ = this->declare_parameter<std::string>("odom_frame");
-    //sonar_frame_ = this->declare_parameter<std::string>("sonar_frame");
     base_frame_ = this->declare_parameter<std::string>("base_frame");
 
-    
     pub_dt_ = std::chrono::milliseconds(
         this->declare_parameter<int>("publish_rate_ms"));
 
@@ -136,7 +134,7 @@ geometry_msgs::msg::TransformStamped PoolExplorationNode::compute_map_odom_trans
 
 
 //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
-std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
+std::vector<LineSegment> PoolExplorationNode::to_map_segments2D(
     const vortex_msgs::msg::LineSegment2DArray& msg,
     const Eigen::Matrix4f& T_map_src) //hva blir src her
 {
@@ -168,7 +166,7 @@ std::vector<LineSegment> PoolExplorationNode::toMapSegments2D(
 void PoolExplorationNode::line_callback(
     const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg) {
     
-    estimateAndSendDockingWaypoint(*msg);
+    estimate_and_send_docking_waypoint(*msg);
     // vente med denne:
     //drawSegmentsInMapFrame(*msg);
 }
@@ -190,36 +188,8 @@ void PoolExplorationNode::pose_callback(
     drone_state_.yaw = yaw;
     }
 
-
-// VENTE MED DENNE LOGIKK TIL SENERE
-void PoolExplorationNode::drawSegmentsInMapFrame(
-    const vortex_msgs::msg::LineSegment2DArray& msg)
-{
-    geometry_msgs::msg::TransformStamped tf_stamped;
-
-    try {
-        tf_stamped = tf_buffer_->lookupTransform(
-            map_frame_, msg.header.frame_id, msg.header.stamp);
-    } catch (const tf2::TransformException& ex) {
-        spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
-                     msg.header.frame_id, map_frame_, ex.what());
-        return;
-    }
-
-    const Eigen::Affine3d T = tf2::transformToEigen(tf_stamped.transform);
-    const Eigen::Matrix4f T_map_src = T.matrix().cast<float>();
-
-    //se nærmere på denne transform logikken
-    auto segs = toMapSegments2D(msg, T_map_src);
-    // bruker logikk fra pool_exploration.h
-
-    map_.insertSegmentsMapFrame(segs);
-
-    spdlog::info("[PoolExploration] {} line segments drawn in map", segs.size());
-}
-
 // GJØRE I base_frame ELLER odom??
-void PoolExplorationNode::estimateAndSendDockingWaypoint(
+void PoolExplorationNode::estimate_and_send_docking_waypoint(
     const vortex_msgs::msg::LineSegment2DArray& msg)
 {
     geometry_msgs::msg::TransformStamped tf_stamped;
@@ -236,21 +206,16 @@ void PoolExplorationNode::estimateAndSendDockingWaypoint(
     const Eigen::Affine3d T = tf2::transformToEigen(tf_stamped.transform);
     const Eigen::Matrix4f T_odom_src = T.matrix().cast<float>();
 
-    auto segs = toMapSegments2D(msg, T_odom_src);
+    auto segs = to_map_segments2D(msg, T_odom_src);
 
     // Teste om fungerer?
     Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y};
     float drone_heading = drone_state_.yaw;
 
-    auto corners = map_.findCorner(
+    auto corners = map_.find_valid_corner(
         segs,
         drone_pos,
-        drone_heading,
-        min_dist_,
-        max_dist_,
-        angle_threshold_,
-        min_angle_,
-        max_angle_
+        drone_heading
     );
 
     if (corners.empty()) {
@@ -258,15 +223,11 @@ void PoolExplorationNode::estimateAndSendDockingWaypoint(
         return;
     }
 
-    CandidateCorner best = map_.selectBestCorner(corners, drone_pos);
+    CandidateCorner best_corner = map_.select_best_corner(corners, drone_pos);
 
-    Eigen::Vector2f docking = map_.estimateDockingPosition(
-        best,
-        right_wall_offset_,
-        far_wall_offset_
-    );
+    Eigen::Vector2f docking = map_.estimate_docking_position(best_corner);
 
-    sendDockingWaypoint(docking);
+    send_docking_waypoint(docking);
 
     spdlog::info("[PoolExploration] Docking estimate (odom): x={} y={}",
                  docking.x(), docking.y());
@@ -276,16 +237,7 @@ void PoolExplorationNode::timer_callback() {
     publish_grid();
 }
 
-void PoolExplorationNode::publish_grid() {
-    nav_msgs::msg::OccupancyGrid msg = map_.grid(); 
-
-    msg.header.frame_id = map_frame_;
-    msg.header.stamp = this->get_clock()->now();
-
-    map_pub_->publish(msg);
-}
-
-void PoolExplorationNode::sendDockingWaypoint(const Eigen::Vector2f& docking_estimate)
+void PoolExplorationNode::send_docking_waypoint(const Eigen::Vector2f& docking_estimate)
 {
     if (waypoint_sent_) {
         return;
@@ -322,6 +274,42 @@ void PoolExplorationNode::sendDockingWaypoint(const Eigen::Vector2f& docking_est
     waypoint_sent_ = true;
 
     spdlog::info("Docking waypoint sent to WaypointManager");
+}
+
+// VENTE MED DENNE LOGIKK TIL SENERE
+void PoolExplorationNode::draw_segments_in_map_frame(
+    const vortex_msgs::msg::LineSegment2DArray& msg)
+{
+    geometry_msgs::msg::TransformStamped tf_stamped;
+
+    try {
+        tf_stamped = tf_buffer_->lookupTransform(
+            map_frame_, msg.header.frame_id, msg.header.stamp);
+    } catch (const tf2::TransformException& ex) {
+        spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
+                     msg.header.frame_id, map_frame_, ex.what());
+        return;
+    }
+
+    const Eigen::Affine3d T = tf2::transformToEigen(tf_stamped.transform);
+    const Eigen::Matrix4f T_map_src = T.matrix().cast<float>();
+
+    //se nærmere på denne transform logikken
+    auto segs = to_map_segments2D(msg, T_map_src);
+    // bruker logikk fra pool_exploration.h
+
+    map_.insert_line_in_grid(segs);
+
+    spdlog::info("[PoolExploration] {} line segments drawn in map", segs.size());
+}
+// LOGIKK FOR GRIDDET
+void PoolExplorationNode::publish_grid() {
+    nav_msgs::msg::OccupancyGrid msg = map_.grid(); 
+
+    msg.header.frame_id = map_frame_;
+    msg.header.stamp = this->get_clock()->now();
+
+    map_pub_->publish(msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(PoolExplorationNode)
