@@ -2,6 +2,7 @@
 #define POOL_EXPLORATION_HPP
 
 //#include <geometry_msgs/msg/detail/point__struct.hpp>
+#include <cstdint>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <string>
 #include <vector>
@@ -13,8 +14,6 @@
 
 //#include <limits>
 //#include <stdexcept>
-
-static constexpr int8_t OCCUPIED = 100;
 
 namespace vortex::pool_exploration{
 // Punkt i map frame
@@ -49,14 +48,21 @@ struct CandidateCorner {
     //float score; //Må finne en måte for å vurdere beste hjørne
 };
 
-class PoolExplorationMap {
+struct PoolExplorationPlannerConfig {
+    // fyll inn config parametere?
+};
+
+class PoolExplorationPlanner {
 public:
     // Konstruktør
-    PoolExplorationMap(
+    PoolExplorationPlanner(
         double size_x,
         double size_y,
         double resolution,
         const std::string& frame_id);
+
+    PoolExplorationPlanner(
+        const PoolExplorationPlannerConfig& config);
 
     const nav_msgs::msg::OccupancyGrid& grid() const;
 
@@ -64,25 +70,39 @@ public:
     * @brief Draws a straight line on the occupancy grid using Bresenham's algorithm.
     * Reference: https://www.youtube.com/watch?v=CceepU1vIKo
     */
-          
-    void insertSegmentsMapFrame(const std::vector<LineSegment>& segments);
+    // denne kalles fra ros noden
+    // fra map til celle (forklar mer hvordan)
+    void insert_line_in_grid(const std::vector<LineSegment>& segments);
     
-    Eigen::Vector2f estimateDockingPosition(
+    // bruker compute_normal til å finne normalt på veggene
+    // henter ut intersection fra estimated_corner og bruker offsetene
+    Eigen::Vector2f estimate_docking_position(
         const CandidateCorner estimated_corner,
         float right_wall_offset,
         float far_wall_offset);
 
     // brukes i selectBestCorner og deretter estimateDockingPosition
-    std::vector<CandidateCorner> findCorner( 
+    //Funksjon som finner hjørner basert på krav om vinkler
+    // Denne må ta inn linjer i odom frame for at projec\ksjonkravene oppfylles riktig
+
+    // 1. finner separate linjer som hver oppfyller kravene
+    // Projiserer drone på linje og måle distanser
+    // For hver linje i linjene sjekker den om oppfyller vinkel og distansekrav fra drone til projeksjon
+    // 2. bruke lineintersection til å sjekke om to linjer skjærer hverandre og lagrer koordinatene
+    // hvis krysser hverandre, sjekk om vinkel oppfyller krav og lagrer i potential_corners
+
+    // dersom vil finne venstre i stedet for høyre: endre krav for verdi sjekket
+    std::vector<CandidateCorner> find_valid_corner( 
         const std::vector<LineSegment>& lines, 
-        const Eigen::Vector2f& drone_pos,
-        float drone_heading,
-        float min_dist, float max_dist,
-        float angle_threshold,
-        float min_angle, float max_angle);
+        const Eigen::Vector2f& drone_pos, // sjekk at får inn pos og heading riktig?
+        float drone_heading);
 
     // brukes i estimateDockingPosition
-    CandidateCorner selectBestCorner( 
+    // funksjon somvelger ut de to beste linjene som er hjørnet nærmest drone
+    // Setter min_dist til størst mulige float først og vil oppdateres ettersom sammenligner linjeavstandene
+    // setter best_corner først til det første i vectoren
+    // velger det hjørnet som er nærmest dronen
+    CandidateCorner select_best_corner( 
         const std::vector<CandidateCorner>& possible_corners,
         const Eigen::Vector2f& drone_position);
 
@@ -91,45 +111,71 @@ public:
     
 private:
     //Occupancy grid
+    // Set all cells unknown, 
+    // origin in center of map with no rotation
     void initialize_grid();
 
      //brukes i insertSegmentsMapFrame
-    void bresenhamLineAlgoritm(int x0, int y0, int x1, int y1);
+     // bresenham line algoritm (referanse)
+    void bresenham_line_algoritm(int x0, int y0, int x1, int y1);
 
     // brukes i bresenhamLineAlgoritm
-    void setGridCell(int x, int y, int value);
+    // sjekke at koordinatene er innenfor mappet
+    void set_grid_cell(int x, int y, int value);
 
     //Antar får inn drone_pos i map frame
-    Eigen::Vector2f projectPointToLine(
+    // sjekker at linje ikke er et punkt
+    // Bruker projeksjonsformelen
+    Eigen::Vector2f project_drone_to_line(
         const Eigen::Vector2f& drone_pos, // punktet som projiseres
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line);
 
-    float lineAngleDifference(
+    // Returns the smallest absolute angle between a line segment and the drone heading (0 to π).
+    // Sjekke logikken her en gang til TO DO
+    float line_heading_angle_difference(
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
         const float& drone_heading);
 
-    //uavhengig av at det er segment
-    bool lineIntersection( 
+    // Calculates the intersection of two infinite lines defined by point pairs and stores the result in `intersection`.
+    // Returns false if the lines are parallel.
+    bool line_intersection( 
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
         Eigen::Vector2f& intersection_coordinates);
     
-    float angleBetweenLines(
+    // Computes the angle between two line segments in radians.
+    float angle_between_lines(
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
 
-    Eigen::Vector2f computeNormal(const LineSegment& line);
+    Eigen::Vector2f compute_normal(const LineSegment& line);
 
    
 //private:
 
     //Parameters for Occupancy grid
+
+    
     nav_msgs::msg::OccupancyGrid grid_;
     double size_x_;
     double size_y_;
     double resolution_;
 
+    // må declare
+    int8_t occupied_cell_;  
+    int8_t unknown_cell_;
+
+    float min_dist_; 
+    float max_dist_;
+    float angle_threshold_;
+    float min_angle_;
+    float max_angle_;
+
+    PoolExplorationPlannerConfig config_;
+
 };
+
+// LOGIKK FOR GRIDDET //
 
 }  // namespace vortex::pool_exploration
 
