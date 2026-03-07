@@ -11,7 +11,7 @@ def generate_launch_description() -> LaunchDescription:
             get_package_share_directory(package_name="auv_setup"),
             "config",
             "robots",
-            "orca.yaml",
+            "moby.yaml",
         ),
         path.join(
             get_package_share_directory(package_name="thruster_interface_auv"),
@@ -24,7 +24,7 @@ def generate_launch_description() -> LaunchDescription:
         package="thruster_interface_auv",
         executable="thruster_interface_auv_node",
         name="thruster_interface_auv_node",
-        namespace="orca",
+        namespace="moby",
         output="screen",
         parameters=config,
     )

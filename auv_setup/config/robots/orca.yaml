@@ -17,19 +17,19 @@
 /**:
   ros__parameters:
     physical:
-      center_of_mass: [0.0, 0.0, 0.035] # m (x,y,z)
+      center_of_mass: [0.0, 0.0, 0.035] # Position (x,y,z) in meters (M)
       mass_matrix : [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.6, 0.0, 30.0, 0.0, 0.0, -0.6, 0.3, 0.0, 0.0, 30.0, 0.6, 0.3, 0.0, 0.0, 0.0, 0.6, 0.68, 0.0, 0.0, 0.0, -0.6, 0.3, 0.0, 3.32, 0.0, 0.6, 0.3, 0.0, 0.0, 0.0, 3.34]
+      # 6x6 mass_inertia_matrix
 
     propulsion:
+      solver_type: "qp" # (available solvers: pseudoinverse, qp)
       dofs:
         num: 6
       dimensions:
         num: 3
       thrusters:
         num: 8
-        min: -100
-        max: 100
-        thruster_force_direction: [
+        thruster_force_direction: [ # Direction of forces X,Y,Z, same logic as thruster_position thruster0 produces thrust in (X0,Y0,Z0) and ||(X0,Y0,Z0)|| = 1 
             0.70711,
             0.00000,
             0.00000,
@@ -53,9 +53,9 @@
             0.00000,
             1.00000,
             1.00000,
-            0.00000,
-          ] # Heave
-        thruster_position: [
+            0.00000, # Heave
+          ] 
+        thruster_position: [ # Position (x0,x1 ... x7,y1,y2, ...,y7,z1,z2, ... ,z7) in meters (M). i.e thruster0 has position (x0,y0,z0)
             0.41500,
             0.28400,
             -0.31800,
@@ -79,8 +79,14 @@
             0.07600,
             0.08200,
             0.08200,
-            0.07600,
-          ] # z-position of thrusters
+            0.07600, # z-position of thrusters
+          ]
+
+        constraints:
+          max_force: 100.0
+          min_force: -100.0
+          input_matrix_weights: [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+          slack_matrix_weights: [2000.0,2000.0,2000.0,2000.0,2000.0,2000.0]
 
         rate_of_change:
           max: 1 # Maximum rate of change in newton per second for a thruster
