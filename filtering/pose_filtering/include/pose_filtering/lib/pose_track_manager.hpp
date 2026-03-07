@@ -118,10 +118,9 @@ class PoseTrackManager {
         std::vector<const Track*> out;
         out.reserve(tracks_.size());
         for (const auto& t : tracks_) {
-            if (!(t.class_key == class_key && t.confirmed)) {
-                continue;
+            if (t.class_key == class_key && t.confirmed) {
+                out.push_back(&t);
             }
-            out.push_back(&t);
         }
         return out;
     }
