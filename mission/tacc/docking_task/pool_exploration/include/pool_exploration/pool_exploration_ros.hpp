@@ -42,6 +42,7 @@ class PoolExplorationNode : public rclcpp::Node {
     private:
         // setup
         void setup_publishers_and_subscribers();
+        void setup_planner();
 
         // callbacks
         void line_callback(
@@ -50,31 +51,16 @@ class PoolExplorationNode : public rclcpp::Node {
         void pose_callback(
             const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
-        void timer_callback();
-
         // helpers (se på disse nærmere)
-        static std::vector<LineSegment> to_map_segments2D( //static?
+        static std::vector<LineSegment> transform_segments_2d( //static?
             const vortex_msgs::msg::LineSegment2DArray& msg,
-            const Eigen::Matrix4f& T_map_src); 
+            const Eigen::Matrix4f& T_target_src); 
 
         void send_docking_waypoint(const Eigen::Vector2f& docking_estimate);
         bool waypoint_sent_{false};
         
         //kaller på sendwaypoint service og se
         void estimate_and_send_docking_waypoint(const vortex_msgs::msg::LineSegment2DArray& msg);
-
-        // parametere - endre disse senere?
-        double size_x_{10.0};
-        double size_y_{10.0};
-        double resolution_{0.1};
-
-        double min_dist_{0.0f};
-        double max_dist_{50.0f};
-        double angle_threshold_{0.3f};
-        double min_angle_{0.7f};
-        double max_angle_{2.4f};
-        double right_wall_offset_{0.5f};
-        double far_wall_offset_{0.5f};
 
         // frames
         std::string odom_frame_;
@@ -103,9 +89,13 @@ class PoolExplorationNode : public rclcpp::Node {
         // Position and heading
         DroneState drone_state_;
 
+        std::unique_ptr<PoolExplorationPlanner> planner_;
+
     // GRID LOGIKK TIL SENERE
-    # if 1
+    # if 0
     private:
+
+        void timer_callback();
         // Lager en transformasjon TF map->odom
         geometry_msgs::msg::TransformStamped compute_map_odom_transform();
         

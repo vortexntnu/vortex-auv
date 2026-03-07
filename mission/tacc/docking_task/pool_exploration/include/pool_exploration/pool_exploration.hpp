@@ -34,10 +34,10 @@ struct LineSegment {
 
 // brukes i node for å sette subscriber til dronepos verdi lik
 struct DroneState {
-    double x;
-    double y;
-    double z;
-    double yaw;
+    double x{};
+    double y{};
+    double z{};
+    double yaw{};
 };
 
 //linjer som oppfyller hjørnekrav
@@ -45,41 +45,30 @@ struct CandidateCorner {
     LineSegment right_wall;
     LineSegment far_wall;
     Eigen::Vector2f corner_point;
-    //float score; //Må finne en måte for å vurdere beste hjørne
 };
 
 struct PoolExplorationPlannerConfig {
     // fyll inn config parametere?
+    // må declare
+    float min_dist; 
+    float max_dist;
+    float angle_threshold;
+    float min_angle;
+    float max_angle;
+
+    float right_wall_offset;
+    float far_wall_offset;
 };
 
 class PoolExplorationPlanner {
 public:
-    // Konstruktør
-    PoolExplorationPlanner(
-        double size_x,
-        double size_y,
-        double resolution,
-        const std::string& frame_id);
-
     PoolExplorationPlanner(
         const PoolExplorationPlannerConfig& config);
 
-    const nav_msgs::msg::OccupancyGrid& grid() const;
-
-    /**
-    * @brief Draws a straight line on the occupancy grid using Bresenham's algorithm.
-    * Reference: https://www.youtube.com/watch?v=CceepU1vIKo
-    */
-    // denne kalles fra ros noden
-    // fra map til celle (forklar mer hvordan)
-    void insert_line_in_grid(const std::vector<LineSegment>& segments);
-    
     // bruker compute_normal til å finne normalt på veggene
     // henter ut intersection fra estimated_corner og bruker offsetene
     Eigen::Vector2f estimate_docking_position(
-        const CandidateCorner estimated_corner,
-        float right_wall_offset,
-        float far_wall_offset);
+        const CandidateCorner& estimated_corner);
 
     // brukes i selectBestCorner og deretter estimateDockingPosition
     //Funksjon som finner hjørner basert på krav om vinkler
@@ -110,19 +99,7 @@ public:
     // void printGridToConsole() const;
     
 private:
-    //Occupancy grid
-    // Set all cells unknown, 
-    // origin in center of map with no rotation
-    void initialize_grid();
-
-     //brukes i insertSegmentsMapFrame
-     // bresenham line algoritm (referanse)
-    void bresenham_line_algoritm(int x0, int y0, int x1, int y1);
-
-    // brukes i bresenhamLineAlgoritm
-    // sjekke at koordinatene er innenfor mappet
-    void set_grid_cell(int x, int y, int value);
-
+   
     //Antar får inn drone_pos i map frame
     // sjekker at linje ikke er et punkt
     // Bruker projeksjonsformelen
@@ -134,7 +111,7 @@ private:
     // Sjekke logikken her en gang til TO DO
     float line_heading_angle_difference(
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
-        const float& drone_heading);
+        float drone_heading);
 
     // Calculates the intersection of two infinite lines defined by point pairs and stores the result in `intersection`.
     // Returns false if the lines are parallel.
@@ -150,32 +127,53 @@ private:
 
     Eigen::Vector2f compute_normal(const LineSegment& line);
 
-   
-//private:
+    PoolExplorationPlannerConfig config_;
 
-    //Parameters for Occupancy grid
+    // LOGIKK FOR GRIDDET //
+# if 0
+public:
+ // Konstruktør
+    PoolExplorationPlanner(
+        double size_x,
+        double size_y,
+        double resolution,
+        const std::string& frame_id);
 
+    const nav_msgs::msg::OccupancyGrid& grid() const;
+
+  /**
+    * @brief Draws a straight line on the occupancy grid using Bresenham's algorithm.
+    * Reference: https://www.youtube.com/watch?v=CceepU1vIKo
+    */
+    // denne kalles fra ros noden
+    // fra map til celle (forklar mer hvordan)
+    void insert_line_in_grid(const std::vector<LineSegment>& segments);
     
+private:
+    //Occupancy grid
+    // Set all cells unknown, 
+    // origin in center of map with no rotation
+    void initialize_grid();
+
+     //brukes i insertSegmentsMapFrame
+     // bresenham line algoritm (referanse)
+    void bresenham_line_algoritm(int x0, int y0, int x1, int y1);
+
+    // brukes i bresenhamLineAlgoritm
+    // sjekke at koordinatene er innenfor mappet
+    void set_grid_cell(int x, int y, int value);
+
     nav_msgs::msg::OccupancyGrid grid_;
+    std::string frame_id;
     double size_x_;
     double size_y_;
     double resolution_;
 
-    // må declare
     int8_t occupied_cell_;  
     int8_t unknown_cell_;
-
-    float min_dist_; 
-    float max_dist_;
-    float angle_threshold_;
-    float min_angle_;
-    float max_angle_;
-
-    PoolExplorationPlannerConfig config_;
+#endif
 
 };
-
-// LOGIKK FOR GRIDDET //
 
 }  // namespace vortex::pool_exploration
 

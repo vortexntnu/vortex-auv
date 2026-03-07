@@ -24,7 +24,7 @@
 
     # Map cells
     unknown_cell: -1
-    occupied cell: 100
+    occupied_cell: 100
 
 
     # Corner/docking params

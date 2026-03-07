@@ -4,32 +4,18 @@
 #include <vector>
 
 namespace vortex::pool_exploration{
-// URELEVANT NÅ, LAG NY KONSTRUKTØR TO DO
-PoolExplorationPlanner::PoolExplorationPlanner(
-    double size_x,
-    double size_y,
-    double resolution,
-    const std::string& frame_id)
-    : size_x_(size_x),
-      size_y_(size_y),
-      resolution_(resolution) {
-    grid_.header.frame_id = frame_id;
-    initialize_grid();
-}
 
 PoolExplorationPlanner::PoolExplorationPlanner(const PoolExplorationPlannerConfig& config)
     : config_(config) {}
 
 Eigen::Vector2f PoolExplorationPlanner::estimate_docking_position(
-    const CandidateCorner estimated_corner,
-    float right_wall_offset,
-    float far_wall_offset) {
+    const CandidateCorner& estimated_corner) {
     Eigen::Vector2f right_normal = compute_normal(estimated_corner.right_wall);
     Eigen::Vector2f far_normal   = compute_normal(estimated_corner.far_wall);
 
     Eigen::Vector2f docking_estimate = estimated_corner.corner_point
-        + right_normal * right_wall_offset
-        + far_normal   * far_wall_offset;
+        + right_normal * config_.right_wall_offset
+        + far_normal   * config_.far_wall_offset;
 
     return docking_estimate;
 }
@@ -68,21 +54,21 @@ std::vector<CandidateCorner> PoolExplorationPlanner::find_valid_corner(
         float dist = (projection - drone_pos).norm(); 
         float angle = line_heading_angle_difference(line.asEigen(), drone_heading);
 
-        if (projection.y() < 0 && dist >= min_dist_ && dist <= max_dist_ && angle < angle_threshold_) {
+        if (projection.y() < 0 && dist >= config_.min_dist && dist <= config_.max_dist && angle < config_.angle_threshold) {
             right_candidates.push_back(line);
         }
-        if (projection.x() > 0 && dist >= min_dist_ && dist <= max_dist_ && angle > angle_threshold_) {
+        if (projection.x() > 0 && dist >= config_.min_dist && dist <= config_.max_dist && angle > config_.angle_threshold) {
             far_candidates.push_back(line);
         }
     }
 
-    for (auto& r : right_candidates) {
-        for (auto& f : far_candidates) {
+    for (const auto& r : right_candidates) {
+        for (const auto& f : far_candidates) {
             Eigen::Vector2f intersection_coordinates{};
             bool intersect = line_intersection(r.asEigen(), f.asEigen(), intersection_coordinates);
             if (intersect){
                 float wall_angle = angle_between_lines(r.asEigen(), f.asEigen());
-                if (wall_angle >= min_angle_ && wall_angle <= max_angle_) {
+                if (wall_angle >= config_.min_angle && wall_angle <= config_.max_angle) {
                     potential_corners.push_back({r, f, intersection_coordinates});
                 }
             }
@@ -112,7 +98,7 @@ Eigen::Vector2f PoolExplorationPlanner::project_drone_to_line(
 
 float PoolExplorationPlanner::line_heading_angle_difference( 
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
-    const float& drone_heading) {
+    float drone_heading) {
     float line_angle = atan2(line.second.y() - line.first.y(), line.second.x() - line.first.x());
     float diff = std::fmod(line_angle - drone_heading, 2*M_PI);
     
@@ -148,8 +134,10 @@ float PoolExplorationPlanner::angle_between_lines(
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1) {
     Eigen::Vector2f v0 = (line0.second - line0.first).normalized();
     Eigen::Vector2f v1 = (line1.second - line1.first).normalized();
+    
+    float dot = std::clamp(v0.dot(v1), -1.0f, 1.0f); //clamper fordi..
 
-    return std::acos(v0.dot(v1));     
+    return std::acos(dot);     
 }
 
 Eigen::Vector2f PoolExplorationPlanner::compute_normal(
@@ -161,6 +149,21 @@ Eigen::Vector2f PoolExplorationPlanner::compute_normal(
     Eigen::Vector2f n(-dir.y(), dir.x());
 
     return n.normalized();
+}
+// NEDENFOR ER GRID LOGIKKEN, BRUKES IKKE ENDA <3
+# if 0
+// URELEVANT NÅ, LAG NY KONSTRUKTØR TO DO
+// Lage egen config til griddet??
+PoolExplorationPlanner::PoolExplorationPlanner(
+    double size_x,
+    double size_y,
+    double resolution,
+    const std::string& frame_id)
+    : size_x_(size_x),
+      size_y_(size_y),
+      resolution_(resolution) {
+    grid_.header.frame_id = frame_id;
+    initialize_grid();
 }
 //URELEVANT NÅ
 void PoolExplorationPlanner::initialize_grid() {
@@ -279,4 +282,6 @@ void PoolExplorationPlanner::printGridToConsole() const{
     }
 }
 */
+
+#endif
 }  // namespace vortex::pool_exploration
