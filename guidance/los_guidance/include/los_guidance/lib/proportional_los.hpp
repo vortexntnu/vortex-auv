@@ -1,5 +1,5 @@
-#ifndef PROPORTIONAL_LOS_GUIDANCE_HPP
-#define PROPORTIONAL_LOS_GUIDANCE_HPP
+#ifndef LOS_GUIDANCE__LIB__PROPORTIONAL_LOS_HPP_
+#define LOS_GUIDANCE__LIB__PROPORTIONAL_LOS_HPP_
 
 #include <cmath>
 #include <eigen3/Eigen/Dense>
@@ -19,7 +19,7 @@ struct ProportionalLosParams {
 class ProportionalLOSGuidance {
    public:
     // Constructor / Destructor
-    ProportionalLOSGuidance(const ProportionalLosParams& params);
+    explicit ProportionalLOSGuidance(const ProportionalLosParams& params);
     ~ProportionalLOSGuidance() = default;
 
     // Main Output Calculation
@@ -45,4 +45,4 @@ class ProportionalLOSGuidance {
 
 }  // namespace vortex::guidance::los
 
-#endif  // PROPORTIONAL_LOS_GUIDANCE_HPP
+#endif  // LOS_GUIDANCE__LIB__PROPORTIONAL_LOS_HPP_

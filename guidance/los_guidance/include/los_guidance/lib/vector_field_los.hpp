@@ -1,5 +1,5 @@
-#ifndef VECTOR_FIELD_LOS_GUIDANCE_HPP
-#define VECTOR_FIELD_LOS_GUIDANCE_HPP
+#ifndef LOS_GUIDANCE__LIB__VECTOR_FIELD_LOS_HPP_
+#define LOS_GUIDANCE__LIB__VECTOR_FIELD_LOS_HPP_
 
 #include <cmath>
 #include <eigen3/Eigen/Dense>
@@ -22,7 +22,7 @@ struct VectorFieldLosParams {
 class VectorFieldLOSGuidance {
    public:
     // Constructor / Destructor
-    VectorFieldLOSGuidance(const VectorFieldLosParams& params);
+    explicit VectorFieldLOSGuidance(const VectorFieldLosParams& params);
     ~VectorFieldLOSGuidance() = default;
 
     // Main Output Calculation
@@ -48,4 +48,4 @@ class VectorFieldLOSGuidance {
 
 }  // namespace vortex::guidance::los
 
-#endif  // VECTOR_FIELD_LOS_GUIDANCE_HPP
+#endif  // LOS_GUIDANCE__LIB__VECTOR_FIELD_LOS_HPP_

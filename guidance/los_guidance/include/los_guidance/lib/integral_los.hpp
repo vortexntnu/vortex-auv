@@ -1,5 +1,5 @@
-#ifndef INTEGRAL_LOS_GUIDANCE_HPP
-#define INTEGRAL_LOS_GUIDANCE_HPP
+#ifndef LOS_GUIDANCE__LIB__INTEGRAL_LOS_HPP_
+#define LOS_GUIDANCE__LIB__INTEGRAL_LOS_HPP_
 
 #include <cmath>
 #include <eigen3/Eigen/Dense>
@@ -22,7 +22,7 @@ struct IntegralLosParams {
 class IntegralLOSGuidance {
    public:
     // Constructor / Destructor
-    IntegralLOSGuidance(const IntegralLosParams& params);
+    explicit IntegralLOSGuidance(const IntegralLosParams& params);
     ~IntegralLOSGuidance() = default;
 
     // Main Output Calculation
@@ -52,4 +52,4 @@ class IntegralLOSGuidance {
 
 }  // namespace vortex::guidance::los
 
-#endif  // INTEGRAL_LOS_GUIDANCE_HPP
+#endif  // LOS_GUIDANCE__LIB__INTEGRAL_LOS_HPP_

@@ -1,5 +1,5 @@
-#ifndef TYPES_HPP
-#define TYPES_HPP
+#ifndef LOS_GUIDANCE__LIB__TYPES_HPP_
+#define LOS_GUIDANCE__LIB__TYPES_HPP_
 
 #include <cmath>
 #include <eigen3/Eigen/Dense>
@@ -57,4 +57,4 @@ enum class ActiveLosMethod { PROPORTIONAL, INTEGRAL, ADAPTIVE, VECTOR_FIELD };
 
 }  // namespace vortex::guidance::los::types
 
-#endif  // TYPES_HPP
+#endif  // LOS_GUIDANCE__LIB__TYPES_HPP_

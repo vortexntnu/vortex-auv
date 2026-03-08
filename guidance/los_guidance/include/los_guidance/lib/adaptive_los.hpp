@@ -1,5 +1,5 @@
-#ifndef ADAPTIVE_LOS_GUIDANCE_HPP
-#define ADAPTIVE_LOS_GUIDANCE_HPP
+#ifndef LOS_GUIDANCE__LIB__ADAPTIVE_LOS_HPP_
+#define LOS_GUIDANCE__LIB__ADAPTIVE_LOS_HPP_
 
 #include <cmath>
 #include <eigen3/Eigen/Dense>
@@ -22,7 +22,7 @@ struct AdaptiveLosParams {
 class AdaptiveLOSGuidance {
    public:
     // Constructor / Destructor
-    AdaptiveLOSGuidance(const AdaptiveLosParams& params);
+    explicit AdaptiveLOSGuidance(const AdaptiveLosParams& params);
     ~AdaptiveLOSGuidance() = default;
 
     // Main Output Calculation
@@ -54,4 +54,4 @@ class AdaptiveLOSGuidance {
 
 }  // namespace vortex::guidance::los
 
-#endif  // ADAPTIVE_LOS_GUIDANCE_HPP
+#endif  // LOS_GUIDANCE__LIB__ADAPTIVE_LOS_HPP_

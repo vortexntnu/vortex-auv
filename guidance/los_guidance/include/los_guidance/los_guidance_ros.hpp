@@ -124,4 +124,4 @@ class LosGuidanceNode : public rclcpp::Node {
 
 }  // namespace vortex::guidance::los
 
-#endif  // LOS_GUIDANCE_ROS_HPP
+#endif  // LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
