@@ -1,6 +1,8 @@
 #include <thread>
+
 #include "los_guidance/los_guidance_ros.hpp"
 
+// Main Entry Point
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
 

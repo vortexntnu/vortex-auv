@@ -1,8 +1,10 @@
 #include "los_guidance/los_guidance_ros.hpp"
+
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
-#include <yaml-cpp/node/node.h>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include <yaml-cpp/node/node.h>
+
 #include "los_guidance/lib/types.hpp"
 
 const auto start_message = R"(
@@ -10,18 +12,18 @@ const auto start_message = R"(
  | |   / _ \/ ___|   / ___|_   _(_) __| | __ _ _ __   ___ ___
  | |  | | | \___ \  | |  _| | | | |/ _` |/ _` | '_ \ / __/ _ \
  | |__| |_| |___) | | |_| | |_| | | (_| | (_| | | | | (_|  __/
- |_____\___/|____/   \____|\__,_|_|\__,_|\__,_|_| |_|\___\___| 
+ |_____\___/|____/   \____|\__,_|_|\__,_|\__,_|_| |_|\___\___|
 
 )";
 
 namespace vortex::guidance::los {
 
+// Constructor
 LosGuidanceNode::LosGuidanceNode() : Node("los_guidance_node") {
     double time_step_s = this->declare_parameter<double>("time_step");
     time_step_ =
         std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
-    // auto config = this->declare_parameter<YAML::Node>("los_config_file");
-    // Do you need yaml path here? Can't you just use ros params directly from the guidance_params.yaml file?
+
     const std::string yaml_path =
         this->declare_parameter<std::string>("los_config_file");
 
@@ -34,11 +36,12 @@ LosGuidanceNode::LosGuidanceNode() : Node("los_guidance_node") {
     set_adaptive_los_guidance(config);
     set_proportional_los_guidance(config);
     set_integral_los_guidance(config);
-    set_vector_field_guidance(config);  
+    set_vector_field_guidance(config);
 
     spdlog::info(start_message);
 }
 
+// ROS Setup
 void LosGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.guidance.los");
@@ -50,7 +53,6 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.guidance.los").as_string();
     std::string waypoint_topic =
         this->get_parameter("topics.waypoint").as_string();
-    
     std::string odom_topic =
         this->get_parameter("topics.odom").as_string();
 
@@ -65,11 +67,11 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     state_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         "state_debug", qos_sensor_data);
 
-    waypoint_sub_ = this->create_subscription<
-        geometry_msgs::msg::PointStamped>(
-        waypoint_topic, qos_sensor_data,
-        std::bind(&LosGuidanceNode::waypoint_callback, this,
-                  std::placeholders::_1));
+    waypoint_sub_ =
+        this->create_subscription<geometry_msgs::msg::PointStamped>(
+            waypoint_topic, qos_sensor_data,
+            std::bind(&LosGuidanceNode::waypoint_callback, this,
+                      std::placeholders::_1));
 
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -77,17 +79,17 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         std::bind(&LosGuidanceNode::pose_callback, this,
                   std::placeholders::_1));
 
-    odom_sub_ = this->create_subscription<
-        nav_msgs::msg::Odometry>(
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data,
         std::bind(&LosGuidanceNode::odom_callback, this,
-                    std::placeholders::_1));
+                  std::placeholders::_1));
 }
 
 void LosGuidanceNode::set_action_server() {
     this->declare_parameter<std::string>("action_servers.los");
     std::string action_server_name =
         this->get_parameter("action_servers.los").as_string();
+
     cb_group_ =
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
@@ -113,19 +115,18 @@ void LosGuidanceNode::set_service_server() {
                                 std::placeholders::_1, std::placeholders::_2));
 }
 
+// Guidance Configuration
 void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
     auto adaptive_los_config = config["adaptive_los"];
     auto params = AdaptiveLosParams{};
+
     params.lookahead_distance_h =
         adaptive_los_config["lookahead_distance_h"].as<double>();
     params.lookahead_distance_v =
         adaptive_los_config["lookahead_distance_v"].as<double>();
-    params.gamma_h = 
-        adaptive_los_config["gamma_h"].as<double>();
-    params.gamma_v = 
-        adaptive_los_config["gamma_v"].as<double>();
-    params.time_step = 
-        static_cast<double>(time_step_.count()) / 1000.0;
+    params.gamma_h = adaptive_los_config["gamma_h"].as<double>();
+    params.gamma_v = adaptive_los_config["gamma_v"].as<double>();
+    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
     adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
 }
@@ -133,6 +134,7 @@ void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
 void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
     auto proportional_los_config = config["prop_los"];
     auto params = ProportionalLosParams{};
+
     params.lookahead_distance_h =
         proportional_los_config["lookahead_distance_h"].as<double>();
     params.lookahead_distance_v =
@@ -144,39 +146,34 @@ void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
 void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     auto integral_los_config = config["integer_los"];
     auto params = IntegralLosParams{};
-    params.k_p_h = 
-        integral_los_config["k_p_h"].as<double>();
-    params.k_p_v = 
-        integral_los_config["k_p_v"].as<double>();
-    params.k_i_h = 
-        integral_los_config["k_i_h"].as<double>();
-    params.k_i_v = 
-        integral_los_config["k_i_v"].as<double>();
-    params.time_step = 
-        static_cast<double>(time_step_.count()) / 1000.0;
+
+    params.k_p_h = integral_los_config["k_p_h"].as<double>();
+    params.k_p_v = integral_los_config["k_p_v"].as<double>();
+    params.k_i_h = integral_los_config["k_i_h"].as<double>();
+    params.k_i_v = integral_los_config["k_i_v"].as<double>();
+    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
+
     integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
 }
 
 void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
     auto vector_field_config = config["vector_field_los"];
     auto params = VectorFieldLosParams{};
+
     params.max_approach_angle_h =
         vector_field_config["max_approach_angle_h"].as<double>();
     params.max_approach_angle_v =
         vector_field_config["max_approach_angle_v"].as<double>();
-    params.k_p_h = 
-        vector_field_config["k_p_h"].as<double>();
-    params.k_p_v =
-        vector_field_config["k_p_v"].as<double>();
-    params.time_step =
-        static_cast<double>(time_step_.count()) / 1000.0;
+    params.k_p_h = vector_field_config["k_p_h"].as<double>();
+    params.k_p_v = vector_field_config["k_p_v"].as<double>();
+    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
     vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
 }
 
+// Topic Callbacks
 void LosGuidanceNode::waypoint_callback(
-    const geometry_msgs::msg::PointStamped::SharedPtr wp_msg)
-{
+    const geometry_msgs::msg::PointStamped::SharedPtr wp_msg) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     const auto new_wp = types::Point::point_from_ros(wp_msg->point);
@@ -190,28 +187,30 @@ void LosGuidanceNode::waypoint_callback(
         path_inputs_.next_point = new_wp;
     }
 
-    spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y, new_wp.z);
+    spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y,
+                 new_wp.z);
 }
 
-
-
 void LosGuidanceNode::pose_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr current_pose) {
+    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+        current_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
     path_inputs_.current_position =
         types::Point::point_from_ros(current_pose->pose.pose.position);
 }
 
-void LosGuidanceNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+void LosGuidanceNode::odom_callback(
+    const nav_msgs::msg::Odometry::SharedPtr msg) {
     std::lock_guard<std::mutex> lock(mutex_);
     debug_current_odom_ = msg;
 }
 
-
+// Action Server Callbacks
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
     (void)goal;
+
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (goal_handle_) {
@@ -221,6 +220,7 @@ rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
             }
         }
     }
+
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -240,6 +240,8 @@ void LosGuidanceNode::handle_accepted(
         goal_handle) {
     execute(goal_handle);
 }
+
+// Service Callback
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
@@ -247,9 +249,10 @@ void LosGuidanceNode::set_los_mode(
     spdlog::info("LOS mode set to {}", static_cast<int>(method_));
     response->success = true;
 }
+
+// Message Helpers
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs) {
-
     vortex_msgs::msg::LOSGuidance reference_msg;
     reference_msg.pitch = outputs.theta_d;
     reference_msg.yaw = outputs.psi_d;
@@ -271,11 +274,11 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
         common_config["active_los_method"].as<int>());
 }
 
+// Goal Execution
 void LosGuidanceNode::execute(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
         goal_handle) {
-
     {
         std::lock_guard<std::mutex> lock(mutex_);
         this->goal_handle_ = goal_handle;
@@ -355,7 +358,7 @@ void LosGuidanceNode::execute(
         los_debug_pub_->publish(reference_msg);
 
         const auto& v = debug_current_odom_->twist.twist.linear;
-        double surge = std::sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+        double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
         vortex_msgs::msg::LOSGuidance state_debug_msg;
         Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
@@ -368,15 +371,15 @@ void LosGuidanceNode::execute(
         state_debug_msg.pitch = euler.y();
         state_debug_msg.yaw = euler.z();
         state_debug_msg.surge = surge;
-        state_debug_pub_->publish(state_debug_msg);
 
+        state_debug_pub_->publish(state_debug_msg);
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(reference_msg);
 
-
-        if ((path_inputs_.current_position - path_inputs_.next_point).as_vector().norm() < goal_reached_tol_) {
-
-            auto stop_ref = reference_msg; 
+        if ((path_inputs_.current_position - path_inputs_.next_point)
+                .as_vector()
+                .norm() < goal_reached_tol_) {
+            auto stop_ref = reference_msg;
             stop_ref.surge = 0.0;
             stop_ref.pitch = 0.0;
             stop_ref.yaw = reference_msg.yaw;
@@ -392,4 +395,4 @@ void LosGuidanceNode::execute(
     }
 }
 
-}  // namespace vortex::guidance::los 
+}  // namespace vortex::guidance::los

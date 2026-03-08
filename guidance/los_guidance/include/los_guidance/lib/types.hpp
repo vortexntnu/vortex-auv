@@ -9,22 +9,28 @@
 
 namespace vortex::guidance::los::types {
 
+// Point Representation
 struct Point {
     double x{};
     double y{};
     double z{};
 
+    // Point Operations
     Point operator-(const Point& other) const {
         return Point{x - other.x, y - other.y, z - other.z};
     }
 
-    Eigen::Vector3d as_vector() const { return Eigen::Vector3d(x, y, z); }
+    // Conversion Functions
+    Eigen::Vector3d as_vector() const {
+        return Eigen::Vector3d(x, y, z);
+    }
 
     static Point point_from_ros(const geometry_msgs::msg::Point& msg) {
         return Point{msg.x, msg.y, msg.z};
     }
 };
 
+// Cross Track Error
 struct CrossTrackError {
     double x_e{};
     double y_e{};
@@ -35,24 +41,27 @@ struct CrossTrackError {
     }
 };
 
+// Guidance Outputs
 struct Outputs {
     double psi_d{};
     double theta_d{};
 };
 
+// Guidance Inputs
 struct Inputs {
     Point prev_point{};
     Point next_point{};
     Point current_position{};
 };
 
+// Active LOS Method
 enum class ActiveLosMethod {
-    PROPORTIONAL,  // 0
-    INTEGRAL,      // 1
-    ADAPTIVE,      // 2
-    VECTOR_FIELD   // 3
+    PROPORTIONAL,
+    INTEGRAL,
+    ADAPTIVE,
+    VECTOR_FIELD
 };
 
 }  // namespace vortex::guidance::los::types
 
-#endif
+#endif  // TYPES_HPP

@@ -17,7 +17,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'scenario': 'tacc',
-            'rendering': 'false',
+            'rendering': 'true',
         }.items(),
     )
 
