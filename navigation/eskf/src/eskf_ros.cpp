@@ -18,7 +18,10 @@ auto start_message{R"(
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options),
       mru_driver_(io_,
-                  [this](const MrubinMessage& msg) { mru_imu_callback(msg); })
+                  [this](const MrubinMessage& msg) { mru_imu_callback(msg); }),
+      nortek_dvl_driver_(
+          io_,
+          [this](NortekNucleusFrame frame) { nortek_dvl_callback(msg); })
 
 {
     time_step = std::chrono::milliseconds(1);
@@ -63,7 +66,6 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 }
 
 int ESKFNode::init_mru_driver() {
-
     struct ConnectionParams p;
     p.remote_ip = "10.0.1.20";
     p.data_remote_port = 7550;    // mock server port
@@ -89,7 +91,7 @@ int ESKFNode::init_mru_driver() {
     mru_driver_.start_read();
 
     td::thread io_thread([&] { io.run(); });
-    
+
     return 0;
 }
 
@@ -139,6 +141,93 @@ void ESKFNode::mru_imu_callback(const MrubinMessage& msg) {
     latest_gyro_measurement_ = imu_measurement.gyro;
 
     eskf_->imu_update(imu_measurement, dt);
+}
+
+int ESKFNode::init_nortek_driver() {
+    ConnectionParams params;
+
+    params.remote_ip = "192.169.53.100";
+    params.data_remote_port = 9000;
+
+    if (auto ec = nortek_driver_.open_tcp_sockets(params); ec) {
+        return -1;
+    }
+
+    nortek_driver_.start_read();
+
+    return 0;
+}
+
+void ESKFNode::nortek_dvl_callback(NortekNucleusFrame frame) {
+    std::visit(
+        Overloaded{
+
+            [](const BottomTrackData& d) {
+                SensorDVL dvl_sensor{};
+
+                // Reject invalid Nortek velocity values
+                if (msg.velocity_x <= -32.0f || msg.velocity_y <= -32.0f ||
+                    msg.velocity_z <= -32.0f) {
+                    return;
+                }
+
+                // Reject invalid uncertainty values
+                if (msg.uncertainty_x >= 10.0f || msg.uncertainty_y >= 10.0f ||
+                    msg.uncertainty_z >= 10.0f) {
+                    return;
+                }
+
+                dvl_sensor.measurement << static_cast<double>(msg.velocity_x),
+                    static_cast<double>(msg.velocity_y),
+                    static_cast<double>(msg.velocity_z);
+
+                dvl_sensor.measurement_noise = Eigen::Matrix3d::Zero();
+                dvl_sensor.measurement_noise(0, 0) =
+                    static_cast<double>(msg.uncertainty_x) * msg.uncertainty_x;
+                dvl_sensor.measurement_noise(1, 1) =
+                    static_cast<double>(msg.uncertainty_y) * msg.uncertainty_y;
+                dvl_sensor.measurement_noise(2, 2) =
+                    static_cast<double>(msg.uncertainty_z) * msg.uncertainty_z;
+
+                // Apply the rotation and translation corrections to the DVL
+                // measurement
+                StateQuat nom_state = eskf_->get_nominal_state();
+
+                // Get the angular velocity
+                Eigen::Vector3d omega_corrected =
+                    latest_gyro_measurement_ - nom_state.gyro_bias;
+
+                // Correct rotation and translation: v_base = R * v_sensor -
+                // omega x T
+                dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement -
+                                         omega_corrected.cross(T_dvl_eskf_);
+
+                dvl_sensor.measurement_noise = R_dvl_eskf_ *
+                                               dvl_sensor.measurement_noise *
+                                               R_dvl_eskf_.transpose();
+
+                eskf_->dvl_update(dvl_sensor);
+
+#ifndef NDEBUG
+                std_msgs::msg::Float64 nis_msg;
+                nis_msg.data = eskf_->get_nis();
+                nis_pub_->publish(nis_msg);
+#endif
+            },
+
+            // [](const std::string& s) {
+            //     std::cout << "[TEXT MESSAGE] " << s << "\n";
+            // },
+            // [](const ImuData& d) { print_imu_data(d); },
+            // [](const AltimeterData& d) { print_altimeter_data(d); },
+            // [](const AhrsDataV2& d) { print_ahrs_data(d); },
+            // [](const InsDataV2& d) { print_ins_data(d); },
+            // [](const MagnetoMeterData& d) { print_magnetometer_data(d); },
+
+            [](const auto& other) {}
+
+        },
+        frame);
 }
 
 void ESKFNode::set_subscribers_and_publisher() {

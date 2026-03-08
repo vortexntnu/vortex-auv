@@ -25,6 +25,13 @@
 #include <kongsberg_mru_driver.hpp>
 #include <nortek_nucleus_driver.hpp>
 
+
+// helper for std::visit overloads
+template <class... Ts> struct Overloaded : Ts... {
+  using Ts::operator()...;
+};
+template <class... Ts> Overloaded(Ts...) -> Overloaded<Ts...>;
+
 class ESKFNode : public rclcpp::Node {
    public:
     explicit ESKFNode(
@@ -112,6 +119,7 @@ class ESKFNode : public rclcpp::Node {
 
     asio::io_context io_;
     KongsbergMRUDriver mru_driver_;
+    NortekNucleusDriver nortek_driver_;
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_
