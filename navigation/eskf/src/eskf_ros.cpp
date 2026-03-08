@@ -1,9 +1,9 @@
 #include "eskf/eskf_ros.hpp"
 #include <spdlog/spdlog.h>
-#include <rclcpp_components/register_node_macro.hpp>
-#include <vortex/utils/ros/qos_profiles.hpp>
 #include <kongsberg_mru_driver.hpp>
 #include <nortek_nucleus_driver.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 #include "eskf/typedefs.hpp"
 
 auto start_message{R"(
@@ -16,7 +16,11 @@ auto start_message{R"(
 )"};
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
-    : Node("eskf_node", options) {
+    : Node("eskf_node", options),
+      mru_driver_(io_,
+                  [this](const MrubinMessage& msg) { mru_imu_callback(msg); })
+
+{
     time_step = std::chrono::milliseconds(1);
     odom_pub_timer_ = this->create_wall_timer(
         time_step, std::bind(&ESKFNode::publish_odom, this));
@@ -32,8 +36,8 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     // Initialize Broadcaster (for odom -> base_link)
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-    // flag to determine whether to use TF-based transforms or parameter-based
-    // transforms
+    // flag to determine whether to use TF-based transforms or
+    // parameter-based transforms
     this->declare_parameter<bool>("use_tf_transforms", true);
     use_tf_transforms_ = this->get_parameter("use_tf_transforms").as_bool();
 
@@ -51,51 +55,49 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     }
 
     spdlog::info(start_message);
-
 #ifndef NDEBUG
     spdlog::info(
-        "______________________Debug mode is enabled______________________");
+        "______________________Debug mode is "
+        "enabled______________________");
 #endif
 }
 
-int ESKFNode::init_mru_driver(){
-
-
-
-    KongsbergMRUDriver driver(io, mru_imu_callback);
+int ESKFNode::init_mru_driver() {
 
     struct ConnectionParams p;
     p.remote_ip = "10.0.1.20";
-    p.data_remote_port = 7550;   // mock server port
-    p.data_local_port = 7551;    // let OS choose a free local port
-    p.control_local_port = 7552; // let OS choose a free local port
-    
+    p.data_remote_port = 7550;    // mock server port
+    p.data_local_port = 7551;     // let OS choose a free local port
+    p.control_local_port = 7552;  // let OS choose a free local port
+
     MruSettings s{};
     s.channel = "UDP1";
     s.use_usart = false;
     s.port = 7551;
     s.ip_addr = "10.0.0.153";
-    s.interval = 5;    // ms between packets (0, 5..32000)
+    s.interval = 5;  // ms between packets (0, 5..32000)
     s.token = 21;
 
-    if (std::error_code ec = driver.open_udp_socket(p)) {
-      return -1;
+    if (std::error_code ec = mru_driver_.open_udp_socket(p)) {
+        return -1;
     }
 
-    if (auto status = driver.set_default_settings(s) != MruStatus::Ok){
+    if (auto status = mru_driver_.set_default_settings(s) != MruStatus::Ok) {
         return -2;
     }
 
+    mru_driver_.start_read();
+
+    td::thread io_thread([&] { io.run(); });
+    
     return 0;
 }
 
 void ESKFNode::mru_imu_callback(const MrubinMessage& msg) {
     // Construct ROS time from the message timestamps
-    rclcpp::Time current_time(
-        static_cast<int32_t>(msg.sample_time_s),
-        static_cast<uint32_t>(msg.sample_time_ns),
-        RCL_ROS_TIME
-    );
+    rclcpp::Time current_time(static_cast<int32_t>(msg.sample_time_s),
+                              static_cast<uint32_t>(msg.sample_time_ns),
+                              RCL_ROS_TIME);
 
     if (!first_imu_msg_received_) {
         last_imu_time_ = current_time;
@@ -111,20 +113,17 @@ void ESKFNode::mru_imu_callback(const MrubinMessage& msg) {
     Eigen::Vector3d raw_accel(
         static_cast<double>(msg.acceleration_roll_direction),
         static_cast<double>(msg.acceleration_pitch_direction),
-        static_cast<double>(msg.acceleration_yaw_direction)
-    );
+        static_cast<double>(msg.acceleration_yaw_direction));
 
-    Eigen::Vector3d raw_gyro(
-        static_cast<double>(msg.angle_rate_roll),
-        static_cast<double>(msg.angle_rate_pitch),
-        static_cast<double>(msg.angle_rate_yaw)
-    );
+    Eigen::Vector3d raw_gyro(static_cast<double>(msg.angle_rate_roll),
+                             static_cast<double>(msg.angle_rate_pitch),
+                             static_cast<double>(msg.angle_rate_yaw));
 
     Eigen::Vector3d accel_aligned = R_imu_eskf_ * raw_accel;
 
-    // Currently the gyro and the accelerometer are rotated differently in sim.
-    // Should be changed with the actual drone params.
-    // Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
+    // Currently the gyro and the accelerometer are rotated differently in
+    // sim. Should be changed with the actual drone params. Eigen::Vector3d
+    // gyro_aligned = R_imu_eskf_ * raw_gyro;
     Eigen::Vector3d gyro_aligned = raw_gyro;
     imu_measurement.gyro = gyro_aligned;
 
@@ -241,9 +240,9 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
     Eigen::Vector3d accel_aligned = R_imu_eskf_ * raw_accel;
 
-    // currently the gyro and the accelorometer are rotated differently in sim.
-    // should be changed with the actual drone params.
-    // Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
+    // currently the gyro and the accelorometer are rotated differently in
+    // sim. should be changed with the actual drone params. Eigen::Vector3d
+    // gyro_aligned = R_imu_eskf_ * raw_gyro;
     Eigen::Vector3d gyro_aligned = raw_gyro;
     imu_measurement.gyro = gyro_aligned;
 
@@ -323,15 +322,15 @@ void ESKFNode::publish_odom() {
     odom_msg.twist.twist.angular.y = body_angular_vel.y();
     odom_msg.twist.twist.angular.z = body_angular_vel.z();
 
-    // If you also want to include gyro bias, you could add it to the covariance
-    // matrix or publish a separate topic for biases
+    // If you also want to include gyro bias, you could add it to the
+    // covariance matrix or publish a separate topic for biases
 
     odom_msg.header.stamp = this->now();
     odom_msg.header.frame_id = "odom";
 
-    // Some cross terms of the covariance are ignored, and the acc/gyro biases
-    // cov are not published. Pos and orientation cov needs to be mapped from
-    // 6*6 matrix to an array (states 0-2)
+    // Some cross terms of the covariance are ignored, and the acc/gyro
+    // biases cov are not published. Pos and orientation cov needs to be
+    // mapped from 6*6 matrix to an array (states 0-2)
 
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {

@@ -4,6 +4,7 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+#include <asio/io_context.hpp>
 #include <chrono>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -21,6 +22,8 @@
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
 #include "spdlog/spdlog.h"
+#include <kongsberg_mru_driver.hpp>
+#include <nortek_nucleus_driver.hpp>
 
 class ESKFNode : public rclcpp::Node {
    public:
@@ -28,6 +31,12 @@ class ESKFNode : public rclcpp::Node {
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
+
+
+    int init_mru_driver();
+
+    void mru_imu_callback(const MrubinMessage& msg);
+
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
     void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
@@ -98,6 +107,11 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
+
+
+
+    asio::io_context io_;
+    KongsbergMRUDriver mru_driver_;
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_
