@@ -2,6 +2,8 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include <kongsberg_mru_driver.hpp>
+#include <nortek_nucleus_driver.hpp>
 #include "eskf/typedefs.hpp"
 
 auto start_message{R"(
@@ -54,6 +56,90 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     spdlog::info(
         "______________________Debug mode is enabled______________________");
 #endif
+}
+
+int ESKFNode::init_mru_driver(){
+
+
+
+    KongsbergMRUDriver driver(io, mru_imu_callback);
+
+    struct ConnectionParams p;
+    p.remote_ip = "10.0.1.20";
+    p.data_remote_port = 7550;   // mock server port
+    p.data_local_port = 7551;    // let OS choose a free local port
+    p.control_local_port = 7552; // let OS choose a free local port
+    
+    MruSettings s{};
+    s.channel = "UDP1";
+    s.use_usart = false;
+    s.port = 7551;
+    s.ip_addr = "10.0.0.153";
+    s.interval = 5;    // ms between packets (0, 5..32000)
+    s.token = 21;
+
+    if (std::error_code ec = driver.open_udp_socket(p)) {
+      return -1;
+    }
+
+    if (auto status = driver.set_default_settings(s) != MruStatus::Ok){
+        return -2;
+    }
+
+    return 0;
+}
+
+void ESKFNode::mru_imu_callback(const MrubinMessage& msg) {
+    // Construct ROS time from the message timestamps
+    rclcpp::Time current_time(
+        static_cast<int32_t>(msg.sample_time_s),
+        static_cast<uint32_t>(msg.sample_time_ns),
+        RCL_ROS_TIME
+    );
+
+    if (!first_imu_msg_received_) {
+        last_imu_time_ = current_time;
+        first_imu_msg_received_ = true;
+        return;
+    }
+
+    double dt = (current_time - last_imu_time_).nanoseconds() * 1e-9;
+    last_imu_time_ = current_time;
+
+    ImuMeasurement imu_measurement{};
+
+    Eigen::Vector3d raw_accel(
+        static_cast<double>(msg.acceleration_roll_direction),
+        static_cast<double>(msg.acceleration_pitch_direction),
+        static_cast<double>(msg.acceleration_yaw_direction)
+    );
+
+    Eigen::Vector3d raw_gyro(
+        static_cast<double>(msg.angle_rate_roll),
+        static_cast<double>(msg.angle_rate_pitch),
+        static_cast<double>(msg.angle_rate_yaw)
+    );
+
+    Eigen::Vector3d accel_aligned = R_imu_eskf_ * raw_accel;
+
+    // Currently the gyro and the accelerometer are rotated differently in sim.
+    // Should be changed with the actual drone params.
+    // Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
+    Eigen::Vector3d gyro_aligned = raw_gyro;
+    imu_measurement.gyro = gyro_aligned;
+
+    // Lever arm correction for accelerometer
+    StateQuat nom_state = eskf_->get_nominal_state();
+    Eigen::Vector3d omega = gyro_aligned - nom_state.gyro_bias;
+
+    // a_corrected = a_meas - omega x (omega x T)
+    Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
+    imu_measurement.accel = accel_aligned - centripetal_accel;
+
+    // Save latest gyro readings (used for DVL correction and odom output)
+    latest_gyro_measurement_ = imu_measurement.gyro;
+
+    eskf_->imu_update(imu_measurement, dt);
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
