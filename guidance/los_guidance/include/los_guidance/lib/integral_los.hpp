@@ -21,7 +21,6 @@ struct IntegralLosParams {
 // Integral LOS Guidance Class
 class IntegralLOSGuidance {
    public:
-
     // Constructor / Destructor
     IntegralLOSGuidance(const IntegralLosParams& params);
     ~IntegralLOSGuidance() = default;

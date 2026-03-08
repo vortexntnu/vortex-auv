@@ -40,13 +40,11 @@ types::Outputs VectorFieldLOSGuidance::calculate_outputs(
     const types::CrossTrackError cross_track_error =
         calculate_crosstrack_error(inputs);
 
-    const double approach_h =
-        m_params.max_approach_angle_h * (2.0 / M_PI) *
-        std::atan(m_params.k_p_h * cross_track_error.y_e);
+    const double approach_h = m_params.max_approach_angle_h * (2.0 / M_PI) *
+                              std::atan(m_params.k_p_h * cross_track_error.y_e);
 
-    const double approach_v =
-        m_params.max_approach_angle_v * (2.0 / M_PI) *
-        std::atan(m_params.k_p_v * cross_track_error.z_e);
+    const double approach_v = m_params.max_approach_angle_v * (2.0 / M_PI) *
+                              std::atan(m_params.k_p_v * cross_track_error.z_e);
 
     const double psi_d = pi_h_ - approach_h;
     const double theta_d = pi_v_ - approach_v;

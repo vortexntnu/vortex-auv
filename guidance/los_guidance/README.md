@@ -97,14 +97,14 @@ The path between two waypoints defines the **path direction angles** used by the
 
 where
 
-- $\pi_h$ is the **horizontal path angle (azimuth angle)**  
-- $\pi_v$ is the **vertical path angle (elevation angle)**  
+- $\pi_h$ is the **horizontal path angle (azimuth angle)**
+- $\pi_v$ is the **vertical path angle (elevation angle)**
 
 These angles define the **direction of the current path segment** between two waypoints.
 
 Additionally
 
-- $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down (NED) frame  
+- $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down (NED) frame
 - $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint.
 
 ---
@@ -139,9 +139,9 @@ z_i^n
 
 where
 
-- $x_e^p$ is the along-track error  
-- $y_e^p$ is the cross-track error  
-- $z_e^p$ is the vertical-track error  
+- $x_e^p$ is the along-track error
+- $y_e^p$ is the cross-track error
+- $z_e^p$ is the vertical-track error
 
 and
 
@@ -149,7 +149,7 @@ and
 
 ---
 
-## Adaptive LOS (ALOS)
+## Adaptive LOS (ALSO)
 
 Adaptive LOS estimates **crab angles caused by disturbances** such as ocean currents or wind.
 
@@ -180,24 +180,24 @@ z_e^p
 
 where
 
-- $\Delta_h$ is the horizontal lookahead distance  
-- $\Delta_v$ is the vertical lookahead distance  
-- $\gamma_h$ and $\gamma_v$ are the adaptive gains  
-- $y_e^p$ is the cross-track error  
-- $z_e^p$ is the vertical-track error  
+- $\Delta_h$ is the horizontal lookahead distance
+- $\Delta_v$ is the vertical lookahead distance
+- $\gamma_h$ and $\gamma_v$ are the adaptive gains
+- $y_e^p$ is the cross-track error
+- $z_e^p$ is the vertical-track error
 
 The terms
 
 - $\hat{\beta}_c$ is the **estimated horizontal crab angle**
 - $\hat{\alpha}_c$ is the **estimated vertical crab angle**
 
-These angles represent the **estimated disturbance-induced deviation** between the vehicle heading and the actual direction of motion.  
+These angles represent the **estimated disturbance-induced deviation** between the vehicle heading and the actual direction of motion.
 They allow the guidance system to **compensate for disturbances such as currents or wind**.
 
 Adaptive LOS is generally the **most robust method** and works well for
 
-- curved trajectories  
-- long paths  
+- curved trajectories
+- long paths
 - environments with disturbances.
 
 ---
@@ -220,19 +220,19 @@ Proportional LOS is the simplest LOS guidance law.
 
 ### Parameters
 
-- $\Delta_h$ — horizontal lookahead distance  
-- $\Delta_v$ — vertical lookahead distance  
+- $\Delta_h$ — horizontal lookahead distance
+- $\Delta_v$ — vertical lookahead distance
 
 The lookahead distances determine **how aggressively the vehicle corrects path errors**.
 
-- small values → aggressive corrections  
+- small values → aggressive corrections
 - large values → smoother but slower convergence
 
 ### Use case
 
 PLOS works best for
 
-- simple waypoint following  
+- simple waypoint following
 - environments with minimal disturbances.
 
 However, it may suffer from **steady-state tracking error** when disturbances are present.
@@ -269,10 +269,10 @@ k_{i,v}\int z_e^p dt
 
 ### Parameters
 
-- $k_{p,h}$ — horizontal proportional gain  
-- $k_{p,v}$ — vertical proportional gain  
-- $k_{i,h}$ — horizontal integral gain  
-- $k_{i,v}$ — vertical integral gain  
+- $k_{p,h}$ — horizontal proportional gain
+- $k_{p,v}$ — vertical proportional gain
+- $k_{i,h}$ — horizontal integral gain
+- $k_{i,v}$ — vertical integral gain
 
 The integral term allows the controller to **eliminate steady-state cross-track errors** caused by constant disturbances.
 
@@ -280,7 +280,7 @@ The integral term allows the controller to **eliminate steady-state cross-track 
 
 ILOS works well when there are **persistent disturbances**, such as
 
-- steady ocean currents  
+- steady ocean currents
 - constant wind disturbances.
 
 ---
@@ -302,7 +302,7 @@ Vector Field LOS generates a **bounded approach angle** toward the path.
 
 ### Parameters
 
-- $\psi_{max}$ — maximum allowed approach angle  
+- $\psi_{max}$ — maximum allowed approach angle
 - $k_p$ — proportional gain controlling path convergence
 
 The bounded approach angle prevents excessively aggressive heading changes.
@@ -311,8 +311,8 @@ The bounded approach angle prevents excessively aggressive heading changes.
 
 VF-LOS works best for
 
-- long straight path following  
-- corridor tracking  
+- long straight path following
+- corridor tracking
 - inspection missions along pipelines or cables.
 
 However it performs worse when the path contains **sharp turns or rapidly changing path segments**.
@@ -339,7 +339,7 @@ the current vehicle state and the active waypoint.
 
 The process works as follows
 
-1. The node receives the **vehicle pose**. 
+1. The node receives the **vehicle pose**.
 2. The current **path segment** is defined between two waypoints.
 3. The **path geometry** is computed to determine the path direction.
 4. The **cross-track and vertical-track errors** are calculated in the path frame.
@@ -361,7 +361,7 @@ Vehicle Pose + Waypoint
            │
            ▼
       LOS Algorithm
- (PLOS / ILOS / ALOS / VF-LOS)
+ (PLOS / ILOS / ALSO / VF-LOS)
            │
            ▼
      Guidance Output

@@ -1,6 +1,6 @@
-#include "los_guidance/lib/proportional_los.hpp"
 #include "los_guidance/lib/vector_field_los.hpp"
 #include <gtest/gtest.h>
+#include "los_guidance/lib/proportional_los.hpp"
 
 namespace vortex::guidance::los {
 
@@ -12,8 +12,8 @@ class VectorFieldLosTest : public ::testing::Test {
         VectorFieldLosParams params;
         params.max_approach_angle_h = 30.0 * M_PI / 180.0;  // 30 degrees in rad
         params.max_approach_angle_v = 20.0 * M_PI / 180.0;  // 20 degrees in rad
-        params.k_p_h = 0.1;  // needs tuning
-        params.k_p_v = 0.1;  // needs tuning
+        params.k_p_h = 0.1;                                 // needs tuning
+        params.k_p_v = 0.1;                                 // needs tuning
         params.time_step = 0.01;
         return params;
     }

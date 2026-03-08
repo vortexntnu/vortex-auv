@@ -1,27 +1,19 @@
 import rclpy
-from rclpy.node import Node
 from rclpy.action import ActionClient
-
-from vortex_msgs.action import LOSGuidance
-from geometry_msgs.msg import Point
+from rclpy.node import Node
 from std_msgs.msg import Header
-from launch.actions import LogInfo
+from vortex_msgs.action import LOSGuidance
 
 
 class SquareTest(Node):
-
     def __init__(self):
         super().__init__('square_test_client')
 
         self.get_logger().info("Square test started")
 
-        self._action_client = ActionClient(
-            self,
-            LOSGuidance,
-            '/orca/los_guidance'
-        )
+        self._action_client = ActionClient(self, LOSGuidance, '/orca/los_guidance')
 
-        self.depth = 2.5   
+        self.depth = 2.5
         self.size = 10.0
 
         self.waypoints = [
@@ -36,7 +28,6 @@ class SquareTest(Node):
         self.send_next_goal()
 
     def send_next_goal(self):
-
         if self.current_index >= len(self.waypoints):
             self.get_logger().info("Square test completed!")
             rclpy.shutdown()
@@ -58,19 +49,16 @@ class SquareTest(Node):
         goal_msg.goal.point.z = z
 
         self.get_logger().info(
-            f"Sending waypoint {self.current_index + 1}: "
-            f"x={x}, y={y}, z={z}"
+            f"Sending waypoint {self.current_index + 1}: x={x}, y={y}, z={z}"
         )
 
         self._send_goal_future = self._action_client.send_goal_async(
-            goal_msg,
-            feedback_callback=self.feedback_callback
+            goal_msg, feedback_callback=self.feedback_callback
         )
 
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
-
         goal_handle = future.result()
 
         if not goal_handle.accepted:
@@ -83,7 +71,6 @@ class SquareTest(Node):
         self._get_result_future.add_done_callback(self.result_callback)
 
     def result_callback(self, future):
-
         self.get_logger().info("Waypoint reached")
 
         self.current_index += 1

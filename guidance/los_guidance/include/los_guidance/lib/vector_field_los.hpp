@@ -21,7 +21,6 @@ struct VectorFieldLosParams {
 // Vector Field LOS Guidance Class
 class VectorFieldLOSGuidance {
    public:
-
     // Constructor / Destructor
     VectorFieldLOSGuidance(const VectorFieldLosParams& params);
     ~VectorFieldLOSGuidance() = default;
@@ -30,7 +29,6 @@ class VectorFieldLOSGuidance {
     types::Outputs calculate_outputs(const types::Inputs& inputs);
 
    private:
-
     // Internal Update Functions
     void update_angles(const types::Inputs& inputs);
     types::CrossTrackError calculate_crosstrack_error(
@@ -50,4 +48,4 @@ class VectorFieldLOSGuidance {
 
 }  // namespace vortex::guidance::los
 
-#endif // VECTOR_FIELD_LOS_GUIDANCE_HPP
+#endif  // VECTOR_FIELD_LOS_GUIDANCE_HPP

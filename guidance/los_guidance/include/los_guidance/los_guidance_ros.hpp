@@ -1,6 +1,7 @@
 #ifndef LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 #define LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 
+#include <yaml-cpp/yaml.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
@@ -13,7 +14,6 @@
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
 #include <vortex_msgs/srv/set_los_mode.hpp>
-#include <yaml-cpp/yaml.h>
 
 #include <memory>
 #include <string>
@@ -29,12 +29,10 @@ namespace vortex::guidance::los {
 // LOS Guidance ROS Node
 class LosGuidanceNode : public rclcpp::Node {
    public:
-
     // Constructor
     LosGuidanceNode();
 
    private:
-
     // Setup Functions
     void set_subscribers_and_publisher();
     void set_action_server();
@@ -53,8 +51,7 @@ class LosGuidanceNode : public rclcpp::Node {
         const geometry_msgs::msg::PointStamped::SharedPtr msg);
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-    void odom_callback(
-        const nav_msgs::msg::Odometry::SharedPtr msg);
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     // Action Server Functions
     rclcpp_action::GoalResponse handle_goal(
@@ -64,14 +61,10 @@ class LosGuidanceNode : public rclcpp::Node {
         const std::shared_ptr<
             rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
             goal_handle);
-    void handle_accepted(
-        const std::shared_ptr<
-            rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
-            goal_handle);
-    void execute(
-        const std::shared_ptr<
-            rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
-            goal_handle);
+    void handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+                             vortex_msgs::action::LOSGuidance>> goal_handle);
+    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+                     vortex_msgs::action::LOSGuidance>> goal_handle);
 
     // Service Functions
     void set_los_mode(

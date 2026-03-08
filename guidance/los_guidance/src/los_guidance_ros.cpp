@@ -2,8 +2,8 @@
 
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
-#include <vortex/utils/ros/qos_profiles.hpp>
 #include <yaml-cpp/node/node.h>
+#include <vortex/utils/ros/qos_profiles.hpp>
 
 #include "los_guidance/lib/types.hpp"
 
@@ -53,8 +53,7 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.guidance.los").as_string();
     std::string waypoint_topic =
         this->get_parameter("topics.waypoint").as_string();
-    std::string odom_topic =
-        this->get_parameter("topics.odom").as_string();
+    std::string odom_topic = this->get_parameter("topics.odom").as_string();
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
@@ -67,11 +66,10 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     state_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         "state_debug", qos_sensor_data);
 
-    waypoint_sub_ =
-        this->create_subscription<geometry_msgs::msg::PointStamped>(
-            waypoint_topic, qos_sensor_data,
-            std::bind(&LosGuidanceNode::waypoint_callback, this,
-                      std::placeholders::_1));
+    waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+        waypoint_topic, qos_sensor_data,
+        std::bind(&LosGuidanceNode::waypoint_callback, this,
+                  std::placeholders::_1));
 
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
@@ -362,11 +360,10 @@ void LosGuidanceNode::execute(
 
         vortex_msgs::msg::LOSGuidance state_debug_msg;
         Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
-            Eigen::Quaterniond(
-                debug_current_odom_->pose.pose.orientation.w,
-                debug_current_odom_->pose.pose.orientation.x,
-                debug_current_odom_->pose.pose.orientation.y,
-                debug_current_odom_->pose.pose.orientation.z));
+            Eigen::Quaterniond(debug_current_odom_->pose.pose.orientation.w,
+                               debug_current_odom_->pose.pose.orientation.x,
+                               debug_current_odom_->pose.pose.orientation.y,
+                               debug_current_odom_->pose.pose.orientation.z));
 
         state_debug_msg.pitch = euler.y();
         state_debug_msg.yaw = euler.z();

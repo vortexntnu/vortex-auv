@@ -21,7 +21,6 @@ struct AdaptiveLosParams {
 // Adaptive LOS Guidance Class
 class AdaptiveLOSGuidance {
    public:
-
     // Constructor / Destructor
     AdaptiveLOSGuidance(const AdaptiveLosParams& params);
     ~AdaptiveLOSGuidance() = default;
@@ -30,7 +29,6 @@ class AdaptiveLOSGuidance {
     types::Outputs calculate_outputs(const types::Inputs& inputs);
 
    private:
-
     // Internal Update Functions
     void update_angles(const types::Inputs& inputs);
     const types::CrossTrackError calculate_crosstrack_error(

@@ -31,5 +31,3 @@ def generate_launch_description():
         output="screen",
     )
     return LaunchDescription([los_guidance_node])
-
-

@@ -18,7 +18,6 @@ struct ProportionalLosParams {
 // Proportional LOS Guidance Class
 class ProportionalLOSGuidance {
    public:
-
     // Constructor / Destructor
     ProportionalLOSGuidance(const ProportionalLosParams& params);
     ~ProportionalLOSGuidance() = default;
@@ -27,7 +26,6 @@ class ProportionalLOSGuidance {
     types::Outputs calculate_outputs(const types::Inputs& inputs);
 
    private:
-
     // Internal Update Functions
     void update_angles(const types::Inputs& inputs);
     types::CrossTrackError calculate_crosstrack_error(
@@ -47,4 +45,4 @@ class ProportionalLOSGuidance {
 
 }  // namespace vortex::guidance::los
 
-#endif // PROPORTIONAL_LOS_GUIDANCE_HPP
+#endif  // PROPORTIONAL_LOS_GUIDANCE_HPP

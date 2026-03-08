@@ -43,12 +43,12 @@ void AdaptiveLOSGuidance::update_adaptive_estimates(
         std::sqrt(params_.lookahead_distance_v * params_.lookahead_distance_v +
                   cross_track_error.z_e * cross_track_error.z_e);
 
-    const double beta_dot =
-        params_.gamma_h * (params_.lookahead_distance_h / denom_h) *
-        cross_track_error.y_e;
-    const double alpha_dot =
-        params_.gamma_v * (params_.lookahead_distance_v / denom_v) *
-        cross_track_error.z_e;
+    const double beta_dot = params_.gamma_h *
+                            (params_.lookahead_distance_h / denom_h) *
+                            cross_track_error.y_e;
+    const double alpha_dot = params_.gamma_v *
+                             (params_.lookahead_distance_v / denom_v) *
+                             cross_track_error.z_e;
 
     beta_c_hat_ += beta_dot * params_.time_step;
     alpha_c_hat_ += alpha_dot * params_.time_step;

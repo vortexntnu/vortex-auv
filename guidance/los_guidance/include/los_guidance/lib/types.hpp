@@ -21,9 +21,7 @@ struct Point {
     }
 
     // Conversion Functions
-    Eigen::Vector3d as_vector() const {
-        return Eigen::Vector3d(x, y, z);
-    }
+    Eigen::Vector3d as_vector() const { return Eigen::Vector3d(x, y, z); }
 
     static Point point_from_ros(const geometry_msgs::msg::Point& msg) {
         return Point{msg.x, msg.y, msg.z};
@@ -55,12 +53,7 @@ struct Inputs {
 };
 
 // Active LOS Method
-enum class ActiveLosMethod {
-    PROPORTIONAL,
-    INTEGRAL,
-    ADAPTIVE,
-    VECTOR_FIELD
-};
+enum class ActiveLosMethod { PROPORTIONAL, INTEGRAL, ADAPTIVE, VECTOR_FIELD };
 
 }  // namespace vortex::guidance::los::types
 
