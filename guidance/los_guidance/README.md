@@ -1,3 +1,81 @@
+# 3D LOS Guidance Library
+
+This package implements several **Line-of-Sight (LOS) guidance algorithms** for **3D path following**.
+
+The guidance system computes the **desired yaw** $\psi_d$ and **desired pitch** $\theta_d$ that allow a vehicle to follow a path between waypoints.
+
+The node receives
+
+- vehicle pose
+- waypoint information
+
+and computes guidance references based on the selected LOS algorithm. The resulting guidance commands consist of
+
+- desired yaw
+- desired pitch
+- desired surge velocity.
+
+The vehicle surge speed is kept **constant during path following** and is defined in the configuration file using the parameter `u_desired`.
+
+---
+
+# Implemented LOS Methods
+
+The library supports four LOS guidance algorithms.
+
+| Mode | Method |
+|-----|------|
+| 0 | Proportional LOS |
+| 1 | Integral LOS |
+| 2 | Adaptive LOS |
+| 3 | Vector Field LOS |
+
+The guidance method can be **changed during runtime** using a ROS service.
+
+---
+
+
+# Sending a LOS Goal
+
+A waypoint can be sent to the guidance node using the action interface:
+
+```
+ros2 action send_goal /orca/los_guidance \
+vortex_msgs/action/LOSGuidance \
+"{goal: {header: {frame_id: world_ned}, point: {x: 0.0, y: 0.0, z: 0.0}}}"
+```
+
+This command instructs the guidance node to start following a path toward the waypoint.
+
+---
+
+# Switching LOS Method
+
+The active LOS guidance method can be changed during runtime.
+
+```
+ros2 service call /orca/set_los_mode \
+vortex_msgs/srv/SetLosMode "{mode: X}"
+```
+
+Where
+
+| X | Method |
+|---|---|
+| 0 | Proportional LOS |
+| 1 | Integral LOS |
+| 2 | Adaptive LOS |
+| 3 | Vector Field LOS |
+
+Example:
+
+```
+ros2 service call /orca/set_los_mode vortex_msgs/srv/SetLosMode "{mode: 2}"
+```
+
+This switches the guidance system to **Adaptive LOS**.
+
+---
 ## Path Geometry
 
 The path between two waypoints defines the **path direction angles** used by the guidance law.
@@ -28,6 +106,46 @@ Additionally
 
 - $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down (NED) frame  
 - $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint.
+
+---
+
+## Path Frame Errors
+
+The along-, cross- and vertical-track errors in the path-tangential frame are found by
+
+```math
+\begin{bmatrix}
+x_e^p \\
+y_e^p \\
+z_e^p
+\end{bmatrix}
+=
+\mathbf{R}_{y,\pi_v}^\top
+\mathbf{R}_{z,\pi_h}^\top
+\left(
+\begin{bmatrix}
+x^n \\
+y^n \\
+z^n
+\end{bmatrix}
+-
+\begin{bmatrix}
+x_i^n \\
+y_i^n \\
+z_i^n
+\end{bmatrix}
+\right)
+```
+
+where
+
+- $x_e^p$ is the along-track error  
+- $y_e^p$ is the cross-track error  
+- $z_e^p$ is the vertical-track error  
+
+and
+
+- $P^n = (x^n, y^n, z^n)$ is the current position of the vehicle.
 
 ---
 
@@ -198,3 +316,63 @@ VF-LOS works best for
 - inspection missions along pipelines or cables.
 
 However it performs worse when the path contains **sharp turns or rapidly changing path segments**.
+
+---
+
+## ROS Interfaces
+
+| Interface | Name | Type | Message-Type |
+|----------|------|------|---------|
+| Action Server | `/orca/los_guidance` | Goal input | `vortex_msgs/action/LOSGuidance` |
+| Subscriber | `/orca/waypoint` | Waypoint input | `geometry_msgs/PointStamped` |
+| Subscriber | `/orca/pose` | Vehicle pose | `geometry_msgs/PoseWithCovarianceStamped` |
+| Subscriber | `/orca/odom` | Vehicle velocity | `nav_msgs/Odometry` |
+| Publisher | `/orca/guidance/los` | Guidance reference (yaw, pitch, surge) | `vortex_msgs/LOSGuidance` |
+| Publisher | `/los_debug` | LOS debug output | `vortex_msgs/LOSGuidance` |
+| Publisher | `/state_debug` | Vehicle state debug | `vortex_msgs/LOSGuidance` |
+
+---
+
+## Guidance Node Architecture
+The LOS guidance node computes reference commands for the vehicle based on
+the current vehicle state and the active waypoint.
+
+The process works as follows
+
+1. The node receives the **vehicle pose**. 
+2. The current **path segment** is defined between two waypoints.
+3. The **path geometry** is computed to determine the path direction.
+4. The **cross-track and vertical-track errors** are calculated in the path frame.
+5. The selected **LOS guidance algorithm** computes desired yaw and pitch.
+6. The node publishes the resulting **guidance reference**.
+
+### Data Flow
+
+```
+Vehicle Pose + Waypoint
+           │
+           ▼
+     Path Geometry
+   (π_h , π_v angles)
+           │
+           ▼
+   Path Frame Errors
+ (x_e^p , y_e^p , z_e^p)
+           │
+           ▼
+      LOS Algorithm
+ (PLOS / ILOS / ALOS / VF-LOS)
+           │
+           ▼
+     Guidance Output
+ (ψ_d , θ_d , u_desired)
+```
+
+The resulting guidance command is published as a `vortex_msgs/LOSGuidance`
+message containing
+
+- desired yaw
+- desired pitch
+- desired surge velocity.
+
+---
