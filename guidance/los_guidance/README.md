@@ -1,74 +1,37 @@
-# 3D LOS Guidance Library (Read me draft)
+## Path Geometry
 
-This package implements several **Line-of-Sight (LOS) guidance algorithms** for **3D path following**.  
-The guidance system computes the **desired yaw** $\psi_d$ and **desired pitch** $\theta_d$ so a vehicle can follow a path between waypoints.
+The path between two waypoints defines the **path direction angles** used by the guidance law.
 
-The vehicle surge speed is kept **constant** during path following and is defined in the configuration file using the parameter **u_desired** 
+```math
+\pi_h =
+\text{atan2}(y_{i+1}^n - y_i^n, x_{i+1}^n - x_i^n)
+```
 
-This value represents the desired forward velocity of the vehicle.
+```math
+\pi_v =
+\text{atan2}
+\left(
+-(z_{i+1}^n - z_i^n),
+\sqrt{(x_{i+1}^n - x_i^n)^2 +
+(y_{i+1}^n - y_i^n)^2}
+\right)
+```
+
+where
+
+- $\pi_h$ is the **horizontal path angle (azimuth angle)**  
+- $\pi_v$ is the **vertical path angle (elevation angle)**  
+
+These angles define the **direction of the current path segment** between two waypoints.
+
+Additionally
+
+- $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down (NED) frame  
+- $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint.
 
 ---
 
-# Implemented LOS Methods
-
-The library supports four LOS guidance algorithms.
-
-| Mode | Method |
-|-----|------|
-| 0 | Proportional LOS |
-| 1 | Integral LOS |
-| 2 | Adaptive LOS |
-| 3 | Vector Field LOS |
-
-The guidance method can be **changed during runtime** using a ROS service.
-
----
-
-
-# Sending a LOS Goal
-
-A waypoint can be sent to the guidance node using the action interface:
-
-```
-ros2 action send_goal /orca/los_guidance \
-vortex_msgs/action/LOSGuidance \
-"{goal: {header: {frame_id: world_ned}, point: {x: 10.0, y: 5.0, z: -2.0}}}"
-```
-
-This command instructs the guidance node to start following a path toward the waypoint.
-
----
-
-# Switching LOS Method
-
-The active LOS guidance method can be changed during runtime.
-
-```
-ros2 service call /orca/set_los_mode \
-vortex_msgs/srv/SetLosMode "{mode: X}"
-```
-
-Where
-
-| X | Method |
-|---|---|
-| 0 | Proportional LOS |
-| 1 | Integral LOS |
-| 2 | Adaptive LOS |
-| 3 | Vector Field LOS |
-
-Example:
-
-```
-ros2 service call /orca/set_los_mode vortex_msgs/srv/SetLosMode "{mode: 2}"
-```
-
-This switches the guidance system to **Adaptive LOS**.
-
----
-
-
-# Adaptive LOS (ALOS)
+## Adaptive LOS (ALOS)
 
 Adaptive LOS estimates **crab angles caused by disturbances** such as ocean currents or wind.
 
@@ -99,13 +62,21 @@ z_e^p
 
 where
 
-- $\Delta_h$ is the horizontal lookahead distance
-- $\Delta_v$ is the vertical lookahead distance
-- $\gamma_h$ and $\gamma_v$ are the adaptive gains
-- $y_e^p$ is the cross-track error
-- $z_e^p$ is the vertical-track error
+- $\Delta_h$ is the horizontal lookahead distance  
+- $\Delta_v$ is the vertical lookahead distance  
+- $\gamma_h$ and $\gamma_v$ are the adaptive gains  
+- $y_e^p$ is the cross-track error  
+- $z_e^p$ is the vertical-track error  
 
-Adaptive LOS is generally the **most robust method** and works well for:
+The terms
+
+- $\hat{\beta}_c$ is the **estimated horizontal crab angle**
+- $\hat{\alpha}_c$ is the **estimated vertical crab angle**
+
+These angles represent the **estimated disturbance-induced deviation** between the vehicle heading and the actual direction of motion.  
+They allow the guidance system to **compensate for disturbances such as currents or wind**.
+
+Adaptive LOS is generally the **most robust method** and works well for
 
 - curved trajectories  
 - long paths  
@@ -113,7 +84,7 @@ Adaptive LOS is generally the **most robust method** and works well for:
 
 ---
 
-# Proportional LOS (PLOS)
+## Proportional LOS (PLOS)
 
 Proportional LOS is the simplest LOS guidance law.
 
@@ -129,16 +100,28 @@ Proportional LOS is the simplest LOS guidance law.
 \tan^{-1}\left(\frac{z_e^p}{\Delta_v}\right)
 ```
 
-It is best suited for
+### Parameters
 
-- simple waypoint following
-- calm environments with little disturbance.
+- $\Delta_h$ — horizontal lookahead distance  
+- $\Delta_v$ — vertical lookahead distance  
 
-However, steady-state tracking error may occur if disturbances are present.
+The lookahead distances determine **how aggressively the vehicle corrects path errors**.
+
+- small values → aggressive corrections  
+- large values → smoother but slower convergence
+
+### Use case
+
+PLOS works best for
+
+- simple waypoint following  
+- environments with minimal disturbances.
+
+However, it may suffer from **steady-state tracking error** when disturbances are present.
 
 ---
 
-# Integral LOS (ILOS)
+## Integral LOS (ILOS)
 
 Integral LOS adds integral action to remove steady-state error.
 
@@ -166,11 +149,25 @@ k_{i,v}\int z_e^p dt
 \tan^{-1}(u_v)
 ```
 
-Integral LOS performs well when there are **constant disturbances**, such as steady ocean currents or wind.
+### Parameters
+
+- $k_{p,h}$ — horizontal proportional gain  
+- $k_{p,v}$ — vertical proportional gain  
+- $k_{i,h}$ — horizontal integral gain  
+- $k_{i,v}$ — vertical integral gain  
+
+The integral term allows the controller to **eliminate steady-state cross-track errors** caused by constant disturbances.
+
+### Use case
+
+ILOS works well when there are **persistent disturbances**, such as
+
+- steady ocean currents  
+- constant wind disturbances.
 
 ---
 
-# Vector Field LOS (VF-LOS)
+## Vector Field LOS (VF-LOS)
 
 Vector Field LOS generates a **bounded approach angle** toward the path.
 
@@ -185,95 +182,19 @@ Vector Field LOS generates a **bounded approach angle** toward the path.
 \tan^{-1}(k_p y_e^p)
 ```
 
-This method is best suited for
+### Parameters
 
-- long straight path following
-- corridor tracking.
+- $\psi_{max}$ — maximum allowed approach angle  
+- $k_p$ — proportional gain controlling path convergence
 
-However it performs worse when the path contains **sharp turns**.
+The bounded approach angle prevents excessively aggressive heading changes.
 
----
+### Use case
 
-# Path Geometry
+VF-LOS works best for
 
-The path between two waypoints defines the reference angles used by the guidance law.
+- long straight path following  
+- corridor tracking  
+- inspection missions along pipelines or cables.
 
-```math
-\pi_h =
-\text{atan2}(y_{i+1}^n - y_i^n, x_{i+1}^n - x_i^n)
-```
-
-```math
-\pi_v =
-\text{atan2}
-\left(
--(z_{i+1}^n - z_i^n),
-\sqrt{(x_{i+1}^n - x_i^n)^2 +
-(y_{i+1}^n - y_i^n)^2}
-\right)
-```
-
-where
-
-- $P_i^n = (x_i^n, y_i^n, z_i^n)$ is the previous waypoint in the north-east-down frame
-- $P_{i+1}^n = (x_{i+1}^n, y_{i+1}^n, z_{i+1}^n)$ is the next waypoint.
-
----
-
-# Path Frame Errors
-
-The along-, cross- and vertical-track errors in the path-tangential frame are found by
-
-```math
-\begin{bmatrix}
-x_e^p \\
-y_e^p \\
-z_e^p
-\end{bmatrix}
-=
-\mathbf{R}_{y,\pi_v}^\top
-\mathbf{R}_{z,\pi_h}^\top
-\left(
-\begin{bmatrix}
-x^n \\
-y^n \\
-z^n
-\end{bmatrix}
--
-\begin{bmatrix}
-x_i^n \\
-y_i^n \\
-z_i^n
-\end{bmatrix}
-\right)
-```
-
-where
-
-- $x_e^p$ is the along-track error  
-- $y_e^p$ is the cross-track error  
-- $z_e^p$ is the vertical-track error  
-
-and
-
-- $P^n = (x^n, y^n, z^n)$ is the current position of the vehicle.
-
----
-
-# ROS Topics
-
-### Subscribed Topics
-
-| Topic | Message |
-|------|------|
-| `/orca/pose` | `geometry_msgs/PoseWithCovarianceStamped` |
-| `/orca/odom` | `nav_msgs/Odometry` |
-| `/orca/waypoint` | `geometry_msgs/PointStamped` |
-
-### Published Topics
-
-| Topic | Message |
-|------|------|
-| `/orca/guidance/los` | `vortex_msgs/LOSGuidance` |
-| `/los_debug` | `vortex_msgs/LOSGuidance` |
-| `/state_debug` | `vortex_msgs/LOSGuidance` |
+However it performs worse when the path contains **sharp turns or rapidly changing path segments**.
