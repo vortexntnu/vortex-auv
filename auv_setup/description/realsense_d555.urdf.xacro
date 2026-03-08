@@ -15,7 +15,7 @@
     to depth-frame values need to be updated.
   -->
 
-  <xacro:macro name="realsense_d555" params="parent *origin name:=camera frame:=camera">
+  <xacro:macro name="realsense_d555" params="frame base name:=camera">
     <xacro:property name="M_PI" value="3.1415926535897931" />
 
     <!-- Mount-hole -> depth/infra1 frame offsets (default: D455-style) -->
@@ -28,72 +28,73 @@
     <xacro:property name="depth_to_infra2_y" value="-0.095" />
     <xacro:property name="depth_to_color_y"  value="-0.059" />
 
-    <!-- Mount/screw-hole frame -->
-    <joint name="${name}_mount_joint" type="fixed">
-      <xacro:insert_block name="origin" />
-      <parent link="${parent}"/>
-      <child link="${frame}_link"/>
-    </joint>
-    <link name="${frame}_link"/>
+    <!-- 'base' must be provided by the caller and should be the desired
+         prefix for generated sub-frame names (e.g. 'front_camera'). -->
+
+    <!--
+      The caller is responsible for declaring ${frame} as a <link> and
+      connecting it to the parent with a <joint> (+ the desired origin).
+      This macro only adds the sensor sub-frames below ${frame}.
+    -->
 
     <!-- Depth frame (same nominal origin as infra1 in the D455 xacro) -->
     <joint name="${name}_depth_joint" type="fixed">
       <origin xyz="${depth_px} ${depth_py} ${depth_pz}" rpy="0 0 0"/>
-      <parent link="${frame}_link"/>
-      <child link="${frame}_depth_frame"/>
+      <parent link="${frame}"/>
+      <child link="${base}_depth"/>
     </joint>
-    <link name="${frame}_depth_frame"/>
+    <link name="${base}_depth"/>
 
     <joint name="${name}_depth_optical_joint" type="fixed">
       <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
-      <parent link="${frame}_depth_frame"/>
-      <child link="${frame}_depth_optical_frame"/>
+      <parent link="${base}_depth"/>
+      <child link="${base}_depth_optical"/>
     </joint>
-    <link name="${frame}_depth_optical_frame"/>
+    <link name="${base}_depth_optical"/>
 
     <!-- Infrared 1 frame -->
     <joint name="${name}_infra1_joint" type="fixed">
       <origin xyz="${depth_px} ${depth_py + depth_to_infra1_y} ${depth_pz}" rpy="0 0 0"/>
-      <parent link="${frame}_link"/>
-      <child link="${frame}_infra1_frame"/>
+      <parent link="${frame}"/>
+      <child link="${base}_infra1"/>
     </joint>
-    <link name="${frame}_infra1_frame"/>
+    <link name="${base}_infra1"/>
 
     <joint name="${name}_infra1_optical_joint" type="fixed">
       <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
-      <parent link="${frame}_infra1_frame"/>
-      <child link="${frame}_infra1_optical_frame"/>
+      <parent link="${base}_infra1"/>
+      <child link="${base}_infra1_optical"/>
     </joint>
-    <link name="${frame}_infra1_optical_frame"/>
+    <link name="${base}_infra1_optical"/>
 
     <!-- Infrared 2 frame -->
     <joint name="${name}_infra2_joint" type="fixed">
       <origin xyz="${depth_px} ${depth_py + depth_to_infra2_y} ${depth_pz}" rpy="0 0 0"/>
-      <parent link="${frame}_link"/>
-      <child link="${frame}_infra2_frame"/>
+      <parent link="${frame}"/>
+      <child link="${base}_infra2"/>
     </joint>
-    <link name="${frame}_infra2_frame"/>
+    <link name="${base}_infra2"/>
 
     <joint name="${name}_infra2_optical_joint" type="fixed">
       <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
-      <parent link="${frame}_infra2_frame"/>
-      <child link="${frame}_infra2_optical_frame"/>
+      <parent link="${base}_infra2"/>
+      <child link="${base}_infra2_optical"/>
     </joint>
-    <link name="${frame}_infra2_optical_frame"/>
+    <link name="${base}_infra2_optical"/>
 
     <!-- Color frame -->
     <joint name="${name}_color_joint" type="fixed">
       <origin xyz="${depth_px} ${depth_py + depth_to_color_y} ${depth_pz}" rpy="0 0 0"/>
-      <parent link="${frame}_link"/>
-      <child link="${frame}_color_frame"/>
+      <parent link="${frame}"/>
+      <child link="${base}_color"/>
     </joint>
-    <link name="${frame}_color_frame"/>
+    <link name="${base}_color"/>
 
     <joint name="${name}_color_optical_joint" type="fixed">
       <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
-      <parent link="${frame}_color_frame"/>
-      <child link="${frame}_color_optical_frame"/>
+      <parent link="${base}_color"/>
+      <child link="${base}_color_optical"/>
     </joint>
-    <link name="${frame}_color_optical_frame"/>
+    <link name="${base}_color_optical"/>
   </xacro:macro>
 </robot>

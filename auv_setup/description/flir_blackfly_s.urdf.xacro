@@ -7,40 +7,45 @@
     collisions, inertial and Gazebo sensor/plugin blocks so it can be
     included in robot descriptions when only TF frames are required.
 
-    Usage (similar to realsense helper):
+    The caller is responsible for declaring ${frame} as a <link> and
+    connecting it to the parent with a <joint> (+ the desired origin).
+    This macro only adds the sensor sub-frames below ${frame}.
+
+    Usage:
       <xacro:include filename="flir_blackfly_s.urdf.xacro"/>
-      <xacro:flir_blackfly_s parent="base_link" name="realsense" frame="flir_camera"/>
+
+      <link name="downwards_camera_link"/>
+      <joint name="base_to_downwards_camera" type="fixed">
+        <parent link="base_link"/>
+        <child link="downwards_camera_link"/>
+        <origin xyz="0.28 -0.08 0.09" rpy="0 0 1.5708"/>
+      </joint>
+
+      <xacro:flir_blackfly_s frame="downwards_camera_link" name="flir_blackfly"/>
   -->
 
-  <xacro:macro name="flir_blackfly_s" params="parent *origin frame:=camera name:=camera lens_h:=0.04">
+  <xacro:macro name="flir_blackfly_s" params="frame base name:=camera lens_h:=0.04">
 
-    <!-- Mount joint: attach the camera base link to the given parent -->
-    <joint name="${frame}_mount_joint" type="fixed">
-      <xacro:insert_block name="origin"/>
-      <parent link="${parent}"/>
-      <child link="${frame}"/>
-    </joint>
-
-    <!-- Camera body link (minimal) -->
-    <link name="${frame}"/>
+    <!-- 'base' must be provided by the caller and should be the desired
+         prefix for generated sub-frame names (e.g. 'downwards_camera'). -->
 
     <!-- Lens and optical links (minimal) -->
-    <link name="${frame}_lens"/>
-    <link name="${frame}_optical"/>
+    <link name="${base}_lens"/>
+    <link name="${base}_optical"/>
 
     <!-- Fixed joint from body to lens (keeps original relative origin) -->
-    <joint name="${frame}_lens_joint" type="fixed">
+    <joint name="${base}_lens_joint" type="fixed">
       <!-- origin taken from flir_blackfly_s xacro: 0.02685 0 0.01425 -->
       <origin xyz="0.02685 0 0.01425" rpy="0 0 0"/>
       <parent link="${frame}"/>
-      <child link="${frame}_lens"/>
+      <child link="${base}_lens"/>
     </joint>
 
     <!-- Fixed joint from lens to optical frame. Lens length is parameterized. -->
-    <joint name="${frame}_optical_joint" type="fixed">
+    <joint name="${base}_optical_joint" type="fixed">
       <origin xyz="${lens_h} 0 0" rpy="-1.570796 0 -1.570796"/>
-      <parent link="${frame}_lens"/>
-      <child link="${frame}_optical"/>
+      <parent link="${base}_lens"/>
+      <child link="${base}_optical"/>
     </joint>
 
   </xacro:macro>

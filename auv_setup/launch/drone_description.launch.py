@@ -9,6 +9,12 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
+    drone_name_arg = DeclareLaunchArgument(
+        'drone',
+        default_value='drone',
+        description='Name of the drone (used as frame prefix)',
+    )
+
     flir_camera_arg = DeclareLaunchArgument(
         'include_flir',
         default_value='true',
@@ -21,10 +27,19 @@ def generate_launch_description():
         description='Whether to include the gripper in the robot description',
     )
 
+    static_shoulder_arg = DeclareLaunchArgument(
+        'static_shoulder',
+        default_value='true',
+        description='Whether the gripper shoulder joint is fixed (true) or revolute (false)',
+    )
+
+    drone_name = LaunchConfiguration('drone')
 
     include_flir = LaunchConfiguration('include_flir')
 
     include_gripper = LaunchConfiguration('include_gripper')
+
+    static_shoulder = LaunchConfiguration('static_shoulder')
 
     xacro_path = os.path.join(
         get_package_share_directory('auv_setup'), 'description', 'drone.urdf.xacro'
@@ -49,19 +64,25 @@ def generate_launch_description():
                             ' ',
                             'include_gripper:=',
                             include_gripper,
-                            ' '
+                            ' ',
+                            'static_shoulder:=',
+                            static_shoulder,
+                            ' ',
                         ]
                     ),
                     value_type=str,
-                )
+                ),
+                'frame_prefix': [drone_name, '/'],
             }
         ],
     )
 
     return LaunchDescription(
         [
+            drone_name_arg,
             flir_camera_arg,
             gripper_arg,
+            static_shoulder_arg,
             robot_state_publisher_node,
         ]
     )

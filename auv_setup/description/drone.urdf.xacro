@@ -2,6 +2,7 @@
 <robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:arg name="include_flir" default="false"/>
   <xacro:arg name="include_gripper" default="false"/>
+  <xacro:arg name="static_shoulder" default="true"/>
 
   <link name="base_link"></link>
 
@@ -13,6 +14,9 @@
 
   <link name="sonar_link"></link>
 
+  <link name="front_camera_link"/>
+
+  <link name="downwards_camera_link"/>
 
   <!-- base to imu -->
   <joint name="base_to_imu" type="fixed">
@@ -43,30 +47,38 @@
   </joint>
 
   <xacro:if value="$(arg include_flir)">
-    <!-- Prefer local lightweight FLIR links helper when available. This
-         avoids pulling in the full flir_camera_description package which
-         may be absent in some workspaces. -->
-  <xacro:include filename="flir_blackfly_s.urdf.xacro"/>
-    <xacro:flir_blackfly_s parent="base_link" frame="flir_camera_link" name="flir_blackfly">
+    <xacro:include filename="flir_blackfly_s.urdf.xacro"/>
+    <joint name="base_to_downwards_camera" type="fixed">
+      <parent link="base_link"/>
+      <child link="downwards_camera_link"/>
       <origin xyz="0.283615 -0.085021 0.094186" rpy="0.0 0 1.5708"/>
-    </xacro:flir_blackfly_s>
+    </joint>
+
+  <xacro:flir_blackfly_s frame="downwards_camera_link" base="downwards_camera" name="flir_blackfly"/>
   </xacro:if>
 
   <xacro:if value="$(arg include_gripper)">
-    <xacro:include filename="$(find gripper_description)/urdf/gripper.urdf.xacro"/>
+    <xacro:include filename="gripper.urdf.xacro"/>
+
+    <link name="gripper_link"/>
 
     <joint name="base_to_gripper" type="fixed">
       <parent link="base_link"/>
       <child link="gripper_link"/>
       <origin xyz="0.26 0.095 0.08" rpy="0 0 0"/>
     </joint>
+
+    <xacro:gripper frame="gripper_link" static_shoulder="$(arg static_shoulder)"/>
   </xacro:if>
 
   <!-- RealSense -->
   <xacro:include filename="realsense_d555.urdf.xacro"/>
-
-  <xacro:realsense_d555 parent="base_link" frame="realsense" name="realsense">
+  <joint name="base_to_front_camera" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_camera_link"/>
     <origin xyz="0.36362 0.0 -0.023395" rpy="3.14159 0 0"/>
-  </xacro:realsense_d555>
+  </joint>
+
+  <xacro:realsense_d555 frame="front_camera_link" base="front_camera" name="realsense"/>
 
 </robot>
