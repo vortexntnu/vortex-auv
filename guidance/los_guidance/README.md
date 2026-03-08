@@ -3,11 +3,7 @@
 This package implements several **Line-of-Sight (LOS) guidance algorithms** for **3D path following**.  
 The guidance system computes the **desired yaw** $\psi_d$ and **desired pitch** $\theta_d$ so a vehicle can follow a path between waypoints.
 
-The vehicle surge speed is kept **constant** during path following and is defined in the configuration file using the parameter
-
-```
-u_desired
-```
+The vehicle surge speed is kept **constant** during path following and is defined in the configuration file using the parameter **u_desired** 
 
 This value represents the desired forward velocity of the vehicle.
 
@@ -27,6 +23,50 @@ The library supports four LOS guidance algorithms.
 The guidance method can be **changed during runtime** using a ROS service.
 
 ---
+
+
+# Sending a LOS Goal
+
+A waypoint can be sent to the guidance node using the action interface:
+
+```
+ros2 action send_goal /orca/los_guidance \
+vortex_msgs/action/LOSGuidance \
+"{goal: {header: {frame_id: world_ned}, point: {x: 10.0, y: 5.0, z: -2.0}}}"
+```
+
+This command instructs the guidance node to start following a path toward the waypoint.
+
+---
+
+# Switching LOS Method
+
+The active LOS guidance method can be changed during runtime.
+
+```
+ros2 service call /orca/set_los_mode \
+vortex_msgs/srv/SetLosMode "{mode: X}"
+```
+
+Where
+
+| X | Method |
+|---|---|
+| 0 | Proportional LOS |
+| 1 | Integral LOS |
+| 2 | Adaptive LOS |
+| 3 | Vector Field LOS |
+
+Example:
+
+```
+ros2 service call /orca/set_los_mode vortex_msgs/srv/SetLosMode "{mode: 2}"
+```
+
+This switches the guidance system to **Adaptive LOS**.
+
+---
+
 
 # Adaptive LOS (ALOS)
 
@@ -217,48 +257,6 @@ where
 and
 
 - $P^n = (x^n, y^n, z^n)$ is the current position of the vehicle.
-
----
-
-# Sending a LOS Goal
-
-A waypoint can be sent to the guidance node using the action interface:
-
-```
-ros2 action send_goal /orca/los_guidance \
-vortex_msgs/action/LOSGuidance \
-"{goal: {header: {frame_id: world_ned}, point: {x: 10.0, y: 5.0, z: -2.0}}}"
-```
-
-This command instructs the guidance node to start following a path toward the waypoint.
-
----
-
-# Switching LOS Method
-
-The active LOS guidance method can be changed during runtime.
-
-```
-ros2 service call /orca/set_los_mode \
-vortex_msgs/srv/SetLosMode "{mode: X}"
-```
-
-Where
-
-| X | Method |
-|---|---|
-| 0 | Proportional LOS |
-| 1 | Integral LOS |
-| 2 | Adaptive LOS |
-| 3 | Vector Field LOS |
-
-Example:
-
-```
-ros2 service call /orca/set_los_mode vortex_msgs/srv/SetLosMode "{mode: 2}"
-```
-
-This switches the guidance system to **Adaptive LOS**.
 
 ---
 
