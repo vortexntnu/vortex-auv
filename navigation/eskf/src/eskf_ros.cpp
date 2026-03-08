@@ -161,44 +161,34 @@ int ESKFNode::init_nortek_driver() {
 void ESKFNode::nortek_dvl_callback(NortekNucleusFrame frame) {
     std::visit(
         Overloaded{
-
-            [](const BottomTrackData& d) {
+            [this](const BottomTrackData& msg) {
                 SensorDVL dvl_sensor{};
 
-                // Reject invalid Nortek velocity values
                 if (msg.velocity_x <= -32.0f || msg.velocity_y <= -32.0f ||
                     msg.velocity_z <= -32.0f) {
                     return;
                 }
 
-                // Reject invalid uncertainty values
                 if (msg.uncertainty_x >= 10.0f || msg.uncertainty_y >= 10.0f ||
                     msg.uncertainty_z >= 10.0f) {
                     return;
                 }
 
-                dvl_sensor.measurement << static_cast<double>(msg.velocity_x),
-                    static_cast<double>(msg.velocity_y),
-                    static_cast<double>(msg.velocity_z);
+                dvl_sensor.measurement << msg.velocity_x, msg.velocity_y,
+                    msg.velocity_z;
 
                 dvl_sensor.measurement_noise = Eigen::Matrix3d::Zero();
                 dvl_sensor.measurement_noise(0, 0) =
-                    static_cast<double>(msg.uncertainty_x) * msg.uncertainty_x;
+                    msg.uncertainty_x * msg.uncertainty_x;
                 dvl_sensor.measurement_noise(1, 1) =
-                    static_cast<double>(msg.uncertainty_y) * msg.uncertainty_y;
+                    msg.uncertainty_y * msg.uncertainty_y;
                 dvl_sensor.measurement_noise(2, 2) =
-                    static_cast<double>(msg.uncertainty_z) * msg.uncertainty_z;
+                    msg.uncertainty_z * msg.uncertainty_z;
 
-                // Apply the rotation and translation corrections to the DVL
-                // measurement
                 StateQuat nom_state = eskf_->get_nominal_state();
-
-                // Get the angular velocity
                 Eigen::Vector3d omega_corrected =
                     latest_gyro_measurement_ - nom_state.gyro_bias;
 
-                // Correct rotation and translation: v_base = R * v_sensor -
-                // omega x T
                 dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement -
                                          omega_corrected.cross(T_dvl_eskf_);
 
