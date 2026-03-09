@@ -21,8 +21,8 @@ def generate_launch_description():
             os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
         ),
         launch_arguments={
-            'scenario': 'tacc',
-            'rendering': 'false',
+            'scenario': 'default',
+            'rendering': 'true',
         }.items(),
     )
 

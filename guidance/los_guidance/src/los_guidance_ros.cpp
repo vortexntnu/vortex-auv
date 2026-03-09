@@ -334,16 +334,16 @@ void LosGuidanceNode::execute(
 
         switch (method_) {
             case types::ActiveLosMethod::ADAPTIVE:
-                outputs = adaptive_los_->calculate_outputs(path_inputs_);
+                outputs = adaptive_los_->calculate_outputs(inputs_copy);
                 break;
             case types::ActiveLosMethod::PROPORTIONAL:
-                outputs = proportional_los_->calculate_outputs(path_inputs_);
+                outputs = proportional_los_->calculate_outputs(inputs_copy);
                 break;
             case types::ActiveLosMethod::INTEGRAL:
-                outputs = integral_los_->calculate_outputs(path_inputs_);
+                outputs = integral_los_->calculate_outputs(inputs_copy);
                 break;
             case types::ActiveLosMethod::VECTOR_FIELD:
-                outputs = vector_field_los_->calculate_outputs(path_inputs_);
+                outputs = vector_field_los_->calculate_outputs(inputs_copy);
                 break;
             default:
                 spdlog::error("Invalid LOS method selected");
@@ -375,8 +375,7 @@ void LosGuidanceNode::execute(
         state_debug_pub_->publish(state_debug_msg);
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(reference_msg);
-
-        if ((path_inputs_.current_position - path_inputs_.next_point)
+        if ((inputs_copy.current_position - inputs_copy.next_point)
                 .as_vector()
                 .norm() < goal_reached_tol_) {
             auto stop_ref = reference_msg;
