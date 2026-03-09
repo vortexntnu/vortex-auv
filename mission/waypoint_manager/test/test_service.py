@@ -3,12 +3,13 @@ import unittest
 import uuid
 
 import launch
+import launch.actions
 import launch_ros.actions
 import launch_testing
 import launch_testing.actions
 import rclpy
 from ament_index_python.packages import get_package_share_directory
-from launch.actions import OpaqueFunction
+from launch.actions import OpaqueFunction, TimerAction
 from rclpy.action import ActionClient
 from vortex_msgs.action import WaypointManager
 from vortex_msgs.msg import Waypoint
@@ -19,7 +20,7 @@ from auv_setup.launch_arg_common import (
     resolve_drone_and_namespace,
 )
 
-NAMESPACE = 'orca'  # updated by launch_setup
+NAMESPACE = "orca"
 
 
 def launch_setup(context, *args, **kwargs):
@@ -27,35 +28,42 @@ def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
     NAMESPACE = namespace
 
-    rf_pkg_share = get_package_share_directory('reference_filter_dp')
-    rf_config = os.path.join(rf_pkg_share, 'config', 'reference_filter_params.yaml')
+    rf_pkg_share = get_package_share_directory("reference_filter_dp")
+    rf_config = os.path.join(rf_pkg_share, "config", "reference_filter_params.yaml")
 
-    auv_setup_share = get_package_share_directory('auv_setup')
-    drone_config = os.path.join(auv_setup_share, 'config', 'robots', f'{drone}.yaml')
+    auv_setup_share = get_package_share_directory("auv_setup")
+    drone_config = os.path.join(auv_setup_share, "config", "robots", f"{drone}.yaml")
 
     wm_node = launch_ros.actions.Node(
-        package='waypoint_manager',
-        executable='waypoint_manager_node',
-        name='waypoint_manager_node',
+        package="waypoint_manager",
+        executable="waypoint_manager_node",
+        name="waypoint_manager_node",
         namespace=namespace,
-        output='screen',
+        output="screen",
     )
 
     rf_node = launch_ros.actions.Node(
-        package='reference_filter_dp',
-        executable='reference_filter_dp_node',
-        name='reference_filter_node',
+        package="reference_filter_dp",
+        executable="reference_filter_dp_node",
+        name="reference_filter_node",
         namespace=namespace,
         parameters=[rf_config, drone_config],
-        output='screen',
+        output="screen",
     )
 
-    return [wm_node, rf_node, launch_testing.actions.ReadyToTest()]
+    return [wm_node, rf_node]
 
 
 def generate_test_description():
     return launch.LaunchDescription(
-        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
+        declare_drone_and_namespace_args()
+        + [
+            OpaqueFunction(function=launch_setup),
+            TimerAction(
+                period=1.0,
+                actions=[launch_testing.actions.ReadyToTest()],
+            ),
+        ]
     )
 
 
