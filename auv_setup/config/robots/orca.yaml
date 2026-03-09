@@ -139,12 +139,14 @@
       los: "los_guidance"
       landmark_polling: "landmark_polling"
       landmark_convergence: "landmark_convergence"
+      waypoint_manager: "waypoint_manager"
 
     services:
       set_operation_mode: "set_operation_mode"
       set_killswitch: "set_killswitch"
       toggle_killswitch: "toggle_killswitch"
       get_operation_mode: "get_operation_mode"
+      waypoint_addition: "waypoint_addition"
 
     fsm:
       docking:

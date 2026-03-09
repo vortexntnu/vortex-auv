@@ -2,14 +2,18 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
 
 def launch_setup(context, *args, **kwargs):
     """Set up the velocity_controller_lqr node with drone-specific config."""
-    drone = LaunchConfiguration("drone").perform(context)
+    drone, namespace = resolve_drone_and_namespace(context)
 
     parameter_file = os.path.join(
         get_package_share_directory("velocity_controller_lqr"),
@@ -29,7 +33,7 @@ def launch_setup(context, *args, **kwargs):
             package="velocity_controller_lqr",
             executable="velocity_controller_lqr_node.py",
             name="velocity_controller_lqr_node",
-            namespace=drone,
+            namespace=namespace,
             output="screen",
             parameters=[parameter_file, drone_params],
         )
@@ -48,12 +52,5 @@ def generate_launch_description() -> LaunchDescription:
         velocity_controller_lqr node.
     """
     return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
-            ),
-            OpaqueFunction(function=launch_setup),
-        ]
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )

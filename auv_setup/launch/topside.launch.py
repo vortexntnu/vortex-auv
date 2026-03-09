@@ -3,25 +3,28 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    DeclareLaunchArgument,
     IncludeLaunchDescription,
     OpaqueFunction,
     SetEnvironmentVariable,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
 
 def launch_setup(context, *args, **kwargs):
     """Set up the topside nodes with drone-specific namespace."""
-    drone = LaunchConfiguration("drone").perform(context)
+    drone, namespace = resolve_drone_and_namespace(context)
 
     joy_node = Node(
         package="joy",
         executable="joy_node",
         name="joystick_driver",
-        namespace=drone,
+        namespace=namespace,
         output="screen",
         parameters=[
             {"deadzone": 0.15},
@@ -37,7 +40,10 @@ def launch_setup(context, *args, **kwargs):
                 "joystick_interface_auv.launch.py",
             )
         ),
-        launch_arguments={"drone": drone}.items(),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
     )
 
     return [joy_node, joystick_interface_launch]
@@ -60,13 +66,7 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     return LaunchDescription(
-        [
-            set_env_var,
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
-            ),
-            OpaqueFunction(function=launch_setup),
-        ]
+        [set_env_var]
+        + declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
     )

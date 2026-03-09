@@ -6,9 +6,14 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
 
 def launch_setup(context, *args, **kwargs):
-    drone = LaunchConfiguration("drone").perform(context)
+    drone, namespace = resolve_drone_and_namespace(context)
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -22,7 +27,7 @@ def launch_setup(context, *args, **kwargs):
             package="keyboard_joy",
             executable="keyboard_joy_node",
             name="keyboard_joy",
-            namespace=drone,
+            namespace=namespace,
             output="screen",
             parameters=[
                 {"config": LaunchConfiguration("config").perform(context)},
@@ -46,11 +51,7 @@ def generate_launch_description():
                 default_value=keyboard_config,
                 description="Path to key mappings YAML file",
             ),
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
-            ),
-            OpaqueFunction(function=launch_setup),
         ]
+        + declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
     )
