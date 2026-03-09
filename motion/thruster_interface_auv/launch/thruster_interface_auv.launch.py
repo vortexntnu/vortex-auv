@@ -1,32 +1,48 @@
-from os import path
+import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def generate_launch_description() -> LaunchDescription:
-    config = [
-        path.join(
-            get_package_share_directory(package_name="auv_setup"),
-            "config",
-            "robots",
-            "orca.yaml",
-        ),
-        path.join(
-            get_package_share_directory(package_name="thruster_interface_auv"),
-            "config",
-            "thruster_interface_auv_config.yaml",
-        ),
-    ]
+def launch_setup(context, *args, **kwargs):
+    drone = LaunchConfiguration("drone").perform(context)
 
-    thruster_interface_auv_node = Node(
-        package="thruster_interface_auv",
-        executable="thruster_interface_auv_node",
-        name="thruster_interface_auv_node",
-        namespace="orca",
-        output="screen",
-        parameters=config,
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
     )
 
-    return LaunchDescription([thruster_interface_auv_node])
+    thruster_config = os.path.join(
+        get_package_share_directory("thruster_interface_auv"),
+        "config",
+        "thruster_interface_auv_config.yaml",
+    )
+
+    return [
+        Node(
+            package="thruster_interface_auv",
+            executable="thruster_interface_auv_node",
+            name="thruster_interface_auv_node",
+            namespace=drone,
+            output="screen",
+            parameters=[drone_params, thruster_config],
+        )
+    ]
+
+
+def generate_launch_description() -> LaunchDescription:
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                "drone",
+                default_value="orca",
+                description="Drone name / namespace",
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
+    )
