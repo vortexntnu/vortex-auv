@@ -45,7 +45,7 @@ void test_VC::send_guidance()
     /*time1+=0.2;
     reference_msg.yaw=0.6*sin(time1*std::numbers::pi/9);
     reference_msg.pitch=0.3*sin(time1*std::numbers::pi/9);*/
-    reference_msg.surge=1.0;reference_msg.pitch=0.3;reference_msg.yaw=-1.57; //Surge, pitch, yaw
+    reference_msg.surge=0.20;reference_msg.pitch=-0.4;reference_msg.yaw=0.0; //Surge, pitch, yaw
     //RCLCPP_INFO(this->get_logger(), "guidance callback: %f, %f, %f",reference_msg.surge,reference_msg.pitch,reference_msg.yaw);
 
     publisher_guidance->publish(reference_msg);

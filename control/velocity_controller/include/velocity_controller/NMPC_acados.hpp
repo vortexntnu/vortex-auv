@@ -46,7 +46,7 @@ public:
 
     // Inputs
     void setState(const std::array<double, NX>& x);
-    void setReference(const std::array<double, NX>& x_ref, const std::array<double, NU>& u_ref);
+    void setReference(const std::array<double, NY-NU>& x_ref);
     void setWeights(const std::vector<double>& W_diag, const std::vector<double>& W_e_diag); // sizes: NY, NY_E
     void setMaxForce(double max_force); // updates con_h bounds
 
@@ -54,6 +54,7 @@ public:
     // One-shot solve: provide current state, desired state & input refs, get u0 back.
     // Returns solver status (0 == success).
     int solve_once();
+    bool initialize_guess(std::array<double,NX> x,std::array<double,NU> u_init);
 
     // Outputs
     std::vector<double> getU0(); 
@@ -74,8 +75,8 @@ public:
     int N_=20;
     int N_override_=-1;
 
-    std::vector<double> W_diag_{NY,0.0};    // length NY
-    std::vector<double> W_e_diag_{NY_E,0.0};  // length NY_E
+    std::array<double, NY*NY> W_;    // length NY
+    std::vector<double> W_e_{NY_E*NY_E,0.0};  // length NY_E
     double max_force2_ = 100*100;   // squared constraint, default 100^2
 
     
@@ -84,6 +85,6 @@ public:
     std::vector<double> u0_out={0,0,0};
     //Recorded states states
     std::array<double,9> x0;
-    std::array<double,NX> xr;
+    std::array<double,NY-NU> xr;
     std::array<double,NU> ur={0,0,0};
 };

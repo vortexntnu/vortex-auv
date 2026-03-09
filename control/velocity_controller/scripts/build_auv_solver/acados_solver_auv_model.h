@@ -98,10 +98,10 @@ typedef struct auv_model_solver_capsule
 
     // dynamics
 
-    external_function_external_param_casadi *expl_vde_forw;
-    external_function_external_param_casadi *expl_vde_forw_p;
-    external_function_external_param_casadi *expl_ode_fun;
-    external_function_external_param_casadi *expl_vde_adj;
+    external_function_external_param_casadi *impl_dae_fun;
+    external_function_external_param_casadi *impl_dae_fun_jac_x_xdot_z;
+    external_function_external_param_casadi *impl_dae_jac_x_xdot_u_z;
+    external_function_external_param_casadi *impl_dae_jac_p;
 
 
 

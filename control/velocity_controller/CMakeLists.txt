@@ -32,7 +32,7 @@ include_directories(
   ${ACADOS_ROOT}/include/blasfeo/include
   ${ACADOS_ROOT}/include/hpipm/include
   ${ACADOS_ROOT}/include/qpOASES_e
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/build_auv_solver
+  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_auv_solver
 
   include
 
@@ -42,8 +42,8 @@ link_directories(${ACADOS_ROOT}/lib)
 
 # After setting ACADOS_ROOT etc.
 file(GLOB_RECURSE GEN_SRCS
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/build_auv_solver/*.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/build_auv_solver/*/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_auv_solver/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_auv_solver/*/*.c
 )
 
 

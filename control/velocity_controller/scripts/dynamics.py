@@ -27,28 +27,22 @@ def coriolis_rb_diag(m, Ix, Iy, Iz, u, v, w, p, q, r):
     Fossen 2011-style, for 6DOF body velocities [u v w p q r].
     """
     C = SX.zeros(6, 6)
-    # Linear-Linear block (zero)
-    # Linear-Angular block
-    C[0, 4] =  m * w
-    C[0, 5] = -m * v
-    C[1, 3] = -m * w
-    C[1, 5] =  m * u
-    C[2, 3] =  m * v
-    C[2, 4] = -m * u
-    # Angular-Linear block
-    C[3, 1] =  m * w
-    C[3, 2] = -m * v
-    C[4, 0] = -m * w
-    C[4, 2] =  m * u
-    C[5, 0] =  m * v
-    C[5, 1] = -m * u
+    
+    # Angular velocity block
+    C[0, 1] =  -m * r
+    C[0, 2] = m * q
+    C[1, 0] = m * r
+    C[1, 2] =  -m * p
+    C[2, 0] =  -m * q
+    C[2, 1] = m * p
+    
     # Angular-Angular block (J*omega x omega)
-    C[3, 4] = -Iz * r
-    C[3, 5] =  Iy * q
-    C[4, 3] =  Iz * r
-    C[4, 5] = -Ix * p
-    C[5, 3] = -Iy * q
-    C[5, 4] =  Ix * p
+    C[3, 4] = Iz * r
+    C[3, 5] =  -Iy * q
+    C[4, 3] =  -Iz * r
+    C[4, 5] = Ix * p
+    C[5, 3] = Iy * q
+    C[5, 4] =  -Ix * p
     return C
 
 def dampening(linear_diag, quad_diag, u, v, w, p, q, r):
@@ -61,7 +55,7 @@ def dampening(linear_diag, quad_diag, u, v, w, p, q, r):
     vel = vertcat(u, v, w, p, q, r)
     abs_vel = SX(6, 1)
     for i in range(6):
-        abs_vel[i] = fabs(vel[i])
+        abs_vel[i] = fabs(vel[i]) 
     Dq = SX(quad_diag)  # elementwise times abs_vel when applied
     # Effective damping operator when multiplying right by vel:
     # (Dl + Dq*|vel|) * vel
@@ -80,10 +74,11 @@ def make_auv_model(mass_inertia_matrix,D_lin,D_quad):
       dict with keys: x, u, f_expl_expr, name
     """
     # Unpack parameters
-    m=SX(mass_inertia_matrix)
+    M=SX(mass_inertia_matrix)
     Ix  = mass_inertia_matrix[3][3]
     Iy  = mass_inertia_matrix[4][4]
     Iz  = mass_inertia_matrix[5][5]
+    m=M[0][0]
     #D_lin  = params.get('D_lin')
     #D_quad = params.get('D_quad')
 
@@ -110,11 +105,11 @@ def make_auv_model(mass_inertia_matrix,D_lin,D_quad):
     #M = diag(SX([m, m, m, Ix, Iy, Iz]))
 
     # Coriolis matrix for diagonal inertia
-    C = coriolis_rb_diag(m[0][0], Ix, Iy, Iz, u, v, w, p, q, r)
+    C = coriolis_rb_diag(m, Ix, Iy, Iz, u, v, w, p, q, r)
 
-    # Damping (linear + quadratic diagonal)
+    # Damping (linear + quadratic diagonal) 
     Dl, Dq, abs_vel = dampening(D_lin, D_quad, u, v, w, p, q, r)
-
+    #TODO: blend the dampening functions
     # Generalized input vector tau: map [Fx, My, Mz] to 6x1 wrench
     # tau = [Fx, 0, 0, 0, My, Mz]^T
     tau = vertcat(Fx, 0.0, 0.0, 0.0, My, Mz)
@@ -122,24 +117,24 @@ def make_auv_model(mass_inertia_matrix,D_lin,D_quad):
 
     # 6DOF body dynamics: nu_dot = M^{-1} (tau - C*nu - (Dl + Dq*|nu|) nu - g)
     nu = vertcat(u, v, w, p, q, r)
-    D_eff_times_nu = (Dl @ nu) + (Dq @ (abs_vel * nu))  # elementwise: (Dq*|nu|) * nu
+    D_eff_times_nu = (Dl + diag(Dq @ abs_vel)) @ nu  # elementwise: (Dq*|nu|) * nu
     rhs_nu = SX(6, 1)
-    rhs_nu = inv(m) @ (tau - C @ nu - D_eff_times_nu)
-
+    rhs_nu = inv(M) @ (tau - C @ nu - D_eff_times_nu) #
+    print(D_eff_times_nu)
     # Kinematics: eta_dot = T(eta) * omega
     T = euler_kinematics_T(phi, theta)
     eta_dot = T @ vertcat(p, q, r)
 
     xdot = vertcat(rhs_nu, eta_dot)
-
+    xdot_sym = SX.sym("xdot", x.size()[0])
     model = {
         "name": "auv_model",
         "x": x,
-        #"xdot": xdot,
+        "xdot": xdot_sym,
         "u": u_in,
         "f_expl_expr": xdot,   # explicit ODE f(x,u)
         # implicit form (optional in acados): f_impl = xdot - f(x,u)
-        #"f_impl_expr": xdot - xdot
+        "f_impl_expr": xdot_sym - xdot
     }
     return model
 

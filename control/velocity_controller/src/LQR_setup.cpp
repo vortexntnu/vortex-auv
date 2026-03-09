@@ -150,7 +150,7 @@ Eigen::Matrix<double,8,8> LQRController::linearize(State s){
     ret.setZero();
     ret.block<5,5>(0,0)=A.block<5,5>(0,0);
     //legge inn integral state #TODO
-    ret.block<3,3>(5,0)=-Eigen::Matrix3d::Identity();
+    ret.block<3,3>(5,0)=Eigen::Matrix3d::Identity();
     
     return ret;
 };
@@ -166,7 +166,7 @@ Eigen::Vector<double,8> LQRController::update_error(Guidance_data guidance_value
     //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"windup status: %d, %d, %d",surge_windup,pitch_windup,yaw_windup);
     //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"pitch value n state %f, %f",guidance_values.pitch,states.pitch);
     //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"errors: %f, %f, %f",surge_error,pitch_error,yaw_error);
-    Eigen::Vector<double,8> state_error= {-surge_error, -pitch_error, -yaw_error, -states.pitch_rate, -states.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
+    Eigen::Vector<double,8> state_error= {surge_error, pitch_error, yaw_error, states.pitch_rate, states.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
 Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u){
@@ -207,7 +207,7 @@ Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_da
                 K_l(1,0),K_l(1,1),K_l(1,2),K_l(1,3),K_l(1,4),K_l(1,5),K_l(1,6),K_l(1,7),
                 K_l(2,0),K_l(2,1),K_l(2,2),K_l(2,3),K_l(2,4),K_l(2,5),K_l(2,6),K_l(2,7));
                 */
-    return saturate_input(- (K_l*state_error));
+    return saturate_input( (K_l*state_error));
 }
 void LQRController::reset_controller(){
     integral_error_surge=0.0;

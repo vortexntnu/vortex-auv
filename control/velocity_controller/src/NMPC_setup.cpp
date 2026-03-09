@@ -1,6 +1,7 @@
 #include <Eigen/Dense>
 #include <casadi/casadi.hpp>
 #include <casadi/core/generic_type.hpp>
+#include <casadi/core/slice.hpp>
 #include <casadi/core/sparsity_interface.hpp>
 #include <casadi/core/sx_fwd.hpp>
 #include <cmath>
@@ -44,7 +45,8 @@ bool NMPC_controller::set_matrices(std::vector<double> Q,std::vector<double> R,s
     D_high=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_high.data(),6,6);
     M_inv=inertia_matrix_.inverse();
     mass=inertia_matrix[0];
-    Ix=inertia_matrix_(3,3);
+    Ix=inertia_matrix_(3,3);std::vector<double> Q2;
+    std::vector<double> R2;
     Iy=inertia_matrix_(4,4);
     Iz=inertia_matrix_(5,5);
 
@@ -62,7 +64,7 @@ bool NMPC_controller::set_interval(double interval){
 bool NMPC_controller::initialize_MPC(){
     using SYM=casadi::MX;
     SYM X=SYM::sym("X",n,1); //u,v,w,p,q,r,phi,theta,psi
-    SYM A=SYM::zeros(n,n);
+    //SYM A=SYM::zeros(n,n);
     casadi::DM M_i=casadi::DM::zeros(6,6);
     SYM U=SYM::sym("U",3,1);
     casadi::DM Q=casadi::DM::zeros(n,n);
@@ -71,7 +73,8 @@ bool NMPC_controller::initialize_MPC(){
     U(1,0)=SYM::sym("u_pitch");
     U(2,0)=SYM::sym("u_yaw");*/
 
-    //Creating M_i matrix
+    //Creating M_i matrixstd::vector<double> Q2;
+    std::vector<double> R2;
     for (int i=0;i<M_inv.rows();i++){
         for (int j=0;j<M_inv.cols();j++){
             M_i(i,j)=M_inv(i,j);
@@ -81,7 +84,7 @@ bool NMPC_controller::initialize_MPC(){
     for (int i=0;i<Q_.rows();i++){
         for (int j=0;j<Q_.cols();j++){
             Q(i,j)=Q_(i,j);
-        }
+        }//rhs=-mtimes(A,X)+mtimes(temp2, temp); 
     }
 
     //creating R matrix
@@ -97,60 +100,50 @@ bool NMPC_controller::initialize_MPC(){
             D(i,j)=D_low(i,j);
         }
     }
-    D=mtimes(M_i,D);
+    //D=mtimes(M_i,D);
     //Creating Coriolis matrix
     SYM Cor=SYM::zeros(6,6); //TODO maybe make a general crossproduct matric generator
-    Cor(0,1)=-mass*X(2); Cor(0,2)=-mass*X(1);
-    Cor(1,0)=mass*X(2); Cor(1,2)=-mass*X(0);
-    Cor(2,0)=-mass*X(1); Cor(2,1)=mass*X(0);
+    Cor(0,1)=-mass*X(5); Cor(0,2)=mass*X(4);
+    Cor(1,0)=mass*X(5); Cor(1,2)=-mass*X(3);
+    Cor(2,0)=-mass*X(4); Cor(2,1)=mass*X(3);
 
-    Cor(3,4)=-Iz*X(5); Cor(3,5)=-Iy*X(4);
-    Cor(4,3)=Iz*X(5); Cor(4,5)=-Ix*X(3);
-    Cor(5,3)=-Iy*X(4); Cor(5,4)=Ix*X(3);
-    Cor=mtimes(M_i,Cor);
+    Cor(3,4)=Iz*X(5); Cor(3,5)=-Iy*X(4);
+    Cor(4,3)=-Iz*X(5); Cor(4,5)=Ix*X(3);
+    Cor(5,3)=Iy*X(4); Cor(5,4)=-Ix*X(3);
+    //Cor=mtimes(M_i,Cor);
     //Creating transformation matrix, body rotation to angles
     SYM T=SYM::zeros(3,3);
-    SYM eps = SYM::sym("eps");
-    eps=1e-6;
-    T(0,0)=1; T(0,1)=sin(X(6))*sin(X(7))/fmax(cos(X(7)),eps); T(0,2)=cos(X(6))*sin(X(7))/fmax(cos(X(7)),eps);
+    //SYM eps = SYM::sym("eps");
+    double eps=1e-6;
+    T(0,0)=1; T(0,1)=sin(X(6))*sin(X(7))/(cos(X(7))+eps); T(0,2)=cos(X(6))*sin(X(7))/(cos(X(7))+eps);
     T(1,1)=cos(X(6)); T(1,2)=-sin(X(6));
-    T(2,1)=sin(X(6))/fmax(cos(X(7)),eps); T(2,2)=cos(X(6))/fmax(cos(X(7)),eps);
+    T(2,1)=sin(X(6))/(cos(X(7))+eps); T(2,2)=cos(X(6))/(cos(X(7))+eps);
 
-    //Creating A matrix
-    for (int i=0;i<6;i++){
-        for (int j=0;j<6;j++){
-            A(i,j)=Cor(i,j)+D(i,j);
-        }
-    }
-    for (int i=0;i<3;i++){
-        for (int j=0;j<3;j++){
-            A(6+i,3+j)=T(i,j);
-        }
-    }
-    
-    SYM temp=SYM::zeros(9,1);
-    temp(0)=U(0); //Force surge
-    temp(4)=U(1); //Moment pitch
-    temp(5)=U(2); //Moment yaw
-    SYM temp2=SYM::zeros(9,9);
-    for (int i=0;i<6;i++){
-        for (int j=0;j<6;j++){
-            temp2(i,j)=M_inv(i,j);
-        }
-    }
+    //creating dynamics
+            
+    SYM rhs_nu=mtimes(Cor+D,X(casadi::Slice(0,6)));
+    SYM rot_dot=mtimes(T,X(casadi::Slice(3,6)));
+        
+    SYM tau=SYM::zeros(6,1);
+    tau(0)=U(0); //Force surge
+    tau(4)=U(1); //Moment pitch
+    tau(5)=U(2); //Moment yaw
     
     
     casadi::MXDict ode;
     ode["x"]=X;
     ode["p"]=U;
-    SYM rhs=SYM::zeros(9,1);
-    //rhs=A*X+temp2*temp; //    
-    rhs=-mtimes(A,X)+mtimes(temp2, temp); 
-
+    SYM rhs=vertcat(mtimes(M_i,tau-mtimes(Cor,X(casadi::Slice(0,6)))-mtimes(D,X(casadi::Slice(0,6)))),rot_dot);
+    //rhs=A*X+temp2*temp; //
+    /*
     ode["ode"]=rhs;
     casadi::Dict opts;
     opts["tf"]=interval_;
-    /*
+    opts["abstol"] = 1e-6;
+    opts["reltol"] = 1e-6;
+    opts["jit"]=true;
+    opts["jit_options"] = casadi::Dict{{"compiler","clang"}};
+    
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"X: %d x %d", X.size1(), X.size2());
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"U: %d x %d", U.size1(), U.size2());
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"A: %d x %d", A.size1(), A.size2());
@@ -158,7 +151,24 @@ bool NMPC_controller::initialize_MPC(){
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"temp: %d x %d", temp.size1(), temp.size2());
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"rhs: %d x %d", rhs.size1(), rhs.size2());
     */
-    casadi::Function Fint=casadi::integrator("Fint","cvodes",ode,opts);
+    casadi::Function f_rk4 = casadi::Function("f_rk4", {X, U}, {rhs});
+
+    // RK4 step (pure CasADi expressions; fully codegen- and AD-friendly)
+    SYM xk = SYM::sym("xk", n, 1);
+    SYM uk = SYM::sym("uk", m, 1);
+    double h = interval_;  // your sample time
+
+    SYM k1 = f_rk4(casadi::MXVector{xk, uk}).at(0);
+    SYM k2 = f_rk4(casadi::MXVector{xk + 0.5*h*k1, uk}).at(0);
+    SYM k3 = f_rk4(casadi::MXVector{xk + 0.5*h*k2, uk}).at(0);
+    SYM k4 = f_rk4(casadi::MXVector{xk + h*k3, uk}).at(0);
+
+    SYM x_next = xk + (h/6.0)*(k1 + 2*k2 + 2*k3 + k4);
+
+    // One-step integrator function (positionally called)
+    casadi::Function Fint = casadi::Function("Fint", {xk, uk}, {x_next});
+
+    //casadi::Function Fint=casadi::integrator("Fint","cvodes",ode,opts);
     
     
     //Decision variables
@@ -188,10 +198,7 @@ bool NMPC_controller::initialize_MPC(){
     std::vector<SYM> g_list;
     g_list.push_back(X_v[0]-p_x0);
     for (int i=0; i<N;i++){
-        casadi::MXDict integrator_in;
-        integrator_in["x0"] = X_v[i];
-        integrator_in["p"] = U_v[i];
-        SYM X_next = Fint(integrator_in).at("xf");
+        SYM X_next = Fint(casadi::MXVector{X_v[i],U_v[i]}).at(0);
         g_list.push_back(X_v[i+1]-X_next);
     }
     SYM G=vertcat(g_list);
@@ -217,6 +224,8 @@ bool NMPC_controller::initialize_MPC(){
     casadi::DM u_max =  100.0*casadi::DM::ones(m,1);
 
     std::vector<casadi::DM> lbx_parts, ubx_parts;
+    x_min(7)=-1.4;
+    x_max(7)=1.4;
     // X0..XN
     for (int k = 0; k <= N; ++k) {
         lbx_parts.push_back(x_min);
@@ -242,9 +251,14 @@ bool NMPC_controller::initialize_MPC(){
     nlp["g"]=G;
     nlp["p"]=P;
     casadi::Dict opts1;
-    opts1["ipopt.print_level"]=0;
+    opts1["ipopt.print_level"]=2;
     opts1["print_time"]=false;
     opts1["ipopt.sb"]="yes";
+    opts1["expand"]=true;
+    opts1["jit"]=false;
+    opts1["ipopt.tol"]=1e-4;
+    opts1["ipopt.max_iter"]=100;
+    opts1["ipopt.linear_solver"]="mumps"; //robust default
 
     solver=casadi::nlpsol("solver","ipopt",nlp,opts1);
     
@@ -269,11 +283,11 @@ bool NMPC_controller::initialize_MPC(){
     return true;
 }
 
-Eigen::Matrix<double, 3, 1> NMPC_controller::calculate_thrust(Guidance_data guidance_values, State state){
+bool NMPC_controller::calculate_thrust(Guidance_data guidance_values, State state){
     
     casadi::DM x0_val={state.surge,state.sway,state.heave,state.roll_rate,state.pitch_rate,state.yaw_rate,state.roll,state.pitch,state.yaw};
     casadi::DM xr_val={guidance_values.surge,guidance_values.sway,guidance_values.heave,guidance_values.roll_rate,guidance_values.pitch_rate,guidance_values.yaw_rate,guidance_values.roll,guidance_values.pitch,guidance_values.yaw};
-    casadi::DM ur_val=casadi::DM::zeros(m);
+    casadi::DM ur_val={0,0,0};
     Pval=casadi::DM::vertcat({x0_val,xr_val,ur_val});
   // Solve
  
@@ -287,8 +301,8 @@ Eigen::Matrix<double, 3, 1> NMPC_controller::calculate_thrust(Guidance_data guid
     auto sol = solver(solver_in);
     if (sol.count("x") == 0) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "NLP solver failed");
-        return {9999,9999,9999}; //TODO: check for 9999,9999,9999
-        }
+        return 1; 
+    }
     casadi::DM Zstar = sol.at("x");  // optimal stacked decision vector
     //TODO: check to see NAN or INF values in solution
     
@@ -325,9 +339,13 @@ Eigen::Matrix<double, 3, 1> NMPC_controller::calculate_thrust(Guidance_data guid
 
   Z0_next = vertcat(Z0_next_parts);
   
-    Eigen::Matrix<double, 3, 1> result;
-    result(0) = double(u0_star(0));
-    result(1) = double(u0_star(1));
-    result(2) = double(u0_star(2));
-    return result;
+    
+    thrust(0) = double(u0_star(0));
+    thrust(1) = double(u0_star(1));
+    thrust(2) = double(u0_star(2));
+    return 0;
+}
+
+Eigen::Matrix<double, 3, 1> NMPC_controller::get_thrust(){
+    return thrust;
 }

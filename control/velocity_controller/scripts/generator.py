@@ -54,15 +54,16 @@ def create_auv_ocp():
     Q, R, Qe, inertia_Matrix, D_lin, D_quad, N, delta_t, max_force = load_matrices()
 
     # Load dynamical model
-    mdl = make_auv_model(inertia_Matrix,D_lin,D_quad)
+    mdl = make_auv_model(inertia_Matrix, D_lin, D_quad)
 
     # Wrap into acados model format
     acados_model = AcadosModel()
     acados_model.name = mdl["name"]
     acados_model.x = mdl["x"]
+    acados_model.xdot=mdl["xdot"]
     acados_model.u = mdl["u"]
     acados_model.f_expl_expr = mdl["f_expl_expr"]
-    #acados_model.f_impl_expr = mdl["f_impl_expr"]
+    acados_model.f_impl_expr = mdl["f_impl_expr"]
     
     # Create OCP
     ocp = AcadosOcp()
@@ -73,8 +74,8 @@ def create_auv_ocp():
     ocp.dims.N = N
     ocp.solver_options.tf = Tf
 
-    ocp.solver_options.integrator_type="ERK"
-    ocp.solver_options.sim_method_num_stages=4
+    ocp.solver_options.integrator_type="IRK"
+    ocp.solver_options.sim_method_num_stages=2
     ocp.solver_options.sim_method_num_steps=4
 
     nx = acados_model.x.size()[0]
@@ -88,7 +89,7 @@ def create_auv_ocp():
     ocp.cost.cost_type_e = "LINEAR_LS"
 
     # States you care about: u=0, q=4, r=5
-    idx_states   = [0, 1, 2,3,4]
+    idx_states   = [0, 4, 5, 7, 8]
     idx_controls = [0, 1, 2]
 
     n_y  = len(idx_states) + len(idx_controls)  # 8
@@ -162,8 +163,8 @@ def create_auv_ocp():
     ocp.constraints.ubu =  u_max * np.ones(nu)
     ocp.constraints.idxbu = np.arange(nu, dtype=int)
     ocp.constraints.idxbx = np.array([7]) 
-    ocp.constraints.lbx = np.array([-1.4])
-    ocp.constraints.ubx = np.array([1.4])  
+    ocp.constraints.lbx = -1.4
+    ocp.constraints.ubx = 1.4  
     ocp.dims.nbx = 1 
 
     # ----------------------------------
@@ -184,15 +185,17 @@ def create_auv_ocp():
     print("yref_e:", ocp.cost.yref_e)
     print("ny:", ocp.dims.ny)
     print("ny_e:", ocp.dims.ny_e)
+    print("VX",ocp.cost.Vx)
+    print("VU", ocp.cost.Vu)
     ocp.solver_options.qp_solver = "FULL_CONDENSING_HPIPM"
     ocp.solver_options.qp_solver_warm_start=1
     ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
     #ocp.solver_options.integrator_type = "ERK"
-    ocp.solver_options.nlp_solver_type = "SQP_RTI"   # fast real-time iteration
+    ocp.solver_options.nlp_solver_type = "SQP"   # fast real-time iteration
     #ocp.solver_options.nlp_solver_max_iter = 100
 
     #ocp.solver_options.globalization = 'MERIT_BACKTRACKING'
-    ocp.solver_options.levenberg_marquardt = 1e-4
+    ocp.solver_options.levenberg_marquardt = 1e-2
     ocp.solver_options.print_level = 2
 
     # ----------------------------------

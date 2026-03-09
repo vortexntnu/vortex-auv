@@ -81,9 +81,12 @@ class Velocity_node : public rclcpp::Node{
     NMPC_controller NMPC;
     //NMPC acados
     AuvNMPC NMPC_acados;
-    //NMPC parameters
     std::vector<double> Q2;
     std::vector<double> R2;
+    //NMPC parameters
+    std::vector<double> Q3;
+    std::vector<double> R3;
+    
     //Test
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_reference;
 

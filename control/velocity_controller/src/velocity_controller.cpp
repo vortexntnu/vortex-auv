@@ -19,7 +19,7 @@
 
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100,5,0), PID_yaw(35,1,0), PID_pitch(35,1,0), lqr_controller()
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(600,50,0), PID_yaw(120,20,0), PID_pitch(35,1,0), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
@@ -51,20 +51,18 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
 
 
     //NMPC controller
-  /*
-    NMPC.set_matrices(Q2,R2, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
+  
+  NMPC.set_matrices(Q3,R3, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
   NMPC.set_interval(publish_rate/1000.0);
-  NMPC.initialize_MPC();
-  */  
+  //NMPC.initialize_MPC();
+    
   //NMPC acados controller
   NMPC_acados.init();
   NMPC_acados.set_max_force(max_force);
   std::vector<double> W=Q2;
   W.insert(W.end(),R2.begin(),R2.end());
   std::vector<double> We=Q2;
-  for (int i=0;i<(int)We.size();i++){
-    We[i]+=1e-6;
-  }
+  
   NMPC_acados.set_weights(W, We);
   
   //Timer
@@ -87,7 +85,7 @@ Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(100
 
 //Publish/timer functions
 void Velocity_node::publish_thrust(){
-  RCLCPP_INFO(this->get_logger(),"sending thrust");
+  //RCLCPP_INFO(this->get_logger(),"sending thrust");
   publisher_thrust->publish(thrust_out);
 }
 
@@ -133,12 +131,13 @@ void Velocity_node::calc_thrust()
   case 3:{
     RCLCPP_INFO(this->get_logger(),"Guidance: %f, %f, %f",guidance_values.surge,guidance_values.pitch,guidance_values.yaw);
     Eigen::Matrix<double,3,1> u;
-    u=NMPC.calculate_thrust(guidance_values, current_state);
-    if (u==Eigen::Matrix<double,3,1>{9999,9999,9999}){
+    if (NMPC.calculate_thrust(guidance_values, current_state)){
       controller_type=1;
       RCLCPP_ERROR(this->get_logger(),"Switching to PID");
+      rclcpp::shutdown();
     }
     else{
+    u=NMPC.get_thrust();
     thrust_out.wrench.force.x=u[0];
     thrust_out.wrench.torque.y=u[1];
     thrust_out.wrench.torque.z=u[2];
@@ -149,15 +148,15 @@ void Velocity_node::calc_thrust()
   }
   case 4:{
     std::vector<double>u;
-    std::array<double, 9> x_ref={guidance_values.surge,guidance_values.sway,guidance_values.heave,guidance_values.roll_rate,guidance_values.pitch_rate,guidance_values.yaw_rate,guidance_values.roll,guidance_values.pitch,guidance_values.yaw};
-    std::array<double, 3> u_ref={0,0,0};
+    std::array<double, 5> x_ref={guidance_values.surge,0.0,0.0,guidance_values.pitch,guidance_values.yaw}; //surge, pitch_rate, yaw_rate, pitch, yaw
 
-    NMPC_acados.setReference(x_ref,u_ref);
+    NMPC_acados.setReference(x_ref);
     std::array<double,9> state_array={current_state.surge,current_state.sway,current_state.heave,current_state.roll_rate,current_state.pitch_rate,current_state.yaw_rate,current_state.roll,current_state.pitch,current_state.yaw};
     NMPC_acados.setState(state_array);
     int status=NMPC_acados.solve_once();
+    RCLCPP_INFO(this->get_logger(),"Status %i",status);
     if(status){
-      RCLCPP_ERROR(this->get_logger(),"Error status %i",status);
+      
       rclcpp::shutdown();
     };
     u=NMPC_acados.getU0();
@@ -251,16 +250,17 @@ void Velocity_node::get_new_parameters(){
   this->dampening_matrix_low=this->get_parameter("dampening_matrix_low").as_double_array();
   this->dampening_matrix_high=this->get_parameter("dampening_matrix_high").as_double_array();
 
-  //NMPC Parameters
+  //NMPC acados Parameters
+  this->declare_parameter<std::vector<double>>("NMPCA_params.Q");
+  this->declare_parameter<std::vector<double>>("NMPCA_params.R");
+  Q2=this->get_parameter("NMPCA_params.Q").as_double_array();
+  R2=this->get_parameter("NMPCA_params.R").as_double_array();
+  //NMPC
   this->declare_parameter<std::vector<double>>("NMPC_params.Q");
   this->declare_parameter<std::vector<double>>("NMPC_params.R");
-  Q2=this->get_parameter("NMPC_params.Q").as_double_array();
-  R2=this->get_parameter("NMPC_params.R").as_double_array();
-
-
-
+  Q3=this->get_parameter("NMPC_params.Q").as_double_array();
+  R3=this->get_parameter("NMPC_params.R").as_double_array();
   
-
 }
 
 int main(int argc, char * argv[])

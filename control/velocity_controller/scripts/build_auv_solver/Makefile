@@ -37,9 +37,11 @@
 # model
 MODEL_SRC=
 
-MODEL_SRC+= auv_model_model/auv_model_expl_ode_fun.c
-MODEL_SRC+= auv_model_model/auv_model_expl_vde_forw.c
-MODEL_SRC+= auv_model_model/auv_model_expl_vde_adj.c
+MODEL_SRC+= auv_model_model/auv_model_impl_dae_fun.c
+MODEL_SRC+= auv_model_model/auv_model_impl_dae_fun_jac_x_xdot_z.c
+MODEL_SRC+= auv_model_model/auv_model_impl_dae_fun_jac_x_xdot_u_z.c
+MODEL_SRC+= auv_model_model/auv_model_impl_dae_fun_jac_x_xdot_u.c
+MODEL_SRC+= auv_model_model/auv_model_impl_dae_jac_x_xdot_u_z.c
 
 MODEL_OBJ := $(MODEL_SRC:.c=.o)
 # optimal control problem - mostly CasADi exports
@@ -134,7 +136,7 @@ ocp_cython_c: ocp_shared_lib
 	-o acados_ocp_solver_pyx.c \
 	-I $(INCLUDE_PATH)/../interfaces/acados_template/acados_template \
 	$(INCLUDE_PATH)/../interfaces/acados_template/acados_template/acados_ocp_solver_pyx.pyx \
-	-I /home/henrik/ros2_ws_v/src/vortex-auv/control/velocity_controller/src/build_auv_solver \
+	-I /home/henrik/ros2_ws_v/src/vortex-auv/control/velocity_controller/scripts/build_auv_solver \
 
 ocp_cython_o: ocp_cython_c
 	$(CC) $(ACADOS_FLAGS) -c -O2 \
@@ -163,7 +165,7 @@ sim_cython_c: sim_shared_lib
 	-o acados_sim_solver_pyx.c \
 	-I $(INCLUDE_PATH)/../interfaces/acados_template/acados_template \
 	$(INCLUDE_PATH)/../interfaces/acados_template/acados_template/acados_sim_solver_pyx.pyx \
-	-I /home/henrik/ros2_ws_v/src/vortex-auv/control/velocity_controller/src/build_auv_solver \
+	-I /home/henrik/ros2_ws_v/src/vortex-auv/control/velocity_controller/scripts/build_auv_solver \
 
 sim_cython_o: sim_cython_c
 	$(CC) $(ACADOS_FLAGS) -c -O2 \

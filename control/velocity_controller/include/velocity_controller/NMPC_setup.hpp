@@ -6,7 +6,8 @@
 
 class NMPC_controller{
     public:
-    Eigen::Matrix<double, 3, 1> calculate_thrust(Guidance_data guidance_values, State state);
+    Eigen::Matrix<double, 3, 1> get_thrust();
+    bool calculate_thrust(Guidance_data guidance_values, State state);
     bool set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix, double max_force,std::vector<double> water_r_low,std::vector<double> water_r_high);
     void reset_controller();
     bool set_interval(double interval);
@@ -33,6 +34,7 @@ class NMPC_controller{
     casadi::DM ubg;
     casadi::DM Pval;
     casadi::Function solver;
+    Eigen::Matrix<double,3,1>thrust;
 
 
 };
