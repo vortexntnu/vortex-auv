@@ -41,6 +41,7 @@ def launch_setup(context, *args, **kwargs):
         executable="waypoint_manager_node",
         name="waypoint_manager_node",
         namespace=namespace,
+        parameters=[drone_config],
         output="screen",
     )
 
