@@ -133,6 +133,9 @@
         dp: "guidance/dp"
       fsm:
         active_controller: "fsm/active_controller"
+      dvl_twist: "dvl/twist"
+      dvl_altitude: "dvl/altitude"
+      imu: "stim/imu"
 
     action_servers:
       reference_filter: "reference_filter"
