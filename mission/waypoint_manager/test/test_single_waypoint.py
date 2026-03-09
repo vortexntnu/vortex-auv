@@ -10,24 +10,36 @@ import launch_testing.actions
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from launch.actions import OpaqueFunction
 from rclpy.action import ActionClient
 from rclpy.qos import qos_profile_sensor_data
 from vortex_msgs.action import WaypointManager
 from vortex_msgs.msg import Waypoint
 
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
-def generate_test_description():
+NAMESPACE = 'orca'  # updated by launch_setup
+
+
+def launch_setup(context, *args, **kwargs):
+    global NAMESPACE
+    drone, namespace = resolve_drone_and_namespace(context)
+    NAMESPACE = namespace
+
     rf_pkg_share = get_package_share_directory('reference_filter_dp')
     rf_config = os.path.join(rf_pkg_share, 'config', 'reference_filter_params.yaml')
 
     auv_setup_share = get_package_share_directory('auv_setup')
-    orca_config = os.path.join(auv_setup_share, 'config', 'robots', 'orca.yaml')
+    drone_config = os.path.join(auv_setup_share, 'config', 'robots', f'{drone}.yaml')
 
     wm_node = launch_ros.actions.Node(
         package='waypoint_manager',
         executable='waypoint_manager_node',
         name='waypoint_manager_node',
-        namespace='orca',
+        namespace=namespace,
         output='screen',
     )
 
@@ -35,17 +47,17 @@ def generate_test_description():
         package='reference_filter_dp',
         executable='reference_filter_dp_node',
         name='reference_filter_node',
-        namespace='orca',
-        parameters=[rf_config, orca_config],
+        namespace=namespace,
+        parameters=[rf_config, drone_config],
         output='screen',
     )
 
+    return [wm_node, rf_node, launch_testing.actions.ReadyToTest()]
+
+
+def generate_test_description():
     return launch.LaunchDescription(
-        [
-            wm_node,
-            rf_node,
-            launch_testing.actions.ReadyToTest(),
-        ]
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )
 
 
@@ -69,7 +81,7 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
     def _publish_fake_pose(self, x, y, z, duration_sec=5.0, rate_hz=10.0):
         pub = self.node.create_publisher(
             PoseWithCovarianceStamped,
-            '/orca/pose',
+            f'/{NAMESPACE}/pose',
             qos_profile_sensor_data,
         )
 
@@ -100,7 +112,9 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
         self.node.destroy_publisher(pub)
 
     def test_accepts_and_executes_goal(self):
-        client = ActionClient(self.node, WaypointManager, '/orca/waypoint_manager')
+        client = ActionClient(
+            self.node, WaypointManager, f'/{NAMESPACE}/waypoint_manager'
+        )
 
         assert client.wait_for_server(timeout_sec=10.0), (
             'WaypointManager action server not available'
