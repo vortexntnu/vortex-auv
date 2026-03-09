@@ -176,7 +176,7 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u)
     std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
     return {force_x, torque_y, torque_z};
 }
-Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_data guidance_values){
+bool LQRController::calculate_thrust(State state, Guidance_data guidance_values){
     ct::optcon::LQR<8,3> lqr;
     Eigen::Matrix<double,3,8> K_l;
     /*RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"A matrix: %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f; ...",linearize(state)(0,0),linearize(state)(0,1),linearize(state)(0,2),linearize(state)(0,3),linearize(state)(0,4),linearize(state)(0,5),linearize(state)(0,6),linearize(state)(0,7),
@@ -188,7 +188,7 @@ Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_da
                 */
     bool INFO= lqr.compute(Q,R,linearize(state),B,K_l,true,false);
     if(INFO==0){
-        return {9999,9999,9999}; //Need to fix
+        return false; 
     }
     /*
     Eigen::Matrix<double,3,6> K;
@@ -207,7 +207,8 @@ Eigen::Vector<double,3> LQRController::calculate_thrust(State state, Guidance_da
                 K_l(1,0),K_l(1,1),K_l(1,2),K_l(1,3),K_l(1,4),K_l(1,5),K_l(1,6),K_l(1,7),
                 K_l(2,0),K_l(2,1),K_l(2,2),K_l(2,3),K_l(2,4),K_l(2,5),K_l(2,6),K_l(2,7));
                 */
-    return saturate_input( (K_l*state_error));
+    u=saturate_input( (K_l*state_error));
+    return true;
 }
 void LQRController::reset_controller(){
     integral_error_surge=0.0;
@@ -255,4 +256,8 @@ Eigen::Matrix3d vector2d_to_matrix3d(const std::vector<std::vector<double>> &oth
         for (int j = 0; j < 3; ++j)
             mat(i, j) = other_matrix[i][j];
     return mat;
+}
+
+Eigen::Vector<double,3> LQRController::get_thrust(){
+    return u;
 }

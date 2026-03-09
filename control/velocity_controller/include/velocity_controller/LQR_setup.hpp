@@ -45,16 +45,11 @@ class LQRController{
     LQRController();
     bool set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix, double max_force,std::vector<double> water_r_low,std::vector<double> water_r_high);
     void reset_controller();
-    Eigen::Vector<double,3> calculate_thrust(State states, Guidance_data guidance_values);
+    bool calculate_thrust(State states, Guidance_data guidance_values);
     int set_interval(double interval);
-
+    Eigen::Vector<double,3> get_thrust();
     private:
-    //void set_params(LQRparameters params);
-    //Eigen::Matrix3d calculate_coriolis_matrix(double pitchrate, double yaw_rate, double sway_vel, double heave_vel);
     Eigen::Matrix<double,8,8> linearize(State states);
-
-    //angle quaternion_to_euler_angle(double w, double x, double y, double z);
-    //double ssa(double angle);
 
     std::tuple<double,double> saturate (double value, bool windup, double limit);
     double anti_windup(double error, double integral_sum, bool windup);  
@@ -62,11 +57,6 @@ class LQRController{
 
     Eigen::Vector<double,8> update_error(Guidance_data guidance_values, State states);
     
-    //LQRsolveResult solve_lqr(const Eigen::MatrixXd &A,const Eigen::MatrixXd &B,const Eigen::MatrixXd &Q, const Eigen::MatrixXd &R);
-
-    //Resets controller
-
-    // VariablesEigen::Matrix3d vector_to_matrix3d(const std::vector<double> &other_matrix)
     double interval_;
     double integral_error_surge;    double integral_error_pitch;    double integral_error_yaw;
     bool surge_windup;    bool pitch_windup;    bool yaw_windup;
@@ -79,6 +69,7 @@ class LQRController{
     Eigen::Matrix3d input_weight_matrix;
     Eigen::Matrix<double,6,6> augmented_system_matrix;
     Eigen::Matrix<double,6,3> augmented_input_matrix;
+    Eigen::Vector<double,3> u;
 
     
 };

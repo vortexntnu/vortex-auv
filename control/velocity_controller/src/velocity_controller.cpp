@@ -95,11 +95,11 @@ void Velocity_node::calc_thrust()
   angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
   angle error=NED_to_BODY(NED_error,current_state);
   Guidance_data mod_g_values=guidance_values;
-  if (error.psit<3.14/2 && error.thetat<3.14/2){ //Need to fix to pi
+  if (abs(error.psit)<3.14/2 || abs(error.thetat)<3.14/2){ //Need to fix to pi
   mod_g_values.surge=guidance_values.surge*cos(error.psit)*cos(error.thetat);
   }
   else{
-    mod_g_values.surge=0;
+    mod_g_values.surge=current_state.surge; //Only focus on rotating? Or is 0 maybe TODO: Decide. Potentially set the u.surge to 0. Then remember to fix the integral anti wind up
   }
   switch (controller_type)
   {
@@ -116,12 +116,13 @@ void Velocity_node::calc_thrust()
   }
   case 2:{
     
-    Eigen::Vector3d u=lqr_controller.calculate_thrust(current_state,mod_g_values);
-    if (u==Eigen::Vector3d{9999,9999,9999}){
+    
+    if (!lqr_controller.calculate_thrust(current_state,mod_g_values)){
       controller_type=1;
       RCLCPP_ERROR(this->get_logger(),"Switching to PID");
     }
     else{
+      Eigen::Vector3d u=lqr_controller.get_thrust();
       thrust_out.wrench.force.x=u[0];
       thrust_out.wrench.torque.y=u[1];
       thrust_out.wrench.torque.z=u[2];

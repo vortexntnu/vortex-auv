@@ -64,7 +64,8 @@ TEST_F(LQR_test,Direction){
     Guidance_data value;
     State state{};
     value.surge=0.2;
-    Eigen::Vector<double, 3> result=controller.calculate_thrust(state,value);
+    controller.calculate_thrust(state,value);
+    Eigen::Vector<double, 3> result=controller.get_thrust();
     EXPECT_TRUE(result(0)>0);
     
 }
@@ -77,7 +78,8 @@ TEST_F(LQR_test,zero_input){
     value.surge=1.0;
     value.yaw=0.2;
     value.pitch=0.3;
-    Eigen::Vector <double,3> result=controller.calculate_thrust(states,value);
+    controller.calculate_thrust(states,value);
+    Eigen::Vector <double,3> result=controller.get_thrust();
     EXPECT_NEAR(result(0),0,delta);
     EXPECT_NEAR(result(1),0,delta);
     EXPECT_NEAR(result(2),0,delta);
@@ -88,7 +90,8 @@ TEST_F(LQR_test,zero_input){
     value.surge=0;
     value.pitch=0;
     value.yaw=0;
-    result=controller.calculate_thrust(states, value);
+    controller.calculate_thrust(states, value);
+    result=controller.get_thrust();
     EXPECT_NEAR(result(0),0,delta);
     EXPECT_NEAR(result(1),0,delta);
     EXPECT_NEAR(result(2),0,delta);
