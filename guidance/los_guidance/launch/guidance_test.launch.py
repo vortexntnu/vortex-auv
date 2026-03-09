@@ -35,14 +35,14 @@ def generate_launch_description():
     )
 
     operation_mode_launch = IncludeLaunchDescription(
-    PythonLaunchDescriptionSource(
-        os.path.join(
-            get_package_share_directory("operation_mode_manager"),
-            "launch",
-            "operation_mode_manager.launch.py",
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("operation_mode_manager"),
+                "launch",
+                "operation_mode_manager.launch.py",
+            )
         )
     )
-)
 
     los_guidance_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(

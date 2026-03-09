@@ -27,8 +27,9 @@ vector_field_los:
 # Common Guidance Parameters
 common:
   active_los_method: 2 # 0: Adaptive LOS, 1: Proportional LOS, 2: Integral LOS, 3: Vector Field LOS
-  u_desired: 0.3 
+  u_desired: 0.3
   goal_reached_tol: 0.35
+  max_pitch_angle: 0.785 # 45 degrees
 
 # Debug Settings
 debug:

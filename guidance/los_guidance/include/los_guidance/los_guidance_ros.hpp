@@ -110,6 +110,7 @@ class LosGuidanceNode : public rclcpp::Node {
     types::Inputs path_inputs_{};
     double u_desired_{};
     double goal_reached_tol_{};
+    double max_pitch_angle_{};
     types::ActiveLosMethod method_{};
 
     // Guidance Modules

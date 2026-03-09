@@ -252,7 +252,9 @@ void LosGuidanceNode::set_los_mode(
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
-    reference_msg.pitch = outputs.theta_d;
+    const double clamped_pitch =
+        std::clamp(outputs.theta_d, -max_pitch_angle_, max_pitch_angle_);
+    reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
     reference_msg.surge = u_desired_;
 
@@ -267,6 +269,7 @@ YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
 void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     std::lock_guard<std::mutex> lock(mutex_);
     u_desired_ = common_config["u_desired"].as<double>();
+    max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
     goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
     method_ = static_cast<types::ActiveLosMethod>(
         common_config["active_los_method"].as<int>());
