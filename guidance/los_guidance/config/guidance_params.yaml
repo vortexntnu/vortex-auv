@@ -26,8 +26,8 @@ vector_field_los:
 
 # Common Guidance Parameters
 common:
-  active_los_method: 2
-  u_desired: 0.3
+  active_los_method: 2 # 0: Adaptive LOS, 1: Proportional LOS, 2: Integral LOS, 3: Vector Field LOS
+  u_desired: 0.3 
   goal_reached_tol: 0.35
 
 # Debug Settings

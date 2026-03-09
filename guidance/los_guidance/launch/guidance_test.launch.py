@@ -22,7 +22,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             'scenario': 'tacc',
-            'rendering': 'true',
+            'rendering': 'false',
         }.items(),
     )
 
@@ -33,6 +33,16 @@ def generate_launch_description():
             )
         )
     )
+
+    operation_mode_launch = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+        os.path.join(
+            get_package_share_directory("operation_mode_manager"),
+            "launch",
+            "operation_mode_manager.launch.py",
+        )
+    )
+)
 
     los_guidance_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -66,8 +76,15 @@ def generate_launch_description():
                 cmd=[
                     "bash",
                     "-lc",
-                    "ros2 topic pub --once /orca/killswitch std_msgs/msg/Bool \"{data: false}\"; "
-                    "ros2 topic pub --once /orca/operation_mode std_msgs/msg/String \"{data: 'autonomous mode'}\"; ",
+                    (
+                        "ros2 service call /orca/set_killswitch "
+                        "vortex_msgs/srv/SetKillswitch "
+                        "\"{killswitch_on: false}\" "
+                        "&& "
+                        "ros2 service call /orca/set_operation_mode "
+                        "vortex_msgs/srv/SetOperationMode "
+                        "\"{requested_operation_mode: {operation_mode: 1}}\""
+                    ),
                 ],
                 output="screen",
             ),
@@ -92,6 +109,7 @@ def generate_launch_description():
         [
             stonefish_sim,
             vortex_sim_interface,
+            operation_mode_launch,
             los_guidance_launch,
             velocity_controller_launch,
             orca_sim,
