@@ -2,22 +2,56 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
-orca_config = os.path.join(
-    get_package_share_directory('auv_setup'),
-    'config',
-    'robots',
-    'orca.yaml',
-)
 
-thruster_interface_config = os.path.join(
-    get_package_share_directory("thruster_interface_auv"),
-    "config",
-    "thruster_interface_auv_config.yaml",
-)
+def launch_setup(context, *args, **kwargs):
+    drone = LaunchConfiguration("drone").perform(context)
+
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+
+    thruster_interface_config = os.path.join(
+        get_package_share_directory("thruster_interface_auv"),
+        "config",
+        "thruster_interface_auv_config.yaml",
+    )
+
+    container = ComposableNodeContainer(
+        name="thruster_container",
+        namespace=drone,
+        package="rclcpp_components",
+        executable="component_container_mt",
+        composable_node_descriptions=[
+            ComposableNode(
+                package="thrust_allocator_auv",
+                plugin="ThrustAllocator",
+                name="thrust_allocator_auv_node",
+                namespace=drone,
+                parameters=[drone_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+            ComposableNode(
+                package="thruster_interface_auv",
+                plugin="ThrusterInterfaceAUVNode",
+                name="thruster_interface_auv_node",
+                namespace=drone,
+                parameters=[thruster_interface_config, drone_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+        ],
+        output="screen",
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
+    return [container]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -37,31 +71,14 @@ def generate_launch_description() -> LaunchDescription:
         name="ROSCONSOLE_FORMAT", value="[${severity}] [${time}] [${node}]: ${message}"
     )
 
-    container = ComposableNodeContainer(
-        name="thruster_container",
-        namespace="orca",
-        package="rclcpp_components",
-        executable="component_container_mt",
-        composable_node_descriptions=[
-            ComposableNode(
-                package="thrust_allocator_auv",
-                plugin="ThrustAllocator",
-                name="thrust_allocator_auv_node",
-                namespace="orca",
-                parameters=[orca_config],
-                extra_arguments=[{"use_intra_process_comms": True}],
+    return LaunchDescription(
+        [
+            set_env_var,
+            DeclareLaunchArgument(
+                "drone",
+                default_value="orca",
+                description="Drone name / namespace",
             ),
-            ComposableNode(
-                package="thruster_interface_auv",
-                plugin="ThrusterInterfaceAUVNode",
-                name="thruster_interface_auv_node",
-                namespace="orca",
-                parameters=[thruster_interface_config, orca_config],
-                extra_arguments=[{"use_intra_process_comms": True}],
-            ),
-        ],
-        output="screen",
-        arguments=["--ros-args", "--log-level", "error"],
+            OpaqueFunction(function=launch_setup),
+        ]
     )
-
-    return LaunchDescription([set_env_var, container])

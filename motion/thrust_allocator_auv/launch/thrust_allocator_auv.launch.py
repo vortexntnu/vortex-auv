@@ -1,37 +1,42 @@
-from os import path
+import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-config_file = path.join(
-    get_package_share_directory("auv_setup"),
-    "config",
-    "robots",
-    "orca.yaml",
-)
+
+def launch_setup(context, *args, **kwargs):
+    drone = LaunchConfiguration("drone").perform(context)
+
+    config_file = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+
+    return [
+        Node(
+            package="thrust_allocator_auv",
+            executable="thrust_allocator_auv_node",
+            name="thrust_allocator_auv_node",
+            namespace=drone,
+            parameters=[config_file],
+            output="screen",
+        )
+    ]
 
 
 def generate_launch_description() -> LaunchDescription:
-    """Generates a launch description for the thrust_allocator_auv_node.
-
-    This function creates a ROS 2 launch description that includes the
-    thrust_allocator_auv_node. The node is configured with parameters
-    from the 'orca.yaml' file located in the 'auv_setup' package's
-    'config/robots' directory. The output of the node is set to be
-    displayed on the screen.
-
-    Returns:
-        LaunchDescription: A ROS 2 LaunchDescription object containing
-        the thrust_allocator_auv_node.
-
-    """
-    thrust_allocator_auv_node = Node(
-        package="thrust_allocator_auv",
-        executable="thrust_allocator_auv_node",
-        name="thrust_allocator_auv_node",
-        namespace="orca",
-        parameters=[config_file],
-        output="screen",
+    return LaunchDescription(
+        [
+            DeclareLaunchArgument(
+                "drone",
+                default_value="orca",
+                description="Drone name / namespace",
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
     )
-    return LaunchDescription([thrust_allocator_auv_node])
