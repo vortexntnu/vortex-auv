@@ -9,8 +9,10 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <kongsberg_mru_driver.hpp>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
+#include <nortek_nucleus_driver.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -22,15 +24,14 @@
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
 #include "spdlog/spdlog.h"
-#include <kongsberg_mru_driver.hpp>
-#include <nortek_nucleus_driver.hpp>
-
 
 // helper for std::visit overloads
-template <class... Ts> struct Overloaded : Ts... {
-  using Ts::operator()...;
+template <class... Ts>
+struct Overloaded : Ts... {
+    using Ts::operator()...;
 };
-template <class... Ts> Overloaded(Ts...) -> Overloaded<Ts...>;
+template <class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
 
 class ESKFNode : public rclcpp::Node {
    public:
@@ -38,11 +39,15 @@ class ESKFNode : public rclcpp::Node {
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
-
-
     int init_mru_driver();
 
+    int init_nortek_driver();
+
+    void create_drivers();
+
     void mru_imu_callback(const MrubinMessage& msg);
+
+    void nortek_dvl_callback(NortekNucleusFrame frame);
 
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
@@ -115,11 +120,9 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
 
-
-
     asio::io_context io_;
-    KongsbergMRUDriver mru_driver_;
-    NortekNucleusDriver nortek_driver_;
+    std::unique_ptr<KongsbergMRUDriver> mru_driver_;
+    std::unique_ptr<NortekNucleusDriver> nortek_driver_;
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_

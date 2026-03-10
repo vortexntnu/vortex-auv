@@ -17,12 +17,6 @@ auto start_message{R"(
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options),
-      mru_driver_(io_,
-                  [this](const MrubinMessage& msg) { mru_imu_callback(msg); }),
-      nortek_dvl_driver_(
-          io_,
-          [this](NortekNucleusFrame frame) { nortek_dvl_callback(msg); })
-
 {
     time_step = std::chrono::milliseconds(1);
     odom_pub_timer_ = this->create_wall_timer(
@@ -47,6 +41,13 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     // if we have parameters, we skip the TF lookup
     tf_sensors_loaded_ = !use_tf_transforms_;
 
+    create_drivers();
+
+    init_mru_driver();
+
+    init_nortek_driver();
+
+
     if (use_tf_transforms_) {
         // Check for static transforms every 0.5 seconds
         tf_timer_ = this->create_wall_timer(
@@ -63,6 +64,14 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
         "______________________Debug mode is "
         "enabled______________________");
 #endif
+}
+
+void ESKFNode::create_drivers() {
+    mru_driver_ = std::make_unique<KongsbergMRUDriver>(
+        io_, [this](const MrubinMessage& msg) { mru_imu_callback(msg); });
+
+    nortek_dvl_driver_ = std::make_unique<NortekNucleusDriver>(
+        io_, [this](const BottomTrackData& msg) { nortek_dvl_callback(msg); });
 }
 
 int ESKFNode::init_mru_driver() {
@@ -90,7 +99,7 @@ int ESKFNode::init_mru_driver() {
 
     mru_driver_.start_read();
 
-    td::thread io_thread([&] { io.run(); });
+    std::thread io_thread([&] { io.run(); });
 
     return 0;
 }
