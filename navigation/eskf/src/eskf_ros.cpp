@@ -16,8 +16,7 @@ auto start_message{R"(
 )"};
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
-    : Node("eskf_node", options),
-{
+    : Node("eskf_node", options), {
     time_step = std::chrono::milliseconds(1);
     odom_pub_timer_ = this->create_wall_timer(
         time_step, std::bind(&ESKFNode::publish_odom, this));
@@ -41,12 +40,13 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     // if we have parameters, we skip the TF lookup
     tf_sensors_loaded_ = !use_tf_transforms_;
 
-    create_drivers();
+    if (use_drivers_) {
+        create_drivers();
 
-    init_mru_driver();
+        init_mru_driver();
 
-    init_nortek_driver();
-
+        init_nortek_driver();
+    }
 
     if (use_tf_transforms_) {
         // Check for static transforms every 0.5 seconds
@@ -71,7 +71,7 @@ void ESKFNode::create_drivers() {
         io_, [this](const MrubinMessage& msg) { mru_imu_callback(msg); });
 
     nortek_dvl_driver_ = std::make_unique<NortekNucleusDriver>(
-        io_, [this](const BottomTrackData& msg) { nortek_dvl_callback(msg); });
+        io_, [this](NortekNucleusFrame frame) { nortek_dvl_callback(frame); });
 }
 
 int ESKFNode::init_mru_driver() {

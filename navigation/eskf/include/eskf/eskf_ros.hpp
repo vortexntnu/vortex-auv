@@ -120,6 +120,7 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
 
+    bool use_drivers_ = true;
     asio::io_context io_;
     std::unique_ptr<KongsbergMRUDriver> mru_driver_;
     std::unique_ptr<NortekNucleusDriver> nortek_driver_;
