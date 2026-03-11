@@ -10,6 +10,13 @@
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_transforms.hpp>
 
+const auto start_msg = R"(
+██       █████  ███    ██ ██████  ███    ███  █████  ██████  ██   ██     ███████ ███████ ██████  ██    ██ ███████ ██████
+██      ██   ██ ████   ██ ██   ██ ████  ████ ██   ██ ██   ██ ██  ██      ██      ██      ██   ██ ██    ██ ██      ██   ██
+██      ███████ ██ ██  ██ ██   ██ ██ ████ ██ ███████ ██████  █████       ███████ █████   ██████  ██    ██ █████   ██████
+██      ██   ██ ██  ██ ██ ██   ██ ██  ██  ██ ██   ██ ██   ██ ██  ██           ██ ██      ██   ██  ██  ██  ██      ██   ██
+███████ ██   ██ ██   ████ ██████  ██      ██ ██   ██ ██   ██ ██   ██     ███████ ███████ ██   ██   ████   ███████ ██   ██
+)";
 namespace vortex::mission {
 
 LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
@@ -19,6 +26,7 @@ LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
 
     create_track_manager();
     setup_ros_communicators();
+    spdlog::info(start_msg);
 }
 
 void LandmarkServerNode::setup_ros_communicators() {
@@ -274,8 +282,20 @@ void LandmarkServerNode::timer_callback() {
         const auto goal = active_landmark_polling_goal_->get_goal();
         const auto type = goal->type.value;
         const auto subtype = goal->subtype.value;
-        if (!track_manager_->has_track(
-                vortex::filtering::LandmarkClassKey{type, subtype})) {
+
+        bool found = false;
+        if (subtype == 0) {
+            found = std::any_of(
+                track_manager_->get_tracks().begin(),
+                track_manager_->get_tracks().end(), [&](const auto& t) {
+                    return t.confirmed && t.class_key.type == type;
+                });
+        } else {
+            found = track_manager_->has_track(
+                vortex::filtering::LandmarkClassKey{type, subtype});
+        }
+
+        if (!found) {
             return;
         }
         vortex_msgs::msg::LandmarkArray landmarks =
