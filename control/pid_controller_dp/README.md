@@ -39,11 +39,10 @@ colcon test --packages-select pid_controller_dp && colcon test-result --verbose
 The package provides a node `pid_controller_node` that subscribes to pose,
 twist and guidance topics and publishes wrench (tau) commands.
 
-Common topics & parameters (examples)
 
 - `topics.pose` (type: `geometry_msgs/PoseWithCovarianceStamped`) — vehicle pose input
 - `topics.twist` (type: `geometry_msgs/TwistWithCovarianceStamped`) — velocity input
-- `topics.guidance.dp` (type: `vortex_msgs/ReferenceFilter`) — desired pose/velocity
+- `topics.guidance.dp` (type: `vortex_msgs/ReferenceFilter`) — desired states (pose/vecocity)
 - `topics.wrench_input` (type: `geometry_msgs/WrenchStamped`) — output wrench
 
 Parameters expose PID gains (Kp, Ki, Kd) as per-component values which are
@@ -79,8 +78,17 @@ Start the node (after sourcing workspace):
  ```
 
 Use the joy stick to move the robot. The key mappings are:
-B - kill
-Y - autonomous mode (reference model)
-A - manual mode
+
+- B - kill
+- Y - autonomous mode (reference model)
+- A - manual mode
 
 Note: When plotting, the axis plotted and actual command might not align since the plotting is based on the joy controller frame (`odom`), whereas the controller works on the robot frame (`body_frame`)
+
+## Tuning
+
+The `rqt_reconfigure` can be used to change the controller gains.
+
+```bash
+ros2 run rqt_reconfigure rqt_reconfigure 
+```
