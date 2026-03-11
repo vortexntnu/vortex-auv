@@ -27,7 +27,8 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
-find_package(stonefish_ros2 REQUIRED)
+find_package(mru_driver REQUIRED)
+find_package(nortek_nucleus_driver REQUIRED)
 
 if(NOT DEFINED EIGEN3_INCLUDE_DIR)
   set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
@@ -44,6 +45,13 @@ add_library(${LIB_NAME} SHARED
   src/eskf_ros.cpp
 )
 
+target_link_libraries(${LIB_NAME}
+  PUBLIC
+    mru_driver::mru_driver
+    nortek_nucleus_driver::nortek_nucleus_driver
+)
+
+
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
@@ -58,7 +66,6 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   fmt
   tf2_ros
   tf2_eigen
-  stonefish_ros2
 )
 
 rclcpp_components_register_node(

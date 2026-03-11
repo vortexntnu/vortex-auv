@@ -16,7 +16,7 @@ auto start_message{R"(
 )"};
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
-    : Node("eskf_node", options), {
+    : Node("eskf_node", options) {
     time_step = std::chrono::milliseconds(1);
     odom_pub_timer_ = this->create_wall_timer(
         time_step, std::bind(&ESKFNode::publish_odom, this));
@@ -70,12 +70,12 @@ void ESKFNode::create_drivers() {
     mru_driver_ = std::make_unique<KongsbergMRUDriver>(
         io_, [this](const MrubinMessage& msg) { mru_imu_callback(msg); });
 
-    nortek_dvl_driver_ = std::make_unique<NortekNucleusDriver>(
+    nortek_driver_ = std::make_unique<NortekNucleusDriver>(
         io_, [this](NortekNucleusFrame frame) { nortek_dvl_callback(frame); });
 }
 
 int ESKFNode::init_mru_driver() {
-    struct ConnectionParams p;
+    struct MruConnectionParams p;
     p.remote_ip = "10.0.1.20";
     p.data_remote_port = 7550;    // mock server port
     p.data_local_port = 7551;     // let OS choose a free local port
@@ -89,17 +89,17 @@ int ESKFNode::init_mru_driver() {
     s.interval = 5;  // ms between packets (0, 5..32000)
     s.token = 21;
 
-    if (std::error_code ec = mru_driver_.open_udp_socket(p)) {
+    if (std::error_code ec = mru_driver_->open_udp_socket(p)) {
         return -1;
     }
 
-    if (auto status = mru_driver_.set_default_settings(s) != MruStatus::Ok) {
+    if (auto status = mru_driver_->set_default_settings(s) != MruStatus::Ok) {
         return -2;
     }
 
-    mru_driver_.start_read();
+    mru_driver_->start_read();
 
-    std::thread io_thread([&] { io.run(); });
+    std::thread io_thread([&] { io_.run(); });
 
     return 0;
 }
@@ -153,16 +153,16 @@ void ESKFNode::mru_imu_callback(const MrubinMessage& msg) {
 }
 
 int ESKFNode::init_nortek_driver() {
-    ConnectionParams params;
+    NortekConnectionParams params;
 
     params.remote_ip = "192.169.53.100";
     params.data_remote_port = 9000;
 
-    if (auto ec = nortek_driver_.open_tcp_sockets(params); ec) {
+    if (auto ec = nortek_driver_->open_tcp_sockets(params); ec) {
         return -1;
     }
 
-    nortek_driver_.start_read();
+    nortek_driver_->start_read();
 
     return 0;
 }
@@ -239,9 +239,9 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     this->declare_parameter<std::string>("dvl_topic");
     std::string dvl_topic = this->get_parameter("dvl_topic").as_string();
-    dvl_sub_ = this->create_subscription<stonefish_ros2::msg::DVL>(
-        dvl_topic, qos_sensor_data,
-        std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
+    /* dvl_sub_ = this->create_subscription<stonefish_ros2::msg::DVL>( */
+    /*     dvl_topic, qos_sensor_data, */
+    /*     std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1)); */
 
     this->declare_parameter<std::string>("odom_topic");
     std::string odom_topic = this->get_parameter("odom_topic").as_string();
@@ -348,37 +348,37 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     eskf_->imu_update(imu_measurement, dt);
 }
 
-void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
-    SensorDVL dvl_sensor;
+/* void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) { */
+/*     SensorDVL dvl_sensor; */
 
-    dvl_sensor.measurement << msg->velocity.x, msg->velocity.y, msg->velocity.z;
+/*     dvl_sensor.measurement << msg->velocity.x, msg->velocity.y, msg->velocity.z; */
 
-    dvl_sensor.measurement_noise << msg->velocity_covariance[0],
-        msg->velocity_covariance[1], msg->velocity_covariance[2],
-        msg->velocity_covariance[3], msg->velocity_covariance[4],
-        msg->velocity_covariance[5], msg->velocity_covariance[6],
-        msg->velocity_covariance[7], msg->velocity_covariance[8];
+/*     dvl_sensor.measurement_noise << msg->velocity_covariance[0], */
+/*         msg->velocity_covariance[1], msg->velocity_covariance[2], */
+/*         msg->velocity_covariance[3], msg->velocity_covariance[4], */
+/*         msg->velocity_covariance[5], msg->velocity_covariance[6], */
+/*         msg->velocity_covariance[7], msg->velocity_covariance[8]; */
 
-    // Apply the rotation and translation corrections to the DVL measurement
-    StateQuat nom_state = eskf_->get_nominal_state();
-    // get the angular velocity
-    Eigen::Vector3d omega_corrected =
-        latest_gyro_measurement_ - nom_state.gyro_bias;
-    // correct rotation and translation: v_base = v_sensor - omega x T
-    dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement -
-                             omega_corrected.cross(T_dvl_eskf_);
-    dvl_sensor.measurement_noise =
-        R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
+/*     // Apply the rotation and translation corrections to the DVL measurement */
+/*     StateQuat nom_state = eskf_->get_nominal_state(); */
+/*     // get the angular velocity */
+/*     Eigen::Vector3d omega_corrected = */
+/*         latest_gyro_measurement_ - nom_state.gyro_bias; */
+/*     // correct rotation and translation: v_base = v_sensor - omega x T */
+/*     dvl_sensor.measurement = R_dvl_eskf_ * dvl_sensor.measurement - */
+/*                              omega_corrected.cross(T_dvl_eskf_); */
+/*     dvl_sensor.measurement_noise = */
+/*         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose(); */
 
-    eskf_->dvl_update(dvl_sensor);
+/*     eskf_->dvl_update(dvl_sensor); */
 
-#ifndef NDEBUG
-    // Publish NIS in Debug mode
-    std_msgs::msg::Float64 nis_msg;
-    nis_msg.data = eskf_->get_nis();
-    nis_pub_->publish(nis_msg);
-#endif
-}
+/* #ifndef NDEBUG */
+/*     // Publish NIS in Debug mode */
+/*     std_msgs::msg::Float64 nis_msg; */
+/*     nis_msg.data = eskf_->get_nis(); */
+/*     nis_pub_->publish(nis_msg); */
+/* #endif */
+/* } */
 
 void ESKFNode::publish_odom() {
     nav_msgs::msg::Odometry odom_msg;
