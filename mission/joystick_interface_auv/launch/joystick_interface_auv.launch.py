@@ -2,14 +2,18 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
 
 def launch_setup(context, *args, **kwargs):
     """Set up the joystick_interface_auv node with drone-specific config."""
-    drone = LaunchConfiguration("drone").perform(context)
+    drone, namespace = resolve_drone_and_namespace(context)
 
     joystick_params = os.path.join(
         get_package_share_directory("joystick_interface_auv"),
@@ -29,7 +33,7 @@ def launch_setup(context, *args, **kwargs):
             package="joystick_interface_auv",
             executable="joystick_interface_auv_node.py",
             name="joystick_interface_auv",
-            namespace=drone,
+            namespace=namespace,
             output="screen",
             parameters=[joystick_params, drone_params],
         )
@@ -49,12 +53,5 @@ def generate_launch_description() -> LaunchDescription:
 
     """
     return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
-            ),
-            OpaqueFunction(function=launch_setup),
-        ]
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )

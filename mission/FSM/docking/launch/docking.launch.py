@@ -3,14 +3,18 @@ import os
 import launch.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
 
 def launch_setup(context, *args, **kwargs):
     """Launch all nodes necessary for docking fsm."""
-    drone = LaunchConfiguration("drone").perform(context)
+    drone, namespace = resolve_drone_and_namespace(context)
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -28,7 +32,7 @@ def launch_setup(context, *args, **kwargs):
     docking_launch = Node(
         package="docking",
         executable="docking",
-        namespace=drone,
+        namespace=namespace,
         parameters=[drone_params, pose_config],
         on_exit=launch.actions.LogInfo(msg="Docking exited"),
         output="screen",
@@ -38,7 +42,7 @@ def launch_setup(context, *args, **kwargs):
         package="publish_docking_state",
         executable="publish_docking_state",
         name="publish_docking_state",
-        namespace=drone,
+        namespace=namespace,
         parameters=[drone_params],
         on_exit=launch.actions.LogInfo(msg="Publish docking state node exited"),
         output="screen",
@@ -50,12 +54,5 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description() -> LaunchDescription:
     """Launch file to launch all nodes necessary for docking fsm."""
     return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
-            ),
-            OpaqueFunction(function=launch_setup),
-        ]
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )

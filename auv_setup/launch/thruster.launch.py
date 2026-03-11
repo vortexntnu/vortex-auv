@@ -2,14 +2,18 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction, SetEnvironmentVariable
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
 
 def launch_setup(context, *args, **kwargs):
-    drone = LaunchConfiguration("drone").perform(context)
+    drone, namespace = resolve_drone_and_namespace(context)
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -26,7 +30,7 @@ def launch_setup(context, *args, **kwargs):
 
     container = ComposableNodeContainer(
         name="thruster_container",
-        namespace=drone,
+        namespace=namespace,
         package="rclcpp_components",
         executable="component_container_mt",
         composable_node_descriptions=[
@@ -34,7 +38,7 @@ def launch_setup(context, *args, **kwargs):
                 package="thrust_allocator_auv",
                 plugin="ThrustAllocator",
                 name="thrust_allocator_auv_node",
-                namespace=drone,
+                namespace=namespace,
                 parameters=[drone_params],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
@@ -42,7 +46,7 @@ def launch_setup(context, *args, **kwargs):
                 package="thruster_interface_auv",
                 plugin="ThrusterInterfaceAUVNode",
                 name="thruster_interface_auv_node",
-                namespace=drone,
+                namespace=namespace,
                 parameters=[thruster_interface_config, drone_params],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
@@ -72,13 +76,7 @@ def generate_launch_description() -> LaunchDescription:
     )
 
     return LaunchDescription(
-        [
-            set_env_var,
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
-            ),
-            OpaqueFunction(function=launch_setup),
-        ]
+        [set_env_var]
+        + declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
     )
