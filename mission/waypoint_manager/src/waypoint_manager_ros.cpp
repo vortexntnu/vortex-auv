@@ -51,8 +51,10 @@ void WaypointManagerNode::set_reference_action_client() {
 }
 
 void WaypointManagerNode::set_waypoint_action_server() {
+    std::string action_name =
+        this->declare_parameter<std::string>("action_servers.waypoint_manager");
     waypoint_action_server_ = rclcpp_action::create_server<WaypointManager>(
-        this, "waypoint_manager",
+        this, action_name,
 
         [this](auto goal_id, auto goal) {
             return handle_waypoint_goal(goal_id, goal);
@@ -66,9 +68,11 @@ void WaypointManagerNode::set_waypoint_action_server() {
 }
 
 void WaypointManagerNode::set_waypoint_service_server() {
+    std::string service_name =
+        this->declare_parameter<std::string>("services.waypoint_addition");
     waypoint_service_server_ =
         this->create_service<vortex_msgs::srv::SendWaypoints>(
-            "waypoint_addition",
+            service_name,
             std::bind(
                 &WaypointManagerNode::handle_send_waypoints_service_request,
                 this, std::placeholders::_1, std::placeholders::_2));

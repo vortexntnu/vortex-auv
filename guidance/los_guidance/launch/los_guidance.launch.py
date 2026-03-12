@@ -1,10 +1,11 @@
-from os import path
+import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
 
-los_params = path.join(
+adapt_params = path.join(
     get_package_share_directory("los_guidance"),
     "config",
     "guidance_params.yaml",
@@ -25,8 +26,7 @@ def generate_launch_description():
         namespace="orca",
         parameters=[
             orca_params,
-            {"los_config_file": los_params},
-            {"time_step": 0.01},
+            adapt_params,
         ],
         output="screen",
     )
