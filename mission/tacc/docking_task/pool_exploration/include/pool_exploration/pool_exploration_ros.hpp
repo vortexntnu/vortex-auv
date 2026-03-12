@@ -17,6 +17,7 @@
 #include <vortex_msgs/msg/line_segment2_d_array.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include <vortex_msgs/srv/send_waypoints.hpp>
+#include <vortex/utils/types.hpp> 
 
 // trenger disse to?
 #include <Eigen/Core>
@@ -87,7 +88,7 @@ class PoolExplorationNode : public rclcpp::Node {
         rclcpp::Client<vortex_msgs::srv::SendWaypoints>::SharedPtr waypoint_client_;
 
         // Position and heading
-        DroneState drone_state_;
+        utils::types::PoseEuler drone_state_;
 
         std::unique_ptr<PoolExplorationPlanner> planner_;
 
