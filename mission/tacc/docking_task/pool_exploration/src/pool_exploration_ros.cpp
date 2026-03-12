@@ -133,14 +133,12 @@ void PoolExplorationNode::pose_callback(
     drone_state_.y = msg->pose.pose.position.y;
     drone_state_.z = msg->pose.pose.position.z;
 
-    const auto &q = msg->pose.pose.orientation;
+    Eigen::Quaterniond q;
+    tf2::fromMsg(msg->pose.pose.orientation, q);
 
-    tf2::Quaternion quat(q.x, q.y, q.z, q.w);     // kvaternioner til yaw
+    Eigen::Vector3d rpy = vortex::utils::math::quat_to_euler(q);
 
-    double roll, pitch, yaw;
-    tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-
-    drone_state_.yaw = yaw;
+    drone_state_.yaw = rpy.z();
     }
 
 // GJØRE I base_frame ELLER odom??
@@ -151,9 +149,11 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
     try {
         tf_stamped = tf_buffer_->lookupTransform(
             odom_frame_, msg.header.frame_id, msg.header.stamp);
+    //        base_frame_, msg.header.frame_id, msg.header.stamp);
     } catch (const tf2::TransformException& ex) {
         spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
                      msg.header.frame_id, odom_frame_, ex.what());
+    //                 msg.header.frame_id, base_frame_,ex.what());
         return;
     }
 
