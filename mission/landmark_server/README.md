@@ -72,6 +72,6 @@ ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConv
   },
   convergence_threshold: 0.3,
   dead_reckoning_threshold: 1.0,
-  track_loss_timeout_sec: 10.0
+  track_loss_timeout_sec: 100.0
 }"
 ```

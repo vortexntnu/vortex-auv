@@ -176,9 +176,6 @@ class LandmarkServerNode : public rclcpp::Node {
         active_landmark_convergence_goal_;
     std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
 
-    // Tracks the lifecycle of the ReferenceFilter action goal so that
-    // convergence_update_target() never mistakes "pending acceptance" for
-    // "unexpectedly gone".
     enum class RFState { IDLE, PENDING, ACTIVE };
     RFState rf_state_{RFState::IDLE};
 

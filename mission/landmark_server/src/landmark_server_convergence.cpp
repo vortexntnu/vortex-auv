@@ -149,15 +149,6 @@ void LandmarkServerNode::convergence_update() {
     }
 
     if (convergence_dead_reckoning_handoff_) {
-        // Waiting for the RF goal to finish — log a periodic heartbeat.
-        static uint32_t dr_tick = 0;
-        if (++dr_tick % 50 == 0) {
-            spdlog::info(
-                "Convergence session {}: dead-reckoning active, "
-                "waiting for RF to finish (type={}, subtype={})",
-                convergence_session_id_, convergence_goal()->type.value,
-                convergence_goal()->subtype.value);
-        }
         return;
     }
 
@@ -224,10 +215,7 @@ void LandmarkServerNode::convergence_update_target(
     const vortex::filtering::Track& track) {
     switch (rf_state_) {
         case RFState::PENDING:
-            // async_send_goal() fired but goal_response_callback hasn't arrived
-            // yet — perfectly normal, nothing to do this tick.
             return;
-
         case RFState::IDLE:
             spdlog::error(
                 "Convergence session {}: RF goal unexpectedly IDLE "
@@ -240,7 +228,6 @@ void LandmarkServerNode::convergence_update_target(
                     build_convergence_result(false)));
             convergence_active_ = false;
             return;
-
         case RFState::ACTIVE:
             break;
     }
@@ -274,10 +261,6 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
         return;
     }
 
-    // Compare against the *target* (landmark + offset), not the raw landmark
-    // position. Using the landmark position directly means DR is only triggered
-    // when the AUV is inside the landmark itself, which is rarely the intended
-    // behaviour when a non-zero convergence_offset is used.
     geometry_msgs::msg::Pose target_pose;
     try {
         target_pose =
@@ -303,7 +286,7 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
     if (dist <= convergence_goal()->dead_reckoning_threshold) {
         convergence_dead_reckoning_handoff_ = true;
         spdlog::info(
-            "Convergence session {}: dead-reckoning handoff triggered — "
+            "Convergence session {}: dead-reckoning handoff triggered: "
             "dist_to_target={:.3f} <= dr_threshold={:.3f}, "
             "target=({:.3f}, {:.3f}, {:.3f}), "
             "auv=({:.3f}, {:.3f}, {:.3f})",
@@ -326,11 +309,7 @@ LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
     vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
-    // Use ONLY_POSITION: the landmark's orientation should not be imposed on
-    // the AUV. Converging on position alone is sufficient, and it prevents the
-    // RF from never succeeding when the landmark has an arbitrary orientation
-    // (e.g. a pipe lying at 90 degrees).
-    wp.mode = vortex_msgs::msg::Waypoint::ONLY_POSITION;
+    wp.mode = vortex_msgs::msg::Waypoint::FULL_POSE;
     rf_goal.waypoint = wp;
     rf_goal.convergence_threshold = convergence_threshold;
     return rf_goal;
@@ -501,19 +480,9 @@ geometry_msgs::msg::Pose LandmarkServerNode::compute_target_pose(
             convergence_offset.orientation.y, convergence_offset.orientation.z)
             .normalized();
 
-    const Eigen::Vector3d p_target = p_landmark + q_landmark * p_offset;
+    const Eigen::Vector3d p_target = p_landmark + p_offset;
 
     const Eigen::Quaterniond q_target = (q_landmark * q_offset).normalized();
-
-    spdlog::debug(
-        "compute_target_pose: "
-        "landmark=({:.3f}, {:.3f}, {:.3f}) "
-        "q_landmark=({:.3f}, {:.3f}, {:.3f}, {:.3f}) "
-        "offset=({:.3f}, {:.3f}, {:.3f}) "
-        "→ target=({:.3f}, {:.3f}, {:.3f})",
-        p_landmark.x(), p_landmark.y(), p_landmark.z(), q_landmark.x(),
-        q_landmark.y(), q_landmark.z(), q_landmark.w(), p_offset.x(),
-        p_offset.y(), p_offset.z(), p_target.x(), p_target.y(), p_target.z());
 
     return vortex::utils::ros_conversions::eigen_to_pose_msg(p_target,
                                                              q_target);
