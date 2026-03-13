@@ -80,8 +80,6 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     const std::shared_ptr<LandmarkConvergenceGoalHandle> goal_handle) {
     active_landmark_convergence_goal_ = goal_handle;
 
-    const auto goal = active_landmark_convergence_goal_->get_goal();
-
     ++convergence_session_id_;
 
     convergence_active_ = true;
@@ -101,9 +99,6 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
 
     const auto track = get_convergence_track();
     if (!track) {
-        // Should not happen — goal is rejected if no track exists.
-        // Guard defensively in case of a race between goal handler and
-        // accepted.
         spdlog::error(
             "Convergence session {}: no track found after goal was accepted "
             "(type={}, subtype={}) — aborting.",
@@ -152,28 +147,14 @@ void LandmarkServerNode::convergence_update() {
 
     if (!convergence_goal_active()) {
         spdlog::warn(
-            "Convergence session {}: goal no longer active in "
-            "convergence_update "
-            "(convergence_active_={}, goal_handle_valid={}, is_active={}), "
-            "clearing state",
-            convergence_session_id_, convergence_active_,
-            active_landmark_convergence_goal_ != nullptr,
-            active_landmark_convergence_goal_
-                ? active_landmark_convergence_goal_->is_active()
-                : false);
+            "Convergence session {}: goal no longer active, clearing state",
+            convergence_session_id_);
         convergence_active_ = false;
         return;
     }
 
-    int counter = 0;
-    if (convergence_dead_reckoning_handoff_) {
-        counter++;
-
-        if (counter % 50 == 0) {
-            spdlog::info("DR triggered, waiting for RF to finish");
-        }
+    if (convergence_dead_reckoning_handoff_)
         return;
-    }
 
     const auto track = get_convergence_track();
     if (!track) {
@@ -237,25 +218,8 @@ void LandmarkServerNode::convergence_handle_track_loss() {
 
 void LandmarkServerNode::convergence_update_target(
     const vortex::filtering::Track& track) {
-    switch (rf_state_) {
-        case RFState::PENDING:
-            return;
-        case RFState::IDLE:
-            spdlog::error(
-                "Convergence session {}: reached update_target with "
-                "rf_state_=IDLE (type={}, subtype={}). "
-                "RF goal was never sent — aborting.",
-                convergence_session_id_, convergence_goal()->type.value,
-                convergence_goal()->subtype.value);
-            active_landmark_convergence_goal_->abort(
-                std::make_shared<
-                    vortex_msgs::action::LandmarkConvergence::Result>(
-                    build_convergence_result(false)));
-            convergence_active_ = false;
-            return;
-        case RFState::ACTIVE:
-            break;
-    }
+    if (rf_state_ == RFState::PENDING)
+        return;
 
     try {
         geometry_msgs::msg::PoseStamped target;
@@ -271,9 +235,6 @@ void LandmarkServerNode::convergence_update_target(
 }
 
 void LandmarkServerNode::convergence_check_dr_handoff() {
-    if (!convergence_last_known_track_)
-        return;
-
     std::optional<geometry_msgs::msg::Point> odom_pos;
     {
         std::lock_guard<std::mutex> lock(odom_mtx_);
@@ -392,14 +353,6 @@ void LandmarkServerNode::send_reference_filter_goal(
 
             rf_state_ = RFState::IDLE;
             active_reference_filter_goal_.reset();
-
-            if (!convergence_active_ || !active_landmark_convergence_goal_) {
-                spdlog::warn(
-                    "Convergence session {}: RF result arrived but "
-                    "convergence already inactive — ignoring",
-                    session_id);
-                return;
-            }
 
             if (!active_landmark_convergence_goal_->is_active() &&
                 !active_landmark_convergence_goal_->is_canceling()) {

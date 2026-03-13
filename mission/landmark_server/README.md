@@ -67,7 +67,7 @@ ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConv
   type: {value: 2},
   subtype: {value: 1},
   convergence_offset: {
-    position: {x: 0.0, y: 0.0, z: 0.0},
+    position: {x: 0.0, y: 0.0, z: -1.0},
     orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
   },
   convergence_threshold: 0.3,
