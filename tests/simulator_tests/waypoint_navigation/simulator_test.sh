@@ -27,6 +27,11 @@ setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
 
+# Launch MOBY Simulation
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
+MOBY_PID=$!
+echo "Launched moby with PID: $MOBY_PID"
+
 echo "Waiting for simulator to start..."
 timeout 30s bash -c '
     while ! ros2 topic list | grep -q "/moby/odom"; do
@@ -44,11 +49,6 @@ fi
 echo "Waiting for odom data..."
 timeout 10s ros2 topic echo /moby/odom --once
 echo "Got odom data"
-
-# Launch MOBY Simulation
-setsid ros2 launch stonefish_sim drone_sim.launch.py &
-MOBY_PID=$!
-echo "Launched moby with PID: $MOBY_PID"
 
 echo "Waiting for sim interface to start..."
 timeout 30s bash -c 'until ros2 topic list | grep -q "/moby/pose"; do sleep 1; done'

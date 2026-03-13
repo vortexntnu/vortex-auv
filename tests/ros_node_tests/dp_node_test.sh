@@ -2,6 +2,9 @@
 set -e
 set -o pipefail
 
+# Drone name
+DRONE_ARG=${1:-"moby"}
+
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
@@ -35,12 +38,12 @@ fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
-ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
+ros2 service call /$DRONE_ARG/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /$DRONE_ARG/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 # Check if controller correctly publishes tau
 echo "Waiting for wrench data..."
-timeout 10s ros2 topic echo /orca/wrench_input --once
+timeout 10s ros2 topic echo /$DRONE_ARG/wrench_input --once
 echo "Got wrench data"
 
 # Terminate processes

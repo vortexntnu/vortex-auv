@@ -2,6 +2,9 @@
 set -e
 set -o pipefail
 
+# Drone name
+DRONE_ARG=${1:-"moby"}
+
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
@@ -28,10 +31,10 @@ fi
 
 # Send action goal
 echo "Sending goal..."
-ros2 action send_goal /orca/los_guidance vortex_msgs/action/LOSGuidance "{goal: {point: {x: 20.0, y: 20.0, z: 5.0}}}" &
+ros2 action send_goal /$DRONE_ARG/los_guidance vortex_msgs/action/LOSGuidance "{goal: {point: {x: 20.0, y: 20.0, z: 5.0}}}" &
 # Check if node correctly publishes guidance
 echo "Waiting for guidance data..."
-timeout 10s ros2 topic echo /orca/guidance/los --once
+timeout 10s ros2 topic echo /$DRONE_ARG/guidance/los --once
 echo "Got guidance data"
 
 # Terminate processes
