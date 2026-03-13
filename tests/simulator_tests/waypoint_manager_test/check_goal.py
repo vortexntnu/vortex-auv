@@ -34,7 +34,7 @@ class CheckGoalNode(Node):
     def __init__(self):
         super().__init__('check_goal_node')
         self.pose_sub_ = self.create_subscription(
-            PoseWithCovarianceStamped, '/orca/pose', self.pose_callback, best_effort_qos
+            PoseWithCovarianceStamped, '/moby/pose', self.pose_callback, best_effort_qos
         )
 
         self.current_pose_: PoseWithCovarianceStamped = None
