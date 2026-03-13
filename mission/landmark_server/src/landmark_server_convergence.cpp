@@ -100,7 +100,7 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     const auto track = get_convergence_track();
     if (!track) {
         spdlog::error(
-            "Convergence session {}: no track found after goal was accepted "
+            "Convergence session {}: no track found after goal was accepted: "
             "(type={}, subtype={}) — aborting.",
             convergence_session_id_, convergence_goal()->type.value,
             convergence_goal()->subtype.value);
