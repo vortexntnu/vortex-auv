@@ -165,10 +165,40 @@ void LandmarkServerNode::convergence_update() {
     }
 
     if (convergence_track_lost_) {
-        spdlog::info("Convergence: track reacquired (type={}, subtype={})",
-                     convergence_goal()->type.value,
-                     convergence_goal()->subtype.value);
         convergence_track_lost_ = false;
+
+        if (rf_state_ == RFState::IDLE) {
+            spdlog::info(
+                "Convergence session {}: track appeared for the first time "
+                "(type={}, subtype={}), sending initial RF goal.",
+                convergence_session_id_, convergence_goal()->type.value,
+                convergence_goal()->subtype.value);
+            try {
+                const auto target = compute_target_pose(
+                    *track, convergence_goal()->convergence_offset);
+                send_reference_filter_goal(
+                    make_rf_goal(target,
+                                 convergence_goal()->convergence_threshold),
+                    convergence_session_id_);
+            } catch (const std::exception& e) {
+                spdlog::error(
+                    "Convergence session {}: failed to compute target on first "
+                    "track acquisition: {}",
+                    convergence_session_id_, e.what());
+                active_landmark_convergence_goal_->abort(
+                    std::make_shared<
+                        vortex_msgs::action::LandmarkConvergence::Result>(
+                        build_convergence_result(false)));
+                convergence_active_ = false;
+                return;
+            }
+        } else {
+            spdlog::info(
+                "Convergence session {}: track reacquired (type={}, "
+                "subtype={})",
+                convergence_session_id_, convergence_goal()->type.value,
+                convergence_goal()->subtype.value);
+        }
     }
 
     convergence_last_known_track_ = *track;
@@ -224,10 +254,9 @@ void LandmarkServerNode::convergence_update_target(
             return;
         case RFState::IDLE:
             spdlog::error(
-                "Convergence session {}: track reappeared after RF was "
-                "canceled due to track-loss timeout (type={}, subtype={}). "
-                "Treating as bad track, aborting. Start a new convergence "
-                "session to retry.",
+                "Convergence session {}: reached update_target with "
+                "rf_state_=IDLE (type={}, subtype={}). "
+                "RF goal was never sent — aborting.",
                 convergence_session_id_, convergence_goal()->type.value,
                 convergence_goal()->subtype.value);
             active_landmark_convergence_goal_->abort(
