@@ -57,4 +57,4 @@ qtcreator-*
 .#*
 
 # End of https://www.gitignore.io/api/ros
-mission/FSM/
+mission/FSM/pipeline/
