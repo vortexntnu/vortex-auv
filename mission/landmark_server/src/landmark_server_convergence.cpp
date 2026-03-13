@@ -41,6 +41,19 @@ LandmarkServerNode::handle_landmark_convergence_goal(
         return rclcpp_action::GoalResponse::REJECT;
     }
 
+    {
+        const auto tracks = track_manager_->get_tracks_by_type(
+            vortex::filtering::LandmarkClassKey{goal_msg->type.value,
+                                                goal_msg->subtype.value});
+        if (tracks.empty()) {
+            spdlog::warn(
+                "LandmarkConvergence: reject, no confirmed track for "
+                "type={}, subtype={} — run LandmarkPolling first",
+                goal_msg->type.value, goal_msg->subtype.value);
+            return rclcpp_action::GoalResponse::REJECT;
+        }
+    }
+
     if (active_landmark_convergence_goal_ &&
         active_landmark_convergence_goal_->is_active()) {
         spdlog::warn(
@@ -88,14 +101,18 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
 
     const auto track = get_convergence_track();
     if (!track) {
-        convergence_track_lost_ = true;
-        convergence_track_lost_since_ = now();
-        spdlog::warn(
-            "Convergence session {}: no track at start (type={}, subtype={}), "
-            "waiting up to {:.1f}s for track to appear.",
+        // Should not happen — goal is rejected if no track exists.
+        // Guard defensively in case of a race between goal handler and
+        // accepted.
+        spdlog::error(
+            "Convergence session {}: no track found after goal was accepted "
+            "(type={}, subtype={}) — aborting.",
             convergence_session_id_, convergence_goal()->type.value,
-            convergence_goal()->subtype.value,
-            convergence_goal()->track_loss_timeout_sec);
+            convergence_goal()->subtype.value);
+        goal_handle->abort(
+            std::make_shared<vortex_msgs::action::LandmarkConvergence::Result>(
+                build_convergence_result(false)));
+        convergence_active_ = false;
         return;
     }
 
@@ -166,39 +183,10 @@ void LandmarkServerNode::convergence_update() {
 
     if (convergence_track_lost_) {
         convergence_track_lost_ = false;
-
-        if (rf_state_ == RFState::IDLE) {
-            spdlog::info(
-                "Convergence session {}: track appeared for the first time "
-                "(type={}, subtype={}), sending initial RF goal.",
-                convergence_session_id_, convergence_goal()->type.value,
-                convergence_goal()->subtype.value);
-            try {
-                const auto target = compute_target_pose(
-                    *track, convergence_goal()->convergence_offset);
-                send_reference_filter_goal(
-                    make_rf_goal(target,
-                                 convergence_goal()->convergence_threshold),
-                    convergence_session_id_);
-            } catch (const std::exception& e) {
-                spdlog::error(
-                    "Convergence session {}: failed to compute target on first "
-                    "track acquisition: {}",
-                    convergence_session_id_, e.what());
-                active_landmark_convergence_goal_->abort(
-                    std::make_shared<
-                        vortex_msgs::action::LandmarkConvergence::Result>(
-                        build_convergence_result(false)));
-                convergence_active_ = false;
-                return;
-            }
-        } else {
-            spdlog::info(
-                "Convergence session {}: track reacquired (type={}, "
-                "subtype={})",
-                convergence_session_id_, convergence_goal()->type.value,
-                convergence_goal()->subtype.value);
-        }
+        spdlog::info(
+            "Convergence session {}: track reacquired (type={}, subtype={})",
+            convergence_session_id_, convergence_goal()->type.value,
+            convergence_goal()->subtype.value);
     }
 
     convergence_last_known_track_ = *track;
