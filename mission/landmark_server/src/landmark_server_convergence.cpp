@@ -43,6 +43,9 @@ LandmarkServerNode::handle_landmark_convergence_goal(
 
     if (active_landmark_convergence_goal_ &&
         active_landmark_convergence_goal_->is_active()) {
+        spdlog::warn(
+            "LandmarkConvergence: preempting previous active session {}",
+            convergence_session_id_);
         active_landmark_convergence_goal_->abort(
             std::make_shared<vortex_msgs::action::LandmarkConvergence::Result>(
                 build_convergence_result(false)));
@@ -50,6 +53,13 @@ LandmarkServerNode::handle_landmark_convergence_goal(
 
     cancel_reference_filter_goal();
 
+    spdlog::info(
+        "LandmarkConvergence: goal accepted — type={}, subtype={}, "
+        "conv_threshold={:.3f}, dr_threshold={:.3f}, "
+        "track_loss_timeout={:.1f}s",
+        goal_msg->type.value, goal_msg->subtype.value,
+        goal_msg->convergence_threshold, goal_msg->dead_reckoning_threshold,
+        goal_msg->track_loss_timeout_sec);
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -65,6 +75,7 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     convergence_dead_reckoning_handoff_ = false;
     convergence_last_known_track_.reset();
     convergence_track_lost_ = false;
+    rf_state_ = RFState::IDLE;
 
     spdlog::info(
         "Starting convergence session {}: type={}, subtype={}, "
@@ -91,6 +102,10 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     try {
         const auto target =
             compute_target_pose(*track, convergence_goal()->convergence_offset);
+        spdlog::info(
+            "Convergence session {}: initial target = ({:.3f}, {:.3f}, {:.3f})",
+            convergence_session_id_, target.position.x, target.position.y,
+            target.position.z);
         send_reference_filter_goal(
             make_rf_goal(target, convergence_goal()->convergence_threshold),
             convergence_session_id_);
@@ -119,12 +134,32 @@ void LandmarkServerNode::convergence_update() {
         return;
 
     if (!convergence_goal_active()) {
+        spdlog::warn(
+            "Convergence session {}: goal no longer active in "
+            "convergence_update "
+            "(convergence_active_={}, goal_handle_valid={}, is_active={}), "
+            "clearing state",
+            convergence_session_id_, convergence_active_,
+            active_landmark_convergence_goal_ != nullptr,
+            active_landmark_convergence_goal_
+                ? active_landmark_convergence_goal_->is_active()
+                : false);
         convergence_active_ = false;
         return;
     }
 
-    if (convergence_dead_reckoning_handoff_)
+    if (convergence_dead_reckoning_handoff_) {
+        // Waiting for the RF goal to finish — log a periodic heartbeat.
+        static uint32_t dr_tick = 0;
+        if (++dr_tick % 50 == 0) {
+            spdlog::info(
+                "Convergence session {}: dead-reckoning active, "
+                "waiting for RF to finish (type={}, subtype={})",
+                convergence_session_id_, convergence_goal()->type.value,
+                convergence_goal()->subtype.value);
+        }
         return;
+    }
 
     const auto track = get_convergence_track();
     if (!track) {
@@ -187,16 +222,27 @@ void LandmarkServerNode::convergence_handle_track_loss() {
 
 void LandmarkServerNode::convergence_update_target(
     const vortex::filtering::Track& track) {
-    if (!active_reference_filter_goal_) {
-        spdlog::error(
-            "Convergence: reference filter goal unexpectedly inactive "
-            "(type={}, subtype={}), aborting convergence",
-            convergence_goal()->type.value, convergence_goal()->subtype.value);
-        active_landmark_convergence_goal_->abort(
-            std::make_shared<vortex_msgs::action::LandmarkConvergence::Result>(
-                build_convergence_result(false)));
-        convergence_active_ = false;
-        return;
+    switch (rf_state_) {
+        case RFState::PENDING:
+            // async_send_goal() fired but goal_response_callback hasn't arrived
+            // yet — perfectly normal, nothing to do this tick.
+            return;
+
+        case RFState::IDLE:
+            spdlog::error(
+                "Convergence session {}: RF goal unexpectedly IDLE "
+                "(type={}, subtype={}), aborting",
+                convergence_session_id_, convergence_goal()->type.value,
+                convergence_goal()->subtype.value);
+            active_landmark_convergence_goal_->abort(
+                std::make_shared<
+                    vortex_msgs::action::LandmarkConvergence::Result>(
+                    build_convergence_result(false)));
+            convergence_active_ = false;
+            return;
+
+        case RFState::ACTIVE:
+            break;
     }
 
     try {
@@ -207,7 +253,8 @@ void LandmarkServerNode::convergence_update_target(
             compute_target_pose(track, convergence_goal()->convergence_offset);
         reference_pose_pub_->publish(target);
     } catch (const std::exception& e) {
-        spdlog::warn("Convergence target recompute failed: {}", e.what());
+        spdlog::warn("Convergence session {}: target recompute failed: {}",
+                     convergence_session_id_, e.what());
     }
 }
 
@@ -227,12 +274,25 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
         return;
     }
 
-    const auto track_pos =
-        convergence_last_known_track_->to_pose().pos_vector();
+    // Compare against the *target* (landmark + offset), not the raw landmark
+    // position. Using the landmark position directly means DR is only triggered
+    // when the AUV is inside the landmark itself, which is rarely the intended
+    // behaviour when a non-zero convergence_offset is used.
+    geometry_msgs::msg::Pose target_pose;
+    try {
+        target_pose =
+            compute_target_pose(*convergence_last_known_track_,
+                                convergence_goal()->convergence_offset);
+    } catch (const std::exception& e) {
+        spdlog::warn("Dead reckoning check: compute_target_pose failed: {}",
+                     e.what());
+        return;
+    }
+
     const auto& cur = *odom_pos;
-    const double dx = cur.x - track_pos.x();
-    const double dy = cur.y - track_pos.y();
-    const double dz = cur.z - track_pos.z();
+    const double dx = cur.x - target_pose.position.x;
+    const double dy = cur.y - target_pose.position.y;
+    const double dz = cur.z - target_pose.position.z;
     const double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
 
     if (!std::isfinite(dist)) {
@@ -242,8 +302,21 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
 
     if (dist <= convergence_goal()->dead_reckoning_threshold) {
         convergence_dead_reckoning_handoff_ = true;
-        spdlog::info("Dead reckoning handoff triggered at distance={:.3f}",
-                     dist);
+        spdlog::info(
+            "Convergence session {}: dead-reckoning handoff triggered — "
+            "dist_to_target={:.3f} <= dr_threshold={:.3f}, "
+            "target=({:.3f}, {:.3f}, {:.3f}), "
+            "auv=({:.3f}, {:.3f}, {:.3f})",
+            convergence_session_id_, dist,
+            convergence_goal()->dead_reckoning_threshold,
+            target_pose.position.x, target_pose.position.y,
+            target_pose.position.z, cur.x, cur.y, cur.z);
+    } else {
+        spdlog::debug(
+            "Convergence session {}: DR check — "
+            "dist_to_target={:.3f}, dr_threshold={:.3f}",
+            convergence_session_id_, dist,
+            convergence_goal()->dead_reckoning_threshold);
     }
 }
 
@@ -253,7 +326,11 @@ LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
     vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
-    wp.mode = vortex_msgs::msg::Waypoint::FULL_POSE;
+    // Use ONLY_POSITION: the landmark's orientation should not be imposed on
+    // the AUV. Converging on position alone is sufficient, and it prevents the
+    // RF from never succeeding when the landmark has an arbitrary orientation
+    // (e.g. a pipe lying at 90 degrees).
+    wp.mode = vortex_msgs::msg::Waypoint::ONLY_POSITION;
     rf_goal.waypoint = wp;
     rf_goal.convergence_threshold = convergence_threshold;
     return rf_goal;
@@ -264,14 +341,17 @@ void LandmarkServerNode::send_reference_filter_goal(
     uint64_t session_id) {
     cancel_reference_filter_goal();
 
+    rf_state_ = RFState::PENDING;
+
     rclcpp_action::Client<RF>::SendGoalOptions options;
 
     options.goal_response_callback =
         [this, session_id](ReferenceFilterGoalHandle::SharedPtr gh) {
             if (!gh) {
                 spdlog::error(
-                    "ReferenceFilter goal rejected, aborting convergence");
-
+                    "Convergence session {}: ReferenceFilter goal REJECTED",
+                    session_id);
+                rf_state_ = RFState::IDLE;
                 if (session_id == convergence_session_id_ &&
                     convergence_goal_active()) {
                     active_landmark_convergence_goal_->abort(
@@ -283,12 +363,20 @@ void LandmarkServerNode::send_reference_filter_goal(
                 return;
             }
 
-            // Ignore stale sessions
             if (session_id != convergence_session_id_) {
+                spdlog::warn(
+                    "Convergence: stale RF goal response for session {} "
+                    "(current={}), canceling it",
+                    session_id, convergence_session_id_);
+                rf_state_ = RFState::IDLE;
                 reference_filter_client_->async_cancel_goal(gh);
                 return;
             }
 
+            spdlog::info(
+                "Convergence session {}: ReferenceFilter goal ACCEPTED",
+                session_id);
+            rf_state_ = RFState::ACTIVE;
             active_reference_filter_goal_ = gh;
         };
 
@@ -298,11 +386,19 @@ void LandmarkServerNode::send_reference_filter_goal(
             if (session_id != convergence_session_id_)
                 return;
 
+            rf_state_ = RFState::IDLE;
             active_reference_filter_goal_.reset();
 
-            if (!convergence_active_ || !active_landmark_convergence_goal_)
+            if (!convergence_active_ || !active_landmark_convergence_goal_) {
+                spdlog::warn(
+                    "Convergence session {}: RF result arrived but "
+                    "convergence already inactive — ignoring",
+                    session_id);
                 return;
+            }
 
+            spdlog::info("Convergence session {}: RF result — code={}",
+                         session_id, static_cast<int>(res.code));
             handle_rf_result(res.code);
         };
 
@@ -358,9 +454,13 @@ bool LandmarkServerNode::convergence_goal_active() const {
 }
 
 void LandmarkServerNode::cancel_reference_filter_goal() {
+    rf_state_ = RFState::IDLE;
+
     if (!active_reference_filter_goal_)
         return;
 
+    spdlog::info("Convergence session {}: canceling active RF goal",
+                 convergence_session_id_);
     const auto goal_to_cancel = active_reference_filter_goal_;
     active_reference_filter_goal_.reset();
     reference_filter_client_->async_cancel_goal(goal_to_cancel);
@@ -404,6 +504,16 @@ geometry_msgs::msg::Pose LandmarkServerNode::compute_target_pose(
     const Eigen::Vector3d p_target = p_landmark + q_landmark * p_offset;
 
     const Eigen::Quaterniond q_target = (q_landmark * q_offset).normalized();
+
+    spdlog::debug(
+        "compute_target_pose: "
+        "landmark=({:.3f}, {:.3f}, {:.3f}) "
+        "q_landmark=({:.3f}, {:.3f}, {:.3f}, {:.3f}) "
+        "offset=({:.3f}, {:.3f}, {:.3f}) "
+        "→ target=({:.3f}, {:.3f}, {:.3f})",
+        p_landmark.x(), p_landmark.y(), p_landmark.z(), q_landmark.x(),
+        q_landmark.y(), q_landmark.z(), q_landmark.w(), p_offset.x(),
+        p_offset.y(), p_offset.z(), p_target.x(), p_target.y(), p_target.z());
 
     return vortex::utils::ros_conversions::eigen_to_pose_msg(p_target,
                                                              q_target);
