@@ -1,0 +1,18 @@
+/**:
+  ros__parameters:
+    action_servers:
+      waypoint_manager: "/orca/waypoint_manager"
+      landmark_polling: "/orca/landmark_polling"
+      landmark_convergence: "/orca/landmark_convergence"
+
+    topics:
+      odom: "/orca/odom"
+
+    fsm:
+      pipeline:
+        landmark_type: 2
+        landmark_subtype: 1
+        search_convergence_threshold: 0.3
+        convergence_threshold: 0.4
+        dead_reckoning_threshold: 1.0
+        track_loss_timeout_sec: 10.0

@@ -148,7 +148,13 @@ void LandmarkServerNode::convergence_update() {
         return;
     }
 
+    int counter = 0;
     if (convergence_dead_reckoning_handoff_) {
+        counter++;
+
+        if (counter % 50 == 0) {
+            spdlog::info("DR triggered, waiting for RF to finish");
+        }
         return;
     }
 
@@ -218,8 +224,10 @@ void LandmarkServerNode::convergence_update_target(
             return;
         case RFState::IDLE:
             spdlog::error(
-                "Convergence session {}: RF goal unexpectedly IDLE "
-                "(type={}, subtype={}), aborting",
+                "Convergence session {}: track reappeared after RF was "
+                "canceled due to track-loss timeout (type={}, subtype={}). "
+                "Treating as bad track, aborting. Start a new convergence "
+                "session to retry.",
                 convergence_session_id_, convergence_goal()->type.value,
                 convergence_goal()->subtype.value);
             active_landmark_convergence_goal_->abort(
@@ -376,6 +384,16 @@ void LandmarkServerNode::send_reference_filter_goal(
                 return;
             }
 
+            if (!active_landmark_convergence_goal_->is_active() &&
+                !active_landmark_convergence_goal_->is_canceling()) {
+                spdlog::warn(
+                    "Convergence session {}: RF result arrived but goal "
+                    "handle no longer active or canceling — ignoring",
+                    session_id);
+                convergence_active_ = false;
+                return;
+            }
+
             spdlog::info("Convergence session {}: RF result — code={}",
                          session_id, static_cast<int>(res.code));
             handle_rf_result(res.code);
@@ -392,24 +410,37 @@ void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
             build_convergence_result(success));
     };
 
+    if (active_landmark_convergence_goal_->is_canceling()) {
+        spdlog::info("Convergence session {}: canceled (RF result={})",
+                     convergence_session_id_, static_cast<int>(code));
+        active_landmark_convergence_goal_->canceled(make_result(false));
+        convergence_active_ = false;
+        return;
+    }
+
     switch (code) {
         case RC::SUCCEEDED:
-            spdlog::info("Convergence succeeded (RF succeeded)");
+            spdlog::info("Convergence session {}: succeeded",
+                         convergence_session_id_);
             active_landmark_convergence_goal_->succeed(make_result(true));
             break;
 
         case RC::CANCELED:
-            spdlog::info("Convergence canceled (RF canceled)");
+            spdlog::info("Convergence session {}: canceled (RF canceled)",
+                         convergence_session_id_);
             active_landmark_convergence_goal_->canceled(make_result(false));
             break;
 
         case RC::ABORTED:
-            spdlog::warn("Convergence aborted (RF aborted)");
+            spdlog::warn("Convergence session {}: aborted (RF aborted)",
+                         convergence_session_id_);
             active_landmark_convergence_goal_->abort(make_result(false));
             break;
 
         default:
-            spdlog::error("Convergence aborted (unknown RF result)");
+            spdlog::error(
+                "Convergence session {}: aborted (unknown RF result code={})",
+                convergence_session_id_, static_cast<int>(code));
             active_landmark_convergence_goal_->abort(make_result(false));
             break;
     }
@@ -429,7 +460,8 @@ LandmarkServerNode::get_convergence_track() const {
 
 bool LandmarkServerNode::convergence_goal_active() const {
     return convergence_active_ && active_landmark_convergence_goal_ &&
-           active_landmark_convergence_goal_->is_active();
+           (active_landmark_convergence_goal_->is_active() ||
+            active_landmark_convergence_goal_->is_canceling());
 }
 
 void LandmarkServerNode::cancel_reference_filter_goal() {
