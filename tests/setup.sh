@@ -13,6 +13,11 @@ log_error() {
     echo -e "$LOG_PREFIX [ERROR] $1" >&2
 }
 
+install_dependencies() {
+    log_info "Installing additional dependencies..."
+    "$CALLER_REPO/scripts/ci_install_dependencies.sh"
+}
+
 build_ros_workspace() {
     log_info "Setting up ROS 2 workspace..."
     cd "$ROS_WORKSPACE"
@@ -32,4 +37,5 @@ build_ros_workspace() {
     log_info "ROS 2 workspace build complete."
 }
 
+install_dependencie
 build_ros_workspace
