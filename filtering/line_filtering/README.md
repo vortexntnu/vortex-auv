@@ -47,3 +47,46 @@ filter a minimal 2D error state `[δρ, δφ]` in ℝ².
 ```bash
 ros2 launch line_filtering line_filtering.launch.py
 ```
+
+## Library export and usage
+
+The core tracking logic (`LineTrackManager`) is built and exported as a
+shared library by this package so other packages can reuse the track
+management functionality without pulling in the ROS node.
+
+CMake / ament usage
+
+In a consuming CMake-based package (ament_cmake) you can link against
+the library like this:
+
+```cmake
+find_package(line_filtering REQUIRED)
+
+add_executable(my_node src/my_node.cpp)
+
+# Link to the exported library target (the package exports the target
+# with the same name as the package: `line_filtering`)
+target_link_libraries(my_node PRIVATE line_filtering)
+```
+
+The package installs its public headers under `include/` so simply
+including the header below in your code will work after linking:
+
+```cpp
+#include <line_filtering/lib/line_track_manager.hpp>
+
+int main() {
+  vortex::line_filtering::LineTrackManagerConfig cfg;
+  // configure cfg.nm (N/M confirmation/deletion) and
+  // cfg.default_config (gate, noise, PDAF parameters)
+
+  vortex::line_filtering::LineTrackManager manager(cfg);
+
+  std::vector<vortex::line_filtering::LineMeasurement> measurements;
+  double dt = 0.1; // seconds
+  manager.step(measurements, dt);
+
+  const auto& tracks = manager.get_tracks();
+  // iterate tracks for id, nominal line, hits/misses, confirmed, etc.
+}
+```
