@@ -13,6 +13,10 @@ class PoseTrackManagerTests : public ::testing::Test {
         TrackManagerConfig cfg{};
         cfg.default_class_config.dyn_std_dev = 0.1;
         cfg.default_class_config.sens_std_dev = 0.1;
+        cfg.nm.confirm_n = 3;
+        cfg.nm.confirm_m = 5;
+        cfg.nm.delete_n = 5;
+        cfg.nm.delete_m = 7;
         return cfg;
     }
 
@@ -39,108 +43,92 @@ TEST_F(PoseTrackManagerTests, creates_tracks_from_measurements) {
 
     for (const auto& t : tracks) {
         EXPECT_FALSE(t.confirmed);
-        EXPECT_NEAR(t.existence_probability, 0.5, 1e-12);
+        EXPECT_EQ(t.hits(), 1);
         EXPECT_NEAR(t.nominal_state.ori.w(), 1.0, 1e-12);
     }
 }
 
-TEST_F(PoseTrackManagerTests, angular_gate_filters_measurements) {
+TEST_F(PoseTrackManagerTests, track_confirms_after_n_hits) {
     auto cfg = make_default_config();
-    cfg.default_class_config.max_ori_error = 0.2;  // strict gate
+    cfg.nm.confirm_n = 3;
+    cfg.nm.confirm_m = 5;
+    cfg.nm.delete_n = 5;
+    cfg.nm.delete_m = 7;
     PoseTrackManager mgr(cfg);
-
-    Eigen::Quaterniond q_ref = Eigen::Quaterniond::Identity();
-
-    Eigen::Quaterniond q_far(Eigen::AngleAxisd(1.0, Eigen::Vector3d::UnitZ()));
-
-    std::vector<Landmark> measurements{
-        make_landmark({0, 0, 1}, q_ref),
-        make_landmark({0, 0, 1}, q_far),
-    };
-
-    mgr.step(measurements, 0.1);
-
-    ASSERT_EQ(mgr.get_tracks().size(), 2);
-
-    double t1_exist_prob_step1 = mgr.get_tracks().at(0).existence_probability;
-    double t2_exist_prob_step1 = mgr.get_tracks().at(1).existence_probability;
-
-    measurements = {
-        make_landmark({0, 0.25, 1}, q_ref),
-        make_landmark({0, 0.25, 1}, q_far),
-    };
-
-    mgr.step(measurements, 0.1);
-
-    ASSERT_EQ(mgr.get_tracks().size(), 2);
-
-    double t1_exist_prob_step2 = mgr.get_tracks().at(0).existence_probability;
-    double t2_exist_prob_step2 = mgr.get_tracks().at(1).existence_probability;
-
-    ASSERT_GT(t1_exist_prob_step2, t1_exist_prob_step1);
-    ASSERT_GT(t2_exist_prob_step2, t2_exist_prob_step1);
-}
-
-TEST_F(PoseTrackManagerTests, single_target_existance_increase) {
-    auto cfg = make_default_config();
 
     Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
 
-    std::vector<Landmark> z = {make_landmark({0, 0, 0}, q)};
-
-    PoseTrackManager mgr(cfg);
-
-    mgr.step(z, 0.1);
-
-    double exist_prob1 = mgr.get_tracks().front().existence_probability;
-
-    ASSERT_EQ(mgr.get_tracks().size(), 1);
-    ASSERT_EQ(exist_prob1, 0.5);
-
-    z = {make_landmark({0, 0, 0}, q)};
-
-    mgr.step(z, 0.1);
-
-    double exist_prob2 = mgr.get_tracks().front().existence_probability;
-
-    ASSERT_EQ(mgr.get_tracks().size(), 1);
-    ASSERT_GT(exist_prob2, exist_prob1);
-
-    z = {make_landmark({0, 0, 0}, q)};
-
-    mgr.step(z, 0.1);
-
-    double exist_prob3 = mgr.get_tracks().front().existence_probability;
-
-    ASSERT_EQ(mgr.get_tracks().size(), 1);
-    ASSERT_GT(exist_prob3, exist_prob2);
-}
-
-TEST_F(PoseTrackManagerTests, existence_decrease_on_no_detection) {
-    auto cfg = make_default_config();
-
-    Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
-
-    std::vector<Landmark> z = {make_landmark({0, 0, 0}, q)};
-
-    PoseTrackManager mgr(cfg);
-
-    mgr.step(z, 0.1);
-
-    double exist_prob1 = mgr.get_tracks().front().existence_probability;
-    ASSERT_EQ(mgr.get_tracks().size(), 1);
-
-    z = {};
-
-    mgr.step(z, 0.1);
-
-    const auto& tracks_after = mgr.get_tracks();
-    if (tracks_after.empty()) {
-        SUCCEED();
-    } else {
-        double exist_prob2 = tracks_after.front().existence_probability;
-        ASSERT_LT(exist_prob2, exist_prob1);
+    for (int i = 0; i < 5; ++i) {
+        std::vector<Landmark> z = {make_landmark({0, 0, 0}, q)};
+        mgr.step(z, 0.1);
     }
+
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    EXPECT_TRUE(mgr.get_tracks().front().confirmed);
+}
+
+TEST_F(PoseTrackManagerTests, track_does_not_confirm_without_enough_hits) {
+    auto cfg = make_default_config();
+    cfg.nm.confirm_n = 3;
+    cfg.nm.confirm_m = 5;
+    PoseTrackManager mgr(cfg);
+
+    Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
+
+    // First step creates the track with 1 hit
+    std::vector<Landmark> z = {make_landmark({0, 0, 0}, q)};
+    mgr.step(z, 0.1);
+
+    // Next step: no measurement (miss)
+    z = {};
+    mgr.step(z, 0.1);
+
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+    EXPECT_FALSE(mgr.get_tracks().front().confirmed);
+}
+
+TEST_F(PoseTrackManagerTests, track_deleted_after_n_misses) {
+    auto cfg = make_default_config();
+    cfg.nm.confirm_n = 1;
+    cfg.nm.confirm_m = 1;
+    cfg.nm.delete_n = 3;
+    cfg.nm.delete_m = 3;
+    PoseTrackManager mgr(cfg);
+
+    Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
+
+    // Create track
+    std::vector<Landmark> z = {make_landmark({0, 0, 0}, q)};
+    mgr.step(z, 0.1);
+    ASSERT_EQ(mgr.get_tracks().size(), 1);
+
+    // 3 consecutive misses
+    for (int i = 0; i < 3; ++i) {
+        z = {};
+        mgr.step(z, 0.1);
+    }
+
+    EXPECT_TRUE(mgr.get_tracks().empty());
+}
+
+TEST_F(PoseTrackManagerTests, hits_increase_with_measurements) {
+    auto cfg = make_default_config();
+    PoseTrackManager mgr(cfg);
+
+    Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
+
+    std::vector<Landmark> z = {make_landmark({0, 0, 0}, q)};
+    mgr.step(z, 0.1);
+
+    int hits1 = mgr.get_tracks().front().hits();
+    ASSERT_EQ(hits1, 1);
+
+    z = {make_landmark({0, 0, 0}, q)};
+    mgr.step(z, 0.1);
+
+    int hits2 = mgr.get_tracks().front().hits();
+    ASSERT_EQ(hits2, 2);
+    ASSERT_GT(hits2, hits1);
 }
 
 }  // namespace vortex::filtering

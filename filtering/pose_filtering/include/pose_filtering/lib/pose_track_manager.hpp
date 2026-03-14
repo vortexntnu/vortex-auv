@@ -13,9 +13,9 @@ namespace vortex::filtering {
  * @brief Track management utilities for pose-based measurements.
  *
  * The PoseTrackManager implements track creation, confirmation,
- * deletion and update logic using an IPDA filter for each track. It
- * handles spatial and angular gating for associating pose measurements
- * to existing tracks.
+ * deletion and update logic using a PDAF filter for each track with
+ * N/M logic for track lifecycle management. It handles spatial and
+ * angular gating for associating pose measurements to existing tracks.
  */
 
 /**
@@ -32,8 +32,8 @@ struct PoseGate6D {
 
     double mahalanobis_threshold = std::numeric_limits<double>::infinity();
 
-    using Vec_z = IPDA::Vec_z;
-    using Gauss_z = IPDA::Gauss_z;
+    using Vec_z = PDAF::Vec_z;
+    using Gauss_z = PDAF::Gauss_z;
 
     bool operator()(const Vec_z& z, const Gauss_z& z_pred) const {
         const Vec_z r = z - z_pred.mean();
@@ -65,8 +65,8 @@ class PoseTrackManager {
    public:
     /**
      * @brief Construct a PoseTrackManager
-     * @param config Configuration parameters for IPDA, models and existence
-     * management
+     * @param config Configuration parameters for PDAF, models and N/M
+     * track management
      */
     explicit PoseTrackManager(const TrackManagerConfig& config);
 
@@ -174,12 +174,19 @@ class PoseTrackManager {
     Eigen::Quaterniond so3_exp_quat(const Eigen::Vector3d& rvec) const;
 
     /**
-     * @brief Confirm tracks which have exceeded the confirmation threshold.
+     * @brief Record a hit or miss for a track and update its history window.
+     * @param track Track to update
+     * @param hit Whether the track was associated with a measurement
+     */
+    void record_hit_miss(Track& track, bool hit);
+
+    /**
+     * @brief Confirm tracks which meet the N/M confirmation criteria.
      */
     void confirm_tracks();
 
     /**
-     * @brief Delete tracks which have fallen below the deletion threshold.
+     * @brief Delete tracks which meet the N/M deletion criteria.
      */
     void delete_tracks();
 
