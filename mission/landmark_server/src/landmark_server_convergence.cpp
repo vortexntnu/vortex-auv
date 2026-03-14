@@ -147,9 +147,6 @@ void LandmarkServerNode::convergence_update() {
         return;
 
     if (!convergence_goal_active()) {
-        spdlog::warn(
-            "Convergence session {}: goal no longer active, clearing state",
-            convergence_session_id_);
         convergence_active_ = false;
         return;
     }
@@ -325,8 +322,8 @@ void LandmarkServerNode::send_reference_filter_goal(
 
             if (session_id != convergence_session_id_) {
                 spdlog::warn(
-                    "Convergence: stale RF goal response for session {} "
-                    "(current={}), canceling it",
+                    "Convergence session {}: RF goal accepted but session is "
+                    "outdated (active session is now {}) — canceling",
                     session_id, convergence_session_id_);
                 rf_state_ = RFState::IDLE;
                 reference_filter_client_->async_cancel_goal(gh);
