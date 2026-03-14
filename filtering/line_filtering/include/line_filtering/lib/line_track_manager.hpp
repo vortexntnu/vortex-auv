@@ -105,6 +105,29 @@ class LineTrackManager {
         const LineTrack& track,
         const std::vector<LineMeasurement>& measurements) const;
 
+    /**
+     * @brief Validate the configuration parameters. Throw on failure.
+     * @param config Configuration to validate
+     */
+    void validate_config(const LineTrackManagerConfig& config) {
+        const auto validate_nm = [](const NMConfig& nm) {
+            if (nm.confirm_n < 1 || nm.confirm_m < 1 || nm.delete_n < 1 ||
+                nm.delete_m < 1) {
+                throw std::invalid_argument(
+                    "NMConfig values must be non-negative, and *_m must be > "
+                    "1");
+            }
+            if (nm.confirm_n > nm.confirm_m) {
+                throw std::invalid_argument("confirm_n must be <= confirm_m");
+            }
+            if (nm.delete_n > nm.delete_m) {
+                throw std::invalid_argument("delete_n must be <= delete_m");
+            }
+        };
+
+        validate_nm(config.nm);
+    }
+
     void record_hit_miss(LineTrack& track, bool hit);
     void confirm_tracks();
     void delete_tracks();

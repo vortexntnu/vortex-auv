@@ -7,7 +7,9 @@
 namespace vortex::line_filtering {
 
 LineTrackManager::LineTrackManager(const LineTrackManagerConfig& config)
-    : track_id_counter_(0), config_(config) {}
+    : track_id_counter_(0), config_(config) {
+    validate_config(config_);
+}
 
 void LineTrackManager::step(std::vector<LineMeasurement>& measurements,
                             double dt) {
@@ -46,9 +48,9 @@ void LineTrackManager::step(std::vector<LineMeasurement>& measurements,
         erase_gated_measurements(measurements, result.gated_measurements);
     }
 
-    confirm_tracks();
     delete_tracks();
     create_tracks(measurements);
+    confirm_tracks();
 }
 
 Eigen::Vector2d LineTrackManager::log_residual(const NominalLine& pred,
