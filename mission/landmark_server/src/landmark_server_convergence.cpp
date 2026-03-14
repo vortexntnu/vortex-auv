@@ -57,7 +57,8 @@ LandmarkServerNode::handle_landmark_convergence_goal(
     if (active_landmark_convergence_goal_ &&
         active_landmark_convergence_goal_->is_active()) {
         spdlog::warn(
-            "LandmarkConvergence: preempting previous active session {}",
+            "LandmarkConvergence: new goal received while session {} is still "
+            "active — aborting old session",
             convergence_session_id_);
         active_landmark_convergence_goal_->abort(
             std::make_shared<vortex_msgs::action::LandmarkConvergence::Result>(
@@ -280,12 +281,6 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
             convergence_goal()->dead_reckoning_threshold,
             target_pose.position.x, target_pose.position.y,
             target_pose.position.z, cur.x, cur.y, cur.z);
-    } else {
-        spdlog::debug(
-            "Convergence session {}: DR check — "
-            "dist_to_target={:.3f}, dr_threshold={:.3f}",
-            convergence_session_id_, dist,
-            convergence_goal()->dead_reckoning_threshold);
     }
 }
 
