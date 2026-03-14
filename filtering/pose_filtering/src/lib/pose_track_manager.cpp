@@ -48,9 +48,9 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
         erase_gated_measurements(measurements, type_gate_indices,
                                  pdaf_output.gated_measurements);
     }
-    confirm_tracks();
     delete_tracks();
     create_tracks(measurements);
+    confirm_tracks();
 }
 
 std::vector<Eigen::Index> PoseTrackManager::gate_measurements_by_class(

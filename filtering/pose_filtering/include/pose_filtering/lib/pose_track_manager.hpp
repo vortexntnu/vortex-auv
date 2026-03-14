@@ -248,11 +248,11 @@ class PoseTrackManager {
      */
     void validate_config(const TrackManagerConfig& config) {
         const auto validate_nm = [](const NMConfig& nm) {
-            if (nm.confirm_n < 0 || nm.confirm_m <= 0 || nm.delete_n < 0 ||
-                nm.delete_m <= 0) {
+            if (nm.confirm_n < 1 || nm.confirm_m < 1 || nm.delete_n < 1 ||
+                nm.delete_m < 1) {
                 throw std::invalid_argument(
                     "NMConfig values must be non-negative, and *_m must be > "
-                    "0");
+                    "1");
             }
             if (nm.confirm_n > nm.confirm_m) {
                 throw std::invalid_argument("confirm_n must be <= confirm_m");
