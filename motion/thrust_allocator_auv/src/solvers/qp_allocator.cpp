@@ -14,7 +14,7 @@ QPAllocator::QPAllocator(const AllocatorConfig& allocator_config)
     : casadi_solver_initialized_(false) {
     formulate_as_qp(allocator_config);
     formulate_as_qp_casadi();
-};
+}
 
 void QPAllocator::formulate_as_qp(const AllocatorConfig& allocator_config) {
     const int r =
@@ -70,7 +70,7 @@ void QPAllocator::formulate_as_qp(const AllocatorConfig& allocator_config) {
     extended_constraint_vec_.segment(n, r) = allocator_config.min_force;
     extended_constraint_vec_.segment(n + r, r) = allocator_config.max_force;
     spdlog::info("Successfully formulated as QP standardform");
-};
+}
 
 void QPAllocator::formulate_as_qp_casadi() {
     const int decision_variable_dimension =
@@ -230,4 +230,4 @@ std::optional<Eigen::VectorXd> QPAllocator::calculate_allocated_thrust(
 
     // Return thruster commands (first r entries of z)
     return extended_state_solution_final.head(number_of_thrusters_);
-};
+}

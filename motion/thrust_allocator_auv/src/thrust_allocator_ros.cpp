@@ -1,4 +1,4 @@
-// TODO: Implement reading killswitch and publishing empty wrench
+// TODO(anyone): Implement reading killswitch and publishing empty wrench
 
 #include "thrust_allocator_auv/thrust_allocator_ros.hpp"
 #include <spdlog/spdlog.h>

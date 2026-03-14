@@ -10,6 +10,7 @@
 
 #include <eigen3/Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/Eigen>
+#include <vector>
 #include <vortex/utils/types.hpp>
 #include "casadi/casadi.hpp"
 

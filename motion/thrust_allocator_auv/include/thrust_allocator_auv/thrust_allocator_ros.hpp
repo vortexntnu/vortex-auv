@@ -8,8 +8,10 @@
 
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
+#include <vector>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include "thrust_allocator_auv/allocator.hpp"
 #include "thrust_allocator_auv/allocator_factory.hpp"
