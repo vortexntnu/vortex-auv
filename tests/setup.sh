@@ -37,5 +37,5 @@ build_ros_workspace() {
     log_info "ROS 2 workspace build complete."
 }
 
-install_dependencie
+install_dependencies
 build_ros_workspace
