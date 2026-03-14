@@ -242,6 +242,32 @@ class PoseTrackManager {
         return cfg_for(m.class_key);
     }
 
+    /**
+     * @brief Validate the configuration parameters. Throw on failure.
+     * @param config Configuration to validate
+     */
+    void validate_config(const TrackManagerConfig& config) {
+        const auto validate_nm = [](const NMConfig& nm) {
+            if (nm.confirm_n < 0 || nm.confirm_m <= 0 || nm.delete_n < 0 ||
+                nm.delete_m <= 0) {
+                throw std::invalid_argument(
+                    "NMConfig values must be non-negative, and *_m must be > "
+                    "0");
+            }
+            if (nm.confirm_n > nm.confirm_m) {
+                throw std::invalid_argument("confirm_n must be <= confirm_m");
+            }
+            if (nm.delete_n > nm.delete_m) {
+                throw std::invalid_argument("delete_n must be <= delete_m");
+            }
+        };
+
+        validate_nm(config.default_class_config.nm);
+        for (const auto& [key, class_cfg] : config.per_class_configs) {
+            validate_nm(class_cfg.nm);
+        }
+    }
+
     // Internal bookkeeping
     int track_id_counter_{0};
 

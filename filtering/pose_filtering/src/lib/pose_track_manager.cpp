@@ -8,7 +8,9 @@
 namespace vortex::filtering {
 
 PoseTrackManager::PoseTrackManager(const TrackManagerConfig& config)
-    : track_id_counter_(0), config_(config) {}
+    : track_id_counter_(0), config_(config) {
+    validate_config(config_);
+}
 
 void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
     sort_tracks_by_priority();
