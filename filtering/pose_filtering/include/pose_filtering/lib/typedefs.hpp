@@ -1,11 +1,12 @@
 #ifndef POSE_FILTERING__LIB__TYPEDEFS_HPP_
 #define POSE_FILTERING__LIB__TYPEDEFS_HPP_
 
+#include <deque>
 #include <eigen3/Eigen/Dense>
 #include <utility>
 #include <vector>
 #include <vortex/utils/types.hpp>
-#include <vortex_filtering/filters/ipda.hpp>
+#include <vortex_filtering/filters/pdaf.hpp>
 #include <vortex_filtering/vortex_filtering.hpp>
 
 namespace vortex::filtering {
@@ -16,7 +17,7 @@ namespace vortex::filtering {
  * pose_filtering library.
  *
  * This header exposes convenient using-aliases for commonly used types
- * (state, dynamic and sensor models, IPDA filter instance, and Pose type)
+ * (state, dynamic and sensor models, PDAF filter instance, and Pose type)
  * and configuration structs that are passed to the track manager.
  */
 
@@ -36,11 +37,6 @@ using DynMod = vortex::models::ConstantDynamicModel<6>;
 using SensorMod = vortex::models::IdentitySensorModel<6, 6>;
 
 /**
- * @brief IPDA filter type specialized for the chosen dynamic and sensor models.
- */
-using IPDA = vortex::filter::IPDA<DynMod, SensorMod>;
-
-/**
  * @brief PDAF filter type specialized for the chosen dynamic and sensor models.
  */
 using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
@@ -51,12 +47,18 @@ using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
 using Pose = vortex::utils::types::Pose;
 
 /**
- * @brief Parameters for existence management (track confirmation / deletion).
+ * @brief N/M logic parameters for track confirmation and deletion.
+ *
+ * Confirmation: track is confirmed when it accumulates at least
+ * confirm_n hits in the last confirm_m steps.
+ * Deletion: track is deleted when it accumulates at least
+ * delete_n misses in the last delete_m steps.
  */
-struct ExistenceManagementConfig {
-    double confirmation_threshold{0.6};
-    double deletion_threshold{0.2};
-    double initial_existence_probability{0.5};
+struct NMConfig {
+    int confirm_n{3};
+    int confirm_m{5};
+    int delete_n{5};
+    int delete_m{7};
 };
 
 struct LandmarkClassKey {
@@ -67,6 +69,9 @@ struct LandmarkClassKey {
 };
 
 struct LandmarkClassConfig {
+    // N/M track lifecycle parameters
+    NMConfig nm;
+
     // noise (simple version: one std_dev for all 6 dims)
     double dyn_std_dev = 1.0;
     double sens_std_dev = 1.0;
@@ -84,18 +89,15 @@ struct LandmarkClassConfig {
     double mahalanobis_threshold = 2.5;
     double prob_of_detection = 0.5;
     double clutter_intensity = 0.01;
-    double prob_of_survival = 0.95;
-    bool estimate_clutter = false;
 };
 
 /**
  * @brief High-level track manager configuration struct.
  *
- * Contains IPDA-specific configuration and parameters for dynamics,
- * sensor model, existence management and gating thresholds.
+ * Contains PDAF-specific configuration and parameters for dynamics,
+ * sensor model, N/M track management and gating thresholds.
  */
 struct TrackManagerConfig {
-    ExistenceManagementConfig existence;
     LandmarkClassConfig default_class_config;
     std::vector<std::pair<LandmarkClassKey, LandmarkClassConfig>>
         per_class_configs;
@@ -143,11 +145,20 @@ struct Track {
     /// Error state representation (position and orientation errors)
     State6d error_state;
 
-    /// Probability that the track exists (0..1)
-    double existence_probability{0.0};
-
-    /// Whether the track has been confirmed (passed confirmation threshold)
+    /// Whether the track has been confirmed (passed N/M confirmation)
     bool confirmed{false};
+
+    /// Sliding window of hit/miss history (true = hit, false = miss)
+    std::deque<bool> hit_history{};
+
+    /// Number of hits in the current window
+    int hits() const {
+        return static_cast<int>(
+            std::count(hit_history.begin(), hit_history.end(), true));
+    }
+
+    /// Number of misses in the current window
+    int misses() const { return static_cast<int>(hit_history.size()) - hits(); }
 
     /**
      * @brief Convert the track position + orientation to a Pose object.
