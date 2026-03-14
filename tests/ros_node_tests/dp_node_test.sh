@@ -2,6 +2,9 @@
 set -e
 set -o pipefail
 
+echo "Installing dependencies..."
+"$CALLER_REPO/scripts/ci_install_dependencies.sh"
+
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
@@ -31,7 +34,6 @@ if journalctl -u ros2 | grep -i "error"; then
     echo "Error detected in ROS logs. Exiting..."
     exit 1
 fi
-
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"

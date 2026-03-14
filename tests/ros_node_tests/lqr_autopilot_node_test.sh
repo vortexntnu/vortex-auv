@@ -2,6 +2,9 @@
 set -e
 set -o pipefail
 
+echo "Installing dependencies..."
+"$CALLER_REPO/scripts/ci_install_dependencies.sh"
+
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
