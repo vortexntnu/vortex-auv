@@ -29,9 +29,9 @@ include_directories(include)
 set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
-  solvers/qp_allocator.cpp
-  solvers/allocator_factory.cpp
-  solvers/pseudoinverse_allocator.cpp
+  src/solvers/qp_allocator.cpp
+  src/solvers/allocator_factory.cpp
+  src/solvers/pseudoinverse_allocator.cpp
   src/thrust_allocator_ros.cpp)
 
   ament_target_dependencies(${LIB_NAME} PUBLIC

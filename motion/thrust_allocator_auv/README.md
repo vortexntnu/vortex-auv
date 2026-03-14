@@ -87,7 +87,7 @@ For orca there was no big reason to weigh the different actuators since the dron
 The constrained thrust allocation problem is formulated as a quadratic program (QP) following
 Fossen (2021, Eq. 11.38). The optimization variables include the **extended force vector** $f_e$,
 a slack vector $s$, and the scalar load-balancing parameter $\bar{f}$. For our intents and purposes it
-the load balancing parameter will do more harm than good as different manouvers require some thrusters
+the load balancing parameter will do more harm than good as different maneuvers require some thrusters
 to work hard whilst other thrusters to be at rest.
 
 ### **Original Fossen Formulation (QP standard form)**
@@ -152,7 +152,7 @@ colcon test-result --verbose
 
 # Debugging (CasADi)
 
-If the solver behaves unexpectedly it is possible to turn on CasADi's inbuilt spdlogs which show iterations, objective function value and report if the convergence was sucessfull or not.
+If the solver behaves unexpectedly it is possible to turn on CasADi's inbuilt spdlogs which show iterations, objective function value and report if the convergence was successful or not.
 
 ```bash
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Debug

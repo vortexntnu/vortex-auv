@@ -1,0 +1,121 @@
+# This file defines parameters specific to Moby.
+# When looking at the AUV from above, the thruster placement is:
+#
+#        front
+#       |======|
+#  |=7↗=|      |=0↖=|
+#  |    |      |    |
+#  | 6• |      | 1• |
+#  |    |      |    |
+#  |    |      |    |
+#  | 5• |      | 2• |
+#  |    |      |    |
+#  |=4↘=|==||==|=3↙=|
+#
+
+/**:
+  ros__parameters:
+    physical:
+      center_of_mass: [0.0, 0.0, 0.0] # CO is aligned with CM Position (x,y,z) in meters (M)
+      mass_matrix: [53.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 53.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 53.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 11.0628, 1.086, -3.17502, 0.0, 0.0, 0.0, 1.086, 23.1128, 0.1025, 0.0, 0.0, 0.0, -3.17502, 0.1025, 26.23998]
+      # 6x6 mass_inertia_matrix
+    propulsion:
+      solver_type: "qp" # (available solvers: pseudoinverse, qp)
+      dofs:
+        num: 6
+      dimensions:
+        num: 3
+      thrusters:
+        num: 8
+        thruster_force_direction: [ # Direction of forces X,Y,Z, same logic as thruster_position thruster0 produces thrust in (X0,Y0,Z0) and ||(X0,Y0,Z0)|| = 1
+            0.70711,
+            0.00000,
+            0.00000,
+            -0.70711,
+            -0.70711,
+            0.00000,
+            0.00000,
+            0.70711, # Surge
+            -0.70711,
+            0.00000,
+            0.00000,
+            -0.70711,
+            0.70711,
+            0.00000,
+            0.00000,
+            0.70711, # Sway
+            0.00000,
+            1.00000,
+            1.00000,
+            0.00000,
+            0.00000,
+            1.00000,
+            1.00000,
+            0.00000, # Heave
+          ]
+        thruster_position: [ # Position (x0,x1 ... x7,y1,y2, ...,y7,z1,z2, ... ,z7) in meters (M). i.e thruster0 has position (x0,y0,z0)
+          0.413892,
+          0.140095,
+          -0.163904,
+          -0.413892,
+          -0.413892,
+          -0.163904,
+          0.140095,
+          0.413892, # x-positions of the thrusters
+          0.313022,
+          0.313022,
+          0.313022,
+          0.313022,
+          -0.313022,
+          -0.313022,
+          -0.313022,
+          -0.313022, # y-positions of the thrusters
+          0.021736,
+          0.021736,
+          0.021736,
+          0.021736,
+          0.021736,
+          0.021736,
+          0.021736,
+          0.021736, # z-positions of the thrusters
+        ]
+
+        constraints:
+          max_force: 40.0
+          min_force: -40.0
+          input_matrix_weights: [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
+          slack_matrix_weights: [2000.0,2000.0,2000.0,2000.0,2000.0,2000.0]
+
+        rate_of_change:
+          max: 1 # Maximum rate of change in newton per second for a thruster
+
+        thrust_update_rate: 100.0 # [Hz]
+        watchdog_timeout: 1.0 # [s]
+
+    topics:
+      wrench_input: "wrench_input"
+      thruster_forces: "thruster_forces"
+      pwm_output: "pwm"
+      current: "power_sense_module/current"
+      voltage: "power_sense_module/voltage"
+      pressure: "pressure"
+      temperature: "temperature"
+      joy: "joy"
+      pose: "pose"
+      twist: "twist"
+      operation_mode: "operation_mode"
+      killswitch: "killswitch"
+      reference_pose: "reference_pose"
+      guidance:
+        los: "guidance/los"
+        dp: "guidance/dp"
+
+    action_servers:
+      reference_filter: "reference_filter"
+      los: "los_guidance"
+
+    services:
+      set_operation_mode: "set_operation_mode"
+      set_killswitch: "set_killswitch"
+      toggle_killswitch: "toggle_killswitch"
+      get_operation_mode: "get_operation_mode"

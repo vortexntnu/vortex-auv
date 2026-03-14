@@ -29,7 +29,7 @@
         num: 3
       thrusters:
         num: 8
-        thruster_force_direction: [ # Direction of forces X,Y,Z, same logic as thruster_position thruster0 produces thrust in (X0,Y0,Z0) and ||(X0,Y0,Z0)|| = 1 
+        thruster_force_direction: [ # Direction of forces X,Y,Z, same logic as thruster_position thruster0 produces thrust in (X0,Y0,Z0) and ||(X0,Y0,Z0)|| = 1
             0.70711,
             0.00000,
             0.00000,
@@ -54,7 +54,7 @@
             1.00000,
             1.00000,
             0.00000, # Heave
-          ] 
+          ]
         thruster_position: [ # Position (x0,x1 ... x7,y1,y2, ...,y7,z1,z2, ... ,z7) in meters (M). i.e thruster0 has position (x0,y0,z0)
             0.41500,
             0.28400,

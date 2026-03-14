@@ -15,7 +15,6 @@
 #include <string>
 #include <vector>
 #include <vortex/utils/types.hpp>
-#include "casadi/casadi.hpp"
 
 using vortex::utils::types::Vector6d;
 
@@ -111,24 +110,33 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
 }
 
-inline casadi::DM eigen_to_dm(const Eigen::MatrixXd& M) {
-    std::vector<double> data(M.data(), M.data() + M.size());
-    casadi::Sparsity sp = casadi::Sparsity::dense(M.rows(), M.cols());
-    return casadi::DM(sp, data, true);
-}
+/**
+ * @brief Computes the maximum wrench that can be constructed in all DOFs
+ *
+ * @param &T reference to the thrust configuration matrix
+ * @param u_min the minimum allowed value of thrust
+ * @param u_max the maximum allowed value of thrust
+ * @return The vector containing maximum value of thrust with the given thrust
+ * configuration and limits
+ */
+inline Eigen::VectorXd compute_max_wrench(const Eigen::MatrixXd& T,
+                                          const Eigen::VectorXd& u_min,
+                                          const Eigen::VectorXd& u_max) {
+    Eigen::VectorXd tau_max(T.rows());
 
-inline casadi::DM eigen_to_dm(const Eigen::VectorXd& v) {
-    std::vector<double> data(v.data(), v.data() + v.size());
-    // This already becomes (N x 1)
-    return casadi::DM(data);
-}
+    for (int i = 0; i < T.rows(); i++) {
+        double w = 0.0;
+        for (int j = 0; j < T.cols(); j++) {
+            // For each DOF, greedily pick thruster contribution
+            if (T(i, j) > 0)
+                w += T(i, j) * u_max(j);
+            else
+                w += T(i, j) * u_min(j);
+        }
+        tau_max(i) = w;
+    }
 
-inline Eigen::VectorXd dmToEigenVector(const casadi::DM& dm) {
-    std::vector<double> data = static_cast<std::vector<double>>(dm);
-    Eigen::VectorXd out(static_cast<int>(data.size()));
-    for (int i = 0; i < out.size(); ++i)
-        out[i] = data[static_cast<size_t>(i)];
-    return out;
+    return tau_max;
 }
 
 /**
@@ -139,10 +147,10 @@ inline Eigen::VectorXd dmToEigenVector(const casadi::DM& dm) {
  * @param tau_max the maximum allowed value of thrust
  * @return The normalized tau vector
  */
-inline Eigen::VectorXd normalizeWrenchVector(const Eigen::VectorXd& tau,
-                                             const double tau_max) {
-    const double max_abs_component = tau.cwiseAbs().maxCoeff();
-    const double scale = std::max(1.0, max_abs_component / tau_max);
+inline Eigen::VectorXd normalize_wrench_vector(const Eigen::VectorXd& tau,
+                                               const Eigen::VectorXd& tau_max) {
+    const Eigen::VectorXd normalized = tau.cwiseQuotient(tau_max);
+    const double scale = std::max(1.0, normalized.cwiseAbs().maxCoeff());
 
 #if !defined(NDEBUG)
     if (scale > 1.0) {
