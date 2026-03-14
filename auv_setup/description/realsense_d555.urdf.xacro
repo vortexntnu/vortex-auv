@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+<robot name="realsense_d555" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!--
+    Minimal RealSense mount-hole -> optical-frame model.
+
+    Assumptions:
+    - Parent/body convention is ROS body frame: x forward, y left, z up.
+    - Optical frames follow ROS optical convention: z forward, x right, y down.
+    - Default offsets are taken from the D455-style nominal geometry in the xacro
+        depth/infra1 from mount hole: (0.01115,  0.0475, 0.0145)
+        infra2 relative to depth:      (0.0,    -0.095, 0.0)
+        color  relative to depth:      (0.0,    -0.059, 0.0)
+
+    If we later get exact D555 mount-hole dimensions, only the three mount-hole
+    to depth-frame values need to be updated.
+  -->
+
+  <xacro:macro name="realsense_d555" params="frame base name:=camera">
+    <xacro:property name="M_PI" value="3.1415926535897931" />
+
+    <!-- Mount-hole -> depth/infra1 frame offsets (default: D455-style) -->
+    <xacro:property name="depth_px" value="0.01115" />
+    <xacro:property name="depth_py" value="0.0475" />
+    <xacro:property name="depth_pz" value="0.0145" />
+
+    <!-- Inter-sensor offsets (default: D455-style nominal extrinsics) -->
+    <xacro:property name="depth_to_infra1_y" value="0.0" />
+    <xacro:property name="depth_to_infra2_y" value="-0.095" />
+    <xacro:property name="depth_to_color_y"  value="-0.059" />
+
+    <!-- 'base' must be provided by the caller and should be the desired
+         prefix for generated sub-frame names (e.g. 'front_camera'). -->
+
+    <!--
+      The caller is responsible for declaring ${frame} as a <link> and
+      connecting it to the parent with a <joint> (+ the desired origin).
+      This macro only adds the sensor sub-frames below ${frame}.
+    -->
+
+    <!-- Depth frame (same nominal origin as infra1 in the D455 xacro) -->
+    <joint name="${name}_depth_joint" type="fixed">
+      <origin xyz="${depth_px} ${depth_py} ${depth_pz}" rpy="0 0 0"/>
+      <parent link="${frame}"/>
+      <child link="${base}_depth"/>
+    </joint>
+    <link name="${base}_depth"/>
+
+    <joint name="${name}_depth_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
+      <parent link="${base}_depth"/>
+      <child link="${base}_depth_optical"/>
+    </joint>
+    <link name="${base}_depth_optical"/>
+
+    <!-- Infrared 1 frame -->
+    <joint name="${name}_infra1_joint" type="fixed">
+      <origin xyz="${depth_px} ${depth_py + depth_to_infra1_y} ${depth_pz}" rpy="0 0 0"/>
+      <parent link="${frame}"/>
+      <child link="${base}_infra1"/>
+    </joint>
+    <link name="${base}_infra1"/>
+
+    <joint name="${name}_infra1_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
+      <parent link="${base}_infra1"/>
+      <child link="${base}_infra1_optical"/>
+    </joint>
+    <link name="${base}_infra1_optical"/>
+
+    <!-- Infrared 2 frame -->
+    <joint name="${name}_infra2_joint" type="fixed">
+      <origin xyz="${depth_px} ${depth_py + depth_to_infra2_y} ${depth_pz}" rpy="0 0 0"/>
+      <parent link="${frame}"/>
+      <child link="${base}_infra2"/>
+    </joint>
+    <link name="${base}_infra2"/>
+
+    <joint name="${name}_infra2_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
+      <parent link="${base}_infra2"/>
+      <child link="${base}_infra2_optical"/>
+    </joint>
+    <link name="${base}_infra2_optical"/>
+
+    <!-- Color frame -->
+    <joint name="${name}_color_joint" type="fixed">
+      <origin xyz="${depth_px} ${depth_py + depth_to_color_y} ${depth_pz}" rpy="0 0 0"/>
+      <parent link="${frame}"/>
+      <child link="${base}_color"/>
+    </joint>
+    <link name="${base}_color"/>
+
+    <joint name="${name}_color_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}"/>
+      <parent link="${base}_color"/>
+      <child link="${base}_color_optical"/>
+    </joint>
+    <link name="${base}_color_optical"/>
+  </xacro:macro>
+</robot>

@@ -3,6 +3,8 @@
 
 set -e # Exit on any error
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "Installing additional Python dependencies..."
 
 # Upgrade pip first
@@ -26,7 +28,6 @@ sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 
 # Install casadi using CasADi install script
-ls
-./scripts/install_casadi.sh
+"$SCRIPT_DIR/install_casadi.sh"
 
 echo "Done installing additional dependencies."

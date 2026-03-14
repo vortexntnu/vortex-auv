@@ -102,6 +102,7 @@
       temperature: "temperature"
       joy: "joy"
       pose: "pose"
+      odom: "odom"
       twist: "twist"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
@@ -109,6 +110,11 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+      waypoint: "waypoint"
+      dvl_twist: "dvl/twist"
+      dvl_altitude: "dvl/altitude"
+      imu: "mru/imu"
+      sonar_info: "fls/sonar_info"
 
     action_servers:
       reference_filter: "reference_filter"
