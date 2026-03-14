@@ -87,16 +87,19 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
     convergence_dead_reckoning_handoff_ = false;
     convergence_last_known_track_.reset();
     convergence_track_lost_ = false;
+    convergence_mode_ = convergence_goal()->convergence_mode;
     rf_state_ = RFState::IDLE;
 
     spdlog::info(
         "Starting convergence session {}: type={}, subtype={}, "
-        "threshold={:.3f}, dr_offset={:.3f}, track_loss_timeout_sec={:.3f}",
+        "threshold={:.3f}, dr_offset={:.3f}, track_loss_timeout_sec={:.3f}, "
+        "convergence_mode={}",
         convergence_session_id_, convergence_goal()->type.value,
         convergence_goal()->subtype.value,
         convergence_goal()->convergence_threshold,
         convergence_goal()->dead_reckoning_threshold,
-        convergence_goal()->track_loss_timeout_sec);
+        convergence_goal()->track_loss_timeout_sec,
+        static_cast<int>(convergence_mode_));
 
     const auto track = get_convergence_track();
     if (!track) {
@@ -151,8 +154,9 @@ void LandmarkServerNode::convergence_update() {
         return;
     }
 
-    if (convergence_dead_reckoning_handoff_)
+    if (convergence_dead_reckoning_handoff_) {
         return;
+    }
 
     const auto track = get_convergence_track();
     if (!track) {
@@ -277,7 +281,8 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
             convergence_session_id_, dist,
             convergence_goal()->dead_reckoning_threshold,
             target_pose.position.x, target_pose.position.y,
-            target_pose.position.z, cur.x, cur.y, cur.z);
+            target_pose.position.z, cur.x, cur.y, cur.z,
+            convergence_goal()->convergence_threshold);
     }
 }
 
@@ -287,7 +292,7 @@ LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
     vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
-    wp.mode = vortex_msgs::msg::Waypoint::FULL_POSE;
+    wp.mode = convergence_mode_;
     rf_goal.waypoint = wp;
     rf_goal.convergence_threshold = convergence_threshold;
     return rf_goal;
@@ -355,9 +360,6 @@ void LandmarkServerNode::send_reference_filter_goal(
                 convergence_active_ = false;
                 return;
             }
-
-            spdlog::info("Convergence session {}: RF result — code={}",
-                         session_id, static_cast<int>(res.code));
             handle_rf_result(res.code);
         };
 
@@ -377,6 +379,7 @@ void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
                      convergence_session_id_, static_cast<int>(code));
         active_landmark_convergence_goal_->canceled(make_result(false));
         convergence_active_ = false;
+        convergence_mode_ = vortex_msgs::msg::Waypoint::FULL_POSE;
         return;
     }
 
@@ -408,6 +411,7 @@ void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
     }
 
     convergence_active_ = false;
+    convergence_mode_ = vortex_msgs::msg::Waypoint::FULL_POSE;
 }
 
 std::optional<vortex::filtering::Track>
