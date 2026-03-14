@@ -11,10 +11,11 @@
     timer_rate_ms: 200
 
     config:
-      existence:
-        confirmation_threshold: 0.6
-        deletion_threshold: 0.2
-        initial_existence_probability: 0.4
+      nm:
+        confirm_n: 3 # hits needed for confirmation
+        confirm_m: 5 # window size for confirmation
+        delete_n: 5  # misses needed for deletion
+        delete_m: 7  # window size for deletion
 
       gate:
         min_rho_error: 1.50    # meters  – below this, gate always passes
@@ -31,8 +32,6 @@
       mahalanobis_gate_threshold: 3.0
       prob_of_detection: 0.5
       clutter_intensity: 0.01
-      prob_of_survival: 0.95
-      estimate_clutter: false
 
     debug:
       enable: true

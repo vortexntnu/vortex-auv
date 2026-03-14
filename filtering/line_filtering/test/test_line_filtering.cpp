@@ -18,9 +18,10 @@ class LineTrackManagerTests : public ::testing::Test {
         cfg.default_config.max_rho_error = 1.0;
         cfg.default_config.max_phi_error = 0.5;
         cfg.default_config.mahalanobis_threshold = 3.0;
-        cfg.existence.initial_existence_probability = 0.5;
-        cfg.existence.confirmation_threshold = 0.6;
-        cfg.existence.deletion_threshold = 0.2;
+        cfg.nm.confirm_n = 3;
+        cfg.nm.confirm_m = 5;
+        cfg.nm.delete_n = 5;
+        cfg.nm.delete_m = 7;
         return cfg;
     }
 
@@ -48,11 +49,11 @@ TEST_F(LineTrackManagerTests, creates_tracks_from_measurements) {
 
     for (const auto& t : tracks) {
         EXPECT_FALSE(t.confirmed);
-        EXPECT_NEAR(t.existence_probability, 0.5, 1e-12);
+        EXPECT_EQ(t.hits(), 1);
     }
 }
 
-TEST_F(LineTrackManagerTests, single_target_existence_increase) {
+TEST_F(LineTrackManagerTests, hits_increase_with_repeated_observation) {
     auto cfg = make_default_config();
     LineTrackManager mgr(cfg);
 
@@ -60,27 +61,22 @@ TEST_F(LineTrackManagerTests, single_target_existence_increase) {
     mgr.step(z, 0.1);
 
     ASSERT_EQ(mgr.get_tracks().size(), 1);
-    double exist_prob1 = mgr.get_tracks().front().existence_probability;
-    EXPECT_NEAR(exist_prob1, 0.5, 1e-12);
+    EXPECT_EQ(mgr.get_tracks().front().hits(), 1);
 
-    // Repeated observation at same location should increase existence
     z = {make_measurement(1.0, 0.0)};
     mgr.step(z, 0.1);
 
     ASSERT_EQ(mgr.get_tracks().size(), 1);
-    double exist_prob2 = mgr.get_tracks().front().existence_probability;
-    EXPECT_GT(exist_prob2, exist_prob1);
+    EXPECT_EQ(mgr.get_tracks().front().hits(), 2);
 
-    // Third observation
     z = {make_measurement(1.0, 0.0)};
     mgr.step(z, 0.1);
 
     ASSERT_EQ(mgr.get_tracks().size(), 1);
-    double exist_prob3 = mgr.get_tracks().front().existence_probability;
-    EXPECT_GT(exist_prob3, exist_prob2);
+    EXPECT_EQ(mgr.get_tracks().front().hits(), 3);
 }
 
-TEST_F(LineTrackManagerTests, existence_decrease_on_no_detection) {
+TEST_F(LineTrackManagerTests, misses_increase_on_no_detection) {
     auto cfg = make_default_config();
     LineTrackManager mgr(cfg);
 
@@ -88,19 +84,13 @@ TEST_F(LineTrackManagerTests, existence_decrease_on_no_detection) {
     mgr.step(z, 0.1);
 
     ASSERT_EQ(mgr.get_tracks().size(), 1);
-    double exist_prob1 = mgr.get_tracks().front().existence_probability;
 
-    // Step with no measurements — existence should drop
     z = {};
     mgr.step(z, 0.1);
 
     const auto& tracks_after = mgr.get_tracks();
-    if (tracks_after.empty()) {
-        SUCCEED();  // track was deleted due to low existence
-    } else {
-        double exist_prob2 = tracks_after.front().existence_probability;
-        EXPECT_LT(exist_prob2, exist_prob1);
-    }
+    ASSERT_EQ(tracks_after.size(), 1);
+    EXPECT_EQ(tracks_after.front().misses(), 1);
 }
 
 TEST_F(LineTrackManagerTests, rho_gate_filters_distant_measurement) {
@@ -108,31 +98,25 @@ TEST_F(LineTrackManagerTests, rho_gate_filters_distant_measurement) {
     cfg.default_config.max_rho_error = 0.5;  // tight rho gate
     LineTrackManager mgr(cfg);
 
-    // Create a track at rho=1.0, theta=0
     std::vector<LineMeasurement> z1 = {make_measurement(1.0, 0.0)};
     mgr.step(z1, 0.1);
     ASSERT_EQ(mgr.get_tracks().size(), 1);
 
-    // Measurement far away in rho (rho=5.0) should not associate,
-    // creating a second track instead
     std::vector<LineMeasurement> z2 = {make_measurement(5.0, 0.0)};
     mgr.step(z2, 0.1);
 
-    // The distant measurement should have created a new track
     EXPECT_GE(mgr.get_tracks().size(), 2u);
 }
 
 TEST_F(LineTrackManagerTests, phi_gate_filters_rotated_measurement) {
     auto cfg = make_default_config();
-    cfg.default_config.max_phi_error = 0.2;  // tight angle gate (radians)
+    cfg.default_config.max_phi_error = 0.2;  // tight angle gate
     LineTrackManager mgr(cfg);
 
-    // Create a track with theta=0
     std::vector<LineMeasurement> z1 = {make_measurement(1.0, 0.0)};
     mgr.step(z1, 0.1);
     ASSERT_EQ(mgr.get_tracks().size(), 1);
 
-    // Measurement rotated by 1.0 rad should not associate through the gate
     std::vector<LineMeasurement> z2 = {make_measurement(1.0, 1.0)};
     mgr.step(z2, 0.1);
 
@@ -143,53 +127,49 @@ TEST_F(LineTrackManagerTests, sign_alignment_handles_flipped_normal) {
     auto cfg = make_default_config();
     LineTrackManager mgr(cfg);
 
-    // Create track with (rho=1.0, n=[1, 0])
     std::vector<LineMeasurement> z1 = {make_measurement(1.0, 0.0)};
     mgr.step(z1, 0.1);
 
     ASSERT_EQ(mgr.get_tracks().size(), 1);
-    double exist_prob1 = mgr.get_tracks().front().existence_probability;
+    int hits1 = mgr.get_tracks().front().hits();
 
     // Equivalent line with flipped sign: (rho=-1.0, n=[-1, 0])
-    // This should be sign-aligned and associated to the same track
     std::vector<LineMeasurement> z2 = {make_measurement(-1.0, M_PI)};
     mgr.step(z2, 0.1);
 
     // Should still be one track (the flipped measurement was associated)
     ASSERT_EQ(mgr.get_tracks().size(), 1);
-    double exist_prob2 = mgr.get_tracks().front().existence_probability;
-    EXPECT_GT(exist_prob2, exist_prob1);
+    EXPECT_GT(mgr.get_tracks().front().hits(), hits1);
 }
 
-TEST_F(LineTrackManagerTests, track_confirmed_after_repeated_observations) {
+TEST_F(LineTrackManagerTests, track_confirmed_after_n_hits) {
     auto cfg = make_default_config();
-    cfg.existence.confirmation_threshold = 0.6;
+    cfg.nm.confirm_n = 3;
+    cfg.nm.confirm_m = 5;
     LineTrackManager mgr(cfg);
 
-    // Feed the same measurement many times to push existence past threshold
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 5; ++i) {
         std::vector<LineMeasurement> z = {make_measurement(1.0, 0.0)};
         mgr.step(z, 0.1);
     }
 
     ASSERT_EQ(mgr.get_tracks().size(), 1);
     EXPECT_TRUE(mgr.get_tracks().front().confirmed);
-    EXPECT_GE(mgr.get_tracks().front().existence_probability,
-              cfg.existence.confirmation_threshold);
 }
 
-TEST_F(LineTrackManagerTests, track_deleted_when_existence_drops) {
+TEST_F(LineTrackManagerTests, track_deleted_after_n_misses) {
     auto cfg = make_default_config();
-    cfg.existence.deletion_threshold = 0.3;
+    cfg.nm.confirm_n = 1;
+    cfg.nm.confirm_m = 1;
+    cfg.nm.delete_n = 3;
+    cfg.nm.delete_m = 3;
     LineTrackManager mgr(cfg);
 
-    // Create a track
     std::vector<LineMeasurement> z = {make_measurement(1.0, 0.0)};
     mgr.step(z, 0.1);
     ASSERT_EQ(mgr.get_tracks().size(), 1);
 
-    // Many empty steps should eventually delete the track
-    for (int i = 0; i < 50; ++i) {
+    for (int i = 0; i < 3; ++i) {
         z = {};
         mgr.step(z, 0.1);
     }
@@ -201,7 +181,6 @@ TEST_F(LineTrackManagerTests, multiple_tracks_maintained_independently) {
     auto cfg = make_default_config();
     LineTrackManager mgr(cfg);
 
-    // Create two tracks far apart
     std::vector<LineMeasurement> z = {
         make_measurement(1.0, 0.0),
         make_measurement(5.0, M_PI / 2),
@@ -213,16 +192,14 @@ TEST_F(LineTrackManagerTests, multiple_tracks_maintained_independently) {
     z = {make_measurement(1.0, 0.0)};
     mgr.step(z, 0.1);
 
-    // Both tracks should still exist, first with higher probability
     ASSERT_GE(mgr.get_tracks().size(), 1u);
 
-    // Find the track closest to rho=1.0, theta=0
     bool found_first = false;
     for (const auto& t : mgr.get_tracks()) {
         if (std::abs(t.nominal.rho - 1.0) < 0.5 &&
             std::abs(t.nominal.n.x() - 1.0) < 0.5) {
             found_first = true;
-            EXPECT_GT(t.existence_probability, 0.5);
+            EXPECT_EQ(t.hits(), 2);
         }
     }
     EXPECT_TRUE(found_first);
@@ -235,7 +212,6 @@ TEST_F(LineTrackManagerTests, from_segment_creates_valid_measurement) {
 
     auto meas = LineMeasurement::from_segment(seg);
 
-    // Segment along x-axis: normal is [0, 1], rho = 0
     EXPECT_NEAR(std::abs(meas.n.x()), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(meas.n.y()), 1.0, 1e-12);
     EXPECT_NEAR(meas.rho, 0.0, 1e-12);
@@ -249,10 +225,7 @@ TEST_F(LineTrackManagerTests, from_segment_diagonal_line) {
 
     auto meas = LineMeasurement::from_segment(seg);
 
-    // Unit normal should have magnitude 1
     EXPECT_NEAR(meas.n.norm(), 1.0, 1e-12);
-
-    // rho = n . p0 = 0 (line passes through origin)
     EXPECT_NEAR(meas.rho, 0.0, 1e-12);
 }
 
@@ -263,7 +236,6 @@ TEST_F(LineTrackManagerTests, from_segment_offset_line) {
 
     auto meas = LineMeasurement::from_segment(seg);
 
-    // Horizontal line at y=2: normal is [0, ±1], |rho| = 2
     EXPECT_NEAR(std::abs(meas.n.x()), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(meas.n.y()), 1.0, 1e-12);
     EXPECT_NEAR(std::abs(meas.rho), 2.0, 1e-12);
@@ -280,7 +252,6 @@ TEST_F(LineTrackManagerTests, from_segment_zero_length_throws) {
 TEST_F(LineTrackManagerTests, canonical_form_positive_rho) {
     LineTrackManager mgr(make_default_config());
 
-    // Create track with negative rho
     std::vector<LineMeasurement> z = {make_measurement(-2.0, M_PI)};
     mgr.step(z, 0.1);
 

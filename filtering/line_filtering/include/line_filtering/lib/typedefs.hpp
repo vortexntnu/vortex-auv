@@ -1,10 +1,11 @@
 #ifndef LINE_FILTERING__LIB__TYPEDEFS_HPP_
 #define LINE_FILTERING__LIB__TYPEDEFS_HPP_
 
+#include <deque>
 #include <eigen3/Eigen/Dense>
 #include <limits>
 #include <vortex/utils/types.hpp>
-#include <vortex_filtering/filters/ipda.hpp>
+#include <vortex_filtering/filters/pdaf.hpp>
 #include <vortex_filtering/vortex_filtering.hpp>
 
 namespace vortex::line_filtering {
@@ -17,7 +18,7 @@ namespace vortex::line_filtering {
  * This header exposes convenient aliases for the 2D error-state line filter.
  * The error state is 2D: [delta_rho, delta_phi].
  * We use ConstantDynamicModel<2> and IdentitySensorModel<2,2> so that the
- * IPDA machinery works identically to the pose filter, but in 2D.
+ * PDAF machinery works identically to the pose filter, but in 2D.
  */
 
 /**
@@ -37,11 +38,6 @@ using DynMod = vortex::models::ConstantDynamicModel<2>;
 using SensorMod = vortex::models::IdentitySensorModel<2, 2>;
 
 /**
- * @brief IPDA filter type specialized for 2D error-state line models.
- */
-using IPDA = vortex::filter::IPDA<DynMod, SensorMod>;
-
-/**
  * @brief PDAF filter type specialized for 2D error-state line models.
  */
 using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
@@ -52,12 +48,13 @@ using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
 using LineSegment2D = vortex::utils::types::LineSegment2D;
 
 /**
- * @brief Parameters for existence management (track confirmation / deletion).
+ * @brief N/M logic parameters for track confirmation and deletion.
  */
-struct ExistenceConfig {
-    double confirmation_threshold{0.6};
-    double deletion_threshold{0.2};
-    double initial_existence_probability{0.5};
+struct NMConfig {
+    int confirm_n{3};
+    int confirm_m{5};
+    int delete_n{5};
+    int delete_m{7};
 };
 
 struct LineClassConfig {
@@ -85,15 +82,13 @@ struct LineClassConfig {
 
     double prob_of_detection = 0.5;
     double clutter_intensity = 0.01;
-    double prob_of_survival = 0.95;
-    bool estimate_clutter = false;
 };
 
 /**
  * @brief High-level track manager configuration struct.
  */
 struct LineTrackManagerConfig {
-    ExistenceConfig existence;
+    NMConfig nm;
     LineClassConfig default_config;
 };
 
@@ -125,11 +120,20 @@ struct LineTrack {
     /// 2D error-state Gaussian [delta_rho, delta_phi]
     State2d error_state;
 
-    /// Probability that the track exists (0..1)
-    double existence_probability{0.0};
-
-    /// Whether the track has been confirmed
+    /// Whether the track has been confirmed (passed N/M confirmation)
     bool confirmed{false};
+
+    /// Sliding window of hit/miss history (true = hit, false = miss)
+    std::deque<bool> hit_history{};
+
+    /// Number of hits in the current window
+    int hits() const {
+        return static_cast<int>(
+            std::count(hit_history.begin(), hit_history.end(), true));
+    }
+
+    /// Number of misses in the current window
+    int misses() const { return static_cast<int>(hit_history.size()) - hits(); }
 
     /**
      * @brief Return the line in canonical form (rho >= 0, theta in [0, 2pi)).
