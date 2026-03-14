@@ -13,10 +13,10 @@ class PoseTrackManagerTests : public ::testing::Test {
         TrackManagerConfig cfg{};
         cfg.default_class_config.dyn_std_dev = 0.1;
         cfg.default_class_config.sens_std_dev = 0.1;
-        cfg.nm.confirm_n = 3;
-        cfg.nm.confirm_m = 5;
-        cfg.nm.delete_n = 5;
-        cfg.nm.delete_m = 7;
+        cfg.default_class_config.nm.confirm_n = 3;
+        cfg.default_class_config.nm.confirm_m = 5;
+        cfg.default_class_config.nm.delete_n = 5;
+        cfg.default_class_config.nm.delete_m = 7;
         return cfg;
     }
 
@@ -50,10 +50,10 @@ TEST_F(PoseTrackManagerTests, creates_tracks_from_measurements) {
 
 TEST_F(PoseTrackManagerTests, track_confirms_after_n_hits) {
     auto cfg = make_default_config();
-    cfg.nm.confirm_n = 3;
-    cfg.nm.confirm_m = 5;
-    cfg.nm.delete_n = 5;
-    cfg.nm.delete_m = 7;
+    cfg.default_class_config.nm.confirm_n = 3;
+    cfg.default_class_config.nm.confirm_m = 5;
+    cfg.default_class_config.nm.delete_n = 5;
+    cfg.default_class_config.nm.delete_m = 7;
     PoseTrackManager mgr(cfg);
 
     Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
@@ -69,8 +69,8 @@ TEST_F(PoseTrackManagerTests, track_confirms_after_n_hits) {
 
 TEST_F(PoseTrackManagerTests, track_does_not_confirm_without_enough_hits) {
     auto cfg = make_default_config();
-    cfg.nm.confirm_n = 3;
-    cfg.nm.confirm_m = 5;
+    cfg.default_class_config.nm.confirm_n = 3;
+    cfg.default_class_config.nm.confirm_m = 5;
     PoseTrackManager mgr(cfg);
 
     Eigen::Quaterniond q = Eigen::Quaterniond::Identity();
@@ -89,10 +89,10 @@ TEST_F(PoseTrackManagerTests, track_does_not_confirm_without_enough_hits) {
 
 TEST_F(PoseTrackManagerTests, track_deleted_after_n_misses) {
     auto cfg = make_default_config();
-    cfg.nm.confirm_n = 1;
-    cfg.nm.confirm_m = 1;
-    cfg.nm.delete_n = 3;
-    cfg.nm.delete_m = 3;
+    cfg.default_class_config.nm.confirm_n = 1;
+    cfg.default_class_config.nm.confirm_m = 1;
+    cfg.default_class_config.nm.delete_n = 3;
+    cfg.default_class_config.nm.delete_m = 3;
     PoseTrackManager mgr(cfg);
 
     Eigen::Quaterniond q = Eigen::Quaterniond::Identity();

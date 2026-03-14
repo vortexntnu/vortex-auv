@@ -203,7 +203,8 @@ void PoseTrackManager::create_tracks(
 }
 
 void PoseTrackManager::record_hit_miss(Track& track, bool hit) {
-    int max_window = std::max(config_.nm.confirm_m, config_.nm.delete_m);
+    const auto& nm = cfg_for(track).nm;
+    int max_window = std::max(nm.confirm_m, nm.delete_m);
     track.hit_history.push_back(hit);
     while (static_cast<int>(track.hit_history.size()) > max_window) {
         track.hit_history.pop_front();
@@ -215,16 +216,17 @@ void PoseTrackManager::confirm_tracks() {
         if (track.confirmed) {
             continue;
         }
-        if (static_cast<int>(track.hit_history.size()) < config_.nm.confirm_m) {
+        const auto& nm = cfg_for(track).nm;
+        if (static_cast<int>(track.hit_history.size()) < nm.confirm_m) {
             continue;
         }
         int recent_hits = 0;
         auto it = track.hit_history.rbegin();
-        for (int i = 0; i < config_.nm.confirm_m; ++i, ++it) {
+        for (int i = 0; i < nm.confirm_m; ++i, ++it) {
             if (*it)
                 ++recent_hits;
         }
-        if (recent_hits >= config_.nm.confirm_n) {
+        if (recent_hits >= nm.confirm_n) {
             track.confirmed = true;
         }
     }
@@ -232,16 +234,17 @@ void PoseTrackManager::confirm_tracks() {
 
 void PoseTrackManager::delete_tracks() {
     auto new_end = std::ranges::remove_if(tracks_, [this](const Track& track) {
-        if (static_cast<int>(track.hit_history.size()) < config_.nm.delete_m) {
+        const auto& nm = cfg_for(track).nm;
+        if (static_cast<int>(track.hit_history.size()) < nm.delete_m) {
             return false;
         }
         int recent_misses = 0;
         auto it = track.hit_history.rbegin();
-        for (int i = 0; i < config_.nm.delete_m; ++i, ++it) {
+        for (int i = 0; i < nm.delete_m; ++i, ++it) {
             if (!*it)
                 ++recent_misses;
         }
-        return recent_misses >= config_.nm.delete_n;
+        return recent_misses >= nm.delete_n;
     });
     tracks_.erase(new_end.begin(), new_end.end());
 }

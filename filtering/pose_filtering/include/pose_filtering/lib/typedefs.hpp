@@ -69,6 +69,9 @@ struct LandmarkClassKey {
 };
 
 struct LandmarkClassConfig {
+    // N/M track lifecycle parameters
+    NMConfig nm;
+
     // noise (simple version: one std_dev for all 6 dims)
     double dyn_std_dev = 1.0;
     double sens_std_dev = 1.0;
@@ -95,7 +98,6 @@ struct LandmarkClassConfig {
  * sensor model, N/M track management and gating thresholds.
  */
 struct TrackManagerConfig {
-    NMConfig nm;
     LandmarkClassConfig default_class_config;
     std::vector<std::pair<LandmarkClassKey, LandmarkClassConfig>>
         per_class_configs;

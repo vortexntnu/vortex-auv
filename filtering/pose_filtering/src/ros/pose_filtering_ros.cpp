@@ -103,10 +103,14 @@ void PoseFilteringNode::create_pose_subscription(
 void PoseFilteringNode::setup_track_manager() {
     TrackManagerConfig config;
 
-    config.nm.confirm_n = this->declare_parameter<int>("config.nm.confirm_n");
-    config.nm.confirm_m = this->declare_parameter<int>("config.nm.confirm_m");
-    config.nm.delete_n = this->declare_parameter<int>("config.nm.delete_n");
-    config.nm.delete_m = this->declare_parameter<int>("config.nm.delete_m");
+    config.default_class_config.nm.confirm_n =
+        this->declare_parameter<int>("config.nm.confirm_n");
+    config.default_class_config.nm.confirm_m =
+        this->declare_parameter<int>("config.nm.confirm_m");
+    config.default_class_config.nm.delete_n =
+        this->declare_parameter<int>("config.nm.delete_n");
+    config.default_class_config.nm.delete_m =
+        this->declare_parameter<int>("config.nm.delete_m");
 
     config.default_class_config.min_pos_error =
         this->declare_parameter<double>("config.gate.min_pos_error");
