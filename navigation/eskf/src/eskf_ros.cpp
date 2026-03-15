@@ -58,20 +58,22 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
 void ESKFNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
-    this->declare_parameter<std::string>("imu_topic");
-    std::string imu_topic = this->get_parameter("imu_topic").as_string();
+
+    this->declare_parameter<std::string>("topics.imu");
+    std::string imu_topic = this->get_parameter("topics.imu").as_string();
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
         imu_topic, qos_sensor_data,
         std::bind(&ESKFNode::imu_callback, this, std::placeholders::_1));
 
-    this->declare_parameter<std::string>("dvl_topic");
-    std::string dvl_topic = this->get_parameter("dvl_topic").as_string();
-    dvl_sub_ = this->create_subscription<stonefish_ros2::msg::DVL>(
+    this->declare_parameter<std::string>("topics.dvl_twist");
+    std::string dvl_topic = this->get_parameter("topics.dvl_twist").as_string();
+    dvl_sub_ = this->create_subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>(
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
-    this->declare_parameter<std::string>("odom_topic");
-    std::string odom_topic = this->get_parameter("odom_topic").as_string();
+    this->declare_parameter<std::string>("topics.odom");
+    std::string odom_topic = this->get_parameter("topics.odom").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
@@ -175,16 +177,18 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     eskf_->imu_update(imu_measurement, dt);
 }
 
-void ESKFNode::dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg) {
+void ESKFNode::dvl_callback(
+    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
     SensorDVL dvl_sensor;
 
-    dvl_sensor.measurement << msg->velocity.x, msg->velocity.y, msg->velocity.z;
+    dvl_sensor.measurement << msg->twist.twist.linear.x,
+        msg->twist.twist.linear.y, msg->twist.twist.linear.z;
 
-    dvl_sensor.measurement_noise << msg->velocity_covariance[0],
-        msg->velocity_covariance[1], msg->velocity_covariance[2],
-        msg->velocity_covariance[3], msg->velocity_covariance[4],
-        msg->velocity_covariance[5], msg->velocity_covariance[6],
-        msg->velocity_covariance[7], msg->velocity_covariance[8];
+    dvl_sensor.measurement_noise << msg->twist.covariance[0],
+        msg->twist.covariance[1], msg->twist.covariance[2],
+        msg->twist.covariance[6], msg->twist.covariance[7],
+        msg->twist.covariance[8], msg->twist.covariance[12],
+        msg->twist.covariance[13], msg->twist.covariance[14];
 
     // Apply the rotation and translation corrections to the DVL measurement
     StateQuat nom_state = eskf_->get_nominal_state();
