@@ -2,16 +2,42 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
 
-joystick_params = os.path.join(
-    get_package_share_directory("joystick_interface_auv"),
-    "config/param_joystick_interface_auv.yaml",
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
 )
 
-orca_params = os.path.join(
-    get_package_share_directory("auv_setup"), "config", "robots", "orca.yaml"
-)
+
+def launch_setup(context, *args, **kwargs):
+    """Set up the joystick_interface_auv node with drone-specific config."""
+    drone, namespace = resolve_drone_and_namespace(context)
+
+    joystick_params = os.path.join(
+        get_package_share_directory("joystick_interface_auv"),
+        "config",
+        "param_joystick_interface_auv.yaml",
+    )
+
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+
+    return [
+        Node(
+            package="joystick_interface_auv",
+            executable="joystick_interface_auv_node.py",
+            name="joystick_interface_auv",
+            namespace=namespace,
+            output="screen",
+            parameters=[joystick_params, drone_params],
+        )
+    ]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -26,13 +52,6 @@ def generate_launch_description() -> LaunchDescription:
         joystick_interface_auv node.
 
     """
-    joystick_interface_node = Node(
-        package="joystick_interface_auv",
-        executable="joystick_interface_auv_node.py",
-        name="joystick_interface_auv",
-        namespace="orca",
-        output="screen",
-        parameters=[joystick_params, orca_params],
+    return LaunchDescription(
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )
-
-    return LaunchDescription([joystick_interface_node])
