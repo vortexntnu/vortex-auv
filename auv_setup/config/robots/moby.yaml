@@ -109,6 +109,8 @@
       dvl_altitude: "dvl/altitude"
       imu: "imu/data_raw"
       sonar_info: "fls/sonar_info"
+      pressure_sensor: "pressure_sensor"
+
 
     action_servers:
       reference_filter: "reference_filter"

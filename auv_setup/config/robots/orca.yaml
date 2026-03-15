@@ -135,6 +135,7 @@
       dvl_twist: "dvl/twist"
       dvl_altitude: "dvl/altitude"
       imu: "imu/data_raw"
+      pressure_sensor: "pressure_sensor"
 
     action_servers:
       reference_filter: "reference_filter"
