@@ -27,6 +27,13 @@
     <origin xyz="0.4 0.0 0.2" rpy="0.0 0.0 1.571"/>
   </joint>
 
+  <link name="pressure_sensor_link"></link>
+  <joint name="base_to_pressure_sensor" type="fixed">
+    <parent link="base_link"/>
+    <child link="pressure_sensor_link"/>
+    <origin xyz="0.4 0.0 0.2" rpy="0.0 0.0 1.571"/>
+  </joint>
+
   <link name="front_camera_link"/>
   <joint name="base_to_front_camera" type="fixed">
     <parent link="base_link"/>
