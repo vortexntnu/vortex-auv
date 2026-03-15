@@ -20,8 +20,8 @@ class EskfValidator(Node):
     def __init__(self):
         super().__init__('eskf_validator')
 
-        self.est_topic = '/odom_ESKF'
-        self.gt_topic = '/orca/odom'
+        self.est_topic = 'orca/odom'
+        self.gt_topic = '/orca/odom/stonefish'
 
         # --- Publishers (Foxglove Visualizers) ---
         # RMSE (Running Root Mean Square Error)

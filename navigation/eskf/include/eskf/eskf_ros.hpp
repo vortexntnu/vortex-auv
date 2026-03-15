@@ -34,7 +34,8 @@ class ESKFNode : public rclcpp::Node {
 
     // @brief Callback function for the dvl topic
     // @param msg: TwistWithCovarianceStamped message containing the dvl data
-    void dvl_callback(const stonefish_ros2::msg::DVL::SharedPtr msg);
+    void dvl_callback(
+        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Publish the odometry message
     void publish_odom();
@@ -55,7 +56,8 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
 
-    rclcpp::Subscription<stonefish_ros2::msg::DVL>::SharedPtr dvl_sub_;
+    rclcpp::Subscription<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
