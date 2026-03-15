@@ -7,6 +7,7 @@
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
@@ -64,6 +65,11 @@ class PIDControllerNode : public rclcpp::Node {
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
+    // @brief Callback function for parameter updates
+    // @param parameters: vector of parameters to be set
+    rcl_interfaces::msg::SetParametersResult parametersCallback(
+        const std::vector<rclcpp::Parameter>& parameters);
+
     rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
         get_operation_mode_client_;
 
@@ -107,6 +113,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     vortex::utils::types::Mode operation_mode_{
         vortex::utils::types::Mode::manual};
+
+    OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 };
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
