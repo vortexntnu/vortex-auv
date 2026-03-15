@@ -103,13 +103,14 @@ void PoseFilteringNode::create_pose_subscription(
 void PoseFilteringNode::setup_track_manager() {
     TrackManagerConfig config;
 
-    config.existence.confirmation_threshold = this->declare_parameter<double>(
-        "config.existence.confirmation_threshold");
-    config.existence.deletion_threshold =
-        this->declare_parameter<double>("config.existence.deletion_threshold");
-    config.existence.initial_existence_probability =
-        this->declare_parameter<double>(
-            "config.existence.initial_existence_probability");
+    config.default_class_config.nm.confirm_n =
+        this->declare_parameter<int>("config.nm.confirm_n");
+    config.default_class_config.nm.confirm_m =
+        this->declare_parameter<int>("config.nm.confirm_m");
+    config.default_class_config.nm.delete_n =
+        this->declare_parameter<int>("config.nm.delete_n");
+    config.default_class_config.nm.delete_m =
+        this->declare_parameter<int>("config.nm.delete_m");
 
     config.default_class_config.min_pos_error =
         this->declare_parameter<double>("config.gate.min_pos_error");
@@ -136,10 +137,6 @@ void PoseFilteringNode::setup_track_manager() {
         this->declare_parameter<double>("config.prob_of_detection");
     config.default_class_config.clutter_intensity =
         this->declare_parameter<double>("config.clutter_intensity");
-    config.default_class_config.prob_of_survival =
-        this->declare_parameter<double>("config.prob_of_survival");
-    config.default_class_config.estimate_clutter =
-        this->declare_parameter<bool>("config.estimate_clutter");
 
     track_manager_ = std::make_unique<PoseTrackManager>(config);
 }

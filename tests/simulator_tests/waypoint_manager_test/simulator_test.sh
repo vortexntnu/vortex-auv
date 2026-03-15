@@ -51,7 +51,7 @@ timeout 10s ros2 topic echo /orca/odom --once
 echo "Got odom data"
 
 # Launch ORCA Simulation
-setsid ros2 launch stonefish_sim orca_sim.launch.py &
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
 ORCA_PID=$!
 echo "Launched orca with PID: $ORCA_PID"
 

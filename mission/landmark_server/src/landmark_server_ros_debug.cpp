@@ -42,7 +42,9 @@ void LandmarkServerNode::publish_debug_tracks() {
         track_msg.landmark.pose.pose.orientation.z = pose.ori_quaternion().z();
         track_msg.landmark.pose.pose.orientation.w = pose.ori_quaternion().w();
 
-        track_msg.existence_probability = t.existence_probability;
+        track_msg.confirmed = t.confirmed;
+        track_msg.hits = t.hits();
+        track_msg.misses = t.misses();
 
         msg.landmark_tracks.push_back(track_msg);
     }
@@ -60,7 +62,9 @@ void LandmarkServerNode::publish_convergence_landmark_debug() {
     msg.header.stamp = this->now();
     msg.header.frame_id = target_frame_;
     msg.landmark = track_to_landmark_msg(track);
-    msg.existence_probability = track.existence_probability;
+    msg.confirmed = track.confirmed;
+    msg.hits = track.hits();
+    msg.misses = track.misses();
 
     convergence_landmark_debug_pub_->publish(msg);
 }
