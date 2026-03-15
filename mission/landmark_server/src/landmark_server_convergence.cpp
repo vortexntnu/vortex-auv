@@ -98,8 +98,7 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
         convergence_goal()->subtype.value,
         convergence_goal()->convergence_threshold,
         convergence_goal()->dead_reckoning_threshold,
-        convergence_goal()->track_loss_timeout_sec,
-        static_cast<int>(convergence_mode_));
+        convergence_goal()->track_loss_timeout_sec, convergence_mode_);
 
     const auto track = get_convergence_track();
     if (!track) {

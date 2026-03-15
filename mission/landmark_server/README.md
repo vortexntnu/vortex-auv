@@ -65,8 +65,8 @@ Drives the AUV towards a landmark. Succeeds when the AUV has converged onto the 
 
 ```bash
 ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConvergence "{
-  type: {value: 2},
-  subtype: {value: 1},
+  type: {value: 1},
+  subtype: {value: 19},
   convergence_offset: {
     position: {x: 0.0, y: 0.0, z: -1.0},
     orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
@@ -74,7 +74,7 @@ ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConv
   convergence_threshold: 0.3,
   dead_reckoning_threshold: 1.0,
   track_loss_timeout_sec: 10.0,
-  convergence_mode: vortex_msgs::msg::Waypoint::ONLY_POSITION,
+  convergence_mode: 0,
 }"
 ```
 
@@ -82,7 +82,7 @@ ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConv
 
 ## Convergence modes
 
-The `convergence_mode` field controls how the ReferenceFilter will approach the target. It maps to the `Waypoint.mode` constants defined in `vortex_msgs/msg/Waypoint`.
+The `convergence_mode` field controls how the ReferenceFilter will approach the target.
 
 | Value | Constant | Behavior |
 |---:|---|---|
