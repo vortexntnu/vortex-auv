@@ -29,6 +29,7 @@ def launch_setup(context, *args, **kwargs):
             name="robot_state_publisher",
             namespace=namespace,
             output="screen",
+            remappings=[("joint_states", "servo_state")],
             parameters=[
                 {
                     "robot_description": ParameterValue(
