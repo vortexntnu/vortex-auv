@@ -19,7 +19,7 @@
 
 
 //Konstruktør
-Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(600,50,0), PID_yaw(120,20,0), PID_pitch(35,1,0), lqr_controller()
+Velocity_node::Velocity_node() : Node("velocity_controller_node"), PID_surge(300,10,5), PID_yaw(60,8,5), PID_pitch(10,1,3), lqr_controller()
 {
   //Dytter info til log
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");

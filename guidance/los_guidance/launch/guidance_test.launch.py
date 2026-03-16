@@ -14,7 +14,7 @@ def generate_launch_description():
     stonefish_dir = get_package_share_directory('stonefish_sim')
     vortex_sim_interface_dir = get_package_share_directory('vortex_sim_interface')
     los_guidance_dir = get_package_share_directory('los_guidance')
-    velocity_controller_dir = get_package_share_directory('velocity_controller_lqr')
+    velocity_controller_dir = get_package_share_directory('velocity_controller')
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -51,12 +51,12 @@ def generate_launch_description():
     )
 
     velocity_controller_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                velocity_controller_dir, 'launch', 'velocity_controller_lqr.launch.py'
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    velocity_controller_dir, 'launch', 'velocity_controller.launch.py'
+                    )
+                )   
             )
-        )
-    )
 
     orca_sim = TimerAction(
         period=12.0,
@@ -111,9 +111,10 @@ def generate_launch_description():
             vortex_sim_interface,
             operation_mode_launch,
             los_guidance_launch,
-            velocity_controller_launch,
             orca_sim,
             set_autonomy,
-            square_test,
+            velocity_controller_launch,
+            #square_test,
+            
         ]
     )
