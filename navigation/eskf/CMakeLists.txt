@@ -27,7 +27,6 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
-find_package(stonefish_ros2 REQUIRED)
 
 if(NOT DEFINED EIGEN3_INCLUDE_DIR)
   set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIRS})
@@ -55,59 +54,52 @@ ament_target_dependencies(${CORE_LIB_NAME}
 
 add_library(${PROJECT_NAME}::${CORE_LIB_NAME} ALIAS ${CORE_LIB_NAME})
 
-option(BOOTSTRAP_CORE_ONLY "Build only the core ESKF library, without the ROS component" OFF)
+set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
 
-if(NOT BOOTSTRAP_CORE_ONLY)
-  set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
+add_library(${COMPONENT_LIB_NAME} SHARED
+  src/ros/eskf_ros.cpp
+)
 
-  add_library(${COMPONENT_LIB_NAME} SHARED
-    src/ros/eskf_ros.cpp
-  )
+ament_target_dependencies(${COMPONENT_LIB_NAME}
+  rclcpp
+  rclcpp_components
+  Eigen3
+  geometry_msgs
+  nav_msgs
+  tf2
+  tf2_ros
+  tf2_eigen
+  vortex_msgs
+  vortex_utils
+  vortex_utils_ros
+  spdlog
+  fmt
+)
 
-  ament_target_dependencies(${COMPONENT_LIB_NAME}
-    rclcpp
-    rclcpp_components
-    Eigen3
-    geometry_msgs
-    nav_msgs
-    tf2
-    tf2_ros
-    vortex_msgs
-    vortex_utils
-    vortex_utils_ros
-    spdlog
-    fmt
-  )
+target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
 
-  target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
-
-  find_package(landmark_egomotion REQUIRED)
+find_package(landmark_egomotion QUIET)
+if(landmark_egomotion_FOUND)
+  target_compile_definitions(${COMPONENT_LIB_NAME} PRIVATE HAVE_LANDMARK_EGOMOTION=1)
   target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
-
-  rclcpp_components_register_node(
-    ${COMPONENT_LIB_NAME}
-    PLUGIN "ESKFNode"
-    EXECUTABLE ${PROJECT_NAME}_node
-  )
+else()
+  message(STATUS "landmark_egomotion not found — building eskf without landmark egomotion support")
 endif()
+
+rclcpp_components_register_node(
+  ${COMPONENT_LIB_NAME}
+  PLUGIN "ESKFNode"
+  EXECUTABLE ${PROJECT_NAME}_node
+)
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
-if(NOT BOOTSTRAP_CORE_ONLY)
-  install(TARGETS ${CORE_LIB_NAME} ${COMPONENT_LIB_NAME}
-    EXPORT export_${PROJECT_NAME}
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-  )
-else()
-  install(TARGETS ${CORE_LIB_NAME}
-    EXPORT export_${PROJECT_NAME}
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
-  )
-endif()
+install(TARGETS ${CORE_LIB_NAME} ${COMPONENT_LIB_NAME}
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 install(
   DIRECTORY include/

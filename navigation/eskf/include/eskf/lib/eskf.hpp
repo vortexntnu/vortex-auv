@@ -39,14 +39,21 @@ class ESKF {
     // @brief Predict the nominal state
     // @param imu_meas: IMU measurement
     // @param dt: Time step
+    // @return Predicted nominal state
     void nominal_state_discrete(const ImuMeasurement& imu_meas,
                                 const double dt);
 
     // @brief Predict the error state
     // @param imu_meas: IMU measurement
     // @param dt: Time step
+    // @return Predicted error state
     void error_state_prediction(const ImuMeasurement& imu_meas,
                                 const double dt);
+
+    // @brief Calculate the NIS
+    // @param innovation: Innovation vector
+    // @param S: Innovation covariance matrix
+    void NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
 
     // @brief Update the error state using a generic sensor measurement model
     // @tparam SensorT Type of the sensor model (must satisfy
