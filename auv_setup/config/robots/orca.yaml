@@ -136,6 +136,7 @@
       dvl_altitude: "dvl/altitude"
       imu: "imu/data_raw"
       pressure_sensor: "pressure_sensor"
+      gripper_servos: "gripper_servos"
 
     action_servers:
       reference_filter: "reference_filter"
