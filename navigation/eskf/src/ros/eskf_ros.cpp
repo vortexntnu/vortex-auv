@@ -219,10 +219,18 @@ void ESKFNode::landmark_callback(
     if (markers.empty())
         return;
 
-    auto it = std::min_element(markers.begin(), markers.end(),
-                               [](const auto* a, const auto* b) {
-                                   return a->subtype.value < b->subtype.value;
-                               });
+    auto it = std::min_element(
+        markers.begin(), markers.end(), [](const auto* a, const auto* b) {
+            const double da = Eigen::Vector3d(a->pose.pose.position.x,
+                                              a->pose.pose.position.y,
+                                              a->pose.pose.position.z)
+                                  .norm();
+            const double db = Eigen::Vector3d(b->pose.pose.position.x,
+                                              b->pose.pose.position.y,
+                                              b->pose.pose.position.z)
+                                  .norm();
+            return da < db;
+        });
     const auto* chosen = *it;
     uint16_t chosen_id = chosen->subtype.value;
     spdlog::debug("Received {} markers, chosen id: {}", markers.size(),

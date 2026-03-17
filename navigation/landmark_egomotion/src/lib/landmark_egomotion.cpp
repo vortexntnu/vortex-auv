@@ -166,10 +166,9 @@ void LandmarkESKF::landmark_vel_update_(const Eigen::Vector3d& v_meas_nav,
 
     current_error_state_.set_from_vector(K * y);
 
-    Eigen::Matrix<double, 15, 3> K_full = P * H.transpose() * S.inverse();
-    Eigen::Matrix15d I_KH = Eigen::Matrix15d::Identity() - K_full * H;
+    Eigen::Matrix15d I_KH = Eigen::Matrix15d::Identity() - K * H;
     current_error_state_.covariance =
-        I_KH * P * I_KH.transpose() + K_full * Rv * K_full.transpose();
+        I_KH * P * I_KH.transpose() + K * Rv * K.transpose();
 
     injection_and_reset();
 }
