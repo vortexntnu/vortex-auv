@@ -126,6 +126,9 @@ struct LineTrack {
     /// Sliding window of hit/miss history (true = hit, false = miss)
     std::deque<bool> hit_history{};
 
+    /// Endpoint metadata propagated from the best-associated measurement
+    LineSegment2D endpoints;
+
     /// Number of hits in the current window
     int hits() const {
         return static_cast<int>(
@@ -163,6 +166,9 @@ struct LineMeasurement {
     double rho{0.0};
     Eigen::Vector2d n{1.0, 0.0};
 
+    /// Original segment endpoints (metadata, not used by the filter)
+    LineSegment2D endpoints;
+
     /**
      * @brief Create a LineMeasurement from a LineSegment2D.
      */
@@ -183,7 +189,11 @@ struct LineMeasurement {
         // Signed rho – do NOT enforce rho >= 0
         const double rho = nx * seg.p0.x + ny * seg.p0.y;
 
-        return LineMeasurement{.rho = rho, .n = Eigen::Vector2d{nx, ny}};
+        return LineMeasurement{
+            .rho = rho,
+            .n = Eigen::Vector2d{nx, ny},
+            .endpoints = seg,
+        };
     }
 };
 

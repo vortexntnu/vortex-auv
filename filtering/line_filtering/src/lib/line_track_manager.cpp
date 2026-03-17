@@ -45,6 +45,25 @@ void LineTrackManager::step(std::vector<LineMeasurement>& measurements,
         inject_and_reset(track);
         record_hit_miss(track, hit);
 
+        // Update endpoint metadata from the closest gated measurement.
+        if (hit) {
+            double best_norm = std::numeric_limits<double>::max();
+            Eigen::Index best_idx = -1;
+            for (Eigen::Index k = 0; k < result.gated_measurements.cols();
+                 ++k) {
+                if (result.gated_measurements(k)) {
+                    double norm = meas_residuals.matrix().col(k).norm();
+                    if (norm < best_norm) {
+                        best_norm = norm;
+                        best_idx = k;
+                    }
+                }
+            }
+            if (best_idx >= 0) {
+                track.endpoints = measurements[best_idx].endpoints;
+            }
+        }
+
         erase_gated_measurements(measurements, result.gated_measurements);
     }
 
@@ -132,6 +151,7 @@ void LineTrackManager::create_tracks(
             .error_state = State2d(Eigen::Vector2d::Zero(), P0),
             .confirmed = false,
         };
+        t.endpoints = m.endpoints;
         t.hit_history.push_back(true);
         tracks_.push_back(std::move(t));
     }
