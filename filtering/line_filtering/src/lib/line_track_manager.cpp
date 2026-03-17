@@ -150,8 +150,8 @@ void LineTrackManager::create_tracks(
             .nominal = NominalLine{.rho = m.rho, .n = m.n},
             .error_state = State2d(Eigen::Vector2d::Zero(), P0),
             .confirmed = false,
+            .endpoints = m.endpoints,
         };
-        t.endpoints = m.endpoints;
         t.hit_history.push_back(true);
         tracks_.push_back(std::move(t));
     }
