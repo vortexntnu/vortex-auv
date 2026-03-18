@@ -16,6 +16,7 @@
 
 #include <vortex_msgs/msg/line_segment2_d_array.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
+#include <vortex_msgs/msg/sonar_info.hpp>
 #include <vortex_msgs/srv/send_waypoints.hpp>
 #include <vortex/utils/types.hpp> 
 
@@ -24,6 +25,8 @@
 #include <Eigen/Geometry>
 
 #include <pool_exploration/pool_exploration.hpp>
+
+#include <visualization_msgs/msg/marker.hpp> //til testing
 
 
 // #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -53,7 +56,7 @@ class PoolExplorationNode : public rclcpp::Node {
             const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
         // helpers (se på disse nærmere)
-        static std::vector<LineSegment> transform_segments_2d( //static?
+        std::vector<LineSegment> transform_segments_2d( //static?
             const vortex_msgs::msg::LineSegment2DArray& msg,
             const Eigen::Matrix4f& T_target_src); 
 
@@ -67,6 +70,7 @@ class PoolExplorationNode : public rclcpp::Node {
         std::string odom_frame_;
         std::string map_frame_;
         std::string base_frame_;
+        std::string sonar_frame_; // for å hente sonar info og gjøre om fra pixler
         std::chrono::milliseconds pub_dt_{200};
 
         // TF publishing
@@ -81,7 +85,7 @@ class PoolExplorationNode : public rclcpp::Node {
         message_filters::Subscriber<vortex_msgs::msg::LineSegment2DArray> line_sub_;
         std::shared_ptr<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>> line_filter_;
         rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
-
+        rclcpp::Subscription<vortex_msgs::msg::SonarInfo>::SharedPtr sonar_info_sub_;
         rclcpp::TimerBase::SharedPtr timer_;
 
         // service client
@@ -91,6 +95,14 @@ class PoolExplorationNode : public rclcpp::Node {
         utils::types::PoseEuler drone_state_;
 
         std::unique_ptr<PoolExplorationPlanner> planner_;
+
+        rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr docking_marker_pub_; //til testing
+        void publish_docking_marker(const Eigen::Vector2f& docking); //til testing
+
+        // Verdier til pixel konvertering  (lagret annet sted??)
+        void sonar_info_callback(
+            const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg);
+        vortex_msgs::msg::SonarInfo::ConstSharedPtr latest_sonar_info_;
 
     // GRID LOGIKK TIL SENERE
     # if 0

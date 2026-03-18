@@ -16,9 +16,11 @@
   <depend>tf2_eigen</depend>
   <depend>eigen</depend>
   <depend>vortex_utils</depend>
+  <depend>vortex_utils_ros</depend>
   <depend>vortex_msgs</depend>
   <depend>rclcpp_components</depend>
   <depend>message_filters</depend>
+  <depend>visualization_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

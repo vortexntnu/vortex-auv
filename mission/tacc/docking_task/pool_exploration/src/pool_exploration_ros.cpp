@@ -23,6 +23,7 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     //map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
     odom_frame_ = this->declare_parameter<std::string>("odom_frame");
     base_frame_ = this->declare_parameter<std::string>("base_frame");
+    sonar_frame_ = this->declare_parameter<std::string>("sonar_frame");
 
     //pub_dt_ = std::chrono::milliseconds(
     //    this->declare_parameter<int>("publish_rate_ms"));
@@ -30,11 +31,17 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     //this->declare_parameter<bool>("enu_to_ned", false);
 
     const std::string line_sub_topic =
-        this->declare_parameter<std::string>("line_sub_topic", "/line_detection/line_segments");
+        this->declare_parameter<std::string>("line_sub_topic");
     //const std::string map_pub_topic =
     //    this->declare_parameter<std::string>("map_pub_topic", "/map");
     const std::string pose_sub_topic = 
-         this->declare_parameter<std::string>("pose_sub_topic", "/pose"); // ta inn drone pos
+         this->declare_parameter<std::string>("pose_sub_topic"); // ta inn drone pos
+
+    const std::string sonar_info_sub_topic =
+        this->declare_parameter<std::string>("sonar_info_sub_topic");
+
+    const std::string debug_topic = 
+        this->declare_parameter<std::string>("debug_topic");
 
     //tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
     //const auto map_to_odom_tf = compute_map_odom_transform(); //const?
@@ -63,6 +70,12 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
         std::bind(&PoolExplorationNode::pose_callback, this,
                   std::placeholders::_1));
 
+    sonar_info_sub_ = this->create_subscription<vortex_msgs::msg::SonarInfo>(
+        sonar_info_sub_topic, qos_sub,
+        [this](const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg) {
+            this->sonar_info_callback(msg);
+        });
+
     line_filter_ = std::make_shared<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>>(
         line_sub_, *tf_buffer_, odom_frame_, 10, // Har endra til odom frame fra map frame
         this->get_node_logging_interface(),
@@ -78,6 +91,10 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     waypoint_client_ = this->create_client<vortex_msgs::srv::SendWaypoints>("/send_waypoints"); //endre /send_waypoints navnet
 
     //timer_ = this->create_wall_timer(pub_dt_, [this]() { this->timer_callback(); });
+
+    docking_marker_pub_ = //til testing
+        this->create_publisher<visualization_msgs::msg::Marker>(
+        debug_topic, 10);
 }
 
 void PoolExplorationNode::setup_planner() { //change name?
@@ -94,6 +111,11 @@ void PoolExplorationNode::setup_planner() { //change name?
     planner_ = std::make_unique<PoolExplorationPlanner>(config);
 }
 
+void PoolExplorationNode::sonar_info_callback(
+    const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg) {
+    latest_sonar_info_ = msg;
+}
+
 std::vector<LineSegment> PoolExplorationNode::transform_segments_2d( //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
     const vortex_msgs::msg::LineSegment2DArray& msg,
     const Eigen::Matrix4f& T_target_src) //target er map/odom osv
@@ -101,12 +123,39 @@ std::vector<LineSegment> PoolExplorationNode::transform_segments_2d( //FUNSKJON 
     std::vector<LineSegment> segments;
     segments.reserve(msg.lines.size());
 
-    for (const auto& line : msg.lines) {
-        Eigen::Vector4f p0_src(line.p0.x, line.p0.y, 0.0f, 1.0f);
-        Eigen::Vector4f p1_src(line.p1.x, line.p1.y, 0.0f, 1.0f);
+    // TO DO: Lag en type feilhåndtering
+    if (!latest_sonar_info_) {
+        spdlog::warn("[PoolExploration] No sonar image info available yet");
+        return segments;
+    }
 
-        Eigen::Vector4f p0_target = T_target_src * p0_src;
-        Eigen::Vector4f p1_target = T_target_src * p1_src;
+    const double mpx = latest_sonar_info_->meters_per_pixel_x;
+    const double mpy = latest_sonar_info_->meters_per_pixel_y;
+    const double img_h = static_cast<double>(latest_sonar_info_->height);
+    const double img_w = static_cast<double>(latest_sonar_info_->width);
+
+    auto pixel_to_sonar = [&](double px, double py) -> Eigen::Vector4f {
+        // sonar x = forward
+        const double sx = (img_h - 1.0 - py) * mpy;
+
+        // sonar y = right-positive
+        const double sy = (px - (img_w - 1.0) / 2.0) * mpx;
+
+        return Eigen::Vector4f(
+            static_cast<float>(sx),
+            static_cast<float>(sy),
+            0.0f,
+            1.0f
+        );
+    };
+
+
+    for (const auto& line : msg.lines) {
+        Eigen::Vector4f p0_sonar = pixel_to_sonar(line.p0.x, line.p0.y);
+        Eigen::Vector4f p1_sonar = pixel_to_sonar(line.p1.x, line.p1.y);
+
+        Eigen::Vector4f p0_target = T_target_src * p0_sonar;
+        Eigen::Vector4f p1_target = T_target_src * p1_sonar;
 
         LineSegment seg;
         seg.p0 = {p0_target.x(), p0_target.y()};
@@ -178,8 +227,9 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
 
     CandidateCorner best_corner = planner_->select_best_corner(corners, drone_pos);
 
-    Eigen::Vector2f docking = planner_->estimate_docking_position(best_corner);
+    Eigen::Vector2f docking = planner_->estimate_docking_position(best_corner, drone_pos);
 
+    publish_docking_marker(docking); //til testing
     send_docking_waypoint(docking);
 
     spdlog::info("[PoolExploration] Docking estimate (odom): x={} y={}",
@@ -222,6 +272,36 @@ void PoolExplorationNode::send_docking_waypoint(const Eigen::Vector2f& docking_e
     waypoint_sent_ = true;
 
     spdlog::info("Docking waypoint sent to WaypointManager");
+}
+
+void PoolExplorationNode::publish_docking_marker(const Eigen::Vector2f& docking) //til testing
+{
+    visualization_msgs::msg::Marker marker;
+
+    marker.header.frame_id = odom_frame_;
+    marker.header.stamp = this->now();
+
+    marker.ns = "docking_debug";
+    marker.id = 0;
+    marker.type = visualization_msgs::msg::Marker::SPHERE;
+    marker.action = visualization_msgs::msg::Marker::ADD;
+
+    marker.pose.position.x = docking.x();
+    marker.pose.position.y = docking.y();
+    marker.pose.position.z = 0.0;
+
+    marker.pose.orientation.w = 1.0;
+
+    marker.scale.x = 1.0;
+    marker.scale.y = 1.0;
+    marker.scale.z = 1.0;
+
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
+    marker.color.a = 1.0;
+
+    docking_marker_pub_->publish(marker);
 }
 
 // Grid logikk

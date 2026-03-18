@@ -18,12 +18,14 @@ find_package(spdlog REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(vortex_msgs REQUIRED)
-#find_package(vortex_utils REQUIRED)
+find_package(vortex_utils REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(message_filters REQUIRED)
+find_package(visualization_msgs)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -51,12 +53,14 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   geometry_msgs
   vortex_msgs
   nav_msgs
-  #vortex_utils
-  #vortex_utils_ros
+  vortex_utils
+  vortex_utils_ros
   Eigen3
   spdlog
   fmt
   message_filters
+  #for testing:
+  visualization_msgs 
 )
 
 rclcpp_components_register_node(
