@@ -140,7 +140,9 @@
         active_controller: "fsm/active_controller"
       dvl_twist: "dvl/twist"
       dvl_altitude: "dvl/altitude"
-      imu: "stim/imu"
+      imu: "imu/data_raw"
+      pressure_sensor: "pressure_sensor"
+      gripper_servos: "gripper_servos"
 
     action_servers:
       reference_filter: "reference_filter"

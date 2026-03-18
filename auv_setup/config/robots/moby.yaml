@@ -113,8 +113,11 @@
       waypoint: "waypoint"
       dvl_twist: "dvl/twist"
       dvl_altitude: "dvl/altitude"
-      imu: "mru/imu"
+      imu: "imu/data_raw"
       sonar_info: "fls/sonar_info"
+      pressure_sensor: "pressure_sensor"
+      gripper_servos: "gripper_servos"
+
 
     action_servers:
       reference_filter: "reference_filter"
