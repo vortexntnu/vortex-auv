@@ -10,7 +10,7 @@ class LandmarkESKF : public ESKF {
     explicit LandmarkESKF(const EskfParams& params);
     ~LandmarkESKF() override = default;
 
-    void landmark_update(const LandmarkMeasurement& Landmark_meas);
+    void landmark_update(const LandmarkMeasurement& landmark_meas);
     void set_vo_config(const VoConfig& cfg);
     void set_vo_enabled(bool enabled);
     void set_nis_gating_enabled(bool enabled);
@@ -50,7 +50,7 @@ class LandmarkESKF : public ESKF {
     bool sw_estimate(Eigen::Vector3d& p_out, Eigen::Quaterniond& q_out);
 
     bool use_vo_;
-    bool disable_gating_;
+    bool gating_enabled_;
 
     VoConfig vo_cfg_;
 

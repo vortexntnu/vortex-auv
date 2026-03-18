@@ -4,7 +4,7 @@
 
 LandmarkESKF::LandmarkESKF(const EskfParams& params) : ESKF(params) {
     use_vo_ = false;
-    disable_gating_ = false;
+    gating_enabled_ = true;
     consecutive_rejects_ = 0;
 
     have_anchor_ = false;
@@ -102,7 +102,7 @@ bool LandmarkESKF::sw_estimate(Eigen::Vector3d& p_out,
     q_out = sw_buf_.back().quat;
     p_out = Eigen::Vector3d::Zero();
 
-    double gate = vo_cfg_.sw_gate_deg * M_PI / 180.0;
+    const double gate = vo_cfg_.sw_gate_deg * M_PI / 180.0;
     const double huber = vo_cfg_.sw_huber_deg * M_PI / 180.0;
 
     for (int iter = 0; iter < 5; ++iter) {
@@ -156,13 +156,12 @@ void LandmarkESKF::landmark_vel_update_(const Eigen::Vector3d& v_meas_nav,
     const Eigen::Matrix3d S = H * P * H.transpose() + Rv;
     const double nis = compute_nis(y, S);
 
-    const double gate = disable_gating_ ? 1e9 : vo_cfg_.nis_gate_vel;
+    const double gate = !gating_enabled_ ? 1e9 : vo_cfg_.nis_gate_vel;
     if (nis > gate) {
         return;
     }
 
     Eigen::Matrix<double, 15, 3> K = P * H.transpose() * S.inverse();
-    K *= vo_cfg_.vel_alpha;
 
     current_error_state_.set_from_vector(K * y);
 
@@ -179,7 +178,7 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
     }
 
     if (last_stamp_ > 0.0) {
-        const double gap = landmark_meas.stamp_ - last_stamp_;
+        const double gap = landmark_meas.stamp - last_stamp_;
         if (gap > vo_cfg_.dropout_timeout) {
             have_anchor_ = false;
             have_prev_ = false;
@@ -187,7 +186,7 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
             sw_buf_.clear();
         }
     }
-    last_stamp_ = landmark_meas.stamp_;
+    last_stamp_ = landmark_meas.stamp;
 
     const bool need_reset = (consecutive_rejects_ >= vo_cfg_.rejects_limit);
 
@@ -208,8 +207,8 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
     Eigen::Quaterniond q_nav = (q_nav_vo_ * landmark_meas.quat).normalized();
 
     if (vo_cfg_.use_sw) {
-        sw_add(landmark_meas.stamp_, p_nav, q_nav);
-        sw_prune(landmark_meas.stamp_);
+        sw_add(landmark_meas.stamp, p_nav, q_nav);
+        sw_prune(landmark_meas.stamp);
 
         Eigen::Vector3d p_smooth;
         Eigen::Quaterniond q_smooth;
@@ -220,7 +219,7 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
     }
 
     if (have_prev_) {
-        const double dt = landmark_meas.stamp_ - prev_stamp_;
+        const double dt = landmark_meas.stamp - prev_stamp_;
         if (dt > vo_cfg_.dt_min && dt < vo_cfg_.dt_max) {
             const Eigen::Vector3d v_meas_nav = (p_nav - prev_p_nav_) / dt;
 
@@ -235,7 +234,7 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
             landmark_vel_update_(v_meas_nav, Rv);
         }
     }
-    prev_stamp_ = landmark_meas.stamp_;
+    prev_stamp_ = landmark_meas.stamp;
     prev_p_nav_ = p_nav;
     have_prev_ = true;
 
@@ -266,9 +265,9 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
     // Innovation covariance and NIS
     const Eigen::Matrix15d P = current_error_state_.covariance;
     const Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
-    const double nis = compute_nis(Eigen::VectorXd(y), Eigen::MatrixXd(S));
+    const double nis = compute_nis(y, S);
 
-    const double gate = disable_gating_ ? 1e9 : vo_cfg_.nis_gate_pose;
+    const double gate = !gating_enabled_ ? 1e9 : vo_cfg_.nis_gate_pose;
 
     if (nis > gate) {
         consecutive_rejects_++;
@@ -292,7 +291,7 @@ void LandmarkESKF::set_vo_enabled(bool enabled) {
 }
 
 void LandmarkESKF::set_nis_gating_enabled(bool enabled) {
-    disable_gating_ = !enabled;
+    gating_enabled_ = enabled;
 }
 
 void LandmarkESKF::handle_marker_switch(const Eigen::Vector3d& p_base,

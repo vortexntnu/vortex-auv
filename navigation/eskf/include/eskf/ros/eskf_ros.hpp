@@ -75,6 +75,7 @@ class ESKFNode : public rclcpp::Node {
     std::string vo_cam_frame_;
     bool have_last_marker_{false};
     uint16_t last_marker_id_{0};
+    int vo_rejects_limit_{0};
 #endif
 
     // Subscribers and Publishers

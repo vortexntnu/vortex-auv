@@ -159,7 +159,6 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     this->declare_parameter<double>("vo.pos_floor");
     this->declare_parameter<double>("vo.att_floor");
     this->declare_parameter<double>("vo.vel_floor");
-    this->declare_parameter<double>("vo.vel_alpha");
     this->declare_parameter<double>("vo.dt_min");
     this->declare_parameter<double>("vo.dt_max");
     this->declare_parameter<bool>("vo.use_sw");
@@ -181,7 +180,6 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     vo_cfg.pos_floor = this->get_parameter("vo.pos_floor").as_double();
     vo_cfg.att_floor = this->get_parameter("vo.att_floor").as_double();
     vo_cfg.vel_floor = this->get_parameter("vo.vel_floor").as_double();
-    vo_cfg.vel_alpha = this->get_parameter("vo.vel_alpha").as_double();
     vo_cfg.dt_min = this->get_parameter("vo.dt_min").as_double();
     vo_cfg.dt_max = this->get_parameter("vo.dt_max").as_double();
     vo_cfg.use_sw = this->get_parameter("vo.use_sw").as_bool();
@@ -194,6 +192,7 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     landmark_eskf_->set_nis_gating_enabled(
         !this->get_parameter("vo.disable_gating").as_bool());
     landmark_eskf_->set_vo_config(vo_cfg);
+    vo_rejects_limit_ = vo_cfg.rejects_limit;
 
     std::string landmarks_topic =
         this->get_parameter("vo.landmarks_topic").as_string();
@@ -274,11 +273,20 @@ void ESKFNode::landmark_callback(
     LandmarkMeasurement meas;
     meas.pos = t_base;
     meas.quat = q_base;
-    meas.stamp_ = rclcpp::Time(msg->header.stamp).seconds();
+    meas.stamp = rclcpp::Time(msg->header.stamp).seconds();
     meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
         chosen->pose.covariance.data());
 
+    const int rejects_before = landmark_eskf_->get_consecutive_rejects();
     landmark_eskf_->landmark_update(meas);
+    const int rejects_after = landmark_eskf_->get_consecutive_rejects();
+
+    if (rejects_before >= vo_rejects_limit_ && rejects_after == 0) {
+        spdlog::warn("VO anchor reset after {} consecutive rejects",
+                     rejects_before);
+    } else if (rejects_after > 0) {
+        spdlog::warn("VO gating: {} consecutive reject(s)", rejects_after);
+    }
 }
 #endif  // HAVE_LANDMARK_EGOMOTION
 

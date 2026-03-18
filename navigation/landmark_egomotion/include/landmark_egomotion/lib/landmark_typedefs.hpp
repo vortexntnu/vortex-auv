@@ -8,7 +8,7 @@ struct LandmarkMeasurement {
     Eigen::Vector3d pos;
     Eigen::Quaterniond quat;
     Eigen::Matrix<double, 6, 6> R;
-    double stamp_ = 0.0;
+    double stamp = 0.0;
 };
 
 struct VoConfig {
@@ -18,7 +18,6 @@ struct VoConfig {
     double pos_floor;
     double att_floor;
     double vel_floor;
-    double vel_alpha;
     double dt_min;
     double dt_max;
     double sw_max_age;
