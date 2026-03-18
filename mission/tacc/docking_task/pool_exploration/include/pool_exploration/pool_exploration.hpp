@@ -2,9 +2,9 @@
 #define POOL_EXPLORATION_HPP
 
 //#include <geometry_msgs/msg/detail/point__struct.hpp>
-#include <cstdint>
+//#include <cstdint>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-#include <string>
+//#include <string>
 #include <vector>
 #include <utility>
 #include <cmath>
@@ -68,7 +68,8 @@ public:
     // bruker compute_normal til å finne normalt på veggene
     // henter ut intersection fra estimated_corner og bruker offsetene
     Eigen::Vector2f estimate_docking_position(
-        const CandidateCorner& estimated_corner);
+        const CandidateCorner& estimated_corner,
+        const Eigen::Vector2f& drone_pos);
 
     // brukes i selectBestCorner og deretter estimateDockingPosition
     //Funksjon som finner hjørner basert på krav om vinkler
@@ -93,7 +94,9 @@ public:
     // velger det hjørnet som er nærmest dronen
     CandidateCorner select_best_corner( 
         const std::vector<CandidateCorner>& possible_corners,
-        const Eigen::Vector2f& drone_position);
+        const Eigen::Vector2f& drone_pos);
+
+    // TO DO: Lage funksjon so fjerner doble linjer?
 
     //MIDLERTIDIG TEST-FUNKSJON
     // void printGridToConsole() const;
@@ -126,6 +129,7 @@ private:
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
 
     Eigen::Vector2f compute_normal(const LineSegment& line);
+    Eigen::Vector2f compute_inward_normal(const LineSegment& line, const Eigen::Vector2f& drone_pos);
 
     PoolExplorationPlannerConfig config_;
 

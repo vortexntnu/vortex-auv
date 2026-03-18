@@ -2,6 +2,8 @@
 
 //#include <iostream> Brukt til testinga
 #include <vector>
+#include <Eigen/src/Core/Matrix.h>
+#include <spdlog/spdlog.h> //FJERN
 
 namespace vortex::pool_exploration{
 
@@ -9,9 +11,10 @@ PoolExplorationPlanner::PoolExplorationPlanner(const PoolExplorationPlannerConfi
     : config_(config) {}
 
 Eigen::Vector2f PoolExplorationPlanner::estimate_docking_position(
-    const CandidateCorner& estimated_corner) {
-    Eigen::Vector2f right_normal = compute_normal(estimated_corner.right_wall);
-    Eigen::Vector2f far_normal   = compute_normal(estimated_corner.far_wall);
+    const CandidateCorner& estimated_corner,
+    const Eigen::Vector2f& drone_pos) {
+    Eigen::Vector2f right_normal = compute_inward_normal(estimated_corner.right_wall, drone_pos);
+    Eigen::Vector2f far_normal   = compute_inward_normal(estimated_corner.far_wall, drone_pos);
 
     Eigen::Vector2f docking_estimate = estimated_corner.corner_point
         + right_normal * config_.right_wall_offset
@@ -22,7 +25,7 @@ Eigen::Vector2f PoolExplorationPlanner::estimate_docking_position(
 
 CandidateCorner PoolExplorationPlanner::select_best_corner(
     const std::vector<CandidateCorner>& possible_corners,
-    const Eigen::Vector2f& drone_position) {
+    const Eigen::Vector2f& drone_pos) {
     if (possible_corners.empty()) {
         throw std::runtime_error("No candidate corners available");  //finne bedre unnntakshåndtering?
     }
@@ -31,7 +34,7 @@ CandidateCorner PoolExplorationPlanner::select_best_corner(
     CandidateCorner best_corner = possible_corners.front();
 
     for (const auto& corner : possible_corners) {
-        float distance = (corner.corner_point - drone_position).squaredNorm();
+        float distance = (corner.corner_point - drone_pos).squaredNorm();
 
         if (distance < min_distance) {
             min_distance = distance;
@@ -45,22 +48,46 @@ std::vector<CandidateCorner> PoolExplorationPlanner::find_valid_corner(
     const std::vector<LineSegment>& lines,
     const Eigen::Vector2f& drone_pos, 
     float drone_heading) {
+
     std::vector<LineSegment> right_candidates;
     std::vector<LineSegment> far_candidates;
     std::vector<CandidateCorner> potential_corners;
+
+    // Finner ut hva som er foran ogsånn? (?)
+    Eigen::Vector2f forward(std::cos(drone_heading), std::sin(drone_heading));
+    Eigen::Vector2f right(-std::sin(drone_heading), std::cos(drone_heading));
+
     for (const auto& line : lines) {
         Eigen::Vector2f projection = project_drone_to_line(drone_pos, line.asEigen());
+        Eigen::Vector2f rel = projection - drone_pos;
 
-        float dist = (projection - drone_pos).norm(); 
+        float dist = rel.norm(); 
         float angle = line_heading_angle_difference(line.asEigen(), drone_heading);
 
-        if (projection.y() < 0 && dist >= config_.min_dist && dist <= config_.max_dist && angle < config_.angle_threshold) {
+        float forward_dist = rel.dot(forward);
+        float right_dist = rel.dot(right);
+
+        if (// projection.y() < 0 && 
+            dist >= config_.min_dist && 
+            dist <= config_.max_dist && 
+            angle < config_.angle_threshold &&
+            right_dist > 0.0f) { // CHANGE THIS FOR LEFT WALL
             right_candidates.push_back(line);
         }
-        if (projection.x() > 0 && dist >= config_.min_dist && dist <= config_.max_dist && angle > config_.angle_threshold) {
+        if (// projection.x() > 0 && 
+            dist >= config_.min_dist && 
+            dist <= config_.max_dist && 
+            angle > config_.angle_threshold &&
+            forward_dist > 0.0f) {
             far_candidates.push_back(line);
         }
+        //spdlog::info("Drone pos: ({:.2f}, {:.2f}), heading: {:.2f}",
+        //     drone_pos.x(), drone_pos.y(), drone_heading);
+
+        //spdlog::info("Projection: ({:.2f}, {:.2f}), dist: {:.2f}, angle: {:.2f}",
+        //     projection.x(), projection.y(), dist, angle);
     }
+    
 
     for (const auto& r : right_candidates) {
         for (const auto& f : far_candidates) {
@@ -140,16 +167,25 @@ float PoolExplorationPlanner::angle_between_lines(
     return std::acos(dot);     
 }
 
-Eigen::Vector2f PoolExplorationPlanner::compute_normal(
-    const LineSegment& line) {
+Eigen::Vector2f PoolExplorationPlanner::compute_inward_normal(
+    const LineSegment& line,
+    const Eigen::Vector2f& reference_point)
+{
     Eigen::Vector2f p0 = line.asEigen().first;
     Eigen::Vector2f p1 = line.asEigen().second;
 
     Eigen::Vector2f dir = (p1 - p0).normalized();
     Eigen::Vector2f n(-dir.y(), dir.x());
 
+    Eigen::Vector2f midpoint = 0.5f * (p0 + p1);
+
+    if ((reference_point - midpoint).dot(n) < 0.0f) {
+        n = -n;
+    }
+
     return n.normalized();
 }
+
 // NEDENFOR ER GRID LOGIKKEN, BRUKES IKKE ENDA <3
 # if 0
 // URELEVANT NÅ, LAG NY KONSTRUKTØR TO DO
