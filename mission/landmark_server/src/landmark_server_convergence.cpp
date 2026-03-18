@@ -174,7 +174,7 @@ void LandmarkServerNode::convergence_update() {
     convergence_last_known_track_ = *track;
 
     convergence_update_target(*track);
-    convergence_check_dr_handoff();
+    convergence_try_dead_reckoning_handoff();
 }
 
 bool LandmarkServerNode::convergence_track_timeout() const {
@@ -235,7 +235,7 @@ void LandmarkServerNode::convergence_update_target(
     }
 }
 
-void LandmarkServerNode::convergence_check_dr_handoff() {
+void LandmarkServerNode::convergence_try_dead_reckoning_handoff() {
     std::optional<geometry_msgs::msg::Point> odom_pos;
     {
         std::lock_guard<std::mutex> lock(odom_mtx_);
@@ -260,10 +260,10 @@ void LandmarkServerNode::convergence_check_dr_handoff() {
     }
 
     const auto& cur = *odom_pos;
-    const double dx = cur.x - target_pose.position.x;
-    const double dy = cur.y - target_pose.position.y;
-    const double dz = cur.z - target_pose.position.z;
-    const double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+    const double dist = std::sqrt(
+        (cur.x - target_pose.position.x) * (cur.x - target_pose.position.x) +
+        (cur.y - target_pose.position.y) * (cur.y - target_pose.position.y) +
+        (cur.z - target_pose.position.z) * (cur.z - target_pose.position.z));
 
     if (!std::isfinite(dist)) {
         spdlog::warn("Invalid distance in dead reckoning check");
@@ -365,7 +365,8 @@ void LandmarkServerNode::send_reference_filter_goal(
     reference_filter_client_->async_send_goal(goal_msg, options);
 }
 
-void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
+void LandmarkServerNode::handle_rf_result(
+    rclcpp_action::ResultCode resultCode) {
     using RC = rclcpp_action::ResultCode;
     auto make_result = [this](bool success) {
         return std::make_shared<
@@ -375,14 +376,14 @@ void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
 
     if (active_landmark_convergence_goal_->is_canceling()) {
         spdlog::info("Convergence session {}: canceled (RF result={})",
-                     convergence_session_id_, static_cast<int>(code));
+                     convergence_session_id_, static_cast<int>(resultCode));
         active_landmark_convergence_goal_->canceled(make_result(false));
         convergence_active_ = false;
         convergence_mode_ = vortex_msgs::msg::Waypoint::FULL_POSE;
         return;
     }
 
-    switch (code) {
+    switch (resultCode) {
         case RC::SUCCEEDED:
             spdlog::info("Convergence session {}: succeeded",
                          convergence_session_id_);
@@ -404,7 +405,7 @@ void LandmarkServerNode::handle_rf_result(rclcpp_action::ResultCode code) {
         default:
             spdlog::error(
                 "Convergence session {}: aborted (unknown RF result code={})",
-                convergence_session_id_, static_cast<int>(code));
+                convergence_session_id_, static_cast<int>(resultCode));
             active_landmark_convergence_goal_->abort(make_result(false));
             break;
     }

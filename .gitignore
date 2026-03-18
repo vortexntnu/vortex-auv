@@ -46,6 +46,7 @@ srv/_*.py
 *.pyc
 qtcreator-*
 *.user
+*hintmux.sh
 
 /planning/cfg
 /planning/docs
@@ -57,4 +58,3 @@ qtcreator-*
 .#*
 
 # End of https://www.gitignore.io/api/ros
-mission/FSM/pipeline/

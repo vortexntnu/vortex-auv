@@ -202,7 +202,7 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void cancel_reference_filter_goal();
 
-    void handle_rf_result(rclcpp_action::ResultCode code);
+    void handle_rf_result(rclcpp_action::ResultCode resultCode);
 
     bool convergence_track_timeout() const;
 
@@ -212,7 +212,7 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void convergence_update_target(const vortex::filtering::Track& track);
 
-    void convergence_check_dr_handoff();
+    void convergence_try_dead_reckoning_handoff();
 
     vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
         bool success) const;
