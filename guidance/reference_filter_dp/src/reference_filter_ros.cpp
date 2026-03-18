@@ -2,7 +2,6 @@
 #include <spdlog/spdlog.h>
 #include <mutex>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <string_view>
 #include <thread>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
@@ -106,7 +105,11 @@ void ReferenceFilterNode::reference_callback(
     double roll{euler_angles(0)};
     double pitch{euler_angles(1)};
     double yaw{euler_angles(2)};
-    r_ << x, y, z, roll, pitch, yaw;
+
+    Eigen::Vector6d r_temp;
+    r_temp << x, y, z, roll, pitch, yaw;
+
+    r_ = apply_mode_logic(r_temp, active_mode_.load());
 }
 
 void ReferenceFilterNode::pose_callback(
@@ -357,7 +360,8 @@ void ReferenceFilterNode::execute(
     }
 
     Eigen::Vector6d r_temp = fill_reference_goal(goal);
-    r_ = apply_mode_logic(r_temp, mode);
+    active_mode_ = mode;
+    r_ = apply_mode_logic(r_temp, active_mode_.load());
 
     auto feedback = std::make_shared<
         vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();

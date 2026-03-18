@@ -46,6 +46,7 @@ srv/_*.py
 *.pyc
 qtcreator-*
 *.user
+*hintmux.sh
 
 /planning/cfg
 /planning/docs

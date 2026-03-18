@@ -51,6 +51,7 @@ Drives the AUV towards a landmark. Succeeds when the AUV has converged onto the 
 | `convergence_threshold` | `float64` | Distance (m) to declare convergence |
 | `dead_reckoning_threshold` | `float64` | Distance (m) at which target updates stop|
 | `track_loss_timeout_sec` | `float64` | Seconds to wait for landmark to reappear before aborting.|
+| `convergence_mode` | `uint8` | Waypoint mode used by the ReferenceFilter (see modes below) |
 
 ---
 
@@ -64,14 +65,28 @@ Drives the AUV towards a landmark. Succeeds when the AUV has converged onto the 
 
 ```bash
 ros2 action send_goal /orca/landmark_convergence vortex_msgs/action/LandmarkConvergence "{
-  type: {value: 2},
-  subtype: {value: 1},
+  type: {value: 1},
+  subtype: {value: 19},
   convergence_offset: {
-    position: {x: 0.0, y: 0.0, z: 0.0},
+    position: {x: 0.0, y: 0.0, z: -1.0},
     orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
   },
   convergence_threshold: 0.3,
   dead_reckoning_threshold: 1.0,
-  track_loss_timeout_sec: 10.0
+  track_loss_timeout_sec: 10.0,
+  convergence_mode: 0,
 }"
 ```
+
+---
+
+## Convergence modes
+
+The `convergence_mode` field controls how the ReferenceFilter will approach the target.
+
+| Value | Constant | Behavior |
+|---:|---|---|
+| 0 | `FULL_POSE` | Match both position and orientation (full pose control). |
+| 1 | `ONLY_POSITION` | Only control position; keep current heading/orientation. |
+| 2 | `FORWARD_HEADING` | Drive towards the target while keeping a forward-facing heading |
+| 3 | `ONLY_ORIENTATION` | Only control orientation; used when rotating in-place to align with a landmark. |
