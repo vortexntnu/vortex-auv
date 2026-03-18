@@ -29,6 +29,7 @@ class LineTrackManagerTests : public ::testing::Test {
         return LineMeasurement{
             .rho = rho,
             .n = Eigen::Vector2d{std::cos(theta), std::sin(theta)},
+            .endpoints = {},
         };
     }
 };
