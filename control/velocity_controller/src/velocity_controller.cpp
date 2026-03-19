@@ -184,15 +184,15 @@ void Velocity_node::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr m
 
 
 void Velocity_node::get_new_parameters(){
-  //topics
-  this->declare_parameter<std::string>("topics.thrust_topic");
-  this->topic_thrust = this->get_parameter("topics.thrust_topic").as_string();
-  this->declare_parameter<std::string>("topics.guidance_topic");
-  this->topic_guidance = this->get_parameter("topics.guidance_topic").as_string();
-  this->declare_parameter<std::string>("topics.odom_topic");
-  this->topic_odometry = this->get_parameter("topics.odom_topic").as_string();
+  //topics //TODO: check what happens when same parameter in global and local file
+  this->declare_parameter<std::string>("topics.wrench_input");
+  this->topic_thrust = this->get_parameter("topics.wrench_input").as_string();
+  this->declare_parameter<std::string>("topics.guidance.los");
+  this->topic_guidance = this->get_parameter("topics.guidance.los").as_string();
+  this->declare_parameter<std::string>("topics.odom");
+  this->topic_odometry = this->get_parameter("topics.odom").as_string();
   this->declare_parameter<std::string>("topics.killswitch_topic");
-  this->topic_killswitch = this->get_parameter("topics.killswitch_topic").as_string();
+  this->topic_killswitch = this->get_parameter("topics.killswitch").as_string();
   //variables
   this->declare_parameter<double>("max_force");
   this->max_force = this->get_parameter("max_force").as_double();  
