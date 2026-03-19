@@ -1,4 +1,5 @@
 #include <pool_exploration/pool_exploration.hpp>
+#include <spdlog/spdlog.h> // til testing
 
 #include <vector>
 #include <Eigen/src/Core/Matrix.h>
@@ -48,6 +49,7 @@ std::vector<CandidateCorner> PoolExplorationPlanner::find_valid_corner(
     float drone_heading) {
 
     std::vector<LineSegment> right_candidates;
+    std::vector<LineSegment> left_candidates;
     std::vector<LineSegment> far_candidates;
     std::vector<CandidateCorner> potential_corners;
 
@@ -56,6 +58,11 @@ std::vector<CandidateCorner> PoolExplorationPlanner::find_valid_corner(
     Eigen::Vector2f right(-std::sin(drone_heading), std::cos(drone_heading));
 
     for (const auto& line : lines) {
+
+        spdlog::info("Line: ({:.2f}, {:.2f}) -> ({:.2f}, {:.2f})",
+            line.asEigen().first.x(), line.asEigen().first.y(),
+            line.asEigen().second.x(), line.asEigen().second.y());
+
         Eigen::Vector2f projection = project_drone_to_line(drone_pos, line.asEigen());
         Eigen::Vector2f rel = projection - drone_pos;
 
@@ -65,27 +72,53 @@ std::vector<CandidateCorner> PoolExplorationPlanner::find_valid_corner(
         float forward_dist = rel.dot(forward);
         float right_dist = rel.dot(right);
 
-        if (// projection.y() < 0 && 
-            dist >= config_.min_dist && 
+        spdlog::info("  Projection: ({:.2f}, {:.2f})",
+            projection.x(), projection.y());
+
+        spdlog::info("  Rel: ({:.2f}, {:.2f}), dist: {:.2f}",
+            rel.x(), rel.y(), dist);
+
+        spdlog::info("  Angle: {:.2f} rad ({:.1f} deg)",
+            angle, angle * 180.0 / M_PI);
+
+        spdlog::info("  forward_dist: {:.2f}, right_dist: {:.2f}",
+            forward_dist, right_dist);
+
+        spdlog::info("Angle: {:.2f}, right_dist: {:.2f}, forward_dist: {:.2f}",
+             angle, right_dist, forward_dist);
+
+        if (dist >= config_.min_dist && 
             dist <= config_.max_dist && 
-            angle < config_.angle_threshold &&
-            right_dist > 0.0f) { // CHANGE THIS FOR LEFT WALL
+            angle < config_.angle_threshold  &&
+            right_dist > config_.right_dist
+            ) { 
+            spdlog::info("  → Classified as RIGHT candidate");
             right_candidates.push_back(line);
         }
-        if (// projection.x() > 0 && 
-            dist >= config_.min_dist && 
+        else if (dist >= config_.min_dist && 
             dist <= config_.max_dist && 
-            angle > config_.angle_threshold &&
-            forward_dist > 0.0f) {
+            angle > config_.angle_threshold  &&
+            forward_dist > 0.0f
+            ) {
+            spdlog::info("  → Classified as FAR candidate");
             far_candidates.push_back(line);
         }
-        //spdlog::info("Drone pos: ({:.2f}, {:.2f}), heading: {:.2f}",
-        //     drone_pos.x(), drone_pos.y(), drone_heading);
-
-        //spdlog::info("Projection: ({:.2f}, {:.2f}), dist: {:.2f}, angle: {:.2f}",
-        //     projection.x(), projection.y(), dist, angle);
+        
+        else if (dist >= config_.min_dist && 
+            dist <= config_.max_dist && 
+            angle < config_.angle_threshold  &&
+            right_dist < 0.0f
+            ) { 
+                spdlog::info("  → Classified as LEFT candidate");
+            left_candidates.push_back(line);
+        }
+        else {
+                spdlog::info("  → REJECTED by angle");
+        }
     }
-    
+    spdlog::info("==== SUMMARY ====");
+    spdlog::info("Right candidates: {}", right_candidates.size());
+    spdlog::info("Far candidates: {}", far_candidates.size());
 
     for (const auto& r : right_candidates) {
         for (const auto& f : far_candidates) {
@@ -116,7 +149,6 @@ Eigen::Vector2f PoolExplorationPlanner::project_drone_to_line(
     }
 
     float t = (drone_pos - p0).dot(dir_vec) / len_squared;
-    t = std::clamp(t, 0.0f, 1.0f);   // projeksjon må ligge på segmentet
 
     return p0 + t * dir_vec;
 }
@@ -160,7 +192,8 @@ float PoolExplorationPlanner::angle_between_lines(
     Eigen::Vector2f v0 = (line0.second - line0.first).normalized();
     Eigen::Vector2f v1 = (line1.second - line1.first).normalized();
     
-    float dot = std::clamp(v0.dot(v1), -1.0f, 1.0f); //clamper fordi..
+    float dot = v0.dot(v1); 
+
 
     return std::acos(dot);     
 }
@@ -171,6 +204,12 @@ Eigen::Vector2f PoolExplorationPlanner::compute_inward_normal(
 {
     Eigen::Vector2f p0 = line.asEigen().first;
     Eigen::Vector2f p1 = line.asEigen().second;
+
+    // Normaliser linjeretningen slik at retningen er entydig uavhengig av p0 og p1 rekkefølge
+    if ((p1 - p0).x() < 0 || ((p1 - p0).x() == 0 && (p1 - p0).y() < 0)) {
+        // Bytt om slik at vektoren alltid peker "mot høyre" eller oppover
+        std::swap(p0, p1);
+    }
 
     Eigen::Vector2f dir = (p1 - p0).normalized();
     Eigen::Vector2f n(-dir.y(), dir.x());

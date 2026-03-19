@@ -48,6 +48,8 @@ struct PoolExplorationPlannerConfig {
     float min_angle;
     float max_angle;
 
+    float right_dist;
+
     float right_wall_offset;
     float far_wall_offset;
 };
@@ -80,7 +82,7 @@ public:
         float drone_heading);
 
     // brukes i estimateDockingPosition
-    // funksjon somvelger ut de to beste linjene som er hjørnet nærmest drone
+    // funksjon som velger ut de to beste linjene som er hjørnet nærmest drone
     // Setter min_dist til størst mulige float først og vil oppdateres ettersom sammenligner linjeavstandene
     // setter best_corner først til det første i vectoren
     // velger det hjørnet som er nærmest dronen
