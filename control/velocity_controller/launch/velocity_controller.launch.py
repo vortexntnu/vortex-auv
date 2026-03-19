@@ -9,7 +9,9 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('velocity_controller')
-    config_path = os.path.join(pkg_share, 'config', 'parameters.yaml')
+    global_share = get_package_share_directory('auv_setup')
+    config_path_local = os.path.join(pkg_share, 'config', 'parameters.yaml')
+    config_path_global = os.path.join(global_share,'config','robots','orca.yaml')
 
     node_name_arg = DeclareLaunchArgument(
         'node_name', default_value='velocity_controller_node',
@@ -25,5 +27,5 @@ def generate_launch_description():
              executable='velocity_controller_node',
              name=velocity_controller_name,
              output='screen',
-             parameters=[config_path])
+             parameters=[config_path_local,config_path_global])
     ])

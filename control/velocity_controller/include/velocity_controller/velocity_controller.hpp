@@ -13,21 +13,22 @@
 #include "vortex_msgs/msg/los_guidance.hpp" 
 #include "velocity_controller/NMPC_setup.hpp"
 #include "velocity_controller/NMPC_acados.hpp"
+#include <rclcpp_lifecycle/lifecycle_node.hpp>
 
 
-class Velocity_node : public rclcpp::Node{
+
+class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     public:
     Velocity_node();
     //Different initializatin functions
     void get_new_parameters();
 
     //Timer functions
-    void publish_thrust();
     void calc_thrust();
 
     //Callback functions
     void guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr);
-    void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr);
+    //void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr);
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr);
 
     //Publisher instance
@@ -40,7 +41,7 @@ class Velocity_node : public rclcpp::Node{
     //Subscriber instance
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscriber_Odometry;
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr subscriber_guidance;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscriber_killswitch;
+    //rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscriber_killswitch;
 
     //Variables for topics
 
@@ -87,10 +88,14 @@ class Velocity_node : public rclcpp::Node{
     std::vector<double> Q3;
     std::vector<double> R3;
     
-    //Test
-    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr publisher_reference;
-
+    std::atomic_bool should_exit_{false};
     
+    //States
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(const rclcpp_lifecycle::State &) override;
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_activate(const rclcpp_lifecycle::State & state) override;
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_deactivate(const rclcpp_lifecycle::State & state) override;
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_cleanup(const rclcpp_lifecycle::State &) override;
+    rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_shutdown(const rclcpp_lifecycle::State & state) override;
 };
 
 

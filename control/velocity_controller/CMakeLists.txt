@@ -12,6 +12,8 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+#find_package(lifecycle_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
@@ -74,6 +76,8 @@ add_executable(velocity_controller_node
 #  )
 ament_target_dependencies(velocity_controller_node
   rclcpp
+  rclcpp_lifecycle
+  #rclcpp_msgs
   std_msgs
   vortex_msgs
   geometry_msgs
@@ -120,6 +124,7 @@ target_link_libraries(test_VC_node Eigen3::Eigen ct_optcon ct_core)
 
 ament_target_dependencies(test_VC_node
 rclcpp
+rclcpp_lifecycle
 std_msgs
 vortex_msgs
 geometry_msgs
