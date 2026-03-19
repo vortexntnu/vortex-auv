@@ -132,9 +132,10 @@ void ESKFNode::set_parameters() {
     EskfParams eskf_params{.Q = Q, .P = P};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
-
+    spdlog::info("Landmark egomotion enabled?");
 #ifdef HAVE_LANDMARK_EGOMOTION
-    this->declare_parameter<bool>("use_landmark_egomotion", false);
+    spdlog::info("Landmark egomotion enabled");
+    this->declare_parameter<bool>("use_landmark_egomotion");
     if (this->get_parameter("use_landmark_egomotion").as_bool()) {
         setup_vo(eskf_params);
     }
@@ -150,7 +151,7 @@ void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     this->declare_parameter<std::string>("vo.landmarks_topic");
     this->declare_parameter<std::string>("vo.base_frame");
     this->declare_parameter<std::string>("vo.camera_frame");
-    this->declare_parameter<bool>("vo.disable_gating", false);
+    this->declare_parameter<bool>("vo.disable_gating");
 
     this->declare_parameter<double>("vo.nis_gate_pose");
     this->declare_parameter<double>("vo.nis_gate_velocity");

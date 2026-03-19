@@ -3,10 +3,10 @@
     ros__parameters:
       use_landmark_egomotion: true
       vo:
-        landmarks_topic: aruco_detector/landmarks
+        landmarks_topic: /aruco_detector/landmarks
 
-        base_frame: base_link
-        camera_frame: Orca/camera_front
+        base_frame: orca/base_link
+        camera_frame: orca/front_camera_optical
 
         nis_gate_pose: 16.812
         nis_gate_velocity: 11.345
