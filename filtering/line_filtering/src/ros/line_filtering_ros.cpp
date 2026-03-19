@@ -85,13 +85,10 @@ void LineFilteringNode::create_line_subscription(
 void LineFilteringNode::setup_track_manager() {
     LineTrackManagerConfig config;
 
-    config.existence.confirmation_threshold = this->declare_parameter<double>(
-        "config.existence.confirmation_threshold");
-    config.existence.deletion_threshold =
-        this->declare_parameter<double>("config.existence.deletion_threshold");
-    config.existence.initial_existence_probability =
-        this->declare_parameter<double>(
-            "config.existence.initial_existence_probability");
+    config.nm.confirm_n = this->declare_parameter<int>("config.nm.confirm_n");
+    config.nm.confirm_m = this->declare_parameter<int>("config.nm.confirm_m");
+    config.nm.delete_n = this->declare_parameter<int>("config.nm.delete_n");
+    config.nm.delete_m = this->declare_parameter<int>("config.nm.delete_m");
 
     config.default_config.min_rho_error =
         this->declare_parameter<double>("config.gate.min_rho_error");
@@ -118,10 +115,6 @@ void LineFilteringNode::setup_track_manager() {
         this->declare_parameter<double>("config.prob_of_detection");
     config.default_config.clutter_intensity =
         this->declare_parameter<double>("config.clutter_intensity");
-    config.default_config.prob_of_survival =
-        this->declare_parameter<double>("config.prob_of_survival");
-    config.default_config.estimate_clutter =
-        this->declare_parameter<bool>("config.estimate_clutter");
 
     track_manager_ = std::make_unique<LineTrackManager>(config);
 }
@@ -299,7 +292,10 @@ void LineFilteringNode::publish_markers() {
         m.color.r = 0.0f;
         m.color.g = 1.0f;
         m.color.b = 0.0f;
-        m.color.a = static_cast<float>(track.existence_probability);
+        m.color.a = track.hit_history.empty()
+                        ? 0.0f
+                        : static_cast<float>(track.hits()) /
+                              static_cast<float>(track.hit_history.size());
 
         geometry_msgs::msg::Point pt;
         pt.z = 0.0;
@@ -445,7 +441,10 @@ void LineFilteringNode::publish_debug_state() {
         m.color.r = 0.0f;
         m.color.g = 1.0f;
         m.color.b = 0.0f;
-        m.color.a = static_cast<float>(track.existence_probability);
+        m.color.a = track.hit_history.empty()
+                        ? 0.0f
+                        : static_cast<float>(track.hits()) /
+                              static_cast<float>(track.hit_history.size());
 
         geometry_msgs::msg::Point pt;
         pt.z = 0.0;

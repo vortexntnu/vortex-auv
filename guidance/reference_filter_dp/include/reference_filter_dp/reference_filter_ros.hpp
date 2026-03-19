@@ -1,6 +1,7 @@
 #ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
 #define REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
 
+#include <atomic>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
@@ -9,6 +10,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp/eigen_typedefs.hpp"
 #include "reference_filter_dp/reference_filter.hpp"
 
@@ -76,7 +78,16 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     Eigen::Vector6d fill_reference_goal(const geometry_msgs::msg::Pose& goal);
 
+    Eigen::Vector6d measured_pose_vector6();
+
     Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in, uint8_t mode);
+
+    bool has_converged_against_pose(const Eigen::Vector6d& y,
+                                    const Eigen::Vector6d& r,
+                                    uint8_t mode,
+                                    double convergence_threshold) const;
+
+    void publish_hold_reference();
 
     vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
@@ -112,6 +123,8 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     // The reference signal vector with 6 degrees of freedom [eta]
     Eigen::Vector6d r_ = Eigen::Vector6d::Zero();
+
+    std::atomic<uint8_t> active_mode_{vortex_msgs::msg::Waypoint::FULL_POSE};
 
     std::mutex mutex_;
 

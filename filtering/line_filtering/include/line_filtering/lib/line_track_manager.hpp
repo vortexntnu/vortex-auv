@@ -10,10 +10,11 @@ namespace vortex::line_filtering {
 
 /**
  * @file line_track_manager.hpp
- * @brief Track management for 2D lines using an error-state IPDA filter.
+ * @brief Track management for 2D lines using an error-state PDAF filter
+ * with N/M logic for track lifecycle.
  *
  * Each track maintains a nominal line (rho, n) and filters a 2D error
- * [delta_rho, delta_phi] via IPDA.  The "log" residual avoids angle
+ * [delta_rho, delta_phi] via PDAF.  The "log" residual avoids angle
  * wrapping; the (rho, n) <-> (-rho, -n) ambiguity is handled by a
  * one-step sign alignment before computing residuals.
  */
@@ -28,8 +29,8 @@ struct LineGate2D {
     double max_phi_error = std::numeric_limits<double>::infinity();
     double mahalanobis_threshold = std::numeric_limits<double>::infinity();
 
-    using Vec_z = IPDA::Vec_z;
-    using Gauss_z = IPDA::Gauss_z;
+    using Vec_z = PDAF::Vec_z;
+    using Gauss_z = PDAF::Gauss_z;
 
     bool operator()(const Vec_z& z, const Gauss_z& z_pred) const {
         const Vec_z r = z - z_pred.mean();
@@ -104,6 +105,30 @@ class LineTrackManager {
         const LineTrack& track,
         const std::vector<LineMeasurement>& measurements) const;
 
+    /**
+     * @brief Validate the configuration parameters. Throw on failure.
+     * @param config Configuration to validate
+     */
+    void validate_config(const LineTrackManagerConfig& config) {
+        const auto validate_nm = [](const NMConfig& nm) {
+            if (nm.confirm_n < 1 || nm.confirm_m < 1 || nm.delete_n < 1 ||
+                nm.delete_m < 1) {
+                throw std::invalid_argument(
+                    "NMConfig values must be non-negative, and *_m must be > "
+                    "1");
+            }
+            if (nm.confirm_n > nm.confirm_m) {
+                throw std::invalid_argument("confirm_n must be <= confirm_m");
+            }
+            if (nm.delete_n > nm.delete_m) {
+                throw std::invalid_argument("delete_n must be <= delete_m");
+            }
+        };
+
+        validate_nm(config.nm);
+    }
+
+    void record_hit_miss(LineTrack& track, bool hit);
     void confirm_tracks();
     void delete_tracks();
     void create_tracks(const std::vector<LineMeasurement>& measurements);

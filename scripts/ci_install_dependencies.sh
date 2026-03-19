@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Installs dependencies not handled by rosdep.
 
-set -e  # Exit on any error
+set -e # Exit on any error
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Installing additional Python dependencies..."
 
@@ -24,5 +26,8 @@ sudo apt-get install -y --no-install-recommends gcc-13 g++-13 lcov
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
+
+# Install casadi using CasADi install script
+"$SCRIPT_DIR/install_casadi.sh"
 
 echo "Done installing additional dependencies."

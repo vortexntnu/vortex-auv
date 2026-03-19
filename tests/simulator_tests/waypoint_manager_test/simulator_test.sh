@@ -14,7 +14,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cleanup() {
     echo "Error detected. Cleaning up..."
     # Safely kill any started PIDs (ignore empty values)
-    for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID"; do
+    for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID" ; do
         if [ -n "$_pid" ]; then
             kill -TERM "$_pid" 2>/dev/null || true
         fi
@@ -51,7 +51,7 @@ timeout 10s ros2 topic echo /orca/odom --once
 echo "Got odom data"
 
 # Launch ORCA Simulation
-setsid ros2 launch stonefish_sim orca_sim.launch.py &
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
 ORCA_PID=$!
 echo "Launched orca with PID: $ORCA_PID"
 
@@ -85,10 +85,13 @@ if journalctl -u ros2 | grep -i "error"; then
     exit 1
 fi
 
+echo "Sleeping for 5 seconds to make sure operation is stable..."
+sleep 5
+
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -t 5 # Ensure the message arrives
-ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -t 5 # Ensure the message arrives
+ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 # Send waypoint goal
 echo "Sending goal"
@@ -106,7 +109,7 @@ else
 fi
 
 # Terminate processes (safely)
-for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$BAG_PID"; do
+for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID"; do
     if [ -n "$_pid" ]; then
         kill -TERM "$_pid" 2>/dev/null || true
     fi

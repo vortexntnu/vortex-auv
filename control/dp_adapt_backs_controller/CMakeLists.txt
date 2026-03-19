@@ -22,6 +22,7 @@ find_package(vortex_msgs REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 
+
 include_directories(include)
 
 set(LIB_NAME "${PROJECT_NAME}_component")

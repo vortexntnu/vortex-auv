@@ -4,7 +4,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 FindDockingStationState::FindDockingStationState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
+    std::shared_ptr<yasmin::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::FindDockingAction>(
           blackboard->get<std::string>("pose_action"),
           std::bind(&FindDockingStationState::create_goal_handler, this, _1),
@@ -13,7 +13,7 @@ FindDockingStationState::FindDockingStationState(
 
 docking_fsm::FindDockingAction::Goal
 FindDockingStationState::create_goal_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto goal = docking_fsm::FindDockingAction::Goal();
     goal.num_measurements = blackboard->get<bool>("num_measurements");
 
@@ -24,7 +24,7 @@ FindDockingStationState::create_goal_handler(
 }
 
 std::string FindDockingStationState::response_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     docking_fsm::FindDockingAction::Result::SharedPtr response) {
     blackboard->set<docking_fsm::PoseStamped>("dock_pose",
                                               response->filtered_pose);
@@ -46,7 +46,7 @@ std::string FindDockingStationState::response_handler(
 }
 
 void FindDockingStationState::print_feedback(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::FindDockingAction::Feedback> feedback) {
     blackboard->set<docking_fsm::Pose>("current_pose",
                                        feedback->current_pose.pose);
@@ -57,7 +57,7 @@ void FindDockingStationState::print_feedback(
 }
 
 ApproachDockingStationState::ApproachDockingStationState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
+    std::shared_ptr<yasmin::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::ApproachDockingAction>(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&ApproachDockingStationState::create_goal_handler,
@@ -74,7 +74,7 @@ ApproachDockingStationState::ApproachDockingStationState(
 
 docking_fsm::ApproachDockingAction::Goal
 ApproachDockingStationState::create_goal_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto goal = docking_fsm::ApproachDockingAction::Goal();
 
     blackboard->set<bool>("is_home", false);
@@ -96,7 +96,7 @@ ApproachDockingStationState::create_goal_handler(
 }
 
 std::string ApproachDockingStationState::response_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     docking_fsm::ApproachDockingAction::Result::SharedPtr response) {
     spdlog::info("Response received from action server:");
     spdlog::info("  Success: {}", response->success ? "true" : "false");
@@ -111,7 +111,7 @@ std::string ApproachDockingStationState::response_handler(
 }
 
 void ApproachDockingStationState::print_feedback(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::ApproachDockingAction::Feedback>
         feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
@@ -127,7 +127,7 @@ void ApproachDockingStationState::print_feedback(
 }
 
 GoAboveDockingStationState::GoAboveDockingStationState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
+    std::shared_ptr<yasmin::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::GoAboveDockingAction>(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&GoAboveDockingStationState::create_goal_handler, this, _1),
@@ -142,7 +142,7 @@ GoAboveDockingStationState::GoAboveDockingStationState(
 
 docking_fsm::GoAboveDockingAction::Goal
 GoAboveDockingStationState::create_goal_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto goal = docking_fsm::GoAboveDockingAction::Goal();
 
     auto docking_offset_goal =
@@ -165,7 +165,7 @@ GoAboveDockingStationState::create_goal_handler(
 }
 
 std::string GoAboveDockingStationState::response_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     docking_fsm::GoAboveDockingAction::Result::SharedPtr response) {
     spdlog::info("Response received from action server:");
     spdlog::info("  Success: {}", response->success ? "true" : "false");
@@ -179,7 +179,7 @@ std::string GoAboveDockingStationState::response_handler(
 }
 
 void GoAboveDockingStationState::print_feedback(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::GoAboveDockingAction::Feedback>
         feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
@@ -195,7 +195,7 @@ void GoAboveDockingStationState::print_feedback(
 }
 
 ConvergeDockingStationState::ConvergeDockingStationState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
+    std::shared_ptr<yasmin::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::ConvergeDockingAction>(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&ConvergeDockingStationState::create_goal_handler,
@@ -212,7 +212,7 @@ ConvergeDockingStationState::ConvergeDockingStationState(
 
 docking_fsm::ConvergeDockingAction::Goal
 ConvergeDockingStationState::create_goal_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto goal = docking_fsm::ConvergeDockingAction::Goal();
 
     docking_fsm::PoseStamped dock_pose =
@@ -230,7 +230,7 @@ ConvergeDockingStationState::create_goal_handler(
 }
 
 std::string ConvergeDockingStationState::response_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     docking_fsm::ConvergeDockingAction::Result::SharedPtr response) {
     spdlog::info("Response received from action server:");
     spdlog::info("  Success: {}", response->success ? "true" : "false");
@@ -244,7 +244,7 @@ std::string ConvergeDockingStationState::response_handler(
 }
 
 void ConvergeDockingStationState::print_feedback(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::ConvergeDockingAction::Feedback>
         feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
@@ -258,8 +258,7 @@ void ConvergeDockingStationState::print_feedback(
                   feedback->reference.z);
 }
 
-std::string DockedState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+std::string DockedState(std::shared_ptr<yasmin::Blackboard> blackboard) {
     std::chrono::duration<double> elapsed_time = std::chrono::seconds(0);
     std::chrono::time_point<std::chrono::steady_clock> start_time =
         std::chrono::steady_clock::now();
@@ -275,8 +274,7 @@ std::string DockedState(
     }
 }
 
-ReturnHomeState::ReturnHomeState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard)
+ReturnHomeState::ReturnHomeState(std::shared_ptr<yasmin::Blackboard> blackboard)
     : yasmin_ros::ActionState<docking_fsm::ReturnHomeAction>(
           blackboard->get<std::string>("reference_filter_action"),
           std::bind(&ReturnHomeState::create_goal_handler, this, _1),
@@ -284,7 +282,7 @@ ReturnHomeState::ReturnHomeState(
           std::bind(&ReturnHomeState::print_feedback, this, _1, _2)) {}
 
 docking_fsm::ReturnHomeAction::Goal ReturnHomeState::create_goal_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+    std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto goal = docking_fsm::ReturnHomeAction::Goal();
 
     blackboard->set<bool>("is_docked", false);
@@ -304,7 +302,7 @@ docking_fsm::ReturnHomeAction::Goal ReturnHomeState::create_goal_handler(
 }
 
 std::string ReturnHomeState::response_handler(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     docking_fsm::ReturnHomeAction::Result::SharedPtr response) {
     spdlog::info("Response received from action server:");
     spdlog::info("  Success: {}", response->success ? "true" : "false");
@@ -318,7 +316,7 @@ std::string ReturnHomeState::response_handler(
 }
 
 void ReturnHomeState::print_feedback(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard,
+    std::shared_ptr<yasmin::Blackboard> blackboard,
     std::shared_ptr<const docking_fsm::ReturnHomeAction::Feedback> feedback) {
     docking_fsm::Pose current_pose = docking_fsm::Pose();
     current_pose.position.x = feedback->reference.x;
@@ -334,14 +332,12 @@ void ReturnHomeState::print_feedback(
                   feedback->reference.z);
 }
 
-std::string AbortState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+std::string AbortState(std::shared_ptr<yasmin::Blackboard> blackboard) {
     blackboard->set<bool>("is_abort", true);
     return yasmin_ros::basic_outcomes::ABORT;
 }
 
-std::string ErrorState(
-    std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+std::string ErrorState(std::shared_ptr<yasmin::Blackboard> blackboard) {
     blackboard->set<bool>("is_error", true);
     return yasmin_ros::basic_outcomes::SUCCEED;
 }
@@ -358,7 +354,7 @@ std::shared_ptr<yasmin::StateMachine> create_state_machines() {
 }
 
 void add_states(std::shared_ptr<yasmin::StateMachine> sm,
-                std::shared_ptr<yasmin::blackboard::Blackboard> blackboard) {
+                std::shared_ptr<yasmin::Blackboard> blackboard) {
     sm->add_state(
         "FIND_DOCKING_STATION",
         std::make_shared<FindDockingStationState>(blackboard),
@@ -403,17 +399,17 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
             {yasmin_ros::basic_outcomes::CANCEL, "GO_ABOVE_DOCKING_STATION"},
         });
 
-    sm->add_state("DOCKED",
-                  std::make_shared<yasmin::CbState>(
-                      std::initializer_list<std::string>{
-                          "error", yasmin_ros::basic_outcomes::SUCCEED,
-                          yasmin_ros::basic_outcomes::ABORT},
-                      DockedState),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED,
-                       yasmin_ros::basic_outcomes::SUCCEED},
-                      {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
-                  });
+    sm->add_state(
+        "DOCKED",
+        std::make_shared<yasmin::CbState>(
+            std::set<std::string>{"error", yasmin_ros::basic_outcomes::SUCCEED,
+                                  yasmin_ros::basic_outcomes::ABORT},
+            DockedState),
+        {
+            {yasmin_ros::basic_outcomes::SUCCEED,
+             yasmin_ros::basic_outcomes::SUCCEED},
+            {yasmin_ros::basic_outcomes::ABORT, "ABORT"},
+        });
     sm->add_state(
         "RETURN_HOME", std::make_shared<ReturnHomeState>(blackboard),
         {
@@ -423,10 +419,9 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
         });
     sm->add_state("ABORT",
                   std::make_shared<yasmin::CbState>(
-                      std::initializer_list<std::string>{
-                          yasmin_ros::basic_outcomes::SUCCEED,
-                          yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT},
+                      std::set<std::string>{yasmin_ros::basic_outcomes::SUCCEED,
+                                            yasmin_ros::basic_outcomes::CANCEL,
+                                            yasmin_ros::basic_outcomes::ABORT},
                       AbortState),
                   {
                       {yasmin_ros::basic_outcomes::SUCCEED,
@@ -436,21 +431,21 @@ void add_states(std::shared_ptr<yasmin::StateMachine> sm,
                       {yasmin_ros::basic_outcomes::ABORT,
                        yasmin_ros::basic_outcomes::ABORT},
                   });
-    sm->add_state("ERROR",
-                  std::make_shared<yasmin::CbState>(
-                      std::initializer_list<std::string>{
-                          "error", yasmin_ros::basic_outcomes::SUCCEED,
-                          yasmin_ros::basic_outcomes::CANCEL,
-                          yasmin_ros::basic_outcomes::ABORT},
-                      ErrorState),
-                  {
-                      {yasmin_ros::basic_outcomes::SUCCEED, "error"},
-                      {yasmin_ros::basic_outcomes::CANCEL, "error"},
-                      {yasmin_ros::basic_outcomes::ABORT, "error"},
-                  });
+    sm->add_state(
+        "ERROR",
+        std::make_shared<yasmin::CbState>(
+            std::set<std::string>{"error", yasmin_ros::basic_outcomes::SUCCEED,
+                                  yasmin_ros::basic_outcomes::CANCEL,
+                                  yasmin_ros::basic_outcomes::ABORT},
+            ErrorState),
+        {
+            {yasmin_ros::basic_outcomes::SUCCEED, "error"},
+            {yasmin_ros::basic_outcomes::CANCEL, "error"},
+            {yasmin_ros::basic_outcomes::ABORT, "error"},
+        });
 }
 
-auto initialize_blackboard() {
+std::shared_ptr<yasmin::Blackboard> initialize_blackboard() {
     auto params = std::make_shared<rclcpp::Node>("dock_params");
     spdlog::debug("Creating params node");
 
@@ -464,7 +459,7 @@ auto initialize_blackboard() {
 
     spdlog::debug("Parameters declared");
 
-    auto blackboard = std::make_shared<yasmin::blackboard::Blackboard>();
+    auto blackboard = std::make_shared<yasmin::Blackboard>();
 
     docking_fsm::PoseStamped dock_pose;
     docking_fsm::PoseStamped start_pose;
@@ -518,7 +513,7 @@ int main(int argc, char* argv[]) {
 
     add_states(sm, blackboard);
 
-    yasmin_viewer::YasminViewerPub yasmin_pub("Docking", sm);
+    yasmin_viewer::YasminViewerPub yasmin_pub(sm, "Docking");
 
     spdlog::debug("State machines created");
 
