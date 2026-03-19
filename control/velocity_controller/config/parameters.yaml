@@ -1,14 +1,14 @@
 /**:
   ros__parameters:
 
-    topics:
-      odom_topic: /orca/odom #Odometry
-      twist_topic: /dvl/twist #Twist
-      pose_topic: /dvl/pose #Pose
-      guidance_topic: /orca/guidance/los #Guidance
-      thrust_topic: /orca/wrench_input #Thrust
-      softwareoperation_topic: /softwareOperationMode #Software Operation
-      killswitch_topic: /softwareKillSwitch #Kill Switch
+    #topics:
+    #  odom_topic: /orca/odom #Odometry
+    #  twist_topic: /dvl/twist #Twist
+    #  pose_topic: /dvl/pose #Pose
+    #  guidance_topic: /orca/guidance/los #Guidance
+    #  thrust_topic: /orca/wrench_input #Thrust
+    #  softwareoperation_topic: /softwareOperationMode #Software Operation
+    #  killswitch_topic: /softwareKillSwitch #Kill Switch
 
     LQR_params:
       Q: [200.0,32.84,32.84,15.0,15.0,100.0,32.84,32.84]
