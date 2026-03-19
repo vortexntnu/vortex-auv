@@ -58,7 +58,7 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
 //** må forbedre integrasjon og derivasjons beregningene
 void Velocity_node::calc_thrust()
 {
-  RCLCPP_INFO(get_logger(),"Calculating thrust");
+  //RCLCPP_INFO(get_logger(),"Calculating thrust");
   angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
   angle error=NED_to_BODY(NED_error,current_state);
   Guidance_data mod_g_values=guidance_values;
@@ -208,8 +208,8 @@ void Velocity_node::get_new_parameters(){
   Q=this->get_parameter("LQR_params.Q").as_double_array();
   this->declare_parameter<std::vector<double>>("LQR_params.R");
   R=this->get_parameter("LQR_params.R").as_double_array();
-  this->declare_parameter<std::vector<double>>("inertia_matrix");
-  this->get_parameter("inertia_matrix", inertia_matrix);
+  this->declare_parameter<std::vector<double>>("physical.mass_matrix");
+  this->get_parameter("physical.mass_matrix", inertia_matrix);
 
   //D
   this->declare_parameter<std::vector<double>>("dampening_matrix_low");
