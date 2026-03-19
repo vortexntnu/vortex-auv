@@ -234,8 +234,6 @@ void LineFilteringNode::publish_tracks() {
     out.header.frame_id = target_frame_;
     out.header.stamp = this->get_clock()->now();
 
-    constexpr double HALF_LEN = 5.0;
-
     for (const auto& track : track_manager_->get_tracks()) {
         if (!track.confirmed)
             continue;
@@ -243,12 +241,17 @@ void LineFilteringNode::publish_tracks() {
         const Eigen::Vector2d& n = track.nominal.n;
         const double rho = track.nominal.rho;
 
+        // Project the track's measurement endpoints onto the filtered line
+        Eigen::Vector2d tangent(-n.y(), n.x());
         Eigen::Vector2d closest = rho * n;
 
-        Eigen::Vector2d tangent(-n.y(), n.x());
+        Eigen::Vector2d ep0(track.endpoints.p0.x, track.endpoints.p0.y);
+        Eigen::Vector2d ep1(track.endpoints.p1.x, track.endpoints.p1.y);
+        double t0 = tangent.dot(ep0 - closest);
+        double t1 = tangent.dot(ep1 - closest);
 
-        Eigen::Vector2d p0_2d = closest - HALF_LEN * tangent;
-        Eigen::Vector2d p1_2d = closest + HALF_LEN * tangent;
+        Eigen::Vector2d p0_2d = closest + t0 * tangent;
+        Eigen::Vector2d p1_2d = closest + t1 * tangent;
 
         vortex_msgs::msg::LineSegment3D seg3d;
         seg3d.p0.x = p0_2d.x();
@@ -274,12 +277,16 @@ void LineFilteringNode::publish_markers() {
 
         const Eigen::Vector2d& n = track.nominal.n;
         const double rho = track.nominal.rho;
-        Eigen::Vector2d closest = rho * n;
         Eigen::Vector2d tangent(-n.y(), n.x());
+        Eigen::Vector2d closest = rho * n;
 
-        constexpr double HALF_LEN = 5.0;
-        Eigen::Vector2d p0 = closest - HALF_LEN * tangent;
-        Eigen::Vector2d p1 = closest + HALF_LEN * tangent;
+        Eigen::Vector2d ep0(track.endpoints.p0.x, track.endpoints.p0.y);
+        Eigen::Vector2d ep1(track.endpoints.p1.x, track.endpoints.p1.y);
+        double t0 = tangent.dot(ep0 - closest);
+        double t1 = tangent.dot(ep1 - closest);
+
+        Eigen::Vector2d p0 = closest + t0 * tangent;
+        Eigen::Vector2d p1 = closest + t1 * tangent;
 
         visualization_msgs::msg::Marker m;
         m.header.frame_id = target_frame_;
@@ -415,7 +422,6 @@ void LineFilteringNode::publish_debug_state() {
     }
 
     int id = 0;
-    constexpr double HALF_LEN = 5.0;
 
     for (const auto& track : track_manager_->get_tracks()) {
         if (!track.confirmed)
@@ -423,10 +429,16 @@ void LineFilteringNode::publish_debug_state() {
 
         const Eigen::Vector2d& n = track.nominal.n;
         const double rho = track.nominal.rho;
-        Eigen::Vector2d closest = rho * n;
         Eigen::Vector2d tangent(-n.y(), n.x());
-        Eigen::Vector2d p0 = closest - HALF_LEN * tangent;
-        Eigen::Vector2d p1 = closest + HALF_LEN * tangent;
+        Eigen::Vector2d closest = rho * n;
+
+        Eigen::Vector2d ep0(track.endpoints.p0.x, track.endpoints.p0.y);
+        Eigen::Vector2d ep1(track.endpoints.p1.x, track.endpoints.p1.y);
+        double t0 = tangent.dot(ep0 - closest);
+        double t1 = tangent.dot(ep1 - closest);
+
+        Eigen::Vector2d p0 = closest + t0 * tangent;
+        Eigen::Vector2d p1 = closest + t1 * tangent;
 
         visualization_msgs::msg::Marker m;
         m.header.frame_id = target_frame_;
