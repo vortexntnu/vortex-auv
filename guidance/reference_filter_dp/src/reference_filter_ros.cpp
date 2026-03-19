@@ -130,15 +130,6 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
         goal) {
     (void)uuid;
     (void)goal;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (goal_handle_) {
-            if (goal_handle_->is_active()) {
-                spdlog::info("Aborting current goal and accepting new goal");
-                preempted_goal_id_ = goal_handle_->get_goal_id();
-            }
-        }
-    }
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -154,16 +145,27 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    std::thread([this, goal_handle]() { execute(goal_handle); }).detach();
+    const uint64_t my_generation = ++goal_generation_;
+    std::thread([this, goal_handle, my_generation]() {
+        execute(goal_handle, my_generation);
+    }).detach();
 }
 
 Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
-    Eigen::Vector18d x = Eigen::Vector18d::Zero();
-    x(0) = current_pose_.pose.pose.position.x;
-    x(1) = current_pose_.pose.pose.position.y;
-    x(2) = current_pose_.pose.pose.position.z;
+    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
+    geometry_msgs::msg::TwistWithCovarianceStamped twist_msg;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        pose_msg = current_pose_;
+        twist_msg = current_twist_;
+    }
 
-    const auto& o = current_pose_.pose.pose.orientation;
+    Eigen::Vector18d x = Eigen::Vector18d::Zero();
+    x(0) = pose_msg.pose.pose.position.x;
+    x(1) = pose_msg.pose.pose.position.y;
+    x(2) = pose_msg.pose.pose.position.z;
+
+    const auto& o = pose_msg.pose.pose.orientation;
     Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
     Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
     double roll{euler_angles(0)};
@@ -174,19 +176,17 @@ Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
     x(4) = vortex::utils::math::ssa(pitch);
     x(5) = vortex::utils::math::ssa(yaw);
 
-    vortex::utils::types::PoseEuler pose{current_pose_.pose.pose.position.x,
-                                         current_pose_.pose.pose.position.y,
-                                         current_pose_.pose.pose.position.z,
+    vortex::utils::types::PoseEuler pose{pose_msg.pose.pose.position.x,
+                                         pose_msg.pose.pose.position.y,
+                                         pose_msg.pose.pose.position.z,
                                          roll,
                                          pitch,
                                          yaw};
     Eigen::Matrix6d J = pose.as_j_matrix();
-    vortex::utils::types::Twist twist{current_twist_.twist.twist.linear.x,
-                                      current_twist_.twist.twist.linear.y,
-                                      current_twist_.twist.twist.linear.z,
-                                      current_twist_.twist.twist.angular.x,
-                                      current_twist_.twist.twist.angular.y,
-                                      current_twist_.twist.twist.angular.z};
+    vortex::utils::types::Twist twist{
+        twist_msg.twist.twist.linear.x,  twist_msg.twist.twist.linear.y,
+        twist_msg.twist.twist.linear.z,  twist_msg.twist.twist.angular.x,
+        twist_msg.twist.twist.angular.y, twist_msg.twist.twist.angular.z};
     Eigen::Vector6d pose_dot = J * twist.to_vector();
 
     x(6) = pose_dot(0);
@@ -336,12 +336,8 @@ bool ReferenceFilterNode::has_converged_against_pose(
 
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        this->goal_handle_ = goal_handle;
-    }
-
+        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
+    uint64_t generation) {
     spdlog::info("Executing goal");
 
     x_ = fill_reference_state();
@@ -371,24 +367,25 @@ void ReferenceFilterNode::execute(
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
     while (rclcpp::ok()) {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            if (goal_handle->get_goal_id() == preempted_goal_id_ &&
-                !goal_handle->is_canceling()) {
-                result->success = false;
-                goal_handle->abort(result);
-                return;
-            }
-        }
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
+        if (generation != goal_generation_.load()) {
+            result->success = false;
             if (goal_handle->is_canceling()) {
-                result->success = false;
                 goal_handle->canceled(result);
-                spdlog::info("Goal canceled");
-                return;
+                spdlog::info("Goal canceled (superseded)");
+            } else {
+                goal_handle->abort(result);
+                spdlog::info("Goal preempted by newer goal");
             }
+            return;
         }
+
+        if (goal_handle->is_canceling()) {
+            result->success = false;
+            goal_handle->canceled(result);
+            spdlog::info("Goal canceled");
+            return;
+        }
+
         Eigen::Vector18d x_dot = reference_filter_->calculate_x_dot(x_, r_);
         x_ += x_dot * time_step_.count() / 1000.0;
 
