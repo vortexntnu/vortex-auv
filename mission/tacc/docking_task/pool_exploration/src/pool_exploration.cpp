@@ -1,9 +1,7 @@
 #include <pool_exploration/pool_exploration.hpp>
 
-//#include <iostream> Brukt til testinga
 #include <vector>
 #include <Eigen/src/Core/Matrix.h>
-#include <spdlog/spdlog.h> //FJERN
 
 namespace vortex::pool_exploration{
 
@@ -169,7 +167,7 @@ float PoolExplorationPlanner::angle_between_lines(
 
 Eigen::Vector2f PoolExplorationPlanner::compute_inward_normal(
     const LineSegment& line,
-    const Eigen::Vector2f& reference_point)
+    const Eigen::Vector2f& drone_pos)
 {
     Eigen::Vector2f p0 = line.asEigen().first;
     Eigen::Vector2f p1 = line.asEigen().second;
@@ -179,7 +177,7 @@ Eigen::Vector2f PoolExplorationPlanner::compute_inward_normal(
 
     Eigen::Vector2f midpoint = 0.5f * (p0 + p1);
 
-    if ((reference_point - midpoint).dot(n) < 0.0f) {
+    if ((drone_pos - midpoint).dot(n) < 0.0f) {
         n = -n;
     }
 

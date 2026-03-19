@@ -55,8 +55,11 @@ class PoolExplorationNode : public rclcpp::Node {
         void pose_callback(
             const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg);
 
+        void sonar_info_callback(
+            const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg);
+
         // helpers (se på disse nærmere)
-        std::vector<LineSegment> transform_segments_2d( //static?
+        std::vector<LineSegment> transform_segments_2d(
             const vortex_msgs::msg::LineSegment2DArray& msg,
             const Eigen::Matrix4f& T_target_src); 
 
@@ -91,18 +94,15 @@ class PoolExplorationNode : public rclcpp::Node {
         // service client
         rclcpp::Client<vortex_msgs::srv::SendWaypoints>::SharedPtr waypoint_client_;
 
-        // Position and heading
+        // Drone position and heading
         utils::types::PoseEuler drone_state_;
+
+        vortex_msgs::msg::SonarInfo::ConstSharedPtr latest_sonar_info_;
 
         std::unique_ptr<PoolExplorationPlanner> planner_;
 
         rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr docking_marker_pub_; //til testing
         void publish_docking_marker(const Eigen::Vector2f& docking); //til testing
-
-        // Verdier til pixel konvertering  (lagret annet sted??)
-        void sonar_info_callback(
-            const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg);
-        vortex_msgs::msg::SonarInfo::ConstSharedPtr latest_sonar_info_;
 
     // GRID LOGIKK TIL SENERE
     # if 0
@@ -131,8 +131,3 @@ class PoolExplorationNode : public rclcpp::Node {
 
     #endif  // POOL_EXPLORATION_ROS_HPP
 
-    // TO DO 
-    // service client
-    // pose_subscriber
-    // se på map publisheren
-    // sjekke map vs odom transformene og hvordan det er i filter

@@ -32,14 +32,6 @@ struct LineSegment {
     }
 };
 
-// brukes i node for å sette subscriber til dronepos verdi lik
-struct DroneState {
-    double x{};
-    double y{};
-    double z{};
-    double yaw{};
-};
-
 //linjer som oppfyller hjørnekrav
 struct CandidateCorner {
     LineSegment right_wall;
@@ -128,7 +120,6 @@ private:
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
 
-    Eigen::Vector2f compute_normal(const LineSegment& line);
     Eigen::Vector2f compute_inward_normal(const LineSegment& line, const Eigen::Vector2f& drone_pos);
 
     PoolExplorationPlannerConfig config_;

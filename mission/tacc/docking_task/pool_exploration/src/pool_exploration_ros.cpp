@@ -122,8 +122,7 @@ std::vector<LineSegment> PoolExplorationNode::transform_segments_2d( //FUNSKJON 
 {
     std::vector<LineSegment> segments;
     segments.reserve(msg.lines.size());
-
-    // TO DO: Lag en type feilhåndtering
+    
     if (!latest_sonar_info_) {
         spdlog::warn("[PoolExploration] No sonar image info available yet");
         return segments;

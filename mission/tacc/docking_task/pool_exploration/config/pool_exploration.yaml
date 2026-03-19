@@ -2,9 +2,9 @@
   ros__parameters:
     # Topics
     line_sub_topic: "/line_detection/line_segments"
-    pose_sub_topic: "/pose" #Hente fra dronen senere?
+    pose_sub_topic: "/pose" 
     sonar_info_sub_topic: "/orca/sonar_info"
-    map_pub_topic: "/map" #skal jeg publishe til map??
+    map_pub_topic: "/map" 
     debug_topic: "/debug"
 
     # Publish
@@ -31,10 +31,10 @@
 
     # Corner/docking params
     min_dist: 0.0
-    max_dist: 1000.0
+    max_dist: 100.0
     angle_threshold: 0.6
-    min_angle: 1.2
-    max_angle: 2.0
+    min_angle: 1.35
+    max_angle: 1.95
     right_wall_offset: 3.0
     far_wall_offset: 5.0
 
