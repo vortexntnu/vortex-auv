@@ -8,13 +8,22 @@ namespace vortex::guidance {
 
 using vortex::utils::types::PoseEuler;
 
+/**
+ * @brief Determines which degrees of freedom the reference filter controls.
+ *
+ * The mode affects both the reference goal computation (via apply_mode_logic)
+ * and the convergence check (via has_converged).
+ */
 enum class WaypointMode : uint8_t {
-    FULL_POSE = 0,
-    ONLY_POSITION = 1,
-    FORWARD_HEADING = 2,
-    ONLY_ORIENTATION = 3,
+    FULL_POSE = 0,         ///< Control all 6 DOF.
+    ONLY_POSITION = 1,     ///< Control x, y, z; hold current orientation.
+    FORWARD_HEADING = 2,   ///< Control x, y, z with yaw toward target.
+    ONLY_ORIENTATION = 3,  ///< Control roll, pitch, yaw; hold current position.
 };
 
+/**
+ * @brief A target pose with an associated waypoint mode.
+ */
 struct Waypoint {
     PoseEuler pose{};
     WaypointMode mode = WaypointMode::FULL_POSE;

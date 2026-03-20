@@ -31,31 +31,29 @@ class ReferenceFilterNode : public rclcpp::Node {
     // @brief Initializes the reference filter with ROS parameters.
     void set_refererence_filter();
 
-    // @brief Handle the goal request
-    // @param uuid The goal UUID
-    // @param goal The goal message
-    // @return The goal response
+    /// @brief Accept all incoming goals unconditionally.
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<
             const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal);
 
-    // @brief Handle the cancel request
-    // @param goal_handle The goal handle
-    // @return The cancel response
+    /// @brief Accept all cancel requests.
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-    // @brief Handle the accepted request
-    // @param goal_handle The goal handle
+    /// @brief Spawn a detached thread to execute the goal.
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-    // @brief Execute the goal
-    // @param goal_handle The goal handle
-    // @param generation The generation counter for this goal
+    /**
+     * @brief Execute the action goal in a loop until convergence or
+     * preemption.
+     * @param goal_handle The goal handle.
+     * @param generation Generation counter used to detect preemption by a
+     * newer goal.
+     */
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
                      vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
                  uint64_t generation);

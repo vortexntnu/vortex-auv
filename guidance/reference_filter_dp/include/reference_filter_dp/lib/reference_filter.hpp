@@ -10,6 +10,12 @@ struct ReferenceFilterParams {
     Eigen::Vector6d zeta = Eigen::Vector6d::Zero();
 };
 
+/**
+ * @brief Stateless third-order reference filter.
+ *
+ * Computes the state derivative x_dot = Ad * x + Bd * r, where the state
+ * x = [eta, eta_dot, eta_ddot] is 18-dimensional and r is the 6D reference.
+ */
 class ReferenceFilter {
    public:
     explicit ReferenceFilter(const ReferenceFilterParams& params);

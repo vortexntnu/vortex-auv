@@ -12,6 +12,8 @@
 
 namespace vortex::guidance {
 
+/// @brief Convert a ROS waypoint mode to a WaypointMode enum.
+/// @throws std::invalid_argument if the mode value is not recognized.
 inline WaypointMode waypoint_mode_from_ros(uint8_t mode) {
     switch (mode) {
         case vortex_msgs::msg::Waypoint::FULL_POSE:
@@ -28,6 +30,7 @@ inline WaypointMode waypoint_mode_from_ros(uint8_t mode) {
     }
 }
 
+/// @brief Convert a ROS Waypoint message to an internal Waypoint struct.
 inline vortex::guidance::Waypoint waypoint_from_ros(
     const vortex_msgs::msg::Waypoint& ros_wp) {
     Waypoint wp;
@@ -37,6 +40,7 @@ inline vortex::guidance::Waypoint waypoint_from_ros(
     return wp;
 }
 
+/// @brief Fill a ReferenceFilter message from an 18D state vector.
 inline vortex_msgs::msg::ReferenceFilter fill_reference_msg(
     const Eigen::Vector18d& x) {
     vortex_msgs::msg::ReferenceFilter msg;
