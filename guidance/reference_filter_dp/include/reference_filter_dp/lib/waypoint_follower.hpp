@@ -12,9 +12,8 @@ using vortex::utils::types::PoseEuler;
 using vortex::utils::types::Twist;
 
 struct StepResult {
-    Eigen::Vector18d state;
-    Eigen::Vector6d reference;
-    bool converged;
+    Eigen::Vector18d reference_state;
+    bool target_reached;
 };
 
 class WaypointFollower {
@@ -30,9 +29,10 @@ class WaypointFollower {
 
     void set_reference(const PoseEuler& reference_goal_pose);
 
+    void snap_state_to_reference();
+
     Eigen::Vector18d state() const;
     Eigen::Vector6d reference() const;
-    void snap_state_to_reference();
 
    private:
     Eigen::Vector18d compute_initial_state(const PoseEuler& pose,

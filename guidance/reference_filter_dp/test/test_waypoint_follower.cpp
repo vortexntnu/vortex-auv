@@ -32,8 +32,8 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
 
     StepResult result = follower.step(measured_at_ref);
 
-    EXPECT_TRUE(result.converged);
-    EXPECT_EQ(result.state.size(), 18);
+    EXPECT_TRUE(result.target_reached);
+    EXPECT_EQ(result.reference_state.size(), 18);
 }
 
 TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
@@ -48,7 +48,7 @@ TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
     Eigen::Vector6d measured_far = Eigen::Vector6d::Zero();
     StepResult result = follower.step(measured_far);
 
-    EXPECT_FALSE(result.converged);
+    EXPECT_FALSE(result.target_reached);
 }
 
 TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {

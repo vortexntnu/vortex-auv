@@ -24,11 +24,7 @@ Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
                                                          const Twist& twist) {
     Eigen::Vector18d x = Eigen::Vector18d::Zero();
 
-    Eigen::Vector6d pose_vec = pose.to_vector();
-    pose_vec(3) = vortex::utils::math::ssa(pose_vec(3));
-    pose_vec(4) = vortex::utils::math::ssa(pose_vec(4));
-    pose_vec(5) = vortex::utils::math::ssa(pose_vec(5));
-    x.head<6>() = pose_vec;
+    x.head<6>() = pose.to_vector();
 
     Eigen::Matrix<double, 6, 6> J = pose.as_j_matrix();
     x.segment<6>(6) = J * twist.to_vector();
@@ -44,7 +40,7 @@ StepResult WaypointFollower::step(const Eigen::Vector6d& measured_pose) {
     bool converged = has_converged(measured_pose, reference_goal_,
                                    waypoint_mode_, convergence_threshold_);
 
-    return StepResult{x_, reference_goal_, converged};
+    return StepResult{x_, converged};
 }
 
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose) {

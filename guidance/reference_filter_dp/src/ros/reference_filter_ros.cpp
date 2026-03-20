@@ -201,25 +201,27 @@ void ReferenceFilterNode::execute(
 
         StepResult step = follower_->step(current_pose_vector);
 
-        vortex_msgs::msg::ReferenceFilter reference_msg =
-            fill_reference_msg(follower_->state());
+        if (step.target_reached) {
+            follower_->snap_state_to_reference();
 
-        feedback->reference = reference_msg;
+            vortex_msgs::msg::ReferenceFilter final_reference_msg =
+                fill_reference_msg(follower_->state());
 
-        goal_handle->publish_feedback(feedback);
-        reference_pub_->publish(reference_msg);
+            feedback->reference = final_reference_msg;
+            goal_handle->publish_feedback(feedback);
+            reference_pub_->publish(final_reference_msg);
 
-        if (step.converged) {
             result->success = true;
             goal_handle->succeed(result);
-            follower_->snap_state_to_reference();
-            vortex_msgs::msg::ReferenceFilter feedback_msg =
-                fill_reference_msg(follower_->state());
-            reference_pub_->publish(feedback_msg);
             spdlog::info("Goal reached");
             return;
         }
 
+        vortex_msgs::msg::ReferenceFilter reference_msg =
+            fill_reference_msg(step.reference_state);
+        reference_pub_->publish(reference_msg);
+        feedback->reference = reference_msg;
+        goal_handle->publish_feedback(feedback);
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {
