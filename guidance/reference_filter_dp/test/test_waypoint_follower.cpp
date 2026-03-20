@@ -60,8 +60,7 @@ TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
-    Eigen::Vector6d new_ref;
-    new_ref << 5.0, 5.0, 0.0, 0.0, 0.0, 0.0;
+    PoseEuler new_ref{5.0, 5.0, 0.0, 0.0, 0.0, 0.0};
     follower.set_reference(new_ref, WaypointMode::FULL_POSE);
 
     EXPECT_DOUBLE_EQ(follower.reference()(0), 5.0);

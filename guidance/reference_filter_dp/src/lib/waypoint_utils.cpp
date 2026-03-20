@@ -4,40 +4,40 @@
 
 namespace vortex::guidance {
 
-Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in,
+Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
                                  WaypointMode mode,
                                  const Eigen::Vector6d& current_state) {
-    Eigen::Vector6d r_out = r_in;
+    Eigen::Vector6d reference_out = reference_in;
 
     switch (mode) {
         case WaypointMode::FULL_POSE:
             break;
 
         case WaypointMode::ONLY_POSITION:
-            r_out(3) = current_state(3);
-            r_out(4) = current_state(4);
-            r_out(5) = current_state(5);
+            reference_out(3) = current_state(3);
+            reference_out(4) = current_state(4);
+            reference_out(5) = current_state(5);
             break;
 
         case WaypointMode::FORWARD_HEADING: {
-            double dx = r_in(0) - current_state(0);
-            double dy = r_in(1) - current_state(1);
+            double dx = reference_in(0) - current_state(0);
+            double dy = reference_in(1) - current_state(1);
             double forward_heading = std::atan2(dy, dx);
 
-            r_out(3) = 0.0;
-            r_out(4) = 0.0;
-            r_out(5) = vortex::utils::math::ssa(forward_heading);
+            reference_out(3) = 0.0;
+            reference_out(4) = 0.0;
+            reference_out(5) = vortex::utils::math::ssa(forward_heading);
             break;
         }
 
         case WaypointMode::ONLY_ORIENTATION:
-            r_out(0) = current_state(0);
-            r_out(1) = current_state(1);
-            r_out(2) = current_state(2);
+            reference_out(0) = current_state(0);
+            reference_out(1) = current_state(1);
+            reference_out(2) = current_state(2);
             break;
     }
 
-    return r_out;
+    return reference_out;
 }
 
 bool has_converged(const Eigen::Vector6d& measured_pose,

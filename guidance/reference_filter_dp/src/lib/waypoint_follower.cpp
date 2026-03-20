@@ -15,8 +15,8 @@ void WaypointFollower::start(const PoseEuler& pose,
     x_ = compute_initial_state(pose, twist);
     waypoint_ = waypoint;
     convergence_threshold_ = convergence_threshold;
-    r_ = apply_mode_logic(waypoint.pose.to_vector(), waypoint.mode,
-                          x_.head<6>());
+    reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(), waypoint.mode,
+                                       x_.head<6>());
 }
 
 Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
@@ -36,18 +36,19 @@ Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
 }
 
 StepResult WaypointFollower::step(const Eigen::Vector6d& measured_pose) {
-    Eigen::Vector18d x_dot = filter_.calculate_x_dot(x_, r_);
+    Eigen::Vector18d x_dot = filter_.calculate_x_dot(x_, reference_goal_);
     x_ += x_dot * dt_seconds_;
 
-    bool converged = has_converged(measured_pose, r_, waypoint_.mode,
-                                   convergence_threshold_);
+    bool converged = has_converged(measured_pose, reference_goal_,
+                                   waypoint_.mode, convergence_threshold_);
 
-    return StepResult{x_, r_, converged};
+    return StepResult{x_, reference_goal_, converged};
 }
 
-void WaypointFollower::set_reference(const Eigen::Vector6d& r,
+void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose,
                                      WaypointMode mode) {
-    r_ = apply_mode_logic(r, mode, x_.head<6>());
+    reference_goal_ =
+        apply_mode_logic(reference_goal_pose.to_vector(), mode, x_.head<6>());
 }
 
 const Eigen::Vector18d& WaypointFollower::state() const {
@@ -55,11 +56,11 @@ const Eigen::Vector18d& WaypointFollower::state() const {
 }
 
 const Eigen::Vector6d& WaypointFollower::reference() const {
-    return r_;
+    return reference_goal_;
 }
 
 void WaypointFollower::snap_state_to_reference() {
-    x_.head<6>() = r_;
+    x_.head<6>() = reference_goal_;
 }
 
 }  // namespace vortex::guidance

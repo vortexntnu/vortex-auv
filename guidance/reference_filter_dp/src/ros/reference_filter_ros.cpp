@@ -108,21 +108,10 @@ void ReferenceFilterNode::set_refererence_filter() {
 
 void ReferenceFilterNode::reference_callback(
     const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    double x = msg->pose.position.x;
-    double y = msg->pose.position.y;
-    double z = msg->pose.position.z;
-    const auto& o = msg->pose.orientation;
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-    double roll{euler_angles(0)};
-    double pitch{euler_angles(1)};
-    double yaw{euler_angles(2)};
-
-    Eigen::Vector6d r_temp;
-    r_temp << x, y, z, roll, pitch, yaw;
-
-    auto mode = static_cast<WaypointMode>(active_mode_.load());
-    follower_->set_reference(r_temp, mode);
+    const auto reference_goal_pose =
+        vortex::utils::ros_conversions::ros_pose_to_pose_euler(msg->pose);
+    const auto mode = static_cast<WaypointMode>(active_mode_.load());
+    follower_->set_reference(reference_goal_pose, mode);
 }
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
