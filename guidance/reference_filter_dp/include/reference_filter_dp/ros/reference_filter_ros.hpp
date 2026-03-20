@@ -21,6 +21,8 @@ class ReferenceFilterNode : public rclcpp::Node {
     explicit ReferenceFilterNode(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
+    ~ReferenceFilterNode();
+
    private:
     // @brief Set the subscribers and publishers
     void set_subscribers_and_publisher();

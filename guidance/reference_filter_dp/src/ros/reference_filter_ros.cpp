@@ -32,6 +32,13 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
     spdlog::info(start_message);
 }
 
+ReferenceFilterNode::~ReferenceFilterNode() {
+    preempted_ = true;
+    if (execute_thread_.joinable()) {
+        execute_thread_.join();
+    }
+}
+
 void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
