@@ -13,11 +13,11 @@ void WaypointFollower::start(const PoseEuler& pose,
                              const Waypoint& waypoint,
                              double convergence_threshold) {
     std::lock_guard<std::mutex> lock(mutex_);
-    x_ = compute_initial_state(pose, twist);
+    state_ = compute_initial_state(pose, twist);
     waypoint_mode_ = waypoint.mode;
     convergence_threshold_ = convergence_threshold;
     reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(),
-                                       waypoint_mode_, x_.head<6>());
+                                       waypoint_mode_, state_.head<6>());
 }
 
 Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
@@ -34,24 +34,25 @@ Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
 
 StepResult WaypointFollower::step(const Eigen::Vector6d& measured_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
-    Eigen::Vector18d x_dot = filter_.calculate_x_dot(x_, reference_goal_);
-    x_ += x_dot * dt_seconds_;
+    Eigen::Vector18d state_dot_ =
+        filter_.calculate_x_dot(state_, reference_goal_);
+    state_ += state_dot_ * dt_seconds_;
 
     bool converged = has_converged(measured_pose, reference_goal_,
                                    waypoint_mode_, convergence_threshold_);
 
-    return StepResult{x_, converged};
+    return StepResult{state_, converged};
 }
 
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
     reference_goal_ = apply_mode_logic(reference_goal_pose.to_vector(),
-                                       waypoint_mode_, x_.head<6>());
+                                       waypoint_mode_, state_.head<6>());
 }
 
 Eigen::Vector18d WaypointFollower::state() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return x_;
+    return state_;
 }
 
 Eigen::Vector6d WaypointFollower::reference() const {
@@ -61,7 +62,7 @@ Eigen::Vector6d WaypointFollower::reference() const {
 
 void WaypointFollower::snap_state_to_reference() {
     std::lock_guard<std::mutex> lock(mutex_);
-    x_.head<6>() = reference_goal_;
+    state_.head<6>() = reference_goal_;
 }
 
 }  // namespace vortex::guidance

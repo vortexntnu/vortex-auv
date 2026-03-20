@@ -41,7 +41,7 @@ class WaypointFollower {
     mutable std::mutex mutex_;
     ReferenceFilter filter_;
     double dt_seconds_{0.01};
-    Eigen::Vector18d x_ = Eigen::Vector18d::Zero();
+    Eigen::Vector18d state_ = Eigen::Vector18d::Zero();
     Eigen::Vector6d reference_goal_ = Eigen::Vector6d::Zero();
     WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
     double convergence_threshold_{0.1};
