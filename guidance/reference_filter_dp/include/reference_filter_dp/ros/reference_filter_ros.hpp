@@ -60,8 +60,6 @@ class ReferenceFilterNode : public rclcpp::Node {
                      vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
                  uint64_t generation);
 
-    Eigen::Vector6d measured_pose_vector6();
-
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
 
@@ -92,8 +90,6 @@ class ReferenceFilterNode : public rclcpp::Node {
     std::mutex mutex_;
 
     std::atomic<uint64_t> goal_generation_{0};
-
-    rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
 
 }  // namespace vortex::guidance

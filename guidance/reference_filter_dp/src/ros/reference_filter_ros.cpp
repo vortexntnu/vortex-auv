@@ -139,13 +139,6 @@ void ReferenceFilterNode::handle_accepted(
     }).detach();
 }
 
-Eigen::Vector6d ReferenceFilterNode::measured_pose_vector6() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    vortex::utils::types::PoseEuler pose = current_pose_;
-    pose.apply_ssa();
-    return pose.to_vector();
-}
-
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
@@ -200,8 +193,13 @@ void ReferenceFilterNode::execute(
             return;
         }
 
-        Eigen::Vector6d y = measured_pose_vector6();
-        StepResult step = follower_->step(y);
+        Eigen::Vector6d current_pose_vector;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            current_pose_vector = current_pose_.to_vector();
+        }
+
+        StepResult step = follower_->step(current_pose_vector);
 
         vortex_msgs::msg::ReferenceFilter reference_msg =
             fill_reference_msg(follower_->state());
