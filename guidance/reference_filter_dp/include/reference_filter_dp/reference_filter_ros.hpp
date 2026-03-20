@@ -70,9 +70,10 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     // @brief Execute the goal
     // @param goal_handle The goal handle
-    void execute(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+    // @param generation The generation counter for this goal
+    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+                     vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
+                 uint64_t generation);
 
     Eigen::Vector18d fill_reference_state();
 
@@ -128,11 +129,7 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     std::mutex mutex_;
 
-    rclcpp_action::GoalUUID preempted_goal_id_;
-
-    std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>>
-        goal_handle_;
+    std::atomic<uint64_t> goal_generation_{0};
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 };
