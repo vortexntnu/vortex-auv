@@ -90,8 +90,10 @@ void ReferenceFilterNode::set_refererence_filter() {
     Eigen::Vector6d zeta_eigen = Eigen::Map<Eigen::Vector6d>(zeta.data());
     Eigen::Vector6d omega_eigen = Eigen::Map<Eigen::Vector6d>(omega.data());
 
-    ReferenceFilterParams filter_params{omega_eigen, zeta_eigen};
-    reference_filter_ = std::make_unique<ReferenceFilter>(filter_params);
+    filter_params_ = ReferenceFilterParams{omega_eigen, zeta_eigen};
+
+    double dt_seconds = time_step_.count() / 1000.0;
+    follower_ = std::make_unique<WaypointFollower>(filter_params_, dt_seconds);
 }
 
 void ReferenceFilterNode::reference_callback(
@@ -109,7 +111,8 @@ void ReferenceFilterNode::reference_callback(
     Eigen::Vector6d r_temp;
     r_temp << x, y, z, roll, pitch, yaw;
 
-    r_ = apply_mode_logic(r_temp, active_mode_.load());
+    auto mode = static_cast<WaypointMode>(active_mode_.load());
+    follower_->set_reference(r_temp, mode);
 }
 
 void ReferenceFilterNode::pose_callback(
@@ -245,93 +248,21 @@ Eigen::Vector6d ReferenceFilterNode::fill_reference_goal(
 
 vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
     vortex_msgs::msg::ReferenceFilter feedback_msg;
-    feedback_msg.x = x_(0);
-    feedback_msg.y = x_(1);
-    feedback_msg.z = x_(2);
-    feedback_msg.roll = vortex::utils::math::ssa(x_(3));
-    feedback_msg.pitch = vortex::utils::math::ssa(x_(4));
-    feedback_msg.yaw = vortex::utils::math::ssa(x_(5));
-    feedback_msg.x_dot = x_(6);
-    feedback_msg.y_dot = x_(7);
-    feedback_msg.z_dot = x_(8);
-    feedback_msg.roll_dot = x_(9);
-    feedback_msg.pitch_dot = x_(10);
-    feedback_msg.yaw_dot = x_(11);
+    const Eigen::Vector18d& x = follower_->state();
+    feedback_msg.x = x(0);
+    feedback_msg.y = x(1);
+    feedback_msg.z = x(2);
+    feedback_msg.roll = vortex::utils::math::ssa(x(3));
+    feedback_msg.pitch = vortex::utils::math::ssa(x(4));
+    feedback_msg.yaw = vortex::utils::math::ssa(x(5));
+    feedback_msg.x_dot = x(6);
+    feedback_msg.y_dot = x(7);
+    feedback_msg.z_dot = x(8);
+    feedback_msg.roll_dot = x(9);
+    feedback_msg.pitch_dot = x(10);
+    feedback_msg.yaw_dot = x(11);
 
     return feedback_msg;
-}
-
-Eigen::Vector6d ReferenceFilterNode::apply_mode_logic(
-    const Eigen::Vector6d& r_in,
-    uint8_t mode) {
-    Eigen::Vector6d r_out = r_in;
-
-    switch (mode) {
-        case vortex_msgs::msg::Waypoint::FULL_POSE:
-            break;
-
-        case vortex_msgs::msg::Waypoint::ONLY_POSITION:
-            r_out(3) = x_(3);
-            r_out(4) = x_(4);
-            r_out(5) = x_(5);
-            break;
-
-        case vortex_msgs::msg::Waypoint::FORWARD_HEADING: {
-            double dx = r_in(0) - x_(0);
-            double dy = r_in(1) - x_(1);
-
-            double forward_heading = std::atan2(dy, dx);
-
-            r_out(3) = 0.0;
-            r_out(4) = 0.0;
-            r_out(5) = vortex::utils::math::ssa(forward_heading);
-            break;
-        }
-
-        case vortex_msgs::msg::Waypoint::ONLY_ORIENTATION:
-            r_out(0) = x_(0);
-            r_out(1) = x_(1);
-            r_out(2) = x_(2);
-            break;
-    }
-
-    return r_out;
-}
-
-bool ReferenceFilterNode::has_converged_against_pose(
-    const Eigen::Vector6d& y,
-    const Eigen::Vector6d& r,
-    uint8_t mode,
-    double convergence_threshold) const {
-    const Eigen::Vector3d ep = y.head<3>() - r.head<3>();
-
-    Eigen::Vector3d ea;
-    ea(0) = vortex::utils::math::ssa(y(3) - r(3));
-    ea(1) = vortex::utils::math::ssa(y(4) - r(4));
-    ea(2) = vortex::utils::math::ssa(y(5) - r(5));
-
-    double err = 0.0;
-
-    switch (mode) {
-        case vortex_msgs::msg::Waypoint::ONLY_POSITION:
-            err = ep.norm();
-            break;
-
-        case vortex_msgs::msg::Waypoint::ONLY_ORIENTATION:
-            err = ea.norm();
-            break;
-
-        case vortex_msgs::msg::Waypoint::FORWARD_HEADING:
-            err = std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
-            break;
-
-        case vortex_msgs::msg::Waypoint::FULL_POSE:
-        default:
-            err = std::sqrt(ep.squaredNorm() + ea.squaredNorm());
-            break;
-    }
-
-    return err < convergence_threshold;
 }
 
 void ReferenceFilterNode::execute(
@@ -340,7 +271,7 @@ void ReferenceFilterNode::execute(
     uint64_t generation) {
     spdlog::info("Executing goal");
 
-    x_ = fill_reference_state();
+    Eigen::Vector18d initial_state = fill_reference_state();
 
     const geometry_msgs::msg::Pose goal =
         goal_handle->get_goal()->waypoint.pose;
@@ -357,7 +288,11 @@ void ReferenceFilterNode::execute(
 
     Eigen::Vector6d r_temp = fill_reference_goal(goal);
     active_mode_ = mode;
-    r_ = apply_mode_logic(r_temp, active_mode_.load());
+
+    Waypoint wp;
+    wp.pose = r_temp;
+    wp.mode = static_cast<WaypointMode>(mode);
+    follower_->start(initial_state, wp, convergence_threshold);
 
     auto feedback = std::make_shared<
         vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
@@ -386,8 +321,8 @@ void ReferenceFilterNode::execute(
             return;
         }
 
-        Eigen::Vector18d x_dot = reference_filter_->calculate_x_dot(x_, r_);
-        x_ += x_dot * time_step_.count() / 1000.0;
+        Eigen::Vector6d y = measured_pose_vector6();
+        StepResult step = follower_->step(y);
 
         vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
 
@@ -396,12 +331,10 @@ void ReferenceFilterNode::execute(
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(feedback_msg);
 
-        Eigen::Vector6d y = measured_pose_vector6();
-
-        if (has_converged_against_pose(y, r_, mode, convergence_threshold)) {
+        if (step.converged) {
             result->success = true;
             goal_handle->succeed(result);
-            x_.head(6) = r_.head(6);
+            follower_->snap_state_to_reference();
             vortex_msgs::msg::ReferenceFilter feedback_msg =
                 fill_reference_msg();
             reference_pub_->publish(feedback_msg);

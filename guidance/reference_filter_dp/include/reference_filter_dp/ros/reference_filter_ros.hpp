@@ -11,8 +11,7 @@
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
-#include "reference_filter_dp/lib/eigen_typedefs.hpp"
-#include "reference_filter_dp/lib/reference_filter.hpp"
+#include "reference_filter_dp/lib/waypoint_follower.hpp"
 
 namespace vortex::guidance {
 
@@ -81,21 +80,14 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     Eigen::Vector6d measured_pose_vector6();
 
-    Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& r_in, uint8_t mode);
-
-    bool has_converged_against_pose(const Eigen::Vector6d& y,
-                                    const Eigen::Vector6d& r,
-                                    uint8_t mode,
-                                    double convergence_threshold) const;
-
-    void publish_hold_reference();
-
     vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
 
-    std::unique_ptr<ReferenceFilter> reference_filter_{};
+    ReferenceFilterParams filter_params_;
+
+    std::unique_ptr<WaypointFollower> follower_;
 
     rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         reference_pub_;
@@ -116,14 +108,6 @@ class ReferenceFilterNode : public rclcpp::Node {
     geometry_msgs::msg::PoseWithCovarianceStamped current_pose_;
 
     geometry_msgs::msg::TwistWithCovarianceStamped current_twist_;
-
-    // x is [eta, eta_dot, eta_dot_dot] (ref. page 337 in Fossen, 2021
-    // nu and eta are 6 degrees of freedom (position and orientation in 3D
-    // space)
-    Eigen::Vector18d x_ = Eigen::Vector18d::Zero();
-
-    // The reference signal vector with 6 degrees of freedom [eta]
-    Eigen::Vector6d r_ = Eigen::Vector6d::Zero();
 
     std::atomic<uint8_t> active_mode_{vortex_msgs::msg::Waypoint::FULL_POSE};
 

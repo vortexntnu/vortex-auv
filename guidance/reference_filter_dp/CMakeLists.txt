@@ -28,6 +28,8 @@ set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
   src/lib/reference_filter.cpp
+  src/lib/waypoint_utils.cpp
+  src/lib/waypoint_follower.cpp
 )
 
 target_include_directories(${CORE_LIB_NAME}
@@ -38,6 +40,7 @@ target_include_directories(${CORE_LIB_NAME}
 
 ament_target_dependencies(${CORE_LIB_NAME}
   Eigen3
+  vortex_utils
 )
 
 set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
@@ -91,6 +94,7 @@ install(DIRECTORY
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
   Eigen3
+  vortex_utils
 )
 ament_export_include_directories(include)
 ament_export_libraries(${CORE_LIB_NAME})
