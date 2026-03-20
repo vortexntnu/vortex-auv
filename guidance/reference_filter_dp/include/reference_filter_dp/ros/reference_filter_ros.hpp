@@ -1,5 +1,5 @@
-#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
-#define REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
+#ifndef REFERENCE_FILTER_DP__ROS__REFERENCE_FILTER_ROS_HPP_
+#define REFERENCE_FILTER_DP__ROS__REFERENCE_FILTER_ROS_HPP_
 
 #include <atomic>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -11,8 +11,8 @@
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
-#include "reference_filter_dp/eigen_typedefs.hpp"
-#include "reference_filter_dp/reference_filter.hpp"
+#include "reference_filter_dp/lib/eigen_typedefs.hpp"
+#include "reference_filter_dp/lib/reference_filter.hpp"
 
 namespace vortex::guidance {
 
@@ -136,4 +136,4 @@ class ReferenceFilterNode : public rclcpp::Node {
 
 }  // namespace vortex::guidance
 
-#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_ROS_HPP_
+#endif  // REFERENCE_FILTER_DP__ROS__REFERENCE_FILTER_ROS_HPP_

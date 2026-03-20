@@ -12,7 +12,7 @@ add_executable(
 target_link_libraries(
     ${TEST_BINARY_NAME}
     PRIVATE
-    ${LIB_NAME}
+    ${CORE_LIB_NAME}
     GTest::GTest
 )
 
