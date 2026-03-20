@@ -41,7 +41,7 @@ ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{re
 sleep 2
 # Check if controller correctly publishes tau
 echo "Waiting for wrench data..."
-timeout 20s ros2 topic echo /orca/wrench_input --once
+timeout 20s ros2 topic echo /orca/wrench_input --once --qos-reliability best_effort
 echo "Got wrench data"
 
 # Terminate processes
