@@ -12,8 +12,9 @@ void WaypointFollower::start(const PoseEuler& pose,
                              const Twist& twist,
                              const Waypoint& waypoint,
                              double convergence_threshold) {
+    std::lock_guard<std::mutex> lock(mutex_);
     x_ = compute_initial_state(pose, twist);
-    waypoint_ = waypoint;
+    waypoint_ = waypoint.mode;
     convergence_threshold_ = convergence_threshold;
     reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(), waypoint.mode,
                                        x_.head<6>());
@@ -36,30 +37,35 @@ Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
 }
 
 StepResult WaypointFollower::step(const Eigen::Vector6d& measured_pose) {
+    std::lock_guard<std::mutex> lock(mutex_);
     Eigen::Vector18d x_dot = filter_.calculate_x_dot(x_, reference_goal_);
     x_ += x_dot * dt_seconds_;
 
-    bool converged = has_converged(measured_pose, reference_goal_,
-                                   waypoint_.mode, convergence_threshold_);
+    bool converged = has_converged(measured_pose, reference_goal_, waypoint_,
+                                   convergence_threshold_);
 
     return StepResult{x_, reference_goal_, converged};
 }
 
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose,
                                      WaypointMode mode) {
+    std::lock_guard<std::mutex> lock(mutex_);
     reference_goal_ =
         apply_mode_logic(reference_goal_pose.to_vector(), mode, x_.head<6>());
 }
 
-const Eigen::Vector18d& WaypointFollower::state() const {
+Eigen::Vector18d WaypointFollower::state() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return x_;
 }
 
-const Eigen::Vector6d& WaypointFollower::reference() const {
+Eigen::Vector6d WaypointFollower::reference() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     return reference_goal_;
 }
 
 void WaypointFollower::snap_state_to_reference() {
+    std::lock_guard<std::mutex> lock(mutex_);
     x_.head<6>() = reference_goal_;
 }
 

@@ -13,6 +13,7 @@
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp/lib/waypoint_follower.hpp"
+#include "reference_filter_dp/lib/waypoint_types.hpp"
 
 namespace vortex::guidance {
 
@@ -30,11 +31,6 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     // @brief Initializes the reference filter with ROS parameters.
     void set_refererence_filter();
-
-    // @brief Callback for the reference topic
-    // @param msg The reference message
-    void reference_callback(
-        const geometry_msgs::msg::PoseStamped::SharedPtr msg);
 
     // @brief Handle the goal request
     // @param uuid The goal UUID
@@ -65,12 +61,7 @@ class ReferenceFilterNode : public rclcpp::Node {
                      vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
                  uint64_t generation);
 
-    vortex::utils::types::PoseEuler fill_reference_goal(
-        const geometry_msgs::msg::Pose& goal);
-
     Eigen::Vector6d measured_pose_vector6();
-
-    vortex_msgs::msg::ReferenceFilter fill_reference_msg();
 
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
@@ -99,7 +90,8 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     vortex::utils::types::Twist current_twist_;
 
-    std::atomic<uint8_t> active_mode_{vortex_msgs::msg::Waypoint::FULL_POSE};
+    std::atomic<vortex::guidance::WaypointMode> active_mode_{
+        WaypointMode::FULL_POSE};
 
     std::mutex mutex_;
 

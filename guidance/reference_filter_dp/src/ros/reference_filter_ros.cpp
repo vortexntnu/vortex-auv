@@ -1,11 +1,11 @@
 #include "reference_filter_dp/ros/reference_filter_ros.hpp"
 #include <spdlog/spdlog.h>
+#include <mutex>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <thread>
-#include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
-#include <vortex/utils/types.hpp>
+#include "reference_filter_dp/ros/reference_filter_ros_utils.hpp"
 
 const auto start_message = R"(
   ____       __                                _____ _ _ _
@@ -48,10 +48,17 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
     reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
         guidance_topic, qos_sensor_data);
+
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
-        std::bind(&ReferenceFilterNode::reference_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+            const auto reference_goal_pose =
+                vortex::utils::ros_conversions::ros_pose_to_pose_euler(
+                    msg->pose);
+            const auto mode = active_mode_.load();
+            follower_->set_reference(reference_goal_pose, mode);
+        });
+
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
@@ -62,6 +69,7 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
                 vortex::utils::ros_conversions::ros_pose_to_pose_euler(
                     msg->pose.pose);
         });
+
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
@@ -106,14 +114,6 @@ void ReferenceFilterNode::set_refererence_filter() {
     follower_ = std::make_unique<WaypointFollower>(filter_params_, dt_seconds);
 }
 
-void ReferenceFilterNode::reference_callback(
-    const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-    const auto reference_goal_pose =
-        vortex::utils::ros_conversions::ros_pose_to_pose_euler(msg->pose);
-    const auto mode = static_cast<WaypointMode>(active_mode_.load());
-    follower_->set_reference(reference_goal_pose, mode);
-}
-
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& uuid,
     std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
@@ -148,39 +148,12 @@ Eigen::Vector6d ReferenceFilterNode::measured_pose_vector6() {
     return pose.to_vector();
 }
 
-vortex::utils::types::PoseEuler ReferenceFilterNode::fill_reference_goal(
-    const geometry_msgs::msg::Pose& goal) {
-    return vortex::utils::ros_conversions::ros_pose_to_pose_euler(goal);
-}
-
-vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
-    vortex_msgs::msg::ReferenceFilter feedback_msg;
-    const Eigen::Vector18d& x = follower_->state();
-    feedback_msg.x = x(0);
-    feedback_msg.y = x(1);
-    feedback_msg.z = x(2);
-    feedback_msg.roll = vortex::utils::math::ssa(x(3));
-    feedback_msg.pitch = vortex::utils::math::ssa(x(4));
-    feedback_msg.yaw = vortex::utils::math::ssa(x(5));
-    feedback_msg.x_dot = x(6);
-    feedback_msg.y_dot = x(7);
-    feedback_msg.z_dot = x(8);
-    feedback_msg.roll_dot = x(9);
-    feedback_msg.pitch_dot = x(10);
-    feedback_msg.yaw_dot = x(11);
-
-    return feedback_msg;
-}
-
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
     uint64_t generation) {
     spdlog::info("Executing goal");
 
-    const geometry_msgs::msg::Pose goal =
-        goal_handle->get_goal()->waypoint.pose;
-    uint8_t mode = goal_handle->get_goal()->waypoint.mode;
     double convergence_threshold =
         goal_handle->get_goal()->convergence_threshold;
 
@@ -191,11 +164,7 @@ void ReferenceFilterNode::execute(
             "Using default 0.1");
     }
 
-    active_mode_ = mode;
-
-    Waypoint wp;
-    wp.pose = fill_reference_goal(goal);
-    wp.mode = static_cast<WaypointMode>(mode);
+    Waypoint wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
 
     PoseEuler pose;
     Twist twist;
@@ -236,19 +205,20 @@ void ReferenceFilterNode::execute(
         Eigen::Vector6d y = measured_pose_vector6();
         StepResult step = follower_->step(y);
 
-        vortex_msgs::msg::ReferenceFilter feedback_msg = fill_reference_msg();
+        vortex_msgs::msg::ReferenceFilter reference_msg =
+            fill_reference_msg(follower_->state());
 
-        feedback->reference = feedback_msg;
+        feedback->reference = reference_msg;
 
         goal_handle->publish_feedback(feedback);
-        reference_pub_->publish(feedback_msg);
+        reference_pub_->publish(reference_msg);
 
         if (step.converged) {
             result->success = true;
             goal_handle->succeed(result);
             follower_->snap_state_to_reference();
             vortex_msgs::msg::ReferenceFilter feedback_msg =
-                fill_reference_msg();
+                fill_reference_msg(follower_->state());
             reference_pub_->publish(feedback_msg);
             spdlog::info("Goal reached");
             return;

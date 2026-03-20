@@ -1,6 +1,7 @@
 #ifndef REFERENCE_FILTER_DP__LIB__WAYPOINT_FOLLOWER_HPP_
 #define REFERENCE_FILTER_DP__LIB__WAYPOINT_FOLLOWER_HPP_
 
+#include <mutex>
 #include <vortex/utils/types.hpp>
 #include "reference_filter_dp/lib/reference_filter.hpp"
 #include "reference_filter_dp/lib/waypoint_types.hpp"
@@ -29,19 +30,20 @@ class WaypointFollower {
 
     void set_reference(const PoseEuler& reference_goal_pose, WaypointMode mode);
 
-    const Eigen::Vector18d& state() const;
-    const Eigen::Vector6d& reference() const;
+    Eigen::Vector18d state() const;
+    Eigen::Vector6d reference() const;
     void snap_state_to_reference();
 
    private:
     Eigen::Vector18d compute_initial_state(const PoseEuler& pose,
                                            const Twist& twist);
 
+    mutable std::mutex mutex_;
     ReferenceFilter filter_;
-    double dt_seconds_;
+    double dt_seconds_{0.01};
     Eigen::Vector18d x_ = Eigen::Vector18d::Zero();
     Eigen::Vector6d reference_goal_ = Eigen::Vector6d::Zero();
-    Waypoint waypoint_{};
+    WaypointMode waypoint_{WaypointMode::FULL_POSE};
     double convergence_threshold_{0.1};
 };
 
