@@ -62,7 +62,7 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         pose_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
                    msg) {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::lock_guard<std::mutex> lock(sensor_mutex_);
             current_pose_ =
                 vortex::utils::ros_conversions::ros_pose_to_pose_euler(
                     msg->pose.pose);
@@ -73,7 +73,7 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         twist_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr
                    msg) {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::lock_guard<std::mutex> lock(sensor_mutex_);
             current_twist_ = vortex::utils::ros_conversions::ros_twist_to_twist(
                 msg->twist.twist);
         });
@@ -133,16 +133,20 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
-    const uint64_t my_generation = ++goal_generation_;
-    std::thread([this, goal_handle, my_generation]() {
-        execute(goal_handle, my_generation);
-    }).detach();
+    std::lock_guard<std::mutex> lock(execute_mutex_);
+    preempted_ = true;
+    if (execute_thread_.joinable()) {
+        execute_thread_.join();
+    }
+    preempted_ = false;
+
+    execute_thread_ =
+        std::thread([this, goal_handle]() { execute(goal_handle); });
 }
 
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
-    uint64_t generation) {
+        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     spdlog::info("Executing goal");
 
     double convergence_threshold =
@@ -160,7 +164,7 @@ void ReferenceFilterNode::execute(
     PoseEuler pose;
     Twist twist;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(sensor_mutex_);
         pose = current_pose_;
         twist = current_twist_;
     }
@@ -174,15 +178,10 @@ void ReferenceFilterNode::execute(
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
     while (rclcpp::ok()) {
-        if (generation != goal_generation_.load()) {
+        if (preempted_.load()) {
             result->success = false;
-            if (goal_handle->is_canceling()) {
-                goal_handle->canceled(result);
-                spdlog::info("Goal canceled (superseded)");
-            } else {
-                goal_handle->abort(result);
-                spdlog::info("Goal preempted by newer goal");
-            }
+            goal_handle->abort(result);
+            spdlog::info("Goal preempted by newer goal");
             return;
         }
 
@@ -195,7 +194,7 @@ void ReferenceFilterNode::execute(
 
         Eigen::Vector6d current_pose_vector;
         {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::lock_guard<std::mutex> lock(sensor_mutex_);
             current_pose_vector = current_pose_.to_vector();
         }
 

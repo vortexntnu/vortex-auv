@@ -42,7 +42,7 @@ class ReferenceFilterNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-    /// @brief Spawn a detached thread to execute the goal.
+    /// @brief Join the old execution thread and spawn a new one for the goal.
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
@@ -51,12 +51,10 @@ class ReferenceFilterNode : public rclcpp::Node {
      * @brief Execute the action goal in a loop until convergence or
      * preemption.
      * @param goal_handle The goal handle.
-     * @param generation Generation counter used to detect preemption by a
-     * newer goal.
      */
-    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                     vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
-                 uint64_t generation);
+    void execute(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
     rclcpp_action::Server<
         vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
@@ -85,9 +83,11 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     vortex::utils::types::Twist current_twist_;
 
-    std::mutex mutex_;
+    std::mutex sensor_mutex_;
 
-    std::atomic<uint64_t> goal_generation_{0};
+    std::atomic<bool> preempted_{false};
+    std::mutex execute_mutex_;
+    std::thread execute_thread_;
 };
 
 }  // namespace vortex::guidance
