@@ -1,10 +1,10 @@
 #include "reference_filter_dp/ros/reference_filter_ros.hpp"
 #include <spdlog/spdlog.h>
-#include <mutex>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <thread>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
+#include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
 
 const auto start_message = R"(
@@ -55,13 +55,22 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
-        std::bind(&ReferenceFilterNode::pose_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+                   msg) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            current_pose_ =
+                vortex::utils::ros_conversions::ros_pose_to_pose_euler(
+                    msg->pose.pose);
+        });
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
-        std::bind(&ReferenceFilterNode::twist_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr
+                   msg) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            current_twist_ = vortex::utils::ros_conversions::ros_twist_to_twist(
+                msg->twist.twist);
+        });
 }
 
 void ReferenceFilterNode::set_action_server() {
@@ -116,18 +125,6 @@ void ReferenceFilterNode::reference_callback(
     follower_->set_reference(r_temp, mode);
 }
 
-void ReferenceFilterNode::pose_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    current_pose_ = *msg;
-}
-
-void ReferenceFilterNode::twist_callback(
-    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    current_twist_ = *msg;
-}
-
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& uuid,
     std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
@@ -155,96 +152,16 @@ void ReferenceFilterNode::handle_accepted(
     }).detach();
 }
 
-Eigen::Vector18d ReferenceFilterNode::fill_reference_state() {
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
-    geometry_msgs::msg::TwistWithCovarianceStamped twist_msg;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        pose_msg = current_pose_;
-        twist_msg = current_twist_;
-    }
-
-    Eigen::Vector18d x = Eigen::Vector18d::Zero();
-    x(0) = pose_msg.pose.pose.position.x;
-    x(1) = pose_msg.pose.pose.position.y;
-    x(2) = pose_msg.pose.pose.position.z;
-
-    const auto& o = pose_msg.pose.pose.orientation;
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-    double roll{euler_angles(0)};
-    double pitch{euler_angles(1)};
-    double yaw{euler_angles(2)};
-
-    x(3) = vortex::utils::math::ssa(roll);
-    x(4) = vortex::utils::math::ssa(pitch);
-    x(5) = vortex::utils::math::ssa(yaw);
-
-    vortex::utils::types::PoseEuler pose{pose_msg.pose.pose.position.x,
-                                         pose_msg.pose.pose.position.y,
-                                         pose_msg.pose.pose.position.z,
-                                         roll,
-                                         pitch,
-                                         yaw};
-    Eigen::Matrix6d J = pose.as_j_matrix();
-    vortex::utils::types::Twist twist{
-        twist_msg.twist.twist.linear.x,  twist_msg.twist.twist.linear.y,
-        twist_msg.twist.twist.linear.z,  twist_msg.twist.twist.angular.x,
-        twist_msg.twist.twist.angular.y, twist_msg.twist.twist.angular.z};
-    Eigen::Vector6d pose_dot = J * twist.to_vector();
-
-    x(6) = pose_dot(0);
-    x(7) = pose_dot(1);
-    x(8) = pose_dot(2);
-    x(9) = pose_dot(3);
-    x(10) = pose_dot(4);
-    x(11) = pose_dot(5);
-
-    return x;
-}
-
 Eigen::Vector6d ReferenceFilterNode::measured_pose_vector6() {
-    geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        pose_msg = current_pose_;
-    }
-
-    const auto& p = pose_msg.pose.pose.position;
-    const auto& o = pose_msg.pose.pose.orientation;
-
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    if (q.norm() < 1e-9) {
-        q = Eigen::Quaterniond::Identity();
-    } else {
-        q.normalize();
-    }
-
-    Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(q);
-
-    Eigen::Vector6d y;
-    y << p.x, p.y, p.z, vortex::utils::math::ssa(euler(0)),
-        vortex::utils::math::ssa(euler(1)), vortex::utils::math::ssa(euler(2));
-    return y;
+    std::lock_guard<std::mutex> lock(mutex_);
+    vortex::utils::types::PoseEuler pose = current_pose_;
+    pose.apply_ssa();
+    return pose.to_vector();
 }
 
-Eigen::Vector6d ReferenceFilterNode::fill_reference_goal(
+vortex::utils::types::PoseEuler ReferenceFilterNode::fill_reference_goal(
     const geometry_msgs::msg::Pose& goal) {
-    double x{goal.position.x};
-    double y{goal.position.y};
-    double z{goal.position.z};
-
-    const auto& o = goal.orientation;
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-    double roll{euler_angles(0)};
-    double pitch{euler_angles(1)};
-    double yaw{euler_angles(2)};
-
-    Eigen::Vector6d r;
-    r << x, y, z, roll, pitch, yaw;
-
-    return r;
+    return vortex::utils::ros_conversions::ros_pose_to_pose_euler(goal);
 }
 
 vortex_msgs::msg::ReferenceFilter ReferenceFilterNode::fill_reference_msg() {
@@ -272,8 +189,6 @@ void ReferenceFilterNode::execute(
     uint64_t generation) {
     spdlog::info("Executing goal");
 
-    Eigen::Vector18d initial_state = fill_reference_state();
-
     const geometry_msgs::msg::Pose goal =
         goal_handle->get_goal()->waypoint.pose;
     uint8_t mode = goal_handle->get_goal()->waypoint.mode;
@@ -287,13 +202,20 @@ void ReferenceFilterNode::execute(
             "Using default 0.1");
     }
 
-    Eigen::Vector6d r_temp = fill_reference_goal(goal);
     active_mode_ = mode;
 
     Waypoint wp;
-    wp.pose = r_temp;
+    wp.pose = fill_reference_goal(goal);
     wp.mode = static_cast<WaypointMode>(mode);
-    follower_->start(initial_state, wp, convergence_threshold);
+
+    PoseEuler pose;
+    Twist twist;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        pose = current_pose_;
+        twist = current_twist_;
+    }
+    follower_->start(pose, twist, wp, convergence_threshold);
 
     auto feedback = std::make_shared<
         vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();

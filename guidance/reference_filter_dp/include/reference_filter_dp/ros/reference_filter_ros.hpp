@@ -8,6 +8,7 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
@@ -34,16 +35,6 @@ class ReferenceFilterNode : public rclcpp::Node {
     // @param msg The reference message
     void reference_callback(
         const geometry_msgs::msg::PoseStamped::SharedPtr msg);
-
-    // @brief Callback for the pose topic
-    // @param msg The pose message
-    void pose_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-
-    // @brief Callback for the twist topic
-    // @param msg The twist message
-    void twist_callback(
-        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
     // @brief Handle the goal request
     // @param uuid The goal UUID
@@ -74,9 +65,8 @@ class ReferenceFilterNode : public rclcpp::Node {
                      vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle,
                  uint64_t generation);
 
-    Eigen::Vector18d fill_reference_state();
-
-    Eigen::Vector6d fill_reference_goal(const geometry_msgs::msg::Pose& goal);
+    vortex::utils::types::PoseEuler fill_reference_goal(
+        const geometry_msgs::msg::Pose& goal);
 
     Eigen::Vector6d measured_pose_vector6();
 
@@ -105,9 +95,9 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     std::chrono::milliseconds time_step_{};
 
-    geometry_msgs::msg::PoseWithCovarianceStamped current_pose_;
+    vortex::utils::types::PoseEuler current_pose_;
 
-    geometry_msgs::msg::TwistWithCovarianceStamped current_twist_;
+    vortex::utils::types::Twist current_twist_;
 
     std::atomic<uint8_t> active_mode_{vortex_msgs::msg::Waypoint::FULL_POSE};
 

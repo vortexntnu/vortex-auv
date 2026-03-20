@@ -12,17 +12,19 @@ class WaypointFollowerTests : public ::testing::Test {
         params.zeta = Eigen::Vector6d::Ones();
         return params;
     }
+
+    PoseEuler zero_pose() { return PoseEuler{}; }
+    Twist zero_twist() { return Twist{}; }
 };
 
 TEST_F(WaypointFollowerTests, StartAndStepConverges) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Eigen::Vector18d initial_state = Eigen::Vector18d::Zero();
     Waypoint wp;
-    wp.pose << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(initial_state, wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
     // Simulate the measured pose being at the reference
     Eigen::Vector6d measured_at_ref;
@@ -37,12 +39,11 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
 TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Eigen::Vector18d initial_state = Eigen::Vector18d::Zero();
     Waypoint wp;
-    wp.pose << 10.0, 10.0, 0.0, 0.0, 0.0, 0.0;
+    wp.pose = PoseEuler{10.0, 10.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(initial_state, wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
     Eigen::Vector6d measured_far = Eigen::Vector6d::Zero();
     StepResult result = follower.step(measured_far);
@@ -53,12 +54,11 @@ TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
 TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Eigen::Vector18d initial_state = Eigen::Vector18d::Zero();
     Waypoint wp;
-    wp.pose << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(initial_state, wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
     Eigen::Vector6d new_ref;
     new_ref << 5.0, 5.0, 0.0, 0.0, 0.0, 0.0;
@@ -71,12 +71,11 @@ TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
 TEST_F(WaypointFollowerTests, SnapStateToReference) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Eigen::Vector18d initial_state = Eigen::Vector18d::Zero();
     Waypoint wp;
-    wp.pose << 3.0, 4.0, 5.0, 0.1, 0.2, 0.3;
+    wp.pose = PoseEuler{3.0, 4.0, 5.0, 0.1, 0.2, 0.3};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(initial_state, wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, 0.1);
     follower.snap_state_to_reference();
 
     const Eigen::Vector18d& state = follower.state();
@@ -90,12 +89,11 @@ TEST_F(WaypointFollowerTests, SnapStateToReference) {
 TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Eigen::Vector18d initial_state = Eigen::Vector18d::Zero();
     Waypoint wp;
-    wp.pose << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
-    follower.start(initial_state, wp, 0.1);
+    follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
     Eigen::Vector6d measured = Eigen::Vector6d::Zero();
 

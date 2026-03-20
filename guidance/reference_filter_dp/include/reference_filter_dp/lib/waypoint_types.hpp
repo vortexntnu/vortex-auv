@@ -2,9 +2,11 @@
 #define REFERENCE_FILTER_DP__LIB__WAYPOINT_TYPES_HPP_
 
 #include <cstdint>
-#include "reference_filter_dp/lib/eigen_typedefs.hpp"
+#include <vortex/utils/types.hpp>
 
 namespace vortex::guidance {
+
+using vortex::utils::types::PoseEuler;
 
 enum class WaypointMode : uint8_t {
     FULL_POSE = 0,
@@ -14,7 +16,7 @@ enum class WaypointMode : uint8_t {
 };
 
 struct Waypoint {
-    Eigen::Vector6d pose = Eigen::Vector6d::Zero();
+    PoseEuler pose{};
     WaypointMode mode = WaypointMode::FULL_POSE;
 };
 

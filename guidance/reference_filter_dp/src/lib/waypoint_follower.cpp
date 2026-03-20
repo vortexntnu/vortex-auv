@@ -1,4 +1,5 @@
 #include "reference_filter_dp/lib/waypoint_follower.hpp"
+#include <vortex/utils/math.hpp>
 #include "reference_filter_dp/lib/waypoint_utils.hpp"
 
 namespace vortex::guidance {
@@ -7,13 +8,31 @@ WaypointFollower::WaypointFollower(const ReferenceFilterParams& params,
                                    double dt_seconds)
     : filter_(params), dt_seconds_(dt_seconds) {}
 
-void WaypointFollower::start(const Eigen::Vector18d& initial_state,
+void WaypointFollower::start(const PoseEuler& pose,
+                             const Twist& twist,
                              const Waypoint& waypoint,
                              double convergence_threshold) {
-    x_ = initial_state;
+    x_ = compute_initial_state(pose, twist);
     waypoint_ = waypoint;
     convergence_threshold_ = convergence_threshold;
-    r_ = apply_mode_logic(waypoint.pose, waypoint.mode, x_.head<6>());
+    r_ = apply_mode_logic(waypoint.pose.to_vector(), waypoint.mode,
+                          x_.head<6>());
+}
+
+Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
+                                                         const Twist& twist) {
+    Eigen::Vector18d x = Eigen::Vector18d::Zero();
+
+    Eigen::Vector6d pose_vec = pose.to_vector();
+    pose_vec(3) = vortex::utils::math::ssa(pose_vec(3));
+    pose_vec(4) = vortex::utils::math::ssa(pose_vec(4));
+    pose_vec(5) = vortex::utils::math::ssa(pose_vec(5));
+    x.head<6>() = pose_vec;
+
+    Eigen::Matrix<double, 6, 6> J = pose.as_j_matrix();
+    x.segment<6>(6) = J * twist.to_vector();
+
+    return x;
 }
 
 StepResult WaypointFollower::step(const Eigen::Vector6d& measured_pose) {

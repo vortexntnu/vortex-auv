@@ -1,6 +1,7 @@
 #ifndef REFERENCE_FILTER_DP__LIB__WAYPOINT_UTILS_HPP_
 #define REFERENCE_FILTER_DP__LIB__WAYPOINT_UTILS_HPP_
 
+#include "reference_filter_dp/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp/lib/waypoint_types.hpp"
 
 namespace vortex::guidance {
