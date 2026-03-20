@@ -20,7 +20,8 @@ namespace vortex::guidance {
 
 ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
     : Node("reference_filter_node", options) {
-    time_step_ = std::chrono::milliseconds(10);
+    int time_step_ms = this->declare_parameter<int>("time_step_ms");
+    time_step_ = std::chrono::milliseconds(time_step_ms);
 
     set_subscribers_and_publisher();
 
