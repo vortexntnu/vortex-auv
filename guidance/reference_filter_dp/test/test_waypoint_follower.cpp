@@ -61,7 +61,7 @@ TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
     PoseEuler new_ref{5.0, 5.0, 0.0, 0.0, 0.0, 0.0};
-    follower.set_reference(new_ref, WaypointMode::FULL_POSE);
+    follower.set_reference(new_ref);
 
     EXPECT_DOUBLE_EQ(follower.reference()(0), 5.0);
     EXPECT_DOUBLE_EQ(follower.reference()(1), 5.0);
@@ -77,8 +77,8 @@ TEST_F(WaypointFollowerTests, SnapStateToReference) {
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
     follower.snap_state_to_reference();
 
-    const Eigen::Vector18d& state = follower.state();
-    const Eigen::Vector6d& ref = follower.reference();
+    Eigen::Vector18d state = follower.state();
+    Eigen::Vector6d ref = follower.reference();
 
     for (int i = 0; i < 6; ++i) {
         EXPECT_DOUBLE_EQ(state(i), ref(i));

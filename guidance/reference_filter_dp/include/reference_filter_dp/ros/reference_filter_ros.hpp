@@ -13,7 +13,6 @@
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp/lib/waypoint_follower.hpp"
-#include "reference_filter_dp/lib/waypoint_types.hpp"
 
 namespace vortex::guidance {
 
@@ -89,9 +88,6 @@ class ReferenceFilterNode : public rclcpp::Node {
     vortex::utils::types::PoseEuler current_pose_;
 
     vortex::utils::types::Twist current_twist_;
-
-    std::atomic<vortex::guidance::WaypointMode> active_mode_{
-        WaypointMode::FULL_POSE};
 
     std::mutex mutex_;
 

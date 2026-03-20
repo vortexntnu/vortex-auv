@@ -52,11 +52,9 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-            const auto reference_goal_pose =
+            follower_->set_reference(
                 vortex::utils::ros_conversions::ros_pose_to_pose_euler(
-                    msg->pose);
-            const auto mode = active_mode_.load();
-            follower_->set_reference(reference_goal_pose, mode);
+                    msg->pose));
         });
 
     pose_sub_ = this->create_subscription<

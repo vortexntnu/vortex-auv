@@ -28,7 +28,7 @@ class WaypointFollower {
 
     StepResult step(const Eigen::Vector6d& measured_pose);
 
-    void set_reference(const PoseEuler& reference_goal_pose, WaypointMode mode);
+    void set_reference(const PoseEuler& reference_goal_pose);
 
     Eigen::Vector18d state() const;
     Eigen::Vector6d reference() const;
@@ -43,7 +43,7 @@ class WaypointFollower {
     double dt_seconds_{0.01};
     Eigen::Vector18d x_ = Eigen::Vector18d::Zero();
     Eigen::Vector6d reference_goal_ = Eigen::Vector6d::Zero();
-    WaypointMode waypoint_{WaypointMode::FULL_POSE};
+    WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
     double convergence_threshold_{0.1};
 };
 
