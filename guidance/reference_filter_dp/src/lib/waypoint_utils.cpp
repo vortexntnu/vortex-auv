@@ -44,12 +44,13 @@ bool has_converged(const Eigen::Vector6d& measured_pose,
                    const Eigen::Vector6d& reference,
                    WaypointMode mode,
                    double convergence_threshold) {
+    using vortex::utils::math::ssa;
     const Eigen::Vector3d ep = measured_pose.head<3>() - reference.head<3>();
 
     Eigen::Vector3d ea;
-    ea(0) = vortex::utils::math::ssa(measured_pose(3) - reference(3));
-    ea(1) = vortex::utils::math::ssa(measured_pose(4) - reference(4));
-    ea(2) = vortex::utils::math::ssa(measured_pose(5) - reference(5));
+    ea(0) = ssa(measured_pose(3) - reference(3));
+    ea(1) = ssa(measured_pose(4) - reference(4));
+    ea(2) = ssa(measured_pose(5) - reference(5));
 
     double err = 0.0;
 

@@ -43,13 +43,14 @@ inline vortex::guidance::Waypoint waypoint_from_ros(
 /// @brief Fill a ReferenceFilter message from an 18D state vector.
 inline vortex_msgs::msg::ReferenceFilter fill_reference_msg(
     const Eigen::Vector18d& x) {
+    using vortex::utils::math::ssa;
     vortex_msgs::msg::ReferenceFilter msg;
     msg.x = x(0);
     msg.y = x(1);
     msg.z = x(2);
-    msg.roll = vortex::utils::math::ssa(x(3));
-    msg.pitch = vortex::utils::math::ssa(x(4));
-    msg.yaw = vortex::utils::math::ssa(x(5));
+    msg.roll = ssa(x(3));
+    msg.pitch = ssa(x(4));
+    msg.yaw = ssa(x(5));
     msg.x_dot = x(6);
     msg.y_dot = x(7);
     msg.z_dot = x(8);
