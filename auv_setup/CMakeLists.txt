@@ -9,6 +9,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(DIRECTORY
   config
   launch
+  description
   DESTINATION share/${PROJECT_NAME}/
 )
 

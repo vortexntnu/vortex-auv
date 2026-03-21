@@ -45,14 +45,9 @@ timeout 10s ros2 topic echo /orca/odom --once
 echo "Got odom data"
 
 # Launch ORCA Simulation
-setsid ros2 launch stonefish_sim orca_sim.launch.py &
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
 ORCA_PID=$!
 echo "Launched orca with PID: $ORCA_PID"
-
-# launch operation mode service (temporary)
-setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
-OP_MODE_PID=$!
-echo "Launched operation mode service with PID: $OP_MODE_PID"
 
 echo "Waiting for sim interface to start..."
 timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'

@@ -1,7 +1,7 @@
-#ifndef REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
-#define REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
+#ifndef REFERENCE_FILTER_DP__LIB__REFERENCE_FILTER_HPP_
+#define REFERENCE_FILTER_DP__LIB__REFERENCE_FILTER_HPP_
 
-#include "reference_filter_dp/eigen_typedefs.hpp"
+#include "reference_filter_dp/lib/eigen_typedefs.hpp"
 
 namespace vortex::guidance {
 
@@ -10,6 +10,12 @@ struct ReferenceFilterParams {
     Eigen::Vector6d zeta = Eigen::Vector6d::Zero();
 };
 
+/**
+ * @brief Stateless third-order reference filter.
+ *
+ * Computes the state derivative x_dot = Ad * x + Bd * r, where the state
+ * x = [eta, eta_dot, eta_ddot] is 18-dimensional and r is the 6D reference.
+ */
 class ReferenceFilter {
    public:
     explicit ReferenceFilter(const ReferenceFilterParams& params);
@@ -41,4 +47,4 @@ class ReferenceFilter {
 
 }  // namespace vortex::guidance
 
-#endif  // REFERENCE_FILTER_DP__REFERENCE_FILTER_HPP_
+#endif  // REFERENCE_FILTER_DP__LIB__REFERENCE_FILTER_HPP_

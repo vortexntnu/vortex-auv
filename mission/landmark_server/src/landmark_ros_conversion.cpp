@@ -67,8 +67,17 @@ vortex_msgs::msg::LandmarkArray LandmarkServerNode::tracks_to_landmark_msgs(
     uint16_t subtype) const {
     vortex_msgs::msg::LandmarkArray out;
 
-    const auto tracks = track_manager_->get_tracks_by_type(
-        vortex::filtering::LandmarkClassKey{type, subtype});
+    std::vector<const vortex::filtering::Track*> tracks;
+    if (subtype == 0) {
+        for (const auto& t : track_manager_->get_tracks()) {
+            if (t.confirmed && t.class_key.type == type) {
+                tracks.push_back(&t);
+            }
+        }
+    } else {
+        tracks = track_manager_->get_tracks_by_type(
+            vortex::filtering::LandmarkClassKey{type, subtype});
+    }
     out.landmarks.reserve(tracks.size());
 
     const auto stamp = this->now();
