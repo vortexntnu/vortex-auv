@@ -6,7 +6,7 @@
 
 namespace vortex::guidance {
 
-using vortex::utils::types::PoseEuler;
+using vortex::utils::types::Pose;
 
 /**
  * @brief Determines which degrees of freedom the reference filter controls.
@@ -25,7 +25,7 @@ enum class WaypointMode : uint8_t {
  * @brief A target pose with an associated waypoint mode.
  */
 struct Waypoint {
-    PoseEuler pose{};
+    Pose pose{};
     WaypointMode mode = WaypointMode::FULL_POSE;
 };
 

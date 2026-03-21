@@ -4,53 +4,45 @@
 
 namespace vortex::guidance {
 
-Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
-                                 WaypointMode mode,
-                                 const Eigen::Vector6d& current_state) {
-    Eigen::Vector6d reference_out = reference_in;
+Pose compute_waypoint_goal(const Pose& incoming_waypoint,
+                           WaypointMode mode,
+                           const Pose& current_state) {
+    Pose waypoint_out = incoming_waypoint;
 
     switch (mode) {
         case WaypointMode::FULL_POSE:
             break;
 
         case WaypointMode::ONLY_POSITION:
-            reference_out(3) = current_state(3);
-            reference_out(4) = current_state(4);
-            reference_out(5) = current_state(5);
+            waypoint_out.set_ori(current_state.ori_quaternion());
             break;
 
         case WaypointMode::FORWARD_HEADING: {
-            double dx = reference_in(0) - current_state(0);
-            double dy = reference_in(1) - current_state(1);
+            double dx = incoming_waypoint.x - current_state.x;
+            double dy = incoming_waypoint.y - current_state.y;
             double forward_heading = std::atan2(dy, dx);
 
-            reference_out(3) = 0.0;
-            reference_out(4) = 0.0;
-            reference_out(5) = vortex::utils::math::ssa(forward_heading);
+            waypoint_out.set_ori(Eigen::Quaterniond(
+                Eigen::AngleAxisd(forward_heading, Eigen::Vector3d::UnitZ())));
             break;
         }
 
         case WaypointMode::ONLY_ORIENTATION:
-            reference_out(0) = current_state(0);
-            reference_out(1) = current_state(1);
-            reference_out(2) = current_state(2);
+            waypoint_out.set_pos(current_state.pos_vector());
             break;
     }
 
-    return reference_out;
+    return waypoint_out;
 }
 
-bool has_converged(const Eigen::Vector6d& measured_pose,
-                   const Eigen::Vector6d& reference,
+bool has_converged(const Pose& state,
+                   const Pose& waypoint_goal,
                    WaypointMode mode,
                    double convergence_threshold) {
-    using vortex::utils::math::ssa;
-    const Eigen::Vector3d ep = measured_pose.head<3>() - reference.head<3>();
+    const Eigen::Vector3d ep = state.pos_vector() - waypoint_goal.pos_vector();
 
-    Eigen::Vector3d ea;
-    ea(0) = ssa(measured_pose(3) - reference(3));
-    ea(1) = ssa(measured_pose(4) - reference(4));
-    ea(2) = ssa(measured_pose(5) - reference(5));
+    const Eigen::Vector3d ea = vortex::utils::math::quaternion_error(
+        state.ori_quaternion(), waypoint_goal.ori_quaternion());
 
     const double err = [&] {
         switch (mode) {
