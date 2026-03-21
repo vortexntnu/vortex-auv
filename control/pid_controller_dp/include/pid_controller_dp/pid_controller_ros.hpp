@@ -36,16 +36,6 @@ class PIDControllerNode : public rclcpp::Node {
     void operation_mode_callback(
         const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
-    // @brief Callback function for the pose topic
-    // @param msg: PoseWithCovarianceStamped message containing the AUV pose
-    void pose_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-
-    // @brief Callback function for the twist topic
-    // @param msg: TwistWithCovarianceStamped message containing the AUV speed
-    void twist_callback(
-        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
-
     // @brief Callback function for the tau publisher timer
     void publish_tau();
 
@@ -65,6 +55,10 @@ class PIDControllerNode : public rclcpp::Node {
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
 
+    // @brief Callback function for the odometry topic
+    // @param msg: Odometry message containing the AUV pose and speed
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
     // @brief Callback function for parameter updates
     // @param parameters: vector of parameters to be set
     rcl_interfaces::msg::SetParametersResult parametersCallback(
@@ -80,11 +74,7 @@ class PIDControllerNode : public rclcpp::Node {
     rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
         operation_mode_sub_;
 
-    rclcpp::Subscription<
-        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
-
-    rclcpp::Subscription<
-        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         guidance_sub_;
