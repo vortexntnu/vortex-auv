@@ -13,7 +13,7 @@ class WaypointFollowerTests : public ::testing::Test {
         return params;
     }
 
-    PoseEuler zero_pose() { return PoseEuler{}; }
+    Pose zero_pose() { return Pose{}; }
     Twist zero_twist() { return Twist{}; }
 };
 
@@ -21,75 +21,76 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
     WaypointFollower follower(get_params(), 0.01);
 
     Waypoint wp;
-    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    wp.mode = WaypointMode::FULL_POSE;
-
-    follower.start(zero_pose(), zero_twist(), wp, 0.1);
-
-    Eigen::Vector18d state = follower.step();
-
-    // Simulate the measured pose being at the reference
-    Eigen::Vector6d measured_at_ref;
-    measured_at_ref << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
-
-    EXPECT_TRUE(follower.within_convergance(measured_at_ref));
-    EXPECT_EQ(state.size(), 18);
-}
-
-TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
-    WaypointFollower follower(get_params(), 0.01);
-
-    Waypoint wp;
-    wp.pose = PoseEuler{10.0, 10.0, 0.0, 0.0, 0.0, 0.0};
+    wp.pose = Pose{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
     follower.step();
 
-    Eigen::Vector6d measured_far = Eigen::Vector6d::Zero();
-    EXPECT_FALSE(follower.within_convergance(measured_far));
+    // Simulate the measured pose being at the reference
+    Pose measured_at_ref{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+
+    EXPECT_TRUE(follower.within_convergance(measured_at_ref));
+}
+
+TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
+    WaypointFollower follower(get_params(), 0.01);
+
+    Waypoint wp;
+    wp.pose = Pose{10.0, 10.0, 0.0, 1.0, 0.0, 0.0, 0.0};
+    wp.mode = WaypointMode::FULL_POSE;
+
+    follower.start(zero_pose(), zero_twist(), wp, 0.1);
+
+    follower.step();
+
+    EXPECT_FALSE(follower.within_convergance(zero_pose()));
 }
 
 TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
     WaypointFollower follower(get_params(), 0.01);
 
     Waypoint wp;
-    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    wp.pose = Pose{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
-    PoseEuler new_ref{5.0, 5.0, 0.0, 0.0, 0.0, 0.0};
+    Pose new_ref{5.0, 5.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     follower.set_reference(new_ref);
 
-    EXPECT_DOUBLE_EQ(follower.reference()(0), 5.0);
-    EXPECT_DOUBLE_EQ(follower.reference()(1), 5.0);
+    EXPECT_DOUBLE_EQ(follower.waypoint_goal().x, 5.0);
+    EXPECT_DOUBLE_EQ(follower.waypoint_goal().y, 5.0);
 }
 
 TEST_F(WaypointFollowerTests, SnapStateToReference) {
     WaypointFollower follower(get_params(), 0.01);
 
     Waypoint wp;
-    wp.pose = PoseEuler{3.0, 4.0, 5.0, 0.1, 0.2, 0.3};
+    wp.pose = Pose{3.0, 4.0, 5.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
     follower.snap_state_to_reference();
 
-    Eigen::Vector18d state = follower.state();
-    Eigen::Vector6d ref = follower.reference();
+    Pose pose = follower.pose();
+    Pose goal = follower.waypoint_goal();
 
-    for (int i = 0; i < 6; ++i) {
-        EXPECT_DOUBLE_EQ(state(i), ref(i));
-    }
+    EXPECT_DOUBLE_EQ(pose.x, goal.x);
+    EXPECT_DOUBLE_EQ(pose.y, goal.y);
+    EXPECT_DOUBLE_EQ(pose.z, goal.z);
+    EXPECT_DOUBLE_EQ(pose.qw, goal.qw);
+    EXPECT_DOUBLE_EQ(pose.qx, goal.qx);
+    EXPECT_DOUBLE_EQ(pose.qy, goal.qy);
+    EXPECT_DOUBLE_EQ(pose.qz, goal.qz);
 }
 
 TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     WaypointFollower follower(get_params(), 0.01);
 
     Waypoint wp;
-    wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    wp.pose = Pose{1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
@@ -100,7 +101,7 @@ TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     }
 
     // x position should have moved toward 1.0
-    EXPECT_GT(follower.state()(0), 0.0);
+    EXPECT_GT(follower.pose().x, 0.0);
 }
 
 }  // namespace vortex::guidance

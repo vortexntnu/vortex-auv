@@ -9,8 +9,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex/utils/types.hpp>
-#include <vortex_msgs/action/reference_filter_waypoint.hpp>
-#include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/action/reference_filter_quat_waypoint.hpp>
+#include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
 
@@ -37,17 +37,17 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<
-            const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal);
+            const vortex_msgs::action::ReferenceFilterQuatWaypoint::Goal> goal);
 
     /// @brief Accept all cancel requests.
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+            vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle);
 
     /// @brief Join the old execution thread and spawn a new one for the goal.
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+            vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle);
 
     /**
      * @brief Execute the action goal in a loop until convergence or
@@ -56,16 +56,16 @@ class ReferenceFilterNode : public rclcpp::Node {
      */
     void execute(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
+            vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle);
 
-    rclcpp_action::Server<
-        vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
+    rclcpp_action::Server<vortex_msgs::action::ReferenceFilterQuatWaypoint>::
+        SharedPtr action_server_;
 
     ReferenceFilterParams filter_params_;
 
     std::unique_ptr<WaypointFollower> follower_;
 
-    rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
+    rclcpp::Publisher<vortex_msgs::msg::ReferenceFilterQuat>::SharedPtr
         reference_pub_;
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
@@ -77,11 +77,9 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
-    rclcpp::TimerBase::SharedPtr reference_pub_timer_;
-
     std::chrono::milliseconds time_step_{};
 
-    vortex::utils::types::PoseEuler current_pose_;
+    vortex::utils::types::Pose current_pose_;
 
     vortex::utils::types::Twist current_twist_;
 

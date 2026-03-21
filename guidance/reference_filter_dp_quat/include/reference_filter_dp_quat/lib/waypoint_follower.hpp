@@ -9,11 +9,16 @@
 
 namespace vortex::guidance {
 
-using vortex::utils::types::PoseEuler;
+using vortex::utils::types::Pose;
 using vortex::utils::types::Twist;
 
 /**
  * @brief Manages reference filter state and waypoint following logic.
+ *
+ * Uses an error-state formulation: the 18D state vector holds
+ * [δp(3), δφ(3), velocity(6), acceleration(6)], while a separate
+ * nominal Pose tracks the full quaternion orientation. Each step,
+ * position/orientation errors are absorbed into the nominal and reset.
  *
  * Thread-safe: all public methods acquire a mutex.
  */
@@ -28,52 +33,56 @@ class WaypointFollower {
      * @param waypoint Target waypoint with mode.
      * @param convergence_threshold Max error norm to consider target reached.
      */
-    void start(const PoseEuler& pose,
+    void start(const Pose& pose,
                const Twist& twist,
                const Waypoint& waypoint,
                double convergence_threshold);
 
     /**
      * @brief Advance the filter by one time step.
-     * @return  The updated filter state.
+     *
+     * Computes the error-state reference, integrates, then absorbs
+     * position/orientation errors into the nominal pose.
      */
-    Eigen::Vector18d step();
+    void step();
 
     /**
-     * @brief Check if the measured pose has converged to the reference goal.
+     * @brief Check if the measured pose has converged to the waypoint goal.
      * @param measured_pose Current measured pose.
      * @return True if the error norm is within the convergence threshold.
      */
-    bool within_convergance(const Eigen::Vector6d& measured_pose) const;
+    bool within_convergance(const Pose& measured_pose) const;
 
     /**
      * @brief Update the reference goal pose mid-sequence.
      * @param reference_goal_pose The new reference pose.
      */
-    void set_reference(const PoseEuler& reference_goal_pose);
+    void set_reference(const Pose& reference_goal_pose);
 
     /**
-     * @brief Snap the position component of the filter state to the reference.
+     * @brief Snap the nominal pose to the waypoint goal and zero
+     * errors/velocity.
      *
-     * Useful after convergence to eliminate any remaining steady-state offset
+     * Useful after convergence to eliminate any remaining steady-state offset.
      */
     void snap_state_to_reference();
 
-    /// @brief Get the current 18D filter state.
-    Eigen::Vector18d state() const;
+    /// @brief Get the current nominal pose (position + quaternion).
+    Pose pose() const;
 
-    /// @brief Get the current 6D reference goal pose.
-    Eigen::Vector6d reference() const;
+    /// @brief Get the current world-frame velocity (linear + angular).
+    Eigen::Vector6d velocity() const;
+
+    /// @brief Get the current waypoint goal.
+    Pose waypoint_goal() const;
 
    private:
-    Eigen::Vector18d compute_initial_state(const PoseEuler& pose,
-                                           const Twist& twist);
-
     mutable std::mutex mutex_;
     ReferenceFilter filter_;
     double dt_seconds_{0.01};
+    Pose nominal_pose_;
     Eigen::Vector18d state_ = Eigen::Vector18d::Zero();
-    Eigen::Vector6d reference_goal_ = Eigen::Vector6d::Zero();
+    Pose waypoint_goal_;
     WaypointMode waypoint_mode_{WaypointMode::FULL_POSE};
     double convergence_threshold_{0.1};
 };

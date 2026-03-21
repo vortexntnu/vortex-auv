@@ -5,7 +5,7 @@
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
-#include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp_quat/lib/waypoint_types.hpp"
@@ -34,29 +34,29 @@ inline WaypointMode waypoint_mode_from_ros(uint8_t mode) {
 inline vortex::guidance::Waypoint waypoint_from_ros(
     const vortex_msgs::msg::Waypoint& ros_wp) {
     Waypoint wp;
-    wp.pose =
-        vortex::utils::ros_conversions::ros_pose_to_pose_euler(ros_wp.pose);
+    wp.pose = vortex::utils::ros_conversions::ros_pose_to_pose(ros_wp.pose);
     wp.mode = waypoint_mode_from_ros(ros_wp.mode);
     return wp;
 }
 
-/// @brief Fill a ReferenceFilter message from an 18D state vector.
-inline vortex_msgs::msg::ReferenceFilter fill_reference_msg(
-    const Eigen::Vector18d& x) {
-    using vortex::utils::math::ssa;
-    vortex_msgs::msg::ReferenceFilter msg;
-    msg.x = x(0);
-    msg.y = x(1);
-    msg.z = x(2);
-    msg.roll = ssa(x(3));
-    msg.pitch = ssa(x(4));
-    msg.yaw = ssa(x(5));
-    msg.x_dot = x(6);
-    msg.y_dot = x(7);
-    msg.z_dot = x(8);
-    msg.roll_dot = x(9);
-    msg.pitch_dot = x(10);
-    msg.yaw_dot = x(11);
+/// @brief Fill a ReferenceFilterQuat message from a Pose and velocity vector.
+inline vortex_msgs::msg::ReferenceFilterQuat fill_reference_msg(
+    const vortex::utils::types::Pose& pose,
+    const Eigen::Vector6d& velocity) {
+    vortex_msgs::msg::ReferenceFilterQuat msg;
+    msg.x = pose.x;
+    msg.y = pose.y;
+    msg.z = pose.z;
+    msg.qw = pose.qw;
+    msg.qx = pose.qx;
+    msg.qy = pose.qy;
+    msg.qz = pose.qz;
+    msg.x_dot = velocity(0);
+    msg.y_dot = velocity(1);
+    msg.z_dot = velocity(2);
+    msg.roll_dot = velocity(3);
+    msg.pitch_dot = velocity(4);
+    msg.yaw_dot = velocity(5);
     return msg;
 }
 
