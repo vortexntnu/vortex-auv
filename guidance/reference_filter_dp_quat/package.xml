@@ -3,8 +3,8 @@
 <package format="3">
   <name>reference_filter_dp_quat</name>
   <version>0.0.0</version>
-  <description>Reference model for the DP controller</description>
-  <maintainer email="andeshog@stud.ntnu.no">andeshog</maintainer>
+  <description>Quaternion Reference model for the DP controller</description>
+  <maintainer email="jorgen.fjermedal@hotmail.com">jorgenfj</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
