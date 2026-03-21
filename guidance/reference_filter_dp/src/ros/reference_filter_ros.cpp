@@ -199,15 +199,18 @@ void ReferenceFilterNode::execute(
             return;
         }
 
+        Eigen::Vector18d filter_state = follower_->step();
+
         Eigen::Vector6d current_pose_vector;
         {
             std::lock_guard<std::mutex> lock(sensor_mutex_);
             current_pose_vector = current_pose_.to_vector();
         }
 
-        StepResult step = follower_->step(current_pose_vector);
+        bool target_reached =
+            follower_->within_convergance(current_pose_vector);
 
-        if (step.target_reached) {
+        if (target_reached) {
             follower_->snap_state_to_reference();
 
             vortex_msgs::msg::ReferenceFilter final_reference_msg =
@@ -224,7 +227,7 @@ void ReferenceFilterNode::execute(
         }
 
         vortex_msgs::msg::ReferenceFilter reference_msg =
-            fill_reference_msg(step.reference_state);
+            fill_reference_msg(filter_state);
         reference_pub_->publish(reference_msg);
         feedback->reference = reference_msg;
         goal_handle->publish_feedback(feedback);

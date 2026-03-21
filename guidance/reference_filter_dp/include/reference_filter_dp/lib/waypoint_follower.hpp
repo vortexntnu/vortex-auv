@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <vortex/utils/types.hpp>
+#include "reference_filter_dp/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp/lib/reference_filter.hpp"
 #include "reference_filter_dp/lib/waypoint_types.hpp"
 
@@ -10,15 +11,6 @@ namespace vortex::guidance {
 
 using vortex::utils::types::PoseEuler;
 using vortex::utils::types::Twist;
-
-/**
- * @brief Result of a single step of the waypoint follower.
- */
-struct StepResult {
-    Eigen::Vector18d
-        reference_state;  ///< Filter state: [pose, pose_dot, pose_ddot].
-    bool target_reached;  ///< True if measured pose has converged.
-};
 
 /**
  * @brief Manages reference filter state and waypoint following logic.
@@ -43,10 +35,16 @@ class WaypointFollower {
 
     /**
      * @brief Advance the filter by one time step.
-     * @param measured_pose Current measured pose for convergence checking.
-     * @return StepResult with the updated filter state and convergence status.
+     * @return  The updated filter state.
      */
-    StepResult step(const Eigen::Vector6d& measured_pose);
+    Eigen::Vector18d step();
+
+    /**
+     * @brief Check if the measured pose has converged to the reference goal.
+     * @param measured_pose Current measured pose.
+     * @return True if the error norm is within the convergence threshold.
+     */
+    bool within_convergance(const Eigen::Vector6d& measured_pose) const;
 
     /**
      * @brief Update the reference goal pose mid-sequence.

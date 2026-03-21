@@ -26,14 +26,14 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
+    Eigen::Vector18d state = follower.step();
+
     // Simulate the measured pose being at the reference
     Eigen::Vector6d measured_at_ref;
     measured_at_ref << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
 
-    StepResult result = follower.step(measured_at_ref);
-
-    EXPECT_TRUE(result.target_reached);
-    EXPECT_EQ(result.reference_state.size(), 18);
+    EXPECT_TRUE(follower.within_convergance(measured_at_ref));
+    EXPECT_EQ(state.size(), 18);
 }
 
 TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
@@ -45,10 +45,10 @@ TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
-    Eigen::Vector6d measured_far = Eigen::Vector6d::Zero();
-    StepResult result = follower.step(measured_far);
+    follower.step();
 
-    EXPECT_FALSE(result.target_reached);
+    Eigen::Vector6d measured_far = Eigen::Vector6d::Zero();
+    EXPECT_FALSE(follower.within_convergance(measured_far));
 }
 
 TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
@@ -94,11 +94,9 @@ TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
 
     follower.start(zero_pose(), zero_twist(), wp, 0.1);
 
-    Eigen::Vector6d measured = Eigen::Vector6d::Zero();
-
     // Run several steps — state should move toward reference
     for (int i = 0; i < 100; ++i) {
-        follower.step(measured);
+        follower.step();
     }
 
     // x position should have moved toward 1.0

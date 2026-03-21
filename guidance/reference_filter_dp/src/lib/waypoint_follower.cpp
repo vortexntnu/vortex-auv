@@ -1,5 +1,6 @@
 #include "reference_filter_dp/lib/waypoint_follower.hpp"
 #include <vortex/utils/math.hpp>
+#include "reference_filter_dp/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp/lib/waypoint_utils.hpp"
 
 namespace vortex::guidance {
@@ -32,16 +33,20 @@ Eigen::Vector18d WaypointFollower::compute_initial_state(const PoseEuler& pose,
     return x;
 }
 
-StepResult WaypointFollower::step(const Eigen::Vector6d& measured_pose) {
+Eigen::Vector18d WaypointFollower::step() {
     std::lock_guard<std::mutex> lock(mutex_);
     Eigen::Vector18d state_dot_ =
         filter_.calculate_x_dot(state_, reference_goal_);
     state_ += state_dot_ * dt_seconds_;
 
-    bool converged = has_converged(measured_pose, reference_goal_,
-                                   waypoint_mode_, convergence_threshold_);
+    return state_;
+}
 
-    return StepResult{state_, converged};
+bool WaypointFollower::within_convergance(
+    const Eigen::Vector6d& measured_pose) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return has_converged(measured_pose, reference_goal_, waypoint_mode_,
+                         convergence_threshold_);
 }
 
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose) {
