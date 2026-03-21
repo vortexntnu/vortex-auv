@@ -94,13 +94,11 @@ void ReferenceFilterNode::set_action_server() {
     action_server_ = rclcpp_action::create_server<
         vortex_msgs::action::ReferenceFilterWaypoint>(
         this, action_server_name,
-        std::bind(&ReferenceFilterNode::handle_goal, this,
-                  std::placeholders::_1, std::placeholders::_2),
-        std::bind(&ReferenceFilterNode::handle_cancel, this,
-                  std::placeholders::_1),
-        std::bind(&ReferenceFilterNode::handle_accepted, this,
-                  std::placeholders::_1),
-        rcl_action_server_get_default_options());
+        [this](const auto& uuid, auto goal) {
+            return handle_goal(uuid, std::move(goal));
+        },
+        [this](auto goal_handle) { return handle_cancel(goal_handle); },
+        [this](auto goal_handle) { handle_accepted(goal_handle); });
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -166,15 +164,13 @@ void ReferenceFilterNode::execute(
             "Using default 0.1");
     }
 
-    Waypoint wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
+    const auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
 
-    PoseEuler pose;
-    Twist twist;
-    {
-        std::lock_guard<std::mutex> lock(sensor_mutex_);
-        pose = current_pose_;
-        twist = current_twist_;
-    }
+    const auto [pose, twist] = [this] {
+        std::lock_guard lock(sensor_mutex_);
+        return std::pair{current_pose_, current_twist_};
+    }();
+
     follower_->start(pose, twist, wp, convergence_threshold);
 
     auto feedback = std::make_shared<
@@ -201,11 +197,10 @@ void ReferenceFilterNode::execute(
 
         Eigen::Vector18d filter_state = follower_->step();
 
-        Eigen::Vector6d current_pose_vector;
-        {
-            std::lock_guard<std::mutex> lock(sensor_mutex_);
-            current_pose_vector = current_pose_.to_vector();
-        }
+        const auto current_pose_vector = [this] {
+            std::lock_guard lock(sensor_mutex_);
+            return current_pose_.to_vector();
+        }();
 
         bool target_reached =
             follower_->within_convergance(current_pose_vector);

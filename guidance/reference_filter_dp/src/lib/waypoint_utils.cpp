@@ -52,26 +52,19 @@ bool has_converged(const Eigen::Vector6d& measured_pose,
     ea(1) = ssa(measured_pose(4) - reference(4));
     ea(2) = ssa(measured_pose(5) - reference(5));
 
-    double err = 0.0;
-
-    switch (mode) {
-        case WaypointMode::ONLY_POSITION:
-            err = ep.norm();
-            break;
-
-        case WaypointMode::ONLY_ORIENTATION:
-            err = ea.norm();
-            break;
-
-        case WaypointMode::FORWARD_HEADING:
-            err = std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
-            break;
-
-        case WaypointMode::FULL_POSE:
-        default:
-            err = std::sqrt(ep.squaredNorm() + ea.squaredNorm());
-            break;
-    }
+    const double err = [&] {
+        switch (mode) {
+            case WaypointMode::ONLY_POSITION:
+                return ep.norm();
+            case WaypointMode::ONLY_ORIENTATION:
+                return ea.norm();
+            case WaypointMode::FORWARD_HEADING:
+                return std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
+            case WaypointMode::FULL_POSE:
+            default:
+                return std::sqrt(ep.squaredNorm() + ea.squaredNorm());
+        }
+    }();
 
     return err < convergence_threshold;
 }
