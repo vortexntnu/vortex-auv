@@ -118,20 +118,17 @@ void ReferenceFilterNode::set_refererence_filter() {
 }
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
-    const rclcpp_action::GoalUUID& uuid,
+    const rclcpp_action::GoalUUID& /*uuid*/,
     std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
-        goal) {
-    (void)uuid;
-    (void)goal;
+    /*goal*/) {
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
+        vortex_msgs::action::ReferenceFilterWaypoint>> /*goal_handle*/) {
     spdlog::info("Received request to cancel goal");
-    (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
