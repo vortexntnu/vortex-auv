@@ -32,11 +32,8 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     std::string dp_reference_topic =
         this->get_parameter("topics.guidance.dp").as_string();
 
-    this->declare_parameter<std::string>("topics.pose");
-    std::string pose_topic = this->get_parameter("topics.pose").as_string();
-
-    this->declare_parameter<std::string>("topics.twist");
-    std::string twist_topic = this->get_parameter("topics.twist").as_string();
+    this->declare_parameter<std::string>("topics.odom");
+    std::string odom_topic = this->get_parameter("topics.odom").as_string();
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =
@@ -60,16 +57,9 @@ void PIDControllerNode::set_subscribers_and_publisher() {
             std::bind(&PIDControllerNode::operation_mode_callback, this,
                       std::placeholders::_1));
 
-    pose_sub_ = this->create_subscription<
-        geometry_msgs::msg::PoseWithCovarianceStamped>(
-        pose_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::pose_callback, this,
-                  std::placeholders::_1));
-
-    twist_sub_ = this->create_subscription<
-        geometry_msgs::msg::TwistWithCovarianceStamped>(
-        twist_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::twist_callback, this,
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        odom_topic, qos_sensor_data,
+        std::bind(&PIDControllerNode::odom_callback, this,
                   std::placeholders::_1));
 
     guidance_sub_ =
@@ -125,14 +115,10 @@ void PIDControllerNode::operation_mode_callback(
     operation_mode_ = vortex::utils::ros_conversions::convert_from_ros(*msg);
 }
 
-void PIDControllerNode::pose_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    eta_ = eta_convert_from_ros_to_eigen(msg);
-}
-
-void PIDControllerNode::twist_callback(
-    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    nu_ = nu_convert_from_ros_to_eigen(msg);
+void PIDControllerNode::odom_callback(
+    const nav_msgs::msg::Odometry::SharedPtr msg) {
+    eta_ = eta_convert_from_ros_to_eigen(msg->pose);
+    nu_ = nu_convert_from_ros_to_eigen(msg->twist);
 }
 
 void PIDControllerNode::publish_tau() {
