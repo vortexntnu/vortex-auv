@@ -8,12 +8,11 @@
 
 namespace vortex::pool_exploration{
 
-PoolExplorationPlanner::PoolExplorationPlanner(const PoolExplorationPlannerConfig& config)
-    : config_(config) {}
-// DELARERE
 inline Eigen::Vector2f to_eigen(const vortex::utils::types::Point2D p) {
     return {p.x, p.y};
 }
+PoolExplorationPlanner::PoolExplorationPlanner(const PoolExplorationPlannerConfig& config)
+    : config_(config) {}
 
 Eigen::Vector2f PoolExplorationPlanner::estimate_docking_position(
     const CornerEstimate& estimated_corner,
@@ -49,6 +48,101 @@ CornerEstimate PoolExplorationPlanner::select_best_corner(
     return best_corner;
 }
 
+//test vha chat
+# if 1
+WallClassification PoolExplorationPlanner::classify_wall(
+    const vortex::utils::types::LineSegment2D& line,
+    const Eigen::Vector2f& drone_pos,
+    float drone_heading) {
+    const Eigen::Vector2f forward(std::cos(drone_heading), std::sin(drone_heading));
+    const Eigen::Vector2f right(std::sin(drone_heading), -std::cos(drone_heading)); // NED-consistent right if needed
+
+    Eigen::Vector2f projection = project_point_onto_line(drone_pos, line);
+    const Eigen::Vector2f rel = projection - drone_pos;
+
+    const float distance = rel.norm();
+    float heading_wall_angle = angle_between_line_and_heading(line, drone_heading);
+    const float forward_projection = rel.dot(forward);
+    const float right_projection = rel.dot(right);
+
+    const bool within_distance =
+        distance >= config_.min_wall_distance_m &&
+        distance <= config_.max_wall_distance_m;
+
+    if (!within_distance) {
+        return WallClassification::Rejected;
+    }
+
+    const bool approximately_parallel =
+        heading_wall_angle < config_.far_wall_heading_angle_threshold;
+
+    const bool approximately_perpendicular =
+        heading_wall_angle > config_.far_wall_heading_angle_threshold;
+
+    if (approximately_parallel && right_projection > config_.right_dist) {
+        return WallClassification::RightWall;
+    }
+
+    if (approximately_parallel && right_projection < 0.0f) {
+        return WallClassification::LeftWall;
+    }
+
+    if (approximately_perpendicular && forward_projection > 0.0f) {
+        return WallClassification::FrontWall;
+    }
+
+    return WallClassification::Rejected;
+}
+
+std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
+    const std::vector<vortex::utils::types::LineSegment2D>& lines,
+    const Eigen::Vector2f& drone_pos,
+    float drone_heading)
+{
+    std::vector<vortex::utils::types::LineSegment2D> right_wall_candidates;
+    std::vector<vortex::utils::types::LineSegment2D> left_wall_candidates;
+    std::vector<vortex::utils::types::LineSegment2D> far_wall_candidates;
+    std::vector<CornerEstimate> corner_estimates;
+
+    for (const auto& line : lines) {
+        switch (classify_wall(line, drone_pos, drone_heading)) {
+            case WallClassification::RightWall:
+                right_wall_candidates.push_back(line);
+                break;
+            case WallClassification::LeftWall:
+                left_wall_candidates.push_back(line);
+                break;
+            case WallClassification::FrontWall:
+                far_wall_candidates.push_back(line);
+                break;
+            case WallClassification::Rejected:
+                break;
+        }
+    }
+
+    for (const auto& right_wall : right_wall_candidates) {
+        for (const auto& far_wall : far_wall_candidates) {
+            Eigen::Vector2f corner_point;
+            if (!compute_line_intersection(right_wall, far_wall, corner_point)) {
+                continue;
+            }
+
+            const float wall_angle = angle_between_lines(right_wall, far_wall);
+            const bool valid_corner_angle = 
+                wall_angle >= config_.min_corner_angle_rad &&
+                wall_angle <= config_.max_corner_angle_rad;
+
+            if (valid_corner_angle) {
+                corner_estimates.push_back({right_wall, far_wall, corner_point});
+            }
+        }
+    }
+
+    return corner_estimates;
+}
+#endif
+
+# if 0
 std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
     const std::vector<vortex::utils::types::LineSegment2D>& lines,
     const Eigen::Vector2f& drone_pos, 
@@ -61,7 +155,7 @@ std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
 
     // Finner ut hva som er foran ogsånn? (?)
     Eigen::Vector2f forward(std::cos(drone_heading), std::sin(drone_heading));
-    Eigen::Vector2f right(-std::sin(drone_heading), std::cos(drone_heading));
+    Eigen::Vector2f right(std::sin(drone_heading), -std::cos(drone_heading)); // RIKTIG NED?
 
     for (const auto& line : lines) {
         // const auto eigen_line = line.asEigen();
@@ -142,6 +236,7 @@ std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
     } 
     return potential_corners;   
 } 
+#endif
 
 Eigen::Vector2f PoolExplorationPlanner::project_point_onto_line( 
     const Eigen::Vector2f& drone_pos,

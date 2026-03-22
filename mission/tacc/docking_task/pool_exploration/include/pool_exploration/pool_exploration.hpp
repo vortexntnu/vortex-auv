@@ -3,7 +3,6 @@
 
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <vector>
-#include <utility>
 #include <cmath>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -11,23 +10,17 @@
 
 namespace vortex::pool_exploration{
 
-// Lager eget linjesegment i 2d, ikke bruk vortex_msgs sin
-/*
-struct LineSegment2D {
-    utils::types::Point2D p0;
-    utils::types::Point2D p1;
-  
-    // Lage Eigen til beregninger
-    std::pair<Eigen::Vector2f, Eigen::Vector2f> asEigen() const {
-        return { {p0.x, p0.y}, {p1.x, p1.y} };
-    }
-};
-*/
-//linjer som oppfyller hjørnekrav
 struct CornerEstimate {
     vortex::utils::types::LineSegment2D right_wall;
     vortex::utils::types::LineSegment2D far_wall;
     Eigen::Vector2f corner_point;
+};
+
+enum class WallClassification {
+    RightWall,
+    LeftWall,
+    FrontWall,
+    Rejected
 };
 
 struct PoolExplorationPlannerConfig {
@@ -41,6 +34,7 @@ struct PoolExplorationPlannerConfig {
     float right_dist; // endre? TO DO
     float right_wall_offset_m;
     float far_wall_offset_m;
+    int choose_right_corner;
 };
 
 class PoolExplorationPlanner {
@@ -112,6 +106,11 @@ public:
         const vortex::utils::types::LineSegment2D& line1);
 
     Eigen::Vector2f compute_normal_towards_point(const vortex::utils::types::LineSegment2D& line, const Eigen::Vector2f& drone_pos);
+
+    WallClassification classify_wall(
+    const vortex::utils::types::LineSegment2D& line,
+    const Eigen::Vector2f& drone_pos,
+    float drone_heading);
 
     PoolExplorationPlannerConfig config_;
 

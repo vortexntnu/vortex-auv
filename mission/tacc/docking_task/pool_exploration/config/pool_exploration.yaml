@@ -26,6 +26,7 @@
     far_wall_offset_m: 3.0
 
     right_dist: -0.1 # ENDRE NAVN ?
+    choose_right_corner: 1
     
     # Waypoint
     switching_threshold: 0.5

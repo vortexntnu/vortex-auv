@@ -107,6 +107,7 @@ void PoolExplorationNode::setup_planner() { //change name?
     config.min_corner_angle_rad = this->declare_parameter<double>("min_corner_angle_rad");
     config.max_corner_angle_rad = this->declare_parameter<double>("max_corner_angle_rad");
     config.right_dist = this->declare_parameter<double>("right_dist");
+    config.choose_right_corner = this->declare_parameter<int>("choose_right_corner");
     //config.left_dist = this->declare_parameter<double>("left_dist");
     config.right_wall_offset_m = this->declare_parameter<double>("right_wall_offset_m");
     config.far_wall_offset_m = this->declare_parameter<double>("far_wall_offset_m");
