@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <cstdlib>
 #include <pool_exploration/pool_exploration.hpp>
 #include <spdlog/spdlog.h> // til testing
 
@@ -156,6 +158,18 @@ Eigen::Vector2f PoolExplorationPlanner::project_drone_to_line(
 float PoolExplorationPlanner::line_heading_angle_difference( 
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
     float drone_heading) {
+    Eigen::Vector2f dir = line.second - line.first;
+    float norm = dir.norm();
+
+    if (norm < 1e-6f)
+        return std::numeric_limits<float>::infinity();
+
+    dir /= norm;
+
+    Eigen::Vector2f heading_vec(std::cos(drone_heading), std::sin(drone_heading));
+    float dot = std::abs(dir.dot(heading_vec));
+    return std::acos(dot);
+/*
     float line_angle = atan2(line.second.y() - line.first.y(), line.second.x() - line.first.x());
     float diff = std::fmod(line_angle - drone_heading, 2*M_PI);
     
@@ -163,9 +177,10 @@ float PoolExplorationPlanner::line_heading_angle_difference(
     if (diff >  M_PI) diff -= 2*M_PI;
 
     return std::abs(diff);
+    */
 }
 
- bool PoolExplorationPlanner::line_intersection( 
+bool PoolExplorationPlanner::line_intersection( 
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
     Eigen::Vector2f& intersection) {
@@ -189,11 +204,21 @@ float PoolExplorationPlanner::line_heading_angle_difference(
 float PoolExplorationPlanner::angle_between_lines(
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
     const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1) {
-    Eigen::Vector2f v0 = (line0.second - line0.first).normalized();
-    Eigen::Vector2f v1 = (line1.second - line1.first).normalized();
-    
-    float dot = v0.dot(v1); 
 
+    Eigen::Vector2f v0 = line0.second - line0.first;
+    Eigen::Vector2f v1 = line1.second - line1.first;
+
+    float n0 = v0.norm();
+    float n1 = v1.norm();
+    
+    if (n0 < 1e-6f || n1 < 1e-6f)
+        return std::numeric_limits<float>::infinity();
+
+    v0 /= n0;
+    v1 /= n1;
+
+    float dot = std::abs(v0.dot(v1));
+    dot = std::clamp(dot, 0.0f, 1.0f);
 
     return std::acos(dot);     
 }
