@@ -31,23 +31,33 @@ void WaypointFollower::start(const Pose& pose,
 
 void WaypointFollower::step() {
     std::lock_guard<std::mutex> lock(mutex_);
+    const Eigen::Vector6d filter_reference = update_reference();
 
-    Eigen::Vector6d r;
-    r.head<3>() = waypoint_goal_.pos_vector() - nominal_pose_.pos_vector();
-    r.tail<3>() = vortex::utils::math::quaternion_error(
+    const Eigen::Vector18d state_derivative =
+        filter_.calculate_x_dot(state_, filter_reference);
+    state_ += state_derivative * dt_seconds_;
+    inject_and_reset();
+}
+
+Eigen::Vector6d WaypointFollower::update_reference() const {
+    Eigen::Vector6d filter_reference;
+    filter_reference.head<3>() =
+        waypoint_goal_.pos_vector() - nominal_pose_.pos_vector();
+    filter_reference.tail<3>() = vortex::utils::math::quaternion_error(
         nominal_pose_.ori_quaternion(), waypoint_goal_.ori_quaternion());
+    return filter_reference;
+}
 
-    Eigen::Vector18d x_dot = filter_.calculate_x_dot(state_, r);
-    state_ += x_dot * dt_seconds_;
-
+void WaypointFollower::inject_and_reset() {
     nominal_pose_.set_pos(nominal_pose_.pos_vector() + state_.head<3>());
     state_.head<3>().setZero();
 
-    Eigen::Vector3d dphi = state_.segment<3>(3);
-    double angle = dphi.norm();
+    const Eigen::Vector3d delta_orientation = state_.segment<3>(3);
+    const double angle = delta_orientation.norm();
     if (angle >= 1e-10) {
-        Eigen::Quaterniond dq(Eigen::AngleAxisd(angle, dphi.normalized()));
-        nominal_pose_.set_ori(nominal_pose_.ori_quaternion() * dq);
+        Eigen::Quaterniond delta_quat(
+            Eigen::AngleAxisd(angle, delta_orientation.normalized()));
+        nominal_pose_.set_ori(nominal_pose_.ori_quaternion() * delta_quat);
         state_.segment<3>(3).setZero();
     }
 }

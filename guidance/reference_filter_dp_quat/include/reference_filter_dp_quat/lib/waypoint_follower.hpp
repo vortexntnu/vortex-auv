@@ -67,16 +67,34 @@ class WaypointFollower {
      */
     void snap_state_to_reference();
 
-    /// @brief Get the current nominal pose (position + quaternion).
+    /**
+     * @brief Get the current nominal pose (position + quaternion).
+     */
     Pose pose() const;
 
-    /// @brief Get the current world-frame velocity (linear + angular).
+    /**
+     * @brief Get the current world-frame velocity (linear + angular).
+     */
     Eigen::Vector6d velocity() const;
 
-    /// @brief Get the current waypoint goal.
+    /**
+     * @brief Get the current waypoint goal.
+     */
     Pose waypoint_goal() const;
 
    private:
+    /**
+     * @brief Compute error-state reference based on the current nominal pose
+     * and waypoint goal.
+     */
+    Eigen::Vector6d update_reference() const;
+
+    /**
+     * @brief Absorb position/orientation errors into the nominal pose and
+     * reset the error states.
+     */
+    void inject_and_reset();
+
     mutable std::mutex mutex_;
     ReferenceFilter filter_;
     double dt_seconds_{0.01};
