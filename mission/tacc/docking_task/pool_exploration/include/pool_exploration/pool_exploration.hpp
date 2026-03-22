@@ -12,7 +12,8 @@
 namespace vortex::pool_exploration{
 
 // Lager eget linjesegment i 2d, ikke bruk vortex_msgs sin
-struct LineSegment {
+/*
+struct LineSegment2D {
     utils::types::Point2D p0;
     utils::types::Point2D p1;
   
@@ -21,11 +22,11 @@ struct LineSegment {
         return { {p0.x, p0.y}, {p1.x, p1.y} };
     }
 };
-
+*/
 //linjer som oppfyller hjørnekrav
 struct CornerEstimate {
-    LineSegment right_wall;
-    LineSegment far_wall;
+    vortex::utils::types::LineSegment2D right_wall;
+    vortex::utils::types::LineSegment2D far_wall;
     Eigen::Vector2f corner_point;
 };
 
@@ -65,7 +66,7 @@ public:
 
     // dersom vil finne venstre i stedet for høyre: endre krav for verdi sjekket
     std::vector<CornerEstimate> find_corner_estimates( 
-        const std::vector<LineSegment>& lines, 
+        const std::vector<vortex::utils::types::LineSegment2D>& lines, 
         const Eigen::Vector2f& drone_pos, // sjekk at får inn pos og heading riktig?
         float drone_heading);
 
@@ -83,34 +84,34 @@ public:
     //MIDLERTIDIG TEST-FUNKSJON
     // void printGridToConsole() const;
     
-private:
+//private:
    
     //Antar får inn drone_pos i map frame
     // sjekker at linje ikke er et punkt
     // Bruker projeksjonsformelen
     Eigen::Vector2f project_point_onto_line(
         const Eigen::Vector2f& drone_pos, // punktet som projiseres
-        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line);
+        const vortex::utils::types::LineSegment2D& line);
 
     // Returns the smallest absolute angle between a line segment and the drone heading (0 to π).
     // Sjekke logikken her en gang til TO DO
     float angle_between_line_and_heading(
-        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
+        const vortex::utils::types::LineSegment2D& line, 
         float drone_heading);
 
     // Calculates the intersection of two infinite lines defined by point pairs and stores the result in `intersection`.
     // Returns false if the lines are parallel.
     bool compute_line_intersection( 
-        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
+        const vortex::utils::types::LineSegment2D& line0,
+        const vortex::utils::types::LineSegment2D& line1,
         Eigen::Vector2f& intersection_coordinates);
     
     // Computes the angle between two line segments in radians.
     float angle_between_lines(
-        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-        const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
+        const vortex::utils::types::LineSegment2D& line0,
+        const vortex::utils::types::LineSegment2D& line1);
 
-    Eigen::Vector2f compute_normal_towards_point(const LineSegment& line, const Eigen::Vector2f& drone_pos);
+    Eigen::Vector2f compute_normal_towards_point(const vortex::utils::types::LineSegment2D& line, const Eigen::Vector2f& drone_pos);
 
     PoolExplorationPlannerConfig config_;
 

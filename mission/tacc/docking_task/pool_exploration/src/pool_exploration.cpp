@@ -3,12 +3,17 @@
 #include <spdlog/spdlog.h> // til testing
 
 #include <vector>
+#include <vortex/utils/types.hpp>
 #include <Eigen/src/Core/Matrix.h>
 
 namespace vortex::pool_exploration{
 
 PoolExplorationPlanner::PoolExplorationPlanner(const PoolExplorationPlannerConfig& config)
     : config_(config) {}
+// DELARERE
+inline Eigen::Vector2f to_eigen(const vortex::utils::types::Point2D p) {
+    return {p.x, p.y};
+}
 
 Eigen::Vector2f PoolExplorationPlanner::estimate_docking_position(
     const CornerEstimate& estimated_corner,
@@ -45,13 +50,13 @@ CornerEstimate PoolExplorationPlanner::select_best_corner(
 }
 
 std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
-    const std::vector<LineSegment>& lines,
+    const std::vector<vortex::utils::types::LineSegment2D>& lines,
     const Eigen::Vector2f& drone_pos, 
     float drone_heading) {
 
-    std::vector<LineSegment> right_candidates;
-    std::vector<LineSegment> left_candidates;
-    std::vector<LineSegment> far_candidates;
+    std::vector<vortex::utils::types::LineSegment2D> right_candidates;
+    std::vector<vortex::utils::types::LineSegment2D> left_candidates;
+    std::vector<vortex::utils::types::LineSegment2D> far_candidates;
     std::vector<CornerEstimate> potential_corners;
 
     // Finner ut hva som er foran ogsånn? (?)
@@ -59,16 +64,18 @@ std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
     Eigen::Vector2f right(-std::sin(drone_heading), std::cos(drone_heading));
 
     for (const auto& line : lines) {
-        const auto eigen_line = line.asEigen();
+        // const auto eigen_line = line.asEigen();
+        const Eigen::Vector2f p0 = to_eigen(line.p0);
+        const Eigen::Vector2f p1 = to_eigen(line.p1);
+        
         spdlog::info("Line: ({:.2f}, {:.2f}) -> ({:.2f}, {:.2f})",
-            eigen_line.first.x(), eigen_line.first.y(),
-            eigen_line.second.x(), eigen_line.second.y());
+            p0.x(), p0.y(), p1.x(), p1.y());
 
-        Eigen::Vector2f projection = project_point_onto_line(drone_pos, eigen_line);
+        Eigen::Vector2f projection = project_point_onto_line(drone_pos, line);
         Eigen::Vector2f rel = projection - drone_pos;
 
         float dist = rel.norm(); 
-        float angle = angle_between_line_and_heading(eigen_line, drone_heading);
+        float angle = angle_between_line_and_heading(line, drone_heading);
 
         float forward_dist = rel.dot(forward);
         float right_dist = rel.dot(right);
@@ -121,14 +128,14 @@ std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
     spdlog::info("Right candidates: {}", right_candidates.size());
     spdlog::info("Far candidates: {}", far_candidates.size());
 
-    for (const auto& r : right_candidates) {
-        for (const auto& f : far_candidates) {
+    for (const auto& right_wall : right_candidates) {
+        for (const auto& far_wall : far_candidates) {
             Eigen::Vector2f intersection_coordinates{};
-            bool intersect = compute_line_intersection(r.asEigen(), f.asEigen(), intersection_coordinates);
+            bool intersect = compute_line_intersection(right_wall, far_wall, intersection_coordinates);
             if (intersect){
-                float wall_angle = angle_between_lines(r.asEigen(), f.asEigen());
+                float wall_angle = angle_between_lines(right_wall, far_wall);
                 if (wall_angle >= config_.min_corner_angle_rad && wall_angle <= config_.max_corner_angle_rad) {
-                    potential_corners.push_back({r, f, intersection_coordinates});
+                    potential_corners.push_back({right_wall, far_wall, intersection_coordinates});
                 }
             }
         }
@@ -138,9 +145,9 @@ std::vector<CornerEstimate> PoolExplorationPlanner::find_corner_estimates(
 
 Eigen::Vector2f PoolExplorationPlanner::project_point_onto_line( 
     const Eigen::Vector2f& drone_pos,
-    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line) {
-    const Eigen::Vector2f& p0 = line.first;
-    const Eigen::Vector2f& p1 = line.second;
+    const vortex::utils::types::LineSegment2D& line) {
+    const Eigen::Vector2f& p0 = to_eigen(line.p0);
+    const Eigen::Vector2f& p1 = to_eigen(line.p1);
 
     Eigen::Vector2f dir_vec = p1 - p0;
     float len_squared = dir_vec.squaredNorm();
@@ -155,10 +162,10 @@ Eigen::Vector2f PoolExplorationPlanner::project_point_onto_line(
 }
 
 float PoolExplorationPlanner::angle_between_line_and_heading( 
-    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
+    const vortex::utils::types::LineSegment2D& line, 
     float drone_heading) {
-    Eigen::Vector2f dir = line.second - line.first;
-    float norm = dir.norm();
+    Eigen::Vector2f dir = to_eigen(line.p1) - to_eigen(line.p0);
+    const float norm = dir.norm();
 
     if (norm < 1e-6f)
         return std::numeric_limits<float>::infinity();
@@ -180,13 +187,13 @@ float PoolExplorationPlanner::angle_between_line_and_heading(
 }
 
 bool PoolExplorationPlanner::compute_line_intersection( 
-    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
+    const vortex::utils::types::LineSegment2D& line0,
+    const vortex::utils::types::LineSegment2D& line1,
     Eigen::Vector2f& intersection) {
-    const Eigen::Vector2f p00 = line0.first;
-    const Eigen::Vector2f p01 = line0.second;
-    const Eigen::Vector2f p10 = line1.first;
-    const Eigen::Vector2f p11 = line1.second;
+    const Eigen::Vector2f p00 = to_eigen(line0.p0);
+    const Eigen::Vector2f p01 = to_eigen(line0.p1);
+    const Eigen::Vector2f p10 = to_eigen(line1.p0);
+    const Eigen::Vector2f p11 = to_eigen(line1.p1);
 
     float denom = (p00.x()-p01.x())*(p10.y()-p11.y()) - (p00.y()-p01.y())*(p10.x()-p11.x());
 
@@ -201,11 +208,11 @@ bool PoolExplorationPlanner::compute_line_intersection(
 }
 
 float PoolExplorationPlanner::angle_between_lines(
-    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
-    const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1) {
+    const vortex::utils::types::LineSegment2D& line0,
+    const vortex::utils::types::LineSegment2D&  line1) {
 
-    Eigen::Vector2f v0 = line0.second - line0.first;
-    Eigen::Vector2f v1 = line1.second - line1.first;
+    Eigen::Vector2f v0 = to_eigen(line0.p1) - to_eigen(line0.p0);
+    Eigen::Vector2f v1 = to_eigen(line1.p1) - to_eigen(line1.p0);
 
     float n0 = v0.norm();
     float n1 = v1.norm();
@@ -223,11 +230,11 @@ float PoolExplorationPlanner::angle_between_lines(
 }
 
 Eigen::Vector2f PoolExplorationPlanner::compute_normal_towards_point(
-    const LineSegment& line,
+    const vortex::utils::types::LineSegment2D& line,
     const Eigen::Vector2f& drone_pos)
 {
-    Eigen::Vector2f p0 = line.asEigen().first;
-    Eigen::Vector2f p1 = line.asEigen().second;
+    Eigen::Vector2f p0 = to_eigen(line.p0);
+    Eigen::Vector2f p1 = to_eigen(line.p1);
 
     // Normaliser linjeretningen slik at retningen er entydig uavhengig av p0 og p1 rekkefølge
     if ((p1 - p0).x() < 0 || ((p1 - p0).x() == 0 && (p1 - p0).y() < 0)) {

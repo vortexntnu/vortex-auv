@@ -119,11 +119,11 @@ void PoolExplorationNode::sonar_info_callback(
     latest_sonar_info_ = msg;
 }
 
-std::vector<LineSegment> PoolExplorationNode::transform_segments_2d( //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
+std::vector<vortex::utils::types::LineSegment2D> PoolExplorationNode::transform_segments_2d( //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
     const vortex_msgs::msg::LineSegment2DArray& msg,
     const Eigen::Matrix4f& T_target_src) //target er map/odom osv
 {
-    std::vector<LineSegment> segments;
+    std::vector<vortex::utils::types::LineSegment2D> segments;
     segments.reserve(msg.lines.size());
     
     if (!latest_sonar_info_) {
@@ -157,7 +157,7 @@ std::vector<LineSegment> PoolExplorationNode::transform_segments_2d( //FUNSKJON 
         const Eigen::Vector4f p0_target = T_target_src * p0_sonar;
         const Eigen::Vector4f p1_target = T_target_src * p1_sonar;
 
-        LineSegment seg;
+        vortex::utils::types::LineSegment2D seg;
         seg.p0 = {p0_target.x(), p0_target.y()};
         seg.p1 = {p1_target.x(), p1_target.y()};
 

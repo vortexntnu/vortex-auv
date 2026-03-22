@@ -59,7 +59,7 @@ class PoolExplorationNode : public rclcpp::Node {
             const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg);
 
         // helpers (se på disse nærmere)
-        std::vector<LineSegment> transform_segments_2d(
+        std::vector<vortex::utils::types::LineSegment2D> transform_segments_2d(
             const vortex_msgs::msg::LineSegment2DArray& msg,
             const Eigen::Matrix4f& T_target_src); 
 
