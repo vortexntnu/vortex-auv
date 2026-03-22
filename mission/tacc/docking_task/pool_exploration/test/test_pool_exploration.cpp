@@ -1,214 +1,286 @@
 #include <gtest/gtest.h>
-#include <pool_exploration/pool_exploration.hpp>
-#include <vortex_msgs/msg/line_segment2_d.hpp>
 #include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <vector>
+#include <cmath>
 
+#include <pool_exploration/pool_exploration.hpp>
 
 using namespace vortex::pool_exploration;
-/*
-TEST(PoolExplorationTest, DrawLinesIdentityTransform)
+
+namespace
 {
-    PoolExplorationMap map(10.0, 10.0, 1.0, "map");
-
-    // Lag et LineSegment2DArray med én linje
-    auto array_msg = std::make_shared<vortex_msgs::msg::LineSegment2DArray>();
-    vortex_msgs::msg::LineSegment2D line;
-    line.p0.x = 1.0;
-    line.p0.y = 0.0;
-    line.p1.x = 4.0;
-    line.p1.y = 0.0;
-    array_msg->lines.push_back(line);
-
-    // Identitet transform
-    Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
-
-    // Kjør funksjonen som tegner linjene
-    map.setLineSegmentInMapFrame(array_msg, identity);
-
-    const auto& grid = map.grid();
-
-    // Map origin er -5,-5
-    // Punkt (1,0) blir grid (6,5)
-    for (int x = 6; x <= 9; ++x) {
-        int index = 5 * grid.info.width + x;
-        EXPECT_EQ(grid.data[index], OCCUPIED);
-    }
+LineSegment makeLine(float x0, float y0, float x1, float y1)
+{
+    LineSegment line;
+    line.p0.x = x0;
+    line.p0.y = y0;
+    line.p1.x = x1;
+    line.p1.y = y1;
+    return line;
 }
 
-
-TEST(PoolExplorationTest, DebugPrint)
+PoolExplorationPlannerConfig makeDefaultConfig()
 {
-    PoolExplorationMap map(10.0, 10.0, 1.0, "map");
-
-    map.bresenhamLineAlgoritm(2, 2, 8, 6);
-
-    map.printGridToConsole();   // 👈 HER
+    PoolExplorationPlannerConfig config{};
+    config.min_dist = 0.5f;
+    config.max_dist = 20.0f;
+    config.angle_threshold = 0.5f;      // ~28.6 deg
+    config.min_angle = 1.4f;            
+    config.max_angle = 1.60f;         
+    config.right_dist = 0.1f;
+    config.right_wall_offset = 1.0f;
+    config.far_wall_offset = 1.0f;
+    return config;
 }
+}  // namespace
 
-TEST(PoolExplorationTest, GridInitialization)
+TEST(PoolExplorationPlannerTest, ProjectDroneToHorizontalLine)
 {
-    PoolExplorationMap map(10.0, 10.0, 1.0, "map");
+    PoolExplorationPlanner planner(makeDefaultConfig());
 
-    const auto& grid = map.grid();
-
-    EXPECT_EQ(grid.info.width, 10);
-    EXPECT_EQ(grid.info.height, 10);
-    EXPECT_EQ(grid.data.size(), 100);
-
-    // Alle celler skal være -1 (unknown)
-    for (auto cell : grid.data) {
-        EXPECT_EQ(cell, -1);
-    }
-}
-/*
-TEST(PoolExplorationTest, SetGridCellInsideBounds)
-{
-    PoolExplorationMap map(10.0, 10.0, 1.0, "map");
-
-    map.setGridCell(5, 5, OCCUPIED);
-
-    const auto& grid = map.grid();
-    int index = 5 * grid.info.width + 5;
-
-    EXPECT_EQ(grid.data[index], OCCUPIED);
-}
-
-TEST(PoolExplorationTest, BresenhamHorizontalLine)
-{
-    PoolExplorationMap map(10.0, 10.0, 1.0, "map");
-
-    map.bresenhamLineAlgoritm(2, 5, 7, 5);
-
-    const auto& grid = map.grid();
-
-    for (int x = 2; x <= 7; ++x) {
-        int index = 5 * grid.info.width + x;
-        EXPECT_EQ(grid.data[index], OCCUPIED);
-    }
-}
-
-TEST(PoolExplorationTest, MultipleLinesIdentityTransform)
-{
-    // Lag et større grid, f.eks. 20x20 meter med 1m oppløsning
-    PoolExplorationMap map(20.0, 20.0, 1.0, "map");
-
-    // Lag LineSegment2DArray-melding
-    auto array_msg = std::make_shared<vortex_msgs::msg::LineSegment2DArray>();
-
-    // Legg til flere linjer
-    vortex_msgs::msg::LineSegment2D line1;
-    line1.p0.x = 1.0; line1.p0.y = 0.0;
-    line1.p1.x = 4.0; line1.p1.y = 0.0;
-    array_msg->lines.push_back(line1);
-
-    vortex_msgs::msg::LineSegment2D line2;
-    line2.p0.x = -3.0; line2.p0.y = 2.0;
-    line2.p1.x = 2.0; line2.p1.y = 5.0;
-    array_msg->lines.push_back(line2);
-
-    vortex_msgs::msg::LineSegment2D line3;
-    line3.p0.x = -5.0; line3.p0.y = -5.0;
-    line3.p1.x = 5.0; line3.p1.y = -5.0;
-    array_msg->lines.push_back(line3);
-
-    // Identitet transform
-    Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
-
-    // Tegn linjene
-    map.setLineSegmentInMapFrame(array_msg, identity);
-
-    const auto& grid = map.grid();
-
-    // Enkel sjekk: se at start- og sluttpunkt for hver linje er satt til OCCUPIED
-    auto check_cell = [&](double x, double y) {
-        int gx = static_cast<int>((x - grid.info.origin.position.x) / grid.info.resolution);
-        int gy = static_cast<int>((y - grid.info.origin.position.y) / grid.info.resolution);
-        int index = gy * grid.info.width + gx;
-        EXPECT_EQ(grid.data[index], OCCUPIED);
+    Eigen::Vector2f drone_pos(2.0f, 3.0f);
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(10.0f, 0.0f)
     };
 
-    // Linje 1
-    check_cell(1.0, 0.0);
-    check_cell(4.0, 0.0);
+    Eigen::Vector2f projection = planner.project_drone_to_line(drone_pos, line);
 
-    // Linje 2
-    check_cell(-3.0, 2.0);
-    check_cell(2.0, 5.0);
-
-    // Linje 3
-    check_cell(-5.0, -5.0);
-    check_cell(5.0, -5.0);
-
-    // Valgfritt: skriv grid til console for visuell inspeksjon
-    map.printGridToConsole();
+    EXPECT_NEAR(projection.x(), 2.0f, 1e-5f);
+    EXPECT_NEAR(projection.y(), 0.0f, 1e-5f);
 }
 
+TEST(PoolExplorationPlannerTest, ProjectDroneToVerticalLine)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
 
-TEST(GeometryTest, ProjectPointToLine) {
-    PoolExplorationMap map(10, 10, 1.0, "map");
+    Eigen::Vector2f drone_pos(4.0f, 2.0f);
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line{
+        Eigen::Vector2f(1.0f, -5.0f),
+        Eigen::Vector2f(1.0f, 5.0f)
+    };
 
-    Eigen::Vector2f p0(0,0);
-    Eigen::Vector2f p1(4,0);
-    Eigen::Vector2f drone_pos(2, 3);
+    Eigen::Vector2f projection = planner.project_drone_to_line(drone_pos, line);
 
-    Eigen::Vector2f projection = map.projectPointToLine(drone_pos, {p0,p1});
-
-    // Prosjekter punkt på x-akse linje => y skal bli 0
-    EXPECT_FLOAT_EQ(projection.x(), 2.0f);
-    EXPECT_FLOAT_EQ(projection.y(), 0.0f);
+    EXPECT_NEAR(projection.x(), 1.0f, 1e-5f);
+    EXPECT_NEAR(projection.y(), 2.0f, 1e-5f);
 }
 
-TEST(GeometryTest, LineAngleDifference) {
-    PoolExplorationMap map(10,10,1.0,"map");
+TEST(PoolExplorationPlannerTest, ProjectDroneToDegenerateLineReturnsPoint)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
 
-    Eigen::Vector2f p0(0,0);
-    Eigen::Vector2f p1(1,1);
-    float heading = 0.0f; // Drone peker mot x-akse
+    Eigen::Vector2f drone_pos(4.0f, 2.0f);
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line{
+        Eigen::Vector2f(1.0f, 1.0f),
+        Eigen::Vector2f(1.0f, 1.0f)
+    };
 
-    float diff = map.lineAngleDifference({p0,p1}, heading);
+    Eigen::Vector2f projection = planner.project_drone_to_line(drone_pos, line);
 
-    // Linje 45 grader mot x-aksen
-    EXPECT_NEAR(diff, M_PI/4, 1e-6);
+    EXPECT_NEAR(projection.x(), 1.0f, 1e-5f);
+    EXPECT_NEAR(projection.y(), 1.0f, 1e-5f);
 }
 
-TEST(GeometryTest, LineIntersection) {
-    PoolExplorationMap map(10,10,1.0,"map");
+TEST(PoolExplorationPlannerTest, LineHeadingAngleDifferenceParallel)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(5.0f, 0.0f)
+    };
+
+    float angle = planner.line_heading_angle_difference(line, 0.0f);
+
+    EXPECT_NEAR(angle, 0.0f, 1e-5f);
+}
+
+TEST(PoolExplorationPlannerTest, LineHeadingAngleDifferenceParallelReversedOrder)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line{
+        Eigen::Vector2f(5.0f, 0.0f),
+        Eigen::Vector2f(0.0f, 0.0f)
+    };
+
+    float angle = planner.line_heading_angle_difference(line, 0.0f);
+
+    EXPECT_NEAR(angle, 0.0f, 1e-5f);
+}
+
+TEST(PoolExplorationPlannerTest, LineHeadingAngleDifferencePerpendicular)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(0.0f, 5.0f)
+    };
+
+    float angle = planner.line_heading_angle_difference(line, 0.0f);
+
+    EXPECT_NEAR(angle, static_cast<float>(M_PI_2), 1e-5f);
+}
+
+TEST(PoolExplorationPlannerTest, LineIntersectionFindsCorrectPoint)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line0{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(10.0f, 0.0f)
+    };
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line1{
+        Eigen::Vector2f(2.0f, -5.0f),
+        Eigen::Vector2f(2.0f, 5.0f)
+    };
 
     Eigen::Vector2f intersection;
-
-    // Kryssende linjer
-    std::pair<Eigen::Vector2f,Eigen::Vector2f> line1{{0,0},{4,4}};
-    std::pair<Eigen::Vector2f,Eigen::Vector2f> line2{{0,4},{4,0}};
-
-    bool intersects = map.lineIntersection(line1, line2, intersection);
+    bool intersects = planner.line_intersection(line0, line1, intersection);
 
     EXPECT_TRUE(intersects);
-    EXPECT_NEAR(intersection.x(), 2.0f, 1e-6);
-    EXPECT_NEAR(intersection.y(), 2.0f, 1e-6);
+    EXPECT_NEAR(intersection.x(), 2.0f, 1e-5f);
+    EXPECT_NEAR(intersection.y(), 0.0f, 1e-5f);
+}
 
-    // Parallelle linjer
-    std::pair<Eigen::Vector2f,Eigen::Vector2f> line3{{0,0},{1,0}};
-    std::pair<Eigen::Vector2f,Eigen::Vector2f> line4{{0,1},{1,1}};
+TEST(PoolExplorationPlannerTest, LineIntersectionParallelReturnsFalse)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
 
-    intersects = map.lineIntersection(line3, line4, intersection);
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line0{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(10.0f, 0.0f)
+    };
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line1{
+        Eigen::Vector2f(0.0f, 1.0f),
+        Eigen::Vector2f(10.0f, 1.0f)
+    };
+
+    Eigen::Vector2f intersection;
+    bool intersects = planner.line_intersection(line0, line1, intersection);
+
     EXPECT_FALSE(intersects);
 }
 
-TEST(GeometryTest, AngleBetweenLines) {
-    PoolExplorationMap map(10,10,1.0,"map");
+TEST(PoolExplorationPlannerTest, AngleBetweenLinesPerpendicular)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
 
-    std::pair<Eigen::Vector2f,Eigen::Vector2f> line1{{0,0},{1,0}};
-    std::pair<Eigen::Vector2f,Eigen::Vector2f> line2{{0,0},{0,1}};
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line0{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(10.0f, 0.0f)
+    };
 
-    float angle = map.angleBetweenLines(line1, line2);
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line1{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(0.0f, 10.0f)
+    };
 
-    // Linjene er ortogonale
-    EXPECT_NEAR(angle, M_PI/2, 1e-6);
+    float angle = planner.angle_between_lines(line0, line1);
 
-    // Samme linje => vinkel 0
-    angle = map.angleBetweenLines(line1, line1);
-    EXPECT_NEAR(angle, 0.0, 1e-6);
+    EXPECT_NEAR(angle, static_cast<float>(M_PI_2), 1e-5f);
 }
 
-*/
+TEST(PoolExplorationPlannerTest, AngleBetweenLinesParallelReversedOrderStillZero)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line0{
+        Eigen::Vector2f(0.0f, 0.0f),
+        Eigen::Vector2f(10.0f, 0.0f)
+    };
+
+    std::pair<Eigen::Vector2f, Eigen::Vector2f> line1{
+        Eigen::Vector2f(10.0f, 0.0f),
+        Eigen::Vector2f(0.0f, 0.0f)
+    };
+
+    float angle = planner.angle_between_lines(line0, line1);
+
+    EXPECT_NEAR(angle, 0.0f, 1e-5f);
+}
+
+TEST(PoolExplorationPlannerTest, SelectBestCornerChoosesClosestCorner)
+{
+    PoolExplorationPlanner planner(makeDefaultConfig());
+
+    CandidateCorner c0;
+    c0.corner_point = Eigen::Vector2f(10.0f, 10.0f);
+
+    CandidateCorner c1;
+    c1.corner_point = Eigen::Vector2f(2.0f, 1.0f);
+
+    CandidateCorner c2;
+    c2.corner_point = Eigen::Vector2f(5.0f, 5.0f);
+
+    std::vector<CandidateCorner> corners{c0, c1, c2};
+    Eigen::Vector2f drone_pos(0.0f, 0.0f);
+
+    CandidateCorner best = planner.select_best_corner(corners, drone_pos);
+
+    EXPECT_NEAR(best.corner_point.x(), 2.0f, 1e-5f);
+    EXPECT_NEAR(best.corner_point.y(), 1.0f, 1e-5f);
+}
+
+TEST(PoolExplorationPlannerTest, FindValidCornerFindsOneCornerFromRightAndFarWall)
+{
+    PoolExplorationPlannerConfig config = makeDefaultConfig();
+    config.angle_threshold = 0.6f;   // ~34 deg
+    config.min_angle = 1.0f;         // romsligere nedre grense
+    config.max_angle = 1.6f;         // litt over pi/2
+    config.min_dist = 0.5f;
+    config.max_dist = 20.0f;
+    config.right_dist = 0.1f;
+
+    PoolExplorationPlanner planner(config);
+
+    Eigen::Vector2f drone_pos(0.0f, 0.0f);
+    float drone_heading = 0.0f;
+
+    // Matcher dagens right-definisjon i implementasjonen:
+    // right = (-sin(heading), cos(heading))
+    // ved heading = 0 blir dette (0, 1), altså positiv y.
+    LineSegment right_wall = makeLine(-10.0f, 2.0f, 10.0f, 2.0f);
+    LineSegment far_wall   = makeLine(5.0f, -10.0f, 5.0f, 10.0f);
+
+    std::vector<LineSegment> lines{right_wall, far_wall};
+
+    std::vector<CandidateCorner> corners =
+        planner.find_valid_corner(lines, drone_pos, drone_heading);
+
+    ASSERT_EQ(corners.size(), 1u);
+    EXPECT_NEAR(corners[0].corner_point.x(), 5.0f, 1e-4f);
+    EXPECT_NEAR(corners[0].corner_point.y(), 2.0f, 1e-4f);
+}
+
+TEST(PoolExplorationPlannerTest, EstimateDockingPositionOffsetsFromCorner)
+{
+    PoolExplorationPlannerConfig config = makeDefaultConfig();
+    config.right_wall_offset = 1.0f;
+    config.far_wall_offset = 2.0f;
+
+    PoolExplorationPlanner planner(config);
+
+    CandidateCorner corner;
+    corner.right_wall = makeLine(0.0f, 2.0f, 10.0f, 2.0f);
+    corner.far_wall   = makeLine(5.0f, -5.0f, 5.0f, 5.0f);
+    corner.corner_point = Eigen::Vector2f(5.0f, 2.0f);
+
+    Eigen::Vector2f drone_pos(0.0f, 0.0f);
+
+    Eigen::Vector2f docking = planner.estimate_docking_position(corner, drone_pos);
+
+    // Denne forventningen matcher dagens compute_inward_normal()-logikk,
+    // altså normal som peker mot drone-siden av veggen.
+    //
+    // For right_wall y=2 med drone i (0,0), peker normalen nedover: (0,-1)
+    // For far_wall x=5 med drone i (0,0), peker normalen mot venstre: (-1,0)
+    //
+    // docking = (5,2) + 1*(0,-1) + 2*(-1,0) = (3,1)
+    EXPECT_NEAR(docking.x(), 3.0f, 1e-4f);
+    EXPECT_NEAR(docking.y(), 1.0f, 1e-4f);
+}
