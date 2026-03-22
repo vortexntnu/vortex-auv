@@ -9,6 +9,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 // #include <vortex/utils/ros/qos_profiles.hpp>
 #include <rclcpp/qos.hpp> //bytte med ovenfor?
+#include <vortex/utils/types.hpp>
 #include "pool_exploration/pool_exploration.hpp"
 
 namespace vortex::pool_exploration{
@@ -106,7 +107,7 @@ void PoolExplorationNode::setup_planner() { //change name?
     config.min_angle = this->declare_parameter<double>("min_angle");
     config.max_angle = this->declare_parameter<double>("max_angle");
     config.right_dist = this->declare_parameter<double>("right_dist");
-    config.left_dist = this->declare_parameter<double>("left_dist");
+    //config.left_dist = this->declare_parameter<double>("left_dist");
     config.right_wall_offset = this->declare_parameter<double>("right_wall_offset");
     config.far_wall_offset = this->declare_parameter<double>("far_wall_offset");
 
@@ -130,33 +131,31 @@ std::vector<LineSegment> PoolExplorationNode::transform_segments_2d( //FUNSKJON 
         return segments;
     }
 
-    const double mpx = latest_sonar_info_->meters_per_pixel_x;
-    const double mpy = latest_sonar_info_->meters_per_pixel_y;
-    const double img_h = static_cast<double>(latest_sonar_info_->height);
-    const double img_w = static_cast<double>(latest_sonar_info_->width);
+    vortex::utils::types::SonarInfo sonar_info;
+    sonar_info.meters_per_pixel_x = latest_sonar_info_->meters_per_pixel_x;
+    sonar_info.meters_per_pixel_y = latest_sonar_info_->meters_per_pixel_y;
+    sonar_info.image_width  = latest_sonar_info_->width;
+    sonar_info.image_height = latest_sonar_info_->height;
 
-    auto pixel_to_sonar = [&](double px, double py) -> Eigen::Vector4f {
-        // sonar x = forward
-        const double sx = (img_h - 1.0 - py) * mpy;
+    for (const auto& line : msg.lines) {
+        const auto p0 = sonar_info.pixel_index_to_sonar_metric(line.p0.x, line.p0.y);
+        const auto p1 = sonar_info.pixel_index_to_sonar_metric(line.p1.x, line.p1.y);
 
-        // sonar y = right-positive
-        const double sy = (px - (img_w - 1.0) / 2.0) * mpx;
-
-        return Eigen::Vector4f(
-            static_cast<float>(sx),
-            static_cast<float>(sy),
+        const Eigen::Vector4f p0_sonar(
+            static_cast<float>(p0.y),
+            static_cast<float>(p0.x),
             0.0f,
             1.0f
         );
-    };
+        const Eigen::Vector4f p1_sonar(
+            static_cast<float>(p1.y),
+            static_cast<float>(p1.x),
+            0.0f,
+            1.0f
+        );
 
-
-    for (const auto& line : msg.lines) {
-        Eigen::Vector4f p0_sonar = pixel_to_sonar(line.p0.x, line.p0.y);
-        Eigen::Vector4f p1_sonar = pixel_to_sonar(line.p1.x, line.p1.y);
-
-        Eigen::Vector4f p0_target = T_target_src * p0_sonar;
-        Eigen::Vector4f p1_target = T_target_src * p1_sonar;
+        const Eigen::Vector4f p0_target = T_target_src * p0_sonar;
+        const Eigen::Vector4f p1_target = T_target_src * p1_sonar;
 
         LineSegment seg;
         seg.p0 = {p0_target.x(), p0_target.y()};
