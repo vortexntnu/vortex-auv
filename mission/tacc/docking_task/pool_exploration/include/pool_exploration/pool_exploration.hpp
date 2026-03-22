@@ -10,11 +10,7 @@
 #include <vortex/utils/types.hpp>
 
 namespace vortex::pool_exploration{
-// Punkt i map frame
-struct Point {
-    float x{};
-    float y{};
-};
+
 // Lager eget linjesegment i 2d, ikke bruk vortex_msgs sin
 struct LineSegment {
     utils::types::Point2D p0;
@@ -27,25 +23,23 @@ struct LineSegment {
 };
 
 //linjer som oppfyller hjørnekrav
-struct CandidateCorner {
+struct CornerEstimate {
     LineSegment right_wall;
     LineSegment far_wall;
     Eigen::Vector2f corner_point;
 };
 
 struct PoolExplorationPlannerConfig {
-    // fyll inn config parametere?
-    // må declare
-    float min_dist; 
-    float max_dist;
-    float angle_threshold;
-    float min_angle;
-    float max_angle;
+    float min_wall_distance_m; 
+    float max_wall_distance_m;
 
-    float right_dist;
+    float far_wall_heading_angle_threshold;
+    float min_corner_angle_rad;
+    float max_corner_angle_rad;
 
-    float right_wall_offset;
-    float far_wall_offset;
+    float right_dist; // endre? TO DO
+    float right_wall_offset_m;
+    float far_wall_offset_m;
 };
 
 class PoolExplorationPlanner {
@@ -56,7 +50,7 @@ public:
     // bruker compute_normal til å finne normalt på veggene
     // henter ut intersection fra estimated_corner og bruker offsetene
     Eigen::Vector2f estimate_docking_position(
-        const CandidateCorner& estimated_corner,
+        const CornerEstimate& estimated_corner,
         const Eigen::Vector2f& drone_pos);
 
     // brukes i selectBestCorner og deretter estimateDockingPosition
@@ -70,7 +64,7 @@ public:
     // hvis krysser hverandre, sjekk om vinkel oppfyller krav og lagrer i potential_corners
 
     // dersom vil finne venstre i stedet for høyre: endre krav for verdi sjekket
-    std::vector<CandidateCorner> find_valid_corner( 
+    std::vector<CornerEstimate> find_corner_estimates( 
         const std::vector<LineSegment>& lines, 
         const Eigen::Vector2f& drone_pos, // sjekk at får inn pos og heading riktig?
         float drone_heading);
@@ -80,8 +74,8 @@ public:
     // Setter min_dist til størst mulige float først og vil oppdateres ettersom sammenligner linjeavstandene
     // setter best_corner først til det første i vectoren
     // velger det hjørnet som er nærmest dronen
-    CandidateCorner select_best_corner( 
-        const std::vector<CandidateCorner>& possible_corners,
+    CornerEstimate select_best_corner( 
+        const std::vector<CornerEstimate>& possible_corners,
         const Eigen::Vector2f& drone_pos);
 
     // TO DO: Lage funksjon so fjerner doble linjer?
@@ -89,24 +83,24 @@ public:
     //MIDLERTIDIG TEST-FUNKSJON
     // void printGridToConsole() const;
     
-//private:
+private:
    
     //Antar får inn drone_pos i map frame
     // sjekker at linje ikke er et punkt
     // Bruker projeksjonsformelen
-    Eigen::Vector2f project_drone_to_line(
+    Eigen::Vector2f project_point_onto_line(
         const Eigen::Vector2f& drone_pos, // punktet som projiseres
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line);
 
     // Returns the smallest absolute angle between a line segment and the drone heading (0 to π).
     // Sjekke logikken her en gang til TO DO
-    float line_heading_angle_difference(
+    float angle_between_line_and_heading(
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line, 
         float drone_heading);
 
     // Calculates the intersection of two infinite lines defined by point pairs and stores the result in `intersection`.
     // Returns false if the lines are parallel.
-    bool line_intersection( 
+    bool compute_line_intersection( 
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1,
         Eigen::Vector2f& intersection_coordinates);
@@ -116,7 +110,7 @@ public:
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line0,
         const std::pair<Eigen::Vector2f, Eigen::Vector2f>& line1);
 
-    Eigen::Vector2f compute_inward_normal(const LineSegment& line, const Eigen::Vector2f& drone_pos);
+    Eigen::Vector2f compute_normal_towards_point(const LineSegment& line, const Eigen::Vector2f& drone_pos);
 
     PoolExplorationPlannerConfig config_;
 

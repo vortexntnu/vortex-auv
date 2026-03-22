@@ -101,15 +101,15 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
 void PoolExplorationNode::setup_planner() { //change name?
     PoolExplorationPlannerConfig config{};
 
-    config.min_dist = this->declare_parameter<double>("min_dist");
-    config.max_dist = this->declare_parameter<double>("max_dist");
-    config.angle_threshold = this->declare_parameter<double>("angle_threshold");
-    config.min_angle = this->declare_parameter<double>("min_angle");
-    config.max_angle = this->declare_parameter<double>("max_angle");
+    config.min_wall_distance_m = this->declare_parameter<double>("min_wall_distance_m");
+    config.max_wall_distance_m = this->declare_parameter<double>("max_wall_distance_m");
+    config.far_wall_heading_angle_threshold = this->declare_parameter<double>("far_wall_heading_angle_threshold");
+    config.min_corner_angle_rad = this->declare_parameter<double>("min_corner_angle_rad");
+    config.max_corner_angle_rad = this->declare_parameter<double>("max_corner_angle_rad");
     config.right_dist = this->declare_parameter<double>("right_dist");
     //config.left_dist = this->declare_parameter<double>("left_dist");
-    config.right_wall_offset = this->declare_parameter<double>("right_wall_offset");
-    config.far_wall_offset = this->declare_parameter<double>("far_wall_offset");
+    config.right_wall_offset_m = this->declare_parameter<double>("right_wall_offset_m");
+    config.far_wall_offset_m = this->declare_parameter<double>("far_wall_offset_m");
 
     planner_ = std::make_unique<PoolExplorationPlanner>(config);
 }
@@ -214,7 +214,7 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
     Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y};     // Teste om fungerer?
     float drone_heading = drone_state_.yaw;
 
-    auto corners = planner_->find_valid_corner(
+    auto corners = planner_->find_corner_estimates(
         segs,
         drone_pos,
         drone_heading
@@ -225,7 +225,7 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
         return;
     }
 
-    CandidateCorner best_corner = planner_->select_best_corner(corners, drone_pos);
+    CornerEstimate best_corner = planner_->select_best_corner(corners, drone_pos);
 
     Eigen::Vector2f docking = planner_->estimate_docking_position(best_corner, drone_pos);
 
