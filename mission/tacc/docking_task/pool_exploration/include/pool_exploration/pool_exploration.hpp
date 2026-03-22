@@ -1,19 +1,13 @@
 #ifndef POOL_EXPLORATION_HPP
 #define POOL_EXPLORATION_HPP
 
-//#include <geometry_msgs/msg/detail/point__struct.hpp>
-//#include <cstdint>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-//#include <string>
 #include <vector>
 #include <utility>
 #include <cmath>
-//#include <algorithm> //brukes ikke av clamp?
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
-//#include <limits>
-//#include <stdexcept>
+#include <vortex/utils/types.hpp>
 
 namespace vortex::pool_exploration{
 // Punkt i map frame
@@ -23,8 +17,8 @@ struct Point {
 };
 // Lager eget linjesegment i 2d, ikke bruk vortex_msgs sin
 struct LineSegment {
-    Point p0;
-    Point p1;
+    utils::types::Point2D p0;
+    utils::types::Point2D p1;
   
     // Lage Eigen til beregninger
     std::pair<Eigen::Vector2f, Eigen::Vector2f> asEigen() const {
@@ -95,7 +89,7 @@ public:
     //MIDLERTIDIG TEST-FUNKSJON
     // void printGridToConsole() const;
     
-private:
+//private:
    
     //Antar får inn drone_pos i map frame
     // sjekker at linje ikke er et punkt
@@ -125,50 +119,6 @@ private:
     Eigen::Vector2f compute_inward_normal(const LineSegment& line, const Eigen::Vector2f& drone_pos);
 
     PoolExplorationPlannerConfig config_;
-
-    // LOGIKK FOR GRIDDET //
-# if 0
-public:
- // Konstruktør
-    PoolExplorationPlanner(
-        double size_x,
-        double size_y,
-        double resolution,
-        const std::string& frame_id);
-
-    const nav_msgs::msg::OccupancyGrid& grid() const;
-
-  /**
-    * @brief Draws a straight line on the occupancy grid using Bresenham's algorithm.
-    * Reference: https://www.youtube.com/watch?v=CceepU1vIKo
-    */
-    // denne kalles fra ros noden
-    // fra map til celle (forklar mer hvordan)
-    void insert_line_in_grid(const std::vector<LineSegment>& segments);
-    
-private:
-    //Occupancy grid
-    // Set all cells unknown, 
-    // origin in center of map with no rotation
-    void initialize_grid();
-
-     //brukes i insertSegmentsMapFrame
-     // bresenham line algoritm (referanse)
-    void bresenham_line_algoritm(int x0, int y0, int x1, int y1);
-
-    // brukes i bresenhamLineAlgoritm
-    // sjekke at koordinatene er innenfor mappet
-    void set_grid_cell(int x, int y, int value);
-
-    nav_msgs::msg::OccupancyGrid grid_;
-    std::string frame_id;
-    double size_x_;
-    double size_y_;
-    double resolution_;
-
-    int8_t occupied_cell_;  
-    int8_t unknown_cell_;
-#endif
 
 };
 
