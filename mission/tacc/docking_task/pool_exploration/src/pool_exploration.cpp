@@ -122,15 +122,22 @@ WallClassification PoolExplorationPlanner::classify_wall(
     spdlog::info("  Angle: {:.2f} rad ({:.1f} deg)",
              heading_wall_angle, heading_wall_angle * 180.0 / M_PI);
 
+    Eigen::Vector2f forward(std::cos(drone_heading), std::sin(drone_heading));
+    Eigen::Vector2f right(std::sin(drone_heading), -std::cos(drone_heading));
+    float forward_dist = rel.dot(forward);
+    float right_dist   = rel.dot(right);
+
     // RIGHT WALL: projection has negative y-value in NED, wall is approximately parallel to heading
-    if (projection.y() < config_.right_wall_max_y_m &&
+    if (//projection.y() < config_.right_wall_max_y_m &&
+        right_dist <0 &&
         heading_wall_angle < config_.parallel_heading_angle_threshold_rad) {
         spdlog::info("  -> Classified as RIGHT candidate");
         return WallClassification::RightWall;
     }
 
     // FAR WALL: projection has positive x-value, wall is approximately perpendicular to heading
-    if (projection.x() > config_.far_wall_min_x_m &&
+    if (//projection.x() > config_.far_wall_min_x_m &&
+        forward_dist > 0 &&
         heading_wall_angle > config_.perpendicular_heading_angle_threshold_rad) {
         spdlog::info("  -> Classified as FAR candidate");
         return WallClassification::FarWall;
