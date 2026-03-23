@@ -8,11 +8,52 @@
 
 #include <eigen3/Eigen/Eigen>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
+#include <string>
+#include <vector>
 #include <vortex_msgs/msg/thruster_forces.hpp>
-#include "thrust_allocator_auv/eigen_vector6d_typedef.hpp"
+#include "thrust_allocator_auv/allocator.hpp"
+#include "thrust_allocator_auv/allocator_factory.hpp"
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
+#include "thrust_allocator_auv/qp_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include "vortex/utils/types.hpp"
+
+using vortex::utils::types::Vector6d;
+
+/**
+ * @brief Converts an Eigen VectorXd to a vortex_msgs::msg::ThrusterForces
+ * message.
+ *
+ * @param u The Eigen VectorXd to be converted.
+ * @param msg The vortex_msgs::msg::ThrusterForces message to store the
+ * converted values.
+ * @return The converted vortex_msgs::msg::ThrusterForces message.
+ */
+inline vortex_msgs::msg::ThrusterForces array_eigen_to_msg(
+    const Eigen::VectorXd& u) {
+    vortex_msgs::msg::ThrusterForces msg;
+    msg.header.stamp = rclcpp::Clock().now();
+    msg.header.frame_id = "base_link";
+    msg.thrust = std::vector<double>(u.begin(), u.end());
+    return msg;
+}
+
+/**
+ * @brief Converts a geometry wrench stamped message to a Vector6d to
+ * message.
+ *
+ * @param msg The geometry_msgs::msg::WrenchStamped message with wrench vector
+ * @return The converted vortex::utils::types::Vector6d message.
+ */
+inline Vector6d wrench_to_vector(const geometry_msgs::msg::WrenchStamped& msg) {
+    Vector6d msg_vector{msg.wrench.force.x,  msg.wrench.force.y,
+                        msg.wrench.force.z,  msg.wrench.torque.x,
+                        msg.wrench.torque.y, msg.wrench.torque.z};
+
+    return msg_vector;
+}
 
 class ThrustAllocator : public rclcpp::Node {
    public:
@@ -74,9 +115,11 @@ class ThrustAllocator : public rclcpp::Node {
     size_t count_;
     Eigen::Vector3d center_of_mass_;
     int num_dimensions_;
+    int degrees_of_freedom_;
     int num_thrusters_;
     int min_thrust_;
     int max_thrust_;
+    Eigen::VectorXd tau_max_;
     double thrust_update_rate_;
 
     std::chrono::milliseconds thrust_update_period_;
@@ -85,8 +128,10 @@ class ThrustAllocator : public rclcpp::Node {
     Eigen::MatrixXd thruster_position_;
     Eigen::MatrixXd thrust_configuration_;
 
-    Eigen::Vector6d body_frame_forces_;
-    PseudoinverseAllocator pseudoinverse_allocator_;
+    Vector6d body_frame_forces_;
+    std::string solver_type_;
+    std::unique_ptr<Allocator> allocator_;
+    AllocatorConfig allocator_config_;
 
     rclcpp::Time last_msg_time_;
     rclcpp::Duration timeout_treshold_ = std::chrono::seconds(1);

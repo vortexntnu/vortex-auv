@@ -44,7 +44,7 @@ ros2 service call /$DRONE_ARG/set_operation_mode vortex_msgs/srv/SetOperationMod
 sleep 5
 # Check if controller correctly publishes tau
 echo "Waiting for wrench data..."
-timeout 20s ros2 topic echo /$DRONE_ARG/wrench_input --once
+timeout 20s ros2 topic echo /$DRONE_ARG/wrench_input --once --qos-reliability best_effort
 echo "Got wrench data"
 
 # Terminate processes

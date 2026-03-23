@@ -14,6 +14,7 @@ jobs:
     with:
       vcs_repos_file: "tests/dependencies.repos"
       setup_script: "tests/setup.sh"
+      pre_test_script: "scripts/ci_install_dependencies.sh"
       test_scripts: '[
         "tests/simulator_tests/waypoint_navigation/simulator_test.sh",
         "tests/simulator_tests/los_test/simulator_test.sh",
