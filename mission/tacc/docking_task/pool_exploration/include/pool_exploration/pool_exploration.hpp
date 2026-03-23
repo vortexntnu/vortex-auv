@@ -27,11 +27,16 @@ struct PoolExplorationPlannerConfig {
     float min_wall_distance_m; 
     float max_wall_distance_m;
 
-    float far_wall_heading_angle_threshold;
+    float far_wall_heading_angle_threshold; //gammel kode FJERN TO DO
+    float parallel_heading_angle_threshold_rad;
+    float perpendicular_heading_angle_threshold_rad;
+
     float min_corner_angle_rad;
     float max_corner_angle_rad;
 
-    float right_dist; // endre? TO DO
+    float right_dist; // gammel kode, FJERN TO DO
+    float right_wall_max_y_m;
+    float far_wall_min_x_m;
     float right_wall_offset_m;
     float far_wall_offset_m;
     int choose_right_corner;
