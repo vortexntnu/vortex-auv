@@ -13,23 +13,22 @@
     odom_frame: "moby/odom"
     base_frame: "moby/base_link"
     sonar_frame: "moby/sonar_link"
-    enu_to_ned: false
 
     # Corner/docking params
-    min_wall_distance_m: 0.0
-    max_wall_distance_m: 100.0
+    min_wall_distance_m: 0.5
+    max_wall_distance_m: 10.0
 
     far_wall_heading_angle_threshold: 1.6 # gammel?
-    parallel_heading_angle_threshold_rad: 0.35
-    perpendicular_heading_angle_threshold_rad: 1.2
+    parallel_heading_angle_threshold_rad: 0.4
+    perpendicular_heading_angle_threshold_rad: 1.35
 
-    min_corner_angle_rad: 1.45
-    max_corner_angle_rad: 1.75
-    right_wall_offset_m: 4.3
-    far_wall_offset_m: 3.0
+    min_corner_angle_rad: 1.50
+    max_corner_angle_rad: 1.70
+    right_wall_offset_m: 2.5 #flytter langs høyre veggen
+    far_wall_offset_m: 4.0 #flytter langs far wall
 
-    right_wall_max_y_m: 0.0
-    far_wall_min_x_m: 0.0
+    right_wall_max_y_m: 0.4
+    far_wall_min_x_m: 0.5
 
     right_dist: -0.1 # ENDRE NAVN ?
     choose_right_corner: 1
@@ -52,3 +51,5 @@
     # Map cells
     unknown_cell: -1
     occupied_cell: 100
+
+    enu_to_ned: false
