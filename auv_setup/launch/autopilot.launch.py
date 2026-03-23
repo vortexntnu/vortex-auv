@@ -19,8 +19,8 @@ def generate_launch_description() -> LaunchDescription:
     autopilot_controller = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("velocity_controller_lqr"),
-                "launch/velocity_controller_lqr.launch.py",
+                get_package_share_directory("velocity_controller"),
+                "launch/velocity_controller.launch.py",
             )
         )
     )
