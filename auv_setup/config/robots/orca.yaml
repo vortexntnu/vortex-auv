@@ -127,7 +127,6 @@
       pose: "pose"
       twist: "twist"
       odom: "odom"
-      odom: "odom"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       reference_pose: "reference_pose"

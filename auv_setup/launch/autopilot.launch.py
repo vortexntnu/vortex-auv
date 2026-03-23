@@ -9,44 +9,65 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
-
-
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 def launch_setup(context, *args, **kwargs):
-    drone = LaunchConfiguration("drone").perform(context)
-
-    los_guidance_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("los_guidance"),
-                "launch",
-                "los_guidance.launch.py",
-            )
-        ),
-        launch_arguments={"drone": drone}.items(),
+    drone, namespace = resolve_drone_and_namespace(context)
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
     )
-
-    autopilot_controller_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("velocity_controller"),
-                "launch",
-                "velocity_controller.launch.py",
-            )
-        ),
-        launch_arguments={"drone": drone}.items(),
+    VC_params = os.path.join(
+        get_package_share_directory("velocity_controller"),
+        "config",
+        "parameters.yaml",
     )
-
-    return [los_guidance_launch, autopilot_controller_launch]
-
-
-def generate_launch_description() -> LaunchDescription:
-    return LaunchDescription(
-        [
-            DeclareLaunchArgument(
-                "drone",
-                default_value="orca",
-                description="Drone name / namespace",
+    adapt_params = os.path.join(
+        get_package_share_directory("los_guidance"),
+        "config",
+        "guidance_params.yaml",
+    )
+    container=ComposableNodeContainer(
+        name="autopilot_container",
+        namespace=namespace,
+        package="rclcpp_components",
+        executable="component_container_mt",
+        composable_node_description=[
+            ComposableNode(
+                package="velocity_controller",
+                plugin="velocity_controller_node",
+                name="velocity_controller_node",
+                namespace=namespace,
+                parameters=[VC_params,drone_params],
+                extra_arguments=[{"use_intra_process_comms":True}],
             ),
+            ComposableNode(
+                package="los_guidance",
+                plugin="los_guidance_node",
+                name="los_guidance_node",
+                namespace=namespace,
+                parameters=[adapt_params,drone_params],
+                extra_arguments=[{"use_intra_process_comms":True}],
+            ),
+
+        ],
+        output="screen",
+        arguments=["--ros-args","--log-level","error"],
+    )
+    return [container]
+    
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        declare_drone_and_namespace_args()
+        + [
             OpaqueFunction(function=launch_setup),
         ]
     )
