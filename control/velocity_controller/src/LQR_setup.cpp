@@ -210,14 +210,22 @@ bool LQRController::calculate_thrust(State state, Guidance_data guidance_values)
     u=saturate_input( (K_l*state_error));
     return true;
 }
-void LQRController::reset_controller(){
-    integral_error_surge=0.0;
-    integral_error_pitch=0.0;
-    integral_error_yaw=0.0;
+void LQRController::reset_controller(int nr){
+    if(nr==0||nr==1){
+        integral_error_surge=0.0;
+        surge_windup=false;
+    }
+    if(nr==0||nr==2){
+        integral_error_pitch=0.0;
+        pitch_windup=false;
+    }
+    if(nr==0||nr==3){
+        integral_error_yaw=0.0;
+        yaw_windup=false;
 
-    surge_windup=false;
-    pitch_windup=false;
-    yaw_windup=false;
+
+    }
+
     return;
 }
 int LQRController::set_interval(double interval){

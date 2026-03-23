@@ -28,16 +28,13 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
 
     //Callback functions
     void guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr);
-    //void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr);
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr);
 
     //Publisher instance
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr publisher_thrust;
     
     //Timer instance
-    rclcpp::TimerBase::SharedPtr timer_calculation;
-    rclcpp::TimerBase::SharedPtr timer_publish;
-    
+    rclcpp::TimerBase::SharedPtr timer_calculation;    
     //Subscriber instance
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscriber_Odometry;
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr subscriber_guidance;
@@ -57,11 +54,11 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     //Stored wrenches values
     vortex_msgs::msg::LOSGuidance reference_in;
     Guidance_data guidance_values;
-    Guidance_data current_state;
+    State current_state;
     geometry_msgs::msg::WrenchStamped thrust_out;
 
 
-    int controller_type; //1 PID, 2 LQR
+    int controller_type; //1 PID, 2 LQR, 3 NMPC, 4 NMPC acados
 
     //PID controllers
     PID_controller PID_surge;
@@ -89,6 +86,9 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     std::vector<double> R3;
     
     std::atomic_bool should_exit_{false};
+    //VC settings
+    bool anti_swing=1;
+    bool anti_overshoot=0;
     
     //States
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(const rclcpp_lifecycle::State &) override;
@@ -96,8 +96,9 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_deactivate(const rclcpp_lifecycle::State & state) override;
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_cleanup(const rclcpp_lifecycle::State &) override;
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_shutdown(const rclcpp_lifecycle::State & state) override;
+
+    //TODO: reset function that resets all controllers, easier to do, and be able to pass an argument so that u can reset either Surge, Pitch and Yaw
+    void reset_controllers(int nr=0);
 };
-
-
 
 

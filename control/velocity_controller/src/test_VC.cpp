@@ -16,10 +16,10 @@
 
 test_VC::test_VC() : Node("test_VC_node")
 {
-    this->declare_parameter<std::string>("topics.guidance_topic");
-    this->declare_parameter<std::string>("topics.odom_topic");
-    this->topic_guidance=this->get_parameter("topics.guidance_topic").as_string();
-    this->topic_odometry=this->get_parameter("topics.odom_topic").as_string();
+    this->declare_parameter<std::string>("topics.guidance.los");
+    this->declare_parameter<std::string>("topics.odom");
+    this->topic_guidance=this->get_parameter("topics.guidance.los").as_string();
+    this->topic_odometry=this->get_parameter("topics.odom").as_string();
     rclcpp::QoS pub_QoS(10);
     pub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
   

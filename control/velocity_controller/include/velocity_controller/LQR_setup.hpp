@@ -44,7 +44,7 @@ class LQRController{
     public:
     LQRController();
     bool set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix, double max_force,std::vector<double> water_r_low,std::vector<double> water_r_high);
-    void reset_controller();
+    void reset_controller(int nr=0);
     bool calculate_thrust(State states, Guidance_data guidance_values);
     int set_interval(double interval);
     Eigen::Vector<double,3> get_thrust();

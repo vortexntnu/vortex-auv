@@ -4,13 +4,13 @@
 #include <rmw/types.h>
 #include "geometry_msgs/msg/wrench_stamped.hpp"
 #include "std_msgs/msg/float64_multi_array.hpp"
-//#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-//#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "std_msgs/msg/bool.hpp"
+#include "velocity_controller/NMPC_setup.hpp"
 #include "velocity_controller/PID_setup.hpp"
 #include <array>
 #include <cmath>
 #include <Eigen/Dense>
+#include <numbers>
 #include <rclcpp/utilities.hpp>
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
 #include <vector>
@@ -21,10 +21,11 @@
 
 
 //Konstruktør
-Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), PID_surge(300,10,5), PID_yaw(60,8,5), PID_pitch(10,1,3), lqr_controller()
+Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), PID_surge(300,10,5), PID_yaw(60,8,12), PID_pitch(10,1,5), lqr_controller()
 {
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
   get_new_parameters();
+  //TODO: dont need to save the Q3 R3 and the other matries, just use #define
   //NMPC controller
   NMPC.set_matrices(Q3,R3, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
   NMPC.set_interval(publish_rate/1000.0);
@@ -62,11 +63,13 @@ void Velocity_node::calc_thrust()
   angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
   angle error=NED_to_BODY(NED_error,current_state);
   Guidance_data mod_g_values=guidance_values;
-  if (abs(error.psit)<3.14/2 || abs(error.thetat)<3.14/2){ //Need to fix to pi
-  mod_g_values.surge=guidance_values.surge*cos(error.psit)*cos(error.thetat);
-  }
-  else{
-    mod_g_values.surge=current_state.surge; //Only focus on rotating? Or is 0 maybe TODO: Decide. Potentially set the u.surge to 0. Then remember to fix the integral anti wind up
+  if(anti_overshoot){
+    if (abs(error.psit)<3.14/2 || abs(error.thetat)<3.14/2){ //Need to fix to pi
+    mod_g_values.surge=guidance_values.surge*cos(error.psit)*cos(error.thetat);
+    }
+    else{
+      mod_g_values.surge=current_state.surge; //Only focus on rotating? Or is 0 maybe //TODO: Decide. Potentially set the u.surge to 0. Then remember to fix the integral anti wind up
+    }
   }
   switch (controller_type)
   {
@@ -97,7 +100,7 @@ void Velocity_node::calc_thrust()
     break;
   }
   case 3:{
-    RCLCPP_INFO(this->get_logger(),"Guidance: %f, %f, %f",guidance_values.surge,guidance_values.pitch,guidance_values.yaw);
+    //RCLCPP_INFO(this->get_logger(),"Guidance: %f, %f, %f",guidance_values.surge,guidance_values.pitch,guidance_values.yaw);
     Eigen::Matrix<double,3,1> u;
     if (NMPC.calculate_thrust(guidance_values, current_state)){
       controller_type=1;
@@ -146,28 +149,31 @@ void Velocity_node::calc_thrust()
 
 
 //Callback functions
+//TODO: odometry  dropout
 void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr){
+  Guidance_data old_guidance=guidance_values;
   guidance_values = *msg_ptr;
-  RCLCPP_INFO(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
+  if(anti_swing){
+    if(abs(old_guidance.surge-guidance_values.surge)>=0.5){
+      reset_controllers(1);
+    }
+    if (abs(old_guidance.pitch-guidance_values.pitch)>std::numbers::pi/4) {
+      reset_controllers(2);
+
+    }
+    if (abs(old_guidance.yaw-guidance_values.yaw)<std::numbers::pi/4){
+      reset_controllers(3);
+    }
+  }
+
+  //RCLCPP_INFO(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
   //RCLCPP_INFO(this->get_logger(),"message: s: %f, p:%f, y:%f", msg_ptr->surge,msg_ptr->pitch,msg_ptr->yaw);
   return;
 }
-
+//TODO: update to also update the quaternions
 void Velocity_node::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr){
-  RCLCPP_INFO(this->get_logger(),"Recieved odometry");
-  angle temp=quaternion_to_euler_angle(msg_ptr->pose.pose.orientation.w, msg_ptr->pose.pose.orientation.x, msg_ptr->pose.pose.orientation.y, msg_ptr->pose.pose.orientation.z);
-  //angles
-  current_state.roll = temp.phit;
-  current_state.pitch = temp.thetat;
-  current_state.yaw = temp.psit;
-  //angular velocity
-  current_state.roll_rate=msg_ptr->twist.twist.angular.x;
-  current_state.pitch_rate=msg_ptr->twist.twist.angular.y;
-  current_state.yaw_rate=msg_ptr->twist.twist.angular.z;
-  //velocity
-  current_state.surge = msg_ptr->twist.twist.linear.x;
-  current_state.sway = msg_ptr->twist.twist.linear.y;
-  current_state.heave = msg_ptr->twist.twist.linear.z;
+  //RCLCPP_INFO(this->get_logger(),"Recieved odometry");
+  current_state=msg_ptr; //overloaded to fix all the internal states
   return;
 }
 
@@ -191,9 +197,9 @@ void Velocity_node::get_new_parameters(){
   this->topic_guidance = this->get_parameter("topics.guidance.los").as_string();
   this->declare_parameter<std::string>("topics.odom");
   this->topic_odometry = this->get_parameter("topics.odom").as_string();
-  this->declare_parameter<std::string>("topics.killswitch_topic");
-  this->topic_killswitch = this->get_parameter("topics.killswitch").as_string();
+  
   //variables
+
   this->declare_parameter<double>("max_force");
   this->max_force = this->get_parameter("max_force").as_double();  
   this->declare_parameter<int>("publish_rate");
@@ -203,19 +209,21 @@ void Velocity_node::get_new_parameters(){
   
 
   //LQR Parameters
-  
+
   this->declare_parameter<std::vector<double>>("LQR_params.Q");
   Q=this->get_parameter("LQR_params.Q").as_double_array();
   this->declare_parameter<std::vector<double>>("LQR_params.R");
   R=this->get_parameter("LQR_params.R").as_double_array();
   this->declare_parameter<std::vector<double>>("physical.mass_matrix");
   this->get_parameter("physical.mass_matrix", inertia_matrix);
+  RCLCPP_INFO(get_logger(),"1");
 
   //D
   this->declare_parameter<std::vector<double>>("dampening_matrix_low");
   this->declare_parameter<std::vector<double>>("dampening_matrix_high");
   this->dampening_matrix_low=this->get_parameter("dampening_matrix_low").as_double_array();
   this->dampening_matrix_high=this->get_parameter("dampening_matrix_high").as_double_array();
+  RCLCPP_INFO(get_logger(),"1");
 
   //NMPC acados Parameters
   this->declare_parameter<std::vector<double>>("NMPCA_params.Q");
@@ -223,10 +231,12 @@ void Velocity_node::get_new_parameters(){
   Q2=this->get_parameter("NMPCA_params.Q").as_double_array();
   R2=this->get_parameter("NMPCA_params.R").as_double_array();
   //NMPC
+
   this->declare_parameter<std::vector<double>>("NMPC_params.Q");
   this->declare_parameter<std::vector<double>>("NMPC_params.R");
   Q3=this->get_parameter("NMPC_params.Q").as_double_array();
   R3=this->get_parameter("NMPC_params.R").as_double_array();
+
   
 }
 
@@ -253,11 +263,11 @@ Velocity_node::on_activate(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Activating...");
   timer_calculation = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::calc_thrust, this));
-  //LifecycleNode::on_activate(state);
+  auto ret = LifecycleNode::on_activate(state);
   //timer_calculation->reset();
   
   
-  return CallbackReturn::SUCCESS;
+  return ret;
 }
 
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -265,6 +275,8 @@ Velocity_node::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Deactivating...");
   auto ret = LifecycleNode::on_deactivate(state);
+  reset_controllers();
+  //TODO: reset NMPCs
   //timer_calculation->cancel();
   return ret;
 }
@@ -293,6 +305,33 @@ Velocity_node::on_shutdown(const rclcpp_lifecycle::State & state)
   return CallbackReturn::SUCCESS;
 }
 
+void Velocity_node::reset_controllers(int nr){
+    switch (nr) {
+    case 0:
+      PID_pitch.reset_controller();
+      PID_surge.reset_controller();
+      PID_yaw.reset_controller();
+      lqr_controller.reset_controller();
+      break;
+    case 1:
+      PID_surge.reset_controller();
+      lqr_controller.reset_controller(1);
+
+      break;
+
+    case 2:
+      PID_pitch.reset_controller();
+      lqr_controller.reset_controller(2);
+
+      break;
+
+    case 3:
+      PID_yaw.reset_controller();
+      lqr_controller.reset_controller(3);
+      break;
+
+    }
+}
 
 int main(int argc, char * argv[])
 {

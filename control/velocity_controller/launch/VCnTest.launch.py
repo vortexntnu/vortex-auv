@@ -9,8 +9,12 @@ from ament_index_python.packages import get_package_share_directory
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('velocity_controller')
-    config_path = os.path.join(pkg_share, 'config', 'parameters.yaml')
+    global_share = get_package_share_directory('auv_setup')
+    config_path_global = os.path.join(global_share,'config','robots','orca.yaml')
+    common_launch_args = {
+        "drone": "orca",
+        "namespace": "orca",
+    }.items()
 
     stonefish_dir = get_package_share_directory('stonefish_sim')
 
@@ -30,36 +34,31 @@ def generate_launch_description():
             )
         ]
     )
+    operation_mode_manager_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("operation_mode_manager"),
+                "launch",
+                "operation_mode_manager.launch.py",
+            )
+        ),
+        launch_arguments=common_launch_args,
+    )
 
-
-    #node_name_arg = DeclareLaunchArgument(
-    #    'node_name', default_value='velocity_controller_node',
-    #    description='Name of the velocity controller node'
-    #)
-
-    node_name_arg2 = DeclareLaunchArgument(
+    node_name_arg = DeclareLaunchArgument(
         'node_name_1', default_value='test_VC_node',
         description='Name of the test VC node'
     )
-
-    #velocity_controller_name = LaunchConfiguration('node_name')
     test_VC_name = LaunchConfiguration('node_name_1')
 
     return LaunchDescription([
         stonefish_sim,
         orca_sim,
-        #node_name_arg,
-        node_name_arg2,
-        #Node(package='velocity_controller',
-        #     executable='velocity_controller_node',
-        #     name=velocity_controller_name,
-        #     output='screen',
-        #     parameters=[config_path]
-             #arguments=['--ros-args','--log-level','debug']
-        #     ),
+        node_name_arg,
+        operation_mode_manager_launch,
         Node(package='velocity_controller',
              executable='test_VC_node',
              name=test_VC_name,
              output='screen',
-             parameters=[config_path])         
+             parameters=[config_path_global])         
     ])
