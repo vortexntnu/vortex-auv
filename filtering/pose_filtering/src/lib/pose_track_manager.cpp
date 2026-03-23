@@ -8,7 +8,9 @@
 namespace vortex::filtering {
 
 PoseTrackManager::PoseTrackManager(const TrackManagerConfig& config)
-    : track_id_counter_(0), config_(config) {}
+    : track_id_counter_(0), config_(config) {
+    validate_config(config_);
+}
 
 void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
     sort_tracks_by_priority();
@@ -29,30 +31,26 @@ void PoseTrackManager::step(std::vector<Landmark>& measurements, double dt) {
         DynMod dyn_mod(cfg.dyn_std_dev);
         SensorMod sensor_mod(cfg.sens_std_dev);
 
-        vortex::filter::IPDA<DynMod, SensorMod>::Config ipda_cfg;
-        ipda_cfg.ipda.estimate_clutter = cfg.estimate_clutter;
-        ipda_cfg.ipda.prob_of_survival = cfg.prob_of_survival;
-        ipda_cfg.pdaf.mahalanobis_threshold = cfg.mahalanobis_threshold;
-        ipda_cfg.pdaf.prob_of_detection = cfg.prob_of_detection;
-        ipda_cfg.pdaf.clutter_intensity = cfg.clutter_intensity;
+        PDAF::Config pdaf_cfg;
+        pdaf_cfg.pdaf.mahalanobis_threshold = cfg.mahalanobis_threshold;
+        pdaf_cfg.pdaf.prob_of_detection = cfg.prob_of_detection;
+        pdaf_cfg.pdaf.clutter_intensity = cfg.clutter_intensity;
 
-        const IPDA::State state_est_prev{
-            .x_estimate = track.error_state,
-            .existence_probability = track.existence_probability};
+        auto pdaf_output =
+            PDAF::step(dyn_mod, sensor_mod, dt, track.error_state,
+                       type_matched_measurements, pdaf_cfg, gate);
 
-        auto ipda_output =
-            IPDA::step(dyn_mod, sensor_mod, dt, state_est_prev,
-                       type_matched_measurements, ipda_cfg, gate);
+        bool hit = pdaf_output.gated_measurements.any();
 
-        track.error_state = ipda_output.state.x_estimate;
-        track.existence_probability = ipda_output.state.existence_probability;
+        track.error_state = pdaf_output.x_post;
         inject_and_reset(track);
+        record_hit_miss(track, hit);
         erase_gated_measurements(measurements, type_gate_indices,
-                                 ipda_output.gated_measurements);
+                                 pdaf_output.gated_measurements);
     }
-    confirm_tracks();
     delete_tracks();
     create_tracks(measurements);
+    confirm_tracks();
 }
 
 std::vector<Eigen::Index> PoseTrackManager::gate_measurements_by_class(
@@ -76,7 +74,7 @@ PoseTrackManager::compute_measurement_residuals(
     const Track& track,
     const std::vector<Landmark>& measurements,
     const std::vector<Eigen::Index>& indices) const {
-    IPDA::Arr_zXd Z(6, indices.size());
+    PDAF::Arr_zXd Z(6, indices.size());
 
     for (Eigen::Index k = 0; k < static_cast<Eigen::Index>(indices.size());
          ++k) {
@@ -189,16 +187,16 @@ void PoseTrackManager::create_tracks(
         P0.block<3, 3>(0, 0) *= cfg.init_pos_std * cfg.init_pos_std;
         P0.block<3, 3>(3, 3) *= cfg.init_ori_std * cfg.init_ori_std;
 
-        return Track{.id = track_id_counter_++,
-                     .class_key = measurement.class_key,
-                     .nominal_state =
-                         NominalState{.pos = measurement.pose.pos_vector(),
-                                      .ori = measurement.pose.ori_quaternion()},
-                     .error_state = vortex::prob::Gauss6d(
-                         Eigen::Matrix<double, 6, 1>::Zero(), P0),
-                     .existence_probability =
-                         config_.existence.initial_existence_probability,
-                     .confirmed = false};
+        Track t{.id = track_id_counter_++,
+                .class_key = measurement.class_key,
+                .nominal_state =
+                    NominalState{.pos = measurement.pose.pos_vector(),
+                                 .ori = measurement.pose.ori_quaternion()},
+                .error_state = vortex::prob::Gauss6d(
+                    Eigen::Matrix<double, 6, 1>::Zero(), P0),
+                .confirmed = false};
+        t.hit_history.push_back(true);
+        return t;
     };
 
     for (const Landmark& m : measurements) {
@@ -206,19 +204,49 @@ void PoseTrackManager::create_tracks(
     }
 }
 
+void PoseTrackManager::record_hit_miss(Track& track, bool hit) {
+    const auto& nm = cfg_for(track).nm;
+    int max_window = std::max(nm.confirm_m, nm.delete_m);
+    track.hit_history.push_back(hit);
+    while (static_cast<int>(track.hit_history.size()) > max_window) {
+        track.hit_history.pop_front();
+    }
+}
+
 void PoseTrackManager::confirm_tracks() {
     for (Track& track : tracks_) {
-        if (!track.confirmed && track.existence_probability >=
-                                    config_.existence.confirmation_threshold) {
+        if (track.confirmed) {
+            continue;
+        }
+        const auto& nm = cfg_for(track).nm;
+        if (static_cast<int>(track.hit_history.size()) < nm.confirm_m) {
+            continue;
+        }
+        int recent_hits = 0;
+        auto it = track.hit_history.rbegin();
+        for (int i = 0; i < nm.confirm_m; ++i, ++it) {
+            if (*it)
+                ++recent_hits;
+        }
+        if (recent_hits >= nm.confirm_n) {
             track.confirmed = true;
         }
     }
 }
 
 void PoseTrackManager::delete_tracks() {
-    auto new_end = std::ranges::remove_if(tracks_, [this](Track& track) {
-        return track.existence_probability <
-               config_.existence.deletion_threshold;
+    auto new_end = std::ranges::remove_if(tracks_, [this](const Track& track) {
+        const auto& nm = cfg_for(track).nm;
+        if (static_cast<int>(track.hit_history.size()) < nm.delete_m) {
+            return false;
+        }
+        int recent_misses = 0;
+        auto it = track.hit_history.rbegin();
+        for (int i = 0; i < nm.delete_m; ++i, ++it) {
+            if (!*it)
+                ++recent_misses;
+        }
+        return recent_misses >= nm.delete_n;
     });
     tracks_.erase(new_end.begin(), new_end.end());
 }
@@ -227,7 +255,7 @@ void PoseTrackManager::sort_tracks_by_priority() {
     std::ranges::sort(tracks_, [](const Track& a, const Track& b) {
         if (a.confirmed != b.confirmed)
             return a.confirmed > b.confirmed;
-        return a.existence_probability > b.existence_probability;
+        return a.hits() > b.hits();
     });
 }
 

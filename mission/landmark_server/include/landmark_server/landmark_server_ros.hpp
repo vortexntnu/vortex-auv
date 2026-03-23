@@ -21,6 +21,7 @@
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
+#include <vortex_msgs/msg/waypoint_mode.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 
@@ -176,10 +177,14 @@ class LandmarkServerNode : public rclcpp::Node {
         active_landmark_convergence_goal_;
     std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
 
+    enum class RFState { IDLE, PENDING, ACTIVE };
+    RFState rf_state_{RFState::IDLE};
+
     // Convergence state variables
     uint64_t convergence_session_id_{0};
     bool convergence_active_{false};
     bool convergence_dead_reckoning_handoff_{false};
+    vortex_msgs::msg::WaypointMode convergence_mode_;
     std::optional<vortex::filtering::Track> convergence_last_known_track_;
 
     bool convergence_track_lost_{false};
@@ -198,7 +203,7 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void cancel_reference_filter_goal();
 
-    void handle_rf_result(rclcpp_action::ResultCode code);
+    void handle_rf_result(rclcpp_action::ResultCode resultCode);
 
     bool convergence_track_timeout() const;
 
@@ -208,7 +213,7 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void convergence_update_target(const vortex::filtering::Track& track);
 
-    void convergence_check_dr_handoff();
+    void convergence_try_dead_reckoning_handoff();
 
     vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
         bool success) const;

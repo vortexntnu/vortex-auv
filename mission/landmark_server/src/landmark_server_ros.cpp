@@ -10,6 +10,13 @@
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_transforms.hpp>
 
+const auto start_msg = R"(
+██       █████  ███    ██ ██████  ███    ███  █████  ██████  ██   ██     ███████ ███████ ██████  ██    ██ ███████ ██████
+██      ██   ██ ████   ██ ██   ██ ████  ████ ██   ██ ██   ██ ██  ██      ██      ██      ██   ██ ██    ██ ██      ██   ██
+██      ███████ ██ ██  ██ ██   ██ ██ ████ ██ ███████ ██████  █████       ███████ █████   ██████  ██    ██ █████   ██████
+██      ██   ██ ██  ██ ██ ██   ██ ██  ██  ██ ██   ██ ██   ██ ██  ██           ██ ██      ██   ██  ██  ██  ██      ██   ██
+███████ ██   ██ ██   ████ ██████  ██      ██ ██   ██ ██   ██ ██   ██     ███████ ███████ ██   ██   ████   ███████ ██   ██
+)";
 namespace vortex::mission {
 
 LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
@@ -19,6 +26,7 @@ LandmarkServerNode::LandmarkServerNode(const rclcpp::NodeOptions& options)
 
     create_track_manager();
     setup_ros_communicators();
+    spdlog::info(start_msg);
 }
 
 void LandmarkServerNode::setup_ros_communicators() {
@@ -206,13 +214,14 @@ void LandmarkServerNode::handle_landmark_polling_accepted(
 void LandmarkServerNode::create_track_manager() {
     vortex::filtering::TrackManagerConfig config;
 
-    config.existence.confirmation_threshold = this->declare_parameter<double>(
-        "track_config.existence.confirmation_threshold");
-    config.existence.deletion_threshold = this->declare_parameter<double>(
-        "track_config.existence.deletion_threshold");
-    config.existence.initial_existence_probability =
-        this->declare_parameter<double>(
-            "track_config.existence.initial_existence_probability");
+    config.default_class_config.nm.confirm_n =
+        this->declare_parameter<int>("track_config.default.nm.confirm_n");
+    config.default_class_config.nm.confirm_m =
+        this->declare_parameter<int>("track_config.default.nm.confirm_m");
+    config.default_class_config.nm.delete_n =
+        this->declare_parameter<int>("track_config.default.nm.delete_n");
+    config.default_class_config.nm.delete_m =
+        this->declare_parameter<int>("track_config.default.nm.delete_m");
 
     config.default_class_config.min_pos_error = this->declare_parameter<double>(
         "track_config.default.gate.min_pos_error");
@@ -242,11 +251,6 @@ void LandmarkServerNode::create_track_manager() {
     config.default_class_config.clutter_intensity =
         this->declare_parameter<double>(
             "track_config.default.clutter_intensity");
-    config.default_class_config.prob_of_survival =
-        this->declare_parameter<double>(
-            "track_config.default.prob_of_survival");
-    config.default_class_config.estimate_clutter =
-        this->declare_parameter<bool>("track_config.default.estimate_clutter");
 
     track_manager_ =
         std::make_unique<vortex::filtering::PoseTrackManager>(config);
@@ -274,8 +278,20 @@ void LandmarkServerNode::timer_callback() {
         const auto goal = active_landmark_polling_goal_->get_goal();
         const auto type = goal->type.value;
         const auto subtype = goal->subtype.value;
-        if (!track_manager_->has_track(
-                vortex::filtering::LandmarkClassKey{type, subtype})) {
+
+        bool found = false;
+        if (subtype == 0) {
+            found = std::any_of(
+                track_manager_->get_tracks().begin(),
+                track_manager_->get_tracks().end(), [&](const auto& t) {
+                    return t.confirmed && t.class_key.type == type;
+                });
+        } else {
+            found = track_manager_->has_track(
+                vortex::filtering::LandmarkClassKey{type, subtype});
+        }
+
+        if (!found) {
             return;
         }
         vortex_msgs::msg::LandmarkArray landmarks =

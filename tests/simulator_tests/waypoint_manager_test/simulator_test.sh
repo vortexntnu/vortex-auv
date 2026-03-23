@@ -51,7 +51,7 @@ timeout 10s ros2 topic echo /orca/odom --once
 echo "Got odom data"
 
 # Launch ORCA Simulation
-setsid ros2 launch stonefish_sim orca_sim.launch.py &
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
 ORCA_PID=$!
 echo "Launched orca with PID: $ORCA_PID"
 
@@ -78,11 +78,6 @@ echo "Got pose data"
 setsid ros2 launch auv_setup dp.launch.py &
 CONTROLLER_PID=$!
 echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
-
-# launch operation mode service
-setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
-OP_MODE_PID=$!
-echo "Launched operation mode service with PID: $OP_MODE_PID"
 
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then

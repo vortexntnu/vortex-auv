@@ -109,7 +109,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        args: ['--write-changes', '--ignore-words-list=theses,fom,NED,ENU']
+        args: ['--write-changes', '--ignore-words-list=theses,fom,NED,ENU,Bu']
 
 ci:
     autoupdate_schedule: quarterly
