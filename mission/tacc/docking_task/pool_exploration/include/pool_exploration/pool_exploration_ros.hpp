@@ -7,7 +7,7 @@
 #include <tf2_ros/message_filter.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/static_transform_broadcaster.h> // skal ha med?
-#include <tf2_eigen/tf2_eigen.h> // skal ha med?
+#include <tf2_eigen/tf2_eigen.hpp> // skal ha med?
 
 #include <chrono> // trenger denne?
 #include <memory>
@@ -45,6 +45,7 @@ class PoolExplorationNode : public rclcpp::Node {
 
     private:
         // setup
+        void setup_parameters();
         void setup_publishers_and_subscribers();
         void setup_planner();
 
@@ -69,12 +70,23 @@ class PoolExplorationNode : public rclcpp::Node {
         //kaller på sendwaypoint service og se
         void estimate_and_send_docking_waypoint(const vortex_msgs::msg::LineSegment2DArray& msg);
 
+    // ----- Topics -----
+        std::string line_sub_topic_;
+        std::string pose_sub_topic_;
+        std::string sonar_info_sub_topic_;
+        std::string debug_topic_;
+        std::string map_pub_topic_;
+
         // frames
         std::string odom_frame_;
         std::string map_frame_;
         std::string base_frame_;
         std::string sonar_frame_; // for å hente sonar info og gjøre om fra pixler
         std::chrono::milliseconds pub_dt_{200};
+
+        float waypoint_switching_threshold_;
+        bool waypoint_overwrite_prior_;
+        bool waypoint_take_priority_;
 
         // TF publishing
         std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_broadcaster_;

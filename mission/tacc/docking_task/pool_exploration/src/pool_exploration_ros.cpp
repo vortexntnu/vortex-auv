@@ -16,37 +16,54 @@ namespace vortex::pool_exploration{
 
 PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
     : rclcpp::Node("pool_exploration_node", options) {
+        setup_parameters();
         setup_publishers_and_subscribers();
         setup_planner();
     } 
 
-void PoolExplorationNode::setup_publishers_and_subscribers() {
-    //map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
+void PoolExplorationNode::setup_parameters()
+{
+    // Frames
     odom_frame_ = this->declare_parameter<std::string>("odom_frame");
     base_frame_ = this->declare_parameter<std::string>("base_frame");
     sonar_frame_ = this->declare_parameter<std::string>("sonar_frame");
 
+    // Topics
+    line_sub_topic_ = this->declare_parameter<std::string>("line_sub_topic");
+    pose_sub_topic_ = this->declare_parameter<std::string>("pose_sub_topic");
+    sonar_info_sub_topic_ = this->declare_parameter<std::string>("sonar_info_sub_topic");
+    debug_topic_ = this->declare_parameter<std::string>("debug_topic"); //For testing
+
+    // Waypoint parameters from YAML
+    waypoint_switching_threshold_ = this->declare_parameter<float>("switching_threshold");
+    waypoint_overwrite_prior_ = this->declare_parameter<bool>("overwrite_prior_waypoints");
+    waypoint_take_priority_ = this->declare_parameter<bool>("take_priority");
+}
+
+void PoolExplorationNode::setup_publishers_and_subscribers() {
+    //map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
     //pub_dt_ = std::chrono::milliseconds(
     //    this->declare_parameter<int>("publish_rate_ms"));
 
     //this->declare_parameter<bool>("enu_to_ned", false);
 
-    const std::string line_sub_topic =
-        this->declare_parameter<std::string>("line_sub_topic");
     //const std::string map_pub_topic =
     //    this->declare_parameter<std::string>("map_pub_topic", "/map");
-    const std::string pose_sub_topic = 
-         this->declare_parameter<std::string>("pose_sub_topic"); // ta inn drone pos
-
-    const std::string sonar_info_sub_topic =
-        this->declare_parameter<std::string>("sonar_info_sub_topic");
-
-    const std::string debug_topic = 
-        this->declare_parameter<std::string>("debug_topic");
 
     //tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
     //const auto map_to_odom_tf = compute_map_odom_transform(); //const?
     //tf_broadcaster_->sendTransform(map_to_odom_tf);
+
+    //const auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)) //bare siste kart
+    //    .reliable() //meldinger må leveres
+    //    .transient_local(); //subscribers fra siste melding
+
+    //map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+    //    map_pub_topic, 
+    //    map_qos);
+    //timer_ = this->create_wall_timer(pub_dt_, [this]() { this->timer_callback(); });
+
+
 
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
@@ -55,47 +72,33 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     const auto qos_sub = rclcpp::SensorDataQoS(); //standard for sensordata, ta inn vortex sin i stedet??
-    //const auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)) //bare siste kart
-    //    .reliable() //meldinger må leveres
-    //    .transient_local(); //subscribers fra siste melding
+    auto sub_options = rclcpp::SubscriptionOptions();
 
-    auto sub_options = rclcpp::SubscriptionOptions(); //hva gjør denne, fjerne?
     line_sub_.subscribe(
-        this,
-        line_sub_topic,
-        qos_sub.get_rmw_qos_profile(),
-        sub_options); 
+        this, line_sub_topic_,
+        qos_sub.get_rmw_qos_profile(), sub_options); 
 
     pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-        pose_sub_topic, qos_sub,
-        std::bind(&PoolExplorationNode::pose_callback, this,
-                  std::placeholders::_1));
+        pose_sub_topic_, qos_sub,
+        std::bind(&PoolExplorationNode::pose_callback, this, std::placeholders::_1));
 
     sonar_info_sub_ = this->create_subscription<vortex_msgs::msg::SonarInfo>(
-        sonar_info_sub_topic, qos_sub,
+        sonar_info_sub_topic_, qos_sub,
         [this](const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg) {
             this->sonar_info_callback(msg);
         });
 
     line_filter_ = std::make_shared<tf2_ros::MessageFilter<vortex_msgs::msg::LineSegment2DArray>>(
-        line_sub_, *tf_buffer_, odom_frame_, 10, // Har endra til odom frame fra map frame
+        line_sub_, *tf_buffer_, odom_frame_, 10, 
         this->get_node_logging_interface(),
         this->get_node_clock_interface());
 
     line_filter_->registerCallback(
         std::bind(&PoolExplorationNode::line_callback, this, std::placeholders::_1));
 
-    //map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
-    //    map_pub_topic, 
-    //    map_qos);
-
     waypoint_client_ = this->create_client<vortex_msgs::srv::SendWaypoints>("/send_waypoints"); //endre /send_waypoints navnet
 
-    //timer_ = this->create_wall_timer(pub_dt_, [this]() { this->timer_callback(); });
-
-    docking_marker_pub_ = //til testing
-        this->create_publisher<visualization_msgs::msg::Marker>(
-        debug_topic, 10);
+    docking_marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(debug_topic_, 10); //til testing
 }
 
 void PoolExplorationNode::setup_planner() { //change name?
@@ -113,16 +116,80 @@ void PoolExplorationNode::setup_planner() { //change name?
     config.far_wall_min_x_m = this->declare_parameter<double>("far_wall_min_x_m");
     config.right_wall_max_y_m = this->declare_parameter<double>("right_wall_max_y_m");
     config.choose_right_corner = this->declare_parameter<int>("choose_right_corner");
-    //config.left_dist = this->declare_parameter<double>("left_dist");
     config.right_wall_offset_m = this->declare_parameter<double>("right_wall_offset_m");
     config.far_wall_offset_m = this->declare_parameter<double>("far_wall_offset_m");
 
     planner_ = std::make_unique<PoolExplorationPlanner>(config);
 }
 
+void PoolExplorationNode::pose_callback(
+    const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg) {
+    drone_state_.x = msg->pose.pose.position.x;
+    drone_state_.y = msg->pose.pose.position.y;
+    drone_state_.z = msg->pose.pose.position.z;
+
+    Eigen::Quaterniond q;
+    tf2::fromMsg(msg->pose.pose.orientation, q);
+    Eigen::Vector3d rpy = vortex::utils::math::quat_to_euler(q);
+    drone_state_.yaw = rpy.z();
+}
+
 void PoolExplorationNode::sonar_info_callback(
     const vortex_msgs::msg::SonarInfo::ConstSharedPtr& msg) {
     latest_sonar_info_ = msg;
+}
+
+void PoolExplorationNode::line_callback(
+    const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg) {
+    
+    estimate_and_send_docking_waypoint(*msg);
+    //drawSegmentsInMapFrame(*msg);
+}
+
+// GJØRE I base_frame ELLER odom??
+void PoolExplorationNode::estimate_and_send_docking_waypoint(
+    const vortex_msgs::msg::LineSegment2DArray& msg) {
+    geometry_msgs::msg::TransformStamped tf_stamped;
+
+    try {
+        tf_stamped = tf_buffer_->lookupTransform(
+            odom_frame_, msg.header.frame_id, msg.header.stamp);
+    //        base_frame_, msg.header.frame_id, msg.header.stamp);
+    } catch (const tf2::TransformException& ex) {
+        spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
+                     msg.header.frame_id, odom_frame_, ex.what());
+    //                 msg.header.frame_id, base_frame_,ex.what());
+        return;
+    }
+
+    const Eigen::Affine3d T = tf2::transformToEigen(tf_stamped.transform);
+    const Eigen::Matrix4f T_odom_src = T.matrix().cast<float>();
+
+    auto segs = transform_segments_2d(msg, T_odom_src); //NB ENDRE NAVN <3
+
+    Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y};     // Teste om fungerer?
+    float drone_heading = drone_state_.yaw;
+
+    auto corners = planner_->find_corner_estimates(
+        segs,
+        drone_pos,
+        drone_heading
+    );
+
+    if (corners.empty()) {
+        spdlog::info("[PoolExploration] No valid corners -> no docking estimate");
+        return;
+    }
+
+    CornerEstimate best_corner = planner_->select_best_corner(corners, drone_pos);
+
+    Eigen::Vector2f docking = planner_->estimate_docking_position(best_corner, drone_pos);
+
+    publish_docking_marker(docking); //til testing
+    send_docking_waypoint(docking);
+
+    spdlog::info("[PoolExploration] Docking estimate (odom): x={} y={}",
+                 docking.x(), docking.y());
 }
 
 std::vector<vortex::utils::types::LineSegment2D> PoolExplorationNode::transform_segments_2d( //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
@@ -175,73 +242,6 @@ std::vector<vortex::utils::types::LineSegment2D> PoolExplorationNode::transform_
     return segments;
 }
 
-void PoolExplorationNode::line_callback(
-    const vortex_msgs::msg::LineSegment2DArray::ConstSharedPtr& msg) {
-    
-    estimate_and_send_docking_waypoint(*msg);
-    //drawSegmentsInMapFrame(*msg);
-}
-
-void PoolExplorationNode::pose_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::ConstSharedPtr& msg) {
-    drone_state_.x = msg->pose.pose.position.x;
-    drone_state_.y = msg->pose.pose.position.y;
-    drone_state_.z = msg->pose.pose.position.z;
-
-    Eigen::Quaterniond q;
-    tf2::fromMsg(msg->pose.pose.orientation, q);
-
-    Eigen::Vector3d rpy = vortex::utils::math::quat_to_euler(q);
-
-    drone_state_.yaw = rpy.z();
-    }
-
-// GJØRE I base_frame ELLER odom??
-void PoolExplorationNode::estimate_and_send_docking_waypoint(
-    const vortex_msgs::msg::LineSegment2DArray& msg) {
-    geometry_msgs::msg::TransformStamped tf_stamped;
-
-    try {
-        tf_stamped = tf_buffer_->lookupTransform(
-            odom_frame_, msg.header.frame_id, msg.header.stamp);
-    //        base_frame_, msg.header.frame_id, msg.header.stamp);
-    } catch (const tf2::TransformException& ex) {
-        spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
-                     msg.header.frame_id, odom_frame_, ex.what());
-    //                 msg.header.frame_id, base_frame_,ex.what());
-        return;
-    }
-
-    const Eigen::Affine3d T = tf2::transformToEigen(tf_stamped.transform);
-    const Eigen::Matrix4f T_odom_src = T.matrix().cast<float>();
-
-    auto segs = transform_segments_2d(msg, T_odom_src); //NB ENDRE NAVN <3
-
-    Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y};     // Teste om fungerer?
-    float drone_heading = drone_state_.yaw;
-
-    auto corners = planner_->find_corner_estimates(
-        segs,
-        drone_pos,
-        drone_heading
-    );
-
-    if (corners.empty()) {
-        spdlog::info("[PoolExploration] No valid corners -> no docking estimate");
-        return;
-    }
-
-    CornerEstimate best_corner = planner_->select_best_corner(corners, drone_pos);
-
-    Eigen::Vector2f docking = planner_->estimate_docking_position(best_corner, drone_pos);
-
-    publish_docking_marker(docking); //til testing
-    send_docking_waypoint(docking);
-
-    spdlog::info("[PoolExploration] Docking estimate (odom): x={} y={}",
-                 docking.x(), docking.y());
-}
-
 void PoolExplorationNode::send_docking_waypoint(const Eigen::Vector2f& docking_estimate)
 {
     if (waypoint_sent_) {
@@ -253,9 +253,7 @@ void PoolExplorationNode::send_docking_waypoint(const Eigen::Vector2f& docking_e
         return;
     }
 
-    auto request =
-        std::make_shared<vortex_msgs::srv::SendWaypoints::Request>();
-
+    auto request = std::make_shared<vortex_msgs::srv::SendWaypoints::Request>();
     vortex_msgs::msg::Waypoint wp;
 
     wp.pose.position.x = docking_estimate.x();
@@ -268,16 +266,13 @@ void PoolExplorationNode::send_docking_waypoint(const Eigen::Vector2f& docking_e
     wp.pose.orientation.w = 1.0f;
 
     request->waypoints.push_back(wp);
-
-    request->switching_threshold = 0.5;
-    request->overwrite_prior_waypoints = true;
-    request->take_priority = true;
+    request->switching_threshold = waypoint_switching_threshold_;
+    request->overwrite_prior_waypoints = waypoint_overwrite_prior_;
+    request->take_priority = waypoint_take_priority_;
 
     waypoint_client_->async_send_request(request);
-
     waypoint_sent_ = true;
-
-    spdlog::info("Docking waypoint sent to WaypointManager");
+    spdlog::info("Docking waypoint sent to WaypointManager: x={} y={}", docking_estimate.x(), docking_estimate.y());
 }
 
 void PoolExplorationNode::publish_docking_marker(const Eigen::Vector2f& docking) //til testing
