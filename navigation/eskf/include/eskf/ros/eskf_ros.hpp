@@ -24,11 +24,9 @@
 #include "eskf/lib/typedefs.hpp"
 #include "spdlog/spdlog.h"
 
-#ifdef HAVE_LANDMARK_EGOMOTION
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include "landmark_egomotion/lib/landmark_egomotion.hpp"
 #include "landmark_egomotion/lib/landmark_typedefs.hpp"
-#endif
 
 class ESKFNode : public rclcpp::Node {
    public:
@@ -60,7 +58,6 @@ class ESKFNode : public rclcpp::Node {
     // @brief broadcast the State as a TF
     void publish_tf(const StateQuat& nom_state);
 
-#ifdef HAVE_LANDMARK_EGOMOTION
     void setup_vo(const EskfParams& eskf_params);
 
     void landmark_callback(
@@ -76,7 +73,6 @@ class ESKFNode : public rclcpp::Node {
     bool have_last_marker_{false};
     uint16_t last_marker_id_{0};
     int vo_rejects_limit_{0};
-#endif
 
     // Subscribers and Publishers
 

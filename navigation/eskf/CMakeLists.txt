@@ -56,8 +56,15 @@ add_library(${PROJECT_NAME}::${CORE_LIB_NAME} ALIAS ${CORE_LIB_NAME})
 
 set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
 
+set(LANDMARK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../landmark_egomotion")
+
 add_library(${COMPONENT_LIB_NAME} SHARED
   src/ros/eskf_ros.cpp
+  ${LANDMARK_DIR}/src/lib/landmark_egomotion.cpp
+)
+
+target_include_directories(${COMPONENT_LIB_NAME} PRIVATE
+  ${LANDMARK_DIR}/include
 )
 
 ament_target_dependencies(${COMPONENT_LIB_NAME}
@@ -78,14 +85,6 @@ ament_target_dependencies(${COMPONENT_LIB_NAME}
 
 target_link_libraries(${COMPONENT_LIB_NAME} ${PROJECT_NAME})
 
-find_package(landmark_egomotion QUIET)
-if(landmark_egomotion_FOUND)
-  target_compile_definitions(${COMPONENT_LIB_NAME} PRIVATE HAVE_LANDMARK_EGOMOTION=1)
-  target_link_libraries(${COMPONENT_LIB_NAME} landmark_egomotion::landmark_egomotion_lib)
-else()
-  message(STATUS "landmark_egomotion not found — building eskf without landmark egomotion support")
-endif()
-
 rclcpp_components_register_node(
   ${COMPONENT_LIB_NAME}
   PLUGIN "ESKFNode"
@@ -103,6 +102,11 @@ install(TARGETS ${CORE_LIB_NAME} ${COMPONENT_LIB_NAME}
 
 install(
   DIRECTORY include/
+  DESTINATION include
+)
+
+install(
+  DIRECTORY ${LANDMARK_DIR}/include/
   DESTINATION include
 )
 

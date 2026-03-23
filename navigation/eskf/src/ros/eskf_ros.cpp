@@ -132,17 +132,13 @@ void ESKFNode::set_parameters() {
     EskfParams eskf_params{.Q = Q, .P = P};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
-    spdlog::info("Landmark egomotion enabled?");
-#ifdef HAVE_LANDMARK_EGOMOTION
-    spdlog::info("Landmark egomotion enabled");
+
     this->declare_parameter<bool>("use_landmark_egomotion");
     if (this->get_parameter("use_landmark_egomotion").as_bool()) {
         setup_vo(eskf_params);
     }
-#endif
 }
 
-#ifdef HAVE_LANDMARK_EGOMOTION
 void ESKFNode::setup_vo(const EskfParams& eskf_params) {
     auto landmark_eskf = std::make_unique<LandmarkESKF>(eskf_params);
     landmark_eskf_ = landmark_eskf.get();
@@ -289,7 +285,6 @@ void ESKFNode::landmark_callback(
         spdlog::warn("VO gating: {} consecutive reject(s)", rejects_after);
     }
 }
-#endif  // HAVE_LANDMARK_EGOMOTION
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
     rclcpp::Time current_time = msg->header.stamp;

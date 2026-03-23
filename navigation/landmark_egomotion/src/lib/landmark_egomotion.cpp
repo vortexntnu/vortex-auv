@@ -22,7 +22,7 @@ LandmarkESKF::LandmarkESKF(const EskfParams& params) : ESKF(params) {
 Eigen::Vector3d LandmarkESKF::compute_quaternion_error(
     const Eigen::Quaterniond& q_meas,
     const Eigen::Quaterniond& q_est) {
-    Eigen::Quaterniond q_err = (q_meas * q_est.inverse()).normalized();
+    Eigen::Quaterniond q_err = (q_est.inverse() * q_meas).normalized();
 
     if (q_err.w() < 0.0) {
         q_err.coeffs() = -q_err.coeffs();
@@ -202,10 +202,42 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
         return;
     }
 
-    // Transform VO measurement to navigation frame
+    // Transform raw VO measurement to navigation frame
     Eigen::Vector3d p_nav = p_nav_vo_ + q_nav_vo_ * landmark_meas.pos;
     Eigen::Quaterniond q_nav = (q_nav_vo_ * landmark_meas.quat).normalized();
 
+    // Measurement Jacobian
+    Eigen::Matrix<double, 6, 15> H = Eigen::Matrix<double, 6, 15>::Zero();
+    H.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
+    H.block<3, 3>(3, 6) = Eigen::Matrix3d::Identity();
+
+    // Measurement noise with floors applied
+    Eigen::Matrix<double, 6, 6> R = landmark_meas.R;
+    const double p_floor_sq = vo_cfg_.pos_floor * vo_cfg_.pos_floor;
+    const double a_floor_sq = vo_cfg_.att_floor * vo_cfg_.att_floor;
+    for (int i = 0; i < 3; ++i) {
+        R(i, i) = std::max(R(i, i), p_floor_sq);
+    }
+    for (int i = 3; i < 6; ++i) {
+        R(i, i) = std::max(R(i, i), a_floor_sq);
+    }
+
+    // Gate on raw measurement
+    const Eigen::Matrix15d P = current_error_state_.covariance;
+    const Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
+
+    Eigen::Matrix<double, 6, 1> y_raw;
+    y_raw.head<3>() = p_nav - current_nom_state_.pos;
+    y_raw.segment<3>(3) =
+        compute_quaternion_error(q_nav, current_nom_state_.quat);
+
+    const double gate = !gating_enabled_ ? 1e9 : vo_cfg_.nis_gate_pose;
+    if (compute_nis(y_raw, S) > gate) {
+        consecutive_rejects_++;
+        return;
+    }
+
+    // Measurement passed gating
     if (vo_cfg_.use_sw) {
         sw_add(landmark_meas.stamp, p_nav, q_nav);
         sw_prune(landmark_meas.stamp);
@@ -239,40 +271,8 @@ void LandmarkESKF::landmark_update(const LandmarkMeasurement& landmark_meas) {
     have_prev_ = true;
 
     Eigen::Matrix<double, 6, 1> y;
-
-    // Position innovation
     y.head<3>() = p_nav - current_nom_state_.pos;
     y.segment<3>(3) = compute_quaternion_error(q_nav, current_nom_state_.quat);
-
-    // Measurement Jacobian
-    Eigen::Matrix<double, 6, 15> H = Eigen::Matrix<double, 6, 15>::Zero();
-    H.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity();
-    H.block<3, 3>(3, 6) = Eigen::Matrix3d::Identity();
-
-    // Measurement noise floors
-    Eigen::Matrix<double, 6, 6> R = landmark_meas.R;
-
-    const double p_floor_sq = vo_cfg_.pos_floor * vo_cfg_.pos_floor;
-    const double a_floor_sq = vo_cfg_.att_floor * vo_cfg_.att_floor;
-
-    for (int i = 0; i < 3; ++i) {
-        R(i, i) = std::max(R(i, i), p_floor_sq);
-    }
-    for (int i = 3; i < 6; ++i) {
-        R(i, i) = std::max(R(i, i), a_floor_sq);
-    }
-
-    // Innovation covariance and NIS
-    const Eigen::Matrix15d P = current_error_state_.covariance;
-    const Eigen::Matrix<double, 6, 6> S = H * P * H.transpose() + R;
-    const double nis = compute_nis(y, S);
-
-    const double gate = !gating_enabled_ ? 1e9 : vo_cfg_.nis_gate_pose;
-
-    if (nis > gate) {
-        consecutive_rejects_++;
-        return;
-    }
 
     Eigen::Matrix<double, 15, 6> K = P * H.transpose() * S.inverse();
     current_error_state_.set_from_vector(K * y);
