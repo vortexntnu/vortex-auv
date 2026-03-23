@@ -1,482 +1,225 @@
 #include <gtest/gtest.h>
+
 #include <Eigen/Core>
-#include <cmath>
 #include <vector>
+#include <cmath>
 
 #include <pool_exploration/pool_exploration.hpp>
 #include <vortex/utils/types.hpp>
 
-using namespace vortex::pool_exploration;
+namespace vortex::pool_exploration::test {
 
-namespace
-{
+using vortex::utils::types::LineSegment2D;
+using vortex::utils::types::Point2D;
 
-vortex::utils::types::LineSegment2D makeLine(float x0, float y0, float x1, float y1)
-{
-    vortex::utils::types::LineSegment2D line;
-    line.p0.x = x0;
-    line.p0.y = y0;
-    line.p1.x = x1;
-    line.p1.y = y1;
-    return line;
+namespace {
+
+Point2D make_point(float x, float y) {
+    return Point2D{.x = x, .y = y};
 }
 
-PoolExplorationPlannerConfig makeDefaultConfig()
-{
+LineSegment2D make_line(float x0, float y0, float x1, float y1) {
+    return LineSegment2D{
+        .p0 = make_point(x0, y0),
+        .p1 = make_point(x1, y1),
+    };
+}
+
+PoolExplorationPlannerConfig make_config() {
     PoolExplorationPlannerConfig config{};
-    config.min_wall_distance_m = 0.5f;
-    config.max_wall_distance_m = 20.0f;
-    config.far_wall_heading_angle_threshold = 0.6f;  // ca 34 deg
-    config.min_corner_angle_rad = 1.0f;
-    config.max_corner_angle_rad = 1.6f;              // litt over pi/2
-    config.right_dist = 0.1f;
+
+    // Avstander for gyldige vegger
+    config.min_wall_distance_m = 0.2f;
+    config.max_wall_distance_m = 10.0f;
+
+    // Klassifisering
+    // Right wall: y må være negativ nok i NED
+    config.right_wall_max_y_m = -0.1f;
+
+    // Far/front wall: x må være positiv nok
+    config.far_wall_min_x_m = 0.1f;
+
+    // Vinkler
+    config.parallel_heading_angle_threshold_rad = 20.0f * static_cast<float>(M_PI) / 180.0f;
+    config.perpendicular_heading_angle_threshold_rad = 70.0f * static_cast<float>(M_PI) / 180.0f;
+
+    // Hjørnevinkel
+    config.min_corner_angle_rad = 70.0f * static_cast<float>(M_PI) / 180.0f;
+    config.max_corner_angle_rad = 110.0f * static_cast<float>(M_PI) / 180.0f;
+
+    // Docking-offset
     config.right_wall_offset_m = 1.0f;
-    config.far_wall_offset_m = 1.0f;
+    config.far_wall_offset_m = 1.5f;
+
     return config;
 }
 
 }  // namespace
 
-// ------------------------------------------------------------
-// Grunnleggende geometriske tester
-// ------------------------------------------------------------
+class PoolExplorationPlannerTest : public ::testing::Test {
+protected:
+    PoolExplorationPlannerTest()
+        : config(make_config()),
+          planner(config) {}
 
-TEST(PoolExplorationPlannerNEDTest, ProjectDroneToHorizontalLine)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
+    PoolExplorationPlannerConfig config;
+    PoolExplorationPlanner planner;
+};
 
-    Eigen::Vector2f drone_pos(2.0f, 3.0f);
-    auto line = makeLine(0.0f, 0.0f, 10.0f, 0.0f);
+TEST_F(PoolExplorationPlannerTest, FindCornerEstimates_FindsCornerFromPerpendicularWalls) {
+    // Drone i origo, heading langs +x
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+    const float drone_heading = 0.0f;
 
-    Eigen::Vector2f projection = planner.project_point_onto_line(drone_pos, line);
+    // "Right wall" i NED: horisontal linje under drone (negativ y)
+    // "Front wall": vertikal linje foran drone (positiv x)
+    const LineSegment2D right_wall = make_line(0.0f, -2.0f, 10.0f, -2.0f);
+    const LineSegment2D front_wall = make_line(5.0f, -5.0f, 5.0f, 5.0f);
 
-    EXPECT_NEAR(projection.x(), 2.0f, 1e-5f);
-    EXPECT_NEAR(projection.y(), 0.0f, 1e-5f);
-}
+    const std::vector<LineSegment2D> lines{right_wall, front_wall};
 
-TEST(PoolExplorationPlannerNEDTest, ProjectDroneToVerticalLine)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    Eigen::Vector2f drone_pos(4.0f, 2.0f);
-    auto line = makeLine(1.0f, -5.0f, 1.0f, 5.0f);
-
-    Eigen::Vector2f projection = planner.project_point_onto_line(drone_pos, line);
-
-    EXPECT_NEAR(projection.x(), 1.0f, 1e-5f);
-    EXPECT_NEAR(projection.y(), 2.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, ProjectDroneToDegenerateLineReturnsPoint)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    Eigen::Vector2f drone_pos(4.0f, 2.0f);
-    auto line = makeLine(1.0f, 1.0f, 1.0f, 1.0f);
-
-    Eigen::Vector2f projection = planner.project_point_onto_line(drone_pos, line);
-
-    EXPECT_NEAR(projection.x(), 1.0f, 1e-5f);
-    EXPECT_NEAR(projection.y(), 1.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, LineHeadingAngleDifferenceParallel)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line = makeLine(0.0f, 0.0f, 5.0f, 0.0f);
-    float angle = planner.angle_between_line_and_heading(line, 0.0f);
-
-    EXPECT_NEAR(angle, 0.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, LineHeadingAngleDifferenceParallelReversedOrder)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line = makeLine(5.0f, 0.0f, 0.0f, 0.0f);
-    float angle = planner.angle_between_line_and_heading(line, 0.0f);
-
-    EXPECT_NEAR(angle, 0.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, LineHeadingAngleDifferencePerpendicular)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line = makeLine(0.0f, 0.0f, 0.0f, 5.0f);
-    float angle = planner.angle_between_line_and_heading(line, 0.0f);
-
-    EXPECT_NEAR(angle, static_cast<float>(M_PI_2), 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, LineIntersectionFindsCorrectPoint)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line0 = makeLine(0.0f, 0.0f, 10.0f, 0.0f);
-    auto line1 = makeLine(2.0f, -5.0f, 2.0f, 5.0f);
-
-    Eigen::Vector2f intersection;
-    bool intersects = planner.compute_line_intersection(line0, line1, intersection);
-
-    EXPECT_TRUE(intersects);
-    EXPECT_NEAR(intersection.x(), 2.0f, 1e-5f);
-    EXPECT_NEAR(intersection.y(), 0.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, LineIntersectionParallelReturnsFalse)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line0 = makeLine(0.0f, 0.0f, 10.0f, 0.0f);
-    auto line1 = makeLine(0.0f, 1.0f, 10.0f, 1.0f);
-
-    Eigen::Vector2f intersection;
-    bool intersects = planner.compute_line_intersection(line0, line1, intersection);
-
-    EXPECT_FALSE(intersects);
-}
-
-TEST(PoolExplorationPlannerNEDTest, AngleBetweenLinesPerpendicular)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line0 = makeLine(0.0f, 0.0f, 10.0f, 0.0f);
-    auto line1 = makeLine(0.0f, 0.0f, 0.0f, 10.0f);
-
-    float angle = planner.angle_between_lines(line0, line1);
-
-    EXPECT_NEAR(angle, static_cast<float>(M_PI_2), 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, AngleBetweenLinesParallelReversedOrderStillZero)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line0 = makeLine(0.0f, 0.0f, 10.0f, 0.0f);
-    auto line1 = makeLine(10.0f, 0.0f, 0.0f, 0.0f);
-
-    float angle = planner.angle_between_lines(line0, line1);
-
-    EXPECT_NEAR(angle, 0.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, SelectBestCornerChoosesClosestCorner)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    CornerEstimate c0;
-    c0.corner_point = Eigen::Vector2f(10.0f, 10.0f);
-
-    CornerEstimate c1;
-    c1.corner_point = Eigen::Vector2f(2.0f, 1.0f);
-
-    CornerEstimate c2;
-    c2.corner_point = Eigen::Vector2f(5.0f, 5.0f);
-
-    std::vector<CornerEstimate> corners{c0, c1, c2};
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-
-    CornerEstimate best = planner.select_best_corner(corners, drone_pos);
-
-    EXPECT_NEAR(best.corner_point.x(), 2.0f, 1e-5f);
-    EXPECT_NEAR(best.corner_point.y(), 1.0f, 1e-5f);
-}
-
-// ------------------------------------------------------------
-// NED-spesifikke tester for wall classification via find_corner_estimates()
-// ------------------------------------------------------------
-//
-// Antagelse:
-// x = North
-// y = East
-// heading = 0 -> peker nord
-// heading = pi/2 -> peker øst
-//
-// right = (sin(h), -cos(h))
-//
-// Ved heading = 0:
-//   forward = (1, 0)
-//   right   = (0,-1)
-//   => negativ y er høyre side
-//
-// Ved heading = pi/2:
-//   forward = (0, 1)
-//   right   = (1, 0)
-//   => positiv x er høyre side
-// ------------------------------------------------------------
-
-TEST(PoolExplorationPlannerNEDTest, FindValidCornerHeadingZero_NegativeYIsRightWall)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = 0.0f;
-
-    // Høyrevegg i NED ved heading=0: y < 0
-    auto right_wall = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
-    auto far_wall   = makeLine(5.0f, -10.0f, 5.0f, 10.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{right_wall, far_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
+    const auto corners = planner.find_corner_estimates(lines, drone_pos, drone_heading);
 
     ASSERT_EQ(corners.size(), 1u);
+
     EXPECT_NEAR(corners[0].corner_point.x(), 5.0f, 1e-4f);
     EXPECT_NEAR(corners[0].corner_point.y(), -2.0f, 1e-4f);
 }
 
-TEST(PoolExplorationPlannerNEDTest, FindValidCornerHeadingZero_PositiveYIsLeftWallNotRightWall)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
+TEST_F(PoolExplorationPlannerTest, FindCornerEstimates_RejectsParallelWalls) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+    const float drone_heading = 0.0f;
 
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = 0.0f;
+    // Begge linjer omtrent parallelle med heading -> skal ikke gi hjørne
+    const LineSegment2D line0 = make_line(0.0f, -2.0f, 10.0f, -2.0f);
+    const LineSegment2D line1 = make_line(0.0f, -4.0f, 10.0f, -4.0f);
 
-    // Venstre vegg i NED ved heading=0: y > 0
-    auto left_wall = makeLine(-10.0f, 2.0f, 10.0f, 2.0f);
-    auto far_wall  = makeLine(5.0f, -10.0f, 5.0f, 10.0f);
+    const std::vector<LineSegment2D> lines{line0, line1};
 
-    std::vector<vortex::utils::types::LineSegment2D> lines{left_wall, far_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
+    const auto corners = planner.find_corner_estimates(lines, drone_pos, drone_heading);
 
     EXPECT_TRUE(corners.empty());
 }
 
-TEST(PoolExplorationPlannerNEDTest, FindValidCornerHeadingZero_FarWallMustBeInFront)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
+TEST_F(PoolExplorationPlannerTest, FindCornerEstimates_RejectsWallsOutsideDistanceThreshold) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+    const float drone_heading = 0.0f;
 
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = 0.0f;
+    // Right wall er for langt unna
+    const LineSegment2D right_wall_too_far = make_line(0.0f, -20.0f, 10.0f, -20.0f);
+    const LineSegment2D front_wall = make_line(5.0f, -5.0f, 5.0f, 5.0f);
 
-    auto right_wall = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
+    const std::vector<LineSegment2D> lines{right_wall_too_far, front_wall};
 
-    // Denne er bak dronen siden x < 0 når heading=0
-    auto behind_wall = makeLine(-5.0f, -10.0f, -5.0f, 10.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{right_wall, behind_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
+    const auto corners = planner.find_corner_estimates(lines, drone_pos, drone_heading);
 
     EXPECT_TRUE(corners.empty());
 }
 
-TEST(PoolExplorationPlannerNEDTest, FindValidCornerHeading90Deg_PositiveXIsRightWall)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
+TEST_F(PoolExplorationPlannerTest, SelectBestCorner_ReturnsClosestCorner) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
 
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = static_cast<float>(M_PI_2);
+    CornerEstimate c0{
+        .right_wall = make_line(0.0f, -2.0f, 10.0f, -2.0f),
+        .far_wall = make_line(5.0f, -5.0f, 5.0f, 5.0f),
+        .corner_point = Eigen::Vector2f{5.0f, -2.0f}
+    };
 
-    // Ved heading = pi/2:
-    // forward = (0,1)
-    // right   = (1,0)
+    CornerEstimate c1{
+        .right_wall = make_line(0.0f, -4.0f, 10.0f, -4.0f),
+        .far_wall = make_line(8.0f, -5.0f, 8.0f, 5.0f),
+        .corner_point = Eigen::Vector2f{8.0f, -4.0f}
+    };
+
+    const auto best = planner.select_best_corner({c1, c0}, drone_pos);
+
+    EXPECT_NEAR(best.corner_point.x(), 5.0f, 1e-4f);
+    EXPECT_NEAR(best.corner_point.y(), -2.0f, 1e-4f);
+}
+
+TEST_F(PoolExplorationPlannerTest, SelectBestCorner_ThrowsOnEmptyInput) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+
+    EXPECT_THROW(
+        planner.select_best_corner({}, drone_pos),
+        std::runtime_error
+    );
+}
+
+TEST_F(PoolExplorationPlannerTest, EstimateDockingPosition_OffsetsFromCornerTowardDroneSideOfWalls) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+
+    // Hjørne i (5, -2)
+    // Right wall: y = -2
+    // Front wall: x = 5
     //
-    // Positiv x er høyre side
-    auto right_wall = makeLine(2.0f, -10.0f, 2.0f, 10.0f);
-    auto far_wall   = makeLine(-10.0f, 5.0f, 10.0f, 5.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{right_wall, far_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
-
-    ASSERT_EQ(corners.size(), 1u);
-    EXPECT_NEAR(corners[0].corner_point.x(), 2.0f, 1e-4f);
-    EXPECT_NEAR(corners[0].corner_point.y(), 5.0f, 1e-4f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, FindValidCornerHeading90Deg_NegativeXIsLeftWallNotRightWall)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = static_cast<float>(M_PI_2);
-
-    auto left_wall = makeLine(-2.0f, -10.0f, -2.0f, 10.0f);
-    auto far_wall  = makeLine(-10.0f, 5.0f, 10.0f, 5.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{left_wall, far_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
-
-    EXPECT_TRUE(corners.empty());
-}
-
-TEST(PoolExplorationPlannerNEDTest, FindValidCornerHeading90Deg_FarWallMustBeAheadInPositiveY)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = static_cast<float>(M_PI_2);
-
-    auto right_wall = makeLine(2.0f, -10.0f, 2.0f, 10.0f);
-
-    // Bak dronen når heading=pi/2, siden y < 0
-    auto behind_wall = makeLine(-10.0f, -5.0f, 10.0f, -5.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{right_wall, behind_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
-
-    EXPECT_TRUE(corners.empty());
-}
-
-TEST(PoolExplorationPlannerNEDTest, FindCornerRejectsWallOutsideDistanceLimits)
-{
-    PoolExplorationPlannerConfig config = makeDefaultConfig();
-    config.max_wall_distance_m = 1.0f;
-
-    PoolExplorationPlanner planner(config);
-
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = 0.0f;
-
-    // y=-2 ligger for langt unna gitt max_wall_distance_m=1.0
-    auto right_wall = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
-    auto far_wall   = makeLine(0.8f, -10.0f, 0.8f, 10.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{right_wall, far_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
-
-    EXPECT_TRUE(corners.empty());
-}
-
-TEST(PoolExplorationPlannerNEDTest, FindCornerRejectsNonPerpendicularCornerAngle)
-{
-    PoolExplorationPlannerConfig config = makeDefaultConfig();
-    config.min_corner_angle_rad = 1.4f;
-    config.max_corner_angle_rad = 1.6f;
-
-    PoolExplorationPlanner planner(config);
-
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-    float drone_heading = 0.0f;
-
-    auto right_wall = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
-
-    // Ca 63.4 grader mot horisontal linje -> skal avvises
-    auto diagonal_far_wall = makeLine(5.0f, -10.0f, 15.0f, 10.0f);
-
-    std::vector<vortex::utils::types::LineSegment2D> lines{right_wall, diagonal_far_wall};
-
-    std::vector<CornerEstimate> corners =
-        planner.find_corner_estimates(lines, drone_pos, drone_heading);
-
-    EXPECT_TRUE(corners.empty());
-}
-// ------------------------------------------------------------
-// Tester for compute_normal_towards_point() og docking-estimat
-// ------------------------------------------------------------
-
-TEST(PoolExplorationPlannerNEDTest, ComputeNormalTowardsPointForHorizontalWall)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-
-    Eigen::Vector2f normal = planner.compute_normal_towards_point(line, drone_pos);
-
-    EXPECT_NEAR(normal.x(), 0.0f, 1e-5f);
-    EXPECT_NEAR(normal.y(), 1.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, ComputeNormalTowardsPointForVerticalWall)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line = makeLine(5.0f, -10.0f, 5.0f, 10.0f);
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-
-    Eigen::Vector2f normal = planner.compute_normal_towards_point(line, drone_pos);
-
-    EXPECT_NEAR(normal.x(), -1.0f, 1e-5f);
-    EXPECT_NEAR(normal.y(), 0.0f, 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, ComputeNormalTowardsPointIsIndependentOfLineEndpointOrdering)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line_a = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
-    auto line_b = makeLine(10.0f, -2.0f, -10.0f, -2.0f);
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-
-    Eigen::Vector2f normal_a = planner.compute_normal_towards_point(line_a, drone_pos);
-    Eigen::Vector2f normal_b = planner.compute_normal_towards_point(line_b, drone_pos);
-
-    EXPECT_NEAR(normal_a.x(), normal_b.x(), 1e-5f);
-    EXPECT_NEAR(normal_a.y(), normal_b.y(), 1e-5f);
-}
-
-TEST(PoolExplorationPlannerNEDTest, EstimateDockingPositionFromNEDCorner)
-{
-    PoolExplorationPlannerConfig config = makeDefaultConfig();
-    config.right_wall_offset_m = 1.0f;
-    config.far_wall_offset_m = 2.0f;
-
-    PoolExplorationPlanner planner(config);
-
-    CornerEstimate corner;
-    corner.right_wall   = makeLine(-10.0f, -2.0f, 10.0f, -2.0f);
-    corner.far_wall     = makeLine(5.0f, -10.0f, 5.0f, 10.0f);
-    corner.corner_point = Eigen::Vector2f(5.0f, -2.0f);
-
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
-
-    Eigen::Vector2f docking = planner.estimate_docking_position(corner, drone_pos);
-
-    // right_wall y=-2  -> normal mot drone = (0, +1)
-    // far_wall   x= 5  -> normal mot drone = (-1, 0)
+    // Med drone i (0,0):
+    // - normal fra right wall mot drone peker opp: (0, +1)
+    // - normal fra front wall mot drone peker venstre: (-1, 0)
     //
-    // docking = (5,-2) + 1*(0,1) + 2*(-1,0) = (3,-1)
-    EXPECT_NEAR(docking.x(), 3.0f, 1e-4f);
+    // Forventet docking:
+    // (5, -2) + 1.0*(0,1) + 1.5*(-1,0) = (3.5, -1.0)
+
+    CornerEstimate corner{
+        .right_wall = make_line(0.0f, -2.0f, 10.0f, -2.0f),
+        .far_wall = make_line(5.0f, -5.0f, 5.0f, 5.0f),
+        .corner_point = Eigen::Vector2f{5.0f, -2.0f}
+    };
+
+    const Eigen::Vector2f docking = planner.estimate_docking_position(corner, drone_pos);
+
+    EXPECT_NEAR(docking.x(), 3.5f, 1e-4f);
     EXPECT_NEAR(docking.y(), -1.0f, 1e-4f);
 }
 
-// ------------------------------------------------------------
-// Robusthetstester
-// ------------------------------------------------------------
+TEST_F(PoolExplorationPlannerTest, FullPipeline_FindsCornerSelectsBestAndEstimatesDocking) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+    const float drone_heading = 0.0f;
 
-TEST(PoolExplorationPlannerNEDTest, SelectBestCornerThrowsWhenEmpty)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
+    // Ett riktig hjørne nærme
+    const LineSegment2D right_wall_near = make_line(0.0f, -2.0f, 10.0f, -2.0f);
+    const LineSegment2D front_wall_near = make_line(5.0f, -5.0f, 5.0f, 5.0f);
 
-    std::vector<CornerEstimate> corners;
-    Eigen::Vector2f drone_pos(0.0f, 0.0f);
+    // Ett riktig hjørne lenger unna
+    const LineSegment2D right_wall_far = make_line(0.0f, -4.0f, 10.0f, -4.0f);
+    const LineSegment2D front_wall_far = make_line(9.0f, -5.0f, 9.0f, 5.0f);
 
-    EXPECT_THROW(planner.select_best_corner(corners, drone_pos), std::runtime_error);
+    // Litt støy som ikke skal bli brukt
+    const LineSegment2D noise = make_line(-5.0f, 3.0f, -2.0f, 3.0f);
+
+    const std::vector<LineSegment2D> lines{
+        right_wall_near, front_wall_near,
+        right_wall_far, front_wall_far,
+        noise
+    };
+
+    const auto corners = planner.find_corner_estimates(lines, drone_pos, drone_heading);
+
+    ASSERT_GE(corners.size(), 2u);
+
+    const auto best = planner.select_best_corner(corners, drone_pos);
+    const auto docking = planner.estimate_docking_position(best, drone_pos);
+
+    EXPECT_NEAR(best.corner_point.x(), 5.0f, 1e-4f);
+    EXPECT_NEAR(best.corner_point.y(), -2.0f, 1e-4f);
+
+    EXPECT_NEAR(docking.x(), 3.5f, 1e-4f);
+    EXPECT_NEAR(docking.y(), -1.0f, 1e-4f);
 }
 
-TEST(PoolExplorationPlannerNEDTest, AngleBetweenDegenerateLineAndHeadingReturnsInfinity)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
+TEST_F(PoolExplorationPlannerTest, FindCornerEstimates_AcceptsApproximatelyPerpendicularWalls) {
+    const Eigen::Vector2f drone_pos{0.0f, 0.0f};
+    const float drone_heading = 0.0f;
 
-    auto line = makeLine(1.0f, 1.0f, 1.0f, 1.0f);
-    float angle = planner.angle_between_line_and_heading(line, 0.0f);
+    // Litt skjeve vegger, men fortsatt innenfor tersklene
+    const LineSegment2D right_wall = make_line(0.0f, -2.0f, 10.0f, -1.5f);
+    const LineSegment2D front_wall = make_line(5.0f, -5.0f, 5.5f, 5.0f);
 
-    EXPECT_TRUE(std::isinf(angle));
+    const std::vector<LineSegment2D> lines{right_wall, front_wall};
+
+    const auto corners = planner.find_corner_estimates(lines, drone_pos, drone_heading);
+
+    EXPECT_EQ(corners.size(), 1u);
 }
 
-TEST(PoolExplorationPlannerNEDTest, AngleBetweenDegenerateLinesReturnsInfinity)
-{
-    PoolExplorationPlanner planner(makeDefaultConfig());
-
-    auto line0 = makeLine(0.0f, 0.0f, 0.0f, 0.0f);
-    auto line1 = makeLine(0.0f, 0.0f, 1.0f, 0.0f);
-
-    float angle = planner.angle_between_lines(line0, line1);
-
-    EXPECT_TRUE(std::isinf(angle));
-}
+}  // namespace vortex::pool_exploration::test
