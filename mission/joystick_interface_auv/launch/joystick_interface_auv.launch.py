@@ -35,7 +35,7 @@ def launch_setup(context, *args, **kwargs):
             name="joystick_interface_auv",
             namespace=namespace,
             output="screen",
-            parameters=[joystick_params, drone_params],
+            parameters=[joystick_params, drone_params, {"drone": drone}],
         )
     ]
 
