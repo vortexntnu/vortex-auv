@@ -21,7 +21,7 @@
 
 
 //Konstruktør
-Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), PID_surge(300,10,5), PID_yaw(60,8,12), PID_pitch(10,1,5), lqr_controller()
+Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), lqr_controller()
 {
   RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
   get_new_parameters();
@@ -43,6 +43,10 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
   PID_surge.set_output_limits(-max_force, max_force);
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
+  PID_surge.set_parameters(300,10,5,publish_rate/1000.0);
+  PID_surge.set_parameters(60,8,12,publish_rate/1000.0);
+  PID_surge.set_parameters(10,1,5,publish_rate/1000.0);
+
   if(!lqr_controller.set_matrices(Q,R,inertia_matrix,max_force,dampening_matrix_low,dampening_matrix_high)||!lqr_controller.set_interval(static_cast<double>(publish_rate)/1000)){
     controller_type=1;
     RCLCPP_INFO(this->get_logger(),"Switching to PID");
@@ -56,7 +60,6 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
 
 
 
-//** må forbedre integrasjon og derivasjons beregningene
 void Velocity_node::calc_thrust()
 {
   //RCLCPP_INFO(get_logger(),"Calculating thrust");
@@ -75,9 +78,9 @@ void Velocity_node::calc_thrust()
   {
   case 1:{
     
-    PID_surge.calculate_thrust(mod_g_values.surge-current_state.surge,publish_rate/1000.0);
-    PID_pitch.calculate_thrust(error.thetat,publish_rate/1000.0);
-    PID_yaw.calculate_thrust(error.psit,publish_rate/1000.0);
+    PID_surge.calculate_thrust(mod_g_values.surge-current_state.surge);
+    PID_pitch.calculate_thrust(error.thetat);
+    PID_yaw.calculate_thrust(error.psit);
     thrust_out.wrench.force.x = PID_surge.get_output();
     thrust_out.wrench.torque.y = PID_pitch.get_output();
     thrust_out.wrench.torque.z = PID_yaw.get_output();

@@ -1,17 +1,16 @@
 #include "velocity_controller/PID_setup.hpp"
-#include "velocity_controller/LQR_setup.hpp"
-#include "velocity_controller/utilities.hpp"
 
-PID_controller::PID_controller( double k_p, double k_i, double k_d, double max_output, double min_output):k_p(k_p), k_i(k_i), k_d(k_d), max_output_(max_output), min_output_(min_output) {
+/*
+PID_controller::PID_controller( double Kp, double Ki, double Kd, double max_output, double min_output, double dt):Kp_(Kp), Ki_(Ki), Kd_(Kd), max_output_(max_output), min_output_(min_output), dt_(dt) {
     integral = 0.0;
     previous_error = 0.0;
-};
-double PID_controller::calculate_thrust(double error, double dt){
-    if (dt<=0){
-        return 0;
-    }
+};*/
+//TODO: kanskje forbedre integrasjon og derivasjons beregningene
+//TODO: check for more errors, f.example Nan or very high intergral
+bool PID_controller::calculate_thrust(double error){
+    if(!init)return false;
     //P + I + D
-    output=k_p*error+k_i*integral + k_d * (error - previous_error) / dt;
+    output=Kp_*error+Ki_*integral + Kd_ * (error - previous_error) / dt_;
 
     //Saturation
     if (output>max_output_){
@@ -21,11 +20,11 @@ double PID_controller::calculate_thrust(double error, double dt){
         output = min_output_;
     }
     else{
-        integral+=error*dt; //anti-wind up
+        integral+=error*dt_; //anti-wind up
     }
     previous_error = error; 
 
-    return output;
+    return true;
 }; 
 void PID_controller::reset_controller(){
     integral = 0.0;
@@ -45,8 +44,21 @@ bool PID_controller::set_output_limits(double min_output, double max_output){
     max_output_ = max_output;
     return true;
 };
-void PID_controller::set_parameters(double k_p,double k_i, double k_d){
-    this->k_p=k_p;
-    this->k_i=k_i;
-    this->k_d=k_d;
+bool PID_controller::set_parameters(double Kp,double Ki, double Kd, double dt){
+    Kp_=Kp; 
+    Ki_=Ki;
+    Kd_=Kd;
+    if(set_dt(dt)){
+        init=true;
+        return true;
+    };
+    return false;
+};
+
+bool PID_controller::set_dt(double dt){
+    if (dt<=0){
+        return false;
+    }
+    dt_=dt;
+    return true;
 }

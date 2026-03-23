@@ -26,6 +26,7 @@ def generate_launch_description():
         Node(package='velocity_controller',
              executable='velocity_controller_node',
              name=velocity_controller_name,
+             namespace='orca',
              output='screen',
              parameters=[config_path_local,config_path_global])
     ])

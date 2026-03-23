@@ -22,7 +22,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
         ),
-        launch_arguments={'rendering_quality': 'low','rendering':'false'}.items(),
+        launch_arguments={'rendering_quality': 'low','rendering':'true'}.items(),
     )
     orca_sim = TimerAction(
         period=12.0,
@@ -59,6 +59,7 @@ def generate_launch_description():
         Node(package='velocity_controller',
              executable='test_VC_node',
              name=test_VC_name,
+             namespace='orca',
              output='screen',
              parameters=[config_path_global])         
     ])
