@@ -5,3 +5,4 @@ colcon build --packages-up-to pool_exploration --symlink-install --cmake-args -D
 
 Legge til const på funksjonene
 
+Filtrere ut doble linjer tidligere
