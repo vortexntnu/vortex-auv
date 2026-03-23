@@ -104,9 +104,14 @@ void PoolExplorationNode::setup_planner() { //change name?
     config.min_wall_distance_m = this->declare_parameter<double>("min_wall_distance_m");
     config.max_wall_distance_m = this->declare_parameter<double>("max_wall_distance_m");
     config.far_wall_heading_angle_threshold = this->declare_parameter<double>("far_wall_heading_angle_threshold");
+    config.parallel_heading_angle_threshold_rad = this->declare_parameter<double>("parallel_heading_angle_threshold_rad");
+    config.perpendicular_heading_angle_threshold_rad = this->declare_parameter<double>("perpendicular_heading_angle_threshold_rad");
+
     config.min_corner_angle_rad = this->declare_parameter<double>("min_corner_angle_rad");
     config.max_corner_angle_rad = this->declare_parameter<double>("max_corner_angle_rad");
     config.right_dist = this->declare_parameter<double>("right_dist");
+    config.far_wall_min_x_m = this->declare_parameter<double>("far_wall_min_x_m");
+    config.right_wall_max_y_m = this->declare_parameter<double>("right_wall_max_y_m");
     config.choose_right_corner = this->declare_parameter<int>("choose_right_corner");
     //config.left_dist = this->declare_parameter<double>("left_dist");
     config.right_wall_offset_m = this->declare_parameter<double>("right_wall_offset_m");

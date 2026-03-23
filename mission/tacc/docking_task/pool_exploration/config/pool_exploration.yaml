@@ -19,11 +19,17 @@
     min_wall_distance_m: 0.0
     max_wall_distance_m: 100.0
 
-    far_wall_heading_angle_threshold: 1.6
+    far_wall_heading_angle_threshold: 1.6 # gammel?
+    parallel_heading_angle_threshold_rad: 0.35
+    perpendicular_heading_angle_threshold_rad: 1.2
+
     min_corner_angle_rad: 1.45
     max_corner_angle_rad: 1.75
     right_wall_offset_m: 4.3
     far_wall_offset_m: 3.0
+
+    right_wall_max_y_m: 0.0
+    far_wall_min_x_m: 0.0
 
     right_dist: -0.1 # ENDRE NAVN ?
     choose_right_corner: 1
