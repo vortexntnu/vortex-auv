@@ -75,7 +75,8 @@ class LosGuidanceNode : public rclcpp::Node {
     void publish_state_debug(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
             current_pose);
-    vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output);
+    vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output,
+                                                     types::Inputs inputs);
 
     // State Flags
     bool has_active_segment_{false};
@@ -111,6 +112,7 @@ class LosGuidanceNode : public rclcpp::Node {
     double u_desired_{};
     double goal_reached_tol_{};
     double max_pitch_angle_{};
+    double slow_down_distance_{};
     types::ActiveLosMethod method_{};
 
     // Guidance Modules

@@ -106,7 +106,7 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
-    test_scenarios = TimerAction(
+    run_test_scenario = TimerAction(
         period=20.0,
         actions=[
             ExecuteProcess(
@@ -114,7 +114,7 @@ def launch_setup(context, *args, **kwargs):
                     "bash",
                     "-lc",
                     (
-                        f"python3 {os.path.join(los_guidance_dir, 'scripts', 'test_scenario.py')} "
+                        f"python3 {os.path.join(los_guidance_dir, 'scripts', 'test_scenarios.py')} "
                         f"--ros-args -p drone:={drone} -p test_scenario:={test_scenario}"
                     ),
                 ],
@@ -130,7 +130,7 @@ def launch_setup(context, *args, **kwargs):
         los_guidance_launch,
         orca_sim,
         set_autonomy,
-        test_scenarios,
+        run_test_scenario,
     ]
 
 

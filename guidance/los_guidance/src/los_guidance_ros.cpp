@@ -250,13 +250,17 @@ void LosGuidanceNode::set_los_mode(
 
 // Message Helpers
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
-    types::Outputs outputs) {
+    types::Outputs outputs,
+    types::Inputs inputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
     const double clamped_pitch =
         std::clamp(outputs.theta_d, -max_pitch_angle_, max_pitch_angle_);
     reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
-    reference_msg.surge = u_desired_;
+    if ((inputs.current_position - inputs.next_point).as_vector().norm() <=
+        slow_down_distance_) {
+        reference_msg.surge = (u_desired_ / 2.0);
+    }
 
     return reference_msg;
 }
@@ -271,6 +275,7 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     u_desired_ = common_config["u_desired"].as<double>();
     max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
     goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
+    slow_down_distance_ = common_config["slow_down_distance"].as<double>();
     method_ = static_cast<types::ActiveLosMethod>(
         common_config["active_los_method"].as<int>());
 }
@@ -353,7 +358,7 @@ void LosGuidanceNode::execute(
         }
 
         vortex_msgs::msg::LOSGuidance reference_msg =
-            fill_los_reference(outputs);
+            fill_los_reference(outputs, inputs_copy);
         feedback->feedback = reference_msg;
 
         los_debug_pub_->publish(reference_msg);

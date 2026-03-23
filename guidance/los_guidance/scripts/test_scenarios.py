@@ -69,9 +69,9 @@ class WaypointTest(Node):
             # 3 = seabed/ground, do not touch
             # Keep all depths safely between these
             return [
-                (3.0, 0.0, 1.0),   # slight up
-                (6.0, 0.0, 2.0),   # slight down
-                (9.0, 0.0, 1.0),   # up again
+                (3.0, 0.0, 1.0),  # slight up
+                (6.0, 0.0, 2.0),  # slight down
+                (9.0, 0.0, 1.0),  # up again
                 (12.0, 0.0, 2.0),  # down again
             ]
 
