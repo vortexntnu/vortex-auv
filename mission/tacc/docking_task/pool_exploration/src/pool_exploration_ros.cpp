@@ -1,15 +1,20 @@
 #include <memory>
+
 #include <pool_exploration/pool_exploration_ros.hpp>
 
 #include <spdlog/spdlog.h>
 #include <rclcpp/node_options.hpp>
 #include <tf2/exceptions.hpp>
 #include <tf2/time.h>
+#include <tf2_eigen/tf2_eigen.hpp>
+#include <tf2_ros/create_timer_ros.h>
+
 
 #include <rclcpp_components/register_node_macro.hpp>
 // #include <vortex/utils/ros/qos_profiles.hpp>
-#include <rclcpp/qos.hpp> //bytte med ovenfor?
+#include <rclcpp/qos.hpp> //ERSTATTE MED VORTEX? ^^^
 #include <vortex/utils/types.hpp>
+#include <vortex_msgs/msg/waypoint.hpp>
 #include "pool_exploration/pool_exploration.hpp"
 
 namespace vortex::pool_exploration{
@@ -41,30 +46,6 @@ void PoolExplorationNode::setup_parameters()
 }
 
 void PoolExplorationNode::setup_publishers_and_subscribers() {
-    //map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
-    //pub_dt_ = std::chrono::milliseconds(
-    //    this->declare_parameter<int>("publish_rate_ms"));
-
-    //this->declare_parameter<bool>("enu_to_ned", false);
-
-    //const std::string map_pub_topic =
-    //    this->declare_parameter<std::string>("map_pub_topic", "/map");
-
-    //tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
-    //const auto map_to_odom_tf = compute_map_odom_transform(); //const?
-    //tf_broadcaster_->sendTransform(map_to_odom_tf);
-
-    //const auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)) //bare siste kart
-    //    .reliable() //meldinger må leveres
-    //    .transient_local(); //subscribers fra siste melding
-
-    //map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
-    //    map_pub_topic, 
-    //    map_qos);
-    //timer_ = this->create_wall_timer(pub_dt_, [this]() { this->timer_callback(); });
-
-
-
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
         this->get_node_base_interface(), this->get_node_timers_interface());
@@ -101,7 +82,7 @@ void PoolExplorationNode::setup_publishers_and_subscribers() {
     docking_marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>(debug_topic_, 10); //til testing
 }
 
-void PoolExplorationNode::setup_planner() { //change name?
+void PoolExplorationNode::setup_planner() { 
     PoolExplorationPlannerConfig config{};
 
     config.min_wall_distance_m = this->declare_parameter<double>("min_wall_distance_m");
@@ -146,7 +127,6 @@ void PoolExplorationNode::line_callback(
     //drawSegmentsInMapFrame(*msg);
 }
 
-// GJØRE I base_frame ELLER odom??
 void PoolExplorationNode::estimate_and_send_docking_waypoint(
     const vortex_msgs::msg::LineSegment2DArray& msg) {
     geometry_msgs::msg::TransformStamped tf_stamped;
@@ -154,11 +134,9 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
     try {
         tf_stamped = tf_buffer_->lookupTransform(
             odom_frame_, msg.header.frame_id, msg.header.stamp);
-    //        base_frame_, msg.header.frame_id, msg.header.stamp);
     } catch (const tf2::TransformException& ex) {
         spdlog::warn("[PoolExploration] TF failed {} -> {}: {}",
                      msg.header.frame_id, odom_frame_, ex.what());
-    //                 msg.header.frame_id, base_frame_,ex.what());
         return;
     }
 
@@ -167,7 +145,7 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
 
     auto segs = transform_segments_2d(msg, T_odom_src); //NB ENDRE NAVN <3
 
-    Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y};     // Teste om fungerer?
+    Eigen::Vector2f drone_pos = {drone_state_.x,drone_state_.y}; 
     float drone_heading = drone_state_.yaw;
 
     auto corners = planner_->find_corner_estimates(
@@ -192,9 +170,9 @@ void PoolExplorationNode::estimate_and_send_docking_waypoint(
                  docking.x(), docking.y());
 }
 
-std::vector<vortex::utils::types::LineSegment2D> PoolExplorationNode::transform_segments_2d( //FUNSKJON SOM TRANSFORMERER msg TIL LineSegmentene (Må dobbeltsjekke) 
+std::vector<vortex::utils::types::LineSegment2D> PoolExplorationNode::transform_segments_2d( 
     const vortex_msgs::msg::LineSegment2DArray& msg,
-    const Eigen::Matrix4f& T_target_src) //target er map/odom osv
+    const Eigen::Matrix4f& T_target_src) 
 {
     std::vector<vortex::utils::types::LineSegment2D> segments;
     segments.reserve(msg.lines.size());
@@ -258,9 +236,9 @@ void PoolExplorationNode::send_docking_waypoint(const Eigen::Vector2f& docking_e
 
     wp.pose.position.x = docking_estimate.x();
     wp.pose.position.y = docking_estimate.y();
-    wp.pose.position.z = 0.0f; //Hva skal denne være
+    wp.pose.position.z = 0.0f; //skal være 0?
     
-    wp.pose.orientation.x = 0.0f;     // hva skal orientation være??
+    wp.pose.orientation.x = 0.0f;     // Riktig orientation?
     wp.pose.orientation.y = 0.0f;
     wp.pose.orientation.z = 0.0f;
     wp.pose.orientation.w = 1.0f;
@@ -307,6 +285,32 @@ void PoolExplorationNode::publish_docking_marker(const Eigen::Vector2f& docking)
 
 // Grid logikk
 # if 0
+
+//INKLUDER DISSE NÅR SLÅES SAMMEN IGJEN
+void PoolExplorationNode::setup_publishers_and_subscribers() {
+    //map_frame_ = this->declare_parameter<std::string>("map_frame", "map"); //allerede definert
+    //pub_dt_ = std::chrono::milliseconds(
+    //    this->declare_parameter<int>("publish_rate_ms"));
+
+    //this->declare_parameter<bool>("enu_to_ned", false);
+
+    //const std::string map_pub_topic =
+    //    this->declare_parameter<std::string>("map_pub_topic", "/map");
+
+    //tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+    //const auto map_to_odom_tf = compute_map_odom_transform(); //const?
+    //tf_broadcaster_->sendTransform(map_to_odom_tf);
+
+    //const auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)) //bare siste kart
+    //    .reliable() //meldinger må leveres
+    //    .transient_local(); //subscribers fra siste melding
+
+    //map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>(
+    //    map_pub_topic, 
+    //    map_qos);
+    //timer_ = this->create_wall_timer(pub_dt_, [this]() { this->timer_callback(); });
+}
+
 //Konstruktøren
 PoolExplorationNode::PoolExplorationNode(const rclcpp::NodeOptions& options)
     : rclcpp::Node("pool_exploration_node", options),
