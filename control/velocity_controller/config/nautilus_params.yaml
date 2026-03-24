@@ -1,14 +1,6 @@
 /**:
   ros__parameters:
 
-    #topics:
-    #  odom_topic: /orca/odom #Odometry
-    #  twist_topic: /dvl/twist #Twistconfig/parameters.yaml
-    #  pose_topic: /dvl/pose #Pose
-    #  guidance_topic: /orca/guidance/los #Guidance
-    #  thrust_topic: /orca/wrench_input #Thrust
-    #  softwareoperation_topic: /softwareOperationMode #Software Operation
-    #  killswitch_topic: /softwareKillSwitch #Kill Switch
     PID_params:
       surge: [300.0,10.0,5.0]
       pitch: [60.0,8.0,12.0]
@@ -29,10 +21,9 @@
     dampening_matrix_low:  [23.0,0.0,0.0,0.0,0.0,0.0, 0.0,46.0,0.0,0.0,0.0,0.0,  0.0,0.0,46.0,0.0,0.0,0.0,  0.0,0.0,0.0,46.0,0.0,0.0,  0.0,0.0,0.0,0.0,46.0,0.0, 0.0,0.0,0.0,0.0,0.0,46.0]
     dampening_matrix_high: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
 
-    #calculation_rate: 200 #ms integer
     publish_rate: 100 #ms
     #Clamp parameter
-    max_force: 99.5 #should maybe be 99.5
+    max_force: 99.5 
     controller_type: 1 #1 PID 2 LQR 3 NMPC 4NMPC fast
     
     #Q: [300.0,0.01,0.01,0.01,32.84,32.84,32.84,32.84,32.84] # u,v,w,p,q,r,phi,theta,psi

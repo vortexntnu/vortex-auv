@@ -102,7 +102,7 @@ bool NMPC_controller::initialize_MPC(){
     }
     //D=mtimes(M_i,D);
     //Creating Coriolis matrix
-    SYM Cor=SYM::zeros(6,6); //TODO maybe make a general crossproduct matric generator
+    SYM Cor=SYM::zeros(6,6); 
     Cor(0,1)=-mass*X(5); Cor(0,2)=mass*X(4);
     Cor(1,0)=mass*X(5); Cor(1,2)=-mass*X(3);
     Cor(2,0)=-mass*X(4); Cor(2,1)=mass*X(3);

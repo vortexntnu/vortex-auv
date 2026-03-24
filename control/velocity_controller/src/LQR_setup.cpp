@@ -149,7 +149,6 @@ Eigen::Matrix<double,8,8> LQRController::linearize(State s){
     Eigen::Matrix<double,8,8> ret;
     ret.setZero();
     ret.block<5,5>(0,0)=A.block<5,5>(0,0);
-    //legge inn integral state #TODO
     ret.block<3,3>(5,0)=Eigen::Matrix3d::Identity();
     
     return ret;

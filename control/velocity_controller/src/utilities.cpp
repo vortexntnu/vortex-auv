@@ -24,7 +24,7 @@ angle quaternion_to_euler_angle(double w, double x, double y, double z){
     return {phi, theta, psi};
 };
 angle NED_to_BODY(const angle &a,const State &s){
-    //TODO tests for illegal angles
+    //TODO tests for illegal angles maybe
     Eigen::Vector3d q;
     q<<a.phit,a.thetat,a.psit;
     q=NED_to_BODY(q,s);

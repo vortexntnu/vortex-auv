@@ -28,7 +28,7 @@ class State{
     State operator=(int n){if (n){surge=0.0,sway=0.0,heave=0.0,roll_rate=0.0,pitch_rate=0.0,yaw_rate=0.0,roll=0.0,pitch=0.0,yaw=0.0;} return *this;};
     State operator=(nav_msgs::msg::Odometry::SharedPtr rhs);
 };
-//TODO: fix these so the initializing is correct, and that changing the quaternions changes the angles, so that the state is always consistent
+//TODO: fix these so that changing the quaternions changes the angles, so that the state is always consistent
 class Guidance_data:public State{
     public:
     //double surge;    double pitch;    double yaw;
