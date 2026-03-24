@@ -38,7 +38,7 @@ def launch_setup(context, *args, **kwargs):
         namespace=namespace,
         package="rclcpp_components",
         executable="component_container_mt",
-        composable_node_description=[
+        composable_node_descriptions=[
             ComposableNode(
                 package="velocity_controller",
                 plugin="velocity_controller_node",

@@ -35,7 +35,7 @@ def launch_setup(context,*args,**kwargs):
         actions=[
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
-                    os.path.join(stonefish_dir, 'launch', 'orca_sim.launch.py')
+                    os.path.join(stonefish_dir, 'launch', 'drone_sim.launch.py')
                 )
             )
         ]
@@ -57,18 +57,18 @@ def launch_setup(context,*args,**kwargs):
     )
     test_VC_name = LaunchConfiguration('node_name_1')
 
-    return LaunchDescription([
+    return [
         stonefish_sim,
         orca_sim,
         node_name_arg,
-        operation_mode_manager_launch,
+        #operation_mode_manager_launch,
         Node(package='velocity_controller',
              executable='test_VC_node',
              name=test_VC_name,
              namespace=namespace,
              output='screen',
              parameters=[config_path_global])         
-    ])
+    ]
 
 def generate_launch_description():
     return LaunchDescription(declare_drone_and_namespace_args()+[OpaqueFunction(function=launch_setup)])

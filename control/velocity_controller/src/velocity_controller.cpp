@@ -44,8 +44,8 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
   PID_surge.set_parameters(300,10,5,publish_rate/1000.0);
-  PID_surge.set_parameters(60,8,12,publish_rate/1000.0);
-  PID_surge.set_parameters(10,1,5,publish_rate/1000.0);
+  PID_pitch.set_parameters(60,8,12,publish_rate/1000.0);
+  PID_yaw.set_parameters(10,1,5,publish_rate/1000.0);
 
   if(!lqr_controller.set_matrices(Q,R,inertia_matrix,max_force,dampening_matrix_low,dampening_matrix_high)||!lqr_controller.set_interval(static_cast<double>(publish_rate)/1000)){
     controller_type=1;
@@ -173,7 +173,7 @@ void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::Share
   //RCLCPP_INFO(this->get_logger(),"message: s: %f, p:%f, y:%f", msg_ptr->surge,msg_ptr->pitch,msg_ptr->yaw);
   return;
 }
-//TODO: update to also update the quaternions
+
 void Velocity_node::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr){
   //RCLCPP_INFO(this->get_logger(),"Recieved odometry");
   current_state=msg_ptr; //overloaded to fix all the internal states
