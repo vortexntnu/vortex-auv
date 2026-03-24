@@ -185,6 +185,7 @@ bool LQRController::calculate_thrust(State state, Guidance_data guidance_values)
                 B(2,0),B(2,1),B(2,2),
                 B(3,0),B(3,1),B(3,2));
                 */
+    //TODO: consider making my own solver using eigen so that it does not need controll_toolbox library
     bool INFO= lqr.compute(Q,R,linearize(state),B,K_l,true,false);
     if(INFO==0){
         return false; 
