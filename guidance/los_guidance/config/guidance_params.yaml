@@ -31,7 +31,8 @@ common:
   goal_reached_tol: 0.20
   max_pitch_angle: 0.96 # 55 degrees
   slow_down_distance: 1.0
-  u_slow_min_ : 0.3
+  u_slow_min_ : 0.1
+  surge_rate_limit: 0.1
   surge_initialization: false
 
 # Debug Settings

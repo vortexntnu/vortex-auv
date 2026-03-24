@@ -262,7 +262,6 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
         (inputs.current_position - inputs.next_point).as_vector().norm();
 
     double target_surge = u_desired_;
-    double surge_rate_limit_ = 0.3;
 
     if (distance_to_goal <= slow_down_distance_) {
         const double alpha = distance_to_goal / slow_down_distance_;
@@ -305,6 +304,7 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     slow_down_distance_ = common_config["slow_down_distance"].as<double>();
     u_slow_min_ = common_config["u_slow_min_"].as<double>();
     surge_initialized_ = common_config["surge_initialization"].as<bool>();
+    surge_rate_limit_ = common_config["surge_rate_limit"].as<double>();
 
     method_ = static_cast<types::ActiveLosMethod>(
         common_config["active_los_method"].as<int>());

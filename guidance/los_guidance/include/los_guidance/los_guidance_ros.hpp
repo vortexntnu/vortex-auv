@@ -116,6 +116,7 @@ class LosGuidanceNode : public rclcpp::Node {
     bool surge_initialized_{};
     double u_slow_min_{};
     double commanded_surge_{};
+    double surge_rate_limit_ {};
     types::ActiveLosMethod method_{};
 
     // Guidance Modules
