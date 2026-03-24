@@ -3,67 +3,96 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
+    DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
+    OpaqueFunction,
     TimerAction,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
 
-def generate_launch_description():
-    stonefish_dir = get_package_share_directory('stonefish_sim')
-    vortex_sim_interface_dir = get_package_share_directory('vortex_sim_interface')
-    los_guidance_dir = get_package_share_directory('los_guidance')
-    velocity_controller_dir = get_package_share_directory('velocity_controller')
+def launch_setup(context, *args, **kwargs):
+    drone, namespace = resolve_drone_and_namespace(context)
+    test_scenario = LaunchConfiguration("test_scenario").perform(context)
+
+    stonefish_dir = get_package_share_directory("stonefish_sim")
+    vortex_sim_interface_dir = get_package_share_directory("vortex_sim_interface")
+    los_guidance_dir = get_package_share_directory("los_guidance")
+    operation_mode_manager_dir = get_package_share_directory("operation_mode_manager")
+    velocity_controller_dir = get_package_share_directory('velocity_controller_lqr')
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
+            os.path.join(stonefish_dir, "launch", "simulation.launch.py")
         ),
         launch_arguments={
-            'scenario': 'default',
-            'rendering': 'true',
+            "scenario": "default",
+            "rendering": "false",
         }.items(),
     )
 
     vortex_sim_interface = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                vortex_sim_interface_dir, 'launch', 'vortex_sim_interface.launch.py'
+                vortex_sim_interface_dir, "launch", "vortex_sim_interface.launch.py"
             )
-        )
+        ),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
     )
 
     operation_mode_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("operation_mode_manager"),
+                operation_mode_manager_dir,
                 "launch",
                 "operation_mode_manager.launch.py",
             )
-        )
+        ),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
     )
 
     los_guidance_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(los_guidance_dir, 'launch', 'los_guidance.launch.py')
-        )
+            os.path.join(los_guidance_dir, "launch", "los_guidance.launch.py")
+        ),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
     )
 
     velocity_controller_launch = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(
-                    velocity_controller_dir, 'launch', 'velocity_controller.launch.py'
-                    )
-                )   
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                velocity_controller_dir, 'launch', 'velocity_controller_lqr.launch.py'
             )
+        ),
+            launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
+
+    )
 
     orca_sim = TimerAction(
         period=12.0,
         actions=[
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
-                    os.path.join(stonefish_dir, 'launch', 'orca_sim.launch.py')
+                    os.path.join(stonefish_dir, "launch", "orca_sim.launch.py")
                 )
             )
         ],
@@ -77,11 +106,11 @@ def generate_launch_description():
                     "bash",
                     "-lc",
                     (
-                        "ros2 service call /orca/set_killswitch "
+                        f"ros2 service call /{namespace}/set_killswitch "
                         "vortex_msgs/srv/SetKillswitch "
                         "\"{killswitch_on: false}\" "
                         "&& "
-                        "ros2 service call /orca/set_operation_mode "
+                        f"ros2 service call /{namespace}/set_operation_mode "
                         "vortex_msgs/srv/SetOperationMode "
                         "\"{requested_operation_mode: {operation_mode: 1}}\""
                     ),
@@ -91,30 +120,44 @@ def generate_launch_description():
         ],
     )
 
-    square_test = TimerAction(
+    run_test_scenario = TimerAction(
         period=20.0,
         actions=[
             ExecuteProcess(
                 cmd=[
                     "bash",
                     "-lc",
-                    f"python3 {os.path.join(los_guidance_dir, 'scripts', 'square_test.py')}",
+                    (
+                        f"python3 {os.path.join(los_guidance_dir, 'scripts', 'test_scenarios.py')} "
+                        f"--ros-args -p drone:={drone} -p test_scenario:={test_scenario}"
+                    ),
                 ],
                 output="screen",
             )
         ],
     )
 
+    return [
+        stonefish_sim,
+        vortex_sim_interface,
+        operation_mode_launch,
+        los_guidance_launch,
+        velocity_controller_launch,
+        orca_sim,
+        set_autonomy,
+        run_test_scenario,
+    ]
+
+
+def generate_launch_description():
     return LaunchDescription(
-        [
-            stonefish_sim,
-            vortex_sim_interface,
-            operation_mode_launch,
-            los_guidance_launch,
-            orca_sim,
-            set_autonomy,
-            velocity_controller_launch,
-            #square_test,
-            
+        declare_drone_and_namespace_args(default_drone="orca")
+        + [
+            DeclareLaunchArgument(
+                "test_scenario",
+                default_value="square",
+                description="Scenario to run: square, circle, test_pitch, opposite_point",
+            ),
+            OpaqueFunction(function=launch_setup),
         ]
     )

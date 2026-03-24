@@ -87,7 +87,7 @@ install(DIRECTORY
 )
 
 install(PROGRAMS
-  scripts/square_test.py
+  scripts/test_scenarios.py
   DESTINATION share/${PROJECT_NAME}/scripts
 )
 

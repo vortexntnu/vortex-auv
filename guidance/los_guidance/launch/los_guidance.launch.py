@@ -14,7 +14,7 @@ from auv_setup.launch_arg_common import (
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
-    adapt_params = os.path.join(
+    guidance_config = os.path.join(
         get_package_share_directory("los_guidance"),
         "config",
         "guidance_params.yaml",
@@ -33,7 +33,13 @@ def launch_setup(context, *args, **kwargs):
             executable="los_guidance_node",
             name="los_guidance_node",
             namespace=namespace,
-            parameters=[drone_params, adapt_params],
+            parameters=[
+                drone_params,
+                {
+                    "los_config_file": guidance_config,
+                    "time_step": 0.1,
+                },
+            ],
             output="screen",
         )
     ]
