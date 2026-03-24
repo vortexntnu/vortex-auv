@@ -253,6 +253,7 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs,
     types::Inputs inputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
+
     const double clamped_pitch =
         std::clamp(outputs.theta_d, -max_pitch_angle_, max_pitch_angle_);
     reference_msg.pitch = clamped_pitch;
@@ -264,16 +265,16 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     double target_surge = u_desired_;
 
     if (distance_to_goal <= slow_down_distance_) {
-        const double alpha = distance_to_goal / slow_down_distance_;
-        reference_msg.surge = u_slow_min_ + alpha * (u_desired_ - u_slow_min_);
+        const double alpha = std::clamp(
+            distance_to_goal / slow_down_distance_, 0.0, 1.0);
+        target_surge =
+            u_slow_min_ + alpha * (u_desired_ - u_slow_min_);
     }
 
     if (!surge_initialized_) {
         commanded_surge_ = target_surge;
         surge_initialized_ = true;
-    }
-
-    else {
+    } else {
         const double dt = static_cast<double>(time_step_.count()) / 1000.0;
         const double max_step = surge_rate_limit_ * dt;
         const double delta = target_surge - commanded_surge_;
