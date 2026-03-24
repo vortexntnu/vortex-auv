@@ -121,29 +121,26 @@ Eigen::Matrix<double,8,8> LQRController::linearize(State s){
     else {
         D=-inertia_matrix_inv*D_high;
     }
-    Eigen::Matrix<double,6,6> C;
-    C.setZero(); //Unødvendig kanskje
+    Eigen::Matrix<double,6,6> C=coriolis(s);
+    /* //Need to decide if i want to learize around 0?
     C(1,5)=-mass*s.surge;
     C(2,4)=mass*s.surge;
+    */
+
     D-=inertia_matrix_inv*C; //To avoid unneccessary allocation
-    /*Eigen::Matrix<double,3,6> T(1.0,sin(s.psi)*tan(s.theta),cos(s.psi)*tan(s.theta),s.pitch*cos(s.psi)*tan(s.theta)-s.yaw*sin(s.psi)*tan(s.theta),(s.pitch*sin(s.psi)+s.yaw*cos(s.psi))/(cos(s.theta)*cos(s.theta)),
-                                0,cos(s.psi),-sin(s.psi),s.yaw*sin(s.psi)+s.pitch*cos(s.psi),0,0,
-                                0,sin(s.psi)*1/cos(s.theta),cos(s.psi)/cos(s.theta),s.sway*cos(s.psi)/cos(s.theta)-s.pitch*sin(s.psi)/cos(s.theta),(s.yaw*sin(s.psi)+s.pitch*cos(s.psi)*sin(s.theta)/(cos(s.theta)*cos(s.theta))));
-*/
-    Eigen::Matrix<double,3,3> T;
-    T<<1,sin(s.yaw)*tan(s.pitch),cos(s.yaw)*tan(s.pitch),
+    
+    Eigen::Matrix<double,3,3> T=Eigen::Matrix<double,3,3>::Identity();
+    /*T<<1,sin(s.yaw)*tan(s.pitch),cos(s.yaw)*tan(s.pitch),
         0,cos(s.yaw),-sin(s.yaw),
-        0,sin(s.yaw)/cos(s.pitch),cos(s.yaw)/cos(s.pitch);
+        0,sin(s.yaw)/cos(s.pitch),cos(s.yaw)/cos(s.pitch);*/
     Eigen::Matrix<double,9,9> A;
     A.block<6,6>(0,0)=D;
     A.block<3,3>(0,6)=A.block<3,3>(6,0)=A.block<3,3>(6,6)=Eigen::Matrix3d::Zero();
     A.block<3,3>(6,3)=T;
     std::vector<std::vector<int>> swaplines{{1,7},{2,8},{3,4},{4,5}};
     for (long unsigned int i=0;i<swaplines.size();i++){
-
         A.row(swaplines[i][0]).swap(A.row(swaplines[i][1]));
         A.col(swaplines[i][0]).swap(A.col(swaplines[i][1]));
-
     }
     
     Eigen::Matrix<double,8,8> ret;
@@ -153,19 +150,16 @@ Eigen::Matrix<double,8,8> LQRController::linearize(State s){
     
     return ret;
 };
-Eigen::Vector<double,8> LQRController::update_error(Guidance_data guidance_values, State states){
-    double surge_error = guidance_values.surge - states.surge;
-    double pitch_error = vortex::utils::math::ssa(guidance_values.pitch - states.pitch);
-    double yaw_error = vortex::utils::math::ssa(guidance_values.yaw - states.yaw);   
+Eigen::Vector<double,8> LQRController::update_error(const Guidance_data& error, const State& state){
+    double surge_error = error.surge;
+    double pitch_error = error.pitch;
+    double yaw_error = error.yaw;   
     
     integral_error_surge = anti_windup(surge_error, integral_error_surge, surge_windup);
     integral_error_pitch = anti_windup(pitch_error, integral_error_pitch, pitch_windup);
     integral_error_yaw = anti_windup(yaw_error, integral_error_yaw, yaw_windup);
-    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"integral errors: %f, %f, %f",integral_error_surge,integral_error_pitch,integral_error_yaw);
-    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"windup status: %d, %d, %d",surge_windup,pitch_windup,yaw_windup);
-    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"pitch value n state %f, %f",guidance_values.pitch,states.pitch);
-    //RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"errors: %f, %f, %f",surge_error,pitch_error,yaw_error);
-    Eigen::Vector<double,8> state_error= {surge_error, pitch_error, yaw_error, states.pitch_rate, states.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
+    
+    Eigen::Vector<double,8> state_error= {surge_error, pitch_error, yaw_error, -state.pitch_rate, -state.yaw_rate, integral_error_surge, integral_error_pitch, integral_error_yaw};
     return state_error;
 }
 Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u){
@@ -175,38 +169,18 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u)
     std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
     return {force_x, torque_y, torque_z};
 }
-bool LQRController::calculate_thrust(State state, Guidance_data guidance_values){
+bool LQRController::calculate_thrust(State state, Guidance_data error){
     ct::optcon::LQR<8,3> lqr;
     Eigen::Matrix<double,3,8> K_l;
-    /*RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"A matrix: %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f; ...",linearize(state)(0,0),linearize(state)(0,1),linearize(state)(0,2),linearize(state)(0,3),linearize(state)(0,4),linearize(state)(0,5),linearize(state)(0,6),linearize(state)(0,7),
-                linearize(state)(1,0),linearize(state)(1,1),linearize(state)(1,2),linearize(state)(1,3),linearize(state)(1,4),linearize(state)(1,5),linearize(state)(1,6),linearize(state)(1,7));
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"B matrix: %f, %f, %f; %f, %f, %f; %f, %f, %f; %f, %f, %f; ...",B(0,0),B(0,1),B(0,2),
-                B(1,0),B(1,1),B(1,2),
-                B(2,0),B(2,1),B(2,2),
-                B(3,0),B(3,1),B(3,2));
-                */
+    
     //TODO: consider making my own solver using eigen so that it does not need controll_toolbox library
     bool INFO= lqr.compute(Q,R,linearize(state),B,K_l,true,false);
     if(INFO==0){
         return false; 
     }
-    /*
-    Eigen::Matrix<double,3,6> K;
-    K.block<3,3>(0,0)=K_l.block<3,3>(0,0);
-    K.block<3,3>(0,3)=K_l.block<3,3>(0,5);
-    */
+    
 
-    Eigen::Matrix<double,8,1> state_error = update_error(guidance_values, state);
-    /*RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Guidance values: %f, %f, %f",guidance_values.surge,guidance_values.pitch,guidance_values.yaw);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Current states: %f, %f, %f, %f, %f",state.surge,state.pitch,state.yaw,state.pitch_rate,state.yaw_rate);   
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"State error: %f, %f, %f, %f, %f, %f, %f, %f",state_error(0),state_error(1),state_error(2),state_error(3),state_error(4),state_error(5),state_error(6),state_error(7));
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"Control input: %f, %f, %f",- (K_l*state_error)(0),- (K_l*state_error)(1),- (K_l*state_error)(2));
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"saturated_input: %f, %f, %f",saturate_input(- (K_l*state_error))(0),saturate_input(- (K_l*state_error))(1),saturate_input(- (K_l*state_error))(2));
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"),"K matrix: %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f; %f, %f, %f, %f, %f, %f, %f, %f",
-                K_l(0,0),K_l(0,1),K_l(0,2),K_l(0,3),K_l(0,4),K_l(0,5),K_l(0,6),K_l(0,7),
-                K_l(1,0),K_l(1,1),K_l(1,2),K_l(1,3),K_l(1,4),K_l(1,5),K_l(1,6),K_l(1,7),
-                K_l(2,0),K_l(2,1),K_l(2,2),K_l(2,3),K_l(2,4),K_l(2,5),K_l(2,6),K_l(2,7));
-                */
+    Eigen::Matrix<double,8,1> state_error = update_error(error, state);
     u=saturate_input( (K_l*state_error));
     return true;
 }
@@ -222,19 +196,21 @@ void LQRController::reset_controller(int nr){
     if(nr==0||nr==3){
         integral_error_yaw=0.0;
         yaw_windup=false;
-
-
     }
 
     return;
 }
-int LQRController::set_interval(double interval){
+bool LQRController::set_interval(double interval){
+    if(interval<=0)return false;
     interval_=interval;
-    return 1;
+    return true;
 }
 
-
+Eigen::Vector<double,3> LQRController::get_thrust(){
+    return u;
+}
 //Hjelpefunksjoner for å konvertere mellom std::vector og Eigen::Matrix3d
+/*/
 Eigen::Matrix3d vector_to_matrix3d(const std::vector<double> &other_matrix){
     Eigen::Matrix3d mat;
     for (int i = 0; i < 3; ++i)
@@ -265,7 +241,52 @@ Eigen::Matrix3d vector2d_to_matrix3d(const std::vector<std::vector<double>> &oth
             mat(i, j) = other_matrix[i][j];
     return mat;
 }
+*/
+//TODO: double check the matrices here
+Eigen::Matrix<double,6,6> LQRController::coriolis(const State& s)
+{
+    // Body velocities
+    double u  = s.surge;
+    double v  = s.sway;
+    double w  = s.heave;
+    double p  = s.roll_rate;
+    double q  = s.pitch_rate;
+    double r  = s.yaw_rate;
 
-Eigen::Vector<double,3> LQRController::get_thrust(){
-    return u;
+    // Inertia matrix components — extract from M
+    // M = [m*I   -m*S(r_g)]
+    //     [m*S(r_g)   I_b  ]
+    // For simplicity assuming diagonal M (no off-diagonal inertia/CoG terms):
+    double m   = mass;
+    double Ixx = 1.0 / inertia_matrix_inv(3,3);
+    double Iyy = 1.0 / inertia_matrix_inv(4,4);
+    double Izz = 1.0 / inertia_matrix_inv(5,5);
+
+    Eigen::Matrix<double,6,6> C = Eigen::Matrix<double,6,6>::Zero();
+
+    // Standard Fossen rigid-body Coriolis (diagonal inertia, CoG at origin):
+    // C_RB = [  0        m*r    -m*q  ]   top-right 3x3
+    //        [ -m*r       0      m*p  ]
+    //        [  m*q     -m*p      0   ]
+    // and
+    // C_RB = [    0      -Izz*r   Iyy*q ]   bottom-left 3x3 (transposed of above with inertia)
+    //        [  Izz*r      0     -Ixx*p ]
+    //        [ -Iyy*q    Ixx*p     0    ]
+
+    // Top-right block (translational-rotational coupling)
+    C(0,4) =  m * w;   C(0,5) = -m * v;
+    C(1,3) = -m * w;   C(1,5) =  m * u;
+    C(2,3) =  m * v;   C(2,4) = -m * u;
+
+    // Bottom-left block (rotational-translational coupling)
+    C(3,1) =  m * w;   C(3,2) = -m * v;
+    C(4,0) = -m * w;   C(4,2) =  m * u;
+    C(5,0) =  m * v;   C(5,1) = -m * u;
+
+    // Bottom-right block (rotational-rotational coupling)
+    C(3,4) =  Izz * r;   C(3,5) = -Iyy * q;
+    C(4,3) = -Izz * r;   C(4,5) =  Ixx * p;
+    C(5,3) =  Iyy * q;   C(5,4) = -Ixx * p;
+
+    return C;
 }

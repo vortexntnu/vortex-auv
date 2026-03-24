@@ -60,11 +60,6 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
 }
 
 
-
-
-
-
-
 void Velocity_node::calc_thrust()
 {
   if (odometry_dropout_guard){
@@ -75,25 +70,22 @@ void Velocity_node::calc_thrust()
       return;
     }
   }
-  //RCLCPP_INFO(get_logger(),"Calculating thrust");
-  angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
-  angle error=NED_to_BODY(NED_error,current_state);
-  Guidance_data mod_g_values=guidance_values;
+  //Do I need ssa here?
+  angle ref_in_body=angle_NED_to_body({0,vortex::utils::math::ssa(guidance_values.pitch),vortex::utils::math::ssa(guidance_values.yaw)},current_state.get_angle());
+  Guidance_data error={guidance_values.surge-current_state.surge,-ref_in_body.thetat,-ref_in_body.psit};
+
   if(anti_overshoot){
-    if (abs(error.psit)<3.14/2 || abs(error.thetat)<3.14/2){ //Need to fix to pi
-    mod_g_values.surge=guidance_values.surge*cos(error.psit)*cos(error.thetat);
-    }
-    else{
-      mod_g_values.surge=current_state.surge; //Only focus on rotating? Or is 0 maybe //TODO: Decide. Potentially set the u.surge to 0. Then remember to fix the integral anti wind up
+    if (abs(error.yaw)<std::numbers::pi/2 || abs(error.yaw)<std::numbers::pi/2){ 
+    error.surge=guidance_values.surge*cos(error.yaw)*cos(error.pitch);
     }
   }
   switch (controller_type)
   {
   case 1:{
     
-    PID_surge.calculate_thrust(mod_g_values.surge-current_state.surge);
-    PID_pitch.calculate_thrust(error.thetat);
-    PID_yaw.calculate_thrust(error.psit);
+    PID_surge.calculate_thrust(error.surge);
+    PID_pitch.calculate_thrust(error.pitch);
+    PID_yaw.calculate_thrust(error.yaw);
     thrust_out.wrench.force.x = PID_surge.get_output();
     thrust_out.wrench.torque.y = PID_pitch.get_output();
     thrust_out.wrench.torque.z = PID_yaw.get_output();
@@ -103,7 +95,7 @@ void Velocity_node::calc_thrust()
   case 2:{
     
     
-    if (!lqr_controller.calculate_thrust(current_state,mod_g_values)){
+    if (!lqr_controller.calculate_thrust(current_state,error)){
       controller_type=1;
       RCLCPP_ERROR(this->get_logger(),"Switching to PID");
     }
@@ -166,36 +158,21 @@ void Velocity_node::calc_thrust()
 
 //Callback functions
 void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr){
-  Guidance_data old_guidance=guidance_values;
-  guidance_values = *msg_ptr;
-  if(reset_on_new_ref){
-    if(abs(old_guidance.surge-guidance_values.surge)>=0.5)  reset_controllers(1);
-    if (abs(old_guidance.pitch-guidance_values.pitch)>std::numbers::pi/4)reset_controllers(2); 
-    if (abs(old_guidance.yaw-guidance_values.yaw)<std::numbers::pi/4)reset_controllers(3);
+  if(reset_on_new_ref){ //On big step changes, reset the controllers to avoid big overshoots
+    if(abs(msg_ptr->surge-guidance_values.surge)>=0.1)  reset_controllers(1);
+    if (abs(msg_ptr->pitch-guidance_values.pitch)>std::numbers::pi/4)reset_controllers(2); 
+    if (abs(msg_ptr->yaw-guidance_values.yaw)<std::numbers::pi/4)reset_controllers(3);
   }
-  publish_counter=0;
-
-  //RCLCPP_INFO(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
-  //RCLCPP_INFO(this->get_logger(),"message: s: %f, p:%f, y:%f", msg_ptr->surge,msg_ptr->pitch,msg_ptr->yaw);
+  guidance_values = msg_ptr; //overloaded to fix all the internal states
+  
   return;
 }
 
 void Velocity_node::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr){
-  //RCLCPP_INFO(this->get_logger(),"Recieved odometry");
+  publish_counter=0;
   current_state=msg_ptr; //overloaded to fix all the internal states
   return;
 }
-
-//**Needs to update to shutdown the node
-/*void Velocity_node::killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg_ptr){
-  RCLCPP_INFO(this->get_logger(), "Received killswitch: '%d'", msg_ptr->data);
-  if(msg_ptr->data == true){
-    guidance_values = Guidance_data();
-    current_state = Guidance_data();
-    RCLCPP_INFO(this->get_logger(), "Killswitch activated, reference and current state set to zero");
-  }
-  return;
-}*/
 
 
 void Velocity_node::get_new_parameters(){
@@ -293,8 +270,8 @@ Velocity_node::on_deactivate(const rclcpp_lifecycle::State & state)
 {
   RCLCPP_INFO(get_logger(), "Deactivating...");
   auto ret = LifecycleNode::on_deactivate(state);
+  timer_calculation.reset();
   reset_controllers();
-  //TODO: reset NMPCs
   return ret;
 }
 
