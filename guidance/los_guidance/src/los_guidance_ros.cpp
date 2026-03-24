@@ -259,33 +259,36 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
 
-    const double distance_to_goal =
-        (inputs.current_position - inputs.next_point).as_vector().norm();
+    if (slow_approach_) {
+        const double distance_to_goal =
+            (inputs.current_position - inputs.next_point).as_vector().norm();
 
-    double target_surge = u_desired_;
+        double target_surge = u_desired_;
 
-    if (distance_to_goal <= slow_down_distance_) {
-        const double alpha = std::clamp(
-            distance_to_goal / slow_down_distance_, 0.0, 1.0);
-        target_surge =
-            u_slow_min_ + alpha * (u_desired_ - u_slow_min_);
-    }
-
-    if (!surge_initialized_) {
-        commanded_surge_ = target_surge;
-        surge_initialized_ = true;
-    } else {
-        const double dt = static_cast<double>(time_step_.count()) / 1000.0;
-        const double max_step = surge_rate_limit_ * dt;
-        const double delta = target_surge - commanded_surge_;
-
-        if (delta > max_step) {
-            commanded_surge_ += max_step;
-        } else if (delta < -max_step) {
-            commanded_surge_ -= max_step;
-        } else {
-            commanded_surge_ = target_surge;
+        if (distance_to_goal <= slow_down_distance_) {
+            const double alpha =
+                std::clamp(distance_to_goal / slow_down_distance_, 0.0, 1.0);
+            target_surge = u_slow_min_ + alpha * (u_desired_ - u_slow_min_);
         }
+
+        if (!surge_initialized_) {
+            commanded_surge_ = target_surge;
+            surge_initialized_ = true;
+        } else {
+            const double dt = static_cast<double>(time_step_.count()) / 1000.0;
+            const double max_step = surge_rate_limit_ * dt;
+            const double delta = target_surge - commanded_surge_;
+
+            if (delta > max_step) {
+                commanded_surge_ += max_step;
+            } else if (delta < -max_step) {
+                commanded_surge_ -= max_step;
+            } else {
+                commanded_surge_ = target_surge;
+            }
+        }
+    } else {
+        commanded_surge_ = u_desired_;
     }
 
     reference_msg.surge = commanded_surge_;
@@ -302,8 +305,9 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     u_desired_ = common_config["u_desired"].as<double>();
     max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
     goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
+    slow_approach_ = common_config["slow_approach"].as<bool>();
     slow_down_distance_ = common_config["slow_down_distance"].as<double>();
-    u_slow_min_ = common_config["u_slow_min_"].as<double>();
+    u_slow_min_ = common_config["u_slow_min"].as<double>();
     surge_initialized_ = common_config["surge_initialization"].as<bool>();
     surge_rate_limit_ = common_config["surge_rate_limit"].as<double>();
 

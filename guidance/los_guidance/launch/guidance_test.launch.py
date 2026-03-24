@@ -52,11 +52,10 @@ def launch_setup(context, *args, **kwargs):
                 velocity_controller_dir, 'launch', 'velocity_controller.launch.py'
             )
         ),
-            launch_arguments={
+        launch_arguments={
             "drone": drone,
             "namespace": namespace,
         }.items(),
-
     )
 
     orca_sim = TimerAction(
