@@ -26,7 +26,7 @@ def launch_setup(context, *args, **kwargs):
     vortex_sim_interface_dir = get_package_share_directory("vortex_sim_interface")
     los_guidance_dir = get_package_share_directory("los_guidance")
     operation_mode_manager_dir = get_package_share_directory("operation_mode_manager")
-    velocity_controller_dir = get_package_share_directory('velocity_controller_lqr')
+    velocity_controller_dir = get_package_share_directory('velocity_controller')
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -34,10 +34,10 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "scenario": "default",
-            "rendering": "false",
+            "rendering": "true",
         }.items(),
     )
-
+    
     vortex_sim_interface = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
@@ -77,7 +77,7 @@ def launch_setup(context, *args, **kwargs):
     velocity_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                velocity_controller_dir, 'launch', 'velocity_controller_lqr.launch.py'
+                velocity_controller_dir, 'launch', 'velocity_controller.launch.py'
             )
         ),
             launch_arguments={
@@ -92,7 +92,7 @@ def launch_setup(context, *args, **kwargs):
         actions=[
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
-                    os.path.join(stonefish_dir, "launch", "orca_sim.launch.py")
+                    os.path.join(stonefish_dir, "launch", "drone_sim.launch.py")
                 )
             )
         ],
@@ -139,8 +139,8 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         stonefish_sim,
-        vortex_sim_interface,
-        operation_mode_launch,
+        #vortex_sim_interface,
+        #operation_mode_launch,
         los_guidance_launch,
         velocity_controller_launch,
         orca_sim,

@@ -71,7 +71,7 @@ void Velocity_node::calc_thrust()
     publish_counter++;
     if(publish_counter>=100){
       reset_controllers();
-      RCLCPP_WARN(this->get_logger(),"Odometry dropout, no thrust");
+      //RCLCPP_WARN(this->get_logger(),"Odometry dropout, no thrust");
       return;
     }
   }

@@ -98,7 +98,7 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     //VC settings
     bool reset_on_new_ref=true;
     bool anti_overshoot=false;
-    bool auto_start=true;
+    bool auto_start=false;
     bool odometry_dropout_guard=true;
     int publish_counter=0;
     bool first_start=true;
