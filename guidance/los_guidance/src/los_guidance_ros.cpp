@@ -257,9 +257,17 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
         std::clamp(outputs.theta_d, -max_pitch_angle_, max_pitch_angle_);
     reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
-    if ((inputs.current_position - inputs.next_point).as_vector().norm() <=
-        slow_down_distance_) {
-        reference_msg.surge = (u_desired_ / 2.0);
+
+    const double distance_to_goal =
+        (inputs.current_position - inputs.next_point).as_vector().norm();
+
+    const double u_slow_min = 0.2;  // bytt ut dette med config 
+
+    if (distance_to_goal <= slow_down_distance_) {
+        const double alpha = distance_to_goal / slow_down_distance_;
+        reference_msg.surge = u_slow_min + alpha * (u_desired_ - u_slow_min);
+    } else {
+        reference_msg.surge = u_desired_;
     }
 
     return reference_msg;
