@@ -8,8 +8,10 @@
 #include "velocity_controller/NMPC_setup.hpp"
 #include "velocity_controller/PID_setup.hpp"
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <Eigen/Dense>
+#include <lifecycle_msgs/msg/detail/transition__struct.hpp>
 #include <numbers>
 #include <rclcpp/utilities.hpp>
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
@@ -51,6 +53,9 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
     controller_type=1;
     RCLCPP_INFO(this->get_logger(),"Switching to PID");
   };
+  if(auto_start){
+    startup_timer_=create_wall_timer(std::chrono::milliseconds(0), [this](){startup_timer_->cancel(); trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);});
+  }
   return;
 }
 
@@ -62,6 +67,14 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
 
 void Velocity_node::calc_thrust()
 {
+  if (odometry_dropout_guard){
+    publish_counter++;
+    if(publish_counter>=100){
+      reset_controllers();
+      RCLCPP_WARN(this->get_logger(),"Odometry dropout, no thrust");
+      return;
+    }
+  }
   //RCLCPP_INFO(get_logger(),"Calculating thrust");
   angle NED_error={guidance_values.roll-current_state.roll,guidance_values.pitch-current_state.pitch,guidance_values.yaw-current_state.yaw};
   angle error=NED_to_BODY(NED_error,current_state);
@@ -152,22 +165,15 @@ void Velocity_node::calc_thrust()
 
 
 //Callback functions
-//TODO: odometry  dropout
 void Velocity_node::guidance_callback(const vortex_msgs::msg::LOSGuidance::SharedPtr msg_ptr){
   Guidance_data old_guidance=guidance_values;
   guidance_values = *msg_ptr;
-  if(anti_swing){
-    if(abs(old_guidance.surge-guidance_values.surge)>=0.5){
-      reset_controllers(1);
-    }
-    if (abs(old_guidance.pitch-guidance_values.pitch)>std::numbers::pi/4) {
-      reset_controllers(2);
-
-    }
-    if (abs(old_guidance.yaw-guidance_values.yaw)<std::numbers::pi/4){
-      reset_controllers(3);
-    }
+  if(reset_on_new_ref){
+    if(abs(old_guidance.surge-guidance_values.surge)>=0.5)  reset_controllers(1);
+    if (abs(old_guidance.pitch-guidance_values.pitch)>std::numbers::pi/4)reset_controllers(2); 
+    if (abs(old_guidance.yaw-guidance_values.yaw)<std::numbers::pi/4)reset_controllers(3);
   }
+  publish_counter=0;
 
   //RCLCPP_INFO(this->get_logger(), "Guidance received: surge=%.3f pitch=%.3f yaw=%.3f",guidance_values.surge, guidance_values.pitch, guidance_values.yaw);
   //RCLCPP_INFO(this->get_logger(),"message: s: %f, p:%f, y:%f", msg_ptr->surge,msg_ptr->pitch,msg_ptr->yaw);
@@ -258,6 +264,10 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Veloci
   subscriber_guidance = this->create_subscription<vortex_msgs::msg::LOSGuidance>( topic_guidance,sub_QoS,std::bind(&Velocity_node::guidance_callback,this, std::placeholders::_1));
   //subscriber_killswitch = this->create_subscription<std_msgs::msg::Bool>(topic_killswitch,sub_QoS,std::bind(&Velocity_node::killswitch_callback,this, std::placeholders::_1));
   //Timer
+  if(first_start&&auto_start){
+    startup_timer_=create_wall_timer(std::chrono::milliseconds(0),[this](){startup_timer_->cancel(); trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);});
+  }
+  first_start=false;
   return CallbackReturn::SUCCESS;
 }
 

@@ -19,7 +19,10 @@
 
 class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     public:
-    Velocity_node();
+    explicit Velocity_node();
+    Velocity_node(const Velocity_node&)=delete; //no copy constructor
+    Velocity_node& operator=(const Velocity_node&) = delete; //no copy assignment
+    //TODO: decide if i one should be allowed to move or transfer ownership if the class
     //Different initializatin functions
     void get_new_parameters();
 
@@ -34,7 +37,8 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr publisher_thrust;
     
     //Timer instance
-    rclcpp::TimerBase::SharedPtr timer_calculation;    
+    rclcpp::TimerBase::SharedPtr timer_calculation;   
+    rclcpp::TimerBase::SharedPtr startup_timer_;
     //Subscriber instance
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscriber_Odometry;
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr subscriber_guidance;
@@ -87,8 +91,12 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     
     std::atomic_bool should_exit_{false};
     //VC settings
-    bool anti_swing=1;
-    bool anti_overshoot=0;
+    bool reset_on_new_ref=true;
+    bool anti_overshoot=false;
+    bool auto_start=true;
+    bool odometry_dropout_guard=true;
+    int publish_counter=0;
+    bool first_start=true;
     
     //States
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn on_configure(const rclcpp_lifecycle::State &) override;
@@ -97,7 +105,6 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_cleanup(const rclcpp_lifecycle::State &) override;
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_shutdown(const rclcpp_lifecycle::State & state) override;
 
-    //TODO: reset function that resets all controllers, easier to do, and be able to pass an argument so that u can reset either Surge, Pitch and Yaw
     void reset_controllers(int nr=0);
 };
 
