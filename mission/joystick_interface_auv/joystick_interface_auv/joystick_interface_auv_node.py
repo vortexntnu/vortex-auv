@@ -3,7 +3,7 @@
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node, Parameter
-from sensor_msgs.msg import Joy
+from sensor_msgs.msg import JointState, Joy
 from std_msgs.msg import Bool
 from vortex_msgs.msg import OperationMode, ReferenceFilter
 from vortex_msgs.srv import GetOperationMode, SetOperationMode, ToggleKillswitch
@@ -61,6 +61,9 @@ class JoystickInterface(Node):
 
     def get_parameters(self):
         """Method to get the parameters from the config file."""
+        self.declare_parameter('drone', 'orca')
+        self._drone = self.get_parameter('drone').value
+
         gain_params = [
             'joystick_surge_gain',
             'joystick_sway_gain',
@@ -82,7 +85,14 @@ class JoystickInterface(Node):
             # Get the values and set them as attributes of the class
             setattr(self, '_' + param, self.get_parameter(param).value)
 
-        topic_params = ['pose', 'joy', 'wrench_input', 'killswitch', 'operation_mode']
+        topic_params = [
+            'pose',
+            'joy',
+            'wrench_input',
+            'killswitch',
+            'operation_mode',
+            'gripper_servos',
+        ]
 
         for param in topic_params:
             self.declare_parameter(f'topics.{param}', Parameter.Type.STRING)
@@ -147,6 +157,10 @@ class JoystickInterface(Node):
         )
         self._ref_publisher = self.create_publisher(
             ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
+        )
+
+        self._gripper_publisher = self.create_publisher(
+            JointState, self.gripper_servos_topic, qos_profile=best_effort_qos
         )
 
     def set_services(self):
@@ -435,14 +449,47 @@ class JoystickInterface(Node):
         elif xbox_control_mode_button:
             self.transition_to_xbox_mode()
 
-        if self._mode == OperationMode.MANUAL and not self._killswitch:
-            wrench_msg = self.create_wrench_message()
-            self._wrench_publisher.publish(wrench_msg)
+        if not self._killswitch and self._mode in (
+            OperationMode.MANUAL,
+            OperationMode.REFERENCE,
+        ):
+            if self._mode == OperationMode.MANUAL:
+                wrench_msg = self.create_wrench_message()
+                self._wrench_publisher.publish(wrench_msg)
+            else:
+                self.update_reference()
+                ref_msg = self.create_reference_message()
+                self._ref_publisher.publish(ref_msg)
 
-        elif self._mode == OperationMode.REFERENCE and not self._killswitch:
-            self.update_reference()
-            ref_msg = self.create_reference_message()
-            self._ref_publisher.publish(ref_msg)
+            close = float(buttons.get("stick_button_left", 0))
+            open_ = -float(buttons.get("stick_button_right", 0))
+            rotate = axes.get("dpad_horizontal", 0.0)
+            pitch = axes.get("dpad_vertical", 0.0)
+
+            grip = close + open_
+
+            gripper_msg = JointState()
+            gripper_msg.header.stamp = self.get_clock().now().to_msg()
+            gripper_msg.header.frame_id = "base_link"
+
+            prefix = f"{self._drone}/"
+            if self._drone == "orca":
+                gripper_msg.name = [
+                    f"{prefix}shoulder_joint",
+                    f"{prefix}arm_joint",
+                    f"{prefix}finger_joint1",
+                    f"{prefix}finger_joint2",
+                ]
+                gripper_msg.velocity = [pitch, rotate, grip, grip]
+            else:
+                gripper_msg.name = [
+                    f"{prefix}arm_joint",
+                    f"{prefix}finger_joint1",
+                    f"{prefix}finger_joint2",
+                ]
+                gripper_msg.velocity = [rotate, grip, grip]
+
+            self._gripper_publisher.publish(gripper_msg)
 
 
 def main():

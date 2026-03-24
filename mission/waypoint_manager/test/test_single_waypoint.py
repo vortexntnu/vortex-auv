@@ -15,7 +15,7 @@ from launch.actions import OpaqueFunction, TimerAction
 from rclpy.action import ActionClient
 from rclpy.qos import qos_profile_sensor_data
 from vortex_msgs.action import WaypointManager
-from vortex_msgs.msg import Waypoint
+from vortex_msgs.msg import Waypoint, WaypointMode
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -131,7 +131,7 @@ class TestWaypointManagerAcceptsGoal(unittest.TestCase):
 
         goal_msg = WaypointManager.Goal()
         wp = Waypoint()
-        wp.mode = Waypoint.FULL_POSE
+        wp.waypoint_mode.mode = WaypointMode.FULL_POSE
         wp.pose.position.x = 0.0
         wp.pose.position.y = 0.0
         wp.pose.position.z = 1.0
