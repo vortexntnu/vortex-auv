@@ -6,27 +6,28 @@ from launch.actions import DeclareLaunchArgument
 #from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 from launch.substitutions import LaunchConfiguration
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+from launch.actions import OpaqueFunction
 
-def generate_launch_description():
+
+def launch_setup(context,*args,**kwargs):
+    drone, namespace=resolve_drone_and_namespace(context)
+
     pkg_share = get_package_share_directory('velocity_controller')
     global_share = get_package_share_directory('auv_setup')
     config_path_local = os.path.join(pkg_share, 'config', 'parameters.yaml')
-    config_path_global = os.path.join(global_share,'config','robots','orca.yaml')
+    config_path_global = os.path.join(global_share,'config','robots',f"{drone}.yaml")
 
-    node_name_arg = DeclareLaunchArgument(
-        'node_name', default_value='velocity_controller_node',
-        description='Name of the velocity controller node'
-    )
-
-    velocity_controller_name = LaunchConfiguration('node_name')
-
-
-    return LaunchDescription([
-        node_name_arg,
+    return [
         Node(package='velocity_controller',
              executable='velocity_controller_node',
-             name=velocity_controller_name,
-             namespace='orca',
+             name="velocity_controller_node",
+             namespace=namespace,
              output='screen',
              parameters=[config_path_local,config_path_global])
-    ])
+    ]
+def generate_launch_description():
+    return LaunchDescription(declare_drone_and_namespace_args()+[OpaqueFunction(function=launch_setup)])
