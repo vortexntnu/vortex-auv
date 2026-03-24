@@ -14,6 +14,7 @@ class PID_controller {
     double get_output();
     bool set_output_limits(double min_output, double max_output);
     bool set_parameters(double k_p,double k_i, double k_d, double dt);
+    bool set_parameters(std::vector<double>& params,double dt);
     bool set_dt(double dt);
     private:
     double Kp_, Ki_, Kd_, dt_;

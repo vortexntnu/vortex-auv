@@ -62,3 +62,8 @@ bool PID_controller::set_dt(double dt){
     dt_=dt;
     return true;
 }
+bool PID_controller::set_parameters(std::vector<double>& params,double dt){
+    return set_parameters(params.at(0),params.at(1),params.at(2), dt);
+
+};
+

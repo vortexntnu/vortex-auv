@@ -18,7 +18,7 @@ def launch_setup(context,*args,**kwargs):
 
     pkg_share = get_package_share_directory('velocity_controller')
     global_share = get_package_share_directory('auv_setup')
-    config_path_local = os.path.join(pkg_share, 'config', 'parameters.yaml')
+    config_path_local = os.path.join(pkg_share, 'config', f'{drone}_params.yaml')
     config_path_global = os.path.join(global_share,'config','robots',f"{drone}.yaml")
 
     return [

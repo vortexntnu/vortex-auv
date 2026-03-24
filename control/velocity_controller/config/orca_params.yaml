@@ -1,14 +1,17 @@
 /**:
   ros__parameters:
-
     #topics:
     #  odom_topic: /orca/odom #Odometry
-    #  twist_topic: /dvl/twist #Twist
+    #  twist_topic: /dvl/twist #Twistconfig/parameters.yaml
     #  pose_topic: /dvl/pose #Pose
     #  guidance_topic: /orca/guidance/los #Guidance
     #  thrust_topic: /orca/wrench_input #Thrust
     #  softwareoperation_topic: /softwareOperationMode #Software Operation
     #  killswitch_topic: /softwareKillSwitch #Kill Switch
+    PID_params:
+      surge: [300.0,10.0,5.0]
+      pitch: [60.0,8.0,12.0]
+      yaw: [10.0,1.0,5.0]
 
     LQR_params:
       Q: [200.0,32.84,32.84,15.0,15.0,100.0,32.84,32.84]
@@ -21,7 +24,7 @@
       Q: [100.0,0.0,0.0,0.0,1.0,1.0,0.0,5.0,50.0] # u,q,r,theta,psi
       R: [0.1,0.1,0.1] # u_surge, u_theta, u_psi
       N: 20
-    inertia_matrix: [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.60, 0.0, 30.0, 0.0, 0.0, -0.60, 0.30, 0.0, 0.0, 30.0, 0.60, 0.30, 0.0, 0.0, 0.0, 0.60, 0.68, 0.0, 0.0, 0.0, -0.60, 0.30, 0.0, 3.32, 0.0, 0.60, 0.30, 0.0, 0.0, 0.0, 3.34]
+    #inertia_matrix: [ 30.0, 0.0, 0.0, 0.0, 0.0, 0.60, 0.0, 30.0, 0.0, 0.0, -0.60, 0.30, 0.0, 0.0, 30.0, 0.60, 0.30, 0.0, 0.0, 0.0, 0.60, 0.68, 0.0, 0.0, 0.0, -0.60, 0.30, 0.0, 3.32, 0.0, 0.60, 0.30, 0.0, 0.0, 0.0, 3.34]
     dampening_matrix_low:  [23.0,0.0,0.0,0.0,0.0,0.0, 0.0,46.0,0.0,0.0,0.0,0.0,  0.0,0.0,46.0,0.0,0.0,0.0,  0.0,0.0,0.0,46.0,0.0,0.0,  0.0,0.0,0.0,0.0,46.0,0.0, 0.0,0.0,0.0,0.0,0.0,46.0]
     dampening_matrix_high: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
 

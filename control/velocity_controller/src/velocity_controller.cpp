@@ -45,9 +45,9 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
   PID_surge.set_output_limits(-max_force, max_force);
   PID_pitch.set_output_limits(-max_force, max_force);
   PID_yaw.set_output_limits(-max_force, max_force);
-  PID_surge.set_parameters(300,10,5,publish_rate/1000.0);
-  PID_pitch.set_parameters(60,8,12,publish_rate/1000.0);
-  PID_yaw.set_parameters(10,1,5,publish_rate/1000.0);
+  PID_surge.set_parameters(surge_params,publish_rate/1000.0);
+  PID_pitch.set_parameters(pitch_params,publish_rate/1000.0);
+  PID_yaw.set_parameters(yaw_params,publish_rate/1000.0);
 
   if(!lqr_controller.set_matrices(Q,R,inertia_matrix,max_force,dampening_matrix_low,dampening_matrix_high)||!lqr_controller.set_interval(static_cast<double>(publish_rate)/1000)){
     controller_type=1;
@@ -216,6 +216,13 @@ void Velocity_node::get_new_parameters(){
   this->declare_parameter<int>("controller_type");
   this->controller_type=this->get_parameter("controller_type").as_int();
   
+  //PID Params
+  this->declare_parameter<std::vector<double>>("PID_params.surge");
+  surge_params=this->get_parameter("PID_params.surge").as_double_array();
+  this->declare_parameter<std::vector<double>>("PID_params.pitch");
+  pitch_params=this->get_parameter("PID_params.pitch").as_double_array();
+  this->declare_parameter<std::vector<double>>("PID_params.yaw");
+  yaw_params=this->get_parameter("PID_params.yaw").as_double_array();
 
   //LQR Parameters
 
@@ -277,8 +284,6 @@ Velocity_node::on_activate(const rclcpp_lifecycle::State & state)
   RCLCPP_INFO(get_logger(), "Activating...");
   timer_calculation = this->create_wall_timer(std::chrono::milliseconds(publish_rate), std::bind(&Velocity_node::calc_thrust, this));
   auto ret = LifecycleNode::on_activate(state);
-  //timer_calculation->reset();
-  
   
   return ret;
 }
@@ -290,7 +295,6 @@ Velocity_node::on_deactivate(const rclcpp_lifecycle::State & state)
   auto ret = LifecycleNode::on_deactivate(state);
   reset_controllers();
   //TODO: reset NMPCs
-  //timer_calculation->cancel();
   return ret;
 }
 

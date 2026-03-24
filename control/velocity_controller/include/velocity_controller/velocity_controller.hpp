@@ -14,6 +14,7 @@
 #include "velocity_controller/NMPC_setup.hpp"
 #include "velocity_controller/NMPC_acados.hpp"
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <vector>
 
 
 
@@ -66,8 +67,12 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
 
     //PID controllers
     PID_controller PID_surge;
+    std::vector<double> surge_params;
     PID_controller PID_yaw;
+    std::vector<double> yaw_params;
     PID_controller PID_pitch;
+    std::vector<double> pitch_params;
+
 
     //LQR Controller
     LQRController lqr_controller;
