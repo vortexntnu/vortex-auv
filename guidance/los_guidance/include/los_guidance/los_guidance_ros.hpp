@@ -113,6 +113,9 @@ class LosGuidanceNode : public rclcpp::Node {
     double goal_reached_tol_{};
     double max_pitch_angle_{};
     double slow_down_distance_{};
+    bool surge_initialized_{};
+    double u_slow_min_{};
+    double commanded_surge_{};
     types::ActiveLosMethod method_{};
 
     // Guidance Modules
