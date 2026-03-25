@@ -15,7 +15,7 @@
     
     Settings: #Settings for the controller
       controller_type: 2 #1 PID 2 LQR 
-      auto_start: false #0 for no, 1 for yes
+      auto_start: true #0 for no, 1 for yes
       anti_overshoot: false
       reset_on_new_ref: true
       odometry_dropout_guard: true
