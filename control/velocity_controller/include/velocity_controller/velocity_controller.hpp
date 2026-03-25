@@ -61,7 +61,7 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     geometry_msgs::msg::WrenchStamped thrust_out;
 
 
-    int controller_type; //1 PID, 2 LQR, 3 NMPC, 4 NMPC acados
+    int controller_type; //1 PID, 2 LQR
 
     //PID controllers
     PID_controller PID_surge;

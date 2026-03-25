@@ -3,42 +3,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
-#include "PID_setup.hpp"
 #include <Eigen/Dense>
 #include "velocity_controller/utilities.hpp"
 
-
-
-/*class Guidance_values{
-    //Dataclass to store guidance values for LQR controller
-    public:
-    double surge=0.0;    double pitch=0.0;    double yaw=0.0;
-    double integral_surge=0.0;    double integral_pitch=0.0;    double integral_yaw=0.0;
-};
-*/
-class LQRparameters{
-    //Dataclass to store LQR parameters
-    public:
-    double q_surge=0.0;    double q_pitch=0.0;    double q_yaw=0.0;
-    double r_surge=0.0;    double r_pitch=0.0;    double r_yaw=0.0;
-    double i_surge=0.0;    double i_pitch=0.0;    double i_yaw=0.0;
-    double i_weight=0.0;   double max_force=0.0;
-};
-
-/*class angle{
-    public:
-    double phit=0.0;
-    double thetat=0.0;
-    double psit=0.0;
-    
-};*/
-/*
-struct LQRsolveResult{
-    Eigen::MatrixXd K;
-    Eigen::MatrixXd P;
-    int INFO=0;
-    LQRsolveResult(Eigen::MatrixXd K=Eigen::MatrixXd::Zero(),Eigen::MatrixXd P=Eigen::MatrixXd::Zero(), int INFO=0):K(K),P(P),INFO(INFO) {};
-};*/
 class LQRController{
 
     public:
@@ -78,8 +45,3 @@ class LQRController{
     
 };
 
-//Extra operations
-//Eigen::Matrix3d vector_to_matrix3d(const std::vector<double> &other_matrix);
-//std::vector<double> matrix3d_to_vector(const Eigen::Matrix3d &mat);
-//std::vector<std::vector<double>> matrix3d_to_vector2d(const Eigen::Matrix3d &mat);
-//Eigen::Matrix3d vector2d_to_matrix3d(const std::vector<std::vector<double>> &other_matrix);
