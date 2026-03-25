@@ -3,7 +3,7 @@ set -e
 set -o pipefail
 
 # Drone name
-DRONE_ARG=${1:-"moby"}
+DRONE_ARG=${1:-"nautilus"}
 
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."

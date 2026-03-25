@@ -25,7 +25,7 @@ class ReferenceFilterWaypointClient(Node):
         super().__init__('reference_filter_waypoint_client')
 
         self._action_client = ActionClient(
-            self, ReferenceFilterWaypoint, '/moby/reference_filter'
+            self, ReferenceFilterWaypoint, '/nautilus/reference_filter'
         )
         self.send_goal()
 
