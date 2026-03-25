@@ -28,9 +28,13 @@ vector_field_los:
 common:
   active_los_method: 2 # 0: Adaptive LOS, 1: Proportional LOS, 2: Integral LOS, 3: Vector Field LOS
   u_desired: 0.3
-  goal_reached_tol: 0.15
+  goal_reached_tol: 0.20
   max_pitch_angle: 0.96 # 55 degrees
-  slow_down_distance: 0.40
+  slow_approach: false
+  slow_down_distance: 1.5
+  u_slow_min: 0.1
+  surge_rate_limit: 0.1
+  surge_initialization: false
 
 # Debug Settings
 debug:
