@@ -324,7 +324,6 @@ However it performs worse when the path contains **sharp turns or rapidly changi
 | Interface | Name | Type | Message-Type |
 |----------|------|------|---------|
 | Action Server | `/orca/los_guidance` | Goal input | `vortex_msgs/action/LOSGuidance` |
-| Subscriber | `/orca/waypoint` | Waypoint input | `geometry_msgs/PointStamped` |
 | Subscriber | `/orca/pose` | Vehicle pose | `geometry_msgs/PoseWithCovarianceStamped` |
 | Subscriber | `/orca/odom` | Vehicle velocity | `nav_msgs/Odometry` |
 | Publisher | `/orca/guidance/los` | Guidance reference (yaw, pitch, surge) | `vortex_msgs/LOSGuidance` |
