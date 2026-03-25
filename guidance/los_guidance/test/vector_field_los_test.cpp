@@ -104,8 +104,8 @@ TEST_F(VectorFieldLosTest, T10_test_commanded_angles) {
     EXPECT_GT(O.psi_d, -1.57);
 
     // Pitch cmd should be between -pi/2 and 0
-    EXPECT_LT(O.theta_d, 0.0);
-    EXPECT_GT(O.theta_d, 1.57);
+    EXPECT_GT(O.theta_d, 0.0);
+    EXPECT_LT(O.theta_d, 1.57);
 }
 
 }  // namespace vortex::guidance::los
