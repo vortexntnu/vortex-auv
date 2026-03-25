@@ -9,9 +9,6 @@ PID_controller::PID_controller( double Kp, double Ki, double Kd, double max_outp
 //TODO: check for more errors, f.example Nan or very high intergral
 bool PID_controller::calculate_thrust(double error){
     if(!init)return false;
-    //P + I + D
-    output=Kp_*error+Ki_*integral + Kd_ * (error - previous_error) / dt_;
-
     //Saturation
     if (output>max_output_){
         output = max_output_;
@@ -22,10 +19,30 @@ bool PID_controller::calculate_thrust(double error){
     else{
         integral+=error*dt_; //anti-wind up
     }
+    //P + I + D
+    output=Kp_*error+Ki_*integral + Kd_ * (error - previous_error) / dt_;    
     previous_error = error; 
 
     return true;
 }; 
+bool PID_controller::calculate_thrust(double error, double error_d){
+    if(!init)return false;
+    //Saturation
+    if (output>max_output_){
+        output = max_output_;
+    }
+    else if (output < min_output_){
+        output = min_output_;
+    }
+    else{
+        integral+=error*dt_; //anti-wind up
+    }
+    //P + I + D
+    output=Kp_*error+Ki_*integral + Kd_ * error_d;    
+    previous_error = error; 
+
+    return true;
+}
 void PID_controller::reset_controller(){
     integral = 0.0;
     previous_error = 0.0;

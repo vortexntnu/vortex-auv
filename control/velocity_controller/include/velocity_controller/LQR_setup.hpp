@@ -64,7 +64,7 @@ class LQRController{
     bool surge_windup;    bool pitch_windup;    bool yaw_windup;
     Eigen::Matrix<double,8,8> Q;    Eigen::Matrix<double,3,3> R;  Eigen::Matrix<double,8,3> B;
     Eigen::Matrix<double,6,6> D_low; Eigen::Matrix<double,6,6> D_high;
-    double max_force; double mass;
+    double max_force, mass, Ixx, Iyy,Izz;
 
     Eigen::Matrix<double,6,6> inertia_matrix_inv;
     Eigen::Matrix<double,6,6> state_weight_matrix;
@@ -72,6 +72,8 @@ class LQRController{
     Eigen::Matrix<double,6,6> augmented_system_matrix;
     Eigen::Matrix<double,6,3> augmented_input_matrix;
     Eigen::Vector<double,3> u;
+
+    
 
     
 };

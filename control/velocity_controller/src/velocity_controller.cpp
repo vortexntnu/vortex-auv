@@ -23,10 +23,12 @@
 
 
 //Konstruktør
-Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), lqr_controller()
+Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), lqr_controller(), pub_QoS(10),  sub_QoS(10)
 {
-  RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
   get_new_parameters();
+  pub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+  sub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
+
   //TODO: dont need to save the Q3 R3 and the other matries, just use #define
   //NMPC controller
   NMPC.set_matrices(Q3,R3, inertia_matrix, max_force,  dampening_matrix_low, dampening_matrix_high);
@@ -56,6 +58,8 @@ Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_contr
   if(auto_start){
     startup_timer_=create_wall_timer(std::chrono::milliseconds(0), [this](){startup_timer_->cancel(); trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);});
   }
+  RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
+
   return;
 }
 
@@ -66,11 +70,11 @@ void Velocity_node::calc_thrust()
     publish_counter++;
     if(publish_counter>=100){
       reset_controllers();
-      //RCLCPP_WARN(this->get_logger(),"Odometry dropout, no thrust");
+      RCLCPP_WARN(this->get_logger(),"Odometry dropout, no thrust");
       return;
     }
   }
-  //Do I need ssa here?
+  //TODO: Do I need ssa here?
   angle ref_in_body=angle_NED_to_body({0,vortex::utils::math::ssa(guidance_values.pitch),vortex::utils::math::ssa(guidance_values.yaw)},current_state.get_angle());
   Guidance_data error={guidance_values.surge-current_state.surge,-ref_in_body.thetat,-ref_in_body.psit};
 
@@ -82,10 +86,10 @@ void Velocity_node::calc_thrust()
   switch (controller_type)
   {
   case 1:{
-    
+    //TODO: some logic for removing the change in reference
     PID_surge.calculate_thrust(error.surge);
-    PID_pitch.calculate_thrust(error.pitch);
-    PID_yaw.calculate_thrust(error.yaw);
+    PID_pitch.calculate_thrust(error.pitch,-current_state.pitch_rate);
+    PID_yaw.calculate_thrust(error.yaw, -current_state.yaw_rate);
     thrust_out.wrench.force.x = PID_surge.get_output();
     thrust_out.wrench.torque.y = PID_pitch.get_output();
     thrust_out.wrench.torque.z = PID_yaw.get_output();
@@ -208,15 +212,13 @@ void Velocity_node::get_new_parameters(){
   this->declare_parameter<std::vector<double>>("LQR_params.R");
   R=this->get_parameter("LQR_params.R").as_double_array();
   this->declare_parameter<std::vector<double>>("physical.mass_matrix");
-  this->get_parameter("physical.mass_matrix", inertia_matrix);
-  RCLCPP_INFO(get_logger(),"1");
+  inertia_matrix=this->get_parameter("physical.mass_matrix").as_double_array();
 
   //D
   this->declare_parameter<std::vector<double>>("dampening_matrix_low");
   this->declare_parameter<std::vector<double>>("dampening_matrix_high");
   this->dampening_matrix_low=this->get_parameter("dampening_matrix_low").as_double_array();
   this->dampening_matrix_high=this->get_parameter("dampening_matrix_high").as_double_array();
-  RCLCPP_INFO(get_logger(),"1");
 
   //NMPC acados Parameters
   this->declare_parameter<std::vector<double>>("NMPCA_params.Q");
@@ -237,16 +239,11 @@ rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn Veloci
   RCLCPP_INFO(get_logger(), "Configure VC");
   
   // Publishers
-  rclcpp::QoS pub_QoS(10);
-  pub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
   publisher_thrust = create_publisher<geometry_msgs::msg::WrenchStamped>(topic_thrust, pub_QoS);
   
   //Subscribers
-  rclcpp::QoS sub_QoS(10);
-  sub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
   subscriber_Odometry = this->create_subscription<nav_msgs::msg::Odometry>( topic_odometry,sub_QoS, std::bind(&Velocity_node::odometry_callback,this,std::placeholders::_1));
   subscriber_guidance = this->create_subscription<vortex_msgs::msg::LOSGuidance>( topic_guidance,sub_QoS,std::bind(&Velocity_node::guidance_callback,this, std::placeholders::_1));
-  //subscriber_killswitch = this->create_subscription<std_msgs::msg::Bool>(topic_killswitch,sub_QoS,std::bind(&Velocity_node::killswitch_callback,this, std::placeholders::_1));
   //Timer
   if(first_start&&auto_start){
     startup_timer_=create_wall_timer(std::chrono::milliseconds(0),[this](){startup_timer_->cancel(); trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_ACTIVATE);});

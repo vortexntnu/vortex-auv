@@ -23,16 +23,7 @@
 
 //Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
 LQRController::LQRController()
-{
-    interval_ = 0.0;
-    integral_error_surge = 0.0;
-    integral_error_pitch = 0.0;
-    integral_error_yaw = 0.0;
-    surge_windup = false;
-    pitch_windup = false;
-    yaw_windup = false;
-    max_force = 0.0;
-    mass = 0.0;
+{    
     Q.setZero();
     R.setZero();
     B.setZero();
@@ -64,10 +55,10 @@ bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,s
     }
     max_force=max_force_;
     // Ensure full matrices are zeroed before assigning diagonals
-    Q.setZero();
-    R.setZero();
     Q.diagonal() = Eigen::Map<Eigen::VectorXd>(Q_.data(), Q_.size());
     R.diagonal() = Eigen::Map<Eigen::VectorXd>(R_.data(), R_.size());
+    Ixx=inertia_matrix_.at(6*3+3); Iyy=inertia_matrix_.at(4*6+4); Izz=inertia_matrix_.at(5*6+5); mass=inertia_matrix_.at(0);
+
     Eigen::Matrix<double,6,6> inertia_matrix = Eigen::Map<const Eigen::Matrix<double,6,6>>(inertia_matrix_.data(),6,6);
     D_low=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_low.data(),6,6);
     D_high=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_high.data(),6,6);
@@ -83,8 +74,7 @@ bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,s
         B_m.row(swaplines[i][0]).swap(B_m.row(swaplines[i][1]));
     }
     B.block<5,3>(0,0)=B_m.block<5,3>(0,0);   
-    integral_error_surge= 0.0;    integral_error_pitch= 0.0;    integral_error_yaw= 0.0;
-    surge_windup= false;    pitch_windup= false;    yaw_windup= false; mass=inertia_matrix_[0];
+    reset_controller();
     return 1;
 }
 
@@ -126,7 +116,6 @@ Eigen::Matrix<double,8,8> LQRController::linearize(State s){
     C(1,5)=-mass*s.surge;
     C(2,4)=mass*s.surge;
     */
-
     D-=inertia_matrix_inv*C; //To avoid unneccessary allocation
     
     Eigen::Matrix<double,3,3> T=Eigen::Matrix<double,3,3>::Identity();
@@ -178,7 +167,6 @@ bool LQRController::calculate_thrust(State state, Guidance_data error){
     if(INFO==0){
         return false; 
     }
-    
 
     Eigen::Matrix<double,8,1> state_error = update_error(error, state);
     u=saturate_input( (K_l*state_error));
@@ -253,35 +241,19 @@ Eigen::Matrix<double,6,6> LQRController::coriolis(const State& s)
     double q  = s.pitch_rate;
     double r  = s.yaw_rate;
 
-    // Inertia matrix components — extract from M
-    // M = [m*I   -m*S(r_g)]
-    //     [m*S(r_g)   I_b  ]
-    // For simplicity assuming diagonal M (no off-diagonal inertia/CoG terms):
-    double m   = mass;
-    double Ixx = 1.0 / inertia_matrix_inv(3,3);
-    double Iyy = 1.0 / inertia_matrix_inv(4,4);
-    double Izz = 1.0 / inertia_matrix_inv(5,5);
 
     Eigen::Matrix<double,6,6> C = Eigen::Matrix<double,6,6>::Zero();
 
-    // Standard Fossen rigid-body Coriolis (diagonal inertia, CoG at origin):
-    // C_RB = [  0        m*r    -m*q  ]   top-right 3x3
-    //        [ -m*r       0      m*p  ]
-    //        [  m*q     -m*p      0   ]
-    // and
-    // C_RB = [    0      -Izz*r   Iyy*q ]   bottom-left 3x3 (transposed of above with inertia)
-    //        [  Izz*r      0     -Ixx*p ]
-    //        [ -Iyy*q    Ixx*p     0    ]
 
     // Top-right block (translational-rotational coupling)
-    C(0,4) =  m * w;   C(0,5) = -m * v;
-    C(1,3) = -m * w;   C(1,5) =  m * u;
-    C(2,3) =  m * v;   C(2,4) = -m * u;
+    C(0,4) =  mass * w;   C(0,5) = -mass * v;
+    C(1,3) = -mass * w;   C(1,5) =  mass * u;
+    C(2,3) =  mass * v;   C(2,4) = -mass * u;
 
     // Bottom-left block (rotational-translational coupling)
-    C(3,1) =  m * w;   C(3,2) = -m * v;
-    C(4,0) = -m * w;   C(4,2) =  m * u;
-    C(5,0) =  m * v;   C(5,1) = -m * u;
+    C(3,1) =  mass * w;   C(3,2) = -mass * v;
+    C(4,0) = -mass* w;   C(4,2) =  mass * u;
+    C(5,0) =  mass * v;   C(5,1) = -mass * u;
 
     // Bottom-right block (rotational-rotational coupling)
     C(3,4) =  Izz * r;   C(3,5) = -Iyy * q;

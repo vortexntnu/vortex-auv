@@ -111,6 +111,10 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn  on_shutdown(const rclcpp_lifecycle::State & state) override;
 
     void reset_controllers(int nr=0);
+    rclcpp::QoS pub_QoS;
+    rclcpp::QoS sub_QoS;
+
+
 };
 
 
