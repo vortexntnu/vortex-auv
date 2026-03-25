@@ -15,10 +15,8 @@ class test_VC : public rclcpp::Node{
     public:
     test_VC();
     //Callback functions
-    //void read_thrust(geometry_msgs::msg::WrenchStamped::SharedPtr msg);
     void send_guidance();
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr);
-    //void send_state();
     
     //Variables
     
@@ -30,19 +28,15 @@ class test_VC : public rclcpp::Node{
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Clock::SharedPtr clock_;
     //Messages
-    //std::vector<double> thrust_vector;
     vortex_msgs::msg::LOSGuidance reference_msg;
 
     //Topics
-    //std::string topic_odom;
-    //std::string topic_thrust;
     std::string topic_guidance;
     std::string topic_state="/state";
     std::string topic_odometry;
     
 
     //MSGS
-    //nav_msgs::msg::Odometry odom_msg;
     double time1=0;
 };
 

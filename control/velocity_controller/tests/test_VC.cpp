@@ -5,7 +5,7 @@
 #include <cmath>
 #include <std_msgs/msg/float64_multi_array.hpp>
 ///#include "velocity_controller/PID_setup.hpp"
-#include "velocity_controller/test_VC.hpp"
+#include "test_VC.hpp"
 #include <rmw/types.h>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
@@ -47,13 +47,10 @@ void test_VC::send_guidance()
     reference_msg.yaw=std::numbers::pi*sin(time1*std::numbers::pi/9);
     //reference_msg.pitch=0.3*sin(time1*std::numbers::pi/9);
     reference_msg.surge=0.20;reference_msg.pitch=-0.4;//reference_msg.yaw=0.0; //Surge, pitch, yaw
-    //RCLCPP_INFO(this->get_logger(), "guidance callback: %f, %f, %f",reference_msg.surge,reference_msg.pitch,reference_msg.yaw);
-
     publisher_guidance->publish(reference_msg);
 }
 
 void test_VC::odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr){
-    //RCLCPP_INFO(this->get_logger(), "odo callback");
     vortex_msgs::msg::LOSGuidance msg;
     angle temp=quaternion_to_euler_angle(msg_ptr->pose.pose.orientation.w, msg_ptr->pose.pose.orientation.x, msg_ptr->pose.pose.orientation.y, msg_ptr->pose.pose.orientation.z);
     msg.set__pitch(temp.thetat);
