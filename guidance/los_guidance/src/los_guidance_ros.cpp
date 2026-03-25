@@ -1,5 +1,4 @@
 #include "los_guidance/los_guidance_ros.hpp"
-
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
