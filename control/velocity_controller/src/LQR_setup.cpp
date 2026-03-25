@@ -1,4 +1,3 @@
-
 #include "velocity_controller/LQR_setup.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <rclcpp/logger.hpp>
@@ -17,22 +16,16 @@
 //#include <lapack.h>
 #include "vortex/utils/math.hpp"
 #include "ct/optcon/lqr/LQR.hpp"   
-#include "velocity_controller/NMPC_setup.hpp" 
 
 
-
-//Eigen::IOFormat fmt(Eigen::StreamPrecision, 0, ", ", "\n", "[", "]");
-LQRController::LQRController()
-{    
+LQRController::LQRController(){    
     Q.setZero();
     R.setZero();
     B.setZero();
-    D_low.setZero();
-    D_high.setZero();
+    D.setZero();
     inertia_matrix_inv.setZero();
 };
-bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix_,double max_force_, std::vector<double> water_r_low,std::vector<double> water_r_high){
-    //Possible error handling here to check for size and allowed values.
+bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix_,double max_force_, std::vector<double> D_low){
     if (Q_.size()!=8){
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The Q matrix has the wrong amount of elements");
         return 0;
@@ -45,29 +38,21 @@ bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,s
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The M matrix has the wrong amount of elements");
         return 0;
     }
-    if(water_r_low.size()!=36||water_r_high.size()!=36){
-        RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The D matrix has the wrong amount of elements");
-        return 0;
-    }
     if (max_force_<0){
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),"The max_force need to be >0");
         return 0;
     }
     max_force=max_force_;
-    // Ensure full matrices are zeroed before assigning diagonals
     Q.diagonal() = Eigen::Map<Eigen::VectorXd>(Q_.data(), Q_.size());
     R.diagonal() = Eigen::Map<Eigen::VectorXd>(R_.data(), R_.size());
     Ixx=inertia_matrix_.at(6*3+3); Iyy=inertia_matrix_.at(4*6+4); Izz=inertia_matrix_.at(5*6+5); mass=inertia_matrix_.at(0);
 
     Eigen::Matrix<double,6,6> inertia_matrix = Eigen::Map<const Eigen::Matrix<double,6,6>>(inertia_matrix_.data(),6,6);
-    D_low=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_low.data(),6,6);
-    D_high=Eigen::Map<const Eigen::Matrix<double,6,6>>(water_r_high.data(),6,6);
+    D=Eigen::Map<const Eigen::Matrix<double,6,6>>(D_low.data(),6,6);
     inertia_matrix_inv=inertia_matrix.inverse();
     
     Eigen::Matrix<double, 6,3>B_t=inertia_matrix_inv*(Eigen::Matrix<double,6,3>()<<1,0,0, 0,0,0, 0,0,0, 0,0,0, 0,1,0, 0,0,1).finished();
-    B.setZero();
-    Eigen::Matrix<double,9,3> B_m;
-    B_m.setZero();
+    Eigen::Matrix<double,9,3> B_m=Eigen::Matrix<double,9,3>::Zero();
     B_m.block<6,3>(0,0)=B_t;
     std::vector<std::vector<int>> swaplines{{1,7},{2,8},{3,4},{4,5}};
     for (long unsigned int i=0;i<swaplines.size();i++){
@@ -78,7 +63,6 @@ bool LQRController::set_matrices(std::vector<double> Q_,std::vector<double> R_,s
     return 1;
 }
 
-//Can be optimized
 std::tuple<double,double> LQRController::saturate (double value, bool windup, double limit){
     if (abs(value) > limit){
         windup=true;
@@ -102,28 +86,17 @@ double LQRController::anti_windup(double error, double integral_sum, bool windup
 
 
 Eigen::Matrix<double,8,8> LQRController::linearize(State s){
-    //Eigen::Matrix<double,12,12> A;
-    Eigen::Matrix<double,6,6> D=Eigen::Matrix<double,6,6>::Zero();
+    Eigen::Matrix<double,6,6> D_=Eigen::Matrix<double,6,6>::Zero();
 
-    if (s.surge<100){ //Threshold tbd
-        D=-inertia_matrix_inv*D_low;
-    }
-    else {
-        D=-inertia_matrix_inv*D_high;
-    }
+    D_=-inertia_matrix_inv*D; //Assuming linear dampening for now
+    
     Eigen::Matrix<double,6,6> C=coriolis(s);
-    /* //Need to decide if i want to learize around 0?
-    C(1,5)=-mass*s.surge;
-    C(2,4)=mass*s.surge;
-    */
-    D-=inertia_matrix_inv*C; //To avoid unneccessary allocation
+    
+    D_-=inertia_matrix_inv*C; //To avoid unneccessary allocation
     
     Eigen::Matrix<double,3,3> T=Eigen::Matrix<double,3,3>::Identity();
-    /*T<<1,sin(s.yaw)*tan(s.pitch),cos(s.yaw)*tan(s.pitch),
-        0,cos(s.yaw),-sin(s.yaw),
-        0,sin(s.yaw)/cos(s.pitch),cos(s.yaw)/cos(s.pitch);*/
     Eigen::Matrix<double,9,9> A;
-    A.block<6,6>(0,0)=D;
+    A.block<6,6>(0,0)=D_;
     A.block<3,3>(0,6)=A.block<3,3>(6,0)=A.block<3,3>(6,6)=Eigen::Matrix3d::Zero();
     A.block<3,3>(6,3)=T;
     std::vector<std::vector<int>> swaplines{{1,7},{2,8},{3,4},{4,5}};
@@ -161,13 +134,8 @@ Eigen::Vector<double,3> LQRController::saturate_input(Eigen::Vector<double,3> u)
 bool LQRController::calculate_thrust(State state, Guidance_data error){
     ct::optcon::LQR<8,3> lqr;
     Eigen::Matrix<double,3,8> K_l;
-    
-    //TODO: consider making my own solver using eigen so that it does not need controll_toolbox library
     bool INFO= lqr.compute(Q,R,linearize(state),B,K_l,true,false);
-    if(INFO==0){
-        return false; 
-    }
-
+    if(INFO==0)return false;
     Eigen::Matrix<double,8,1> state_error = update_error(error, state);
     u=saturate_input( (K_l*state_error));
     return true;
@@ -197,53 +165,16 @@ bool LQRController::set_interval(double interval){
 Eigen::Vector<double,3> LQRController::get_thrust(){
     return u;
 }
-//Hjelpefunksjoner for å konvertere mellom std::vector og Eigen::Matrix3d
-/*/
-Eigen::Matrix3d vector_to_matrix3d(const std::vector<double> &other_matrix){
-    Eigen::Matrix3d mat;
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            mat(i, j) = other_matrix[i * 3 + j];
-    return mat;
-}
-std::vector<double> matrix3d_to_vector(const Eigen::Matrix3d &mat){
-    std::vector<double> other_matrix(9);
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            other_matrix[i * 3 + j] = mat(i, j);
-    return other_matrix;
-}
 
-std::vector<std::vector<double>> matrix3d_to_vector2d(const Eigen::Matrix3d &mat){
-    std::vector<std::vector<double>> other_matrix(3, std::vector<double>(3));
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            other_matrix[i][j] = mat(i, j);
-    return other_matrix;
-}
-
-Eigen::Matrix3d vector2d_to_matrix3d(const std::vector<std::vector<double>> &other_matrix){
-    Eigen::Matrix3d mat;
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            mat(i, j) = other_matrix[i][j];
-    return mat;
-}
-*/
 //TODO: double check the matrices here
-Eigen::Matrix<double,6,6> LQRController::coriolis(const State& s)
-{
-    // Body velocities
+Eigen::Matrix<double,6,6> LQRController::coriolis(const State& s){
     double u  = s.surge;
     double v  = s.sway;
     double w  = s.heave;
     double p  = s.roll_rate;
     double q  = s.pitch_rate;
     double r  = s.yaw_rate;
-
-
     Eigen::Matrix<double,6,6> C = Eigen::Matrix<double,6,6>::Zero();
-
 
     // Top-right block (translational-rotational coupling)
     C(0,4) =  mass * w;   C(0,5) = -mass * v;

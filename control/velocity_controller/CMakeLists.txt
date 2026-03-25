@@ -9,7 +9,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 
-# find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
@@ -18,43 +17,20 @@ find_package(std_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(Eigen3 REQUIRED)
-#find_package(CasADi REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(ct_optcon REQUIRED)
 find_package(ct_core REQUIRED)
 find_package(casadi REQUIRED)
 
-set(ACADOS_ROOT "$ENV{ACADOS_SOURCE_DIR}" CACHE PATH "acados root")
 include_directories(
-  ${ACADOS_ROOT}/include
-  ${ACADOS_ROOT}/include/acados
-  ${ACADOS_ROOT}/include/acados/ocp_nlp
-  ${ACADOS_ROOT}/include/acados_c
-  ${ACADOS_ROOT}/include/blasfeo/include
-  ${ACADOS_ROOT}/include/hpipm/include
-  ${ACADOS_ROOT}/include/qpOASES_e
-  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_auv_solver
-
   include
-
-)
-link_directories(${ACADOS_ROOT}/lib)
-
-
-# After setting ACADOS_ROOT etc.
-file(GLOB_RECURSE GEN_SRCS
-  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_auv_solver/*.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/build_auv_solver/*/*.c
 )
 
-
-
-add_library(auv_nmpc STATIC
-  src/NMPC_acados.cpp
-  ${GEN_SRCS}
-)
-
+#target_include_directories(velocity_controller_node PUBLIC
+#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+#  $<INSTALL_INTERFACE:include>
+#)
 
 add_executable(velocity_controller_node
   src/velocity_controller.cpp
@@ -62,18 +38,7 @@ add_executable(velocity_controller_node
   src/LQR_setup.cpp
   src/utilities.cpp
   src/ct_instantiations.cpp
-  src/NMPC_setup.cpp
-  #src/NMPC_acados.cpp
 )
-
-
-
-#add_executable(test_LQR_node
-#  src/LQR_test.cpp
-#  src/LQR_setup.cpp
-#  src/utilities.cpp
-#  src/ct_instantiations.cpp
-#  )
 ament_target_dependencies(velocity_controller_node
   rclcpp
   rclcpp_lifecycle
@@ -81,13 +46,11 @@ ament_target_dependencies(velocity_controller_node
   std_msgs
   vortex_msgs
   geometry_msgs
- # CasADi
   nav_msgs
   vortex_utils
 )
 #target_include_directories(velocity_controller_node PRIVATE casadi Eigen3)
-target_link_libraries(auv_nmpc acados hpipm blasfeo qpOASES_e m)
-target_link_libraries(velocity_controller_node Eigen3::Eigen casadi::casadi ct_optcon ct_core auv_nmpc)
+target_link_libraries(velocity_controller_node Eigen3::Eigen casadi::casadi ct_optcon ct_core)
 install(TARGETS
   velocity_controller_node
   DESTINATION lib/${PROJECT_NAME}
@@ -106,8 +69,5 @@ install(DIRECTORY
 if(BUILD_TESTING)
   add_subdirectory(tests) 
 endif()
-
-
-
 
 ament_package()

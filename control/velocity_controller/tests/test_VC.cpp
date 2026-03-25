@@ -4,15 +4,13 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <cmath>
 #include <std_msgs/msg/float64_multi_array.hpp>
-///#include "velocity_controller/PID_setup.hpp"
 #include "test_VC.hpp"
 #include <rmw/types.h>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "vortex_msgs/msg/los_guidance.hpp" 
 #include "velocity_controller/utilities.hpp"
-//#include "velocity_controller/velocity_controller.hpp"
-//#include "LQR_setup.hpp"
+
 //Denne noden er kun for å teste velocity_controller noden
 
 test_VC::test_VC() : Node("test_VC_node")

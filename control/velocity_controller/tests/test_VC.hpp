@@ -5,11 +5,11 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <cmath>
 #include <std_msgs/msg/float64_multi_array.hpp>
-#include "velocity_controller/PID_setup.hpp"
-#include "velocity_controller/velocity_controller.hpp"
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include "vortex_msgs/msg/los_guidance.hpp" 
+#include "nav_msgs/msg/odometry.hpp"
+#include "velocity_controller/utilities.hpp"
 
 class test_VC : public rclcpp::Node{
     public:

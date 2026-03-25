@@ -43,7 +43,7 @@ class LQRController{
 
     public:
     LQRController();
-    bool set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix, double max_force,std::vector<double> water_r_low,std::vector<double> water_r_high);
+    bool set_matrices(std::vector<double> Q_,std::vector<double> R_,std::vector<double> inertia_matrix, double max_force,std::vector<double> D_low);
     void reset_controller(int nr=0);
     bool calculate_thrust(State states, Guidance_data guidance_values);
     bool set_interval(double interval);
@@ -63,7 +63,7 @@ class LQRController{
     double integral_error_surge;    double integral_error_pitch;    double integral_error_yaw;
     bool surge_windup;    bool pitch_windup;    bool yaw_windup;
     Eigen::Matrix<double,8,8> Q;    Eigen::Matrix<double,3,3> R;  Eigen::Matrix<double,8,3> B;
-    Eigen::Matrix<double,6,6> D_low; Eigen::Matrix<double,6,6> D_high;
+    Eigen::Matrix<double,6,6> D; 
     double max_force, mass, Ixx, Iyy,Izz;
 
     Eigen::Matrix<double,6,6> inertia_matrix_inv;

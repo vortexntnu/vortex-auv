@@ -11,8 +11,6 @@
 #include "LQR_setup.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp" 
-#include "velocity_controller/NMPC_setup.hpp"
-#include "velocity_controller/NMPC_acados.hpp"
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <vector>
 
@@ -84,22 +82,13 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     std::vector<double> inertia_matrix;
     std::vector<double> dampening_matrix_low;
     std::vector<double> dampening_matrix_high;
-    //NMPC controller
-    NMPC_controller NMPC;
-    //NMPC acados
-    AuvNMPC NMPC_acados;
-    std::vector<double> Q2;
-    std::vector<double> R2;
-    //NMPC parameters
-    std::vector<double> Q3;
-    std::vector<double> R3;
     
     std::atomic_bool should_exit_{false};
     //VC settings
-    bool reset_on_new_ref=true;
-    bool anti_overshoot=false;
-    bool auto_start=false;
-    bool odometry_dropout_guard=true;
+    bool reset_on_new_ref;
+    bool anti_overshoot;
+    bool auto_start;
+    bool odometry_dropout_guard;
     int publish_counter=0;
     bool first_start=true;
     

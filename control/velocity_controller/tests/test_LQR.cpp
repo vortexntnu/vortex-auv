@@ -20,7 +20,7 @@ class LQR_test : public ::testing::Test{
         
     };
     void SetUp() override{
-        controller.set_matrices(cfg["/**"]["ros__parameters"]["LQR_params"]["Q"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["LQR_params"]["R"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["inertia_matrix"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["max_force"].as<double>(),cfg["/**"]["ros__parameters"]["dampening_matrix_low"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["dampening_matrix_high"].as<std::vector<double>>());
+        controller.set_matrices(cfg["/**"]["ros__parameters"]["LQR_params"]["Q"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["LQR_params"]["R"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["inertia_matrix"].as<std::vector<double>>(),cfg["/**"]["ros__parameters"]["max_force"].as<double>(),cfg["/**"]["ros__parameters"]["dampening_matrix_low"].as<std::vector<double>>());
         controller.reset_controller();
         controller.set_interval(0.01);
     }
@@ -43,13 +43,13 @@ TEST_F(LQR_test,wrong_setup){
     std::vector<double> six={1,2,3,4,5,6};
     std::vector<double> thirty_six={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36};
     std::vector<double> three={1,2,3};
-    EXPECT_TRUE(controller.set_matrices(eight,three,thirty_six,100,thirty_six,thirty_six));
-    EXPECT_FALSE(controller.set_matrices(eight,eight,thirty_six,100,thirty_six,thirty_six));
-    EXPECT_FALSE(controller.set_matrices(three,three,thirty_six,100,thirty_six,thirty_six));
-    EXPECT_FALSE(controller.set_matrices(eight,three,eight,100,thirty_six,thirty_six));
-    EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,100,eight,thirty_six));
-    EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,100,thirty_six,eight));
-    EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,-100,thirty_six,thirty_six));
+    EXPECT_TRUE(controller.set_matrices(eight,three,thirty_six,100,thirty_six));
+    EXPECT_FALSE(controller.set_matrices(eight,eight,thirty_six,100,thirty_six));
+    EXPECT_FALSE(controller.set_matrices(three,three,thirty_six,100,thirty_six));
+    EXPECT_FALSE(controller.set_matrices(eight,three,eight,100,thirty_six));
+    EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,100,eight));
+    EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,100,eight));
+    EXPECT_FALSE(controller.set_matrices(eight,three,thirty_six,-100,thirty_six));
 };
 /*
 TEST_F(LQR_test,solve){
