@@ -107,34 +107,7 @@ if(BUILD_TESTING)
   add_subdirectory(tests) 
 endif()
 
-add_executable(test_VC_node
-src/test_VC.cpp
-src/utilities.cpp
-src/ct_instantiations.cpp
-)
 
-target_include_directories(test_VC_node PUBLIC
-$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-$<INSTALL_INTERFACE:include>
-${EIGEN3_INCLUDE_DIR} 
-)
-
-
-target_link_libraries(test_VC_node Eigen3::Eigen ct_optcon ct_core)
-
-ament_target_dependencies(test_VC_node
-rclcpp
-rclcpp_lifecycle
-std_msgs
-vortex_msgs
-geometry_msgs
-nav_msgs
-vortex_utils
-)
-
-install(TARGETS test_VC_node
-DESTINATION lib/${PROJECT_NAME}
-)
 
 
 ament_package()

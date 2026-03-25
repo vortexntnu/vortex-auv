@@ -286,7 +286,7 @@ bool NMPC_controller::initialize_MPC(){
 bool NMPC_controller::calculate_thrust(Guidance_data guidance_values, State state){
     
     casadi::DM x0_val={state.surge,state.sway,state.heave,state.roll_rate,state.pitch_rate,state.yaw_rate,state.roll,state.pitch,state.yaw};
-    casadi::DM xr_val={guidance_values.surge,guidance_values.sway,guidance_values.heave,guidance_values.roll_rate,guidance_values.pitch_rate,guidance_values.yaw_rate,guidance_values.roll,guidance_values.pitch,guidance_values.yaw};
+    casadi::DM xr_val={guidance_values.surge,0,0,0,0,0,0,guidance_values.pitch,guidance_values.yaw};
     casadi::DM ur_val={0,0,0};
     Pval=casadi::DM::vertcat({x0_val,xr_val,ur_val});
   // Solve

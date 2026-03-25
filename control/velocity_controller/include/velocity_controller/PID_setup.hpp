@@ -10,6 +10,7 @@ class PID_controller {
     //PID_controller(double Kp=0, double Ki=0, double Kd=0, double max_output=0, double min_output=0, double dt=0);
     //PID_controller(double k_p, double k_i, double k_d) : PID_controller(k_p, k_i, k_d, 100.0, -100.0) {};
     bool calculate_thrust(double error);
+    bool calculate_thrust(double error, double error_d);
     void reset_controller();
     double get_output();
     bool set_output_limits(double min_output, double max_output);
