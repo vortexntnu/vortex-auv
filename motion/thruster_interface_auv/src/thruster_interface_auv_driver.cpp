@@ -132,7 +132,7 @@ std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
 //     return packet;
 // }
 
-std::vector<uint8_t> create_packet(uint8_t id, const std::vector<uint16_t>& thruster_pwm_array) {
+std::vector<uint8_t> create_packet(uint8_t id, const std::vector<uint16_t>& payload) {
     std::vector<uint8_t> packet;
 
     // 1. Magic byte
