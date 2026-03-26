@@ -132,8 +132,11 @@ std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
 //     return packet;
 // }
 
-std::vector<uint8_t> create_packet(uint8_t id, const std::vector<uint16_t>& payload) {
-    std::vector<uint8_t> packet;
+std::vector<std::uint8_t> ThrusterInterfaceAUVDriver::create_packet(
+    std::uint8_t id,
+    const std::vector<std::uint16_t>& thruster_pwm_array) const {
+
+    std::vector<std::uint8_t> packet;
 
     // 1. Magic byte
     packet.push_back(0xAA);
@@ -142,19 +145,19 @@ std::vector<uint8_t> create_packet(uint8_t id, const std::vector<uint16_t>& payl
     packet.push_back(id);
 
     // 3. Length (payload size in bytes)
-    uint8_t length = static_cast<uint8_t>(payload.size() * sizeof(uint16_t));
+    uint8_t length = static_cast<uint8_t>(
+        thruster_pwm_array.size() * sizeof(uint16_t));
     packet.push_back(length);
 
-    // 4. Payload (8 x uint16_t -> 16 bytes), little-endian
-    for (uint16_t value : payload) {
-        packet.push_back(static_cast<uint8_t>(value & 0xFF));         // LSB
-        packet.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));  // MSB
+    // 4. Payload (little-endian)
+    for (uint16_t value : thruster_pwm_array) {
+        packet.push_back(static_cast<uint8_t>(value & 0xFF));
+        packet.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
     }
 
-    // 5. Checksum: XOR of ID, LENGTH, PAYLOAD
-    // This matches your embedded compute_checksum()
+    // 5. XOR checksum (matching your MCU)
     uint8_t checksum = id ^ length;
-    for (uint16_t value : payload) {
+    for (uint16_t value : thruster_pwm_array) {
         checksum ^= static_cast<uint8_t>(value & 0xFF);
         checksum ^= static_cast<uint8_t>((value >> 8) & 0xFF);
     }
