@@ -96,58 +96,134 @@ std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
         coeffs[2] * force +
         coeffs[3]);
 }
+//
+// std::vector<std::uint8_t> ThrusterInterfaceAUVDriver::create_packet(
+//     std::uint8_t id,
+//     const std::vector<uint16_t>& thruster_pwm_array) const {
+//     constexpr std::uint8_t magic = 0xAA;
+//     constexpr std::size_t expected_thrusters = 8;
+//
+//     if (thruster_pwm_array.size() != expected_thrusters) {
+//         return {};
+//     }
+//
+//     std::vector<std::uint8_t> packet;
+//     packet.reserve(1 + 1 + 1 + expected_thrusters * 2 + 1);
+//
+//     packet.push_back(magic);
+//     packet.push_back(id);
+//
+//     const std::uint8_t payload_length =
+//         static_cast<std::uint8_t>(thruster_pwm_array.size() * sizeof(std::uint16_t));
+//     packet.push_back(payload_length);
+//
+//     for (std::uint16_t value : thruster_pwm_array) {
+//         // little-endian
+//         packet.push_back(static_cast<std::uint8_t>(value & 0xFF));
+//         packet.push_back(static_cast<std::uint8_t>((value >> 8) & 0xFF));
+//     }
+//
+//     std::uint8_t checksum = 0;
+//     for (std::uint8_t byte : packet) {
+//         checksum = static_cast<std::uint8_t>(checksum + byte);
+//     }
+//
+//     packet.push_back(checksum);
+//     return packet;
+// }
 
-std::vector<std::uint8_t> ThrusterInterfaceAUVDriver::create_packet(
-    std::uint8_t id,
-    const std::vector<uint16_t>& thruster_pwm_array) const {
-    constexpr std::uint8_t magic = 0xAA;
-    constexpr std::size_t expected_thrusters = 8;
+std::vector<uint8_t> create_packet(uint8_t id, const std::vector<uint16_t>& thruster_pwm_array) {
+    std::vector<uint8_t> packet;
 
-    if (thruster_pwm_array.size() != expected_thrusters) {
-        return {};
-    }
+    // 1. Magic byte
+    packet.push_back(0xAA);
 
-    std::vector<std::uint8_t> packet;
-    packet.reserve(1 + 1 + 1 + expected_thrusters * 2 + 1);
-
-    packet.push_back(magic);
+    // 2. ID
     packet.push_back(id);
 
-    const std::uint8_t payload_length =
-        static_cast<std::uint8_t>(thruster_pwm_array.size() * sizeof(std::uint16_t));
-    packet.push_back(payload_length);
+    // 3. Length (payload size in bytes)
+    uint8_t length = static_cast<uint8_t>(payload.size() * sizeof(uint16_t));
+    packet.push_back(length);
 
-    for (std::uint16_t value : thruster_pwm_array) {
-        // little-endian
-        packet.push_back(static_cast<std::uint8_t>(value & 0xFF));
-        packet.push_back(static_cast<std::uint8_t>((value >> 8) & 0xFF));
+    // 4. Payload (8 x uint16_t -> 16 bytes), little-endian
+    for (uint16_t value : payload) {
+        packet.push_back(static_cast<uint8_t>(value & 0xFF));         // LSB
+        packet.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));  // MSB
     }
 
-    std::uint8_t checksum = 0;
-    for (std::uint8_t byte : packet) {
-        checksum = static_cast<std::uint8_t>(checksum + byte);
+    // 5. Checksum: XOR of ID, LENGTH, PAYLOAD
+    // This matches your embedded compute_checksum()
+    uint8_t checksum = id ^ length;
+    for (uint16_t value : payload) {
+        checksum ^= static_cast<uint8_t>(value & 0xFF);
+        checksum ^= static_cast<uint8_t>((value >> 8) & 0xFF);
     }
 
     packet.push_back(checksum);
+
     return packet;
 }
 
+//
+// int ThrusterInterfaceAUVDriver::send_data_to_escs(
+//     const std::vector<uint16_t>& thruster_pwm_array) {
+//     if (!serial_.is_open()) {
+//         return -1;
+//     }
+//
+//     const auto packet = create_packet(0x04, thruster_pwm_array);
+//     if (packet.empty()) {
+//         return -1;
+//     }
+//
+//     std::error_code ec;
+//     const auto bytes_written = asio::write(serial_, asio::buffer(packet), ec);
+//
+//     if (ec || bytes_written != packet.size()) {
+//         std::cerr << "UART write failed: "
+//                   << (ec ? ec.message() : "short write") << '\n';
+//         return -1;
+//     }
+//
+//     return 0;
+// }
 int ThrusterInterfaceAUVDriver::send_data_to_escs(
     const std::vector<uint16_t>& thruster_pwm_array) {
     if (!serial_.is_open()) {
         return -1;
     }
 
-    const auto packet = create_packet(packet_id_, thruster_pwm_array);
-    if (packet.empty()) {
+    const auto packet = create_packet(0x04, thruster_pwm_array);
+    constexpr std::size_t header_size = 3;
+
+    if (packet.size() < header_size) {
         return -1;
     }
 
     std::error_code ec;
-    const auto bytes_written = asio::write(serial_, asio::buffer(packet), ec);
 
-    if (ec || bytes_written != packet.size()) {
-        std::cerr << "UART write failed: "
+    // Send header first: [magic][id][length]
+    const auto header_bytes_written =
+        asio::write(serial_, asio::buffer(packet.data(), header_size), ec);
+
+    if (ec || header_bytes_written != header_size) {
+        std::cerr << "UART header write failed: "
+                  << (ec ? ec.message() : "short write") << '\n';
+        return -1;
+    }
+
+    // Small delay so the receiver can switch state
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    // Send payload + checksum
+    const auto remaining_size = packet.size() - header_size;
+    const auto payload_bytes_written =
+        asio::write(serial_,
+                    asio::buffer(packet.data() + header_size, remaining_size),
+                    ec);
+
+    if (ec || payload_bytes_written != remaining_size) {
+        std::cerr << "UART payload write failed: "
                   << (ec ? ec.message() : "short write") << '\n';
         return -1;
     }
