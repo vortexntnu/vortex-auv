@@ -18,4 +18,5 @@ jobs:
       test_scripts: '[
         "tests/simulator_tests/waypoint_navigation/simulator_test.sh",
         "tests/simulator_tests/waypoint_manager_test/simulator_test.sh",
+        "tests/simulator_tests/los_test/simulator_test.sh",
         ]'

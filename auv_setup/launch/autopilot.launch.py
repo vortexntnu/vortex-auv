@@ -8,7 +8,6 @@ from launch.actions import (
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
-    declare_drone_and_namespace_args,
     resolve_drone_and_namespace,
 )
 
@@ -17,9 +16,9 @@ def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
     velocity_lqr_config = os.path.join(
-        get_package_share_directory("velocity_controller_lqr"),
+        get_package_share_directory("velocity_controller"),
         "config",
-        "param_velocity_controller_lqr.yaml",
+        f"{drone}_params.yaml",
     )
 
     los_config = os.path.join(
@@ -45,9 +44,9 @@ def launch_setup(context, *args, **kwargs):
     )
 
     lqr_node = Node(
-        package="velocity_controller_lqr",
-        executable="velocity_controller_lqr_node.py",
-        name="velocity_controller_lqr_node",
+        package="velocity_controller",
+        executable="velocity_controller_node.py",
+        name="velocity_controller_node",
         namespace=namespace,
         output="screen",
         parameters=[drone_params, velocity_lqr_config],

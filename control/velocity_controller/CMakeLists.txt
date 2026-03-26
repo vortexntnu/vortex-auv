@@ -63,11 +63,11 @@ install(
 
 install(DIRECTORY
   launch
-  config 
+  config
   DESTINATION share/${PROJECT_NAME}/
 )
 if(BUILD_TESTING)
-  add_subdirectory(tests) 
+  add_subdirectory(tests)
 endif()
 
 ament_package()
