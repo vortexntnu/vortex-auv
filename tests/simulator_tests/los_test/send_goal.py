@@ -7,6 +7,9 @@ from vortex_msgs.action import LOSGuidance
 
 class LOSGuidanceClient(Node):
     def __init__(self):
+        super().__init__('los_guidance_client')
+        # Create the action client
+        self._action_client = ActionClient(self, LOSGuidance, '/nautilus/los_guidance')
         super().__init__("los_guidance_client")
 
         self.declare_parameter("drone", "orca")
