@@ -1,5 +1,4 @@
 #include "los_guidance/los_guidance_ros.hpp"
-
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
@@ -236,7 +235,7 @@ void LosGuidanceNode::handle_accepted(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
         goal_handle) {
-    execute(goal_handle);
+    std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
 
 // Service Callback
@@ -308,7 +307,6 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     slow_approach_ = common_config["slow_approach"].as<bool>();
     slow_down_distance_ = common_config["slow_down_distance"].as<double>();
     u_slow_min_ = common_config["u_slow_min"].as<double>();
-    surge_initialized_ = common_config["surge_initialization"].as<bool>();
     surge_rate_limit_ = common_config["surge_rate_limit"].as<double>();
 
     method_ = static_cast<types::ActiveLosMethod>(
@@ -398,23 +396,28 @@ void LosGuidanceNode::execute(
 
         los_debug_pub_->publish(reference_msg);
 
-        const auto& v = debug_current_odom_->twist.twist.linear;
-        double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        if (debug_current_odom_) {
+            const auto& v = debug_current_odom_->twist.twist.linear;
+            double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
-        vortex_msgs::msg::LOSGuidance state_debug_msg;
-        Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
-            Eigen::Quaterniond(debug_current_odom_->pose.pose.orientation.w,
-                               debug_current_odom_->pose.pose.orientation.x,
-                               debug_current_odom_->pose.pose.orientation.y,
-                               debug_current_odom_->pose.pose.orientation.z));
+            vortex_msgs::msg::LOSGuidance state_debug_msg;
+            Eigen::Vector3d euler =
+                vortex::utils::math::quat_to_euler(Eigen::Quaterniond(
+                    debug_current_odom_->pose.pose.orientation.w,
+                    debug_current_odom_->pose.pose.orientation.x,
+                    debug_current_odom_->pose.pose.orientation.y,
+                    debug_current_odom_->pose.pose.orientation.z));
 
-        state_debug_msg.pitch = euler.y();
-        state_debug_msg.yaw = euler.z();
-        state_debug_msg.surge = surge;
+            state_debug_msg.pitch = euler.y();
+            state_debug_msg.yaw = euler.z();
+            state_debug_msg.surge = surge;
 
-        state_debug_pub_->publish(state_debug_msg);
+            state_debug_pub_->publish(state_debug_msg);
+        }
+
         goal_handle->publish_feedback(feedback);
         reference_pub_->publish(reference_msg);
+
         if ((inputs_copy.current_position - inputs_copy.next_point)
                 .as_vector()
                 .norm() < goal_reached_tol_) {

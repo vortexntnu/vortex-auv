@@ -114,7 +114,7 @@ class LosGuidanceNode : public rclcpp::Node {
     double max_pitch_angle_{};
     bool slow_approach_{};
     double slow_down_distance_{};
-    bool surge_initialized_{};
+    bool surge_initialized_{false};
     double u_slow_min_{};
     double commanded_surge_{};
     double surge_rate_limit_{};

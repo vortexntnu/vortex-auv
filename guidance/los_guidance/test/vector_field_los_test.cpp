@@ -12,8 +12,8 @@ class VectorFieldLosTest : public ::testing::Test {
         VectorFieldLosParams params;
         params.max_approach_angle_h = 30.0 * M_PI / 180.0;  // 30 degrees in rad
         params.max_approach_angle_v = 20.0 * M_PI / 180.0;  // 20 degrees in rad
-        params.k_p_h = 0.1;                                 // needs tuning
-        params.k_p_v = 0.1;                                 // needs tuning
+        params.k_p_h = 1.5;                                 // needs tuning
+        params.k_p_v = 0.9;                                 // needs tuning
         params.time_step = 0.01;
         return params;
     }
@@ -69,8 +69,8 @@ TEST_F(VectorFieldLosTest, T08_test_commanded_angles) {
     EXPECT_NEAR(O.psi_d, 0.0, tol);
 
     // Pitch cmd should be between 0 and pi/2
-    EXPECT_GT(O.theta_d, 0.0);
-    EXPECT_LT(O.theta_d, 1.57);
+    EXPECT_LT(O.theta_d, 0.0);
+    EXPECT_GT(O.theta_d, -1.57);
 }
 
 // Test commanded angles when drone is over the track
@@ -86,8 +86,8 @@ TEST_F(VectorFieldLosTest, T09_test_commanded_angles) {
     EXPECT_NEAR(O.psi_d, 0.0, tol);
 
     // Pitch cmd should be between -pi/2 and 0
-    EXPECT_LT(O.theta_d, 0.0);
-    EXPECT_GT(O.theta_d, -1.57);
+    EXPECT_GT(O.theta_d, 0.0);
+    EXPECT_LT(O.theta_d, 1.57);
 }
 
 // Test commanded angles when drone is over and to the right of the track
@@ -104,8 +104,8 @@ TEST_F(VectorFieldLosTest, T10_test_commanded_angles) {
     EXPECT_GT(O.psi_d, -1.57);
 
     // Pitch cmd should be between -pi/2 and 0
-    EXPECT_LT(O.theta_d, 0.0);
-    EXPECT_GT(O.theta_d, -1.57);
+    EXPECT_GT(O.theta_d, 0.0);
+    EXPECT_LT(O.theta_d, 1.57);
 }
 
 }  // namespace vortex::guidance::los

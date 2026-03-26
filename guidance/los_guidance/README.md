@@ -319,6 +319,25 @@ However it performs worse when the path contains **sharp turns or rapidly changi
 
 ---
 
+## Testing with `guidance_test.launch.py`
+
+To test the entire los system from just one place a simple, low-effort launch script has been implemented. The file is  named `los_guidance/launch/guidance_test.launch.py` It launches the necessary nodes for simulation and autopilot and lets you choose a test scenario through the `test_scenario` argument.The sceraios that have been implemented are:
+
+| Scenario | Use |
+|----------|------|
+| Circle | ends the drone in a circular path |
+| Square |sends the drone through a square waypoint pattern|
+| opposite_point | sends the drone toward a waypoint and then toward a waypoint in the opposite direction (180 degrees) |
+
+Example of use:
+
+```
+ros2 launch los_guidance guidance_test.launch.py test_scenario:=circle
+```
+
+---
+
+
 ## ROS Interfaces
 
 | Interface | Name | Type | Message-Type |
