@@ -28,7 +28,6 @@ set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
   src/lib/reference_filter.cpp
-  src/lib/waypoint_utils.cpp
   src/lib/waypoint_follower.cpp
 )
 

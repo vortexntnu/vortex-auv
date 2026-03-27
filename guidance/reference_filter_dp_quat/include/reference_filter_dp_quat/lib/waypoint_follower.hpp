@@ -3,14 +3,16 @@
 
 #include <mutex>
 #include <vortex/utils/types.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 #include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
 #include "reference_filter_dp_quat/lib/reference_filter.hpp"
-#include "reference_filter_dp_quat/lib/waypoint_types.hpp"
 
 namespace vortex::guidance {
 
 using vortex::utils::types::Pose;
 using vortex::utils::types::Twist;
+using vortex::utils::types::Waypoint;
+using vortex::utils::types::WaypointMode;
 
 /**
  * @brief Manages reference filter state and waypoint following logic.
