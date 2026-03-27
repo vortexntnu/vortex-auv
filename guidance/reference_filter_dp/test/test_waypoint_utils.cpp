@@ -6,7 +6,7 @@ namespace vortex::guidance {
 
 // --- apply_mode_logic tests ---
 
-TEST(ApplyModeLogic, FullPoseReturnsInputUnchanged) {
+TEST(ApplyModeLogic, FullPoseWrapsAnglesToShortestPath) {
     Eigen::Vector6d r_in;
     r_in << 1.0, 2.0, 3.0, 0.1, 0.2, 0.3;
     Eigen::Vector6d state = Eigen::Vector6d::Zero();
@@ -14,9 +14,33 @@ TEST(ApplyModeLogic, FullPoseReturnsInputUnchanged) {
     Eigen::Vector6d result =
         apply_mode_logic(r_in, WaypointMode::FULL_POSE, state);
 
-    for (int i = 0; i < 6; ++i) {
-        EXPECT_DOUBLE_EQ(result(i), r_in(i));
-    }
+    // Position unchanged
+    EXPECT_DOUBLE_EQ(result(0), 1.0);
+    EXPECT_DOUBLE_EQ(result(1), 2.0);
+    EXPECT_DOUBLE_EQ(result(2), 3.0);
+
+    // Small angles: wrapping has no effect
+    EXPECT_NEAR(result(3), 0.1, 1e-12);
+    EXPECT_NEAR(result(4), 0.2, 1e-12);
+    EXPECT_NEAR(result(5), 0.3, 1e-12);
+}
+
+TEST(ApplyModeLogic, FullPoseTakesShortestRotation) {
+    // Current yaw ~170°, reference yaw ~-170° => only ~20° apart
+    // Without wrapping, the filter would see a ~340° difference
+    Eigen::Vector6d state;
+    state << 0.0, 0.0, 0.0, 0.0, 0.0, 2.96;  // ~170°
+    Eigen::Vector6d r_in;
+    r_in << 0.0, 0.0, 0.0, 0.0, 0.0, -2.96;  // ~-170°
+
+    Eigen::Vector6d result =
+        apply_mode_logic(r_in, WaypointMode::FULL_POSE, state);
+
+    // The wrapped reference should be close to the current state + short
+    // rotation
+    double yaw_error = result(5) - state(5);
+    EXPECT_NEAR(yaw_error, -2.96 - 2.96 + 2.0 * M_PI, 1e-12);
+    EXPECT_LT(std::abs(yaw_error), M_PI + 1e-9);
 }
 
 TEST(ApplyModeLogic, OnlyPositionKeepsOrientationFromState) {
@@ -64,9 +88,30 @@ TEST(ApplyModeLogic, OnlyOrientationKeepsPositionFromState) {
     EXPECT_DOUBLE_EQ(result(0), 10.0);
     EXPECT_DOUBLE_EQ(result(1), 20.0);
     EXPECT_DOUBLE_EQ(result(2), 30.0);
-    EXPECT_DOUBLE_EQ(result(3), 0.1);
-    EXPECT_DOUBLE_EQ(result(4), 0.2);
-    EXPECT_DOUBLE_EQ(result(5), 0.3);
+
+    // Small angle differences: wrapping has no effect, result matches input
+    EXPECT_NEAR(result(3), 0.1, 1e-12);
+    EXPECT_NEAR(result(4), 0.2, 1e-12);
+    EXPECT_NEAR(result(5), 0.3, 1e-12);
+}
+
+TEST(ApplyModeLogic, OnlyOrientationTakesShortestRotation) {
+    Eigen::Vector6d state;
+    state << 10.0, 20.0, 30.0, 0.0, 0.0, 2.96;
+    Eigen::Vector6d r_in;
+    r_in << 1.0, 2.0, 3.0, 0.0, 0.0, -2.96;
+
+    Eigen::Vector6d result =
+        apply_mode_logic(r_in, WaypointMode::ONLY_ORIENTATION, state);
+
+    // Position from state
+    EXPECT_DOUBLE_EQ(result(0), 10.0);
+    EXPECT_DOUBLE_EQ(result(1), 20.0);
+    EXPECT_DOUBLE_EQ(result(2), 30.0);
+
+    // Yaw should take the shortest path
+    double yaw_error = result(5) - state(5);
+    EXPECT_LT(std::abs(yaw_error), M_PI + 1e-9);
 }
 
 // --- has_converged tests ---

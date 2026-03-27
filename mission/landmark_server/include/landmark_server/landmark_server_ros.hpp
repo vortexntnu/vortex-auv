@@ -21,6 +21,7 @@
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
+#include <vortex_msgs/msg/waypoint_mode.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 
@@ -183,7 +184,7 @@ class LandmarkServerNode : public rclcpp::Node {
     uint64_t convergence_session_id_{0};
     bool convergence_active_{false};
     bool convergence_dead_reckoning_handoff_{false};
-    uint8_t convergence_mode_{0};
+    vortex_msgs::msg::WaypointMode convergence_mode_;
     std::optional<vortex::filtering::Track> convergence_last_known_track_;
 
     bool convergence_track_lost_{false};

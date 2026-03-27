@@ -34,7 +34,7 @@ void print_generalized_force(const Vector6d& tau) {
     spdlog::info("Yaw moment: {}", tau[5]);
 }
 
-//  When looking at the AUV from above (MOBY)
+//  When looking at the AUV from above (Nautilus)
 //
 //         front
 //        |======|
@@ -628,7 +628,7 @@ TEST_F(QPAllocatorTests, Q12_QP_SurgePlusAndYawPlus_UsesHorizontalThrusters) {
 
     const double eps_active = 0.1;  // must be "meaningfully used"
 
-    // For moby geometry, surge+yaw reinforces T4 and T7 while T0 and T3
+    // For nautilus geometry, surge+yaw reinforces T4 and T7 while T0 and T3
     // cancel each other out
     EXPECT_GT(std::abs(u[4]), eps_active);
     EXPECT_GT(std::abs(u[7]), eps_active);
