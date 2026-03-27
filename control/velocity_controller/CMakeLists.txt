@@ -11,6 +11,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -32,15 +33,17 @@ include_directories(
 #  $<INSTALL_INTERFACE:include>
 #)
 
-add_executable(velocity_controller_node
+set(LIB_NAME velocity_controller_component)
+add_library(${LIB_NAME} SHARED
   src/velocity_controller.cpp
   src/PID_setup.cpp
   src/LQR_setup.cpp
   src/utilities.cpp
   src/ct_instantiations.cpp
 )
-ament_target_dependencies(velocity_controller_node
+ament_target_dependencies(${LIB_NAME}
   rclcpp
+  rclcpp_components
   rclcpp_lifecycle
   lifecycle_msgs
   std_msgs
@@ -49,11 +52,19 @@ ament_target_dependencies(velocity_controller_node
   nav_msgs
   vortex_utils
 )
-#target_include_directories(velocity_controller_node PRIVATE casadi Eigen3)
-target_link_libraries(velocity_controller_node Eigen3::Eigen casadi::casadi ct_optcon ct_core)
+#target_include_directories(${LIB_NAME} PRIVATE casadi Eigen3)
+target_link_libraries(${LIB_NAME} Eigen3::Eigen casadi::casadi ct_optcon ct_core)
+
+rclcpp_components_register_node(${LIB_NAME}
+  PLUGIN "Velocity_node"
+  EXECUTABLE velocity_controller_node
+)
+
 install(TARGETS
-  velocity_controller_node
-  DESTINATION lib/${PROJECT_NAME}
+  ${LIB_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 install(

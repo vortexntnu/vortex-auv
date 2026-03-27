@@ -17,6 +17,7 @@
   <!-- <depend>ct_optcon</depend> -->
   <!-- <depend>ct_core</depend> -->
   <depend>vortex_utils</depend>
+  <depend>rclcpp_components</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>lifecycle_msgs</depend>
   <depend>auv_setup</depend>

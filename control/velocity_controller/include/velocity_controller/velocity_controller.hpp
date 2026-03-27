@@ -18,7 +18,7 @@
 
 class Velocity_node : public rclcpp_lifecycle::LifecycleNode{
     public:
-    explicit Velocity_node();
+    explicit Velocity_node(const rclcpp::NodeOptions& options);
     Velocity_node(const Velocity_node&)=delete; //no copy constructor
     Velocity_node& operator=(const Velocity_node&) = delete; //no copy assignment
     //TODO: decide if i one should be allowed to move or transfer ownership if the class
