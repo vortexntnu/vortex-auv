@@ -57,7 +57,6 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   fmt
   tf2_ros
   tf2_eigen
-  stonefish_ros2
 )
 
 rclcpp_components_register_node(
