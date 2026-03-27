@@ -59,9 +59,6 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         guidance_topic, qos_sensor_data);
 
-    los_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
-        "los_debug", qos_sensor_data);
-
     state_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         "state_debug", qos_sensor_data);
 
@@ -393,8 +390,6 @@ void LosGuidanceNode::execute(
         vortex_msgs::msg::LOSGuidance reference_msg =
             fill_los_reference(outputs, inputs_copy);
         feedback->feedback = reference_msg;
-
-        los_debug_pub_->publish(reference_msg);
 
         if (debug_current_odom_) {
             const auto& v = debug_current_odom_->twist.twist.linear;
