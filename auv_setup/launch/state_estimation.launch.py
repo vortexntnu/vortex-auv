@@ -1,0 +1,118 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import OpaqueFunction
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
+
+def launch_setup(context, *args, **kwargs):
+    drone, namespace = resolve_drone_and_namespace(context)
+
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+
+    eskf_params = os.path.join(
+        get_package_share_directory("eskf"), "config", "eskf_params.yaml"
+    )
+
+    container = ComposableNodeContainer(
+        name="eskf_container",
+        namespace=namespace,
+        package="rclcpp_components",
+        executable="component_container_mt",
+        composable_node_descriptions=[
+            ComposableNode(
+                package="eskf",
+                plugin="ESKFNode",
+                name="eskf_node",
+                namespace=namespace,
+                parameters=[drone_params, eskf_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+            ComposableNode(
+                package="mru_ros_interface",
+                plugin="MruRosInterface",
+                name="mru_ros_interface_node",
+                namespace=namespace,
+                parameters=[
+                    {
+                        "imu_pub_topic": f"/{namespace}/imu/data_raw",
+                        "frame_id": f"/{namespace}/imu_link",
+                        "connection_params.remote_ip": "10.0.1.20", # MRU IP
+                        "connection_params.data_remote_port": 7550,
+                        "connection_params.data_local_port": 7551,
+                        "connection_params.control_local_port": 7552,
+                        "mru_settings.channel": "UDP1",
+                        "mru_settings.port": 7551,
+                        "mru_settings.ip_addr": "10.0.0.69", # Host computer IP
+                        "mru_settings.format": "MRUBIN",
+                        "mru_settings.interval": 5,
+                        "mru_settings.token": 21,
+                    }
+                ],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+            ComposableNode(
+                package="nortek_nucleus_ros_interface",
+                plugin="NortekNucleusRosInterface",
+                name="nortek_nucleus_ros_interface_node",
+                namespace=namespace,
+                parameters=[
+                    {
+                        "frame_id": f"/{namespace}/nucleus_frame",
+                        "connection_params.remote_ip": "192.168.1.100",
+                        "connection_params.data_remote_port": 9000,
+                        "connection_params.password": "",
+                        "enable_imu": True,
+                        "enable_dvl": True,
+                        "enable_pressure": True,
+                        "enable_magnetometer": True,
+                        "enable_ins_twist": True,
+                        "enable_ins_position": True,
+                        "imu_data_raw_pub_topic": f"/{namespace}/imu/data_raw",
+                        "imu_data_pub_topic": f"/{namespace}/imu/data",
+                        "dvl_pub_topic": f"/{namespace}/nucleus/dvl",
+                        "pressure_pub_topic": f"/{namespace}/nucleus/pressure",
+                        "magnetometer_pub_topic": f"/{namespace}/imu/mag",
+                        "ins_twist_pub_topic": f"/{namespace}/nucleus/ins/twist",
+                        "ins_position_pub_topic": f"/{namespace}/nucleus/ins/position",
+                        "imu_settings.freq": 125,
+                        "ahrs_settings.freq": 10,
+                        "ahrs_settings.mode": 0,
+                        "bottom_track_settings.mode": 2,
+                        "bottom_track_settings.velocity_range": 5,
+                        "bottom_track_settings.enable_watertrack": False,
+                        "fast_pressure_settings.enable": True,
+                        "fast_pressure_settings.sampling_rate": 16,
+                        "magnetometer_settings.freq": 75,
+                        "magnetometer_settings.mode": 0,
+                    }
+                ],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+        ],
+        output="screen",
+        arguments=["--ros-args", "--log-level", "error"],
+    )
+
+    return [container]
+
+
+def generate_launch_description():
+    return LaunchDescription(
+        declare_drone_and_namespace_args()
+        + [
+            OpaqueFunction(function=launch_setup),
+        ]
+    )
