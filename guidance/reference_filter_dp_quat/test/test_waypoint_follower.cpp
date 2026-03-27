@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
-#include "reference_filter_dp_quat/lib/waypoint_utils.hpp"
+#include <vortex/utils/waypoint_utils.hpp>
 
 namespace vortex::guidance {
 

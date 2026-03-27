@@ -1,7 +1,7 @@
 #include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
 #include <vortex/utils/math.hpp>
 #include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
-#include "reference_filter_dp_quat/lib/waypoint_utils.hpp"
+#include <vortex/utils/types.hpp>
 
 namespace vortex::guidance {
 
@@ -26,7 +26,7 @@ void WaypointFollower::start(const Pose& pose,
     waypoint_mode_ = waypoint.mode;
     convergence_threshold_ = convergence_threshold;
     waypoint_goal_ =
-        compute_waypoint_goal(waypoint.pose, waypoint_mode_, nominal_pose_);
+        vortex::utils::waypoints::compute_waypoint_goal(waypoint.pose, waypoint_mode_, nominal_pose_);
 }
 
 void WaypointFollower::step() {
@@ -64,13 +64,13 @@ void WaypointFollower::inject_and_reset() {
 
 bool WaypointFollower::within_convergance(const Pose& measured_pose) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return has_converged(measured_pose, waypoint_goal_, waypoint_mode_,
+    return vortex::utils::waypoints::has_converged(measured_pose, waypoint_goal_, waypoint_mode_,
                          convergence_threshold_);
 }
 
 void WaypointFollower::set_reference(const Pose& reference_goal_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
-    waypoint_goal_ = compute_waypoint_goal(reference_goal_pose, waypoint_mode_,
+    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(reference_goal_pose, waypoint_mode_,
                                            nominal_pose_);
 }
 

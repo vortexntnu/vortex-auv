@@ -4,7 +4,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <thread>
 #include <vortex/utils/ros/qos_profiles.hpp>
-#include <vortex/utils/ros/ros_conversions.hpp>
+#include <vortex/utils/ros/waypoint_ros_conversions.hpp>
 #include "reference_filter_dp_quat/ros/reference_filter_ros_utils.hpp"
 
 const auto start_message = R"(
@@ -171,7 +171,7 @@ void ReferenceFilterNode::execute(
             "Using default 0.1");
     }
 
-    const auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
+    const auto wp = vortex::utils::waypoints::waypoint_from_ros(goal_handle->get_goal()->waypoint);
 
     const auto [pose, twist] = [this] {
         std::lock_guard lock(sensor_mutex_);
@@ -180,8 +180,6 @@ void ReferenceFilterNode::execute(
 
     follower_->start(pose, twist, wp, convergence_threshold);
 
-    auto feedback = std::make_shared<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint::Feedback>();
     auto result = std::make_shared<
         vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
 
@@ -217,8 +215,6 @@ void ReferenceFilterNode::execute(
             auto final_reference_msg =
                 fill_reference_msg(follower_->pose(), follower_->velocity());
 
-            feedback->reference = final_reference_msg;
-            goal_handle->publish_feedback(feedback);
             reference_pub_->publish(final_reference_msg);
             if (rpy_debug_pub_) {
                 rpy_debug_pub_->publish(fill_reference_rpy_msg(
@@ -238,8 +234,6 @@ void ReferenceFilterNode::execute(
             rpy_debug_pub_->publish(fill_reference_rpy_msg(
                 follower_->pose(), follower_->velocity()));
         }
-        feedback->reference = reference_msg;
-        goal_handle->publish_feedback(feedback);
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {

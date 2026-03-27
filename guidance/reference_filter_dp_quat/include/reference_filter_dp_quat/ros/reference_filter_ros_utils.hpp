@@ -3,42 +3,12 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <vortex/utils/math.hpp>
-#include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/reference_filter_quat.hpp>
-#include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
-#include "reference_filter_dp_quat/lib/waypoint_types.hpp"
 
 namespace vortex::guidance {
-
-/// @brief Convert a ROS waypoint mode to a WaypointMode enum.
-/// @throws std::invalid_argument if the mode value is not recognized.
-inline WaypointMode waypoint_mode_from_ros(uint8_t mode) {
-    switch (mode) {
-        case vortex_msgs::msg::Waypoint::FULL_POSE:
-            return WaypointMode::FULL_POSE;
-        case vortex_msgs::msg::Waypoint::ONLY_POSITION:
-            return WaypointMode::ONLY_POSITION;
-        case vortex_msgs::msg::Waypoint::FORWARD_HEADING:
-            return WaypointMode::FORWARD_HEADING;
-        case vortex_msgs::msg::Waypoint::ONLY_ORIENTATION:
-            return WaypointMode::ONLY_ORIENTATION;
-        default:
-            throw std::invalid_argument("Invalid ROS waypoint mode: " +
-                                        std::to_string(mode));
-    }
-}
-
-/// @brief Convert a ROS Waypoint message to an internal Waypoint struct.
-inline vortex::guidance::Waypoint waypoint_from_ros(
-    const vortex_msgs::msg::Waypoint& ros_wp) {
-    Waypoint wp;
-    wp.pose = vortex::utils::ros_conversions::ros_pose_to_pose(ros_wp.pose);
-    wp.mode = waypoint_mode_from_ros(ros_wp.mode);
-    return wp;
-}
 
 /// @brief Fill a ReferenceFilterQuat message from a Pose and velocity vector.
 inline vortex_msgs::msg::ReferenceFilterQuat fill_reference_msg(
