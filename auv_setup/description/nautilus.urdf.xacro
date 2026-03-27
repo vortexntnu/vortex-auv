@@ -50,19 +50,6 @@
   </joint>
   <xacro:flir_blackfly_s frame="downwards_camera_link" base="downwards_camera" name="flir_blackfly"/>
 
-  <xacro:include filename="gripper.urdf.xacro"/>
-
-  <!-- Gripper needs updated urdf with the new model once ready-->
-  <link name="gripper_link"/>
-
-  <joint name="base_to_gripper" type="fixed">
-    <parent link="base_link"/>
-    <child link="gripper_link"/>
-    <origin xyz="0.26 0.095 0.08" rpy="0 0 0"/>
-  </joint>
-
-  <xacro:gripper frame="gripper_link" static_shoulder="true"/>
-
   <!-- RealSense -->
   <xacro:include filename="realsense_d555.urdf.xacro"/>
   <joint name="base_to_front_camera" type="fixed">
@@ -72,5 +59,45 @@
   </joint>
 
   <xacro:realsense_d555 frame="front_camera_link" base="front_camera" name="realsense"/>
+
+  <!-- Gripper -->
+  <link name="shoulder"></link>
+
+  <joint name="shoulder_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="shoulder"/>
+    <origin xyz="0.282589 0.07822 0.115803" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <link name="arm"></link>
+
+  <joint name="nautilus/arm_joint" type="revolute">
+    <parent link="shoulder"/>
+    <child link="arm"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0" velocity="0"/>
+  </joint>
+
+  <link name="finger1"></link>
+
+
+  <joint name="nautilus/finger_joint1" type="prismatic">
+    <parent link="arm"/>
+    <child link="finger1"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.70711 0.70711 0.0"/>
+    <limit lower="-0.033" upper="0" effort="0" velocity="0"/>
+  </joint>
+
+  <link name="finger2"></link>
+
+  <joint name="nautilus/finger_joint2" type="prismatic">
+    <parent link="arm"/>
+    <child link="finger2"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.70711 -0.70711 0.0"/>
+    <limit lower="-0.033" upper="0" effort="0" velocity="0"/>
+  </joint>
 
 </robot>

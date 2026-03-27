@@ -3,8 +3,8 @@
  * @brief Contains Eigen typedefs used in this package.
  */
 
-#ifndef REFERENCE_FILTER_DP__EIGEN_TYPEDEFS_HPP_
-#define REFERENCE_FILTER_DP__EIGEN_TYPEDEFS_HPP_
+#ifndef REFERENCE_FILTER_DP__LIB__EIGEN_TYPEDEFS_HPP_
+#define REFERENCE_FILTER_DP__LIB__EIGEN_TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -18,4 +18,4 @@ typedef Eigen::Matrix<double, 18, 1> Vector18d;
 
 }  // namespace Eigen
 
-#endif  // REFERENCE_FILTER_DP__EIGEN_TYPEDEFS_HPP_
+#endif  // REFERENCE_FILTER_DP__LIB__EIGEN_TYPEDEFS_HPP_
