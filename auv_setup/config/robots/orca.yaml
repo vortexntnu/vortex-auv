@@ -155,6 +155,7 @@
       set_killswitch: "set_killswitch"
       toggle_killswitch: "toggle_killswitch"
       get_operation_mode: "get_operation_mode"
+      los_mode: "set_los_mode"
       waypoint_addition: "waypoint_addition"
       start_mission: "start_mission"
 
