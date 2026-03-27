@@ -1,5 +1,6 @@
 #include "los_guidance/los_guidance_ros.hpp"
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
 #include <vortex/utils/ros/qos_profiles.hpp>
@@ -18,7 +19,8 @@ const auto start_message = R"(
 namespace vortex::guidance::los {
 
 // Constructor
-LosGuidanceNode::LosGuidanceNode() : Node("los_guidance_node") {
+LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
+    : Node("los_guidance_node", options) {
     double time_step_s = this->declare_parameter<double>("time_step");
     time_step_ =
         std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
@@ -438,3 +440,5 @@ void LosGuidanceNode::execute(
 }
 
 }  // namespace vortex::guidance::los
+
+RCLCPP_COMPONENTS_REGISTER_NODE(vortex::guidance::los::LosGuidanceNode)
