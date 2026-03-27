@@ -15,64 +15,54 @@ auto start_message{R"(
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options) {
-    time_step = std::chrono::milliseconds(1);
-    odom_pub_timer_ = this->create_wall_timer(
-        time_step, std::bind(&ESKFNode::publish_odom, this));
 
-    set_subscribers_and_publisher();
-
-    set_parameters();
-
-    // Initialize TF Buffer & Listener
-    tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
-    // Initialize Broadcaster (for odom -> base_link)
-    tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-
-    // flag to determine whether to use TF-based transforms or parameter-based
-    // transforms
-    this->declare_parameter<bool>("use_tf_transforms", true);
-    use_tf_transforms_ = this->get_parameter("use_tf_transforms").as_bool();
-
-    // if we have parameters, we skip the TF lookup
+    use_tf_transforms_ = this->declare_parameter<bool>("use_tf_transforms");
     tf_sensors_loaded_ = !use_tf_transforms_;
 
+    frame_prefix_ = this->declare_parameter<std::string>("frame_prefix", "");
+    if (!frame_prefix_.empty() && frame_prefix_.back() == '/') {
+        frame_prefix_.pop_back();
+    }
+
+    publish_tf_ = this->declare_parameter<bool>("publish_tf");
+    if (publish_tf_) {
+        tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    }
+
+    // Declare these here so they appear in `ros2 param list` from startup,
+    // even though they are read in complete_initialization().
+    this->declare_parameter<int>("publish_rate_ms");
+    this->declare_parameter<std::string>("topics.imu");
+    this->declare_parameter<std::string>("topics.dvl_twist");
+    this->declare_parameter<std::string>("topics.odom");
+
     if (use_tf_transforms_) {
-        // Check for static transforms every 0.5 seconds
+        tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
         tf_timer_ = this->create_wall_timer(
             std::chrono::milliseconds(500),
-            std::bind(&ESKFNode::initialize_static_transforms, this));
+            std::bind(&ESKFNode::lookup_static_transforms, this));
     } else {
         spdlog::info(
             "Using parameter-based sensor transforms. TF lookup disabled.");
+        complete_initialization();
     }
-
-    spdlog::info(start_message);
-
-#ifndef NDEBUG
-    spdlog::info(
-        "______________________Debug mode is enabled______________________");
-#endif
 }
 
 void ESKFNode::set_subscribers_and_publisher() {
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
-    this->declare_parameter<std::string>("topics.imu");
     std::string imu_topic = this->get_parameter("topics.imu").as_string();
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
         imu_topic, qos_sensor_data,
         std::bind(&ESKFNode::imu_callback, this, std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.dvl_twist");
     std::string dvl_topic = this->get_parameter("topics.dvl_twist").as_string();
     dvl_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
-    this->declare_parameter<std::string>("topics.odom");
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
@@ -84,28 +74,26 @@ void ESKFNode::set_subscribers_and_publisher() {
 }
 
 void ESKFNode::set_parameters() {
-    // Load sensor frame Rotation correction parameters
-    std::vector<double> R_imu_correction;
-    this->declare_parameter<std::vector<double>>("imu_frame_r");
-    R_imu_correction = get_parameter("imu_frame_r").as_double_array();
-    R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        R_imu_correction.data());
 
-    std::vector<double> R_dvl_correction;
-    this->declare_parameter<std::vector<double>>("dvl_frame_r");
-    R_dvl_correction = get_parameter("dvl_frame_r").as_double_array();
-    R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-        R_dvl_correction.data());
+    if (!use_tf_transforms_) {
+        std::vector<double> R_imu_correction =
+            this->declare_parameter<std::vector<double>>("transform.imu_frame_r");
+        R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+            R_imu_correction.data());
 
-    std::vector<double> T_dvl_correction;
-    this->declare_parameter<std::vector<double>>("dvl_frame_t");
-    T_dvl_correction = get_parameter("dvl_frame_t").as_double_array();
-    T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl_correction.data());
+        std::vector<double> R_dvl_correction =
+            this->declare_parameter<std::vector<double>>("transform.dvl_frame_r");
+        R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
+            R_dvl_correction.data());
 
-    std::vector<double> T_depth_correction;
-    this->declare_parameter<std::vector<double>>("depth_frame_t");
-    T_depth_correction = get_parameter("depth_frame_t").as_double_array();
-    T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth_correction.data());
+        std::vector<double> T_dvl_correction =
+            this->declare_parameter<std::vector<double>>("transform.dvl_frame_t");
+        T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl_correction.data());
+
+        std::vector<double> T_depth_correction =
+            this->declare_parameter<std::vector<double>>("transform.depth_frame_t");
+        T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth_correction.data());
+    }
 
     std::vector<double> diag_Q_std;
     this->declare_parameter<std::vector<double>>("diag_Q_std");
@@ -243,9 +231,9 @@ void ESKFNode::publish_odom() {
 
     // If you also want to include gyro bias, you could add it to the covariance
     // matrix or publish a separate topic for biases
-
-    odom_msg.header.stamp = this->now();
-    odom_msg.header.frame_id = "odom";
+    rclcpp::Time current_time = this->now();
+    odom_msg.header.stamp = current_time;
+    odom_msg.header.frame_id = frame("odom");
 
     // Some cross terms of the covariance are ignored, and the acc/gyro biases
     // cov are not published. Pos and orientation cov needs to be mapped from
@@ -274,69 +262,58 @@ void ESKFNode::publish_odom() {
     }
     odom_pub_->publish(odom_msg);
 
-    publish_tf(nom_state);
+    if (publish_tf_) {
+        publish_tf(nom_state, current_time);
+    }
 }
 
-void ESKFNode::initialize_static_transforms() {
-    // if already loaded, no need to lookup again.
-    if (tf_sensors_loaded_) {
-        tf_timer_->cancel();
-        return;
-    }
-
+void ESKFNode::lookup_static_transforms() {
     try {
-        // Lookup IMU -> Base Link
-        geometry_msgs::msg::TransformStamped tf_imu =
-            tf_buffer_->lookupTransform("base_link", "imu_frame",
-                                        tf2::TimePointZero);
-
-        Tf_base_imu_ = tf2::transformToEigen(tf_imu);
-
-        // Overwrite the parameter-based matrix
+        Tf_base_imu_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
+            frame("base_link"), frame("imu_link"), tf2::TimePointZero));
         R_imu_eskf_ = Tf_base_imu_.rotation();
-        spdlog::info("TF: Loaded base_link <- imu_frame transform");
 
-        // Lookup DVL -> Base Link
-        geometry_msgs::msg::TransformStamped tf_dvl =
-            tf_buffer_->lookupTransform("base_link", "dvl_frame",
-                                        tf2::TimePointZero);
-
-        Tf_base_dvl_ = tf2::transformToEigen(tf_dvl);
-
-        // Overwrite the parameter-based matrix
+        Tf_base_dvl_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
+            frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
         R_dvl_eskf_ = Tf_base_dvl_.rotation();
-        spdlog::info("TF: Loaded base_link <- dvl_frame transform");
+        T_dvl_eskf_ = Tf_base_dvl_.translation();
 
-        // Lookup Depth sensor -> Base Link
-        geometry_msgs::msg::TransformStamped tf_depth =
-            tf_buffer_->lookupTransform("base_link", "depth_sensor_frame",
-                                        tf2::TimePointZero);
-
-        Tf_base_depth_ = tf2::transformToEigen(tf_depth);
-
-        // Overwrite the parameter-based matrix
+        Tf_base_depth_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
+            frame("base_link"), frame("pressure_sensor_link"), tf2::TimePointZero));
         T_depth_eskf_ = Tf_base_depth_.translation();
-        spdlog::info("TF: Loaded base_link <- depth_sensor_frame transform");
 
-        // If we reach this point, all transforms were loaded successfully
         tf_sensors_loaded_ = true;
-
-        spdlog::info("All static transforms loaded successfully.");
-
-        // Turn off the timer so this function never runs again
         tf_timer_->cancel();
+        spdlog::info("All static transforms loaded successfully.");
+        complete_initialization();
     } catch (const tf2::TransformException& ex) {
-        // It is common to fail on startup before static_publisher is ready
         spdlog::warn("TF Lookup failed (will retry): {}", ex.what());
     }
 }
 
-void ESKFNode::publish_tf(const StateQuat& nom_state) {
+void ESKFNode::complete_initialization() {
+    set_subscribers_and_publisher();
+    set_parameters();
+
+    time_step_ = std::chrono::milliseconds(
+        this->get_parameter("publish_rate_ms").as_int());
+    odom_pub_timer_ = this->create_wall_timer(
+        time_step_, std::bind(&ESKFNode::publish_odom, this));
+
+    spdlog::info(start_message);
+
+#ifndef NDEBUG
+    spdlog::info(
+        "______________________Debug mode is enabled______________________");
+#endif
+}
+
+void ESKFNode::publish_tf(const StateQuat& nom_state, const rclcpp::Time& time) {
     geometry_msgs::msg::TransformStamped tf_msg;
 
-    tf_msg.header.stamp = this->now();
-    tf_msg.header.frame_id = "odom";
-    tf_msg.child_frame_id = "base_link";
+    tf_msg.header.stamp = time;
+    tf_msg.header.frame_id = frame("odom");
+    tf_msg.child_frame_id = frame("base_link");
 
     tf_msg.transform.translation.x = nom_state.pos.x();
     tf_msg.transform.translation.y = nom_state.pos.y();

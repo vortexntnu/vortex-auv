@@ -20,8 +20,10 @@ ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
 
     // Initialize Quaternion: -90 degrees Yaw because of initial
     // drone_orientation
-    Eigen::AngleAxisd init_rotation(-M_PI / 2.0, Eigen::Vector3d::UnitZ());
-    current_nom_state_.quat = Eigen::Quaterniond(init_rotation);
+    // Eigen::AngleAxisd init_rotation(-M_PI / 2.0, Eigen::Vector3d::UnitZ());
+
+    // initialize to identity quat
+    current_nom_state_.quat = Eigen::Quaterniond::Identity();
     current_nom_state_.quat.normalize();
 }
 

@@ -30,7 +30,7 @@ def launch_setup(context, *args, **kwargs):
         executable="eskf_node",
         name="eskf_node",
         namespace=namespace,
-        parameters=[eskf_params, drone_params],
+        parameters=[eskf_params, drone_params, {"frame_prefix": namespace}],
         output="screen",
     )
 
