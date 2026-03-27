@@ -1,8 +1,21 @@
 #include "reference_filter_dp/lib/waypoint_utils.hpp"
 #include <cmath>
 #include <vortex/utils/math.hpp>
+#include <vortex/utils/types.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 
 namespace vortex::guidance {
+
+namespace {
+using vortex::utils::types::PoseEuler;
+using vortex::utils::types::Pose;
+        
+Pose vec_to_pose(const Eigen::Vector6d& v) {
+    return PoseEuler{.x = v(0), .y = v(1), .z = v(2),
+                     .roll = v(3), .pitch = v(4), .yaw = v(5)}
+        .as_pose();
+}
+}  // namespace
 
 Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
                                  WaypointMode mode,
@@ -22,32 +35,13 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
             break;
 
         case WaypointMode::ONLY_POSITION:
-            reference_out(3) = current_state(3);
-            reference_out(4) = current_state(4);
-            reference_out(5) = current_state(5);
-            break;
-
-        case WaypointMode::FORWARD_HEADING: {
-            double dx = reference_in(0) - current_state(0);
-            double dy = reference_in(1) - current_state(1);
-            double forward_heading = std::atan2(dy, dx);
-
-            reference_out(3) = 0.0;
-            reference_out(4) = 0.0;
-            reference_out(5) = vortex::utils::math::ssa(forward_heading);
-            break;
-        }
-
+        case WaypointMode::FORWARD_HEADING:
         case WaypointMode::ONLY_ORIENTATION:
-            reference_out(0) = current_state(0);
-            reference_out(1) = current_state(1);
-            reference_out(2) = current_state(2);
-            reference_out(3) =
-                current_state(3) + ssa(reference_in(3) - current_state(3));
-            reference_out(4) =
-                current_state(4) + ssa(reference_in(4) - current_state(4));
-            reference_out(5) =
-                current_state(5) + ssa(reference_in(5) - current_state(5));
+            reference_out = vortex::utils::waypoints::compute_waypoint_goal(
+                                vec_to_pose(reference_in), mode,
+                                vec_to_pose(current_state))
+                                .as_pose_euler()
+                                .to_vector();
             break;
     }
 
@@ -58,29 +52,9 @@ bool has_converged(const Eigen::Vector6d& measured_pose,
                    const Eigen::Vector6d& reference,
                    WaypointMode mode,
                    double convergence_threshold) {
-    using vortex::utils::math::ssa;
-    const Eigen::Vector3d ep = measured_pose.head<3>() - reference.head<3>();
-
-    Eigen::Vector3d ea;
-    ea(0) = ssa(measured_pose(3) - reference(3));
-    ea(1) = ssa(measured_pose(4) - reference(4));
-    ea(2) = ssa(measured_pose(5) - reference(5));
-
-    const double err = [&] {
-        switch (mode) {
-            case WaypointMode::ONLY_POSITION:
-                return ep.norm();
-            case WaypointMode::ONLY_ORIENTATION:
-                return ea.norm();
-            case WaypointMode::FORWARD_HEADING:
-                return std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
-            case WaypointMode::FULL_POSE:
-            default:
-                return std::sqrt(ep.squaredNorm() + ea.squaredNorm());
-        }
-    }();
-
-    return err < convergence_threshold;
+    return vortex::utils::waypoints::has_converged(
+        vec_to_pose(measured_pose), vec_to_pose(reference), mode,
+        convergence_threshold);
 }
 
 }  // namespace vortex::guidance

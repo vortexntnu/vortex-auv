@@ -20,7 +20,7 @@ class WaypointFollowerTests : public ::testing::Test {
 TEST_F(WaypointFollowerTests, StartAndStepConverges) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Waypoint wp;
+    WaypointEuler wp;
     wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
@@ -39,7 +39,7 @@ TEST_F(WaypointFollowerTests, StartAndStepConverges) {
 TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Waypoint wp;
+    WaypointEuler wp;
     wp.pose = PoseEuler{10.0, 10.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
@@ -54,7 +54,7 @@ TEST_F(WaypointFollowerTests, StepDoesNotConvergeWhenFar) {
 TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Waypoint wp;
+    WaypointEuler wp;
     wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 
@@ -70,7 +70,7 @@ TEST_F(WaypointFollowerTests, SetReferenceUpdatesMidSequence) {
 TEST_F(WaypointFollowerTests, SnapStateToReference) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Waypoint wp;
+    WaypointEuler wp;
     wp.pose = PoseEuler{3.0, 4.0, 5.0, 0.1, 0.2, 0.3};
     wp.mode = WaypointMode::FULL_POSE;
 
@@ -88,7 +88,7 @@ TEST_F(WaypointFollowerTests, SnapStateToReference) {
 TEST_F(WaypointFollowerTests, StateEvolvesWithStep) {
     WaypointFollower follower(get_params(), 0.01);
 
-    Waypoint wp;
+    WaypointEuler wp;
     wp.pose = PoseEuler{1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     wp.mode = WaypointMode::FULL_POSE;
 

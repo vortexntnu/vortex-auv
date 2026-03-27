@@ -11,7 +11,7 @@ WaypointFollower::WaypointFollower(const ReferenceFilterParams& params,
 
 void WaypointFollower::start(const PoseEuler& pose,
                              const Twist& twist,
-                             const Waypoint& waypoint,
+                             const WaypointEuler& waypoint,
                              double convergence_threshold) {
     std::lock_guard<std::mutex> lock(mutex_);
     state_ = compute_initial_state(pose, twist);
