@@ -1,127 +1,255 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
-#include <spdlog/spdlog.h>
-#include <cstdint>
-#include <format>
-#include <ranges>
+
+#include <cmath>
+#include <cstring>
+#include <iostream>
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
-    std::int16_t i2c_bus,
-    int pico_i2c_address,
+    const std::string& serial_device,
+    unsigned int baud_rate,
+    std::uint8_t packet_id,
     const std::vector<ThrusterParameters>& thruster_parameters,
-    const std::vector<std::vector<double>>& poly_coeffs)
-    : i2c_bus_(i2c_bus),
-      pico_i2c_address_(pico_i2c_address),
+    const std::vector<double>& right_coeffs,
+    const std::vector<double>& left_coeffs)
+    : serial_device_(serial_device),
+      baud_rate_(baud_rate),
+      packet_id_(packet_id),
       thruster_parameters_(thruster_parameters),
-      poly_coeffs_(poly_coeffs) {
-    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
-    bus_fd_ =
-        open(i2c_filename.c_str(),
-             O_RDWR);  // Open the i2c bus for reading and writing (0_RDWR)
-    if (bus_fd_ < 0) {
-        std::runtime_error(std::format("ERROR: Failed to open I2C bus {} : {}",
-                                       i2c_bus_, strerror(errno)));
+      right_coeffs_(right_coeffs),
+      left_coeffs_(left_coeffs) {
+    idle_pwm_value_ =
+        static_cast<std::uint16_t>(
+            (calc_poly(0.0, left_coeffs_) + calc_poly(0.0, right_coeffs_)) / 2);
+}
+
+int ThrusterInterfaceAUVDriver::init_uart() {
+    std::error_code ec;
+
+    serial_.open(serial_device_, ec);
+    if (ec) {
+        std::cerr << "Failed to open serial port " << serial_device_
+                  << ": " << ec.message() << '\n';
+        return -1;
     }
 
-    idle_pwm_value_ =
-        (calc_poly(0, poly_coeffs_[LEFT]) + calc_poly(0, poly_coeffs_[RIGHT])) /
-        2;
+    serial_.set_option(asio::serial_port_base::baud_rate(baud_rate_), ec);
+    if (ec) return -1;
+
+    serial_.set_option(asio::serial_port_base::character_size(8), ec);
+    if (ec) return -1;
+
+    serial_.set_option(
+        asio::serial_port_base::parity(asio::serial_port_base::parity::none), ec);
+    if (ec) return -1;
+
+    serial_.set_option(
+        asio::serial_port_base::stop_bits(asio::serial_port_base::stop_bits::one), ec);
+    if (ec) return -1;
+
+    serial_.set_option(
+        asio::serial_port_base::flow_control(
+            asio::serial_port_base::flow_control::none),
+        ec);
+    if (ec) return -1;
+
+    return 0;
 }
 
 ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
-    if (bus_fd_ >= 0) {
-        send_data_to_escs(std::vector<uint16_t>(thruster_parameters_.size(),
-                                                idle_pwm_value_));
-        close(bus_fd_);
+    if (serial_.is_open()) {
+        send_data_to_escs(
+            std::vector<uint16_t>(thruster_parameters_.size(), idle_pwm_value_));
+
+        std::error_code ec;
+        serial_.close(ec);
     }
 }
 
 std::vector<uint16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     const std::vector<double>& thruster_forces_array) {
-    // Convert Newtons to Kg (since the thruster datasheet is in Kg)
-    auto pwm_view = thruster_forces_array | std::views::transform(to_kg) |
-                    std::views::transform([this](double force_in_kg) {
-                        return force_to_pwm(force_in_kg, poly_coeffs_);
-                    });
-    return std::vector<uint16_t>(pwm_view.begin(), pwm_view.end());
+    std::vector<uint16_t> pwm(thruster_forces_array.size());
+
+    for (std::size_t i = 0; i < thruster_forces_array.size(); ++i) {
+        const double force_in_kg = to_kg(thruster_forces_array[i]);
+        pwm[i] = force_to_pwm(force_in_kg);
+    }
+
+    return pwm;
 }
 
-std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(
-    double force,
-    const std::vector<std::vector<double>>& coeffs) {
-    if (force < 0) {
-        return calc_poly(force, coeffs[LEFT]);
-    } else if (force > 0) {
-        return calc_poly(force, coeffs[RIGHT]);
-    } else {
-        return idle_pwm_value_;  // 1500
+std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(double force) {
+    if (force < 0.0) {
+        return calc_poly(force, left_coeffs_);
     }
+    if (force > 0.0) {
+        return calc_poly(force, right_coeffs_);
+    }
+    return idle_pwm_value_;
 }
 
 std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
     double force,
     const std::vector<double>& coeffs) {
-    return static_cast<std::uint16_t>(coeffs[0] * std::pow(force, 3) +
-                                      coeffs[1] * std::pow(force, 2) +
-                                      coeffs[2] * force + coeffs[3]);
+    return static_cast<std::uint16_t>(
+        coeffs[0] * std::pow(force, 3) +
+        coeffs[1] * std::pow(force, 2) +
+        coeffs[2] * force +
+        coeffs[3]);
+}
+//
+// std::vector<std::uint8_t> ThrusterInterfaceAUVDriver::create_packet(
+//     std::uint8_t id,
+//     const std::vector<uint16_t>& thruster_pwm_array) const {
+//     constexpr std::uint8_t magic = 0xAA;
+//     constexpr std::size_t expected_thrusters = 8;
+//
+//     if (thruster_pwm_array.size() != expected_thrusters) {
+//         return {};
+//     }
+//
+//     std::vector<std::uint8_t> packet;
+//     packet.reserve(1 + 1 + 1 + expected_thrusters * 2 + 1);
+//
+//     packet.push_back(magic);
+//     packet.push_back(id);
+//
+//     const std::uint8_t payload_length =
+//         static_cast<std::uint8_t>(thruster_pwm_array.size() * sizeof(std::uint16_t));
+//     packet.push_back(payload_length);
+//
+//     for (std::uint16_t value : thruster_pwm_array) {
+//         // little-endian
+//         packet.push_back(static_cast<std::uint8_t>(value & 0xFF));
+//         packet.push_back(static_cast<std::uint8_t>((value >> 8) & 0xFF));
+//     }
+//
+//     std::uint8_t checksum = 0;
+//     for (std::uint8_t byte : packet) {
+//         checksum = static_cast<std::uint8_t>(checksum + byte);
+//     }
+//
+//     packet.push_back(checksum);
+//     return packet;
+// }
+
+std::vector<std::uint8_t> ThrusterInterfaceAUVDriver::create_packet(
+    std::uint8_t id,
+    const std::vector<std::uint16_t>& thruster_pwm_array) const {
+
+    std::vector<std::uint8_t> packet;
+
+    // 1. Magic byte
+    packet.push_back(0xAA);
+
+    // 2. ID
+    packet.push_back(id);
+
+    // 3. Length (payload size in bytes)
+    uint8_t length = static_cast<uint8_t>(
+        thruster_pwm_array.size() * sizeof(uint16_t));
+    packet.push_back(length);
+
+    // 4. Payload (little-endian)
+    for (uint16_t value : thruster_pwm_array) {
+        packet.push_back(static_cast<uint8_t>(value & 0xFF));
+        packet.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+    }
+
+    // 5. XOR checksum (matching your MCU)
+    uint8_t checksum = id ^ length;
+    for (uint16_t value : thruster_pwm_array) {
+        checksum ^= static_cast<uint8_t>(value & 0xFF);
+        checksum ^= static_cast<uint8_t>((value >> 8) & 0xFF);
+    }
+
+    packet.push_back(checksum);
+
+    return packet;
 }
 
-void ThrusterInterfaceAUVDriver::send_data_to_escs(
+//
+// int ThrusterInterfaceAUVDriver::send_data_to_escs(
+//     const std::vector<uint16_t>& thruster_pwm_array) {
+//     if (!serial_.is_open()) {
+//         return -1;
+//     }
+//
+//     const auto packet = create_packet(0x04, thruster_pwm_array);
+//     if (packet.empty()) {
+//         return -1;
+//     }
+//
+//     std::error_code ec;
+//     const auto bytes_written = asio::write(serial_, asio::buffer(packet), ec);
+//
+//     if (ec || bytes_written != packet.size()) {
+//         std::cerr << "UART write failed: "
+//                   << (ec ? ec.message() : "short write") << '\n';
+//         return -1;
+//     }
+//
+//     return 0;
+// }
+int ThrusterInterfaceAUVDriver::send_data_to_escs(
     const std::vector<uint16_t>& thruster_pwm_array) {
-    constexpr std::size_t i2c_data_size =
-        1 + 8 * 2;  // 8 thrusters * (1xMSB + 1xLSB)
-    std::vector<std::uint8_t> i2c_data_array;
-    i2c_data_array.reserve(i2c_data_size);
-
-    i2c_data_array.push_back(0x00);  // Start byte
-    std::ranges::for_each(thruster_pwm_array, [&](std::uint16_t pwm) {
-        std::array<std::uint8_t, 2> bytes = pwm_to_i2c_data(pwm);
-        std::ranges::copy(bytes, std::back_inserter(i2c_data_array));
-    });
-
-    // Set the I2C slave address
-    if (ioctl(bus_fd_, I2C_SLAVE, pico_i2c_address_) < 0) {
-        throw std::runtime_error(std::format("Failed to open I2C bus {} : {}",
-                                             i2c_bus_, strerror(errno)));
-        return;
+    if (!serial_.is_open()) {
+        return -1;
     }
 
-    // Write data to the I2C device
-    if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
-        throw std::runtime_error(std::format(
-            "ERROR: Failed to write to I2C device : {}", strerror(errno)));
+    const auto packet = create_packet(0x04, thruster_pwm_array);
+    constexpr std::size_t header_size = 3;
+
+    if (packet.size() < header_size) {
+        return -1;
     }
+
+    std::error_code ec;
+
+    // Send header first: [magic][id][length]
+    const auto header_bytes_written =
+        asio::write(serial_, asio::buffer(packet.data(), header_size), ec);
+
+    if (ec || header_bytes_written != header_size) {
+        std::cerr << "UART header write failed: "
+                  << (ec ? ec.message() : "short write") << '\n';
+        return -1;
+    }
+
+    // Small delay so the receiver can switch state
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    // Send payload + checksum
+    const auto remaining_size = packet.size() - header_size;
+    const auto payload_bytes_written =
+        asio::write(serial_,
+                    asio::buffer(packet.data() + header_size, remaining_size),
+                    ec);
+
+    if (ec || payload_bytes_written != remaining_size) {
+        std::cerr << "UART payload write failed: "
+                  << (ec ? ec.message() : "short write") << '\n';
+        return -1;
+    }
+
+    return 0;
 }
 
-std::vector<uint16_t> ThrusterInterfaceAUVDriver::drive_thrusters(
+std::optional<std::vector<uint16_t>> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
-    // Apply thruster mapping and direction
-    std::vector<double> mapped_forces(thruster_forces_array.size());
+    std::vector<double> mapped_forces(thruster_parameters_.size());
 
-    std::ranges::transform(thruster_parameters_, mapped_forces.begin(),
-                           [this, &thruster_forces_array](const auto& param) {
-                               return thruster_forces_array[param.mapping] *
-                                      param.direction;
-                           });
+    for (std::size_t i = 0; i < thruster_parameters_.size(); ++i) {
+        const auto& param = thruster_parameters_[i];
+        const std::size_t idx = param.mapping;
+        const double raw_force = thruster_forces_array[idx];
+        mapped_forces[i] = raw_force * param.direction;
+    }
 
-    // Convert forces to PWM
     std::vector<uint16_t> thruster_pwm_array =
         interpolate_forces_to_pwm(mapped_forces);
 
-    std::ranges::transform(thruster_pwm_array, thruster_pwm_array.begin(),
-                           [this, i = 0](auto pwm) mutable {
-                               auto result = std::clamp(
-                                   pwm, thruster_parameters_[i].pwm_min,
-                                   thruster_parameters_[i].pwm_max);
-                               ++i;
-                               return result;
-                           });
-
-    try {
-        send_data_to_escs(thruster_pwm_array);
-    } catch (const std::exception& e) {
-        spdlog::error("ERROR: Failed to send PWM values - {}", e.what());
-    } catch (...) {
-        spdlog::error("ERROR: Failed to send PWM values - Unknown exception");
+    if (send_data_to_escs(thruster_pwm_array) != 0) {
+        return std::nullopt;
     }
 
     return thruster_pwm_array;
