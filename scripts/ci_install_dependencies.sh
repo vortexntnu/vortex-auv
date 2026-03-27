@@ -30,4 +30,7 @@ sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 # Install casadi using CasADi install script
 "$SCRIPT_DIR/install_casadi.sh"
 
+# Install Control Toolbox using the provided script
+"$SCRIPT_DIR/install_ct.sh"
+
 echo "Done installing additional dependencies."
