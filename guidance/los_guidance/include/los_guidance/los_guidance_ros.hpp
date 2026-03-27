@@ -30,7 +30,7 @@ namespace vortex::guidance::los {
 class LosGuidanceNode : public rclcpp::Node {
    public:
     // Constructor
-    LosGuidanceNode();
+    explicit LosGuidanceNode(const rclcpp::NodeOptions& options);
 
    private:
     // Setup Functions

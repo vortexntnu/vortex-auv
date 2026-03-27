@@ -12,6 +12,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -36,6 +37,7 @@ add_library(${LIB_NAME} SHARED
 ament_target_dependencies(${LIB_NAME}
   rclcpp
   rclcpp_action
+  rclcpp_components
   geometry_msgs
   nav_msgs
   vortex_msgs
@@ -45,21 +47,13 @@ ament_target_dependencies(${LIB_NAME}
   fmt
 )
 
-add_executable(los_guidance_node
-  src/los_guidance_node.cpp
-)
-
-ament_target_dependencies(los_guidance_node
-  rclcpp
-  rclcpp_action
-  geometry_msgs
-  vortex_msgs
-  vortex_utils_ros
-)
-
-target_link_libraries(los_guidance_node
-  ${LIB_NAME}
+target_link_libraries(${LIB_NAME}
   yaml-cpp
+)
+
+rclcpp_components_register_node(${LIB_NAME}
+  PLUGIN "vortex::guidance::los::LosGuidanceNode"
+  EXECUTABLE los_guidance_node
 )
 
 install(TARGETS
@@ -68,11 +62,6 @@ install(TARGETS
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-)
-
-install(TARGETS
-  los_guidance_node
-  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(
