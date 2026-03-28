@@ -23,9 +23,14 @@ BAG_PID=$!
 echo "Started bagging with PID: $BAG_PID"
 
 # Launch Stonefish Simulator
-setsid ros2 launch stonefish_sim simulation.launch.py rendering:=true scenario:=nautilus_no_gpu &
+setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=nautilus_no_gpu &
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
+
+# Launch NAUTILUS Simulation
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
+NAUTILUS_PID=$!
+echo "Launched nautilus with PID: $NAUTILUS_PID"
 
 echo "Waiting for simulator to start..."
 timeout 30s bash -c '
@@ -45,11 +50,6 @@ echo "Waiting for odom data..."
 timeout 10s ros2 topic echo /nautilus/odom --once
 echo "Got odom data"
 
-# Launch ORCA Simulation
-setsid ros2 launch stonefish_sim drone_sim.launch.py &
-NAUTILUS_PID=$!
-echo "Launched nautilus with PID: $NAUTILUS_PID"
-
 echo "Waiting for sim interface to start..."
 timeout 30s bash -c 'until ros2 topic list | grep -q "/nautilus/pose"; do sleep 1; done'
 echo "Simulator started"
@@ -66,14 +66,14 @@ timeout 10s ros2 topic echo /nautilus/pose --once
 echo "Got pose data"
 
 # Launch quaternion reference filter with RPY compatibility (publishes RPY on guidance/dp)
-setsid ros2 launch reference_filter_dp_quat reference_filter_dp_quat.launch.py rpy_publish:=true &
+setsid ros2 launch reference_filter_dp_quat reference_filter_dp_quat.launch.py &
 FILTER_PID=$!
-echo "Launched quat reference filter (rpy_publish) with PID: $FILTER_PID"
+echo "Launched quat reference filter with PID: $FILTER_PID"
 
 # Launch controller separately
 setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py &
 CONTROLLER_PID=$!
-echo "Launched controller with PID: $CONTROLLER_PID"
+echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
 
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
