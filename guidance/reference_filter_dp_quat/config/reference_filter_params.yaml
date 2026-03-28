@@ -3,4 +3,3 @@
     zeta: [1., 1., 1., 1., 1., 1.]
     omega: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
     time_step_ms: 10
-    publish_rpy_debug: false

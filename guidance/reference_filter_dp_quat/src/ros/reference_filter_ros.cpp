@@ -57,16 +57,6 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         this->create_publisher<vortex_msgs::msg::ReferenceFilterQuat>(
             guidance_topic, qos_sensor_data);
 
-    publish_rpy_debug_ = this->declare_parameter<bool>("publish_rpy_debug");
-    if (publish_rpy_debug_) {
-        std::string rpy_topic = this->declare_parameter<std::string>(
-            "topics.guidance.dp_rpy", guidance_topic + "_rpy");
-        rpy_debug_pub_ =
-            this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
-                rpy_topic, qos_sensor_data);
-        spdlog::info("RPY debug publisher enabled on topic: {}", rpy_topic);
-    }
-
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
@@ -216,10 +206,6 @@ void ReferenceFilterNode::execute(
                 fill_reference_msg(follower_->pose(), follower_->velocity());
 
             reference_pub_->publish(final_reference_msg);
-            if (rpy_debug_pub_) {
-                rpy_debug_pub_->publish(fill_reference_rpy_msg(
-                    follower_->pose(), follower_->velocity()));
-            }
 
             result->success = true;
             goal_handle->succeed(result);
@@ -230,10 +216,6 @@ void ReferenceFilterNode::execute(
         auto reference_msg =
             fill_reference_msg(follower_->pose(), follower_->velocity());
         reference_pub_->publish(reference_msg);
-        if (rpy_debug_pub_) {
-            rpy_debug_pub_->publish(fill_reference_rpy_msg(
-                follower_->pose(), follower_->velocity()));
-        }
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {
