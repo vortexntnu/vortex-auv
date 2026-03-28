@@ -31,7 +31,7 @@ def launch_setup(context, *args, **kwargs):
             os.path.join(stonefish_dir, "launch", "simulation.launch.py")
         ),
         launch_arguments={
-            "scenario": "default",
+            "scenario": "nautilus_no_gpu",
             "rendering": "true",
         }.items(),
     )
@@ -124,8 +124,8 @@ def generate_launch_description():
         + [
             DeclareLaunchArgument(
                 "test_scenario",
-                default_value="square",
-                description="Scenario to run: square, circle, test_pitch, opposite_point",
+                default_value="4_corner",
+                description="Scenario to run: 4_corner, circle, test_pitch, opposite_point",
             ),
             OpaqueFunction(function=launch_setup),
         ]

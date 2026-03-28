@@ -10,14 +10,14 @@ class IntegralLosTest : public ::testing::Test {
 
     IntegralLosParams get_params() {
         IntegralLosParams params;
-        params.k_i_h = 0.1;    // needs tuning
-        params.k_i_v = 0.1;    // needs tuning
-        params.k_p_h = 0.667;  // needs tuning
-        params.k_p_v = 0.582;  // needs tuning
+        params.integral_gain_h = 0.5;   
+        params.integral_gain_v = 0.5;     
+        params.proportional_gain_h = 0.1;  
+        params.proportional_gain_v = 0.1; 
         params.time_step = 0.01;
         return params;
     }
-
+ 
     IntegralLOSGuidance Ilos_;
     const double tol = 1e-9;
 };
@@ -71,7 +71,7 @@ TEST_F(IntegralLosTest, T08_test_commanded_angles) {
     EXPECT_LT(O.theta_d, 1.57);
 }
 
-// Test commanded angles when drone is over the track
+// Test commanded angles when drone is above the track
 TEST_F(IntegralLosTest, T09_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
@@ -87,7 +87,7 @@ TEST_F(IntegralLosTest, T09_test_commanded_angles) {
     EXPECT_GT(O.theta_d, -1.57);
 }
 
-// Test commanded angles when drone is over and to the right of the track
+// Test commanded angles when drone is above and to the right of the track
 
 TEST_F(IntegralLosTest, T10_test_commanded_angles) {
     types::Inputs inputs;

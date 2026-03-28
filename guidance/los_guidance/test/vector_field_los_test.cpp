@@ -10,10 +10,10 @@ class VectorFieldLosTest : public ::testing::Test {
 
     VectorFieldLosParams get_params() {
         VectorFieldLosParams params;
-        params.max_approach_angle_h = 30.0 * M_PI / 180.0;  // 30 degrees in rad
-        params.max_approach_angle_v = 20.0 * M_PI / 180.0;  // 20 degrees in rad
-        params.k_p_h = 1.5;                                 // needs tuning
-        params.k_p_v = 0.9;                                 // needs tuning
+        params.max_approach_angle_h = 1.0;  
+        params.max_approach_angle_v = 1.0;  
+        params.proportional_gain_h = 1.5;                                
+        params.proportional_gain_v = 0.9;                              
         params.time_step = 0.01;
         return params;
     }
@@ -21,7 +21,7 @@ class VectorFieldLosTest : public ::testing::Test {
     VectorFieldLOSGuidance Vflos_;
     const double tol = 1e-9;
 };
-
+ 
 // Test commanded angles when drone is to the right of the track
 TEST_F(VectorFieldLosTest, T06_test_commanded_angles) {
     types::Inputs inputs;
@@ -73,7 +73,7 @@ TEST_F(VectorFieldLosTest, T08_test_commanded_angles) {
     EXPECT_GT(O.theta_d, -1.57);
 }
 
-// Test commanded angles when drone is over the track
+// Test commanded angles when drone is above the track
 TEST_F(VectorFieldLosTest, T09_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
@@ -90,7 +90,7 @@ TEST_F(VectorFieldLosTest, T09_test_commanded_angles) {
     EXPECT_LT(O.theta_d, 1.57);
 }
 
-// Test commanded angles when drone is over and to the right of the track
+// Test commanded angles when drone is above and to the right of the track
 TEST_F(VectorFieldLosTest, T10_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};

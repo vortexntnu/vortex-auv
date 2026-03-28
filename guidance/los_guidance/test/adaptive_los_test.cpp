@@ -1,7 +1,7 @@
 #include "los_guidance/lib/adaptive_los.hpp"
 #include <gtest/gtest.h>
 
-namespace vortex::guidance::los {  // new namespace added los
+namespace vortex::guidance::los { 
 
 class AdaptiveLosTest : public ::testing::Test {
    protected:
@@ -9,10 +9,10 @@ class AdaptiveLosTest : public ::testing::Test {
 
     AdaptiveLosParams get_params() {
         AdaptiveLosParams p;
-        p.lookahead_distance_h = 1.0;
-        p.lookahead_distance_v = 1.0;
-        p.gamma_h = 1.0;
-        p.gamma_v = 1.0;
+        p.lookahead_distance_h = 0.9;
+        p.lookahead_distance_v = 1.4;
+        p.adaptation_gain_h = 0.03;
+        p.adaptation_gain_v = 0.02;
         p.time_step = 0.01;
         return p;
     }
@@ -70,7 +70,7 @@ TEST_F(AdaptiveLosTest, T08_test_commanded_angles) {
     EXPECT_LT(O.theta_d, 1.57);
 }
 
-// Test commanded angles when drone is over the track
+// Test commanded angles when drone is above the track
 TEST_F(AdaptiveLosTest, T09_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
@@ -86,7 +86,7 @@ TEST_F(AdaptiveLosTest, T09_test_commanded_angles) {
     EXPECT_GT(O.theta_d, -1.57);
 }
 
-// Test commanded angles when drone is over and to the right of the track
+// Test commanded angles when drone is above and to the right of the track
 
 TEST_F(AdaptiveLosTest, T10_test_commanded_angles) {
     types::Inputs inputs;

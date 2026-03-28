@@ -30,7 +30,7 @@ The library supports four LOS guidance algorithms.
 | 2 | Adaptive LOS |
 | 3 | Vector Field LOS |
 
-The guidance method can be **changed during runtime** using a ROS service.
+The guidance method can be preconfigured in the package configuration file before startup, and changed during runtime using a ROS service.
 
 ---
 
@@ -40,7 +40,7 @@ The guidance method can be **changed during runtime** using a ROS service.
 A waypoint can be sent to the guidance node using the action interface:
 
 ```
-ros2 action send_goal /orca/los_guidance \
+ros2 action send_goal /drone_name/los_guidance \
 vortex_msgs/action/LOSGuidance \
 "{goal: {header: {frame_id: world_ned}, point: {x: 0.0, y: 0.0, z: 0.0}}}"
 ```
@@ -51,10 +51,12 @@ This command instructs the guidance node to start following a path toward the wa
 
 # Switching LOS Method
 
-The active LOS guidance method can be changed during runtime.
+The active LOS guidance method can be configured in advance through the package config file, and it can also be changed during runtime.
+
+At runtime, the LOS guidance method can be switched with:
 
 ```
-ros2 service call /orca/set_los_mode \
+ros2 service call /drone_name/set_los_mode \
 vortex_msgs/srv/SetLosMode "{mode: X}"
 ```
 
@@ -70,7 +72,7 @@ Where
 Example:
 
 ```
-ros2 service call /orca/set_los_mode vortex_msgs/srv/SetLosMode "{mode: 2}"
+ros2 service call /drone_name/set_los_mode vortex_msgs/srv/SetLosMode "{mode: 2}"
 ```
 
 This switches the guidance system to **Adaptive LOS**.
@@ -218,10 +220,10 @@ Proportional LOS is the simplest LOS guidance law.
 \tan^{-1}\left(\frac{z_e^p}{\Delta_v}\right)
 ```
 
-### Parameters
+where 
 
-- $\Delta_h$ — horizontal lookahead distance
-- $\Delta_v$ — vertical lookahead distance
+- $\Delta_h$ horizontal lookahead distance
+- $\Delta_v$ vertical lookahead distance
 
 The lookahead distances determine **how aggressively the vehicle corrects path errors**.
 
@@ -267,12 +269,12 @@ k_{i,v}\int z_e^p dt
 \tan^{-1}(u_v)
 ```
 
-### Parameters
+where
 
-- $k_{p,h}$ — horizontal proportional gain
-- $k_{p,v}$ — vertical proportional gain
-- $k_{i,h}$ — horizontal integral gain
-- $k_{i,v}$ — vertical integral gain
+- $k_{p,h}$ horizontal proportional gain
+- $k_{p,v}$ vertical proportional gain
+- $k_{i,h}$ horizontal integral gain
+- $k_{i,v}$ vertical integral gain
 
 The integral term allows the controller to **eliminate steady-state cross-track errors** caused by constant disturbances.
 
@@ -300,10 +302,10 @@ Vector Field LOS generates a **bounded approach angle** toward the path.
 \tan^{-1}(k_p y_e^p)
 ```
 
-### Parameters
+where
 
-- $\psi_{max}$ — maximum allowed approach angle
-- $k_p$ — proportional gain controlling path convergence
+- $\psi_{max}$ maximum allowed approach angle
+- $k_p$ proportional gain controlling path convergence
 
 The bounded approach angle prevents excessively aggressive heading changes.
 
@@ -342,10 +344,10 @@ ros2 launch los_guidance guidance_test.launch.py test_scenario:=circle
 
 | Interface | Name | Type | Message-Type |
 |----------|------|------|---------|
-| Action Server | `/orca/los_guidance` | Goal input | `vortex_msgs/action/LOSGuidance` |
-| Subscriber | `/orca/pose` | Vehicle pose | `geometry_msgs/PoseWithCovarianceStamped` |
-| Subscriber | `/orca/odom` | Vehicle velocity | `nav_msgs/Odometry` |
-| Publisher | `/orca/guidance/los` | Guidance reference (yaw, pitch, surge) | `vortex_msgs/LOSGuidance` |
+| Action Server | `/drone_name/los_guidance` | Goal input | `vortex_msgs/action/LOSGuidance` |
+| Subscriber | `/drone_name/pose` | Vehicle pose | `geometry_msgs/PoseWithCovarianceStamped` |
+| Subscriber | `/drone_name/odom` | Vehicle velocity | `nav_msgs/Odometry` |
+| Publisher | `/drone_name/guidance/los` | Guidance reference (yaw, pitch, surge) | `vortex_msgs/LOSGuidance` |
 | Publisher | `/los_debug` | LOS debug output | `vortex_msgs/LOSGuidance` |
 | Publisher | `/state_debug` | Vehicle state debug | `vortex_msgs/LOSGuidance` |
 

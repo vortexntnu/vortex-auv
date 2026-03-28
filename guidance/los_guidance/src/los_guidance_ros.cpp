@@ -7,6 +7,12 @@
 
 #include "los_guidance/lib/types.hpp"
 
+#ifdef NDEBUG
+constexpr bool debug = false;  
+#else
+constexpr bool debug = true; 
+#endif
+
 const auto start_message = R"(
   _     ___  ____     ____       _     _
  | |   / _ \/ ___|   / ___|_   _(_) __| | __ _ _ __   ___ ___
@@ -23,7 +29,7 @@ LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
     : Node("los_guidance_node", options) {
     double time_step_s = this->declare_parameter<double>("time_step");
     time_step_ =
-        std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
+        std::chrono::milliseconds(static_cast<int>(time_step_s * 1000)); //in 
 
     const std::string yaml_path =
         this->declare_parameter<std::string>("los_config_file");
@@ -42,7 +48,6 @@ LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
     spdlog::info(start_message);
 }
 
-// ROS Setup
 void LosGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.guidance.los");
@@ -111,7 +116,6 @@ void LosGuidanceNode::set_service_server() {
                                 std::placeholders::_1, std::placeholders::_2));
 }
 
-// Guidance Configuration
 void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
     auto adaptive_los_config = config["adaptive_los"];
     auto params = AdaptiveLosParams{};
@@ -120,8 +124,8 @@ void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
         adaptive_los_config["lookahead_distance_h"].as<double>();
     params.lookahead_distance_v =
         adaptive_los_config["lookahead_distance_v"].as<double>();
-    params.gamma_h = adaptive_los_config["gamma_h"].as<double>();
-    params.gamma_v = adaptive_los_config["gamma_v"].as<double>();
+    params.adaptation_gain_h = adaptive_los_config["adaptation_gain_h"].as<double>();
+    params.adaptation_gain_v = adaptive_los_config["adaptation_gain_v"].as<double>();
     params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
     adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
@@ -143,10 +147,10 @@ void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     auto integral_los_config = config["integer_los"];
     auto params = IntegralLosParams{};
 
-    params.k_p_h = integral_los_config["k_p_h"].as<double>();
-    params.k_p_v = integral_los_config["k_p_v"].as<double>();
-    params.k_i_h = integral_los_config["k_i_h"].as<double>();
-    params.k_i_v = integral_los_config["k_i_v"].as<double>();
+    params.proportional_gain_h = integral_los_config["proportional_gain_h"].as<double>();
+    params.proportional_gain_v = integral_los_config["proportional_gain_v"].as<double>();
+    params.integral_gain_h = integral_los_config["integral_gain_h"].as<double>();
+    params.integral_gain_v = integral_los_config["integral_gain_v"].as<double>();
     params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
     integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
@@ -160,17 +164,17 @@ void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
         vector_field_config["max_approach_angle_h"].as<double>();
     params.max_approach_angle_v =
         vector_field_config["max_approach_angle_v"].as<double>();
-    params.k_p_h = vector_field_config["k_p_h"].as<double>();
-    params.k_p_v = vector_field_config["k_p_v"].as<double>();
+    params.proportional_gain_h = vector_field_config["proportional_gain_h"].as<double>();
+    params.proportional_gain_v = vector_field_config["proportional_gain_v"].as<double>();
     params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
     vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
 }
 
-// Topic Callbacks
 void LosGuidanceNode::waypoint_callback(
     const geometry_msgs::msg::PointStamped::SharedPtr wp_msg) {
-    std::lock_guard<std::mutex> lock(mutex_);
+
+    std::unique_lock<std::mutex> lock(mutex_);
 
     const auto new_wp = types::Point::point_from_ros(wp_msg->point);
 
@@ -183,38 +187,41 @@ void LosGuidanceNode::waypoint_callback(
         path_inputs_.next_point = new_wp;
     }
 
-    spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y,
-                 new_wp.z);
+    lock.unlock();
+
+    spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y, new_wp.z);
 }
 
 void LosGuidanceNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
         current_pose) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     path_inputs_.current_position =
         types::Point::point_from_ros(current_pose->pose.pose.position);
+    lock.unlock();
 }
 
 void LosGuidanceNode::odom_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     debug_current_odom_ = msg;
+    lock.unlock();
 }
 
-// Action Server Callbacks
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
     (void)goal;
 
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         if (goal_handle_) {
             if (goal_handle_->is_active()) {
                 spdlog::info("Aborting current goal and accepting new goal");
                 preempted_goal_id_ = goal_handle_->get_goal_id();
             }
         }
+        lock.unlock();
     }
 
     spdlog::info("Accepted goal request");
@@ -237,7 +244,6 @@ void LosGuidanceNode::handle_accepted(
     std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
 
-// Service Callback
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
@@ -246,7 +252,6 @@ void LosGuidanceNode::set_los_mode(
     response->success = true;
 }
 
-// Message Helpers
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs,
     types::Inputs inputs) {
@@ -299,7 +304,7 @@ YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
 }
 
 void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock<std::mutex> lock(mutex_);
     u_desired_ = common_config["u_desired"].as<double>();
     max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
     goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
@@ -310,16 +315,18 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
 
     method_ = static_cast<types::ActiveLosMethod>(
         common_config["active_los_method"].as<int>());
+
+    lock.unlock();
 }
 
-// Goal Execution
 void LosGuidanceNode::execute(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
         goal_handle) {
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         this->goal_handle_ = goal_handle;
+        lock.unlock();
     }
 
     spdlog::info("Executing goal");
@@ -342,14 +349,15 @@ void LosGuidanceNode::execute(
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
-    while (rclcpp::ok()) {
+    while (rclcpp::ok()) { 
         {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::unique_lock<std::mutex> lock(mutex_);
             if (goal_handle->get_goal_id() == preempted_goal_id_) {
                 result->success = false;
                 goal_handle->abort(result);
                 return;
             }
+            lock.unlock();
         }
 
         if (goal_handle->is_canceling()) {
@@ -361,8 +369,9 @@ void LosGuidanceNode::execute(
 
         types::Inputs inputs_copy;
         {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::unique_lock<std::mutex> lock(mutex_);
             inputs_copy = path_inputs_;
+            lock.unlock();
         }
 
         types::Outputs outputs;
@@ -386,11 +395,25 @@ void LosGuidanceNode::execute(
                 goal_handle->abort(result);
                 return;
         }
+        auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
+            fill_los_reference(outputs, inputs_copy));
 
-        vortex_msgs::msg::LOSGuidance reference_msg =
-            fill_los_reference(outputs, inputs_copy);
+        if ((inputs_copy.current_position - inputs_copy.next_point)
+                .as_vector()
+                .norm() < goal_reached_tol_) {
 
-        if (debug_current_odom_) {
+            reference_msg->pitch = 0.0;
+            reference_msg->surge = 0.0;
+
+            result->success = true;
+            goal_handle->succeed(result);
+            spdlog::info("Goal reached");
+            return;
+        }
+        
+        reference_pub_->publish(std::move(reference_msg));
+
+        if (debug_current_odom_ && debug) {
             const auto& v = debug_current_odom_->twist.twist.linear;
             double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
@@ -409,22 +432,6 @@ void LosGuidanceNode::execute(
             state_debug_pub_->publish(state_debug_msg);
         }
 
-        reference_pub_->publish(reference_msg);
-
-        if ((inputs_copy.current_position - inputs_copy.next_point)
-                .as_vector()
-                .norm() < goal_reached_tol_) {
-            auto stop_ref = reference_msg;
-            stop_ref.surge = 0.0;
-            stop_ref.pitch = 0.0;
-            stop_ref.yaw = reference_msg.yaw;
-
-            reference_pub_->publish(stop_ref);
-            result->success = true;
-            goal_handle->succeed(result);
-            spdlog::info("Goal reached");
-            return;
-        }
 
         loop_rate.sleep();
     }
