@@ -2,6 +2,7 @@
 #include <rclcpp_action/client.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
+#include <vortex_msgs/msg/waypoint_mode.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
 
 namespace vortex::mission {
@@ -98,7 +99,7 @@ void LandmarkServerNode::handle_landmark_convergence_accepted(
         convergence_goal()->subtype.value,
         convergence_goal()->convergence_threshold,
         convergence_goal()->dead_reckoning_threshold,
-        convergence_goal()->track_loss_timeout_sec, convergence_mode_);
+        convergence_goal()->track_loss_timeout_sec, convergence_mode_.mode);
 
     const auto track = get_convergence_track();
     if (!track) {
@@ -291,7 +292,7 @@ LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
     vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
-    wp.mode = convergence_mode_;
+    wp.waypoint_mode = convergence_mode_;
     rf_goal.waypoint = wp;
     rf_goal.convergence_threshold = convergence_threshold;
     return rf_goal;
@@ -379,7 +380,7 @@ void LandmarkServerNode::handle_rf_result(
                      convergence_session_id_, static_cast<int>(resultCode));
         active_landmark_convergence_goal_->canceled(make_result(false));
         convergence_active_ = false;
-        convergence_mode_ = vortex_msgs::msg::Waypoint::FULL_POSE;
+        convergence_mode_.mode = vortex_msgs::msg::WaypointMode::FULL_POSE;
         return;
     }
 
@@ -411,7 +412,7 @@ void LandmarkServerNode::handle_rf_result(
     }
 
     convergence_active_ = false;
-    convergence_mode_ = vortex_msgs::msg::Waypoint::FULL_POSE;
+    convergence_mode_.mode = vortex_msgs::msg::WaypointMode::FULL_POSE;
 }
 
 std::optional<vortex::filtering::Track>
