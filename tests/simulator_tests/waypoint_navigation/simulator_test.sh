@@ -2,6 +2,10 @@
 set -e
 set -o pipefail
 
+DRONE="${1:-nautilus}"
+SOLVER_TYPE="${2:-qp}"
+
+echo "===== Waypoint Navigation Test: drone=$DRONE, solver_type=$SOLVER_TYPE ====="
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
 . "${WORKSPACE:-$HOME/ros2_ws}/install/setup.bash"
@@ -13,30 +17,25 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$OP_MODE_PID" || true
+    kill -TERM -"$SIM_PID" -"$CONTROLLER_PID" || true
     exit 1
 }
 trap cleanup ERR
 
-setsid ros2 bag record -o ${WORKSPACE}/bags/recording -s mcap -a &
+setsid ros2 bag record -o ${WORKSPACE}/bags/recording_${DRONE}_${SOLVER_TYPE} -s mcap -a &
 BAG_PID=$!
 echo "Started bagging with PID: $BAG_PID"
 
-# Launch Stonefish Simulator
-setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=nautilus_no_gpu &
+# Launch Stonefish Simulator + Drone (combined launch)
+setsid ros2 launch stonefish_sim vortex_sim_launch.py rendering:=false scenario:=${DRONE}_no_gpu drone:=${DRONE} solver_type:=${SOLVER_TYPE} &
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
 
-# Launch NAUTILUS Simulation
-setsid ros2 launch stonefish_sim drone_sim.launch.py &
-NAUTILUS_PID=$!
-echo "Launched nautilus with PID: $NAUTILUS_PID"
-
 echo "Waiting for simulator to start..."
-timeout 30s bash -c '
-    while ! ros2 topic list | grep -q "/nautilus/odom"; do
+timeout 30s bash -c "
+    while ! ros2 topic list | grep -q '/${DRONE}/odom'; do
         sleep 1
-    done || true'
+    done || true"
 echo "Simulator started"
 
 # Check for ROS errors in logs
@@ -47,11 +46,11 @@ fi
 
 # Wait for odometry data
 echo "Waiting for odom data..."
-timeout 10s ros2 topic echo /nautilus/odom --once
+timeout 10s ros2 topic echo /${DRONE}/odom --once
 echo "Got odom data"
 
 echo "Waiting for sim interface to start..."
-timeout 30s bash -c 'until ros2 topic list | grep -q "/nautilus/pose"; do sleep 1; done'
+timeout 30s bash -c "until ros2 topic list | grep -q '/${DRONE}/pose'; do sleep 1; done"
 echo "Simulator started"
 
 # Check for ROS errors again
@@ -62,11 +61,11 @@ fi
 
 # Wait for pose data
 echo "Waiting for pose data..."
-timeout 10s ros2 topic echo /nautilus/pose --once
+timeout 10s ros2 topic echo /${DRONE}/pose --once
 echo "Got pose data"
 
 # Launch controller and reference filter
-setsid ros2 launch auv_setup dp.launch.py &
+setsid ros2 launch auv_setup dp.launch.py drone:=${DRONE} &
 CONTROLLER_PID=$!
 echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
 
@@ -81,19 +80,19 @@ sleep 5
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 service call /nautilus/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
-ros2 service call /nautilus/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
+ros2 service call /${DRONE}/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /${DRONE}/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 echo "Sleeping for 5 seconds to make sure operation is stable..."
 sleep 5
 
 # Send waypoint goal
 echo "Sending goal"
-python3 "$SCRIPT_DIR/send_goal.py"
+python3 "$SCRIPT_DIR/send_goal.py" "$DRONE"
 
 # Check if goal reached
 echo "Checking if goal reached"
-python3 "$SCRIPT_DIR/check_goal.py"
+python3 "$SCRIPT_DIR/check_goal.py" "$DRONE"
 
 if [ $? -ne 0 ]; then
     echo "Test failed: Drone did not reach goal."
@@ -103,6 +102,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$BAG_PID" -"$OP_MODE_PID"
+kill -TERM -"$SIM_PID" -"$CONTROLLER_PID" -"$BAG_PID"
 
 echo "Test completed successfully."
