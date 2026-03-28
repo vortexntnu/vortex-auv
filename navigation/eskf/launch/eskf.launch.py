@@ -25,12 +25,18 @@ def launch_setup(context, *args, **kwargs):
         "robots",
         f"{drone}.yaml",
     )
+    drone_env_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "environments",
+        "trondheim_saltwater.yaml",
+    )
     eskf_node = Node(
         package="eskf",
         executable="eskf_node",
         name="eskf_node",
         namespace=namespace,
-        parameters=[eskf_params, drone_params],
+        parameters=[eskf_params, drone_params, drone_env_params],
         output="screen",
     )
 
