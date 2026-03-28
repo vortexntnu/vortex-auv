@@ -12,7 +12,7 @@
 
 #include "los_guidance/lib/types.hpp"
 
-namespace vortex::guidance::los { 
+namespace vortex::guidance::los {
 
 /**
  * @brief Parameters for the vector field LOS guidance algorithm.
@@ -22,7 +22,7 @@ struct VectorFieldLosParams {
     double max_approach_angle_v{};
     double proportional_gain_h{};
     double proportional_gain_v{};
-    double time_step{}; // in milliseconds
+    double time_step{};  // in milliseconds
 };
 
 /**
@@ -54,16 +54,17 @@ class VectorFieldLOSGuidance {
 
    private:
     /**
-     * @brief Updates the path heading and path pitch angles from the active path
-     * segment.
+     * @brief Updates the path heading and path pitch angles from the active
+     * path segment.
      * @param inputs Input values containing the previous and next path points.
      */
     void update_angles(const types::Inputs& inputs);
 
     /**
-     * @brief Calculates the cross-track error in the path-fixed reference frame.
-     * @param inputs Input values containing the current vehicle position and path
-     * information.
+     * @brief Calculates the cross-track error in the path-fixed reference
+     * frame.
+     * @param inputs Input values containing the current vehicle position and
+     * path information.
      * @return types::CrossTrackError The calculated horizontal and vertical
      * cross-track errors.
      */
@@ -91,7 +92,8 @@ class VectorFieldLOSGuidance {
     Eigen::AngleAxisd rotation_y_{0.0, Eigen::Vector3d::UnitY()};
 
     /**
-     * @brief Rotation representation for the path heading angle about the z-axis.
+     * @brief Rotation representation for the path heading angle about the
+     * z-axis.
      */
     Eigen::AngleAxisd rotation_z_{0.0, Eigen::Vector3d::UnitZ()};
 };

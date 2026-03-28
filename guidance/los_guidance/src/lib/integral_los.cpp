@@ -5,14 +5,15 @@ namespace vortex::guidance::los {
 // Constructor
 IntegralLOSGuidance::IntegralLOSGuidance(const IntegralLosParams& params)
     : m_params{params} {}
- 
+
 // Angle Update
 void IntegralLOSGuidance::update_angles(const types::Inputs& inputs) {
     const types::Point difference = inputs.next_point - inputs.prev_point;
 
     path_heading_ = std::atan2(difference.y, difference.x);
-    path_pitch_ = std::atan2(-difference.z, std::sqrt(difference.x * difference.x +
-                                                difference.y * difference.y));
+    path_pitch_ = std::atan2(
+        -difference.z,
+        std::sqrt(difference.x * difference.x + difference.y * difference.y));
 
     rotation_y_ = Eigen::AngleAxisd(path_pitch_, Eigen::Vector3d::UnitY());
     rotation_z_ = Eigen::AngleAxisd(path_heading_, Eigen::Vector3d::UnitZ());
@@ -42,10 +43,10 @@ types::Outputs IntegralLOSGuidance::calculate_outputs(
     integrated_horizontal_error_ += cross_track_error.y_e * m_params.time_step;
     integrated_vertical_error_ += cross_track_error.z_e * m_params.time_step;
 
-    const double u_h =
-        m_params.proportional_gain_h * cross_track_error.y_e + m_params.integral_gain_h * integrated_horizontal_error_;
-    const double u_v =
-        m_params.proportional_gain_v * cross_track_error.z_e + m_params.integral_gain_v * integrated_vertical_error_;
+    const double u_h = m_params.proportional_gain_h * cross_track_error.y_e +
+                       m_params.integral_gain_h * integrated_horizontal_error_;
+    const double u_v = m_params.proportional_gain_v * cross_track_error.z_e +
+                       m_params.integral_gain_v * integrated_vertical_error_;
 
     const double desired_yaw = path_heading_ - std::atan(u_h);
     const double desired_pitch = path_pitch_ + std::atan(u_v);

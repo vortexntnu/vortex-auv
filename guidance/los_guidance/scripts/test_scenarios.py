@@ -66,7 +66,7 @@ class WaypointTest(Node):
 
         elif test_scenario == "test_pitch":
             # 0 = water surface, do not go above
-            # this test scenario has no seabed, so z can be however we need. 
+            # this test scenario has no seabed, so z can be however we need.
             # Keep all depths safely between these
             return [
                 (3.0, 0.0, 1.0),  # slight up

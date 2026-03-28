@@ -10,14 +10,14 @@ class IntegralLosTest : public ::testing::Test {
 
     IntegralLosParams get_params() {
         IntegralLosParams params;
-        params.integral_gain_h = 0.5;   
-        params.integral_gain_v = 0.5;     
-        params.proportional_gain_h = 0.1;  
-        params.proportional_gain_v = 0.1; 
+        params.integral_gain_h = 0.5;
+        params.integral_gain_v = 0.5;
+        params.proportional_gain_h = 0.1;
+        params.proportional_gain_v = 0.1;
         params.time_step = 0.01;
         return params;
     }
- 
+
     IntegralLOSGuidance Ilos_;
     const double tol = 1e-9;
 };

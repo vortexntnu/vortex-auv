@@ -1,7 +1,7 @@
 #include "los_guidance/lib/adaptive_los.hpp"
 #include <gtest/gtest.h>
 
-namespace vortex::guidance::los { 
+namespace vortex::guidance::los {
 
 class AdaptiveLosTest : public ::testing::Test {
    protected:

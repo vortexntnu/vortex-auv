@@ -66,8 +66,10 @@ class LosGuidanceNode : public rclcpp::Node {
     void set_adaptive_los_guidance(YAML::Node config);
 
     /**
-     * @brief Initializes the proportional LOS guidance module from configuration.
-     * @param config YAML configuration node containing proportional LOS parameters.
+     * @brief Initializes the proportional LOS guidance module from
+     * configuration.
+     * @param config YAML configuration node containing proportional LOS
+     * parameters.
      */
     void set_proportional_los_guidance(YAML::Node config);
 
@@ -78,8 +80,10 @@ class LosGuidanceNode : public rclcpp::Node {
     void set_integral_los_guidance(YAML::Node config);
 
     /**
-     * @brief Initializes the vector field LOS guidance module from configuration.
-     * @param config YAML configuration node containing vector field LOS parameters.
+     * @brief Initializes the vector field LOS guidance module from
+     * configuration.
+     * @param config YAML configuration node containing vector field LOS
+     * parameters.
      */
     void set_vector_field_guidance(YAML::Node config);
 
@@ -120,7 +124,8 @@ class LosGuidanceNode : public rclcpp::Node {
      * @brief Handles an incoming LOS guidance action goal request.
      * @param uuid Unique identifier for the received goal.
      * @param goal Requested LOS guidance goal.
-     * @return rclcpp_action::GoalResponse Response indicating whether the goal is accepted.
+     * @return rclcpp_action::GoalResponse Response indicating whether the goal
+     * is accepted.
      */
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
@@ -129,7 +134,8 @@ class LosGuidanceNode : public rclcpp::Node {
     /**
      * @brief Handles cancellation of an active LOS guidance goal.
      * @param goal_handle Handle to the goal being cancelled.
-     * @return rclcpp_action::CancelResponse Response indicating whether cancellation is accepted.
+     * @return rclcpp_action::CancelResponse Response indicating whether
+     * cancellation is accepted.
      */
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<
@@ -141,7 +147,7 @@ class LosGuidanceNode : public rclcpp::Node {
      * @param goal_handle Handle to the accepted goal.
      */
     void handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                         vortex_msgs::action::LOSGuidance>> goal_handle);
+                             vortex_msgs::action::LOSGuidance>> goal_handle);
 
     /**
      * @brief Executes the LOS guidance action.
@@ -153,7 +159,8 @@ class LosGuidanceNode : public rclcpp::Node {
     /**
      * @brief Service callback for changing the active LOS guidance method.
      * @param request Service request containing the desired LOS mode.
-     * @param response Service response indicating whether the mode change succeeded.
+     * @param response Service response indicating whether the mode change
+     * succeeded.
      */
     void set_los_mode(
         const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
@@ -168,10 +175,12 @@ class LosGuidanceNode : public rclcpp::Node {
             current_pose);
 
     /**
-     * @brief Fills a LOS guidance reference message from computed outputs and inputs.
+     * @brief Fills a LOS guidance reference message from computed outputs and
+     * inputs.
      * @param output Calculated LOS guidance outputs.
      * @param inputs Current LOS guidance inputs.
-     * @return vortex_msgs::msg::LOSGuidance Populated LOS guidance reference message.
+     * @return vortex_msgs::msg::LOSGuidance Populated LOS guidance reference
+     * message.
      */
     vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output,
                                                      types::Inputs inputs);

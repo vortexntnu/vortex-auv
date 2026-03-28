@@ -9,7 +9,7 @@
 
 #include <cmath>
 #include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Geometry> 
+#include <eigen3/Eigen/Geometry>
 
 #include "los_guidance/lib/types.hpp"
 
@@ -26,7 +26,7 @@ struct AdaptiveLosParams {
     double lookahead_distance_v{};
     double adaptation_gain_h{};
     double adaptation_gain_v{};
-    double time_step{}; // in milliseconds
+    double time_step{};  // in milliseconds
 };
 
 /**
@@ -57,16 +57,17 @@ class AdaptiveLOSGuidance {
 
    private:
     /**
-     * @brief Updates the path heading and path pitch angles from the active path
-     * segment.
+     * @brief Updates the path heading and path pitch angles from the active
+     * path segment.
      * @param inputs Input values containing the previous and next path points.
      */
     void update_angles(const types::Inputs& inputs);
 
     /**
-     * @brief Calculates the cross-track error in the path-fixed reference frame.
-     * @param inputs Input values containing the current vehicle position and path
-     * information.
+     * @brief Calculates the cross-track error in the path-fixed reference
+     * frame.
+     * @param inputs Input values containing the current vehicle position and
+     * path information.
      * @return types::CrossTrackError The calculated horizontal and vertical
      * cross-track errors.
      */

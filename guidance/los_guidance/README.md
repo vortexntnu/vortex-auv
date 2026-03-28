@@ -220,7 +220,7 @@ Proportional LOS is the simplest LOS guidance law.
 \tan^{-1}\left(\frac{z_e^p}{\Delta_v}\right)
 ```
 
-where 
+where
 
 - $\Delta_h$ horizontal lookahead distance
 - $\Delta_v$ vertical lookahead distance

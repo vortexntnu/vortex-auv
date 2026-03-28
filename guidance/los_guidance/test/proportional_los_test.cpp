@@ -17,7 +17,7 @@ class ProportionalLosTest : public ::testing::Test {
     ProportionalLOSGuidance Plos_;
     const double tol = 1e-9;
 };
- 
+
 // Test commanded angles when drone is to the right of the track
 TEST_F(ProportionalLosTest, T06_test_commanded_angles) {
     types::Inputs inputs;

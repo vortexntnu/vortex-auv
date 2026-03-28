@@ -1,5 +1,5 @@
 #/**
-# * @file guidance_params.yaml 
+# * @file guidance_params.yaml
 # * @brief Configuration parameters for the LOS guidance node.
 # *
 # * This file contains the tunable parameters for all supported Line-Of-Sight
@@ -21,7 +21,7 @@
 # *   vector field LOS guidance.
 # * - `max_approach_angle_v`: Maximum allowed vertical approach angle for
 # *   vector field LOS guidance.
-# * - 
+# * -
 # */
 adaptive_los:
   lookahead_distance_h: 0.9

@@ -10,7 +10,7 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 
-#include "los_guidance/lib/types.hpp" 
+#include "los_guidance/lib/types.hpp"
 
 namespace vortex::guidance::los {
 
@@ -22,7 +22,7 @@ struct IntegralLosParams {
     double proportional_gain_v{};
     double integral_gain_h{};
     double integral_gain_v{};
-    double time_step{}; // in milliseconds
+    double time_step{};  // in milliseconds
 };
 
 /**
@@ -53,16 +53,17 @@ class IntegralLOSGuidance {
 
    private:
     /**
-     * @brief Updates the path heading and path pitch angles from the active path
-     * segment.
+     * @brief Updates the path heading and path pitch angles from the active
+     * path segment.
      * @param inputs Input values containing the previous and next path points.
      */
     void update_angles(const types::Inputs& inputs);
 
     /**
-     * @brief Calculates the cross-track error in the path-fixed reference frame.
-     * @param inputs Input values containing the current vehicle position and path
-     * information.
+     * @brief Calculates the cross-track error in the path-fixed reference
+     * frame.
+     * @param inputs Input values containing the current vehicle position and
+     * path information.
      * @return types::CrossTrackError The calculated horizontal and vertical
      * cross-track errors.
      */
@@ -100,7 +101,8 @@ class IntegralLOSGuidance {
     Eigen::AngleAxisd rotation_y_{0.0, Eigen::Vector3d::UnitY()};
 
     /**
-     * @brief Rotation representation for the path heading angle about the z-axis.
+     * @brief Rotation representation for the path heading angle about the
+     * z-axis.
      */
     Eigen::AngleAxisd rotation_z_{0.0, Eigen::Vector3d::UnitZ()};
 };

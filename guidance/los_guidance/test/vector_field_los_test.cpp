@@ -10,10 +10,10 @@ class VectorFieldLosTest : public ::testing::Test {
 
     VectorFieldLosParams get_params() {
         VectorFieldLosParams params;
-        params.max_approach_angle_h = 1.0;  
-        params.max_approach_angle_v = 1.0;  
-        params.proportional_gain_h = 1.5;                                
-        params.proportional_gain_v = 0.9;                              
+        params.max_approach_angle_h = 1.0;
+        params.max_approach_angle_v = 1.0;
+        params.proportional_gain_h = 1.5;
+        params.proportional_gain_v = 0.9;
         params.time_step = 0.01;
         return params;
     }
@@ -21,7 +21,7 @@ class VectorFieldLosTest : public ::testing::Test {
     VectorFieldLOSGuidance Vflos_;
     const double tol = 1e-9;
 };
- 
+
 // Test commanded angles when drone is to the right of the track
 TEST_F(VectorFieldLosTest, T06_test_commanded_angles) {
     types::Inputs inputs;
