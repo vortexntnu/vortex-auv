@@ -66,6 +66,12 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
+    rclcpp::Publisher<
+        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
+
+    rclcpp::Publisher<
+        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_pub_;
+
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
 
     // Member variable for the ESKF instance
@@ -106,6 +112,8 @@ class ESKFNode : public rclcpp::Node {
     bool use_tf_transforms_ = false;
     bool tf_sensors_loaded_ = false;
     bool publish_tf_{false};
+    bool publish_pose_{false};
+    bool publish_twist_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();

@@ -18,4 +18,6 @@
         depth_frame_t: [ 0.0, 0.0, 0.0 ]
       use_tf_transforms: true
       publish_tf: true
+      publish_pose: true
+      publish_twist: true
       publish_rate_ms: 1

@@ -29,12 +29,17 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     }
 
+    publish_pose_ = this->declare_parameter<bool>("publish_pose");
+    publish_twist_ = this->declare_parameter<bool>("publish_twist");
+
     // Declare these here so they appear in `ros2 param list` from startup,
     // even though they are read in complete_initialization().
     this->declare_parameter<int>("publish_rate_ms");
     this->declare_parameter<std::string>("topics.imu");
     this->declare_parameter<std::string>("topics.dvl_twist");
     this->declare_parameter<std::string>("topics.odom");
+    this->declare_parameter<std::string>("topics.pose");
+    this->declare_parameter<std::string>("topics.twist");
 
     if (use_tf_transforms_) {
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
@@ -66,6 +71,21 @@ void ESKFNode::set_subscribers_and_publisher() {
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
+
+    if (publish_pose_) {
+        std::string pose_topic = this->get_parameter("topics.pose").as_string();
+        pose_pub_ =
+            this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
+                pose_topic, qos_sensor_data);
+    }
+
+    if (publish_twist_) {
+        std::string twist_topic =
+            this->get_parameter("topics.twist").as_string();
+        twist_pub_ =
+            this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+                twist_topic, qos_sensor_data);
+    }
 
 #ifndef NDEBUG
     nis_pub_ = create_publisher<std_msgs::msg::Float64>(
@@ -261,6 +281,20 @@ void ESKFNode::publish_odom() {
         }
     }
     odom_pub_->publish(odom_msg);
+
+    if (publish_pose_) {
+        geometry_msgs::msg::PoseWithCovarianceStamped pose_msg;
+        pose_msg.header = odom_msg.header;
+        pose_msg.pose = odom_msg.pose;
+        pose_pub_->publish(pose_msg);
+    }
+
+    if (publish_twist_) {
+        geometry_msgs::msg::TwistWithCovarianceStamped twist_msg;
+        twist_msg.header = odom_msg.header;
+        twist_msg.twist = odom_msg.twist;
+        twist_pub_->publish(twist_msg);
+    }
 
     if (publish_tf_) {
         publish_tf(nom_state, current_time);
