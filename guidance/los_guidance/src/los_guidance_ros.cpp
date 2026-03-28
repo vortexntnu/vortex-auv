@@ -392,37 +392,21 @@ void LosGuidanceNode::execute(
             const auto& v = debug_current_odom_->twist.twist.linear;
             double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
-            vortex_msgs::msg::LOSGuidance state_debug_msg;
-            Eigen::Vector3d euler =
-                vortex::utils::math::quat_to_euler(Eigen::Quaterniond(
-                    debug_current_odom_->pose.pose.orientation.w,
-                    debug_current_odom_->pose.pose.orientation.x,
-                    debug_current_odom_->pose.pose.orientation.y,
-                    debug_current_odom_->pose.pose.orientation.z));
-
-            state_debug_msg.pitch = euler.y();
-            state_debug_msg.yaw = euler.z();
-            state_debug_msg.surge = surge;
-
-            state_debug_pub_->publish(state_debug_msg);
-        }
-
-        reference_pub_->publish(reference_msg);
-
-        if ((inputs_copy.current_position - inputs_copy.next_point)
-                .as_vector()
-                .norm() < goal_reached_tol_) {
-            auto stop_ref = reference_msg;
-            stop_ref.surge = 0.0;
-            stop_ref.pitch = 0.0;
-            stop_ref.yaw = reference_msg.yaw;
-
-            reference_pub_->publish(stop_ref);
+        if ((eta_ - next_point_).as_vector().norm() < goal_reached_tol_) {
             result->success = true;
             goal_handle->succeed(result);
+            u_desired_ = 0.0;
+            auto final_reference_msg =
+                std::make_unique<vortex_msgs::msg::LOSGuidance>(
+                    fill_los_reference());
+            reference_pub_->publish(std::move(final_reference_msg));
             spdlog::info("Goal reached");
             return;
         }
+
+        auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
+            fill_los_reference());
+        reference_pub_->publish(std::move(reference_msg));
 
         loop_rate.sleep();
     }
