@@ -13,7 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$OP_MODE_PID" || true
+    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$OP_MODE_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -65,15 +65,20 @@ echo "Waiting for pose data..."
 timeout 10s ros2 topic echo /nautilus/pose --once
 echo "Got pose data"
 
-# Launch quaternion reference filter with RPY compatibility (publishes RPY on guidance/dp)
+# Launch quaternion reference filter
 setsid ros2 launch reference_filter_dp_quat reference_filter_dp_quat.launch.py &
 FILTER_PID=$!
 echo "Launched quat reference filter with PID: $FILTER_PID"
 
+# Launch quat-to-euler bridge so the Euler-based controller gets guidance/dp
+setsid python3 "$SCRIPT_DIR/quat_to_euler_bridge.py" &
+BRIDGE_PID=$!
+echo "Launched quat-to-euler bridge with PID: $BRIDGE_PID"
+
 # Launch controller separately
 setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py &
 CONTROLLER_PID=$!
-echo "Launched controller and reference filter with PID: $CONTROLLER_PID"
+echo "Launched controller with PID: $CONTROLLER_PID"
 
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
@@ -108,6 +113,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BAG_PID" -"$OP_MODE_PID"
+kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$BAG_PID" -"$OP_MODE_PID"
 
 echo "Test completed successfully."
