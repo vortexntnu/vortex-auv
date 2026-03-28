@@ -50,7 +50,7 @@ Each time step performs three operations:
 
 1. **Compute reference error** — The 6D reference $r$ is the error between the waypoint goal and the nominal pose:
    - $r_{0:3} = p_{goal} - p_{nominal}$
-   - $r_{3:6} = \text{quaternion\_error}(q_{nominal},\ q_{goal})$
+   - $r_{3:6} = q_{\mathrm{err}}(q_{nominal}, q_{goal})$
 
    The `quaternion_error` function returns $2 \cdot \text{vec}(q_{nominal}^{-1} \otimes q_{goal})$, which for small angles approximates the rotation vector from nominal to goal.
 
