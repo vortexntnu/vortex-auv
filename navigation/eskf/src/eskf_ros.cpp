@@ -21,6 +21,14 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     set_subscribers_and_publisher();
 
+    // gravity, water density and atmospheric pressure.
+    this->gravity =
+        -this->declare_parameter<double>("gravity.acceleration", 9.81);
+    this->water_density =
+        this->declare_parameter<double>("water.density", 1028.0);
+    this->atmospheric_pressure =
+        this->declare_parameter<double>("atmosphere.pressure", 100000.0);
+
     set_parameters();
 
     // Initialize TF Buffer & Listener
@@ -50,6 +58,10 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     spdlog::info(start_message);
 
+    spdlog::info("Gravity set to: {} m/s^2", gravity);
+    spdlog::info("Water density set to: {} kg/m^3", water_density);
+    spdlog::info("Atmospheric pressure set to: {} Pa", atmospheric_pressure);
+
 #ifndef NDEBUG
     spdlog::info(
         "______________________Debug mode is enabled______________________");
@@ -72,14 +84,23 @@ void ESKFNode::set_subscribers_and_publisher() {
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
+    this->declare_parameter<std::string>("topics.pressure_sensor");
+    std::string pressure_topic =
+        this->get_parameter("topics.pressure_sensor").as_string();
+    depth_sub_ = this->create_subscription<sensor_msgs::msg::FluidPressure>(
+        pressure_topic, qos_sensor_data,
+        std::bind(&ESKFNode::depth_callback, this, std::placeholders::_1));
+
     this->declare_parameter<std::string>("topics.odom");
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
 #ifndef NDEBUG
-    nis_pub_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/nis", vortex::utils::qos_profiles::reliable_profile());
+    nis_dvl_pub_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/nis_dvl", vortex::utils::qos_profiles::reliable_profile());
+    nis_depth_pub_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/nis_depth", vortex::utils::qos_profiles::reliable_profile());
 #endif
 }
 
@@ -129,7 +150,9 @@ void ESKFNode::set_parameters() {
     }
     Eigen::Matrix15d P = createDiagonalMatrix<15>(diag_p_init);
 
-    EskfParams eskf_params{.Q = Q, .P = P};
+    Eigen::Vector3d g_vec(0.0, 0.0, this->gravity);
+
+    EskfParams eskf_params{.Q = Q, .P = P, .g_ = g_vec};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
 }
@@ -207,7 +230,26 @@ void ESKFNode::dvl_callback(
     // Publish NIS in Debug mode
     std_msgs::msg::Float64 nis_msg;
     nis_msg.data = eskf_->get_nis();
-    nis_pub_->publish(nis_msg);
+    nis_dvl_pub_->publish(nis_msg);
+#endif
+}
+
+void ESKFNode::depth_callback(
+    const sensor_msgs::msg::FluidPressure::SharedPtr msg) {
+    SensorDepth depth_sensor;
+    // the simulation is a gauge sensor so we don't subtract atmospheric
+    // pressure.
+    depth_sensor.measurement =
+        -msg->fluid_pressure / (this->water_density * this->gravity);
+    depth_sensor.measurement_noise = msg->variance;
+
+    eskf_->depth_update(depth_sensor);
+
+#ifndef NDEBUG
+    // Publish NIS in Debug mode
+    std_msgs::msg::Float64 nis_msg;
+    nis_msg.data = eskf_->get_nis();
+    nis_depth_pub_->publish(nis_msg);
 #endif
 }
 

@@ -5,24 +5,20 @@
 #include <vortex/utils/math.hpp>
 #include "eskf/typedefs.hpp"
 
-double compute_nis(const Eigen::Vector3d& innovation,
-                   const Eigen::Matrix3d& S) {
-    Eigen::Matrix3d S_inv = S.inverse();
-    return innovation.transpose() * S_inv * innovation;
+double compute_nis(const Eigen::VectorXd& innovation,
+                   const Eigen::MatrixXd& S) {
+    Eigen::MatrixXd S_inv = S.inverse();
+    return (innovation.transpose() * S_inv * innovation)(0);
 }
 
 ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
     // Initialize Covariance
     current_error_state_.covariance = params.P;
 
-    // Initialize Nominal Quaternion to Identity
-    // current_nom_state_.quat = Eigen::Quaterniond::Identity();
+    g_ = params.g_;
 
-    // Initialize Quaternion: -90 degrees Yaw because of initial
-    // drone_orientation
-    Eigen::AngleAxisd init_rotation(-M_PI / 2.0, Eigen::Vector3d::UnitZ());
-    current_nom_state_.quat = Eigen::Quaterniond(init_rotation);
-    current_nom_state_.quat.normalize();
+    // Initialize Nominal Quaternion to Identity
+    current_nom_state_.quat = Eigen::Quaterniond::Identity();
 }
 
 std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(
@@ -179,6 +175,11 @@ void ESKF::dvl_update(const SensorDVL& dvl_meas) {
     injection_and_reset();
 }
 
+void ESKF::depth_update(const SensorDepth& depth_meas) {
+    measurement_update(depth_meas);
+    injection_and_reset();
+}
+
 // DVL sensor model implementations
 
 Eigen::VectorXd SensorDVL::innovation(const StateQuat& state) const {
@@ -193,4 +194,25 @@ Eigen::MatrixXd SensorDVL::jacobian(const StateQuat& state) const {
 
 Eigen::MatrixXd SensorDVL::noise_covariance() const {
     return this->measurement_noise;
+}
+
+// Depth sensor model implementations
+
+Eigen::VectorXd SensorDepth::innovation(const StateQuat& state) const {
+    double predicted_depth = state.pos[2];
+    Eigen::VectorXd innovation(1);
+    innovation(0) = this->measurement - predicted_depth;
+    return innovation;
+}
+
+Eigen::MatrixXd SensorDepth::jacobian(const StateQuat& state) const {
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(1, 15);
+    H(0, 2) = 1.0;
+    return H;
+}
+
+Eigen::MatrixXd SensorDepth::noise_covariance() const {
+    Eigen::MatrixXd R(1, 1);
+    R(0, 0) = this->measurement_noise;
+    return R;
 }

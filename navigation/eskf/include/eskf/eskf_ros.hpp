@@ -11,6 +11,7 @@
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
@@ -37,6 +38,8 @@ class ESKFNode : public rclcpp::Node {
     void dvl_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
+    void depth_callback(const sensor_msgs::msg::FluidPressure::SharedPtr msg);
+
     // @brief Publish the odometry message
     void publish_odom();
 
@@ -59,9 +62,13 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
+    rclcpp::Subscription<sensor_msgs::msg::FluidPressure>::SharedPtr depth_sub_;
+
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_dvl_pub_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
 
     // Member variable for the ESKF instance
 
@@ -100,6 +107,11 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
+
+    // gravity, water density and atmospheric pressure parameters
+    double gravity;
+    double water_density;
+    double atmospheric_pressure;
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_
