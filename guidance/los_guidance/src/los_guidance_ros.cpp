@@ -59,9 +59,6 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         guidance_topic, qos_sensor_data);
 
-    los_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
-        "los_debug", qos_sensor_data);
-
     state_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         "state_debug", qos_sensor_data);
 
@@ -339,8 +336,6 @@ void LosGuidanceNode::execute(
         path_inputs_.next_point = new_wp;
     }
 
-    auto feedback =
-        std::make_shared<vortex_msgs::action::LOSGuidance::Feedback>();
     auto result = std::make_shared<vortex_msgs::action::LOSGuidance::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
@@ -392,9 +387,6 @@ void LosGuidanceNode::execute(
 
         vortex_msgs::msg::LOSGuidance reference_msg =
             fill_los_reference(outputs, inputs_copy);
-        feedback->feedback = reference_msg;
-
-        los_debug_pub_->publish(reference_msg);
 
         if (debug_current_odom_) {
             const auto& v = debug_current_odom_->twist.twist.linear;
@@ -415,7 +407,6 @@ void LosGuidanceNode::execute(
             state_debug_pub_->publish(state_debug_msg);
         }
 
-        goal_handle->publish_feedback(feedback);
         reference_pub_->publish(reference_msg);
 
         if ((inputs_copy.current_position - inputs_copy.next_point)

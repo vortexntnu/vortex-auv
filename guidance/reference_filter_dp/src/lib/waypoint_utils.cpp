@@ -9,8 +9,16 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
                                  const Eigen::Vector6d& current_state) {
     Eigen::Vector6d reference_out = reference_in;
 
+    using vortex::utils::math::ssa;
+
     switch (mode) {
         case WaypointMode::FULL_POSE:
+            reference_out(3) =
+                current_state(3) + ssa(reference_in(3) - current_state(3));
+            reference_out(4) =
+                current_state(4) + ssa(reference_in(4) - current_state(4));
+            reference_out(5) =
+                current_state(5) + ssa(reference_in(5) - current_state(5));
             break;
 
         case WaypointMode::ONLY_POSITION:
@@ -34,6 +42,12 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
             reference_out(0) = current_state(0);
             reference_out(1) = current_state(1);
             reference_out(2) = current_state(2);
+            reference_out(3) =
+                current_state(3) + ssa(reference_in(3) - current_state(3));
+            reference_out(4) =
+                current_state(4) + ssa(reference_in(4) - current_state(4));
+            reference_out(5) =
+                current_state(5) + ssa(reference_in(5) - current_state(5));
             break;
     }
 
