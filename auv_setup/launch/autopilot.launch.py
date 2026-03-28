@@ -16,10 +16,10 @@ from auv_setup.launch_arg_common import (
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
-    velocity_lqr_config = os.path.join(
-        get_package_share_directory("velocity_controller_lqr"),
+    velocity_config = os.path.join(
+        get_package_share_directory("velocity_controller"),
         "config",
-        "param_velocity_controller_lqr.yaml",
+        f"{drone}_params.yaml",
     )
 
     los_config = os.path.join(
@@ -40,26 +40,29 @@ def launch_setup(context, *args, **kwargs):
         executable="los_guidance_node",
         name="los_guidance_node",
         namespace=namespace,
-        parameters=[drone_params, los_config],
+        parameters=[
+            drone_params,
+            {
+                "los_config_file": los_config,
+                "time_step": 0.1,
+            },
+        ],
         output="screen",
     )
 
-    lqr_node = Node(
-        package="velocity_controller_lqr",
-        executable="velocity_controller_lqr_node.py",
-        name="velocity_controller_lqr_node",
+    velocity_node = Node(
+        package="velocity_controller",
+        executable="velocity_controller_node.py",
+        name="velocity_controller_node",
         namespace=namespace,
         output="screen",
-        parameters=[drone_params, velocity_lqr_config],
+        parameters=[drone_params, velocity_config],
     )
 
-    return [los_node, lqr_node]
+    return [los_node, velocity_node]
 
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args()
-        + [
-            OpaqueFunction(function=launch_setup),
-        ]
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )
