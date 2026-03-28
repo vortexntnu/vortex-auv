@@ -161,7 +161,8 @@ void ReferenceFilterNode::execute(
             "Using default 0.1");
     }
 
-    const auto wp = vortex::utils::waypoints::waypoint_from_ros(goal_handle->get_goal()->waypoint);
+    const auto wp = vortex::utils::waypoints::waypoint_from_ros(
+        goal_handle->get_goal()->waypoint);
 
     const auto [pose, twist] = [this] {
         std::lock_guard lock(sensor_mutex_);
