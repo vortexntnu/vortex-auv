@@ -20,24 +20,6 @@ ament_target_dependencies(${TEST_BINARY_NAME} PUBLIC Eigen3)
 
 gtest_discover_tests(${TEST_BINARY_NAME})
 
-# Waypoint utils tests
-set(TEST_WAYPOINT_UTILS ${PROJECT_NAME}_test_waypoint_utils)
-add_executable(
-    ${TEST_WAYPOINT_UTILS}
-    test_waypoint_utils.cpp
-)
-
-target_link_libraries(
-    ${TEST_WAYPOINT_UTILS}
-    PRIVATE
-    ${CORE_LIB_NAME}
-    GTest::GTest
-)
-
-ament_target_dependencies(${TEST_WAYPOINT_UTILS} PUBLIC Eigen3 vortex_utils)
-
-gtest_discover_tests(${TEST_WAYPOINT_UTILS})
-
 # Waypoint follower tests
 set(TEST_WAYPOINT_FOLLOWER ${PROJECT_NAME}_test_waypoint_follower)
 add_executable(

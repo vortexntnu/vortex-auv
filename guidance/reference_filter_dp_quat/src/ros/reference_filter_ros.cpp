@@ -4,7 +4,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include <thread>
 #include <vortex/utils/ros/qos_profiles.hpp>
-#include <vortex/utils/ros/ros_conversions.hpp>
+#include <vortex/utils/ros/waypoint_ros_conversions.hpp>
 #include "reference_filter_dp_quat/ros/reference_filter_ros_utils.hpp"
 
 const auto start_message = R"(
@@ -53,15 +53,15 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         this->get_parameter("topics.reference_pose").as_string();
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
-    reference_pub_ = this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
-        guidance_topic, qos_sensor_data);
+    reference_pub_ =
+        this->create_publisher<vortex_msgs::msg::ReferenceFilterQuat>(
+            guidance_topic, qos_sensor_data);
 
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
             follower_->set_reference(
-                vortex::utils::ros_conversions::ros_pose_to_pose_euler(
-                    msg->pose));
+                vortex::utils::ros_conversions::ros_pose_to_pose(msg->pose));
         });
 
     pose_sub_ = this->create_subscription<
@@ -70,9 +70,8 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
                    msg) {
             std::lock_guard<std::mutex> lock(sensor_mutex_);
-            current_pose_ =
-                vortex::utils::ros_conversions::ros_pose_to_pose_euler(
-                    msg->pose.pose);
+            current_pose_ = vortex::utils::ros_conversions::ros_pose_to_pose(
+                msg->pose.pose);
         });
 
     twist_sub_ = this->create_subscription<
@@ -92,7 +91,7 @@ void ReferenceFilterNode::set_action_server() {
         this->get_parameter("action_servers.reference_filter").as_string();
 
     action_server_ = rclcpp_action::create_server<
-        vortex_msgs::action::ReferenceFilterWaypoint>(
+        vortex_msgs::action::ReferenceFilterQuatWaypoint>(
         this, action_server_name,
         [this](const auto& uuid, auto goal) {
             return handle_goal(uuid, std::move(goal));
@@ -119,7 +118,8 @@ void ReferenceFilterNode::set_refererence_filter() {
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
-    std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
+    std::shared_ptr<
+        const vortex_msgs::action::ReferenceFilterQuatWaypoint::Goal>
     /*goal*/) {
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -127,14 +127,14 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> /*goal_handle*/) {
+        vortex_msgs::action::ReferenceFilterQuatWaypoint>> /*goal_handle*/) {
     spdlog::info("Received request to cancel goal");
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
+        vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
     preempted_ = true;
     if (execute_thread_.joinable()) {
@@ -148,7 +148,7 @@ void ReferenceFilterNode::handle_accepted(
 
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
+        vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle) {
     spdlog::info("Executing goal");
 
     double convergence_threshold =
@@ -161,7 +161,8 @@ void ReferenceFilterNode::execute(
             "Using default 0.1");
     }
 
-    const auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
+    const auto wp = vortex::utils::waypoints::waypoint_from_ros(
+        goal_handle->get_goal()->waypoint);
 
     const auto [pose, twist] = [this] {
         std::lock_guard lock(sensor_mutex_);
@@ -170,10 +171,8 @@ void ReferenceFilterNode::execute(
 
     follower_->start(pose, twist, wp, convergence_threshold);
 
-    auto feedback = std::make_shared<
-        vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
     auto result = std::make_shared<
-        vortex_msgs::action::ReferenceFilterWaypoint::Result>();
+        vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
@@ -192,24 +191,21 @@ void ReferenceFilterNode::execute(
             return;
         }
 
-        Eigen::Vector18d filter_state = follower_->step();
+        follower_->step();
 
-        const auto current_pose_vector = [this] {
+        const auto current_pose = [this] {
             std::lock_guard lock(sensor_mutex_);
-            return current_pose_.to_vector();
+            return current_pose_;
         }();
 
-        bool target_reached =
-            follower_->within_convergance(current_pose_vector);
+        bool target_reached = follower_->within_convergance(current_pose);
 
         if (target_reached) {
             follower_->snap_state_to_reference();
 
-            vortex_msgs::msg::ReferenceFilter final_reference_msg =
-                fill_reference_msg(follower_->state());
+            auto final_reference_msg =
+                fill_reference_msg(follower_->pose(), follower_->velocity());
 
-            feedback->reference = final_reference_msg;
-            goal_handle->publish_feedback(feedback);
             reference_pub_->publish(final_reference_msg);
 
             result->success = true;
@@ -218,16 +214,14 @@ void ReferenceFilterNode::execute(
             return;
         }
 
-        vortex_msgs::msg::ReferenceFilter reference_msg =
-            fill_reference_msg(filter_state);
+        auto reference_msg =
+            fill_reference_msg(follower_->pose(), follower_->velocity());
         reference_pub_->publish(reference_msg);
-        feedback->reference = reference_msg;
-        goal_handle->publish_feedback(feedback);
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {
         auto result = std::make_shared<
-            vortex_msgs::action::ReferenceFilterWaypoint::Result>();
+            vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
         result->success = false;
 
         try {
