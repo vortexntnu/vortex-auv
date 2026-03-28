@@ -56,34 +56,46 @@ Start the node (after sourcing workspace):
 1. Run the simulation
 
  ```bash
- ros2 launch stonefish_sim simulation.launch.py scenario:=default
+ ros2 launch stonefish_sim simulation.launch.py drone:=nautilus 
  ```
+To test with navigation node, also set `mock_odom:=false`
 
-2. Run the thrust allocation node:
+2. Run the thrust allocation node and the joystick node
 
  ```bash
- ros2 launch thrust_allocator_auv thrust_allocator_auv.launch.py
+ ros2 launch stonefish_sim drone_sim.launch.py drone:=nautilus
  ```
 
-3. To move the robot, run the joystick node
-
- ```bash
- ros2 launch stonefish_sim orca_sim.launch.py
- ```
-
-4. Run the controller
+3. Run the controller
 
  ```bash
  ros2 launch  pid_controller_dp pid_controller_dp.launch.py
  ```
 
-Use the joy stick to move the robot. The key mappings are:
+### Joystick Control
 
-- B - kill
-- Y - autonomous mode (reference model)
-- A - manual mode
+#### Buttons
 
-Note: When plotting, the axis plotted and actual command might not align since the plotting is based on the joy controller frame (`odom`), whereas the controller works on the robot frame (`body_frame`)
+| Button | Mode | Description |
+| ------ | ---- | ----------- |
+| A | Manual | Direct wrench control — joystick axes apply force/torque immediately |
+| B | Kill | Software killswitch — cuts all thruster commands |
+| Y | Autonomous (reference model) | Guided control — joystick sets position/orientation targets via the reference filter |
+| LB | — | Roll left |
+| RB | — | Roll right |
+
+#### Axes — directional mapping
+
+| Stick / Trigger | Axis | Motion | Positive direction |
+| --------------- | ---- | ------ | ------------------ |
+| Left stick — vertical | surge | Forward / backward | Push up → forward |
+| Left stick — horizontal | sway | Left / right | Push right → port (left) |
+| RT − LT (triggers) | heave | Up / down | RT → ascend, LT → descend |
+| Right stick — horizontal | yaw | Rotate left / right | Push right → turn left |
+| Right stick — vertical | pitch | Nose up / down | Push up → nose up |
+| LB / RB (shoulders) | roll | Bank left / right | LB → roll left, RB → roll right |
+
+> **Note:** When plotting, the displayed axis and the actual command may not align because the plot uses the `odom` frame while the controller operates in the robot `body_frame`.
 
 ## Tuning
 
