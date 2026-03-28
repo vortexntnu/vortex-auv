@@ -135,6 +135,7 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+        dp_quat: "guidance/dp_quat"
       fsm:
         active_controller: "fsm/active_controller"
       dvl_twist: "dvl/twist"
@@ -156,6 +157,7 @@
       toggle_killswitch: "toggle_killswitch"
       get_operation_mode: "get_operation_mode"
       waypoint_addition: "waypoint_addition"
+      start_mission: "start_mission"
 
     fsm:
       docking:
