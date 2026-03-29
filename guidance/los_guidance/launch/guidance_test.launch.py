@@ -31,7 +31,7 @@ def launch_setup(context, *args, **kwargs):
             os.path.join(stonefish_dir, "launch", "simulation.launch.py")
         ),
         launch_arguments={
-            "scenario": "nautilus_no_gpu",
+            "scenario": "default",
             "rendering": "true",
         }.items(),
     )
@@ -58,7 +58,7 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-    orca_sim = TimerAction(
+    drone_sim = TimerAction(
         period=12.0,
         actions=[
             IncludeLaunchDescription(
@@ -112,7 +112,7 @@ def launch_setup(context, *args, **kwargs):
         stonefish_sim,
         los_guidance_launch,
         velocity_controller_launch,
-        orca_sim,
+        drone_sim,
         set_autonomy,
         run_test_scenario,
     ]

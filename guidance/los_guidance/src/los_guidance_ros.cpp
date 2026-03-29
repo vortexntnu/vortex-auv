@@ -2,6 +2,7 @@
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
+#include <limits>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 
@@ -28,8 +29,8 @@ namespace vortex::guidance::los {
 LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
     : Node("los_guidance_node", options) {
     double time_step_s = this->declare_parameter<double>("time_step");
-    time_step_ =
-        std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));  // in
+    time_step_ = std::chrono::milliseconds(static_cast<int>(
+        time_step_s * 1000));  // Convert seconds to milliseconds
 
     const std::string yaml_path =
         this->declare_parameter<std::string>("los_config_file");
@@ -120,63 +121,88 @@ void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
     auto adaptive_los_config = config["adaptive_los"];
     auto params = AdaptiveLosParams{};
 
-    params.lookahead_distance_h =
-        adaptive_los_config["lookahead_distance_h"].as<double>();
-    params.lookahead_distance_v =
-        adaptive_los_config["lookahead_distance_v"].as<double>();
-    params.adaptation_gain_h =
-        adaptive_los_config["adaptation_gain_h"].as<double>();
-    params.adaptation_gain_v =
-        adaptive_los_config["adaptation_gain_v"].as<double>();
-    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
+    try {
+        params.lookahead_distance_h =
+            adaptive_los_config["lookahead_distance_h"].as<double>();
+        params.lookahead_distance_v =
+            adaptive_los_config["lookahead_distance_v"].as<double>();
+        params.adaptation_gain_h =
+            adaptive_los_config["adaptation_gain_h"].as<double>();
+        params.adaptation_gain_v =
+            adaptive_los_config["adaptation_gain_v"].as<double>();
+        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
-    adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
+        adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
+
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load adaptive_los parameters: ") + e.what());
+    }
 }
 
 void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
     auto proportional_los_config = config["prop_los"];
     auto params = ProportionalLosParams{};
 
-    params.lookahead_distance_h =
-        proportional_los_config["lookahead_distance_h"].as<double>();
-    params.lookahead_distance_v =
-        proportional_los_config["lookahead_distance_v"].as<double>();
+    try {
+        params.lookahead_distance_h =
+            proportional_los_config["lookahead_distance_h"].as<double>();
+        params.lookahead_distance_v =
+            proportional_los_config["lookahead_distance_v"].as<double>();
 
-    proportional_los_ = std::make_unique<ProportionalLOSGuidance>(params);
+        proportional_los_ = std::make_unique<ProportionalLOSGuidance>(params);
+
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load proportional_los parameters: ") +
+            e.what());
+    }
 }
 
 void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     auto integral_los_config = config["integer_los"];
     auto params = IntegralLosParams{};
 
-    params.proportional_gain_h =
-        integral_los_config["proportional_gain_h"].as<double>();
-    params.proportional_gain_v =
-        integral_los_config["proportional_gain_v"].as<double>();
-    params.integral_gain_h =
-        integral_los_config["integral_gain_h"].as<double>();
-    params.integral_gain_v =
-        integral_los_config["integral_gain_v"].as<double>();
-    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
+    try {
+        params.proportional_gain_h =
+            integral_los_config["proportional_gain_h"].as<double>();
+        params.proportional_gain_v =
+            integral_los_config["proportional_gain_v"].as<double>();
+        params.integral_gain_h =
+            integral_los_config["integral_gain_h"].as<double>();
+        params.integral_gain_v =
+            integral_los_config["integral_gain_v"].as<double>();
+        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
-    integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
+        integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load integral_los parameters: ") + e.what());
+    }
 }
 
 void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
     auto vector_field_config = config["vector_field_los"];
     auto params = VectorFieldLosParams{};
 
-    params.max_approach_angle_h =
-        vector_field_config["max_approach_angle_h"].as<double>();
-    params.max_approach_angle_v =
-        vector_field_config["max_approach_angle_v"].as<double>();
-    params.proportional_gain_h =
-        vector_field_config["proportional_gain_h"].as<double>();
-    params.proportional_gain_v =
-        vector_field_config["proportional_gain_v"].as<double>();
-    params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
+    try {
+        params.max_approach_angle_h =
+            vector_field_config["max_approach_angle_h"].as<double>();
+        params.max_approach_angle_v =
+            vector_field_config["max_approach_angle_v"].as<double>();
+        params.proportional_gain_h =
+            vector_field_config["proportional_gain_h"].as<double>();
+        params.proportional_gain_v =
+            vector_field_config["proportional_gain_v"].as<double>();
+        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
-    vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
+        vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
+
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load vector_field_los parameters: ") +
+            e.what());
+    }
 }
 
 void LosGuidanceNode::waypoint_callback(
@@ -219,16 +245,22 @@ void LosGuidanceNode::odom_callback(
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
-    (void)goal;
-
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        if (goal_handle_) {
-            if (goal_handle_->is_active()) {
-                spdlog::info("Aborting current goal and accepting new goal");
-                preempted_goal_id_ = goal_handle_->get_goal_id();
-            }
+
+        if (!is_goal_feasible(path_inputs_, goal)) {
+            spdlog::info(
+                "Rejected goal request: waypoint is not reachable with current "
+                "pitch limit");
+            lock.unlock();
+            return rclcpp_action::GoalResponse::REJECT;
         }
+
+        if (goal_handle_ && goal_handle_->is_active()) {
+            spdlog::info("Aborting current goal and accepting new goal");
+            preempted_goal_id_ = goal_handle_->get_goal_id();
+        }
+
         lock.unlock();
     }
 
@@ -255,76 +287,96 @@ void LosGuidanceNode::handle_accepted(
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
-    method_ = static_cast<types::ActiveLosMethod>(request->mode);
-    spdlog::info("LOS mode set to {}", static_cast<int>(method_));
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        method_ = static_cast<types::ActiveLosMethod>(request->mode);
+        lock.unlock();
+    }
+
+    spdlog::info("LOS mode set to {}", static_cast<int>(request->mode));
     response->success = true;
 }
 
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
-    types::Outputs outputs,
-    types::Inputs inputs) {
+    types::Outputs outputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
 
     const double clamped_pitch =
         std::clamp(outputs.theta_d, -max_pitch_angle_, max_pitch_angle_);
     reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
-
-    if (slow_approach_) {
-        const double distance_to_goal =
-            (inputs.current_position - inputs.next_point).as_vector().norm();
-
-        double target_surge = u_desired_;
-
-        if (distance_to_goal <= slow_down_distance_) {
-            const double alpha =
-                std::clamp(distance_to_goal / slow_down_distance_, 0.0, 1.0);
-            target_surge = u_slow_min_ + alpha * (u_desired_ - u_slow_min_);
-        }
-
-        if (!surge_initialized_) {
-            commanded_surge_ = target_surge;
-            surge_initialized_ = true;
-        } else {
-            const double dt = static_cast<double>(time_step_.count()) / 1000.0;
-            const double max_step = surge_rate_limit_ * dt;
-            const double delta = target_surge - commanded_surge_;
-
-            if (delta > max_step) {
-                commanded_surge_ += max_step;
-            } else if (delta < -max_step) {
-                commanded_surge_ -= max_step;
-            } else {
-                commanded_surge_ = target_surge;
-            }
-        }
-    } else {
-        commanded_surge_ = u_desired_;
-    }
-
-    reference_msg.surge = commanded_surge_;
+    reference_msg.surge = u_desired_;
     return reference_msg;
 }
 
+bool LosGuidanceNode::is_goal_feasible(
+    const types::Inputs& inputs,
+    std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
+    const auto& current_position = inputs.current_position;
+    const auto& goal_point = goal->goal.point;
+
+    const double dx = goal_point.x - current_position.x;
+    const double dy = goal_point.y - current_position.y;
+    const double dz = goal_point.z - current_position.z;
+
+    const double horizontal_distance = std::sqrt(dx * dx + dy * dy);
+    const double required_pitch = std::atan2(-dz, horizontal_distance);
+
+    return std::abs(required_pitch) <= max_pitch_angle_;
+}
+
+bool LosGuidanceNode::is_goal_missed(const types::Inputs& inputs) {
+    const double distance_to_goal =
+        (inputs.current_position - inputs.next_point).as_vector().norm();
+
+    const double dt = static_cast<double>(time_step_.count()) / 1000.0;
+
+    if (distance_to_goal < nearest_been_to_goal_) {
+        nearest_been_to_goal_ = distance_to_goal;
+        time_since_nearest_goal_ = 0.0;
+        return false;
+    }
+
+    if (distance_to_goal >
+        nearest_been_to_goal_ + missed_goal_distance_margin_) {
+        time_since_nearest_goal_ += dt;
+    } else {
+        time_since_nearest_goal_ = 0.0;
+    }
+
+    return time_since_nearest_goal_ >= missed_goal_timeout_;
+}
+
 YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
-    YAML::Node config = YAML::LoadFile(yaml_file_path);
-    return config;
+    try {
+        YAML::Node config = YAML::LoadFile(yaml_file_path);
+        return config;
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load LOS config file '") + yaml_file_path +
+            "': " + e.what());
+    }
 }
 
 void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    u_desired_ = common_config["u_desired"].as<double>();
-    max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
-    goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
-    slow_approach_ = common_config["slow_approach"].as<bool>();
-    slow_down_distance_ = common_config["slow_down_distance"].as<double>();
-    u_slow_min_ = common_config["u_slow_min"].as<double>();
-    surge_rate_limit_ = common_config["surge_rate_limit"].as<double>();
+    try {
+        std::unique_lock<std::mutex> lock(mutex_);
+        u_desired_ = common_config["u_desired"].as<double>();
+        max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
+        goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
+        missed_goal_timeout_ =
+            common_config["missed_goal_timeout"].as<double>();
+        missed_goal_distance_margin_ =
+            common_config["missed_goal_distance_margin"].as<double>();
 
-    method_ = static_cast<types::ActiveLosMethod>(
-        common_config["active_los_method"].as<int>());
+        method_ = static_cast<types::ActiveLosMethod>(
+            common_config["active_los_method"].as<int>());
 
-    lock.unlock();
+        lock.unlock();
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load common parameters: ") + e.what());
+    }
 }
 
 void LosGuidanceNode::execute(
@@ -344,16 +396,22 @@ void LosGuidanceNode::execute(
 
     const auto new_wp = types::Point::point_from_ros(los_waypoint.point);
 
-    if (!has_active_segment_) {
-        path_inputs_.prev_point = path_inputs_.current_position;
-        path_inputs_.next_point = new_wp;
-        has_active_segment_ = true;
-    } else {
-        path_inputs_.prev_point = path_inputs_.next_point;
-        path_inputs_.next_point = new_wp;
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (!has_active_segment_) {
+            path_inputs_.prev_point = path_inputs_.current_position;
+            path_inputs_.next_point = new_wp;
+            has_active_segment_ = true;
+        } else {
+            path_inputs_.prev_point = path_inputs_.next_point;
+            path_inputs_.next_point = new_wp;
+        }
+        lock.unlock();
     }
 
     auto result = std::make_shared<vortex_msgs::action::LOSGuidance::Result>();
+    nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
+    time_since_nearest_goal_ = 0.0;
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
@@ -376,15 +434,29 @@ void LosGuidanceNode::execute(
         }
 
         types::Inputs inputs_copy;
+        types::ActiveLosMethod method_copy;
+        nav_msgs::msg::Odometry::SharedPtr odom_copy;
+        double goal_reached_tol_copy;
+
         {
             std::unique_lock<std::mutex> lock(mutex_);
             inputs_copy = path_inputs_;
+            method_copy = method_;
+            odom_copy = debug_current_odom_;
+            goal_reached_tol_copy = goal_reached_tol_;
             lock.unlock();
+        }
+
+        if (is_goal_missed(inputs_copy)) {
+            result->success = false;
+            goal_handle->abort(result);
+            spdlog::info("Aborting goal: waypoint missed");
+            return;
         }
 
         types::Outputs outputs;
 
-        switch (method_) {
+        switch (method_copy) {
             case types::ActiveLosMethod::ADAPTIVE:
                 outputs = adaptive_los_->calculate_outputs(inputs_copy);
                 break;
@@ -403,12 +475,13 @@ void LosGuidanceNode::execute(
                 goal_handle->abort(result);
                 return;
         }
+
         auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
-            fill_los_reference(outputs, inputs_copy));
+            fill_los_reference(outputs));
 
         if ((inputs_copy.current_position - inputs_copy.next_point)
                 .as_vector()
-                .norm() < goal_reached_tol_) {
+                .norm() < goal_reached_tol_copy) {
             reference_msg->pitch = 0.0;
             reference_msg->surge = 0.0;
 
@@ -420,17 +493,16 @@ void LosGuidanceNode::execute(
 
         reference_pub_->publish(std::move(reference_msg));
 
-        if (debug_current_odom_ && debug) {
-            const auto& v = debug_current_odom_->twist.twist.linear;
+        if (debug && odom_copy) {
+            const auto& v = odom_copy->twist.twist.linear;
             double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
             vortex_msgs::msg::LOSGuidance state_debug_msg;
-            Eigen::Vector3d euler =
-                vortex::utils::math::quat_to_euler(Eigen::Quaterniond(
-                    debug_current_odom_->pose.pose.orientation.w,
-                    debug_current_odom_->pose.pose.orientation.x,
-                    debug_current_odom_->pose.pose.orientation.y,
-                    debug_current_odom_->pose.pose.orientation.z));
+            Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
+                Eigen::Quaterniond(odom_copy->pose.pose.orientation.w,
+                                   odom_copy->pose.pose.orientation.x,
+                                   odom_copy->pose.pose.orientation.y,
+                                   odom_copy->pose.pose.orientation.z));
 
             state_debug_msg.pitch = euler.y();
             state_debug_msg.yaw = euler.z();

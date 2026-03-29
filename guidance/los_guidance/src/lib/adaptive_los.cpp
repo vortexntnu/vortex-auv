@@ -5,7 +5,14 @@
 namespace vortex::guidance::los {
 
 AdaptiveLOSGuidance::AdaptiveLOSGuidance(const AdaptiveLosParams& params)
-    : params_{params} {}
+    : params_{params} {
+    if (params.lookahead_distance_h <= 0.0 ||
+        params.lookahead_distance_v <= 0.0 || params.adaptation_gain_h <= 0.0 ||
+        params.adaptation_gain_v <= 0.0 || params.time_step <= 0.0) {
+        throw std::invalid_argument(
+            "AdaptiveLOSGuidance: all params must be > 0");
+    }
+}
 
 void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
     const double dx = inputs.next_point.x - inputs.prev_point.x;

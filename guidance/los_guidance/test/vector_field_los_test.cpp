@@ -23,7 +23,7 @@ class VectorFieldLosTest : public ::testing::Test {
 };
 
 // Test commanded angles when drone is to the right of the track
-TEST_F(VectorFieldLosTest, T06_test_commanded_angles) {
+TEST_F(VectorFieldLosTest, T01_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
@@ -40,7 +40,7 @@ TEST_F(VectorFieldLosTest, T06_test_commanded_angles) {
 }
 
 // Test commanded angles when drone is to the left of the track
-TEST_F(VectorFieldLosTest, T07_test_commanded_angles) {
+TEST_F(VectorFieldLosTest, T02_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
@@ -57,7 +57,7 @@ TEST_F(VectorFieldLosTest, T07_test_commanded_angles) {
 }
 
 // Test commanded angles when drone is under the track
-TEST_F(VectorFieldLosTest, T08_test_commanded_angles) {
+TEST_F(VectorFieldLosTest, T03_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
@@ -74,7 +74,7 @@ TEST_F(VectorFieldLosTest, T08_test_commanded_angles) {
 }
 
 // Test commanded angles when drone is above the track
-TEST_F(VectorFieldLosTest, T09_test_commanded_angles) {
+TEST_F(VectorFieldLosTest, T04_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
@@ -91,7 +91,7 @@ TEST_F(VectorFieldLosTest, T09_test_commanded_angles) {
 }
 
 // Test commanded angles when drone is above and to the right of the track
-TEST_F(VectorFieldLosTest, T10_test_commanded_angles) {
+TEST_F(VectorFieldLosTest, T05_test_commanded_angles) {
     types::Inputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};

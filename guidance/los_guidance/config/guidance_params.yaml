@@ -50,7 +50,5 @@ common:
   u_desired: 0.3
   goal_reached_tol: 0.20
   max_pitch_angle: 0.96
-  slow_approach: false
-  slow_down_distance: 1.5
-  u_slow_min: 0.1
-  surge_rate_limit: 0.1
+  missed_goal_distance_margin: 1.0
+  missed_goal_timeout: 10.0

@@ -182,8 +182,25 @@ class LosGuidanceNode : public rclcpp::Node {
      * @return vortex_msgs::msg::LOSGuidance Populated LOS guidance reference
      * message.
      */
-    vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output,
-                                                     types::Inputs inputs);
+    vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs output);
+
+    /**
+     * @brief Checks if the given LOS guidance goal is feasible based on the
+     * provided inputs.
+     * @param inputs Current LOS guidance inputs.
+     * @return true if the goal is feasible, false otherwise.
+     */
+    bool is_goal_feasible(
+        const types::Inputs& inputs,
+        std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal);
+
+    /**
+     * @brief Checks if the LOS guidance goal has been missed based on the
+     * provided inputs.
+     * @param inputs Current LOS guidance inputs.
+     * @return true if the goal is missed, false otherwise.
+     */
+    bool is_goal_missed(const types::Inputs& inputs);
 
     bool has_active_segment_{false};
 
@@ -214,13 +231,12 @@ class LosGuidanceNode : public rclcpp::Node {
     double u_desired_{};
     double goal_reached_tol_{};
     double max_pitch_angle_{};
-    bool slow_approach_{};
-    double slow_down_distance_{};
-    bool surge_initialized_{false};
-    double u_slow_min_{};
-    double commanded_surge_{};
-    double surge_rate_limit_{};
     types::ActiveLosMethod method_{};
+
+    double nearest_been_to_goal_{std::numeric_limits<double>::max()};
+    double time_since_nearest_goal_{};
+    double missed_goal_distance_margin_{};
+    double missed_goal_timeout_{};
 
     std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_{};
     std::unique_ptr<IntegralLOSGuidance> integral_los_{};

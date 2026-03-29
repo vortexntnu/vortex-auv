@@ -11,6 +11,7 @@ add_executable(
     proportional_los_test.cpp
     integral_los_test.cpp
     vector_field_los_test.cpp
+    los_invalid_params_test.cpp
 
 )
 

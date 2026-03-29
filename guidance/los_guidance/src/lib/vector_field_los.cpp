@@ -5,7 +5,15 @@ namespace vortex::guidance::los {
 // Constructor
 VectorFieldLOSGuidance::VectorFieldLOSGuidance(
     const VectorFieldLosParams& params)
-    : m_params{params} {}
+    : m_params(params) {
+    if (params.max_approach_angle_h <= 0.0 ||
+        params.max_approach_angle_v <= 0.0 ||
+        params.proportional_gain_h <= 0.0 ||
+        params.proportional_gain_v <= 0.0 || params.time_step <= 0.0) {
+        throw std::invalid_argument(
+            "VectorFieldLOSGuidance: all params must be > 0");
+    }
+}
 
 // Angle Update
 void VectorFieldLOSGuidance::update_angles(const types::Inputs& inputs) {

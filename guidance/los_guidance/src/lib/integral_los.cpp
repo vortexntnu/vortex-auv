@@ -4,7 +4,14 @@ namespace vortex::guidance::los {
 
 // Constructor
 IntegralLOSGuidance::IntegralLOSGuidance(const IntegralLosParams& params)
-    : m_params{params} {}
+    : m_params(params) {
+    if (params.proportional_gain_h <= 0.0 ||
+        params.proportional_gain_v <= 0.0 || params.integral_gain_h <= 0.0 ||
+        params.integral_gain_v <= 0.0 || params.time_step <= 0.0) {
+        throw std::invalid_argument(
+            "IntegralLOSGuidance: all params must be > 0");
+    }
+}
 
 // Angle Update
 void IntegralLOSGuidance::update_angles(const types::Inputs& inputs) {
