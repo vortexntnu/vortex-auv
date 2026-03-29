@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(reference_filter_dp)
+project(reference_filter_dp_quat)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -28,7 +28,6 @@ set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
   src/lib/reference_filter.cpp
-  src/lib/waypoint_utils.cpp
   src/lib/waypoint_follower.cpp
 )
 

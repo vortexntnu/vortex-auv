@@ -1,23 +1,23 @@
-#ifndef REFERENCE_FILTER_ROS_HPP
-#define REFERENCE_FILTER_ROS_HPP
+#ifndef LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
+#define LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
 
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <los_guidance/los_guidance.hpp>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex_msgs/action/los_guidance.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
 #include "los_guidance.hpp"
 
+namespace vortex::guidance {
+
 class LOSGuidanceNode : public rclcpp::Node {
    public:
-    explicit LOSGuidanceNode();
+    LOSGuidanceNode();
 
    private:
     // @brief Set the subscribers and publishers
@@ -105,11 +105,15 @@ class LOSGuidanceNode : public rclcpp::Node {
 
     std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_guidance_;
 
-    double yaw_d_;
+    double yaw_d_{};
 
-    double pitch_d_;
+    double pitch_d_{};
 
-    double u_desired_;
+    double u_desired_{};
+
+    double goal_reached_tol_{};
 };
 
-#endif
+}  // namespace vortex::guidance
+
+#endif  // LOS_GUIDANCE__LOS_GUIDANCE_ROS_HPP_
