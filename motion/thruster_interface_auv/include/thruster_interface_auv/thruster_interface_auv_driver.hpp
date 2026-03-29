@@ -1,6 +1,7 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
+#include <utility>
 #include <asio.hpp>
 
 #include <cstdint>
