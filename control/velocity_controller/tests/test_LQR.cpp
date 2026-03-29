@@ -54,7 +54,7 @@ TEST_F(LQR_test, wrong_setup) {
     EXPECT_FALSE(controller.set_matrices(eight, three, thirty_six, 100, eight));
     EXPECT_FALSE(
         controller.set_matrices(eight, three, thirty_six, -100, thirty_six));
-};
+}
 
 TEST_F(LQR_test, Direction) {
     Guidance_data value;
