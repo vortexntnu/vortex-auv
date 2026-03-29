@@ -12,10 +12,11 @@
 #include "vortex/utils/math.hpp"
 #include "velocity_controller/utilities.hpp"
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 
 
 
-Velocity_node::Velocity_node() : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle"), lqr_controller(), pub_QoS(10),  sub_QoS(10)
+Velocity_node::Velocity_node(const rclcpp::NodeOptions & options) : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle", options), lqr_controller(), pub_QoS(10),  sub_QoS(10)
 {
   get_new_parameters();
   pub_QoS.keep_last(10).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT).durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
@@ -258,18 +259,6 @@ void Velocity_node::reset_controllers(int nr){
     }
 }
 
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  auto lc_node = std::make_shared<Velocity_node>();
-
-  rclcpp::executors::SingleThreadedExecutor exec;
-  exec.add_node(lc_node->get_node_base_interface());
-
-  while (rclcpp::ok()&&!lc_node->should_exit_){
-      exec.spin_some();
-  }
-  return 0;
-}
+RCLCPP_COMPONENTS_REGISTER_NODE(Velocity_node)
 
 

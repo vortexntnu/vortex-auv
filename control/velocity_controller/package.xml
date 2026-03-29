@@ -14,10 +14,9 @@
   <depend>vortex_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
-  <depend>ct_optcon</depend>
-  <depend>ct_core</depend>
   <depend>vortex_utils</depend>
   <depend>rclcpp_lifecycle</depend>
+  <depend>rclcpp_components</depend>
   <depend>lifecycle_msgs</depend>
   <depend>auv_setup</depend>
  
