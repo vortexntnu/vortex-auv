@@ -17,10 +17,6 @@ def launch_setup(context,*args,**kwargs):
     drone, namespace=resolve_drone_and_namespace(context)
     global_share = get_package_share_directory('auv_setup')
     config_path_global = os.path.join(global_share,'config','robots',f'{drone}.yaml')
-    common_launch_args = {
-        "drone": drone,
-        "namespace": namespace,
-    }.items()
 
     stonefish_dir = get_package_share_directory('stonefish_sim')
 
@@ -28,9 +24,13 @@ def launch_setup(context,*args,**kwargs):
         PythonLaunchDescriptionSource(
             os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
         ),
-        launch_arguments={'rendering_quality': 'low','rendering':'true'}.items(),
+        launch_arguments={
+            'scenario': 'nautilus_no_gpu.scn',
+            'rendering_quality': 'low',
+            'rendering':'true',
+        }.items(),
     )
-    orca_sim = TimerAction(
+    drone_sim = TimerAction(
         period=12.0,
         actions=[
             IncludeLaunchDescription(
@@ -39,16 +39,6 @@ def launch_setup(context,*args,**kwargs):
                 )
             )
         ]
-    )
-    operation_mode_manager_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("operation_mode_manager"),
-                "launch",
-                "operation_mode_manager.launch.py",
-            )
-        ),
-        launch_arguments=common_launch_args,
     )
 
     node_name_arg = DeclareLaunchArgument(
@@ -59,9 +49,8 @@ def launch_setup(context,*args,**kwargs):
 
     return [
         stonefish_sim,
-        orca_sim,
+        drone_sim,
         node_name_arg,
-        #operation_mode_manager_launch,
         Node(package='velocity_controller',
              executable='test_VC_node',
              name=test_VC_name,

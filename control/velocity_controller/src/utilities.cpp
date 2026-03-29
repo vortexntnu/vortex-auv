@@ -23,40 +23,7 @@ angle quaternion_to_euler_angle(double w, double x, double y, double z){
 
     return {phi, theta, psi};
 };
-/*
-angle NED_to_BODY(const angle &a,const State &s){
-    //TODO tests for illegal angles maybe
-    Eigen::Vector3d q;
-    q<<a.phit,a.thetat,a.psit;
-    q=NED_to_BODY(q,s);
-    return {q(0),q(1),q(2)};
-}*/
-/*
-Eigen::Vector3d NED_to_BODY(const Eigen::Vector3d &a, const State &s){
-    const double phi = s.roll;
-    const double theta = s.pitch;
-    const double psi = s.yaw;
 
-    // Rotation matrices (right-handed):
-    Eigen::Matrix3d Rz, Ry, Rx;
-    Rz << std::cos(psi), -std::sin(psi), 0.0,
-          std::sin(psi),  std::cos(psi), 0.0,
-          0.0,            0.0,           1.0;
-
-    Ry <<  std::cos(theta), 0.0, std::sin(theta),
-           0.0,             1.0, 0.0,
-          -std::sin(theta), 0.0, std::cos(theta);
-
-    Rx << 1.0, 0.0,           0.0,
-          0.0, std::cos(phi), -std::sin(phi),
-          0.0, std::sin(phi),  std::cos(phi);
-
-    Eigen::Matrix3d R_n_b = Rz * Ry * Rx;
-
-    Eigen::Vector3d v_body = R_n_b.transpose() * a;
-    return v_body;
-
-}*/
 State State::operator=(nav_msgs::msg::Odometry::SharedPtr rhs){
     w=rhs->pose.pose.orientation.w;
     x=rhs->pose.pose.orientation.x;
@@ -120,7 +87,6 @@ angle angle_NED_to_body( double roll_des, double pitch_des, double yaw_des,doubl
                  sr_d*sp_d*cy_d - cr_d*sy_d, sr_d*sp_d*sy_d + cr_d*cy_d, sr_d*cp_d,
                  cr_d*sp_d*cy_d + sr_d*sy_d, cr_d*sp_d*sy_d - sr_d*cy_d, cr_d*cp_d;
 
-    // Error rotation matrix: how much to rotate in body to reach desired
     // R_error = R_desired * R_current^T
     Eigen::Matrix3d R_error = R_desired * R_current.transpose();
 
