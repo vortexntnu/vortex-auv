@@ -55,5 +55,5 @@ qtcreator-*
  
 # Emacs
 .#*
- .cache
+.cache
 # End of https://www.gitignore.io/api/ros
