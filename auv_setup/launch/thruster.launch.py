@@ -2,9 +2,11 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable
 from launch_ros.actions import ComposableNodeContainer
+from launch.substitutions import LaunchConfiguration
 from launch_ros.descriptions import ComposableNode
+
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -14,6 +16,8 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
+    solver_type = LaunchConfiguration("solver_type").perform(context)
+
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -39,7 +43,10 @@ def launch_setup(context, *args, **kwargs):
                 plugin="ThrustAllocator",
                 name="thrust_allocator_auv_node",
                 namespace=namespace,
-                parameters=[drone_params],
+                parameters=[
+                drone_params,
+                {"propulsion.solver_type": solver_type},
+            ],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
             ComposableNode(
@@ -78,5 +85,12 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription(
         [set_env_var]
         + declare_drone_and_namespace_args()
-        + [OpaqueFunction(function=launch_setup)]
+        + [
+            DeclareLaunchArgument(
+                "solver_type",
+                default_value="qp",
+                description="Thrust allocator solver type (available: pseudoinverse, qp)",
+            ),
+            OpaqueFunction(function=launch_setup)
+            ]
     )
