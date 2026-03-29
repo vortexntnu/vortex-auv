@@ -1,42 +1,8 @@
-# Adaptive LOS Parameters
-adaptive_los:
-  lookahead_distance_h: 0.9
-  lookahead_distance_v: 1.4
-  gamma_h: 0.03
-  gamma_v: 0.02
-
-# Proportional LOS Parameters
-prop_los:
-  lookahead_distance_h: 0.74
-  lookahead_distance_v: 0.8
-
-# Integral LOS Parameters
-integer_los:
-  k_p_h: 0.5
-  k_p_v: 0.5
-  k_i_h: 0.1
-  k_i_v: 0.1
-
-# Vector Field LOS Parameters
-vector_field_los:
-  max_approach_angle_h: 1.0
-  max_approach_angle_v: 1.0
-  k_p_h: 1.5
-  k_p_v: 0.9
-
-# Common Guidance Parameters
-common:
-  active_los_method: 2 # 0: Adaptive LOS, 1: Proportional LOS, 2: Integral LOS, 3: Vector Field LOS
-  u_desired: 0.3
-  goal_reached_tol: 0.20
-  max_pitch_angle: 0.96 # 55 degrees
-  slow_approach: true
-  slow_down_distance: 1.5
-  u_slow_min: 0.1
-  surge_rate_limit: 0.1
-  surge_initialization: false
-
-# Debug Settings
-debug:
-  enable_debug: true
-  debug_topic_name: "/los_guidance_debug"
+/**:
+  ros__parameters:
+    lookahead_distance_h: 1.5
+    lookahead_distance_v: 0.6
+    gamma_h: 0.05
+    gamma_v: 0.1
+    time_step: 0.01
+    u_desired: 0.3

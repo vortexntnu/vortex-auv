@@ -13,40 +13,19 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(vortex_msgs REQUIRED)
-find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
-find_package(yaml-cpp REQUIRED)
-
 
 include_directories(include)
 
-set(LIB_NAME los_guidance_lib)
-add_library(${LIB_NAME} SHARED
-  src/lib/proportional_los.cpp
-  src/lib/integral_los.cpp
-  src/lib/adaptive_los.cpp
-  src/los_guidance_ros.cpp
-  src/lib/vector_field_los.cpp
-)
-
-ament_target_dependencies(${LIB_NAME}
-  rclcpp
-  rclcpp_action
-  geometry_msgs
-  nav_msgs
-  vortex_msgs
-  vortex_utils_ros
-  Eigen3
-  spdlog
-  fmt
-)
-
 add_executable(los_guidance_node
   src/los_guidance_node.cpp
+  src/los_guidance_ros.cpp
+  src/los_guidance.cpp
 )
 
 ament_target_dependencies(los_guidance_node
@@ -54,21 +33,14 @@ ament_target_dependencies(los_guidance_node
   rclcpp_action
   geometry_msgs
   vortex_msgs
-  vortex_utils_ros
+  Eigen3
+  tf2
+  tf2_geometry_msgs
+  spdlog
+  fmt
 )
 
-target_link_libraries(los_guidance_node
-  ${LIB_NAME}
-  yaml-cpp
-)
-
-install(TARGETS
-  ${LIB_NAME}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+target_link_libraries(los_guidance_node fmt::fmt)
 
 install(TARGETS
   los_guidance_node
@@ -77,7 +49,7 @@ install(TARGETS
 
 install(
   DIRECTORY include/
-  DESTINATION include/
+  DESTINATION include
 )
 
 install(DIRECTORY
@@ -85,14 +57,5 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}/
 )
-
-install(PROGRAMS
-  scripts/test_scenarios.py
-  DESTINATION share/${PROJECT_NAME}/scripts
-)
-
-if(BUILD_TESTING)
-  add_subdirectory(test)
-endif()
 
 ament_package()
