@@ -111,6 +111,7 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+        dp_quat: "guidance/dp_quat"
       dvl_twist: "dvl/twist"
       dvl_altitude: "dvl/altitude"
       imu: "imu/data_raw"
