@@ -20,6 +20,7 @@
 #include <vortex_msgs/msg/waypoints.hpp>
 #include <vortex_msgs/srv/set_los_mode.hpp>
 
+#include <limits>
 #include <memory>
 #include <string>
 

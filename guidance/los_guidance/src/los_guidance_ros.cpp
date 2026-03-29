@@ -2,7 +2,6 @@
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
-#include <limits>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 
@@ -133,7 +132,6 @@ void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
         params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
         adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
-
     } catch (const YAML::Exception& e) {
         throw std::runtime_error(
             std::string("Failed to load adaptive_los parameters: ") + e.what());
@@ -151,7 +149,6 @@ void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
             proportional_los_config["lookahead_distance_v"].as<double>();
 
         proportional_los_ = std::make_unique<ProportionalLOSGuidance>(params);
-
     } catch (const YAML::Exception& e) {
         throw std::runtime_error(
             std::string("Failed to load proportional_los parameters: ") +
@@ -197,7 +194,6 @@ void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
         params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
 
         vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
-
     } catch (const YAML::Exception& e) {
         throw std::runtime_error(
             std::string("Failed to load vector_field_los parameters: ") +
