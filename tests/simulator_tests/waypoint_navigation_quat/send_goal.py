@@ -1,14 +1,11 @@
 import random
-import sys
 
 import rclpy
 import yaml
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from vortex_msgs.action import ReferenceFilterWaypoint
+from vortex_msgs.action import ReferenceFilterQuatWaypoint
 from vortex_utils.python_utils import PoseData, euler_to_quat
-
-namespace = sys.argv[1] if len(sys.argv) > 1 else "nautilus"
 
 
 def randomize_pose() -> PoseData:
@@ -23,18 +20,18 @@ def randomize_pose() -> PoseData:
     return pose
 
 
-class ReferenceFilterWaypointClient(Node):
+class ReferenceFilterQuatWaypointClient(Node):
     def __init__(self):
-        super().__init__('reference_filter_waypoint_client')
+        super().__init__('reference_filter_quat_waypoint_client')
 
         self._action_client = ActionClient(
-            self, ReferenceFilterWaypoint, f'/{namespace}/reference_filter'
+            self, ReferenceFilterQuatWaypoint, '/nautilus/reference_filter'
         )
         self.send_goal()
 
     def send_goal(self):
         goal_pose = randomize_pose()
-        goal_msg = ReferenceFilterWaypoint.Goal()
+        goal_msg = ReferenceFilterQuatWaypoint.Goal()
 
         goal_msg.waypoint.pose.position.x = goal_pose.x
         goal_msg.waypoint.pose.position.y = goal_pose.y
@@ -48,6 +45,8 @@ class ReferenceFilterWaypointClient(Node):
         goal_msg.waypoint.pose.orientation.y = quat[1]
         goal_msg.waypoint.pose.orientation.z = quat[2]
         goal_msg.waypoint.pose.orientation.w = quat[3]
+
+        goal_msg.convergence_threshold = 0.1
 
         # Write goal pose to temp file
         file_path = "goal_pose.yaml"
@@ -86,7 +85,7 @@ class ReferenceFilterWaypointClient(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    action_client = ReferenceFilterWaypointClient()
+    action_client = ReferenceFilterQuatWaypointClient()
     rclpy.spin(action_client)
 
 
