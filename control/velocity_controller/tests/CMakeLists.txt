@@ -49,7 +49,7 @@ ament_target_dependencies(LQR_test
   vortex_msgs
   nav_msgs
 )
-target_compile_definitions(LQR_test PRIVATE 
+target_compile_definitions(LQR_test PRIVATE
 YAML_PATH="${PROJECT_SOURCE_DIR}/config/parameters.yaml")
 
 target_link_libraries(${TEST_BINARY_NAME}
@@ -74,8 +74,8 @@ target_link_libraries(
     #yaml-cpp
     #GTest::GTest
     #spdlog::spdlog
-    Eigen3::Eigen 
-    ct_optcon 
+    Eigen3::Eigen
+    ct_optcon
     ct_core
 )
 add_executable(test_VC_node
@@ -86,7 +86,7 @@ test_VC.cpp
 target_include_directories(test_VC_node PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>
-${EIGEN3_INCLUDE_DIR} 
+${EIGEN3_INCLUDE_DIR}
 )
 
 

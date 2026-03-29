@@ -6,7 +6,7 @@ ROS2 lifecycle node for velocity control of an AUV (autonomous underwater vehicl
 
 ## Overview
 
-The package implements a `Velocity_node` that subscribes to odometry and guidance inputs, computes thrust commands, and publishes them as `WrenchStamped` messages. The node is managed as a ROS2 lifecycle node, meaning it can be managed by a lifecycle manager, however if you do not want to use a lifecycle manager you can change the parameter autostart in the parameter file so that it automaticly goes into active state.
+The package implements a `Velocity_node` that subscribes to odometry and guidance inputs, computes thrust commands, and publishes them as `WrenchStamped` messages. The node is managed as a ROS2 lifecycle node, meaning it can be managed by a lifecycle manager, however if you do not want to use a lifecycle manager you can change the parameter autostart in the parameter file so that it automatically goes into active state.
 
 The LQR controller linearizes the vehicle dynamics around the current state at each timestep (gain-scheduled LQR), using a body-frame model that includes linear hydrodynamic damping, Coriolis effects, and integral action for steady-state error rejection. The PID controller serves as a simpler backup.
 
@@ -195,7 +195,7 @@ ros2 launch velocity_controller VCnTest.launch.py
 - If the vehicle behaves oddly, check that `interval_` (the control timestep) is being set correctly — a value of `0` disables integral action silently.
 
 ## Adding new controllers
-After adding the hpp file, add the calculation to calc_thrust function in a new switch case, add to the reset_controller function, with options to reset only one integral, lastly update documentation. Remeber to intialize correctly, either in 'on_configure' or in constructor, add the appropriate parameters, and update alle the {drone}_params.yaml files.
+After adding the hpp file, add the calculation to calc_thrust function in a new switch case, add to the reset_controller function, with options to reset only one integral, lastly update documentation. Remember to initialize correctly, either in 'on_configure' or in constructor, add the appropriate parameters, and update alle the {drone}_params.yaml files.
 
 ## Adding new drones
 Copy a {drone}_params.yaml file and change the name to the new name of the drone. Add the appropriate matrices, and tune to satisfying behaviour.

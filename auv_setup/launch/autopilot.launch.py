@@ -5,14 +5,15 @@ from launch import LaunchDescription
 from launch.actions import (
     OpaqueFunction,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
+
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
     resolve_drone_and_namespace,
 )
-from launch_ros.actions import ComposableNodeContainer
-from launch_ros.descriptions import ComposableNode
+
+
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
     drone_params = os.path.join(
@@ -31,7 +32,7 @@ def launch_setup(context, *args, **kwargs):
         'config',
         'guidance_params.yaml',
     )
-    container=ComposableNodeContainer(
+    container = ComposableNodeContainer(
         name='autopilot_container',
         namespace=namespace,
         package='rclcpp_components',
@@ -42,24 +43,25 @@ def launch_setup(context, *args, **kwargs):
                 plugin='velocity_node',
                 name='velocity_controller_node',
                 namespace=namespace,
-                parameters=[velocity_control_params,drone_params],
-                extra_arguments=[{"use_intra_process_comms":True}],
+                parameters=[velocity_control_params, drone_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
             ),
             ComposableNode(
                 package='los_guidance',
                 plugin='vortex::guidance::los::LosGuidanceNode',
                 name='los_guidance_node',
                 namespace=namespace,
-                parameters=[drone_params,{"los_config_file":los_config,"time_step":0.1},],
-                extra_arguments=[{"use_intra_process_comms":True}],
+                parameters=[
+                    drone_params,
+                    {"los_config_file": los_config, "time_step": 0.1},
+                ],
+                extra_arguments=[{"use_intra_process_comms": True}],
             ),
-
         ],
         output='screen',
-        arguments=['--ros-args','--log-level','error'],
+        arguments=['--ros-args', '--log-level', 'error'],
     )
     return [container]
-    
 
 
 def generate_launch_description():
