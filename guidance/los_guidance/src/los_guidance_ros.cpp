@@ -170,6 +170,8 @@ void LOSGuidanceNode::execute(
 
     adaptive_los_guidance_->update_angles(last_point_, next_point_);
 
+    auto feedback =
+        std::make_shared<vortex_msgs::action::LOSGuidance::Feedback>();
     auto result = std::make_shared<vortex_msgs::action::LOSGuidance::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
@@ -199,21 +201,21 @@ void LOSGuidanceNode::execute(
 
         adaptive_los_guidance_->update_adaptive_estimates(errors);
 
-        if ((eta_ - next_point_).as_vector().norm() < goal_reached_tol_) {
+        vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
+
+        feedback->feedback = reference_msg;
+
+        goal_handle->publish_feedback(feedback);
+        reference_pub_->publish(reference_msg);
+
+        if ((eta_ - next_point_).as_vector().norm() < 0.5) {
             result->success = true;
             goal_handle->succeed(result);
-            u_desired_ = 0.0;
-            auto final_reference_msg =
-                std::make_unique<vortex_msgs::msg::LOSGuidance>(
-                    fill_los_reference());
-            reference_pub_->publish(std::move(final_reference_msg));
+            vortex_msgs::msg::LOSGuidance reference_msg = fill_los_reference();
+            reference_pub_->publish(reference_msg);
             spdlog::info("Goal reached");
             return;
         }
-
-        auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
-            fill_los_reference());
-        reference_pub_->publish(std::move(reference_msg));
 
         loop_rate.sleep();
     }
