@@ -10,15 +10,23 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
+#include <array>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <memory>
+#include <sstream>
+
+#include <spdlog/sinks/basic_file_sink.h>
 
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
 class ThrusterInterfaceAUVNode : public rclcpp::Node {
-public:
+   public:
     ThrusterInterfaceAUVNode(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
-private:
+   private:
     /**
      * @brief periodically receive thruster forces topic
      *
@@ -58,7 +66,7 @@ private:
      */
     void update_debug_flag(const rclcpp::Parameter& p);
 
-private:
+   private:
     std::string serial_device_;
     unsigned int baud_rate_;
     std::uint8_t packet_id_;
@@ -86,6 +94,10 @@ private:
     rclcpp::Time last_msg_time_;
     rclcpp::Duration watchdog_timeout_ = rclcpp::Duration::from_seconds(1.0);
     bool watchdog_triggered_ = false;
+    std::shared_ptr<spdlog::logger> pwm_csv_logger_;
+    std::string make_pwm_log_filename() const;
+    std::string make_csv_timestamp() const;
+    void initialize_pwm_logger();
 
     /**
      * @brief Manages parameter events for the node.

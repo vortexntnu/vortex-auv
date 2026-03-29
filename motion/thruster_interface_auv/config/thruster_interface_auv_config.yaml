@@ -23,7 +23,7 @@
     uart:
       device: "/dev/ttyUSB0"
       baud_rate: 115200
-      packet_id: 1
+      packet_id: 4
 
     debug:
       flag: True
