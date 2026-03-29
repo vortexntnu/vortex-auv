@@ -42,7 +42,7 @@ Velocity_node::Velocity_node(const rclcpp::NodeOptions& options)
                                      1000)) {
         controller_type = 1;
         RCLCPP_INFO(this->get_logger(), "Switching to PID");
-    };
+    }
     // Automatically start in activate if auto_start is true
     if (auto_start) {
         startup_timer_ =

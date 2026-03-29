@@ -25,7 +25,7 @@ class State {
     double roll = 0.0, pitch = 0.0, yaw = 0.0;  // phi, theta, psi
     double w = 0.0, x = 0.0, y = 0.0, z = 0.0;
     explicit State(double surge = 0, double pitch = 0, double yaw = 0)
-        : surge{surge}, pitch{pitch}, yaw{yaw} {};
+        : surge{surge}, pitch{pitch}, yaw{yaw} {}
 
     State operator=(int n) {
         if (n) {
@@ -34,7 +34,7 @@ class State {
             yaw = 0.0;
         }
         return *this;
-    };
+    }
     State operator=(nav_msgs::msg::Odometry::SharedPtr rhs);
     angle get_angle();
 };

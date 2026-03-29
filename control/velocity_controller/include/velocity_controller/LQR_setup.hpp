@@ -3,11 +3,9 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-#include "velocity_controller/utilities.hpp"
-#include <vector>
 #include <tuple>
-
-
+#include <vector>
+#include "velocity_controller/utilities.hpp"
 
 class LQRController {
    public:

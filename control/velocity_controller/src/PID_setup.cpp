@@ -71,7 +71,7 @@ bool PID_controller::set_parameters(double Kp,
     if (set_dt(dt)) {
         init = true;
         return true;
-    };
+    }
     return false;
 }
 

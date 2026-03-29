@@ -1,7 +1,7 @@
 #include "velocity_controller/utilities.hpp"
 #include "Eigen/Dense"
 #include <casadi/casadi.hpp>
-#include <std_msgs/msg//string.h>
+#include <std_msgs/msg/string.h>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
 
 angle quaternion_to_euler_angle(double w, double x, double y, double z){

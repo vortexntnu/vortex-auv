@@ -7,11 +7,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include "nav_msgs/msg/odometry.hpp"
 #include "velocity_controller/utilities.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp"
-#include <string>
-
 
 class test_VC : public rclcpp::Node {
    public:

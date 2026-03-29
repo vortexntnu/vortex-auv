@@ -2,15 +2,15 @@
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/logger.hpp>
-//#include <sstream>
+// #include <sstream>
 #include <std_msgs/msg/string.hpp>
 #include <vector>
-//#include "rclcpp/rclcpp.hpp"
+// #include "rclcpp/rclcpp.hpp"
 #include <casadi/casadi.hpp>
-//#include "velocity_controller/PID_setup.hpp"
-#include "velocity_controller/utilities.hpp"
+// #include "velocity_controller/PID_setup.hpp"
 #include "ct/optcon/lqr/LQR.hpp"
-//#include "vortex/utils/math.hpp"
+#include "velocity_controller/utilities.hpp"
+// #include "vortex/utils/math.hpp"
 
 LQRController::LQRController() {
     Q.setZero();

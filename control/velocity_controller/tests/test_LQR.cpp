@@ -17,7 +17,7 @@ class LQR_test : public ::testing::Test {
             FAIL() << "Failed to load YAML from '" << YAML_PATH
                    << "': " << e.what();
         }
-    };
+    }
     void SetUp() override {
         controller.set_matrices(
             cfg["/**"]["ros__parameters"]["LQR_params"]["Q"]
@@ -34,15 +34,7 @@ class LQR_test : public ::testing::Test {
     }
     void TearDown() override {}
 };
-/*
-TEST(LQR,setup){
-    LQRController controller;
-    controller.set_interval(1);
-    YAML::Node cfg;
-    ASSERT_NO_THROW(cfg=YAML::LoadFile(YAML_PATH));
-    controller.set_matrices(cfg["LQR"]["Q"],cfg["LQR"]["Q"],cfg["LQR"]["Q"],cfg["LQR"]["Q"],100);
-};
-*/
+
 TEST_F(LQR_test, wrong_setup) {
     // LQRController controller;
     std::vector<double> eight = {1, 2, 3, 4, 5, 6, 7, 8};
@@ -63,15 +55,7 @@ TEST_F(LQR_test, wrong_setup) {
     EXPECT_FALSE(
         controller.set_matrices(eight, three, thirty_six, -100, thirty_six));
 };
-/*
-TEST_F(LQR_test,solve){
-    State states{1,1,1,2,2,2,1,2,1};
-    Guidance_data value{1,3,2};
-    Eigen::Vector <double,3> result=controller.calculate_thrust(states,value);
-    EXPECT_NEAR(result(0),0,delta);
-    EXPECT_NEAR(result(1),0,delta);
-    EXPECT_NEAR(result(2),0,delta);
-};*/
+
 TEST_F(LQR_test, Direction) {
     Guidance_data value;
     State state{};

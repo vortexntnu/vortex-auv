@@ -4,16 +4,14 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
+#include <memory>
 #include <numbers>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include "velocity_controller/utilities.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp"
-#include <string>
-#include <memory>
-
-
 
 // Denne noden er kun for å teste velocity_controller noden
 
