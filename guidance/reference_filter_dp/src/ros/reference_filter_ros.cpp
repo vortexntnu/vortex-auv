@@ -170,8 +170,6 @@ void ReferenceFilterNode::execute(
 
     follower_->start(pose, twist, wp, convergence_threshold);
 
-    auto feedback = std::make_shared<
-        vortex_msgs::action::ReferenceFilterWaypoint::Feedback>();
     auto result = std::make_shared<
         vortex_msgs::action::ReferenceFilterWaypoint::Result>();
 
@@ -205,12 +203,11 @@ void ReferenceFilterNode::execute(
         if (target_reached) {
             follower_->snap_state_to_reference();
 
-            vortex_msgs::msg::ReferenceFilter final_reference_msg =
-                fill_reference_msg(follower_->state());
+            auto final_reference_msg =
+                std::make_unique<vortex_msgs::msg::ReferenceFilter>(
+                    fill_reference_msg(follower_->state()));
 
-            feedback->reference = final_reference_msg;
-            goal_handle->publish_feedback(feedback);
-            reference_pub_->publish(final_reference_msg);
+            reference_pub_->publish(std::move(final_reference_msg));
 
             result->success = true;
             goal_handle->succeed(result);
@@ -218,11 +215,10 @@ void ReferenceFilterNode::execute(
             return;
         }
 
-        vortex_msgs::msg::ReferenceFilter reference_msg =
-            fill_reference_msg(filter_state);
-        reference_pub_->publish(reference_msg);
-        feedback->reference = reference_msg;
-        goal_handle->publish_feedback(feedback);
+        auto reference_msg =
+            std::make_unique<vortex_msgs::msg::ReferenceFilter>(
+                fill_reference_msg(filter_state));
+        reference_pub_->publish(std::move(reference_msg));
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {

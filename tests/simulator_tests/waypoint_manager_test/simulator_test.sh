@@ -14,7 +14,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cleanup() {
     echo "Error detected. Cleaning up..."
     # Safely kill any started PIDs (ignore empty values)
-    for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID" ; do
+    for _pid in "$SIM_PID" "$NAUTILUS_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID" ; do
         if [ -n "$_pid" ]; then
             kill -TERM "$_pid" 2>/dev/null || true
         fi
@@ -28,13 +28,13 @@ BAG_PID=$!
 echo "Started bagging with PID: $BAG_PID"
 
 # Launch Stonefish Simulator
-setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
+setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=nautilus_no_gpu &
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
 
 echo "Waiting for simulator to start..."
 timeout 30s bash -c '
-    while ! ros2 topic list | grep -q "/orca/odom"; do
+    while ! ros2 topic list | grep -q "/nautilus/odom"; do
         sleep 1
     done || true'
 echo "Simulator started"
@@ -47,20 +47,20 @@ fi
 
 # Wait for odometry data
 echo "Waiting for odom data..."
-timeout 10s ros2 topic echo /orca/odom --once
+timeout 10s ros2 topic echo /nautilus/odom --once
 echo "Got odom data"
 
-# Launch ORCA Simulation
+# Launch NAUTILUS Simulation
 setsid ros2 launch stonefish_sim drone_sim.launch.py &
-ORCA_PID=$!
-echo "Launched orca with PID: $ORCA_PID"
+NAUTILUS_PID=$!
+echo "Launched nautilus with PID: $NAUTILUS_PID"
 
 setsid ros2 launch waypoint_manager waypoint_manager.launch.py &
 WM_PID=$!
 echo "Launched waypoint manager with PID: $WM_PID"
 
 echo "Waiting for sim interface to start..."
-timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'
+timeout 30s bash -c 'until ros2 topic list | grep -q "/nautilus/pose"; do sleep 1; done'
 echo "Simulator started"
 
 # Check for ROS errors again
@@ -71,7 +71,7 @@ fi
 
 # Wait for pose data
 echo "Waiting for pose data..."
-timeout 10s ros2 topic echo /orca/pose --once
+timeout 10s ros2 topic echo /nautilus/pose --once
 echo "Got pose data"
 
 # Launch controller and reference filter
@@ -90,8 +90,8 @@ sleep 5
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
-ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
+ros2 service call /nautilus/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /nautilus/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 # Send waypoint goal
 echo "Sending goal"
@@ -109,7 +109,7 @@ else
 fi
 
 # Terminate processes (safely)
-for _pid in "$SIM_PID" "$ORCA_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID"; do
+for _pid in "$SIM_PID" "$NAUTILUS_PID" "$WM_PID" "$CONTROLLER_PID" "$FILTER_PID" "$BAG_PID" "$OP_MODE_PID"; do
     if [ -n "$_pid" ]; then
         kill -TERM "$_pid" 2>/dev/null || true
     fi

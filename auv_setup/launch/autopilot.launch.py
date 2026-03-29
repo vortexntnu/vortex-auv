@@ -63,6 +63,7 @@ def launch_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
+def generate_launch_description():
     return LaunchDescription(
         declare_drone_and_namespace_args()
         + [
