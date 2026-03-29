@@ -1,10 +1,13 @@
 #pragma once
-
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include "velocity_controller/utilities.hpp"
+#include <vector>
+#include <tuple>
+
+
 
 class LQRController {
    public:

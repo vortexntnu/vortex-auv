@@ -78,7 +78,7 @@ TEST_F(LQR_test, Direction) {
     value.surge = 0.2;
     controller.calculate_thrust(state, value);
     Eigen::Vector<double, 3> result = controller.get_thrust();
-    EXPECT_TRUE(result(0) > 0);
+    EXPECT_GT(result(0), 0);
 }
 TEST_F(LQR_test, zero_input) {
     State states{};

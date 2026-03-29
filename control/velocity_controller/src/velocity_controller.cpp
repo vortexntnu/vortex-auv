@@ -66,7 +66,7 @@ void Velocity_node::calc_thrust() {
             return;
         }
     }
-    // TODO: Do I need ssa here?
+    // TODO(henrimha): Do I need ssa here?
     angle ref_in_body =
         angle_NED_to_body({0, vortex::utils::math::ssa(guidance_values.pitch),
                            vortex::utils::math::ssa(guidance_values.yaw)},

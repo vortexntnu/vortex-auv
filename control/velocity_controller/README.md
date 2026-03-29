@@ -195,7 +195,7 @@ ros2 launch velocity_controller VCnTest.launch.py
 - If the vehicle behaves oddly, check that `interval_` (the control timestep) is being set correctly — a value of `0` disables integral action silently.
 
 ## Adding new controllers
-After adding the hpp file, add the calculation to calc_thrust function in a new switch case, add to the reset_controller function, with options to reset only one integral, lastly update documentation. Remember to initialize correctly, either in 'on_configure' or in constructor, add the appropriate parameters, and update alle the {drone}_params.yaml files.
+After adding the hpp file, add the calculation to calc_thrust function in a new switch case, add to the reset_controller function, with options to reset only one integral, lastly update documentation. Remember to initialize correctly, either in 'on_configure' or in constructor, add the appropriate parameters, and update all the {drone}_params.yaml files.
 
 ## Adding new drones
 Copy a {drone}_params.yaml file and change the name to the new name of the drone. Add the appropriate matrices, and tune to satisfying behaviour.

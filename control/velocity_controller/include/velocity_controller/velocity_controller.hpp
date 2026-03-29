@@ -1,5 +1,5 @@
-#pragma once
-
+#ifndef VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
+#define VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
@@ -13,6 +13,8 @@
 //#include "nav_msgs/msg/odometry.hpp"
 #include "velocity_controller/PID_setup.hpp"
 //#include "vortex_msgs/msg/los_guidance.hpp"
+#include <string>
+#endif  // VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
 
 class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
    public:
@@ -21,6 +23,8 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     Velocity_node& operator=(const Velocity_node&) = delete;  // no copy assignment
     Velocity_node(Velocity_node&&) = delete;  // no move constructor
     Velocity_node& operator=(Velocity_node&&) = delete;  // no move assignment
+
+    private:
     void get_new_parameters();
 
     // Timer functions
@@ -43,11 +47,8 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
         subscriber_Odometry;
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr
         subscriber_guidance;
-    // rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr
-    // subscriber_killswitch;
 
     // Variables for topics
-
     std::string topic_thrust;
     std::string topic_guidance;
     std::string topic_killswitch;
@@ -63,7 +64,6 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     State current_state;
     geometry_msgs::msg::WrenchStamped thrust_out;
 
-    int controller_type;  // 1 PID, 2 LQR
 
     // PID controllers
     PID_controller PID_surge;
@@ -92,6 +92,7 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     bool odometry_dropout_guard;
     int publish_counter = 0;
     bool first_start = true;
+    int controller_type;  // 1 PID, 2 LQR
 
     // States
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn

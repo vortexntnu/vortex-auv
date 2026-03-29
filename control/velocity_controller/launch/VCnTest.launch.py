@@ -51,7 +51,7 @@ def launch_setup(context, *args, **kwargs):
         default_value='test_vc_node',
         description='Name of the test velocity controller node',
     )
-    test_VC_name = LaunchConfiguration('node_name_1')
+    test_vc_name = LaunchConfiguration('node_name_1')
 
     return [
         stonefish_sim,
@@ -60,7 +60,7 @@ def launch_setup(context, *args, **kwargs):
         Node(
             package='velocity_controller',
             executable='test_vc_node',
-            name=test_VC_name,
+            name=test_vc_name,
             namespace=namespace,
             output='screen',
             parameters=[config_path_global],

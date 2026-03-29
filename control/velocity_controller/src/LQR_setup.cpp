@@ -2,20 +2,15 @@
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/logger.hpp>
-#include <sstream>
+//#include <sstream>
 #include <std_msgs/msg/string.hpp>
 #include <vector>
-#include "rclcpp/rclcpp.hpp"
-// #include <drake/common/find_resource.h>
-// #include <drake/math/discrete_algebraic_riccati_equation.h>
-// #include <drake/math/continuous_algebraic_riccati_equation.h>
-// #include <drake/systems/controllers/linear_quadratic_regulator.h>
+//#include "rclcpp/rclcpp.hpp"
 #include <casadi/casadi.hpp>
-#include "velocity_controller/PID_setup.hpp"
+//#include "velocity_controller/PID_setup.hpp"
 #include "velocity_controller/utilities.hpp"
-// #include <lapack.h>
 #include "ct/optcon/lqr/LQR.hpp"
-#include "vortex/utils/math.hpp"
+//#include "vortex/utils/math.hpp"
 
 LQRController::LQRController() {
     Q.setZero();
@@ -23,7 +18,7 @@ LQRController::LQRController() {
     B.setZero();
     D.setZero();
     inertia_matrix_inv.setZero();
-};
+}
 bool LQRController::set_matrices(std::vector<double> Q_,
                                  std::vector<double> R_,
                                  std::vector<double> inertia_matrix_,
@@ -70,7 +65,7 @@ bool LQRController::set_matrices(std::vector<double> Q_,
     Eigen::Matrix<double, 9, 3> B_m = Eigen::Matrix<double, 9, 3>::Zero();
     B_m.block<6, 3>(0, 0) = B_t;
     std::vector<std::vector<int>> swaplines{{1, 7}, {2, 8}, {3, 4}, {4, 5}};
-    for (long unsigned int i = 0; i < swaplines.size(); i++) {
+    for (int64_t i = 0; i < swaplines.size(); i++) {
         B_m.row(swaplines[i][0]).swap(B_m.row(swaplines[i][1]));
     }
     B.block<5, 3>(0, 0) = B_m.block<5, 3>(0, 0);
@@ -115,7 +110,7 @@ Eigen::Matrix<double, 8, 8> LQRController::linearize(State s) {
         Eigen::Matrix3d::Zero();
     A.block<3, 3>(6, 3) = T;
     std::vector<std::vector<int>> swaplines{{1, 7}, {2, 8}, {3, 4}, {4, 5}};
-    for (long unsigned int i = 0; i < swaplines.size(); i++) {
+    for (int64_t i = 0; i < swaplines.size(); i++) {
         A.row(swaplines[i][0]).swap(A.row(swaplines[i][1]));
         A.col(swaplines[i][0]).swap(A.col(swaplines[i][1]));
     }
@@ -126,7 +121,7 @@ Eigen::Matrix<double, 8, 8> LQRController::linearize(State s) {
     ret.block<3, 3>(5, 0) = Eigen::Matrix3d::Identity();
 
     return ret;
-};
+}
 Eigen::Vector<double, 8> LQRController::update_error(const Guidance_data& error,
                                                      const State& state) {
     double surge_error = error.surge;
@@ -190,7 +185,7 @@ Eigen::Vector<double, 3> LQRController::get_thrust() {
     return u;
 }
 
-// TODO: double check the matrices here
+// TODO(henrimha): double check the matrices here
 Eigen::Matrix<double, 6, 6> LQRController::coriolis(const State& s) {
     double u = s.surge;
     double v = s.sway;

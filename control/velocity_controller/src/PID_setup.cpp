@@ -6,8 +6,8 @@ max_output, double min_output, double dt):Kp_(Kp), Ki_(Ki), Kd_(Kd),
 max_output_(max_output), min_output_(min_output), dt_(dt) { integral = 0.0;
     previous_error = 0.0;
 };*/
-// TODO: kanskje forbedre integrasjon og derivasjons beregningene
-// TODO: check for more errors, f.example Nan or very high integral
+// TODO(henrimha): kanskje forbedre integrasjon og derivasjons beregningene
+// TODO(henrimha): check for more errors, f.example Nan or very high integral
 bool PID_controller::calculate_thrust(double error) {
     if (!init)
         return false;
@@ -25,7 +25,7 @@ bool PID_controller::calculate_thrust(double error) {
     previous_error = error;
 
     return true;
-};
+}
 bool PID_controller::calculate_thrust(double error, double error_d) {
     if (!init)
         return false;
@@ -51,7 +51,7 @@ void PID_controller::reset_controller() {
 
 double PID_controller::get_output() {
     return output;
-};
+}
 
 bool PID_controller::set_output_limits(double min_output, double max_output) {
     if (max_output < min_output) {
@@ -60,7 +60,7 @@ bool PID_controller::set_output_limits(double min_output, double max_output) {
     min_output_ = min_output;
     max_output_ = max_output;
     return true;
-};
+}
 bool PID_controller::set_parameters(double Kp,
                                     double Ki,
                                     double Kd,
@@ -73,7 +73,7 @@ bool PID_controller::set_parameters(double Kp,
         return true;
     };
     return false;
-};
+}
 
 bool PID_controller::set_dt(double dt) {
     if (dt <= 0) {
@@ -84,4 +84,4 @@ bool PID_controller::set_dt(double dt) {
 }
 bool PID_controller::set_parameters(std::vector<double>& params, double dt) {
     return set_parameters(params.at(0), params.at(1), params.at(2), dt);
-};
+}

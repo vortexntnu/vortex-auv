@@ -1,4 +1,4 @@
-#include "test_VC.hpp"
+#include "tests/test_VC.hpp"
 #include <rmw/types.h>
 #include <cmath>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -10,6 +10,10 @@
 #include <std_msgs/msg/string.hpp>
 #include "velocity_controller/utilities.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp"
+#include <string>
+#include <memory>
+
+
 
 // Denne noden er kun for å teste velocity_controller noden
 

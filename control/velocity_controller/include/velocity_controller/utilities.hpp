@@ -24,7 +24,7 @@ class State {
            yaw_rate = 0.0;  // roll_rate=0.0, pitch_rate=0.0, yaw_rate=0.0;
     double roll = 0.0, pitch = 0.0, yaw = 0.0;  // phi, theta, psi
     double w = 0.0, x = 0.0, y = 0.0, z = 0.0;
-    State(double surge = 0, double pitch = 0, double yaw = 0)
+    explicit State(double surge = 0, double pitch = 0, double yaw = 0)
         : surge{surge}, pitch{pitch}, yaw{yaw} {};
 
     State operator=(int n) {
