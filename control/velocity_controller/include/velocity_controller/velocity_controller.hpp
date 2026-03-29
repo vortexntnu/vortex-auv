@@ -10,18 +10,17 @@
 #include <std_msgs/msg/string.hpp>
 #include <vector>
 #include "LQR_setup.hpp"
-#include "nav_msgs/msg/odometry.hpp"
+//#include "nav_msgs/msg/odometry.hpp"
 #include "velocity_controller/PID_setup.hpp"
-#include "vortex_msgs/msg/los_guidance.hpp"
+//#include "vortex_msgs/msg/los_guidance.hpp"
 
 class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
    public:
     explicit Velocity_node(const rclcpp::NodeOptions& options);
     Velocity_node(const Velocity_node&) = delete;  // no copy constructor
-    Velocity_node& operator=(const Velocity_node&) =
-        delete;  // no copy assignment
-    // TODO: decide if i one should be allowed to move or transfer ownership if
-    // the class Different initialization functions
+    Velocity_node& operator=(const Velocity_node&) = delete;  // no copy assignment
+    Velocity_node(Velocity_node&&) = delete;  // no move constructor
+    Velocity_node& operator=(Velocity_node&&) = delete;  // no move assignment
     void get_new_parameters();
 
     // Timer functions
