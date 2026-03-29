@@ -34,12 +34,6 @@ build_ros_workspace() {
     log_info "Building remaining ROS 2 packages..."
     colcon build --packages-ignore stonefish_ros2 vortex_utils
 
-    log_info "Sourcing workspace..."
-    . install/setup.bash
-
-    log_info "Rebuilding eskf with landmark_egomotion support..."
-    colcon build --packages-select eskf
-
     log_info "ROS 2 workspace build complete."
 }
 
