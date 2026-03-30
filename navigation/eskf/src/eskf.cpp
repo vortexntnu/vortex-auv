@@ -16,9 +16,11 @@ ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
     current_error_state_.covariance = params.P;
 
     g_ = params.g_;
+    Eigen::AngleAxisd init_rotation(-M_PI / 2.0, Eigen::Vector3d::UnitZ());
+    current_nom_state_.quat.normalize();
 
     // Initialize Nominal Quaternion to Identity
-    current_nom_state_.quat = Eigen::Quaterniond::Identity();
+    // current_nom_state_.quat = Eigen::Quaterniond::Identity();
 }
 
 std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(

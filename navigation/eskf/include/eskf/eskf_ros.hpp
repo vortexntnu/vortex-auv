@@ -17,7 +17,7 @@
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <stonefish_ros2/msg/dvl.hpp>
+#include <string>
 #include <tf2_eigen/tf2_eigen.hpp>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
@@ -50,10 +50,15 @@ class ESKFNode : public rclcpp::Node {
     void set_parameters();
 
     // @brief lookup transforms
-    void initialize_static_transforms();
+    void lookup_static_transforms();
+
+    // @brief Create subs/pubs and start the publish timer. Called once
+    // transforms are available (or immediately if use_tf_transforms_ is false).
+    void complete_initialization();
 
     // @brief broadcast the State as a TF
-    void publish_tf(const StateQuat& nom_state);
+    void publish_tf(const StateQuat& nom_state,
+                    const rclcpp::Time& current_time);
 
     // Subscribers and Publishers
 
@@ -66,13 +71,19 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+        pose_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
+        twist_pub_;
+
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_dvl_pub_;
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
 
     // Member variable for the ESKF instance
 
-    std::chrono::milliseconds time_step;
+    std::chrono::milliseconds time_step_{1};
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
 
@@ -99,9 +110,17 @@ class ESKFNode : public rclcpp::Node {
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::TimerBase::SharedPtr tf_timer_;
 
+    std::string frame(const std::string& name) const {
+        return frame_prefix_.empty() ? name : frame_prefix_ + "/" + name;
+    }
+
     // Flags and Storage
+    std::string frame_prefix_{""};
     bool use_tf_transforms_ = false;
     bool tf_sensors_loaded_ = false;
+    bool publish_tf_{false};
+    bool publish_pose_{false};
+    bool publish_twist_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();

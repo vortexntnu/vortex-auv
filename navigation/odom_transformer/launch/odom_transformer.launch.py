@@ -11,8 +11,10 @@ from auv_setup.launch_arg_common import (
     resolve_drone_and_namespace,
 )
 
-eskf_params = path.join(
-    get_package_share_directory("eskf"), "config", "eskf_params.yaml"
+odom_transformer_params = path.join(
+    get_package_share_directory("odom_transformer"),
+    "config",
+    "odom_transformer_params.yaml",
 )
 
 
@@ -25,31 +27,24 @@ def launch_setup(context, *args, **kwargs):
         "robots",
         f"{drone}.yaml",
     )
-    drone_env_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "environments",
-        "trondheim_saltwater.yaml",
-    )
-    eskf_node = Node(
-        package="eskf",
-        executable="eskf_node",
-        name="eskf_node",
+
+    node = Node(
+        package="odom_transformer",
+        executable="odom_transformer_node",
+        name="odom_transformer_node",
         namespace=namespace,
         parameters=[
-            eskf_params,
+            odom_transformer_params,
             drone_params,
-            drone_env_params,
             {"frame_prefix": namespace},
         ],
         output="screen",
     )
 
-    return [eskf_node]
+    return [node]
 
 
 def generate_launch_description():
-    # This function defines WHAT to do, but doesn't execute the logic yet
     return LaunchDescription(
         declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )
