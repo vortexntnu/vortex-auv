@@ -138,7 +138,27 @@ void ESKFNode::set_parameters() {
     }
     Eigen::Matrix15d P = createDiagonalMatrix<15>(diag_p_init);
 
-    EskfParams eskf_params{.Q = Q, .P = P};
+    std::vector<double> initial_gyro_bias =
+        this->declare_parameter<std::vector<double>>(
+            "initial_gyro_bias", std::vector<double>{0.0, 0.0, 0.0});
+    if (initial_gyro_bias.size() != 3) {
+        throw std::runtime_error("initial_gyro_bias must have length 3");
+    }
+
+    std::vector<double> initial_accel_bias =
+        this->declare_parameter<std::vector<double>>(
+            "initial_accel_bias", std::vector<double>{0.0, 0.0, 0.0});
+    if (initial_accel_bias.size() != 3) {
+        throw std::runtime_error("initial_accel_bias must have length 3");
+    }
+
+    EskfParams eskf_params{
+        .Q = Q,
+        .P = P,
+        .initial_gyro_bias =
+            Eigen::Map<Eigen::Vector3d>(initial_gyro_bias.data()),
+        .initial_accel_bias =
+            Eigen::Map<Eigen::Vector3d>(initial_accel_bias.data())};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
 
