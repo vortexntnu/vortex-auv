@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(dp_adapt_backs_controller)
+project(dp_adapt_backs_controller_quat)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)

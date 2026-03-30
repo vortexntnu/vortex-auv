@@ -1,4 +1,4 @@
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller_ros.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string>
@@ -6,8 +6,8 @@
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_utils.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 constexpr std::string_view start_message = R"(
   ____  ____     ____            _             _ _

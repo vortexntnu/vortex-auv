@@ -1,8 +1,10 @@
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_utils.hpp"
 #include <spdlog/spdlog.h>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
+
+// TODO: change j_inv, t_dot, j_dot
 
 namespace vortex::control {
 

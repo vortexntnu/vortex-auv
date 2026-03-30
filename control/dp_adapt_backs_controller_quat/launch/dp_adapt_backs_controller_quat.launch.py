@@ -15,7 +15,7 @@ def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
     adapt_params = os.path.join(
-        get_package_share_directory("dp_adapt_backs_controller"),
+        get_package_share_directory("dp_adapt_backs_controller_quat"),
         "config",
         f"adapt_params_{drone}.yaml",
     )
@@ -29,7 +29,7 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         Node(
-            package="dp_adapt_backs_controller",
+            package="dp_adapt_backs_controller_quat",
             executable="dp_adapt_backs_controller_node",
             name="dp_adapt_backs_controller_node",
             namespace=namespace,

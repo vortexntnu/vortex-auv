@@ -3,7 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 namespace vortex::control {
 
@@ -22,7 +22,7 @@ class DPAdaptBacksController {
    public:
     explicit DPAdaptBacksController(const DPAdaptParams& dp_adapt_params);
 
-    // TODO: change calculate tau, to be based on error state of ori quaternion
+    // TODO: change calculate tau, to be based on error state of quaternion
 
     // @brief Calculate thecontrol input tau
     // @param pose: 6D vector containing the vehicle pose [x, y, z, roll, pitch,

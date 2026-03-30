@@ -1,9 +1,9 @@
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
 #include <eigen3/Eigen/Dense>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_utils.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 namespace vortex::control {
 
@@ -49,6 +49,7 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& pose,
                           (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) -
                           F_est - d_est_;
 
+    // TODO: look at better ways to clamp tau w.r.t new thrusters and allocator
     tau = tau.cwiseMax(-100.0).cwiseMin(100.0);
     adapt_param_ += adapt_param_dot * dt_;
     d_est_ += d_est_dot * dt_;

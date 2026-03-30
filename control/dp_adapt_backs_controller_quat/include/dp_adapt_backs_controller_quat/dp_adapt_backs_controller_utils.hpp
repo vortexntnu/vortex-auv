@@ -2,8 +2,10 @@
 #define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_UTILS_HPP_
 
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
 #include "typedefs.hpp"
+
+// TODO: change T_dot, J_dot and J_inv
 
 namespace vortex::control {
 

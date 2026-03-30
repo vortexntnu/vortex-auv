@@ -17,8 +17,8 @@
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/srv/get_operation_mode.hpp>
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller.hpp"
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
 #include "typedefs.hpp"
 
 namespace vortex::control {
