@@ -20,28 +20,42 @@ class EskfValidator(Node):
     def __init__(self):
         super().__init__('eskf_validator')
 
-        self.est_topic = 'orca/odom'
-        self.gt_topic = '/orca/odom/stonefish'
+        self.est_topic = '/nautilus/odom/eskf'
+        self.gt_topic = '/nautilus/odom'
 
         # --- Publishers (Foxglove Visualizers) ---
-        # RMSE (Running Root Mean Square Error)
-        self.pub_rmse_pos = self.create_publisher(Float64, 'eskf_metrics/rmse/position', 10)
+        # Overall 3D RMSE
+        self.pub_rmse_pos_total = self.create_publisher(Float64, 'eskf_metrics/rmse/position/total', 10)
+        self.pub_rmse_vel_total = self.create_publisher(Float64, 'eskf_metrics/rmse/velocity/total', 10)
         self.pub_rmse_ori = self.create_publisher(Float64, 'eskf_metrics/rmse/orientation_rad', 10)
-        self.pub_rmse_vel = self.create_publisher(Float64, 'eskf_metrics/rmse/velocity', 10)
 
-        # Euler Angles (for visual comparison)
+        # Axis-Specific Position RMSE
+        self.pub_rmse_pos_x = self.create_publisher(Float64, 'eskf_metrics/rmse/position/x', 10)
+        self.pub_rmse_pos_y = self.create_publisher(Float64, 'eskf_metrics/rmse/position/y', 10)
+        self.pub_rmse_pos_z = self.create_publisher(Float64, 'eskf_metrics/rmse/position/z', 10)
+
+        # Axis-Specific Velocity RMSE
+        self.pub_rmse_vel_x = self.create_publisher(Float64, 'eskf_metrics/rmse/velocity/x', 10)
+        self.pub_rmse_vel_y = self.create_publisher(Float64, 'eskf_metrics/rmse/velocity/y', 10)
+        self.pub_rmse_vel_z = self.create_publisher(Float64, 'eskf_metrics/rmse/velocity/z', 10)
+
+        # Euler Angles & NEES
         self.pub_euler_est = self.create_publisher(Float64MultiArray, 'debug/euler/est', 10)
         self.pub_euler_gt = self.create_publisher(Float64MultiArray, 'debug/euler/gt', 10)
-
-        # NEES (Normalized Estimation Error Squared)
         self.pub_nees_pos = self.create_publisher(Float64, 'eskf_metrics/nees/position', 10)
         self.pub_nees_ori = self.create_publisher(Float64, 'eskf_metrics/nees/orientation', 10)
 
         # --- State for Running RMSE ---
         self.n_samples = 0
-        self.sse_pos = 0.0  # Sum of Squared Errors
+        
+        # NumPy arrays make axis-by-axis tracking incredibly easy
+        self.sse_pos_xyz = np.array([0.0, 0.0, 0.0])
+        self.sse_vel_xyz = np.array([0.0, 0.0, 0.0])
+        
+        # Total Euclidean SSE
+        self.sse_pos_total = 0.0 
+        self.sse_vel_total = 0.0
         self.sse_ori = 0.0
-        self.sse_vel = 0.0
 
         # --- Subscribers ---
         self.get_logger().info(f"Subscribing to {self.est_topic} and {self.gt_topic}...")
@@ -59,90 +73,86 @@ class EskfValidator(Node):
         self.n_samples += 1
         
         # ===========================
-        # 1. POSITION (Euclidean)
+        # 1. POSITION (Euclidean & Axis)
         # ===========================
         p_est = np.array([est_msg.pose.pose.position.x, est_msg.pose.pose.position.y, est_msg.pose.pose.position.z])
         p_gt = np.array([gt_msg.pose.pose.position.x, gt_msg.pose.pose.position.y, gt_msg.pose.pose.position.z])
         
         err_pos_vec = p_est - p_gt
-        err_pos_norm = np.linalg.norm(err_pos_vec)
         
-        # Update RMSE
-        self.sse_pos += err_pos_norm**2
-        self.publish_float(self.pub_rmse_pos, np.sqrt(self.sse_pos / self.n_samples))
+        # Update Axis-Specific RMSE (Squares elements individually)
+        self.sse_pos_xyz += err_pos_vec**2
+        rmse_pos_xyz = np.sqrt(self.sse_pos_xyz / self.n_samples)
+        
+        self.publish_float(self.pub_rmse_pos_x, rmse_pos_xyz[0])
+        self.publish_float(self.pub_rmse_pos_y, rmse_pos_xyz[1])
+        self.publish_float(self.pub_rmse_pos_z, rmse_pos_xyz[2])
+
+        # Update Total 3D RMSE
+        self.sse_pos_total += np.linalg.norm(err_pos_vec)**2
+        self.publish_float(self.pub_rmse_pos_total, np.sqrt(self.sse_pos_total / self.n_samples))
 
         # ===========================
         # 2. ORIENTATION (Quaternion)
         # ===========================
-        # Extract Quaternions (x, y, z, w)
         q_est = [est_msg.pose.pose.orientation.x, est_msg.pose.pose.orientation.y, est_msg.pose.pose.orientation.z, est_msg.pose.pose.orientation.w]
         q_gt = [gt_msg.pose.pose.orientation.x, gt_msg.pose.pose.orientation.y, gt_msg.pose.pose.orientation.z, gt_msg.pose.pose.orientation.w]
 
-        # Convert to Rotation objects
         r_est = Rotation.from_quat(q_est)
         r_gt = Rotation.from_quat(q_gt)
 
-        # ---------------------------------------------------------
-        # Extract Euler Angles (Roll, Pitch, Yaw)
-        # Using 'xyz' sequence (standard for ROS aerospace/underwater)
-        # degrees=True makes it easier to read in plots (0-360 or +/-180)
-        # ---------------------------------------------------------
-        euler_est = r_est.as_euler('xyz', degrees=True) # [roll, pitch, yaw]
-        euler_gt = r_gt.as_euler('xyz', degrees=True)   # [roll, pitch, yaw]
+        euler_est = r_est.as_euler('xyz', degrees=True)
+        euler_gt = r_gt.as_euler('xyz', degrees=True)
 
-        # Publish Estimated Euler
         msg_euler_est = Float64MultiArray()
         msg_euler_est.data = euler_est.tolist()
         self.pub_euler_est.publish(msg_euler_est)
 
-        # Publish GT Euler
         msg_euler_gt = Float64MultiArray()
         msg_euler_gt.data = euler_gt.tolist()
         self.pub_euler_gt.publish(msg_euler_gt)
-        # Calculate Error Rotation: R_err = R_gt^T * R_est
-        # This gives the relative rotation needed to go from GT to Est
-        r_err = r_gt.inv() * r_est
         
-        # Convert to Rotation Vector (magnitude is the angle error in radians)
+        r_err = r_gt.inv() * r_est
         err_ori_vec = r_err.as_rotvec()
-        err_ori_norm = np.linalg.norm(err_ori_vec)
-
-        # Update RMSE
-        self.sse_ori += err_ori_norm**2
+        
+        self.sse_ori += np.linalg.norm(err_ori_vec)**2
         self.publish_float(self.pub_rmse_ori, np.sqrt(self.sse_ori / self.n_samples))
 
         # ===========================
-        # 3. VELOCITY (Euclidean)
+        # 3. VELOCITY (Euclidean & Axis)
         # ===========================
         v_est = np.array([est_msg.twist.twist.linear.x, est_msg.twist.twist.linear.y, est_msg.twist.twist.linear.z])
         v_gt = np.array([gt_msg.twist.twist.linear.x, gt_msg.twist.twist.linear.y, gt_msg.twist.twist.linear.z])
         
         err_vel_vec = v_est - v_gt
-        self.sse_vel += np.linalg.norm(err_vel_vec)**2
-        self.publish_float(self.pub_rmse_vel, np.sqrt(self.sse_vel / self.n_samples))
+        
+        # Update Axis-Specific RMSE
+        self.sse_vel_xyz += err_vel_vec**2
+        rmse_vel_xyz = np.sqrt(self.sse_vel_xyz / self.n_samples)
+        
+        self.publish_float(self.pub_rmse_vel_x, rmse_vel_xyz[0])
+        self.publish_float(self.pub_rmse_vel_y, rmse_vel_xyz[1])
+        self.publish_float(self.pub_rmse_vel_z, rmse_vel_xyz[2])
 
-        # Note: Standard Odometry does NOT contain Linear Acceleration. 
-        # If you need Accel RMSE, you must subscribe to the IMU topic separately.
+        # Update Total 3D RMSE
+        self.sse_vel_total += np.linalg.norm(err_vel_vec)**2
+        self.publish_float(self.pub_rmse_vel_total, np.sqrt(self.sse_vel_total / self.n_samples))
 
         # ===========================
         # 4. NEES CALCULATION
         # ===========================
-        # NEES = error^T * Covariance^-1 * error
-        
-        # Reshape the 36-float array into 6x6 matrix
         cov_pose = np.array(est_msg.pose.covariance).reshape(6, 6)
         
-        # --- Position NEES (Top-Left 3x3) ---
+        # --- Position NEES ---
         cov_pos = cov_pose[0:3, 0:3]
         try:
             cov_pos_inv = np.linalg.inv(cov_pos)
             nees_pos = err_pos_vec.T @ cov_pos_inv @ err_pos_vec
             self.publish_float(self.pub_nees_pos, nees_pos)
         except np.linalg.LinAlgError:
-            pass # Singular matrix, skip
+            pass 
 
-        # --- Orientation NEES (Bottom-Right 3x3) ---
-        # Note: We use the rotation vector error (err_ori_vec) calculated earlier
+        # --- Orientation NEES ---
         cov_ori = cov_pose[3:6, 3:6]
         try:
             cov_ori_inv = np.linalg.inv(cov_ori)
