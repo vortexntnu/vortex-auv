@@ -1,6 +1,5 @@
 import math
 import os
-import sys
 import time
 
 import rclpy
@@ -9,8 +8,6 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 from vortex_utils.python_utils import quat_to_euler
-
-namespace = sys.argv[1] if len(sys.argv) > 1 else "nautilus"
 
 best_effort_qos = QoSProfile(
     history=QoSHistoryPolicy.KEEP_LAST,
@@ -38,7 +35,7 @@ class CheckGoalNode(Node):
         super().__init__('check_goal_node')
         self.pose_sub_ = self.create_subscription(
             PoseWithCovarianceStamped,
-            f'/{namespace}/pose',
+            '/nautilus/pose',
             self.pose_callback,
             best_effort_qos,
         )
