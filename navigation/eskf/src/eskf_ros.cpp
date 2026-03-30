@@ -23,6 +23,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     if (!frame_prefix_.empty() && frame_prefix_.back() == '/') {
         frame_prefix_.pop_back();
     }
+    spdlog::info("frame_prefix set to '{}'", frame_prefix_);
 
     publish_tf_ = this->declare_parameter<bool>("publish_tf");
     if (publish_tf_) {
@@ -140,6 +141,10 @@ void ESKFNode::set_parameters() {
     EskfParams eskf_params{.Q = Q, .P = P};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
+
+    add_gravity_to_imu_ =
+        this->declare_parameter<bool>("add_gravity_to_imu");
+    spdlog::info("add_gravity_to_imu: {}", add_gravity_to_imu_);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -177,7 +182,14 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
     // a_corrected = a_meas - omega x (omega x T)
     Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
-    imu_measurement.accel = accel_aligned - centripetal_accel;
+    accel_aligned -= centripetal_accel;
+
+    if (add_gravity_to_imu_) {
+        Eigen::Matrix3d R = nom_state.quat.normalized().toRotationMatrix();
+        accel_aligned -= R.transpose() * eskf_->get_gravity();
+    }
+
+    imu_measurement.accel = accel_aligned;
 
     // save latest gyro readings (used for DVL correction and odom output)
     latest_gyro_measurement_ = imu_measurement.gyro;

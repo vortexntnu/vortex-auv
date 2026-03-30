@@ -21,3 +21,4 @@
       publish_pose: true
       publish_twist: true
       publish_rate_ms: 5
+      add_gravity_to_imu: false

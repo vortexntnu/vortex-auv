@@ -114,6 +114,7 @@ class ESKFNode : public rclcpp::Node {
     bool publish_tf_{false};
     bool publish_pose_{false};
     bool publish_twist_{false};
+    bool add_gravity_to_imu_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();

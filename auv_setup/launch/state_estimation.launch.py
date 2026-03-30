@@ -22,10 +22,6 @@ def launch_setup(context, *args, **kwargs):
         f"{drone}.yaml",
     )
 
-    eskf_params = os.path.join(
-        get_package_share_directory("eskf"), "config", "eskf_params.yaml"
-    )
-
     container = ComposableNodeContainer(
         name="eskf_container",
         namespace=namespace,
@@ -37,7 +33,57 @@ def launch_setup(context, *args, **kwargs):
                 plugin="ESKFNode",
                 name="eskf_node",
                 namespace=namespace,
-                parameters=[drone_params, eskf_params, {"frame_prefix": namespace}],
+                parameters=[
+                    drone_params,
+                    {
+                        "frame_prefix": namespace,
+
+                        "diag_Q_std": [
+                            0.05, 0.05, 0.1,
+                            0.01, 0.01, 0.02,
+                            0.001, 0.001, 0.001,
+                            0.0001, 0.0001, 0.0001
+                        ],
+
+                        "diag_p_init": [
+                            1.0, 1.0, 1.0,
+                            0.5, 0.5, 0.5,
+                            0.1, 0.1, 0.1,
+                            0.001, 0.001, 0.001,
+                            0.001, 0.001, 0.001
+                        ],
+
+                        "transform.imu_frame_r": [
+                            -1.0, 0.0, 0.0,
+                             0.0, 1.0, 0.0,
+                             0.0, 0.0, -1.0
+                        ],
+                        "transform.imu_frame_t": [
+                            0.0, 0.0, 0.0
+                        ],
+
+                        "transform.dvl_frame_r": [
+                            0.0, -1.0, 0.0,
+                            1.0,  0.0, 0.0,
+                            0.0,  0.0, 1.0
+                        ],
+                        "transform.dvl_frame_t": [
+                            0.4, 0.0, 0.2
+                        ],
+
+                        "transform.depth_frame_t": [
+                            0.0, 0.0, 0.0
+                        ],
+
+                        "use_tf_transforms": True,
+                        "publish_tf": True,
+                        "publish_pose": True,
+                        "publish_twist": True,
+                        "publish_rate_ms": 5,
+                        "add_gravity_to_imu": True,
+                        "frame_prefix": namespace,
+                    },
+                ],
                 extra_arguments=[{"use_intra_process_comms": True}],
             ),
             ComposableNode(
