@@ -2,7 +2,8 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import IncludeLaunchDescription, OpaqueFunction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
@@ -19,6 +20,20 @@ def launch_setup(context, *args, **kwargs):
         "config",
         "robots",
         f"{drone}.yaml",
+    )
+
+    drone_description_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("auv_setup"),
+                "launch",
+                "drone_description.launch.py",
+            )
+        ),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
     )
 
     nortek_nucleus_ros_interface_node = Node(
@@ -90,7 +105,11 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
     )
 
-    return [nortek_nucleus_ros_interface_node, odom_transformer_node]
+    return [
+        drone_description_launch,
+        nortek_nucleus_ros_interface_node,
+        odom_transformer_node,
+    ]
 
 
 def generate_launch_description():

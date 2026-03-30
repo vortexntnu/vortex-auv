@@ -2,7 +2,8 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import IncludeLaunchDescription, OpaqueFunction
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 
@@ -22,6 +23,20 @@ def launch_setup(context, *args, **kwargs):
         f"{drone}.yaml",
     )
 
+    drone_description_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("auv_setup"),
+                "launch",
+                "drone_description.launch.py",
+            )
+        ),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
+    )
+
     container = ComposableNodeContainer(
         name="eskf_container",
         namespace=namespace,
@@ -36,8 +51,6 @@ def launch_setup(context, *args, **kwargs):
                 parameters=[
                     drone_params,
                     {
-                        "frame_prefix": namespace,
-
                         "diag_Q_std": [
                             0.05, 0.05, 0.1,
                             0.01, 0.01, 0.02,
@@ -159,7 +172,7 @@ def launch_setup(context, *args, **kwargs):
         arguments=["--ros-args", "--log-level", "error"],
     )
 
-    return [container]
+    return [drone_description_launch, container]
 
 
 def generate_launch_description():
