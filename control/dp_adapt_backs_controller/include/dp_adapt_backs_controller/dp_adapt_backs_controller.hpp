@@ -22,8 +22,6 @@ class DPAdaptBacksController {
    public:
     explicit DPAdaptBacksController(const DPAdaptParams& dp_adapt_params);
 
-    // TODO: change calculate tau, to be based on error state of ori quaternion
-
     // @brief Calculate thecontrol input tau
     // @param pose: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
     // yaw]
