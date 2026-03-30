@@ -135,6 +135,7 @@
       guidance:
         los: "guidance/los"
         dp: "guidance/dp"
+        dp_quat: "guidance/dp_quat"
       fsm:
         active_controller: "fsm/active_controller"
       dvl_twist: "dvl/twist"
