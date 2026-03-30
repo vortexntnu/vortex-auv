@@ -141,6 +141,8 @@ void ESKFNode::set_parameters() {
     std::vector<double> initial_gyro_bias =
         this->declare_parameter<std::vector<double>>(
             "initial_gyro_bias", std::vector<double>{0.0, 0.0, 0.0});
+        spdlog::info("initial_gyro_bias: [{}, {}, {}]", initial_gyro_bias[0],
+                     initial_gyro_bias[1], initial_gyro_bias[2]);
     if (initial_gyro_bias.size() != 3) {
         throw std::runtime_error("initial_gyro_bias must have length 3");
     }
@@ -148,6 +150,8 @@ void ESKFNode::set_parameters() {
     std::vector<double> initial_accel_bias =
         this->declare_parameter<std::vector<double>>(
             "initial_accel_bias", std::vector<double>{0.0, 0.0, 0.0});
+        spdlog::info("initial_accel_bias: [{}, {}, {}]", initial_accel_bias[0],
+                     initial_accel_bias[1], initial_accel_bias[2]);
     if (initial_accel_bias.size() != 3) {
         throw std::runtime_error("initial_accel_bias must have length 3");
     }

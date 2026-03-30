@@ -95,6 +95,8 @@ def launch_setup(context, *args, **kwargs):
                         "publish_rate_ms": 5,
                         "add_gravity_to_imu": True,
                         "frame_prefix": namespace,
+                        "initial_gyro_bias": [0.0, 0.0, 0.0],
+                        "initial_accel_bias": [0.0, 0.0, -0.05]
                     },
                 ],
                 extra_arguments=[{"use_intra_process_comms": True}],
