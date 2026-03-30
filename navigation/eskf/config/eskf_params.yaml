@@ -20,4 +20,4 @@
       publish_tf: true
       publish_pose: true
       publish_twist: true
-      publish_rate_ms: 1
+      publish_rate_ms: 5
