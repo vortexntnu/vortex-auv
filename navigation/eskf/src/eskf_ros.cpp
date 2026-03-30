@@ -102,6 +102,10 @@ void ESKFNode::set_parameters() {
         R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
             R_imu_correction.data());
 
+        std::vector<double> T_imu_correction =
+            this->declare_parameter<std::vector<double>>("transform.imu_frame_t");
+        T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu_correction.data());
+
         std::vector<double> R_dvl_correction =
             this->declare_parameter<std::vector<double>>("transform.dvl_frame_r");
         R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
@@ -342,6 +346,7 @@ void ESKFNode::lookup_static_transforms() {
         Tf_base_imu_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
             frame("base_link"), frame("imu_link"), tf2::TimePointZero));
         R_imu_eskf_ = Tf_base_imu_.rotation();
+        T_imu_eskf_ = Tf_base_imu_.translation();
 
         Tf_base_dvl_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
             frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
