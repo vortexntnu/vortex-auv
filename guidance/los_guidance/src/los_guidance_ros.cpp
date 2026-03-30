@@ -14,12 +14,12 @@ constexpr bool debug = true;
 #endif
 
 const auto start_message = R"(
-  _     ___  ____     ____       _     _
- | |   / _ \/ ___|   / ___|_   _(_) __| | __ _ _ __   ___ ___
- | |  | | | \___ \  | |  _| | | | |/ _` |/ _` | '_ \ / __/ _ \
- | |__| |_| |___) | | |_| | |_| | | (_| | (_| | | | | (_|  __/
- |_____\___/|____/   \____|\__,_|_|\__,_|\__,_|_| |_|\___\___|
-
+██╗      ██████╗ ███████╗     ██████╗ ██╗   ██╗██╗██████╗  █████╗ ███╗   ██╗ ██████╗███████╗
+██║     ██╔═══██╗██╔════╝    ██╔════╝ ██║   ██║██║██╔══██╗██╔══██╗████╗  ██║██╔════╝██╔════╝
+██║     ██║   ██║███████╗    ██║  ███╗██║   ██║██║██║  ██║███████║██╔██╗ ██║██║     █████╗
+██║     ██║   ██║╚════██║    ██║   ██║██║   ██║██║██║  ██║██╔══██║██║╚██╗██║██║     ██╔══╝
+███████╗╚██████╔╝███████║    ╚██████╔╝╚██████╔╝██║██████╔╝██║  ██║██║ ╚████║╚██████╗███████╗
+╚══════╝ ╚═════╝ ╚══════╝     ╚═════╝  ╚═════╝ ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 )";
 
 namespace vortex::guidance::los {
@@ -241,26 +241,32 @@ void LosGuidanceNode::odom_callback(
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
+    types::Inputs inputs_copy;
+
     {
         std::unique_lock<std::mutex> lock(mutex_);
-
-        if (!is_goal_feasible(path_inputs_, goal)) {
-            spdlog::info(
-                "Rejected goal request: waypoint is not reachable with current "
-                "pitch limit");
-            lock.unlock();
-            return rclcpp_action::GoalResponse::REJECT;
-        }
-
-        if (goal_handle_ && goal_handle_->is_active()) {
-            spdlog::info("Aborting current goal and accepting new goal");
-            preempted_goal_id_ = goal_handle_->get_goal_id();
-        }
-
+        inputs_copy = path_inputs_;
         lock.unlock();
     }
 
-    spdlog::info("Accepted goal request");
+    if (!is_goal_feasible(inputs_copy, goal)) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Rejected goal request: waypoint is not reachable with "
+                    "current pitch limit");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (goal_handle_ && goal_handle_->is_active()) {
+            RCLCPP_INFO(this->get_logger(),
+                        "Aborting current goal and accepting new goal");
+            preempted_goal_id_ = goal_handle_->get_goal_id();
+        }
+        lock.unlock();
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
