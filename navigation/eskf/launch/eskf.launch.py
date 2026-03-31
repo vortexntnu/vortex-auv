@@ -11,10 +11,6 @@ from auv_setup.launch_arg_common import (
     resolve_drone_and_namespace,
 )
 
-# eskf_params = path.join(
-#     get_package_share_directory("eskf"), "config", "eskf_params_real_world.yaml"
-# )
-
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
@@ -37,12 +33,6 @@ def launch_setup(context, *args, **kwargs):
         get_package_share_directory("eskf"), "config", param_file_name
     )
 
-    drone_env_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "environments",
-        "trondheim_saltwater.yaml",
-    )
     eskf_node = Node(
         package="eskf",
         executable="eskf_node",
@@ -51,7 +41,6 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             eskf_params,
             drone_params,
-            drone_env_params,
             {"frame_prefix": namespace},
         ],
         output="screen",
