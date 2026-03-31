@@ -439,12 +439,11 @@ void ESKFNode::lookup_static_transforms() {
 void ESKFNode::complete_initialization() {
     set_subscribers_and_publisher();
     // gravity, water density and atmospheric pressure.
-    this->gravity =
-        -this->declare_parameter<double>("gravity.acceleration", 9.81);
+    this->gravity = -this->declare_parameter<double>("gravity", 9.81);
     this->water_density =
-        this->declare_parameter<double>("water.density", 1000.0);
+        this->declare_parameter<double>("water_density", 1000.0);
     this->atmospheric_pressure =
-        this->declare_parameter<double>("atmosphere.pressure", 100000.0);
+        this->declare_parameter<double>("atmospheric_pressure", 100000.0);
     set_parameters();
 
     time_step_ = std::chrono::milliseconds(
