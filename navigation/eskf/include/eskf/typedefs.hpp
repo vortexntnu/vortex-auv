@@ -99,6 +99,8 @@ struct EskfParams {
     Eigen::Matrix12d Q = Eigen::Matrix12d::Zero();
     Eigen::Matrix15d P = Eigen::Matrix15d::Zero();
     Eigen::Vector3d g_{0.0, 0.0, -9.81};
+    Eigen::Vector3d initial_gyro_bias = Eigen::Vector3d::Zero();
+    Eigen::Vector3d initial_accel_bias = Eigen::Vector3d::Zero();
 };
 struct ImuMeasurement {
     Eigen::Vector3d accel = Eigen::Vector3d::Zero();

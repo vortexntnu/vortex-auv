@@ -22,6 +22,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     if (!frame_prefix_.empty() && frame_prefix_.back() == '/') {
         frame_prefix_.pop_back();
     }
+    spdlog::info("frame_prefix set to '{}'", frame_prefix_);
 
     publish_tf_ = this->declare_parameter<bool>("publish_tf");
     if (publish_tf_) {
@@ -31,6 +32,8 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     publish_pose_ = this->declare_parameter<bool>("publish_pose");
     publish_twist_ = this->declare_parameter<bool>("publish_twist");
+
+    publish_biases_ = this->declare_parameter<bool>("publish_biases");
 
     // Declare these here so they appear in `ros2 param list` from startup,
     // even though they are read in complete_initialization().
@@ -95,6 +98,15 @@ void ESKFNode::set_subscribers_and_publisher() {
                                                             qos_sensor_data);
     }
 
+    if (publish_biases_) {
+        accel_bias_pub_ =
+            this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+                "eskf/accel_bias", qos_sensor_data);
+        gyro_bias_pub_ =
+            this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+                "eskf/gyro_bias", qos_sensor_data);
+    }
+
 #ifndef NDEBUG
     nis_dvl_pub_ = create_publisher<std_msgs::msg::Float64>(
         "eskf/nis_dvl", vortex::utils::qos_profiles::reliable_profile());
@@ -110,6 +122,11 @@ void ESKFNode::set_parameters() {
                 "transform.imu_frame_r");
         R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
             R_imu_correction.data());
+
+        std::vector<double> T_imu_correction =
+            this->declare_parameter<std::vector<double>>(
+                "transform.imu_frame_t");
+        T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu_correction.data());
 
         std::vector<double> R_dvl_correction =
             this->declare_parameter<std::vector<double>>(
@@ -152,9 +169,37 @@ void ESKFNode::set_parameters() {
 
     Eigen::Vector3d g_vec(0.0, 0.0, this->gravity);
 
-    EskfParams eskf_params{.Q = Q, .P = P, .g_ = g_vec};
+    std::vector<double> initial_gyro_bias =
+        this->declare_parameter<std::vector<double>>(
+            "initial_gyro_bias", std::vector<double>{0.0, 0.0, 0.0});
+    spdlog::info("initial_gyro_bias: [{}, {}, {}]", initial_gyro_bias[0],
+                 initial_gyro_bias[1], initial_gyro_bias[2]);
+    if (initial_gyro_bias.size() != 3) {
+        throw std::runtime_error("initial_gyro_bias must have length 3");
+    }
+
+    std::vector<double> initial_accel_bias =
+        this->declare_parameter<std::vector<double>>(
+            "initial_accel_bias", std::vector<double>{0.0, 0.0, 0.0});
+    spdlog::info("initial_accel_bias: [{}, {}, {}]", initial_accel_bias[0],
+                 initial_accel_bias[1], initial_accel_bias[2]);
+    if (initial_accel_bias.size() != 3) {
+        throw std::runtime_error("initial_accel_bias must have length 3");
+    }
+
+    EskfParams eskf_params{
+        .Q = Q,
+        .P = P,
+        .g_ = g_vec,
+        .initial_gyro_bias =
+            Eigen::Map<Eigen::Vector3d>(initial_gyro_bias.data()),
+        .initial_accel_bias =
+            Eigen::Map<Eigen::Vector3d>(initial_accel_bias.data())};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
+
+    add_gravity_to_imu_ = this->declare_parameter<bool>("add_gravity_to_imu");
+    spdlog::info("add_gravity_to_imu: {}", add_gravity_to_imu_);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -192,7 +237,14 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
     // a_corrected = a_meas - omega x (omega x T)
     Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
-    imu_measurement.accel = accel_aligned - centripetal_accel;
+    accel_aligned -= centripetal_accel;
+
+    if (add_gravity_to_imu_) {
+        Eigen::Matrix3d R = nom_state.quat.normalized().toRotationMatrix();
+        accel_aligned -= R.transpose() * eskf_->get_gravity();
+    }
+
+    imu_measurement.accel = accel_aligned;
 
     // save latest gyro readings (used for DVL correction and odom output)
     latest_gyro_measurement_ = imu_measurement.gyro;
@@ -334,6 +386,28 @@ void ESKFNode::publish_odom() {
     if (publish_tf_) {
         publish_tf(nom_state, current_time);
     }
+
+    if (publish_biases_) {
+        geometry_msgs::msg::Vector3Stamped accel_bias_msg;
+        accel_bias_msg.header.stamp = current_time;
+        accel_bias_msg.header.frame_id =
+            frame("base_link");  // Biases are in the body frame
+
+        accel_bias_msg.vector.x = nom_state.accel_bias.x();
+        accel_bias_msg.vector.y = nom_state.accel_bias.y();
+        accel_bias_msg.vector.z = nom_state.accel_bias.z();
+
+        accel_bias_pub_->publish(accel_bias_msg);
+
+        geometry_msgs::msg::Vector3Stamped gyro_bias_msg;
+        gyro_bias_msg.header = accel_bias_msg.header;
+
+        gyro_bias_msg.vector.x = nom_state.gyro_bias.x();
+        gyro_bias_msg.vector.y = nom_state.gyro_bias.y();
+        gyro_bias_msg.vector.z = nom_state.gyro_bias.z();
+
+        gyro_bias_pub_->publish(gyro_bias_msg);
+    }
 }
 
 void ESKFNode::lookup_static_transforms() {
@@ -341,6 +415,7 @@ void ESKFNode::lookup_static_transforms() {
         Tf_base_imu_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
             frame("base_link"), frame("imu_link"), tf2::TimePointZero));
         R_imu_eskf_ = Tf_base_imu_.rotation();
+        T_imu_eskf_ = Tf_base_imu_.translation();
 
         Tf_base_dvl_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
             frame("base_link"), frame("dvl_link"), tf2::TimePointZero));

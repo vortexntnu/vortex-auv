@@ -27,6 +27,8 @@ class ESKF {
 
     inline double get_nis() const { return nis_; }
 
+    inline Eigen::Vector3d get_gravity() const { return g_; }
+
    private:
     // @brief Predict the nominal state
     // @param imu_meas: IMU measurement
