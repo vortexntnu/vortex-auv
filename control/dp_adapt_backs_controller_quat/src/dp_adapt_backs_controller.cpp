@@ -7,7 +7,7 @@
 
 namespace vortex::control {
 
-using vortex::utils::types::PoseEuler;
+using vortex::utils::types::Pose;
 using vortex::utils::types::Twist;
 
 DPAdaptBacksController::DPAdaptBacksController(
@@ -30,21 +30,22 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
                                                       const Twist& twist) {
     // TODO: implement error state calculation. Maybe look at hybrid
     // switching between pure RPY and error state when error is big
-    PoseEuler error = pose - pose_d;
-    error.roll = vortex::utils::math::ssa(error.roll);
-    error.pitch = vortex::utils::math::ssa(error.pitch);
-    error.yaw = vortex::utils::math::ssa(error.yaw);
+    Eigen::Vector3d pos_error = pose.pos_vector() - pose_d.pos_vector();
+    Eigen::Vector3d quat_error = vortex::utils::math::quaternion_error(
+        pose.ori_quaternion, pose_d.ori_quaternion);
 
-    Eigen::Matrix6d C =
+    Pose error_state = Pose.from_eigen(pos_error, quat_error)
+
+                           Eigen::Matrix6d C =
         calculate_coriolis(m_, r_b_bg_, twist, inertia_matrix_body_);
-    Eigen::Matrix6d J_inv = calculate_J_inv(pose);
-    Eigen::Matrix6d J_dot = calculate_J_dot(pose, twist);
-    Eigen::Vector6d alpha = -J_inv * K1_ * error.to_vector();
+    Eigen::Matrix6d L_inv = calculate_L_inv(pose);
+    Eigen::Matrix6d L_dot = calculate_L_dot(pose, twist);
+    Eigen::Vector6d alpha = -L_inv * K1_ * error.to_vector();
     Eigen::Vector6d z_1 = error.to_vector();
     Eigen::Vector6d z_2 = twist.to_vector() - alpha;
     Eigen::Vector6d alpha_dot =
-        ((J_inv * J_dot * J_inv) * K1_ * z_1) -
-        (J_inv * K1_ * pose.as_j_matrix() * twist.to_vector());
+        ((L_inv * L_dot * L_inv) * K1_ * z_1) -
+        (L_inv * K1_ * pose.as_j_matrix() * twist.to_vector());
     Eigen::Matrix6x12d Y_v = calculate_Y_v(twist);
     Eigen::Vector12d adapt_param_dot = adapt_gain_ * Y_v.transpose() * z_2;
     Eigen::Vector6d d_est_dot = d_gain_ * z_2;

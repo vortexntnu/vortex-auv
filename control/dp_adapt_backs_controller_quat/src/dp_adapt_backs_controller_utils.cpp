@@ -1,75 +1,59 @@
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_utils.hpp"
+#include <eigen3/Eigen/src/Core/Matrix.h>
 #include <spdlog/spdlog.h>
+#include <cmath>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
+#include "dp_adapt_backs_controller/typedefs.hpp"
 #include "dp_adapt_backs_controller_quat/typedefs.hpp"
-
-// TODO: change j_inv, t_dot, j_dot
 
 namespace vortex::control {
 
-Eigen::Matrix6d calculate_J_inv(const vortex::utils::types::PoseEuler& pose) {
-    Eigen::Matrix6d J = pose.as_j_matrix();
+Eigen::Matrix6d calculate_L_inv(const vortex::utils::types::Pose& pose) {
+    Eigen::Matrix6d L = pose.as_L_matrix();
 
     constexpr double tolerance = 1e-8;
 
-    if (std::abs(J.determinant()) < tolerance) {
-        spdlog::error("J is singular");
+    if (std::abs(L.determinant()) < tolerance) {
+        spdlog::error("L is singular");
 
         // Moore-Penrose pseudoinverse in case of near singular matrix, better
         // result for smaller singular values
-        return J.completeOrthogonalDecomposition().pseudoInverse();
+        return L.completeOrthogonalDecomposition().pseudoInverse();
     }
 
-    return J.inverse();
+    return L.inverse();
 }
 
-Eigen::Matrix3d calculate_R_dot(const vortex::utils::types::PoseEuler& pose,
+Eigen::Matrix3d calculate_R_dot(const vortex::utils::types::Pose& pose,
                                 const vortex::utils::types::Twist& twist) {
     return pose.as_rotation_matrix() *
            vortex::utils::math::get_skew_symmetric_matrix(
                twist.to_vector().tail(3));
 }
 
-Eigen::Matrix3d calculate_T_dot(const vortex::utils::types::PoseEuler& pose,
+Eigen::Matrix3d calculate_Q_dot(const vortex::utils::types::Pose& pose,
                                 const vortex::utils::types::Twist& twist) {
-    double cos_phi{std::cos(pose.roll)};
-    double sin_phi{std::sin(pose.roll)};
-    double cos_theta{std::cos(pose.pitch)};
-    double sin_theta{std::sin(pose.pitch)};
-    double tan_theta{sin_theta / cos_theta};
-    double inv_cos2{1.0 / (cos_theta * cos_theta)};
-
-    Eigen::Vector6d pose_dot = pose.as_j_matrix() * twist.to_vector();
-
-    double phi_dot{pose_dot(3)};
-    double theta_dot{pose_dot(4)};
-
-    Eigen::Matrix3d dt_dphi;
-    dt_dphi << 0.0, cos_phi * tan_theta * phi_dot,
-        -sin_phi * tan_theta * phi_dot, 0.0, -sin_phi * phi_dot,
-        -cos_phi * phi_dot, 0.0, (cos_phi * phi_dot) / cos_theta,
-        (-sin_phi * phi_dot) / cos_theta;
-
-    Eigen::Matrix3d dt_dtheta;
-    dt_dtheta << 0.0, sin_phi * inv_cos2 * theta_dot,
-        cos_phi * inv_cos2 * theta_dot, 0.0, 0.0, 0.0, 0.0,
-        (sin_phi * sin_theta) * inv_cos2 * theta_dot,
-        (cos_phi * sin_theta) * inv_cos2 * theta_dot;
-
-    return dt_dphi + dt_dtheta;
+    Eigen::Vector3d omega = twist.to_vector().tail(3);
+    Eigen::Matrix3d eta_error_dot =
+        pose.ori_quaternion_vector_part() * omega * Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d epsilon_error_dot =
+        vortex::utils::math::get_skew_symmetric_matrix(pose.as_Q_matrix() *
+                                                       omega);
+    Eigen::Matrix3d Q_dot = (1 / 2) * (epsilon_error_dot - eta_error_dot);
+    return Q_dot;
 }
 
-Eigen::Matrix6d calculate_J_dot(const vortex::utils::types::PoseEuler& pose,
+Eigen::Matrix6d calculate_L_dot(const vortex::utils::types::PoseEuler& pose,
                                 const vortex::utils::types::Twist& twist) {
     Eigen::Matrix3d R_dot = calculate_R_dot(pose, twist);
-    Eigen::Matrix3d T_dot = calculate_T_dot(pose, twist);
+    Eigen::Matrix3d Q_dot = calculate_Q_dot(pose, twist);
 
-    Eigen::Matrix6d J_dot = Eigen::Matrix6d::Zero();
-    J_dot.topLeftCorner<3, 3>() = R_dot;
-    J_dot.bottomRightCorner<3, 3>() = T_dot;
+    Eigen::Matrix6d L_dot = Eigen::Matrix6d::Zero();
+    L_dot.topLeftCorner<3, 3>() = R_dot;
+    L_dot.bottomRightCorner<3, 3>() = Q_dot;
 
-    return J_dot;
+    return L_dot;
 }
 
 Eigen::Matrix6d calculate_coriolis(const double mass,

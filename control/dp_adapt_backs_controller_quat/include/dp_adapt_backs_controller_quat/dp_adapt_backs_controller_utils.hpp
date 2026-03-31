@@ -5,8 +5,6 @@
 #include "dp_adapt_backs_controller_quat/typedefs.hpp"
 #include "typedefs.hpp"
 
-// TODO: change T_dot, J_dot and J_inv
-
 namespace vortex::control {
 
 // @brief Calculate the derivative of the rotation matrix
@@ -20,18 +18,18 @@ Eigen::Matrix3d calculate_R_dot(const vortex::utils::types::Pose& pose,
 // @param pose: 6D vector containing the vehicle pose [x, y, z, qw, qx, qy, qz]
 // @param twist: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
 // @return 3x3 derivative of the transformation matrix
-Eigen::Matrix3d calculate_T_dot(const vortex::utils::types::Pose& pose,
+Eigen::Matrix3d calculate_Q_dot(const vortex::utils::types::Pose& pose,
                                 const vortex::utils::types::Twist& twist);
 
 // @brief Calculate the pseudo-inverse of the Jacobian matrix
 // @param pose: 7D vector containing the vehicle pose [x, y, z, qw, qx, qy, qz]
 // @return 6x6 pseudo-inverse Jacobian matrix
-Eigen::Matrix6d calculate_J_inv(const vortex::utils::types::Pose& pose);
+Eigen::Matrix6d calculate_L_inv(const vortex::utils::types::Pose& pose);
 
 // @brief calculate the derivative of the Jacobian matrix
 // @param pose: 7D vector containing the vehicle pose [x, y, z, qw, qx, qy, qz]
 // @param twist: 6D vector containing the vehicle velocity [u, v, w, p, q, r]
-Eigen::Matrix6d calculate_J_dot(const vortex::utils::types::Pose& pose,
+Eigen::Matrix6d calculate_L_dot(const vortex::utils::types::Pose& pose,
                                 const vortex::utils::types::Twist& twist);
 
 // @brief Calculate the coriolis matrix

@@ -22,18 +22,20 @@ class DPAdaptBacksController {
    public:
     explicit DPAdaptBacksController(const DPAdaptParams& dp_adapt_params);
 
-    // TODO: change calculate tau, to be based on error state of quaternion
-
-    // @brief Calculate thecontrol input tau
-    // @param pose: 6D vector containing the vehicle pose [x, y, z, roll, pitch,
-    // yaw]
-    // @param pose_d: 6D vector containing the desired vehicle pose [x, y, z,
-    // roll, pitch, yaw]
+    // @brief Calculates the control input tau found in the backstepping proof.
+    // Utilizes error state to avoid 7x6 non invertible J matrix. The
+    // approximation of quaternion error -> euler angle error is used, and
+    // therefore we explicitly assume small pertrubations
+    //
+    // @param pose: 7D vector containing the vehicle pose [x, y, z, qw, qx, qy,
+    // qz]
+    // @param pose_d: 7D vector containing the desired vehicle pose [x, y, z,
+    // qw, qx, qy, qz]
     // @param twist: 6D vector containing the vehicle velocity [u, v, w, p, q,
     // r]
     // @return 6D vector containing the control input tau [X, Y, Z, K, M, N]
-    Eigen::Vector6d calculate_tau(const vortex::utils::types::PoseEuler& pose,
-                                  const vortex::utils::types::PoseEuler& pose_d,
+    Eigen::Vector6d calculate_tau(const vortex::utils::types::Pose& pose,
+                                  const vortex::utils::types::Pose& pose_d,
                                   const vortex::utils::types::Twist& twist);
 
     // @brief Reset the adaptive parameters
