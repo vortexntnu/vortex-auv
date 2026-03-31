@@ -40,12 +40,9 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-
     los_guidance_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(
-                los_guidance_dir, "launch", "los_guidance.launch.py"
-            )
+            os.path.join(los_guidance_dir, "launch", "los_guidance.launch.py")
         ),
         launch_arguments={
             "drone": drone,
