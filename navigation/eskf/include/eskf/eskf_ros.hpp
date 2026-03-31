@@ -8,6 +8,7 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -81,6 +82,12 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
 
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+        accel_bias_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+        gyro_bias_pub_;
+
     // Member variable for the ESKF instance
 
     std::chrono::milliseconds time_step_{1};
@@ -121,6 +128,8 @@ class ESKFNode : public rclcpp::Node {
     bool publish_tf_{false};
     bool publish_pose_{false};
     bool publish_twist_{false};
+    bool publish_biases_{false};
+    bool add_gravity_to_imu_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();
