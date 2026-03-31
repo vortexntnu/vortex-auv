@@ -98,6 +98,7 @@ struct StateEuler {
 struct EskfParams {
     Eigen::Matrix12d Q = Eigen::Matrix12d::Zero();
     Eigen::Matrix15d P = Eigen::Matrix15d::Zero();
+    Eigen::Vector3d g_{0.0, 0.0, -9.81};
     Eigen::Vector3d initial_gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d initial_accel_bias = Eigen::Vector3d::Zero();
 };
@@ -121,6 +122,14 @@ concept SensorModelConcept = requires(const T& meas, const StateQuat& state) {
 struct SensorDVL {
     Eigen::Vector3d measurement;
     Eigen::Matrix3d measurement_noise;
+    Eigen::VectorXd innovation(const StateQuat& state) const;
+    Eigen::MatrixXd jacobian(const StateQuat& state) const;
+    Eigen::MatrixXd noise_covariance() const;
+};
+
+struct SensorDepth {
+    double measurement;
+    double measurement_noise;
     Eigen::VectorXd innovation(const StateQuat& state) const;
     Eigen::MatrixXd jacobian(const StateQuat& state) const;
     Eigen::MatrixXd noise_covariance() const;

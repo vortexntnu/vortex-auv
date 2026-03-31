@@ -8,14 +8,17 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <string>
 #include <tf2_eigen/tf2_eigen.hpp>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
@@ -36,6 +39,8 @@ class ESKFNode : public rclcpp::Node {
     void dvl_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
+    void depth_callback(const sensor_msgs::msg::FluidPressure::SharedPtr msg);
+
     // @brief Publish the odometry message
     void publish_odom();
 
@@ -53,9 +58,8 @@ class ESKFNode : public rclcpp::Node {
     void complete_initialization();
 
     // @brief broadcast the State as a TF
-    void publish_tf(const StateQuat& nom_state, const rclcpp::Time& current_time);
-
-     // Startup message
+    void publish_tf(const StateQuat& nom_state,
+                    const rclcpp::Time& current_time);
 
     // Subscribers and Publishers
 
@@ -64,15 +68,25 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
+    rclcpp::Subscription<sensor_msgs::msg::FluidPressure>::SharedPtr depth_sub_;
+
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
-    rclcpp::Publisher<
-        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+        pose_pub_;
 
-    rclcpp::Publisher<
-        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
+        twist_pub_;
 
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_dvl_pub_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+        accel_bias_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+        gyro_bias_pub_;
 
     // Member variable for the ESKF instance
 
@@ -114,12 +128,18 @@ class ESKFNode : public rclcpp::Node {
     bool publish_tf_{false};
     bool publish_pose_{false};
     bool publish_twist_{false};
+    bool publish_biases_{false};
     bool add_gravity_to_imu_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
+
+    // gravity, water density and atmospheric pressure parameters
+    double gravity;
+    double water_density;
+    double atmospheric_pressure;
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_

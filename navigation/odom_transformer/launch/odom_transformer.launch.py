@@ -46,6 +46,5 @@ def launch_setup(context, *args, **kwargs):
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args()
-        + [OpaqueFunction(function=launch_setup)]
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )

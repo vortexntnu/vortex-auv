@@ -24,8 +24,7 @@ OdomTransformer::OdomTransformer(const rclcpp::NodeOptions& options)
     this->declare_parameter<std::string>("topics.twist");
 
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-    tf_listener_ =
-        std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     tf_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(500),
         std::bind(&OdomTransformer::lookup_static_transforms, this));
@@ -41,14 +40,13 @@ void OdomTransformer::lookup_static_transforms() {
         tf_loaded_ = true;
         tf_timer_->cancel();
         RCLCPP_INFO(get_logger(),
-                     "Loaded static transform: %s -> %s  t=(%.3f, %.3f, %.3f)",
-                     frame("base_link").c_str(), frame(sensor_frame_).c_str(),
-                     t_base_sensor_.x(), t_base_sensor_.y(),
-                     t_base_sensor_.z());
+                    "Loaded static transform: %s -> %s  t=(%.3f, %.3f, %.3f)",
+                    frame("base_link").c_str(), frame(sensor_frame_).c_str(),
+                    t_base_sensor_.x(), t_base_sensor_.y(), t_base_sensor_.z());
         complete_initialization();
     } catch (const tf2::TransformException& ex) {
         RCLCPP_WARN(get_logger(), "TF lookup failed (will retry): %s",
-                     ex.what());
+                    ex.what());
     }
 }
 
@@ -67,21 +65,19 @@ void OdomTransformer::complete_initialization() {
         this->create_publisher<nav_msgs::msg::Odometry>(output_topic, qos);
 
     if (publish_pose_) {
-        pose_pub_ =
-            this->create_publisher<
-                geometry_msgs::msg::PoseWithCovarianceStamped>(
-                this->get_parameter("topics.pose").as_string(), qos);
+        pose_pub_ = this->create_publisher<
+            geometry_msgs::msg::PoseWithCovarianceStamped>(
+            this->get_parameter("topics.pose").as_string(), qos);
     }
 
     if (publish_twist_) {
-        twist_pub_ =
-            this->create_publisher<
-                geometry_msgs::msg::TwistWithCovarianceStamped>(
-                this->get_parameter("topics.twist").as_string(), qos);
+        twist_pub_ = this->create_publisher<
+            geometry_msgs::msg::TwistWithCovarianceStamped>(
+            this->get_parameter("topics.twist").as_string(), qos);
     }
 
-    RCLCPP_INFO(get_logger(), "Odom transformer: %s -> %s",
-                 input_topic.c_str(), output_topic.c_str());
+    RCLCPP_INFO(get_logger(), "Odom transformer: %s -> %s", input_topic.c_str(),
+                output_topic.c_str());
 }
 
 void OdomTransformer::odom_callback(
@@ -93,8 +89,7 @@ void OdomTransformer::odom_callback(
     Eigen::Matrix3d R_odom_sensor = q_odom_sensor.toRotationMatrix();
 
     // Orientation: R_odom_base = R_odom_sensor * R_base_sensor^-1
-    Eigen::Matrix3d R_odom_base =
-        R_odom_sensor * R_base_sensor_.transpose();
+    Eigen::Matrix3d R_odom_base = R_odom_sensor * R_base_sensor_.transpose();
     Eigen::Quaterniond q_odom_base(R_odom_base);
     q_odom_base.normalize();
 

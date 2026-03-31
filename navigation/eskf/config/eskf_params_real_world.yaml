@@ -4,9 +4,9 @@
       diag_Q_std: [0.05, 0.05, 0.1, 0.01, 0.01, 0.02, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
       diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
       transform:
-        imu_frame_r: [ -1.0,  0.0,  0.0,
+        imu_frame_r: [ 1.0,  0.0,  0.0,
                     0.0, 1.0,  0.0,
-                    0.0,  0.0, -1.0 ]
+                    0.0,  0.0, 1.0 ]
         imu_frame_t: [ 0.0, 0.0, 0.0 ]
 
         dvl_frame_r: [ 0.0, -1.0,  0.0,
@@ -21,7 +21,11 @@
       publish_pose: true
       publish_twist: true
       publish_rate_ms: 5
-      add_gravity_to_imu: false
+      add_gravity_to_imu: true
       initial_gyro_bias: [0.0, 0.0, 0.0]
-      initial_accel_bias: [0.0, 0.0, 0.0]
-      publish_biases: false
+      initial_accel_bias: [3.53e-2, 0.0, -0.0533]
+      publish_biases: true
+
+# USED SENSORS
+  # IMU: Kongsberg mini MRU
+  # DVL & Depth: Nucleus 1000

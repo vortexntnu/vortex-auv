@@ -38,8 +38,8 @@ class OdomTransformer : public rclcpp::Node {
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
         pose_pub_;
-    rclcpp::Publisher<
-        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
+        twist_pub_;
 
     // Transform from base_link to sensor_link
     Eigen::Matrix3d R_base_sensor_ = Eigen::Matrix3d::Identity();
