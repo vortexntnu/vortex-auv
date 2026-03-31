@@ -35,6 +35,7 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "drone": drone,
+            "scenario": "nautilus_no_gpu",
             "rendering": "true",
         }.items(),
     )
