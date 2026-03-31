@@ -39,6 +39,19 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+
+    los_guidance_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                los_guidance_dir, "launch", "los_guidance.launch.py"
+            )
+        ),
+        launch_arguments={
+            "drone": drone,
+            "namespace": namespace,
+        }.items(),
+    )
+
     keyboard_joy = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(keyboard_joy_dir, "launch", "keyboard_joy_node.launch.py")
@@ -88,6 +101,7 @@ def launch_setup(context, *args, **kwargs):
     return [
         stonefish_sim,
         keyboard_joy,
+        los_guidance_launch,
         velocity_controller_launch,
         drone_sim,
         run_test_scenario,
