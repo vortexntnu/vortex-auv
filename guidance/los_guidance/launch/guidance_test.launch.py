@@ -25,9 +25,9 @@ def launch_setup(context, *args, **kwargs):
     use_keyboard_joy = LaunchConfiguration("use_keyboard_joy")
 
     stonefish_dir = get_package_share_directory("stonefish_sim")
-    auv_setup_dir = get_package_share_directory("auv_setup")
     los_guidance_dir = get_package_share_directory("los_guidance")
     keyboard_joy_dir = get_package_share_directory("keyboard_joy")
+    velocity_controller_dir = get_package_share_directory("velocity_controller")
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -46,9 +46,11 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(use_keyboard_joy),
     )
 
-    dp_launch = IncludeLaunchDescription(
+    velocity_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(auv_setup_dir, "launch", "dp.launch.py")
+            os.path.join(
+                velocity_controller_dir, "launch", "velocity_controller.launch.py"
+            )
         ),
         launch_arguments={
             "drone": drone,
@@ -86,7 +88,7 @@ def launch_setup(context, *args, **kwargs):
     return [
         stonefish_sim,
         keyboard_joy,
-        dp_launch,
+        velocity_controller_launch,
         drone_sim,
         run_test_scenario,
     ]
@@ -94,7 +96,7 @@ def launch_setup(context, *args, **kwargs):
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args(default_drone="orca")
+        declare_drone_and_namespace_args(default_drone="nautilus")
         + [
             DeclareLaunchArgument(
                 "test_scenario",
