@@ -75,7 +75,7 @@ Eigen::Matrix6d calculate_J_dot(const vortex::utils::types::PoseEuler& pose,
 Eigen::Matrix6d calculate_coriolis(const double mass,
                                    const Eigen::Vector3d& r_b_bg,
                                    const vortex::utils::types::Twist& twist,
-                                   const Eigen::Matrix3d& I_b) {
+                                   const Eigen::Matrix3d& inertia_matrix_body) {
     using vortex::utils::math::get_skew_symmetric_matrix;
     Eigen::Vector3d linear_speed = twist.to_vector().head(3);
     Eigen::Vector3d angular_speed = twist.to_vector().tail(3);
@@ -90,7 +90,7 @@ Eigen::Matrix6d calculate_coriolis(const double mass,
                                  get_skew_symmetric_matrix(r_b_bg);
     ;
     C.bottomRightCorner<3, 3>() =
-        get_skew_symmetric_matrix(I_b * angular_speed);
+        get_skew_symmetric_matrix(inertia_matrix_body * angular_speed);
 
     return C;
 }

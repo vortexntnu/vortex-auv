@@ -13,8 +13,8 @@ struct DPAdaptParams {
     Eigen::Vector6d K1 = Eigen::Vector6d::Zero();
     Eigen::Vector6d K2 = Eigen::Vector6d::Zero();
     Eigen::Vector3d r_b_bg = Eigen::Vector3d::Zero();
-    Eigen::Vector3d I_b = Eigen::Vector3d::Zero();
-    Eigen::Matrix6d mass_matrix = Eigen::Matrix6d::Zero();
+    Eigen::Vector3d inertia_matrix_body = Eigen::Vector3d::Zero();
+    Eigen::Matrix6d mass_intertia_matrix = Eigen::Matrix6d::Zero();
     double mass{};
 };
 
@@ -54,8 +54,8 @@ class DPAdaptBacksController {
     Eigen::Matrix6d d_gain_;
     Eigen::Vector12d adapt_param_;
     Eigen::Vector6d d_est_;
-    Eigen::Matrix3d I_b_;
-    Eigen::Matrix6d mass_matrix_;
+    Eigen::Matrix3d inertia_matrix_body_;
+    Eigen::Matrix6d mass_intertia_matrix_;
     double m_{};
     double dt_{};
 };

@@ -19,20 +19,24 @@ DPAdaptBacksController::DPAdaptBacksController(
       d_gain_(dp_adapt_params.d_gain.asDiagonal().toDenseMatrix()),
       adapt_param_(Eigen::Vector12d::Zero()),
       d_est_(Eigen::Vector6d::Zero()),
-      I_b_(dp_adapt_params.I_b.asDiagonal().toDenseMatrix()),
-      mass_matrix_(dp_adapt_params.mass_matrix),
+      inertia_matrix_body_(
+          dp_adapt_params.inertia_matrix_body.asDiagonal().toDenseMatrix()),
+      mass_intertia_matrix_(dp_adapt_params.mass_intertia_matrix),
       m_(dp_adapt_params.mass),
       dt_(0.01) {}
 
-Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& pose,
-                                                      const PoseEuler& pose_d,
+Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
+                                                      const Pose& pose_d,
                                                       const Twist& twist) {
+    // TODO: implement error state calculation. Maybe look at hybrid
+    // switching between pure RPY and error state when error is big
     PoseEuler error = pose - pose_d;
     error.roll = vortex::utils::math::ssa(error.roll);
     error.pitch = vortex::utils::math::ssa(error.pitch);
     error.yaw = vortex::utils::math::ssa(error.yaw);
 
-    Eigen::Matrix6d C = calculate_coriolis(m_, r_b_bg_, twist, I_b_);
+    Eigen::Matrix6d C =
+        calculate_coriolis(m_, r_b_bg_, twist, inertia_matrix_body_);
     Eigen::Matrix6d J_inv = calculate_J_inv(pose);
     Eigen::Matrix6d J_dot = calculate_J_dot(pose, twist);
     Eigen::Vector6d alpha = -J_inv * K1_ * error.to_vector();
@@ -45,9 +49,9 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& pose,
     Eigen::Vector12d adapt_param_dot = adapt_gain_ * Y_v.transpose() * z_2;
     Eigen::Vector6d d_est_dot = d_gain_ * z_2;
     Eigen::Vector6d F_est = Y_v * adapt_param_;
-    Eigen::Vector6d tau = (mass_matrix_ * alpha_dot) + (C * twist.to_vector()) -
-                          (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) -
-                          F_est - d_est_;
+    Eigen::Vector6d tau =
+        (mass_intertia_matrix_ * alpha_dot) + (C * twist.to_vector()) -
+        (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) - F_est - d_est_;
 
     // TODO: look at better ways to clamp tau w.r.t new thrusters and allocator
     tau = tau.cwiseMax(-100.0).cwiseMin(100.0);

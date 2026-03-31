@@ -10,12 +10,14 @@
 #include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 constexpr std::string_view start_message = R"(
-  ____  ____     ____            _             _ _
- |  _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
- | | | | |_) | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
- | |_| |  __/  | |__| (_) | | | | |_| | | (_) | | |  __/ |
- |____/|_|      \____\___/|_| |_|\__|_|  \___/|_|_|\___|_|
-
+ /$$$$$$$  /$$$$$$$         /$$$$$$                        /$$            /$$$$$$                        /$$                         /$$ /$$                    
+| $$__  $$| $$__  $$       /$$__  $$                      | $$           /$$__  $$                      | $$                        | $$| $$                    
+| $$  \ $$| $$  \ $$      | $$  \ $$ /$$   /$$  /$$$$$$  /$$$$$$        | $$  \__/  /$$$$$$  /$$$$$$$  /$$$$$$    /$$$$$$   /$$$$$$ | $$| $$  /$$$$$$   /$$$$$$ 
+| $$  | $$| $$$$$$$/      | $$  | $$| $$  | $$ |____  $$|_  $$_/        | $$       /$$__  $$| $$__  $$|_  $$_/   /$$__  $$ /$$__  $$| $$| $$ /$$__  $$ /$$__  $$
+| $$  | $$| $$____/       | $$  | $$| $$  | $$  /$$$$$$$  | $$          | $$      | $$  \ $$| $$  \ $$  | $$    | $$  \__/| $$  \ $$| $$| $$| $$$$$$$$| $$  \__/
+| $$  | $$| $$            | $$/$$ $$| $$  | $$ /$$__  $$  | $$ /$$      | $$    $$| $$  | $$| $$  | $$  | $$ /$$| $$      | $$  | $$| $$| $$| $$_____/| $$      
+| $$$$$$$/| $$            |  $$$$$$/|  $$$$$$/|  $$$$$$$  |  $$$$/      |  $$$$$$/|  $$$$$$/| $$  | $$  |  $$$$/| $$      |  $$$$$$/| $$| $$|  $$$$$$$| $$      
+|_______/ |__/             \____ $$$ \______/  \_______/   \___/         \______/  \______/ |__/  |__/   \___/  |__/       \______/ |__/|__/ \_______/|__/      
 )";
 
 namespace vortex::control {
@@ -23,7 +25,9 @@ namespace vortex::control {
 DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     const rclcpp::NodeOptions& options)
     : Node("dp_adapt_backs_controller_node", options) {
-    time_step_ = std::chrono::milliseconds(10);
+    this->declare_parameter<int>("time_step");
+    int time_step = static_cast<int>(this->get_parameter<int>("time_step"));
+    time_step_ = std::chrono::milliseconds(time_step);
 
     set_subscribers_and_publisher();
     initialize_operation_mode();
@@ -152,12 +156,12 @@ void DPAdaptBacksControllerNode::pose_callback(
     pose_.x = msg->pose.pose.position.x;
     pose_.y = msg->pose.pose.position.y;
     pose_.z = msg->pose.pose.position.z;
+
     const auto& o = msg->pose.pose.orientation;
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-    pose_.roll = euler_angles(0);
-    pose_.pitch = euler_angles(1);
-    pose_.yaw = euler_angles(2);
+    pose_.w = o.w;
+    pose_.qx = o.x;
+    pose_.qy = o.y;
+    pose_.qz = o.z;
 }
 
 void DPAdaptBacksControllerNode::twist_callback(
@@ -176,7 +180,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>("K1");
     this->declare_parameter<std::vector<double>>("K2");
     this->declare_parameter<std::vector<double>>("r_b_bg");
-    this->declare_parameter<std::vector<double>>("physical.mass_matrix");
+    this->declare_parameter<std::vector<double>>(
+        "physical.mass_intertia_matrix");
 
     std::vector<double> adapt_param_vec =
         this->get_parameter("adapt_gain").as_double_array();
@@ -186,7 +191,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     std::vector<double> K2_vec = this->get_parameter("K2").as_double_array();
     std::vector<double> r_b_bg_vec =
         this->get_parameter("r_b_bg").as_double_array();
-    std::vector<double> mass_matrix_vec =
+    std::vector<double> mass_intertia_matrix_vec =
         this->get_parameter("physical.mass_matrix").as_double_array();
 
     Eigen::Vector12d adapt_param_eigen =
@@ -197,12 +202,13 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     Eigen::Vector6d K2_eigen = Eigen::Map<Eigen::Vector6d>(K2_vec.data());
     Eigen::Vector3d r_b_bg_eigen =
         Eigen::Map<Eigen::Vector3d>(r_b_bg_vec.data());
-    Eigen::Matrix6d mass_matrix =
-        Eigen::Map<Eigen::Matrix6d>(mass_matrix_vec.data());
+    Eigen::Matrix6d mass_intertia_matrix =
+        Eigen::Map<Eigen::Matrix6d>(mass_intertia_matrix_vec.data());
 
-    double mass = mass_matrix(0, 0);
-    Eigen::Vector3d I_b_eigen(mass_matrix(3, 3), mass_matrix(4, 4),
-                              mass_matrix(5, 5));
+    double mass = mass_intertia_matrix(0, 0);
+    Eigen::Vector3d inertia_matrix_body_eigen(mass_intertia_matrix(3, 3),
+                                              mass_intertia_matrix(4, 4),
+                                              mass_intertia_matrix(5, 5));
 
     DPAdaptParams dp_adapt_params;
     dp_adapt_params.adapt_param = adapt_param_eigen;
@@ -210,8 +216,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_adapt_params.K1 = K1_eigen;
     dp_adapt_params.K2 = K2_eigen;
     dp_adapt_params.r_b_bg = r_b_bg_eigen;
-    dp_adapt_params.I_b = I_b_eigen;
-    dp_adapt_params.mass_matrix = mass_matrix;
+    dp_adapt_params.inertia_matrix_body = inertia_matrix_body_eigen;
+    dp_adapt_params.mass_intertia_matrix = mass_intertia_matrix;
     dp_adapt_params.mass = mass;
 
     dp_adapt_backs_controller_ =
@@ -237,7 +243,6 @@ void DPAdaptBacksControllerNode::publish_tau() {
 
     // comment out if roll control is not needed
     tau_msg.wrench.torque.x = tau(3);
-
     tau_msg.wrench.torque.y = tau(4);
     tau_msg.wrench.torque.z = tau(5);
 
@@ -245,15 +250,42 @@ void DPAdaptBacksControllerNode::publish_tau() {
 }
 
 void DPAdaptBacksControllerNode::guidance_callback(
-    const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
+    const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
     pose_d_.x = msg->x;
     pose_d_.y = msg->y;
     pose_d_.z = msg->z;
-    pose_d_.roll = msg->roll;
-    pose_d_.pitch = msg->pitch;
-    pose_d_.yaw = msg->yaw;
+
+    pose_d_.qw = msg->qw;
+    pose_d_.qx = msg->qx;
+    pose_d_.qy = msg->qy;
+    pose_d_.qz = msg->qz;
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)
 
 }  // namespace vortex::control
+
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣠⡤⣦⢦⠖⡶⠲⢦⣤⢤⣤⣤⣀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡴⢶⠛⡍⢎⠱⣈⠒⢌⡘⠰⠉⢆⠰⢉⠔⠢⡉⢝⢫⠳⢦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡶⢏⠳⡘⠢⢉⠔⡈⠔⠠⠈⠄⠠⠁⠌⡀⠂⠌⠠⠁⠌⡐⢂⠉⢆⠩⡝⢳⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡞⢫⠔⡉⠆⡁⠢⢁⣂⡐⡈⠄⢁⠈⠄⣁⡤⠄⣁⣠⠁⡈⠄⠐⠠⠉⠠⠁⡌⢡⠊⡝⢷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⢣⠎⡡⢊⠴⣅⣶⣽⣷⣾⣿⣶⠌⠀⠄⢺⢾⣿⣿⣿⣷⣾⣿⣤⣧⡰⠈⠠⢁⠐⢂⠑⠌⡸⠸⣷⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⣸⢯⣑⠣⣌⠱⢨⣿⣿⣿⣿⡿⠟⠋⠁⡀⠌⠐⠠⢁⠚⡹⢛⡿⢿⣿⣿⣿⠯⢀⠁⠂⠌⠠⢈⠂⣁⠣⡘⠽⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⢴⡟⡥⢊⠵⣠⠣⢍⠺⢟⠩⣁⠒⠨⢀⠂⠀⠄⠡⡁⢂⠠⠀⠄⢠⠉⠄⡊⢄⠂⡄⠊⠄⢃⠤⢁⠂⢄⠂⠥⡙⣚⢷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢀⡿⡜⠴⣉⠖⣡⢚⣬⢳⡉⠖⣀⠃⣁⠢⠐⡈⠠⢁⠒⡄⢂⠡⠊⠄⡘⠤⠑⡌⢒⠤⢃⠜⣀⠂⢆⠘⡠⠘⡀⢆⢡⢻⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢸⣛⣌⠳⡌⢎⡵⣫⣎⠧⡘⠡⠀⠂⢀⠂⠱⢠⢁⠊⡴⣘⠢⠁⠌⠀⠐⠠⢁⠘⡄⠫⡜⠲⣄⠩⢄⠢⠁⠆⠡⠌⡂⢎⡽⣆⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢸⡷⢌⠳⡌⢧⣿⢿⡜⣢⣱⣤⡧⣐⣢⡀⢃⢢⠁⢎⡶⣡⢆⣵⠴⠧⢦⣁⣂⠰⣈⠱⣘⠳⣬⡓⢌⠢⡉⢌⠡⡘⢄⢣⢚⣿⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢹⡞⣌⠳⡌⢧⣿⣿⣽⢷⣫⣔⡠⢀⢀⠈⠉⢲⣭⣰⣟⣯⣹⣔⣢⢡⠀⡀⠌⠙⠞⣳⠿⢷⣷⣝⠦⡑⠨⠄⡃⠔⡈⠦⣙⡾⡆⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢸⡿⢤⠓⣌⢣⢻⣹⣿⣻⣿⣿⣿⣶⠢⣌⢡⠂⡴⢻⡿⣷⣿⣿⣿⣷⣳⠴⡈⡜⡰⣄⢻⣜⣿⢳⡡⢊⡑⢌⠰⠡⡘⡰⣡⢿⡇⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠸⣟⢦⢋⡔⢣⡙⣷⡻⣿⣿⣿⣿⣿⣷⣎⢦⣙⢶⢏⠻⣿⣿⣿⣿⣿⡿⢧⡹⣴⢳⣽⣳⡿⢡⠗⡠⢃⠔⡈⢆⠱⣐⠱⡬⢿⡇⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⢻⣎⠖⡬⢑⡜⢲⢻⣮⠻⣿⣿⣻⣷⣾⡻⢞⠧⢎⠛⣮⣛⠿⣽⣻⣽⣯⣿⣾⣿⠿⢋⡴⢋⡒⢡⠊⡔⣁⠊⡔⠤⣛⠼⣿⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠘⢯⣞⠰⡡⠎⢥⢋⡞⡿⢶⡞⣭⡝⣲⡙⢎⡱⢊⡱⠄⣍⠛⢦⢋⠭⣉⡍⣡⠔⣎⠣⡜⡡⠘⡄⢣⠐⡄⢣⠘⢦⢭⣿⡟⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⣠⣤⡸⣿⢢⡑⠎⣆⢣⠚⣭⢣⡛⡴⡙⢆⠹⢠⠑⠢⢄⠃⠄⣉⠂⠍⠒⡡⠜⠤⢋⠔⡃⢆⠡⢃⡘⢄⠣⡘⢤⢋⡼⣺⣿⠉⣀⣤⣄⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⣤⡗⠀⣉⣻⣧⣙⠲⡐⢎⡱⢂⠇⣎⠱⢡⠊Life is pain,⡈⢂⠡⠌⡐⡈⠤⢁⠰⡈⢆⠱⣊⠼⣼⣿⣿⣛⣉⠐⠾⣄⠀⠀⠀⠀
+// ⠀⠀⠀⡼⠃⠀⠀⠙⣿⡘⢿⣵⠿⡼⣴⣩⣚Existence is meaningless⢢⣑⣎⡱⢬⣻⣿⠇⣸⡿⠁⠀⠀⠙⣆⠀⠀⠀
+// ⠀⠀⣰⡗⠀⠀⠀⠀⠘⣧⡀⠙⠻⣷⣾⣭⣿⣹⢏⡻⢩⢛⠛⡛⢛⠻⠛⠟⡛⠟⢛⠛⡛⠹⢛⠛⣙⡋⣏⣙⣩⣭⣭⣴⣼⣿⠟⠁⠈⣿⠁⠀⠀⠀⠀⢾⡄⠀⠀
+// ⠀⢠⠻⠀⢀⣠⣄⠀⠀⣻⠀⠀⠀⠀⠛⠿⣿⣿⣿⣷⣷⣮⣵⣌⣦⡱⣌⣲⡰⣌⣦⣱⣬⣷⣾⣿⣿⣿⡿⣿⢿⣿⣿⣿⠛⠁⠀⢀⢸⡇⠀⠀⣀⣀⠀⠘⡿⡀⠀
+// ⠀⣧⠇⠀⣴⠟⠈⠀⠀⣿⡄⠀⠀⠀⠀⠀⠈⠙⠻⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢿⣻⢯⣷⣯⣿⣽⡿⠟⠉⠀⠀⠀⠀⠀⣘⣿⠀⢸⠉⠿⣄⠀⠰⣡⠀
+// ⠸⡌⠀⢹⡇⠀⠀⣏⠀⣽⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠛⠿⠿⠿⢽⢿⡾⠷⠿⠿⠿⠟⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣇⠀⠨⠀⠀⢹⠇⠀⢏⠂
+// ⠀⡇⠀⣻⡆⠀⠀⠉⠒⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠓⠒⠃⠀⠀⢸⣟⠀⣸⠀
+// ⠀⠣⠴⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠷⠄⠆⠀

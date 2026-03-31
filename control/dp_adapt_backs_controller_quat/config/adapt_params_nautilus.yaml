@@ -5,3 +5,4 @@
     r_b_bg : [0.0, 0.0, 0.01] # Vector from body centre to centre of gravity
     adapt_gain : [0.6, 0.15, 0.6, 0.15, 0.6, 0.15, 0.6, 0.15, 0.6, 0.15, 0.6, 0.15] # Tuning parameters for linear and nonlinear damping
     d_gain : [0.8, 0.8, 0.8, 0.8, 0.8, 0.8] # Tuning parameters for the unmodeled disturbances and uncertanties
+    timestep: 10 #Controller timestep in milliseconds (ms)

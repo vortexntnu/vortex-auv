@@ -83,7 +83,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_{};
 
-    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
+    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilterQuat>::SharedPtr
         guidance_sub_{};
 
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_{};
@@ -92,9 +92,9 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     std::chrono::milliseconds time_step_{};
 
-    vortex::utils::types::PoseEuler pose_;
+    vortex::utils::types::Pose pose_;
 
-    vortex::utils::types::PoseEuler pose_d_;
+    vortex::utils::types::Pose pose_d_;
 
     vortex::utils::types::Twist twist_;
 
