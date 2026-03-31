@@ -78,13 +78,18 @@ std::vector<uint16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
 }
 
 std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(double force) {
+    // The LEFT/RIGHT polynomials have a gap at force=0 (~1468 vs ~1534)
+    // because they were fitted to data outside the ESC deadband.
+    // Forces below this threshold (in kg) return idle PWM to bridge the gap.
+    constexpr double deadband_kg = 0.03;
+
+    if (std::abs(force) < deadband_kg) {
+        return idle_pwm_value_;
+    }
     if (force < 0.0) {
         return calc_poly(force, left_coeffs_);
     }
-    if (force > 0.0) {
-        return calc_poly(force, right_coeffs_);
-    }
-    return idle_pwm_value_;
+    return calc_poly(force, right_coeffs_);
 }
 
 std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
