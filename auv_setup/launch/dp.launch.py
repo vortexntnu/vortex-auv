@@ -33,7 +33,7 @@ def launch_setup(context, *args, **kwargs):
         adapt_params = os.path.join(
             get_package_share_directory("dp_adapt_backs_controller"),
             "config",
-            "adapt_params.yaml",
+            f"adapt_params_{drone}.yaml",
         )
         container = ComposableNodeContainer(
             name="dp_container",
