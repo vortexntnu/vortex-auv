@@ -13,7 +13,7 @@ The LQR controller linearizes the vehicle dynamics around the current state at e
 ---
 
 ## Dependencies
-
+//TODO(henrimha): fix the dependencies
 | Dependency | Purpose |
 |---|---|
 | `rclcpp` / `rclcpp_lifecycle` | ROS2 node and lifecycle management |
@@ -52,7 +52,7 @@ All parameters are loaded in the constructor via `get_new_parameters()`.
 
 ### LQR parameters
 
-| Parameter | Type | Size | Description |
+| Parameter | Type | Dimension | Description |
 |---|---|---|---|
 | `Q` | `double[]` | 8 | Diagonal of state weight matrix. States: `[surge_err, pitch_err, yaw_err, pitch_rate_err, yaw_rate_err, ∫surge, ∫pitch, ∫yaw]` |
 | `R` | `double[]` | 3 | Diagonal of input weight matrix. Inputs: `[Fx, Ty, Tz]` |
@@ -132,7 +132,7 @@ The gain `K` is computed by solving the continuous-time algebraic Riccati equati
 ```
 u = K * x_error
 ```
-
+//TODO(henrimha): give the riccatti equation
 where `ct::optcon` produces `K` such that this is equivalent to `u = -K * (x - x_ref)`.
 
 If the Riccati solver fails (e.g. due to an unstabilizable operating point), the node automatically falls back to PID and logs an error.

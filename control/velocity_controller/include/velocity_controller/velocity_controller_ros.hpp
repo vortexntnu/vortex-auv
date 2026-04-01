@@ -1,35 +1,48 @@
 #ifndef VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
 #define VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+//#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+//#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
-#include <std_msgs/msg/bool.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
-#include <std_msgs/msg/string.hpp>
+//#include <std_msgs/msg/bool.hpp>
+//#include <std_msgs/msg/float64_multi_array.hpp>
+//#include <std_msgs/msg/string.hpp>
 #include <vector>
-#include "LQR_setup.hpp"
-// #include "nav_msgs/msg/odometry.hpp"
-#include "velocity_controller/PID_setup.hpp"
-// #include "vortex_msgs/msg/los_guidance.hpp"
+#include "nav_msgs/msg/odometry.hpp"
+#include "vortex_msgs/msg/los_guidance.hpp"
 #include <string>
-#endif  // VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_
+#include "velocity_controller/control_manager.hpp"
 
+struct Node_settings{
+    //special settings
+    bool auto_start;
+    bool reset_on_new_ref;
+    bool odometry_dropout_guard;
+
+    // Variables for timers
+    int publish_rate=100; //ms
+
+    // Variables for topics
+    std::string topic_thrust;
+    std::string topic_guidance;
+    std::string topic_killswitch;
+    std::string topic_odometry;
+};
 class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
    public:
     explicit Velocity_node(const rclcpp::NodeOptions& options);
     Velocity_node(const Velocity_node&) = delete;  // no copy constructor
-    Velocity_node& operator=(const Velocity_node&) =
-        delete;                                          // no copy assignment
+    Velocity_node& operator=(const Velocity_node&) =delete; // no copy assignment
     Velocity_node(Velocity_node&&) = delete;             // no move constructor
     Velocity_node& operator=(Velocity_node&&) = delete;  // no move assignment
 
    private:
     void get_new_parameters();
+    void initialize_controllers();
 
     // Timer functions
-    void calc_thrust();
+    void publish_thrust();
 
     // Callback functions
     void guidance_callback(
@@ -49,50 +62,21 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     rclcpp::Subscription<vortex_msgs::msg::LOSGuidance>::SharedPtr
         subscriber_guidance;
 
-    // Variables for topics
-    std::string topic_thrust;
-    std::string topic_guidance;
-    std::string topic_killswitch;
-    std::string topic_odometry;
-
-    // Variables for timers
-    int publish_rate;
-    double max_force;
-
+    
+    Node_settings node_settings;
+    // Control manager instance
+    std::unique_ptr<control_manager> control_manager_ptr;
     // Stored wrenches values
     vortex_msgs::msg::LOSGuidance reference_in;
+    geometry_msgs::msg::WrenchStamped thrust_out;
     Guidance_data guidance_values;
     State current_state;
-    geometry_msgs::msg::WrenchStamped thrust_out;
-
-    // PID controllers
-    PID_controller PID_surge;
-    std::vector<double> surge_params;
-    PID_controller PID_yaw;
-    std::vector<double> yaw_params;
-    PID_controller PID_pitch;
-    std::vector<double> pitch_params;
-
-    // LQR Controller
-    LQRController lqr_controller;
-    // LQRparameters lqr_parameters;
-    std::vector<double> Q;
-    std::vector<double> R;
-    // std::vector<double> Qi;
-    // std::vector<double> Ri;
-    std::vector<double> inertia_matrix;
-    std::vector<double> dampening_matrix_low;
-    std::vector<double> dampening_matrix_high;
-
+    
     std::atomic_bool should_exit_{false};
-    // VC settings
-    bool reset_on_new_ref;
-    bool anti_overshoot;
-    bool auto_start;
-    bool odometry_dropout_guard;
+    //bool anti_overshoot;
     int publish_counter = 0;
     bool first_start = true;
-    int controller_type;  // 1 PID, 2 LQR
+    //int controller_type;  // 1 PID, 2 LQR
 
     // States
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
@@ -106,7 +90,8 @@ class Velocity_node : public rclcpp_lifecycle::LifecycleNode {
     rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
     on_shutdown(const rclcpp_lifecycle::State& state) override;
 
-    void reset_controllers(int nr = 0);
+    //void reset_controllers(int nr = 0);
     rclcpp::QoS pub_QoS;
     rclcpp::QoS sub_QoS;
 };
+#endif  // VELOCITY_CONTROLLER__VELOCITY_CONTROLLER_HPP_

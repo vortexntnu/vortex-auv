@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="henrimha@stud.ntnu.no">henrik</maintainer>
-  <license>TODO: License declaration</license>
+  <license>TODO: License declaration</license> 
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -19,6 +19,8 @@
   <depend>rclcpp_components</depend>
   <depend>lifecycle_msgs</depend>
   <depend>auv_setup</depend>
+  <depend>ct_optcon</depend>  
+  <depend>ct_core</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>
@@ -28,3 +30,7 @@
     <build_type>ament_cmake</build_type>
   </export>
 </package>
+
+<!--TODO(henrimha): Fix package descritpion and license declaration-->
+<!--TODO(henrimha): Remove the ct from packages and fix-->
+

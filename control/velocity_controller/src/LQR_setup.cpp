@@ -1,5 +1,6 @@
-#include "velocity_controller/LQR_setup.hpp"
+#include "velocity_controller/lib/LQR_setup.hpp"
 #include <Eigen/Dense>
+#include <geometry_msgs/msg/detail/wrench_stamped__struct.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/logger.hpp>
 // #include <sstream>
@@ -12,50 +13,49 @@
 #include "velocity_controller/utilities.hpp"
 // #include "vortex/utils/math.hpp"
 
-LQRController::LQRController() {
-    Q.setZero();
-    R.setZero();
-    B.setZero();
-    D.setZero();
+LQRController::LQRController(LQR_params params) {
+    params_=params;
     inertia_matrix_inv.setZero();
-}
-bool LQRController::set_matrices(std::vector<double> Q_,
-                                 std::vector<double> R_,
-                                 std::vector<double> inertia_matrix_,
-                                 double max_force_,
-                                 std::vector<double> D_low) {
-    if (Q_.size() != 8) {
+    if (params_.interval <= 0){
+        valid = false;
+        return;
+    }
+    else if (params_.Q.size() != 8) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),
                      "The Q matrix has the wrong amount of elements");
-        return 0;
+        valid = false;
+        return;
     }
-    if (R_.size() != 3) {
+    else if (params_.R.size() != 3) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),
                      "The R matrix has the wrong amount of elements");
-        return 0;
+        valid = false;
+        return;
     }
-    if (inertia_matrix_.size() != 36) {
+    else if (params_.inertia_matrix.size() != 36) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),
                      "The M matrix has the wrong amount of elements");
-        return 0;
+        valid = false;
+        return;
+        
     }
-    if (max_force_ < 0) {
+    else if (params_.max_force < 0) {
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"),
                      "The max_force need to be >0");
-        return 0;
+        valid = false;
+        return;
     }
-    max_force = max_force_;
-    Q.diagonal() = Eigen::Map<Eigen::VectorXd>(Q_.data(), Q_.size());
-    R.diagonal() = Eigen::Map<Eigen::VectorXd>(R_.data(), R_.size());
-    Ixx = inertia_matrix_.at(6 * 3 + 3);
-    Iyy = inertia_matrix_.at(4 * 6 + 4);
-    Izz = inertia_matrix_.at(5 * 6 + 5);
-    mass = inertia_matrix_.at(0);
+    Q.diagonal() = Eigen::Map<Eigen::VectorXd>(params_.Q.data(), params_.Q.size());
+    R.diagonal() = Eigen::Map<Eigen::VectorXd>(params_.R.data(), params_.R.size());
+    Ixx = params_.inertia_matrix.at(6 * 3 + 3);
+    Iyy = params_.inertia_matrix.at(4 * 6 + 4);
+    Izz = params_.inertia_matrix.at(5 * 6 + 5);
+    mass = params_.inertia_matrix.at(0);
 
     Eigen::Matrix<double, 6, 6> inertia_matrix =
-        Eigen::Map<const Eigen::Matrix<double, 6, 6>>(inertia_matrix_.data(), 6,
+        Eigen::Map<const Eigen::Matrix<double, 6, 6>>(params_.inertia_matrix.data(), 6,
                                                       6);
-    D = Eigen::Map<const Eigen::Matrix<double, 6, 6>>(D_low.data(), 6, 6);
+    D = Eigen::Map<const Eigen::Matrix<double, 6, 6>>(params_.D_low.data(), 6, 6);
     inertia_matrix_inv = inertia_matrix.inverse();
 
     Eigen::Matrix<double, 6, 3> B_t =
@@ -70,7 +70,7 @@ bool LQRController::set_matrices(std::vector<double> Q_,
     }
     B.block<5, 3>(0, 0) = B_m.block<5, 3>(0, 0);
     reset_controller();
-    return 1;
+    valid = true;
 }
 
 std::tuple<double, double> LQRController::saturate(double value,
@@ -89,7 +89,7 @@ double LQRController::anti_windup(double error,
                                   double integral_sum,
                                   bool windup) {
     if (!windup) {
-        integral_sum += error * interval_;
+        integral_sum += error * params_.interval;
     }
     return integral_sum;
 }
@@ -122,12 +122,11 @@ Eigen::Matrix<double, 8, 8> LQRController::linearize(State s) {
 
     return ret;
 }
-Eigen::Vector<double, 8> LQRController::update_error(const Guidance_data& error,
+Eigen::Vector<double, 8> LQRController::update_error(const State& error_state,
                                                      const State& state) {
-    double surge_error = error.surge;
-    double pitch_error = error.pitch;
-    double yaw_error = error.yaw;
-
+    double surge_error = error_state.surge;
+    double pitch_error = error_state.pitch;
+    double yaw_error = error_state.yaw;
     integral_error_surge =
         anti_windup(surge_error, integral_error_surge, surge_windup);
     integral_error_pitch =
@@ -143,20 +142,25 @@ Eigen::Vector<double, 8> LQRController::update_error(const Guidance_data& error,
 Eigen::Vector<double, 3> LQRController::saturate_input(
     Eigen::Vector<double, 3> u) {
     double force_x, torque_y, torque_z;
-    std::tie(surge_windup, force_x) = saturate(u[0], surge_windup, max_force);
-    std::tie(pitch_windup, torque_y) = saturate(u[1], pitch_windup, max_force);
-    std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, max_force);
+    std::tie(surge_windup, force_x) = saturate(u[0], surge_windup, params_.max_force);
+    std::tie(pitch_windup, torque_y) = saturate(u[1], pitch_windup, params_.max_force);
+    std::tie(yaw_windup, torque_z) = saturate(u[2], yaw_windup, params_.max_force);
     return {force_x, torque_y, torque_z};
 }
-bool LQRController::calculate_thrust(State state, Guidance_data error) {
+geometry_msgs::msg::WrenchStamped LQRController::calculate_thrust(State state, State error_state) {
     ct::optcon::LQR<8, 3> lqr;
     Eigen::Matrix<double, 3, 8> K_l;
     bool INFO = lqr.compute(Q, R, linearize(state), B, K_l, true, false);
     if (INFO == 0)
-        return false;
-    Eigen::Matrix<double, 8, 1> state_error = update_error(error, state);
-    u = saturate_input((K_l * state_error));
-    return true;
+        valid=false;
+    Eigen::Matrix<double, 8, 1> state_error = update_error(error_state, state);
+    //TODO:(henrimha) fix how i return the value here
+    Eigen::Vector<double,3>u = saturate_input((K_l * state_error));
+    geometry_msgs::msg::WrenchStamped wrench;
+    wrench.wrench.force.x = u[0];
+    wrench.wrench.torque.y = u[1];
+    wrench.wrench.torque.z = u[2];
+    return wrench;
 }
 void LQRController::reset_controller(int nr) {
     if (nr == 0 || nr == 1) {
@@ -173,16 +177,6 @@ void LQRController::reset_controller(int nr) {
     }
 
     return;
-}
-bool LQRController::set_interval(double interval) {
-    if (interval <= 0)
-        return false;
-    interval_ = interval;
-    return true;
-}
-
-Eigen::Vector<double, 3> LQRController::get_thrust() {
-    return u;
 }
 
 // TODO(henrimha): double check the matrices here

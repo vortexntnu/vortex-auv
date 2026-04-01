@@ -31,12 +31,15 @@ include_directories(
 
 set(LIB_NAME velocity_controller_component)
 add_library(${LIB_NAME} SHARED
-  src/velocity_controller.cpp
-  src/PID_setup.cpp
+  src/velocity_controller_ros.cpp
+  src/PID_controller.cpp
   src/LQR_setup.cpp
   src/utilities.cpp
   src/ct_instantiations.cpp
+  src/control_manager.cpp
+  src/3DOF_PID.cpp
 )
+rclcpp_components_register_nodes(${LIB_NAME} "Velocity_node")
 ament_target_dependencies(${LIB_NAME}
   rclcpp
   rclcpp_components
@@ -66,6 +69,7 @@ install(DIRECTORY
   config
   DESTINATION share/${PROJECT_NAME}/
 )
+
 if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()

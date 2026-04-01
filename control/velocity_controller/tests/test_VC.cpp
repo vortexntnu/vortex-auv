@@ -14,8 +14,7 @@
 #include "vortex_msgs/msg/los_guidance.hpp"
 
 // Denne noden er kun for å teste velocity_controller noden
-
-test_VC::test_VC() : Node("test_VC_node") {
+test_velocity_controller::test_velocity_controller() : Node("test_VC_node") {
     this->declare_parameter<std::string>("topics.guidance.los");
     this->declare_parameter<std::string>("topics.odom");
     this->topic_guidance =
@@ -37,23 +36,23 @@ test_VC::test_VC() : Node("test_VC_node") {
         .durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
     subscription_state = this->create_subscription<nav_msgs::msg::Odometry>(
         topic_odometry, sub_QoS,
-        std::bind(&test_VC::odometry_callback, this, std::placeholders::_1));
+        std::bind(&test_velocity_controller::odometry_callback, this, std::placeholders::_1));
     timer_ = this->create_wall_timer(std::chrono::milliseconds(200),
-                                     std::bind(&test_VC::send_guidance, this));
+                                     std::bind(&test_velocity_controller::send_reference, this));
     clock_ = this->get_clock();
-    RCLCPP_INFO(this->get_logger(), "Test_VC node has been started");
+    RCLCPP_INFO(this->get_logger(), "Test_velocity_controller node has been started");
 }
 
-void test_VC::send_guidance() {
-    time1 += 0.2;
-    reference_msg.yaw = std::numbers::pi * sin(time1 * std::numbers::pi / 9);
+void test_velocity_controller::send_reference() {
+    totaltime += 0.2;
+    reference_msg.yaw = std::numbers::pi * sin(totaltime * std::numbers::pi / 9);
     // reference_msg.pitch=0.3*sin(time1*std::numbers::pi/9);
     reference_msg.surge = 0.20;
     reference_msg.pitch = -0.4;  // reference_msg.yaw=0.0; //Surge, pitch, yaw
     publisher_guidance->publish(reference_msg);
 }
 
-void test_VC::odometry_callback(
+void test_velocity_controller::odometry_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg_ptr) {
     vortex_msgs::msg::LOSGuidance msg;
     angle temp = quaternion_to_euler_angle(
@@ -66,7 +65,7 @@ void test_VC::odometry_callback(
 }
 int main(int argc, char const* argv[]) {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<test_VC>());
+    rclcpp::spin(std::make_shared<test_velocity_controller>());
     rclcpp::shutdown();
     return 0;
 }

@@ -12,7 +12,7 @@ ament_add_gtest(${TEST_BINARY_NAME}
 test_PID.cpp
 ../src/utilities.cpp
 ../src/ct_instantiations.cpp
-../src/PID_setup.cpp
+../src/PID_controller.cpp
 )
 
 ament_add_gtest(LQR_test
@@ -22,7 +22,7 @@ test_LQR.cpp
 ../src/LQR_setup.cpp
 )
 
-#To DO need to clean up the include directories/dependencies and such
+#TODO(hemrimha): need to clean up the include directories/dependencies and such
 target_include_directories(${TEST_BINARY_NAME} PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>
@@ -78,21 +78,21 @@ target_link_libraries(
     ct_optcon
     ct_core
 )
-add_executable(test_VC_node
+add_executable(test_vc_node
 test_VC.cpp
 ../src/utilities.cpp
 )
 
-target_include_directories(test_VC_node PUBLIC
+target_include_directories(test_vc_node PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>
 ${EIGEN3_INCLUDE_DIR}
 )
 
 
-target_link_libraries(test_VC_node Eigen3::Eigen ct_optcon ct_core)
+target_link_libraries(test_vc_node Eigen3::Eigen ct_optcon ct_core)
 
-ament_target_dependencies(test_VC_node
+ament_target_dependencies(test_vc_node
 rclcpp
 rclcpp_lifecycle
 std_msgs
@@ -102,6 +102,6 @@ nav_msgs
 vortex_utils
 )
 
-install(TARGETS test_VC_node
+install(TARGETS test_vc_node
 DESTINATION lib/${PROJECT_NAME}
 )

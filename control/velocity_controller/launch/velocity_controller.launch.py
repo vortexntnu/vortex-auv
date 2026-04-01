@@ -12,7 +12,8 @@ from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
     resolve_drone_and_namespace,
 )
-
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
@@ -22,16 +23,33 @@ def launch_setup(context, *args, **kwargs):
     config_path_local = os.path.join(pkg_share, 'config', f'{drone}_params.yaml')
     config_path_global = os.path.join(global_share, 'config', 'robots', f"{drone}.yaml")
 
+    #return [
+    #    Node(
+    #       package='velocity_controller',
+    #      executable='velocity_node',
+    #      name="velocity_controller_node",
+    #      namespace=namespace,
+    #    parameters=[config_path_local, config_path_global],
+    # )
+    #]
     return [
-        Node(
-            package='velocity_controller',
-            executable='velocity_controller_node',
-            name="velocity_controller_node",
-            namespace=namespace,
-            output='screen',
-            parameters=[config_path_local, config_path_global],
-        )
-    ]
+    ComposableNodeContainer(
+        name='velocity_container',
+        namespace=namespace,
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            ComposableNode(
+                package='velocity_controller',
+                plugin='Velocity_node',   # must match the class name registered
+                name='velocity_controller_node',
+                namespace=namespace,
+                parameters=[config_path_local, config_path_global],
+            ),
+        ],
+        output='screen',
+    )
+]
 
 
 def generate_launch_description():

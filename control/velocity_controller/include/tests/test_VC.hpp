@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TEST_VC_HPP_
+#define TEST_VC_HPP_
 
 #include <cmath>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
@@ -12,18 +13,29 @@
 #include "velocity_controller/utilities.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp"
 
-class test_VC : public rclcpp::Node {
-   public:
-    test_VC();
-    // Callback functions
-    void send_guidance();
+/** 
+    @brief A class that sends a reference signal to the velocity controller 
+*/
+class test_velocity_controller : public rclcpp::Node {
+    public:
+    explicit test_velocity_controller();
+    test_velocity_controller(const test_velocity_controller&) = delete;  // no copy constructor
+    test_velocity_controller& operator=(const test_velocity_controller&) = delete; // no copy assignment
+    test_velocity_controller(test_velocity_controller&&) = delete;             // no move constructor
+    test_velocity_controller& operator=(test_velocity_controller&&) = delete;  // no move assignment
+    ~test_velocity_controller()=default;
+    private:
+    /**
+     * @brief Publishes a reference signal to the reference topic of the velocity controller.
+     */
+    void send_reference();
+    /** 
+        * @brief Subscribes to the odometry topic and prints the current state (in euler angles) of the vehicle for debugging.
+    */
     void odometry_callback(const nav_msgs::msg::Odometry::SharedPtr msg_ptr);
 
-    // Variables
-
     // Subscribers and publishers
-    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr
-        publisher_guidance;
+    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr publisher_guidance;
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr publisher_state;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription_state;
     // Timers
@@ -31,16 +43,16 @@ class test_VC : public rclcpp::Node {
     rclcpp::Clock::SharedPtr clock_;
     // Messages
     vortex_msgs::msg::LOSGuidance reference_msg;
-
     // Topics
     std::string topic_guidance;
     std::string topic_state = "/state";
     std::string topic_odometry;
+    
+    /**
+    * @brief The total time elapsed since the start of the simulation. Used to calculate the reference signal as a function of time.
+    */
 
-    // MSGS
-    double time1 = 0;
+    double totaltime = 0;
 };
 
-geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll,
-                                                         double pitch,
-                                                         double yaw);
+#endif  // TEST_VC_HPP_

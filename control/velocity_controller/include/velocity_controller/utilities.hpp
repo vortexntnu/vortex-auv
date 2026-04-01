@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UTILITIES_HPP_
+#define UTILITIES_HPP_
 #include <Eigen/Dense>
 #include <casadi/casadi.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
@@ -13,9 +14,6 @@ struct angle {
     double psit = 0.0;
 };
 angle quaternion_to_euler_angle(double w, double x, double y, double z);
-geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll,
-                                                         double pitch,
-                                                         double yaw);
 
 class State {
    public:
@@ -66,3 +64,4 @@ inline angle angle_NED_to_body(angle desired, angle state) {
     return angle_NED_to_body(desired.phit, desired.thetat, desired.psit,
                              state.phit, state.thetat, state.psit);
 }
+#endif  // UTILITIES_HPP_

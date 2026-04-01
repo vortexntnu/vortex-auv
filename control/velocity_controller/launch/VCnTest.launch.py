@@ -30,11 +30,13 @@ def launch_setup(context, *args, **kwargs):
             os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
         ),
         launch_arguments={
-            'scenario': 'nautilus_no_gpu.scn',
+            "drone": drone,
+            'scenario': 'nautilus_no_gpu',
             'rendering_quality': 'low',
             'rendering': 'true',
         }.items(),
     )
+
     drone_sim = TimerAction(
         period=12.0,
         actions=[
