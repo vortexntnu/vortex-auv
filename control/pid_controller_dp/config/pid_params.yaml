@@ -1,20 +1,20 @@
 /**:
   ros__parameters:
-    Kp_x: 10.0
-    Kp_y: 5.0
-    Kp_z: 30.0
-    Kp_roll: 10.0
-    Kp_pitch: 41.0
-    Kp_yaw: 6.0
-    Ki_x: 0.092
-    Ki_y: 0.00059
-    Ki_z: 0.085
-    Ki_roll: 0.002
-    Ki_pitch: 0.01
-    Ki_yaw: 0.0003
-    Kd_x: 0.001
-    Kd_y: 0.0
-    Kd_z: 0.0
+    Kp_x: 30.0
+    Kp_y: 30.0
+    Kp_z: 40.0
+    Kp_roll: 30.0
+    Kp_pitch: 60.0
+    Kp_yaw: 10.0
+    Ki_x: 0.01
+    Ki_y: 0.001
+    Ki_z: 0.05
+    Ki_roll: 0.01
+    Ki_pitch: 0.005
+    Ki_yaw: 0.01
+    Kd_x: 5.0
+    Kd_y: 5.0
+    Kd_z: 5.0
     Kd_roll: 0.002
-    Kd_pitch: 0.0
-    Kd_yaw: 0.001
+    Kd_pitch: 0.005
+    Kd_yaw: 0.002
