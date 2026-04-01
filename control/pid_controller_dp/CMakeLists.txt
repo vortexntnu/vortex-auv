@@ -11,6 +11,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -46,18 +47,13 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
 )
 
 
-install(TARGETS
-  ${LIB_NAME}
-  DESTINATION lib/${PROJECT_NAME}
-)
-
-add_executable(pid_controller_node
-  src/pid_controller_node.cpp
+add_library(pid_controller_component SHARED
   src/pid_controller_ros.cpp
 )
 
-ament_target_dependencies(pid_controller_node
+ament_target_dependencies(pid_controller_component PUBLIC
   rclcpp
+  rclcpp_components
   geometry_msgs
   nav_msgs
   Eigen3
@@ -70,11 +66,23 @@ ament_target_dependencies(pid_controller_node
   fmt
 )
 
-target_link_libraries(
-    pid_controller_node
-    ${LIB_NAME}
-    spdlog::spdlog
-    # vortex_utilis::vortex_utils
+target_link_libraries(pid_controller_component PUBLIC
+  ${LIB_NAME}
+  spdlog::spdlog
+)
+
+rclcpp_components_register_node(pid_controller_component
+  PLUGIN "PIDControllerNode"
+  EXECUTABLE pid_controller_node_component
+)
+
+add_executable(pid_controller_node
+  src/pid_controller_node.cpp
+)
+
+target_link_libraries(pid_controller_node PRIVATE
+  pid_controller_component
+  spdlog::spdlog
 )
 
 ament_export_targets(export_${LIB_NAME})
@@ -86,9 +94,15 @@ install(TARGETS ${LIB_NAME}
   RUNTIME DESTINATION bin
 )
 
-install(TARGETS
-  pid_controller_node
-  DESTINATION lib/${PROJECT_NAME})
+install(TARGETS pid_controller_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(TARGETS pid_controller_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(DIRECTORY
   config
