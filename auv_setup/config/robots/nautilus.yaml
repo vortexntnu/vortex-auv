@@ -106,7 +106,7 @@
       joy: "joy"
       pose: "pose"
       twist: "twist"
-      odom: "odom"
+      odom: "odom_eskf"
       operation_mode: "operation_mode"
       killswitch: "killswitch"
       reference_pose: "reference_pose"
