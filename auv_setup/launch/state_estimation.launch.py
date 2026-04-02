@@ -132,7 +132,7 @@ def launch_setup(context, *args, **kwargs):
                 parameters=[
                     {
                         "frame_id": f"/{namespace}/nucleus_frame",
-                        "connection_params.remote_ip": "192.168.1.100",
+                        "connection_params.remote_ip": "10.0.0.42",
                         "connection_params.data_remote_port": 9000,
                         "connection_params.password": "",
                         "enable_imu": False,

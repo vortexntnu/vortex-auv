@@ -22,6 +22,8 @@ OdomTransformer::OdomTransformer(const rclcpp::NodeOptions& options)
     this->declare_parameter<std::string>("topics.output");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
+    rotate_yaw_180_ = this->declare_parameter<bool>("rotate_yaw_180");
+
 
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -86,6 +88,29 @@ void OdomTransformer::odom_callback(
     Eigen::Quaterniond q_odom_sensor(
         msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
         msg->pose.pose.orientation.y, msg->pose.pose.orientation.z);
+
+    
+    // Velocities in sensor frame
+    Eigen::Vector3d v_sensor(msg->twist.twist.linear.x,
+                             msg->twist.twist.linear.y,
+                             msg->twist.twist.linear.z);
+    Eigen::Vector3d omega_sensor(msg->twist.twist.angular.x,
+                                 msg->twist.twist.angular.y,
+                                 msg->twist.twist.angular.z);
+
+    if (rotate_yaw_180_) {
+        // 180 deg yaw flips X and Y, leaves Z unchanged
+        q_odom_sensor =
+            Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ()))
+            * q_odom_sensor;
+        v_sensor.x() = -v_sensor.x();
+        v_sensor.y() = -v_sensor.y();
+        omega_sensor.x() = -omega_sensor.x();
+        omega_sensor.y() = -omega_sensor.y();
+        msg->pose.pose.position.x = -msg->pose.pose.position.x;
+        msg->pose.pose.position.y = -msg->pose.pose.position.y;
+    }
+
     Eigen::Matrix3d R_odom_sensor = q_odom_sensor.toRotationMatrix();
 
     // Orientation: R_odom_base = R_odom_sensor * R_base_sensor^-1
@@ -100,16 +125,10 @@ void OdomTransformer::odom_callback(
     Eigen::Vector3d p_base = p_sensor - R_odom_base * t_base_sensor_;
 
     // Angular velocity: rotate from sensor frame to base_link frame
-    Eigen::Vector3d omega_sensor(msg->twist.twist.angular.x,
-                                 msg->twist.twist.angular.y,
-                                 msg->twist.twist.angular.z);
     Eigen::Vector3d omega_base = R_base_sensor_ * omega_sensor;
 
     // Linear velocity: lever arm correction
     // v_base = R_base_sensor * v_sensor - omega_base x t_base_sensor
-    Eigen::Vector3d v_sensor(msg->twist.twist.linear.x,
-                             msg->twist.twist.linear.y,
-                             msg->twist.twist.linear.z);
     Eigen::Vector3d v_base =
         R_base_sensor_ * v_sensor - omega_base.cross(t_base_sensor_);
 

@@ -79,9 +79,9 @@ void ESKFNode::set_subscribers_and_publisher() {
         pressure_topic, qos_sensor_data,
         std::bind(&ESKFNode::depth_callback, this, std::placeholders::_1));
 
-    std::string odom_topic = this->get_parameter("topics.odom").as_string();
+    // std::string odom_topic = this->get_parameter("topics.odom").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
-        odom_topic, qos_sensor_data);
+        "/nautilus/odom_eskf", qos_sensor_data);
 
     if (publish_pose_) {
         std::string pose_topic = this->get_parameter("topics.pose").as_string();

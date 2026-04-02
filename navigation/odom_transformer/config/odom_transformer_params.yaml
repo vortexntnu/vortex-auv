@@ -5,6 +5,7 @@
       publish_tf: true
       publish_pose: true
       publish_twist: true
+      rotate_yaw_180: false
       topics:
         input: "nucleus/odom"
         output: "odom"

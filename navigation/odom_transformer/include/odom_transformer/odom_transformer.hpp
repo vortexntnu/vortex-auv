@@ -51,6 +51,7 @@ class OdomTransformer : public rclcpp::Node {
     bool publish_tf_{false};
     bool publish_pose_{false};
     bool publish_twist_{false};
+    bool rotate_yaw_180_{false};
 };
 
 #endif  // ODOM_TRANSFORMER__ODOM_TRANSFORMER_HPP_
