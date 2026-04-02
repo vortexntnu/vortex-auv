@@ -10,7 +10,7 @@ class controller{
     virtual geometry_msgs::msg::WrenchStamped calculate_thrust(State state, State error_state) = 0;
     virtual void reset_controller(int nr=0) = 0;
     bool get_validity(){return valid;};
-
+    ~controller()=default;
     protected:
     bool valid=false;
 };

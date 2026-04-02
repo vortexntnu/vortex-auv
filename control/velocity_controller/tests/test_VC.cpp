@@ -45,8 +45,9 @@ test_velocity_controller::test_velocity_controller() : Node("test_VC_node") {
 
 void test_velocity_controller::send_reference() {
     totaltime += 0.2;
-    reference_msg.yaw = std::numbers::pi * sin(totaltime * std::numbers::pi / 9);
+    //reference_msg.yaw = std::numbers::pi * sin(totaltime * std::numbers::pi / 9);
     // reference_msg.pitch=0.3*sin(time1*std::numbers::pi/9);
+    reference_msg.yaw = 0.4; 
     reference_msg.surge = 0.20;
     reference_msg.pitch = -0.4;  // reference_msg.yaw=0.0; //Surge, pitch, yaw
     publisher_guidance->publish(reference_msg);

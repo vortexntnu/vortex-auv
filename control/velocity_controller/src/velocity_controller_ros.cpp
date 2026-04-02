@@ -50,8 +50,9 @@ void Velocity_node::publish_thrust() {
             return;
         }
     }
-    // TODO(henrimha): Do I need ssa here?
     thrust_out = control_manager_ptr->get_output(guidance_values, current_state);
+    /*geometry_msgs::msg::WrenchStamped test;
+    test.wrench.force.set__y(25);*/
     publisher_thrust->publish(thrust_out);
     return;
 }
@@ -120,17 +121,44 @@ void Velocity_node::initialize_controllers() {
     control_manager_params control_params;
     PID_3DOF_params pid_3dof_params;
     LQR_params lqr_params;
-    pid_3dof_params.surge_params.max_output=pid_3dof_params.pitch_params.max_output=pid_3dof_params.yaw_params.max_output=lqr_params.max_force= this->get_parameter("Control_manager_settings.max_force").as_double();
-    pid_3dof_params.surge_params.min_output=pid_3dof_params.pitch_params.min_output=pid_3dof_params.yaw_params.min_output= -this->get_parameter("Control_manager_settings.max_force").as_double();
-    pid_3dof_params.surge_params.dt=pid_3dof_params.pitch_params.dt=pid_3dof_params.yaw_params.dt=lqr_params.interval= this->get_parameter("Control_manager_settings.publish_rate").as_int()/1000.0;
+    double max_force = this->get_parameter("Control_manager_settings.max_force").as_double();
+    double dt = this->get_parameter("Control_manager_settings.publish_rate").as_int() / 1000.0;  // Convert ms to seconds
+    // Set max/min/dt FIRST
+    pid_3dof_params.surge_params.max_output = max_force;
+    pid_3dof_params.surge_params.min_output = -max_force;
+    pid_3dof_params.surge_params.dt = dt;
+    
+    pid_3dof_params.pitch_params.max_output = max_force;
+    pid_3dof_params.pitch_params.min_output = -max_force;
+    pid_3dof_params.pitch_params.dt = dt;
+    
+    pid_3dof_params.yaw_params.max_output = max_force;
+    pid_3dof_params.yaw_params.min_output = -max_force;
+    pid_3dof_params.yaw_params.dt = dt;
+    
+    // NOW set gains WITHOUT overwriting other fields
+    auto surge_gains = this->get_parameter("PID_params.surge").as_double_array();
+    pid_3dof_params.surge_params.k_p = surge_gains[0];
+    pid_3dof_params.surge_params.k_i = surge_gains[1];
+    pid_3dof_params.surge_params.k_d = surge_gains[2];
+    
+    auto pitch_gains = this->get_parameter("PID_params.pitch").as_double_array();
+    pid_3dof_params.pitch_params.k_p = pitch_gains[0];
+    pid_3dof_params.pitch_params.k_i = pitch_gains[1];
+    pid_3dof_params.pitch_params.k_d = pitch_gains[2];
+    
+    auto yaw_gains = this->get_parameter("PID_params.yaw").as_double_array();
+    pid_3dof_params.yaw_params.k_p = yaw_gains[0];
+    pid_3dof_params.yaw_params.k_i = yaw_gains[1];
+    pid_3dof_params.yaw_params.k_d = yaw_gains[2];
+    lqr_params.max_force = max_force;
+    lqr_params.interval = dt;
+    
     control_params.control_type = this->get_parameter("Control_manager_settings.controller_type").as_int();
     node_settings.auto_start = this->get_parameter("Node_settings.auto_start").as_bool();
     node_settings.reset_on_new_ref = this->get_parameter("Node_settings.reset_on_new_ref").as_bool();
     control_params.anti_overshoot = this->get_parameter("Control_manager_settings.anti_overshoot").as_bool();
     node_settings.odometry_dropout_guard = this->get_parameter("Node_settings.odometry_dropout_guard").as_bool();
-    pid_3dof_params.surge_params = this->get_parameter("PID_params.surge").as_double_array();
-        pid_3dof_params.pitch_params = this->get_parameter("PID_params.pitch").as_double_array();
-    pid_3dof_params.yaw_params = this->get_parameter("PID_params.yaw").as_double_array();
 
     lqr_params.Q = this->get_parameter("LQR_params.Q").as_double_array();
     lqr_params.R = this->get_parameter("LQR_params.R").as_double_array();
@@ -138,7 +166,7 @@ void Velocity_node::initialize_controllers() {
     lqr_params.D_low =this->get_parameter("dampening_matrix_low").as_double_array();
     lqr_params.D_high =this->get_parameter("dampening_matrix_high").as_double_array();
     
-
+    node_settings.publish_rate = this->get_parameter("Control_manager_settings.publish_rate").as_int();
     control_manager_ptr = std::make_unique<control_manager>(control_params);
     control_manager_ptr->initialize_3DOF_controller(pid_3dof_params);
     control_manager_ptr->initialize_LQR_controller(lqr_params);
