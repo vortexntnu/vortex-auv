@@ -84,7 +84,13 @@ public:
     std::optional<std::vector<std::uint16_t>> drive_thrusters(
         const std::vector<double>& thruster_forces_array);
 
-    int send_camera_light_pwm(std::vector<uint16_t> camera_light_pwm_array);
+    /**
+     * @brief Sets the camera light intensity
+     *
+     * @param[in] percentage float in the range 0-1
+     * @return 0 on success -1 on failure
+     */
+    int set_camera_light(float percentage);
 
 private:
     /**

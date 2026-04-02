@@ -235,10 +235,12 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
     return 0;
 }
 
-int ThrusterInterfaceAUVDriver::send_camera_light_pwm(std::vector<uint16_t> camera_light_pwm_array) {
+int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
     if (!serial_.is_open()) {
         return -1;
     }
+    std::vector<uint16_t> camera_light_pwm_array(1);
+    camera_light_pwm_array[0] = 1100 + 800 * percentage;
 
     const auto packet = create_packet(0x04, camera_light_pwm_array);
     constexpr std::size_t header_size = 3;
