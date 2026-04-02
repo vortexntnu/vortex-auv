@@ -2,7 +2,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 
 
-def declare_drone_and_namespace_args(default_drone="nautilus"):
+def declare_drone_and_namespace_args(default_drone="orca"):
     return [
         DeclareLaunchArgument(
             "drone",
