@@ -1,7 +1,7 @@
 # Adaptive LOS Parameters
 adaptive_los:
-  lookahead_distance_h: 0.9
-  lookahead_distance_v: 1.4
+  lookahead_distance_h: 0.6
+  lookahead_distance_v: 1.0
   gamma_h: 0.03
   gamma_v: 0.02
 
