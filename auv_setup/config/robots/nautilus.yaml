@@ -16,7 +16,7 @@
 /**:
   ros__parameters:
     physical:
-      center_of_mass: [0.0, 0.0, 0.0] # CO is aligned with CM Position (x,y,z) in meters (M)
+      center_of_mass: [0.0, 0.0, 0.015] # CO is aligned with CM Position (x,y) in meters (M), small cg offset in z to keep drone naturally stable in roll/pitch
       mass_matrix: [53.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 53.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 53.7, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 11.0628, 1.086, -3.17502, 0.0, 0.0, 0.0, 1.086, 23.1128, 0.1025, 0.0, 0.0, 0.0, -3.17502, 0.1025, 26.23998]
       # 6x6 mass_inertia_matrix
     propulsion:
@@ -53,22 +53,22 @@
             0.00000, # Heave
           ]
         thruster_position: [ # Position (x0,x1 ... x7,y1,y2, ...,y7,z1,z2, ... ,z7) in meters (M). i.e thruster0 has position (x0,y0,z0)
-          0.413892,
-          0.140095,
-          -0.163904,
-          -0.413892,
-          -0.413892,
-          -0.163904,
-          0.140095,
-          0.413892, # x-positions of the thrusters
+          0.45015,
+          0.24060,
+          -0.22970,
+          -0.43861,
+          -0.43861,
+          -0.22970,
+          0.240600,
+          0.450150, # x-positions of the thrusters
+          0.305680,
           0.313022,
           0.313022,
-          0.313022,
-          0.313022,
+          0.305680,
+          -0.305680,
           -0.313022,
           -0.313022,
-          -0.313022,
-          -0.313022, # y-positions of the thrusters
+          -0.305680, # y-positions of the thrusters
           0.021736,
           0.021736,
           0.021736,
@@ -90,6 +90,10 @@
 
         thrust_update_rate: 100.0 # [Hz]
         watchdog_timeout: 1.0 # [s]
+        thruster_to_pin_mapping: [4, 5, 7, 6, 0, 1, 2, 3] # I.e. if thruster_to_pin = [ 7,  6,  5,  4,  3,  2,  1,  0 ] then thruster 0 is pin 1 etc..
+        thruster_direction: [-1, -1, 1, 1, -1, -1, 1, 1] # Disclose during thruster mapping (+/- 1)
+        thruster_PWM_min: [1050, 1050, 1050, 1050, 1050, 1050, 1050, 1050] # Minimum PWM value, Recommended: [1100, 1100, 1100, 1100, 1100, 1100, 1100, 1100]
+        thruster_PWM_max: [1950, 1950, 1950, 1950, 1950, 1950, 1950, 1950] # Maximum PWM value, Recommended: [1900, 1900, 1900, 1900, 1900, 1900, 1900, 1900]
 
     topics:
       wrench_input: "wrench_input"

@@ -19,11 +19,15 @@ class ESKF {
     // @param dvl_meas: DVL measurement
     void dvl_update(const SensorDVL& dvl_meas);
 
+    void depth_update(const SensorDepth& depth_meas);
+
     inline StateQuat get_nominal_state() const { return current_nom_state_; }
 
     inline StateEuler get_error_state() const { return current_error_state_; }
 
     inline double get_nis() const { return nis_; }
+
+    inline Eigen::Vector3d get_gravity() const { return g_; }
 
    private:
     // @brief Predict the nominal state
@@ -99,7 +103,7 @@ Eigen::Matrix3x15d calculate_h_jacobian(const StateQuat& current_nom_state_);
 // Jacobian of h(x) with respect to the nominal state --> Hx
 Eigen::Matrix3x16d calculate_hx(const StateQuat& current_nom_state_);
 
-double compute_nis(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
+double compute_nis(const Eigen::VectorXd& innovation, const Eigen::MatrixXd& S);
 
 #include "eskf.tpp"  // including template implementation
 

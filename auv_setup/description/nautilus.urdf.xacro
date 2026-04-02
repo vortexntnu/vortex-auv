@@ -18,7 +18,7 @@
   <joint name="base_to_imu" type="fixed">
     <parent link="base_link"/>
     <child link="imu_link"/>
-    <origin xyz="0.0057 0.0 0.0827" rpy="0.0 0.0 0.0"/>
+    <origin xyz="-0.1 -0.001 0.085" rpy="0.0 0.0 0.0"/>
   </joint>
 
   <!-- base to dvl -->

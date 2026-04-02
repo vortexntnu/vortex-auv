@@ -1,4 +1,5 @@
 #include <pid_controller_dp/pid_controller_ros.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <rclcpp/logging.hpp>
 #include <variant>
 #include <vortex/utils/ros/qos_profiles.hpp>
@@ -8,7 +9,17 @@
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
-PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
+constexpr std::string_view start_message = R"(
+  ____ ___ ____     ____            _             _ _
+ |  _ \_ _|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
+ | |_) | || | | | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
+ |  __/| || |_| | | |__| (_) | | | | |_| | | (_) | | |  __/ |
+ |_|  |___|____/   \____\___/|_| |_|\__|_|  \___/|_|_|\___|_|
+
+)";
+
+PIDControllerNode::PIDControllerNode(const rclcpp::NodeOptions & options)
+    : Node("pid_controller_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
     set_subscribers_and_publisher();
@@ -20,6 +31,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_node") {
 
     callback_handle_ = this->add_on_set_parameters_callback(std::bind(
         &PIDControllerNode::parametersCallback, this, std::placeholders::_1));
+
+    spdlog::info(start_message);
 }
 
 void PIDControllerNode::set_subscribers_and_publisher() {
@@ -343,3 +356,5 @@ rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
     }
     return result;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(PIDControllerNode)

@@ -21,6 +21,7 @@ DPAdaptBacksController::DPAdaptBacksController(
       d_est_(Eigen::Vector6d::Zero()),
       I_b_(dp_adapt_params.I_b.asDiagonal().toDenseMatrix()),
       mass_matrix_(dp_adapt_params.mass_matrix),
+      tau_max_(dp_adapt_params.tau_max),
       m_(dp_adapt_params.mass),
       dt_(0.01) {}
 
@@ -49,7 +50,7 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& pose,
                           (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) -
                           F_est - d_est_;
 
-    tau = tau.cwiseMax(-80.0).cwiseMin(80.0);
+    tau = tau.cwiseMax(-tau_max_).cwiseMin(tau_max_);
     adapt_param_ += adapt_param_dot * dt_;
     d_est_ += d_est_dot * dt_;
     adapt_param_ = adapt_param_.cwiseMax(-10.0).cwiseMin(10.0);

@@ -24,7 +24,7 @@
 // @brief Class for the PID controller node
 class PIDControllerNode : public rclcpp::Node {
    public:
-    PIDControllerNode();
+    explicit PIDControllerNode(const rclcpp::NodeOptions & options);
 
    private:
     // @brief Callback function for the killswitch topic

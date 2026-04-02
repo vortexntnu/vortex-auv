@@ -1,4 +1,5 @@
 import os
+from os import path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -10,15 +11,15 @@ from auv_setup.launch_arg_common import (
     resolve_drone_and_namespace,
 )
 
+odom_transformer_params = path.join(
+    get_package_share_directory("odom_transformer"),
+    "config",
+    "odom_transformer_params.yaml",
+)
+
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-
-    adapt_params = os.path.join(
-        get_package_share_directory("dp_adapt_backs_controller"),
-        "config",
-        f"adapt_params_{drone}.yaml",
-    )
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -27,16 +28,20 @@ def launch_setup(context, *args, **kwargs):
         f"{drone}.yaml",
     )
 
-    return [
-        Node(
-            package="dp_adapt_backs_controller",
-            executable="dp_adapt_backs_controller_node",
-            name="dp_adapt_backs_controller_node",
-            namespace=namespace,
-            parameters=[adapt_params, drone_params],
-            output="screen",
-        )
-    ]
+    node = Node(
+        package="odom_transformer",
+        executable="odom_transformer_node",
+        name="odom_transformer_node",
+        namespace=namespace,
+        parameters=[
+            odom_transformer_params,
+            drone_params,
+            {"frame_prefix": namespace},
+        ],
+        output="screen",
+    )
+
+    return [node]
 
 
 def generate_launch_description():

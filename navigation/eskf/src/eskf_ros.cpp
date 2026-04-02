@@ -15,7 +15,6 @@ auto start_message{R"(
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options) {
-
     use_tf_transforms_ = this->declare_parameter<bool>("use_tf_transforms");
     tf_sensors_loaded_ = !use_tf_transforms_;
 
@@ -23,27 +22,33 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     if (!frame_prefix_.empty() && frame_prefix_.back() == '/') {
         frame_prefix_.pop_back();
     }
+    spdlog::info("frame_prefix set to '{}'", frame_prefix_);
 
     publish_tf_ = this->declare_parameter<bool>("publish_tf");
     if (publish_tf_) {
-        tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+        tf_broadcaster_ =
+            std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     }
 
     publish_pose_ = this->declare_parameter<bool>("publish_pose");
     publish_twist_ = this->declare_parameter<bool>("publish_twist");
+
+    publish_biases_ = this->declare_parameter<bool>("publish_biases");
 
     // Declare these here so they appear in `ros2 param list` from startup,
     // even though they are read in complete_initialization().
     this->declare_parameter<int>("publish_rate_ms");
     this->declare_parameter<std::string>("topics.imu");
     this->declare_parameter<std::string>("topics.dvl_twist");
+    this->declare_parameter<std::string>("topics.pressure_sensor");
     this->declare_parameter<std::string>("topics.odom");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
 
     if (use_tf_transforms_) {
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
-        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+        tf_listener_ =
+            std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
         tf_timer_ = this->create_wall_timer(
             std::chrono::milliseconds(500),
             std::bind(&ESKFNode::lookup_static_transforms, this));
@@ -68,50 +73,75 @@ void ESKFNode::set_subscribers_and_publisher() {
         dvl_topic, qos_sensor_data,
         std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
 
-    std::string odom_topic = this->get_parameter("topics.odom").as_string();
+    std::string pressure_topic =
+        this->get_parameter("topics.pressure_sensor").as_string();
+    depth_sub_ = this->create_subscription<sensor_msgs::msg::FluidPressure>(
+        pressure_topic, qos_sensor_data,
+        std::bind(&ESKFNode::depth_callback, this, std::placeholders::_1));
+
+    // std::string odom_topic = this->get_parameter("topics.odom").as_string();
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
-        odom_topic, qos_sensor_data);
+        "/nautilus/odom_eskf", qos_sensor_data);
 
     if (publish_pose_) {
         std::string pose_topic = this->get_parameter("topics.pose").as_string();
-        pose_pub_ =
-            this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
-                pose_topic, qos_sensor_data);
+        pose_pub_ = this->create_publisher<
+            geometry_msgs::msg::PoseWithCovarianceStamped>(pose_topic,
+                                                           qos_sensor_data);
     }
 
     if (publish_twist_) {
         std::string twist_topic =
             this->get_parameter("topics.twist").as_string();
-        twist_pub_ =
-            this->create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
-                twist_topic, qos_sensor_data);
+        twist_pub_ = this->create_publisher<
+            geometry_msgs::msg::TwistWithCovarianceStamped>(twist_topic,
+                                                            qos_sensor_data);
+    }
+
+    if (publish_biases_) {
+        accel_bias_pub_ =
+            this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+                "eskf/accel_bias", qos_sensor_data);
+        gyro_bias_pub_ =
+            this->create_publisher<geometry_msgs::msg::Vector3Stamped>(
+                "eskf/gyro_bias", qos_sensor_data);
     }
 
 #ifndef NDEBUG
-    nis_pub_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/nis", vortex::utils::qos_profiles::reliable_profile());
+    nis_dvl_pub_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/nis_dvl", vortex::utils::qos_profiles::reliable_profile());
+    nis_depth_pub_ = create_publisher<std_msgs::msg::Float64>(
+        "eskf/nis_depth", vortex::utils::qos_profiles::reliable_profile());
 #endif
 }
 
 void ESKFNode::set_parameters() {
-
     if (!use_tf_transforms_) {
         std::vector<double> R_imu_correction =
-            this->declare_parameter<std::vector<double>>("transform.imu_frame_r");
+            this->declare_parameter<std::vector<double>>(
+                "transform.imu_frame_r");
         R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
             R_imu_correction.data());
 
+        std::vector<double> T_imu_correction =
+            this->declare_parameter<std::vector<double>>(
+                "transform.imu_frame_t");
+        T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu_correction.data());
+
         std::vector<double> R_dvl_correction =
-            this->declare_parameter<std::vector<double>>("transform.dvl_frame_r");
+            this->declare_parameter<std::vector<double>>(
+                "transform.dvl_frame_r");
         R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
             R_dvl_correction.data());
 
         std::vector<double> T_dvl_correction =
-            this->declare_parameter<std::vector<double>>("transform.dvl_frame_t");
+            this->declare_parameter<std::vector<double>>(
+                "transform.dvl_frame_t");
         T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl_correction.data());
 
         std::vector<double> T_depth_correction =
-            this->declare_parameter<std::vector<double>>("transform.depth_frame_t");
+            this->declare_parameter<std::vector<double>>(
+                "transform.depth_frame_t");
         T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth_correction.data());
     }
 
@@ -137,9 +167,39 @@ void ESKFNode::set_parameters() {
     }
     Eigen::Matrix15d P = createDiagonalMatrix<15>(diag_p_init);
 
-    EskfParams eskf_params{.Q = Q, .P = P};
+    Eigen::Vector3d g_vec(0.0, 0.0, this->gravity);
+
+    std::vector<double> initial_gyro_bias =
+        this->declare_parameter<std::vector<double>>(
+            "initial_gyro_bias", std::vector<double>{0.0, 0.0, 0.0});
+    spdlog::info("initial_gyro_bias: [{}, {}, {}]", initial_gyro_bias[0],
+                 initial_gyro_bias[1], initial_gyro_bias[2]);
+    if (initial_gyro_bias.size() != 3) {
+        throw std::runtime_error("initial_gyro_bias must have length 3");
+    }
+
+    std::vector<double> initial_accel_bias =
+        this->declare_parameter<std::vector<double>>(
+            "initial_accel_bias", std::vector<double>{0.0, 0.0, 0.0});
+    spdlog::info("initial_accel_bias: [{}, {}, {}]", initial_accel_bias[0],
+                 initial_accel_bias[1], initial_accel_bias[2]);
+    if (initial_accel_bias.size() != 3) {
+        throw std::runtime_error("initial_accel_bias must have length 3");
+    }
+
+    EskfParams eskf_params{
+        .Q = Q,
+        .P = P,
+        .g_ = g_vec,
+        .initial_gyro_bias =
+            Eigen::Map<Eigen::Vector3d>(initial_gyro_bias.data()),
+        .initial_accel_bias =
+            Eigen::Map<Eigen::Vector3d>(initial_accel_bias.data())};
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
+
+    add_gravity_to_imu_ = this->declare_parameter<bool>("add_gravity_to_imu");
+    spdlog::info("add_gravity_to_imu: {}", add_gravity_to_imu_);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -177,7 +237,14 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 
     // a_corrected = a_meas - omega x (omega x T)
     Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
-    imu_measurement.accel = accel_aligned - centripetal_accel;
+    accel_aligned -= centripetal_accel;
+
+    if (add_gravity_to_imu_) {
+        Eigen::Matrix3d R = nom_state.quat.normalized().toRotationMatrix();
+        accel_aligned -= R.transpose() * eskf_->get_gravity();
+    }
+
+    imu_measurement.accel = accel_aligned;
 
     // save latest gyro readings (used for DVL correction and odom output)
     latest_gyro_measurement_ = imu_measurement.gyro;
@@ -215,7 +282,27 @@ void ESKFNode::dvl_callback(
     // Publish NIS in Debug mode
     std_msgs::msg::Float64 nis_msg;
     nis_msg.data = eskf_->get_nis();
-    nis_pub_->publish(nis_msg);
+    nis_dvl_pub_->publish(nis_msg);
+#endif
+}
+
+void ESKFNode::depth_callback(
+    const sensor_msgs::msg::FluidPressure::SharedPtr msg) {
+    SensorDepth depth_sensor;
+    // the simulation is a gauge sensor so we don't subtract atmospheric
+    // pressure.
+    depth_sensor.measurement =
+        -msg->fluid_pressure / (this->water_density * this->gravity);
+    depth_sensor.measurement_noise = msg->variance;
+
+    // spdlog::info("depth meas is: {}",depth_sensor.measurement);
+    eskf_->depth_update(depth_sensor);
+
+#ifndef NDEBUG
+    // Publish NIS in Debug mode
+    std_msgs::msg::Float64 nis_msg;
+    nis_msg.data = eskf_->get_nis();
+    nis_depth_pub_->publish(nis_msg);
 #endif
 }
 
@@ -299,6 +386,28 @@ void ESKFNode::publish_odom() {
     if (publish_tf_) {
         publish_tf(nom_state, current_time);
     }
+
+    if (publish_biases_) {
+        geometry_msgs::msg::Vector3Stamped accel_bias_msg;
+        accel_bias_msg.header.stamp = current_time;
+        accel_bias_msg.header.frame_id =
+            frame("base_link");  // Biases are in the body frame
+
+        accel_bias_msg.vector.x = nom_state.accel_bias.x();
+        accel_bias_msg.vector.y = nom_state.accel_bias.y();
+        accel_bias_msg.vector.z = nom_state.accel_bias.z();
+
+        accel_bias_pub_->publish(accel_bias_msg);
+
+        geometry_msgs::msg::Vector3Stamped gyro_bias_msg;
+        gyro_bias_msg.header = accel_bias_msg.header;
+
+        gyro_bias_msg.vector.x = nom_state.gyro_bias.x();
+        gyro_bias_msg.vector.y = nom_state.gyro_bias.y();
+        gyro_bias_msg.vector.z = nom_state.gyro_bias.z();
+
+        gyro_bias_pub_->publish(gyro_bias_msg);
+    }
 }
 
 void ESKFNode::lookup_static_transforms() {
@@ -306,6 +415,7 @@ void ESKFNode::lookup_static_transforms() {
         Tf_base_imu_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
             frame("base_link"), frame("imu_link"), tf2::TimePointZero));
         R_imu_eskf_ = Tf_base_imu_.rotation();
+        T_imu_eskf_ = Tf_base_imu_.translation();
 
         Tf_base_dvl_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
             frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
@@ -313,7 +423,8 @@ void ESKFNode::lookup_static_transforms() {
         T_dvl_eskf_ = Tf_base_dvl_.translation();
 
         Tf_base_depth_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
-            frame("base_link"), frame("pressure_sensor_link"), tf2::TimePointZero));
+            frame("base_link"), frame("pressure_sensor_link"),
+            tf2::TimePointZero));
         T_depth_eskf_ = Tf_base_depth_.translation();
 
         tf_sensors_loaded_ = true;
@@ -327,6 +438,12 @@ void ESKFNode::lookup_static_transforms() {
 
 void ESKFNode::complete_initialization() {
     set_subscribers_and_publisher();
+    // gravity, water density and atmospheric pressure.
+    this->gravity = -this->declare_parameter<double>("gravity", 9.81);
+    this->water_density =
+        this->declare_parameter<double>("water_density", 1000.0);
+    this->atmospheric_pressure =
+        this->declare_parameter<double>("atmospheric_pressure", 100000.0);
     set_parameters();
 
     time_step_ = std::chrono::milliseconds(
@@ -342,7 +459,8 @@ void ESKFNode::complete_initialization() {
 #endif
 }
 
-void ESKFNode::publish_tf(const StateQuat& nom_state, const rclcpp::Time& time) {
+void ESKFNode::publish_tf(const StateQuat& nom_state,
+                          const rclcpp::Time& time) {
     geometry_msgs::msg::TransformStamped tf_msg;
 
     tf_msg.header.stamp = time;
