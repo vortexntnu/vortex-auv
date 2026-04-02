@@ -8,6 +8,7 @@
 #include <rclcpp/parameter_event_handler.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include <array>
@@ -34,6 +35,13 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
      */
     void thruster_forces_callback(
         const vortex_msgs::msg::ThrusterForces::SharedPtr msg);
+
+    /**
+     * @brief receive camera light intensity in range [0.0, 1.0]
+     *
+     * @param msg Float32 intensity message
+     */
+    void camera_light_callback(const std_msgs::msg::Float32::SharedPtr msg);
 
     /**
      * @brief publish and send PWM commands to thrusters. Synchronous with
@@ -73,6 +81,7 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
 
     std::string subscriber_topic_name_;
     std::string publisher_topic_name_;
+    std::string camera_light_topic_name_;
 
     std::vector<ThrusterParameters> thruster_parameters_;
     std::vector<double> left_coeffs_;
@@ -86,6 +95,9 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
 
     rclcpp::Subscription<vortex_msgs::msg::ThrusterForces>::SharedPtr
         thruster_forces_subscriber_;  ///<-- thruster forces subscriber
+
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr
+        camera_light_subscriber_;  ///<-- camera light subscriber
 
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr
         thruster_pwm_publisher_;  ///<-- pwm publisher

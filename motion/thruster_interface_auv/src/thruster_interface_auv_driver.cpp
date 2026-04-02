@@ -242,7 +242,7 @@ int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
     std::vector<uint16_t> camera_light_pwm_array(1);
     camera_light_pwm_array[0] = 1100 + 800 * percentage;
 
-    const auto packet = create_packet(0x04, camera_light_pwm_array);
+    const auto packet = create_packet(0x05, camera_light_pwm_array);
     constexpr std::size_t header_size = 3;
 
     if (packet.size() < header_size) {

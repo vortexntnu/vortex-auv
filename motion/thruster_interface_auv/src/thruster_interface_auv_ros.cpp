@@ -35,6 +35,12 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             std::bind(&ThrusterInterfaceAUVNode::thruster_forces_callback, this,
                       std::placeholders::_1));
 
+    camera_light_subscriber_ =
+        this->create_subscription<std_msgs::msg::Float32>(
+            camera_light_topic_name_, qos_sensor_data,
+            std::bind(&ThrusterInterfaceAUVNode::camera_light_callback, this,
+                      std::placeholders::_1));
+
     thruster_pwm_publisher_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(
             publisher_topic_name_,
@@ -67,6 +73,18 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
 
     spdlog::info(start_message);
     initialize_pwm_logger();
+}
+
+void ThrusterInterfaceAUVNode::camera_light_callback(
+    const std_msgs::msg::Float32::SharedPtr msg) {
+    const float intensity = std::clamp(msg->data, 0.0f, 1.0f);
+
+    if (thruster_driver_->set_camera_light(intensity) != 0) {
+        spdlog::warn("Failed to set camera light intensity to {}", intensity);
+        return;
+    }
+
+    spdlog::debug("Camera light intensity set to {}", intensity);
 }
 
 void ThrusterInterfaceAUVNode::thruster_forces_callback(
@@ -210,6 +228,7 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     this->declare_parameter<std::string>("topics.thruster_forces");
     this->declare_parameter<std::string>("topics.pwm_output");
+    this->declare_parameter<std::string>("topics.camera_light");
 
     this->declare_parameter<bool>("debug.flag");
     this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
@@ -240,6 +259,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
         this->get_parameter("topics.thruster_forces").as_string();
     publisher_topic_name_ =
         this->get_parameter("topics.pwm_output").as_string();
+    camera_light_topic_name_ =
+        this->get_parameter("topics.camera_light").as_string();
 
     debug_flag_ = this->get_parameter("debug.flag").as_bool();
 
