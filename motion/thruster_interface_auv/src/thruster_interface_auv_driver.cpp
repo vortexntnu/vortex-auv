@@ -1,6 +1,7 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 
@@ -233,6 +234,50 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
 
     return 0;
 }
+
+int ThrusterInterfaceAUVDriver::send_camera_light_pwm(std::vector<uint16_t> camera_light_pwm_array) {
+    if (!serial_.is_open()) {
+        return -1;
+    }
+
+    const auto packet = create_packet(0x04, camera_light_pwm_array);
+    constexpr std::size_t header_size = 3;
+
+    if (packet.size() < header_size) {
+        return -1;
+    }
+
+    std::error_code ec;
+
+    // Send header first: [magic][id][length]
+    const auto header_bytes_written =
+        asio::write(serial_, asio::buffer(packet.data(), header_size), ec);
+
+    if (ec || header_bytes_written != header_size) {
+        std::cerr << "UART header write failed: "
+                  << (ec ? ec.message() : "short write") << '\n';
+        return -1;
+    }
+
+    // Small delay so the receiver can switch state
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+
+    // Send payload + checksum
+    const auto remaining_size = packet.size() - header_size;
+    const auto payload_bytes_written =
+        asio::write(serial_,
+                    asio::buffer(packet.data() + header_size, remaining_size),
+                    ec);
+
+    if (ec || payload_bytes_written != remaining_size) {
+        std::cerr << "UART payload write failed: "
+                  << (ec ? ec.message() : "short write") << '\n';
+        return -1;
+    }
+
+    return 0;
+}
+
 
 std::optional<std::vector<uint16_t>> ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {

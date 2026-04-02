@@ -84,6 +84,8 @@ public:
     std::optional<std::vector<std::uint16_t>> drive_thrusters(
         const std::vector<double>& thruster_forces_array);
 
+    int send_camera_light_pwm(std::vector<uint16_t> camera_light_pwm_array);
+
 private:
     /**
      * @brief only take the thruster forces and return PWM values
