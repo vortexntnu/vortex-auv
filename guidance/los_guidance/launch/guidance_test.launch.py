@@ -9,6 +9,7 @@ from launch.actions import (
     OpaqueFunction,
     TimerAction,
 )
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 
@@ -21,45 +22,22 @@ from auv_setup.launch_arg_common import (
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
     test_scenario = LaunchConfiguration("test_scenario").perform(context)
+    use_keyboard_joy = LaunchConfiguration("use_keyboard_joy")
 
     stonefish_dir = get_package_share_directory("stonefish_sim")
     los_guidance_dir = get_package_share_directory("los_guidance")
-    operation_mode_manager_dir = get_package_share_directory("operation_mode_manager")
-    velocity_controller_dir = get_package_share_directory('velocity_controller')
+    keyboard_joy_dir = get_package_share_directory("keyboard_joy")
+    velocity_controller_dir = get_package_share_directory("velocity_controller")
+    utility_dir = get_package_share_directory("vortex_utility_nodes")
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(stonefish_dir, "launch", "simulation.launch.py")
         ),
         launch_arguments={
-            "scenario": "default",
+            "drone": drone,
+            "scenario": "nautilus_no_gpu",
             "rendering": "true",
-        }.items(),
-    )
-    
-    vortex_sim_interface = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                vortex_sim_interface_dir, "launch", "vortex_sim_interface.launch.py"
-            )
-        ),
-        launch_arguments={
-            "drone": drone,
-            "namespace": namespace,
-        }.items(),
-    )
-
-    operation_mode_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                operation_mode_manager_dir,
-                "launch",
-                "operation_mode_manager.launch.py",
-            )
-        ),
-        launch_arguments={
-            "drone": drone,
-            "namespace": namespace,
         }.items(),
     )
 
@@ -73,10 +51,17 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
+    keyboard_joy = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(keyboard_joy_dir, "launch", "keyboard_joy_node.launch.py")
+        ),
+        condition=IfCondition(use_keyboard_joy),
+    )
+
     velocity_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                velocity_controller_dir, 'launch', 'velocity_controller.launch.py'
+                velocity_controller_dir, "launch", "velocity_controller.launch.py"
             )
         ),
         launch_arguments={
@@ -85,37 +70,19 @@ def launch_setup(context, *args, **kwargs):
         }.items(),
     )
 
-    orca_sim = TimerAction(
-        period=12.0,
-        actions=[
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    os.path.join(stonefish_dir, "launch", "drone_sim.launch.py")
-                )
-            )
-        ],
+    drone_sim = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(stonefish_dir, "launch", "drone_sim.launch.py")
+        ),
+        launch_arguments={
+            "drone": drone,
+        }.items(),
     )
 
-    set_autonomy = TimerAction(
-        period=12.0,
-        actions=[
-            ExecuteProcess(
-                cmd=[
-                    "bash",
-                    "-lc",
-                    (
-                        f"ros2 service call /{namespace}/set_killswitch "
-                        "vortex_msgs/srv/SetKillswitch "
-                        "\"{killswitch_on: false}\" "
-                        "&& "
-                        f"ros2 service call /{namespace}/set_operation_mode "
-                        "vortex_msgs/srv/SetOperationMode "
-                        "\"{requested_operation_mode: {operation_mode: 1}}\""
-                    ),
-                ],
-                output="screen",
-            ),
-        ],
+    utility_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(utility_dir, "launch", "message_publisher.launch.py")
+        )
     )
 
     run_test_scenario = TimerAction(
@@ -123,12 +90,13 @@ def launch_setup(context, *args, **kwargs):
         actions=[
             ExecuteProcess(
                 cmd=[
-                    "bash",
-                    "-lc",
-                    (
-                        f"python3 {os.path.join(los_guidance_dir, 'scripts', 'test_scenarios.py')} "
-                        f"--ros-args -p drone:={drone} -p test_scenario:={test_scenario}"
-                    ),
+                    "python3",
+                    os.path.join(los_guidance_dir, "scripts", "test_scenarios.py"),
+                    "--ros-args",
+                    "-p",
+                    f"drone:={drone}",
+                    "-p",
+                    f"test_scenario:={test_scenario}",
                 ],
                 output="screen",
             )
@@ -137,24 +105,28 @@ def launch_setup(context, *args, **kwargs):
 
     return [
         stonefish_sim,
-        #vortex_sim_interface,
-        #operation_mode_launch,
+        keyboard_joy,
         los_guidance_launch,
         velocity_controller_launch,
-        orca_sim,
-        set_autonomy,
+        drone_sim,
+        utility_node,
         run_test_scenario,
     ]
 
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args(default_drone="orca")
+        declare_drone_and_namespace_args(default_drone="nautilus")
         + [
             DeclareLaunchArgument(
                 "test_scenario",
-                default_value="square",
-                description="Scenario to run: square, circle, test_pitch, opposite_point",
+                default_value="4_corner",
+                description="Scenario to run: 4_corner, circle, test_pitch, opposite_point",
+            ),
+            DeclareLaunchArgument(
+                "use_keyboard_joy",
+                default_value="true",
+                description="Launch keyboard joy node",
             ),
             OpaqueFunction(function=launch_setup),
         ]
