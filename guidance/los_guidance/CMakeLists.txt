@@ -12,25 +12,34 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 
 include_directories(include)
 
 set(LIB_NAME los_guidance_lib)
 add_library(${LIB_NAME} SHARED
-  src/los_guidance.cpp
+  src/lib/proportional_los.cpp
+  src/lib/integral_los.cpp
+  src/lib/adaptive_los.cpp
   src/los_guidance_ros.cpp
+  src/lib/vector_field_los.cpp
 )
 
 ament_target_dependencies(${LIB_NAME}
   rclcpp
   rclcpp_action
+  rclcpp_components
   geometry_msgs
+  nav_msgs
   vortex_msgs
   vortex_utils_ros
   Eigen3
@@ -38,11 +47,14 @@ ament_target_dependencies(${LIB_NAME}
   fmt
 )
 
-add_executable(los_guidance_node
-  src/los_guidance_node.cpp
+target_link_libraries(${LIB_NAME}
+  yaml-cpp
 )
 
-target_link_libraries(los_guidance_node ${LIB_NAME})
+rclcpp_components_register_node(${LIB_NAME}
+  PLUGIN "vortex::guidance::los::LosGuidanceNode"
+  EXECUTABLE los_guidance_node
+)
 
 install(TARGETS
   ${LIB_NAME}
@@ -52,20 +64,20 @@ install(TARGETS
   RUNTIME DESTINATION bin
 )
 
-install(TARGETS
-  los_guidance_node
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION include/
 )
 
 install(DIRECTORY
   launch
   config
   DESTINATION share/${PROJECT_NAME}/
+)
+
+install(PROGRAMS
+  scripts/test_scenarios.py
+  DESTINATION share/${PROJECT_NAME}/scripts
 )
 
 if(BUILD_TESTING)

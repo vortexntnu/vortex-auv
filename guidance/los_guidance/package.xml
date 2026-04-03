@@ -11,11 +11,13 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
+  <depend>rclcpp_components</depend>
   <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>vortex_utils_ros</depend>
   <depend>eigen</depend>
-
+  <depend>yaml-cpp</depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

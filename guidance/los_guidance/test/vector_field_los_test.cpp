@@ -1,0 +1,111 @@
+#include "los_guidance/lib/vector_field_los.hpp"
+#include <gtest/gtest.h>
+#include "los_guidance/lib/proportional_los.hpp"
+
+namespace vortex::guidance::los {
+
+class VectorFieldLosTest : public ::testing::Test {
+   protected:
+    VectorFieldLosTest() : Vflos_{get_params()} {}
+
+    VectorFieldLosParams get_params() {
+        VectorFieldLosParams params;
+        params.max_approach_angle_h = 1.0;
+        params.max_approach_angle_v = 1.0;
+        params.proportional_gain_h = 1.5;
+        params.proportional_gain_v = 0.9;
+        params.time_step = 0.01;
+        return params;
+    }
+
+    VectorFieldLOSGuidance Vflos_;
+    const double tol = 1e-9;
+};
+
+// Test commanded angles when drone is to the right of the track
+TEST_F(VectorFieldLosTest, T01_test_commanded_angles) {
+    types::Inputs inputs;
+    inputs.prev_point = types::Point{0.0, 0.0, 0.0};
+    inputs.next_point = types::Point{1.0, 0.0, 0.0};
+    inputs.current_position = types::Point{0.0, 0.5, 0.0};
+
+    const types::Outputs O = Vflos_.calculate_outputs(inputs);
+
+    // Heading cmd should be between -pi/2 and 0
+    EXPECT_LT(O.psi_d, 0.0);
+    EXPECT_GT(O.psi_d, -1.57);
+
+    // Pitch cmd should be zero
+    EXPECT_NEAR(O.theta_d, 0.0, tol);
+}
+
+// Test commanded angles when drone is to the left of the track
+TEST_F(VectorFieldLosTest, T02_test_commanded_angles) {
+    types::Inputs inputs;
+    inputs.prev_point = types::Point{0.0, 0.0, 0.0};
+    inputs.next_point = types::Point{1.0, 0.0, 0.0};
+    inputs.current_position = types::Point{0.0, -0.5, 0.0};
+
+    const types::Outputs O = Vflos_.calculate_outputs(inputs);
+
+    // Heading cmd should be between 0 and pi/2
+    EXPECT_GT(O.psi_d, 0.0);
+    EXPECT_LT(O.psi_d, 1.57);
+
+    // Pitch cmd should be zero
+    EXPECT_NEAR(O.theta_d, 0.0, tol);
+}
+
+// Test commanded angles when drone is under the track
+TEST_F(VectorFieldLosTest, T03_test_commanded_angles) {
+    types::Inputs inputs;
+    inputs.prev_point = types::Point{0.0, 0.0, 0.0};
+    inputs.next_point = types::Point{1.0, 0.0, 0.0};
+    inputs.current_position = types::Point{0.0, 0.0, 0.5};
+
+    const types::Outputs O = Vflos_.calculate_outputs(inputs);
+
+    // Heading cmd should be 0
+    EXPECT_NEAR(O.psi_d, 0.0, tol);
+
+    // Pitch cmd should be between 0 and pi/2
+    EXPECT_LT(O.theta_d, 0.0);
+    EXPECT_GT(O.theta_d, -1.57);
+}
+
+// Test commanded angles when drone is above the track
+TEST_F(VectorFieldLosTest, T04_test_commanded_angles) {
+    types::Inputs inputs;
+    inputs.prev_point = types::Point{0.0, 0.0, 0.0};
+    inputs.next_point = types::Point{1.0, 0.0, 0.0};
+    inputs.current_position = types::Point{0.0, 0.0, -0.5};
+
+    const types::Outputs O = Vflos_.calculate_outputs(inputs);
+
+    // Heading cmd should be 0
+    EXPECT_NEAR(O.psi_d, 0.0, tol);
+
+    // Pitch cmd should be between -pi/2 and 0
+    EXPECT_GT(O.theta_d, 0.0);
+    EXPECT_LT(O.theta_d, 1.57);
+}
+
+// Test commanded angles when drone is above and to the right of the track
+TEST_F(VectorFieldLosTest, T05_test_commanded_angles) {
+    types::Inputs inputs;
+    inputs.prev_point = types::Point{0.0, 0.0, 0.0};
+    inputs.next_point = types::Point{1.0, 0.0, 0.0};
+    inputs.current_position = types::Point{0.0, 0.5, -0.5};
+
+    const types::Outputs O = Vflos_.calculate_outputs(inputs);
+
+    // Heading cmd should be between -pi/2 and 0
+    EXPECT_LT(O.psi_d, 0.0);
+    EXPECT_GT(O.psi_d, -1.57);
+
+    // Pitch cmd should be between -pi/2 and 0
+    EXPECT_GT(O.theta_d, 0.0);
+    EXPECT_LT(O.theta_d, 1.57);
+}
+
+}  // namespace vortex::guidance::los
