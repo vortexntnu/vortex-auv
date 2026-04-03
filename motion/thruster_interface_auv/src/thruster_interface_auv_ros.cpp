@@ -104,7 +104,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
     if (thruster_driver_->init_uart() != 0) {
         spdlog::error("Failed to initialize UART thruster driver");
     } else {
-        spdlog::info("UART thruster driver initialized on {} @ {} baud, packet id 0x{:02X}",
+        spdlog::info("UART thruster driver initialized on {} @ {} baud",
                      serial_device_, baud_rate_);
     }
 
