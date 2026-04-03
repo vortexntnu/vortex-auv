@@ -75,7 +75,6 @@ class ThrusterInterfaceAUVDriver {
     ThrusterInterfaceAUVDriver(
         const std::string& serial_device,
         unsigned int baud_rate,
-        std::uint8_t packet_id,
         const std::vector<ThrusterParameters>& thruster_parameters,
         const std::vector<double>& right_coeffs,
         const std::vector<double>& left_coeffs);
@@ -230,7 +229,6 @@ class ThrusterInterfaceAUVDriver {
 
     std::string serial_device_;
     unsigned int baud_rate_;
-    std::uint8_t packet_id_;
 
     asio::io_context io_;
     asio::serial_port serial_{io_};
