@@ -11,8 +11,8 @@ class WaypointTest(Node):
     def __init__(self):
         super().__init__("waypoint_test_client")
 
-        self.declare_parameter("test_scenario", "square")
-        self.declare_parameter("drone", "orca")
+        self.declare_parameter("test_scenario", "4_corner")
+        self.declare_parameter("drone", "nautilus")
 
         self.test_scenario = self.get_parameter("test_scenario").value
         self.drone = self.get_parameter("drone").value
@@ -41,7 +41,7 @@ class WaypointTest(Node):
         self.send_next_goal()
 
     def generate_waypoints(self, test_scenario):
-        if test_scenario == "square":
+        if test_scenario == "4_corner":
             s = self.square_size
             d = self.depth
             return [
@@ -66,7 +66,7 @@ class WaypointTest(Node):
 
         elif test_scenario == "test_pitch":
             # 0 = water surface, do not go above
-            # 3 = seabed/ground, do not touch
+            # this test scenario has no seabed, so z can be however we need.
             # Keep all depths safely between these
             return [
                 (3.0, 0.0, 1.0),  # slight up
@@ -84,9 +84,9 @@ class WaypointTest(Node):
 
         else:
             self.get_logger().warn(
-                f"Unknown test_scenario '{test_scenario}', defaulting to square"
+                f"Unknown test_scenario '{test_scenario}', defaulting to 4_corner"
             )
-            return self.generate_waypoints("square")
+            return self.generate_waypoints("4_corner")
 
     def send_next_goal(self):
         if self.current_index >= len(self.waypoints):
