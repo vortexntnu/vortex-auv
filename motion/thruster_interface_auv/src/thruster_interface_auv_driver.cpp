@@ -173,7 +173,7 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
         return -1;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     const auto remaining_size = packet.size() - header_size;
     const auto payload_bytes_written =
@@ -213,7 +213,7 @@ int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
         return -1;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     const auto remaining_size = packet.size() - header_size;
     const auto payload_bytes_written =
