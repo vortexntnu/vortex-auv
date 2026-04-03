@@ -47,6 +47,7 @@ def launch_setup(context, *args, **kwargs):
                 "connection_params.remote_ip": "10.0.0.42",
                 "connection_params.data_remote_port": 9000,
                 "connection_params.password": "",
+                "reset_pose_on_start": True,
                 "enable_imu": True,
                 "enable_ins_odom": True,
                 "enable_dvl": True,
