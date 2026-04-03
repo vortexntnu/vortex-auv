@@ -1,0 +1,25 @@
+/**:
+  ros__parameters:
+
+    PID_params:
+      surge: [300.0,10.0,5.0]
+      pitch: [60.0,8.0,12.0]
+      yaw: [10.0,1.0,5.0]
+
+    LQR_params:
+      Q: [200.0,32.84,32.84,15.0,15.0,100.0,32.84,32.84]
+      R: [0.02,3.1,3.10]
+    #TODO(henrimha): move these to the global parameter file
+    dampening_matrix_low:  [23.0,0.0,0.0,0.0,0.0,0.0, 0.0,46.0,0.0,0.0,0.0,0.0,  0.0,0.0,46.0,0.0,0.0,0.0,  0.0,0.0,0.0,46.0,0.0,0.0,  0.0,0.0,0.0,0.0,46.0,0.0, 0.0,0.0,0.0,0.0,0.0,46.0]
+    dampening_matrix_high: [1.0,0.0,0.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0,0.0,0.0,  0.0,0.0,1.0,0.0,0.0,0.0,  0.0,0.0,0.0,1.0,0.0,0.0,  0.0,0.0,0.0,0.0,1.0,0.0, 0.0,0.0,0.0,0.0,0.0,1.0]
+
+
+    Node_settings: #Settings for the controller
+      auto_start: false #0 for no, 1 for yes
+      reset_on_new_ref: true
+      odometry_dropout_guard: true
+    Control_manager_settings:
+      anti_overshoot: false
+      publish_rate: 100 #ms
+      max_force: 99.5
+      controller_type: 2 #1 PID 2 LQR
