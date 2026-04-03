@@ -14,6 +14,11 @@ AdaptiveLOSGuidance::AdaptiveLOSGuidance(const AdaptiveLosParams& params)
     }
 }
 
+void AdaptiveLOSGuidance::reset() {
+    beta_c_hat_ = 0.0;
+    alpha_c_hat_ = 0.0;
+}
+
 void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
     const double dx = inputs.next_point.x - inputs.prev_point.x;
     const double dy = inputs.next_point.y - inputs.prev_point.y;

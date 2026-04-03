@@ -27,7 +27,8 @@ def launch_setup(context, *args, **kwargs):
     stonefish_dir = get_package_share_directory("stonefish_sim")
     los_guidance_dir = get_package_share_directory("los_guidance")
     keyboard_joy_dir = get_package_share_directory("keyboard_joy")
-    velocity_controller_dir = get_package_share_directory("velocity_controller")
+    velocity_controller_dir = get_package_share_directory("velocity_controller_lqr")
+    utility_dir = get_package_share_directory("vortex_utility_nodes")
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -60,7 +61,7 @@ def launch_setup(context, *args, **kwargs):
     velocity_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                velocity_controller_dir, "launch", "velocity_controller.launch.py"
+                velocity_controller_dir, "launch", "velocity_controller_lqr.launch.py"
             )
         ),
         launch_arguments={
@@ -76,6 +77,12 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments={
             "drone": drone,
         }.items(),
+    )
+
+    utility_node = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(utility_dir, "launch", "message_publisher.launch.py")
+        )
     )
 
     run_test_scenario = TimerAction(
@@ -102,6 +109,7 @@ def launch_setup(context, *args, **kwargs):
         los_guidance_launch,
         velocity_controller_launch,
         drone_sim,
+        utility_node,
         run_test_scenario,
     ]
 

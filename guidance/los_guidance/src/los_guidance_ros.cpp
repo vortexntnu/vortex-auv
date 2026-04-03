@@ -411,6 +411,8 @@ void LosGuidanceNode::execute(
         lock.unlock();
     }
 
+    adaptive_los_->reset();
+
     auto result = std::make_shared<vortex_msgs::action::LOSGuidance::Result>();
     nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
     time_since_nearest_goal_ = 0.0;

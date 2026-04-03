@@ -24,10 +24,10 @@
 # * -
 # */
 adaptive_los:
-  lookahead_distance_h: 0.9
+  lookahead_distance_h: 2.0
   lookahead_distance_v: 1.4
-  adaptation_gain_h: 0.03
-  adaptation_gain_v: 0.02
+  adaptation_gain_h: 0.005
+  adaptation_gain_v: 0.005
 
 prop_los:
   lookahead_distance_h: 0.74

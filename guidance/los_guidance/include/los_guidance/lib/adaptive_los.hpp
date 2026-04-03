@@ -55,6 +55,11 @@ class AdaptiveLOSGuidance {
      */
     types::Outputs calculate_outputs(const types::Inputs& inputs);
 
+    /**
+     * @brief resets the adaptive values when new-segment starts
+     */
+    void reset();
+
    private:
     /**
      * @brief Updates the path heading and path pitch angles from the active
