@@ -28,12 +28,12 @@ using Nu = ::vortex::utils::types::Twist;
 
 struct J_transformation {
     Matrix3d R = Matrix3d::Identity();
-    Matrix4x3d T = Matrix4x3d::Zero();
+    Matrix3d T = Matrix3d::Zero();
 
-    Matrix7x6d as_matrix() const {
-        Matrix7x6d mat = Matrix7x6d::Zero();
+    Matrix6d as_matrix() const {
+        Matrix6d mat = Matrix6d::Zero();
         mat.block<3, 3>(0, 0) = R;
-        mat.block<4, 3>(3, 3) = T;
+        mat.block<3, 3>(3, 3) = T;
         return mat;
     }
 };

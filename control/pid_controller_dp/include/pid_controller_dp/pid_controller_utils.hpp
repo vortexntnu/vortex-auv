@@ -23,26 +23,26 @@ double ssa(double angle);
 // p.34 eq: 2.72
 types::Matrix3d calculate_R_quat(const types::Eta& eta);
 
-// @brief Calculate the transformation matrix from a quaternion
-// @param q: Quaternion represented as a 4D vector [w, x, y, z]
-// @return 4x3 transformation matrix
+// @brief Calculate the transformation sub-matrix from a quaternion.
+// Returns the bottom 3 rows of the full 4x3 T matrix (rows for qx, qy, qz
+// derivatives), giving a 3x3 mapping from body angular velocity to d/dt [qx,
+// qy, qz].
 // REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen 2021
 // p.35 eq: 2.78
-types::Matrix4x3d calculate_T_quat(const types::Eta& eta);
+types::Matrix3d calculate_T_quat(const types::Eta& eta);
 
-// @brief Calculate the Jacobian matrix
-// @param eta: 7D vector containing the vehicle pose [x, y, z, w, x, y, z]
-// @return 7x6 Jacobian matrix
-// REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen 2021
-// p.36 eq: 2.83
+// @brief Calculate the 6x6 Jacobian matrix using only the vector part of the
+// quaternion.
+// J = blockdiag(R, T_33) where T_33 maps body angular velocity to d/dt
+// [qx,qy,qz].
+// @param eta: vehicle pose [x, y, z, qw, qx, qy, qz]
+// @return 6x6 Jacobian matrix
 types::J_transformation calculate_J(const types::Eta& eta);
 
-// @brief Calculate the pseudo-inverse of the Jacobian matrix
-// @param eta: 7D vector containing the vehicle pose [x, y, z, w, x, y, z]
-// @return 6x7 pseudo-inverse Jacobian matrix
-// REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen 2021
-// p.34 eq: 2.72
-types::Matrix6x7d calculate_J_sudo_inv(const types::Eta& eta);
+// @brief Calculate the inverse of the 6x6 Jacobian matrix.
+// @param eta: vehicle pose [x, y, z, qw, qx, qy, qz]
+// @return 6x6 inverse Jacobian matrix
+types::Matrix6d calculate_J_sudo_inv(const types::Eta& eta);
 
 // @brief Calculate the error between the desired and actual vehicle pose
 // @param eta: 7D vector containing the actual vehicle pose [x, y, z, w, x, y,
@@ -63,15 +63,14 @@ Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
                              double min_val,
                              double max_val);
 
-// @brief Calculate the anti-windup term
+// @brief Calculate the anti-windup term using the 6D error [x,y,z,qx,qy,qz]
+// (qw is excluded since only the vector part of the quaternion is used).
 // @param dt: Time step
-// @param error: 7D vector containing the error between the desired and
-// actual vehicle pose [x, y, z, w, x, y, z]
-// @param integral: 7D vector containing the integral term of the PID
-// controller [x, y, z, w, x, y, z]
-// @return 7D vector containing the anti-windup term
-types::Vector7d anti_windup(const double dt,
+// @param error: Eta error struct (only x,y,z,qx,qy,qz are read)
+// @param integral: 6D integral term [x, y, z, qx, qy, qz]
+// @return 6D anti-windup clamped integral
+types::Vector6d anti_windup(const double dt,
                             const types::Eta& error,
-                            const types::Vector7d& integral);
+                            const types::Vector6d& integral);
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_

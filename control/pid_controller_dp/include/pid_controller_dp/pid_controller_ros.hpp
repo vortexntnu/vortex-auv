@@ -16,7 +16,7 @@
 #include <variant>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
-#include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
@@ -53,7 +53,7 @@ class PIDControllerNode : public rclcpp::Node {
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity
     void guidance_callback(
-        const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+        const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg);
 
     // @brief Callback function for the odometry topic
     // @param msg: Odometry message containing the AUV pose and speed
@@ -76,7 +76,7 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
-    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
+    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilterQuat>::SharedPtr
         guidance_sub_;
 
     rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kp_sub_;

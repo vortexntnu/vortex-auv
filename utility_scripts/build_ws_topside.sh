@@ -16,12 +16,19 @@ REPOS=(
   "vortex-ci"
 )
 
-# ---- Install dependencies script ----
+# ---- Install dependencies ----
 
-# python3 -m pip install --upgrade pip
-# install numpy, pynput, joy, wheel
-# install ros-humble-xacro, ros-humble-joy
-# run casadi install script
+echo "[DEPS] Upgrading pip..."
+python3 -m pip install --upgrade pip
+
+echo "[DEPS] Installing Python packages..."
+python3 -m pip install numpy pynput wheel
+
+echo "[DEPS] Installing ROS apt packages..."
+ROS_DISTRO="${ROS_DISTRO:-humble}"
+sudo apt-get install -y --no-install-recommends \
+  ros-${ROS_DISTRO}-xacro \
+  ros-${ROS_DISTRO}-joy
 
 # ------------ Clone missing repos ------------
 mkdir -p "$SRC_DIR"

@@ -45,7 +45,7 @@ class PIDController {
     types::Matrix6d Kp_;
     types::Matrix6d Ki_;
     types::Matrix6d Kd_;
-    types::Vector7d integral_;
+    types::Vector6d integral_;
     double dt_;
 };
 
