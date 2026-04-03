@@ -18,6 +18,9 @@
 #include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <vortex_msgs/msg/thruster_forces.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/uint8_multi_array.hpp>
 
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -68,6 +71,8 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
      * @brief specific callback for updating debug_flag.
      */
     void update_debug_flag(const rclcpp::Parameter& p);
+
+    void pwm_callback();
 
    private:
     std::string serial_device_;
