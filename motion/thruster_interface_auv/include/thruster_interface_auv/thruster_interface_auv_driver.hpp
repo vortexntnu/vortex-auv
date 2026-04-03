@@ -243,6 +243,12 @@ class ThrusterInterfaceAUVDriver {
 
     std::array<std::uint8_t, READ_CHUNK_SIZE> read_buf_{};
     std::vector<std::uint8_t> receive_buffer_;
+
+    FaultEventCallback fault_event_callback_;
+    PGoodEventCallback pgood_event_callback_;
+    KillswitchEventCallback killswitch_event_callback_;
+    CurrentMeasurementsCallback current_measurements_callback_;
+
 };
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
