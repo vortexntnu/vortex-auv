@@ -1,8 +1,7 @@
 /**:
   ros__parameters:
-    target_frame: "odom"
+    target_frame: "orca/odom"
     timer_rate_ms: 200
-    enu_ned_rotation: true
 
     track_config:
       default:
