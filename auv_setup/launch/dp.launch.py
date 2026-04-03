@@ -69,6 +69,11 @@ def launch_setup(context, *args, **kwargs):
             "config",
             "pid_params.yaml",
         )
+        filter_quat_file_path = os.path.join(
+            get_package_share_directory("reference_filter_dp_quat"),
+            "config",
+            "reference_filter_params.yaml",
+        )
         container = ComposableNodeContainer(
             name="dp_container",
             namespace=namespace,
@@ -76,11 +81,11 @@ def launch_setup(context, *args, **kwargs):
             executable="component_container_mt",
             composable_node_descriptions=[
                 ComposableNode(
-                    package="reference_filter_dp",
+                    package="reference_filter_dp_quat",
                     plugin="ReferenceFilterNode",
                     name="reference_filter_node",
                     namespace=namespace,
-                    parameters=[filter_file_path, drone_params],
+                    parameters=[filter_quat_file_path, drone_params],
                     extra_arguments=[{"use_intra_process_comms": True}],
                 ),
                 ComposableNode(
