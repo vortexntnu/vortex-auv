@@ -20,7 +20,7 @@
 #include <vortex_msgs/msg/thruster_forces.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
-#include <std_msgs/msg/uint8_multi_array.hpp>
+#include <std_msgs/msg/u_int8_multi_array.hpp>
 
 #include <spdlog/sinks/basic_file_sink.h>
 
