@@ -297,7 +297,7 @@ void DPAdaptBacksControllerNode::publish_tau() {
     tau_msg.wrench.force.z = tau(2);
 
     // comment out if roll control is not needed
-    //tau_msg.wrench.torque.x = tau(3);
+    tau_msg.wrench.torque.x = tau(3);
     tau_msg.wrench.torque.y = tau(4);
     tau_msg.wrench.torque.z = tau(5);
 
