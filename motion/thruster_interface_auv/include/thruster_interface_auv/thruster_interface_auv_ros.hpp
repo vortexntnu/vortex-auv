@@ -72,7 +72,6 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
    private:
     std::string serial_device_;
     unsigned int baud_rate_;
-    std::uint8_t packet_id_;
 
     std::string subscriber_topic_name_;
     std::string publisher_topic_name_;

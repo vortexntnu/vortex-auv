@@ -69,7 +69,6 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
         serial_device_,
         baud_rate_,
-        packet_id_,
         thruster_parameters_,
         right_coeffs_,
         left_coeffs_);
@@ -106,7 +105,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
         spdlog::error("Failed to initialize UART thruster driver");
     } else {
         spdlog::info("UART thruster driver initialized on {} @ {} baud, packet id 0x{:02X}",
-                     serial_device_, baud_rate_, packet_id_);
+                     serial_device_, baud_rate_);
     }
 
     thruster_forces_array_ = std::vector<double>(8, 0.0);
@@ -213,7 +212,6 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     this->declare_parameter<std::string>("uart.device");
     this->declare_parameter<int>("uart.baud_rate");
-    this->declare_parameter<int>("uart.packet_id");
 
     this->declare_parameter<std::string>("topics.thruster_forces");
     this->declare_parameter<std::string>("topics.pwm_output");
@@ -241,8 +239,6 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     serial_device_ = this->get_parameter("uart.device").as_string();
     baud_rate_ = static_cast<unsigned int>(
         this->get_parameter("uart.baud_rate").as_int());
-    packet_id_ = static_cast<std::uint8_t>(
-        this->get_parameter("uart.packet_id").as_int());
 
     subscriber_topic_name_ =
         this->get_parameter("topics.thruster_forces").as_string();

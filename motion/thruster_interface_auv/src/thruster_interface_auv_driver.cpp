@@ -13,13 +13,11 @@
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
     const std::string& serial_device,
     unsigned int baud_rate,
-    std::uint8_t packet_id,
     const std::vector<ThrusterParameters>& thruster_parameters,
     const std::vector<double>& right_coeffs,
     const std::vector<double>& left_coeffs)
     : serial_device_(serial_device),
       baud_rate_(baud_rate),
-      packet_id_(packet_id),
       thruster_parameters_(thruster_parameters),
       right_coeffs_(right_coeffs),
       left_coeffs_(left_coeffs) {

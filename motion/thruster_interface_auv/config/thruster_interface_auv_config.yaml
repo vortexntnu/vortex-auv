@@ -23,7 +23,6 @@
     uart:
       device: "/dev/serial0"
       baud_rate: 115200
-      packet_id: 4
 
     debug:
       flag: True
