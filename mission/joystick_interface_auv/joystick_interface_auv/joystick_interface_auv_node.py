@@ -117,9 +117,6 @@ class JoystickInterface(Node):
                 self.get_parameter(f'services.{param}').value,
             )
 
-        self.declare_parameter('topics.guidance.dp', Parameter.Type.STRING)
-        self.guidance_topic = self.get_parameter('topics.guidance.dp').value
-
         self.declare_parameter('orientation_mode', 'euler')
         self._orientation_mode = self.get_parameter('orientation_mode').value
         if self._orientation_mode not in ('euler', 'quat'):
@@ -127,6 +124,13 @@ class JoystickInterface(Node):
                 f"Unknown orientation_mode '{self._orientation_mode}', defaulting to 'euler'"
             )
             self._orientation_mode = 'euler'
+
+        self.declare_parameter('topics.guidance.dp_rpy', Parameter.Type.STRING)
+        self.declare_parameter('topics.guidance.dp_quat', Parameter.Type.STRING)
+        if self._orientation_mode == 'quat':
+            self.guidance_topic = self.get_parameter('topics.guidance.dp_quat').value
+        else:
+            self.guidance_topic = self.get_parameter('topics.guidance.dp_rpy').value
 
     def init_movement(self):
         self.surge = 0.0

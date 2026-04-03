@@ -40,9 +40,9 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
         vortex::utils::qos_profiles::sensor_data_profile(1)};
     const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
-    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.guidance.dp_rpy");
     std::string dp_reference_topic =
-        this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp_rpy").as_string();
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             dp_reference_topic, qos_sensor_data,

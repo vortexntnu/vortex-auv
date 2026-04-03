@@ -41,9 +41,9 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
-    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.guidance.dp_quat");
     std::string dp_reference_topic =
-        this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp_quat").as_string();
 
     this->declare_parameter<std::string>("topics.odom");
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
