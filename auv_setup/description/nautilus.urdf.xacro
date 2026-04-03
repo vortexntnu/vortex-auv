@@ -66,7 +66,7 @@
   <joint name="shoulder_joint" type="fixed">
     <parent link="base_link"/>
     <child link="shoulder"/>
-    <origin xyz="0.282589 0.07822 0.115803" rpy="0.0 0.0 0.0"/>
+    <origin xyz="0.282589 0.028 0.115803" rpy="0.0 0.0 0.0"/>
   </joint>
 
   <link name="arm"></link>
