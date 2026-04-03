@@ -46,6 +46,26 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             publisher_topic_name_,
             vortex::utils::qos_profiles::reliable_profile(1));
 
+    flt_event_publisher_ =
+        this->create_publisher<std_msgs::msg::UInt8MultiArray>(
+            "thruster_interface_auv/fault_event",
+            vortex::utils::qos_profiles::reliable_profile(10));
+
+    pgood_event_publisher_ =
+        this->create_publisher<std_msgs::msg::UInt8MultiArray>(
+            "thruster_interface_auv/pgood_event",
+            vortex::utils::qos_profiles::reliable_profile(10));
+
+    killswitch_event_publisher_ =
+        this->create_publisher<std_msgs::msg::Bool>(
+            "thruster_interface_auv/killswitch_event",
+            vortex::utils::qos_profiles::reliable_profile(10));
+
+    current_measurements_publisher_ =
+        this->create_publisher<std_msgs::msg::Float32MultiArray>(
+            "thruster_interface_auv/current_measurements",
+            vortex::utils::qos_profiles::sensor_data_profile(10));
+
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
         serial_device_,
         baud_rate_,
@@ -53,6 +73,34 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
         thruster_parameters_,
         right_coeffs_,
         left_coeffs_);
+
+    thruster_driver_->set_fault_event_callback(
+        [this](std::uint8_t channel, std::uint8_t code) {
+            std_msgs::msg::UInt8MultiArray msg;
+            msg.data = {channel, code};
+            flt_event_publisher_->publish(msg);
+        });
+
+    thruster_driver_->set_pgood_event_callback(
+        [this](std::uint8_t channel, std::uint8_t code) {
+            std_msgs::msg::UInt8MultiArray msg;
+            msg.data = {channel, code};
+            pgood_event_publisher_->publish(msg);
+        });
+
+    thruster_driver_->set_killswitch_event_callback(
+        [this]() {
+            std_msgs::msg::Bool msg;
+            msg.data = true;
+            killswitch_event_publisher_->publish(msg);
+        });
+
+    thruster_driver_->set_current_measurements_callback(
+        [this](const std::array<float, 8>& currents) {
+            std_msgs::msg::Float32MultiArray msg;
+            msg.data.assign(currents.begin(), currents.end());
+            current_measurements_publisher_->publish(msg);
+        });
 
     if (thruster_driver_->init_uart() != 0) {
         spdlog::error("Failed to initialize UART thruster driver");

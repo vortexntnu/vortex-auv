@@ -1,12 +1,14 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
-#include <utility>
 #include <asio.hpp>
+#include <utility>
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 /**
@@ -23,6 +25,17 @@ enum PolySide {
     LEFT = 0,
     RIGHT = 1
 };  // vector index for the position of the coefficients in the coeff vector
+
+using FaultEventCallback =
+    std::function<void(std::uint8_t channel, std::uint8_t code)>;
+
+using PGoodEventCallback =
+    std::function<void(std::uint8_t channel, std::uint8_t code)>;
+
+using KillswitchEventCallback = std::function<void()>;
+
+using CurrentMeasurementsCallback =
+    std::function<void(const std::array<float, 8>& currents)>;
 
 /**
  * @brief class instantiated by ThrusterInterfaceAUVNode to control the
@@ -42,7 +55,7 @@ enum PolySide {
  * [magic][id][length][payload][checksum], where the payload is 8 uint16_t.
  */
 class ThrusterInterfaceAUVDriver {
-public:
+   public:
     ~ThrusterInterfaceAUVDriver();
 
     /**
@@ -55,7 +68,8 @@ public:
      * @param packet_id             packet ID sent in the UART frame
      * @param thruster_parameters   describe mapping, direction, min and max pwm
      *                              value for each thruster
-     * @param right_coeffs          RIGHT(>0) third order polynomial coefficients
+     * @param right_coeffs          RIGHT(>0) third order polynomial
+     * coefficients
      * @param left_coeffs           LEFT(<0) third order polynomial coefficients
      */
     ThrusterInterfaceAUVDriver(
@@ -93,7 +107,13 @@ public:
      */
     int set_camera_light(float percentage);
 
-private:
+    void set_fault_event_callback(FaultEventCallback callback);
+    void set_pgood_event_callback(PGoodEventCallback callback);
+    void set_killswitch_event_callback(KillswitchEventCallback callback);
+    void set_current_measurements_callback(
+        CurrentMeasurementsCallback callback);
+
+   private:
     /**
      * @brief only take the thruster forces and return PWM values
      *
@@ -156,18 +176,73 @@ private:
      */
     static constexpr double to_kg(double force) { return force / 9.80665; }
 
-private:
+    /**
+     * @brief start the asynchronous UART receive loop
+     */
+    void start_receive();
+
+    /**
+     * @brief issue one asynchronous read on the UART port
+     */
+    void do_receive();
+
+    /**
+     * @brief process the accumulated receive buffer and extract valid frames
+     */
+    void process_receive_buffer();
+
+    /**
+     * @brief handle one decoded UART frame
+     *
+     * @param frame_bytes complete frame bytes including header and checksum
+     */
+    void handle_received_frame(const std::vector<std::uint8_t>& frame_bytes);
+
+    /**
+     * @brief compute checksum for framed UART packets
+     *
+     * @param msg_id message id
+     * @param length payload length
+     * @param payload pointer to payload bytes
+     *
+     * @return checksum byte
+     */
+    static std::uint8_t compute_checksum(std::uint8_t msg_id,
+                                         std::uint8_t length,
+                                         const std::uint8_t* payload);
+
+   private:
+    static constexpr std::uint8_t UART_START_BYTE = 0xAA;
+    static constexpr std::size_t MAX_PAYLOAD_SIZE = 64;
+    static constexpr std::size_t READ_CHUNK_SIZE = 256;
+
+    // Outgoing
+    static constexpr std::uint8_t MSG_TURN_THRUSTERS_OFF = 0x01U;
+    static constexpr std::uint8_t MSG_TURN_LIGHTS_OFF = 0x02U;
+    static constexpr std::uint8_t MSG_RESET = 0x03;
+    static constexpr std::uint8_t MSG_SET_THRUSTER_PWM = 0x04;
+    static constexpr std::uint8_t MSG_SET_LIGHT_PWM = 0x05;
+    // Incoming
+    static constexpr std::uint8_t MSG_FLT_EVENT = 0x10;
+    static constexpr std::uint8_t MSG_PGOOD_EVENT = 0x11;
+    static constexpr std::uint8_t MSG_KILLSWITCH_EVENT = 0x12;
+    static constexpr std::uint8_t MSG_CURRENT_MEASUREMENTS = 0x13;
+
     std::string serial_device_;
     unsigned int baud_rate_;
     std::uint8_t packet_id_;
 
     asio::io_context io_;
     asio::serial_port serial_{io_};
+    std::thread io_thread_;
 
     std::vector<ThrusterParameters> thruster_parameters_;
     std::vector<double> right_coeffs_;
     std::vector<double> left_coeffs_;
     std::uint16_t idle_pwm_value_{1500};
+
+    std::array<std::uint8_t, READ_CHUNK_SIZE> read_buf_{};
+    std::vector<std::uint8_t> receive_buffer_;
 };
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_

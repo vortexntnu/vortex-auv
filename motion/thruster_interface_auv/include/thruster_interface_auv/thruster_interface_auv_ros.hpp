@@ -1,22 +1,23 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <rclcpp/parameter_event_handler.hpp>
-#include <rclcpp/qos.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/float32.hpp>
-#include <std_msgs/msg/int16_multi_array.hpp>
-#include <vortex_msgs/msg/thruster_forces.hpp>
 #include <array>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <rclcpp/parameter_event_handler.hpp>
+#include <rclcpp/qos.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <sstream>
+#include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/int16_multi_array.hpp>
+#include <vortex_msgs/msg/thruster_forces.hpp>
 
 #include <spdlog/sinks/basic_file_sink.h>
 
@@ -101,6 +102,15 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
 
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr
         thruster_pwm_publisher_;  ///<-- pwm publisher
+
+    rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr
+        flt_event_publisher_;
+    rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr
+        pgood_event_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr
+        killswitch_event_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr
+        current_measurements_publisher_;
 
     rclcpp::TimerBase::SharedPtr watchdog_timer_;
     rclcpp::Time last_msg_time_;
