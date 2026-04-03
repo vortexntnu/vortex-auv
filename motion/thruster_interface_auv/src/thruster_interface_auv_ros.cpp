@@ -120,7 +120,6 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
     this->initialize_parameter_handler();
 
     spdlog::info(start_message);
-    initialize_pwm_logger();
 }
 
 void ThrusterInterfaceAUVNode::camera_light_callback(
@@ -156,17 +155,6 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
 
     const auto& thruster_pwm_array = thruster_pwm_array_opt.value();
 
-    if (pwm_csv_logger_) {
-        std::ostringstream row;
-        row << make_csv_timestamp();
-
-        for (const auto pwm : thruster_pwm_array) {
-            row << "," << pwm;
-        }
-
-        pwm_csv_logger_->info(row.str());
-    }
-
     if (debug_flag_) {
         std_msgs::msg::Int16MultiArray pwm_message;
         pwm_message.data = std::vector<std::int16_t>(
@@ -176,53 +164,6 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
     }
 }
 
-std::string ThrusterInterfaceAUVNode::make_pwm_log_filename() const {
-    const auto now = std::chrono::system_clock::now();
-    const auto t = std::chrono::system_clock::to_time_t(now);
-
-    std::tm tm{};
-    localtime_r(&t, &tm);
-
-    std::ostringstream oss;
-    oss << "can_log_"
-        << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S")
-        << ".csv";
-
-    return oss.str();
-}
-
-std::string ThrusterInterfaceAUVNode::make_csv_timestamp() const {
-    const auto now = std::chrono::system_clock::now();
-    const auto t = std::chrono::system_clock::to_time_t(now);
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        now.time_since_epoch()) %
-                    1000;
-
-    std::tm tm{};
-    localtime_r(&t, &tm);
-
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S")
-        << "." << std::setw(3) << std::setfill('0') << ms.count();
-
-    return oss.str();
-}
-
-void ThrusterInterfaceAUVNode::initialize_pwm_logger() {
-    const auto filename = make_pwm_log_filename();
-
-    pwm_csv_logger_ =
-        spdlog::basic_logger_mt("pwm_csv_logger", filename);
-
-    // Only write the message body, since we format CSV ourselves
-    pwm_csv_logger_->set_pattern("%v");
-
-    // Write CSV header once
-    pwm_csv_logger_->info(
-        "timestamp,pwm_0,pwm_1,pwm_2,pwm_3,pwm_4,pwm_5,pwm_6,pwm_7");
-
-    spdlog::info("PWM CSV logging enabled: {}", filename);
-}
 
 void ThrusterInterfaceAUVNode::watchdog_callback() {
     const auto now = this->now();

@@ -45,12 +45,6 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     void camera_light_callback(const std_msgs::msg::Float32::SharedPtr msg);
 
     /**
-     * @brief publish and send PWM commands to thrusters. Synchronous with
-     * thruster_forces_callback
-     */
-    void pwm_callback();
-
-    /**
      * @brief watchdog callback to check if thruster forces are being received
      */
     void watchdog_callback();
@@ -116,11 +110,6 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
     rclcpp::Time last_msg_time_;
     rclcpp::Duration watchdog_timeout_ = rclcpp::Duration::from_seconds(1.0);
     bool watchdog_triggered_ = false;
-    std::shared_ptr<spdlog::logger> pwm_csv_logger_;
-    std::string make_pwm_log_filename() const;
-    std::string make_csv_timestamp() const;
-    void initialize_pwm_logger();
-
     /**
      * @brief Manages parameter events for the node.
      *
