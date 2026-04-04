@@ -27,6 +27,14 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100
 sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-13 100
 
+# Install asio
+sudo apt-get update -qq
+sudo apt-get install -y \
+ build-essential \
+    cmake \
+    git \
+    libasio-dev
+
 # Install casadi using CasADi install script
 "$SCRIPT_DIR/install_casadi.sh"
 
