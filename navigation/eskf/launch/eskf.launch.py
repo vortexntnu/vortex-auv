@@ -1,18 +1,14 @@
 import os
-from os import path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
     resolve_drone_and_namespace,
-)
-
-eskf_params = path.join(
-    get_package_share_directory("eskf"), "config", "eskf_params.yaml"
 )
 
 
@@ -25,18 +21,28 @@ def launch_setup(context, *args, **kwargs):
         "robots",
         f"{drone}.yaml",
     )
-    drone_env_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "environments",
-        "trondheim_saltwater.yaml",
+
+    use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
+
+    if use_sim:
+        param_file_name = "eskf_params.yaml"
+    else:
+        param_file_name = "eskf_params_real_world.yaml"
+
+    eskf_params = os.path.join(
+        get_package_share_directory("eskf"), "config", param_file_name
     )
+
     eskf_node = Node(
         package="eskf",
         executable="eskf_node",
         name="eskf_node",
         namespace=namespace,
-        parameters=[eskf_params, drone_params, drone_env_params],
+        parameters=[
+            eskf_params,
+            drone_params,
+            {"frame_prefix": namespace},
+        ],
         output="screen",
     )
 
@@ -44,7 +50,13 @@ def launch_setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    # This function defines WHAT to do, but doesn't execute the logic yet
+    sim_arg = DeclareLaunchArgument(
+        'use_sim',
+        default_value='false',
+        description='Set to "false" to load real-world hardware parameters.',
+    )
     return LaunchDescription(
-        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
+        [sim_arg]
+        + declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
     )
