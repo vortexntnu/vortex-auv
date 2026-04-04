@@ -31,11 +31,7 @@ def launch_setup(context, *args, **kwargs):
 
     extra_params = {}
     if rpy_publish:
-        extra_params = {
-            "publish_rpy_debug": True,
-            "topics.guidance.dp_rpy": "guidance/dp",
-            "topics.guidance.dp": "guidance/dp_quat",
-        }
+        extra_params = {"publish_rpy_debug": True}
 
     return [
         Node(

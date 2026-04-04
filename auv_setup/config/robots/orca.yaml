@@ -134,7 +134,8 @@
       waypoint: "waypoint"
       guidance:
         los: "guidance/los"
-        dp: "guidance/dp"
+        dp_rpy: "guidance/dp_rpy"
+        dp_quat: "guidance/dp_quat"
       fsm:
         active_controller: "fsm/active_controller"
       dvl_twist: "dvl/twist"

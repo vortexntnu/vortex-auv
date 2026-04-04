@@ -2,7 +2,7 @@
 #include "pid_controller_dp/pid_controller_utils.hpp"
 
 void print_eta(const types::Eta& eta) {
-    // spdlog::info("Eta values:");
+    spdlog::info("Eta values:");
     auto pos = eta.pos_vector();
     auto ori = eta.ori_quaternion();
     spdlog::info("Position - North: {}, East: {}, Down: {}", pos[0], pos[1],
@@ -71,7 +71,7 @@ PIDController::PIDController()
     : Kp_(types::Matrix6d::Identity()),
       Ki_(types::Matrix6d::Zero()),
       Kd_(types::Matrix6d::Zero()),
-      integral_(types::Vector7d::Zero()),
+      integral_(types::Vector6d::Zero()),
       dt_(0.01) {}
 
 types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
@@ -80,26 +80,24 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
                                              const types::Eta& eta_dot_d) {
     types::Eta error = error_eta(eta, eta_d);  // calculate eta error
 
-    // set quaternion scalar part w = 0 (only use vector part of quaternion for
-    // error)
-    error.qw = 0.0;
+    // Only use the vector part of the quaternion for orientation error.
+    types::Vector6d error_6;
+    error_6 << error.x, error.y, error.z, error.qx, error.qy, error.qz;
 
-    auto eta_dot_d_copy = eta_dot_d;
-    eta_dot_d_copy.qw = 0.0;  // set w = 0 for desired eta_dot
+    // Desired velocity: also drop qw, keeping [x,y,z,qx,qy,qz] derivatives.
+    types::Vector6d eta_dot_d_6;
+    eta_dot_d_6 << eta_dot_d.x, eta_dot_d.y, eta_dot_d.z,
+                   eta_dot_d.qx, eta_dot_d.qy, eta_dot_d.qz;
 
-    types::Matrix6x7d J_inv =
-        calculate_J_sudo_inv(eta);  // calculate J pseudo inverse
+    // 6x6 J inverse: blockdiag(R, T_33)^{-1}
+    types::Matrix6d J_inv = calculate_J_sudo_inv(eta);
 
-    types::Vector6d nu_d =
-        J_inv * eta_dot_d_copy.to_vector();  // calculate velocity
+    types::Vector6d nu_d = J_inv * eta_dot_d_6;       // desired body velocity
+    types::Vector6d error_nu = nu.to_vector() - nu_d;  // velocity error
 
-    types::Vector6d error_nu = nu.to_vector() - nu_d;  // calculate vel error
-
-    types::Vector6d P = Kp_ * J_inv * error.to_vector();  // P term
-
+    types::Vector6d P = Kp_ * J_inv * error_6;   // P term
     types::Vector6d I = Ki_ * J_inv * integral_;  // I term
-
-    types::Vector6d D = Kd_ * error_nu;  // D term
+    types::Vector6d D = Kd_ * error_nu;           // D term
 
     types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
 

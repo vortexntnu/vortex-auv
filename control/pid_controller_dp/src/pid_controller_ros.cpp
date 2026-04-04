@@ -1,6 +1,6 @@
 #include <pid_controller_dp/pid_controller_ros.hpp>
-#include <rclcpp_components/register_node_macro.hpp>
 #include <rclcpp/logging.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <variant>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
@@ -18,7 +18,7 @@ constexpr std::string_view start_message = R"(
 
 )";
 
-PIDControllerNode::PIDControllerNode(const rclcpp::NodeOptions & options)
+PIDControllerNode::PIDControllerNode(const rclcpp::NodeOptions& options)
     : Node("pid_controller_node", options) {
     time_step_ = std::chrono::milliseconds(10);
 
@@ -41,9 +41,9 @@ void PIDControllerNode::set_subscribers_and_publisher() {
         rclcpp::QoSInitialization(qos_profile.history, 1), qos_profile);
     const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
-    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.guidance.dp_quat");
     std::string dp_reference_topic =
-        this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp_quat").as_string();
 
     this->declare_parameter<std::string>("topics.odom");
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
@@ -76,7 +76,7 @@ void PIDControllerNode::set_subscribers_and_publisher() {
                   std::placeholders::_1));
 
     guidance_sub_ =
-        this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
+        this->create_subscription<vortex_msgs::msg::ReferenceFilterQuat>(
             dp_reference_topic, qos_sensor_data,
             std::bind(&PIDControllerNode::guidance_callback, this,
                       std::placeholders::_1));
@@ -215,26 +215,17 @@ void PIDControllerNode::set_pid_params() {
 }
 
 void PIDControllerNode::guidance_callback(
-    const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
+    const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
     // Set desired position
     eta_d_.x = msg->x;
     eta_d_.y = msg->y;
     eta_d_.z = msg->z;
 
-    // Convert desired attitude (roll, pitch, yaw) to quaternion and store
-    double roll = msg->roll;
-    double pitch = msg->pitch;
-    double yaw = msg->yaw;
-
-    Eigen::Quaterniond quat =
-        Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) *
-        Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY()) *
-        Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-
-    eta_d_.qw = quat.w();
-    eta_d_.qx = quat.x();
-    eta_d_.qy = quat.y();
-    eta_d_.qz = quat.z();
+    // set desired ori quaternion
+    eta_d_.qw = msg->qw;
+    eta_d_.qx = msg->qx;
+    eta_d_.qy = msg->qy;
+    eta_d_.qz = msg->qz;
 }
 
 rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(
