@@ -10,9 +10,11 @@
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/fluid_pressure.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
@@ -43,6 +45,8 @@ class ESKFNode : public rclcpp::Node {
     void dvl_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
+    void depth_callback(const sensor_msgs::msg::FluidPressure::SharedPtr msg);
+
     // @brief Publish the odometry message
     void publish_odom();
 
@@ -53,26 +57,22 @@ class ESKFNode : public rclcpp::Node {
     void set_parameters();
 
     // @brief lookup transforms
-    void initialize_static_transforms();
+    void lookup_static_transforms();
 
-    // @brief broadcast the State as a TF
-    void publish_tf(const StateQuat& nom_state);
+    // @brief Create subs/pubs and start the publish timer. Called once
+    // transforms are available (or immediately if use_tf_transforms_ is false).
+    void complete_initialization();
 
+    // @brief Set up visual odometry/landmark egomotion
     void setup_vo(const EskfParams& eskf_params);
 
+    // @brief Callback function for the landmark topic
     void landmark_callback(
         const vortex_msgs::msg::LandmarkArray::SharedPtr msg);
 
-    LandmarkESKF* landmark_eskf_{nullptr};
-
-    rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
-        landmark_sub_;
-
-    std::string vo_base_frame_;
-    std::string vo_cam_frame_;
-    bool have_last_marker_{false};
-    uint16_t last_marker_id_{0};
-    int vo_rejects_limit_{0};
+    // @brief broadcast the State as a TF
+    void publish_tf(const StateQuat& nom_state,
+                    const rclcpp::Time& current_time);
 
     // Subscribers and Publishers
 
@@ -81,17 +81,45 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr dvl_sub_;
 
+    rclcpp::Subscription<sensor_msgs::msg::FluidPressure>::SharedPtr depth_sub_;
+
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
 
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
+        pose_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
+        twist_pub_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_dvl_pub_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+        accel_bias_pub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+        gyro_bias_pub_;
 
     // Member variable for the ESKF instance
 
-    std::chrono::milliseconds time_step;
+    std::chrono::milliseconds time_step_{1};
 
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
 
     std::unique_ptr<ESKF> eskf_;
+
+    // Non-owning pointer to LandmarkESKF
+    LandmarkESKF* landmark_eskf_{nullptr};
+
+    rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
+        landmark_sub_;
+
+    std::string vo_base_frame_{};
+    std::string vo_cam_frame_{};
+    int vo_rejects_limit_{0};
+    uint16_t last_marker_id_{0};
+    bool have_last_marker_{false};
 
     bool first_imu_msg_received_ = false;
 
@@ -114,14 +142,29 @@ class ESKFNode : public rclcpp::Node {
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::TimerBase::SharedPtr tf_timer_;
 
+    std::string frame(const std::string& name) const {
+        return frame_prefix_.empty() ? name : frame_prefix_ + "/" + name;
+    }
+
     // Flags and Storage
+    std::string frame_prefix_{""};
     bool use_tf_transforms_ = false;
     bool tf_sensors_loaded_ = false;
+    bool publish_tf_{false};
+    bool publish_pose_{false};
+    bool publish_twist_{false};
+    bool publish_biases_{false};
+    bool add_gravity_to_imu_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
+
+    // gravity, water density and atmospheric pressure parameters
+    double gravity;
+    double water_density;
+    double atmospheric_pressure;
 };
 
 #endif  // ESKF__ROS__ESKF_ROS_HPP_
