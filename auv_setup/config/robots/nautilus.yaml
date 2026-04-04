@@ -122,6 +122,8 @@
       sonar_info: "fls/sonar_info"
       pressure_sensor: "pressure_sensor"
       gripper_servos: "gripper_servos"
+      camera_light: "camera_light"
+       
 
 
     action_servers:
