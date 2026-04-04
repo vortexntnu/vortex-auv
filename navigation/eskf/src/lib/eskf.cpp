@@ -1,9 +1,9 @@
-#include "eskf/eskf.hpp"
+#include "eskf/lib/eskf.hpp"
 #include <functional>
 #include <iterator>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <vortex/utils/math.hpp>
-#include "eskf/typedefs.hpp"
+#include "eskf/lib/typedefs.hpp"
 
 double compute_nis(const Eigen::VectorXd& innovation,
                    const Eigen::MatrixXd& S) {

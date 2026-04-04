@@ -2,8 +2,8 @@
  * @file typedefs.hpp
  * @brief Contains the typedef and structs for the eskf.
  */
-#ifndef ESKF__TYPEDEFS_HPP_
-#define ESKF__TYPEDEFS_HPP_
+#ifndef ESKF__LIB__TYPEDEFS_HPP_
+#define ESKF__LIB__TYPEDEFS_HPP_
 
 #include <concepts>
 #include <eigen3/Eigen/Dense>
@@ -135,4 +135,4 @@ struct SensorDepth {
     Eigen::MatrixXd noise_covariance() const;
 };
 
-#endif  // ESKF__TYPEDEFS_HPP_
+#endif  // ESKF__LIB__TYPEDEFS_HPP_

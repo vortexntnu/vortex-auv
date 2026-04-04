@@ -1,8 +1,8 @@
-#include "eskf/eskf_ros.hpp"
+#include "eskf/ros/eskf_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
-#include "eskf/typedefs.hpp"
+#include "eskf/lib/typedefs.hpp"
 
 auto start_message{R"(
      ________   ______   ___  ____   ________
@@ -200,6 +200,73 @@ void ESKFNode::set_parameters() {
 
     add_gravity_to_imu_ = this->declare_parameter<bool>("add_gravity_to_imu");
     spdlog::info("add_gravity_to_imu: {}", add_gravity_to_imu_);
+
+    this->declare_parameter<bool>("use_landmark_egomotion");
+    if (this->get_parameter("use_landmark_egomotion").as_bool()) {
+        setup_vo(eskf_params);
+    }
+}
+
+void ESKFNode::setup_vo(const EskfParams& eskf_params) {
+    auto landmark_eskf = std::make_unique<LandmarkESKF>(eskf_params);
+    landmark_eskf_ = landmark_eskf.get();
+    eskf_ = std::move(landmark_eskf);
+
+    this->declare_parameter<std::string>("vo.landmarks_topic");
+    this->declare_parameter<std::string>("vo.base_frame");
+    this->declare_parameter<std::string>("vo.camera_frame");
+    this->declare_parameter<bool>("vo.disable_gating");
+
+    this->declare_parameter<double>("vo.nis_gate_pose");
+    this->declare_parameter<double>("vo.nis_gate_velocity");
+    this->declare_parameter<double>("vo.dropout_timeout");
+    this->declare_parameter<int>("vo.rejects_limit");
+    this->declare_parameter<double>("vo.pos_floor");
+    this->declare_parameter<double>("vo.att_floor");
+    this->declare_parameter<double>("vo.vel_floor");
+    this->declare_parameter<double>("vo.dt_min");
+    this->declare_parameter<double>("vo.dt_max");
+    this->declare_parameter<bool>("vo.use_sw");
+    this->declare_parameter<int>("vo.window_size");
+    this->declare_parameter<double>("vo.max_age");
+    this->declare_parameter<double>("vo.huber_deg");
+    this->declare_parameter<double>("vo.gate_deg");
+
+    vo_base_frame_ = this->get_parameter("vo.base_frame").as_string();
+    vo_cam_frame_ = this->get_parameter("vo.camera_frame").as_string();
+
+    VoConfig vo_cfg;
+    vo_cfg.nis_gate_pose = this->get_parameter("vo.nis_gate_pose").as_double();
+    vo_cfg.nis_gate_vel =
+        this->get_parameter("vo.nis_gate_velocity").as_double();
+    vo_cfg.dropout_timeout =
+        this->get_parameter("vo.dropout_timeout").as_double();
+    vo_cfg.rejects_limit = this->get_parameter("vo.rejects_limit").as_int();
+    vo_cfg.pos_floor = this->get_parameter("vo.pos_floor").as_double();
+    vo_cfg.att_floor = this->get_parameter("vo.att_floor").as_double();
+    vo_cfg.vel_floor = this->get_parameter("vo.vel_floor").as_double();
+    vo_cfg.dt_min = this->get_parameter("vo.dt_min").as_double();
+    vo_cfg.dt_max = this->get_parameter("vo.dt_max").as_double();
+    vo_cfg.use_sw = this->get_parameter("vo.use_sw").as_bool();
+    vo_cfg.sw_window_size = this->get_parameter("vo.window_size").as_int();
+    vo_cfg.sw_max_age = this->get_parameter("vo.max_age").as_double();
+    vo_cfg.sw_huber_deg = this->get_parameter("vo.huber_deg").as_double();
+    vo_cfg.sw_gate_deg = this->get_parameter("vo.gate_deg").as_double();
+
+    landmark_eskf_->set_vo_enabled(true);
+    landmark_eskf_->set_nis_gating_enabled(
+        !this->get_parameter("vo.disable_gating").as_bool());
+    landmark_eskf_->set_vo_config(vo_cfg);
+    vo_rejects_limit_ = vo_cfg.rejects_limit;
+
+    std::string landmarks_topic =
+        this->get_parameter("vo.landmarks_topic").as_string();
+    landmark_sub_ = this->create_subscription<vortex_msgs::msg::LandmarkArray>(
+        landmarks_topic, rclcpp::SensorDataQoS(),
+        std::bind(&ESKFNode::landmark_callback, this, std::placeholders::_1));
+
+    spdlog::info("Landmark egomotion enabled: {} -> {}", vo_cam_frame_,
+                 vo_base_frame_);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
@@ -304,6 +371,91 @@ void ESKFNode::depth_callback(
     nis_msg.data = eskf_->get_nis();
     nis_depth_pub_->publish(nis_msg);
 #endif
+}
+
+void ESKFNode::landmark_callback(
+    const vortex_msgs::msg::LandmarkArray::SharedPtr msg) {
+    if (!msg || msg->landmarks.empty())
+        return;
+
+    std::vector<const vortex_msgs::msg::Landmark*> markers;
+    for (const auto& lm : msg->landmarks) {
+        if (lm.type.value == vortex_msgs::msg::LandmarkType::ARUCO_MARKER) {
+            markers.push_back(&lm);
+        }
+    }
+    if (markers.empty())
+        return;
+
+    auto it = std::min_element(
+        markers.begin(), markers.end(), [](const auto* a, const auto* b) {
+            const double da = Eigen::Vector3d(a->pose.pose.position.x,
+                                              a->pose.pose.position.y,
+                                              a->pose.pose.position.z)
+                                  .norm();
+            const double db = Eigen::Vector3d(b->pose.pose.position.x,
+                                              b->pose.pose.position.y,
+                                              b->pose.pose.position.z)
+                                  .norm();
+            return da < db;
+        });
+    const auto* chosen = *it;
+    uint16_t chosen_id = chosen->subtype.value;
+    spdlog::debug("Received {} markers, chosen id: {}", markers.size(),
+                  chosen_id);
+
+    geometry_msgs::msg::TransformStamped tf_msg;
+    try {
+        tf_msg = tf_buffer_->lookupTransform(vo_base_frame_, vo_cam_frame_,
+                                             tf2::TimePointZero);
+    } catch (const tf2::TransformException& ex) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                             "TF %s <- %s: %s", vo_base_frame_.c_str(),
+                             vo_cam_frame_.c_str(), ex.what());
+        return;
+    }
+
+    Eigen::Vector3d t_base_cam(tf_msg.transform.translation.x,
+                               tf_msg.transform.translation.y,
+                               tf_msg.transform.translation.z);
+    Eigen::Quaterniond q_base_cam(
+        tf_msg.transform.rotation.w, tf_msg.transform.rotation.x,
+        tf_msg.transform.rotation.y, tf_msg.transform.rotation.z);
+
+    Eigen::Vector3d t_cam_marker(chosen->pose.pose.position.x,
+                                 chosen->pose.pose.position.y,
+                                 chosen->pose.pose.position.z);
+    Eigen::Quaterniond q_cam_marker(
+        chosen->pose.pose.orientation.w, chosen->pose.pose.orientation.x,
+        chosen->pose.pose.orientation.y, chosen->pose.pose.orientation.z);
+
+    Eigen::Vector3d t_base = t_base_cam + q_base_cam * t_cam_marker;
+    Eigen::Quaterniond q_base = (q_base_cam * q_cam_marker).normalized();
+
+    if (have_last_marker_ && chosen_id != last_marker_id_) {
+        spdlog::info("Marker switch {} -> {}", last_marker_id_, chosen_id);
+        landmark_eskf_->handle_marker_switch(t_base, q_base);
+    }
+    last_marker_id_ = chosen_id;
+    have_last_marker_ = true;
+
+    LandmarkMeasurement meas;
+    meas.pos = t_base;
+    meas.quat = q_base;
+    meas.stamp = rclcpp::Time(msg->header.stamp).seconds();
+    meas.R = Eigen::Map<const Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+        chosen->pose.covariance.data());
+
+    const int rejects_before = landmark_eskf_->get_consecutive_rejects();
+    landmark_eskf_->landmark_update(meas);
+    const int rejects_after = landmark_eskf_->get_consecutive_rejects();
+
+    if (rejects_before >= vo_rejects_limit_ && rejects_after == 0) {
+        spdlog::warn("VO anchor reset after {} consecutive rejects",
+                     rejects_before);
+    } else if (rejects_after > 0) {
+        spdlog::warn("VO gating: {} consecutive reject(s)", rejects_after);
+    }
 }
 
 void ESKFNode::publish_odom() {

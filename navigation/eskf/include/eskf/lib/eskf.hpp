@@ -1,14 +1,15 @@
-#ifndef ESKF__ESKF_HPP_
-#define ESKF__ESKF_HPP_
+#ifndef ESKF__LIB__ESKF_HPP_
+#define ESKF__LIB__ESKF_HPP_
 
 #include <eigen3/Eigen/Dense>
 #include <utility>
-#include "eskf/typedefs.hpp"
+#include "eskf/lib/typedefs.hpp"
 #include "typedefs.hpp"
 
 class ESKF {
    public:
     explicit ESKF(const EskfParams& params);
+    virtual ~ESKF() = default;
 
     // @brief Update the nominal state and error state
     // @param imu_meas: IMU measurement
@@ -28,6 +29,16 @@ class ESKF {
     inline double get_nis() const { return nis_; }
 
     inline Eigen::Vector3d get_gravity() const { return g_; }
+
+   protected:
+    // @brief Inject the error state into the nominal state and reset the error
+    void injection_and_reset();
+
+    // Member variable for the current error state
+    StateEuler current_error_state_{};
+
+    // Member variable for the current nominal state
+    StateQuat current_nom_state_{};
 
    private:
     // @brief Predict the nominal state
@@ -56,9 +67,6 @@ class ESKF {
     template <SensorModelConcept SensorT>
     void measurement_update(const SensorT& meas);
 
-    // @brief Inject the error state into the nominal state and reset the error
-    void injection_and_reset();
-
     // @brief Van Loan discretization
     // @param A_c: Continuous state transition matrix
     // @param G_c: Continuous input matrix
@@ -73,12 +81,6 @@ class ESKF {
 
     // Normalized Innovation Squared
     double nis_{};
-
-    // Member variable for the current error state
-    StateEuler current_error_state_{};
-
-    // Member variable for the current nominal state
-    StateQuat current_nom_state_{};
 
     // gravity
     Eigen::Vector3d g_{0.0, 0.0, -9.82841};
@@ -107,4 +109,4 @@ double compute_nis(const Eigen::VectorXd& innovation, const Eigen::MatrixXd& S);
 
 #include "eskf.tpp"  // including template implementation
 
-#endif  // ESKF__ESKF_HPP_
+#endif  // ESKF__LIB__ESKF_HPP_

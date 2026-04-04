@@ -1,10 +1,12 @@
-#ifndef ESKF__ESKF_ROS_HPP_
-#define ESKF__ESKF_ROS_HPP_
+#ifndef ESKF__ROS__ESKF_ROS_HPP_
+#define ESKF__ROS__ESKF_ROS_HPP_
 
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
+#include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
@@ -20,9 +22,13 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 #include <tf2_eigen/tf2_eigen.hpp>
-#include "eskf/eskf.hpp"
-#include "eskf/typedefs.hpp"
+#include "eskf/lib/eskf.hpp"
+#include "eskf/lib/typedefs.hpp"
 #include "spdlog/spdlog.h"
+
+#include <vortex_msgs/msg/landmark_array.hpp>
+#include "landmark_egomotion/lib/landmark_egomotion.hpp"
+#include "landmark_egomotion/lib/landmark_typedefs.hpp"
 
 class ESKFNode : public rclcpp::Node {
    public:
@@ -56,6 +62,13 @@ class ESKFNode : public rclcpp::Node {
     // @brief Create subs/pubs and start the publish timer. Called once
     // transforms are available (or immediately if use_tf_transforms_ is false).
     void complete_initialization();
+
+    // @brief Set up visual odometry/landmark egomotion
+    void setup_vo(const EskfParams& eskf_params);
+
+    // @brief Callback function for the landmark topic
+    void landmark_callback(
+        const vortex_msgs::msg::LandmarkArray::SharedPtr msg);
 
     // @brief broadcast the State as a TF
     void publish_tf(const StateQuat& nom_state,
@@ -95,6 +108,18 @@ class ESKFNode : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr odom_pub_timer_;
 
     std::unique_ptr<ESKF> eskf_;
+
+    // Non-owning pointer to LandmarkESKF
+    LandmarkESKF* landmark_eskf_{nullptr};
+
+    rclcpp::Subscription<vortex_msgs::msg::LandmarkArray>::SharedPtr
+        landmark_sub_;
+
+    std::string vo_base_frame_{};
+    std::string vo_cam_frame_{};
+    int vo_rejects_limit_{0};
+    uint16_t last_marker_id_{0};
+    bool have_last_marker_{false};
 
     bool first_imu_msg_received_ = false;
 
@@ -142,4 +167,4 @@ class ESKFNode : public rclcpp::Node {
     double atmospheric_pressure;
 };
 
-#endif  // ESKF__ESKF_ROS_HPP_
+#endif  // ESKF__ROS__ESKF_ROS_HPP_

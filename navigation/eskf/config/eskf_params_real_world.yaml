@@ -31,6 +31,32 @@
       water_density: 1026.0 # [kg/m3]
       gravity: 9.82841
 
+      use_landmark_egomotion: true
+      vo:
+        landmarks_topic: /aruco_detector/landmarks
+
+        base_frame: nautilus/base_link
+        camera_frame: "/cam/camera_info"
+
+        nis_gate_pose: 16.812
+        nis_gate_velocity: 11.345
+        disable_gating: true
+        dropout_timeout: 10.0
+        rejects_limit: 5
+
+        pos_floor: 0.1
+        att_floor: 0.05
+        vel_floor: 0.4
+        dt_min: 0.02
+        dt_max: 15.0
+
+        # Sliding-window smoother
+        use_sw: true
+        window_size: 20
+        max_age: 15.0
+        huber_deg: 20.0
+        gate_deg: 60.0
+
 # USED SENSORS
   # IMU: Kongsberg mini MRU
   # DVL & Depth: Nucleus 1000
