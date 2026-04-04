@@ -1,7 +1,60 @@
 #!/bin/bash
 # Launch drone vehicle stack in a tmux session
+# Usage: ./launch_drone_vehicle.sh [--ori_type quat|euler] [--controller_type pid|adapt]
 
 SESSION="drone_vehicle"
+
+# =============================================
+# Parse arguments
+# =============================================
+ORI_TYPE="euler"
+CONTROLLER_TYPE="adapt"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --ori_type | -o)
+      ORI_TYPE="$2"
+      shift 2
+      ;;
+    --controller_type | -c)
+      CONTROLLER_TYPE="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      echo "Usage: $0 [--ori_type quat|euler] [--controller_type pid|adapt]"
+      exit 1
+      ;;
+  esac
+done
+
+# Validate
+if [[ "$ORI_TYPE" != "quat" && "$ORI_TYPE" != "euler" ]]; then
+  echo "Error: ori_type must be 'quat' or 'euler' (got: $ORI_TYPE)"
+  exit 1
+fi
+
+if [[ "$CONTROLLER_TYPE" != "pid" && "$CONTROLLER_TYPE" != "adapt" ]]; then
+  echo "Error: controller_type must be 'pid' or 'adapt' (got: $CONTROLLER_TYPE)"
+  exit 1
+fi
+
+# Cross-validate: pid uses quat reference filter, adaptive uses euler
+if [[ "$CONTROLLER_TYPE" == "pid" && "$ORI_TYPE" != "quat" ]]; then
+  echo "Warning: pid controller uses quaternion representation — consider --ori_type quat"
+fi
+if [[ "$CONTROLLER_TYPE" == "adapt" && "$ORI_TYPE" != "euler" ]]; then
+  echo "Warning: adaptive controller uses euler representation — consider --ori_type euler"
+fi
+
+# Map shell arg -> dp.launch.py arg ('adapt' -> 'adaptive')
+if [[ "$CONTROLLER_TYPE" == "adapt" ]]; then
+  DP_CONTROLLER="adaptive"
+else
+  DP_CONTROLLER="pid"
+fi
+
+echo "[LAUNCH] ori_type=$ORI_TYPE  controller_type=$CONTROLLER_TYPE"
 
 # Kill existing session if it exists
 tmux kill-session -t "$SESSION" 2>/dev/null
@@ -18,10 +71,10 @@ PANE_C2=$(tmux split-window -h -t "$PANE_C1" -P -F '#{pane_id}')
 tmux send-keys -t "$PANE_C2" "s && ros2 launch operation_mode_manager operation_mode_manager.launch.py" Enter
 
 PANE_C3=$(tmux split-window -v -t "$PANE_C1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_C3" "s" Enter
+tmux send-keys -t "$PANE_C3" "s && ros2 launch auv_setp dp.launch.py controller_type:=$DP_CONTROLLER orientation_mode:=$ORI_TYPE" Enter
 
 PANE_C4=$(tmux split-window -v -t "$PANE_C2" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_C4" "s" Enter
+tmux send-keys -t "$PANE_C4" "s && ros2 topic echo /nautilus/wrench_input" Enter
 
 tmux select-layout -t "$SESSION:control" tiled
 
@@ -31,7 +84,7 @@ tmux select-layout -t "$SESSION:control" tiled
 tmux new-window -t "$SESSION" -n "perception"
 
 PANE_P1=$(tmux list-panes -t "$SESSION:perception" -F '#{pane_id}')
-tmux send-keys -t "$PANE_P1" "s" Enter
+tmux send-keys -t "$PANE_P1" "s && ros2 launch auv_setup nucleus_odom_transformer.launch.py" Enter
 
 PANE_P2=$(tmux split-window -h -t "$PANE_P1" -P -F '#{pane_id}')
 tmux send-keys -t "$PANE_P2" "s" Enter
