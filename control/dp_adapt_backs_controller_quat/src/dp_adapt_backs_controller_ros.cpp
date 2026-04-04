@@ -21,7 +21,7 @@ DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     const rclcpp::NodeOptions& options)
     : Node("dp_adapt_backs_controller_node", options) {
     this->declare_parameter<int>("time_step");
-    int time_step = static_cast<int>(this->get_parameter<int>("time_step"));
+    int time_step = static_cast<int>(this->get_parameter("time_step").as_int());
     time_step_ = std::chrono::milliseconds(time_step);
 
     set_subscribers_and_publisher();
@@ -43,7 +43,7 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     std::string dp_reference_topic =
         this->get_parameter("topics.guidance.dp").as_string();
     guidance_sub_ =
-        this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
+        this->create_subscription<vortex_msgs::msg::ReferenceFilterQuat>(
             dp_reference_topic, qos_sensor_data,
             std::bind(&DPAdaptBacksControllerNode::guidance_callback, this,
                       std::placeholders::_1));
@@ -153,7 +153,7 @@ void DPAdaptBacksControllerNode::pose_callback(
     pose_.z = msg->pose.pose.position.z;
 
     const auto& o = msg->pose.pose.orientation;
-    pose_.w = o.w;
+    pose_.qw = o.w;
     pose_.qx = o.x;
     pose_.qy = o.y;
     pose_.qz = o.z;
@@ -175,8 +175,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>("K1");
     this->declare_parameter<std::vector<double>>("K2");
     this->declare_parameter<std::vector<double>>("r_b_bg");
-    this->declare_parameter<std::vector<double>>(
-        "physical.mass_intertia_matrix");
+    this->declare_parameter<std::vector<double>>("physical.mass_matrix");
 
     std::vector<double> adapt_param_vec =
         this->get_parameter("adapt_gain").as_double_array();

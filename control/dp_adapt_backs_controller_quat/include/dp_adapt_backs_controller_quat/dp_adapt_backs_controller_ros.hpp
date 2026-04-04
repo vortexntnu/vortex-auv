@@ -16,6 +16,7 @@
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
 #include "dp_adapt_backs_controller_quat/typedefs.hpp"
@@ -70,7 +71,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
     // @param msg: ReferenceFilter message containing the desired vehicle pose
     // and velocity
     void guidance_callback(
-        const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+        const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg);
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr killswitch_sub_{};
 

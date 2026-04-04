@@ -32,27 +32,30 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
     // switching between pure RPY and error state when error is big
     Eigen::Vector3d pos_error = pose.pos_vector() - pose_d.pos_vector();
     Eigen::Vector3d quat_error = vortex::utils::math::quaternion_error(
-        pose.ori_quaternion, pose_d.ori_quaternion);
+        pose.ori_quaternion(), pose_d.ori_quaternion());
+    Eigen::Vector6d z_1;
+    z_1 << pos_error, quat_error;
 
-    Pose error_state = Pose.from_eigen(pos_error, quat_error)
+    Eigen::Matrix6d L = Eigen::Matrix6d::Zero();
+    L.topLeftCorner<3, 3>() = pose.as_rotation_matrix();
+    L.bottomRightCorner<3, 3>() = pose.as_transformation_matrix().bottomRows<3>();
 
-                           Eigen::Matrix6d C =
+    Eigen::Matrix6d C =
         calculate_coriolis(m_, r_b_bg_, twist, inertia_matrix_body_);
     Eigen::Matrix6d L_inv = calculate_L_inv(pose);
     Eigen::Matrix6d L_dot = calculate_L_dot(pose, twist);
-    Eigen::Vector6d alpha = -L_inv * K1_ * error.to_vector();
-    Eigen::Vector6d z_1 = error.to_vector();
+    Eigen::Vector6d alpha = -L_inv * K1_ * z_1;
     Eigen::Vector6d z_2 = twist.to_vector() - alpha;
     Eigen::Vector6d alpha_dot =
         ((L_inv * L_dot * L_inv) * K1_ * z_1) -
-        (L_inv * K1_ * pose.as_j_matrix() * twist.to_vector());
+        (L_inv * K1_ * L * twist.to_vector());
     Eigen::Matrix6x12d Y_v = calculate_Y_v(twist);
     Eigen::Vector12d adapt_param_dot = adapt_gain_ * Y_v.transpose() * z_2;
     Eigen::Vector6d d_est_dot = d_gain_ * z_2;
     Eigen::Vector6d F_est = Y_v * adapt_param_;
     Eigen::Vector6d tau =
         (mass_intertia_matrix_ * alpha_dot) + (C * twist.to_vector()) -
-        (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) - F_est - d_est_;
+        (L.transpose() * z_1) - (K2_ * z_2) - F_est - d_est_;
 
     // TODO: look at better ways to clamp tau w.r.t new thrusters and allocator
     tau = tau.cwiseMax(-100.0).cwiseMin(100.0);

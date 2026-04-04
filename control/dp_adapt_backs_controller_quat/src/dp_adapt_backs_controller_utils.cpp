@@ -4,13 +4,14 @@
 #include <cmath>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/typedefs.hpp"
 #include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 namespace vortex::control {
 
 Eigen::Matrix6d calculate_L_inv(const vortex::utils::types::Pose& pose) {
-    Eigen::Matrix6d L = pose.as_L_matrix();
+    Eigen::Matrix6d L = Eigen::Matrix6d::Zero();
+    L.topLeftCorner<3, 3>() = pose.as_rotation_matrix();
+    L.bottomRightCorner<3, 3>() = pose.as_transformation_matrix().bottomRows<3>();
 
     constexpr double tolerance = 1e-8;
 
@@ -35,16 +36,15 @@ Eigen::Matrix3d calculate_R_dot(const vortex::utils::types::Pose& pose,
 Eigen::Matrix3d calculate_Q_dot(const vortex::utils::types::Pose& pose,
                                 const vortex::utils::types::Twist& twist) {
     Eigen::Vector3d omega = twist.to_vector().tail(3);
-    Eigen::Matrix3d eta_error_dot =
-        pose.ori_quaternion_vector_part() * omega * Eigen::Matrix3d::Identity();
-    Eigen::Matrix3d epsilon_error_dot =
-        vortex::utils::math::get_skew_symmetric_matrix(pose.as_Q_matrix() *
-                                                       omega);
-    Eigen::Matrix3d Q_dot = (1 / 2) * (epsilon_error_dot - eta_error_dot);
-    return Q_dot;
+    Eigen::Matrix3d Q_tilde = pose.as_transformation_matrix().bottomRows<3>();
+    Eigen::Vector3d eps = pose.ori_quaternion().vec();
+    Eigen::Matrix3d eta_dot_term = eps.dot(omega) * Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d eps_dot_term =
+        vortex::utils::math::get_skew_symmetric_matrix(Q_tilde * omega);
+    return 0.5 * (eps_dot_term - eta_dot_term);
 }
 
-Eigen::Matrix6d calculate_L_dot(const vortex::utils::types::PoseEuler& pose,
+Eigen::Matrix6d calculate_L_dot(const vortex::utils::types::Pose& pose,
                                 const vortex::utils::types::Twist& twist) {
     Eigen::Matrix3d R_dot = calculate_R_dot(pose, twist);
     Eigen::Matrix3d Q_dot = calculate_Q_dot(pose, twist);

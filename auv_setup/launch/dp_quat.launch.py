@@ -14,10 +14,10 @@ from auv_setup.launch_arg_common import (
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
-    adapt_params = os.path.join(
-        get_package_share_directory("dp_adapt_backs_controller_quat"),
+    filter_config = os.path.join(
+        get_package_share_directory("reference_filter_dp_quat"),
         "config",
-        f"adapt_params_{drone}.yaml",
+        "reference_filter_params.yaml",
     )
 
     drone_params = os.path.join(
@@ -27,7 +27,21 @@ def launch_setup(context, *args, **kwargs):
         f"{drone}.yaml",
     )
 
+    adapt_params = os.path.join(
+        get_package_share_directory("dp_adapt_backs_controller_quat"),
+        "config",
+        f"adapt_params_{drone}.yaml",
+    )
+
     return [
+        Node(
+            package="reference_filter_dp_quat",
+            executable="reference_filter_dp_quat_node",
+            name="reference_filter_node",
+            namespace=namespace,
+            parameters=[filter_config, drone_params],
+            output="screen",
+        ),
         Node(
             package="dp_adapt_backs_controller_quat",
             executable="dp_adapt_backs_controller_quat_node",
@@ -35,11 +49,12 @@ def launch_setup(context, *args, **kwargs):
             namespace=namespace,
             parameters=[adapt_params, drone_params],
             output="screen",
-        )
+        ),
     ]
 
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
+        declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
     )
