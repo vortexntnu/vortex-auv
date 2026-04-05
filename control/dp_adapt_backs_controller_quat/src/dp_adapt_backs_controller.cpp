@@ -32,7 +32,7 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
     // switching between pure RPY and error state when error is big
     Eigen::Vector3d pos_error = pose.pos_vector() - pose_d.pos_vector();
     Eigen::Vector3d quat_error = vortex::utils::math::quaternion_error(
-        pose.ori_quaternion(), pose_d.ori_quaternion());
+        pose_d.ori_quaternion(), pose.ori_quaternion());
     Eigen::Vector6d z_1;
     z_1 << pos_error, quat_error;
 
