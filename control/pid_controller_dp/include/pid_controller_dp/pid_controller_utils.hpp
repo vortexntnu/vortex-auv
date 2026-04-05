@@ -63,14 +63,14 @@ Eigen::VectorXd clamp_values(const Eigen::VectorXd& values,
                              double min_val,
                              double max_val);
 
-// @brief Calculate the anti-windup term using the 6D error [x,y,z,qx,qy,qz]
-// (qw is excluded since only the vector part of the quaternion is used).
+// @brief Calculate the anti-windup term.
 // @param dt: Time step
-// @param error: Eta error struct (only x,y,z,qx,qy,qz are read)
-// @param integral: 6D integral term [x, y, z, qx, qy, qz]
+// @param error_body: 6D error in body frame [surge, sway, heave, roll, pitch,
+// yaw]
+// @param integral: 6D integral term in body frame
 // @return 6D anti-windup clamped integral
 types::Vector6d anti_windup(const double dt,
-                            const types::Eta& error,
+                            const types::Vector6d& error_body,
                             const types::Vector6d& integral);
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_

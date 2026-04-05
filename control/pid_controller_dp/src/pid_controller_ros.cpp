@@ -131,6 +131,12 @@ void PIDControllerNode::operation_mode_callback(
 void PIDControllerNode::odom_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
     eta_ = eta_convert_from_ros_to_eigen(msg->pose);
+    if (eta_.qw < 0.0) {
+        eta_.qw = -eta_.qw;
+        eta_.qx = -eta_.qx;
+        eta_.qy = -eta_.qy;
+        eta_.qz = -eta_.qz;
+    }
     nu_ = nu_convert_from_ros_to_eigen(msg->twist);
 }
 
@@ -216,16 +222,26 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
-    // Set desired position
     eta_d_.x = msg->x;
     eta_d_.y = msg->y;
     eta_d_.z = msg->z;
 
-    // set desired ori quaternion
-    eta_d_.qw = msg->qw;
-    eta_d_.qx = msg->qx;
-    eta_d_.qy = msg->qy;
-    eta_d_.qz = msg->qz;
+    // Enforce positive hemisphere so eta_d_ and eta_ stay in the same half of
+    // the double cover, reducing sign-flip errors in the PID error computation.
+    const double sign = msg->qw >= 0.0 ? 1.0 : -1.0;
+    eta_d_.qw = sign * msg->qw;
+    eta_d_.qx = sign * msg->qx;
+    eta_d_.qy = sign * msg->qy;
+    eta_d_.qz = sign * msg->qz;
+
+    // Desired velocity feedforward (x/y/z in world frame; roll/pitch/yaw are
+    // the body-frame angular-velocity components from the reference filter).
+    eta_dot_d_.x = msg->x_dot;
+    eta_dot_d_.y = msg->y_dot;
+    eta_dot_d_.z = msg->z_dot;
+    eta_dot_d_.qx = msg->roll_dot;
+    eta_dot_d_.qy = msg->pitch_dot;
+    eta_dot_d_.qz = msg->yaw_dot;
 }
 
 rcl_interfaces::msg::SetParametersResult PIDControllerNode::parametersCallback(

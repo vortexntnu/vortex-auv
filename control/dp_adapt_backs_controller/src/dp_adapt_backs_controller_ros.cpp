@@ -292,8 +292,8 @@ void DPAdaptBacksControllerNode::publish_tau() {
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
     tau_msg.header.frame_id = "base_link";
-    tau_msg.wrench.force.x = tau(0);
-    tau_msg.wrench.force.y = tau(1);
+    tau_msg.wrench.force.x = -tau(0);
+    tau_msg.wrench.force.y = -tau(1);
     tau_msg.wrench.force.z = tau(2);
 
     // comment out if roll control is not needed

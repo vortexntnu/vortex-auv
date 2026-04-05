@@ -86,22 +86,24 @@ types::Vector6d PIDController::calculate_tau(const types::Eta& eta,
 
     // Desired velocity: also drop qw, keeping [x,y,z,qx,qy,qz] derivatives.
     types::Vector6d eta_dot_d_6;
-    eta_dot_d_6 << eta_dot_d.x, eta_dot_d.y, eta_dot_d.z,
-                   eta_dot_d.qx, eta_dot_d.qy, eta_dot_d.qz;
+    eta_dot_d_6 << eta_dot_d.x, eta_dot_d.y, eta_dot_d.z, eta_dot_d.qx,
+        eta_dot_d.qy, eta_dot_d.qz;
 
     // 6x6 J inverse: blockdiag(R, T_33)^{-1}
     types::Matrix6d J_inv = calculate_J_sudo_inv(eta);
 
-    types::Vector6d nu_d = J_inv * eta_dot_d_6;       // desired body velocity
+    types::Vector6d error_body = J_inv * error_6;  // error in body frame
+
+    types::Vector6d nu_d = J_inv * eta_dot_d_6;        // desired body velocity
     types::Vector6d error_nu = nu.to_vector() - nu_d;  // velocity error
 
-    types::Vector6d P = Kp_ * J_inv * error_6;   // P term
-    types::Vector6d I = Ki_ * J_inv * integral_;  // I term
-    types::Vector6d D = Kd_ * error_nu;           // D term
+    types::Vector6d P = Kp_ * error_body;  // P term
+    types::Vector6d I = Ki_ * integral_;   // I term
+    types::Vector6d D = Kd_ * error_nu;    // D term
 
-    types::Vector6d tau = -clamp_values((P + I + D), -80.0, 80.0);
+    types::Vector6d tau = -clamp_values((P + I + D), -90.0, 90.0);
 
-    integral_ = anti_windup(dt_, error, integral_);
+    integral_ = anti_windup(dt_, error_body, integral_);
 
     return tau;
 }
