@@ -38,7 +38,7 @@ Eigen::Matrix3d calculate_Q_dot(const vortex::utils::types::Pose& pose,
     Eigen::Vector3d omega = twist.to_vector().tail(3);
     Eigen::Matrix3d Q_tilde = pose.as_transformation_matrix().bottomRows<3>();
     Eigen::Vector3d eps = pose.ori_quaternion().vec();
-    Eigen::Matrix3d eta_dot_term = eps.dot(omega) * Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d eta_dot_term = 0.5 * eps.dot(omega) * Eigen::Matrix3d::Identity();
     Eigen::Matrix3d eps_dot_term =
         vortex::utils::math::get_skew_symmetric_matrix(Q_tilde * omega);
     return 0.5 * (eps_dot_term - eta_dot_term);
