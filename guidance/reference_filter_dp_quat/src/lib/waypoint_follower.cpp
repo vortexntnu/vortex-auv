@@ -1,7 +1,7 @@
 #include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
 #include <vortex/utils/math.hpp>
-#include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
 #include <vortex/utils/types.hpp>
+#include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
 
 namespace vortex::guidance {
 
@@ -25,8 +25,8 @@ void WaypointFollower::start(const Pose& pose,
 
     waypoint_mode_ = waypoint.mode;
     convergence_threshold_ = convergence_threshold;
-    waypoint_goal_ =
-        vortex::utils::waypoints::compute_waypoint_goal(waypoint.pose, waypoint_mode_, nominal_pose_);
+    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
+        waypoint.pose, waypoint_mode_, nominal_pose_);
 }
 
 void WaypointFollower::step() {
@@ -57,8 +57,7 @@ void WaypointFollower::inject_and_reset() {
     if (angle >= 1e-10) {
         Eigen::Quaterniond delta_quat(
             Eigen::AngleAxisd(angle, delta_orientation.normalized()));
-        Eigen::Quaterniond q_new =
-            nominal_pose_.ori_quaternion() * delta_quat;
+        Eigen::Quaterniond q_new = nominal_pose_.ori_quaternion() * delta_quat;
         // Enforce positive hemisphere to prevent sign flips in the published
         // reference quaternion that would cause the downstream controller to
         // see large spurious orientation errors.
@@ -72,14 +71,14 @@ void WaypointFollower::inject_and_reset() {
 
 bool WaypointFollower::within_convergance(const Pose& measured_pose) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return vortex::utils::waypoints::has_converged(measured_pose, waypoint_goal_, waypoint_mode_,
-                         convergence_threshold_);
+    return vortex::utils::waypoints::has_converged(
+        measured_pose, waypoint_goal_, waypoint_mode_, convergence_threshold_);
 }
 
 void WaypointFollower::set_reference(const Pose& reference_goal_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
-    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(reference_goal_pose, waypoint_mode_,
-                                           nominal_pose_);
+    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
+        reference_goal_pose, waypoint_mode_, nominal_pose_);
 }
 
 void WaypointFollower::snap_state_to_reference() {

@@ -8,12 +8,12 @@ echo "Setting up ROS 2 environment..."
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Get the directory of this script dynamically
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$OP_MODE_PID" || true
+    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$OP_MODE_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -23,13 +23,18 @@ BAG_PID=$!
 echo "Started bagging with PID: $BAG_PID"
 
 # Launch Stonefish Simulator
-setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=orca_no_gpu &
+setsid ros2 launch stonefish_sim simulation.launch.py rendering:=false scenario:=nautilus_no_gpu &
 SIM_PID=$!
 echo "Launched simulator with PID: $SIM_PID"
 
+# Launch NAUTILUS Simulation
+setsid ros2 launch stonefish_sim drone_sim.launch.py &
+NAUTILUS_PID=$!
+echo "Launched nautilus with PID: $NAUTILUS_PID"
+
 echo "Waiting for simulator to start..."
 timeout 30s bash -c '
-    while ! ros2 topic list | grep -q "/orca/odom"; do
+    while ! ros2 topic list | grep -q "/nautilus/odom"; do
         sleep 1
     done || true'
 echo "Simulator started"
@@ -42,16 +47,11 @@ fi
 
 # Wait for odometry data
 echo "Waiting for odom data..."
-timeout 10s ros2 topic echo /orca/odom --once
+timeout 10s ros2 topic echo /nautilus/odom --once
 echo "Got odom data"
 
-# Launch ORCA Simulation
-setsid ros2 launch stonefish_sim drone_sim.launch.py &
-ORCA_PID=$!
-echo "Launched orca with PID: $ORCA_PID"
-
 echo "Waiting for sim interface to start..."
-timeout 30s bash -c 'until ros2 topic list | grep -q "/orca/pose"; do sleep 1; done'
+timeout 30s bash -c 'until ros2 topic list | grep -q "/nautilus/pose"; do sleep 1; done'
 echo "Simulator started"
 
 # Check for ROS errors again
@@ -62,13 +62,18 @@ fi
 
 # Wait for pose data
 echo "Waiting for pose data..."
-timeout 10s ros2 topic echo /orca/pose --once
+timeout 10s ros2 topic echo /nautilus/pose --once
 echo "Got pose data"
 
-# Launch quaternion reference filter with RPY compatibility (publishes RPY on guidance/dp)
-setsid ros2 launch reference_filter_dp_quat reference_filter_dp_quat.launch.py rpy_publish:=true &
+# Launch quaternion reference filter
+setsid ros2 launch reference_filter_dp_quat reference_filter_dp_quat.launch.py &
 FILTER_PID=$!
-echo "Launched quat reference filter (rpy_publish) with PID: $FILTER_PID"
+echo "Launched quat reference filter with PID: $FILTER_PID"
+
+# Launch quat-to-euler bridge so the Euler-based controller gets guidance/dp
+setsid python3 "$SCRIPT_DIR/quat_to_euler_bridge.py" &
+BRIDGE_PID=$!
+echo "Launched quat-to-euler bridge with PID: $BRIDGE_PID"
 
 # Launch controller separately
 setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py &
@@ -86,8 +91,8 @@ sleep 5
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 service call /orca/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
-ros2 service call /orca/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
+ros2 service call /nautilus/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /nautilus/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 echo "Sleeping for 5 seconds to make sure operation is stable..."
 sleep 5
@@ -108,6 +113,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$ORCA_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BAG_PID" -"$OP_MODE_PID"
+kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$BAG_PID" -"$OP_MODE_PID"
 
 echo "Test completed successfully."

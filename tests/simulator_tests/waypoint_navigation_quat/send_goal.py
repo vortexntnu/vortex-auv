@@ -25,7 +25,7 @@ class ReferenceFilterQuatWaypointClient(Node):
         super().__init__('reference_filter_quat_waypoint_client')
 
         self._action_client = ActionClient(
-            self, ReferenceFilterQuatWaypoint, '/orca/reference_filter'
+            self, ReferenceFilterQuatWaypoint, '/nautilus/reference_filter'
         )
         self.send_goal()
 

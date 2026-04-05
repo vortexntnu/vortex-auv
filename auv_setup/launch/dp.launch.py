@@ -25,6 +25,7 @@ def launch_setup(context, *args, **kwargs):
         get_package_share_directory("reference_filter_dp"),
         "config",
         "reference_filter_params.yaml",
+        f"adapt_params_{drone}.yaml",
     )
 
     nodes = []

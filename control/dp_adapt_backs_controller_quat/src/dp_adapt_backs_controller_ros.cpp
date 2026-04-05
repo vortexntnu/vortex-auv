@@ -1,4 +1,4 @@
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller_ros.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string>
@@ -6,16 +6,13 @@
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
 #include <vortex/utils/types.hpp>
-#include "dp_adapt_backs_controller/dp_adapt_backs_controller_utils.hpp"
-#include "dp_adapt_backs_controller/typedefs.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_utils.hpp"
+#include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 constexpr std::string_view start_message = R"(
-  ____  ____     ____            _             _ _
- |  _ \|  _ \   / ___|___  _ __ | |_ _ __ ___ | | | ___ _ __
- | | | | |_) | | |   / _ \| '_ \| __| '__/ _ \| | |/ _ \ '__|
- | |_| |  __/  | |__| (_) | | | | |_| | | (_) | | |  __/ |
- |____/|_|      \____\___/|_| |_|\__|_|  \___/|_|_|\___|_|
-
+████▄  █████▄   ▄█████▄ ▄▄ ▄▄  ▄▄▄ ▄▄▄▄▄▄   ▄█████  ▄▄▄  ▄▄  ▄▄ ▄▄▄▄▄▄ ▄▄▄▄   ▄▄▄  ▄▄    ▄▄    ▄▄▄▄▄ ▄▄▄▄  
+██  ██ ██▄▄█▀   ██ ▄ ██ ██ ██ ██▀██  ██     ██     ██▀██ ███▄██   ██   ██▄█▄ ██▀██ ██    ██    ██▄▄  ██▄█▄ 
+████▀  ██       ▀█████▀ ▀███▀ ██▀██  ██     ▀█████ ▀███▀ ██ ▀██   ██   ██ ██ ▀███▀ ██▄▄▄ ██▄▄▄ ██▄▄▄ ██ ██ 
 )";
 
 namespace vortex::control {
@@ -23,7 +20,9 @@ namespace vortex::control {
 DPAdaptBacksControllerNode::DPAdaptBacksControllerNode(
     const rclcpp::NodeOptions& options)
     : Node("dp_adapt_backs_controller_node", options) {
-    time_step_ = std::chrono::milliseconds(10);
+    this->declare_parameter<int>("time_step");
+    int time_step = static_cast<int>(this->get_parameter("time_step").as_int());
+    time_step_ = std::chrono::milliseconds(time_step);
 
     set_subscribers_and_publisher();
     initialize_operation_mode();
@@ -40,11 +39,11 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
         vortex::utils::qos_profiles::sensor_data_profile(1)};
     const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
-    this->declare_parameter<std::string>("topics.guidance.dp_rpy");
+    this->declare_parameter<std::string>("topics.guidance.dp_quat");
     std::string dp_reference_topic =
-        this->get_parameter("topics.guidance.dp_rpy").as_string();
+        this->get_parameter("topics.guidance.dp_quat").as_string();
     guidance_sub_ =
-        this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
+        this->create_subscription<vortex_msgs::msg::ReferenceFilterQuat>(
             dp_reference_topic, qos_sensor_data,
             std::bind(&DPAdaptBacksControllerNode::guidance_callback, this,
                       std::placeholders::_1));
@@ -152,12 +151,12 @@ void DPAdaptBacksControllerNode::pose_callback(
     pose_.x = msg->pose.pose.position.x;
     pose_.y = msg->pose.pose.position.y;
     pose_.z = msg->pose.pose.position.z;
+
     const auto& o = msg->pose.pose.orientation;
-    Eigen::Quaterniond q(o.w, o.x, o.y, o.z);
-    Eigen::Vector3d euler_angles = vortex::utils::math::quat_to_euler(q);
-    pose_.roll = euler_angles(0);
-    pose_.pitch = euler_angles(1);
-    pose_.yaw = euler_angles(2);
+    pose_.qw = o.w;
+    pose_.qx = o.x;
+    pose_.qy = o.y;
+    pose_.qz = o.z;
 }
 
 void DPAdaptBacksControllerNode::twist_callback(
@@ -177,17 +176,6 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>("K2");
     this->declare_parameter<std::vector<double>>("r_b_bg");
     this->declare_parameter<std::vector<double>>("physical.mass_matrix");
-    this->declare_parameter<std::vector<double>>("physical.center_of_mass");
-    this->declare_parameter<std::vector<double>>(
-        "propulsion.thrusters.thruster_force_direction");
-    this->declare_parameter<std::vector<double>>(
-        "propulsion.thrusters.thruster_position");
-    this->declare_parameter<int>("propulsion.thrusters.num");
-    this->declare_parameter<int>("propulsion.dimensions.num");
-    this->declare_parameter<double>(
-        "propulsion.thrusters.constraints.min_force");
-    this->declare_parameter<double>(
-        "propulsion.thrusters.constraints.max_force");
 
     std::vector<double> adapt_param_vec =
         this->get_parameter("adapt_gain").as_double_array();
@@ -197,7 +185,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     std::vector<double> K2_vec = this->get_parameter("K2").as_double_array();
     std::vector<double> r_b_bg_vec =
         this->get_parameter("r_b_bg").as_double_array();
-    std::vector<double> mass_matrix_vec =
+    std::vector<double> mass_intertia_matrix_vec =
         this->get_parameter("physical.mass_matrix").as_double_array();
 
     Eigen::Vector12d adapt_param_eigen =
@@ -208,60 +196,13 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     Eigen::Vector6d K2_eigen = Eigen::Map<Eigen::Vector6d>(K2_vec.data());
     Eigen::Vector3d r_b_bg_eigen =
         Eigen::Map<Eigen::Vector3d>(r_b_bg_vec.data());
-    Eigen::Matrix6d mass_matrix =
-        Eigen::Map<Eigen::Matrix6d>(mass_matrix_vec.data());
+    Eigen::Matrix6d mass_intertia_matrix =
+        Eigen::Map<Eigen::Matrix6d>(mass_intertia_matrix_vec.data());
 
-    double mass = mass_matrix(0, 0);
-    Eigen::Vector3d I_b_eigen(mass_matrix(3, 3), mass_matrix(4, 4),
-                              mass_matrix(5, 5));
-
-    // Compute per-DOF max wrench from the thruster configuration
-    int num_thrusters =
-        this->get_parameter("propulsion.thrusters.num").as_int();
-    int num_dims = this->get_parameter("propulsion.dimensions.num").as_int();
-    double min_force =
-        this->get_parameter("propulsion.thrusters.constraints.min_force")
-            .as_double();
-    double max_force =
-        this->get_parameter("propulsion.thrusters.constraints.max_force")
-            .as_double();
-
-    Eigen::Vector3d center_of_mass = Eigen::Map<const Eigen::Vector3d>(
-        this->get_parameter("physical.center_of_mass")
-            .as_double_array()
-            .data());
-
-    auto dir_vec =
-        this->get_parameter("propulsion.thrusters.thruster_force_direction")
-            .as_double_array();
-    auto pos_vec = this->get_parameter("propulsion.thrusters.thruster_position")
-                       .as_double_array();
-
-    Eigen::MatrixXd thruster_dir =
-        Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-                                       Eigen::RowMajor>>(
-            dir_vec.data(), num_dims, num_thrusters);
-    Eigen::MatrixXd thruster_pos =
-        Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
-                                       Eigen::RowMajor>>(
-            pos_vec.data(), num_dims, num_thrusters);
-
-    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(6, num_thrusters);
-    for (int i = 0; i < num_thrusters; i++) {
-        Eigen::Vector3d pos = thruster_pos.col(i) - center_of_mass;
-        Eigen::Vector3d F = thruster_dir.col(i);
-        T.block<3, 1>(0, i) = F;
-        T.block<3, 1>(3, i) = pos.cross(F);
-    }
-
-    Eigen::Vector6d tau_max;
-    for (int i = 0; i < 6; i++) {
-        double w = 0.0;
-        for (int j = 0; j < num_thrusters; j++) {
-            w += (T(i, j) > 0) ? T(i, j) * max_force : T(i, j) * min_force;
-        }
-        tau_max(i) = w;
-    }
+    double mass = mass_intertia_matrix(0, 0);
+    Eigen::Vector3d inertia_matrix_body_eigen(mass_intertia_matrix(3, 3),
+                                              mass_intertia_matrix(4, 4),
+                                              mass_intertia_matrix(5, 5));
 
     DPAdaptParams dp_adapt_params;
     dp_adapt_params.adapt_param = adapt_param_eigen;
@@ -269,9 +210,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_adapt_params.K1 = K1_eigen;
     dp_adapt_params.K2 = K2_eigen;
     dp_adapt_params.r_b_bg = r_b_bg_eigen;
-    dp_adapt_params.I_b = I_b_eigen;
-    dp_adapt_params.mass_matrix = mass_matrix;
-    dp_adapt_params.tau_max = tau_max;
+    dp_adapt_params.inertia_matrix_body = inertia_matrix_body_eigen;
+    dp_adapt_params.mass_intertia_matrix = mass_intertia_matrix;
     dp_adapt_params.mass = mass;
 
     dp_adapt_backs_controller_ =
@@ -291,8 +231,8 @@ void DPAdaptBacksControllerNode::publish_tau() {
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
     tau_msg.header.frame_id = "base_link";
-    tau_msg.wrench.force.x = -tau(0);
-    tau_msg.wrench.force.y = -tau(1);
+    tau_msg.wrench.force.x = tau(0);
+    tau_msg.wrench.force.y = tau(1);
     tau_msg.wrench.force.z = tau(2);
 
     // comment out if roll control is not needed
@@ -304,15 +244,42 @@ void DPAdaptBacksControllerNode::publish_tau() {
 }
 
 void DPAdaptBacksControllerNode::guidance_callback(
-    const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
+    const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
     pose_d_.x = msg->x;
     pose_d_.y = msg->y;
     pose_d_.z = msg->z;
-    pose_d_.roll = msg->roll;
-    pose_d_.pitch = msg->pitch;
-    pose_d_.yaw = msg->yaw;
+
+    pose_d_.qw = msg->qw;
+    pose_d_.qx = msg->qx;
+    pose_d_.qy = msg->qy;
+    pose_d_.qz = msg->qz;
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)
 
 }  // namespace vortex::control
+
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣠⡤⣦⢦⠖⡶⠲⢦⣤⢤⣤⣤⣀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡴⢶⠛⡍⢎⠱⣈⠒⢌⡘⠰⠉⢆⠰⢉⠔⠢⡉⢝⢫⠳⢦⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⡶⢏⠳⡘⠢⢉⠔⡈⠔⠠⠈⠄⠠⠁⠌⡀⠂⠌⠠⠁⠌⡐⢂⠉⢆⠩⡝⢳⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡞⢫⠔⡉⠆⡁⠢⢁⣂⡐⡈⠄⢁⠈⠄⣁⡤⠄⣁⣠⠁⡈⠄⠐⠠⠉⠠⠁⡌⢡⠊⡝⢷⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⢣⠎⡡⢊⠴⣅⣶⣽⣷⣾⣿⣶⠌⠀⠄⢺⢾⣿⣿⣿⣷⣾⣿⣤⣧⡰⠈⠠⢁⠐⢂⠑⠌⡸⠸⣷⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠀⣸⢯⣑⠣⣌⠱⢨⣿⣿⣿⣿⡿⠟⠋⠁⡀⠌⠐⠠⢁⠚⡹⢛⡿⢿⣿⣿⣿⠯⢀⠁⠂⠌⠠⢈⠂⣁⠣⡘⠽⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⢴⡟⡥⢊⠵⣠⠣⢍⠺⢟⠩⣁⠒⠨⢀⠂⠀⠄⠡⡁⢂⠠⠀⠄⢠⠉⠄⡊⢄⠂⡄⠊⠄⢃⠤⢁⠂⢄⠂⠥⡙⣚⢷⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢀⡿⡜⠴⣉⠖⣡⢚⣬⢳⡉⠖⣀⠃⣁⠢⠐⡈⠠⢁⠒⡄⢂⠡⠊⠄⡘⠤⠑⡌⢒⠤⢃⠜⣀⠂⢆⠘⡠⠘⡀⢆⢡⢻⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢸⣛⣌⠳⡌⢎⡵⣫⣎⠧⡘⠡⠀⠂⢀⠂⠱⢠⢁⠊⡴⣘⠢⠁⠌⠀⠐⠠⢁⠘⡄⠫⡜⠲⣄⠩⢄⠢⠁⠆⠡⠌⡂⢎⡽⣆⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢸⡷⢌⠳⡌⢧⣿⢿⡜⣢⣱⣤⡧⣐⣢⡀⢃⢢⠁⢎⡶⣡⢆⣵⠴⠧⢦⣁⣂⠰⣈⠱⣘⠳⣬⡓⢌⠢⡉⢌⠡⡘⢄⢣⢚⣿⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢹⡞⣌⠳⡌⢧⣿⣿⣽⢷⣫⣔⡠⢀⢀⠈⠉⢲⣭⣰⣟⣯⣹⣔⣢⢡⠀⡀⠌⠙⠞⣳⠿⢷⣷⣝⠦⡑⠨⠄⡃⠔⡈⠦⣙⡾⡆⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⢸⡿⢤⠓⣌⢣⢻⣹⣿⣻⣿⣿⣿⣶⠢⣌⢡⠂⡴⢻⡿⣷⣿⣿⣿⣷⣳⠴⡈⡜⡰⣄⢻⣜⣿⢳⡡⢊⡑⢌⠰⠡⡘⡰⣡⢿⡇⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠸⣟⢦⢋⡔⢣⡙⣷⡻⣿⣿⣿⣿⣿⣷⣎⢦⣙⢶⢏⠻⣿⣿⣿⣿⣿⡿⢧⡹⣴⢳⣽⣳⡿⢡⠗⡠⢃⠔⡈⢆⠱⣐⠱⡬⢿⡇⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⢻⣎⠖⡬⢑⡜⢲⢻⣮⠻⣿⣿⣻⣷⣾⡻⢞⠧⢎⠛⣮⣛⠿⣽⣻⣽⣯⣿⣾⣿⠿⢋⡴⢋⡒⢡⠊⡔⣁⠊⡔⠤⣛⠼⣿⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⠀⠘⢯⣞⠰⡡⠎⢥⢋⡞⡿⢶⡞⣭⡝⣲⡙⢎⡱⢊⡱⠄⣍⠛⢦⢋⠭⣉⡍⣡⠔⣎⠣⡜⡡⠘⡄⢣⠐⡄⢣⠘⢦⢭⣿⡟⠀⠀⠀⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⠀⣠⣤⡸⣿⢢⡑⠎⣆⢣⠚⣭⢣⡛⡴⡙⢆⠹⢠⠑⠢⢄⠃⠄⣉⠂⠍⠒⡡⠜⠤⢋⠔⡃⢆⠡⢃⡘⢄⠣⡘⢤⢋⡼⣺⣿⠉⣀⣤⣄⠀⠀⠀⠀⠀
+// ⠀⠀⠀⠀⣤⡗⠀⣉⣻⣧⣙⠲⡐⢎⡱⢂⠇⣎⠱⢡⠊Life is pain,⡈⢂⠡⠌⡐⡈⠤⢁⠰⡈⢆⠱⣊⠼⣼⣿⣿⣛⣉⠐⠾⣄⠀⠀⠀⠀
+// ⠀⠀⠀⡼⠃⠀⠀⠙⣿⡘⢿⣵⠿⡼⣴⣩⣚Existence is meaningless⢢⣑⣎⡱⢬⣻⣿⠇⣸⡿⠁⠀⠀⠙⣆⠀⠀⠀
+// ⠀⠀⣰⡗⠀⠀⠀⠀⠘⣧⡀⠙⠻⣷⣾⣭⣿⣹⢏⡻⢩⢛⠛⡛⢛⠻⠛⠟⡛⠟⢛⠛⡛⠹⢛⠛⣙⡋⣏⣙⣩⣭⣭⣴⣼⣿⠟⠁⠈⣿⠁⠀⠀⠀⠀⢾⡄⠀⠀
+// ⠀⢠⠻⠀⢀⣠⣄⠀⠀⣻⠀⠀⠀⠀⠛⠿⣿⣿⣿⣷⣷⣮⣵⣌⣦⡱⣌⣲⡰⣌⣦⣱⣬⣷⣾⣿⣿⣿⡿⣿⢿⣿⣿⣿⠛⠁⠀⢀⢸⡇⠀⠀⣀⣀⠀⠘⡿⡀⠀
+// ⠀⣧⠇⠀⣴⠟⠈⠀⠀⣿⡄⠀⠀⠀⠀⠀⠈⠙⠻⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢿⣻⢯⣷⣯⣿⣽⡿⠟⠉⠀⠀⠀⠀⠀⣘⣿⠀⢸⠉⠿⣄⠀⠰⣡⠀
+// ⠸⡌⠀⢹⡇⠀⠀⣏⠀⣽⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠛⠿⠿⠿⢽⢿⡾⠷⠿⠿⠿⠟⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣇⠀⠨⠀⠀⢹⠇⠀⢏⠂
+// ⠀⡇⠀⣻⡆⠀⠀⠉⠒⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠓⠒⠃⠀⠀⢸⣟⠀⣸⠀
+// ⠀⠣⠴⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠷⠄⠆⠀

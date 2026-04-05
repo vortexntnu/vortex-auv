@@ -2,8 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
@@ -14,9 +13,8 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-    rpy_publish = LaunchConfiguration("rpy_publish").perform(context) == "true"
 
-    config_file_path = os.path.join(
+    filter_config = os.path.join(
         get_package_share_directory("reference_filter_dp_quat"),
         "config",
         "reference_filter_params.yaml",
@@ -29,13 +27,11 @@ def launch_setup(context, *args, **kwargs):
         f"{drone}.yaml",
     )
 
-    extra_params = {}
-    if rpy_publish:
-        extra_params = {
-            "publish_rpy_debug": True,
-            "topics.guidance.dp_rpy": "guidance/dp",
-            "topics.guidance.dp": "guidance/dp_quat",
-        }
+    adapt_params = os.path.join(
+        get_package_share_directory("dp_adapt_backs_controller_quat"),
+        "config",
+        f"adapt_params_{drone}.yaml",
+    )
 
     return [
         Node(
@@ -43,22 +39,22 @@ def launch_setup(context, *args, **kwargs):
             executable="reference_filter_dp_quat_node",
             name="reference_filter_node",
             namespace=namespace,
-            parameters=[config_file_path, drone_params, extra_params],
+            parameters=[filter_config, drone_params],
             output="screen",
-        )
+        ),
+        Node(
+            package="dp_adapt_backs_controller_quat",
+            executable="dp_adapt_backs_controller_quat_node",
+            name="dp_adapt_backs_controller_node",
+            namespace=namespace,
+            parameters=[adapt_params, drone_params],
+            output="screen",
+        ),
     ]
 
 
 def generate_launch_description():
     return LaunchDescription(
         declare_drone_and_namespace_args()
-        + [
-            DeclareLaunchArgument(
-                "rpy_publish",
-                default_value="false",
-                description="When true, publish RPY ReferenceFilter on guidance/dp "
-                "for compatibility with controllers expecting RPY messages.",
-            ),
-            OpaqueFunction(function=launch_setup),
-        ]
+        + [OpaqueFunction(function=launch_setup)]
     )

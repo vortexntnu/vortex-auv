@@ -203,10 +203,11 @@ void ReferenceFilterNode::execute(
         if (target_reached) {
             follower_->snap_state_to_reference();
 
-            vortex_msgs::msg::ReferenceFilter final_reference_msg =
-                fill_reference_msg(follower_->state());
+            auto final_reference_msg =
+                std::make_unique<vortex_msgs::msg::ReferenceFilter>(
+                    fill_reference_msg(follower_->state()));
 
-            reference_pub_->publish(final_reference_msg);
+            reference_pub_->publish(std::move(final_reference_msg));
 
             result->success = true;
             goal_handle->succeed(result);
