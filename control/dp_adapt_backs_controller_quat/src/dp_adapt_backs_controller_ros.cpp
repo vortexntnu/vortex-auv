@@ -180,6 +180,17 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>("K2");
     this->declare_parameter<std::vector<double>>("r_b_bg");
     this->declare_parameter<std::vector<double>>("physical.mass_matrix");
+    this->declare_parameter<std::vector<double>>("physical.center_of_mass");
+    this->declare_parameter<std::vector<double>>(
+        "propulsion.thrusters.thruster_force_direction");
+    this->declare_parameter<std::vector<double>>(
+        "propulsion.thrusters.thruster_position");
+    this->declare_parameter<int>("propulsion.thrusters.num");
+    this->declare_parameter<int>("propulsion.dimensions.num");
+    this->declare_parameter<double>(
+        "propulsion.thrusters.constraints.min_force");
+    this->declare_parameter<double>(
+        "propulsion.thrusters.constraints.max_force");
 
     std::vector<double> adapt_param_vec =
         this->get_parameter("adapt_gain").as_double_array();
@@ -208,6 +219,55 @@ void DPAdaptBacksControllerNode::set_adap_params() {
                                               mass_intertia_matrix(4, 4),
                                               mass_intertia_matrix(5, 5));
 
+    // Compute per-DOF max wrench from the thruster configuration
+    int num_thrusters =
+        this->get_parameter("propulsion.thrusters.num").as_int();
+    int num_dims = this->get_parameter("propulsion.dimensions.num").as_int();
+    double min_force =
+        this->get_parameter("propulsion.thrusters.constraints.min_force")
+            .as_double();
+    double max_force =
+        this->get_parameter("propulsion.thrusters.constraints.max_force")
+            .as_double();
+
+    Eigen::Vector3d center_of_mass = Eigen::Map<const Eigen::Vector3d>(
+        this->get_parameter("physical.center_of_mass")
+            .as_double_array()
+            .data());
+
+    auto dir_vec =
+        this->get_parameter("propulsion.thrusters.thruster_force_direction")
+            .as_double_array();
+    auto pos_vec =
+        this->get_parameter("propulsion.thrusters.thruster_position")
+            .as_double_array();
+
+    Eigen::MatrixXd thruster_dir =
+        Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                       Eigen::RowMajor>>(
+            dir_vec.data(), num_dims, num_thrusters);
+    Eigen::MatrixXd thruster_pos =
+        Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                       Eigen::RowMajor>>(
+            pos_vec.data(), num_dims, num_thrusters);
+
+    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(6, num_thrusters);
+    for (int i = 0; i < num_thrusters; i++) {
+        Eigen::Vector3d pos = thruster_pos.col(i) - center_of_mass;
+        Eigen::Vector3d F = thruster_dir.col(i);
+        T.block<3, 1>(0, i) = F;
+        T.block<3, 1>(3, i) = pos.cross(F);
+    }
+
+    Eigen::Vector6d tau_max;
+    for (int i = 0; i < 6; i++) {
+        double w = 0.0;
+        for (int j = 0; j < num_thrusters; j++) {
+            w += (T(i, j) > 0) ? T(i, j) * max_force : T(i, j) * min_force;
+        }
+        tau_max(i) = w;
+    }
+
     DPAdaptParams dp_adapt_params;
     dp_adapt_params.adapt_param = adapt_param_eigen;
     dp_adapt_params.d_gain = d_gain_eigen;
@@ -216,11 +276,11 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_adapt_params.r_b_bg = r_b_bg_eigen;
     dp_adapt_params.inertia_matrix_body = inertia_matrix_body_eigen;
     dp_adapt_params.mass_intertia_matrix = mass_intertia_matrix;
+    dp_adapt_params.tau_max = tau_max;
     dp_adapt_params.mass = mass;
 
     dp_adapt_backs_controller_ =
         std::make_unique<DPAdaptBacksController>(dp_adapt_params);
-    ;
 }
 
 void DPAdaptBacksControllerNode::publish_tau() {

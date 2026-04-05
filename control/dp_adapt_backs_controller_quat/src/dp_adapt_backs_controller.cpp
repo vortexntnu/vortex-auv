@@ -1,6 +1,6 @@
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
-#include <eigen3/Eigen/Dense>
 #include <spdlog/spdlog.h>
+#include <eigen3/Eigen/Dense>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_utils.hpp"
@@ -23,6 +23,7 @@ DPAdaptBacksController::DPAdaptBacksController(
       inertia_matrix_body_(
           dp_adapt_params.inertia_matrix_body.asDiagonal().toDenseMatrix()),
       mass_intertia_matrix_(dp_adapt_params.mass_intertia_matrix),
+      tau_max_(dp_adapt_params.tau_max),
       m_(dp_adapt_params.mass),
       dt_(0.01) {}
 
@@ -37,7 +38,8 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
     // otherwise the Lyapunov cross-terms don't cancel and orientation diverges.
     Eigen::Quaterniond q_e =
         pose_d.ori_quaternion().conjugate() * pose.ori_quaternion();
-    if (q_e.w() < 0.0) q_e.coeffs() = -q_e.coeffs();
+    if (q_e.w() < 0.0)
+        q_e.coeffs() = -q_e.coeffs();
     const Eigen::Vector3d eps_e = q_e.vec();
     const double qw_e = q_e.w();
     const Eigen::Vector3d quat_error = 2.0 * eps_e;
@@ -78,23 +80,21 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
         calculate_coriolis(m_, r_b_bg_, twist, inertia_matrix_body_);
     Eigen::Vector6d alpha = -L_inv * K1_ * z_1;
     Eigen::Vector6d z_2 = twist.to_vector() - alpha;
-    Eigen::Vector6d alpha_dot =
-        ((L_inv * L_dot * L_inv) * K1_ * z_1) -
-        (L_inv * K1_ * L * twist.to_vector());
+    Eigen::Vector6d alpha_dot = ((L_inv * L_dot * L_inv) * K1_ * z_1) -
+                                (L_inv * K1_ * L * twist.to_vector());
     Eigen::Matrix6x12d Y_v = calculate_Y_v(twist);
     Eigen::Vector12d adapt_param_dot = adapt_gain_ * Y_v.transpose() * z_2;
     Eigen::Vector6d d_est_dot = d_gain_ * z_2;
     Eigen::Vector6d F_est = Y_v * adapt_param_;
-    Eigen::Vector6d tau =
-        (mass_intertia_matrix_ * alpha_dot) + (C * twist.to_vector()) -
-        (L.transpose() * z_1) - (K2_ * z_2) - F_est - d_est_;
+    Eigen::Vector6d tau = (mass_intertia_matrix_ * alpha_dot) +
+                          (C * twist.to_vector()) - (L.transpose() * z_1) -
+                          (K2_ * z_2) - F_est - d_est_;
 
-    // TODO: look at better ways to clamp tau w.r.t new thrusters and allocator
-    tau = tau.cwiseMax(-100.0).cwiseMin(100.0);
+    tau = tau.cwiseMax(-tau_max_).cwiseMin(tau_max_);
     adapt_param_ += adapt_param_dot * dt_;
     d_est_ += d_est_dot * dt_;
-    adapt_param_ = adapt_param_.cwiseMax(-10.0).cwiseMin(10.0);
-    d_est_ = d_est_.cwiseMax(-10.0).cwiseMin(10.0);
+    adapt_param_ = adapt_param_.cwiseMax(-15.0).cwiseMin(15.0);
+    d_est_ = d_est_.cwiseMax(-15.0).cwiseMin(15.0);
 
     return tau;
 }
