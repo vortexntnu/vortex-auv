@@ -9,7 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex/utils/types.hpp>
-#include <vortex_msgs/action/reference_filter_quat_waypoint.hpp>
+#include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
@@ -38,17 +38,17 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<
-            const vortex_msgs::action::ReferenceFilterQuatWaypoint::Goal> goal);
+            const vortex_msgs::action::ReferenceFilterWaypoint::Goal> goal);
 
     /// @brief Accept all cancel requests.
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle);
+            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
     /// @brief Join the old execution thread and spawn a new one for the goal.
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle);
+            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
     /**
      * @brief Execute the action goal in a loop until convergence or
@@ -57,9 +57,9 @@ class ReferenceFilterNode : public rclcpp::Node {
      */
     void execute(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle);
+            vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-    rclcpp_action::Server<vortex_msgs::action::ReferenceFilterQuatWaypoint>::
+    rclcpp_action::Server<vortex_msgs::action::ReferenceFilterWaypoint>::
         SharedPtr action_server_;
 
     ReferenceFilterParams filter_params_;
