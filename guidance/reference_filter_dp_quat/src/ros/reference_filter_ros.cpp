@@ -57,6 +57,16 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         this->create_publisher<vortex_msgs::msg::ReferenceFilterQuat>(
             guidance_topic, qos_sensor_data);
 
+    publish_rpy_debug_ = this->declare_parameter<bool>("publish_rpy_debug");
+    if (publish_rpy_debug_) {
+        std::string rpy_topic = this->declare_parameter<std::string>(
+            "topics.guidance.dp_rpy", guidance_topic + "_rpy");
+        rpy_debug_pub_ =
+            this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
+                rpy_topic, qos_sensor_data);
+        spdlog::info("RPY debug publisher enabled on topic: {}", rpy_topic);
+    }
+
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
@@ -91,7 +101,7 @@ void ReferenceFilterNode::set_action_server() {
         this->get_parameter("action_servers.reference_filter").as_string();
 
     action_server_ = rclcpp_action::create_server<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>(
+        vortex_msgs::action::ReferenceFilterWaypoint>(
         this, action_server_name,
         [this](const auto& uuid, auto goal) {
             return handle_goal(uuid, std::move(goal));
@@ -119,7 +129,7 @@ void ReferenceFilterNode::set_refererence_filter() {
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
     std::shared_ptr<
-        const vortex_msgs::action::ReferenceFilterQuatWaypoint::Goal>
+        const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
     /*goal*/) {
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -127,14 +137,14 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>> /*goal_handle*/) {
+        vortex_msgs::action::ReferenceFilterWaypoint>> /*goal_handle*/) {
     spdlog::info("Received request to cancel goal");
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
 void ReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle) {
+        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
     preempted_ = true;
     if (execute_thread_.joinable()) {
@@ -148,7 +158,7 @@ void ReferenceFilterNode::handle_accepted(
 
 void ReferenceFilterNode::execute(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle) {
+        vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle) {
     spdlog::info("Executing goal");
 
     double convergence_threshold =
@@ -172,7 +182,7 @@ void ReferenceFilterNode::execute(
     follower_->start(pose, twist, wp, convergence_threshold);
 
     auto result = std::make_shared<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
+        vortex_msgs::action::ReferenceFilterWaypoint::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
@@ -207,6 +217,10 @@ void ReferenceFilterNode::execute(
                 fill_reference_msg(follower_->pose(), follower_->velocity());
 
             reference_pub_->publish(final_reference_msg);
+            if (rpy_debug_pub_) {
+                rpy_debug_pub_->publish(fill_reference_rpy_msg(
+                    follower_->pose(), follower_->velocity()));
+            }
 
             result->success = true;
             goal_handle->succeed(result);
@@ -217,11 +231,15 @@ void ReferenceFilterNode::execute(
         auto reference_msg =
             fill_reference_msg(follower_->pose(), follower_->velocity());
         reference_pub_->publish(reference_msg);
+        if (rpy_debug_pub_) {
+            rpy_debug_pub_->publish(fill_reference_rpy_msg(
+                follower_->pose(), follower_->velocity()));
+        }
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {
         auto result = std::make_shared<
-            vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
+            vortex_msgs::action::ReferenceFilterWaypoint::Result>();
         result->success = false;
 
         try {
