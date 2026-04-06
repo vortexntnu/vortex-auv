@@ -170,8 +170,6 @@ class LandmarkServerNode : public rclcpp::Node {
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
 
-    bool enu_ned_rotation_{false};
-
     std::shared_ptr<LandmarkPollingGoalHandle> active_landmark_polling_goal_;
     std::shared_ptr<LandmarkConvergenceGoalHandle>
         active_landmark_convergence_goal_;
