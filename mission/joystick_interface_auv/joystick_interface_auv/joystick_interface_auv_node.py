@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
+import numpy as np
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, WrenchStamped
 from rclpy.node import Node, Parameter
 from sensor_msgs.msg import JointState, Joy
 from std_msgs.msg import Bool
-from vortex_msgs.msg import OperationMode, ReferenceFilter
+from vortex_msgs.msg import OperationMode, ReferenceFilter, ReferenceFilterQuat
 from vortex_msgs.srv import GetOperationMode, SetOperationMode, ToggleKillswitch
-from vortex_utils.python_utils import PoseData
+from vortex_utils.python_utils import PoseData, euler_to_quat
 from vortex_utils_ros.qos_profiles import (
     reliable_profile,
     sensor_data_profile,
@@ -116,8 +117,20 @@ class JoystickInterface(Node):
                 self.get_parameter(f'services.{param}').value,
             )
 
-        self.declare_parameter('topics.guidance.dp', Parameter.Type.STRING)
-        self.guidance_topic = self.get_parameter('topics.guidance.dp').value
+        self.declare_parameter('orientation_mode', 'euler')
+        self._orientation_mode = self.get_parameter('orientation_mode').value
+        if self._orientation_mode not in ('euler', 'quat'):
+            self.get_logger().warn(
+                f"Unknown orientation_mode '{self._orientation_mode}', defaulting to 'euler'"
+            )
+            self._orientation_mode = 'euler'
+
+        self.declare_parameter('topics.guidance.dp_rpy', Parameter.Type.STRING)
+        self.declare_parameter('topics.guidance.dp_quat', Parameter.Type.STRING)
+        if self._orientation_mode == 'quat':
+            self.guidance_topic = self.get_parameter('topics.guidance.dp_quat').value
+        else:
+            self.guidance_topic = self.get_parameter('topics.guidance.dp_rpy').value
 
     def init_movement(self):
         self.surge = 0.0
@@ -155,9 +168,14 @@ class JoystickInterface(Node):
         self._wrench_publisher = self.create_publisher(
             WrenchStamped, self.wrench_input_topic, qos_profile=best_effort_qos
         )
-        self._ref_publisher = self.create_publisher(
-            ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
-        )
+        if self._orientation_mode == 'quat':
+            self._ref_publisher = self.create_publisher(
+                ReferenceFilterQuat, self.guidance_topic, qos_profile=best_effort_qos
+            )
+        else:
+            self._ref_publisher = self.create_publisher(
+                ReferenceFilter, self.guidance_topic, qos_profile=best_effort_qos
+            )
 
         self._gripper_publisher = self.create_publisher(
             JointState, self.gripper_servos_topic, qos_profile=best_effort_qos
@@ -219,13 +237,33 @@ class JoystickInterface(Node):
         """Creates a reference message with the desired state values."""
         reference_msg = ReferenceFilter()
         reference_msg.header.stamp = self.get_clock().now().to_msg()
-        reference_msg.header.frame_id = "odom"
+        # reference_msg.header.frame_id = "odom"
+        reference_msg.header.frame_id = "base_link"
         reference_msg.x = self._desired_state.x
         reference_msg.y = self._desired_state.y
         reference_msg.z = self._desired_state.z
         reference_msg.roll = self._desired_state.roll
         reference_msg.pitch = self._desired_state.pitch
         reference_msg.yaw = self._desired_state.yaw
+        return reference_msg
+
+    def create_reference_quat_message(self) -> ReferenceFilterQuat:
+        """Creates a reference message with quaternion orientation from the desired state."""
+        q = euler_to_quat(
+            self._desired_state.roll,
+            self._desired_state.pitch,
+            self._desired_state.yaw,
+        )
+        reference_msg = ReferenceFilterQuat()
+        reference_msg.header.stamp = self.get_clock().now().to_msg()
+        reference_msg.header.frame_id = "base_link"
+        reference_msg.x = self._desired_state.x
+        reference_msg.y = self._desired_state.y
+        reference_msg.z = self._desired_state.z
+        reference_msg.qx = float(q[0])
+        reference_msg.qy = float(q[1])
+        reference_msg.qz = float(q[2])
+        reference_msg.qw = float(q[3])
         return reference_msg
 
     def create_wrench_message(self) -> WrenchStamped:
@@ -254,6 +292,12 @@ class JoystickInterface(Node):
         future.add_done_callback(self.operation_mode_response_callback)
         self.get_logger().info("XBOX mode")
 
+    def _create_reference_msg(self):
+        """Returns the appropriate reference message based on orientation_mode."""
+        if self._orientation_mode == 'quat':
+            return self.create_reference_quat_message()
+        return self.create_reference_message()
+
     def transition_to_reference_mode(self):
         """Publishes a pose message and signals that the operational mode has switched to Reference mode."""
         self._desired_state = PoseData(
@@ -264,7 +308,7 @@ class JoystickInterface(Node):
             pitch=self._current_state.pitch,
             yaw=self._current_state.yaw,
         )
-        reference_msg = self.create_reference_message()
+        reference_msg = self._create_reference_msg()
         # Still autonomous mode, but now the reference is being controlled by the joystick
 
         request = SetOperationMode.Request()
@@ -390,10 +434,22 @@ class JoystickInterface(Node):
 
         The position and orientation (roll, pitch, yaw) are updated
         using the current joystick inputs scaled by their respective parameters.
+        The linear velocities (surge, sway, heave) are transformed from the
+        body frame to the world frame using the current orientation.
         """
-        self._desired_state.x += self.surge * self._guidance_surge_gain
-        self._desired_state.y += self.sway * self._guidance_sway_gain
-        self._desired_state.z -= self.heave * self._guidance_heave_gain
+        surge_vector = self.surge * self._guidance_surge_gain
+        sway_vector = self.sway * self._guidance_sway_gain
+        heave_vector = -self.heave * self._guidance_heave_gain
+
+        body_frame_vector = np.array([surge_vector, sway_vector, heave_vector])
+
+        rotation_matrix = self._desired_state.as_rotation_matrix()
+        world_frame_vector = rotation_matrix @ body_frame_vector
+
+        self._desired_state.x += world_frame_vector[0]
+        self._desired_state.y += world_frame_vector[1]
+        self._desired_state.z += world_frame_vector[2]
+
         self._desired_state.roll += self.roll * self._guidance_roll_gain
         self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
         self._desired_state.yaw += self.yaw * self._guidance_yaw_gain
@@ -458,7 +514,7 @@ class JoystickInterface(Node):
                 self._wrench_publisher.publish(wrench_msg)
             else:
                 self.update_reference()
-                ref_msg = self.create_reference_message()
+                ref_msg = self._create_reference_msg()
                 self._ref_publisher.publish(ref_msg)
 
             close = float(buttons.get("stick_button_left", 0))
