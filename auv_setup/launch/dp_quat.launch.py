@@ -3,7 +3,8 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import OpaqueFunction
-from launch_ros.actions import Node
+from launch_ros.actions import ComposableNodeContainer
+from launch_ros.descriptions import ComposableNode
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -33,28 +34,39 @@ def launch_setup(context, *args, **kwargs):
         f"adapt_params_{drone}.yaml",
     )
 
-    return [
-        Node(
-            package="reference_filter_dp_quat",
-            executable="reference_filter_dp_quat_node",
-            name="reference_filter_node",
-            namespace=namespace,
-            parameters=[filter_config, drone_params],
-            output="screen",
-        ),
-        Node(
-            package="dp_adapt_backs_controller_quat",
-            executable="dp_adapt_backs_controller_quat_node",
-            name="dp_adapt_backs_controller_node",
-            namespace=namespace,
-            parameters=[adapt_params, drone_params],
-            output="screen",
-        ),
-    ]
+    container = ComposableNodeContainer(
+        name="dp_quat_container",
+        namespace=namespace,
+        package="rclcpp_components",
+        executable="component_container_mt",
+        composable_node_descriptions=[
+            ComposableNode(
+                package="reference_filter_dp_quat",
+                plugin="ReferenceFilterNode",
+                name="reference_filter_node",
+                namespace=namespace,
+                parameters=[filter_config, drone_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+            ComposableNode(
+                package="dp_adapt_backs_controller_quat",
+                plugin="DPAdaptBacksControllerNode",
+                name="dp_adapt_backs_controller_node",
+                namespace=namespace,
+                parameters=[adapt_params, drone_params],
+                extra_arguments=[{"use_intra_process_comms": True}],
+            ),
+        ],
+        output="screen",
+    )
+
+    return [container]
 
 
 def generate_launch_description():
     return LaunchDescription(
         declare_drone_and_namespace_args()
-        + [OpaqueFunction(function=launch_setup)]
+        + [
+            OpaqueFunction(function=launch_setup),
+        ]
     )

@@ -3,8 +3,8 @@
  * @brief Contains the Eigen typedefs for the controller.
  */
 
-#ifndef DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
-#define DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
+#ifndef DP_ADAPT_BACKS_CONTROLLER_QUAT__TYPEDEFS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER_QUAT__TYPEDEFS_HPP_
 
 #include <eigen3/Eigen/Dense>
 
@@ -19,4 +19,4 @@ typedef Eigen::Matrix<double, 12, 12> Matrix12d;
 
 }  // namespace Eigen
 
-#endif  // DP_ADAPT_BACKS_CONTROLLER__TYPEDEFS_HPP_
+#endif  // DP_ADAPT_BACKS_CONTROLLER_QUAT__TYPEDEFS_HPP_

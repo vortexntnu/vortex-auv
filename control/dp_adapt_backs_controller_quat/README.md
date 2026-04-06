@@ -26,7 +26,7 @@ R(q) & 0_{3\times 3} \\
 T_e(q_e) = \eta_e I_3 + S(\varepsilon_e)
 ```
 
-Here $R(q) \in SO(3)$ is the rotation matrix from NED to body, $q_e = q_d^* \otimes q = \begin{bmatrix}\eta_e \\ \varepsilon_e\end{bmatrix}$ is the error quaternion, and $S(\cdot)$ is the skew-symmetric (cross-product) matrix.
+Here $R(q) \in SO(3)$ is the rotation matrix from NED to body, $q_e = q_d^* \otimes q$ is the error quaternion (scalar part $\eta_e$, vector part $\varepsilon_e$), and $S(\cdot)$ is the skew-symmetric (cross-product) matrix.
 
 **Dynamics (Newton–Euler, body frame):**
 
@@ -296,7 +296,7 @@ The control law requires $\dot{\alpha}$, the time derivative of the virtual cont
 \dot{\alpha} = J_e^{-1}\dot{J}_e J_e^{-1} K_1 z_1 - J_e^{-1} K_1 J_e\,\nu
 ```
 
-The block structure $J_e = \begin{bmatrix} R & 0 \\ 0 & T_e \end{bmatrix}$ gives:
+The block structure of $J_e$ gives:
 
 ```math
 \dot{J}_e =

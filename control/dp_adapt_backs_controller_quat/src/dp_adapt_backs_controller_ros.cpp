@@ -10,13 +10,12 @@
 #include "dp_adapt_backs_controller_quat/typedefs.hpp"
 
 constexpr std::string_view start_message = R"(
- ██████╗ ██╗   ██╗ █████╗ ████████╗███████╗██████╗ ███╗   ██╗██╗ ██████╗ ███╗   ██╗    ██████╗ ██████╗ 
+ ██████╗ ██╗   ██╗ █████╗ ████████╗███████╗██████╗ ███╗   ██╗██╗ ██████╗ ███╗   ██╗    ██████╗ ██████╗
 ██╔═══██╗██║   ██║██╔══██╗╚══██╔══╝██╔════╝██╔══██╗████╗  ██║██║██╔═══██╗████╗  ██║    ██╔══██╗██╔══██╗
 ██║   ██║██║   ██║███████║   ██║   █████╗  ██████╔╝██╔██╗ ██║██║██║   ██║██╔██╗ ██║    ██║  ██║██████╔╝
-██║▄▄ ██║██║   ██║██╔══██║   ██║   ██╔══╝  ██╔══██╗██║╚██╗██║██║██║   ██║██║╚██╗██║    ██║  ██║██╔═══╝ 
-╚██████╔╝╚██████╔╝██║  ██║   ██║   ███████╗██║  ██║██║ ╚████║██║╚██████╔╝██║ ╚████║    ██████╔╝██║     
- ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝    ╚═════╝ ╚═╝     
-                                                                                                       
+██║▄▄ ██║██║   ██║██╔══██║   ██║   ██╔══╝  ██╔══██╗██║╚██╗██║██║██║   ██║██║╚██╗██║    ██║  ██║██╔═══╝
+╚██████╔╝╚██████╔╝██║  ██║   ██║   ███████╗██║  ██║██║ ╚████║██║╚██████╔╝██║ ╚████║    ██████╔╝██║
+ ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝    ╚═════╝ ╚═╝
 )";
 
 namespace vortex::control {
@@ -191,6 +190,9 @@ void DPAdaptBacksControllerNode::set_adap_params() {
         "propulsion.thrusters.constraints.min_force");
     this->declare_parameter<double>(
         "propulsion.thrusters.constraints.max_force");
+    this->declare_parameter<double>("singularity_tolerance");
+    this->declare_parameter<double>("adapt_param_max");
+    this->declare_parameter<double>("d_est_max");
 
     std::vector<double> adapt_param_vec =
         this->get_parameter("adapt_gain").as_double_array();
@@ -238,9 +240,8 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     auto dir_vec =
         this->get_parameter("propulsion.thrusters.thruster_force_direction")
             .as_double_array();
-    auto pos_vec =
-        this->get_parameter("propulsion.thrusters.thruster_position")
-            .as_double_array();
+    auto pos_vec = this->get_parameter("propulsion.thrusters.thruster_position")
+                       .as_double_array();
 
     Eigen::MatrixXd thruster_dir =
         Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
@@ -278,6 +279,12 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_adapt_params.mass_intertia_matrix = mass_intertia_matrix;
     dp_adapt_params.tau_max = tau_max;
     dp_adapt_params.mass = mass;
+    dp_adapt_params.dt = static_cast<double>(time_step_.count()) / 1000.0;
+    dp_adapt_params.singularity_tolerance =
+        this->get_parameter("singularity_tolerance").as_double();
+    dp_adapt_params.adapt_param_max =
+        this->get_parameter("adapt_param_max").as_double();
+    dp_adapt_params.d_est_max = this->get_parameter("d_est_max").as_double();
 
     dp_adapt_backs_controller_ =
         std::make_unique<DPAdaptBacksController>(dp_adapt_params);
@@ -298,8 +305,6 @@ void DPAdaptBacksControllerNode::publish_tau() {
     tau_msg.wrench.force.x = tau(0);
     tau_msg.wrench.force.y = tau(1);
     tau_msg.wrench.force.z = tau(2);
-
-    // comment out if roll control is not needed
     tau_msg.wrench.torque.x = tau(3);
     tau_msg.wrench.torque.y = tau(4);
     tau_msg.wrench.torque.z = tau(5);

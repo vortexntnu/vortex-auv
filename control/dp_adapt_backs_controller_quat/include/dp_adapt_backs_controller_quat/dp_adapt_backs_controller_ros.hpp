@@ -1,5 +1,5 @@
-#ifndef DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
-#define DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
+#ifndef DP_ADAPT_BACKS_CONTROLLER_QUAT__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
+#define DP_ADAPT_BACKS_CONTROLLER_QUAT__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
 
 #include <chrono>
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -24,52 +24,64 @@
 
 namespace vortex::control {
 
-// @brief Class for the DP Adaptive Backstepping controller node
+/** @brief ROS 2 node wrapper for the DP Adaptive Backstepping controller. */
 class DPAdaptBacksControllerNode : public rclcpp::Node {
    public:
     explicit DPAdaptBacksControllerNode(
         const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
    private:
-    // @brief Client for the GetOperationMode service
+    /** @brief Client for the GetOperationMode service. */
     rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
         get_operation_mode_client_;
 
-    // @brief Callback function for the killswitch topic
-    // @param msg: Bool message containing the killswitch status
+    /**
+     * @brief Callback for the killswitch topic.
+     * @param msg Bool message containing the killswitch status.
+     */
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
-    // @brief Callback function for the software mode topic
-    // @param msg: String message containing the software mode
+    /**
+     * @brief Callback for the operation mode topic.
+     * @param msg OperationMode message containing the current software mode.
+     */
     void operation_mode_callback(
         const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
-    // @brief Callback function for the pose topic
-    // @param msg: PoseWithCovarianceStamped message containing the AUV pose
+    /**
+     * @brief Callback for the pose topic.
+     * @param msg PoseWithCovarianceStamped message containing the AUV pose.
+     */
     void pose_callback(
         const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 
-    // @brief Callback function for the twist topic
-    // @param msg: TwistWithCovarianceStamped message containing the AUV speed
+    /**
+     * @brief Callback for the twist topic.
+     * @param msg TwistWithCovarianceStamped message containing the AUV
+     * velocity.
+     */
     void twist_callback(
         const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
 
-    // @brief Callback function for the control input tau publish
+    /** @brief Timer callback that computes and publishes the control wrench. */
     void publish_tau();
 
-    // @brief set the DP Adaptive Backstepping controller parameters
+    /** @brief Declare and load all adaptive controller parameters from ROS
+     * params. */
     void set_adap_params();
 
-    // @brief Set the subscriber and publisher for the node
+    /** @brief Create all subscribers, publishers, and the timer. */
     void set_subscribers_and_publisher();
 
-    // @brief Initialize the operation mode by calling the GetOperationMode
-    // service
+    /** @brief Query the GetOperationMode service to initialise the operation
+     * mode. */
     void initialize_operation_mode();
 
-    // @brief Callback function for the guidance topic
-    // @param msg: ReferenceFilter message containing the desired vehicle pose
-    // and velocity
+    /**
+     * @brief Callback for the guidance topic.
+     * @param msg ReferenceFilterQuat message containing the desired pose and
+     * velocity.
+     */
     void guidance_callback(
         const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg);
 
@@ -109,4 +121,4 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
 }  // namespace vortex::control
 
-#endif  // DP_ADAPT_BACKS_CONTROLLER__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_
+#endif  // DP_ADAPT_BACKS_CONTROLLER_QUAT__DP_ADAPT_BACKS_CONTROLLER_ROS_HPP_

@@ -41,8 +41,8 @@ DPAdaptParams load_dp_adapt_params(const std::string& drone_yaml_path,
     params.r_b_bg = Eigen::Map<Eigen::Vector3d>(r_b_bg_vec.data());
     params.mass_intertia_matrix = mass_matrix;
     params.mass = mass_matrix(0, 0);
-    params.inertia_matrix_body = Eigen::Vector3d(mass_matrix(3, 3), mass_matrix(4, 4),
-                                                 mass_matrix(5, 5));
+    params.inertia_matrix_body = Eigen::Vector3d(
+        mass_matrix(3, 3), mass_matrix(4, 4), mass_matrix(5, 5));
     return params;
 }
 
