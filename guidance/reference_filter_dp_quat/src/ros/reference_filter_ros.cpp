@@ -128,8 +128,7 @@ void ReferenceFilterNode::set_refererence_filter() {
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
-    std::shared_ptr<
-        const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
+    std::shared_ptr<const vortex_msgs::action::ReferenceFilterWaypoint::Goal>
     /*goal*/) {
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;

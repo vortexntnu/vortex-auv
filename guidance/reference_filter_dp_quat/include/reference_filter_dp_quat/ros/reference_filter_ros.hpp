@@ -59,8 +59,8 @@ class ReferenceFilterNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::ReferenceFilterWaypoint>> goal_handle);
 
-    rclcpp_action::Server<vortex_msgs::action::ReferenceFilterWaypoint>::
-        SharedPtr action_server_;
+    rclcpp_action::Server<
+        vortex_msgs::action::ReferenceFilterWaypoint>::SharedPtr action_server_;
 
     ReferenceFilterParams filter_params_;
 
