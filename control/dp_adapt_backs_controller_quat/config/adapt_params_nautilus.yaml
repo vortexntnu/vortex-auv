@@ -1,11 +1,11 @@
 /**:
   ros__parameters:
-    K1 : [5.0, 5.0, 9.5, 1.5, 5.0, 9.5] # Outer loop tuning parameters
-    K2 : [25.0, 25.0, 40.0, 25.0, 25.0, 40.0] # Inner loop tuning parameters
+    K1 : [9.5, 9.5, 15.0, 3.5, 7.5, 7.5] # Outer loop tuning parameters
+    K2 : [90.0, 90.0, 100.0, 70.0, 90.0, 90.0] # Inner loop tuning parameters
     r_b_bg : [0.00, 0.0, 0.015] # Vector from body centre to centre of gravity
-    adapt_gain : [0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2, 0.4, 0.2] # Tuning parameters for linear and nonlinear damping
-    d_gain : [0.2, 0.2, 0.2, 0.2, 0.2, 0.2] # Tuning parameters for the unmodeled disturbances and uncertanties
+    adapt_gain : [0.6, 0.2, 0.6, 0.2, 0.6, 0.2, 0.6, 0.2, 0.6, 0.2, 0.6, 0.2] # Tuning parameters for linear and nonlinear damping
+    d_gain : [0.3, 0.3, 0.3, 0.3, 0.3, 0.3] # Tuning parameters for the unmodeled disturbances and uncertanties
     time_step: 10 #Controller timestep in milliseconds (ms)
     singularity_tolerance: 1.0e-8 # Determinant threshold below which L is treated as singular
-    adapt_param_max: 15.0 # Symmetric clamp on adaptive damping parameter estimates
-    d_est_max: 15.0 # Symmetric clamp on disturbance estimates
+    adapt_param_max: 20.0 # Symmetric clamp on adaptive damping parameter estimates
+    d_est_max: 20.0 # Symmetric clamp on disturbance estimates
