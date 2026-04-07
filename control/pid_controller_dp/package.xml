@@ -10,11 +10,13 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>eigen</depend>
   <depend>tf2</depend>
   <depend>vortex_msgs</depend>
+  <depend>rcl_interfaces</depend>
   <depend>vortex_utils</depend>
   <depend>vortex_utils_ros</depend>
 

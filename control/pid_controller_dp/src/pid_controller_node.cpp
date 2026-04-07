@@ -2,8 +2,7 @@
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Started PID Controller Node");
-    rclcpp::spin(std::make_shared<PIDControllerNode>());
+    rclcpp::spin(std::make_shared<PIDControllerNode>(rclcpp::NodeOptions()));
     rclcpp::shutdown();
     return 0;
 }
