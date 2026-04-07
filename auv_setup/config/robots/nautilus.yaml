@@ -80,8 +80,8 @@
         ]
 
         constraints:
-          max_force: 40.0
-          min_force: -40.0
+          max_force: 39.0
+          min_force: -41.0
           input_matrix_weights: [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0]
           slack_matrix_weights: [2000.0,2000.0,2000.0,2000.0,2000.0,2000.0]
 

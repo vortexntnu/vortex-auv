@@ -58,9 +58,10 @@ void WaypointFollower::inject_and_reset() {
         Eigen::Quaterniond delta_quat(
             Eigen::AngleAxisd(angle, delta_orientation.normalized()));
         Eigen::Quaterniond q_new = nominal_pose_.ori_quaternion() * delta_quat;
-        // Enforce positive hemisphere to prevent sign flips in the published
-        // reference quaternion that would cause the downstream controller to
-        // see large spurious orientation errors.
+        /** Enforce positive hemisphere to prevent sign flips in the published
+         * reference quaternion that would cause the downstream controller to
+         * see large spurious orientation errors.
+         */
         if (q_new.w() < 0.0) {
             q_new.coeffs() = -q_new.coeffs();
         }
