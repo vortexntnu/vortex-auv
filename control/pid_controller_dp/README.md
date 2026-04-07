@@ -25,12 +25,12 @@ e_b = J^{-1}\,\tilde{\varepsilon}, \qquad
 
 where $\tilde{q} = q \ominus q_d$ is the quaternion error. The sign convention $\tilde{q}_w \geq 0$ is enforced to guarantee the shortest-path rotation.
 
-**6×6 Jacobian** $J = \operatorname{blockdiag}(R,\, T_{33})$:
+**6×6 Jacobian** $J = \begin{bmatrix} R & 0 \\ 0 & T_{33} \end{bmatrix}$:
 
 - $R \in SO(3)$ — rotation matrix from body to world frame.
 - $T_{33} \in \mathbb{R}^{3 \times 3}$ — lower three rows of the quaternion kinematic matrix mapping body angular rates to $\dot{\varepsilon}_q$.
 
-**Inverse Jacobian** $J^{-1} = \operatorname{blockdiag}(R^\top,\, I_3)$:
+**Inverse Jacobian** $J^{-1} = \begin{bmatrix} R^\top & 0 \\ 0 & I_3 \end{bmatrix}$:
 
 The exact inverse of $T_{33}$ is approximated by $I_3$. When the Jacobian is near-singular the right Moore–Penrose pseudoinverse is used instead.
 

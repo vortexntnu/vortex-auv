@@ -49,7 +49,7 @@ CONTROL_PKGS=(
   los_guidance
 )
 
-#TODO: add perception pkgs and a seperate launch arg.
+#TODO: add perception pkgs and a separate launch arg.
 PERCEPTION_PKGS=()
 
 # Use arguments if provided, otherwise use defaults
