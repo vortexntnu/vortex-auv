@@ -42,13 +42,13 @@ ReferenceFilterNode::~ReferenceFilterNode() {
 void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
-    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.guidance.dp_rpy");
     this->declare_parameter<std::string>("topics.reference_pose");
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string twist_topic = this->get_parameter("topics.twist").as_string();
     std::string guidance_topic =
-        this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp_rpy").as_string();
     std::string reference_pose_topic =
         this->get_parameter("topics.reference_pose").as_string();
 
