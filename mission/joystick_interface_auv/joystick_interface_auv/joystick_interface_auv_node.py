@@ -244,7 +244,7 @@ class JoystickInterface(Node):
         reference_msg = ReferenceFilter()
         reference_msg.header.stamp = self.get_clock().now().to_msg()
         reference_msg.header.frame_id = "odom"
-        #reference_msg.header.frame_id = "base_link"
+        # reference_msg.header.frame_id = "base_link"
         reference_msg.x = self._desired_state.x
         reference_msg.y = self._desired_state.y
         reference_msg.z = self._desired_state.z
@@ -458,12 +458,17 @@ class JoystickInterface(Node):
         self._desired_state.z += world_frame_vector[2]
 
         if self._orientation_mode == 'quat':
-            delta = Rotation.from_euler('xyz', [
-                self.roll * self._guidance_roll_gain,
-                self.pitch * self._guidance_pitch_gain,
-                self.yaw * self._guidance_yaw_gain,
-            ])
-            self._desired_quat = (Rotation.from_quat(self._desired_quat) * delta).as_quat()
+            delta = Rotation.from_euler(
+                'xyz',
+                [
+                    self.roll * self._guidance_roll_gain,
+                    self.pitch * self._guidance_pitch_gain,
+                    self.yaw * self._guidance_yaw_gain,
+                ],
+            )
+            self._desired_quat = (
+                Rotation.from_quat(self._desired_quat) * delta
+            ).as_quat()
         else:
             self._desired_state.roll += self.roll * self._guidance_roll_gain
             self._desired_state.pitch += self.pitch * self._guidance_pitch_gain
