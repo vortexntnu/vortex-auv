@@ -103,7 +103,7 @@ class DPAdaptBacksControllerNode : public rclcpp::Node {
 
     rclcpp::TimerBase::SharedPtr tau_pub_timer_{};
 
-    std::chrono::milliseconds time_step_{};
+    std::chrono::milliseconds time_step_ms{};
 
     vortex::utils::types::Pose pose_;
 

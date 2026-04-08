@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(dp_adapt_backs_controller_quat)
-
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-endif()
+set(CMAKE_CXX_STANDARD 20)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -14,10 +11,8 @@ find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
@@ -36,9 +31,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
   geometry_msgs
-  nav_msgs
   Eigen3
-  tf2
   fmt
   spdlog
   vortex_msgs

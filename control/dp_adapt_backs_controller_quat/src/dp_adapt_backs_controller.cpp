@@ -24,7 +24,7 @@ DPAdaptBacksController::DPAdaptBacksController(
       mass_intertia_matrix_(dp_adapt_params.mass_intertia_matrix),
       tau_max_(dp_adapt_params.tau_max),
       m_(dp_adapt_params.mass),
-      dt_(dp_adapt_params.dt),
+      time_step_s_(dp_adapt_params.time_step_s),
       singularity_tolerance_(dp_adapt_params.singularity_tolerance),
       adapt_param_max_(dp_adapt_params.adapt_param_max),
       d_est_max_(dp_adapt_params.d_est_max) {}
@@ -72,8 +72,8 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const Pose& pose,
                           (K2_ * z_2) - F_est - d_est_;
 
     tau = tau.cwiseMax(-tau_max_).cwiseMin(tau_max_);
-    adapt_param_ += adapt_param_dot * dt_;
-    d_est_ += d_est_dot * dt_;
+    adapt_param_ += adapt_param_dot * time_step_s_;
+    d_est_ += d_est_dot * time_step_s_;
     adapt_param_ =
         adapt_param_.cwiseMax(-adapt_param_max_).cwiseMin(adapt_param_max_);
     d_est_ = d_est_.cwiseMax(-d_est_max_).cwiseMin(d_est_max_);
@@ -89,8 +89,8 @@ void DPAdaptBacksController::reset_d_est() {
     d_est_.setZero();
 }
 
-void DPAdaptBacksController::set_time_step(const double dt) {
-    dt_ = dt;
+void DPAdaptBacksController::set_time_step(const double time_step_s) {
+    time_step_s_ = time_step_s;
 }
 
 }  // namespace vortex::control

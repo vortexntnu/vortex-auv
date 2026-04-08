@@ -23,7 +23,7 @@ struct DPAdaptParams {
     Eigen::Matrix6d mass_intertia_matrix = Eigen::Matrix6d::Zero();
     Eigen::Vector6d tau_max = Eigen::Vector6d::Ones();
     double mass{};
-    double dt{};
+    double time_step_s{};
     double singularity_tolerance;
     double adapt_param_max;
     double d_est_max;
@@ -59,9 +59,9 @@ class DPAdaptBacksController {
 
     /**
      * @brief Set the integration time step.
-     * @param dt Time step in seconds.
+     * @param time_step_s Time step in seconds.
      */
-    void set_time_step(const double dt);
+    void set_time_step(const double time_step_s);
 
    private:
     Eigen::Matrix6d K1_;
@@ -75,7 +75,7 @@ class DPAdaptBacksController {
     Eigen::Matrix6d mass_intertia_matrix_;
     Eigen::Vector6d tau_max_;
     double m_{};
-    double dt_{};
+    double time_step_s_{};
     double singularity_tolerance_{};
     double adapt_param_max_{};
     double d_est_max_{};
