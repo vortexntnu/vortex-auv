@@ -300,14 +300,7 @@ void DPAdaptBacksControllerNode::publish_tau() {
 
 void DPAdaptBacksControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
-    pose_d_.x = msg->x;
-    pose_d_.y = msg->y;
-    pose_d_.z = msg->z;
-
-    pose_d_.qw = msg->qw;
-    pose_d_.qx = msg->qx;
-    pose_d_.qy = msg->qy;
-    pose_d_.qz = msg->qz;
+    pose_d_ = msg;
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)
