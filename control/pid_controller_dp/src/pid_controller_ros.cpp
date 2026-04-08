@@ -1,11 +1,8 @@
 #include <pid_controller_dp/pid_controller_ros.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <variant>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
-#include <vortex_msgs/msg/operation_mode.hpp>
-#include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/pid_controller_utils.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
@@ -25,12 +22,14 @@ PIDControllerNode::PIDControllerNode(const rclcpp::NodeOptions& options)
     set_subscribers_and_publisher();
     initialize_operation_mode();
 
-    tau_pub_timer_ = this->create_wall_timer(
-        time_step_, std::bind(&PIDControllerNode::publish_tau, this));
+    tau_pub_timer_ =
+        this->create_wall_timer(time_step_, [this]() { publish_tau(); });
     set_pid_params();
 
-    callback_handle_ = this->add_on_set_parameters_callback(std::bind(
-        &PIDControllerNode::parametersCallback, this, std::placeholders::_1));
+    callback_handle_ = this->add_on_set_parameters_callback(
+        [this](const std::vector<rclcpp::Parameter>& params) {
+            return parametersCallback(params);
+        });
 
     spdlog::info(start_message);
 }
@@ -62,24 +61,28 @@ void PIDControllerNode::set_subscribers_and_publisher() {
 
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, qos_reliable,
-        std::bind(&PIDControllerNode::killswitch_callback, this,
-                  std::placeholders::_1));
+        [this](const std_msgs::msg::Bool::SharedPtr msg) {
+            killswitch_callback(msg);
+        });
     operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
             software_operation_mode_topic, qos_reliable,
-            std::bind(&PIDControllerNode::operation_mode_callback, this,
-                      std::placeholders::_1));
+            [this](const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+                operation_mode_callback(msg);
+            });
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::odom_callback, this,
-                  std::placeholders::_1));
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+            odom_callback(msg);
+        });
 
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilterQuat>(
             dp_reference_topic, qos_sensor_data,
-            std::bind(&PIDControllerNode::guidance_callback, this,
-                      std::placeholders::_1));
+            [this](const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
+                guidance_callback(msg);
+            });
 
     tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         control_topic, qos_sensor_data);
@@ -130,14 +133,14 @@ void PIDControllerNode::operation_mode_callback(
 
 void PIDControllerNode::odom_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
-    eta_ = eta_convert_from_ros_to_eigen(msg->pose);
+    eta_ = vortex::utils::ros_conversions::ros_pose_to_pose(msg->pose.pose);
     if (eta_.qw < 0.0) {
         eta_.qw = -eta_.qw;
         eta_.qx = -eta_.qx;
         eta_.qy = -eta_.qy;
         eta_.qz = -eta_.qz;
     }
-    nu_ = nu_convert_from_ros_to_eigen(msg->twist);
+    nu_ = vortex::utils::ros_conversions::ros_twist_to_twist(msg->twist.twist);
 }
 
 void PIDControllerNode::publish_tau() {

@@ -1,12 +1,8 @@
 #include <spdlog/spdlog.h>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <pid_controller_dp_euler/pid_controller_ros.hpp>
 #include <pid_controller_dp_euler/pid_controller_utils.hpp>
-#include <string>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
-#include <vortex_msgs/msg/operation_mode.hpp>
 
 PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     time_step_ = std::chrono::milliseconds(10);
@@ -14,8 +10,8 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
     set_subscribers_and_publisher();
     initialize_operation_mode();
 
-    tau_pub_timer_ = this->create_wall_timer(
-        time_step_, std::bind(&PIDControllerNode::publish_tau, this));
+    tau_pub_timer_ =
+        this->create_wall_timer(time_step_, [this]() { publish_tau(); });
     set_pid_params();
 }
 
@@ -48,28 +44,31 @@ void PIDControllerNode::set_subscribers_and_publisher() {
     const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
     killswitch_sub_ = this->create_subscription<std_msgs::msg::Bool>(
         software_kill_switch_topic, qos_reliable,
-        std::bind(&PIDControllerNode::killswitch_callback, this,
-                  std::placeholders::_1));
+        [this](const std_msgs::msg::Bool::SharedPtr msg) {
+            killswitch_callback(msg);
+        });
     operation_mode_sub_ =
         this->create_subscription<vortex_msgs::msg::OperationMode>(
             software_operation_mode_topic, qos_reliable,
-            std::bind(&PIDControllerNode::operation_mode_callback, this,
-                      std::placeholders::_1));
+            [this](const vortex_msgs::msg::OperationMode::SharedPtr msg) {
+                operation_mode_callback(msg);
+            });
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::pose_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+                   msg) { pose_callback(msg); });
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
-        std::bind(&PIDControllerNode::twist_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr
+                   msg) { twist_callback(msg); });
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             dp_reference_topic, qos_sensor_data,
-            std::bind(&PIDControllerNode::guidance_callback, this,
-                      std::placeholders::_1));
+            [this](const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
+                guidance_callback(msg);
+            });
     tau_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         control_topic, qos_sensor_data);
 }
@@ -127,33 +126,13 @@ void PIDControllerNode::operation_mode_callback(
 
 void PIDControllerNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-    eta_.x = msg->pose.pose.position.x;
-    eta_.y = msg->pose.pose.position.y;
-    eta_.z = msg->pose.pose.position.z;
-
-    tf2::Quaternion quat;
-    quat.setX(msg->pose.pose.orientation.x);
-    quat.setY(msg->pose.pose.orientation.y);
-    quat.setZ(msg->pose.pose.orientation.z);
-    quat.setW(msg->pose.pose.orientation.w);
-
-    tf2::Matrix3x3 m(quat);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-
-    eta_.roll = roll;
-    eta_.pitch = pitch;
-    eta_.yaw = yaw;
+    eta_ =
+        vortex::utils::ros_conversions::ros_pose_to_pose_euler(msg->pose.pose);
 }
 
 void PIDControllerNode::twist_callback(
     const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-    nu_.u = msg->twist.twist.linear.x;
-    nu_.v = msg->twist.twist.linear.y;
-    nu_.w = msg->twist.twist.linear.z;
-    nu_.p = msg->twist.twist.angular.x;
-    nu_.q = msg->twist.twist.angular.y;
-    nu_.r = msg->twist.twist.angular.z;
+    nu_ = vortex::utils::ros_conversions::ros_twist_to_twist(msg->twist.twist);
 }
 
 void PIDControllerNode::publish_tau() {
@@ -200,10 +179,6 @@ void PIDControllerNode::set_pid_params() {
 
 void PIDControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilter::SharedPtr msg) {
-    eta_d_.x = msg->x;
-    eta_d_.y = msg->y;
-    eta_d_.z = msg->z;
-    eta_d_.roll = msg->roll;
-    eta_d_.pitch = msg->pitch;
-    eta_d_.yaw = msg->yaw;
+    eta_d_ =
+        vortex::utils::ros_conversions::reference_filter_to_pose_euler(*msg);
 }

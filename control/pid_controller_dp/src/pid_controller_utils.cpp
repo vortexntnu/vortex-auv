@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
-#include "pid_controller_dp/pid_controller_conversions.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
 types::Matrix3d calculate_R_quat(const types::Eta& eta) {

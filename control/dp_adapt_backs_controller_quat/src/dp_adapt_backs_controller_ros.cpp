@@ -300,7 +300,8 @@ void DPAdaptBacksControllerNode::publish_tau() {
 
 void DPAdaptBacksControllerNode::guidance_callback(
     const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg) {
-    pose_d_ = msg;
+    pose_d_ =
+        vortex::utils::ros_conversions::reference_filter_quat_to_pose(*msg);
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(DPAdaptBacksControllerNode)

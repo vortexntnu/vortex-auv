@@ -15,7 +15,6 @@ find_package(rclcpp_components REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(tf2 REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(rcl_interfaces REQUIRED)
 find_package(vortex_utils REQUIRED)
@@ -29,7 +28,6 @@ set(LIB_NAME ${PROJECT_NAME}_lib)
 add_library(${LIB_NAME} SHARED
   src/pid_controller.cpp
   src/pid_controller_utils.cpp
-  src/pid_controller_conversions.cpp
 )
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
@@ -37,7 +35,6 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   geometry_msgs
   nav_msgs
   Eigen3
-  tf2
   vortex_msgs
   rcl_interfaces
   vortex_utils
@@ -57,7 +54,6 @@ ament_target_dependencies(pid_controller_component PUBLIC
   geometry_msgs
   nav_msgs
   Eigen3
-  tf2
   vortex_msgs
   rcl_interfaces
   vortex_utils

@@ -2,11 +2,8 @@
 #define PID_CONTROLLER_DP__PID_CONTROLLER_UTILS_HPP_
 
 #include <spdlog/spdlog.h>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <cmath>
 #include <eigen3/Eigen/Geometry>
-#include <std_msgs/msg/float64_multi_array.hpp>
 #include <vortex/utils/types.hpp>
 #include "pid_controller_dp/typedefs.hpp"
 #include "typedefs.hpp"
@@ -43,17 +40,6 @@ types::Matrix3d calculate_R_quat(const types::Eta& eta);
  * @return 3×3 matrix T₃₃
  */
 types::Matrix3d calculate_T_quat(const types::Eta& eta);
-
-/**
- * @brief Compute the 6×6 Jacobian J = blockdiag(R, T₃₃).
- *
- * Maps the 6D world-frame error state [Δp; ε_q] to the body frame.
- * T₃₃ maps body angular velocity to the quaternion vector-part rate.
- *
- * @param eta Vehicle pose [x, y, z, qw, qx, qy, qz]
- * @return J_transformation struct holding R and T₃₃ (and their 6×6 product)
- */
-types::J_transformation calculate_J(const types::Eta& eta);
 
 /**
  * @brief Compute the inverse of the 6×6 Jacobian: J⁻¹ = blockdiag(Rᵀ, I₃).

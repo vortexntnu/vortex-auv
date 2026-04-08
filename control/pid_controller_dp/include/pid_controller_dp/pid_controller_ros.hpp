@@ -2,18 +2,12 @@
 #define PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
 
 #include <chrono>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
-#include <std_msgs/msg/string.hpp>
 #include <string>
-#include <variant>
 #include <vector>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
@@ -89,12 +83,6 @@ class PIDControllerNode : public rclcpp::Node {
 
     rclcpp::Subscription<vortex_msgs::msg::ReferenceFilterQuat>::SharedPtr
         guidance_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kp_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr ki_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kd_sub_;
 
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_;
 

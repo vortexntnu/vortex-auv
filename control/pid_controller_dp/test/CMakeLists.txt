@@ -17,6 +17,6 @@ target_link_libraries(
     spdlog::spdlog
 )
 
-ament_target_dependencies(${TEST_BINARY_NAME} PUBLIC Eigen3 tf2 vortex_utils)
+ament_target_dependencies(${TEST_BINARY_NAME} PUBLIC Eigen3 vortex_utils)
 
 gtest_discover_tests(${TEST_BINARY_NAME})
