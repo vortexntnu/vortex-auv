@@ -103,8 +103,9 @@ void ThrustAllocator::set_allocator() {
             .as_double_array(),
         num_dimensions_, num_thrusters_);
 
-    thrust_configuration_ = vortex::utils::math::build_thrust_configuration_matrix(
-        thruster_force_direction_, thruster_position_, center_of_mass_);
+    thrust_configuration_ =
+        vortex::utils::math::build_thrust_configuration_matrix(
+            thruster_force_direction_, thruster_position_, center_of_mass_);
 
     Eigen::VectorXd input_weights = Eigen::Map<const Eigen::VectorXd>(
         this->get_parameter(

@@ -101,8 +101,9 @@ static Eigen::VectorXd require_thrust(std::unique_ptr<Allocator>& allocator,
 
 static Eigen::VectorXd normalize_tau(const Eigen::VectorXd& tau,
                                      const AllocatorConfig& config) {
-    Eigen::VectorXd tau_max = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
-        config.extended_thrust_matrix, config.min_force, config.max_force);
+    Eigen::VectorXd tau_max =
+        vortex::utils::math::calculate_valid_thrust_region_polyhedron(
+            config.extended_thrust_matrix, config.min_force, config.max_force);
     return normalize_wrench_vector(tau, tau_max);
 }
 
@@ -192,8 +193,7 @@ class PseudoinverseAllocatorTests : public ::testing::Test {
         allocator_config = load_allocator_config(YAML_PATH);
         allocator = Factory::make_allocator("pseudoinverse", allocator_config);
         tau_max = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
-            allocator_config.extended_thrust_matrix,
-            allocator_config.min_force,
+            allocator_config.extended_thrust_matrix, allocator_config.min_force,
             allocator_config.max_force);
     }
 };
@@ -208,8 +208,7 @@ class QPAllocatorTests : public ::testing::Test {
         allocator_config = load_allocator_config(YAML_PATH);
         allocator = Factory::make_allocator("qp", allocator_config);
         tau_max = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
-            allocator_config.extended_thrust_matrix,
-            allocator_config.min_force,
+            allocator_config.extended_thrust_matrix, allocator_config.min_force,
             allocator_config.max_force);
     }
 };

@@ -58,18 +58,16 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
-        [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg) {
-            pose_callback(msg);
-        });
+        [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+                   msg) { pose_callback(msg); });
 
     this->declare_parameter<std::string>("topics.twist");
     std::string twist_topic = this->get_parameter("topics.twist").as_string();
     twist_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         twist_topic, qos_sensor_data,
-        [this](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
-            twist_callback(msg);
-        });
+        [this](const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr
+                   msg) { twist_callback(msg); });
 
     this->declare_parameter<std::string>("topics.killswitch");
     std::string software_kill_switch_topic =
@@ -246,12 +244,16 @@ void DPAdaptBacksControllerNode::set_adap_params() {
                                        Eigen::RowMajor>>(
             pos_vec.data(), num_dims, num_thrusters);
 
-    const Eigen::MatrixXd T = vortex::utils::math::build_thrust_configuration_matrix(
-        thruster_dir, thruster_pos, center_of_mass);
-    const Eigen::VectorXd u_min = Eigen::VectorXd::Constant(num_thrusters, min_force);
-    const Eigen::VectorXd u_max = Eigen::VectorXd::Constant(num_thrusters, max_force);
+    const Eigen::MatrixXd T =
+        vortex::utils::math::build_thrust_configuration_matrix(
+            thruster_dir, thruster_pos, center_of_mass);
+    const Eigen::VectorXd u_min =
+        Eigen::VectorXd::Constant(num_thrusters, min_force);
+    const Eigen::VectorXd u_max =
+        Eigen::VectorXd::Constant(num_thrusters, max_force);
     const Eigen::Vector6d tau_max =
-        vortex::utils::math::calculate_valid_thrust_region_polyhedron(T, u_min, u_max);
+        vortex::utils::math::calculate_valid_thrust_region_polyhedron(T, u_min,
+                                                                      u_max);
 
     DPAdaptParams dp_adapt_params = DPAdaptParams{
         .adapt_param = adapt_param_eigen,
