@@ -9,13 +9,16 @@ on:
   schedule:
     - cron: '0 1 * * *' # Runs daily at 01:00 UTC
 jobs:
-  call_reusable_workflow:
+  simulator-test:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-ros2-simulator-test.yml@main
     with:
       vcs_repos_file: "tests/dependencies.repos"
       setup_script: "tests/setup.sh"
+      pre_test_script: "scripts/ci_install_dependencies.sh"
       test_scripts: '[
-        "tests/simulator_tests/waypoint_navigation/simulator_test.sh",
-        "tests/simulator_tests/los_test/simulator_test.sh",
-        "tests/simulator_tests/waypoint_manager_test/simulator_test.sh"
-      ]'
+        "tests/simulator_tests/waypoint_navigation/nautilus_qp.sh",
+        "tests/simulator_tests/waypoint_navigation/nautilus_pseudoinverse.sh",
+        "tests/simulator_tests/waypoint_navigation/orca_qp.sh",
+        "tests/simulator_tests/waypoint_navigation/orca_pseudoinverse.sh",
+        "tests/simulator_tests/waypoint_manager_test/simulator_test.sh",
+        ]'

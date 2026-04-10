@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<!--
+  URDF for the Orca AUV.
+
+  Sensor link positions and orientations are taken directly from the
+  stonefish scenario file (orca.scn) so that the TF tree published by
+  robot_state_publisher matches the frames the simulator produces.
+-->
+<robot name="orca" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- ======================== Base ======================== -->
+  <link name="base_link"/>
+
+  <!-- ======================== Sensors ======================== -->
+
+  <link name="imu_link"/>
+  <joint name="base_to_imu" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0.1 0.0 0.0" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <link name="dvl_link"/>
+  <joint name="base_to_dvl" type="fixed">
+    <parent link="base_link"/>
+    <child link="dvl_link"/>
+    <origin xyz="0.4 0.0 0.2" rpy="0.0 0.0 1.571"/>
+  </joint>
+
+  <link name="pressure_sensor_link"></link>
+  <joint name="base_to_pressure_sensor" type="fixed">
+    <parent link="base_link"/>
+    <child link="pressure_sensor_link"/>
+    <origin xyz="0.4 0.0 0.2" rpy="0.0 0.0 1.571"/>
+  </joint>
+
+  <link name="front_camera_link"/>
+  <joint name="base_to_front_camera" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_camera_link"/>
+    <origin xyz="0.45 0.0 -0.02" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <link name="front_camera_optical"/>
+  <joint name="front_camera_optical_joint" type="fixed">
+    <parent link="front_camera_link"/>
+    <child link="front_camera_optical"/>
+    <origin xyz="0.0 0.0 0.0" rpy="1.571 0.0 1.571"/>
+  </joint>
+
+  <link name="downwards_camera_link"/>
+  <joint name="base_to_downwards_camera" type="fixed">
+    <parent link="base_link"/>
+    <child link="downwards_camera_link"/>
+    <origin xyz="0.4 0.0 0.2" rpy="0.0 0.0 0.0"/>
+  </joint>
+
+  <link name="downwards_camera_optical"/>
+  <joint name="downwards_camera_optical_joint" type="fixed">
+    <parent link="downwards_camera_link"/>
+    <child link="downwards_camera_optical"/>
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 1.571"/>
+  </joint>
+
+  <!-- ======================== Gripper ======================== -->
+
+  <link name="shoulder"/>
+  <joint name="orca/shoulder_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="shoulder"/>
+    <origin xyz="0.31 -0.02 0.16" rpy="0.0 0.0 0.0"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <limit lower="-1.57" upper="0.3" effort="0" velocity="0"/>
+  </joint>
+
+  <link name="arm"/>
+  <joint name="orca/arm_joint" type="revolute">
+    <parent link="shoulder"/>
+    <child link="arm"/>
+    <origin xyz="0.1 0.02 -0.1" rpy="0.0 0.0 3.14"/>
+    <axis xyz="1.0 0.0 0.0"/>
+    <limit lower="-3.14159" upper="3.14159" effort="0" velocity="0"/>
+  </joint>
+
+  <link name="finger1"/>
+  <joint name="orca/finger_joint1" type="revolute">
+    <parent link="arm"/>
+    <child link="finger1"/>
+    <origin xyz="-0.15 0 0" rpy="0 -1.57 3.14"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <limit lower="0.0" upper="1.57" effort="0" velocity="0"/>
+  </joint>
+
+  <link name="finger2"/>
+  <joint name="orca/finger_joint2" type="revolute">
+    <parent link="arm"/>
+    <child link="finger2"/>
+    <origin xyz="-0.15 0 0" rpy="0 1.57 0"/>
+    <axis xyz="0.0 1.0 0.0"/>
+    <limit lower="0.0" upper="1.57" effort="0" velocity="0"/>
+  </joint>
+
+</robot>

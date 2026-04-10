@@ -2,7 +2,42 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import OpaqueFunction
 from launch_ros.actions import Node
+
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
+
+
+def launch_setup(context, *args, **kwargs):
+    """Set up the velocity_controller_lqr node with drone-specific config."""
+    drone, namespace = resolve_drone_and_namespace(context)
+
+    parameter_file = os.path.join(
+        get_package_share_directory("velocity_controller_lqr"),
+        "config",
+        "param_velocity_controller_lqr.yaml",
+    )
+
+    drone_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config",
+        "robots",
+        f"{drone}.yaml",
+    )
+
+    return [
+        Node(
+            package="velocity_controller_lqr",
+            executable="velocity_controller_lqr_node.py",
+            name="velocity_controller_lqr_node",
+            namespace=namespace,
+            output="screen",
+            parameters=[parameter_file, drone_params],
+        )
+    ]
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -16,26 +51,6 @@ def generate_launch_description() -> LaunchDescription:
         LaunchDescription: A ROS 2 launch description containing the
         velocity_controller_lqr node.
     """
-    parameter_file = os.path.join(
-        get_package_share_directory("velocity_controller_lqr"),
-        "config",
-        "param_velocity_controller_lqr.yaml",
+    return LaunchDescription(
+        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
     )
-
-    topic_file = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        "orca.yaml",
-    )
-
-    velocity_controller_node = Node(
-        package="velocity_controller_lqr",
-        executable="velocity_controller_lqr_node.py",
-        name="velocity_controller_lqr_node",
-        namespace="orca",
-        output="screen",
-        parameters=[parameter_file, topic_file],
-    )
-
-    return LaunchDescription([velocity_controller_node])

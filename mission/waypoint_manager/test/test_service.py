@@ -3,46 +3,67 @@ import unittest
 import uuid
 
 import launch
+import launch.actions
 import launch_ros.actions
 import launch_testing
 import launch_testing.actions
 import rclpy
 from ament_index_python.packages import get_package_share_directory
+from launch.actions import OpaqueFunction, TimerAction
 from rclpy.action import ActionClient
 from vortex_msgs.action import WaypointManager
 from vortex_msgs.msg import Waypoint
 from vortex_msgs.srv import SendWaypoints
 
+from auv_setup.launch_arg_common import (
+    declare_drone_and_namespace_args,
+    resolve_drone_and_namespace,
+)
 
-def generate_test_description():
-    rf_pkg_share = get_package_share_directory('reference_filter_dp')
-    rf_config = os.path.join(rf_pkg_share, 'config', 'reference_filter_params.yaml')
+NAMESPACE = "orca"
 
-    auv_setup_share = get_package_share_directory('auv_setup')
-    orca_config = os.path.join(auv_setup_share, 'config', 'robots', 'orca.yaml')
+
+def launch_setup(context, *args, **kwargs):
+    global NAMESPACE
+    drone, namespace = resolve_drone_and_namespace(context)
+    NAMESPACE = namespace
+
+    rf_pkg_share = get_package_share_directory("reference_filter_dp")
+    rf_config = os.path.join(rf_pkg_share, "config", "reference_filter_params.yaml")
+
+    auv_setup_share = get_package_share_directory("auv_setup")
+    drone_config = os.path.join(auv_setup_share, "config", "robots", f"{drone}.yaml")
 
     wm_node = launch_ros.actions.Node(
-        package='waypoint_manager',
-        executable='waypoint_manager_node',
-        name='waypoint_manager_node',
-        namespace='orca',
-        output='screen',
+        package="waypoint_manager",
+        executable="waypoint_manager_node",
+        name="waypoint_manager_node",
+        namespace=namespace,
+        parameters=[drone_config],
+        output="screen",
     )
 
     rf_node = launch_ros.actions.Node(
-        package='reference_filter_dp',
-        executable='reference_filter_dp_node',
-        name='reference_filter_node',
-        namespace='orca',
-        parameters=[rf_config, orca_config],
-        output='screen',
+        package="reference_filter_dp",
+        executable="reference_filter_dp_node",
+        name="reference_filter_node",
+        namespace=namespace,
+        parameters=[rf_config, drone_config],
+        output="screen",
     )
 
+    return [wm_node, rf_node]
+
+
+def generate_test_description():
     return launch.LaunchDescription(
-        [
-            wm_node,
-            rf_node,
-            launch_testing.actions.ReadyToTest(),
+        declare_drone_and_namespace_args()
+        + [
+            OpaqueFunction(function=launch_setup),
+            TimerAction(
+                period=1.0,
+                actions=[launch_testing.actions.ReadyToTest()],
+            ),
         ]
     )
 
@@ -72,7 +93,9 @@ class TestWaypointManagerService(unittest.TestCase):
         take_priority=False,
         timeout=5.0,
     ):
-        client = self.node.create_client(SendWaypoints, '/orca/waypoint_addition')
+        client = self.node.create_client(
+            SendWaypoints, f'/{NAMESPACE}/waypoint_addition'
+        )
         assert client.wait_for_service(timeout_sec=5.0), (
             'SendWaypoints service not available'
         )
@@ -103,7 +126,7 @@ class TestWaypointManagerService(unittest.TestCase):
     def test_priority_blocks_non_priority_calls(self):
         # Send a persistent action goal so the waypoint manager is in persistent mode
         action_client = ActionClient(
-            self.node, WaypointManager, '/orca/waypoint_manager'
+            self.node, WaypointManager, f'/{NAMESPACE}/waypoint_manager'
         )
         assert action_client.wait_for_server(timeout_sec=10.0), (
             'WaypointManager action server not available'

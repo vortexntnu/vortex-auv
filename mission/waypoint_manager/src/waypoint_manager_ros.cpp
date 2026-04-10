@@ -2,7 +2,6 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <vortex/utils/ros/ros_conversions.hpp>
 
 namespace vortex::mission {
 
@@ -51,8 +50,10 @@ void WaypointManagerNode::set_reference_action_client() {
 }
 
 void WaypointManagerNode::set_waypoint_action_server() {
+    std::string action_name =
+        this->declare_parameter<std::string>("action_servers.waypoint_manager");
     waypoint_action_server_ = rclcpp_action::create_server<WaypointManager>(
-        this, "waypoint_manager",
+        this, action_name,
 
         [this](auto goal_id, auto goal) {
             return handle_waypoint_goal(goal_id, goal);
@@ -66,9 +67,11 @@ void WaypointManagerNode::set_waypoint_action_server() {
 }
 
 void WaypointManagerNode::set_waypoint_service_server() {
+    std::string service_name =
+        this->declare_parameter<std::string>("services.waypoint_addition");
     waypoint_service_server_ =
         this->create_service<vortex_msgs::srv::SendWaypoints>(
-            "waypoint_addition",
+            service_name,
             std::bind(
                 &WaypointManagerNode::handle_send_waypoints_service_request,
                 this, std::placeholders::_1, std::placeholders::_2));
@@ -83,11 +86,6 @@ WaypointManagerNode::construct_result(bool success) const {
     auto result =
         std::make_shared<vortex_msgs::action::WaypointManager_Result>();
     result->success = success;
-    result->pose_valid = has_reference_pose_;
-    if (has_reference_pose_) {
-        result->final_pose = vortex::utils::ros_conversions::to_pose_msg(
-            latest_ref_feedback_.reference);
-    }
     return result;
 }
 
@@ -96,7 +94,6 @@ void WaypointManagerNode::cleanup_mission_state() {
     current_index_ = 0;
     persistent_action_mode_active_ = false;
     priority_mode_active_ = false;
-    has_reference_pose_ = false;
 
     if (active_reference_filter_goal_) {
         reference_filter_client_->async_cancel_goal(
@@ -116,6 +113,12 @@ void WaypointManagerNode::send_next_reference_filter_goal() {
             cleanup_mission_state();
         }
         return;
+    }
+
+    if (active_action_goal_ && active_action_goal_->is_active()) {
+        auto wm_fb = std::make_shared<WaypointManager::Feedback>();
+        wm_fb->current_waypoint = waypoints_[current_index_];
+        active_action_goal_->publish_feedback(wm_fb);
     }
 
     ReferenceFilterAction::Goal rf_goal;
@@ -149,7 +152,6 @@ rclcpp_action::GoalResponse WaypointManagerNode::handle_waypoint_goal(
     current_index_ = 0;
     persistent_action_mode_active_ = goal->persistent;
     priority_mode_active_ = false;
-    has_reference_pose_ = false;
     convergence_threshold_ = goal->convergence_threshold;
 
     if (waypoints_.empty() && !persistent_action_mode_active_) {
@@ -208,7 +210,6 @@ void WaypointManagerNode::handle_send_waypoints_service_request(
         mission_id_++;
         waypoints_ = request->waypoints;
         current_index_ = 0;
-        has_reference_pose_ = false;
 
         if (active_reference_filter_goal_) {
             reference_filter_client_->async_cancel_goal(
@@ -262,31 +263,6 @@ void WaypointManagerNode::send_reference_filter_goal(
             } else {
                 spdlog::info(
                     "RF goal response for old mission, ignoring handle");
-            }
-        };
-
-    options.feedback_callback =
-        [this, this_mission](
-            ReferenceFilterGoalHandle::SharedPtr,
-            const std::shared_ptr<const ReferenceFilterAction::Feedback> fb) {
-            if (this_mission != mission_id_) {
-                return;
-            }
-
-            latest_ref_feedback_ = *fb;
-            has_reference_pose_ = true;
-
-            if (!active_action_goal_ || !active_action_goal_->is_active())
-                return;
-
-            geometry_msgs::msg::Pose robot_pose =
-                vortex::utils::ros_conversions::to_pose_msg(fb->reference);
-
-            if (current_index_ < waypoints_.size()) {
-                auto wm_fb = std::make_shared<WaypointManager::Feedback>();
-                wm_fb->current_pose = robot_pose;
-                wm_fb->current_waypoint = waypoints_[current_index_];
-                active_action_goal_->publish_feedback(wm_fb);
             }
         };
 

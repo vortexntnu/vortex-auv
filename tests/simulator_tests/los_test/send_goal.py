@@ -8,7 +8,7 @@ class LOSGuidanceClient(Node):
     def __init__(self):
         super().__init__('los_guidance_client')
         # Create the action client
-        self._action_client = ActionClient(self, LOSGuidance, '/orca/los_guidance')
+        self._action_client = ActionClient(self, LOSGuidance, '/nautilus/los_guidance')
         self.send_goal()
 
     def send_goal(self):

@@ -32,63 +32,31 @@ vortex_msgs::msg::LandmarkArray tracks_to_landmark_array_msg(
     const rclcpp::Time& timestamp,
     const std::string& frame_id);
 
-inline Landmark make_landmark_from_pose(const geometry_msgs::msg::Pose& pose,
-                                        const LandmarkClassKey& key) {
-    Landmark lm;
-    lm.pose = vortex::utils::ros_conversions::ros_pose_to_pose(pose);
-    lm.class_key = key;
-    return lm;
-}
+/**
+ * @brief Create a Landmark object from a Pose message and a class key.
+ * @param pose The Pose message to convert.
+ * @param key The class key for the landmark.
+ * @return Landmark object representing the pose.
+ */
+Landmark make_landmark_from_pose(const geometry_msgs::msg::Pose& pose,
+                                 const LandmarkClassKey& key);
 
-inline std::vector<Landmark> ros_to_landmarks(
-    const geometry_msgs::msg::PoseStamped& msg) {
-    return {make_landmark_from_pose(msg.pose,
-                                    LandmarkClassKey{.type = 0, .subtype = 0})};
-}
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseStamped& msg);
 
-inline std::vector<Landmark> ros_to_landmarks(
-    const geometry_msgs::msg::PoseWithCovarianceStamped& msg) {
-    return {make_landmark_from_pose(msg.pose.pose,
-                                    LandmarkClassKey{.type = 0, .subtype = 0})};
-}
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseWithCovarianceStamped& msg);
 
-inline std::vector<Landmark> ros_to_landmarks(
-    const geometry_msgs::msg::PoseWithCovariance& msg) {
-    return {make_landmark_from_pose(msg.pose,
-                                    LandmarkClassKey{.type = 0, .subtype = 0})};
-}
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseWithCovariance& msg);
 
-inline std::vector<Landmark> ros_to_landmarks(
-    const geometry_msgs::msg::Pose& msg) {
-    return {make_landmark_from_pose(msg,
-                                    LandmarkClassKey{.type = 0, .subtype = 0})};
-}
+std::vector<Landmark> ros_to_landmarks(const geometry_msgs::msg::Pose& msg);
 
-inline std::vector<Landmark> ros_to_landmarks(
-    const geometry_msgs::msg::PoseArray& msg) {
-    std::vector<Landmark> out;
-    out.reserve(msg.poses.size());
-    for (const auto& p : msg.poses) {
-        out.push_back(make_landmark_from_pose(
-            p, LandmarkClassKey{.type = 0, .subtype = 0}));
-    }
-    return out;
-}
+std::vector<Landmark> ros_to_landmarks(
+    const geometry_msgs::msg::PoseArray& msg);
 
-inline std::vector<Landmark> ros_to_landmarks(
-    const vortex_msgs::msg::LandmarkArray& msg) {
-    std::vector<Landmark> out;
-    out.reserve(msg.landmarks.size());
-    for (const auto& lm_msg : msg.landmarks) {
-        Landmark lm;
-        lm.pose =
-            vortex::utils::ros_conversions::ros_pose_to_pose(lm_msg.pose.pose);
-        lm.class_key =
-            LandmarkClassKey{lm_msg.type_class.type, lm_msg.type_class.subtype};
-        out.push_back(lm);
-    }
-    return out;
-}
+std::vector<Landmark> ros_to_landmarks(
+    const vortex_msgs::msg::LandmarkArray& msg);
 
 }  // namespace vortex::filtering::ros_conversions
 

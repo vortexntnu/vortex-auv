@@ -4,7 +4,6 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <vector>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
@@ -105,8 +104,6 @@ class WaypointManagerNode : public rclcpp::Node {
     bool persistent_action_mode_active_{false};
     bool priority_mode_active_{false};
 
-    ReferenceFilterAction::Feedback latest_ref_feedback_;
-    bool has_reference_pose_{false};
     bool is_cancel_in_progress_{false};
 
     std::uint64_t mission_id_ = 0;

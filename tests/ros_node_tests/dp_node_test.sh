@@ -2,6 +2,9 @@
 set -e
 set -o pipefail
 
+# Drone name
+DRONE_ARG=${1:-"nautilus"}
+
 # Load ROS 2 environment
 echo "Setting up ROS 2 environment..."
 . /opt/ros/humble/setup.sh
@@ -11,6 +14,7 @@ echo "Setting up ROS 2 environment..."
 cleanup() {
     echo "Error detected. Cleaning up..."
     kill -TERM -"$CONTROLLER_PID" || true
+    kill -TERM -"$OP_MODE_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -20,6 +24,11 @@ setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py
 CONTROLLER_PID=$!
 echo "Launched controller with PID: $CONTROLLER_PID"
 
+# launch operation mode service
+setsid ros2 launch operation_mode_manager operation_mode_manager.launch.py &
+OP_MODE_PID=$!
+echo "Launched operation mode service with PID: $OP_MODE_PID"
+
 # Check for ROS errors before continuing
 if journalctl -u ros2 | grep -i "error"; then
     echo "Error detected in ROS logs. Exiting..."
@@ -28,15 +37,16 @@ fi
 
 # Set operation mode
 echo "Turning off killswitch and setting operation mode to autonomous mode"
-ros2 topic pub /orca/killswitch std_msgs/msg/Bool "{data: false}" -1
-ros2 topic pub /orca/operation_mode std_msgs/msg/String "{data: 'autonomous mode'}" -1
+ros2 service call /$DRONE_ARG/set_killswitch vortex_msgs/srv/SetKillswitch "{killswitch_on: false}"
+ros2 service call /$DRONE_ARG/set_operation_mode vortex_msgs/srv/SetOperationMode "{requested_operation_mode: {operation_mode: 1}}"
 
 # Check if controller correctly publishes tau
 echo "Waiting for wrench data..."
-timeout 10s ros2 topic echo /orca/wrench_input --once
+timeout 10s ros2 topic echo /$DRONE_ARG/wrench_input --once
 echo "Got wrench data"
 
 # Terminate processes
 kill -TERM -"$CONTROLLER_PID"
+kill -TERM -"$OP_MODE_PID"
 
 echo "Test completed successfully."

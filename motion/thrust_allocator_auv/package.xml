@@ -4,13 +4,14 @@
   <name>thrust_allocator_auv</name>
   <version>0.0.0</version>
   <description>Thrust allocator for AUV</description>
-  <maintainer email="alicez@stud.ntnu.no">alice</maintainer>
+  <maintainer email="cypriano@stud.ntnu.no">alice</maintainer>
   <license>MIT</license>
 
   <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
   <depend>vortex_utils_ros</depend>
+  <depend>yaml-cpp</depend>
   <depend>eigen</depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

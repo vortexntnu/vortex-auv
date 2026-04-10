@@ -1,4 +1,5 @@
 import random
+import sys
 
 import rclpy
 import yaml
@@ -7,6 +8,8 @@ from rclpy.node import Node
 from vortex_msgs.action import ReferenceFilterWaypoint
 from vortex_utils.python_utils import PoseData, euler_to_quat
 
+namespace = sys.argv[1] if len(sys.argv) > 1 else "nautilus"
+
 
 def randomize_pose() -> PoseData:
     pose: PoseData = PoseData()
@@ -14,7 +17,7 @@ def randomize_pose() -> PoseData:
     pose.y = random.uniform(-10.0, 10.0)
     pose.z = random.uniform(0.5, 3.0)
     pose.roll = 0.0
-    pose.pitch = random.uniform(-1.0, 1.0)
+    pose.pitch = random.uniform(-0.25, 0.25)
     pose.yaw = random.uniform(-1.57, 1.57)
 
     return pose
@@ -25,7 +28,7 @@ class ReferenceFilterWaypointClient(Node):
         super().__init__('reference_filter_waypoint_client')
 
         self._action_client = ActionClient(
-            self, ReferenceFilterWaypoint, '/orca/reference_filter'
+            self, ReferenceFilterWaypoint, f'/{namespace}/reference_filter'
         )
         self.send_goal()
 

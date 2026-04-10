@@ -13,20 +13,22 @@
 #include <vector>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/client.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
 #include <vortex_msgs/action/landmark_convergence.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
 #include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
+#include <vortex_msgs/msg/landmark_track_array.hpp>
+#include <vortex_msgs/msg/waypoint_mode.hpp>
 
 #include <pose_filtering/lib/pose_track_manager.hpp>
 
+#include <cmath>
 #include <mutex>
 #include <optional>
 #include <vortex/utils/ros/ros_conversions.hpp>
-#include <cmath>
-
 
 namespace vortex::mission {
 
@@ -38,6 +40,8 @@ using ReferenceFilterGoalHandle = rclcpp_action::ClientGoalHandle<
     vortex_msgs::action::ReferenceFilterWaypoint>;
 
 using vortex::filtering::Landmark;
+
+using RF = vortex_msgs::action::ReferenceFilterWaypoint;
 
 class LandmarkServerNode : public rclcpp::Node {
    public:
@@ -52,12 +56,17 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void create_pose_subscription();
 
+    void create_odom_subscription();
+
     std::vector<Landmark> ros_msg_to_landmarks(
         const vortex_msgs::msg::LandmarkArray& msg) const;
 
     vortex_msgs::msg::LandmarkArray tracks_to_landmark_msgs(
         uint16_t type,
         uint16_t subtype) const;
+
+    vortex_msgs::msg::Landmark track_to_landmark_msg(
+        const vortex::filtering::Track& track) const;
 
     void create_polling_action_server();
 
@@ -106,26 +115,28 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp_action::CancelResponse handle_landmark_convergence_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
-    
-    // Convergence
+
+    vortex_msgs::action::ReferenceFilterWaypoint::Goal make_rf_goal(
+        const geometry_msgs::msg::Pose& target,
+        double convergence_threshold) const;
 
     void send_reference_filter_goal(
-      const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
-      uint64_t seq);
+        const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
+        uint64_t seq);
 
-    // Compute target pose = landmark_pose * convergence_offset
-    geometry_msgs::msg::PoseStamped compute_target_pose(
-      int landmark_id,
-      const geometry_msgs::msg::Pose& convergence_offset,
-      const rclcpp::Time& stamp);
-
-    // Publish reference pose (topic)
-    void publish_reference_pose(const geometry_msgs::msg::PoseStamped& pose);
-    // Convergence
+    geometry_msgs::msg::Pose compute_target_pose(
+        const vortex::filtering::Track& track,
+        const geometry_msgs::msg::Pose& convergence_offset);
 
     void create_reference_action_client();
 
+    void create_timer();
+
     void create_track_manager();
+
+    void setup_debug_publishers();
+
+    void publish_debug_tracks();
 
     void timer_callback();
 
@@ -153,6 +164,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::vector<Landmark> measurements_;
 
     rclcpp::TimerBase::SharedPtr timer_;
+
     double filter_dt_seconds_{0.0};
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
@@ -165,21 +177,62 @@ class LandmarkServerNode : public rclcpp::Node {
         active_landmark_convergence_goal_;
     std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
 
+    enum class RFState { IDLE, PENDING, ACTIVE };
+    RFState rf_state_{RFState::IDLE};
+
     // Convergence state variables
     uint64_t convergence_session_id_{0};
     bool convergence_active_{false};
-    int convergence_landmark_id_{-1};
-    geometry_msgs::msg::Pose convergence_offset_{};
-    double convergence_threshold_{0.0};
-    double convergence_dead_reckoning_offset_{0.0};
     bool convergence_dead_reckoning_handoff_{false};
-    std::optional<geometry_msgs::msg::PoseStamped> convergence_last_target_pose_;
+    vortex_msgs::msg::WaypointMode convergence_mode_;
+    std::optional<vortex::filtering::Track> convergence_last_known_track_;
 
-    void handle_convergence_update();
-    
-    // Cache RF feedback (used to compute distance-to-target)
-    std::mutex rf_fb_mtx_;
-    std::optional<vortex_msgs::action::ReferenceFilterWaypoint::Feedback> last_rf_feedback_;
+    bool convergence_track_lost_{false};
+    rclcpp::Time convergence_track_lost_since_{0, 0, RCL_ROS_TIME};
+
+    const vortex_msgs::action::LandmarkConvergence::Goal* convergence_goal()
+        const {
+        return active_landmark_convergence_goal_->get_goal().get();
+    }
+
+    void convergence_update();
+
+    std::optional<vortex::filtering::Track> get_convergence_track() const;
+
+    bool convergence_goal_active() const;
+
+    void cancel_reference_filter_goal();
+
+    void handle_rf_result(rclcpp_action::ResultCode resultCode);
+
+    bool convergence_track_timeout() const;
+
+    void convergence_abort_track_loss();
+
+    void convergence_handle_track_loss();
+
+    void convergence_update_target(const vortex::filtering::Track& track);
+
+    void convergence_try_dead_reckoning_handoff();
+
+    vortex_msgs::action::LandmarkConvergence::Result build_convergence_result(
+        bool success) const;
+
+    rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
+
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    std::mutex odom_mtx_;
+    std::optional<geometry_msgs::msg::Point> last_odom_position_;
+
+    std::mutex measurements_mtx_;
+
+    bool debug_{false};
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkTrackArray>::SharedPtr
+        landmark_track_debug_pub_;
+    rclcpp::Publisher<vortex_msgs::msg::LandmarkTrack>::SharedPtr
+        convergence_landmark_debug_pub_;
+
+    void publish_convergence_landmark_debug();
 };
 
 }  // namespace vortex::mission

@@ -9,14 +9,18 @@ from geometry_msgs.msg import (
 )
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node, Parameter
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool
 from velocity_controller_lqr.velocity_controller_lqr_lib import (
     LQRController,
     LQRParameters,
 )
-from vortex_msgs.msg import LOSGuidance
+from vortex_msgs.msg import LOSGuidance, OperationMode
+from vortex_msgs.srv import GetOperationMode
 from vortex_utils.python_utils import State
-from vortex_utils_ros.qos_profiles import reliable_profile, sensor_data_profile
+from vortex_utils_ros.qos_profiles import (
+    reliable_profile,
+    sensor_data_profile,
+)
 from vortex_utils_ros.ros_converter import pose_from_ros, twist_from_ros
 
 
@@ -25,9 +29,10 @@ class LinearQuadraticRegulator(Node):
         super().__init__("velocity_controller_lqr_node")
 
         self.killswitch_on = True
-        self.operation_mode = "xbox mode"
+        self.operation_mode = OperationMode.MANUAL
 
         self.get_topics()
+        self.get_services()
 
         # ---------------------------- SUBSCRIBERS ---------------------------
 
@@ -46,16 +51,16 @@ class LinearQuadraticRegulator(Node):
         )
 
         self.operationmode_subscriber = self.create_subscription(
-            String,
+            OperationMode,
             self.operation_mode_topic,
             self.operation_callback,
-            qos_profile=reliable_profile(2),
+            qos_profile=reliable_profile(1),
         )
         self.killswitch_subscriber = self.create_subscription(
             Bool,
             self.killswitch_topic,
             self.killswitch_callback,
-            qos_profile=reliable_profile(2),
+            qos_profile=reliable_profile(1),
         )
 
         self.guidance_subscriber = self.create_subscription(
@@ -69,6 +74,22 @@ class LinearQuadraticRegulator(Node):
         self.publisherLQR = self.create_publisher(
             WrenchStamped, self.wrench_input_topic, sensor_data_profile(1)
         )
+
+        # ------------------------------ SERVICES ------------------------------
+        self.get_operation_mode_client = self.create_client(
+            GetOperationMode, self.get_operation_mode_service
+        )
+
+        while not self.get_operation_mode_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Operation Mode service not available, waiting...')
+
+        try:
+            request = GetOperationMode.Request()
+            future = self.get_operation_mode_client.call_async(request)
+            future.add_done_callback(self.handle_initial_operation_mode_response)
+        except Exception as e:
+            self.get_logger().error(f"Failed to call GetOperationMode service: {e}")
+            self.killswitch_on = True
 
         # ------------------------------ TIMERS ------------------------------
         dt = (
@@ -121,6 +142,13 @@ class LinearQuadraticRegulator(Node):
                 self.get_parameter("topics." + topic).value,
             )
 
+    def get_services(self):
+        """Get the services from the parameter file."""
+        self.declare_parameter("services.get_operation_mode", Parameter.Type.STRING)
+        self.get_operation_mode_service = self.get_parameter(
+            "services.get_operation_mode"
+        ).value
+
     def fill_lqr_params(self):
         """Updates the LQR_params in the LQR_parameters Dataclass, and gets the inertia matrix from config.
 
@@ -160,6 +188,22 @@ class LinearQuadraticRegulator(Node):
 
     # ---------------------------------------------------------------CALLBACK FUNCTIONS---------------------------------------------------------------
 
+    def handle_initial_operation_mode_response(self, future):
+        """Handle the response from the GetOperationMode service call to initialize the operation mode.
+
+        Parameters: future: The future object containing the response from the service call.
+
+        """
+        try:
+            response = future.result()
+            self.operation_mode = response.current_operation_mode.operation_mode
+            self.killswitch_on = response.killswitch_status
+            self.get_logger().info(
+                f"Initial operation mode: {self.operation_mode} | Initial killswitch status: {'on' if self.killswitch_on else 'off'}"
+            )
+        except Exception as e:
+            self.get_logger().error(f"Service call failed: {e}")
+
     def pose_callback(self, msg: PoseWithCovarianceStamped):
         """Callback function for the pose data from DVL.
 
@@ -168,13 +212,13 @@ class LinearQuadraticRegulator(Node):
         """
         self.state.pose = pose_from_ros(msg.pose.pose)
 
-    def operation_callback(self, msg: String):
+    def operation_callback(self, msg: OperationMode):
         """Callback function for the operation mode data.
 
         Parameters: String: msg: The operation mode data from the AUV.
 
         """
-        self.operation_mode = msg.data
+        self.operation_mode = msg.operation_mode
         self.get_logger().info(f"Changed operation mode to {self.operation_mode}")
 
     def twist_callback(self, msg: TwistWithCovarianceStamped):
@@ -220,8 +264,10 @@ class LinearQuadraticRegulator(Node):
         msg.wrench.force.x = float(u[0])
         msg.wrench.torque.y = float(u[1])
         msg.wrench.torque.z = float(u[2])
-
-        if self.killswitch_on == False and self.operation_mode == "autonomous mode":
+        if self.killswitch_on == False and (
+            self.operation_mode == OperationMode.AUTONOMOUS
+            or self.operation_mode == OperationMode.REFERENCE
+        ):
             self.publisherLQR.publish(msg)
 
         else:

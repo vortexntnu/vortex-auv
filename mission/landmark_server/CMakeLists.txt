@@ -15,6 +15,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(vortex_msgs REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(vortex_utils_ros REQUIRED)
@@ -28,6 +29,8 @@ set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
   src/landmark_server_ros.cpp
+  src/landmark_server_convergence.cpp
+  src/landmark_server_ros_debug.cpp
   src/landmark_ros_conversion.cpp)
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
@@ -39,6 +42,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   vortex_utils_ros_tf
   tf2_geometry_msgs
   geometry_msgs
+  nav_msgs
   pose_filtering
   spdlog
   fmt
@@ -69,9 +73,5 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
-
-if(BUILD_TESTING)
-  add_subdirectory(test)
-endif()
 
 ament_package()

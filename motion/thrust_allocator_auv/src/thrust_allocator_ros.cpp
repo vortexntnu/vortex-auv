@@ -1,14 +1,23 @@
+// TODO(anyone): Implement reading killswitch and publishing empty wrench
+
 #include "thrust_allocator_auv/thrust_allocator_ros.hpp"
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <functional>
+#include <rclcpp/parameter_value.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <string_view>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
 #include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include "vortex/utils/types.hpp"
 
 using namespace std::chrono_literals;
+using rclcpp::ParameterType::PARAMETER_DOUBLE;
+using rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY;
+using rclcpp::ParameterType::PARAMETER_INTEGER;
+using rclcpp::ParameterType::PARAMETER_STRING;
+using vortex::utils::types::Vector6d;
 
 auto start_message{R"(
   _____ _                    _        _    _ _                 _
@@ -20,48 +29,61 @@ auto start_message{R"(
 )"};
 
 ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions& options)
-    : Node("thrust_allocator_node", options),
-      pseudoinverse_allocator_(Eigen::MatrixXd::Zero(6, 8)) {
+    : Node("thrust_allocator_auv_node",
+           rclcpp::NodeOptions(options)
+               .allow_undeclared_parameters(false)
+               .automatically_declare_parameters_from_overrides(false)) {
     extract_parameters();
-
     set_allocator();
-
     set_subscriber_and_publisher();
 
     watchdog_timer_ = this->create_wall_timer(
         500ms, std::bind(&ThrustAllocator::watchdog_callback, this));
     last_msg_time_ = this->now();
-
     spdlog::info(start_message);
 }
 
 void ThrustAllocator::extract_parameters() {
-    this->declare_parameter<std::vector<double>>("physical.center_of_mass");
-    this->declare_parameter<int>("propulsion.dimensions.num");
-    this->declare_parameter<int>("propulsion.thrusters.num");
-    this->declare_parameter<int>("propulsion.thrusters.min");
-    this->declare_parameter<int>("propulsion.thrusters.max");
-    this->declare_parameter<std::vector<double>>(
-        "propulsion.thrusters.thruster_force_direction");
-    this->declare_parameter<std::vector<double>>(
-        "propulsion.thrusters.thruster_position");
-    this->declare_parameter<double>("propulsion.thrusters.watchdog_timeout");
+    // params that need further work e.g transform to eigen matrix
+    this->declare_parameter("physical.center_of_mass", PARAMETER_DOUBLE_ARRAY);
+    this->declare_parameter("propulsion.thrusters.thruster_force_direction",
+                            PARAMETER_DOUBLE_ARRAY);
+    this->declare_parameter("propulsion.thrusters.thruster_position",
+                            PARAMETER_DOUBLE_ARRAY);
+    this->declare_parameter(
+        "propulsion.thrusters.constraints.input_matrix_weights",
+        PARAMETER_DOUBLE_ARRAY);
+    this->declare_parameter(
+        "propulsion.thrusters.constraints.slack_matrix_weights",
+        PARAMETER_DOUBLE_ARRAY);
+
+    num_dimensions_ =
+        this->declare_parameter("propulsion.dimensions.num", PARAMETER_INTEGER)
+            .get<int>();
+    num_thrusters_ =
+        this->declare_parameter("propulsion.thrusters.num", PARAMETER_INTEGER)
+            .get<int>();
+    degrees_of_freedom_ =
+        this->declare_parameter("propulsion.dofs.num", PARAMETER_INTEGER)
+            .get<int>();
+    min_thrust_ =
+        this->declare_parameter("propulsion.thrusters.constraints.min_force",
+                                PARAMETER_DOUBLE)
+            .get<double>();
+    max_thrust_ =
+        this->declare_parameter("propulsion.thrusters.constraints.max_force",
+                                PARAMETER_DOUBLE)
+            .get<double>();
+    double timout_treshold_param =
+        this->declare_parameter("propulsion.thrusters.watchdog_timeout",
+                                PARAMETER_DOUBLE)
+            .get<double>();
 
     center_of_mass_ = double_array_to_eigen_vector3d(
         this->get_parameter("physical.center_of_mass").as_double_array());
-    num_dimensions_ = this->get_parameter("propulsion.dimensions.num").as_int();
-    num_thrusters_ = this->get_parameter("propulsion.thrusters.num").as_int();
-    min_thrust_ = this->get_parameter("propulsion.thrusters.min").as_int();
-    max_thrust_ = this->get_parameter("propulsion.thrusters.max").as_int();
 
-    double timout_treshold_param =
-        this->get_parameter("propulsion.thrusters.watchdog_timeout")
-            .as_double();
     timeout_treshold_ = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::duration<double>(timout_treshold_param));
-
-    this->declare_parameter<std::string>("topics.wrench_input");
-    this->declare_parameter<std::string>("topics.thruster_forces");
 }
 
 void ThrustAllocator::set_allocator() {
@@ -70,25 +92,79 @@ void ThrustAllocator::set_allocator() {
             .as_double_array(),
         num_dimensions_, num_thrusters_);
 
+    // allocation_config params
+    std::string solver_type =
+        this->declare_parameter("propulsion.solver_type", PARAMETER_STRING)
+            .get<std::string>();
+
     thruster_position_ = double_array_to_eigen_matrix(
         this->get_parameter("propulsion.thrusters.thruster_position")
             .as_double_array(),
         num_dimensions_, num_thrusters_);
 
-    thrust_configuration_ = calculate_thrust_allocation_matrix(
+    thrust_configuration_ = calculate_thrust_configuration_matrix(
         thruster_force_direction_, thruster_position_, center_of_mass_);
 
-    pseudoinverse_allocator_.T_pinv =
-        calculate_pseudoinverse(thrust_configuration_);
+    Eigen::VectorXd input_weights = Eigen::Map<const Eigen::VectorXd>(
+        this->get_parameter(
+                "propulsion.thrusters.constraints.input_matrix_weights")
+            .as_double_array()
+            .data(),
+        num_thrusters_);
+
+    if (input_weights.size() != num_thrusters_) {
+        throw std::runtime_error(
+            "input_matrix_weights size must equal number of thrusters");
+    }
+
+    Eigen::MatrixXd input_weight_matrix = input_weights.asDiagonal();
+
+    Eigen::VectorXd slack_weights = Eigen::Map<const Eigen::VectorXd>(
+        this->get_parameter(
+                "propulsion.thrusters.constraints.slack_matrix_weights")
+            .as_double_array()
+            .data(),
+        degrees_of_freedom_);
+
+    if (slack_weights.size() != degrees_of_freedom_) {
+        throw std::runtime_error(
+            "slack_matrix_weights size must equal number of DOFs");
+    }
+
+    Eigen::MatrixXd slack_weight_matrix = slack_weights.asDiagonal();
+
+    Eigen::VectorXd min_force_vec =
+        Eigen::VectorXd::Constant(num_thrusters_, min_thrust_);
+    Eigen::VectorXd max_force_vec =
+        Eigen::VectorXd::Constant(num_thrusters_, max_thrust_);
+
+    tau_max_ =
+        compute_max_wrench(thrust_configuration_, min_force_vec, max_force_vec);
+
+    allocator_ = Factory::make_allocator(
+        solver_type, AllocatorConfig{
+                         .extended_thrust_matrix = thrust_configuration_,
+                         .min_force = min_force_vec,
+                         .max_force = max_force_vec,
+                         .input_weight_matrix = input_weight_matrix,
+                         .slack_weight_matrix = slack_weight_matrix,
+                     });
+
+    if (!allocator_) {
+        throw std::runtime_error(
+            "Allocator not initialized (did you call set_allocator()?)");
+    }
 }
 
 void ThrustAllocator::set_subscriber_and_publisher() {
     auto best_effort_qos = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     std::string wrench_input_topic =
-        this->get_parameter("topics.wrench_input").as_string();
+        this->declare_parameter("topics.wrench_input", PARAMETER_STRING)
+            .get<std::string>();
     std::string thruster_forces_topic =
-        this->get_parameter("topics.thruster_forces").as_string();
+        this->declare_parameter("topics.thruster_forces", PARAMETER_STRING)
+            .get<std::string>();
 
     wrench_subscriber_ =
         this->create_subscription<geometry_msgs::msg::WrenchStamped>(
@@ -104,19 +180,29 @@ void ThrustAllocator::set_subscriber_and_publisher() {
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped& msg) {
     last_msg_time_ = this->now();
     watchdog_triggered_ = false;
-    Eigen::Vector6d wrench_vector = wrench_to_vector(msg);
+    Vector6d wrench_vector = wrench_to_vector(msg);
     Eigen::VectorXd zero_forces = Eigen::VectorXd::Zero(8);
 
+    // if the allocator isn't ready it will return a nullopt. then we will
+    // publish zeros
     if (!healthy_wrench(wrench_vector)) {
         spdlog::error("Wrench vector invalid, publishing zeros.");
-        vortex_msgs::msg::ThrusterForces msg_out =
-            array_eigen_to_msg(zero_forces);
-        thruster_forces_publisher_->publish(msg_out);
+        thruster_forces_publisher_->publish(array_eigen_to_msg(zero_forces));
         return;
     }
 
-    Eigen::VectorXd thruster_forces =
-        pseudoinverse_allocator_.calculate_allocated_thrust(wrench_vector);
+    // Normalize before passing to allocator
+    wrench_vector = normalize_wrench_vector(wrench_vector, tau_max_);
+
+    auto thruster_forces_opt =
+        allocator_->calculate_allocated_thrust(wrench_vector);
+
+    if (!thruster_forces_opt) {
+        spdlog::error("Allocator not ready, publishing zeros.");
+        thruster_forces_publisher_->publish(array_eigen_to_msg(zero_forces));
+        return;
+    }
+    Eigen::VectorXd thruster_forces = *thruster_forces_opt;
 
     if (is_invalid_matrix(thruster_forces)) {
         spdlog::error("ThrusterForces vector invalid, publishing zeros.");
@@ -150,11 +236,7 @@ void ThrustAllocator::watchdog_callback() {
 bool ThrustAllocator::healthy_wrench(const Eigen::VectorXd& v) const {
     if (is_invalid_matrix(v))
         return false;
-
-    bool within_max_thrust = std::ranges::none_of(
-        v, [this](double val) { return std::abs(val) > max_thrust_; });
-
-    return within_max_thrust;
+    return (v.cwiseAbs().cwiseQuotient(tau_max_)).maxCoeff() <= 1.0;
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(ThrustAllocator)

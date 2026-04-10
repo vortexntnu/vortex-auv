@@ -8,10 +8,11 @@
     enu_ned_rotation: true
 
     config:
-      existence:
-        confirmation_threshold: 0.6
-        deletion_threshold: 0.2
-        initial_existence_probability: 0.4
+      nm:
+        confirm_n: 3 # hits needed for confirmation
+        confirm_m: 5 # window size for confirmation
+        delete_n: 5  # misses needed for deletion
+        delete_m: 7  # window size for deletion
 
       gate:
         min_pos_error: 0.0 # in meters
@@ -28,8 +29,6 @@
       mahalanobis_gate_threshold: 2.5 # in std deviations
       prob_of_detection: 0.5
       clutter_intensity: 0.01
-      prob_of_survival: 0.95
-      estimate_clutter: false
 
     debug:
       enable: true

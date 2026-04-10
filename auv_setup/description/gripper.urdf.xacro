@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="gripper">
+
+  <!--
+    Gripper macro.
+
+    The caller declares a static mount link (e.g. 'gripper_link') and
+    connects it to the robot. This macro creates all gripper sub-frames
+    below that mount link.
+
+    Parameters:
+      frame            - caller-declared mount link name (e.g. 'gripper_link')
+      static_shoulder  - if true the shoulder joint is fixed; if false it is
+                         a revolute joint that can pitch (default: true)
+
+    Usage:
+      <link name="gripper_link"/>
+      <joint name="base_to_gripper" type="fixed">
+        <parent link="base_link"/>
+        <child link="gripper_link"/>
+        <origin xyz="0.26 0.095 0.08" rpy="0 0 0"/>
+      </joint>
+      <xacro:gripper frame="gripper_link" static_shoulder:=true/>
+  -->
+
+  <xacro:macro name="gripper"
+               params="frame static_shoulder:=true shoulder_length:=0.1 wrist_length:=0.1 grip_max_extension:=0.05">
+
+    <!-- Shoulder link (owned by the gripper macro, not the caller) -->
+    <link name="gripper_shoulder_link">
+      <visual>
+        <geometry>
+          <box size="${shoulder_length} 0.05 0.05"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <material name="grey">
+          <color rgba="0.6 0.6 0.6 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Shoulder joint: fixed or revolute depending on static_shoulder -->
+    <xacro:if value="${static_shoulder}">
+      <joint name="gripper_shoulder_joint" type="fixed">
+        <parent link="${frame}"/>
+        <child link="gripper_shoulder_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </joint>
+    </xacro:if>
+    <xacro:unless value="${static_shoulder}">
+      <joint name="gripper_shoulder_joint" type="revolute">
+        <parent link="${frame}"/>
+        <child link="gripper_shoulder_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+      </joint>
+    </xacro:unless>
+
+    <!-- Wrist link -->
+    <link name="gripper_wrist_link">
+      <visual>
+        <geometry>
+          <cylinder radius="0.02" length="${wrist_length}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <material name="silver">
+          <color rgba="0.8 0.8 0.8 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Grip link -->
+    <link name="gripper_grip_link">
+      <visual>
+        <geometry>
+          <box size="0.05 0.01 0.03"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <material name="black">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Wrist joint -->
+    <joint name="gripper_wrist_joint" type="revolute">
+      <parent link="gripper_shoulder_link"/>
+      <child link="gripper_wrist_link"/>
+      <origin xyz="${shoulder_length} 0 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+    </joint>
+
+    <!-- Grip joint -->
+    <joint name="gripper_grip_joint" type="prismatic">
+      <parent link="gripper_wrist_link"/>
+      <child link="gripper_grip_link"/>
+      <origin xyz="${wrist_length} 0 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0.0" upper="${grip_max_extension}" effort="10" velocity="0.1"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

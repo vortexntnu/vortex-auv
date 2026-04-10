@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="flir_blackfly_s">
+
+  <!--
+    Minimal helper xacro that only defines the link frames and fixed joints
+    for the FLIR Blackfly S camera. This intentionally omits visuals,
+    collisions, inertial and Gazebo sensor/plugin blocks so it can be
+    included in robot descriptions when only TF frames are required.
+
+    The caller is responsible for declaring ${frame} as a <link> and
+    connecting it to the parent with a <joint> (+ the desired origin).
+    This macro only adds the sensor sub-frames below ${frame}.
+
+    Usage:
+      <xacro:include filename="flir_blackfly_s.urdf.xacro"/>
+
+      <link name="downwards_camera_link"/>
+      <joint name="base_to_downwards_camera" type="fixed">
+        <parent link="base_link"/>
+        <child link="downwards_camera_link"/>
+        <origin xyz="0.28 -0.08 0.09" rpy="0 0 1.5708"/>
+      </joint>
+
+      <xacro:flir_blackfly_s frame="downwards_camera_link" name="flir_blackfly"/>
+  -->
+
+  <xacro:macro name="flir_blackfly_s" params="frame base name:=camera lens_h:=0.04">
+
+    <!-- 'base' must be provided by the caller and should be the desired
+         prefix for generated sub-frame names (e.g. 'downwards_camera'). -->
+
+    <!-- Lens and optical links (minimal) -->
+    <link name="${base}_lens"/>
+    <link name="${base}_optical"/>
+
+    <!-- Fixed joint from body to lens (keeps original relative origin) -->
+    <joint name="${base}_lens_joint" type="fixed">
+      <!-- origin taken from flir_blackfly_s xacro: 0.02685 0 0.01425 -->
+      <origin xyz="0.02685 0 0.01425" rpy="0 0 0"/>
+      <parent link="${frame}"/>
+      <child link="${base}_lens"/>
+    </joint>
+
+    <!-- Fixed joint from lens to optical frame. Lens length is parameterized. -->
+    <joint name="${base}_optical_joint" type="fixed">
+      <origin xyz="${lens_h} 0 0" rpy="-1.570796 0 -1.570796"/>
+      <parent link="${base}_lens"/>
+      <child link="${base}_optical"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

@@ -1,7 +1,6 @@
 #ifndef POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_
 #define POSE_FILTERING__LIB__POSE_TRACK_MANAGER_HPP_
 
-#include <cstdint>
 #include <limits>
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
@@ -14,11 +13,17 @@ namespace vortex::filtering {
  * @brief Track management utilities for pose-based measurements.
  *
  * The PoseTrackManager implements track creation, confirmation,
- * deletion and update logic using an IPDA filter for each track. It
- * handles spatial and angular gating for associating pose measurements
- * to existing tracks.
+ * deletion and update logic using a PDAF filter for each track with
+ * N/M logic for track lifecycle management. It handles spatial and
+ * angular gating for associating pose measurements to existing tracks.
  */
 
+/**
+ * @brief Struct representing a 6D pose gating mechanism.
+ *
+ * This struct is used to determine whether a given pose measurement
+ * falls within acceptable positional and orientational error bounds.
+ */
 struct PoseGate6D {
     double min_pos_error = 0.0;
     double max_pos_error = std::numeric_limits<double>::infinity();
@@ -27,8 +32,8 @@ struct PoseGate6D {
 
     double mahalanobis_threshold = std::numeric_limits<double>::infinity();
 
-    using Vec_z = IPDA::Vec_z;
-    using Gauss_z = IPDA::Gauss_z;
+    using Vec_z = PDAF::Vec_z;
+    using Gauss_z = PDAF::Gauss_z;
 
     bool operator()(const Vec_z& z, const Gauss_z& z_pred) const {
         const Vec_z r = z - z_pred.mean();
@@ -60,8 +65,8 @@ class PoseTrackManager {
    public:
     /**
      * @brief Construct a PoseTrackManager
-     * @param config Configuration parameters for IPDA, models and existence
-     * management
+     * @param config Configuration parameters for PDAF, models and N/M
+     * track management
      */
     explicit PoseTrackManager(const TrackManagerConfig& config);
 
@@ -82,41 +87,66 @@ class PoseTrackManager {
 
     /**
      * @brief Return whether we have a track of the specified type and subtype.
-     * @param type of the track
-     * @param subtype of the track
-     * @return Whether at least one track with the specified type and subtype
+     * @param class_key LandmarkClassKey to match
+     * @return Whether at least one confirmed track with the specified class key
      * exists.
      */
-    bool has_track(uint16_t type, uint16_t subtype) const {
+    bool has_track(const LandmarkClassKey& class_key) const {
         return std::any_of(tracks_.begin(), tracks_.end(), [&](const Track& t) {
-            return t.confirmed && t.type == type && t.subtype == subtype;
+            return t.confirmed && t.class_key == class_key;
         });
     }
 
+    /**
+     * @brief Return whether we have a track with the specified ID.
+     * @param id of the track
+     * @return Whether at least one track with the specified ID exists.
+     */
     bool has_track(int id) const {
         return std::any_of(tracks_.begin(), tracks_.end(), [&](const Track& t) {
             return t.confirmed && t.id == id;
         });
     }
 
-    std::vector<const Track*> get_tracks_by_type(uint16_t type,
-                                                 uint16_t subtype) const {
+    /**
+     * @brief Get all confirmed tracks of the specified class key.
+     * @param class_key LandmarkClassKey to match
+     * @return Vector of pointers to tracks matching the specified class key.
+     */
+    std::vector<const Track*> get_tracks_by_type(
+        const LandmarkClassKey& class_key) const {
         std::vector<const Track*> out;
         out.reserve(tracks_.size());
         for (const auto& t : tracks_) {
-            if (!(t.type == type && t.subtype == subtype && !t.confirmed)) {
-                continue;
+            if (t.class_key == class_key && t.confirmed) {
+                out.push_back(&t);
             }
-            out.push_back(&t);
         }
         return out;
     }
 
    private:
-    std::vector<Eigen::Index> type_gate_measurements(
+    /**
+     * @brief Gate measurements for a track based on class key and gating
+     * parameters.
+     * @param track Track for which to gate measurements
+     * @param measurements Vector of measurements to gate against
+     * @return Vector of indices of measurements that passed the gate
+     */
+    std::vector<Eigen::Index> gate_measurements_by_class(
         const Track& track,
         const std::vector<Landmark>& measurements) const;
 
+    /**
+     * @brief Compute measurement residuals for a track against a set of
+     * measurements.
+     * @param track Track for which to compute residuals
+     * @param measurements Vector of measurements to compute residuals against
+     * @param indices Indices of measurements to use from the measurements
+     * vector
+     * @return 6xN array of residuals (position and orientation) for each
+     * measurement
+     */
     Eigen::Array<double, 6, Eigen::Dynamic> compute_measurement_residuals(
         const Track& track,
         const std::vector<Landmark>& measurements,
@@ -129,6 +159,11 @@ class PoseTrackManager {
      */
     Eigen::Vector3d so3_log_quat(const Eigen::Quaterniond& q_in) const;
 
+    /**
+     * @brief Inject the error state into the nominal state and reset the error
+     * state.
+     * @param track Track for which to perform the injection and reset
+     */
     void inject_and_reset(Track& track);
 
     /**
@@ -139,12 +174,19 @@ class PoseTrackManager {
     Eigen::Quaterniond so3_exp_quat(const Eigen::Vector3d& rvec) const;
 
     /**
-     * @brief Confirm tracks which have exceeded the confirmation threshold.
+     * @brief Record a hit or miss for a track and update its history window.
+     * @param track Track to update
+     * @param hit Whether the track was associated with a measurement
+     */
+    void record_hit_miss(Track& track, bool hit);
+
+    /**
+     * @brief Confirm tracks which meet the N/M confirmation criteria.
      */
     void confirm_tracks();
 
     /**
-     * @brief Delete tracks which have fallen below the deletion threshold.
+     * @brief Delete tracks which meet the N/M deletion criteria.
      */
     void delete_tracks();
 
@@ -169,20 +211,61 @@ class PoseTrackManager {
         const std::vector<Eigen::Index>& global_indices,
         const Eigen::Array<bool, 1, Eigen::Dynamic>& mask) const;
 
-    const LandmarkClassConfig& cfg_for(uint16_t type, uint16_t subtype) const {
+    /**
+     * @brief Get the configuration for a specific landmark class key.
+     * @param key Landmark class key
+     * @return Configuration for the specified class key
+     */
+    const LandmarkClassConfig& cfg_for(const LandmarkClassKey& key) const {
         for (const auto& [k, cfg] : config_.per_class_configs) {
-            if (k.type == type && k.subtype == subtype)
+            if (k == key)
                 return cfg;
         }
         return config_.default_class_config;
     }
 
+    /**
+     * @brief Get the configuration for a specific track.
+     * @param t Track for which to get the configuration
+     * @return Configuration for the specified track
+     */
     const LandmarkClassConfig& cfg_for(const Track& t) const {
-        return cfg_for(t.type, t.subtype);
+        return cfg_for(t.class_key);
     }
 
+    /**
+     * @brief Get the configuration for a specific landmark.
+     * @param m Landmark for which to get the configuration
+     * @return Configuration for the specified landmark
+     */
     const LandmarkClassConfig& cfg_for(const Landmark& m) const {
-        return cfg_for(m.class_key.type, m.class_key.subtype);
+        return cfg_for(m.class_key);
+    }
+
+    /**
+     * @brief Validate the configuration parameters. Throw on failure.
+     * @param config Configuration to validate
+     */
+    void validate_config(const TrackManagerConfig& config) {
+        const auto validate_nm = [](const NMConfig& nm) {
+            if (nm.confirm_n < 1 || nm.confirm_m < 1 || nm.delete_n < 1 ||
+                nm.delete_m < 1) {
+                throw std::invalid_argument(
+                    "NMConfig values must be non-negative, and *_m must be > "
+                    "1");
+            }
+            if (nm.confirm_n > nm.confirm_m) {
+                throw std::invalid_argument("confirm_n must be <= confirm_m");
+            }
+            if (nm.delete_n > nm.delete_m) {
+                throw std::invalid_argument("delete_n must be <= delete_m");
+            }
+        };
+
+        validate_nm(config.default_class_config.nm);
+        for (const auto& [key, class_cfg] : config.per_class_configs) {
+            validate_nm(class_cfg.nm);
+        }
     }
 
     // Internal bookkeeping

@@ -10,9 +10,9 @@ on:
   schedule:
     - cron: '0 1 * * *' # Runs daily to check for dependency issues or flaking tests
 jobs:
-  call_reusable_workflow:
+  industrial-ci:
     uses: vortexntnu/vortex-ci/.github/workflows/reusable-industrial-ci.yml@main
     with:
-        upstream_workspace: './dependencies.repos'
-        before_install_upstream_dependencies: './scripts/ci_install_dependencies.sh'
-        ros_repo: '["testing", "main"]'
+      ros_repo: '["testing", "main"]'
+      upstream_workspace: './dependencies.repos'
+      before_install_upstream_dependencies: './scripts/ci_install_dependencies.sh'

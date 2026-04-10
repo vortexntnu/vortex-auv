@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <yaml-cpp/yaml.h>
 
 #include <vortex/utils/types.hpp>
 
@@ -11,23 +12,44 @@ namespace vortex::control {
 using vortex::utils::types::PoseEuler;
 using vortex::utils::types::Twist;
 
+DPAdaptParams load_dp_adapt_params(const std::string& drone_yaml_path,
+                                   const std::string& controller_yaml_path) {
+    YAML::Node drone_params =
+        YAML::LoadFile(drone_yaml_path)["/**"]["ros__parameters"];
+    YAML::Node controller_params =
+        YAML::LoadFile(controller_yaml_path)["/**"]["ros__parameters"];
+
+    auto K1_vec = controller_params["K1"].as<std::vector<double>>();
+    auto K2_vec = controller_params["K2"].as<std::vector<double>>();
+    auto adapt_gain_vec =
+        controller_params["adapt_gain"].as<std::vector<double>>();
+    auto d_gain_vec = controller_params["d_gain"].as<std::vector<double>>();
+    auto r_b_bg_vec = controller_params["r_b_bg"].as<std::vector<double>>();
+
+    auto mass_matrix_vec =
+        drone_params["physical"]["mass_matrix"].as<std::vector<double>>();
+
+    Eigen::Matrix6d mass_matrix =
+        Eigen::Map<Eigen::Matrix6d>(mass_matrix_vec.data());
+
+    DPAdaptParams params;
+    params.K1 = Eigen::Map<Eigen::Vector6d>(K1_vec.data());
+    params.K2 = Eigen::Map<Eigen::Vector6d>(K2_vec.data());
+    params.adapt_param = Eigen::Map<Eigen::Vector12d>(adapt_gain_vec.data());
+    params.d_gain = Eigen::Map<Eigen::Vector6d>(d_gain_vec.data());
+    params.r_b_bg = Eigen::Map<Eigen::Vector3d>(r_b_bg_vec.data());
+    params.mass_matrix = mass_matrix;
+    params.mass = mass_matrix(0, 0);
+    params.I_b = Eigen::Vector3d(mass_matrix(3, 3), mass_matrix(4, 4),
+                                 mass_matrix(5, 5));
+    return params;
+}
+
 class DPAdaptBacksControllerTests : public ::testing::Test {
    protected:
     DPAdaptBacksControllerTests()
-        : dp_adapt_backs_controller_{get_dp_params()} {}
-
-    DPAdaptParams get_dp_params() {
-        DPAdaptParams params;
-        params.adapt_param = Eigen::Vector12d::Ones() * 0.1;
-        params.d_gain = Eigen::Vector6d::Ones() * 0.6;
-        params.K1 = Eigen::Vector6d::Ones() * 5.0;
-        params.K2 = Eigen::Vector6d::Ones() * 5.0;
-        params.r_b_bg = Eigen::Vector3d(0.01, 0.0, 0.02);
-        params.I_b = Eigen::Vector3d(0.68, 3.32, 3.34);
-        params.mass_matrix = Eigen::Matrix6d::Identity() * 30.0;
-        params.mass = 30.0;
-        return params;
-    }
+        : dp_adapt_backs_controller_{
+              load_dp_adapt_params(DRONE_YAML_PATH, CONTROLLER_YAML_PATH)} {}
 
     PoseEuler generate_current_pose(const double north_pos,
                                     const double east_pos,
@@ -395,6 +417,8 @@ TEST_F(DPAdaptBacksControllerTests,
     EXPECT_NEAR(tau[3], 0.0, 0.01);
     EXPECT_NEAR(tau[4], 0.0, 0.01);
     EXPECT_NEAR(tau[5], 0.0, 0.01);
+    // Torque channels may have cross-coupling from off-diagonal mass matrix
+    // terms in the Coriolis matrix
 }
 
 /*
@@ -415,6 +439,8 @@ TEST_F(DPAdaptBacksControllerTests,
     EXPECT_NEAR(tau[3], 0.0, 0.01);
     EXPECT_NEAR(tau[4], 0.0, 0.01);
     EXPECT_NEAR(tau[5], 0.0, 0.01);
+    // Torque channels may have cross-coupling from off-diagonal mass matrix
+    // terms in the Coriolis matrix
 }
 
 /*
@@ -435,6 +461,8 @@ TEST_F(DPAdaptBacksControllerTests,
     EXPECT_NEAR(tau[3], 0.0, 0.01);
     EXPECT_NEAR(tau[4], 0.0, 0.01);
     EXPECT_NEAR(tau[5], 0.0, 0.01);
+    // Torque channels may have cross-coupling from off-diagonal mass matrix
+    // terms in the Coriolis matrix
 }
 
 }  // namespace vortex::control

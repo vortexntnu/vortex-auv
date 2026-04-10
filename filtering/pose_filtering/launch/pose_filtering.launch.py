@@ -22,7 +22,7 @@ def generate_launch_description():
                 parameters=[
                     config,
                     {
-                        'use_sim_time': True
+                        'use_sim_time': False,
                     },  # If testing with rosbags sim_time might be preferred if bag is looped
                 ],
             ),

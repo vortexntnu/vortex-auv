@@ -49,7 +49,7 @@ Eigen::Vector6d DPAdaptBacksController::calculate_tau(const PoseEuler& pose,
                           (pose.as_j_matrix().transpose() * z_1) - (K2_ * z_2) -
                           F_est - d_est_;
 
-    tau = tau.cwiseMax(-80.0).cwiseMin(80.0);
+    tau = tau.cwiseMax(-100.0).cwiseMin(100.0);
     adapt_param_ += adapt_param_dot * dt_;
     d_est_ += d_est_dot * dt_;
     adapt_param_ = adapt_param_.cwiseMax(-10.0).cwiseMin(10.0);
