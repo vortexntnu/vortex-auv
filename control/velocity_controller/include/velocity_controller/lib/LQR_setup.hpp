@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <cstdio>
 #include <geometry_msgs/msg/detail/wrench_stamped__struct.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -18,6 +19,9 @@ struct LQR_params{
     std::vector<double> D_low;
     std::vector<double> D_high;
     double interval;
+    LQR_params(std::vector<double> Q_val, std::vector<double> R_val, std::vector<double> inertia_matrix_val, double max_force_val, std::vector<double> D_low_val, std::vector<double> D_high_val, double interval_val)
+        : Q(Q_val), R(R_val), inertia_matrix(inertia_matrix_val), max_force(max_force_val), D_low(D_low_val), D_high(D_high_val), interval(interval_val) {};
+    LQR_params() = default;
 };
 class LQRController : public controller{
    public:

@@ -6,9 +6,12 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include "velocity_controller/lib/PID_controller.hpp"
 struct PID_3DOF_params{
-    PID_params surge_params;
-    PID_params pitch_params;
-    PID_params yaw_params;
+    std::vector<double> surge;
+    std::vector<double> pitch;
+    std::vector<double> yaw;
+    double dt;
+    double max_force;
+    double min_force;
 };
 class PID_3DOF : public controller {
    public:

@@ -13,8 +13,7 @@
 #include "velocity_controller/utilities.hpp"
 // #include "vortex/utils/math.hpp"
 
-LQRController::LQRController(LQR_params params) {
-    params_=params;
+LQRController::LQRController(LQR_params params) : params_(params) {
     inertia_matrix_inv.setZero();
     if (params_.interval <= 0){
         valid = false;

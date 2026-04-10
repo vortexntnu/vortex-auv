@@ -66,7 +66,7 @@ void Velocity_node::guidance_callback(
             control_manager_ptr->reset_controllers(1);
         if (abs(msg_ptr->pitch - guidance_values.pitch) > std::numbers::pi / 4)
             control_manager_ptr->reset_controllers(2);
-        if (abs(msg_ptr->yaw - guidance_values.yaw) < std::numbers::pi / 4)
+        if (abs(msg_ptr->yaw - guidance_values.yaw) > std::numbers::pi / 4)
             control_manager_ptr->reset_controllers(3);
     }
     guidance_values = msg_ptr;  // overloaded to fix all the internal states
@@ -82,9 +82,6 @@ void Velocity_node::odometry_callback(
 }
 
 void Velocity_node::get_new_parameters() {
-    
-    //Eigen::Matrix3d inertia_matrix;
-    //std::vector<double> dampening_matrix_low, dampening_matrix_high;
     // topics
     this->declare_parameter<std::string>("topics.wrench_input");
     node_settings.topic_thrust = this->get_parameter("topics.wrench_input").as_string();
@@ -92,20 +89,22 @@ void Velocity_node::get_new_parameters() {
     node_settings.topic_guidance = this->get_parameter("topics.guidance.los").as_string();
     this->declare_parameter<std::string>("topics.odom");
     node_settings.topic_odometry = this->get_parameter("topics.odom").as_string();
-    // Settings
-    this->declare_parameter<double>("Control_manager_settings.max_force");
     
+    // Control manager settings
+    this->declare_parameter<double>("Control_manager_settings.max_force");
     this->declare_parameter<int>("Control_manager_settings.publish_rate");
     this->declare_parameter<int>("Control_manager_settings.controller_type");
+    this->declare_parameter<bool>("Control_manager_settings.anti_overshoot", true);
+
+    //Node settings
     this->declare_parameter<bool>("Node_settings.auto_start", false);
     this->declare_parameter<bool>("Node_settings.reset_on_new_ref", true);
-    this->declare_parameter<bool>("Control_manager_settings.anti_overshoot", true);
     this->declare_parameter<bool>("Node_settings.odometry_dropout_guard", true);
     
     // PID Params
-    this->declare_parameter<std::vector<double>>("PID_params.surge");
-    this->declare_parameter<std::vector<double>>("PID_params.pitch");
-    this->declare_parameter<std::vector<double>>("PID_params.yaw");
+    this->declare_parameter<std::vector<double>>("3DOF_PID_params.surge");
+    this->declare_parameter<std::vector<double>>("3DOF_PID_params.pitch");
+    this->declare_parameter<std::vector<double>>("3DOF_PID_params.yaw");
 
     // LQR Parameters
     this->declare_parameter<std::vector<double>>("LQR_params.Q");
@@ -118,55 +117,39 @@ void Velocity_node::get_new_parameters() {
     
 }
 void Velocity_node::initialize_controllers() {
-    control_manager_params control_params;
-    PID_3DOF_params pid_3dof_params;
-    LQR_params lqr_params;
-    double max_force = this->get_parameter("Control_manager_settings.max_force").as_double();
-    double dt = this->get_parameter("Control_manager_settings.publish_rate").as_int() / 1000.0;  // Convert ms to seconds
-    // Set max/min/dt FIRST
-    pid_3dof_params.surge_params.max_output = max_force;
-    pid_3dof_params.surge_params.min_output = -max_force;
-    pid_3dof_params.surge_params.dt = dt;
-    
-    pid_3dof_params.pitch_params.max_output = max_force;
-    pid_3dof_params.pitch_params.min_output = -max_force;
-    pid_3dof_params.pitch_params.dt = dt;
-    
-    pid_3dof_params.yaw_params.max_output = max_force;
-    pid_3dof_params.yaw_params.min_output = -max_force;
-    pid_3dof_params.yaw_params.dt = dt;
-    
-    // NOW set gains WITHOUT overwriting other fields
-    auto surge_gains = this->get_parameter("PID_params.surge").as_double_array();
-    pid_3dof_params.surge_params.k_p = surge_gains[0];
-    pid_3dof_params.surge_params.k_i = surge_gains[1];
-    pid_3dof_params.surge_params.k_d = surge_gains[2];
-    
-    auto pitch_gains = this->get_parameter("PID_params.pitch").as_double_array();
-    pid_3dof_params.pitch_params.k_p = pitch_gains[0];
-    pid_3dof_params.pitch_params.k_i = pitch_gains[1];
-    pid_3dof_params.pitch_params.k_d = pitch_gains[2];
-    
-    auto yaw_gains = this->get_parameter("PID_params.yaw").as_double_array();
-    pid_3dof_params.yaw_params.k_p = yaw_gains[0];
-    pid_3dof_params.yaw_params.k_i = yaw_gains[1];
-    pid_3dof_params.yaw_params.k_d = yaw_gains[2];
-    lqr_params.max_force = max_force;
-    lqr_params.interval = dt;
-    
-    control_params.control_type = this->get_parameter("Control_manager_settings.controller_type").as_int();
+    //TODO(henrimha): parameter validation or in control manager
+    //Initialize Node
     node_settings.auto_start = this->get_parameter("Node_settings.auto_start").as_bool();
     node_settings.reset_on_new_ref = this->get_parameter("Node_settings.reset_on_new_ref").as_bool();
-    control_params.anti_overshoot = this->get_parameter("Control_manager_settings.anti_overshoot").as_bool();
+    node_settings.publish_rate = this->get_parameter("Control_manager_settings.publish_rate").as_int();
     node_settings.odometry_dropout_guard = this->get_parameter("Node_settings.odometry_dropout_guard").as_bool();
 
-    lqr_params.Q = this->get_parameter("LQR_params.Q").as_double_array();
-    lqr_params.R = this->get_parameter("LQR_params.R").as_double_array();
-    lqr_params.inertia_matrix = this->get_parameter("physical.mass_matrix").as_double_array();
-    lqr_params.D_low =this->get_parameter("dampening_matrix_low").as_double_array();
-    lqr_params.D_high =this->get_parameter("dampening_matrix_high").as_double_array();
+
+    //Initialize control manager parameters
+    auto control_type = this->get_parameter("Control_manager_settings.controller_type").as_int();
+    auto anti_overshoot = this->get_parameter("Control_manager_settings.anti_overshoot").as_bool();
+    control_manager_params control_params(control_type, anti_overshoot, 1);
+
+
+    //Some general parameters
+    double max_force = this->get_parameter("Control_manager_settings.max_force").as_double();
+    double dt = node_settings.publish_rate / 1000.0;  // Convert ms to seconds
     
-    node_settings.publish_rate = this->get_parameter("Control_manager_settings.publish_rate").as_int();
+    // Initialize 3DOF_PID params
+    auto surge_gains = this->get_parameter("3DOF_PID_params.surge").as_double_array();
+    auto pitch_gains = this->get_parameter("3DOF_PID_params.pitch").as_double_array();
+    auto yaw_gains = this->get_parameter("3DOF_PID_params.yaw").as_double_array();
+    PID_3DOF_params pid_3dof_params(surge_gains, pitch_gains, yaw_gains, dt, max_force, -max_force);
+
+    //Initialize LQR controller params
+    auto Q = this->get_parameter("LQR_params.Q").as_double_array();
+    auto R = this->get_parameter("LQR_params.R").as_double_array();
+    auto inertia_matrix = this->get_parameter("physical.mass_matrix").as_double_array();
+    auto D_low = this->get_parameter("dampening_matrix_low").as_double_array();
+    auto D_high = this->get_parameter("dampening_matrix_high").as_double_array();
+    LQR_params lqr_params(Q, R, inertia_matrix, max_force, D_low, D_high, dt);
+    
+    //Initalize all the controllers in control manager
     control_manager_ptr = std::make_unique<control_manager>(control_params);
     control_manager_ptr->initialize_3DOF_controller(pid_3dof_params);
     control_manager_ptr->initialize_LQR_controller(lqr_params);

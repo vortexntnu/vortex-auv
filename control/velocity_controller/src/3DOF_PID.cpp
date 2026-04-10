@@ -3,7 +3,7 @@
 #include <geometry_msgs/msg/detail/wrench_stamped__struct.hpp>
 
 PID_3DOF::PID_3DOF(PID_3DOF_params params)
-    : surge_controller(params.surge_params), pitch_controller(params.pitch_params), yaw_controller(params.yaw_params) {};
+    : surge_controller(PID_params(params.surge,params.dt,params.max_force,params.min_force)), pitch_controller(PID_params(params.pitch,params.dt,params.max_force,params.min_force)), yaw_controller(PID_params(params.yaw,params.dt,params.max_force,params.min_force)) {};
 
 geometry_msgs::msg::WrenchStamped PID_3DOF::calculate_thrust(State state, State error_state) {
     geometry_msgs::msg::WrenchStamped u;

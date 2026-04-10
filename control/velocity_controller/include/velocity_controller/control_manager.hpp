@@ -8,6 +8,9 @@ struct control_manager_params{
     int control_type; // 1 3DOF PID, 2 3DOF LQR
     bool anti_overshoot;
     bool fallback;
+    control_manager_params(int control_type_val, bool anti_overshoot_val, bool fallback_val)
+        : control_type(control_type_val), anti_overshoot(anti_overshoot_val), fallback(fallback_val) {}
+    control_manager_params() = default;
 };
 class control_manager{
     public:

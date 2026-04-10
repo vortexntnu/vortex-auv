@@ -11,6 +11,11 @@ struct PID_params{
     double max_output;
     double min_output;
     const std::vector<double>& operator=(const std::vector<double>& params);
+    // Constructor from gains vector and other params
+    //TODO(henrimha): change the vector to an array
+    PID_params(const std::vector<double>& gains, double dt_val, double max_out, double min_out)
+        : k_p(gains[0]), k_i(gains[1]), k_d(gains[2]), dt(dt_val), max_output(max_out), min_output(min_out) {}
+    
     PID_params() = default;
     
 };
