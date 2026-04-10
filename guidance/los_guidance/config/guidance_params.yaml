@@ -24,14 +24,14 @@
 # * -
 # */
 adaptive_los:
-  lookahead_distance_h: 2.0
-  lookahead_distance_v: 1.4
-  adaptation_gain_h: 0.005
+  lookahead_distance_h: 3.5
+  lookahead_distance_v: 3.5
+  adaptation_gain_h: 0.002
   adaptation_gain_v: 0.005
 
 prop_los:
-  lookahead_distance_h: 0.74
-  lookahead_distance_v: 0.8
+  lookahead_distance_h: 4.5
+  lookahead_distance_v: 1.8
 
 integer_los:
   proportional_gain_h: 0.5
@@ -47,7 +47,7 @@ vector_field_los:
 
 common:
   active_los_method: 2
-  u_desired: 0.3
+  u_desired: 0.2
   goal_reached_tol: 0.20
   max_pitch_angle: 0.96
   missed_goal_distance_margin: 1.0

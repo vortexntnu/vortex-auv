@@ -17,6 +17,7 @@
 #include <vortex_msgs/action/los_guidance.hpp>
 #include <vortex_msgs/msg/detail/los_guidance__struct.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
+#include <vortex_msgs/msg/pose_euler_stamped.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
 #include <vortex_msgs/srv/set_los_mode.hpp>
 
@@ -122,6 +123,14 @@ class LosGuidanceNode : public rclcpp::Node {
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     /**
+     * @brief Callback for receiving odometry updates from
+     * utils/message_publisher.
+     * @param msg Received odometry message.
+     */
+    void odom_msg_callback(
+        const vortex_msgs::msg::PoseEulerStamped::SharedPtr msg);
+
+    /**
      * @brief Handles an incoming LOS guidance action goal request.
      * @param uuid Unique identifier for the received goal.
      * @param goal Requested LOS guidance goal.
@@ -217,6 +226,8 @@ class LosGuidanceNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Subscription<vortex_msgs::msg::PoseEulerStamped>::SharedPtr
+        message_pub_sub_;
     rclcpp::TimerBase::SharedPtr reference_pub_timer_;
     rclcpp::CallbackGroup::SharedPtr cb_group_;
 
@@ -232,6 +243,7 @@ class LosGuidanceNode : public rclcpp::Node {
     double u_desired_{};
     double goal_reached_tol_{};
     double max_pitch_angle_{};
+    double current_yaw_{};
     types::ActiveLosMethod method_{};
 
     double nearest_been_to_goal_{std::numeric_limits<double>::max()};

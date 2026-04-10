@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 
 #include "los_guidance/lib/types.hpp"
@@ -53,6 +54,8 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.guidance.los");
     this->declare_parameter<std::string>("topics.waypoint");
     this->declare_parameter<std::string>("topics.odom");
+    this->declare_parameter<std::string>(
+        "topics.odom_tf_rpy", "/utils/message_publisher/odom_tf_rpy");
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string guidance_topic =
@@ -60,6 +63,8 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
     std::string waypoint_topic =
         this->get_parameter("topics.waypoint").as_string();
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
+    std::string odom_tf_rpy_topic =
+        this->get_parameter("topics.odom_tf_rpy").as_string();
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
@@ -84,6 +89,12 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         odom_topic, qos_sensor_data,
         std::bind(&LosGuidanceNode::odom_callback, this,
                   std::placeholders::_1));
+
+    message_pub_sub_ =
+        this->create_subscription<vortex_msgs::msg::PoseEulerStamped>(
+            odom_tf_rpy_topic, qos_sensor_data,
+            std::bind(&LosGuidanceNode::odom_msg_callback, this,
+                      std::placeholders::_1));
 }
 
 void LosGuidanceNode::set_action_server() {
@@ -238,6 +249,13 @@ void LosGuidanceNode::odom_callback(
     lock.unlock();
 }
 
+void LosGuidanceNode::odom_msg_callback(
+    const vortex_msgs::msg::PoseEulerStamped::SharedPtr msg) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    current_yaw_ = msg->yaw;
+    lock.unlock();
+}
+
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
@@ -303,11 +321,32 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
 
-    const double clamped_pitch =
-        std::clamp(outputs.theta_d, -max_pitch_angle_, max_pitch_angle_);
+    double max_pitch_angle_copy;
+    double current_yaw_copy;
+    double u_desired_copy;
+
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        max_pitch_angle_copy = max_pitch_angle_;
+        current_yaw_copy = current_yaw_;
+        u_desired_copy = u_desired_;
+    }
+
+    const double clamped_pitch = std::clamp(
+        outputs.theta_d, -max_pitch_angle_copy, max_pitch_angle_copy);
+
     reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
-    reference_msg.surge = u_desired_;
+
+    double yaw_error =
+        vortex::utils::math::ssa(outputs.psi_d - current_yaw_copy);
+    double abs_err = std::abs(yaw_error);
+
+    double u_cmd = u_desired_copy / (1.0 + 0.5 * abs_err);
+    u_cmd = std::clamp(u_cmd, 0.12, u_desired_copy);
+
+    reference_msg.surge = u_cmd;
+
     return reference_msg;
 }
 
