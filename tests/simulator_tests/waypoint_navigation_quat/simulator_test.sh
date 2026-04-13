@@ -8,7 +8,7 @@ echo "Setting up ROS 2 environment..."
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 
 # Get the directory of this script dynamically
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Function to terminate processes safely on error
 cleanup() {

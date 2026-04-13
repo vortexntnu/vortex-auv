@@ -20,9 +20,9 @@ PIDControllerNode::PIDControllerNode() : Node("pid_controller_euler_node") {
 }
 
 void PIDControllerNode::set_subscribers_and_publisher() {
-    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.guidance.dp_rpy");
     std::string dp_reference_topic =
-        this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp_rpy").as_string();
 
     this->declare_parameter<std::string>("topics.pose");
     std::string pose_topic = this->get_parameter("topics.pose").as_string();

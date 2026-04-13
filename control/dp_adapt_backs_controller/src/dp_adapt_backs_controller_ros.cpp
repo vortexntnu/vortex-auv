@@ -40,9 +40,9 @@ void DPAdaptBacksControllerNode::set_subscribers_and_publisher() {
         vortex::utils::qos_profiles::sensor_data_profile(1)};
     const auto qos_reliable{vortex::utils::qos_profiles::reliable_profile(1)};
 
-    this->declare_parameter<std::string>("topics.guidance.dp");
+    this->declare_parameter<std::string>("topics.guidance.dp_rpy");
     std::string dp_reference_topic =
-        this->get_parameter("topics.guidance.dp").as_string();
+        this->get_parameter("topics.guidance.dp_rpy").as_string();
     guidance_sub_ =
         this->create_subscription<vortex_msgs::msg::ReferenceFilter>(
             dp_reference_topic, qos_sensor_data,
@@ -177,6 +177,17 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     this->declare_parameter<std::vector<double>>("K2");
     this->declare_parameter<std::vector<double>>("r_b_bg");
     this->declare_parameter<std::vector<double>>("physical.mass_matrix");
+    this->declare_parameter<std::vector<double>>("physical.center_of_mass");
+    this->declare_parameter<std::vector<double>>(
+        "propulsion.thrusters.thruster_force_direction");
+    this->declare_parameter<std::vector<double>>(
+        "propulsion.thrusters.thruster_position");
+    this->declare_parameter<int>("propulsion.thrusters.num");
+    this->declare_parameter<int>("propulsion.dimensions.num");
+    this->declare_parameter<double>(
+        "propulsion.thrusters.constraints.min_force");
+    this->declare_parameter<double>(
+        "propulsion.thrusters.constraints.max_force");
 
     std::vector<double> adapt_param_vec =
         this->get_parameter("adapt_gain").as_double_array();
@@ -204,6 +215,54 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     Eigen::Vector3d I_b_eigen(mass_matrix(3, 3), mass_matrix(4, 4),
                               mass_matrix(5, 5));
 
+    // Compute per-DOF max wrench from the thruster configuration
+    int num_thrusters =
+        this->get_parameter("propulsion.thrusters.num").as_int();
+    int num_dims = this->get_parameter("propulsion.dimensions.num").as_int();
+    double min_force =
+        this->get_parameter("propulsion.thrusters.constraints.min_force")
+            .as_double();
+    double max_force =
+        this->get_parameter("propulsion.thrusters.constraints.max_force")
+            .as_double();
+
+    Eigen::Vector3d center_of_mass = Eigen::Map<const Eigen::Vector3d>(
+        this->get_parameter("physical.center_of_mass")
+            .as_double_array()
+            .data());
+
+    auto dir_vec =
+        this->get_parameter("propulsion.thrusters.thruster_force_direction")
+            .as_double_array();
+    auto pos_vec = this->get_parameter("propulsion.thrusters.thruster_position")
+                       .as_double_array();
+
+    Eigen::MatrixXd thruster_dir =
+        Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                       Eigen::RowMajor>>(
+            dir_vec.data(), num_dims, num_thrusters);
+    Eigen::MatrixXd thruster_pos =
+        Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic,
+                                       Eigen::RowMajor>>(
+            pos_vec.data(), num_dims, num_thrusters);
+
+    Eigen::MatrixXd T = Eigen::MatrixXd::Zero(6, num_thrusters);
+    for (int i = 0; i < num_thrusters; i++) {
+        Eigen::Vector3d pos = thruster_pos.col(i) - center_of_mass;
+        Eigen::Vector3d F = thruster_dir.col(i);
+        T.block<3, 1>(0, i) = F;
+        T.block<3, 1>(3, i) = pos.cross(F);
+    }
+
+    Eigen::Vector6d tau_max;
+    for (int i = 0; i < 6; i++) {
+        double w = 0.0;
+        for (int j = 0; j < num_thrusters; j++) {
+            w += (T(i, j) > 0) ? T(i, j) * max_force : T(i, j) * min_force;
+        }
+        tau_max(i) = w;
+    }
+
     DPAdaptParams dp_adapt_params;
     dp_adapt_params.adapt_param = adapt_param_eigen;
     dp_adapt_params.d_gain = d_gain_eigen;
@@ -212,6 +271,7 @@ void DPAdaptBacksControllerNode::set_adap_params() {
     dp_adapt_params.r_b_bg = r_b_bg_eigen;
     dp_adapt_params.I_b = I_b_eigen;
     dp_adapt_params.mass_matrix = mass_matrix;
+    dp_adapt_params.tau_max = tau_max;
     dp_adapt_params.mass = mass;
 
     dp_adapt_backs_controller_ =
@@ -231,13 +291,12 @@ void DPAdaptBacksControllerNode::publish_tau() {
     geometry_msgs::msg::WrenchStamped tau_msg;
     tau_msg.header.stamp = this->now();
     tau_msg.header.frame_id = "base_link";
-    tau_msg.wrench.force.x = tau(0);
-    tau_msg.wrench.force.y = tau(1);
+    tau_msg.wrench.force.x = -tau(0);
+    tau_msg.wrench.force.y = -tau(1);
     tau_msg.wrench.force.z = tau(2);
 
     // comment out if roll control is not needed
     tau_msg.wrench.torque.x = tau(3);
-
     tau_msg.wrench.torque.y = tau(4);
     tau_msg.wrench.torque.z = tau(5);
 

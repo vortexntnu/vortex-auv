@@ -35,9 +35,9 @@ inline WaypointMode waypoint_mode_from_ros(
 }
 
 /// @brief Convert a ROS Waypoint message to an internal Waypoint struct.
-inline vortex::guidance::Waypoint waypoint_from_ros(
+inline vortex::guidance::WaypointEuler waypoint_from_ros(
     const vortex_msgs::msg::Waypoint& ros_wp) {
-    Waypoint wp;
+    WaypointEuler wp;
     wp.pose =
         vortex::utils::ros_conversions::ros_pose_to_pose_euler(ros_wp.pose);
     wp.mode = waypoint_mode_from_ros(ros_wp.waypoint_mode);

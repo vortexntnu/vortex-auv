@@ -30,7 +30,7 @@ class WaypointFollower {
      */
     void start(const PoseEuler& pose,
                const Twist& twist,
-               const Waypoint& waypoint,
+               const WaypointEuler& waypoint,
                double convergence_threshold);
 
     /**

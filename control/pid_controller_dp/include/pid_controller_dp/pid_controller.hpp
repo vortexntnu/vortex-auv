@@ -1,6 +1,7 @@
 #ifndef PID_CONTROLLER_DP__PID_CONTROLLER_HPP_
 #define PID_CONTROLLER_DP__PID_CONTROLLER_HPP_
 
+#include <spdlog/spdlog.h>
 #include "pid_controller_dp/typedefs.hpp"
 
 class PIDController {
@@ -36,11 +37,15 @@ class PIDController {
     // @param dt: Time step
     void set_time_step(double dt);
 
+    types::Matrix6d get_kp();
+    types::Matrix6d get_ki();
+    types::Matrix6d get_kd();
+
    private:
     types::Matrix6d Kp_;
     types::Matrix6d Ki_;
     types::Matrix6d Kd_;
-    types::Vector7d integral_;
+    types::Vector6d integral_;
     double dt_;
 };
 

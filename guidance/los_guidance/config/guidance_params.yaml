@@ -1,10 +1,54 @@
-/**:
-  ros__parameters:
-    los:
-      lookahead_distance_h: 1.5
-      lookahead_distance_v: 0.6
-      gamma_h: 0.05
-      gamma_v: 0.1
-      time_step: 0.01
-      u_desired: 0.3
-      goal_reached_tol: 1.0
+#/**
+# * @file guidance_params.yaml
+# * @brief Configuration parameters for the LOS guidance node.
+# *
+# * This file contains the tunable parameters for all supported Line-Of-Sight
+# * (LOS) guidance methods, together with common guidance settings shared across
+# * the node.
+# *
+# * Parameter descriptions:
+# * - `lookahead_distance_h`: Horizontal lookahead distance used to define the
+# *   LOS reference point in the horizontal plane.
+# * - `lookahead_distance_v`: Vertical lookahead distance used to define the
+# *   LOS reference point in the vertical plane.
+# * - `gamma_h`: Adaptive update gain for horizontal LOS adaptation.
+# * - `gamma_v`: Adaptive update gain for vertical LOS adaptation.
+# * - `k_p_h`: Proportional gain in the horizontal plane.
+# * - `k_p_v`: Proportional gain in the vertical plane.
+# * - `k_i_h`: Integral gain in the horizontal plane.
+# * - `k_i_v`: Integral gain in the vertical plane.
+# * - `max_approach_angle_h`: Maximum allowed horizontal approach angle for
+# *   vector field LOS guidance.
+# * - `max_approach_angle_v`: Maximum allowed vertical approach angle for
+# *   vector field LOS guidance.
+# * -
+# */
+adaptive_los:
+  lookahead_distance_h: 2.0
+  lookahead_distance_v: 1.4
+  adaptation_gain_h: 0.005
+  adaptation_gain_v: 0.005
+
+prop_los:
+  lookahead_distance_h: 0.74
+  lookahead_distance_v: 0.8
+
+integer_los:
+  proportional_gain_h: 0.5
+  proportional_gain_v: 0.5
+  integral_gain_h: 0.1
+  integral_gain_v: 0.1
+
+vector_field_los:
+  max_approach_angle_h: 1.0
+  max_approach_angle_v: 1.0
+  proportional_gain_h: 1.5
+  proportional_gain_v: 0.9
+
+common:
+  active_los_method: 2
+  u_desired: 0.3
+  goal_reached_tol: 0.20
+  max_pitch_angle: 0.96
+  missed_goal_distance_margin: 1.0
+  missed_goal_timeout: 10.0
