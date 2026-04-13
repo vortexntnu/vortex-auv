@@ -1,0 +1,13 @@
+/**:
+  odom_transformer_node:
+    ros__parameters:
+      sensor_frame: "dvl_link"
+      publish_tf: true
+      publish_pose: true
+      publish_twist: true
+      rotate_yaw_180: false
+      topics:
+        input: "nucleus/odom"
+        output: "odom"
+        pose: "pose"
+        twist: "twist"
