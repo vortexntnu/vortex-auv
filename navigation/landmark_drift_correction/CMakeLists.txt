@@ -13,17 +13,15 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-find_package(vortex_utils REQUIRED)
-find_package(vortex_utils_ros REQUIRED)
-find_package(vortex_filtering REQUIRED)
-find_package(vortex_msgs REQUIRED)
-find_package(pose_filtering REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(include)
 
+# Core library: DriftCorrector
 set(CORE_LIB_NAME "${PROJECT_NAME}")
 
 add_library(${CORE_LIB_NAME} SHARED
@@ -36,17 +34,14 @@ target_include_directories(${CORE_LIB_NAME}
     $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(${CORE_LIB_NAME}
-  vortex_filtering
-  vortex_utils
-  vortex_msgs
-  pose_filtering
-)
+target_link_libraries(${CORE_LIB_NAME} Eigen3::Eigen)
 
+# Component library: ROS node + graph visualizer
 set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${COMPONENT_LIB_NAME} SHARED
-  src/ros/${PROJECT_NAME}_ros.cpp
+  src/ros/landmark_drift_correction_ros.cpp
+  src/ros/graph_visualizer.cpp
 )
 
 ament_target_dependencies(${COMPONENT_LIB_NAME}
@@ -54,21 +49,18 @@ ament_target_dependencies(${COMPONENT_LIB_NAME}
   rclcpp_components
   geometry_msgs
   nav_msgs
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  vortex_filtering
-  vortex_utils
-  vortex_utils_ros
-  vortex_msgs
-  pose_filtering
+  visualization_msgs
+  spdlog
 )
 
-target_link_libraries(${COMPONENT_LIB_NAME} ${CORE_LIB_NAME})
+target_link_libraries(${COMPONENT_LIB_NAME}
+  Eigen3::Eigen
+  ${CORE_LIB_NAME}
+)
 
 rclcpp_components_register_node(
   ${COMPONENT_LIB_NAME}
-  PLUGIN "LandmarkDriftCorrectionNode"
+  PLUGIN "vortex::navigation::drift_correction::LandmarkDriftCorrectionNode"
   EXECUTABLE ${PROJECT_NAME}_node
 )
 
@@ -94,16 +86,13 @@ install(DIRECTORY
 )
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(
-  vortex_filtering
-  vortex_utils
-  pose_filtering
-)
+ament_export_dependencies(Eigen3)
 ament_export_include_directories(include)
 ament_export_libraries(${CORE_LIB_NAME})
 
 if(BUILD_TESTING)
-  add_subdirectory(test)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
 endif()
 
 ament_package()
