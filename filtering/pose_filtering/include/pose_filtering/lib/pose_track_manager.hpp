@@ -15,7 +15,7 @@ namespace vortex::filtering {
  * The PoseTrackManager implements track creation, confirmation,
  * deletion and update logic using a PDAF filter for each track with
  * N/M logic for track lifecycle management. It handles spatial and
- * angular gating for associating pose measurements to existing tracks.
+ * angular gating for associating pose measurements to existing tracks..
  */
 
 /**
