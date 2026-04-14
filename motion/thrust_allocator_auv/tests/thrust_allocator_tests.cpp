@@ -101,8 +101,9 @@ static Eigen::VectorXd require_thrust(std::unique_ptr<Allocator>& allocator,
 
 static Eigen::VectorXd normalize_tau(const Eigen::VectorXd& tau,
                                      const AllocatorConfig& config) {
-    Eigen::VectorXd tau_max = compute_max_wrench(
-        config.extended_thrust_matrix, config.min_force, config.max_force);
+    Eigen::VectorXd tau_max =
+        vortex::utils::math::calculate_valid_thrust_region_polyhedron(
+            config.extended_thrust_matrix, config.min_force, config.max_force);
     return normalize_wrench_vector(tau, tau_max);
 }
 
@@ -128,7 +129,7 @@ AllocatorConfig load_allocator_config(const std::string& yaml_path) {
         physical["center_of_mass"].as<std::vector<double>>());
 
     Eigen::MatrixXd thrust_configuration_matrix =
-        calculate_thrust_configuration_matrix(
+        vortex::utils::math::build_thrust_configuration_matrix(
             thruster_force_directions, thruster_positions, center_of_mass);
 
     const double min_thruster_force = constraints["min_force"].as<double>();
@@ -191,9 +192,9 @@ class PseudoinverseAllocatorTests : public ::testing::Test {
     void SetUp() override {
         allocator_config = load_allocator_config(YAML_PATH);
         allocator = Factory::make_allocator("pseudoinverse", allocator_config);
-        tau_max = compute_max_wrench(allocator_config.extended_thrust_matrix,
-                                     allocator_config.min_force,
-                                     allocator_config.max_force);
+        tau_max = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
+            allocator_config.extended_thrust_matrix, allocator_config.min_force,
+            allocator_config.max_force);
     }
 };
 
@@ -206,9 +207,9 @@ class QPAllocatorTests : public ::testing::Test {
     void SetUp() override {
         allocator_config = load_allocator_config(YAML_PATH);
         allocator = Factory::make_allocator("qp", allocator_config);
-        tau_max = compute_max_wrench(allocator_config.extended_thrust_matrix,
-                                     allocator_config.min_force,
-                                     allocator_config.max_force);
+        tau_max = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
+            allocator_config.extended_thrust_matrix, allocator_config.min_force,
+            allocator_config.max_force);
     }
 };
 
