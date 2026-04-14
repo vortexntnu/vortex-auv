@@ -8,7 +8,7 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <vortex_msgs/action/los_guidance.hpp>
+#include <vortex_msgs/action/set_waypoint.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
 #include "los_guidance.hpp"
@@ -31,8 +31,7 @@ class LOSGuidanceNode : public rclcpp::Node {
 
     // @brief Callback for the waypoint topic
     // @param msg The reference message
-    void waypoint_callback(
-        const geometry_msgs::msg::PointStamped::SharedPtr msg);
+    void waypoint_callback(const geometry_msgs::msg::Point::SharedPtr msg);
 
     // @brief Callback for the pose topic
     // @param msg The pose message
@@ -45,40 +44,38 @@ class LOSGuidanceNode : public rclcpp::Node {
     // @return The goal response
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
-        std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal);
+        std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal> goal);
 
     // @brief Handle the cancel request
     // @param goal_handle The goal handle
     // @return The cancel response
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<
-            rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+            rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
             goal_handle);
 
     // @brief Handle the accepted request
     // @param goal_handle The goal handle
     void handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                             vortex_msgs::action::LOSGuidance>> goal_handle);
+                             vortex_msgs::action::SetWaypoint>> goal_handle);
 
     // @brief Execute the goal
     // @param goal_handle The goal handle
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                     vortex_msgs::action::LOSGuidance>> goal_handle);
+                     vortex_msgs::action::SetWaypoint>> goal_handle);
 
     // @brief Fill the lost waypoints
     // @param goal The goal message
-    void fill_los_waypoints(
-        const geometry_msgs::msg::PointStamped& los_waypoint);
+    void fill_los_waypoints(const geometry_msgs::msg::Point& los_waypoint);
 
     vortex_msgs::msg::LOSGuidance fill_los_reference();
 
-    rclcpp_action::Server<vortex_msgs::action::LOSGuidance>::SharedPtr
+    rclcpp_action::Server<vortex_msgs::action::SetWaypoint>::SharedPtr
         action_server_;
 
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
 
-    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
-        waypoint_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr waypoint_sub_;
 
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
@@ -92,7 +89,7 @@ class LOSGuidanceNode : public rclcpp::Node {
     rclcpp_action::GoalUUID preempted_goal_id_;
 
     std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
         goal_handle_;
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
