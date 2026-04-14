@@ -8,12 +8,12 @@
 #include "reference_filter_dp_quat/ros/reference_filter_ros_utils.hpp"
 
 const auto start_message = R"(
-  ____       __                                _____ _ _ _
- |  _ \ ___ / _| ___ _ __ ___ _ __   ___ ___  |  ___(_) | |_ ___ _ __
- | |_) / _ \ |_ / _ \ '__/ _ \ '_ \ / __/ _ \ | |_  | | | __/ _ \ '__|
- |  _ <  __/  _|  __/ | |  __/ | | | (_|  __/ |  _| | | | ||  __/ |
- |_| \_\___|_|  \___|_|  \___|_| |_|\___\___| |_|   |_|_|\__\___|_|
-
+██████╗ ███████╗███████╗███████╗██████╗ ███████╗███╗   ██╗ ██████╗███████╗    ███████╗██╗██╗  ████████╗███████╗██████╗      ██████╗ ██╗   ██╗ █████╗ ████████╗
+██╔══██╗██╔════╝██╔════╝██╔════╝██╔══██╗██╔════╝████╗  ██║██╔════╝██╔════╝    ██╔════╝██║██║  ╚══██╔══╝██╔════╝██╔══██╗    ██╔═══██╗██║   ██║██╔══██╗╚══██╔══╝
+██████╔╝█████╗  █████╗  █████╗  ██████╔╝█████╗  ██╔██╗ ██║██║     █████╗      █████╗  ██║██║     ██║   █████╗  ██████╔╝    ██║   ██║██║   ██║███████║   ██║
+██╔══██╗██╔══╝  ██╔══╝  ██╔══╝  ██╔══██╗██╔══╝  ██║╚██╗██║██║     ██╔══╝      ██╔══╝  ██║██║     ██║   ██╔══╝  ██╔══██╗    ██║▄▄ ██║██║   ██║██╔══██║   ██║
+██║  ██║███████╗██║     ███████╗██║  ██║███████╗██║ ╚████║╚██████╗███████╗    ██║     ██║███████╗██║   ███████╗██║  ██║    ╚██████╔╝╚██████╔╝██║  ██║   ██║
+╚═╝  ╚═╝╚══════╝╚═╝     ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝    ╚═╝     ╚═╝╚══════╝╚═╝   ╚══════╝╚═╝  ╚═╝     ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝
  )";
 
 namespace vortex::guidance {
@@ -56,6 +56,16 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     reference_pub_ =
         this->create_publisher<vortex_msgs::msg::ReferenceFilterQuat>(
             guidance_topic, qos_sensor_data);
+
+    publish_rpy_debug_ = this->declare_parameter<bool>("publish_rpy_debug");
+    if (publish_rpy_debug_) {
+        std::string rpy_topic = this->declare_parameter<std::string>(
+            "topics.guidance.dp_rpy", guidance_topic + "_rpy");
+        rpy_debug_pub_ =
+            this->create_publisher<vortex_msgs::msg::ReferenceFilter>(
+                rpy_topic, qos_sensor_data);
+        spdlog::info("RPY debug publisher enabled on topic: {}", rpy_topic);
+    }
 
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
@@ -207,6 +217,10 @@ void ReferenceFilterNode::execute(
                 fill_reference_msg(follower_->pose(), follower_->velocity());
 
             reference_pub_->publish(final_reference_msg);
+            if (rpy_debug_pub_) {
+                rpy_debug_pub_->publish(fill_reference_rpy_msg(
+                    follower_->pose(), follower_->velocity()));
+            }
 
             result->success = true;
             goal_handle->succeed(result);
@@ -217,6 +231,10 @@ void ReferenceFilterNode::execute(
         auto reference_msg =
             fill_reference_msg(follower_->pose(), follower_->velocity());
         reference_pub_->publish(reference_msg);
+        if (rpy_debug_pub_) {
+            rpy_debug_pub_->publish(fill_reference_rpy_msg(
+                follower_->pose(), follower_->velocity()));
+        }
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {

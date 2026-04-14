@@ -1,12 +1,9 @@
 #ifndef PID_CONTROLLER_DP_EULER__PID_CONTROLLER_UTILS_HPP_
 #define PID_CONTROLLER_DP_EULER__PID_CONTROLLER_UTILS_HPP_
 
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <cmath>
 #include <eigen3/Eigen/Geometry>
 #include <pid_controller_dp_euler/typedefs.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
 
 double ssa(double angle);
 

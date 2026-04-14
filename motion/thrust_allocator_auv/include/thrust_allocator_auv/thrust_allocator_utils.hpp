@@ -32,32 +32,6 @@ inline bool is_invalid_matrix(const Eigen::MatrixBase<Derived>& M) {
     return has_nan || has_inf;
 }
 
-inline Eigen::MatrixXd calculate_thrust_configuration_matrix(
-    const Eigen::MatrixXd& thruster_force_direction,
-    const Eigen::MatrixXd& thruster_position,
-    const Eigen::Vector3d& center_of_mass) {
-    // Initialize thrust allocation matrix
-    Eigen::MatrixXd thrust_configuration_matrix = Eigen::MatrixXd::Zero(6, 8);
-
-    // Calculate thrust and moment contributions from each thruster
-    for (int i = 0; i < thruster_position.cols(); i++) {
-        Eigen::Vector3d pos =
-            thruster_position.col(i);  // Thrust vector in body frame
-        Eigen::Vector3d F =
-            thruster_force_direction.col(i);  // Position vector in body frame
-
-        // Calculate position vector relative to the center of mass
-        pos -= center_of_mass;
-
-        // Fill in the thrust allocation matrix
-        thrust_configuration_matrix.block<3, 1>(0, i) = F;
-        thrust_configuration_matrix.block<3, 1>(3, i) = pos.cross(F);
-    }
-
-    thrust_configuration_matrix = thrust_configuration_matrix.array();
-    return thrust_configuration_matrix;
-}
-
 /**
  * @brief Saturates the values of a given Eigen vector between a minimum and
  * maximum value.
@@ -108,35 +82,6 @@ inline Eigen::Vector3d double_array_to_eigen_vector3d(
 
     // Map the vector to Eigen::Vector3d
     return Eigen::Map<const Eigen::Vector3d>(vector.data());
-}
-
-/**
- * @brief Computes the maximum wrench that can be constructed in all DOFs
- *
- * @param &T reference to the thrust configuration matrix
- * @param u_min the minimum allowed value of thrust
- * @param u_max the maximum allowed value of thrust
- * @return The vector containing maximum value of thrust with the given thrust
- * configuration and limits
- */
-inline Eigen::VectorXd compute_max_wrench(const Eigen::MatrixXd& T,
-                                          const Eigen::VectorXd& u_min,
-                                          const Eigen::VectorXd& u_max) {
-    Eigen::VectorXd tau_max(T.rows());
-
-    for (int i = 0; i < T.rows(); i++) {
-        double w = 0.0;
-        for (int j = 0; j < T.cols(); j++) {
-            // For each DOF, greedily pick thruster contribution
-            if (T(i, j) > 0)
-                w += T(i, j) * u_max(j);
-            else
-                w += T(i, j) * u_min(j);
-        }
-        tau_max(i) = w;
-    }
-
-    return tau_max;
 }
 
 /**

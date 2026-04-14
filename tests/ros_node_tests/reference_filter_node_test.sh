@@ -38,7 +38,7 @@ sleep 2
 
 # Check if controller correctly publishes guidance
 echo "Waiting for guidance data..."
-timeout 10s ros2 topic echo /$DRONE_ARG/guidance/dp --once
+timeout 10s ros2 topic echo /$DRONE_ARG/guidance/dp_rpy --once
 echo "Got guidance data"
 
 # Terminate processes

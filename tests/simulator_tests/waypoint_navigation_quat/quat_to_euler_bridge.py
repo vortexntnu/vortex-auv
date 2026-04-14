@@ -26,12 +26,12 @@ class QuatToEulerBridge(Node):
 
         self.pub_ = self.create_publisher(
             ReferenceFilter,
-            '/nautilus/guidance/dp',
+            '/nautilus/guidance/dp_rpy',
             qos_profile,
         )
 
         self.get_logger().info(
-            'Bridge: /nautilus/guidance/dp_quat -> /nautilus/guidance/dp'
+            'Bridge: /nautilus/guidance/dp_quat -> /nautilus/guidance/dp_rpy'
         )
 
     def callback(self, msg: ReferenceFilterQuat):

@@ -33,7 +33,7 @@ def launch_setup(context, *args, **kwargs):
     if rpy_publish:
         extra_params = {
             "publish_rpy_debug": True,
-            "topics.guidance.dp_rpy": "guidance/dp",
+            "topics.guidance.dp_rpy": "guidance/dp_rpy",
             "topics.guidance.dp": "guidance/dp_quat",
         }
 

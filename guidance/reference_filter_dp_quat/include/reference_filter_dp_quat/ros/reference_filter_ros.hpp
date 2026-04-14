@@ -10,6 +10,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/reference_filter_quat_waypoint.hpp>
+#include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
@@ -67,6 +68,11 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     rclcpp::Publisher<vortex_msgs::msg::ReferenceFilterQuat>::SharedPtr
         reference_pub_;
+
+    rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
+        rpy_debug_pub_;
+
+    bool publish_rpy_debug_{false};
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
         reference_sub_;
