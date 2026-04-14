@@ -100,14 +100,14 @@ void ReferenceFilterNode::set_action_server() {
     std::string action_server_name =
         this->get_parameter("action_servers.reference_filter").as_string();
 
-    action_server_ = rclcpp_action::create_server<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>(
-        this, action_server_name,
-        [this](const auto& uuid, auto goal) {
-            return handle_goal(uuid, std::move(goal));
-        },
-        [this](auto goal_handle) { return handle_cancel(goal_handle); },
-        [this](auto goal_handle) { handle_accepted(goal_handle); });
+    action_server_ =
+        rclcpp_action::create_server<vortex_msgs::action::SetWaypoint>(
+            this, action_server_name,
+            [this](const auto& uuid, auto goal) {
+                return handle_goal(uuid, std::move(goal));
+            },
+            [this](auto goal_handle) { return handle_cancel(goal_handle); },
+            [this](auto goal_handle) { handle_accepted(goal_handle); });
 }
 
 void ReferenceFilterNode::set_refererence_filter() {
@@ -128,8 +128,7 @@ void ReferenceFilterNode::set_refererence_filter() {
 
 rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
-    std::shared_ptr<
-        const vortex_msgs::action::ReferenceFilterQuatWaypoint::Goal>
+    std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal>
     /*goal*/) {
     spdlog::info("Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -137,14 +136,15 @@ rclcpp_action::GoalResponse ReferenceFilterNode::handle_goal(
 
 rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>> /*goal_handle*/) {
+        vortex_msgs::action::SetWaypoint>> /*goal_handle*/) {
     spdlog::info("Received request to cancel goal");
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
 void ReferenceFilterNode::handle_accepted(
-    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle) {
+    const std::shared_ptr<
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
+        goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
     preempted_ = true;
     if (execute_thread_.joinable()) {
@@ -157,8 +157,9 @@ void ReferenceFilterNode::handle_accepted(
 }
 
 void ReferenceFilterNode::execute(
-    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint>> goal_handle) {
+    const std::shared_ptr<
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
+        goal_handle) {
     spdlog::info("Executing goal");
 
     double convergence_threshold =
@@ -181,8 +182,7 @@ void ReferenceFilterNode::execute(
 
     follower_->start(pose, twist, wp, convergence_threshold);
 
-    auto result = std::make_shared<
-        vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
+    auto result = std::make_shared<vortex_msgs::action::SetWaypoint::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
@@ -238,8 +238,8 @@ void ReferenceFilterNode::execute(
         loop_rate.sleep();
     }
     if (!rclcpp::ok() && goal_handle->is_active()) {
-        auto result = std::make_shared<
-            vortex_msgs::action::ReferenceFilterQuatWaypoint::Result>();
+        auto result =
+            std::make_shared<vortex_msgs::action::SetWaypoint::Result>();
         result->success = false;
 
         try {
