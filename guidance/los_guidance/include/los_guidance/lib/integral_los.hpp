@@ -22,7 +22,7 @@ struct IntegralLosParams {
     double proportional_gain_v{};
     double integral_gain_h{};
     double integral_gain_v{};
-    double time_step{};  // in milliseconds
+    double time_step{};
 };
 
 /**

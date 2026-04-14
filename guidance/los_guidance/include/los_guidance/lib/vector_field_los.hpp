@@ -22,7 +22,7 @@ struct VectorFieldLosParams {
     double max_approach_angle_v{};
     double proportional_gain_h{};
     double proportional_gain_v{};
-    double time_step{};  // in milliseconds
+    double time_step{};
 };
 
 /**

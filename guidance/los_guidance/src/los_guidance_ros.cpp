@@ -29,8 +29,8 @@ namespace vortex::guidance::los {
 LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
     : Node("los_guidance_node", options) {
     double time_step_s = this->declare_parameter<double>("time_step");
-    time_step_ = std::chrono::milliseconds(static_cast<int>(
-        time_step_s * 1000));  // Convert seconds to milliseconds
+    time_step_ =
+        std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
 
     const std::string yaml_path =
         this->declare_parameter<std::string>("los_config_file");
