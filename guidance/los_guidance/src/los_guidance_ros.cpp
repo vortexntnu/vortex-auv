@@ -2,6 +2,7 @@
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/node/node.h>
+#include <geometry_msgs/msg/detail/point_stamped__struct.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
@@ -106,7 +107,7 @@ void LosGuidanceNode::set_action_server() {
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ =
-        rclcpp_action::create_server<vortex_msgs::action::LOSGuidance>(
+        rclcpp_action::create_server<vortex_msgs::action::SetWaypoint>(
             this, action_server_name,
             std::bind(&LosGuidanceNode::handle_goal, this,
                       std::placeholders::_1, std::placeholders::_2),
@@ -258,7 +259,7 @@ void LosGuidanceNode::odom_msg_callback(
 
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
+    std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal> goal) {
     types::Inputs inputs_copy;
 
     {
@@ -290,7 +291,7 @@ rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
 
 rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
         goal_handle) {
     spdlog::info("Received request to cancel goal");
     (void)goal_handle;
@@ -299,7 +300,7 @@ rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
 
 void LosGuidanceNode::handle_accepted(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
         goal_handle) {
     std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
@@ -352,9 +353,9 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
 
 bool LosGuidanceNode::is_goal_feasible(
     const types::Inputs& inputs,
-    std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
+    std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal> goal) {
     const auto& current_position = inputs.current_position;
-    const auto& goal_point = goal->goal.point;
+    const auto& goal_point = goal->waypoint.pose.position;
 
     const double dx = goal_point.x - current_position.x;
     const double dy = goal_point.y - current_position.y;
@@ -422,7 +423,7 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
 
 void LosGuidanceNode::execute(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
         goal_handle) {
     {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -432,10 +433,10 @@ void LosGuidanceNode::execute(
 
     spdlog::info("Executing goal");
 
-    const geometry_msgs::msg::PointStamped los_waypoint =
-        goal_handle->get_goal()->goal;
+    const geometry_msgs::msg::Point los_waypoint =
+        goal_handle->get_goal()->waypoint.pose.position;
 
-    const auto new_wp = types::Point::point_from_ros(los_waypoint.point);
+    const auto new_wp = types::Point::point_from_ros(los_waypoint);
 
     {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -452,7 +453,7 @@ void LosGuidanceNode::execute(
 
     adaptive_los_->reset();
 
-    auto result = std::make_shared<vortex_msgs::action::LOSGuidance::Result>();
+    auto result = std::make_shared<vortex_msgs::action::SetWaypoint::Result>();
     nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
     time_since_nearest_goal_ = 0.0;
 
