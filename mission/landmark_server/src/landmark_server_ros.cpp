@@ -9,7 +9,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_transforms.hpp>
-#include <vortex_msgs/action/detail/set_waypoint__struct.hpp>
 
 const auto start_msg = R"(
 ██       █████  ███    ██ ██████  ███    ███  █████  ██████  ██   ██     ███████ ███████ ██████  ██    ██ ███████ ██████
