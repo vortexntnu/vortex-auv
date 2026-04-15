@@ -31,7 +31,8 @@ fi
 
 # Send action goal
 echo "Sending goal..."
-ros2 action send_goal /$DRONE_ARG/los_guidance vortex_msgs/action/LOSGuidance "{goal: {point: {x: 20.0, y: 20.0, z: 5.0}}}" &
+ros2 action send_goal /$DRONE_ARG/los_guidance vortex_msgs/action/SetWaypoint "{waypoint: {pose: {position: {x: 20.0, y: 20.0, z: 5.0}}}, convergence_threshold: 0.5}" &
+
 # Check if node correctly publishes guidance
 echo "Waiting for guidance data..."
 timeout 10s ros2 topic echo /$DRONE_ARG/guidance/los --once
