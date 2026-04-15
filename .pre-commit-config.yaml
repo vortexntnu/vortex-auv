@@ -88,7 +88,7 @@ repos:
       - id: ament_cpplint
         name: ament_cpplint
         description: Static code analysis of C/C++ files.
-        entry: ament_cpplint
+        entry: bash -c 'out=$(ament_cpplint "$@" 2>&1); rc=$?; printf "%s\n" "$out" | grep -Ev "^Using|Done processing|No problems found"; exit $rc' --
         language: system
         files: \.(h\+\+|h|hh|hxx|hpp|cuh|c|cc|cpp|cu|c\+\+|cxx|tpp|txx)$
         args: [
