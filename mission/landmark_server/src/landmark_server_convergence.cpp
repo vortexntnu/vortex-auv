@@ -287,10 +287,10 @@ void LandmarkServerNode::convergence_try_dead_reckoning_handoff() {
     }
 }
 
-vortex_msgs::action::SetWaypoint::Goal LandmarkServerNode::make_rf_goal(
+vortex_msgs::action::GuidanceWaypoint::Goal LandmarkServerNode::make_rf_goal(
     const geometry_msgs::msg::Pose& target,
     double convergence_threshold) const {
-    vortex_msgs::action::SetWaypoint::Goal rf_goal;
+    vortex_msgs::action::GuidanceWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
     wp.waypoint_mode = convergence_mode_;
@@ -300,7 +300,7 @@ vortex_msgs::action::SetWaypoint::Goal LandmarkServerNode::make_rf_goal(
 }
 
 void LandmarkServerNode::send_reference_filter_goal(
-    const vortex_msgs::action::SetWaypoint::Goal& goal_msg,
+    const vortex_msgs::action::GuidanceWaypoint::Goal& goal_msg,
     uint64_t session_id) {
     cancel_reference_filter_goal();
 

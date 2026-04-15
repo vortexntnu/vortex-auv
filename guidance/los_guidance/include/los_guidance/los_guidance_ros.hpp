@@ -8,7 +8,7 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <vortex_msgs/action/set_waypoint.hpp>
+#include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/waypoints.hpp>
 #include "los_guidance.hpp"
@@ -44,25 +44,26 @@ class LOSGuidanceNode : public rclcpp::Node {
     // @return The goal response
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
-        std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal> goal);
+        std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
+            goal);
 
     // @brief Handle the cancel request
     // @param goal_handle The goal handle
     // @return The cancel response
     rclcpp_action::CancelResponse handle_cancel(
-        const std::shared_ptr<
-            rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
-            goal_handle);
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+            vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
     // @brief Handle the accepted request
     // @param goal_handle The goal handle
-    void handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                             vortex_msgs::action::SetWaypoint>> goal_handle);
+    void handle_accepted(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+            vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
     // @brief Execute the goal
     // @param goal_handle The goal handle
     void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                     vortex_msgs::action::SetWaypoint>> goal_handle);
+                     vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
     // @brief Fill the lost waypoints
     // @param goal The goal message
@@ -70,7 +71,7 @@ class LOSGuidanceNode : public rclcpp::Node {
 
     vortex_msgs::msg::LOSGuidance fill_los_reference();
 
-    rclcpp_action::Server<vortex_msgs::action::SetWaypoint>::SharedPtr
+    rclcpp_action::Server<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
         action_server_;
 
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
@@ -89,7 +90,7 @@ class LOSGuidanceNode : public rclcpp::Node {
     rclcpp_action::GoalUUID preempted_goal_id_;
 
     std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle_;
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;

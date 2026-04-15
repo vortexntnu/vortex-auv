@@ -6,7 +6,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include <vector>
-#include <vortex_msgs/action/set_waypoint.hpp>
+#include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include <vortex_msgs/srv/send_waypoints.hpp>
@@ -17,7 +17,7 @@ using WaypointManager = vortex_msgs::action::WaypointManager;
 using WaypointManagerGoalHandle =
     rclcpp_action::ServerGoalHandle<WaypointManager>;
 
-using ReferenceFilterAction = vortex_msgs::action::SetWaypoint;
+using ReferenceFilterAction = vortex_msgs::action::GuidanceWaypoint;
 using ReferenceFilterGoalHandle =
     rclcpp_action::ClientGoalHandle<ReferenceFilterAction>;
 
@@ -88,9 +88,9 @@ class WaypointManagerNode : public rclcpp::Node {
     // @brief Send a goal to the reference filter
     // @param goal_msg The action goal
     void send_reference_filter_goal(
-        const vortex_msgs::action::SetWaypoint::Goal& goal_msg);
+        const vortex_msgs::action::GuidanceWaypoint::Goal& goal_msg);
 
-    rclcpp_action::Client<vortex_msgs::action::SetWaypoint>::SharedPtr
+    rclcpp_action::Client<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
         reference_filter_client_;
     rclcpp_action::Server<vortex_msgs::action::WaypointManager>::SharedPtr
         waypoint_action_server_;

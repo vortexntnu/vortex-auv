@@ -4,7 +4,7 @@ import rclpy
 import yaml
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from vortex_msgs.action import SetWaypoint
+from vortex_msgs.action import GuidanceWaypoint
 from vortex_utils.python_utils import PoseData, euler_to_quat
 
 
@@ -25,13 +25,13 @@ class ReferenceFilterWaypointClient(Node):
         super().__init__('reference_filter_waypoint_client')
 
         self._action_client = ActionClient(
-            self, SetWaypoint, '/nautilus/reference_filter'
+            self, GuidanceWaypoint, '/nautilus/reference_filter'
         )
         self.send_goal()
 
     def send_goal(self):
         goal_pose = randomize_pose()
-        goal_msg = SetWaypoint.Goal()
+        goal_msg = GuidanceWaypoint.Goal()
         goal_msg.waypoint.pose.position.x = goal_pose.x
         goal_msg.waypoint.pose.position.y = goal_pose.y
         goal_msg.waypoint.pose.position.z = goal_pose.z
