@@ -1,23 +1,23 @@
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from vortex_msgs.action import LOSGuidance
+from vortex_msgs.action import SetWaypoint
 
 
 class LOSGuidanceClient(Node):
     def __init__(self):
         super().__init__('los_guidance_client')
         # Create the action client
-        self._action_client = ActionClient(self, LOSGuidance, '/nautilus/los_guidance')
+        self._action_client = ActionClient(self, SetWaypoint, '/nautilus/los_guidance')
         self.send_goal()
 
     def send_goal(self):
-        goal_msg = LOSGuidance.Goal()
+        goal_msg = SetWaypoint.Goal()
 
         # Create a message with the goal
-        goal_msg.goal.point.x = 20.0
-        goal_msg.goal.point.y = 20.0
-        goal_msg.goal.point.z = 5.0
+        goal_msg.waypoint.pose.position.x = 20.0
+        goal_msg.waypoint.pose.position.y = 20.0
+        goal_msg.waypoint.pose.position.z = 5.0
 
         # Send the goal asynchronously
         self._action_client.wait_for_server(timeout_sec=10.0)
