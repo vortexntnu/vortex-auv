@@ -9,6 +9,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 #include <vortex/utils/ros/ros_transforms.hpp>
+#include <vortex_msgs/action/detail/set_waypoint__struct.hpp>
 
 const auto start_msg = R"(
 ██       █████  ███    ██ ██████  ███    ███  █████  ██████  ██   ██     ███████ ███████ ██████  ██    ██ ███████ ██████
@@ -163,9 +164,9 @@ void LandmarkServerNode::create_convergence_action_server() {
 void LandmarkServerNode::create_reference_action_client() {
     std::string reference_action_name =
         this->declare_parameter<std::string>("action_servers.reference_filter");
-    reference_filter_client_ = rclcpp_action::create_client<
-        vortex_msgs::action::ReferenceFilterWaypoint>(this,
-                                                      reference_action_name);
+    reference_filter_client_ =
+        rclcpp_action::create_client<vortex_msgs::action::GuidanceWaypoint>(
+            this, reference_action_name);
     if (!reference_filter_client_->wait_for_action_server(
             std::chrono::seconds(3))) {
         spdlog::warn("ReferenceFilter server not ready");
