@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>LOS Guidance module for guidance of AUV</description>
   <maintainer email="talhanc@stud.ntnu.no">talhanc</maintainer>
-  <maintainer email="anbita@stud.ntnu.no">anbita</maintainer>
+  <maintainer email="anbita@stud.ntnu.no">anbit</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
