@@ -238,7 +238,8 @@ class LosGuidanceNode : public rclcpp::Node {
     rclcpp_action::GoalUUID preempted_goal_id_;
     std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle_;
+            rclcpp_action::ServerGoalHandle <
+        vortex_msgs::action::GuidanceWaypoint >> goal_handle_;
 
     types::Inputs path_inputs_{};
     double u_desired_{};

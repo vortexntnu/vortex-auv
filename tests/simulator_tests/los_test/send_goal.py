@@ -1,62 +1,30 @@
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from std_msgs.msg import Header
-from vortex_msgs.action import LOSGuidance
+from vortex_msgs.action import GuidanceWaypoint
 
 
 class LOSGuidanceClient(Node):
     def __init__(self):
         super().__init__('los_guidance_client')
         # Create the action client
-        self._action_client = ActionClient(self, LOSGuidance, '/nautilus/los_guidance')
-        super().__init__("los_guidance_client")
-
-        self.declare_parameter("drone", "orca")
-        self.declare_parameter("x", 20.0)
-        self.declare_parameter("y", 20.0)
-        self.declare_parameter("z", 2.5)
-
-        self.drone = self.get_parameter("drone").value
-        self.goal_x = float(self.get_parameter("x").value)
-        self.goal_y = float(self.get_parameter("y").value)
-        self.goal_z = float(self.get_parameter("z").value)
-
         self._action_client = ActionClient(
-            self,
-            LOSGuidance,
-            f"/{self.drone}/los_guidance",
+            self, GuidanceWaypoint, '/nautilus/los_guidance'
         )
-
-        self.get_logger().info(f"Using drone namespace: {self.drone}")
         self.send_goal()
 
     def send_goal(self):
-        self.get_logger().info("Waiting for action server...")
-        if not self._action_client.wait_for_server(timeout_sec=10.0):
-            self.get_logger().error("Action server not available")
-            self.shutdown_with_code(1)
-            return
+        goal_msg = GuidanceWaypoint.Goal()
 
-        goal_msg = LOSGuidance.Goal()
+        # Create a message with the goal
+        goal_msg.waypoint.pose.position.x = 20.0
+        goal_msg.waypoint.pose.position.y = 20.0
+        goal_msg.waypoint.pose.position.z = 5.0
 
-        header = Header()
-        header.frame_id = "world_ned"
-        header.stamp = self.get_clock().now().to_msg()
-        goal_msg.goal.header = header
-
-        goal_msg.goal.point.x = self.goal_x
-        goal_msg.goal.point.y = self.goal_y
-        goal_msg.goal.point.z = self.goal_z
-
-        self.get_logger().info(
-            f"Sending goal: x={self.goal_x:.2f}, y={self.goal_y:.2f}, z={self.goal_z:.2f}"
-        )
-
-        self._send_goal_future = self._action_client.send_goal_async(
-            goal_msg,
-            feedback_callback=self.feedback_callback,
-        )
+        # Send the goal asynchronously
+        self._action_client.wait_for_server(timeout_sec=10.0)
+        self.get_logger().info('Sending goal...')
+        self._send_goal_future = self._action_client.send_goal_async(goal_msg)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):

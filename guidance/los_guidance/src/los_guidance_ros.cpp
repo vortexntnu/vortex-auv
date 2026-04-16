@@ -292,7 +292,8 @@ rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
 rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
+        rclcpp_action::ServerGoalHandle <
+    vortex_msgs::action::GuidanceWaypoint >> goal_handle) {
     spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
@@ -301,7 +302,8 @@ rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
 void LosGuidanceNode::handle_accepted(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
+        rclcpp_action::ServerGoalHandle <
+    vortex_msgs::action::GuidanceWaypoint >> goal_handle) {
     std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
 
@@ -424,7 +426,8 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
 void LosGuidanceNode::execute(
     const std::shared_ptr<
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
+        rclcpp_action::ServerGoalHandle <
+    vortex_msgs::action::GuidanceWaypoint >> goal_handle) {
     {
         std::unique_lock<std::mutex> lock(mutex_);
         this->goal_handle_ = goal_handle;
