@@ -107,7 +107,7 @@ void LosGuidanceNode::set_action_server() {
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ =
-        rclcpp_action::create_server<vortex_msgs::action::SetWaypoint>(
+        rclcpp_action::create_server<vortex_msgs::action::GuidanceWaypoint>(
             this, action_server_name,
             std::bind(&LosGuidanceNode::handle_goal, this,
                       std::placeholders::_1, std::placeholders::_2),
@@ -259,7 +259,7 @@ void LosGuidanceNode::odom_msg_callback(
 
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal> goal) {
+    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
     types::Inputs inputs_copy;
 
     {
@@ -291,7 +291,7 @@ rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
 
 rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     spdlog::info("Received request to cancel goal");
     (void)goal_handle;
@@ -300,7 +300,7 @@ rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
 
 void LosGuidanceNode::handle_accepted(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
@@ -353,7 +353,7 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
 
 bool LosGuidanceNode::is_goal_feasible(
     const types::Inputs& inputs,
-    std::shared_ptr<const vortex_msgs::action::SetWaypoint::Goal> goal) {
+    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
     const auto& current_position = inputs.current_position;
     const auto& goal_point = goal->waypoint.pose.position;
 
@@ -423,7 +423,7 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
 
 void LosGuidanceNode::execute(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::SetWaypoint>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     {
         std::unique_lock<std::mutex> lock(mutex_);
@@ -453,7 +453,8 @@ void LosGuidanceNode::execute(
 
     adaptive_los_->reset();
 
-    auto result = std::make_shared<vortex_msgs::action::SetWaypoint::Result>();
+    auto result =
+        std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
     nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
     time_since_nearest_goal_ = 0.0;
 
@@ -487,7 +488,8 @@ void LosGuidanceNode::execute(
             inputs_copy = path_inputs_;
             method_copy = method_;
             odom_copy = debug_current_odom_;
-            goal_reached_tol_copy = goal_reached_tol_;
+            goal_reached_tol_copy =
+                goal_handle->get_goal()->convergence_threshold;
             lock.unlock();
         }
 
