@@ -15,32 +15,32 @@ def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
     los_config = os.path.join(
-        get_package_share_directory("los_guidance"),
-        "config",
-        "guidance_params.yaml",
+        get_package_share_directory('los_guidance'),
+        'config',
+        'guidance_params.yaml',
     )
 
     drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
+        get_package_share_directory('auv_setup'),
+        'config',
+        'robots',
+        f'{drone}.yaml',
     )
 
     return [
         Node(
-            package="los_guidance",
-            executable="los_guidance_node",
-            name="los_guidance_node",
+            package='los_guidance',
+            executable='los_guidance_node',
+            name='los_guidance_node',
             namespace=namespace,
             parameters=[
                 drone_params,
                 {
-                    "los_config_file": los_config,
-                    "time_step": 0.1,
+                    'los_config_file': los_config,
+                    'time_step': 0.1,
                 },
             ],
-            output="screen",
+            output='screen',
         )
     ]
 

@@ -21,39 +21,39 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-    test_scenario = LaunchConfiguration("test_scenario").perform(context)
-    use_keyboard_joy = LaunchConfiguration("use_keyboard_joy")
+    test_scenario = LaunchConfiguration('test_scenario').perform(context)
+    use_keyboard_joy = LaunchConfiguration('use_keyboard_joy')
 
-    stonefish_dir = get_package_share_directory("stonefish_sim")
-    los_guidance_dir = get_package_share_directory("los_guidance")
-    keyboard_joy_dir = get_package_share_directory("keyboard_joy")
-    velocity_controller_dir = get_package_share_directory("velocity_controller_lqr")
-    utility_dir = get_package_share_directory("vortex_utility_nodes")
+    stonefish_dir = get_package_share_directory('stonefish_sim')
+    los_guidance_dir = get_package_share_directory('los_guidance')
+    keyboard_joy_dir = get_package_share_directory('keyboard_joy')
+    velocity_controller_dir = get_package_share_directory('velocity_controller_lqr')
+    utility_dir = get_package_share_directory('vortex_utility_nodes')
 
     stonefish_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(stonefish_dir, "launch", "simulation.launch.py")
+            os.path.join(stonefish_dir, 'launch', 'simulation.launch.py')
         ),
         launch_arguments={
-            "drone": drone,
-            "scenario": "nautilus_no_gpu",
-            "rendering": "true",
+            'drone': drone,
+            'scenario': 'nautilus_no_gpu',
+            'rendering': 'true',
         }.items(),
     )
 
     los_guidance_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(los_guidance_dir, "launch", "los_guidance.launch.py")
+            os.path.join(los_guidance_dir, 'launch', 'los_guidance.launch.py')
         ),
         launch_arguments={
-            "drone": drone,
-            "namespace": namespace,
+            'drone': drone,
+            'namespace': namespace,
         }.items(),
     )
 
     keyboard_joy = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(keyboard_joy_dir, "launch", "keyboard_joy_node.launch.py")
+            os.path.join(keyboard_joy_dir, 'launch', 'keyboard_joy_node.launch.py')
         ),
         condition=IfCondition(use_keyboard_joy),
     )
@@ -61,27 +61,27 @@ def launch_setup(context, *args, **kwargs):
     velocity_controller_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                velocity_controller_dir, "launch", "velocity_controller_lqr.launch.py"
+                velocity_controller_dir, 'launch', 'velocity_controller_lqr.launch.py'
             )
         ),
         launch_arguments={
-            "drone": drone,
-            "namespace": namespace,
+            'drone': drone,
+            'namespace': namespace,
         }.items(),
     )
 
     drone_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(stonefish_dir, "launch", "drone_sim.launch.py")
+            os.path.join(stonefish_dir, 'launch', 'drone_sim.launch.py')
         ),
         launch_arguments={
-            "drone": drone,
+            'drone': drone,
         }.items(),
     )
 
     utility_node = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(utility_dir, "launch", "message_publisher.launch.py")
+            os.path.join(utility_dir, 'launch', 'message_publisher.launch.py')
         )
     )
 
@@ -90,15 +90,15 @@ def launch_setup(context, *args, **kwargs):
         actions=[
             ExecuteProcess(
                 cmd=[
-                    "python3",
-                    os.path.join(los_guidance_dir, "scripts", "test_scenarios.py"),
-                    "--ros-args",
-                    "-p",
-                    f"drone:={drone}",
-                    "-p",
-                    f"test_scenario:={test_scenario}",
+                    'python3',
+                    os.path.join(los_guidance_dir, 'scripts', 'test_scenarios.py'),
+                    '--ros-args',
+                    '-p',
+                    f'drone:={drone}',
+                    '-p',
+                    f'test_scenario:={test_scenario}',
                 ],
-                output="screen",
+                output='screen',
             )
         ],
     )
@@ -116,17 +116,17 @@ def launch_setup(context, *args, **kwargs):
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args(default_drone="nautilus")
+        declare_drone_and_namespace_args(default_drone='nautilus')
         + [
             DeclareLaunchArgument(
-                "test_scenario",
-                default_value="4_corner",
-                description="Scenario to run: 4_corner, circle, test_pitch, opposite_point",
+                'test_scenario',
+                default_value='4_corner',
+                description='Scenario to run: 4_corner, circle, test_pitch, opposite_point',
             ),
             DeclareLaunchArgument(
-                "use_keyboard_joy",
-                default_value="true",
-                description="Launch keyboard joy node",
+                'use_keyboard_joy',
+                default_value='true',
+                description='Launch keyboard joy node',
             ),
             OpaqueFunction(function=launch_setup),
         ]
