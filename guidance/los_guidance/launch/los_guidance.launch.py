@@ -37,7 +37,6 @@ def launch_setup(context, *args, **kwargs):
                 drone_params,
                 {
                     'los_config_file': los_config,
-                    'time_step': 0.1,
                 },
             ],
             output='screen',

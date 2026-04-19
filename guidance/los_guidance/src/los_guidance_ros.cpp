@@ -29,7 +29,7 @@ namespace vortex::guidance::los {
 // Constructor
 LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
     : Node("los_guidance_node", options) {
-    double time_step_s = this->declare_parameter<double>("time_step");
+    double time_step_s = 0.1;
     time_step_ =
         std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
 

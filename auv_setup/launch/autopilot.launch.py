@@ -40,7 +40,12 @@ def launch_setup(context, *args, **kwargs):
         executable="los_guidance_node",
         name="los_guidance_node",
         namespace=namespace,
-        parameters=[drone_params, los_config],
+        parameters=[
+            drone_params,
+            {
+                "los_config_file": los_config,
+            },
+        ],
         output="screen",
     )
 
