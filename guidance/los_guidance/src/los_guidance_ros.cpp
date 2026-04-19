@@ -50,6 +50,7 @@ LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
     spdlog::info(start_message);
 }
 
+// Subscribers + publishers
 void LosGuidanceNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.guidance.los");
@@ -98,6 +99,7 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
                       std::placeholders::_1));
 }
 
+// Action server setup
 void LosGuidanceNode::set_action_server() {
     this->declare_parameter<std::string>("action_servers.los");
     std::string action_server_name =
@@ -118,6 +120,7 @@ void LosGuidanceNode::set_action_server() {
             rcl_action_server_get_default_options(), cb_group_);
 }
 
+// Service server setup
 void LosGuidanceNode::set_service_server() {
     this->declare_parameter<std::string>("services.los_mode", "set_los_mode");
     std::string service_name =
@@ -128,6 +131,7 @@ void LosGuidanceNode::set_service_server() {
                                 std::placeholders::_1, std::placeholders::_2));
 }
 
+// Adaptive LOS setup
 void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
     auto adaptive_los_config = config["adaptive_los"];
     auto params = AdaptiveLosParams{};
@@ -150,6 +154,7 @@ void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
     }
 }
 
+// Proportional LOS setup
 void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
     auto proportional_los_config = config["prop_los"];
     auto params = ProportionalLosParams{};
@@ -168,6 +173,7 @@ void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
     }
 }
 
+// Integral LOS setup
 void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     auto integral_los_config = config["integer_los"];
     auto params = IntegralLosParams{};
@@ -190,6 +196,7 @@ void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
     }
 }
 
+// Vector field LOS setup
 void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
     auto vector_field_config = config["vector_field_los"];
     auto params = VectorFieldLosParams{};
@@ -213,6 +220,7 @@ void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
     }
 }
 
+// Waypoint callback
 void LosGuidanceNode::waypoint_callback(
     const geometry_msgs::msg::PointStamped::SharedPtr wp_msg) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -234,6 +242,7 @@ void LosGuidanceNode::waypoint_callback(
                  new_wp.z);
 }
 
+// Pose callback
 void LosGuidanceNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
         current_pose) {
@@ -243,6 +252,7 @@ void LosGuidanceNode::pose_callback(
     lock.unlock();
 }
 
+// Odometry callback
 void LosGuidanceNode::odom_callback(
     const nav_msgs::msg::Odometry::SharedPtr msg) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -250,6 +260,7 @@ void LosGuidanceNode::odom_callback(
     lock.unlock();
 }
 
+// Euler (yaw) callback
 void LosGuidanceNode::odom_msg_callback(
     const vortex_msgs::msg::PoseEulerStamped::SharedPtr msg) {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -257,6 +268,7 @@ void LosGuidanceNode::odom_msg_callback(
     lock.unlock();
 }
 
+// Goal handler
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
@@ -281,32 +293,29 @@ rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
             RCLCPP_INFO(this->get_logger(),
                         "Aborting current goal and accepting new goal");
             preempted_goal_id_ = goal_handle_->get_goal_id();
+            lock.unlock();
         }
-        lock.unlock();
     }
 
     RCLCPP_INFO(this->get_logger(), "Accepted goal request");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
+// Cancel handler
 rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        rclcpp_action::ServerGoalHandle <
-    vortex_msgs::action::GuidanceWaypoint >> goal_handle) {
+    const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle) {
     spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
+// Accepted handler
 void LosGuidanceNode::handle_accepted(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        rclcpp_action::ServerGoalHandle <
-    vortex_msgs::action::GuidanceWaypoint >> goal_handle) {
+    const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle) {
     std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
 
+// Service callback
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
@@ -320,6 +329,7 @@ void LosGuidanceNode::set_los_mode(
     response->success = true;
 }
 
+// Fill LOS reference message
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
@@ -346,13 +356,14 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     double abs_err = std::abs(yaw_error);
 
     double u_cmd = u_desired_copy / (1.0 + 0.5 * abs_err);
-    u_cmd = std::clamp(u_cmd, 0.12, u_desired_copy);
+    u_cmd = std::clamp(u_cmd, 0.15, u_desired_copy);
 
     reference_msg.surge = u_cmd;
 
     return reference_msg;
 }
 
+// Check if goal is feasible
 bool LosGuidanceNode::is_goal_feasible(
     const types::Inputs& inputs,
     std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
@@ -369,6 +380,7 @@ bool LosGuidanceNode::is_goal_feasible(
     return std::abs(required_pitch) <= max_pitch_angle_;
 }
 
+// Check if goal is missed
 bool LosGuidanceNode::is_goal_missed(const types::Inputs& inputs) {
     const double distance_to_goal =
         (inputs.current_position - inputs.next_point).as_vector().norm();
@@ -391,6 +403,7 @@ bool LosGuidanceNode::is_goal_missed(const types::Inputs& inputs) {
     return time_since_nearest_goal_ >= missed_goal_timeout_;
 }
 
+// Load LOS config
 YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
     try {
         YAML::Node config = YAML::LoadFile(yaml_file_path);
@@ -402,9 +415,11 @@ YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
     }
 }
 
+// Parse common config
 void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     try {
         std::unique_lock<std::mutex> lock(mutex_);
+
         u_desired_ = common_config["u_desired"].as<double>();
         max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
         goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
@@ -423,11 +438,9 @@ void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
     }
 }
 
+// Execute action
 void LosGuidanceNode::execute(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        rclcpp_action::ServerGoalHandle <
-    vortex_msgs::action::GuidanceWaypoint >> goal_handle) {
+    const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle) {
     {
         std::unique_lock<std::mutex> lock(mutex_);
         this->goal_handle_ = goal_handle;
@@ -458,6 +471,7 @@ void LosGuidanceNode::execute(
 
     auto result =
         std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+
     nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
     time_since_nearest_goal_ = 0.0;
 

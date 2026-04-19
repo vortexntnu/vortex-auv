@@ -46,6 +46,13 @@ class LosGuidanceNode : public rclcpp::Node {
 
    private:
     /**
+     * @brief Type alias for the goal handle used by the LOS guidance action
+     * server.
+     */
+    using GoalHandleGuidanceWaypoint =
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>;
+
+    /**
      * @brief Sets up the ROS subscribers and publishers used by the node.
      */
     void set_subscribers_and_publisher();
@@ -148,23 +155,20 @@ class LosGuidanceNode : public rclcpp::Node {
      * cancellation is accepted.
      */
     rclcpp_action::CancelResponse handle_cancel(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::GuidanceWaypoint>> goal_handle);
+        const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle);
 
     /**
      * @brief Handles an accepted LOS guidance goal.
      * @param goal_handle Handle to the accepted goal.
      */
     void handle_accepted(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::GuidanceWaypoint>> goal_handle);
+        const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle);
 
     /**
      * @brief Executes the LOS guidance action.
      * @param goal_handle Handle to the active LOS guidance goal.
      */
-    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                     vortex_msgs::action::GuidanceWaypoint>> goal_handle);
+    void execute(const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle);
 
     /**
      * @brief Service callback for changing the active LOS guidance method.
@@ -236,10 +240,8 @@ class LosGuidanceNode : public rclcpp::Node {
     std::mutex mutex_;
 
     rclcpp_action::GoalUUID preempted_goal_id_;
-    std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-            rclcpp_action::ServerGoalHandle <
-        vortex_msgs::action::GuidanceWaypoint >> goal_handle_;
+
+    std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle_;
 
     types::Inputs path_inputs_{};
     double u_desired_{};

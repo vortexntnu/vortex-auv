@@ -1,10 +1,11 @@
 import math
 
 import rclpy
+from geometry_msgs.msg import Pose
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from std_msgs.msg import Header
-from vortex_msgs.action import LOSGuidance
+from vortex_msgs.action import GuidanceWaypoint
+from vortex_msgs.msg import Waypoint, WaypointMode
 
 
 class WaypointTest(Node):
@@ -19,7 +20,7 @@ class WaypointTest(Node):
 
         self._action_client = ActionClient(
             self,
-            LOSGuidance,
+            GuidanceWaypoint,
             f"/{self.drone}/los_guidance",
         )
 
@@ -65,18 +66,14 @@ class WaypointTest(Node):
             return waypoints
 
         elif test_scenario == "test_pitch":
-            # 0 = water surface, do not go above
-            # this test scenario has no seabed, so z can be however we need.
-            # Keep all depths safely between these
             return [
-                (3.0, 0.0, 1.0),  # slight up
-                (6.0, 0.0, 2.0),  # slight down
-                (9.0, 0.0, 1.0),  # up again
-                (12.0, 0.0, 2.0),  # down again
+                (3.0, 0.0, 1.0),
+                (6.0, 0.0, 2.0),
+                (9.0, 0.0, 1.0),
+                (12.0, 0.0, 2.0),
             ]
 
         elif test_scenario == "opposite_point":
-            # Go to one point, then the exact opposite point
             return [
                 (6.0, 4.0, self.depth),
                 (-6.0, -4.0, self.depth),
@@ -96,16 +93,29 @@ class WaypointTest(Node):
 
         self._action_client.wait_for_server()
 
-        goal_msg = LOSGuidance.Goal()
-
-        header = Header()
-        header.frame_id = "world_ned"
-        goal_msg.goal.header = header
+        goal_msg = GuidanceWaypoint.Goal()
 
         x, y, z = self.waypoints[self.current_index]
-        goal_msg.goal.point.x = float(x)
-        goal_msg.goal.point.y = float(y)
-        goal_msg.goal.point.z = float(z)
+
+        pose = Pose()
+        pose.position.x = float(x)
+        pose.position.y = float(y)
+        pose.position.z = float(z)
+
+        pose.orientation.x = 0.0
+        pose.orientation.y = 0.0
+        pose.orientation.z = 0.0
+        pose.orientation.w = 1.0
+
+        waypoint = Waypoint()
+        waypoint.pose = pose
+
+        waypoint_mode = WaypointMode()
+        waypoint_mode.mode = WaypointMode.ONLY_POSITION
+        waypoint.waypoint_mode = waypoint_mode
+
+        goal_msg.waypoint = waypoint
+        goal_msg.convergence_threshold = 0.3
 
         self.get_logger().info(
             f"Sending waypoint {self.current_index + 1}/{len(self.waypoints)}: "

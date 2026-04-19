@@ -1,13 +1,15 @@
 import rclpy
+from geometry_msgs.msg import Pose
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from vortex_msgs.action import GuidanceWaypoint
+from vortex_msgs.msg import Waypoint, WaypointMode
 
 
 class LOSGuidanceClient(Node):
     def __init__(self):
         super().__init__('los_guidance_client')
-        # Create the action client
+
         self._action_client = ActionClient(
             self, GuidanceWaypoint, '/nautilus/los_guidance'
         )
@@ -16,13 +18,27 @@ class LOSGuidanceClient(Node):
     def send_goal(self):
         goal_msg = GuidanceWaypoint.Goal()
 
-        # Create a message with the goal
-        goal_msg.waypoint.pose.position.x = 20.0
-        goal_msg.waypoint.pose.position.y = 20.0
-        goal_msg.waypoint.pose.position.z = 5.0
+        pose = Pose()
+        pose.position.x = 20.0
+        pose.position.y = 20.0
+        pose.position.z = 5.0
+        pose.orientation.x = 0.0
+        pose.orientation.y = 0.0
+        pose.orientation.z = 0.0
+        pose.orientation.w = 1.0
 
-        # Send the goal asynchronously
+        waypoint = Waypoint()
+        waypoint.pose = pose
+
+        waypoint_mode = WaypointMode()
+        waypoint_mode.mode = WaypointMode.ONLY_POSITION
+        waypoint.waypoint_mode = waypoint_mode
+
+        goal_msg.waypoint = waypoint
+        goal_msg.convergence_threshold = 0.5
+
         self._action_client.wait_for_server(timeout_sec=10.0)
+
         self.get_logger().info('Sending goal...')
         self._send_goal_future = self._action_client.send_goal_async(goal_msg)
         self._send_goal_future.add_done_callback(self.goal_response_callback)

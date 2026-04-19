@@ -41,8 +41,8 @@ A waypoint can be sent to the guidance node using the action interface:
 
 ```
 ros2 action send_goal /drone_name/los_guidance \
-vortex_msgs/action/LOSGuidance \
-"{goal: {header: {frame_id: world_ned}, point: {x: 0.0, y: 0.0, z: 0.0}}}"
+vortex_msgs/action/GuidanceWaypoint \
+"{waypoint: {pose: {position: {x: 1.0, y: 2.0, z: 3.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}, waypoint_mode: {mode: 1}}, convergence_threshold: 0.3}"
 ```
 
 This command instructs the guidance node to start following a path toward the waypoint.
@@ -344,7 +344,7 @@ ros2 launch los_guidance guidance_test.launch.py test_scenario:=circle
 
 | Interface | Name | Type | Message-Type |
 |----------|------|------|---------|
-| Action Server | `/drone_name/los_guidance` | Goal input | `vortex_msgs/action/LOSGuidance` |
+| Action Server | `/drone_name/los_guidance` | Goal input | `vortex_msgs/action/GuidanceWaypoint` |
 | Subscriber | `/drone_name/pose` | Vehicle pose | `geometry_msgs/PoseWithCovarianceStamped` |
 | Subscriber | `/drone_name/odom` | Vehicle velocity | `nav_msgs/Odometry` |
 | Publisher | `/drone_name/guidance/los` | Guidance reference (yaw, pitch, surge) | `vortex_msgs/LOSGuidance` |
