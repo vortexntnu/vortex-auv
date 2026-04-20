@@ -87,8 +87,9 @@ class ReferenceFilterNode : public rclcpp::Node {
     std::atomic<bool> filter_initialized_{false};
 
     /** Currently-active goal handle; null between goals. */
-    std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::GuidanceWaypoint>> active_goal_handle_;
+    std::shared_ptr<
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
+        active_goal_handle_;
     std::mutex active_goal_mutex_;
 
     void stepping_loop();

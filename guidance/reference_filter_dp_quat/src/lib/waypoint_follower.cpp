@@ -46,15 +46,6 @@ void WaypointFollower::retarget(const Waypoint& waypoint,
     convergence_threshold_ = convergence_threshold;
     waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
         waypoint.pose, waypoint_mode_, nominal_pose_);
-    /**
-     * Intentionally do NOT touch state_ or nominal_pose_.
-     * - state_.segment<3>(6) and state_.segment<3>(9) keep the reference
-     *   linear and angular velocities continuous across the retarget.
-     * - state_.segment<3>(12) and state_.segment<3>(15) keep the
-     *   reference linear and angular accelerations continuous.
-     * - state_.head<6>() stays near zero thanks to inject_and_reset()
-     *   being called every step, so leaving it untouched is safe.
-     */
 }
 
 Eigen::Vector6d WaypointFollower::update_reference() const {

@@ -142,9 +142,9 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 }
 
 void ReferenceFilterNode::handle_accepted(
-    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::GuidanceWaypoint>> goal_handle) {
-
+    const std::shared_ptr<
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
+        goal_handle) {
     const auto wp = vortex::utils::waypoints::waypoint_from_ros(
         goal_handle->get_goal()->waypoint);
 
@@ -160,18 +160,22 @@ void ReferenceFilterNode::handle_accepted(
      * so the ROS action state stays clean. The previous goal is aborted
      * rather than canceled because the client did not request cancellation.
      */
-    std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::GuidanceWaypoint>> previous;
+    std::shared_ptr<
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
+        previous;
     {
         std::lock_guard<std::mutex> lock(active_goal_mutex_);
         previous = std::move(active_goal_handle_);
         active_goal_handle_ = goal_handle;
     }
     if (previous && previous->is_active()) {
-        auto r = std::make_shared<
-            vortex_msgs::action::GuidanceWaypoint::Result>();
+        auto r =
+            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
         r->success = false;
-        try { previous->abort(r); } catch (...) {}
+        try {
+            previous->abort(r);
+        } catch (...) {
+        }
         spdlog::info("Previous goal preempted");
     }
 
@@ -197,7 +201,8 @@ void ReferenceFilterNode::handle_accepted(
 }
 
 void ReferenceFilterNode::start_stepping_thread() {
-    if (stepping_thread_.joinable()) return;
+    if (stepping_thread_.joinable())
+        return;
     stepping_thread_ = std::thread([this] { stepping_loop(); });
 }
 
@@ -220,7 +225,8 @@ void ReferenceFilterNode::stepping_loop() {
          * convergence check and the ROS action callbacks.
          */
         std::shared_ptr<rclcpp_action::ServerGoalHandle<
-            vortex_msgs::action::GuidanceWaypoint>> gh;
+            vortex_msgs::action::GuidanceWaypoint>>
+            gh;
         {
             std::lock_guard<std::mutex> lock(active_goal_mutex_);
             gh = active_goal_handle_;
@@ -234,8 +240,8 @@ void ReferenceFilterNode::stepping_loop() {
 
             if (follower_->within_convergance(current_pose)) {
                 follower_->snap_state_to_reference();
-                auto final_msg = fill_reference_msg(
-                    follower_->pose(), follower_->velocity());
+                auto final_msg = fill_reference_msg(follower_->pose(),
+                                                    follower_->velocity());
                 reference_pub_->publish(final_msg);
                 if (rpy_debug_pub_) {
                     rpy_debug_pub_->publish(fill_reference_rpy_msg(
@@ -253,7 +259,8 @@ void ReferenceFilterNode::stepping_loop() {
                      * we just succeeded. A concurrent handle_accepted could
                      * have already replaced it.
                      */
-                    if (active_goal_handle_ == gh) active_goal_handle_.reset();
+                    if (active_goal_handle_ == gh)
+                        active_goal_handle_.reset();
                 }
                 spdlog::info("Goal reached");
             }

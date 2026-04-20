@@ -85,14 +85,15 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     std::mutex sensor_mutex_;
 
-    /** Persistent stepping thread and lifecycle flags. */
+    /** Persistent stepping thread flags. */
     std::thread stepping_thread_;
     std::atomic<bool> shutdown_{false};
     std::atomic<bool> filter_initialized_{false};
 
     /** Currently-active goal handle; null between goals. */
-    std::shared_ptr<rclcpp_action::ServerGoalHandle<
-        vortex_msgs::action::GuidanceWaypoint>> active_goal_handle_;
+    std::shared_ptr<
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
+        active_goal_handle_;
     std::mutex active_goal_mutex_;
 
     void stepping_loop();

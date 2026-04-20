@@ -56,8 +56,6 @@ class WaypointFollower {
      * third-order filter continues evolving from its current state. Use
      * this on preemption; use start() only for cold-start (first goal after
      * node init).
-     *
-     * Thread-safe.
      */
     void retarget(const Waypoint& waypoint, double convergence_threshold);
 
