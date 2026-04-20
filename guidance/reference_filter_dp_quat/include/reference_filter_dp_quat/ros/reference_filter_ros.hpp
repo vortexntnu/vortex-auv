@@ -25,38 +25,33 @@ class ReferenceFilterNode : public rclcpp::Node {
     ~ReferenceFilterNode();
 
    private:
-    // @brief Set the subscribers and publishers
+    /** @brief Set the subscribers and publishers. */
     void set_subscribers_and_publisher();
 
-    // @brief Set the action server
+    /** @brief Set the action server. */
     void set_action_server();
 
-    // @brief Initializes the reference filter with ROS parameters.
+    /** @brief Initializes the reference filter with ROS parameters. */
     void set_refererence_filter();
 
-    /// @brief Accept all incoming goals unconditionally.
+    /** @brief Accept all incoming goals unconditionally. */
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
         std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
             goal);
 
-    /// @brief Accept all cancel requests.
+    /** @brief Accept all cancel requests. */
     rclcpp_action::CancelResponse handle_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
-    /// @brief Join the old execution thread and spawn a new one for the goal.
+    /**
+     * @brief Swap the active goal handle and cold-start or retarget the
+     * filter without tearing down the stepping thread.
+     */
     void handle_accepted(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GuidanceWaypoint>> goal_handle);
-
-    /**
-     * @brief Execute the action goal in a loop until convergence or
-     * preemption.
-     * @param goal_handle The goal handle.
-     */
-    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-                     vortex_msgs::action::GuidanceWaypoint>> goal_handle);
 
     rclcpp_action::Server<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
         action_server_;
@@ -90,9 +85,18 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     std::mutex sensor_mutex_;
 
-    std::atomic<bool> preempted_{false};
-    std::mutex execute_mutex_;
-    std::thread execute_thread_;
+    /** Persistent stepping thread and lifecycle flags. */
+    std::thread stepping_thread_;
+    std::atomic<bool> shutdown_{false};
+    std::atomic<bool> filter_initialized_{false};
+
+    /** Currently-active goal handle; null between goals. */
+    std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::GuidanceWaypoint>> active_goal_handle_;
+    std::mutex active_goal_mutex_;
+
+    void stepping_loop();
+    void start_stepping_thread();
 };
 
 }  // namespace vortex::guidance

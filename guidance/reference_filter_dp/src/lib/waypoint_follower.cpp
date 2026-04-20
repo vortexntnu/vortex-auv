@@ -42,6 +42,23 @@ Eigen::Vector18d WaypointFollower::step() {
     return state_;
 }
 
+void WaypointFollower::retarget(const Waypoint& waypoint,
+                                double convergence_threshold) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    waypoint_mode_ = waypoint.mode;
+    convergence_threshold_ = convergence_threshold;
+    reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(),
+                                       waypoint_mode_, state_.head<6>());
+    /**
+     * Intentionally do NOT touch state_.
+     * - state_.segment<6>(6) keeps the reference velocity continuous
+     *   across the retarget.
+     * - state_.segment<6>(12) keeps the reference acceleration continuous.
+     * - state_.head<6>() holds the current filter pose and is preserved
+     *   so the filter evolves from its current state without discontinuity.
+     */
+}
+
 bool WaypointFollower::within_convergance(
     const Eigen::Vector6d& measured_pose) const {
     std::lock_guard<std::mutex> lock(mutex_);

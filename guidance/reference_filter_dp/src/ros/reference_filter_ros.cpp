@@ -33,9 +33,9 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 }
 
 ReferenceFilterNode::~ReferenceFilterNode() {
-    preempted_ = true;
-    if (execute_thread_.joinable()) {
-        execute_thread_.join();
+    shutdown_.store(true);
+    if (stepping_thread_.joinable()) {
+        stepping_thread_.join();
     }
 }
 
@@ -133,106 +133,112 @@ rclcpp_action::CancelResponse ReferenceFilterNode::handle_cancel(
 }
 
 void ReferenceFilterNode::handle_accepted(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
-    std::lock_guard<std::mutex> lock(execute_mutex_);
-    preempted_ = true;
-    if (execute_thread_.joinable()) {
-        execute_thread_.join();
-    }
-    preempted_ = false;
-
-    execute_thread_ =
-        std::thread([this, goal_handle]() { execute(goal_handle); });
-}
-
-void ReferenceFilterNode::execute(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
-    spdlog::info("Executing goal");
-
-    double convergence_threshold =
-        goal_handle->get_goal()->convergence_threshold;
-
-    if (convergence_threshold <= 0.0) {
-        convergence_threshold = 0.1;
-        spdlog::warn(
-            "ReferenceFilter: Invalid convergence_threshold received (<= 0). "
-            "Using default 0.1");
-    }
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::GuidanceWaypoint>> goal_handle) {
 
     const auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
 
-    const auto [pose, twist] = [this] {
-        std::lock_guard lock(sensor_mutex_);
-        return std::pair{current_pose_, current_twist_};
-    }();
+    double threshold = goal_handle->get_goal()->convergence_threshold;
+    if (threshold <= 0.0) {
+        threshold = 0.1;
+        spdlog::warn(
+            "ReferenceFilter: invalid convergence_threshold (<= 0), using 0.1");
+    }
 
-    follower_->start(pose, twist, wp, convergence_threshold);
+    /**
+     * Swap the active goal handle atomically and abort the outgoing one
+     * so the ROS action state stays clean. The previous goal is aborted
+     * rather than canceled because the client did not request cancellation.
+     */
+    std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::GuidanceWaypoint>> previous;
+    {
+        std::lock_guard<std::mutex> lock(active_goal_mutex_);
+        previous = std::move(active_goal_handle_);
+        active_goal_handle_ = goal_handle;
+    }
+    if (previous && previous->is_active()) {
+        auto r = std::make_shared<
+            vortex_msgs::action::GuidanceWaypoint::Result>();
+        r->success = false;
+        try { previous->abort(r); } catch (...) {}
+        spdlog::info("Previous goal preempted");
+    }
 
-    auto result =
-        std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+    /**
+     * Cold-start vs retarget branching. On the first goal ever received,
+     * initialize the filter from the measured pose and twist. On every
+     * subsequent goal, only re-point the setpoint; the filter dynamics
+     * carry the state forward.
+     */
+    if (!filter_initialized_.load()) {
+        const auto [pose, twist] = [this] {
+            std::lock_guard<std::mutex> lock(sensor_mutex_);
+            return std::pair{current_pose_, current_twist_};
+        }();
+        follower_->start(pose, twist, wp, threshold);
+        filter_initialized_.store(true);
+        start_stepping_thread();
+        spdlog::info("Filter cold-started on first goal");
+    } else {
+        follower_->retarget(wp, threshold);
+        spdlog::info("Retargeted to new waypoint (filter state preserved)");
+    }
+}
 
+void ReferenceFilterNode::start_stepping_thread() {
+    if (stepping_thread_.joinable()) return;
+    stepping_thread_ = std::thread([this] { stepping_loop(); });
+}
+
+void ReferenceFilterNode::stepping_loop() {
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
-    while (rclcpp::ok()) {
-        if (preempted_.load()) {
-            result->success = false;
-            goal_handle->abort(result);
-            spdlog::info("Goal preempted by newer goal");
-            return;
+    while (rclcpp::ok() && !shutdown_.load()) {
+        auto filter_state = follower_->step();
+
+        reference_pub_->publish(fill_reference_msg(filter_state));
+
+        /**
+         * Snapshot the active goal handle under the mutex and then operate
+         * on the local copy. This avoids holding the mutex across the
+         * convergence check and the ROS action callbacks.
+         */
+        std::shared_ptr<rclcpp_action::ServerGoalHandle<
+            vortex_msgs::action::GuidanceWaypoint>> gh;
+        {
+            std::lock_guard<std::mutex> lock(active_goal_mutex_);
+            gh = active_goal_handle_;
         }
 
-        if (goal_handle->is_canceling()) {
-            result->success = false;
-            goal_handle->canceled(result);
-            spdlog::info("Goal canceled");
-            return;
+        if (gh && gh->is_active()) {
+            const auto current_pose_vector = [this] {
+                std::lock_guard<std::mutex> lock(sensor_mutex_);
+                return current_pose_.to_vector();
+            }();
+
+            if (follower_->within_convergance(current_pose_vector)) {
+                follower_->snap_state_to_reference();
+
+                reference_pub_->publish(fill_reference_msg(follower_->state()));
+
+                auto r = std::make_shared<
+                    vortex_msgs::action::GuidanceWaypoint::Result>();
+                r->success = true;
+                gh->succeed(r);
+                {
+                    std::lock_guard<std::mutex> lock(active_goal_mutex_);
+                    /**
+                     * Only clear the stored handle if it is still the one
+                     * we just succeeded. A concurrent handle_accepted could
+                     * have already replaced it.
+                     */
+                    if (active_goal_handle_ == gh) active_goal_handle_.reset();
+                }
+                spdlog::info("Goal reached");
+            }
         }
-
-        Eigen::Vector18d filter_state = follower_->step();
-
-        const auto current_pose_vector = [this] {
-            std::lock_guard lock(sensor_mutex_);
-            return current_pose_.to_vector();
-        }();
-
-        bool target_reached =
-            follower_->within_convergance(current_pose_vector);
-
-        if (target_reached) {
-            follower_->snap_state_to_reference();
-
-            auto final_reference_msg =
-                std::make_unique<vortex_msgs::msg::ReferenceFilter>(
-                    fill_reference_msg(follower_->state()));
-
-            reference_pub_->publish(std::move(final_reference_msg));
-
-            result->success = true;
-            goal_handle->succeed(result);
-            spdlog::info("Goal reached");
-            return;
-        }
-
-        auto reference_msg =
-            std::make_unique<vortex_msgs::msg::ReferenceFilter>(
-                fill_reference_msg(filter_state));
-        reference_pub_->publish(std::move(reference_msg));
         loop_rate.sleep();
-    }
-    if (!rclcpp::ok() && goal_handle->is_active()) {
-        auto result =
-            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
-        result->success = false;
-
-        try {
-            goal_handle->abort(result);
-        } catch (...) {
-            // Ignore exceptions during shutdown
-        }
     }
 }
 

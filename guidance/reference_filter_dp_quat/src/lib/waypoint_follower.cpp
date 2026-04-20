@@ -39,6 +39,24 @@ void WaypointFollower::step() {
     inject_and_reset();
 }
 
+void WaypointFollower::retarget(const Waypoint& waypoint,
+                                double convergence_threshold) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    waypoint_mode_ = waypoint.mode;
+    convergence_threshold_ = convergence_threshold;
+    waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
+        waypoint.pose, waypoint_mode_, nominal_pose_);
+    /**
+     * Intentionally do NOT touch state_ or nominal_pose_.
+     * - state_.segment<3>(6) and state_.segment<3>(9) keep the reference
+     *   linear and angular velocities continuous across the retarget.
+     * - state_.segment<3>(12) and state_.segment<3>(15) keep the
+     *   reference linear and angular accelerations continuous.
+     * - state_.head<6>() stays near zero thanks to inject_and_reset()
+     *   being called every step, so leaving it untouched is safe.
+     */
+}
+
 Eigen::Vector6d WaypointFollower::update_reference() const {
     Eigen::Vector6d filter_reference;
     filter_reference.head<3>() =
@@ -58,9 +76,9 @@ void WaypointFollower::inject_and_reset() {
         Eigen::Quaterniond delta_quat(
             Eigen::AngleAxisd(angle, delta_orientation.normalized()));
         Eigen::Quaterniond q_new = nominal_pose_.ori_quaternion() * delta_quat;
-        /** Enforce positive hemisphere to prevent sign flips in the published
-         * reference quaternion that would cause the downstream controller to
-         * see large spurious orientation errors.
+        /** Enforce positive hemisphere to prevent sign flips in the
+         * published reference quaternion that would cause the downstream
+         * controller to see large spurious orientation errors.
          */
         if (q_new.w() < 0.0) {
             q_new.coeffs() = -q_new.coeffs();
