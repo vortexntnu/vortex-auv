@@ -48,6 +48,7 @@ void WaypointFollower::retarget(const Waypoint& waypoint,
     waypoint_mode_ = waypoint.mode;
     convergence_threshold_ = convergence_threshold;
     reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(),
+                                       waypoint_mode_, state_.head<6>());
 }
 
 bool WaypointFollower::within_convergance(
