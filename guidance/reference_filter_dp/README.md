@@ -48,7 +48,7 @@ For all modes, convergence is reached when the error metric drops below the `con
 
 ## Action Server
 
-The action server is responsible for handling goal requests and publishing guidance commands. The server will always prioritize new goal requests, and will abort ongoing requests when getting a new request. The action definition can be found [here](https://github.com/vortexntnu/vortex-msgs/blob/main/action/ReferenceFilterWaypoint.action).
+The action server is responsible for handling goal requests and publishing guidance commands. The server will always prioritize new goal requests, and will abort ongoing requests when getting a new request. The action definition can be found [here](https://github.com/vortexntnu/vortex-msgs/blob/main/action/GuidanceWaypoint.action).
 
 - Action name: /reference_filter
 - Goal type: PoseStamped
