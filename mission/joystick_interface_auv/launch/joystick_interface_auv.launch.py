@@ -2,7 +2,8 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
@@ -14,6 +15,7 @@ from auv_setup.launch_arg_common import (
 def launch_setup(context, *args, **kwargs):
     """Set up the joystick_interface_auv node with drone-specific config."""
     drone, namespace = resolve_drone_and_namespace(context)
+    orientation_mode = LaunchConfiguration("orientation_mode").perform(context)
 
     joystick_params = os.path.join(
         get_package_share_directory("joystick_interface_auv"),
@@ -35,7 +37,11 @@ def launch_setup(context, *args, **kwargs):
             name="joystick_interface_auv",
             namespace=namespace,
             output="screen",
-            parameters=[joystick_params, drone_params, {"drone": drone}],
+            parameters=[
+                joystick_params,
+                drone_params,
+                {"drone": drone, "orientation_mode": orientation_mode},
+            ],
         )
     ]
 
@@ -53,5 +59,13 @@ def generate_launch_description() -> LaunchDescription:
 
     """
     return LaunchDescription(
-        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
+        declare_drone_and_namespace_args()
+        + [
+            DeclareLaunchArgument(
+                "orientation_mode",
+                default_value="euler",
+                description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
+            ),
+            OpaqueFunction(function=launch_setup),
+        ]
     )

@@ -16,9 +16,9 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/client.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
+#include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/landmark_convergence.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
-#include <vortex_msgs/action/reference_filter_waypoint.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
 #include <vortex_msgs/msg/waypoint_mode.hpp>
@@ -36,12 +36,12 @@ using LandmarkPollingGoalHandle =
     rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkPolling>;
 using LandmarkConvergenceGoalHandle =
     rclcpp_action::ServerGoalHandle<vortex_msgs::action::LandmarkConvergence>;
-using ReferenceFilterGoalHandle = rclcpp_action::ClientGoalHandle<
-    vortex_msgs::action::ReferenceFilterWaypoint>;
+using ReferenceFilterGoalHandle =
+    rclcpp_action::ClientGoalHandle<vortex_msgs::action::GuidanceWaypoint>;
 
 using vortex::filtering::Landmark;
 
-using RF = vortex_msgs::action::ReferenceFilterWaypoint;
+using RF = vortex_msgs::action::GuidanceWaypoint;
 
 class LandmarkServerNode : public rclcpp::Node {
    public:
@@ -116,12 +116,12 @@ class LandmarkServerNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::LandmarkConvergence>> goal_handle);
 
-    vortex_msgs::action::ReferenceFilterWaypoint::Goal make_rf_goal(
+    vortex_msgs::action::GuidanceWaypoint::Goal make_rf_goal(
         const geometry_msgs::msg::Pose& target,
         double convergence_threshold) const;
 
     void send_reference_filter_goal(
-        const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
+        const vortex_msgs::action::GuidanceWaypoint::Goal& goal_msg,
         uint64_t seq);
 
     geometry_msgs::msg::Pose compute_target_pose(
@@ -156,8 +156,8 @@ class LandmarkServerNode : public rclcpp::Node {
     rclcpp_action::Server<vortex_msgs::action::LandmarkConvergence>::SharedPtr
         landmark_convergence_server_;
 
-    rclcpp_action::Client<vortex_msgs::action::ReferenceFilterWaypoint>::
-        SharedPtr reference_filter_client_;
+    rclcpp_action::Client<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
+        reference_filter_client_;
 
     std::unique_ptr<vortex::filtering::PoseTrackManager> track_manager_;
 
@@ -169,8 +169,6 @@ class LandmarkServerNode : public rclcpp::Node {
     std::string target_frame_;
     std::shared_ptr<tf2_ros::Buffer> tf2_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf2_listener_;
-
-    bool enu_ned_rotation_{false};
 
     std::shared_ptr<LandmarkPollingGoalHandle> active_landmark_polling_goal_;
     std::shared_ptr<LandmarkConvergenceGoalHandle>

@@ -1,6 +1,7 @@
 #include <spdlog/spdlog.h>
 #include <rclcpp_action/client.hpp>
 #include <vortex/utils/ros/ros_conversions.hpp>
+#include <vortex/utils/waypoint_utils.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include <vortex_msgs/msg/waypoint_mode.hpp>
 #include "landmark_server/landmark_server_ros.hpp"
@@ -286,10 +287,10 @@ void LandmarkServerNode::convergence_try_dead_reckoning_handoff() {
     }
 }
 
-vortex_msgs::action::ReferenceFilterWaypoint::Goal
-LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
-                                 double convergence_threshold) const {
-    vortex_msgs::action::ReferenceFilterWaypoint::Goal rf_goal;
+vortex_msgs::action::GuidanceWaypoint::Goal LandmarkServerNode::make_rf_goal(
+    const geometry_msgs::msg::Pose& target,
+    double convergence_threshold) const {
+    vortex_msgs::action::GuidanceWaypoint::Goal rf_goal;
     vortex_msgs::msg::Waypoint wp;
     wp.pose = target;
     wp.waypoint_mode = convergence_mode_;
@@ -299,7 +300,7 @@ LandmarkServerNode::make_rf_goal(const geometry_msgs::msg::Pose& target,
 }
 
 void LandmarkServerNode::send_reference_filter_goal(
-    const vortex_msgs::action::ReferenceFilterWaypoint::Goal& goal_msg,
+    const vortex_msgs::action::GuidanceWaypoint::Goal& goal_msg,
     uint64_t session_id) {
     cancel_reference_filter_goal();
 
@@ -464,27 +465,13 @@ geometry_msgs::msg::Pose LandmarkServerNode::compute_target_pose(
     const vortex::filtering::Track& track,
     const geometry_msgs::msg::Pose& convergence_offset) {
     const auto landmark_pose = track.to_pose();
-
-    const Eigen::Vector3d p_landmark = landmark_pose.pos_vector();
-    const Eigen::Quaterniond q_landmark =
-        landmark_pose.ori_quaternion().normalized();
-
-    const Eigen::Vector3d p_offset(convergence_offset.position.x,
-                                   convergence_offset.position.y,
-                                   convergence_offset.position.z);
-
-    const Eigen::Quaterniond q_offset =
-        Eigen::Quaterniond(
-            convergence_offset.orientation.w, convergence_offset.orientation.x,
-            convergence_offset.orientation.y, convergence_offset.orientation.z)
-            .normalized();
-
-    const Eigen::Vector3d p_target = p_landmark + p_offset;
-
-    const Eigen::Quaterniond q_target = (q_landmark * q_offset).normalized();
-
-    return vortex::utils::ros_conversions::eigen_to_pose_msg(p_target,
-                                                             q_target);
+    const auto base = vortex::utils::types::Pose::from_eigen(
+        landmark_pose.pos_vector(), landmark_pose.ori_quaternion());
+    const auto offset =
+        vortex::utils::ros_conversions::ros_pose_to_pose(convergence_offset);
+    const auto target =
+        vortex::utils::waypoints::apply_pose_offset(base, offset);
+    return vortex::utils::ros_conversions::to_pose_msg(target);
 }
 
 }  // namespace vortex::mission

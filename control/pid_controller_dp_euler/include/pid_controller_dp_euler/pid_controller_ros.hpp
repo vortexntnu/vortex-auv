@@ -1,16 +1,12 @@
 #ifndef PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_
 #define PID_CONTROLLER_DP_EULER__PID_CONTROLLER_ROS_HPP_
 
-#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 #include <pid_controller_dp_euler/pid_controller.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
-#include <std_msgs/msg/string.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>

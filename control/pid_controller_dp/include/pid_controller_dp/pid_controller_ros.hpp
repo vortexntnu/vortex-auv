@@ -2,67 +2,72 @@
 #define PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
 
 #include <chrono>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
-#include <std_msgs/msg/float64_multi_array.hpp>
-#include <std_msgs/msg/string.hpp>
 #include <string>
-#include <variant>
+#include <vector>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
-#include <vortex_msgs/msg/reference_filter.hpp>
+#include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/srv/get_operation_mode.hpp>
 #include "pid_controller_dp/pid_controller.hpp"
 #include "pid_controller_dp/typedefs.hpp"
 
-// @brief Class for the PID controller node
+/** @brief ROS 2 node wrapping the PID dynamic positioning controller. */
 class PIDControllerNode : public rclcpp::Node {
    public:
-    PIDControllerNode();
+    explicit PIDControllerNode(const rclcpp::NodeOptions& options);
 
    private:
-    // @brief Callback function for the killswitch topic
-    // @param msg: Bool message containing the killswitch status
+    /**
+     * @brief Callback for the killswitch topic.
+     * @param msg Bool message containing the killswitch status
+     */
     void killswitch_callback(const std_msgs::msg::Bool::SharedPtr msg);
 
-    // @brief Callback function for the software mode topic
-    // @param msg: String message containing the software mode
+    /**
+     * @brief Callback for the operation mode topic.
+     * @param msg OperationMode message containing the current software mode
+     */
     void operation_mode_callback(
         const vortex_msgs::msg::OperationMode::SharedPtr msg);
 
-    // @brief Callback function for the pose topic
-    // @param msg: PoseWithCovarianceStamped message containing the AUV pose
-    void pose_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-
-    // @brief Callback function for the twist topic
-    // @param msg: TwistWithCovarianceStamped message containing the AUV speed
-    void twist_callback(
-        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
-
-    // @brief Callback function for the tau publisher timer
+    /** @brief Timer callback that computes and publishes the wrench tau. */
     void publish_tau();
 
-    // @brief Set the PID controller parameters
+    /** @brief Read PID gain parameters from the ROS parameter server. */
     void set_pid_params();
 
-    // @brief Set the subscriber and publisher for the node
+    /** @brief Create all subscribers and the wrench publisher. */
     void set_subscribers_and_publisher();
 
-    // @brief Initialize the operation mode by calling the GetOperationMode
-    // service
+    /** @brief Query the GetOperationMode service to initialise the operation
+     * mode. */
     void initialize_operation_mode();
 
-    // @brief Callback function for the guidance topic
-    // @param msg: ReferenceFilter message containing the desired vehicle pose
-    // and velocity
+    /**
+     * @brief Callback for the guidance topic.
+     * @param msg ReferenceFilterQuat message with desired pose and velocity
+     */
     void guidance_callback(
-        const vortex_msgs::msg::ReferenceFilter::SharedPtr msg);
+        const vortex_msgs::msg::ReferenceFilterQuat::SharedPtr msg);
+
+    /**
+     * @brief Callback for the odometry topic.
+     * @param msg Odometry message containing the AUV pose and body velocity
+     */
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+
+    /**
+     * @brief Callback invoked when ROS parameters are updated at runtime.
+     * @param parameters Vector of parameters that were set
+     * @return Result indicating success or failure of the parameter update
+     */
+    rcl_interfaces::msg::SetParametersResult parametersCallback(
+        const std::vector<rclcpp::Parameter>& parameters);
 
     rclcpp::Client<vortex_msgs::srv::GetOperationMode>::SharedPtr
         get_operation_mode_client_;
@@ -74,20 +79,10 @@ class PIDControllerNode : public rclcpp::Node {
     rclcpp::Subscription<vortex_msgs::msg::OperationMode>::SharedPtr
         operation_mode_sub_;
 
-    rclcpp::Subscription<
-        geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
-    rclcpp::Subscription<
-        geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
-
-    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilter>::SharedPtr
+    rclcpp::Subscription<vortex_msgs::msg::ReferenceFilterQuat>::SharedPtr
         guidance_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kp_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr ki_sub_;
-
-    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr kd_sub_;
 
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr tau_pub_;
 
@@ -107,6 +102,8 @@ class PIDControllerNode : public rclcpp::Node {
 
     vortex::utils::types::Mode operation_mode_{
         vortex::utils::types::Mode::manual};
+
+    OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 };
 
 #endif  // PID_CONTROLLER_DP__PID_CONTROLLER_ROS_HPP_
