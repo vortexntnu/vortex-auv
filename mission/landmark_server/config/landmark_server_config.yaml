@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    target_frame: "orca/odom"
+    target_frame: "nautilus/odom"
     timer_rate_ms: 200
 
     track_config:

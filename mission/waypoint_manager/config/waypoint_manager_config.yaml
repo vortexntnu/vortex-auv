@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    debug:
+      pose_publisher:
+        enabled: true
+        topic: "waypoint_manager/debug/current_waypoint_pose"

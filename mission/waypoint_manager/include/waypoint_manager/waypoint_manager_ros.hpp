@@ -6,6 +6,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 
 #include <vector>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
@@ -110,6 +111,9 @@ class WaypointManagerNode : public rclcpp::Node {
 
     std::shared_ptr<ReferenceFilterGoalHandle> active_reference_filter_goal_;
     std::shared_ptr<WaypointManagerGoalHandle> active_action_goal_;
+
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
+        debug_pose_publisher_;
 };
 
 }  // namespace vortex::mission

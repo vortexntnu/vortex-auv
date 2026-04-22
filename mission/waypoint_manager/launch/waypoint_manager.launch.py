@@ -21,13 +21,19 @@ def launch_setup(context, *args, **kwargs):
         f"{drone}.yaml",
     )
 
+    local_params = os.path.join(
+        get_package_share_directory("waypoint_manager"),
+        "config",
+        "waypoint_manager_config.yaml",
+    )
+
     return [
         Node(
             package="waypoint_manager",
             executable="waypoint_manager_node",
             name="waypoint_manager_node",
             namespace=namespace,
-            parameters=[drone_params],
+            parameters=[drone_params, local_params],
             output="screen",
         )
     ]

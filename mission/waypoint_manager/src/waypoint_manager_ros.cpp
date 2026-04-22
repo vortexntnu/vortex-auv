@@ -11,6 +11,20 @@ WaypointManagerNode::WaypointManagerNode(const rclcpp::NodeOptions& options)
     set_waypoint_action_server();
     set_waypoint_service_server();
 
+    bool debug_pose_enabled =
+        this->declare_parameter<bool>("debug.pose_publisher.enabled", false);
+    if (debug_pose_enabled) {
+        std::string debug_pose_topic =
+            this->declare_parameter<std::string>(
+                "debug.pose_publisher.topic",
+                "waypoint_manager/debug/current_waypoint_pose");
+        debug_pose_publisher_ =
+            this->create_publisher<geometry_msgs::msg::PoseStamped>(
+                debug_pose_topic, 10);
+        spdlog::info("Debug pose publisher enabled on topic: {}",
+                     debug_pose_topic);
+    }
+
     spdlog::info("WaypointManagerNode started");
 }
 
@@ -119,6 +133,14 @@ void WaypointManagerNode::send_next_reference_filter_goal() {
         auto wm_fb = std::make_shared<WaypointManager::Feedback>();
         wm_fb->current_waypoint = waypoints_[current_index_];
         active_action_goal_->publish_feedback(wm_fb);
+    }
+
+    if (debug_pose_publisher_) {
+        geometry_msgs::msg::PoseStamped pose_msg;
+        pose_msg.header.stamp = this->now();
+        pose_msg.header.frame_id = "world";
+        pose_msg.pose = waypoints_[current_index_].pose;
+        debug_pose_publisher_->publish(pose_msg);
     }
 
     ReferenceFilterAction::Goal rf_goal;
