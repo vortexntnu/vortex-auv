@@ -51,12 +51,19 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Send gripper reference filter goal and persist result for check_goal.py"
     )
-    parser.add_argument("--mode", type=int, default=0, help="0=ROLL_AND_PINCH, 1=ONLY_ROLL, 2=ONLY_PINCH")
+    parser.add_argument(
+        "--mode",
+        type=int,
+        default=0,
+        help="0=ROLL_AND_PINCH, 1=ONLY_ROLL, 2=ONLY_PINCH",
+    )
     parser.add_argument("--roll", type=float, default=1.57)
     parser.add_argument("--pinch", type=float, default=-0.10)
     parser.add_argument("--convergence-threshold", type=float, default=0.05)
     parser.add_argument("--action-name", default="/vortex/gripper/reference_filter")
-    parser.add_argument("--output-dir", default=os.path.dirname(os.path.abspath(__file__)))
+    parser.add_argument(
+        "--output-dir", default=os.path.dirname(os.path.abspath(__file__))
+    )
     return parser.parse_args()
 
 
@@ -64,7 +71,9 @@ def main() -> int:
     args = parse_args()
 
     if args.mode not in (0, 1, 2):
-        print("Invalid mode. Valid values: 0 (ROLL_AND_PINCH), 1 (ONLY_ROLL), 2 (ONLY_PINCH)")
+        print(
+            "Invalid mode. Valid values: 0 (ROLL_AND_PINCH), 1 (ONLY_ROLL), 2 (ONLY_PINCH)"
+        )
         return 1
 
     if not (-0.333 <= args.pinch <= 0.0):

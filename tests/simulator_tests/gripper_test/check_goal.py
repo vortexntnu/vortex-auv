@@ -12,13 +12,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Validate gripper action result and feedback convergence"
     )
-    parser.add_argument("--output-dir", default=os.path.dirname(os.path.abspath(__file__)))
+    parser.add_argument(
+        "--output-dir", default=os.path.dirname(os.path.abspath(__file__))
+    )
     parser.add_argument("--margin", type=float, default=0.02)
     return parser.parse_args()
 
 
 def read_yaml(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as file_handle:
+    with open(path, encoding="utf-8") as file_handle:
         return yaml.safe_load(file_handle)
 
 
@@ -54,7 +56,9 @@ def main() -> int:
 
     feedback = result.get("last_feedback")
     if not isinstance(feedback, dict):
-        print("No feedback captured from action execution; relying on action success/status only")
+        print(
+            "No feedback captured from action execution; relying on action success/status only"
+        )
         print("Goal check passed")
         return 0
 
