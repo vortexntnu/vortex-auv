@@ -229,8 +229,14 @@ class LandmarkServerNode : public rclcpp::Node {
         landmark_track_debug_pub_;
     rclcpp::Publisher<vortex_msgs::msg::LandmarkTrack>::SharedPtr
         convergence_landmark_debug_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
+        landmark_pose_debug_pub_;
+
+    uint16_t debug_landmark_type_{0};
+    uint16_t debug_landmark_subtype_{0};
 
     void publish_convergence_landmark_debug();
+    void publish_debug_landmark_pose();
 };
 
 }  // namespace vortex::mission

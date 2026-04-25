@@ -17,6 +17,16 @@ void LandmarkServerNode::setup_debug_publishers() {
     convergence_landmark_debug_pub_ =
         this->create_publisher<vortex_msgs::msg::LandmarkTrack>(
             convergence_landmark_topic, qos);
+
+    const std::string landmark_pose_topic =
+        this->declare_parameter<std::string>("debug.landmark_pose_topic");
+    debug_landmark_type_ = static_cast<uint16_t>(
+        this->declare_parameter<int>("debug.landmark_type", 0));
+    debug_landmark_subtype_ = static_cast<uint16_t>(
+        this->declare_parameter<int>("debug.landmark_subtype", 0));
+    landmark_pose_debug_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseStamped>(
+            landmark_pose_topic, qos);
 }
 
 void LandmarkServerNode::publish_debug_tracks() {
@@ -50,6 +60,33 @@ void LandmarkServerNode::publish_debug_tracks() {
     }
 
     landmark_track_debug_pub_->publish(msg);
+}
+
+void LandmarkServerNode::publish_debug_landmark_pose() {
+    for (const auto& t : track_manager_->get_tracks()) {
+        if (!t.confirmed)
+            continue;
+        if (debug_landmark_type_ != 0 &&
+            t.class_key.type != debug_landmark_type_)
+            continue;
+        if (debug_landmark_subtype_ != 0 &&
+            t.class_key.subtype != debug_landmark_subtype_)
+            continue;
+
+        const auto pose = t.to_pose();
+        geometry_msgs::msg::PoseStamped msg;
+        msg.header.stamp = this->now();
+        msg.header.frame_id = target_frame_;
+        msg.pose.position.x = pose.pos_vector().x();
+        msg.pose.position.y = pose.pos_vector().y();
+        msg.pose.position.z = pose.pos_vector().z();
+        msg.pose.orientation.x = pose.ori_quaternion().x();
+        msg.pose.orientation.y = pose.ori_quaternion().y();
+        msg.pose.orientation.z = pose.ori_quaternion().z();
+        msg.pose.orientation.w = pose.ori_quaternion().w();
+        landmark_pose_debug_pub_->publish(msg);
+        return;
+    }
 }
 
 void LandmarkServerNode::publish_convergence_landmark_debug() {

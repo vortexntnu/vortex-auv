@@ -262,6 +262,7 @@ void LandmarkServerNode::timer_callback() {
     if (debug_) {
         publish_debug_tracks();
         publish_convergence_landmark_debug();
+        publish_debug_landmark_pose();
     }
 
     convergence_update();
