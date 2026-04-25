@@ -19,6 +19,8 @@ enum class WaypointMode : uint8_t {
     ONLY_POSITION = 1,     ///< Control x, y, z; hold current orientation.
     FORWARD_HEADING = 2,   ///< Control x, y, z with yaw toward target.
     ONLY_ORIENTATION = 3,  ///< Control roll, pitch, yaw; hold current position.
+    POSITION_AND_YAW = 4,  ///< Control x, y, z and yaw; force roll=pitch=0.
+    XY_AND_YAW = 5,  ///< Control x, y and yaw; hold z, force roll=pitch=0.
 };
 
 /**
