@@ -1,6 +1,6 @@
 /**:
   ros__parameters:
-    target_frame: "orca/odom"
+    target_frame: "nautilus/odom"
     timer_rate_ms: 200
 
     track_config:
@@ -31,3 +31,6 @@
       enable: false
       topic_name: "landmark_server/debug/landmark_tracks"
       convergence_landmark_topic: "landmark_server/debug/convergence_landmark"
+      landmark_pose_topic: "landmark_server/debug/landmark_pose"
+      landmark_type: 0     # 0 = any type
+      landmark_subtype: 0  # 0 = any subtype

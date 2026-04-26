@@ -10,6 +10,7 @@ WaypointManagerNode::WaypointManagerNode(const rclcpp::NodeOptions& options)
     set_reference_action_client();
     set_waypoint_action_server();
     set_waypoint_service_server();
+    setup_debug_publisher();
 
     spdlog::info("WaypointManagerNode started");
 }
@@ -66,6 +67,43 @@ void WaypointManagerNode::set_waypoint_action_server() {
         });
 }
 
+void WaypointManagerNode::setup_debug_publisher() {
+    const std::string mode_str = this->declare_parameter<std::string>(
+        "debug.waypoint_publish_mode", "none");
+
+    if (mode_str == "timer") {
+        debug_mode_ = DebugPublishMode::timer;
+    } else if (mode_str == "on_new_waypoint") {
+        debug_mode_ = DebugPublishMode::on_new_waypoint;
+    } else {
+        debug_mode_ = DebugPublishMode::none;
+        return;
+    }
+
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+
+    const std::string debug_topic_name = this->declare_parameter<std::string>(
+        "debug.waypoint_topic_name", "debug/waypoint");
+
+    debug_waypoint_pub_ = this->create_publisher<vortex_msgs::msg::Waypoint>(
+        debug_topic_name, qos);
+
+    if (debug_mode_ == DebugPublishMode::timer) {
+        debug_timer_ =
+            this->create_wall_timer(std::chrono::milliseconds(100),
+                                    [this]() { publish_current_waypoint(); });
+    }
+
+    spdlog::info("Waypoint debug publisher active (mode: {})", mode_str);
+}
+
+void WaypointManagerNode::publish_current_waypoint() {
+    if (!debug_waypoint_pub_ || current_index_ >= waypoints_.size()) {
+        return;
+    }
+    debug_waypoint_pub_->publish(waypoints_[current_index_]);
+}
+
 void WaypointManagerNode::set_waypoint_service_server() {
     std::string service_name =
         this->declare_parameter<std::string>("services.waypoint_addition");
@@ -119,6 +157,10 @@ void WaypointManagerNode::send_next_reference_filter_goal() {
         auto wm_fb = std::make_shared<WaypointManager::Feedback>();
         wm_fb->current_waypoint = waypoints_[current_index_];
         active_action_goal_->publish_feedback(wm_fb);
+    }
+
+    if (debug_mode_ == DebugPublishMode::on_new_waypoint) {
+        publish_current_waypoint();
     }
 
     ReferenceFilterAction::Goal rf_goal;

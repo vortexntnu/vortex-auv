@@ -11,6 +11,8 @@
 #include <vortex_msgs/msg/waypoint.hpp>
 #include <vortex_msgs/srv/send_waypoints.hpp>
 
+enum class DebugPublishMode { none, timer, on_new_waypoint };
+
 namespace vortex::mission {
 
 using WaypointManager = vortex_msgs::action::WaypointManager;
@@ -37,6 +39,13 @@ class WaypointManagerNode : public rclcpp::Node {
 
     // @brief Create the service servers for SendWaypoints.
     void set_waypoint_service_server();
+
+    // @brief Create the debug waypoint publisher and optional timer.
+    void setup_debug_publisher();
+
+    // @brief Publish the current waypoint on the debug topic (no-op if no
+    // active waypoint).
+    void publish_current_waypoint();
 
     // @brief Construct the result message for the WaypointManager action
     // @param success Whether the action was successful
@@ -96,6 +105,11 @@ class WaypointManagerNode : public rclcpp::Node {
         waypoint_action_server_;
     rclcpp::Service<vortex_msgs::srv::SendWaypoints>::SharedPtr
         waypoint_service_server_;
+
+    rclcpp::Publisher<vortex_msgs::msg::Waypoint>::SharedPtr
+        debug_waypoint_pub_;
+    rclcpp::TimerBase::SharedPtr debug_timer_;
+    DebugPublishMode debug_mode_{DebugPublishMode::none};
 
     std::vector<vortex_msgs::msg::Waypoint> waypoints_{};
     std::size_t current_index_{0};
