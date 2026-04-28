@@ -16,6 +16,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(GTSAM REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
@@ -34,7 +35,7 @@ target_include_directories(${CORE_LIB_NAME}
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${CORE_LIB_NAME} Eigen3::Eigen)
+target_link_libraries(${CORE_LIB_NAME} Eigen3::Eigen gtsam)
 
 # Component library: ROS node + graph visualizer
 set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
@@ -55,6 +56,7 @@ ament_target_dependencies(${COMPONENT_LIB_NAME}
 
 target_link_libraries(${COMPONENT_LIB_NAME}
   Eigen3::Eigen
+  gtsam
   ${CORE_LIB_NAME}
 )
 
@@ -86,7 +88,7 @@ install(DIRECTORY
 )
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(Eigen3)
+ament_export_dependencies(Eigen3 GTSAM)
 ament_export_include_directories(include)
 ament_export_libraries(${CORE_LIB_NAME})
 

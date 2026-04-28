@@ -3,6 +3,14 @@
 
     odom_frame: "nautilus/odom"
 
+    insertion_rate_sec: 5.0
+
+    # Diagonal noise sigmas [rx, ry, rz, tx, ty, tz] (rad / m).
+    # prior: tight — anchors X(0) firmly at the odom origin.
+    # odom:  reflects expected odometry drift per keyframe interval.
+    prior_noise_sigmas: [1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6, 1.0e-6]
+    relative_odom_noise_sigmas:  [0.05, 0.05, 0.05, 0.1, 0.1, 0.1]
+
     visualization:
       enable: true
       topic_name: "landmark_drift_correction/visualization"

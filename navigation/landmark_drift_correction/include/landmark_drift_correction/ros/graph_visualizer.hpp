@@ -9,7 +9,7 @@
 
 #include <landmark_drift_correction/lib/drift_corrector.hpp>
 
-namespace vortex::navigation::drift_correction {
+namespace vortex::navigation {
 
 /// Builds a MarkerArray visualizing the full keyframe graph:
 ///   - SPHERE_LIST  : one sphere per node
@@ -19,6 +19,6 @@ visualization_msgs::msg::MarkerArray build_graph_markers(
     const std::string& frame_id,
     const rclcpp::Time& stamp);
 
-}  // namespace vortex::navigation::drift_correction
+}  // namespace vortex::navigation
 
 #endif  // LANDMARK_DRIFT_CORRECTION__ROS__GRAPH_VISUALIZER_HPP_

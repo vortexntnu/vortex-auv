@@ -2,7 +2,7 @@
 
 #include <geometry_msgs/msg/point.hpp>
 
-namespace vortex::navigation::drift_correction {
+namespace vortex::navigation {
 
 visualization_msgs::msg::MarkerArray build_graph_markers(
     const std::vector<Keyframe>& keyframes,
@@ -69,4 +69,4 @@ visualization_msgs::msg::MarkerArray build_graph_markers(
     return array;
 }
 
-}  // namespace vortex::navigation::drift_correction
+}  // namespace vortex::navigation

@@ -3,12 +3,15 @@
 
 #include <spdlog/spdlog.h>
 #include <rclcpp_components/register_node_macro.hpp>
+#include "landmark_drift_correction/lib/gtsam_conversions.hpp"
 
-namespace vortex::navigation::drift_correction {
+namespace vortex::navigation {
 
 LandmarkDriftCorrectionNode::LandmarkDriftCorrectionNode(
     const rclcpp::NodeOptions& options)
     : rclcpp::Node("landmark_drift_correction_node", options) {
+    initialize_drift_corrector();
+
     const std::string odom_topic =
         this->declare_parameter<std::string>("topics.odom");
     odom_frame_ = this->declare_parameter<std::string>("odom_frame");
@@ -22,14 +25,29 @@ LandmarkDriftCorrectionNode::LandmarkDriftCorrectionNode(
     graph_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
         "graph/visualization", rclcpp::QoS(10));
 
+    const double insertion_rate_sec =
+        this->declare_parameter<double>("insertion_rate_sec");
+
     keyframe_timer_ = this->create_wall_timer(
-        std::chrono::seconds(5),
+        std::chrono::duration<double>(insertion_rate_sec),
         std::bind(&LandmarkDriftCorrectionNode::keyframe_timer_callback, this));
 
     spdlog::info(
         "Landmark Drift Correction Node initialized with odometry topic '{}' "
         "and odometry frame '{}'",
         odom_topic, odom_frame_);
+}
+
+void LandmarkDriftCorrectionNode::initialize_drift_corrector() {
+    const auto prior_sigmas = vector6d_to_eigen(
+        this->declare_parameter<std::vector<double>>("prior_noise_sigmas"));
+
+    const auto odom_sigmas =
+        vector6d_to_eigen(this->declare_parameter<std::vector<double>>(
+            "relative_odom_noise_sigmas"));
+
+    drift_corrector_ =
+        std::make_unique<DriftCorrector>(prior_sigmas, odom_sigmas);
 }
 
 void LandmarkDriftCorrectionNode::odom_callback(
@@ -48,16 +66,15 @@ void LandmarkDriftCorrectionNode::keyframe_timer_callback() {
     }
 
     const double t = this->now().seconds();
-    drift_corrector_.addKeyframe(t, latest_pos_, latest_rot_);
+    drift_corrector_->addKeyframe(t, latest_pos_, latest_rot_);
 
     spdlog::info("Keyframe k={} added at t={:.3f}",
-                 drift_corrector_.keyframe_count() - 1, t);
+                 drift_corrector_->keyframe_count(), t);
 
-    graph_pub_->publish(build_graph_markers(drift_corrector_.keyframes(),
+    graph_pub_->publish(build_graph_markers(drift_corrector_->keyframes(),
                                             odom_frame_, this->now()));
 }
 
-RCLCPP_COMPONENTS_REGISTER_NODE(
-    vortex::navigation::drift_correction::LandmarkDriftCorrectionNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(vortex::navigation::LandmarkDriftCorrectionNode)
 
-}  // namespace vortex::navigation::drift_correction
+}  // namespace vortex::navigation
