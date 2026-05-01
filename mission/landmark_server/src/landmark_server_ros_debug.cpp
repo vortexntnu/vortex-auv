@@ -27,6 +27,14 @@ void LandmarkServerNode::setup_debug_publishers() {
     landmark_pose_debug_pub_ =
         this->create_publisher<geometry_msgs::msg::PoseStamped>(
             landmark_pose_topic, qos);
+
+    const std::string polling_result_topic =
+        this->declare_parameter<std::string>("debug.polling_result_topic",
+                                             "landmark_server/debug/polling_result");
+    auto latched_qos = rclcpp::QoS(1).transient_local().reliable();
+    polling_result_pub_ =
+        this->create_publisher<geometry_msgs::msg::PoseStamped>(
+            polling_result_topic, latched_qos);
 }
 
 void LandmarkServerNode::publish_debug_tracks() {

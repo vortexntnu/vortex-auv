@@ -231,6 +231,8 @@ class LandmarkServerNode : public rclcpp::Node {
         convergence_landmark_debug_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
         landmark_pose_debug_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
+        polling_result_pub_;
 
     uint16_t debug_landmark_type_{0};
     uint16_t debug_landmark_subtype_{0};

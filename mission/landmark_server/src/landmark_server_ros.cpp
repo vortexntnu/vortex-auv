@@ -306,6 +306,14 @@ void LandmarkServerNode::timer_callback() {
             std::make_shared<vortex_msgs::action::LandmarkPolling_Result>();
         polling_result->landmarks = landmarks;
         active_landmark_polling_goal_->succeed(polling_result);
+
+        if (debug_ && polling_result_pub_ && !landmarks.landmarks.empty()) {
+            geometry_msgs::msg::PoseStamped msg;
+            msg.header.stamp = this->now();
+            msg.header.frame_id = target_frame_;
+            msg.pose = landmarks.landmarks.front().pose.pose;
+            polling_result_pub_->publish(msg);
+        }
     }
 }
 

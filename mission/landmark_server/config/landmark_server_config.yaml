@@ -28,9 +28,10 @@
         clutter_intensity: 0.01
 
     debug:
-      enable: false
+      enable: true
       topic_name: "landmark_server/debug/landmark_tracks"
       convergence_landmark_topic: "landmark_server/debug/convergence_landmark"
       landmark_pose_topic: "landmark_server/debug/landmark_pose"
-      landmark_type: 0     # 0 = any type
+      polling_result_topic: "landmark_server/debug/polling_result"
+      landmark_type: 5     # 0 = any type
       landmark_subtype: 0  # 0 = any subtype
