@@ -1,13 +1,10 @@
-#include "los_guidance/los_guidance_ros.hpp"
+#include "los_guidance/ros/los_guidance_ros.hpp"
 #include <eigen3/Eigen/src/Geometry/Quaternion.h>
 #include <spdlog/spdlog.h>
-#include <yaml-cpp/node/node.h>
 #include <geometry_msgs/msg/detail/point_stamped__struct.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
-
-#include "los_guidance/lib/types.hpp"
 
 #ifdef NDEBUG
 constexpr bool debug = false;
@@ -34,18 +31,14 @@ LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
         std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
 
     const std::string yaml_path =
-        this->declare_parameter<std::string>("los_config_file");
+        this->declare_parameter<std::string>("los_config_file_path");
 
-    YAML::Node config = get_los_config(yaml_path);
+    // Initialize the state manager
+    state_manager_ = std::make_unique<LosGuidanceStateManager>(yaml_path);
 
-    parse_common_config(config["common"]);
     set_subscribers_and_publisher();
     set_action_server();
     set_service_server();
-    set_adaptive_los_guidance(config);
-    set_proportional_los_guidance(config);
-    set_integral_los_guidance(config);
-    set_vector_field_guidance(config);
 
     spdlog::info(start_message);
 }
@@ -131,112 +124,12 @@ void LosGuidanceNode::set_service_server() {
                                 std::placeholders::_1, std::placeholders::_2));
 }
 
-// Adaptive LOS setup
-void LosGuidanceNode::set_adaptive_los_guidance(YAML::Node config) {
-    auto adaptive_los_config = config["adaptive_los"];
-    auto params = AdaptiveLosParams{};
-
-    try {
-        params.lookahead_distance_h =
-            adaptive_los_config["lookahead_distance_h"].as<double>();
-        params.lookahead_distance_v =
-            adaptive_los_config["lookahead_distance_v"].as<double>();
-        params.adaptation_gain_h =
-            adaptive_los_config["adaptation_gain_h"].as<double>();
-        params.adaptation_gain_v =
-            adaptive_los_config["adaptation_gain_v"].as<double>();
-        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
-
-        adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load adaptive_los parameters: ") + e.what());
-    }
-}
-
-// Proportional LOS setup
-void LosGuidanceNode::set_proportional_los_guidance(YAML::Node config) {
-    auto proportional_los_config = config["prop_los"];
-    auto params = ProportionalLosParams{};
-
-    try {
-        params.lookahead_distance_h =
-            proportional_los_config["lookahead_distance_h"].as<double>();
-        params.lookahead_distance_v =
-            proportional_los_config["lookahead_distance_v"].as<double>();
-
-        proportional_los_ = std::make_unique<ProportionalLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load proportional_los parameters: ") +
-            e.what());
-    }
-}
-
-// Integral LOS setup
-void LosGuidanceNode::set_integral_los_guidance(YAML::Node config) {
-    auto integral_los_config = config["integer_los"];
-    auto params = IntegralLosParams{};
-
-    try {
-        params.proportional_gain_h =
-            integral_los_config["proportional_gain_h"].as<double>();
-        params.proportional_gain_v =
-            integral_los_config["proportional_gain_v"].as<double>();
-        params.integral_gain_h =
-            integral_los_config["integral_gain_h"].as<double>();
-        params.integral_gain_v =
-            integral_los_config["integral_gain_v"].as<double>();
-        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
-
-        integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load integral_los parameters: ") + e.what());
-    }
-}
-
-// Vector field LOS setup
-void LosGuidanceNode::set_vector_field_guidance(YAML::Node config) {
-    auto vector_field_config = config["vector_field_los"];
-    auto params = VectorFieldLosParams{};
-
-    try {
-        params.max_approach_angle_h =
-            vector_field_config["max_approach_angle_h"].as<double>();
-        params.max_approach_angle_v =
-            vector_field_config["max_approach_angle_v"].as<double>();
-        params.proportional_gain_h =
-            vector_field_config["proportional_gain_h"].as<double>();
-        params.proportional_gain_v =
-            vector_field_config["proportional_gain_v"].as<double>();
-        params.time_step = static_cast<double>(time_step_.count()) / 1000.0;
-
-        vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load vector_field_los parameters: ") +
-            e.what());
-    }
-}
-
 // Waypoint callback
 void LosGuidanceNode::waypoint_callback(
     const geometry_msgs::msg::PointStamped::SharedPtr wp_msg) {
-    std::unique_lock<std::mutex> lock(mutex_);
-
     const auto new_wp = types::Point::point_from_ros(wp_msg->point);
 
-    if (!has_active_segment_) {
-        path_inputs_.prev_point = path_inputs_.current_position;
-        path_inputs_.next_point = new_wp;
-        has_active_segment_ = true;
-    } else {
-        path_inputs_.prev_point = path_inputs_.next_point;
-        path_inputs_.next_point = new_wp;
-    }
-
-    lock.unlock();
+    state_manager_->update_waypoint(new_wp);
 
     spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y,
                  new_wp.z);
@@ -246,10 +139,10 @@ void LosGuidanceNode::waypoint_callback(
 void LosGuidanceNode::pose_callback(
     const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
         current_pose) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    path_inputs_.current_position =
+    types::Point position =
         types::Point::point_from_ros(current_pose->pose.pose.position);
-    lock.unlock();
+
+    state_manager_->update_position(position);
 }
 
 // Odometry callback
@@ -263,24 +156,14 @@ void LosGuidanceNode::odom_callback(
 // Euler (yaw) callback
 void LosGuidanceNode::odom_msg_callback(
     const vortex_msgs::msg::PoseEulerStamped::SharedPtr msg) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    current_yaw_ = msg->yaw;
-    lock.unlock();
+    state_manager_->update_yaw(msg->yaw);
 }
 
 // Goal handler
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
     std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
-    types::Inputs inputs_copy;
-
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        inputs_copy = path_inputs_;
-        lock.unlock();
-    }
-
-    if (!is_goal_feasible(inputs_copy, goal)) {
+    if (!state_manager_->is_goal_feasible(goal)) {
         RCLCPP_WARN(this->get_logger(),
                     "Rejected goal request: waypoint is not reachable with "
                     "current pitch limit");
@@ -319,11 +202,8 @@ void LosGuidanceNode::handle_accepted(
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        method_ = static_cast<types::ActiveLosMethod>(request->mode);
-        lock.unlock();
-    }
+    state_manager_->set_los_method(
+        static_cast<types::ActiveLosMethod>(request->mode));
 
     spdlog::info("LOS mode set to {}", static_cast<int>(request->mode));
     response->success = true;
@@ -334,108 +214,25 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
     types::Outputs outputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
 
-    double max_pitch_angle_copy;
-    double current_yaw_copy;
-    double u_desired_copy;
+    double max_pitch_angle = state_manager_->get_max_pitch_angle();
+    double current_yaw = state_manager_->get_current_yaw();
+    double u_desired = state_manager_->get_u_desired();
 
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        max_pitch_angle_copy = max_pitch_angle_;
-        current_yaw_copy = current_yaw_;
-        u_desired_copy = u_desired_;
-    }
-
-    const double clamped_pitch = std::clamp(
-        outputs.theta_d, -max_pitch_angle_copy, max_pitch_angle_copy);
+    const double clamped_pitch =
+        std::clamp(outputs.theta_d, -max_pitch_angle, max_pitch_angle);
 
     reference_msg.pitch = clamped_pitch;
     reference_msg.yaw = outputs.psi_d;
 
-    double yaw_error =
-        vortex::utils::math::ssa(outputs.psi_d - current_yaw_copy);
+    double yaw_error = vortex::utils::math::ssa(outputs.psi_d - current_yaw);
     double abs_err = std::abs(yaw_error);
 
-    double u_cmd = u_desired_copy / (1.0 + 0.5 * abs_err);
-    u_cmd = std::clamp(u_cmd, 0.15, u_desired_copy);
+    double u_cmd = u_desired / (1.0 + 0.5 * abs_err);
+    u_cmd = std::clamp(u_cmd, 0.15, u_desired);
 
     reference_msg.surge = u_cmd;
 
     return reference_msg;
-}
-
-// Check if goal is feasible
-bool LosGuidanceNode::is_goal_feasible(
-    const types::Inputs& inputs,
-    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
-    const auto& current_position = inputs.current_position;
-    const auto& goal_point = goal->waypoint.pose.position;
-
-    const double dx = goal_point.x - current_position.x;
-    const double dy = goal_point.y - current_position.y;
-    const double dz = goal_point.z - current_position.z;
-
-    const double horizontal_distance = std::sqrt(dx * dx + dy * dy);
-    const double required_pitch = std::atan2(-dz, horizontal_distance);
-
-    return std::abs(required_pitch) <= max_pitch_angle_;
-}
-
-// Check if goal is missed
-bool LosGuidanceNode::is_goal_missed(const types::Inputs& inputs) {
-    const double distance_to_goal =
-        (inputs.current_position - inputs.next_point).as_vector().norm();
-
-    const double dt = static_cast<double>(time_step_.count()) / 1000.0;
-
-    if (distance_to_goal < nearest_been_to_goal_) {
-        nearest_been_to_goal_ = distance_to_goal;
-        time_since_nearest_goal_ = 0.0;
-        return false;
-    }
-
-    if (distance_to_goal >
-        nearest_been_to_goal_ + missed_goal_distance_margin_) {
-        time_since_nearest_goal_ += dt;
-    } else {
-        time_since_nearest_goal_ = 0.0;
-    }
-
-    return time_since_nearest_goal_ >= missed_goal_timeout_;
-}
-
-// Load LOS config
-YAML::Node LosGuidanceNode::get_los_config(std::string yaml_file_path) {
-    try {
-        YAML::Node config = YAML::LoadFile(yaml_file_path);
-        return config;
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load LOS config file '") + yaml_file_path +
-            "': " + e.what());
-    }
-}
-
-// Parse common config
-void LosGuidanceNode::parse_common_config(YAML::Node common_config) {
-    try {
-        std::unique_lock<std::mutex> lock(mutex_);
-
-        u_desired_ = common_config["u_desired"].as<double>();
-        max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
-        goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
-        missed_goal_timeout_ =
-            common_config["missed_goal_timeout"].as<double>();
-        missed_goal_distance_margin_ =
-            common_config["missed_goal_distance_margin"].as<double>();
-
-        method_ = static_cast<types::ActiveLosMethod>(
-            common_config["active_los_method"].as<int>());
-
-        lock.unlock();
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load common parameters: ") + e.what());
-    }
 }
 
 // Execute action
@@ -454,26 +251,10 @@ void LosGuidanceNode::execute(
 
     const auto new_wp = types::Point::point_from_ros(los_waypoint);
 
-    {
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (!has_active_segment_) {
-            path_inputs_.prev_point = path_inputs_.current_position;
-            path_inputs_.next_point = new_wp;
-            has_active_segment_ = true;
-        } else {
-            path_inputs_.prev_point = path_inputs_.next_point;
-            path_inputs_.next_point = new_wp;
-        }
-        lock.unlock();
-    }
-
-    adaptive_los_->reset();
+    state_manager_->initialize_goal(new_wp);
 
     auto result =
         std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
-
-    nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
-    time_since_nearest_goal_ = 0.0;
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
@@ -495,56 +276,30 @@ void LosGuidanceNode::execute(
             return;
         }
 
-        types::Inputs inputs_copy;
-        types::ActiveLosMethod method_copy;
         nav_msgs::msg::Odometry::SharedPtr odom_copy;
         double goal_reached_tol_copy;
 
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            inputs_copy = path_inputs_;
-            method_copy = method_;
             odom_copy = debug_current_odom_;
             goal_reached_tol_copy =
                 goal_handle->get_goal()->convergence_threshold;
             lock.unlock();
         }
 
-        if (is_goal_missed(inputs_copy)) {
+        if (state_manager_->is_goal_missed()) {
             result->success = false;
             goal_handle->abort(result);
             spdlog::info("Aborting goal: waypoint missed");
             return;
         }
 
-        types::Outputs outputs;
-
-        switch (method_copy) {
-            case types::ActiveLosMethod::ADAPTIVE:
-                outputs = adaptive_los_->calculate_outputs(inputs_copy);
-                break;
-            case types::ActiveLosMethod::PROPORTIONAL:
-                outputs = proportional_los_->calculate_outputs(inputs_copy);
-                break;
-            case types::ActiveLosMethod::INTEGRAL:
-                outputs = integral_los_->calculate_outputs(inputs_copy);
-                break;
-            case types::ActiveLosMethod::VECTOR_FIELD:
-                outputs = vector_field_los_->calculate_outputs(inputs_copy);
-                break;
-            default:
-                spdlog::error("Invalid LOS method selected");
-                result->success = false;
-                goal_handle->abort(result);
-                return;
-        }
+        types::Outputs outputs = state_manager_->calculate_outputs();
 
         auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
             fill_los_reference(outputs));
 
-        if ((inputs_copy.current_position - inputs_copy.next_point)
-                .as_vector()
-                .norm() < goal_reached_tol_copy) {
+        if (state_manager_->is_goal_reached(goal_reached_tol_copy)) {
             reference_msg->pitch = 0.0;
             reference_msg->surge = 0.0;
 

@@ -30,8 +30,9 @@ add_library(${LIB_NAME} SHARED
   src/lib/proportional_los.cpp
   src/lib/integral_los.cpp
   src/lib/adaptive_los.cpp
-  src/los_guidance_ros.cpp
   src/lib/vector_field_los.cpp
+  src/lib/guidance_manager.cpp
+  src/ros/los_guidance_ros.cpp
 )
 
 ament_target_dependencies(${LIB_NAME}

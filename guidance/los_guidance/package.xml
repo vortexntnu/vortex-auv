@@ -17,6 +17,7 @@
   <depend>vortex_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>vortex_utils_ros</depend>
+  <depend>vortex_utility_nodes</depend>
   <depend>eigen</depend>
   <depend>yaml-cpp</depend>
   <export>
