@@ -45,51 +45,54 @@ LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
 
 // Subscribers + publishers
 void LosGuidanceNode::set_subscribers_and_publisher() {
-    this->declare_parameter<std::string>("topics.pose");
-    this->declare_parameter<std::string>("topics.guidance.los");
-    this->declare_parameter<std::string>("topics.waypoint");
-    this->declare_parameter<std::string>("topics.odom");
-    this->declare_parameter<std::string>(
+    const std::string pose_topic =
+        this->declare_parameter<std::string>("topics.pose");
+    const std::string guidance_topic =
+        this->declare_parameter<std::string>("topics.guidance.los");
+    const std::string waypoint_topic =
+        this->declare_parameter<std::string>("topics.waypoint");
+    const std::string odom_topic =
+        this->declare_parameter<std::string>("topics.odom");
+    const std::string odom_tf_rpy_topic = this->declare_parameter<std::string>(
         "topics.odom_tf_rpy", "/utils/message_publisher/odom_tf_rpy");
-
-    std::string pose_topic = this->get_parameter("topics.pose").as_string();
-    std::string guidance_topic =
-        this->get_parameter("topics.guidance.los").as_string();
-    std::string waypoint_topic =
-        this->get_parameter("topics.waypoint").as_string();
-    std::string odom_topic = this->get_parameter("topics.odom").as_string();
-    std::string odom_tf_rpy_topic =
-        this->get_parameter("topics.odom_tf_rpy").as_string();
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
     reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         guidance_topic, qos_sensor_data);
 
-    state_debug_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
-        "state_debug", qos_sensor_data);
-
     waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
         waypoint_topic, qos_sensor_data,
-        std::bind(&LosGuidanceNode::waypoint_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
+            const auto new_wp = types::Point::point_from_ros(msg->point);
+            state_manager_->update_waypoint(new_wp);
+            spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y,
+                         new_wp.z);
+        });
 
     pose_sub_ = this->create_subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>(
         pose_topic, qos_sensor_data,
-        std::bind(&LosGuidanceNode::pose_callback, this,
-                  std::placeholders::_1));
+        [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+                   msg) {
+            types::Point position =
+                types::Point::point_from_ros(msg->pose.pose.position);
+            state_manager_->update_position(position);
+        });
 
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data,
-        std::bind(&LosGuidanceNode::odom_callback, this,
-                  std::placeholders::_1));
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+            const Eigen::Vector3d euler =
+                vortex::utils::math::quat_to_euler(Eigen::Quaterniond(
+                    msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
+                    msg->pose.pose.orientation.y,
+                    msg->pose.pose.orientation.z));
+            state_manager_->update_yaw(euler.z());
 
-    message_pub_sub_ =
-        this->create_subscription<vortex_msgs::msg::PoseEulerStamped>(
-            odom_tf_rpy_topic, qos_sensor_data,
-            std::bind(&LosGuidanceNode::odom_msg_callback, this,
-                      std::placeholders::_1));
+            std::lock_guard<std::mutex> lock(mutex_);
+            debug_current_odom_ = msg;
+        });
 }
 
 // Action server setup
@@ -98,19 +101,14 @@ void LosGuidanceNode::set_action_server() {
     std::string action_server_name =
         this->get_parameter("action_servers.los").as_string();
 
-    cb_group_ =
-        this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-
     action_server_ =
         rclcpp_action::create_server<vortex_msgs::action::GuidanceWaypoint>(
             this, action_server_name,
-            std::bind(&LosGuidanceNode::handle_goal, this,
-                      std::placeholders::_1, std::placeholders::_2),
-            std::bind(&LosGuidanceNode::handle_cancel, this,
-                      std::placeholders::_1),
-            std::bind(&LosGuidanceNode::handle_accepted, this,
-                      std::placeholders::_1),
-            rcl_action_server_get_default_options(), cb_group_);
+            [this](const auto& uuid, auto goal) {
+                return handle_goal(uuid, std::move(goal));
+            },
+            [this](auto goal_handle) { return handle_cancel(goal_handle); },
+            [this](auto goal_handle) { handle_accepted(goal_handle); });
 }
 
 // Service server setup
@@ -120,8 +118,13 @@ void LosGuidanceNode::set_service_server() {
         this->get_parameter("services.los_mode").as_string();
 
     los_mode_service_ = this->create_service<vortex_msgs::srv::SetLosMode>(
-        service_name, std::bind(&LosGuidanceNode::set_los_mode, this,
-                                std::placeholders::_1, std::placeholders::_2));
+        service_name,
+        [this](
+            const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request>
+                request,
+            std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
+            set_los_mode(request, response);
+        });
 }
 
 // Waypoint callback
@@ -151,12 +154,6 @@ void LosGuidanceNode::odom_callback(
     std::unique_lock<std::mutex> lock(mutex_);
     debug_current_odom_ = msg;
     lock.unlock();
-}
-
-// Euler (yaw) callback
-void LosGuidanceNode::odom_msg_callback(
-    const vortex_msgs::msg::PoseEulerStamped::SharedPtr msg) {
-    state_manager_->update_yaw(msg->yaw);
 }
 
 // Goal handler
@@ -311,6 +308,7 @@ void LosGuidanceNode::execute(
 
         reference_pub_->publish(std::move(reference_msg));
 
+        /*
         if (debug && odom_copy) {
             const auto& v = odom_copy->twist.twist.linear;
             double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -327,7 +325,8 @@ void LosGuidanceNode::execute(
             state_debug_msg.surge = surge;
 
             state_debug_pub_->publish(state_debug_msg);
-        }
+
+        }*/
 
         loop_rate.sleep();
     }

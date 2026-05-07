@@ -3,15 +3,14 @@
 #include <yaml-cpp/node/node.h>
 #include <cmath>
 #include <limits>
+#include "los_guidance/lib/utils.hpp"
 
 namespace vortex::guidance::los {
 
 // Constructor
 LosGuidanceStateManager::LosGuidanceStateManager(
     const std::string& yaml_file_path) {
-    time_step_s_ = 0.1;
-
-    YAML::Node config = get_los_config(yaml_file_path);
+    YAML::Node config = utils::load_yaml_config(yaml_file_path);
 
     parse_common_config(config["common"]);
     set_adaptive_los_guidance(config);
@@ -109,33 +108,32 @@ void LosGuidanceStateManager::set_vector_field_guidance(YAML::Node config) {
     }
 }
 
-// Load LOS config
-YAML::Node LosGuidanceStateManager::get_los_config(std::string yaml_file_path) {
-    try {
-        YAML::Node config = YAML::LoadFile(yaml_file_path);
-        return config;
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load LOS config file '") + yaml_file_path +
-            "': " + e.what());
-    }
-}
-
 // Parse common config
-void LosGuidanceStateManager::parse_common_config(YAML::Node common_config) {
+void LosGuidanceStateManager::parse_common_config(
+    const YAML::Node& common_config) {
     try {
         std::unique_lock<std::mutex> lock(mutex_);
 
         u_desired_ = common_config["u_desired"].as<double>();
         max_pitch_angle_ = common_config["max_pitch_angle"].as<double>();
         goal_reached_tol_ = common_config["goal_reached_tol"].as<double>();
-        missed_goal_timeout_ =
+        missed_goal_timeout_s_ =
             common_config["missed_goal_timeout"].as<double>();
         missed_goal_distance_margin_ =
             common_config["missed_goal_distance_margin"].as<double>();
 
-        method_ = static_cast<types::ActiveLosMethod>(
-            common_config["active_los_method"].as<int>());
+        const auto m = common_config["active_los_method"];
+        if (!m) {
+            throw std::runtime_error(
+                "Missing required field 'active_los_method'");
+        }
+        try {
+            method_ = types::int_to_active_los_method(m.as<int>());
+        } catch (const YAML::BadConversion&) {
+            method_ = types::string_to_active_los_method(m.as<std::string>());
+        }
+
+        time_step_s_ = common_config["time_step_s"].as<double>();
 
         lock.unlock();
     } catch (const YAML::Exception& e) {
@@ -199,7 +197,7 @@ void LosGuidanceStateManager::initialize_goal(const types::Point& new_wp) {
     adaptive_los_->reset();
 
     nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
-    time_since_nearest_goal_ = 0.0;
+    time_since_nearest_goal_s_ = 0.0;
 }
 
 // Check if goal is feasible
@@ -236,18 +234,18 @@ bool LosGuidanceStateManager::is_goal_missed() {
 
     if (distance_to_goal < nearest_been_to_goal_) {
         nearest_been_to_goal_ = distance_to_goal;
-        time_since_nearest_goal_ = 0.0;
+        time_since_nearest_goal_s_ = 0.0;
         return false;
     }
 
     if (distance_to_goal >
         nearest_been_to_goal_ + missed_goal_distance_margin_) {
-        time_since_nearest_goal_ += time_step_s_;
+        time_since_nearest_goal_s_ += time_step_s_;
     } else {
-        time_since_nearest_goal_ = 0.0;
+        time_since_nearest_goal_s_ = 0.0;
     }
 
-    return time_since_nearest_goal_ >= missed_goal_timeout_;
+    return time_since_nearest_goal_s_ >= missed_goal_timeout_s_;
 }
 
 // Check if goal is reached

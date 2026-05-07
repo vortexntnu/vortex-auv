@@ -60,17 +60,10 @@ class LosGuidanceStateManager {
     void set_vector_field_guidance(YAML::Node config);
 
     /**
-     * @brief Loads the LOS guidance YAML configuration file.
-     * @param yaml_file_path Path to the YAML configuration file.
-     * @return YAML::Node Parsed YAML configuration.
-     */
-    YAML::Node get_los_config(std::string yaml_file_path);
-
-    /**
      * @brief Parses common guidance parameters shared by all LOS methods.
      * @param common_config YAML node containing common guidance parameters.
      */
-    void parse_common_config(YAML::Node common_config);
+    void parse_common_config(const YAML::Node& common_config);
 
     /**
      * @brief Checks if the given LOS guidance goal is feasible based on the
@@ -159,9 +152,9 @@ class LosGuidanceStateManager {
     double time_step_s_{};
     types::ActiveLosMethod method_{};
     double nearest_been_to_goal_{std::numeric_limits<double>::max()};
-    double time_since_nearest_goal_{};
+    double time_since_nearest_goal_s_{};
     double missed_goal_distance_margin_{};
-    double missed_goal_timeout_{};
+    double missed_goal_timeout_s_{};
     bool has_active_segment_{false};
 
     std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_{};

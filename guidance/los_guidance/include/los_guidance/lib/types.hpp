@@ -10,6 +10,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <string>
 
 namespace vortex::guidance::los::types {
 
@@ -91,6 +92,47 @@ struct Inputs {
  * @brief Enumerates the available LOS guidance methods.
  */
 enum class ActiveLosMethod { PROPORTIONAL, INTEGRAL, ADAPTIVE, VECTOR_FIELD };
+
+/**
+ * @brief Converts a string to its corresponding ActiveLosMethod enum value.
+ * @param str String representation of the LOS method (case-insensitive variants
+ * accepted, e.g. "ADAPTIVE" or "adaptive").
+ * @return ActiveLosMethod The corresponding enum value.
+ * @throws std::runtime_error if the string does not match a known LOS method.
+ */
+inline ActiveLosMethod string_to_active_los_method(const std::string& str) {
+    if (str == "ADAPTIVE" || str == "adaptive")
+        return ActiveLosMethod::ADAPTIVE;
+    if (str == "PROPORTIONAL" || str == "proportional")
+        return ActiveLosMethod::PROPORTIONAL;
+    if (str == "INTEGRAL" || str == "integral")
+        return ActiveLosMethod::INTEGRAL;
+    if (str == "VECTOR_FIELD" || str == "vector_field")
+        return ActiveLosMethod::VECTOR_FIELD;
+    throw std::runtime_error("Unknown ActiveLosMethod string: '" + str + "'");
+}
+
+/**
+ * @brief Converts an integer to its corresponding ActiveLosMethod enum value.
+ * @param value Integer representation of the LOS method.
+ * @return ActiveLosMethod The corresponding enum value.
+ * @throws std::runtime_error if the integer does not match a known LOS method.
+ */
+inline ActiveLosMethod int_to_active_los_method(int value) {
+    switch (value) {
+        case static_cast<int>(ActiveLosMethod::ADAPTIVE):
+            return ActiveLosMethod::ADAPTIVE;
+        case static_cast<int>(ActiveLosMethod::PROPORTIONAL):
+            return ActiveLosMethod::PROPORTIONAL;
+        case static_cast<int>(ActiveLosMethod::INTEGRAL):
+            return ActiveLosMethod::INTEGRAL;
+        case static_cast<int>(ActiveLosMethod::VECTOR_FIELD):
+            return ActiveLosMethod::VECTOR_FIELD;
+        default:
+            throw std::runtime_error("Unknown ActiveLosMethod numeric value: " +
+                                     std::to_string(value));
+    }
+}
 
 }  // namespace vortex::guidance::los::types
 

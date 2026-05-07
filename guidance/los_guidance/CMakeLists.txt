@@ -33,6 +33,7 @@ add_library(${LIB_NAME} SHARED
   src/lib/vector_field_los.cpp
   src/lib/guidance_manager.cpp
   src/ros/los_guidance_ros.cpp
+  src/lib/utils.cpp
 )
 
 ament_target_dependencies(${LIB_NAME}

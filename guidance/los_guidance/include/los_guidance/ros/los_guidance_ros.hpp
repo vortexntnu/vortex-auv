@@ -155,9 +155,6 @@ class LosGuidanceNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
-    rclcpp::Subscription<vortex_msgs::msg::PoseEulerStamped>::SharedPtr
-        message_pub_sub_;
-    rclcpp::CallbackGroup::SharedPtr cb_group_;
 
     // State manager
     std::unique_ptr<LosGuidanceStateManager> state_manager_;

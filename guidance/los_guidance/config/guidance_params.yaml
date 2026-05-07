@@ -46,6 +46,7 @@ vector_field_los:
   proportional_gain_v: 0.9
 
 common:
+  time_step_s: 0.1
   active_los_method: 2
   u_desired: 0.2
   goal_reached_tol: 0.20
