@@ -308,10 +308,10 @@ void LosGuidanceNode::execute(
 
         reference_pub_->publish(std::move(reference_msg));
 
-        /*
-        if (debug && odom_copy) {
-            const auto& v = odom_copy->twist.twist.linear;
-            double surge = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        /* will shortly be moved to Vortex_utils message publisher node for
+        general debugging purposes if (debug && odom_copy) { const auto& v =
+        odom_copy->twist.twist.linear; double surge = std::sqrt(v.x * v.x + v.y
+        * v.y + v.z * v.z);
 
             vortex_msgs::msg::LOSGuidance state_debug_msg;
             Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
