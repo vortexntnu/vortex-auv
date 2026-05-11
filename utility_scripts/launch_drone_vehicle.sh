@@ -52,11 +52,11 @@ fi
 
 # Select the DP launch file
 if [[ "$CONTROLLER_TYPE" == "adapt_quat" ]]; then
-  DP_LAUNCH="auv_setp dp_quat.launch.py"
+  DP_LAUNCH="auv_setup dp_quat.launch.py"
 elif [[ "$CONTROLLER_TYPE" == "pid" ]]; then
-  DP_LAUNCH="auv_setp dp.launch.py controller_type:=pid orientation_mode:=$ORI_TYPE"
+  DP_LAUNCH="auv_setup dp.launch.py controller_type:=pid orientation_mode:=$ORI_TYPE"
 else
-  DP_LAUNCH="auv_setp dp.launch.py controller_type:=adaptive orientation_mode:=$ORI_TYPE"
+  DP_LAUNCH="auv_setup dp.launch.py controller_type:=adaptive orientation_mode:=$ORI_TYPE"
 fi
 
 echo "[LAUNCH] ori_type=$ORI_TYPE  controller_type=$CONTROLLER_TYPE  dp_launch=$DP_LAUNCH"
