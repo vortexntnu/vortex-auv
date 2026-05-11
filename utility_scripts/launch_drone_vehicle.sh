@@ -70,16 +70,16 @@ tmux kill-session -t "$SESSION" 2>/dev/null
 tmux new-session -d -s "$SESSION" -n "control"
 
 PANE_C1=$(tmux list-panes -t "$SESSION:control" -F '#{pane_id}')
-tmux send-keys -t "$PANE_C1" "s && ros2 launch auv_setup thruster.launch.py" Enter
+tmux send-keys -t "$PANE_C1" "source ~/ros2_ws/install/setup.bash && ros2 launch auv_setup thruster.launch.py" Enter
 
 PANE_C2=$(tmux split-window -h -t "$PANE_C1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_C2" "s && ros2 launch operation_mode_manager operation_mode_manager.launch.py" Enter
+tmux send-keys -t "$PANE_C2" "source ~/ros2_ws/install/setup.bash && ros2 launch operation_mode_manager operation_mode_manager.launch.py" Enter
 
 PANE_C3=$(tmux split-window -v -t "$PANE_C1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_C3" "s && ros2 launch $DP_LAUNCH" Enter
+tmux send-keys -t "$PANE_C3" "source ~/ros2_ws/install/setup.bash && ros2 launch $DP_LAUNCH" Enter
 
 PANE_C4=$(tmux split-window -v -t "$PANE_C2" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_C4" "s" Enter
+tmux send-keys -t "$PANE_C4" "source ~/ros2_ws/install/setup.bash" Enter
 
 tmux select-layout -t "$SESSION:control" tiled
 
@@ -92,13 +92,13 @@ PANE_P1=$(tmux list-panes -t "$SESSION:perception" -F '#{pane_id}')
 tmux send-keys -t "$PANE_P1" "s && ros2 launch auv_setup nucleus_odom_transformer.launch.py" Enter
 
 PANE_P2=$(tmux split-window -h -t "$PANE_P1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_P2" "s" Enter
+tmux send-keys -t "$PANE_P2" "source ~/ros2_ws/install/setup.bash" Enter
 
 PANE_P3=$(tmux split-window -v -t "$PANE_P1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_P3" "s" Enter
+tmux send-keys -t "$PANE_P3" "source ~/ros2_ws/install/setup.bash" Enter
 
 PANE_P4=$(tmux split-window -v -t "$PANE_P2" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_P4" "s" Enter
+tmux send-keys -t "$PANE_P4" "source ~/ros2_ws/install/setup.bash" Enter
 
 tmux select-layout -t "$SESSION:perception" tiled
 
@@ -108,16 +108,16 @@ tmux select-layout -t "$SESSION:perception" tiled
 tmux new-window -t "$SESSION" -n "misc"
 
 PANE_M1=$(tmux list-panes -t "$SESSION:misc" -F '#{pane_id}')
-tmux send-keys -t "$PANE_M1" "s" Enter
+tmux send-keys -t "$PANE_M1" "source ~/ros2_ws/install/setup.bash" Enter
 
 PANE_M2=$(tmux split-window -h -t "$PANE_M1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_M2" "s" Enter
+tmux send-keys -t "$PANE_M2" "source ~/ros2_ws/install/setup.bash" Enter
 
 PANE_M3=$(tmux split-window -v -t "$PANE_M1" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_M3" "s" Enter
+tmux send-keys -t "$PANE_M3" "source ~/ros2_ws/install/setup.bash" Enter
 
 PANE_M4=$(tmux split-window -v -t "$PANE_M2" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_M4" "s" Enter
+tmux send-keys -t "$PANE_M4" "source ~/ros2_ws/install/setup.bash" Enter
 
 tmux select-layout -t "$SESSION:misc" tiled
 
