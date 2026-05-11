@@ -12,6 +12,8 @@ from auv_setup.launch_arg_common import (
 )
 
 
+# Simple launch file to forward INS data from the nucleus and use as odometry source.
+# Launches the nucleus, transforms INS to base_link and sets up the AUV transform tree.
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
