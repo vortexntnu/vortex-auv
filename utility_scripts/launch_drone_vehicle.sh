@@ -89,7 +89,7 @@ tmux select-layout -t "$SESSION:control" tiled
 tmux new-window -t "$SESSION" -n "perception"
 
 PANE_P1=$(tmux list-panes -t "$SESSION:perception" -F '#{pane_id}')
-tmux send-keys -t "$PANE_P1" "s && ros2 launch auv_setup nucleus_odom_transformer.launch.py" Enter
+tmux send-keys -t "$PANE_P1" "source ~/ros2_ws/install/setup.bash && ros2 launch auv_setup nucleus_odom_transformer.launch.py" Enter
 
 PANE_P2=$(tmux split-window -h -t "$PANE_P1" -P -F '#{pane_id}')
 tmux send-keys -t "$PANE_P2" "source ~/ros2_ws/install/setup.bash" Enter
