@@ -65,7 +65,7 @@ class JoystickInterface(Node):
 
     def get_parameters(self):
         """Method to get the parameters from the config file."""
-        self.declare_parameter('drone')
+        self.declare_parameter('drone', Parameter.Type.STRING)
         self._drone = self.get_parameter('drone').value
 
         gain_params = [

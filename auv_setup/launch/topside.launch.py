@@ -47,6 +47,7 @@ def launch_setup(context, *args, **kwargs):
             "drone": drone,
             "orientation_mode": orientation_mode,
             "namespace": namespace,
+            "orientation_mode": orientation_mode,
         }.items(),
     )
 
@@ -75,8 +76,9 @@ def generate_launch_description() -> LaunchDescription:
         + [
             DeclareLaunchArgument(
                 "orientation_mode",
-                default_value="quat",
+                default_value="euler",
                 description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
+                choices=["euler", "quat"],
             ),
             OpaqueFunction(function=launch_setup),
         ]
