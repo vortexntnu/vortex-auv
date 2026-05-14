@@ -2,12 +2,15 @@
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
 #include <array>
+// Need to include utility before asio
+// clang-format off
+#include <utility>
 #include <asio.hpp>
+// clang-format on
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <thread>
-#include <utility>
 #include <vector>
 
 /**
