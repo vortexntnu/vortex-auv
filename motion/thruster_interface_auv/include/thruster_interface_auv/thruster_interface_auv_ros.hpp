@@ -1,10 +1,8 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 
-#include <cstdint>
-#include <string>
-#include <vector>
 #include <array>
+#include <cstdint>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -18,6 +16,8 @@
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <std_msgs/msg/u_int8_multi_array.hpp>
+#include <string>
+#include <vector>
 #include <vortex_msgs/msg/thruster_forces.hpp>
 
 #include <spdlog/sinks/basic_file_sink.h>
