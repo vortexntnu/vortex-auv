@@ -1,28 +1,23 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <algorithm>
+#include <utility>
+#include <asio.hpp>
 #include <array>
-#include <cmath>
 #include <cstdint>
-#include <cstring>
-#include <iostream>
-#include <map>
+#include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 /**
  * @brief struct to hold the parameters for a single thruster
  */
 struct ThrusterParameters {
-    uint8_t mapping;
-    int8_t direction;
-    uint16_t pwm_min;
-    uint16_t pwm_max;
+    std::uint8_t mapping;
+    std::int8_t direction;
+    std::uint16_t pwm_min;
+    std::uint16_t pwm_max;
 };
 
 enum PolySide {
@@ -30,11 +25,21 @@ enum PolySide {
     RIGHT = 1
 };  // vector index for the position of the coefficients in the coeff vector
 
+using FaultEventCallback =
+    std::function<void(std::uint8_t channel, std::uint8_t code)>;
+
+using PGoodEventCallback =
+    std::function<void(std::uint8_t channel, std::uint8_t code)>;
+
+using KillswitchEventCallback = std::function<void()>;
+
+using CurrentMeasurementsCallback =
+    std::function<void(const std::array<float, 8>& currents)>;
+
 /**
  * @brief class instantiated by ThrusterInterfaceAUVNode to control the
  * thrusters, takes the thruster forces and converts them to PWM signals to be
- * sent via I2C to the ESCs (PCA9685 Adafruit 16-Channel 12-bit PWM/Servo
- * Driver)
+ * sent via UART to the ESC controller.
  *
  * @details Based on the datasheets found in /resources, approximate the map
  * with a piecewise (>0 and <0) third order polynomial.
@@ -44,6 +49,9 @@ enum PolySide {
  * all the handling of the other voltages to save resources. Could be
  * re-implemented in the future for more flexibility if we ever need it to
  * operate at different voltages in different situations.
+ *
+ * @note Over UART, the PWM values are packed into a framed packet:
+ * [magic][id][length][payload][checksum], where the payload is 8 uint16_t.
  */
 class ThrusterInterfaceAUVDriver {
    public:
@@ -53,41 +61,57 @@ class ThrusterInterfaceAUVDriver {
      * @brief called from ThrusterInterfaceAUVNode .cpp when instantiating the
      * object, initializes all the params.
      *
-     * @param i2c_bus               bus number used to communicate
-     * @param pico_i2c_address      i2c address of the ESC that drive the
+     * @param serial_device         serial device used to communicate
+     *                              (for example /dev/ttyUSB0)
+     * @param baud_rate             UART baud rate
+     * @param packet_id             packet ID sent in the UART frame
      * @param thruster_parameters   describe mapping, direction, min and max pwm
-     * value for each thruster
-     * @param poly_coeffs           LEFT(<0) and RIGHT(>0) third order
-     * polynomial coefficients
+     *                              value for each thruster
+     * @param right_coeffs          RIGHT(>0) third order polynomial
+     * coefficients
+     * @param left_coeffs           LEFT(<0) third order polynomial coefficients
      */
     ThrusterInterfaceAUVDriver(
-        std::int16_t i2c_bus,
-        int pico_i2c_address,
+        const std::string& serial_device,
+        unsigned int baud_rate,
         const std::vector<ThrusterParameters>& thruster_parameters,
-        const std::vector<std::vector<double>>& poly_coeffs);
+        const std::vector<double>& right_coeffs,
+        const std::vector<double>& left_coeffs);
+
+    /**
+     * @brief initializes UART
+     * @return 0 on success, negative number on failure
+     */
+    int init_uart();
+
     /**
      * @brief calls both 1) interpolate_forces_to_pwm() to
      * convert the thruster forces to PWM values and 2) send_data_to_escs() to
-     * send them to the ESCs via I2C
+     * send them over UART
      *
      * @param thruster_forces_array vector of forces for each thruster
      *
-     * @return std::vector<uint16_t> vector of pwm values sent to each thruster
+     * @return std::optional<std::vector<uint16_t>> vector of pwm values sent to
+     * each thruster, or std::nullopt on failure
      */
-    std::vector<uint16_t> drive_thrusters(
+    std::optional<std::vector<std::uint16_t>> drive_thrusters(
         const std::vector<double>& thruster_forces_array);
 
+    /**
+     * @brief Sets the camera light intensity
+     *
+     * @param[in] percentage float in the range 0-1
+     * @return 0 on success -1 on failure
+     */
+    int set_camera_light(float percentage);
+
+    void set_fault_event_callback(FaultEventCallback callback);
+    void set_pgood_event_callback(PGoodEventCallback callback);
+    void set_killswitch_event_callback(KillswitchEventCallback callback);
+    void set_current_measurements_callback(
+        CurrentMeasurementsCallback callback);
+
    private:
-    int bus_fd_;  ///< file descriptor for the I2C bus (integer >0 that uniquely
-                  ///< identifies the device. -1 if it fails)
-
-    int i2c_bus_;
-    int pico_i2c_address_;
-    std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<std::vector<double>> poly_coeffs_;
-
-    uint16_t idle_pwm_value_;  ///< pwm value when force = 0.00
-
     /**
      * @brief only take the thruster forces and return PWM values
      *
@@ -96,24 +120,22 @@ class ThrusterInterfaceAUVDriver {
      * @return std::vector<uint16_t> vector of pwm values sent to each thruster
      * if we want to publish them for debug purposes
      */
-    std::vector<uint16_t> interpolate_forces_to_pwm(
+    std::vector<std::uint16_t> interpolate_forces_to_pwm(
         const std::vector<double>& thruster_forces_array);
 
     /**
      * @brief scalar map from force to pwm x->y. Choose coefficients [LEFT] or
      * [RIGHT] based on sign(force)
      *
-     * @param force  scalar force value
-     * @param coeffs std::vector<std::vector<double>> coeffs contains the pair
-     * of coefficients
+     * @param force scalar force value
      *
      * @return std::uint16_t scalar pwm value
      */
-    std::uint16_t force_to_pwm(double force,
-                               const std::vector<std::vector<double>>& coeffs);
+    std::uint16_t force_to_pwm(double force);
 
     /**
      * @brief compute y = a*x^3 + b*x^2 + c*x + d
+     *
      * @param force x
      * @param coeffs a,b,c,d
      *
@@ -123,11 +145,25 @@ class ThrusterInterfaceAUVDriver {
 
     /**
      * @brief only takes the pwm values computed and sends them
-     * to the ESCs via I2C
+     * over UART as a framed packet
      *
      * @param thruster_pwm_array vector of pwm values to send
+     * @return 0 on success, -1 on failure
      */
-    void send_data_to_escs(const std::vector<uint16_t>& thruster_pwm_array);
+    int send_data_to_escs(const std::vector<std::uint16_t>& thruster_pwm_array);
+
+    /**
+     * @brief create UART packet with format:
+     * [magic][id][length][payload][checksum]
+     *
+     * @param id packet ID
+     * @param thruster_pwm_array vector of 8 pwm values to send as payload
+     *
+     * @return std::vector<uint8_t> serialized packet bytes
+     */
+    std::vector<std::uint8_t> create_packet(
+        std::uint8_t id,
+        const std::vector<std::uint16_t>& thruster_pwm_array) const;
 
     /**
      * @brief convert Newtons to Kg
@@ -139,17 +175,77 @@ class ThrusterInterfaceAUVDriver {
     static constexpr double to_kg(double force) { return force / 9.80665; }
 
     /**
-     * @brief convert pwm values to i2c bytes
-     *
-     * @param pwm pwm value
-     *
-     * @return std::array<std::uint8_t, 2> i2c data
+     * @brief start the asynchronous UART receive loop
      */
-    static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
-        std::uint16_t pwm) {
-        return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
-                static_cast<std::uint8_t>(pwm & 0xFF)};
-    }
+    void start_receive();
+
+    /**
+     * @brief issue one asynchronous read on the UART port
+     */
+    void do_receive();
+
+    /**
+     * @brief process the accumulated receive buffer and extract valid frames
+     */
+    void process_receive_buffer();
+
+    /**
+     * @brief handle one decoded UART frame
+     *
+     * @param frame_bytes complete frame bytes including header and checksum
+     */
+    void handle_received_frame(const std::vector<std::uint8_t>& frame_bytes);
+
+    /**
+     * @brief compute checksum for framed UART packets
+     *
+     * @param msg_id message id
+     * @param length payload length
+     * @param payload pointer to payload bytes
+     *
+     * @return checksum byte
+     */
+    static std::uint8_t compute_checksum(std::uint8_t msg_id,
+                                         std::uint8_t length,
+                                         const std::uint8_t* payload);
+
+   private:
+    static constexpr std::uint8_t UART_START_BYTE = 0xAA;
+    static constexpr std::size_t MAX_PAYLOAD_SIZE = 64;
+    static constexpr std::size_t READ_CHUNK_SIZE = 256;
+
+    // Outgoing
+    static constexpr std::uint8_t MSG_TURN_THRUSTERS_OFF = 0x01U;
+    static constexpr std::uint8_t MSG_TURN_LIGHTS_OFF = 0x02U;
+    static constexpr std::uint8_t MSG_RESET = 0x03;
+    static constexpr std::uint8_t MSG_SET_THRUSTER_PWM = 0x04;
+    static constexpr std::uint8_t MSG_SET_LIGHT_PWM = 0x05;
+    // Incoming
+    static constexpr std::uint8_t MSG_FLT_EVENT = 0x10;
+    static constexpr std::uint8_t MSG_PGOOD_EVENT = 0x11;
+    static constexpr std::uint8_t MSG_KILLSWITCH_EVENT = 0x12;
+    static constexpr std::uint8_t MSG_CURRENT_MEASUREMENTS = 0x13;
+
+    std::string serial_device_;
+    unsigned int baud_rate_;
+
+    asio::io_context io_;
+    asio::serial_port serial_{io_};
+    std::thread io_thread_;
+
+    std::vector<ThrusterParameters> thruster_parameters_;
+    std::vector<double> right_coeffs_;
+    std::vector<double> left_coeffs_;
+    std::uint16_t idle_pwm_value_{1500};
+
+    std::array<std::uint8_t, READ_CHUNK_SIZE> read_buf_{};
+    std::vector<std::uint8_t> receive_buffer_;
+
+    FaultEventCallback fault_event_callback_;
+    PGoodEventCallback pgood_event_callback_;
+    KillswitchEventCallback killswitch_event_callback_;
+    CurrentMeasurementsCallback current_measurements_callback_;
+
 };
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_

@@ -1,14 +1,29 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <array>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
 #include <memory>
 #include <rclcpp/parameter_event_handler.hpp>
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sstream>
+#include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
-#include <string>
-#include <vector>
 #include <vortex_msgs/msg/thruster_forces.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/u_int8_multi_array.hpp>
+
+#include <spdlog/sinks/basic_file_sink.h>
+
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
 class ThrusterInterfaceAUVNode : public rclcpp::Node {
@@ -26,10 +41,11 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
         const vortex_msgs::msg::ThrusterForces::SharedPtr msg);
 
     /**
-     * @brief publish and send pwm commands to thrusters. Sinchronous with
-     * thruster_forces_callback
+     * @brief receive camera light intensity in range [0.0, 1.0]
+     *
+     * @param msg Float32 intensity message
      */
-    void pwm_callback();
+    void camera_light_callback(const std_msgs::msg::Float32::SharedPtr msg);
 
     /**
      * @brief watchdog callback to check if thruster forces are being received
@@ -43,7 +59,6 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
 
     /**
      * @brief Initialize the parameter handler and a parameter event callback.
-     *
      */
     void initialize_parameter_handler();
 
@@ -52,29 +67,53 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
      */
     void set_publisher();
 
-    int i2c_bus_;
-    int i2c_address_;
+    /**
+     * @brief specific callback for updating debug_flag.
+     */
+    void update_debug_flag(const rclcpp::Parameter& p);
+
+    void pwm_callback();
+
+   private:
+    std::string serial_device_;
+    unsigned int baud_rate_;
+
     std::string subscriber_topic_name_;
     std::string publisher_topic_name_;
+    std::string camera_light_topic_name_;
+
     std::vector<ThrusterParameters> thruster_parameters_;
-    std::vector<std::vector<double>> poly_coeffs_;
+    std::vector<double> left_coeffs_;
+    std::vector<double> right_coeffs_;
 
     std::vector<double> thruster_forces_array_;
-    bool debug_flag_;
+    bool debug_flag_{false};
 
     std::unique_ptr<ThrusterInterfaceAUVDriver>
-        thruster_driver_;  ///<-- pwm driver
-    rclcpp::Subscription<vortex_msgs::msg::ThrusterForces>::
-        SharedPtr  ///<-- thruster forces subscriber
-            thruster_forces_subscriber_;
-    rclcpp::Publisher<
-        std_msgs::msg::Int16MultiArray>::SharedPtr  ///<-- pwm publisher
-        thruster_pwm_publisher_;
+        thruster_driver_;  ///<-- UART/USART thruster driver
+
+    rclcpp::Subscription<vortex_msgs::msg::ThrusterForces>::SharedPtr
+        thruster_forces_subscriber_;  ///<-- thruster forces subscriber
+
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr
+        camera_light_subscriber_;  ///<-- camera light subscriber
+
+    rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr
+        thruster_pwm_publisher_;  ///<-- pwm publisher
+
+    rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr
+        flt_event_publisher_;
+    rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr
+        pgood_event_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr
+        killswitch_event_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr
+        current_measurements_publisher_;
+
     rclcpp::TimerBase::SharedPtr watchdog_timer_;
     rclcpp::Time last_msg_time_;
-    rclcpp::Duration watchdog_timeout_ = std::chrono::seconds(1);
+    rclcpp::Duration watchdog_timeout_ = rclcpp::Duration::from_seconds(1.0);
     bool watchdog_triggered_ = false;
-
     /**
      * @brief Manages parameter events for the node.
      *
@@ -90,11 +129,6 @@ class ThrusterInterfaceAUVNode : public rclcpp::Node {
      * made with the parameter event handler (`param_handler_`).
      */
     rclcpp::ParameterCallbackHandle::SharedPtr debug_flag_parameter_cb;
-
-    /**
-     * specific callback for updating debug_flag.
-     */
-    void update_debug_flag(const rclcpp::Parameter& p);
 };
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
