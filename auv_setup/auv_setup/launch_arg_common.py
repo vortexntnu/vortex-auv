@@ -23,3 +23,15 @@ def resolve_drone_and_namespace(context):
     if namespace == "":
         namespace = drone
     return drone, namespace
+
+
+def declare_config_type_arg(default_config_type="sim"):
+    return DeclareLaunchArgument(
+        "config_type",
+        default_value=default_config_type,
+        description="Controller config variant: 'sim' or 'physical'",
+    )
+
+
+def resolve_config_type(context):
+    return LaunchConfiguration("config_type").perform(context)
