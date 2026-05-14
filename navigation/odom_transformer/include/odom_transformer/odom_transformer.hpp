@@ -45,13 +45,17 @@ class OdomTransformer : public rclcpp::Node {
     Eigen::Matrix3d R_base_sensor_ = Eigen::Matrix3d::Identity();
     Eigen::Vector3d t_base_sensor_ = Eigen::Vector3d::Zero();
 
+    // Odom origin — first received base_link pose in the sensor's world frame
+    bool origin_set_{false};
+    Eigen::Matrix3d R_origin_ = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d p_origin_ = Eigen::Vector3d::Zero();
+
     std::string frame_prefix_;
     std::string sensor_frame_;
     bool tf_loaded_{false};
     bool publish_tf_{false};
     bool publish_pose_{false};
     bool publish_twist_{false};
-    bool rotate_yaw_180_{false};
 };
 
 #endif  // ODOM_TRANSFORMER__ODOM_TRANSFORMER_HPP_

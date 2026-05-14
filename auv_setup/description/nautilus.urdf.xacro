@@ -25,7 +25,7 @@
   <joint name="base_to_dvl" type="fixed">
     <parent link="base_link"/>
     <child link="dvl_link"/>
-    <origin xyz="-0.130 0.003 0.2414" rpy="0.0 0.0 0.0"/>
+    <origin xyz="-0.130 0.003 0.2414" rpy="0.0 0.0 3.14159"/>
   </joint>
 
   <!-- base to pressure sensor -->
