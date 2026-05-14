@@ -22,8 +22,6 @@ OdomTransformer::OdomTransformer(const rclcpp::NodeOptions& options)
     this->declare_parameter<std::string>("topics.output");
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
-    rotate_yaw_180_ = this->declare_parameter<bool>("rotate_yaw_180");
-
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     tf_timer_ = this->create_wall_timer(
@@ -40,10 +38,15 @@ void OdomTransformer::lookup_static_transforms() {
 
         tf_loaded_ = true;
         tf_timer_->cancel();
+
+        Eigen::Vector3d rpy =
+            R_base_sensor_.eulerAngles(2, 1, 0).reverse() * 180.0 / M_PI;
         RCLCPP_INFO(get_logger(),
-                    "Loaded static transform: %s -> %s  t=(%.3f, %.3f, %.3f)",
+                    "Loaded static transform: %s -> %s  "
+                    "t=(%.3f, %.3f, %.3f)  rpy=(%.1f, %.1f, %.1f) deg",
                     frame("base_link").c_str(), frame(sensor_frame_).c_str(),
-                    t_base_sensor_.x(), t_base_sensor_.y(), t_base_sensor_.z());
+                    t_base_sensor_.x(), t_base_sensor_.y(), t_base_sensor_.z(),
+                    rpy.x(), rpy.y(), rpy.z());
         complete_initialization();
     } catch (const tf2::TransformException& ex) {
         RCLCPP_WARN(get_logger(), "TF lookup failed (will retry): %s",
@@ -96,31 +99,29 @@ void OdomTransformer::odom_callback(
                                  msg->twist.twist.angular.y,
                                  msg->twist.twist.angular.z);
 
-    if (rotate_yaw_180_) {
-        // 180 deg yaw flips X and Y, leaves Z unchanged
-        q_odom_sensor = Eigen::Quaterniond(
-                            Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())) *
-                        q_odom_sensor;
-        v_sensor.x() = -v_sensor.x();
-        v_sensor.y() = -v_sensor.y();
-        omega_sensor.x() = -omega_sensor.x();
-        omega_sensor.y() = -omega_sensor.y();
-        msg->pose.pose.position.x = -msg->pose.pose.position.x;
-        msg->pose.pose.position.y = -msg->pose.pose.position.y;
-    }
-
     Eigen::Matrix3d R_odom_sensor = q_odom_sensor.toRotationMatrix();
 
     // Orientation: R_odom_base = R_odom_sensor * R_base_sensor^-1
     Eigen::Matrix3d R_odom_base = R_odom_sensor * R_base_sensor_.transpose();
-    Eigen::Quaterniond q_odom_base(R_odom_base);
-    q_odom_base.normalize();
 
     // Position: p_base = p_sensor - R_odom_base * t_base_sensor
     Eigen::Vector3d p_sensor(msg->pose.pose.position.x,
                              msg->pose.pose.position.y,
                              msg->pose.pose.position.z);
     Eigen::Vector3d p_base = p_sensor - R_odom_base * t_base_sensor_;
+
+    // Capture the first base_link pose as the odom frame origin
+    if (!origin_set_) {
+        R_origin_ = R_odom_base;
+        p_origin_ = p_base;
+        origin_set_ = true;
+    }
+
+    // Express pose relative to origin so t=0 is identity
+    Eigen::Matrix3d R_out = R_origin_.transpose() * R_odom_base;
+    Eigen::Vector3d p_out = R_origin_.transpose() * (p_base - p_origin_);
+    Eigen::Quaterniond q_out(R_out);
+    q_out.normalize();
 
     // Angular velocity: rotate from sensor frame to base_link frame
     Eigen::Vector3d omega_base = R_base_sensor_ * omega_sensor;
@@ -136,13 +137,13 @@ void OdomTransformer::odom_callback(
     out->header.frame_id = frame("odom");
     out->child_frame_id = frame("base_link");
 
-    out->pose.pose.position.x = p_base.x();
-    out->pose.pose.position.y = p_base.y();
-    out->pose.pose.position.z = p_base.z();
-    out->pose.pose.orientation.w = q_odom_base.w();
-    out->pose.pose.orientation.x = q_odom_base.x();
-    out->pose.pose.orientation.y = q_odom_base.y();
-    out->pose.pose.orientation.z = q_odom_base.z();
+    out->pose.pose.position.x = p_out.x();
+    out->pose.pose.position.y = p_out.y();
+    out->pose.pose.position.z = p_out.z();
+    out->pose.pose.orientation.w = q_out.w();
+    out->pose.pose.orientation.x = q_out.x();
+    out->pose.pose.orientation.y = q_out.y();
+    out->pose.pose.orientation.z = q_out.z();
 
     out->twist.twist.linear.x = v_base.x();
     out->twist.twist.linear.y = v_base.y();
@@ -176,9 +177,9 @@ void OdomTransformer::odom_callback(
         tf_msg.header.stamp = msg->header.stamp;
         tf_msg.header.frame_id = frame("odom");
         tf_msg.child_frame_id = frame("base_link");
-        tf_msg.transform.translation.x = p_base.x();
-        tf_msg.transform.translation.y = p_base.y();
-        tf_msg.transform.translation.z = p_base.z();
+        tf_msg.transform.translation.x = p_out.x();
+        tf_msg.transform.translation.y = p_out.y();
+        tf_msg.transform.translation.z = p_out.z();
         tf_msg.transform.rotation = out->pose.pose.orientation;
         tf_broadcaster_->sendTransform(tf_msg);
     }

@@ -10,6 +10,7 @@ from launch.actions import (
 )
 from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from auv_setup.launch_arg_common import (
@@ -47,6 +48,7 @@ def launch_setup(context, *args, **kwargs):
             "drone": drone,
             "orientation_mode": orientation_mode,
             "namespace": namespace,
+            "orientation_mode": orientation_mode,
         }.items(),
     )
 
@@ -75,8 +77,9 @@ def generate_launch_description() -> LaunchDescription:
         + [
             DeclareLaunchArgument(
                 "orientation_mode",
-                default_value="quat",
+                default_value="euler",
                 description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
+                choices=["euler", "quat"],
             ),
             OpaqueFunction(function=launch_setup),
         ]
