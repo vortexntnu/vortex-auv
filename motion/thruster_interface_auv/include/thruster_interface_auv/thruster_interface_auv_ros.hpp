@@ -15,12 +15,12 @@
 #include <rclcpp/qos.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sstream>
-#include <std_msgs/msg/float32.hpp>
-#include <std_msgs/msg/int16_multi_array.hpp>
-#include <vortex_msgs/msg/thruster_forces.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/int16_multi_array.hpp>
 #include <std_msgs/msg/u_int8_multi_array.hpp>
+#include <vortex_msgs/msg/thruster_forces.hpp>
 
 #include <spdlog/sinks/basic_file_sink.h>
 

@@ -1,13 +1,13 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
-#include <utility>
-#include <asio.hpp>
 #include <array>
+#include <asio.hpp>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 /**
@@ -245,7 +245,6 @@ class ThrusterInterfaceAUVDriver {
     PGoodEventCallback pgood_event_callback_;
     KillswitchEventCallback killswitch_event_callback_;
     CurrentMeasurementsCallback current_measurements_callback_;
-
 };
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_

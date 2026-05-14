@@ -1,7 +1,7 @@
 #include "thruster_interface_auv/thruster_interface_auv_ros.hpp"
 
-#include <rclcpp_components/register_node_macro.hpp>
 #include <spdlog/spdlog.h>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 
 #include <algorithm>
@@ -18,9 +18,6 @@ const auto start_message = R"(
    |_| |_| |_|_|   \__,_|___/\__\___|_|    |___|_| |_|\__\___|_|  |_|  \__,_|\___\___|
 
 )";
-
-
-
 
 ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
     const rclcpp::NodeOptions& options)
@@ -56,10 +53,9 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             "thruster_interface_auv/pgood_event",
             vortex::utils::qos_profiles::reliable_profile(10));
 
-    killswitch_event_publisher_ =
-        this->create_publisher<std_msgs::msg::Bool>(
-            "thruster_interface_auv/killswitch_event",
-            vortex::utils::qos_profiles::reliable_profile(10));
+    killswitch_event_publisher_ = this->create_publisher<std_msgs::msg::Bool>(
+        "thruster_interface_auv/killswitch_event",
+        vortex::utils::qos_profiles::reliable_profile(10));
 
     current_measurements_publisher_ =
         this->create_publisher<std_msgs::msg::Float32MultiArray>(
@@ -67,10 +63,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             vortex::utils::qos_profiles::sensor_data_profile(10));
 
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
-        serial_device_,
-        baud_rate_,
-        thruster_parameters_,
-        right_coeffs_,
+        serial_device_, baud_rate_, thruster_parameters_, right_coeffs_,
         left_coeffs_);
 
     thruster_driver_->set_fault_event_callback(
@@ -87,12 +80,11 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             pgood_event_publisher_->publish(msg);
         });
 
-    thruster_driver_->set_killswitch_event_callback(
-        [this]() {
-            std_msgs::msg::Bool msg;
-            msg.data = true;
-            killswitch_event_publisher_->publish(msg);
-        });
+    thruster_driver_->set_killswitch_event_callback([this]() {
+        std_msgs::msg::Bool msg;
+        msg.data = true;
+        killswitch_event_publisher_->publish(msg);
+    });
 
     thruster_driver_->set_current_measurements_callback(
         [this](const std::array<float, 8>& currents) {
@@ -142,7 +134,6 @@ void ThrusterInterfaceAUVNode::thruster_forces_callback(
     this->pwm_callback();
 }
 
-
 void ThrusterInterfaceAUVNode::pwm_callback() {
     auto thruster_pwm_array_opt =
         thruster_driver_->drive_thrusters(thruster_forces_array_);
@@ -156,13 +147,12 @@ void ThrusterInterfaceAUVNode::pwm_callback() {
 
     if (debug_flag_) {
         std_msgs::msg::Int16MultiArray pwm_message;
-        pwm_message.data = std::vector<std::int16_t>(
-            thruster_pwm_array.begin(), thruster_pwm_array.end());
+        pwm_message.data = std::vector<std::int16_t>(thruster_pwm_array.begin(),
+                                                     thruster_pwm_array.end());
 
         thruster_pwm_publisher_->publish(pwm_message);
     }
 }
-
 
 void ThrusterInterfaceAUVNode::watchdog_callback() {
     const auto now = this->now();
@@ -170,8 +160,11 @@ void ThrusterInterfaceAUVNode::watchdog_callback() {
     if ((now - last_msg_time_) >= watchdog_timeout_ && !watchdog_triggered_) {
         thruster_forces_array_.assign(8, 0.0);
 
-        if (!thruster_driver_->drive_thrusters(thruster_forces_array_).has_value()) {
-            spdlog::warn("Watchdog triggered, but failed to send zero command to thrusters");
+        if (!thruster_driver_->drive_thrusters(thruster_forces_array_)
+                 .has_value()) {
+            spdlog::warn(
+                "Watchdog triggered, but failed to send zero command to "
+                "thrusters");
         } else {
             spdlog::warn("Watchdog triggered, all thrusters set to 0.0");
         }
@@ -184,9 +177,8 @@ void ThrusterInterfaceAUVNode::initialize_parameter_handler() {
     param_handler_ = std::make_shared<rclcpp::ParameterEventHandler>(this);
 
     debug_flag_parameter_cb = param_handler_->add_parameter_callback(
-        "debug.flag",
-        std::bind(&ThrusterInterfaceAUVNode::update_debug_flag, this,
-                  std::placeholders::_1));
+        "debug.flag", std::bind(&ThrusterInterfaceAUVNode::update_debug_flag,
+                                this, std::placeholders::_1));
 }
 
 void ThrusterInterfaceAUVNode::update_debug_flag(const rclcpp::Parameter& p) {
@@ -260,7 +252,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     if (thruster_count != 8) {
         spdlog::warn(
-            "UART packet format expects 8 thrusters, but config contains {} entries",
+            "UART packet format expects 8 thrusters, but config contains {} "
+            "entries",
             thruster_count);
     }
 
@@ -277,7 +270,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     }
 
     const double timeout_threshold_param =
-        this->get_parameter("propulsion.thrusters.watchdog_timeout").as_double();
+        this->get_parameter("propulsion.thrusters.watchdog_timeout")
+            .as_double();
 
     watchdog_timeout_ = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::duration<double>(timeout_threshold_param));

@@ -29,8 +29,8 @@ ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
     std::error_code ec;
 
     if (serial_.is_open()) {
-        send_data_to_escs(
-            std::vector<std::uint16_t>(thruster_parameters_.size(), idle_pwm_value_));
+        send_data_to_escs(std::vector<std::uint16_t>(
+            thruster_parameters_.size(), idle_pwm_value_));
 
         serial_.cancel(ec);
         serial_.close(ec);
@@ -86,7 +86,8 @@ int ThrusterInterfaceAUVDriver::init_uart() {
     return 0;
 }
 
-std::vector<std::uint16_t> ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
+std::vector<std::uint16_t>
+ThrusterInterfaceAUVDriver::interpolate_forces_to_pwm(
     const std::vector<double>& thruster_forces_array) {
     std::vector<std::uint16_t> pwm(thruster_forces_array.size());
 
@@ -176,10 +177,8 @@ int ThrusterInterfaceAUVDriver::send_data_to_escs(
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     const auto remaining_size = packet.size() - header_size;
-    const auto payload_bytes_written =
-        asio::write(serial_,
-                    asio::buffer(packet.data() + header_size, remaining_size),
-                    ec);
+    const auto payload_bytes_written = asio::write(
+        serial_, asio::buffer(packet.data() + header_size, remaining_size), ec);
 
     if (ec || payload_bytes_written != remaining_size) {
         return -1;
@@ -197,7 +196,8 @@ int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
     camera_light_pwm_array[0] =
         static_cast<std::uint16_t>(1100 + 800 * percentage);
 
-    const auto packet = create_packet(MSG_SET_LIGHT_PWM, camera_light_pwm_array);
+    const auto packet =
+        create_packet(MSG_SET_LIGHT_PWM, camera_light_pwm_array);
     constexpr std::size_t header_size = 3;
 
     if (packet.size() < header_size) {
@@ -216,10 +216,8 @@ int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     const auto remaining_size = packet.size() - header_size;
-    const auto payload_bytes_written =
-        asio::write(serial_,
-                    asio::buffer(packet.data() + header_size, remaining_size),
-                    ec);
+    const auto payload_bytes_written = asio::write(
+        serial_, asio::buffer(packet.data() + header_size, remaining_size), ec);
 
     if (ec || payload_bytes_written != remaining_size) {
         return -1;
@@ -289,8 +287,8 @@ void ThrusterInterfaceAUVDriver::process_receive_buffer() {
             return;
         }
 
-        auto start_it = std::find(receive_buffer_.begin(), receive_buffer_.end(),
-                                  UART_START_BYTE);
+        auto start_it = std::find(receive_buffer_.begin(),
+                                  receive_buffer_.end(), UART_START_BYTE);
 
         if (start_it == receive_buffer_.end()) {
             receive_buffer_.clear();
@@ -343,10 +341,9 @@ void ThrusterInterfaceAUVDriver::process_receive_buffer() {
 
         handle_received_frame(frame_bytes);
 
-        receive_buffer_.erase(
-            receive_buffer_.begin(),
-            receive_buffer_.begin() +
-                static_cast<std::ptrdiff_t>(full_frame_size));
+        receive_buffer_.erase(receive_buffer_.begin(),
+                              receive_buffer_.begin() +
+                                  static_cast<std::ptrdiff_t>(full_frame_size));
     }
 }
 
@@ -407,7 +404,8 @@ void ThrusterInterfaceAUVDriver::handle_received_frame(
 
         case MSG_CURRENT_MEASUREMENTS: {
             constexpr std::size_t num_currents = 8;
-            constexpr std::size_t expected_length = num_currents * sizeof(float);
+            constexpr std::size_t expected_length =
+                num_currents * sizeof(float);
 
             if (length != expected_length) {
                 break;
