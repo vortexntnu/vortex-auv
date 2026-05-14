@@ -2,10 +2,8 @@
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_ROS_HPP_
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
-
 #include <array>
 #include <ctime>
 #include <fstream>
