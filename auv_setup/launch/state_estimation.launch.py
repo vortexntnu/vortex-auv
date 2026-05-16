@@ -151,10 +151,10 @@ def launch_setup(context, *args, **kwargs):
                 parameters=[
                     {
                         "frame_id": f"/{namespace}/nucleus_frame",
+                        "qos": "best_effort",
                         "connection_params.remote_ip": "10.0.0.42",
                         "connection_params.data_remote_port": 9000,
                         "connection_params.password": "",
-                        "reset_pose_on_start": True,
                         "enable_imu": False,
                         "enable_ins_odom": False,
                         "enable_dvl": True,
@@ -183,7 +183,7 @@ def launch_setup(context, *args, **kwargs):
                         "fast_pressure_settings.sampling_rate": 16,
                         "magnetometer_settings.freq": 75,
                         "magnetometer_settings.mode": 0,
-                        "instrument_settings.rotxy": 180.0,  # Transform currently not working. Maybe fix later
+                        "instrument_settings.rotxy": 0.0,  # Transform currently not working. Maybe fix later
                         "instrument_settings.rotyz": 0.0,
                         "instrument_settings.rotxz": 0.0,
                     }

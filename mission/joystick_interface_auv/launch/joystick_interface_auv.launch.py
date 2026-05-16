@@ -65,6 +65,7 @@ def generate_launch_description() -> LaunchDescription:
                 "orientation_mode",
                 default_value="euler",
                 description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
+                choices=["euler", "quat"],
             ),
             OpaqueFunction(function=launch_setup),
         ]

@@ -12,6 +12,8 @@ from auv_setup.launch_arg_common import (
 )
 
 
+# Simple launch file to forward INS data from the nucleus and use as odometry source.
+# Launches the nucleus, transforms INS to base_link and sets up the AUV transform tree.
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
 
@@ -44,10 +46,10 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {
                 "frame_id": f"{namespace}/nucleus_frame",
+                "qos": "best_effort",
                 "connection_params.remote_ip": "10.0.0.42",
                 "connection_params.data_remote_port": 9000,
                 "connection_params.password": "",
-                "reset_pose_on_start": True,
                 "enable_imu": True,
                 "enable_ins_odom": True,
                 "enable_dvl": True,
@@ -76,7 +78,7 @@ def launch_setup(context, *args, **kwargs):
                 "altimeter_settings.power_level": 0,  # 0=default
                 "magnetometer_settings.freq": 75,
                 "magnetometer_settings.mode": 0,
-                "instrument_settings.rotxy": 180.0,  # Transform currently not working. Maybe fix later
+                "instrument_settings.rotxy": 0.0,  # Transform currently not working. Maybe fix later
                 "instrument_settings.rotyz": 0.0,
                 "instrument_settings.rotxz": 0.0,
             },
@@ -96,7 +98,6 @@ def launch_setup(context, *args, **kwargs):
                 "publish_tf": True,
                 "publish_pose": True,
                 "publish_twist": True,
-                "rotate_yaw_180": True,
                 "topics.input": f"/{namespace}/nucleus/odom",
                 "topics.output": f"/{namespace}/odom",
                 "topics.pose": f"/{namespace}/pose",
