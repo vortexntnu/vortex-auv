@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    K1 : [10.5, 10.5, 13.5, 0.0, 4.0, 4.0] # Outer loop tuning parameters
+    K2 : [20.5, 20.5, 20.5, 0.0, 5.5, 5.5] # Inner loop tuning parameters
+    r_b_bg : [0.01, 0.0, 0.02] # Vector from body centre to centre of gravity
+    adapt_gain : [0.4, 0.1, 0.4, 0.1, 0.4, 0.1, 0.4, 0.1, 0.4, 0.1, 0.4, 0.1] # Tuning parameters for linear and nonlinear damping
+    d_gain : [0.6, 0.6, 0.6, 0.6, 0.6, 0.6] # Tuning parameters for the unmodeled disturbances and uncertanties
