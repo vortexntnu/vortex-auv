@@ -25,7 +25,7 @@ def resolve_drone_and_namespace(context):
     return drone, namespace
 
 
-def declare_config_type_arg(default_config_type="sim"):
+def declare_config_type_arg(default_config_type="physical"):
     return DeclareLaunchArgument(
         "config_type",
         default_value=default_config_type,

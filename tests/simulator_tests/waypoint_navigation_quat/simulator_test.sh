@@ -76,7 +76,7 @@ BRIDGE_PID=$!
 echo "Launched quat-to-euler bridge with PID: $BRIDGE_PID"
 
 # Launch controller separately
-setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py &
+setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py config_type:=sim &
 CONTROLLER_PID=$!
 echo "Launched controller with PID: $CONTROLLER_PID"
 
