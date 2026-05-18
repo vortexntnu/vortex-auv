@@ -18,6 +18,7 @@ find_package(Eigen3 REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(std_srvs REQUIRED)
 
 include_directories(include ${EIGEN3_INCLUDE_DIRS})
 
@@ -36,6 +37,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
   tf2
   tf2_ros
   tf2_eigen
+  std_srvs
 )
 
 rclcpp_components_register_node(
