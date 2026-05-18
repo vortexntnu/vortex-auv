@@ -80,6 +80,17 @@ void OdomTransformer::complete_initialization() {
             this->get_parameter("topics.twist").as_string(), qos);
     }
 
+    reset_origin_srv_ = this->create_service<std_srvs::srv::Trigger>(
+        "reset_odom_origin",
+        [this](const std_srvs::srv::Trigger::Request::SharedPtr,
+               std_srvs::srv::Trigger::Response::SharedPtr response) {
+            origin_set_ = false;
+            response->success = true;
+            response->message =
+                "Odom origin reset; next message sets new origin.";
+            RCLCPP_INFO(get_logger(), "Odom origin reset requested.");
+        });
+
     RCLCPP_INFO(get_logger(), "Odom transformer: %s -> %s", input_topic.c_str(),
                 output_topic.c_str());
 }

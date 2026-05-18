@@ -17,6 +17,7 @@
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
+  <depend>std_srvs</depend>
 
   <exec_depend>auv_setup</exec_depend>
 

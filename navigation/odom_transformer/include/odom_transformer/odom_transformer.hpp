@@ -10,6 +10,7 @@
 #include <memory>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <string>
 #include <tf2_eigen/tf2_eigen.hpp>
 
@@ -33,13 +34,14 @@ class OdomTransformer : public rclcpp::Node {
     std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     rclcpp::TimerBase::SharedPtr tf_timer_;
 
-    // Pub / Sub
+    // Pub / Sub / Services
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr
         pose_pub_;
     rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
         twist_pub_;
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_origin_srv_;
 
     // Transform from base_link to sensor_link
     Eigen::Matrix3d R_base_sensor_ = Eigen::Matrix3d::Identity();
