@@ -24,7 +24,19 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     }
     spdlog::info("frame_prefix set to '{}'", frame_prefix_);
 
-    publish_tf_ = this->declare_parameter<bool>("publish_tf");
+    publish_debug_ = this->declare_parameter<bool>("publish_debug");
+    if (publish_debug_) {
+        spdlog::info(
+            "Debug output enabled: Publishing ESKF outputs on debug/private "
+            "topics and disabling TF publishing.");
+    } else {
+        spdlog::info(
+            "Debug output disabled: Publishing ESKF outputs on standard topics "
+            "and enabling TF publishing.");
+    }
+
+    publish_tf_ =
+        this->declare_parameter<bool>("publish_tf") && !publish_debug_;
     if (publish_tf_) {
         tf_broadcaster_ =
             std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -35,8 +47,6 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
 
     publish_biases_ = this->declare_parameter<bool>("publish_biases");
 
-    // Declare these here so they appear in `ros2 param list` from startup,
-    // even though they are read in complete_initialization().
     this->declare_parameter<int>("publish_rate_ms");
     this->declare_parameter<std::string>("topics.imu");
     this->declare_parameter<std::string>("topics.dvl_twist");
@@ -65,26 +75,46 @@ void ESKFNode::set_subscribers_and_publisher() {
     std::string imu_topic = this->get_parameter("topics.imu").as_string();
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
         imu_topic, qos_sensor_data,
-        std::bind(&ESKFNode::imu_callback, this, std::placeholders::_1));
+        [this](const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
+            imu_callback(msg);
+        });
 
     std::string dvl_topic = this->get_parameter("topics.dvl_twist").as_string();
     dvl_sub_ = this->create_subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>(
         dvl_topic, qos_sensor_data,
-        std::bind(&ESKFNode::dvl_callback, this, std::placeholders::_1));
+        [this](
+            const geometry_msgs::msg::TwistWithCovarianceStamped::ConstSharedPtr
+                msg) { dvl_callback(msg); });
 
     std::string pressure_topic =
         this->get_parameter("topics.pressure_sensor").as_string();
     depth_sub_ = this->create_subscription<sensor_msgs::msg::FluidPressure>(
         pressure_topic, qos_sensor_data,
-        std::bind(&ESKFNode::depth_callback, this, std::placeholders::_1));
+        [this](const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
+            pressure_callback(msg);
+        });
+
+    auto eskf_debug_topic = [](std::string& topic_name) {
+        const std::string prefix = "eskf/";
+
+        if (topic_name.rfind(prefix, 0) != 0) {
+            topic_name = prefix + topic_name;
+        }
+    };
 
     std::string odom_topic = this->get_parameter("topics.odom").as_string();
+    if (publish_debug_) {
+        eskf_debug_topic(odom_topic);
+    }
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
         odom_topic, qos_sensor_data);
 
     if (publish_pose_) {
         std::string pose_topic = this->get_parameter("topics.pose").as_string();
+        if (publish_debug_) {
+            eskf_debug_topic(pose_topic);
+        }
         pose_pub_ = this->create_publisher<
             geometry_msgs::msg::PoseWithCovarianceStamped>(pose_topic,
                                                            qos_sensor_data);
@@ -93,6 +123,9 @@ void ESKFNode::set_subscribers_and_publisher() {
     if (publish_twist_) {
         std::string twist_topic =
             this->get_parameter("topics.twist").as_string();
+        if (publish_debug_) {
+            eskf_debug_topic(twist_topic);
+        }
         twist_pub_ = this->create_publisher<
             geometry_msgs::msg::TwistWithCovarianceStamped>(twist_topic,
                                                             qos_sensor_data);
@@ -202,7 +235,7 @@ void ESKFNode::set_parameters() {
     spdlog::info("add_gravity_to_imu: {}", add_gravity_to_imu_);
 }
 
-void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
+void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
     rclcpp::Time current_time = msg->header.stamp;
 
     if (!first_imu_msg_received_) {
@@ -253,7 +286,7 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) {
 }
 
 void ESKFNode::dvl_callback(
-    const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) {
+    const geometry_msgs::msg::TwistWithCovarianceStamped::ConstSharedPtr msg) {
     SensorDVL dvl_sensor;
 
     dvl_sensor.measurement << msg->twist.twist.linear.x,
@@ -286,8 +319,8 @@ void ESKFNode::dvl_callback(
 #endif
 }
 
-void ESKFNode::depth_callback(
-    const sensor_msgs::msg::FluidPressure::SharedPtr msg) {
+void ESKFNode::pressure_callback(
+    const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
     SensorDepth depth_sensor;
     // the simulation is a gauge sensor so we don't subtract atmospheric
     // pressure.
@@ -448,8 +481,8 @@ void ESKFNode::complete_initialization() {
 
     time_step_ = std::chrono::milliseconds(
         this->get_parameter("publish_rate_ms").as_int());
-    odom_pub_timer_ = this->create_wall_timer(
-        time_step_, std::bind(&ESKFNode::publish_odom, this));
+    odom_pub_timer_ =
+        this->create_wall_timer(time_step_, [this]() { publish_odom(); });
 
     spdlog::info(start_message);
 

@@ -16,7 +16,7 @@
         dvl_frame_t: [ 0.4, 0.0, 0.2 ]
 
         depth_frame_t: [ 0.0, 0.0, 0.0 ]
-      use_tf_transforms: false
+      use_tf_transforms: true
       publish_tf: true
       publish_pose: true
       publish_twist: true
