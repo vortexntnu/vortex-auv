@@ -65,7 +65,6 @@ void LandmarkServerNode::create_reference_publisher() {
 void LandmarkServerNode::create_pose_subscription() {
     std::string landmark_topic =
         this->declare_parameter<std::string>("topics.landmarks");
-    enu_ned_rotation_ = this->declare_parameter<bool>("enu_ned_rotation");
     target_frame_ = this->declare_parameter<std::string>("target_frame");
     auto qos_sensor_profile =
         vortex::utils::qos_profiles::sensor_data_profile(1);
@@ -98,12 +97,6 @@ void LandmarkServerNode::create_pose_subscription() {
             }
 
             auto new_measurements = ros_msg_to_landmarks(pose_tf);
-            if (enu_ned_rotation_) {
-                std::ranges::for_each(new_measurements, [](auto& m) {
-                    m.pose.set_ori(vortex::utils::math::enu_ned_rotation(
-                        m.pose.ori_quaternion()));
-                });
-            }
             {
                 std::lock_guard<std::mutex> lock(measurements_mtx_);
                 measurements_ = std::move(new_measurements);
@@ -170,9 +163,9 @@ void LandmarkServerNode::create_convergence_action_server() {
 void LandmarkServerNode::create_reference_action_client() {
     std::string reference_action_name =
         this->declare_parameter<std::string>("action_servers.reference_filter");
-    reference_filter_client_ = rclcpp_action::create_client<
-        vortex_msgs::action::ReferenceFilterWaypoint>(this,
-                                                      reference_action_name);
+    reference_filter_client_ =
+        rclcpp_action::create_client<vortex_msgs::action::GuidanceWaypoint>(
+            this, reference_action_name);
     if (!reference_filter_client_->wait_for_action_server(
             std::chrono::seconds(3))) {
         spdlog::warn("ReferenceFilter server not ready");
@@ -269,9 +262,19 @@ void LandmarkServerNode::timer_callback() {
     if (debug_) {
         publish_debug_tracks();
         publish_convergence_landmark_debug();
+        publish_debug_landmark_pose();
     }
 
     convergence_update();
+
+    if (active_landmark_polling_goal_ &&
+        active_landmark_polling_goal_->is_canceling()) {
+        auto result =
+            std::make_shared<vortex_msgs::action::LandmarkPolling_Result>();
+        active_landmark_polling_goal_->canceled(result);
+        active_landmark_polling_goal_ = nullptr;
+        return;
+    }
 
     if (active_landmark_polling_goal_ &&
         active_landmark_polling_goal_->is_active()) {
@@ -294,6 +297,9 @@ void LandmarkServerNode::timer_callback() {
         if (!found) {
             return;
         }
+        spdlog::info(
+            "LandmarkPolling: found landmark(s) for type={}, subtype={}", type,
+            subtype);
         vortex_msgs::msg::LandmarkArray landmarks =
             tracks_to_landmark_msgs(type, subtype);
         auto polling_result =

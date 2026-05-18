@@ -13,7 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Function to terminate processes safely on error
 cleanup() {
     echo "Error detected. Cleaning up..."
-    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$OP_MODE_PID" || true
+    kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" || true
     exit 1
 }
 trap cleanup ERR
@@ -76,7 +76,7 @@ BRIDGE_PID=$!
 echo "Launched quat-to-euler bridge with PID: $BRIDGE_PID"
 
 # Launch controller separately
-setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py &
+setsid ros2 launch dp_adapt_backs_controller dp_adapt_backs_controller.launch.py config_type:=sim &
 CONTROLLER_PID=$!
 echo "Launched controller with PID: $CONTROLLER_PID"
 
@@ -113,6 +113,6 @@ else
 fi
 
 # Terminate processes
-kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$BAG_PID" -"$OP_MODE_PID"
+kill -TERM -"$SIM_PID" -"$NAUTILUS_PID" -"$CONTROLLER_PID" -"$FILTER_PID" -"$BRIDGE_PID" -"$BAG_PID"
 
 echo "Test completed successfully."

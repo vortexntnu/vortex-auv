@@ -1,5 +1,6 @@
 #include "los_guidance/los_guidance_ros.hpp"
 #include <spdlog/spdlog.h>
+#include <geometry_msgs/msg/detail/point_stamped__struct.hpp>
 #include <vortex/utils/ros/qos_profiles.hpp>
 
 const auto start_message = R"(
@@ -41,7 +42,7 @@ void LOSGuidanceNode::set_subscribers_and_publisher() {
     reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
         guidance_topic, qos_sensor_data);
 
-    waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+    waypoint_sub_ = this->create_subscription<geometry_msgs::msg::Point>(
         waypoint_topic, qos_sensor_data,
         std::bind(&LOSGuidanceNode::waypoint_callback, this,
                   std::placeholders::_1));
@@ -61,7 +62,7 @@ void LOSGuidanceNode::set_action_server() {
         this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
 
     action_server_ =
-        rclcpp_action::create_server<vortex_msgs::action::LOSGuidance>(
+        rclcpp_action::create_server<vortex_msgs::action::GuidanceWaypoint>(
             this, action_server_name,
             std::bind(&LOSGuidanceNode::handle_goal, this,
                       std::placeholders::_1, std::placeholders::_2),
@@ -94,7 +95,7 @@ void LOSGuidanceNode::set_adaptive_los_guidance() {
 }
 
 void LOSGuidanceNode::waypoint_callback(
-    const geometry_msgs::msg::PointStamped::SharedPtr los_waypoint) {
+    const geometry_msgs::msg::Point::SharedPtr los_waypoint) {
     fill_los_waypoints(*los_waypoint);
     adaptive_los_guidance_->update_angles(last_point_, next_point_);
     spdlog::info("Received waypoint");
@@ -110,7 +111,7 @@ void LOSGuidanceNode::pose_callback(
 
 rclcpp_action::GoalResponse LOSGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const vortex_msgs::action::LOSGuidance::Goal> goal) {
+    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
     (void)goal;
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -127,7 +128,7 @@ rclcpp_action::GoalResponse LOSGuidanceNode::handle_goal(
 
 rclcpp_action::CancelResponse LOSGuidanceNode::handle_cancel(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     spdlog::info("Received request to cancel goal");
     (void)goal_handle;
@@ -136,20 +137,20 @@ rclcpp_action::CancelResponse LOSGuidanceNode::handle_cancel(
 
 void LOSGuidanceNode::handle_accepted(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     execute(goal_handle);
 }
 
 void LOSGuidanceNode::fill_los_waypoints(
-    const geometry_msgs::msg::PointStamped& los_waypoint) {
+    const geometry_msgs::msg::Point& los_waypoint) {
     last_point_.x = eta_.x;
     last_point_.y = eta_.y;
     last_point_.z = eta_.z;
 
-    next_point_.x = los_waypoint.point.x;
-    next_point_.y = los_waypoint.point.y;
-    next_point_.z = los_waypoint.point.z;
+    next_point_.x = los_waypoint.x;
+    next_point_.y = los_waypoint.y;
+    next_point_.z = los_waypoint.z;
 }
 
 vortex_msgs::msg::LOSGuidance LOSGuidanceNode::fill_los_reference() {
@@ -163,7 +164,7 @@ vortex_msgs::msg::LOSGuidance LOSGuidanceNode::fill_los_reference() {
 
 void LOSGuidanceNode::execute(
     const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSGuidance>>
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -175,14 +176,15 @@ void LOSGuidanceNode::execute(
 
     spdlog::info("Executing goal");
 
-    const geometry_msgs::msg::PointStamped los_waypoint =
-        goal_handle->get_goal()->goal;
+    const geometry_msgs::msg::Point los_waypoint =
+        goal_handle->get_goal()->waypoint.pose.position;
 
     fill_los_waypoints(los_waypoint);
 
     adaptive_los_guidance_->update_angles(last_point_, next_point_);
 
-    auto result = std::make_shared<vortex_msgs::action::LOSGuidance::Result>();
+    auto result =
+        std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 

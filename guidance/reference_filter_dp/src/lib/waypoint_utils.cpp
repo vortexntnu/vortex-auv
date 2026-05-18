@@ -49,6 +49,31 @@ Eigen::Vector6d apply_mode_logic(const Eigen::Vector6d& reference_in,
             reference_out(5) =
                 current_state(5) + ssa(reference_in(5) - current_state(5));
             break;
+
+        case WaypointMode::POSITION_AND_YAW:
+            reference_out(3) = 0.0;
+            reference_out(4) = 0.0;
+            reference_out(5) =
+                current_state(5) + ssa(reference_in(5) - current_state(5));
+            break;
+
+        case WaypointMode::XY_AND_YAW:
+            reference_out(2) = current_state(2);
+            reference_out(3) = 0.0;
+            reference_out(4) = 0.0;
+            reference_out(5) =
+                current_state(5) + ssa(reference_in(5) - current_state(5));
+            break;
+
+        case WaypointMode::XY_FORWARD_DIR: {
+            const double dx = reference_in(0) - current_state(0);
+            const double dy = reference_in(1) - current_state(1);
+            reference_out(2) = current_state(2);
+            reference_out(3) = 0.0;
+            reference_out(4) = 0.0;
+            reference_out(5) = ssa(std::atan2(dy, dx));
+            break;
+        }
     }
 
     return reference_out;
@@ -74,6 +99,12 @@ bool has_converged(const Eigen::Vector6d& measured_pose,
                 return ea.norm();
             case WaypointMode::FORWARD_HEADING:
                 return std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
+            case WaypointMode::POSITION_AND_YAW:
+                return std::sqrt(ep.squaredNorm() + ea(2) * ea(2));
+            case WaypointMode::XY_AND_YAW:
+                return std::sqrt(ep.head<2>().squaredNorm() + ea(2) * ea(2));
+            case WaypointMode::XY_FORWARD_DIR:
+                return ep.head<2>().norm();
             case WaypointMode::FULL_POSE:
             default:
                 return std::sqrt(ep.squaredNorm() + ea.squaredNorm());
