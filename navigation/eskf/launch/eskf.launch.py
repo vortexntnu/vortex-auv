@@ -14,6 +14,9 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
+    debug_output = (
+        LaunchConfiguration('debug_output').perform(context).lower() == 'true'
+    )
 
     drone_params = os.path.join(
         get_package_share_directory("auv_setup"),
@@ -42,6 +45,7 @@ def launch_setup(context, *args, **kwargs):
             eskf_params,
             drone_params,
             {"frame_prefix": namespace},
+            {"publish_debug": debug_output},
         ],
         output="screen",
     )
@@ -55,8 +59,13 @@ def generate_launch_description():
         default_value='false',
         description='Set to "false" to load real-world hardware parameters.',
     )
+    debug_output_arg = DeclareLaunchArgument(
+        'debug_output',
+        default_value='true',
+        description='If true, publish ESKF outputs on debug/private topics and disable TF publishing.',
+    )
     return LaunchDescription(
-        [sim_arg]
+        [sim_arg, debug_output_arg]
         + declare_drone_and_namespace_args()
         + [OpaqueFunction(function=launch_setup)]
     )

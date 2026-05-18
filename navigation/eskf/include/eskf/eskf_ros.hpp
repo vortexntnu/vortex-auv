@@ -22,7 +22,6 @@
 #include <tf2_eigen/tf2_eigen.hpp>
 #include "eskf/eskf.hpp"
 #include "eskf/typedefs.hpp"
-#include "spdlog/spdlog.h"
 
 class ESKFNode : public rclcpp::Node {
    public:
@@ -32,14 +31,16 @@ class ESKFNode : public rclcpp::Node {
    private:
     // @brief Callback function for the imu topic
     // @param msg: Imu message containing the imu data
-    void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg);
+    void imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg);
 
     // @brief Callback function for the dvl topic
     // @param msg: TwistWithCovarianceStamped message containing the dvl data
     void dvl_callback(
-        const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg);
+        const geometry_msgs::msg::TwistWithCovarianceStamped::ConstSharedPtr
+            msg);
 
-    void depth_callback(const sensor_msgs::msg::FluidPressure::SharedPtr msg);
+    void pressure_callback(
+        const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg);
 
     // @brief Publish the odometry message
     void publish_odom();
@@ -120,6 +121,8 @@ class ESKFNode : public rclcpp::Node {
     std::string frame(const std::string& name) const {
         return frame_prefix_.empty() ? name : frame_prefix_ + "/" + name;
     }
+
+    bool publish_debug_{false};
 
     // Flags and Storage
     std::string frame_prefix_{""};
