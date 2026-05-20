@@ -200,7 +200,7 @@ void ESKFNode::set_parameters() {
     }
     Eigen::Matrix15d P = createDiagonalMatrix<15>(diag_p_init);
 
-    Eigen::Vector3d g_vec(0.0, 0.0, this->gravity);
+    Eigen::Vector3d g_vec(0.0, 0.0, gravity_);
 
     EskfParams eskf_params{
         .Q = Q,
@@ -293,10 +293,10 @@ void ESKFNode::dvl_callback(
 void ESKFNode::pressure_callback(
     const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
     SensorDepth depth_sensor;
-    double p_gauge = pressure_is_gauge_
+    const double p_gauge = pressure_is_gauge_
                          ? msg->fluid_pressure
-                         : msg->fluid_pressure - atmospheric_pressure;
-    depth_sensor.measurement = p_gauge / (water_density * gravity);
+                         : msg->fluid_pressure - atmospheric_pressure_;
+    depth_sensor.measurement = p_gauge / (water_density_ * gravity_);
     depth_sensor.measurement_noise = msg->variance;
 
     eskf_->depth_update(depth_sensor);
@@ -442,10 +442,10 @@ void ESKFNode::lookup_static_transforms() {
 void ESKFNode::complete_initialization() {
     set_subscribers_and_publisher();
     // gravity, water density and atmospheric pressure.
-    this->gravity = this->declare_parameter<double>("gravity", 9.81);
-    this->water_density =
+    this->gravity_ = this->declare_parameter<double>("gravity", 9.81);
+    this->water_density_ =
         this->declare_parameter<double>("water_density", 1000.0);
-    this->atmospheric_pressure =
+    this->atmospheric_pressure_ =
         this->declare_parameter<double>("atmospheric_pressure", 100000.0);
     this->pressure_is_gauge_ =
         this->declare_parameter<bool>("pressure_is_gauge");
