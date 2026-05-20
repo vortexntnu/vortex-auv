@@ -100,4 +100,13 @@
     <limit lower="-0.033" upper="0" effort="0" velocity="0"/>
   </joint>
 
+  <!-- Virtual reference frame at the centre of the gripper jaw opening -->
+  <link name="grip_point"></link>
+
+  <joint name="grip_point_joint" type="fixed">
+    <parent link="shoulder"/>
+    <child link="grip_point"/>
+    <origin xyz="0.2505 0.0 0.0" rpy="0.0 0.0 0.0"/>
+  </joint>
+
 </robot>
