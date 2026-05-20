@@ -59,7 +59,7 @@ class ESKFNode : public rclcpp::Node {
     void complete_initialization();
 
     // @brief broadcast the State as a TF
-    void publish_tf(const StateQuat& nom_state,
+    void publish_tf(const NominalState& nom_state,
                     const rclcpp::Time& current_time);
 
     // Subscribers and Publishers
@@ -132,7 +132,6 @@ class ESKFNode : public rclcpp::Node {
     bool publish_pose_{false};
     bool publish_twist_{false};
     bool publish_biases_{false};
-    bool add_gravity_to_imu_{false};
 
     // hold the transfer from Sensor -> Base Link
     Eigen::Isometry3d Tf_base_imu_ = Eigen::Isometry3d::Identity();

@@ -43,7 +43,7 @@ std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(
     return {A_d, GQG_d};
 }
 
-Eigen::Matrix3x16d calculate_hx(const StateQuat& current_nom_state_) {
+Eigen::Matrix3x16d calculate_hx(const NominalState& current_nom_state_) {
     Eigen::Matrix3x16d Hx = Eigen::Matrix3x16d::Zero();
 
     Eigen::Quaterniond q = current_nom_state_.quat.normalized();
@@ -73,7 +73,8 @@ Eigen::Matrix3x16d calculate_hx(const StateQuat& current_nom_state_) {
     return Hx;
 }
 
-Eigen::Matrix3x15d calculate_h_jacobian(const StateQuat& current_nom_state_) {
+Eigen::Matrix3x15d calculate_h_jacobian(
+    const NominalState& current_nom_state_) {
     Eigen::Matrix16x15d x_delta = Eigen::Matrix16x15d::Zero();
     x_delta.block<6, 6>(0, 0) = Eigen::Matrix6d::Identity();
     x_delta.block<4, 3>(6, 6) =
@@ -85,7 +86,7 @@ Eigen::Matrix3x15d calculate_h_jacobian(const StateQuat& current_nom_state_) {
     return H;
 }
 
-Eigen::Vector3d calculate_h(const StateQuat& current_nom_state_) {
+Eigen::Vector3d calculate_h(const NominalState& current_nom_state_) {
     Eigen::Vector3d h;
     Eigen::Matrix3d R_bn =
         current_nom_state_.quat.normalized().toRotationMatrix().transpose();
@@ -143,7 +144,7 @@ void ESKF::error_state_prediction(const ImuMeasurement& imu_meas,
     Eigen::Matrix15d A_d, GQG_d;
     std::tie(A_d, GQG_d) = van_loan_discretization(A_c, G_c, dt);
 
-    StateEuler next_error_state;
+    ErrorState next_error_state;
     current_error_state_.covariance =
         A_d * current_error_state_.covariance * A_d.transpose() + GQG_d;
 }
@@ -182,12 +183,12 @@ void ESKF::depth_update(const SensorDepth& depth_meas) {
 
 // DVL sensor model implementations
 
-Eigen::VectorXd SensorDVL::innovation(const StateQuat& state) const {
+Eigen::VectorXd SensorDVL::innovation(const NominalState& state) const {
     Eigen::Vector3d innovation = this->measurement - calculate_h(state);
     return innovation;
 }
 
-Eigen::MatrixXd SensorDVL::jacobian(const StateQuat& state) const {
+Eigen::MatrixXd SensorDVL::jacobian(const NominalState& state) const {
     Eigen::Matrix3x15d H = calculate_h_jacobian(state);
     return H;
 }
@@ -198,14 +199,14 @@ Eigen::MatrixXd SensorDVL::noise_covariance() const {
 
 // Depth sensor model implementations
 
-Eigen::VectorXd SensorDepth::innovation(const StateQuat& state) const {
+Eigen::VectorXd SensorDepth::innovation(const NominalState& state) const {
     double predicted_depth = state.pos[2];
     Eigen::VectorXd innovation(1);
     innovation(0) = this->measurement - predicted_depth;
     return innovation;
 }
 
-Eigen::MatrixXd SensorDepth::jacobian(const StateQuat& /*state*/) const {
+Eigen::MatrixXd SensorDepth::jacobian(const NominalState& /*state*/) const {
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(1, 15);
     H(0, 2) = 1.0;
     return H;

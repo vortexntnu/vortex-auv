@@ -44,14 +44,14 @@ Eigen::Matrix<double, N, N> createDiagonalMatrix(
     return Eigen::Map<const Eigen::Matrix<double, N, 1>>(diag.data())
         .asDiagonal();
 }
-struct StateQuat {
+struct NominalState {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Quaterniond quat = Eigen::Quaterniond::Identity();
     Eigen::Vector3d gyro_bias = Eigen::Vector3d::Zero();
     Eigen::Vector3d accel_bias = Eigen::Vector3d::Zero();
 
-    StateQuat() = default;
+    NominalState() = default;
 
     Eigen::Vector16d as_vector() const {
         Eigen::Vector16d vec{};
@@ -60,8 +60,8 @@ struct StateQuat {
         return vec;
     }
 
-    StateQuat operator-(const StateQuat& other) const {
-        StateQuat diff{};
+    NominalState operator-(const NominalState& other) const {
+        NominalState diff{};
         diff.pos = pos - other.pos;
         diff.vel = vel - other.vel;
         diff.quat = quat * other.quat.inverse();
@@ -71,7 +71,7 @@ struct StateQuat {
     }
 };
 
-struct StateEuler {
+struct ErrorState {
     Eigen::Vector3d pos = Eigen::Vector3d::Zero();
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Vector3d euler = Eigen::Vector3d::Zero();
@@ -112,25 +112,26 @@ struct DvlMeasurement {
 };
 
 template <typename T>
-concept SensorModelConcept = requires(const T& meas, const StateQuat& state) {
-    { meas.innovation(state) } -> std::convertible_to<Eigen::VectorXd>;
-    { meas.jacobian(state) } -> std::convertible_to<Eigen::MatrixXd>;
-    { meas.noise_covariance() } -> std::convertible_to<Eigen::MatrixXd>;
-};  // NOLINT(readability/braces)
+concept SensorModelConcept =
+    requires(const T& meas, const NominalState& state) {
+        { meas.innovation(state) } -> std::convertible_to<Eigen::VectorXd>;
+        { meas.jacobian(state) } -> std::convertible_to<Eigen::MatrixXd>;
+        { meas.noise_covariance() } -> std::convertible_to<Eigen::MatrixXd>;
+    };  // NOLINT(readability/braces)
 
 struct SensorDVL {
     Eigen::Vector3d measurement;
     Eigen::Matrix3d measurement_noise;
-    Eigen::VectorXd innovation(const StateQuat& state) const;
-    Eigen::MatrixXd jacobian(const StateQuat& state) const;
+    Eigen::VectorXd innovation(const NominalState& state) const;
+    Eigen::MatrixXd jacobian(const NominalState& state) const;
     Eigen::MatrixXd noise_covariance() const;
 };
 
 struct SensorDepth {
     double measurement;
     double measurement_noise;
-    Eigen::VectorXd innovation(const StateQuat& state) const;
-    Eigen::MatrixXd jacobian(const StateQuat& state) const;
+    Eigen::VectorXd innovation(const NominalState& state) const;
+    Eigen::MatrixXd jacobian(const NominalState& state) const;
     Eigen::MatrixXd noise_covariance() const;
 };
 
