@@ -202,37 +202,13 @@ void ESKFNode::set_parameters() {
 
     Eigen::Vector3d g_vec(0.0, 0.0, this->gravity);
 
-    std::vector<double> initial_gyro_bias =
-        this->declare_parameter<std::vector<double>>(
-            "initial_gyro_bias", std::vector<double>{0.0, 0.0, 0.0});
-    spdlog::info("initial_gyro_bias: [{}, {}, {}]", initial_gyro_bias[0],
-                 initial_gyro_bias[1], initial_gyro_bias[2]);
-    if (initial_gyro_bias.size() != 3) {
-        throw std::runtime_error("initial_gyro_bias must have length 3");
-    }
-
-    std::vector<double> initial_accel_bias =
-        this->declare_parameter<std::vector<double>>(
-            "initial_accel_bias", std::vector<double>{0.0, 0.0, 0.0});
-    spdlog::info("initial_accel_bias: [{}, {}, {}]", initial_accel_bias[0],
-                 initial_accel_bias[1], initial_accel_bias[2]);
-    if (initial_accel_bias.size() != 3) {
-        throw std::runtime_error("initial_accel_bias must have length 3");
-    }
-
     EskfParams eskf_params{
         .Q = Q,
         .P = P,
         .g_ = g_vec,
-        .initial_gyro_bias =
-            Eigen::Map<Eigen::Vector3d>(initial_gyro_bias.data()),
-        .initial_accel_bias =
-            Eigen::Map<Eigen::Vector3d>(initial_accel_bias.data())};
+    };
 
     eskf_ = std::make_unique<ESKF>(eskf_params);
-
-    add_gravity_to_imu_ = this->declare_parameter<bool>("add_gravity_to_imu");
-    spdlog::info("add_gravity_to_imu: {}", add_gravity_to_imu_);
 }
 
 void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
@@ -271,11 +247,6 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
     // a_corrected = a_meas - omega x (omega x T)
     Eigen::Vector3d centripetal_accel = omega.cross(omega.cross(T_imu_eskf_));
     accel_aligned -= centripetal_accel;
-
-    if (add_gravity_to_imu_) {
-        Eigen::Matrix3d R = nom_state.quat.normalized().toRotationMatrix();
-        accel_aligned -= R.transpose() * eskf_->get_gravity();
-    }
 
     imu_measurement.accel = accel_aligned;
 

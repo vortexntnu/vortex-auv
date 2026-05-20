@@ -19,9 +19,6 @@ ESKF::ESKF(const EskfParams& params) : Q_(params.Q) {
 
     // Initialize Nominal Quaternion to Identity
     current_nom_state_.quat = Eigen::Quaterniond::Identity();
-    // Initialize nominal bias values
-    current_nom_state_.gyro_bias = params.initial_gyro_bias;
-    current_nom_state_.accel_bias = params.initial_accel_bias;
 }
 
 std::pair<Eigen::Matrix15d, Eigen::Matrix15d> ESKF::van_loan_discretization(
