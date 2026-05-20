@@ -138,10 +138,9 @@ class ESKFNode : public rclcpp::Node {
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d Tf_base_depth_ = Eigen::Isometry3d::Identity();
 
-    // gravity, water density and atmospheric pressure parameters
-    double gravity;
-    double water_density;
-    double atmospheric_pressure;
+    double gravity_;
+    double water_density_;
+    double atmospheric_pressure_;
     bool pressure_is_gauge_{false};
 };
 
