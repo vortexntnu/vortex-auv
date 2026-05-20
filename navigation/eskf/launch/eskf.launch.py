@@ -27,13 +27,15 @@ def launch_setup(context, *args, **kwargs):
 
     use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
 
-    if use_sim:
-        param_file_name = "eskf_params.yaml"
-    else:
-        param_file_name = "eskf_params_real_world.yaml"
-
+    param_file_name = "eskf_params.yaml" if use_sim else "eskf_params_real_world.yaml"
     eskf_params = os.path.join(
         get_package_share_directory("eskf"), "config", param_file_name
+    )
+
+    environment = 'stonefish_sim' if use_sim else LaunchConfiguration('environment').perform(context)
+    env_params = os.path.join(
+        get_package_share_directory("auv_setup"),
+        "config", "environments", f"{environment}.yaml",
     )
 
     eskf_node = Node(
@@ -43,6 +45,7 @@ def launch_setup(context, *args, **kwargs):
         namespace=namespace,
         parameters=[
             eskf_params,
+            env_params,
             drone_params,
             {"frame_prefix": namespace},
             {"publish_debug": debug_output},
@@ -59,13 +62,21 @@ def generate_launch_description():
         default_value='false',
         description='Set to "false" to load real-world hardware parameters.',
     )
+    environment_arg = DeclareLaunchArgument(
+        'environment',
+        default_value='trondheim_freshwater',
+        description=(
+            'Environment config to load from auv_setup/config/environments/. '
+            'If use_sim is true env config is set to stonefish_sim'),
+        choices=['longbeach', 'stonefish_sim', 'trondheim_freshwater', 'trondheim_saltwater'],
+    )
     debug_output_arg = DeclareLaunchArgument(
         'debug_output',
         default_value='true',
         description='If true, publish ESKF outputs on debug/private topics and disable TF publishing.',
     )
     return LaunchDescription(
-        [sim_arg, debug_output_arg]
+        [sim_arg, environment_arg, debug_output_arg]
         + declare_drone_and_namespace_args()
         + [OpaqueFunction(function=launch_setup)]
     )

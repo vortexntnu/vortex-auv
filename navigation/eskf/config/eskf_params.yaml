@@ -22,8 +22,4 @@
       publish_twist: true
       publish_rate_ms: 5
       publish_biases: false
-      # environmental parameters
-      atmospheric_pressure: 101000.0 # [Pa]
-      water_density: 1026.0 # [kg/m3]
-      gravity: 9.82841
       pressure_is_gauge: true # Stonefish publishes gauge pressure
