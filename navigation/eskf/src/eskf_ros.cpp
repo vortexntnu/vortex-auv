@@ -293,13 +293,12 @@ void ESKFNode::dvl_callback(
 void ESKFNode::pressure_callback(
     const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
     SensorDepth depth_sensor;
-    // the simulation is a gauge sensor so we don't subtract atmospheric
-    // pressure.
-    depth_sensor.measurement =
-        -msg->fluid_pressure / (this->water_density * this->gravity);
+    double p_gauge = pressure_is_gauge_
+                         ? msg->fluid_pressure
+                         : msg->fluid_pressure - atmospheric_pressure;
+    depth_sensor.measurement = p_gauge / (water_density * gravity);
     depth_sensor.measurement_noise = msg->variance;
 
-    // spdlog::info("depth meas is: {}",depth_sensor.measurement);
     eskf_->depth_update(depth_sensor);
 
 #ifndef NDEBUG
@@ -448,6 +447,8 @@ void ESKFNode::complete_initialization() {
         this->declare_parameter<double>("water_density", 1000.0);
     this->atmospheric_pressure =
         this->declare_parameter<double>("atmospheric_pressure", 100000.0);
+    this->pressure_is_gauge_ =
+        this->declare_parameter<bool>("pressure_is_gauge");
     set_parameters();
 
     time_step_ = std::chrono::milliseconds(
