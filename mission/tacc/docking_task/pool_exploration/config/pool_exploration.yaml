@@ -1,0 +1,55 @@
+/**:
+  ros__parameters:
+    # Topics
+    line_sub_topic: "/line_detection/line_segments"
+    pose_sub_topic: "/pose" 
+    sonar_info_sub_topic: "/moby/fls/sonar_info"
+    debug_topic: "/debug"
+
+    # Publish
+    publish_rate_ms: 200
+
+    # Frames / TF
+    odom_frame: "moby/odom"
+    base_frame: "moby/base_link"
+    sonar_frame: "moby/sonar_link"
+
+    # Corner/docking params
+    min_wall_distance_m: 0.5
+    max_wall_distance_m: 10.0
+
+    far_wall_heading_angle_threshold: 1.6 # gammel?
+    parallel_heading_angle_threshold_rad: 0.4
+    perpendicular_heading_angle_threshold_rad: 1.35
+
+    min_corner_angle_rad: 1.50
+    max_corner_angle_rad: 1.70
+    right_wall_offset_m: 2.5 #flytter langs høyre veggen
+    far_wall_offset_m: 4.0 #flytter langs far wall
+
+    right_wall_max_y_m: 0.4
+    far_wall_min_x_m: 0.5
+
+    right_dist: -0.1 # ENDRE NAVN ?
+    choose_right_corner: 1
+    
+    # Waypoint
+    switching_threshold: 0.5
+    overwrite_prior_waypoints: true
+    take_priority: true
+
+# FOR MAP LOGIC
+    map_pub_topic: "/map" 
+    map_frame: "map"
+
+    # Map / grid
+    size_x: 1000.0
+    size_y: 1000.0
+    resolution: 0.1
+    frame_id: "map"
+
+    # Map cells
+    unknown_cell: -1
+    occupied_cell: 100
+
+    enu_to_ned: false
