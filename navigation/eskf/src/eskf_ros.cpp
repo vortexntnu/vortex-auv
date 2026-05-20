@@ -234,10 +234,7 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
 
     Eigen::Vector3d accel_aligned = R_imu_eskf_ * raw_accel;
 
-    // currently the gyro and the accelorometer are rotated differently in sim.
-    // should be changed with the actual drone params.
-    // Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
-    Eigen::Vector3d gyro_aligned = raw_gyro;
+    Eigen::Vector3d gyro_aligned = R_imu_eskf_ * raw_gyro;
     imu_measurement.gyro = gyro_aligned;
 
     // lever arm correction for accelerometer
