@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
-    Kp_x: -80.0
-    Kp_y: -90.0
+    Kp_x: 80.0
+    Kp_y: 90.0
     Kp_z: 120.0
     Kp_roll: 35.0
     Kp_pitch: 35.0
