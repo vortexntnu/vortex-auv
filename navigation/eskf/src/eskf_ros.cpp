@@ -241,7 +241,7 @@ void ESKFNode::imu_callback(const sensor_msgs::msg::Imu::ConstSharedPtr msg) {
     imu_measurement.gyro = gyro_aligned;
 
     // lever arm correction for accelerometer
-    StateQuat nom_state = eskf_->get_nominal_state();
+    NominalState nom_state = eskf_->get_nominal_state();
     Eigen::Vector3d omega = gyro_aligned - nom_state.gyro_bias;
 
     // a_corrected = a_meas - omega x (omega x T)
@@ -270,7 +270,7 @@ void ESKFNode::dvl_callback(
         msg->twist.covariance[13], msg->twist.covariance[14];
 
     // Apply the rotation and translation corrections to the DVL measurement
-    StateQuat nom_state = eskf_->get_nominal_state();
+    NominalState nom_state = eskf_->get_nominal_state();
     // get the angular velocity
     Eigen::Vector3d omega_corrected =
         latest_gyro_measurement_ - nom_state.gyro_bias;
@@ -312,8 +312,8 @@ void ESKFNode::pressure_callback(
 
 void ESKFNode::publish_odom() {
     nav_msgs::msg::Odometry odom_msg;
-    StateQuat nom_state = eskf_->get_nominal_state();
-    StateEuler error_state_ = eskf_->get_error_state();
+    NominalState nom_state = eskf_->get_nominal_state();
+    ErrorState error_state_ = eskf_->get_error_state();
 
     odom_msg.pose.pose.position.x = nom_state.pos.x();
     odom_msg.pose.pose.position.y = nom_state.pos.y();
@@ -463,7 +463,7 @@ void ESKFNode::complete_initialization() {
 #endif
 }
 
-void ESKFNode::publish_tf(const StateQuat& nom_state,
+void ESKFNode::publish_tf(const NominalState& nom_state,
                           const rclcpp::Time& time) {
     geometry_msgs::msg::TransformStamped tf_msg;
 

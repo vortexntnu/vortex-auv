@@ -21,9 +21,9 @@ class ESKF {
 
     void depth_update(const SensorDepth& depth_meas);
 
-    inline StateQuat get_nominal_state() const { return current_nom_state_; }
+    inline NominalState get_nominal_state() const { return current_nom_state_; }
 
-    inline StateEuler get_error_state() const { return current_error_state_; }
+    inline ErrorState get_error_state() const { return current_error_state_; }
 
     inline double get_nis() const { return nis_; }
 
@@ -75,10 +75,10 @@ class ESKF {
     double nis_{};
 
     // Member variable for the current error state
-    StateEuler current_error_state_{};
+    ErrorState current_error_state_{};
 
     // Member variable for the current nominal state
-    StateQuat current_nom_state_{};
+    NominalState current_nom_state_{};
 
     // gravity
     Eigen::Vector3d g_{0.0, 0.0, 9.82841};
@@ -95,13 +95,13 @@ class ESKF {
 };
 
 // Measurement in world frame --> h(x)
-Eigen::Vector3d calculate_h(const StateQuat& current_nom_state_);
+Eigen::Vector3d calculate_h(const NominalState& current_nom_state_);
 
 // Jacobian of h(x) with respect to the error state --> H
-Eigen::Matrix3x15d calculate_h_jacobian(const StateQuat& current_nom_state_);
+Eigen::Matrix3x15d calculate_h_jacobian(const NominalState& current_nom_state_);
 
 // Jacobian of h(x) with respect to the nominal state --> Hx
-Eigen::Matrix3x16d calculate_hx(const StateQuat& current_nom_state_);
+Eigen::Matrix3x16d calculate_hx(const NominalState& current_nom_state_);
 
 double compute_nis(const Eigen::VectorXd& innovation, const Eigen::MatrixXd& S);
 
