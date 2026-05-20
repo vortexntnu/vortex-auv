@@ -15,9 +15,6 @@ auto start_message{R"(
 
 ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     : Node("eskf_node", options) {
-    use_tf_transforms_ = this->declare_parameter<bool>("use_tf_transforms");
-    tf_sensors_loaded_ = !use_tf_transforms_;
-
     frame_prefix_ = this->declare_parameter<std::string>("frame_prefix", "");
     if (!frame_prefix_.empty() && frame_prefix_.back() == '/') {
         frame_prefix_.pop_back();
@@ -55,7 +52,21 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     this->declare_parameter<std::string>("topics.pose");
     this->declare_parameter<std::string>("topics.twist");
 
-    if (use_tf_transforms_) {
+    imu_use_tf_transform_ =
+        this->declare_parameter<bool>("sensors.imu.use_tf_transform");
+    dvl_use_tf_transform_ =
+        this->declare_parameter<bool>("sensors.dvl.use_tf_transform");
+    dvl_use_msg_noise_ =
+        this->declare_parameter<bool>("sensors.dvl.use_msg_noise");
+    pressure_use_tf_transform_ =
+        this->declare_parameter<bool>("sensors.pressure.use_tf_transform");
+    pressure_use_msg_noise_ =
+        this->declare_parameter<bool>("sensors.pressure.use_msg_noise");
+
+    const bool any_use_tf = imu_use_tf_transform_ || dvl_use_tf_transform_ ||
+                            pressure_use_tf_transform_;
+
+    if (any_use_tf) {
         tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         tf_listener_ =
             std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -149,33 +160,52 @@ void ESKFNode::set_subscribers_and_publisher() {
 }
 
 void ESKFNode::set_parameters() {
-    if (!use_tf_transforms_) {
-        std::vector<double> R_imu_correction =
+    if (!imu_use_tf_transform_) {
+        std::vector<double> R_imu =
             this->declare_parameter<std::vector<double>>(
-                "transform.imu_frame_r");
+                "sensors.imu.transform.r");
         R_imu_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-            R_imu_correction.data());
+            R_imu.data());
 
-        std::vector<double> T_imu_correction =
+        std::vector<double> T_imu =
             this->declare_parameter<std::vector<double>>(
-                "transform.imu_frame_t");
-        T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu_correction.data());
+                "sensors.imu.transform.t");
+        T_imu_eskf_ = Eigen::Map<Eigen::Vector3d>(T_imu.data());
+    }
 
-        std::vector<double> R_dvl_correction =
+    if (!dvl_use_tf_transform_) {
+        std::vector<double> R_dvl =
             this->declare_parameter<std::vector<double>>(
-                "transform.dvl_frame_r");
+                "sensors.dvl.transform.r");
         R_dvl_eskf_ = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(
-            R_dvl_correction.data());
+            R_dvl.data());
 
-        std::vector<double> T_dvl_correction =
+        std::vector<double> T_dvl =
             this->declare_parameter<std::vector<double>>(
-                "transform.dvl_frame_t");
-        T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl_correction.data());
+                "sensors.dvl.transform.t");
+        T_dvl_eskf_ = Eigen::Map<Eigen::Vector3d>(T_dvl.data());
+    }
 
-        std::vector<double> T_depth_correction =
+    if (!pressure_use_tf_transform_) {
+        std::vector<double> T_depth =
             this->declare_parameter<std::vector<double>>(
-                "transform.depth_frame_t");
-        T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth_correction.data());
+                "sensors.pressure.transform.t");
+        T_depth_eskf_ = Eigen::Map<Eigen::Vector3d>(T_depth.data());
+    }
+
+    if (!dvl_use_msg_noise_) {
+        auto diag = this->declare_parameter<std::vector<double>>(
+            "sensors.dvl.measurement_noise_std_diag");
+        if (diag.size() != 3) {
+            throw std::runtime_error(
+                "sensors.dvl.measurement_noise_std_diag must have length 3");
+        }
+        dvl_measurement_noise_std_ = Eigen::Vector3d(diag[0], diag[1], diag[2]);
+    }
+
+    if (!pressure_use_msg_noise_) {
+        pressure_measurement_noise_ = this->declare_parameter<double>(
+            "sensors.pressure.measurement_noise");
     }
 
     std::vector<double> diag_Q_std;
@@ -260,11 +290,16 @@ void ESKFNode::dvl_callback(
     dvl_sensor.measurement << msg->twist.twist.linear.x,
         msg->twist.twist.linear.y, msg->twist.twist.linear.z;
 
-    dvl_sensor.measurement_noise << msg->twist.covariance[0],
-        msg->twist.covariance[1], msg->twist.covariance[2],
-        msg->twist.covariance[6], msg->twist.covariance[7],
-        msg->twist.covariance[8], msg->twist.covariance[12],
-        msg->twist.covariance[13], msg->twist.covariance[14];
+    if (dvl_use_msg_noise_) {
+        dvl_sensor.measurement_noise << msg->twist.covariance[0],
+            msg->twist.covariance[1], msg->twist.covariance[2],
+            msg->twist.covariance[6], msg->twist.covariance[7],
+            msg->twist.covariance[8], msg->twist.covariance[12],
+            msg->twist.covariance[13], msg->twist.covariance[14];
+    } else {
+        dvl_sensor.measurement_noise =
+            dvl_measurement_noise_std_.array().square().matrix().asDiagonal();
+    }
 
     // Apply the rotation and translation corrections to the DVL measurement
     NominalState nom_state = eskf_->get_nominal_state();
@@ -291,10 +326,17 @@ void ESKFNode::pressure_callback(
     const sensor_msgs::msg::FluidPressure::ConstSharedPtr msg) {
     SensorDepth depth_sensor;
     const double p_gauge = pressure_is_gauge_
-                         ? msg->fluid_pressure
-                         : msg->fluid_pressure - atmospheric_pressure_;
+                               ? msg->fluid_pressure
+                               : msg->fluid_pressure - atmospheric_pressure_;
     depth_sensor.measurement = p_gauge / (water_density_ * gravity_);
-    depth_sensor.measurement_noise = msg->variance;
+
+    const double pressure_variance =
+        pressure_use_msg_noise_ && msg->variance > 0.0
+            ? msg->variance
+            : pressure_measurement_noise_;
+
+    depth_sensor.measurement_noise =
+        pressure_variance / std::pow(water_density_ * gravity_, 2);
 
     eskf_->depth_update(depth_sensor);
 
@@ -412,27 +454,32 @@ void ESKFNode::publish_odom() {
 
 void ESKFNode::lookup_static_transforms() {
     try {
-        Tf_base_imu_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
-            frame("base_link"), frame("imu_link"), tf2::TimePointZero));
-        R_imu_eskf_ = Tf_base_imu_.rotation();
-        T_imu_eskf_ = Tf_base_imu_.translation();
+        if (imu_use_tf_transform_) {
+            Tf_base_imu_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
+                frame("base_link"), frame("imu_link"), tf2::TimePointZero));
+            R_imu_eskf_ = Tf_base_imu_.rotation();
+            T_imu_eskf_ = Tf_base_imu_.translation();
+        }
 
-        Tf_base_dvl_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
-            frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
-        R_dvl_eskf_ = Tf_base_dvl_.rotation();
-        T_dvl_eskf_ = Tf_base_dvl_.translation();
+        if (dvl_use_tf_transform_) {
+            Tf_base_dvl_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
+                frame("base_link"), frame("dvl_link"), tf2::TimePointZero));
+            R_dvl_eskf_ = Tf_base_dvl_.rotation();
+            T_dvl_eskf_ = Tf_base_dvl_.translation();
+        }
 
-        Tf_base_depth_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
-            frame("base_link"), frame("pressure_sensor_link"),
-            tf2::TimePointZero));
-        T_depth_eskf_ = Tf_base_depth_.translation();
+        if (pressure_use_tf_transform_) {
+            Tf_base_depth_ = tf2::transformToEigen(tf_buffer_->lookupTransform(
+                frame("base_link"), frame("pressure_sensor_link"),
+                tf2::TimePointZero));
+            T_depth_eskf_ = Tf_base_depth_.translation();
+        }
 
-        tf_sensors_loaded_ = true;
         tf_timer_->cancel();
-        spdlog::info("All static transforms loaded successfully.");
+        spdlog::info("All required static transforms loaded successfully.");
         complete_initialization();
     } catch (const tf2::TransformException& ex) {
-        spdlog::warn("TF Lookup failed (will retry): {}", ex.what());
+        spdlog::warn("TF lookup failed (will retry): {}", ex.what());
     }
 }
 

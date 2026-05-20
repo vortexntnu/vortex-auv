@@ -32,10 +32,16 @@ def launch_setup(context, *args, **kwargs):
         get_package_share_directory("eskf"), "config", param_file_name
     )
 
-    environment = 'stonefish_sim' if use_sim else LaunchConfiguration('environment').perform(context)
+    environment = (
+        'stonefish_sim'
+        if use_sim
+        else LaunchConfiguration('environment').perform(context)
+    )
     env_params = os.path.join(
         get_package_share_directory("auv_setup"),
-        "config", "environments", f"{environment}.yaml",
+        "config",
+        "environments",
+        f"{environment}.yaml",
     )
 
     eskf_node = Node(
@@ -67,8 +73,14 @@ def generate_launch_description():
         default_value='trondheim_freshwater',
         description=(
             'Environment config to load from auv_setup/config/environments/. '
-            'If use_sim is true env config is set to stonefish_sim'),
-        choices=['longbeach', 'stonefish_sim', 'trondheim_freshwater', 'trondheim_saltwater'],
+            'If use_sim is true env config is set to stonefish_sim'
+        ),
+        choices=[
+            'longbeach',
+            'stonefish_sim',
+            'trondheim_freshwater',
+            'trondheim_saltwater',
+        ],
     )
     debug_output_arg = DeclareLaunchArgument(
         'debug_output',
