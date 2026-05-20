@@ -81,7 +81,7 @@ class ESKF {
     StateQuat current_nom_state_{};
 
     // gravity
-    Eigen::Vector3d g_{0.0, 0.0, -9.82841};
+    Eigen::Vector3d g_{0.0, 0.0, 9.82841};
 
     // accelometer noise parameters
     float accm_std_{0.0};
