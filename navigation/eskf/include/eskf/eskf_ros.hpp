@@ -142,6 +142,7 @@ class ESKFNode : public rclcpp::Node {
     double gravity;
     double water_density;
     double atmospheric_pressure;
+    bool pressure_is_gauge_{false};
 };
 
 #endif  // ESKF__ESKF_ROS_HPP_
