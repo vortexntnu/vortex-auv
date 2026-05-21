@@ -136,7 +136,7 @@ class ESKFNode : public rclcpp::Node {
 
     bool dvl_use_tf_transform_{true};
     bool dvl_use_msg_noise_{true};
-    Eigen::Vector3d dvl_measurement_noise_std_{0.1};
+    Eigen::Vector3d dvl_measurement_noise_std_{0.1, 0.1, 0.1};
     Eigen::Isometry3d Tf_base_dvl_ = Eigen::Isometry3d::Identity();
 
     bool pressure_use_tf_transform_{true};
