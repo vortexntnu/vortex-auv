@@ -3,12 +3,13 @@
 # Pressure value from 10 year average via wolframalpha.com
 # Density from wolgframalpha.com query "ocean density" (default parameters)
 # Gravity value from EGM2008 12th order via wolframalpha.com
+/**:
+  ros__parameters:
+    atmosphere:
+      pressure: 101000.0 # [Pa]
 
-atmosphere:
-  pressure: 101000 # [Pa]
+    water:
+      density: 1026.0 # [kg/m3]
 
-water:
-  density: 1026 # [kg/m3]
-
-gravity:
-  acceleration: 9.82841
+    gravity:
+      acceleration: 9.82841

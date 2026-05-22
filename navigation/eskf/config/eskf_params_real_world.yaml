@@ -1,0 +1,37 @@
+/**:
+  eskf_node:
+    ros__parameters:
+      diag_Q_std: [0.05, 0.05, 0.1, 0.01, 0.01, 0.02, 0.001, 0.001, 0.001, 0.0001, 0.0001, 0.0001]
+      diag_p_init: [1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]
+      sensors:
+        imu: # Kongsberg Mini MRU
+          use_tf_transform: true
+          transform:
+            r: [ 1.0,  0.0,  0.0,
+                  0.0,  1.0,  0.0,
+                  0.0,  0.0,  1.0 ]
+            t: [ 0.0, 0.0, 0.0 ]
+
+        dvl: # Nortek Nucleus 1000
+          use_tf_transform: true
+          use_msg_noise: true
+          measurement_noise_std_diag: [0.1, 0.1, 0.1] # [m/s]
+          transform:
+            r: [ 0.0, -1.0,  0.0,
+                  1.0,  0.0,  0.0,
+                  0.0,  0.0,  1.0 ]
+            t: [ 0.4, 0.0, 0.2 ]
+
+        pressure: # MS5837 blue robotics pressure sensor
+          use_tf_transform: true
+          use_msg_noise: false                # MS5837 driver publishes variance=0, use config noise
+          measurement_noise: 40000.0 # [Pa^2] pressure variance
+          transform:
+            t: [ 0.0, 0.0, 0.0 ]
+
+      publish_tf: true
+      publish_pose: true
+      publish_twist: true
+      publish_rate_ms: 5
+      publish_biases: true
+      pressure_is_gauge: false # MS5837 publishes absolute pressure per ROS convention

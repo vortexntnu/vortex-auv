@@ -45,8 +45,8 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "drone": drone,
-            "namespace": namespace,
             "orientation_mode": orientation_mode,
+            "namespace": namespace,
         }.items(),
     )
 

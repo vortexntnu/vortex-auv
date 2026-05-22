@@ -12,7 +12,7 @@ add_executable(
 
 target_compile_definitions(${TEST_BINARY_NAME} PRIVATE
     DRONE_YAML_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../../../auv_setup/config/robots/nautilus.yaml"
-    CONTROLLER_YAML_PATH="${CMAKE_SOURCE_DIR}/config/adapt_params_nautilus.yaml"
+    CONTROLLER_YAML_PATH="${CMAKE_SOURCE_DIR}/config/adapt_params_nautilus_sim.yaml"
 )
 
 target_link_libraries(

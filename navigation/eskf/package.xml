@@ -1,16 +1,15 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>pid_controller_dp_euler</name>
-  <version>0.0.0</version>
-  <description>PID controller for DP using Euler angles</description>
-  <maintainer email="andeshog@stud.ntnu.no">andeshog</maintainer>
+  <name>eskf</name>
+  <version>2.0.0</version>
+  <description>Error-state Kalman filter</description>
+  <maintainer email="talha104choudhry@gmail.com">talhanc</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>eigen</depend>
@@ -18,6 +17,8 @@
   <depend>vortex_msgs</depend>
   <depend>vortex_utils</depend>
   <depend>vortex_utils_ros</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
