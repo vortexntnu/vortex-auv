@@ -101,29 +101,6 @@ def launch_setup(context, *args, **kwargs):
             )
         )
 
-    if (
-        LaunchConfiguration('include_pressure_to_depth').perform(context).lower()
-        == 'true'
-    ):
-        nodes.append(
-            Node(
-                package='vortex_utility_nodes',
-                executable='pressure_to_depth_node',
-                name='pressure_to_depth',
-                namespace=namespace,
-                parameters=[
-                    env_params,
-                    {
-                        'atmospheric_pressure': 101500.0,
-                        'transform_to_base_link': LaunchConfiguration(
-                            'pressure_transform_to_base_link'
-                        ).perform(context).lower() == 'true',
-                    },
-                ],
-                output='screen',
-            )
-        )
-
     return nodes
 
 
@@ -155,16 +132,6 @@ def generate_launch_description():
                 'include_odom_transformer',
                 default_value='true',
                 description='If true, launch the odom_transformer node alongside the ESKF.',
-            ),
-            DeclareLaunchArgument(
-                'include_pressure_to_depth',
-                default_value='true',
-                description='If true, launch the pressure_to_depth node alongside the ESKF.',
-            ),
-            DeclareLaunchArgument(
-                'pressure_transform_to_base_link',
-                default_value='true',
-                description='If true, shift pressure depth from pressure_sensor_link to base_link frame via TF.',
             ),
         ]
         + declare_drone_and_namespace_args()
