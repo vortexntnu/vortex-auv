@@ -289,8 +289,8 @@ void LandmarkServerNode::handle_reset(
     convergence_last_known_track_.reset();
     rf_state_ = RFState::IDLE;
 
-    track_manager_ =
-        std::make_unique<vortex::filtering::PoseTrackManager>(track_manager_config_);
+    track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
+        track_manager_config_);
 
     spdlog::info("LandmarkServer: reset complete");
     response->success = true;

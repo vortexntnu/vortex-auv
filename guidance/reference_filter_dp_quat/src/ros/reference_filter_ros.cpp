@@ -101,9 +101,8 @@ void ReferenceFilterNode::set_reset_service() {
     std::string service_name = this->declare_parameter<std::string>(
         "services.reset", "reference_filter/reset");
     reset_service_ = this->create_service<std_srvs::srv::Trigger>(
-        service_name,
-        std::bind(&ReferenceFilterNode::handle_reset, this,
-                  std::placeholders::_1, std::placeholders::_2));
+        service_name, std::bind(&ReferenceFilterNode::handle_reset, this,
+                                std::placeholders::_1, std::placeholders::_2));
 }
 
 void ReferenceFilterNode::handle_reset(

@@ -109,9 +109,8 @@ void WaypointManagerNode::set_reset_service_server() {
     std::string service_name = this->declare_parameter<std::string>(
         "services.reset", "waypoint_manager/reset");
     reset_service_server_ = this->create_service<std_srvs::srv::Trigger>(
-        service_name,
-        std::bind(&WaypointManagerNode::handle_reset, this,
-                  std::placeholders::_1, std::placeholders::_2));
+        service_name, std::bind(&WaypointManagerNode::handle_reset, this,
+                                std::placeholders::_1, std::placeholders::_2));
 }
 
 void WaypointManagerNode::handle_reset(

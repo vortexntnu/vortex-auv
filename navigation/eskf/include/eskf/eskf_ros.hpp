@@ -123,6 +123,7 @@ class ESKFNode : public rclcpp::Node {
     }
 
     bool publish_debug_{false};
+    bool publish_nis_{false};
 
     // Flags and Storage
     std::string frame_prefix_{""};

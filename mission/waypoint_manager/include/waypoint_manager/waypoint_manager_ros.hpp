@@ -5,12 +5,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
+#include <std_srvs/srv/trigger.hpp>
 #include <vector>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
 #include <vortex_msgs/srv/send_waypoints.hpp>
-#include <std_srvs/srv/trigger.hpp>
 
 enum class DebugPublishMode { none, timer, on_new_waypoint };
 
@@ -44,7 +44,8 @@ class WaypointManagerNode : public rclcpp::Node {
     // @brief Create the reset service server.
     void set_reset_service_server();
 
-    // @brief Handle reset service requests — aborts any active goal and clears state.
+    // @brief Handle reset service requests — aborts any active goal and clears
+    // state.
     void handle_reset(
         const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
         std::shared_ptr<std_srvs::srv::Trigger::Response> response);
