@@ -5,10 +5,10 @@
 /**:
   ros__parameters:
     atmosphere:
-      pressure: 101500
+      pressure: 101500.0
 
     water:
-      density: 1000 # Freshwater
+      density: 1000.0 # Freshwater
       # density: 1025 # Saltwater
 
     gravity:
