@@ -1,7 +1,7 @@
 
 
 template <SensorModelConcept SensorT>
-void ESKF::measurement_update(const SensorT& meas) {
+double ESKF::measurement_update(const SensorT& meas) {
     Eigen::VectorXd innovation = meas.innovation(current_nom_state_);
     Eigen::MatrixXd H = meas.jacobian(current_nom_state_);
     Eigen::MatrixXd R = meas.noise_covariance();
@@ -15,8 +15,6 @@ void ESKF::measurement_update(const SensorT& meas) {
     // More stable and faster than P * H.transpose() * S.inverse()
     Eigen::MatrixXd K = S.ldlt().solve(PHt.transpose()).transpose();
 
-    nis_ = compute_nis(innovation, S);
-
     current_error_state_.set_from_vector(K * innovation);
 
     Eigen::MatrixXd I_KH =
@@ -24,4 +22,6 @@ void ESKF::measurement_update(const SensorT& meas) {
     current_error_state_.covariance =
         I_KH * P * I_KH.transpose() +
         K * R * K.transpose();  // Used joseph form for more stable calculations
+
+    return compute_nis(innovation, S);
 }

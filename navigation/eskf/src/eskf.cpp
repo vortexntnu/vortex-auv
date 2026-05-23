@@ -172,12 +172,12 @@ void ESKF::imu_update(const ImuMeasurement& imu_meas, const double dt) {
 }
 
 void ESKF::dvl_update(const SensorDVL& dvl_meas) {
-    measurement_update(dvl_meas);
+    nis_dvl_ = measurement_update(dvl_meas);
     injection_and_reset();
 }
 
 void ESKF::depth_update(const SensorDepth& depth_meas) {
-    measurement_update(depth_meas);
+    nis_depth_ = measurement_update(depth_meas);
     injection_and_reset();
 }
 

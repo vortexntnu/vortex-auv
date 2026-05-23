@@ -316,7 +316,7 @@ void ESKFNode::dvl_callback(
 
     if (publish_nis_) {
         std_msgs::msg::Float64 nis_msg;
-        nis_msg.data = eskf_->get_nis();
+        nis_msg.data = eskf_->get_nis_dvl();
         nis_dvl_pub_->publish(nis_msg);
     }
 }
@@ -342,7 +342,7 @@ void ESKFNode::pressure_callback(
 
     if (publish_nis_) {
         std_msgs::msg::Float64 nis_msg;
-        nis_msg.data = eskf_->get_nis();
+        nis_msg.data = eskf_->get_nis_depth();
         nis_depth_pub_->publish(nis_msg);
     }
 }
