@@ -117,7 +117,7 @@ def launch_setup(context, *args, **kwargs):
                         'atmospheric_pressure': 101500.0,
                         'transform_to_base_link': LaunchConfiguration(
                             'pressure_transform_to_base_link'
-                        ).perform(context),
+                        ).perform(context).lower() == 'true',
                     },
                 ],
                 output='screen',

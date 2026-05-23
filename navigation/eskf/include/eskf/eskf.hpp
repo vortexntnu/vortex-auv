@@ -25,7 +25,8 @@ class ESKF {
 
     inline ErrorState get_error_state() const { return current_error_state_; }
 
-    inline double get_nis() const { return nis_; }
+    inline double get_nis_dvl() const { return nis_dvl_; }
+    inline double get_nis_depth() const { return nis_depth_; }
 
     inline Eigen::Vector3d get_gravity() const { return g_; }
 
@@ -44,17 +45,13 @@ class ESKF {
     void error_state_prediction(const ImuMeasurement& imu_meas,
                                 const double dt);
 
-    // @brief Calculate the NIS
-    // @param innovation: Innovation vector
-    // @param S: Innovation covariance matrix
-    void NIS(const Eigen::Vector3d& innovation, const Eigen::Matrix3d& S);
-
     // @brief Update the error state using a generic sensor measurement model
     // @tparam SensorT Type of the sensor model (must satisfy
     // SensorModelConcept)
     // @param meas Sensor measurement instance
+    // @return NIS for this measurement update
     template <SensorModelConcept SensorT>
-    void measurement_update(const SensorT& meas);
+    double measurement_update(const SensorT& meas);
 
     // @brief Inject the error state into the nominal state and reset the error
     void injection_and_reset();
@@ -71,8 +68,8 @@ class ESKF {
     // Process noise covariance matrix
     Eigen::Matrix12d Q_{};
 
-    // Normalized Innovation Squared
-    double nis_{};
+    double nis_dvl_{};
+    double nis_depth_{};
 
     // Member variable for the current error state
     ErrorState current_error_state_{};
