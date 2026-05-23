@@ -153,9 +153,17 @@ void ESKFNode::set_subscribers_and_publisher() {
 
     if (publish_nis_) {
         nis_dvl_pub_ = create_publisher<std_msgs::msg::Float64>(
-            "eskf/nis_dvl", vortex::utils::qos_profiles::reliable_profile());
+            "eskf/nis_dvl", qos_sensor_data);
         nis_depth_pub_ = create_publisher<std_msgs::msg::Float64>(
-            "eskf/nis_depth", vortex::utils::qos_profiles::reliable_profile());
+            "eskf/nis_depth", qos_sensor_data);
+    }
+
+    if (publish_debug_) {
+        dvl_body_pub_ =
+            create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+                "eskf/dvl_body", qos_sensor_data);
+        depth_pub_ = create_publisher<std_msgs::msg::Float64>("eskf/depth",
+                                                              qos_sensor_data);
     }
 }
 
@@ -312,6 +320,19 @@ void ESKFNode::dvl_callback(
     dvl_sensor.measurement_noise =
         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
+    if (publish_debug_) {
+        geometry_msgs::msg::TwistWithCovarianceStamped dvl_body_msg;
+        dvl_body_msg.header.stamp = msg->header.stamp;
+        dvl_body_msg.header.frame_id = frame("base_link");
+        dvl_body_msg.twist.twist.linear.x = dvl_sensor.measurement.x();
+        dvl_body_msg.twist.twist.linear.y = dvl_sensor.measurement.y();
+        dvl_body_msg.twist.twist.linear.z = dvl_sensor.measurement.z();
+        Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+            dvl_body_msg.twist.covariance.data())
+            .topLeftCorner<3, 3>() = dvl_sensor.measurement_noise;
+        dvl_body_pub_->publish(dvl_body_msg);
+    }
+
     eskf_->dvl_update(dvl_sensor);
 
     if (publish_nis_) {
@@ -337,6 +358,12 @@ void ESKFNode::pressure_callback(
 
     depth_sensor.measurement_noise =
         pressure_variance / std::pow(water_density_ * gravity_, 2);
+
+    if (publish_debug_) {
+        std_msgs::msg::Float64 depth_msg;
+        depth_msg.data = depth_sensor.measurement;
+        depth_pub_->publish(depth_msg);
+    }
 
     eskf_->depth_update(depth_sensor);
 

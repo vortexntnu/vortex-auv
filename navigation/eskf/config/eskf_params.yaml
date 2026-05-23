@@ -29,10 +29,10 @@
           transform:
             t: [ 0.0, 0.0, 0.0 ]
 
-      publish_nis: false
       publish_tf: true
       publish_pose: true
       publish_twist: true
       publish_rate_ms: 5
       publish_biases: false
+      publish_nis: true
       pressure_is_gauge: true # Stonefish publishes gauge pressure
