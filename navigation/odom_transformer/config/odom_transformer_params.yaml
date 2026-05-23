@@ -2,11 +2,11 @@
   odom_transformer_node:
     ros__parameters:
       sensor_frame: "dvl_link"
-      publish_tf: true
-      publish_pose: true
-      publish_twist: true
+      publish_tf: false
+      publish_pose: false
+      publish_twist: false
       topics:
         input: "nucleus/odom"
-        output: "odom"
+        output: "nucleus/odom_relative"
         pose: "pose"
         twist: "twist"

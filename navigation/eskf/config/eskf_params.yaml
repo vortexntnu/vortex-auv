@@ -29,6 +29,7 @@
           transform:
             t: [ 0.0, 0.0, 0.0 ]
 
+      publish_nis: false
       publish_tf: true
       publish_pose: true
       publish_twist: true
