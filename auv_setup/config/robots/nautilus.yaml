@@ -116,11 +116,11 @@
         los: "guidance/los"
         dp_rpy: "guidance/dp_rpy"
         dp_quat: "guidance/dp_quat"
-      dvl_twist: "dvl/twist"
+      dvl_twist: "/nautilus/nucleus/dvl"
       dvl_altitude: "dvl/altitude"
-      imu: "imu/data_raw"
+      imu: "/mru/imu"
       sonar_info: "fls/sonar_info"
-      pressure_sensor: "pressure_sensor"
+      pressure_sensor: "pressure"
       gripper_servos: "gripper_servos"
 
 

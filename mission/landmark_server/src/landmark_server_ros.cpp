@@ -37,6 +37,7 @@ void LandmarkServerNode::setup_ros_communicators() {
     create_convergence_action_server();
     create_reference_action_client();
     create_timer();
+    create_reset_service();
 
     debug_ = this->declare_parameter<bool>("debug.enable");
     if (debug_) {
@@ -245,8 +246,55 @@ void LandmarkServerNode::create_track_manager() {
         this->declare_parameter<double>(
             "track_config.default.clutter_intensity");
 
+    track_manager_config_ = config;
     track_manager_ =
         std::make_unique<vortex::filtering::PoseTrackManager>(config);
+}
+
+void LandmarkServerNode::create_reset_service() {
+    std::string service_name = this->declare_parameter<std::string>(
+        "services.reset", "landmark_server/reset");
+    reset_service_ = this->create_service<std_srvs::srv::Trigger>(
+        service_name,
+        std::bind(&LandmarkServerNode::handle_reset, this,
+                  std::placeholders::_1, std::placeholders::_2),
+        rmw_qos_profile_services_default, timer_cb_group_);
+}
+
+void LandmarkServerNode::handle_reset(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    if (active_landmark_polling_goal_ &&
+        active_landmark_polling_goal_->is_active()) {
+        auto result =
+            std::make_shared<vortex_msgs::action::LandmarkPolling_Result>();
+        active_landmark_polling_goal_->abort(result);
+    }
+    active_landmark_polling_goal_ = nullptr;
+
+    if (active_landmark_convergence_goal_ &&
+        active_landmark_convergence_goal_->is_active()) {
+        auto result =
+            std::make_shared<vortex_msgs::action::LandmarkConvergence_Result>();
+        active_landmark_convergence_goal_->abort(result);
+    }
+    active_landmark_convergence_goal_ = nullptr;
+
+    cancel_reference_filter_goal();
+
+    convergence_active_ = false;
+    convergence_session_id_++;
+    convergence_track_lost_ = false;
+    convergence_dead_reckoning_handoff_ = false;
+    convergence_last_known_track_.reset();
+    rf_state_ = RFState::IDLE;
+
+    track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
+        track_manager_config_);
+
+    spdlog::info("LandmarkServer: reset complete");
+    response->success = true;
+    response->message = "LandmarkServer reset successfully";
 }
 
 void LandmarkServerNode::timer_callback() {

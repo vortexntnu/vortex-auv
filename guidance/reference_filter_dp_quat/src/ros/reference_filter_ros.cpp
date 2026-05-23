@@ -29,6 +29,8 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 
     set_refererence_filter();
 
+    set_reset_service();
+
     spdlog::info(start_message);
 }
 
@@ -93,6 +95,28 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
             current_twist_ = vortex::utils::ros_conversions::ros_twist_to_twist(
                 msg->twist.twist);
         });
+}
+
+void ReferenceFilterNode::set_reset_service() {
+    std::string service_name = this->declare_parameter<std::string>(
+        "services.reset", "reference_filter/reset");
+    reset_service_ = this->create_service<std_srvs::srv::Trigger>(
+        service_name, std::bind(&ReferenceFilterNode::handle_reset, this,
+                                std::placeholders::_1, std::placeholders::_2));
+}
+
+void ReferenceFilterNode::handle_reset(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    std::lock_guard<std::mutex> lock(execute_mutex_);
+    preempted_ = true;
+    if (execute_thread_.joinable()) {
+        execute_thread_.join();
+    }
+    preempted_ = false;
+    spdlog::info("ReferenceFilter: reset complete");
+    response->success = true;
+    response->message = "ReferenceFilter reset successfully";
 }
 
 void ReferenceFilterNode::set_action_server() {

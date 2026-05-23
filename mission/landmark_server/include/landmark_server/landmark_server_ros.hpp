@@ -16,6 +16,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/client.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/landmark_convergence.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
@@ -134,6 +135,12 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void create_track_manager();
 
+    void create_reset_service();
+
+    void handle_reset(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+
     void setup_debug_publishers();
 
     void publish_debug_tracks();
@@ -160,6 +167,9 @@ class LandmarkServerNode : public rclcpp::Node {
         reference_filter_client_;
 
     std::unique_ptr<vortex::filtering::PoseTrackManager> track_manager_;
+    vortex::filtering::TrackManagerConfig track_manager_config_;
+
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_service_;
 
     std::vector<Landmark> measurements_;
 

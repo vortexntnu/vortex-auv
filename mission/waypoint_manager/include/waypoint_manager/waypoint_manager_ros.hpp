@@ -5,6 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
+#include <std_srvs/srv/trigger.hpp>
 #include <vector>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
@@ -39,6 +40,15 @@ class WaypointManagerNode : public rclcpp::Node {
 
     // @brief Create the service servers for SendWaypoints.
     void set_waypoint_service_server();
+
+    // @brief Create the reset service server.
+    void set_reset_service_server();
+
+    // @brief Handle reset service requests — aborts any active goal and clears
+    // state.
+    void handle_reset(
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
     // @brief Create the debug waypoint publisher and optional timer.
     void setup_debug_publisher();
@@ -105,6 +115,8 @@ class WaypointManagerNode : public rclcpp::Node {
         waypoint_action_server_;
     rclcpp::Service<vortex_msgs::srv::SendWaypoints>::SharedPtr
         waypoint_service_server_;
+
+    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_service_server_;
 
     rclcpp::Publisher<vortex_msgs::msg::Waypoint>::SharedPtr
         debug_waypoint_pub_;

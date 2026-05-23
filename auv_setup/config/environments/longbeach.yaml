@@ -2,13 +2,14 @@
 #
 # Gravity value from EGM2008 12th order via wolframalpha.com
 # Pressure value from 10 year average via wolframalpha.com
+/**:
+  ros__parameters:
+    atmosphere:
+      pressure: 101500.0
 
-atmosphere:
-  pressure: 101500
+    water:
+      density: 1000.0 # Freshwater
+      # density: 1025 # Saltwater
 
-water:
-  density: 1000 # Freshwater
-  # density: 1025 # Saltwater
-
-gravity:
-  acceleration: 9.79609
+    gravity:
+      acceleration: 9.79609
