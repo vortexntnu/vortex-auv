@@ -32,7 +32,7 @@
   <joint name="base_to_pressure_sensor" type="fixed">
     <parent link="base_link"/>
     <child link="pressure_sensor_link"/>
-    <origin xyz="-0.130 0.003 0.2414" rpy="0.0 0.0 0.0"/>
+    <origin xyz="-0.035 -0.115 -0.095" rpy="0.0 0.0 0.0"/>
   </joint>
 
   <!-- base to fls -->
