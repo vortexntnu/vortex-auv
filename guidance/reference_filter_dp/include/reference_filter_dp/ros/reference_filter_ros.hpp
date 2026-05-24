@@ -8,6 +8,7 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <std_msgs/msg/empty.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
@@ -27,6 +28,8 @@ class ReferenceFilterNode : public rclcpp::Node {
     void set_subscribers_and_publisher();
     void set_action_server();
     void set_refererence_filter();
+    void setup_reset_subscription();
+    void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
@@ -47,6 +50,8 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     rclcpp_action::Server<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
         action_server_;
+
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr reset_sub_;
 
     ReferenceFilterParams filter_params_;
 

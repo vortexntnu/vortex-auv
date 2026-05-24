@@ -29,6 +29,8 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 
     set_refererence_filter();
 
+    setup_reset_subscription();
+
     spdlog::info(start_message);
 }
 
@@ -84,6 +86,25 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
             current_twist_ = vortex::utils::ros_conversions::ros_twist_to_twist(
                 msg->twist.twist);
         });
+}
+
+void ReferenceFilterNode::setup_reset_subscription() {
+    reset_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+        "mission/wipe", vortex::utils::qos_profiles::reliable_profile(1),
+        [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
+            on_system_reset(msg);
+        });
+}
+
+void ReferenceFilterNode::on_system_reset(
+    std_msgs::msg::Empty::ConstSharedPtr) {
+    std::lock_guard<std::mutex> lock(execute_mutex_);
+    preempted_ = true;
+    if (execute_thread_.joinable()) {
+        execute_thread_.join();
+    }
+    preempted_ = false;
+    spdlog::info("ReferenceFilter: reset complete");
 }
 
 void ReferenceFilterNode::set_action_server() {
