@@ -37,7 +37,7 @@ void LandmarkServerNode::setup_ros_communicators() {
     create_convergence_action_server();
     create_reference_action_client();
     create_timer();
-    create_reset_service();
+    setup_reset_subscription();
 
     debug_ = this->declare_parameter<bool>("debug.enable");
     if (debug_) {
@@ -251,19 +251,18 @@ void LandmarkServerNode::create_track_manager() {
         std::make_unique<vortex::filtering::PoseTrackManager>(config);
 }
 
-void LandmarkServerNode::create_reset_service() {
-    std::string service_name = this->declare_parameter<std::string>(
-        "services.reset", "landmark_server/reset");
-    reset_service_ = this->create_service<std_srvs::srv::Trigger>(
-        service_name,
-        std::bind(&LandmarkServerNode::handle_reset, this,
-                  std::placeholders::_1, std::placeholders::_2),
-        rmw_qos_profile_services_default, timer_cb_group_);
+void LandmarkServerNode::setup_reset_subscription() {
+    rclcpp::SubscriptionOptions sub_opts;
+    sub_opts.callback_group = timer_cb_group_;
+    reset_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+        "mission/wipe", vortex::utils::qos_profiles::reliable_profile(1),
+        [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
+            on_system_reset(msg);
+        },
+        sub_opts);
 }
 
-void LandmarkServerNode::handle_reset(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+void LandmarkServerNode::on_system_reset(std_msgs::msg::Empty::ConstSharedPtr) {
     if (active_landmark_polling_goal_ &&
         active_landmark_polling_goal_->is_active()) {
         auto result =
@@ -289,12 +288,10 @@ void LandmarkServerNode::handle_reset(
     convergence_last_known_track_.reset();
     rf_state_ = RFState::IDLE;
 
-    track_manager_ =
-        std::make_unique<vortex::filtering::PoseTrackManager>(track_manager_config_);
+    track_manager_ = std::make_unique<vortex::filtering::PoseTrackManager>(
+        track_manager_config_);
 
     spdlog::info("LandmarkServer: reset complete");
-    response->success = true;
-    response->message = "LandmarkServer reset successfully";
 }
 
 void LandmarkServerNode::timer_callback() {

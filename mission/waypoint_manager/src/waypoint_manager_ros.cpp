@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 
 namespace vortex::mission {
 
@@ -10,7 +11,7 @@ WaypointManagerNode::WaypointManagerNode(const rclcpp::NodeOptions& options)
     set_reference_action_client();
     set_waypoint_action_server();
     set_waypoint_service_server();
-    set_reset_service_server();
+    setup_reset_subscription();
     setup_debug_publisher();
 
     spdlog::info("WaypointManagerNode started");
@@ -105,26 +106,22 @@ void WaypointManagerNode::publish_current_waypoint() {
     debug_waypoint_pub_->publish(waypoints_[current_index_]);
 }
 
-void WaypointManagerNode::set_reset_service_server() {
-    std::string service_name = this->declare_parameter<std::string>(
-        "services.reset", "waypoint_manager/reset");
-    reset_service_server_ = this->create_service<std_srvs::srv::Trigger>(
-        service_name,
-        std::bind(&WaypointManagerNode::handle_reset, this,
-                  std::placeholders::_1, std::placeholders::_2));
+void WaypointManagerNode::setup_reset_subscription() {
+    reset_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+        "mission/wipe", vortex::utils::qos_profiles::reliable_profile(1),
+        [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
+            on_system_reset(msg);
+        });
 }
 
-void WaypointManagerNode::handle_reset(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+void WaypointManagerNode::on_system_reset(
+    std_msgs::msg::Empty::ConstSharedPtr) {
     if (active_action_goal_ && active_action_goal_->is_active()) {
         auto res = construct_result(false);
         active_action_goal_->abort(res);
     }
     cleanup_mission_state();
     spdlog::info("WaypointManager: reset complete");
-    response->success = true;
-    response->message = "WaypointManager reset successfully";
 }
 
 void WaypointManagerNode::set_waypoint_service_server() {

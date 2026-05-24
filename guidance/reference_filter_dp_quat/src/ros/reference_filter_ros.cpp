@@ -29,7 +29,7 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 
     set_refererence_filter();
 
-    set_reset_service();
+    setup_reset_subscription();
 
     spdlog::info(start_message);
 }
@@ -97,18 +97,16 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
         });
 }
 
-void ReferenceFilterNode::set_reset_service() {
-    std::string service_name = this->declare_parameter<std::string>(
-        "services.reset", "reference_filter/reset");
-    reset_service_ = this->create_service<std_srvs::srv::Trigger>(
-        service_name,
-        std::bind(&ReferenceFilterNode::handle_reset, this,
-                  std::placeholders::_1, std::placeholders::_2));
+void ReferenceFilterNode::setup_reset_subscription() {
+    reset_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+        "mission/wipe", vortex::utils::qos_profiles::reliable_profile(1),
+        [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
+            on_system_reset(msg);
+        });
 }
 
-void ReferenceFilterNode::handle_reset(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+void ReferenceFilterNode::on_system_reset(
+    std_msgs::msg::Empty::ConstSharedPtr) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
     preempted_ = true;
     if (execute_thread_.joinable()) {
@@ -116,8 +114,6 @@ void ReferenceFilterNode::handle_reset(
     }
     preempted_ = false;
     spdlog::info("ReferenceFilter: reset complete");
-    response->success = true;
-    response->message = "ReferenceFilter reset successfully";
 }
 
 void ReferenceFilterNode::set_action_server() {

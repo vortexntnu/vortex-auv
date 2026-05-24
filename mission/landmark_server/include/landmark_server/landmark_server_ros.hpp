@@ -16,10 +16,10 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp_action/client.hpp>
 #include <rclcpp_action/server_goal_handle.hpp>
+#include <std_msgs/msg/empty.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/landmark_convergence.hpp>
 #include <vortex_msgs/action/landmark_polling.hpp>
-#include <std_srvs/srv/trigger.hpp>
 #include <vortex_msgs/msg/landmark_array.hpp>
 #include <vortex_msgs/msg/landmark_track_array.hpp>
 #include <vortex_msgs/msg/waypoint_mode.hpp>
@@ -135,11 +135,9 @@ class LandmarkServerNode : public rclcpp::Node {
 
     void create_track_manager();
 
-    void create_reset_service();
+    void setup_reset_subscription();
 
-    void handle_reset(
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+    void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
     void setup_debug_publishers();
 
@@ -169,7 +167,7 @@ class LandmarkServerNode : public rclcpp::Node {
     std::unique_ptr<vortex::filtering::PoseTrackManager> track_manager_;
     vortex::filtering::TrackManagerConfig track_manager_config_;
 
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_service_;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr reset_sub_;
 
     std::vector<Landmark> measurements_;
 

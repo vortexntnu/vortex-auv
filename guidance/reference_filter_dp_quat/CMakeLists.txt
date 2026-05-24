@@ -11,7 +11,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_srvs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(vortex_msgs REQUIRED)
@@ -53,7 +53,7 @@ ament_target_dependencies(${COMPONENT_LIB_NAME}
   rclcpp
   rclcpp_components
   rclcpp_action
-  std_srvs
+  std_msgs
   geometry_msgs
   nav_msgs
   vortex_msgs

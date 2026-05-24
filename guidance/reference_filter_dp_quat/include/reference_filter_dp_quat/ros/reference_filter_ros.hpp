@@ -8,8 +8,8 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <std_msgs/msg/empty.hpp>
 #include <vortex/utils/types.hpp>
-#include <std_srvs/srv/trigger.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/reference_filter_quat.hpp>
@@ -35,11 +35,9 @@ class ReferenceFilterNode : public rclcpp::Node {
     // @brief Initializes the reference filter with ROS parameters.
     void set_refererence_filter();
 
-    void set_reset_service();
+    void setup_reset_subscription();
 
-    void handle_reset(
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+    void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
     /// @brief Accept all incoming goals unconditionally.
     rclcpp_action::GoalResponse handle_goal(
@@ -68,7 +66,7 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp_action::Server<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
         action_server_;
 
-    rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr reset_service_;
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr reset_sub_;
 
     ReferenceFilterParams filter_params_;
 
