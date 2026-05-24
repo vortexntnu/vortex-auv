@@ -49,6 +49,17 @@ class WaypointFollower {
     void step();
 
     /**
+     * @brief Update the waypoint target without resetting filter state.
+     *
+     * Preserves all filter dynamical state (the equivalent of nominal_pose_
+     * plus the velocity and acceleration slots of the state vector) so the
+     * third-order filter continues evolving from its current state. Use
+     * this on preemption; use start() only for cold-start (first goal after
+     * node init).
+     */
+    void retarget(const Waypoint& waypoint, double convergence_threshold);
+
+    /**
      * @brief Check if the measured pose has converged to the waypoint goal.
      * @param measured_pose Current measured pose.
      * @return True if the error norm is within the convergence threshold.

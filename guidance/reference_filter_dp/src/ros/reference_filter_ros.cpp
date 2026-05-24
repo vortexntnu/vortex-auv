@@ -137,40 +137,43 @@ void ReferenceFilterNode::handle_accepted(
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
+    const bool retarget = executing_.load();
     preempted_ = true;
     if (execute_thread_.joinable()) {
         execute_thread_.join();
     }
     preempted_ = false;
 
-    execute_thread_ =
-        std::thread([this, goal_handle]() { execute(goal_handle); });
+    execute_thread_ = std::thread(
+        [this, goal_handle, retarget]() { execute(goal_handle, retarget); });
 }
 
 void ReferenceFilterNode::execute(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
-    spdlog::info("Executing goal");
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::GuidanceWaypoint>> goal_handle,
+    bool retarget) {
+    executing_ = true;
 
-    double convergence_threshold =
-        goal_handle->get_goal()->convergence_threshold;
-
-    if (convergence_threshold <= 0.0) {
-        convergence_threshold = 0.1;
+    double threshold = goal_handle->get_goal()->convergence_threshold;
+    if (threshold <= 0.0) {
+        threshold = 0.1;
         spdlog::warn(
-            "ReferenceFilter: Invalid convergence_threshold received (<= 0). "
-            "Using default 0.1");
+            "ReferenceFilter: invalid convergence_threshold (<= 0), using 0.1");
     }
 
     const auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
 
-    const auto [pose, twist] = [this] {
-        std::lock_guard lock(sensor_mutex_);
-        return std::pair{current_pose_, current_twist_};
-    }();
-
-    follower_->start(pose, twist, wp, convergence_threshold);
+    if (retarget) {
+        follower_->retarget(wp, threshold);
+        spdlog::info("Executing goal (filter state preserved)");
+    } else {
+        const auto [pose, twist] = [this] {
+            std::lock_guard lock(sensor_mutex_);
+            return std::pair{current_pose_, current_twist_};
+        }();
+        follower_->start(pose, twist, wp, threshold);
+        spdlog::info("Executing goal (cold start)");
+    }
 
     auto result =
         std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
@@ -179,6 +182,7 @@ void ReferenceFilterNode::execute(
 
     while (rclcpp::ok()) {
         if (preempted_.load()) {
+            executing_ = false;
             result->success = false;
             goal_handle->abort(result);
             spdlog::info("Goal preempted by newer goal");
@@ -186,6 +190,7 @@ void ReferenceFilterNode::execute(
         }
 
         if (goal_handle->is_canceling()) {
+            executing_ = false;
             result->success = false;
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
@@ -194,44 +199,34 @@ void ReferenceFilterNode::execute(
 
         Eigen::Vector18d filter_state = follower_->step();
 
+        reference_pub_->publish(fill_reference_msg(filter_state));
+
         const auto current_pose_vector = [this] {
             std::lock_guard lock(sensor_mutex_);
             return current_pose_.to_vector();
         }();
 
-        bool target_reached =
-            follower_->within_convergance(current_pose_vector);
-
-        if (target_reached) {
+        if (follower_->within_convergance(current_pose_vector)) {
             follower_->snap_state_to_reference();
 
-            auto final_reference_msg =
-                std::make_unique<vortex_msgs::msg::ReferenceFilter>(
-                    fill_reference_msg(follower_->state()));
+            reference_pub_->publish(fill_reference_msg(follower_->state()));
 
-            reference_pub_->publish(std::move(final_reference_msg));
-
+            executing_ = false;
             result->success = true;
             goal_handle->succeed(result);
             spdlog::info("Goal reached");
             return;
         }
 
-        auto reference_msg =
-            std::make_unique<vortex_msgs::msg::ReferenceFilter>(
-                fill_reference_msg(filter_state));
-        reference_pub_->publish(std::move(reference_msg));
         loop_rate.sleep();
     }
-    if (!rclcpp::ok() && goal_handle->is_active()) {
-        auto result =
-            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
-        result->success = false;
 
+    if (!rclcpp::ok() && goal_handle->is_active()) {
+        executing_ = false;
+        result->success = false;
         try {
             goal_handle->abort(result);
         } catch (...) {
-            // Ignore exceptions during shutdown
         }
     }
 }

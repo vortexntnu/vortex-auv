@@ -40,6 +40,18 @@ class WaypointFollower {
     Eigen::Vector18d step();
 
     /**
+     * @brief Update the waypoint target without resetting filter state.
+     *
+     * Preserves all filter dynamical state (state_.segment<6>(6) for velocity
+     * and state_.segment<6>(12) for acceleration) so the third-order filter
+     * continues evolving from its current state. Use this on preemption; use
+     * start() only for cold-start (first goal after node init).
+     *
+     * Thread-safe.
+     */
+    void retarget(const Waypoint& waypoint, double convergence_threshold);
+
+    /**
      * @brief Check if the measured pose has converged to the reference goal.
      * @param measured_pose Current measured pose.
      * @return True if the error norm is within the convergence threshold.
