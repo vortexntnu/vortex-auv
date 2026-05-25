@@ -4,3 +4,5 @@
     omega: [0.125, 0.125, 0.125, 0.125, 0.125, 0.125]
     time_step_ms: 10
     publish_rpy_debug: false
+    altitude_control_enabled: true  # Set true to subscribe to DVL altitude and enable keep_altitude waypoints
+    altitude_lp_alpha: 0.9           # IIR coefficient for DVL altitude low-pass filter [0,1)

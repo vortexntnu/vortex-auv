@@ -11,6 +11,7 @@
 #include <std_msgs/msg/empty.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
+#include <vortex_msgs/msg/dvl_altitude.hpp>
 #include <vortex_msgs/msg/reference_filter.hpp>
 #include <vortex_msgs/msg/reference_filter_quat.hpp>
 #include <vortex_msgs/msg/waypoint.hpp>
@@ -77,11 +78,19 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::Subscription<
         geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr twist_sub_;
 
+    rclcpp::Subscription<vortex_msgs::msg::DVLAltitude>::SharedPtr
+        altitude_sub_;
+
     std::chrono::milliseconds time_step_{};
 
     vortex::utils::types::Pose current_pose_;
 
     vortex::utils::types::Twist current_twist_;
+
+    bool altitude_control_enabled_{false};
+    double current_altitude_{0.0};
+    bool altitude_valid_{false};
+    double altitude_lp_alpha_{0.9};
 
     std::mutex sensor_mutex_;
 

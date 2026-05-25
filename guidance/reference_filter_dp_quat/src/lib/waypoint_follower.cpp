@@ -85,10 +85,24 @@ bool WaypointFollower::within_convergance(const Pose& measured_pose) const {
         measured_pose, waypoint_goal_, waypoint_mode_, convergence_threshold_);
 }
 
+bool WaypointFollower::within_convergance_ignore_z(
+    const Pose& measured_pose) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Pose adjusted = measured_pose;
+    adjusted.z = waypoint_goal_.z;
+    return vortex::utils::waypoints::has_converged(
+        adjusted, waypoint_goal_, waypoint_mode_, convergence_threshold_);
+}
+
 void WaypointFollower::set_reference(const Pose& reference_goal_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
     waypoint_goal_ = vortex::utils::waypoints::compute_waypoint_goal(
         reference_goal_pose, waypoint_mode_, nominal_pose_);
+}
+
+void WaypointFollower::update_z_goal(double target_ned_z) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    waypoint_goal_.z = target_ned_z;
 }
 
 void WaypointFollower::snap_state_to_reference() {
