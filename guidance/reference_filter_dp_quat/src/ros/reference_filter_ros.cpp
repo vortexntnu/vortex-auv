@@ -105,21 +105,26 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
 
         std::string dvl_altitude_topic =
             this->get_parameter("topics.dvl_altitude").as_string();
-        altitude_lp_alpha_ = this->get_parameter("altitude_lp_alpha").as_double();
+        altitude_lp_alpha_ =
+            this->get_parameter("altitude_lp_alpha").as_double();
 
-        altitude_sub_ = this->create_subscription<vortex_msgs::msg::DVLAltitude>(
-            dvl_altitude_topic, qos_sensor_data,
-            [this](const vortex_msgs::msg::DVLAltitude::SharedPtr msg) {
-                std::lock_guard<std::mutex> lock(sensor_mutex_);
-                if (!altitude_valid_) {
-                    current_altitude_ = msg->altitude;
-                    altitude_valid_ = true;
-                } else {
-                    current_altitude_ =
-                        altitude_lp_alpha_ * current_altitude_ +
-                        (1.0 - altitude_lp_alpha_) * msg->altitude;
-                }
-            });
+        altitude_sub_ =
+            this->create_subscription<vortex_msgs::msg::DVLAltitude>(
+                dvl_altitude_topic, qos_sensor_data,
+                [this](const vortex_msgs::msg::DVLAltitude::SharedPtr msg) {
+                    std::lock_guard<std::mutex> lock(sensor_mutex_);
+                    if (msg->altitude <= 0.0) {
+                        return;  // Ignore invalid altitude readings
+                    }
+                    if (!altitude_valid_) {
+                        current_altitude_ = msg->altitude;
+                        altitude_valid_ = true;
+                    } else {
+                        current_altitude_ =
+                            altitude_lp_alpha_ * current_altitude_ +
+                            (1.0 - altitude_lp_alpha_) * msg->altitude;
+                    }
+                });
 
         spdlog::info("Altitude control enabled, subscribing to '{}'",
                      dvl_altitude_topic);
@@ -226,7 +231,8 @@ void ReferenceFilterNode::execute(
     if (wp.keep_altitude && altitude_control_enabled_) {
         const auto [pose, current_alt, alt_valid] = [this] {
             std::lock_guard lock(sensor_mutex_);
-            return std::tuple{current_pose_, current_altitude_, altitude_valid_};
+            return std::tuple{current_pose_, current_altitude_,
+                              altitude_valid_};
         }();
         if (!alt_valid) {
             spdlog::warn(
@@ -236,7 +242,8 @@ void ReferenceFilterNode::execute(
             wp.pose.z = pose.z + current_alt - wp.desired_altitude;
         }
         spdlog::info(
-            "Altitude-hold mode: desired_altitude={:.2f} m, initial_altitude={:.2f}, initial z_goal={:.3f}",
+            "Altitude-hold mode: desired_altitude={:.2f} m, "
+            "initial_altitude={:.2f}, initial z_goal={:.3f}",
             wp.desired_altitude, current_altitude_, wp.pose.z);
     } else if (wp.keep_altitude && !altitude_control_enabled_) {
         spdlog::warn(
@@ -288,7 +295,8 @@ void ReferenceFilterNode::execute(
                 std::lock_guard lock(sensor_mutex_);
                 return std::pair{current_pose_.z, current_altitude_};
             }();
-            follower_->update_z_goal(current_z + current_alt - desired_altitude);
+            follower_->update_z_goal(current_z + current_alt -
+                                     desired_altitude);
         }
 
         reference_pub_->publish(

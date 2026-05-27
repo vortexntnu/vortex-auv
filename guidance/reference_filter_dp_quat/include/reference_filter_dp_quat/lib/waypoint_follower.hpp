@@ -73,7 +73,8 @@ class WaypointFollower {
      * measurement, so including it in the convergence criterion would prevent
      * the action from ever succeeding.
      * @param measured_pose Current measured pose.
-     * @return True if x/y/orientation error is within the convergence threshold.
+     * @return True if x/y/orientation error is within the convergence
+     * threshold.
      */
     bool within_convergance_ignore_z(const Pose& measured_pose) const;
 
