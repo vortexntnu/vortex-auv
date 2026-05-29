@@ -46,6 +46,8 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.twist");
     this->declare_parameter<std::string>("topics.guidance.dp_rpy");
     this->declare_parameter<std::string>("topics.reference_pose");
+    altitude_control_enabled_ =
+        this->declare_parameter<bool>("altitude_control_enabled", false);
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string twist_topic = this->get_parameter("topics.twist").as_string();
@@ -86,6 +88,34 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
             current_twist_ = vortex::utils::ros_conversions::ros_twist_to_twist(
                 msg->twist.twist);
         });
+
+    if (altitude_control_enabled_) {
+        this->declare_parameter<std::string>("topics.dvl_altitude");
+        this->declare_parameter<double>("altitude_lp_alpha", 0.9);
+
+        std::string dvl_altitude_topic =
+            this->get_parameter("topics.dvl_altitude").as_string();
+        altitude_lp_alpha_ =
+            this->get_parameter("altitude_lp_alpha").as_double();
+
+        altitude_sub_ =
+            this->create_subscription<vortex_msgs::msg::DVLAltitude>(
+                dvl_altitude_topic, qos_sensor_data,
+                [this](const vortex_msgs::msg::DVLAltitude::SharedPtr msg) {
+                    std::lock_guard<std::mutex> lock(sensor_mutex_);
+                    if (!altitude_valid_) {
+                        current_altitude_ = msg->altitude;
+                        altitude_valid_ = true;
+                    } else {
+                        current_altitude_ =
+                            altitude_lp_alpha_ * current_altitude_ +
+                            (1.0 - altitude_lp_alpha_) * msg->altitude;
+                    }
+                });
+
+        spdlog::info("Altitude control enabled, subscribing to '{}'",
+                     dvl_altitude_topic);
+    }
 }
 
 void ReferenceFilterNode::setup_reset_subscription() {
@@ -182,7 +212,39 @@ void ReferenceFilterNode::execute(
             "ReferenceFilter: invalid convergence_threshold (<= 0), using 0.1");
     }
 
-    const auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
+    auto wp = waypoint_from_ros(goal_handle->get_goal()->waypoint);
+
+    if (wp.keep_altitude && altitude_control_enabled_ &&
+        wp.desired_altitude <= 0.0) {
+        executing_ = false;
+        auto result =
+            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+        result->success = false;
+        goal_handle->abort(result);
+        spdlog::error(
+            "ReferenceFilter: desired_altitude must be > 0, got {:.3f}",
+            wp.desired_altitude);
+        return;
+    }
+
+    if (wp.keep_altitude && altitude_control_enabled_) {
+        const auto [pose, current_alt, alt_valid] = [this] {
+            std::lock_guard lock(sensor_mutex_);
+            return std::tuple{current_pose_, current_altitude_,
+                              altitude_valid_};
+        }();
+        if (!alt_valid) {
+            spdlog::warn(
+                "ReferenceFilter: keep_altitude requested but no DVL altitude "
+                "received yet; proceeding with waypoint z as-is");
+        } else {
+            wp.pose.z = pose.z + current_alt - wp.desired_altitude;
+        }
+        spdlog::info(
+            "Altitude-hold mode: desired_altitude={:.2f} m, initial "
+            "z_goal={:.3f}",
+            wp.desired_altitude, wp.pose.z);
+    }
 
     if (retarget) {
         follower_->retarget(wp, threshold);
@@ -195,6 +257,9 @@ void ReferenceFilterNode::execute(
         follower_->start(pose, twist, wp, threshold);
         spdlog::info("Executing goal (cold start)");
     }
+
+    const bool keep_altitude = wp.keep_altitude && altitude_control_enabled_;
+    const double desired_altitude = wp.desired_altitude;
 
     auto result =
         std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
@@ -220,6 +285,15 @@ void ReferenceFilterNode::execute(
 
         Eigen::Vector18d filter_state = follower_->step();
 
+        if (keep_altitude) {
+            const auto [current_z, current_alt] = [this] {
+                std::lock_guard lock(sensor_mutex_);
+                return std::pair{current_pose_.z, current_altitude_};
+            }();
+            follower_->update_z_goal(current_z + current_alt -
+                                     desired_altitude);
+        }
+
         reference_pub_->publish(fill_reference_msg(filter_state));
 
         const auto current_pose_vector = [this] {
@@ -227,7 +301,12 @@ void ReferenceFilterNode::execute(
             return current_pose_.to_vector();
         }();
 
-        if (follower_->within_convergance(current_pose_vector)) {
+        const bool converged =
+            keep_altitude
+                ? follower_->within_convergance_ignore_z(current_pose_vector)
+                : follower_->within_convergance(current_pose_vector);
+
+        if (converged) {
             follower_->snap_state_to_reference();
 
             reference_pub_->publish(fill_reference_msg(follower_->state()));

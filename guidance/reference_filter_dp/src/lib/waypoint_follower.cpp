@@ -58,6 +58,20 @@ bool WaypointFollower::within_convergance(
                          convergence_threshold_);
 }
 
+bool WaypointFollower::within_convergance_ignore_z(
+    const Eigen::Vector6d& measured_pose) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Eigen::Vector6d adjusted = measured_pose;
+    adjusted(2) = reference_goal_(2);
+    return has_converged(adjusted, reference_goal_, waypoint_mode_,
+                         convergence_threshold_);
+}
+
+void WaypointFollower::update_z_goal(double target_ned_z) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    reference_goal_(2) = target_ned_z;
+}
+
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose) {
     std::lock_guard<std::mutex> lock(mutex_);
     reference_goal_ = apply_mode_logic(reference_goal_pose.to_vector(),

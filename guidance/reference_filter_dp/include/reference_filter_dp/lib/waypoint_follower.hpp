@@ -59,6 +59,25 @@ class WaypointFollower {
     bool within_convergance(const Eigen::Vector6d& measured_pose) const;
 
     /**
+     * @brief Convergence check that excludes z from the position error.
+     *
+     * Use during altitude-hold mode: the z goal tracks a noisy altitude
+     * measurement, so including it in the convergence criterion would prevent
+     * the action from ever succeeding.
+     */
+    bool within_convergance_ignore_z(
+        const Eigen::Vector6d& measured_pose) const;
+
+    /**
+     * @brief Update only the z component of the reference goal.
+     *
+     * Used during altitude-hold mode to continuously track seafloor distance
+     * without disturbing x/y/orientation targets.
+     * @param target_ned_z The desired NED z coordinate for the AUV.
+     */
+    void update_z_goal(double target_ned_z);
+
+    /**
      * @brief Update the reference goal pose mid-sequence.
      * @param reference_goal_pose The new reference pose.
      */
