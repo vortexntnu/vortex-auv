@@ -228,6 +228,19 @@ void ReferenceFilterNode::execute(
     auto wp = vortex::utils::waypoints::waypoint_from_ros(
         goal_handle->get_goal()->waypoint);
 
+    if (wp.keep_altitude && altitude_control_enabled_ &&
+        wp.desired_altitude <= 0.0) {
+        executing_ = false;
+        auto result =
+            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+        result->success = false;
+        goal_handle->abort(result);
+        spdlog::error(
+            "ReferenceFilter: desired_altitude must be > 0, got {:.3f}",
+            wp.desired_altitude);
+        return;
+    }
+
     if (wp.keep_altitude && altitude_control_enabled_) {
         const auto [pose, current_alt, alt_valid] = [this] {
             std::lock_guard lock(sensor_mutex_);
