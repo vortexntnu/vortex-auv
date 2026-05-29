@@ -116,6 +116,7 @@
         los: "guidance/los"
         dp_rpy: "guidance/dp_rpy"
         dp_quat: "guidance/dp_quat"
+        dp_quat_target_pose: "guidance/dp_quat_target_pose"
       dvl_twist: "dvl/twist"
       dvl_altitude: "dvl/altitude"
       imu: "imu/data_raw"

@@ -31,6 +31,8 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 
     setup_reset_subscription();
 
+    setup_debug_publisher();
+
     spdlog::info(start_message);
 }
 
@@ -137,6 +139,47 @@ void ReferenceFilterNode::setup_reset_subscription() {
         [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
             on_system_reset(msg);
         });
+}
+
+void ReferenceFilterNode::setup_debug_publisher() {
+    const std::string mode_str =
+        this->declare_parameter<std::string>("debug.goal_publish_mode", "none");
+
+    if (mode_str == "timer") {
+        debug_mode_ = DebugPublishMode::timer;
+    } else if (mode_str == "on_new_goal") {
+        debug_mode_ = DebugPublishMode::on_new_goal;
+    } else {
+        debug_mode_ = DebugPublishMode::none;
+        return;
+    }
+
+    const std::string topic = this->declare_parameter<std::string>(
+        "topics.guidance.dp_quat_target_pose", "guidance/dp_quat_target_pose");
+
+    debug_goal_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        topic, rclcpp::QoS(rclcpp::KeepLast(10)).best_effort());
+
+    spdlog::info("Reference goal debug publisher active (mode: {}, topic: {})",
+                 mode_str, topic);
+}
+
+void ReferenceFilterNode::publish_debug_goal() {
+    if (!debug_goal_pub_ || !executing_.load()) {
+        return;
+    }
+    const Pose goal = follower_->waypoint_goal();
+    geometry_msgs::msg::PoseStamped msg;
+    msg.header.stamp = this->get_clock()->now();
+    msg.header.frame_id = "odom";
+    msg.pose.position.x = goal.x;
+    msg.pose.position.y = goal.y;
+    msg.pose.position.z = goal.z;
+    msg.pose.orientation.w = goal.qw;
+    msg.pose.orientation.x = goal.qx;
+    msg.pose.orientation.y = goal.qy;
+    msg.pose.orientation.z = goal.qz;
+    debug_goal_pub_->publish(msg);
 }
 
 void ReferenceFilterNode::on_system_reset(
@@ -276,6 +319,10 @@ void ReferenceFilterNode::execute(
         spdlog::info("Executing goal (cold start)");
     }
 
+    if (debug_mode_ == DebugPublishMode::on_new_goal) {
+        publish_debug_goal();
+    }
+
     const bool keep_altitude = wp.keep_altitude && altitude_control_enabled_;
     const double desired_altitude = wp.desired_altitude;
 
@@ -317,6 +364,9 @@ void ReferenceFilterNode::execute(
         if (publish_rpy_debug_) {
             rpy_debug_pub_->publish(fill_reference_rpy_msg(
                 follower_->pose(), follower_->velocity()));
+        }
+        if (debug_mode_ == DebugPublishMode::timer) {
+            publish_debug_goal();
         }
 
         const auto current_pose = [this] {

@@ -19,6 +19,8 @@
 
 namespace vortex::guidance {
 
+enum class DebugPublishMode { none, timer, on_new_goal };
+
 class ReferenceFilterNode : public rclcpp::Node {
    public:
     explicit ReferenceFilterNode(
@@ -32,6 +34,8 @@ class ReferenceFilterNode : public rclcpp::Node {
     void set_refererence_filter();
 
     void setup_reset_subscription();
+    void setup_debug_publisher();
+    void publish_debug_goal();
 
     void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
@@ -67,7 +71,11 @@ class ReferenceFilterNode : public rclcpp::Node {
     rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
         rpy_debug_pub_;
 
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
+        debug_goal_pub_;
+
     bool publish_rpy_debug_{false};
+    DebugPublishMode debug_mode_{DebugPublishMode::none};
 
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
         reference_sub_;

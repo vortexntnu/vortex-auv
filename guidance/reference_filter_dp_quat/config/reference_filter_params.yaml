@@ -6,3 +6,5 @@
     publish_rpy_debug: false
     altitude_control_enabled: true  # Set true to subscribe to DVL altitude and enable keep_altitude waypoints
     altitude_lp_alpha: 0.2           # IIR coefficient for DVL altitude low-pass filter [0,1)
+    debug:
+      goal_publish_mode: "timer"      # "none" | "timer" (every execute loop step) | "on_new_goal"
