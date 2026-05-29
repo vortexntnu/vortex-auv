@@ -31,6 +31,8 @@ enum class WaypointMode : uint8_t {
 struct Waypoint {
     PoseEuler pose{};
     WaypointMode mode = WaypointMode::FULL_POSE;
+    bool keep_altitude{false};
+    double desired_altitude{0.0};
 };
 
 }  // namespace vortex::guidance
