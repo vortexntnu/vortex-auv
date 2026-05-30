@@ -9,7 +9,7 @@
 
     water:
       density: 1000.0 # Freshwater
-      # density: 1025 # Saltwater
+      # density: 1025.0 # Saltwater
 
     gravity:
       acceleration: 9.79609

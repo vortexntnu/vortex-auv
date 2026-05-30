@@ -128,6 +128,8 @@ class ESKFNode : public rclcpp::Node {
     }
 
     bool publish_nis_{false};
+    bool publish_dvl_body_{false};
+    bool publish_depth_{false};
 
     // Flags and Storage
     std::string frame_prefix_{""};

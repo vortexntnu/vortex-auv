@@ -125,10 +125,13 @@ void ESKFNode::set_subscribers_and_publisher() {
             "eskf/nis_depth", qos_sensor_data);
     }
 
-    if (publish_debug_) {
+    if (publish_dvl_body_) {
         dvl_body_pub_ =
             create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
                 "eskf/dvl_body", qos_sensor_data);
+    }
+
+    if (publish_depth_) {
         depth_pub_ = create_publisher<std_msgs::msg::Float64>("eskf/depth",
                                                               qos_sensor_data);
     }
@@ -287,7 +290,7 @@ void ESKFNode::dvl_callback(
     dvl_sensor.measurement_noise =
         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
-    if (publish_debug_) {
+    if (publish_dvl_body_) {
         geometry_msgs::msg::TwistWithCovarianceStamped dvl_body_msg;
         dvl_body_msg.header.stamp = msg->header.stamp;
         dvl_body_msg.header.frame_id = frame("base_link");
@@ -326,7 +329,7 @@ void ESKFNode::pressure_callback(
     depth_sensor.measurement_noise =
         pressure_variance / std::pow(water_density_ * gravity_, 2);
 
-    if (publish_debug_) {
+    if (publish_depth_) {
         std_msgs::msg::Float64 depth_msg;
         depth_msg.data = depth_sensor.measurement;
         depth_pub_->publish(depth_msg);
@@ -478,6 +481,9 @@ void ESKFNode::lookup_static_transforms() {
 
 void ESKFNode::complete_initialization() {
     publish_nis_ = this->declare_parameter<bool>("publish_nis", false);
+    publish_dvl_body_ =
+        this->declare_parameter<bool>("publish_dvl_body", false);
+    publish_depth_ = this->declare_parameter<bool>("publish_depth", false);
     set_subscribers_and_publisher();
     this->gravity_ = this->declare_parameter<double>("gravity.acceleration");
     this->water_density_ = this->declare_parameter<double>("water.density");
