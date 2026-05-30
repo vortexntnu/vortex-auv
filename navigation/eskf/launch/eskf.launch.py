@@ -14,8 +14,8 @@ from auv_setup.launch_arg_common import (
 
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
-    debug_output = (
-        LaunchConfiguration('debug_output').perform(context).lower() == 'true'
+    act_as_odom_source = (
+        LaunchConfiguration('act_as_odom_source').perform(context).lower() == 'true'
     )
     use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
     environment = (
@@ -38,75 +38,38 @@ def launch_setup(context, *args, **kwargs):
         'environments',
         f'{environment}.yaml',
     )
-    nodes = [
+
+    params = [eskf_params, env_params, drone_params, {"frame_prefix": namespace}]
+    remappings = []
+    if not act_as_odom_source:
+        params.append({"publish_tf": False})
+        remappings = [
+            ("odom", "eskf/odom"),
+            ("pose", "eskf/pose"),
+            ("twist", "eskf/twist"),
+        ]
+
+    return [
         Node(
-            package='eskf',
-            executable='eskf_node',
-            name='eskf_node',
+            package="eskf",
+            executable="eskf_node",
+            name="eskf_node",
             namespace=namespace,
-            parameters=[
-                eskf_params,
-                env_params,
-                drone_params,
-                {'frame_prefix': namespace},
-                {'publish_debug': debug_output},
-            ],
-            output='screen',
-        ),
+            parameters=params,
+            remappings=remappings,
+            output="screen",
+        )
     ]
-
-    if (
-        LaunchConfiguration('include_odom_transformer').perform(context).lower()
-        == 'true'
-    ):
-        nodes.append(
-            Node(
-                package='odom_transformer',
-                executable='odom_transformer_node',
-                name='odom_transformer_node',
-                namespace=namespace,
-                parameters=[
-                    drone_params,
-                    {
-                        'frame_prefix': namespace,
-                        'sensor_frame': 'dvl_link',
-                        'publish_tf': False,
-                        'publish_pose': False,
-                        'publish_twist': False,
-                        'topics.input': 'nucleus/odom',
-                        'topics.output': 'nucleus/odom_relative',
-                        'topics.pose': 'pose',
-                        'topics.twist': 'twist',
-                    },
-                ],
-                output='screen',
-            )
-        )
-
-    if debug_output:
-        nodes.append(
-            Node(
-                package='vortex_utility_nodes',
-                executable='rpy_publisher_node',
-                name='rpy_publisher_node',
-                namespace=namespace,
-                parameters=[
-                    {
-                        'input_topics': ['nucleus/odom_relative', 'eskf/odom'],
-                        'output_topics': ['nucleus/odom_relative/rpy', 'eskf/odom/rpy'],
-                        'input_types': ['odometry', 'odometry'],
-                    }
-                ],
-                output='screen',
-            )
-        )
-
-    return nodes
 
 
 def generate_launch_description():
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                'act_as_odom_source',
+                default_value='true',
+                description='If true, publish on standard topics and enable TF. If false, remap to eskf/* topics and disable TF.',
+            ),
             DeclareLaunchArgument(
                 'use_sim',
                 default_value='false',
@@ -122,16 +85,6 @@ def generate_launch_description():
                     'trondheim_freshwater',
                     'trondheim_saltwater',
                 ],
-            ),
-            DeclareLaunchArgument(
-                'debug_output',
-                default_value='true',
-                description='If true, publish ESKF outputs on debug/private topics and disable TF publishing.',
-            ),
-            DeclareLaunchArgument(
-                'include_odom_transformer',
-                default_value='true',
-                description='If true, launch the odom_transformer node alongside the ESKF.',
             ),
         ]
         + declare_drone_and_namespace_args()

@@ -21,19 +21,7 @@ ESKFNode::ESKFNode(const rclcpp::NodeOptions& options)
     }
     spdlog::info("frame_prefix set to '{}'", frame_prefix_);
 
-    publish_debug_ = this->declare_parameter<bool>("publish_debug");
-    if (publish_debug_) {
-        spdlog::info(
-            "Debug output enabled: Publishing ESKF outputs on debug/private "
-            "topics and disabling TF publishing.");
-    } else {
-        spdlog::info(
-            "Debug output disabled: Publishing ESKF outputs on standard topics "
-            "and enabling TF publishing.");
-    }
-
-    publish_tf_ =
-        this->declare_parameter<bool>("publish_tf") && !publish_debug_;
+    publish_tf_ = this->declare_parameter<bool>("publish_tf");
     if (publish_tf_) {
         tf_broadcaster_ =
             std::make_unique<tf2_ros::TransformBroadcaster>(*this);
@@ -106,40 +94,19 @@ void ESKFNode::set_subscribers_and_publisher() {
             pressure_callback(msg);
         });
 
-    auto eskf_debug_topic = [](std::string& topic_name) {
-        const std::string prefix = "eskf/";
-
-        if (topic_name.rfind(prefix, 0) != 0) {
-            topic_name = prefix + topic_name;
-        }
-    };
-
-    std::string odom_topic = this->get_parameter("topics.odom").as_string();
-    if (publish_debug_) {
-        eskf_debug_topic(odom_topic);
-    }
     odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
-        odom_topic, qos_sensor_data);
+        this->get_parameter("topics.odom").as_string(), qos_sensor_data);
 
     if (publish_pose_) {
-        std::string pose_topic = this->get_parameter("topics.pose").as_string();
-        if (publish_debug_) {
-            eskf_debug_topic(pose_topic);
-        }
         pose_pub_ = this->create_publisher<
-            geometry_msgs::msg::PoseWithCovarianceStamped>(pose_topic,
-                                                           qos_sensor_data);
+            geometry_msgs::msg::PoseWithCovarianceStamped>(
+            this->get_parameter("topics.pose").as_string(), qos_sensor_data);
     }
 
     if (publish_twist_) {
-        std::string twist_topic =
-            this->get_parameter("topics.twist").as_string();
-        if (publish_debug_) {
-            eskf_debug_topic(twist_topic);
-        }
         twist_pub_ = this->create_publisher<
-            geometry_msgs::msg::TwistWithCovarianceStamped>(twist_topic,
-                                                            qos_sensor_data);
+            geometry_msgs::msg::TwistWithCovarianceStamped>(
+            this->get_parameter("topics.twist").as_string(), qos_sensor_data);
     }
 
     if (publish_biases_) {

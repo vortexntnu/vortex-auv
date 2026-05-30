@@ -127,7 +127,6 @@ class ESKFNode : public rclcpp::Node {
         return frame_prefix_.empty() ? name : frame_prefix_ + "/" + name;
     }
 
-    bool publish_debug_{false};
     bool publish_nis_{false};
 
     // Flags and Storage
