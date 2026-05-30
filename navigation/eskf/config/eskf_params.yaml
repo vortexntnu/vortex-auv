@@ -34,4 +34,5 @@
       publish_twist: true
       publish_rate_ms: 5
       publish_biases: false
+      publish_nis: true
       pressure_is_gauge: true # Stonefish publishes gauge pressure

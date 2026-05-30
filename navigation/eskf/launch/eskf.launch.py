@@ -17,78 +17,123 @@ def launch_setup(context, *args, **kwargs):
     debug_output = (
         LaunchConfiguration('debug_output').perform(context).lower() == 'true'
     )
-
-    drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
-    )
-
     use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
-
-    param_file_name = "eskf_params.yaml" if use_sim else "eskf_params_real_world.yaml"
-    eskf_params = os.path.join(
-        get_package_share_directory("eskf"), "config", param_file_name
-    )
-
     environment = (
         'stonefish_sim'
         if use_sim
         else LaunchConfiguration('environment').perform(context)
     )
+
+    drone_params = os.path.join(
+        get_package_share_directory('auv_setup'), 'config', 'robots', f'{drone}.yaml'
+    )
+    eskf_params = os.path.join(
+        get_package_share_directory('eskf'),
+        'config',
+        'eskf_params.yaml' if use_sim else 'eskf_params_real_world.yaml',
+    )
     env_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "environments",
-        f"{environment}.yaml",
+        get_package_share_directory('auv_setup'),
+        'config',
+        'environments',
+        f'{environment}.yaml',
     )
+    nodes = [
+        Node(
+            package='eskf',
+            executable='eskf_node',
+            name='eskf_node',
+            namespace=namespace,
+            parameters=[
+                eskf_params,
+                env_params,
+                drone_params,
+                {'frame_prefix': namespace},
+                {'publish_debug': debug_output},
+            ],
+            output='screen',
+        ),
+    ]
 
-    eskf_node = Node(
-        package="eskf",
-        executable="eskf_node",
-        name="eskf_node",
-        namespace=namespace,
-        parameters=[
-            eskf_params,
-            env_params,
-            drone_params,
-            {"frame_prefix": namespace},
-            {"publish_debug": debug_output},
-        ],
-        output="screen",
-    )
+    if (
+        LaunchConfiguration('include_odom_transformer').perform(context).lower()
+        == 'true'
+    ):
+        nodes.append(
+            Node(
+                package='odom_transformer',
+                executable='odom_transformer_node',
+                name='odom_transformer_node',
+                namespace=namespace,
+                parameters=[
+                    drone_params,
+                    {
+                        'frame_prefix': namespace,
+                        'sensor_frame': 'dvl_link',
+                        'publish_tf': False,
+                        'publish_pose': False,
+                        'publish_twist': False,
+                        'topics.input': 'nucleus/odom',
+                        'topics.output': 'nucleus/odom_relative',
+                        'topics.pose': 'pose',
+                        'topics.twist': 'twist',
+                    },
+                ],
+                output='screen',
+            )
+        )
 
-    return [eskf_node]
+    if debug_output:
+        nodes.append(
+            Node(
+                package='vortex_utility_nodes',
+                executable='rpy_publisher_node',
+                name='rpy_publisher_node',
+                namespace=namespace,
+                parameters=[
+                    {
+                        'input_topics': ['nucleus/odom_relative', 'eskf/odom'],
+                        'output_topics': ['nucleus/odom_relative/rpy', 'eskf/odom/rpy'],
+                        'input_types': ['odometry', 'odometry'],
+                    }
+                ],
+                output='screen',
+            )
+        )
+
+    return nodes
 
 
 def generate_launch_description():
-    sim_arg = DeclareLaunchArgument(
-        'use_sim',
-        default_value='false',
-        description='Set to "false" to load real-world hardware parameters.',
-    )
-    environment_arg = DeclareLaunchArgument(
-        'environment',
-        default_value='trondheim_freshwater',
-        description=(
-            'Environment config to load from auv_setup/config/environments/. '
-            'If use_sim is true env config is set to stonefish_sim'
-        ),
-        choices=[
-            'longbeach',
-            'stonefish_sim',
-            'trondheim_freshwater',
-            'trondheim_saltwater',
-        ],
-    )
-    debug_output_arg = DeclareLaunchArgument(
-        'debug_output',
-        default_value='true',
-        description='If true, publish ESKF outputs on debug/private topics and disable TF publishing.',
-    )
     return LaunchDescription(
-        [sim_arg, environment_arg, debug_output_arg]
+        [
+            DeclareLaunchArgument(
+                'use_sim',
+                default_value='false',
+                description='Set to "false" to load real-world hardware parameters.',
+            ),
+            DeclareLaunchArgument(
+                'environment',
+                default_value='trondheim_freshwater',
+                description='Environment config to load from auv_setup/config/environments/.',
+                choices=[
+                    'longbeach',
+                    'stonefish_sim',
+                    'trondheim_freshwater',
+                    'trondheim_saltwater',
+                ],
+            ),
+            DeclareLaunchArgument(
+                'debug_output',
+                default_value='true',
+                description='If true, publish ESKF outputs on debug/private topics and disable TF publishing.',
+            ),
+            DeclareLaunchArgument(
+                'include_odom_transformer',
+                default_value='true',
+                description='If true, launch the odom_transformer node alongside the ESKF.',
+            ),
+        ]
         + declare_drone_and_namespace_args()
         + [OpaqueFunction(function=launch_setup)]
     )

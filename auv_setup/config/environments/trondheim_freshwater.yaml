@@ -5,10 +5,10 @@
 /**:
   ros__parameters:
     atmosphere:
-      pressure: 100000 # phone measurement from mclab
+      pressure: 100000.0 # phone measurement from mclab
 
     water:
-      density: 1000
+      density: 1000.0
 
     gravity:
       acceleration: 9.82841

@@ -151,12 +151,20 @@ void ESKFNode::set_subscribers_and_publisher() {
                 "eskf/gyro_bias", qos_sensor_data);
     }
 
-#ifndef NDEBUG
-    nis_dvl_pub_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/nis_dvl", vortex::utils::qos_profiles::reliable_profile());
-    nis_depth_pub_ = create_publisher<std_msgs::msg::Float64>(
-        "eskf/nis_depth", vortex::utils::qos_profiles::reliable_profile());
-#endif
+    if (publish_nis_) {
+        nis_dvl_pub_ = create_publisher<std_msgs::msg::Float64>(
+            "eskf/nis_dvl", qos_sensor_data);
+        nis_depth_pub_ = create_publisher<std_msgs::msg::Float64>(
+            "eskf/nis_depth", qos_sensor_data);
+    }
+
+    if (publish_debug_) {
+        dvl_body_pub_ =
+            create_publisher<geometry_msgs::msg::TwistWithCovarianceStamped>(
+                "eskf/dvl_body", qos_sensor_data);
+        depth_pub_ = create_publisher<std_msgs::msg::Float64>("eskf/depth",
+                                                              qos_sensor_data);
+    }
 }
 
 void ESKFNode::set_parameters() {
@@ -312,14 +320,26 @@ void ESKFNode::dvl_callback(
     dvl_sensor.measurement_noise =
         R_dvl_eskf_ * dvl_sensor.measurement_noise * R_dvl_eskf_.transpose();
 
+    if (publish_debug_) {
+        geometry_msgs::msg::TwistWithCovarianceStamped dvl_body_msg;
+        dvl_body_msg.header.stamp = msg->header.stamp;
+        dvl_body_msg.header.frame_id = frame("base_link");
+        dvl_body_msg.twist.twist.linear.x = dvl_sensor.measurement.x();
+        dvl_body_msg.twist.twist.linear.y = dvl_sensor.measurement.y();
+        dvl_body_msg.twist.twist.linear.z = dvl_sensor.measurement.z();
+        Eigen::Map<Eigen::Matrix<double, 6, 6, Eigen::RowMajor>>(
+            dvl_body_msg.twist.covariance.data())
+            .topLeftCorner<3, 3>() = dvl_sensor.measurement_noise;
+        dvl_body_pub_->publish(dvl_body_msg);
+    }
+
     eskf_->dvl_update(dvl_sensor);
 
-#ifndef NDEBUG
-    // Publish NIS in Debug mode
-    std_msgs::msg::Float64 nis_msg;
-    nis_msg.data = eskf_->get_nis();
-    nis_dvl_pub_->publish(nis_msg);
-#endif
+    if (publish_nis_) {
+        std_msgs::msg::Float64 nis_msg;
+        nis_msg.data = eskf_->get_nis_dvl();
+        nis_dvl_pub_->publish(nis_msg);
+    }
 }
 
 void ESKFNode::pressure_callback(
@@ -328,7 +348,8 @@ void ESKFNode::pressure_callback(
     const double p_gauge = pressure_is_gauge_
                                ? msg->fluid_pressure
                                : msg->fluid_pressure - atmospheric_pressure_;
-    depth_sensor.measurement = p_gauge / (water_density_ * gravity_);
+    depth_sensor.measurement =
+        p_gauge / (water_density_ * gravity_) - T_depth_eskf_.z();
 
     const double pressure_variance =
         pressure_use_msg_noise_ && msg->variance > 0.0
@@ -338,14 +359,19 @@ void ESKFNode::pressure_callback(
     depth_sensor.measurement_noise =
         pressure_variance / std::pow(water_density_ * gravity_, 2);
 
+    if (publish_debug_) {
+        std_msgs::msg::Float64 depth_msg;
+        depth_msg.data = depth_sensor.measurement;
+        depth_pub_->publish(depth_msg);
+    }
+
     eskf_->depth_update(depth_sensor);
 
-#ifndef NDEBUG
-    // Publish NIS in Debug mode
-    std_msgs::msg::Float64 nis_msg;
-    nis_msg.data = eskf_->get_nis();
-    nis_depth_pub_->publish(nis_msg);
-#endif
+    if (publish_nis_) {
+        std_msgs::msg::Float64 nis_msg;
+        nis_msg.data = eskf_->get_nis_depth();
+        nis_depth_pub_->publish(nis_msg);
+    }
 }
 
 void ESKFNode::publish_odom() {
@@ -484,6 +510,7 @@ void ESKFNode::lookup_static_transforms() {
 }
 
 void ESKFNode::complete_initialization() {
+    publish_nis_ = this->declare_parameter<bool>("publish_nis", false);
     set_subscribers_and_publisher();
     this->gravity_ = this->declare_parameter<double>("gravity.acceleration");
     this->water_density_ = this->declare_parameter<double>("water.density");
@@ -500,10 +527,10 @@ void ESKFNode::complete_initialization() {
 
     spdlog::info(start_message);
 
-#ifndef NDEBUG
-    spdlog::info(
-        "______________________Debug mode is enabled______________________");
-#endif
+    if (publish_nis_) {
+        spdlog::info(
+            "NIS publishing enabled on eskf/nis_dvl and eskf/nis_depth");
+    }
 }
 
 void ESKFNode::publish_tf(const NominalState& nom_state,

@@ -83,6 +83,11 @@ class ESKFNode : public rclcpp::Node {
 
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr nis_depth_pub_;
 
+    rclcpp::Publisher<geometry_msgs::msg::TwistWithCovarianceStamped>::SharedPtr
+        dvl_body_pub_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr depth_pub_;
+
     rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
         accel_bias_pub_;
 
@@ -123,6 +128,7 @@ class ESKFNode : public rclcpp::Node {
     }
 
     bool publish_debug_{false};
+    bool publish_nis_{false};
 
     // Flags and Storage
     std::string frame_prefix_{""};
