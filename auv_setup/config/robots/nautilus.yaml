@@ -122,6 +122,7 @@
       imu: "imu/data_raw"
       sonar_info: "fls/sonar_info"
       pressure_sensor: "pressure"
+      magnetometer: "magnetometer"
       gripper_servos: "gripper_servos"
 
 

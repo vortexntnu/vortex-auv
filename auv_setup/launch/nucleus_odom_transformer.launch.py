@@ -1,10 +1,24 @@
+"""Launch the Nucleus driver and odom_transformer together.
+
+Forwards Nucleus INS odometry through odom_transformer to produce the AUV's
+odometry and sets up the transform tree.
+
+When launch_nucleus=true (default), both the Nucleus driver and odom_transformer
+run inside a shared ComposableNodeContainer for intra-process comms.
+
+When launch_nucleus=false, only the odom_transformer is launched as a plain node,
+assuming the Nucleus driver is already running elsewhere.
+"""
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import ComposableNodeContainer, Node
+from launch_ros.descriptions import ComposableNode
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -12,111 +26,97 @@ from auv_setup.launch_arg_common import (
 )
 
 
-# Simple launch file to forward INS data from the nucleus and use as odometry source.
-# Launches the nucleus, transforms INS to base_link and sets up the AUV transform tree.
 def launch_setup(context, *args, **kwargs):
     drone, namespace = resolve_drone_and_namespace(context)
+    launch_nucleus = LaunchConfiguration('launch_nucleus').perform(context).lower() == 'true'
+    container_name = LaunchConfiguration('container_name').perform(context)
 
-    drone_params = os.path.join(
-        get_package_share_directory("auv_setup"),
-        "config",
-        "robots",
-        f"{drone}.yaml",
-    )
+    auv_setup_dir = get_package_share_directory('auv_setup')
+    drone_params = os.path.join(auv_setup_dir, 'config', 'robots', f'{drone}.yaml')
 
     drone_description_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("auv_setup"),
-                "launch",
-                "drone_description.launch.py",
-            )
+            os.path.join(auv_setup_dir, 'launch', 'drone_description.launch.py')
         ),
-        launch_arguments={
-            "drone": drone,
-            "namespace": namespace,
-        }.items(),
+        launch_arguments={'drone': drone, 'namespace': namespace}.items(),
     )
 
-    nortek_nucleus_ros_interface_node = Node(
-        package="nortek_nucleus_ros_interface",
-        executable="nortek_nucleus_ros_interface_node",
-        name="nortek_nucleus_ros_interface_node",
-        namespace=namespace,
-        parameters=[
-            {
-                "frame_id": f"{namespace}/nucleus_frame",
-                "qos": "best_effort",
-                "connection_params.remote_ip": "10.0.0.42",
-                "connection_params.data_remote_port": 9000,
-                "connection_params.password": "",
-                "enable_imu": True,
-                "enable_ins_odom": True,
-                "enable_dvl": True,
-                "enable_pressure": True,
-                "enable_altimeter": True,
-                "enable_magnetometer": False,
-                "enable_ins_twist": False,
-                "enable_ins_position": False,
-                "enable_ins_pose": False,
-                "imu_data_raw_pub_topic": f"/{namespace}/imu/data_raw",
-                "imu_data_pub_topic": f"/{namespace}/imu/data",
-                "ins_pub_topic": f"/{namespace}/nucleus/odom",
-                "dvl_pub_topic": f"/{namespace}/nucleus/dvl",
-                "pressure_pub_topic": f"/{namespace}/nucleus/pressure",
-                "altimeter_pub_topic": f"/{namespace}/nucleus/altitude",
-                "magnetometer_pub_topic": f"/{namespace}/imu/mag",
-                "ins_twist_pub_topic": f"/{namespace}/nucleus/ins/twist",
-                "ins_position_pub_topic": f"/{namespace}/nucleus/ins/position",
-                "ins_pose_pub_topic": f"/{namespace}/nucleus/ins/pose",
-                "imu_settings.freq": 125,
-                "ahrs_settings.freq": 10,
-                "ahrs_settings.mode": 0,
-                "bottom_track_settings.mode": 2,
-                "bottom_track_settings.velocity_range": 5,
-                "bottom_track_settings.enable_watertrack": False,
-                "altimeter_settings.power_level": 0,  # 0=default
-                "magnetometer_settings.freq": 75,
-                "magnetometer_settings.mode": 0,
-                "instrument_settings.rotxy": 0.0,  # Transform currently not working. Maybe fix later
-                "instrument_settings.rotyz": 0.0,
-                "instrument_settings.rotxz": 0.0,
-            },
-            drone_params,
-        ],
-        output="screen",
-    )
-
-    odom_transformer_node = Node(
-        package="odom_transformer",
-        executable="odom_transformer_node",
-        name="odom_transformer_node",
-        namespace=namespace,
-        parameters=[
-            {
-                "sensor_frame": "dvl_link",
-                "publish_tf": True,
-                "publish_pose": True,
-                "publish_twist": True,
-                "topics.input": f"/{namespace}/nucleus/odom",
-                "topics.output": f"/{namespace}/odom",
-                "topics.pose": f"/{namespace}/pose",
-                "topics.twist": f"/{namespace}/twist",
-            },
-            drone_params,
-            {"frame_prefix": namespace},
-        ],
-        output="screen",
-    )
-
-    return [
-        drone_description_launch,
-        nortek_nucleus_ros_interface_node,
-        odom_transformer_node,
+    odom_transformer_params = [
+        {
+            'sensor_frame': 'dvl_link',
+            'publish_tf': True,
+            'publish_pose': True,
+            'publish_twist': True,
+            'topics.input': f'/{namespace}/nucleus/odom',
+            'topics.output': f'/{namespace}/odom',
+            'topics.pose': f'/{namespace}/pose',
+            'topics.twist': f'/{namespace}/twist',
+        },
+        drone_params,
+        {'frame_prefix': namespace},
     ]
+
+    if launch_nucleus:
+        nucleus_launch = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(auv_setup_dir, 'launch', 'nucleus.launch.py')
+            ),
+            launch_arguments={
+                'drone': drone,
+                'namespace': namespace,
+                'standalone': 'false',
+                'container_name': f'/{namespace}/{container_name}',
+            }.items(),
+        )
+
+        container = ComposableNodeContainer(
+            name=container_name,
+            namespace=namespace,
+            package='rclcpp_components',
+            executable='component_container_mt',
+            composable_node_descriptions=[
+                ComposableNode(
+                    package='odom_transformer',
+                    plugin='OdomTransformer',
+                    name='odom_transformer_node',
+                    namespace=namespace,
+                    parameters=odom_transformer_params,
+                    extra_arguments=[{'use_intra_process_comms': True}],
+                )
+            ],
+            output='screen',
+        )
+
+        return [drone_description_launch, container, nucleus_launch]
+
+    else:
+        return [
+            drone_description_launch,
+            Node(
+                package='odom_transformer',
+                executable='odom_transformer_node',
+                name='odom_transformer_node',
+                namespace=namespace,
+                parameters=odom_transformer_params,
+                output='screen',
+            ),
+        ]
 
 
 def generate_launch_description():
     return LaunchDescription(
-        declare_drone_and_namespace_args() + [OpaqueFunction(function=launch_setup)]
+        [
+            DeclareLaunchArgument(
+                'launch_nucleus',
+                default_value='true',
+                description='Set to false if the Nucleus driver is already running.',
+            ),
+            DeclareLaunchArgument(
+                'container_name',
+                default_value='nucleus_odom_container',
+                description='Name of the shared component container (used when launch_nucleus=true).',
+            ),
+        ]
+        + declare_drone_and_namespace_args()
+        + [OpaqueFunction(function=launch_setup)]
     )

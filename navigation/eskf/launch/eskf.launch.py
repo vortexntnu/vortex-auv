@@ -4,7 +4,8 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
+from launch_ros.actions import LoadComposableNodes, Node
+from launch_ros.descriptions import ComposableNode
 
 from auv_setup.launch_arg_common import (
     declare_drone_and_namespace_args,
@@ -17,6 +18,8 @@ def launch_setup(context, *args, **kwargs):
     act_as_odom_source = (
         LaunchConfiguration('act_as_odom_source').perform(context).lower() == 'true'
     )
+    standalone = LaunchConfiguration('standalone').perform(context).lower() == 'true'
+    container_name = LaunchConfiguration('container_name').perform(context)
     use_sim = LaunchConfiguration('use_sim').perform(context).lower() == 'true'
     environment = (
         'stonefish_sim'
@@ -39,27 +42,45 @@ def launch_setup(context, *args, **kwargs):
         f'{environment}.yaml',
     )
 
-    params = [eskf_params, env_params, drone_params, {"frame_prefix": namespace}]
+    params = [eskf_params, env_params, drone_params, {'frame_prefix': namespace}]
     remappings = []
     if not act_as_odom_source:
-        params.append({"publish_tf": False})
+        params.append({'publish_tf': False})
         remappings = [
-            ("odom", "eskf/odom"),
-            ("pose", "eskf/pose"),
-            ("twist", "eskf/twist"),
+            ('odom',  'eskf/odom'),
+            ('pose',  'eskf/pose'),
+            ('twist', 'eskf/twist'),
         ]
 
-    return [
-        Node(
-            package="eskf",
-            executable="eskf_node",
-            name="eskf_node",
-            namespace=namespace,
-            parameters=params,
-            remappings=remappings,
-            output="screen",
-        )
-    ]
+    if standalone:
+        return [
+            Node(
+                package='eskf',
+                executable='eskf_node',
+                name='eskf_node',
+                namespace=namespace,
+                parameters=params,
+                remappings=remappings,
+                output='screen',
+            )
+        ]
+    else:
+        return [
+            LoadComposableNodes(
+                target_container=container_name,
+                composable_node_descriptions=[
+                    ComposableNode(
+                        package='eskf',
+                        plugin='ESKFNode',
+                        name='eskf_node',
+                        namespace=namespace,
+                        parameters=params,
+                        remappings=remappings,
+                        extra_arguments=[{'use_intra_process_comms': True}],
+                    )
+                ],
+            )
+        ]
 
 
 def generate_launch_description():
@@ -71,9 +92,22 @@ def generate_launch_description():
                 description='If true, publish on standard topics and enable TF. If false, remap to eskf/* topics and disable TF.',
             ),
             DeclareLaunchArgument(
+                'standalone',
+                default_value='true',
+                description=(
+                    'true = launch as a regular node; '
+                    'false = attach to an existing container named by container_name'
+                ),
+            ),
+            DeclareLaunchArgument(
+                'container_name',
+                default_value='',
+                description='Container to attach to when standalone=false',
+            ),
+            DeclareLaunchArgument(
                 'use_sim',
                 default_value='false',
-                description='Set to "false" to load real-world hardware parameters.',
+                description='Load simulation parameters instead of real-world ones.',
             ),
             DeclareLaunchArgument(
                 'environment',
