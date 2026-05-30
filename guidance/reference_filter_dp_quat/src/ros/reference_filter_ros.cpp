@@ -375,8 +375,9 @@ void ReferenceFilterNode::execute(
         }();
 
         const bool converged =
-            keep_altitude ? follower_->within_convergance_ignore_z(current_pose)
-                          : follower_->within_convergance(current_pose);
+            (keep_altitude && !wp.require_altitude_convergence)
+                ? follower_->within_convergance_ignore_z(current_pose)
+                : follower_->within_convergance(current_pose);
 
         if (converged) {
             follower_->snap_state_to_reference();
