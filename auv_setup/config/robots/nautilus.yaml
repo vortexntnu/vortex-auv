@@ -98,6 +98,7 @@
     topics:
       wrench_input: "wrench_input"
       thruster_forces: "thruster_forces"
+      camera_light: "camera_light"
       pwm_output: "pwm"
       current: "power_sense_module/current"
       voltage: "power_sense_module/voltage"

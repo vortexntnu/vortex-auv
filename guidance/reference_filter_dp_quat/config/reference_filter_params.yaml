@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     zeta: [1., 1., 1., 1., 1., 1.]
-    omega: [0.125, 0.125, 0.125, 0.125, 0.125, 0.125]
+    omega: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
     time_step_ms: 10
     publish_rpy_debug: false
     altitude_control_enabled: true  # Set true to subscribe to DVL altitude and enable keep_altitude waypoints
