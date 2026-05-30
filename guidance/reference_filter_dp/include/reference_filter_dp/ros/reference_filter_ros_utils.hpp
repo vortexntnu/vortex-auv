@@ -34,6 +34,10 @@ inline WaypointMode waypoint_mode_from_ros(
             return WaypointMode::XY_AND_YAW;
         case vortex_msgs::msg::WaypointMode::XY_FORWARD_DIR:
             return WaypointMode::XY_FORWARD_DIR;
+        case vortex_msgs::msg::WaypointMode::LEVEL_ORIENTATION:
+            return WaypointMode::LEVEL_ORIENTATION;
+        case vortex_msgs::msg::WaypointMode::ONLY_Z:
+            return WaypointMode::ONLY_Z;
         default:
             throw std::invalid_argument("Invalid ROS waypoint mode: " +
                                         std::to_string(mode_msg.mode));
