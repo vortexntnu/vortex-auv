@@ -101,6 +101,12 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
                 msg->twist.twist);
         });
 
+    const std::string waypoint_goal_topic = this->declare_parameter<std::string>(
+        "topics.guidance.waypoint_mode", "guidance/waypoint_mode");
+    waypoint_goal_pub_ = this->create_publisher<vortex_msgs::msg::WaypointDebug>(
+        waypoint_goal_topic,
+        vortex::utils::qos_profiles::reliable_profile(1));
+
     if (altitude_control_enabled_) {
         this->declare_parameter<std::string>("topics.dvl_altitude");
         this->declare_parameter<double>("altitude_lp_alpha", 0.9);
@@ -180,6 +186,28 @@ void ReferenceFilterNode::publish_debug_goal() {
     msg.pose.orientation.y = goal.qy;
     msg.pose.orientation.z = goal.qz;
     debug_goal_pub_->publish(msg);
+}
+
+void ReferenceFilterNode::publish_waypoint_goal(
+    const vortex::utils::types::Waypoint& wp, double convergence_threshold) {
+    const Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
+        wp.pose.ori_quaternion());
+
+    vortex_msgs::msg::WaypointDebug msg;
+    msg.pose.header.stamp = this->get_clock()->now();
+    msg.pose.header.frame_id = "odom";
+    msg.pose.x = wp.pose.x;
+    msg.pose.y = wp.pose.y;
+    msg.pose.z = wp.pose.z;
+    msg.pose.roll = euler(0);
+    msg.pose.pitch = euler(1);
+    msg.pose.yaw = euler(2);
+    msg.mode = vortex::utils::waypoints::waypoint_mode_to_string(wp.mode);
+    msg.convergence_threshold = convergence_threshold;
+    msg.keep_altitude = wp.keep_altitude;
+    msg.desired_altitude = wp.desired_altitude;
+    msg.require_altitude_convergence = wp.require_altitude_convergence;
+    waypoint_goal_pub_->publish(msg);
 }
 
 void ReferenceFilterNode::on_system_reset(
@@ -271,6 +299,8 @@ void ReferenceFilterNode::execute(
     auto wp = vortex::utils::waypoints::waypoint_from_ros(
         goal_handle->get_goal()->waypoint);
 
+    publish_waypoint_goal(wp, threshold);
+
     if (wp.keep_altitude && altitude_control_enabled_ &&
         wp.desired_altitude <= 0.0) {
         executing_ = false;
@@ -334,6 +364,7 @@ void ReferenceFilterNode::execute(
     while (rclcpp::ok()) {
         if (preempted_.load()) {
             executing_ = false;
+            waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = false;
             goal_handle->abort(result);
             spdlog::info("Goal preempted by newer goal");
@@ -342,6 +373,7 @@ void ReferenceFilterNode::execute(
 
         if (goal_handle->is_canceling()) {
             executing_ = false;
+            waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = false;
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
@@ -390,6 +422,7 @@ void ReferenceFilterNode::execute(
             }
 
             executing_ = false;
+            waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = true;
             goal_handle->succeed(result);
             spdlog::info("Goal reached");

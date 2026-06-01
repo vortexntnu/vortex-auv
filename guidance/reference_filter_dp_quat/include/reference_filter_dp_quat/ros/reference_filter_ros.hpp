@@ -9,6 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_msgs/msg/empty.hpp>
+#include <vortex_msgs/msg/waypoint_debug.hpp>
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/msg/dvl_altitude.hpp>
@@ -36,6 +37,8 @@ class ReferenceFilterNode : public rclcpp::Node {
     void setup_reset_subscription();
     void setup_debug_publisher();
     void publish_debug_goal();
+    void publish_waypoint_goal(const vortex::utils::types::Waypoint& wp,
+                               double convergence_threshold);
 
     void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
@@ -73,6 +76,9 @@ class ReferenceFilterNode : public rclcpp::Node {
 
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr
         debug_goal_pub_;
+
+    rclcpp::Publisher<vortex_msgs::msg::WaypointDebug>::SharedPtr
+        waypoint_goal_pub_;
 
     bool publish_rpy_debug_{false};
     DebugPublishMode debug_mode_{DebugPublishMode::none};
