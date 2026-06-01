@@ -6,6 +6,7 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/string.hpp>
 
 #include <vortex/utils/types.hpp>
 #include <vortex_msgs/msg/operation_mode.hpp>
@@ -47,6 +48,8 @@ class OperationModeManager : public rclcpp::Node {
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_pub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr killswitch_pub_;
     rclcpp::Publisher<vortex_msgs::msg::OperationMode>::SharedPtr mode_pub_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr killswitch_string_pub_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mode_string_pub_;
 
     rclcpp::Service<vortex_msgs::srv::SetOperationMode>::SharedPtr
         set_operation_mode_service_;
