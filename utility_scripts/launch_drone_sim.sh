@@ -74,7 +74,7 @@ PANE_FOX=$(tmux list-panes -t "$SESSION:tools" -F '#{pane_id}')
 tmux send-keys -t "$PANE_FOX" "clear && $S && ros2 launch foxglove_bridge foxglove_bridge_launch.xml" Enter
 
 PANE_MSG=$(tmux split-window -v -t "$PANE_FOX" -P -F '#{pane_id}')
-tmux send-keys -t "$PANE_MSG" "clear && $S && ros2 launch vortex_utility_nodes message_publisher.launch.py" Enter
+tmux send-keys -t "$PANE_MSG" "clear && $S && ros2 launch vortex_utility_nodes rpy_publisher.launch.py " Enter
 
 # =============================================
 # Focus first window and attach
