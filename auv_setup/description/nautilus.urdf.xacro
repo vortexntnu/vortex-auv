@@ -55,7 +55,7 @@
   <joint name="base_to_front_camera" type="fixed">
     <parent link="base_link"/>
     <child link="front_camera_link"/>
-    <origin xyz="0.36362 0.0 -0.023395" rpy="3.14159 0 0"/>
+    <origin xyz="0.36362 0.0 -0.023395" rpy="3.14159 -0.261666667 0"/>
   </joint>
 
   <xacro:realsense_d555 frame="front_camera_link" base="front_camera" name="realsense"/>
