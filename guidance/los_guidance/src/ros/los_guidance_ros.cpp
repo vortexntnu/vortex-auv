@@ -102,7 +102,7 @@ void LosGuidanceNode::set_action_server() {
         this->get_parameter("action_servers.los").as_string();
 
     action_server_ =
-        rclcpp_action::create_server<vortex_msgs::action::GuidanceWaypoint>(
+        rclcpp_action::create_server<vortex_msgs::action::LOSWaypoint>(
             this, action_server_name,
             [this](const auto& uuid, auto goal) {
                 return handle_goal(uuid, std::move(goal));
@@ -159,8 +159,9 @@ void LosGuidanceNode::odom_callback(
 // Goal handler
 rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
-    if (!state_manager_->is_goal_feasible(goal)) {
+    std::shared_ptr<const vortex_msgs::action::LOSWaypoint::Goal> goal) {
+    if (!state_manager_->is_goal_feasible(
+            types::Point::point_from_ros(goal->los_waypoint.waypoints))) {
         RCLCPP_WARN(this->get_logger(),
                     "Rejected goal request: waypoint is not reachable with "
                     "current pitch limit");
@@ -183,7 +184,7 @@ rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
 
 // Cancel handler
 rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
-    const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle) {
+    const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle) {
     spdlog::info("Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
@@ -191,24 +192,46 @@ rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
 
 // Accepted handler
 void LosGuidanceNode::handle_accepted(
-    const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle) {
+    const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle) {
     std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
+
+namespace {
+types::ActiveLosMethod mode_to_los_method(uint8_t mode) {
+    using Req = vortex_msgs::srv::SetLosMode::Request;
+    switch (mode) {
+        case Req::PROPORTIONAL:
+            return types::ActiveLosMethod::PROPORTIONAL;
+        case Req::INTEGRAL:
+            return types::ActiveLosMethod::INTEGRAL;
+        case Req::ADAPTIVE:
+            return types::ActiveLosMethod::ADAPTIVE;
+        case Req::VECTORFIELD:
+            return types::ActiveLosMethod::VECTOR_FIELD;
+        default:
+            throw std::runtime_error("Unknown LOS mode value: " +
+                                     std::to_string(mode));
+    }
+}
+}  // namespace
 
 // Service callback
 void LosGuidanceNode::set_los_mode(
     const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
     std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
-    state_manager_->set_los_method(
-        static_cast<types::ActiveLosMethod>(request->mode));
-
-    spdlog::info("LOS mode set to {}", static_cast<int>(request->mode));
-    response->success = true;
+    try {
+        state_manager_->set_los_method(mode_to_los_method(request->mode));
+        spdlog::info("LOS mode set to {}", static_cast<int>(request->mode));
+        response->success = true;
+    } catch (const std::runtime_error& e) {
+        spdlog::error("Failed to set LOS mode: {}", e.what());
+        response->success = false;
+    }
 }
 
 // Fill LOS reference message
 vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
-    types::Outputs outputs) {
+    types::GuidanceOutputs outputs) {
     vortex_msgs::msg::LOSGuidance reference_msg;
 
     double max_pitch_angle = state_manager_->get_max_pitch_angle();
@@ -234,7 +257,7 @@ vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
 
 // Execute action
 void LosGuidanceNode::execute(
-    const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle) {
+    const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle) {
     {
         std::unique_lock<std::mutex> lock(mutex_);
         this->goal_handle_ = goal_handle;
@@ -244,14 +267,13 @@ void LosGuidanceNode::execute(
     spdlog::info("Executing goal");
 
     const geometry_msgs::msg::Point los_waypoint =
-        goal_handle->get_goal()->waypoint.pose.position;
+        goal_handle->get_goal()->los_waypoint.waypoints;
 
     const auto new_wp = types::Point::point_from_ros(los_waypoint);
 
     state_manager_->initialize_goal(new_wp);
 
-    auto result =
-        std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+    auto result = std::make_shared<vortex_msgs::action::LOSWaypoint::Result>();
 
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
@@ -291,14 +313,17 @@ void LosGuidanceNode::execute(
             return;
         }
 
-        types::Outputs outputs = state_manager_->calculate_outputs();
+        types::GuidanceOutputs outputs = state_manager_->calculate_outputs();
 
         auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
             fill_los_reference(outputs));
 
         if (state_manager_->is_goal_reached(goal_reached_tol_copy)) {
-            reference_msg->pitch = 0.0;
-            reference_msg->surge = 0.0;
+            auto stop_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>();
+            stop_msg->pitch = 0.0;
+            stop_msg->surge = 0.0;
+            stop_msg->yaw = state_manager_->get_current_yaw();
+            reference_pub_->publish(std::move(stop_msg));
 
             result->success = true;
             goal_handle->succeed(result);
@@ -307,26 +332,6 @@ void LosGuidanceNode::execute(
         }
 
         reference_pub_->publish(std::move(reference_msg));
-
-        /* will shortly be moved to Vortex_utils message publisher node for
-        general debugging purposes if (debug && odom_copy) { const auto& v =
-        odom_copy->twist.twist.linear; double surge = std::sqrt(v.x * v.x + v.y
-        * v.y + v.z * v.z);
-
-            vortex_msgs::msg::LOSGuidance state_debug_msg;
-            Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
-                Eigen::Quaterniond(odom_copy->pose.pose.orientation.w,
-                                   odom_copy->pose.pose.orientation.x,
-                                   odom_copy->pose.pose.orientation.y,
-                                   odom_copy->pose.pose.orientation.z));
-
-            state_debug_msg.pitch = euler.y();
-            state_debug_msg.yaw = euler.z();
-            state_debug_msg.surge = surge;
-
-            state_debug_pub_->publish(state_debug_msg);
-
-        }*/
 
         loop_rate.sleep();
     }

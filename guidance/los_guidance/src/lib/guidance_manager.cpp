@@ -9,103 +9,12 @@ namespace vortex::guidance::los {
 
 // Constructor
 LosGuidanceStateManager::LosGuidanceStateManager(
-    const std::string& yaml_file_path) {
-    YAML::Node config = utils::load_yaml_config(yaml_file_path);
-
+    const std::string& yaml_file_path)
+    : yaml_file_path_(yaml_file_path) {
+    YAML::Node config = utils::load_yaml_config(yaml_file_path_);
     parse_common_config(config["common"]);
-    set_adaptive_los_guidance(config);
-    set_proportional_los_guidance(config);
-    set_integral_los_guidance(config);
-    set_vector_field_guidance(config);
-}
-
-// Adaptive LOS setup
-void LosGuidanceStateManager::set_adaptive_los_guidance(YAML::Node config) {
-    auto adaptive_los_config = config["adaptive_los"];
-    auto params = AdaptiveLosParams{};
-
-    try {
-        params.lookahead_distance_h =
-            adaptive_los_config["lookahead_distance_h"].as<double>();
-        params.lookahead_distance_v =
-            adaptive_los_config["lookahead_distance_v"].as<double>();
-        params.adaptation_gain_h =
-            adaptive_los_config["adaptation_gain_h"].as<double>();
-        params.adaptation_gain_v =
-            adaptive_los_config["adaptation_gain_v"].as<double>();
-        params.time_step = time_step_s_;
-
-        adaptive_los_ = std::make_unique<AdaptiveLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load adaptive_los parameters: ") + e.what());
-    }
-}
-
-// Proportional LOS setup
-void LosGuidanceStateManager::set_proportional_los_guidance(YAML::Node config) {
-    auto proportional_los_config = config["prop_los"];
-    auto params = ProportionalLosParams{};
-
-    try {
-        params.lookahead_distance_h =
-            proportional_los_config["lookahead_distance_h"].as<double>();
-        params.lookahead_distance_v =
-            proportional_los_config["lookahead_distance_v"].as<double>();
-
-        proportional_los_ = std::make_unique<ProportionalLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load proportional_los parameters: ") +
-            e.what());
-    }
-}
-
-// Integral LOS setup
-void LosGuidanceStateManager::set_integral_los_guidance(YAML::Node config) {
-    auto integral_los_config = config["integer_los"];
-    auto params = IntegralLosParams{};
-
-    try {
-        params.proportional_gain_h =
-            integral_los_config["proportional_gain_h"].as<double>();
-        params.proportional_gain_v =
-            integral_los_config["proportional_gain_v"].as<double>();
-        params.integral_gain_h =
-            integral_los_config["integral_gain_h"].as<double>();
-        params.integral_gain_v =
-            integral_los_config["integral_gain_v"].as<double>();
-        params.time_step = time_step_s_;
-
-        integral_los_ = std::make_unique<IntegralLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load integral_los parameters: ") + e.what());
-    }
-}
-
-// Vector field LOS setup
-void LosGuidanceStateManager::set_vector_field_guidance(YAML::Node config) {
-    auto vector_field_config = config["vector_field_los"];
-    auto params = VectorFieldLosParams{};
-
-    try {
-        params.max_approach_angle_h =
-            vector_field_config["max_approach_angle_h"].as<double>();
-        params.max_approach_angle_v =
-            vector_field_config["max_approach_angle_v"].as<double>();
-        params.proportional_gain_h =
-            vector_field_config["proportional_gain_h"].as<double>();
-        params.proportional_gain_v =
-            vector_field_config["proportional_gain_v"].as<double>();
-        params.time_step = time_step_s_;
-
-        vector_field_los_ = std::make_unique<VectorFieldLOSGuidance>(params);
-    } catch (const YAML::Exception& e) {
-        throw std::runtime_error(
-            std::string("Failed to load vector_field_los parameters: ") +
-            e.what());
-    }
+    std::unique_lock<std::mutex> lock(mutex_);
+    emplace_los_from_config(config);
 }
 
 // Parse common config
@@ -121,18 +30,6 @@ void LosGuidanceStateManager::parse_common_config(
             common_config["missed_goal_timeout"].as<double>();
         missed_goal_distance_margin_ =
             common_config["missed_goal_distance_margin"].as<double>();
-
-        const auto m = common_config["active_los_method"];
-        if (!m) {
-            throw std::runtime_error(
-                "Missing required field 'active_los_method'");
-        }
-        try {
-            method_ = types::int_to_active_los_method(m.as<int>());
-        } catch (const YAML::BadConversion&) {
-            method_ = types::string_to_active_los_method(m.as<std::string>());
-        }
-
         time_step_s_ = common_config["time_step_s"].as<double>();
 
         lock.unlock();
@@ -140,6 +37,90 @@ void LosGuidanceStateManager::parse_common_config(
         throw std::runtime_error(
             std::string("Failed to load common parameters: ") + e.what());
     }
+}
+
+// Emplace the variant for the given method using parameters from config.
+// Must be called while holding mutex_.
+void LosGuidanceStateManager::emplace_los_for_method(
+    types::ActiveLosMethod method,
+    const YAML::Node& config) {
+    try {
+        switch (method) {
+            case types::ActiveLosMethod::PROPORTIONAL: {
+                auto c = config["prop_los"];
+                ProportionalLosParams params;
+                params.lookahead_distance_h =
+                    c["lookahead_distance_h"].as<double>();
+                params.lookahead_distance_v =
+                    c["lookahead_distance_v"].as<double>();
+                los_method_.emplace<ProportionalLOSGuidance>(params);
+                break;
+            }
+            case types::ActiveLosMethod::INTEGRAL: {
+                auto c = config["integer_los"];
+                IntegralLosParams params;
+                params.proportional_gain_h =
+                    c["proportional_gain_h"].as<double>();
+                params.proportional_gain_v =
+                    c["proportional_gain_v"].as<double>();
+                params.integral_gain_h = c["integral_gain_h"].as<double>();
+                params.integral_gain_v = c["integral_gain_v"].as<double>();
+                params.time_step = time_step_s_;
+                los_method_.emplace<IntegralLOSGuidance>(params);
+                break;
+            }
+            case types::ActiveLosMethod::ADAPTIVE: {
+                auto c = config["adaptive_los"];
+                AdaptiveLosParams params;
+                params.lookahead_distance_h =
+                    c["lookahead_distance_h"].as<double>();
+                params.lookahead_distance_v =
+                    c["lookahead_distance_v"].as<double>();
+                params.adaptation_gain_h = c["adaptation_gain_h"].as<double>();
+                params.adaptation_gain_v = c["adaptation_gain_v"].as<double>();
+                params.time_step = time_step_s_;
+                los_method_.emplace<AdaptiveLOSGuidance>(params);
+                break;
+            }
+            case types::ActiveLosMethod::VECTOR_FIELD: {
+                auto c = config["vector_field_los"];
+                VectorFieldLosParams params;
+                params.max_approach_angle_h =
+                    c["max_approach_angle_h"].as<double>();
+                params.max_approach_angle_v =
+                    c["max_approach_angle_v"].as<double>();
+                params.proportional_gain_h =
+                    c["proportional_gain_h"].as<double>();
+                params.proportional_gain_v =
+                    c["proportional_gain_v"].as<double>();
+                params.time_step = time_step_s_;
+                los_method_.emplace<VectorFieldLOSGuidance>(params);
+                break;
+            }
+        }
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            std::string("Failed to load LOS method parameters: ") + e.what());
+    }
+}
+
+// Read active_los_method from config["common"] and emplace the variant.
+// Must be called while holding mutex_.
+void LosGuidanceStateManager::emplace_los_from_config(
+    const YAML::Node& config) {
+    const auto m = config["common"]["active_los_method"];
+    if (!m) {
+        throw std::runtime_error("Missing required field 'active_los_method'");
+    }
+
+    types::ActiveLosMethod method;
+    try {
+        method = types::int_to_active_los_method(m.as<int>());
+    } catch (const YAML::BadConversion&) {
+        method = types::string_to_active_los_method(m.as<std::string>());
+    }
+
+    emplace_los_for_method(method, config);
 }
 
 // Update waypoint
@@ -172,15 +153,21 @@ void LosGuidanceStateManager::update_yaw(double yaw) {
     lock.unlock();
 }
 
-// Set LOS method
+// Set LOS method — immediately re-emplaces the variant with fresh params from
+// the YAML config file, which also implicitly resets any stateful method.
 void LosGuidanceStateManager::set_los_method(types::ActiveLosMethod method) {
+    YAML::Node config = utils::load_yaml_config(yaml_file_path_);
+    parse_common_config(config["common"]);
     std::unique_lock<std::mutex> lock(mutex_);
-    method_ = method;
+    emplace_los_for_method(method, config);
     lock.unlock();
 }
 
 // Initialize goal
 void LosGuidanceStateManager::initialize_goal(const types::Point& new_wp) {
+    YAML::Node config = utils::load_yaml_config(yaml_file_path_);
+    parse_common_config(config["common"]);
+
     std::unique_lock<std::mutex> lock(mutex_);
 
     if (!has_active_segment_) {
@@ -192,24 +179,22 @@ void LosGuidanceStateManager::initialize_goal(const types::Point& new_wp) {
         path_inputs_.next_point = new_wp;
     }
 
-    lock.unlock();
-
-    adaptive_los_->reset();
+    emplace_los_from_config(config);
 
     nearest_been_to_goal_ = std::numeric_limits<double>::infinity();
     time_since_nearest_goal_s_ = 0.0;
+
+    lock.unlock();
 }
 
 // Check if goal is feasible
-bool LosGuidanceStateManager::is_goal_feasible(
-    std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal> goal) {
+bool LosGuidanceStateManager::is_goal_feasible(const types::Point& goal_point) {
     std::unique_lock<std::mutex> lock(mutex_);
-    types::Inputs inputs_copy = path_inputs_;
+    types::GuidanceInputs inputs_copy = path_inputs_;
     double max_pitch_angle_copy = max_pitch_angle_;
     lock.unlock();
 
     const auto& current_position = inputs_copy.current_position;
-    const auto& goal_point = goal->waypoint.pose.position;
 
     const double dx = goal_point.x - current_position.x;
     const double dy = goal_point.y - current_position.y;
@@ -224,7 +209,7 @@ bool LosGuidanceStateManager::is_goal_feasible(
 // Check if goal is missed
 bool LosGuidanceStateManager::is_goal_missed() {
     std::unique_lock<std::mutex> lock(mutex_);
-    types::Inputs inputs_copy = path_inputs_;
+    types::GuidanceInputs inputs_copy = path_inputs_;
     lock.unlock();
 
     const double distance_to_goal =
@@ -251,7 +236,7 @@ bool LosGuidanceStateManager::is_goal_missed() {
 // Check if goal is reached
 bool LosGuidanceStateManager::is_goal_reached(double tolerance) {
     std::unique_lock<std::mutex> lock(mutex_);
-    types::Inputs inputs_copy = path_inputs_;
+    types::GuidanceInputs inputs_copy = path_inputs_;
     lock.unlock();
 
     return (inputs_copy.current_position - inputs_copy.next_point)
@@ -260,32 +245,20 @@ bool LosGuidanceStateManager::is_goal_reached(double tolerance) {
 }
 
 // Calculate outputs
-types::Outputs LosGuidanceStateManager::calculate_outputs() {
+types::GuidanceOutputs LosGuidanceStateManager::calculate_outputs() {
     std::unique_lock<std::mutex> lock(mutex_);
-    types::Inputs inputs_copy = path_inputs_;
-    types::ActiveLosMethod method_copy = method_;
-    lock.unlock();
-
-    types::Outputs outputs;
-
-    switch (method_copy) {
-        case types::ActiveLosMethod::ADAPTIVE:
-            outputs = adaptive_los_->calculate_outputs(inputs_copy);
-            break;
-        case types::ActiveLosMethod::PROPORTIONAL:
-            outputs = proportional_los_->calculate_outputs(inputs_copy);
-            break;
-        case types::ActiveLosMethod::INTEGRAL:
-            outputs = integral_los_->calculate_outputs(inputs_copy);
-            break;
-        case types::ActiveLosMethod::VECTOR_FIELD:
-            outputs = vector_field_los_->calculate_outputs(inputs_copy);
-            break;
-        default:
-            spdlog::error("Invalid LOS method selected");
-            break;
-    }
-
+    types::GuidanceInputs inputs_copy = path_inputs_;
+    types::GuidanceOutputs outputs;
+    std::visit(
+        [&](auto& los) {
+            using T = std::decay_t<decltype(los)>;
+            if constexpr (!std::is_same_v<T, std::monostate>) {
+                outputs = los.calculate_outputs(inputs_copy);
+            } else {
+                spdlog::error("LOS method not initialized");
+            }
+        },
+        los_method_);
     return outputs;
 }
 

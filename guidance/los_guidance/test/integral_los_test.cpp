@@ -24,12 +24,12 @@ class IntegralLosTest : public ::testing::Test {
 
 // Test commanded angles when drone is to the right of the track
 TEST_F(IntegralLosTest, T01_test_commanded_angles) {
-    types::Inputs inputs;
+    types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
     inputs.current_position = types::Point{0.0, 0.5, 0.0};
 
-    const types::Outputs O = Ilos_.calculate_outputs(inputs);
+    const types::GuidanceOutputs O = Ilos_.calculate_outputs(inputs);
 
     // Heading cmd should be between -pi/2 and 0
     EXPECT_LT(O.psi_d, 0.0);
@@ -41,12 +41,12 @@ TEST_F(IntegralLosTest, T01_test_commanded_angles) {
 
 // Test commanded angles when drone is to the left of the track
 TEST_F(IntegralLosTest, T02_test_commanded_angles) {
-    types::Inputs inputs;
+    types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
     inputs.current_position = types::Point{0.0, -0.5, 0.0};
 
-    const types::Outputs O = Ilos_.calculate_outputs(inputs);
+    const types::GuidanceOutputs O = Ilos_.calculate_outputs(inputs);
 
     // Heading cmd should be between 0 and pi/2
     EXPECT_GT(O.psi_d, 0.0);
@@ -57,12 +57,12 @@ TEST_F(IntegralLosTest, T02_test_commanded_angles) {
 
 // Test commanded angles when drone is under the track
 TEST_F(IntegralLosTest, T03_test_commanded_angles) {
-    types::Inputs inputs;
+    types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
     inputs.current_position = types::Point{0.0, 0.0, 0.5};
 
-    const types::Outputs O = Ilos_.calculate_outputs(inputs);
+    const types::GuidanceOutputs O = Ilos_.calculate_outputs(inputs);
 
     // Heading cmd should be 0
     EXPECT_NEAR(O.psi_d, 0.0, tol);
@@ -73,12 +73,12 @@ TEST_F(IntegralLosTest, T03_test_commanded_angles) {
 
 // Test commanded angles when drone is above the track
 TEST_F(IntegralLosTest, T04_test_commanded_angles) {
-    types::Inputs inputs;
+    types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
     inputs.current_position = types::Point{0.0, 0.0, -0.5};
 
-    const types::Outputs O = Ilos_.calculate_outputs(inputs);
+    const types::GuidanceOutputs O = Ilos_.calculate_outputs(inputs);
 
     // Heading cmd should be 0
     EXPECT_NEAR(O.psi_d, 0.0, tol);
@@ -90,12 +90,12 @@ TEST_F(IntegralLosTest, T04_test_commanded_angles) {
 // Test commanded angles when drone is above and to the right of the track
 
 TEST_F(IntegralLosTest, T05_test_commanded_angles) {
-    types::Inputs inputs;
+    types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
     inputs.next_point = types::Point{1.0, 0.0, 0.0};
     inputs.current_position = types::Point{0.0, 0.5, -0.5};
 
-    const types::Outputs O = Ilos_.calculate_outputs(inputs);
+    const types::GuidanceOutputs O = Ilos_.calculate_outputs(inputs);
 
     // Heading cmd should be between -pi/2 and 0
     EXPECT_LT(O.psi_d, 0.0);

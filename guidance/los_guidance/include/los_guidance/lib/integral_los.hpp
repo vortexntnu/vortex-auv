@@ -47,9 +47,10 @@ class IntegralLOSGuidance {
     /**
      * @brief Calculates the desired LOS guidance outputs.
      * @param inputs Input values required for integral LOS computation.
-     * @return types::Outputs The desired heading and pitch commands.
+     * @return types::GuidanceOutputs The desired heading and pitch commands.
      */
-    types::Outputs calculate_outputs(const types::Inputs& inputs);
+    types::GuidanceOutputs calculate_outputs(
+        const types::GuidanceInputs& inputs);
 
    private:
     /**
@@ -57,7 +58,7 @@ class IntegralLOSGuidance {
      * path segment.
      * @param inputs Input values containing the previous and next path points.
      */
-    void update_angles(const types::Inputs& inputs);
+    void update_angles(const types::GuidanceInputs& inputs);
 
     /**
      * @brief Calculates the cross-track error in the path-fixed reference
@@ -68,7 +69,7 @@ class IntegralLOSGuidance {
      * cross-track errors.
      */
     types::CrossTrackError calculate_crosstrack_error(
-        const types::Inputs& inputs);
+        const types::GuidanceInputs& inputs);
 
     /**
      * @brief Parameters used by the integral LOS guidance algorithm.

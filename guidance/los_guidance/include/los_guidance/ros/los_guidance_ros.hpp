@@ -18,10 +18,9 @@
 #include <memory>
 
 #include <vortex/utils/math.hpp>
-#include <vortex_msgs/action/guidance_waypoint.hpp>
+#include <vortex_msgs/action/los_waypoint.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
 #include <vortex_msgs/msg/pose_euler_stamped.hpp>
-#include <vortex_msgs/msg/waypoints.hpp>
 #include <vortex_msgs/srv/set_los_mode.hpp>
 
 #include "los_guidance/lib/guidance_manager.hpp"
@@ -45,8 +44,8 @@ class LosGuidanceNode : public rclcpp::Node {
      * @brief Type alias for the goal handle used by the LOS guidance action
      * server.
      */
-    using GoalHandleGuidanceWaypoint =
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>;
+    using GoalHandleLOSWaypoint =
+        rclcpp_action::ServerGoalHandle<vortex_msgs::action::LOSWaypoint>;
 
     /**
      * @brief Sets up the ROS subscribers and publishers used by the node.
@@ -100,8 +99,7 @@ class LosGuidanceNode : public rclcpp::Node {
      */
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& uuid,
-        std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
-            goal);
+        std::shared_ptr<const vortex_msgs::action::LOSWaypoint::Goal> goal);
 
     /**
      * @brief Handles cancellation of an active LOS guidance goal.
@@ -110,20 +108,20 @@ class LosGuidanceNode : public rclcpp::Node {
      * cancellation is accepted.
      */
     rclcpp_action::CancelResponse handle_cancel(
-        const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle);
+        const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle);
 
     /**
      * @brief Handles an accepted LOS guidance goal.
      * @param goal_handle Handle to the accepted goal.
      */
     void handle_accepted(
-        const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle);
+        const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle);
 
     /**
      * @brief Executes the LOS guidance action.
      * @param goal_handle Handle to the active LOS guidance goal.
      */
-    void execute(const std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle);
+    void execute(const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle);
 
     /**
      * @brief Service callback for changing the active LOS guidance method.
@@ -141,10 +139,11 @@ class LosGuidanceNode : public rclcpp::Node {
      * @return vortex_msgs::msg::LOSGuidance Populated LOS guidance reference
      * message.
      */
-    vortex_msgs::msg::LOSGuidance fill_los_reference(types::Outputs outputs);
+    vortex_msgs::msg::LOSGuidance fill_los_reference(
+        types::GuidanceOutputs outputs);
 
     // ROS interfaces
-    rclcpp_action::Server<vortex_msgs::action::GuidanceWaypoint>::SharedPtr
+    rclcpp_action::Server<vortex_msgs::action::LOSWaypoint>::SharedPtr
         action_server_;
     rclcpp::Service<vortex_msgs::srv::SetLosMode>::SharedPtr los_mode_service_;
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
@@ -163,7 +162,7 @@ class LosGuidanceNode : public rclcpp::Node {
     std::chrono::milliseconds time_step_;
     std::mutex mutex_;
     rclcpp_action::GoalUUID preempted_goal_id_;
-    std::shared_ptr<GoalHandleGuidanceWaypoint> goal_handle_;
+    std::shared_ptr<GoalHandleLOSWaypoint> goal_handle_;
     nav_msgs::msg::Odometry::SharedPtr debug_current_odom_{};
 };
 

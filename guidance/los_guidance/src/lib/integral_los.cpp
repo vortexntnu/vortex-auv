@@ -14,7 +14,7 @@ IntegralLOSGuidance::IntegralLOSGuidance(const IntegralLosParams& params)
 }
 
 // Angle Update
-void IntegralLOSGuidance::update_angles(const types::Inputs& inputs) {
+void IntegralLOSGuidance::update_angles(const types::GuidanceInputs& inputs) {
     const types::Point difference = inputs.next_point - inputs.prev_point;
 
     path_heading_ = std::atan2(difference.y, difference.x);
@@ -28,7 +28,7 @@ void IntegralLOSGuidance::update_angles(const types::Inputs& inputs) {
 
 // Cross-Track Error Calculation
 types::CrossTrackError IntegralLOSGuidance::calculate_crosstrack_error(
-    const types::Inputs& inputs) {
+    const types::GuidanceInputs& inputs) {
     const Eigen::Vector3d diff_vec =
         (inputs.current_position - inputs.prev_point).as_vector();
 
@@ -40,8 +40,8 @@ types::CrossTrackError IntegralLOSGuidance::calculate_crosstrack_error(
 }
 
 // Output Calculation
-types::Outputs IntegralLOSGuidance::calculate_outputs(
-    const types::Inputs& inputs) {
+types::GuidanceOutputs IntegralLOSGuidance::calculate_outputs(
+    const types::GuidanceInputs& inputs) {
     update_angles(inputs);
 
     const types::CrossTrackError cross_track_error =
@@ -58,7 +58,7 @@ types::Outputs IntegralLOSGuidance::calculate_outputs(
     const double desired_yaw = path_heading_ - std::atan(u_h);
     const double desired_pitch = path_pitch_ + std::atan(u_v);
 
-    return types::Outputs{desired_yaw, desired_pitch};
+    return types::GuidanceOutputs{desired_yaw, desired_pitch};
 }
 
 }  // namespace vortex::guidance::los

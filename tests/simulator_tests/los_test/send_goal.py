@@ -1,40 +1,25 @@
 import rclpy
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from vortex_msgs.action import GuidanceWaypoint
-from vortex_msgs.msg import Waypoint, WaypointMode
+from vortex_msgs.action import LOSWaypoint
+from vortex_msgs.msg import LOSWaypoint as LOSWaypointMsg
 
 
 class LOSGuidanceClient(Node):
     def __init__(self):
         super().__init__('los_guidance_client')
 
-        self._action_client = ActionClient(
-            self, GuidanceWaypoint, '/nautilus/los_guidance'
-        )
+        self._action_client = ActionClient(self, LOSWaypoint, '/nautilus/los_guidance')
         self.send_goal()
 
     def send_goal(self):
-        goal_msg = GuidanceWaypoint.Goal()
+        goal_msg = LOSWaypoint.Goal()
 
-        pose = Pose()
-        pose.position.x = 20.0
-        pose.position.y = 20.0
-        pose.position.z = 5.0
-        pose.orientation.x = 0.0
-        pose.orientation.y = 0.0
-        pose.orientation.z = 0.0
-        pose.orientation.w = 1.0
+        wp = LOSWaypointMsg()
+        wp.waypoints = Point(x=20.0, y=20.0, z=5.0)
 
-        waypoint = Waypoint()
-        waypoint.pose = pose
-
-        waypoint_mode = WaypointMode()
-        waypoint_mode.mode = WaypointMode.ONLY_POSITION
-        waypoint.waypoint_mode = waypoint_mode
-
-        goal_msg.waypoint = waypoint
+        goal_msg.los_waypoint = wp
         goal_msg.convergence_threshold = 0.5
 
         self._action_client.wait_for_server(timeout_sec=10.0)

@@ -19,7 +19,7 @@ void AdaptiveLOSGuidance::reset() {
     alpha_c_hat_ = 0.0;
 }
 
-void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
+void AdaptiveLOSGuidance::update_angles(const types::GuidanceInputs& inputs) {
     const double dx = inputs.next_point.x - inputs.prev_point.x;
     const double dy = inputs.next_point.y - inputs.prev_point.y;
     const double dz = inputs.next_point.z - inputs.prev_point.z;
@@ -32,7 +32,7 @@ void AdaptiveLOSGuidance::update_angles(const types::Inputs& inputs) {
 }
 
 const types::CrossTrackError AdaptiveLOSGuidance::calculate_crosstrack_error(
-    const types::Inputs& inputs) {
+    const types::GuidanceInputs& inputs) {
     const types::Point difference = inputs.current_position - inputs.prev_point;
     const Eigen::Vector3d difference_vector = difference.as_vector();
 
@@ -62,8 +62,8 @@ void AdaptiveLOSGuidance::update_adaptive_estimates(
     alpha_c_hat_ += alpha_dot * params_.time_step;
 }
 
-types::Outputs AdaptiveLOSGuidance::calculate_outputs(
-    const types::Inputs& inputs) {
+types::GuidanceOutputs AdaptiveLOSGuidance::calculate_outputs(
+    const types::GuidanceInputs& inputs) {
     update_angles(inputs);
 
     const types::CrossTrackError cross_track_error =
@@ -79,7 +79,7 @@ types::Outputs AdaptiveLOSGuidance::calculate_outputs(
         path_pitch_ + alpha_c_hat_ +
         std::atan(cross_track_error.z_e / params_.lookahead_distance_v);
 
-    return types::Outputs{desired_yaw, desired_pitch};
+    return types::GuidanceOutputs{desired_yaw, desired_pitch};
 }
 
 }  // namespace vortex::guidance::los

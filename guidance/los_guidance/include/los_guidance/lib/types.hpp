@@ -74,7 +74,7 @@ struct CrossTrackError {
 /**
  * @brief Stores the LOS guidance outputs.
  */
-struct Outputs {
+struct GuidanceOutputs {
     double psi_d{};
     double theta_d{};
 };
@@ -82,7 +82,7 @@ struct Outputs {
 /**
  * @brief Stores the inputs required by the LOS guidance algorithms.
  */
-struct Inputs {
+struct GuidanceInputs {
     Point prev_point{};
     Point next_point{};
     Point current_position{};

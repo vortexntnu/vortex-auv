@@ -1,11 +1,11 @@
 import math
 
 import rclpy
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from vortex_msgs.action import GuidanceWaypoint
-from vortex_msgs.msg import Waypoint, WaypointMode
+from vortex_msgs.action import LOSWaypoint
+from vortex_msgs.msg import LOSWaypoint as LOSWaypointMsg
 
 
 class WaypointTest(Node):
@@ -20,7 +20,7 @@ class WaypointTest(Node):
 
         self._action_client = ActionClient(
             self,
-            GuidanceWaypoint,
+            LOSWaypoint,
             f"/{self.drone}/los_guidance",
         )
 
@@ -93,28 +93,13 @@ class WaypointTest(Node):
 
         self._action_client.wait_for_server()
 
-        goal_msg = GuidanceWaypoint.Goal()
-
         x, y, z = self.waypoints[self.current_index]
 
-        pose = Pose()
-        pose.position.x = float(x)
-        pose.position.y = float(y)
-        pose.position.z = float(z)
+        los_wp = LOSWaypointMsg()
+        los_wp.waypoints = Point(x=float(x), y=float(y), z=float(z))
 
-        pose.orientation.x = 0.0
-        pose.orientation.y = 0.0
-        pose.orientation.z = 0.0
-        pose.orientation.w = 1.0
-
-        waypoint = Waypoint()
-        waypoint.pose = pose
-
-        waypoint_mode = WaypointMode()
-        waypoint_mode.mode = WaypointMode.ONLY_POSITION
-        waypoint.waypoint_mode = waypoint_mode
-
-        goal_msg.waypoint = waypoint
+        goal_msg = LOSWaypoint.Goal()
+        goal_msg.los_waypoint = los_wp
         goal_msg.convergence_threshold = 0.3
 
         self.get_logger().info(

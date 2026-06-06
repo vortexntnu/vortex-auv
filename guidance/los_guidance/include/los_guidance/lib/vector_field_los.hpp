@@ -48,9 +48,10 @@ class VectorFieldLOSGuidance {
     /**
      * @brief Calculates the desired LOS guidance outputs.
      * @param inputs Input values required for vector field LOS computation.
-     * @return types::Outputs The desired heading and pitch commands.
+     * @return types::GuidanceOutputs The desired heading and pitch commands.
      */
-    types::Outputs calculate_outputs(const types::Inputs& inputs);
+    types::GuidanceOutputs calculate_outputs(
+        const types::GuidanceInputs& inputs);
 
    private:
     /**
@@ -58,7 +59,7 @@ class VectorFieldLOSGuidance {
      * path segment.
      * @param inputs Input values containing the previous and next path points.
      */
-    void update_angles(const types::Inputs& inputs);
+    void update_angles(const types::GuidanceInputs& inputs);
 
     /**
      * @brief Calculates the cross-track error in the path-fixed reference
@@ -69,7 +70,7 @@ class VectorFieldLOSGuidance {
      * cross-track errors.
      */
     types::CrossTrackError calculate_crosstrack_error(
-        const types::Inputs& inputs) const;
+        const types::GuidanceInputs& inputs) const;
 
     /**
      * @brief Parameters used by the vector field LOS guidance algorithm.

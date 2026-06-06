@@ -14,7 +14,8 @@ ProportionalLOSGuidance::ProportionalLOSGuidance(
 }
 
 // Angle Update
-void ProportionalLOSGuidance::update_angles(const types::Inputs& inputs) {
+void ProportionalLOSGuidance::update_angles(
+    const types::GuidanceInputs& inputs) {
     const types::Point difference = inputs.next_point - inputs.prev_point;
 
     path_heading_ = std::atan2(difference.y, difference.x);
@@ -28,7 +29,7 @@ void ProportionalLOSGuidance::update_angles(const types::Inputs& inputs) {
 
 // Cross-Track Error Calculation
 types::CrossTrackError ProportionalLOSGuidance::calculate_crosstrack_error(
-    const types::Inputs& inputs) const {
+    const types::GuidanceInputs& inputs) const {
     const Eigen::Vector3d diff_vec =
         (inputs.current_position - inputs.prev_point).as_vector();
 
@@ -40,8 +41,8 @@ types::CrossTrackError ProportionalLOSGuidance::calculate_crosstrack_error(
 }
 
 // Output Calculation
-types::Outputs ProportionalLOSGuidance::calculate_outputs(
-    const types::Inputs& inputs) {
+types::GuidanceOutputs ProportionalLOSGuidance::calculate_outputs(
+    const types::GuidanceInputs& inputs) {
     update_angles(inputs);
 
     const types::CrossTrackError cross_track_error =
@@ -55,7 +56,7 @@ types::Outputs ProportionalLOSGuidance::calculate_outputs(
     const double desired_pitch =
         path_pitch_ + std::atan(k_p_v * cross_track_error.z_e);
 
-    return types::Outputs{desired_yaw, desired_pitch};
+    return types::GuidanceOutputs{desired_yaw, desired_pitch};
 }
 
 }  // namespace vortex::guidance::los

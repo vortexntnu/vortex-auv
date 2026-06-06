@@ -9,11 +9,10 @@
 
 #include <yaml-cpp/yaml.h>
 #include <limits>
-#include <memory>
 #include <mutex>
 #include <string>
+#include <variant>
 
-#include <vortex_msgs/action/guidance_waypoint.hpp>
 #include "los_guidance/lib/adaptive_los.hpp"
 #include "los_guidance/lib/integral_los.hpp"
 #include "los_guidance/lib/proportional_los.hpp"
@@ -32,34 +31,6 @@ class LosGuidanceStateManager {
     explicit LosGuidanceStateManager(const std::string& yaml_file_path);
 
     /**
-     * @brief Initializes the adaptive LOS guidance module from configuration.
-     * @param config YAML configuration node containing adaptive LOS parameters.
-     */
-    void set_adaptive_los_guidance(YAML::Node config);
-
-    /**
-     * @brief Initializes the proportional LOS guidance module from
-     * configuration.
-     * @param config YAML configuration node containing proportional LOS
-     * parameters.
-     */
-    void set_proportional_los_guidance(YAML::Node config);
-
-    /**
-     * @brief Initializes the integral LOS guidance module from configuration.
-     * @param config YAML configuration node containing integral LOS parameters.
-     */
-    void set_integral_los_guidance(YAML::Node config);
-
-    /**
-     * @brief Initializes the vector field LOS guidance module from
-     * configuration.
-     * @param config YAML configuration node containing vector field LOS
-     * parameters.
-     */
-    void set_vector_field_guidance(YAML::Node config);
-
-    /**
      * @brief Parses common guidance parameters shared by all LOS methods.
      * @param common_config YAML node containing common guidance parameters.
      */
@@ -71,9 +42,7 @@ class LosGuidanceStateManager {
      * @param goal The goal to check for feasibility.
      * @return true if the goal is feasible, false otherwise.
      */
-    bool is_goal_feasible(
-        std::shared_ptr<const vortex_msgs::action::GuidanceWaypoint::Goal>
-            goal);
+    bool is_goal_feasible(const types::Point& goal_point);
 
     /**
      * @brief Checks if the LOS guidance goal has been missed based on the
@@ -108,22 +77,24 @@ class LosGuidanceStateManager {
     void update_yaw(double yaw);
 
     /**
-     * @brief Sets the active LOS guidance method.
-     * @param method The LOS method to use.
+     * @brief Switches the active LOS guidance method, re-loading its
+     * parameters from the YAML config file.
+     * @param method
      */
     void set_los_method(types::ActiveLosMethod method);
 
     /**
-     * @brief Initializes a new goal.
-     * @param new_wp New waypoint to navigate to.
+     * @brief Initializes a new goal, re-parsing the YAML config so that
+     * parameter and method changes take effect without a restart.
+     * @param new_wp
      */
     void initialize_goal(const types::Point& new_wp);
 
     /**
      * @brief Calculates LOS guidance outputs based on current state.
-     * @return types::Outputs Calculated guidance outputs.
+     * @return types::GuidanceOutputs Calculated guidance outputs.
      */
-    types::Outputs calculate_outputs();
+    types::GuidanceOutputs calculate_outputs();
 
     /**
      * @brief Gets the maximum pitch angle limit.
@@ -144,23 +115,38 @@ class LosGuidanceStateManager {
     double get_u_desired() const;
 
    private:
-    types::Inputs path_inputs_{};
+    /**
+     * @brief Emplaces the variant alternative for @p method using parameters
+     * read from @p config. Must be called while holding mutex_.
+     */
+    void emplace_los_for_method(types::ActiveLosMethod method,
+                                const YAML::Node& config);
+
+    /**
+     * @brief Reads active_los_method from config["common"] and emplaces the
+     * corresponding variant alternative. Must be called while holding mutex_.
+     */
+    void emplace_los_from_config(const YAML::Node& config);
+
+    types::GuidanceInputs path_inputs_{};
     double u_desired_{};
     double goal_reached_tol_{};
     double max_pitch_angle_{};
     double current_yaw_{};
     double time_step_s_{};
-    types::ActiveLosMethod method_{};
     double nearest_been_to_goal_{std::numeric_limits<double>::max()};
     double time_since_nearest_goal_s_{};
     double missed_goal_distance_margin_{};
     double missed_goal_timeout_s_{};
     bool has_active_segment_{false};
+    std::string yaml_file_path_;
 
-    std::unique_ptr<AdaptiveLOSGuidance> adaptive_los_{};
-    std::unique_ptr<IntegralLOSGuidance> integral_los_{};
-    std::unique_ptr<ProportionalLOSGuidance> proportional_los_{};
-    std::unique_ptr<VectorFieldLOSGuidance> vector_field_los_{};
+    std::variant<std::monostate,
+                 ProportionalLOSGuidance,
+                 IntegralLOSGuidance,
+                 AdaptiveLOSGuidance,
+                 VectorFieldLOSGuidance>
+        los_method_;
 
     mutable std::mutex mutex_;
 };

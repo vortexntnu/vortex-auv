@@ -51,9 +51,10 @@ class AdaptiveLOSGuidance {
     /**
      * @brief Calculates the desired LOS guidance outputs.
      * @param inputs Input values required for adaptive LOS computation.
-     * @return types::Outputs The desired heading and pitch commands.
+     * @return types::GuidanceOutputs The desired heading and pitch commands.
      */
-    types::Outputs calculate_outputs(const types::Inputs& inputs);
+    types::GuidanceOutputs calculate_outputs(
+        const types::GuidanceInputs& inputs);
 
     /**
      * @brief resets the adaptive values when new-segment starts
@@ -66,7 +67,7 @@ class AdaptiveLOSGuidance {
      * path segment.
      * @param inputs Input values containing the previous and next path points.
      */
-    void update_angles(const types::Inputs& inputs);
+    void update_angles(const types::GuidanceInputs& inputs);
 
     /**
      * @brief Calculates the cross-track error in the path-fixed reference
@@ -77,7 +78,7 @@ class AdaptiveLOSGuidance {
      * cross-track errors.
      */
     const types::CrossTrackError calculate_crosstrack_error(
-        const types::Inputs& inputs);
+        const types::GuidanceInputs& inputs);
 
     /**
      * @brief Updates the adaptive estimates based on the current cross-track
