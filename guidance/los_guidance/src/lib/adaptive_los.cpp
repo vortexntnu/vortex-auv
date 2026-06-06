@@ -8,7 +8,7 @@ AdaptiveLOSGuidance::AdaptiveLOSGuidance(const AdaptiveLosParams& params)
     : params_{params} {
     if (params.lookahead_distance_h <= 0.0 ||
         params.lookahead_distance_v <= 0.0 || params.adaptation_gain_h <= 0.0 ||
-        params.adaptation_gain_v <= 0.0 || params.time_step <= 0.0) {
+        params.adaptation_gain_v <= 0.0 || params.time_step_s <= 0.0) {
         throw std::invalid_argument(
             "AdaptiveLOSGuidance: all params must be > 0");
     }
@@ -58,8 +58,8 @@ void AdaptiveLOSGuidance::update_adaptive_estimates(
                              (params_.lookahead_distance_v / denom_v) *
                              cross_track_error.z_e;
 
-    beta_c_hat_ += beta_dot * params_.time_step;
-    alpha_c_hat_ += alpha_dot * params_.time_step;
+    beta_c_hat_ += beta_dot * params_.time_step_s;
+    alpha_c_hat_ += alpha_dot * params_.time_step_s;
 }
 
 types::GuidanceOutputs AdaptiveLOSGuidance::calculate_outputs(

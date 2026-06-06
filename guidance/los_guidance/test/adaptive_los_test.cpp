@@ -13,7 +13,7 @@ class AdaptiveLosTest : public ::testing::Test {
         p.lookahead_distance_v = 1.4;
         p.adaptation_gain_h = 0.03;
         p.adaptation_gain_v = 0.02;
-        p.time_step = 0.01;
+        p.time_step_s = 0.01;
         return p;
     }
 

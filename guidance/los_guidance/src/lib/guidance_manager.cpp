@@ -65,7 +65,7 @@ void LosGuidanceStateManager::emplace_los_for_method(
                     c["proportional_gain_v"].as<double>();
                 params.integral_gain_h = c["integral_gain_h"].as<double>();
                 params.integral_gain_v = c["integral_gain_v"].as<double>();
-                params.time_step = time_step_s_;
+                params.time_step_s = time_step_s_;
                 los_method_.emplace<IntegralLOSGuidance>(params);
                 break;
             }
@@ -78,7 +78,7 @@ void LosGuidanceStateManager::emplace_los_for_method(
                     c["lookahead_distance_v"].as<double>();
                 params.adaptation_gain_h = c["adaptation_gain_h"].as<double>();
                 params.adaptation_gain_v = c["adaptation_gain_v"].as<double>();
-                params.time_step = time_step_s_;
+                params.time_step_s = time_step_s_;
                 los_method_.emplace<AdaptiveLOSGuidance>(params);
                 break;
             }
@@ -93,7 +93,7 @@ void LosGuidanceStateManager::emplace_los_for_method(
                     c["proportional_gain_h"].as<double>();
                 params.proportional_gain_v =
                     c["proportional_gain_v"].as<double>();
-                params.time_step = time_step_s_;
+                params.time_step_s = time_step_s_;
                 los_method_.emplace<VectorFieldLOSGuidance>(params);
                 break;
             }

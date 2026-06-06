@@ -14,7 +14,7 @@ class IntegralLosTest : public ::testing::Test {
         params.integral_gain_v = 0.5;
         params.proportional_gain_h = 0.1;
         params.proportional_gain_v = 0.1;
-        params.time_step = 0.01;
+        params.time_step_s = 0.01;
         return params;
     }
 

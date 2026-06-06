@@ -7,7 +7,7 @@ IntegralLOSGuidance::IntegralLOSGuidance(const IntegralLosParams& params)
     : m_params(params) {
     if (params.proportional_gain_h <= 0.0 ||
         params.proportional_gain_v <= 0.0 || params.integral_gain_h <= 0.0 ||
-        params.integral_gain_v <= 0.0 || params.time_step <= 0.0) {
+        params.integral_gain_v <= 0.0 || params.time_step_s <= 0.0) {
         throw std::invalid_argument(
             "IntegralLOSGuidance: all params must be > 0");
     }
@@ -47,8 +47,9 @@ types::GuidanceOutputs IntegralLOSGuidance::calculate_outputs(
     const types::CrossTrackError cross_track_error =
         calculate_crosstrack_error(inputs);
 
-    integrated_horizontal_error_ += cross_track_error.y_e * m_params.time_step;
-    integrated_vertical_error_ += cross_track_error.z_e * m_params.time_step;
+    integrated_horizontal_error_ +=
+        cross_track_error.y_e * m_params.time_step_s;
+    integrated_vertical_error_ += cross_track_error.z_e * m_params.time_step_s;
 
     const double u_h = m_params.proportional_gain_h * cross_track_error.y_e +
                        m_params.integral_gain_h * integrated_horizontal_error_;

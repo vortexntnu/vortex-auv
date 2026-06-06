@@ -14,7 +14,7 @@ class VectorFieldLosTest : public ::testing::Test {
         params.max_approach_angle_v = 1.0;
         params.proportional_gain_h = 1.5;
         params.proportional_gain_v = 0.9;
-        params.time_step = 0.01;
+        params.time_step_s = 0.01;
         return params;
     }
 

@@ -9,7 +9,7 @@ VectorFieldLOSGuidance::VectorFieldLOSGuidance(
     if (params.max_approach_angle_h <= 0.0 ||
         params.max_approach_angle_v <= 0.0 ||
         params.proportional_gain_h <= 0.0 ||
-        params.proportional_gain_v <= 0.0 || params.time_step <= 0.0) {
+        params.proportional_gain_v <= 0.0 || params.time_step_s <= 0.0) {
         throw std::invalid_argument(
             "VectorFieldLOSGuidance: all params must be > 0");
     }

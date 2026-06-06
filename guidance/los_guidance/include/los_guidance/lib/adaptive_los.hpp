@@ -26,7 +26,7 @@ struct AdaptiveLosParams {
     double lookahead_distance_v{};
     double adaptation_gain_h{};
     double adaptation_gain_v{};
-    double time_step{};
+    double time_step_s{};
 };
 
 /**

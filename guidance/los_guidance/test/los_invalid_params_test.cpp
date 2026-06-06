@@ -14,7 +14,7 @@ TEST(LosInvalidParamsTest, AdaptiveLosRejectsNegativeLookaheadDistance) {
     params.lookahead_distance_v = 1.4;
     params.adaptation_gain_h = 0.03;
     params.adaptation_gain_v = 0.02;
-    params.time_step = 0.01;
+    params.time_step_s = 0.01;
 
     EXPECT_THROW(
         { AdaptiveLOSGuidance guidance(params); }, std::invalid_argument);
@@ -35,7 +35,7 @@ TEST(LosInvalidParamsTest, IntegralLosRejectsZeroTimeStep) {
     params.proportional_gain_v = 0.5;
     params.integral_gain_h = 0.1;
     params.integral_gain_v = 0.1;
-    params.time_step = 0.0;
+    params.time_step_s = 0.0;
 
     EXPECT_THROW(
         { IntegralLOSGuidance guidance(params); }, std::invalid_argument);
@@ -47,7 +47,7 @@ TEST(LosInvalidParamsTest, VectorFieldLosRejectsNegativeApproachAngle) {
     params.max_approach_angle_v = 1.0;
     params.proportional_gain_h = 1.5;
     params.proportional_gain_v = 0.9;
-    params.time_step = 0.01;
+    params.time_step_s = 0.01;
 
     EXPECT_THROW(
         { VectorFieldLOSGuidance guidance(params); }, std::invalid_argument);
