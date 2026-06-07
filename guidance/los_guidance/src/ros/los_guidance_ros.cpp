@@ -53,8 +53,6 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
         this->declare_parameter<std::string>("topics.waypoint");
     const std::string odom_topic =
         this->declare_parameter<std::string>("topics.odom");
-    const std::string odom_tf_rpy_topic = this->declare_parameter<std::string>(
-        "topics.odom_tf_rpy", "/utils/message_publisher/odom_tf_rpy");
 
     auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
@@ -89,9 +87,6 @@ void LosGuidanceNode::set_subscribers_and_publisher() {
                     msg->pose.pose.orientation.y,
                     msg->pose.pose.orientation.z));
             state_manager_->update_yaw(euler.z());
-
-            std::lock_guard<std::mutex> lock(mutex_);
-            debug_current_odom_ = msg;
         });
 }
 
@@ -125,35 +120,6 @@ void LosGuidanceNode::set_service_server() {
             std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
             set_los_mode(request, response);
         });
-}
-
-// Waypoint callback
-void LosGuidanceNode::waypoint_callback(
-    const geometry_msgs::msg::PointStamped::SharedPtr wp_msg) {
-    const auto new_wp = types::Point::point_from_ros(wp_msg->point);
-
-    state_manager_->update_waypoint(new_wp);
-
-    spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y,
-                 new_wp.z);
-}
-
-// Pose callback
-void LosGuidanceNode::pose_callback(
-    const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
-        current_pose) {
-    types::Point position =
-        types::Point::point_from_ros(current_pose->pose.pose.position);
-
-    state_manager_->update_position(position);
-}
-
-// Odometry callback
-void LosGuidanceNode::odom_callback(
-    const nav_msgs::msg::Odometry::SharedPtr msg) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    debug_current_odom_ = msg;
-    lock.unlock();
 }
 
 // Goal handler
@@ -295,16 +261,8 @@ void LosGuidanceNode::execute(
             return;
         }
 
-        nav_msgs::msg::Odometry::SharedPtr odom_copy;
-        double goal_reached_tol_copy;
-
-        {
-            std::unique_lock<std::mutex> lock(mutex_);
-            odom_copy = debug_current_odom_;
-            goal_reached_tol_copy =
-                goal_handle->get_goal()->convergence_threshold;
-            lock.unlock();
-        }
+        const double goal_reached_tol_copy =
+            goal_handle->get_goal()->convergence_threshold;
 
         if (state_manager_->is_goal_missed()) {
             result->success = false;

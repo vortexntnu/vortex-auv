@@ -56,7 +56,7 @@ TEST_F(VectorFieldLosTest, T02_test_commanded_angles) {
     EXPECT_NEAR(O.theta_d, 0.0, tol);
 }
 
-// Test commanded angles when drone is under the track
+// Test commanded angles when drone is below (deeper than) the track
 TEST_F(VectorFieldLosTest, T03_test_commanded_angles) {
     types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
@@ -68,12 +68,12 @@ TEST_F(VectorFieldLosTest, T03_test_commanded_angles) {
     // Heading cmd should be 0
     EXPECT_NEAR(O.psi_d, 0.0, tol);
 
-    // Pitch cmd should be between 0 and pi/2
-    EXPECT_LT(O.theta_d, 0.0);
-    EXPECT_GT(O.theta_d, -1.57);
+    // Pitch cmd should command climbing (positive pitch), between 0 and pi/2
+    EXPECT_GT(O.theta_d, 0.0);
+    EXPECT_LT(O.theta_d, 1.57);
 }
 
-// Test commanded angles when drone is above the track
+// Test commanded angles when drone is above (shallower than) the track
 TEST_F(VectorFieldLosTest, T04_test_commanded_angles) {
     types::GuidanceInputs inputs;
     inputs.prev_point = types::Point{0.0, 0.0, 0.0};
@@ -85,9 +85,9 @@ TEST_F(VectorFieldLosTest, T04_test_commanded_angles) {
     // Heading cmd should be 0
     EXPECT_NEAR(O.psi_d, 0.0, tol);
 
-    // Pitch cmd should be between -pi/2 and 0
-    EXPECT_GT(O.theta_d, 0.0);
-    EXPECT_LT(O.theta_d, 1.57);
+    // Pitch cmd should command diving (negative pitch), between -pi/2 and 0
+    EXPECT_LT(O.theta_d, 0.0);
+    EXPECT_GT(O.theta_d, -1.57);
 }
 
 // Test commanded angles when drone is above and to the right of the track
@@ -103,9 +103,9 @@ TEST_F(VectorFieldLosTest, T05_test_commanded_angles) {
     EXPECT_LT(O.psi_d, 0.0);
     EXPECT_GT(O.psi_d, -1.57);
 
-    // Pitch cmd should be between -pi/2 and 0
-    EXPECT_GT(O.theta_d, 0.0);
-    EXPECT_LT(O.theta_d, 1.57);
+    // Pitch cmd should command diving (negative pitch), between -pi/2 and 0
+    EXPECT_LT(O.theta_d, 0.0);
+    EXPECT_GT(O.theta_d, -1.57);
 }
 
 }  // namespace vortex::guidance::los

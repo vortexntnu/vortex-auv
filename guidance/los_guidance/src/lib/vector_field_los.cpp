@@ -59,7 +59,7 @@ types::GuidanceOutputs VectorFieldLOSGuidance::calculate_outputs(
         std::atan(m_params.proportional_gain_v * cross_track_error.z_e);
 
     const double desired_yaw = path_heading_ - approach_h;
-    const double desired_pitch = path_pitch_ - approach_v;
+    const double desired_pitch = path_pitch_ + approach_v;
 
     return types::GuidanceOutputs{desired_yaw, desired_pitch};
 }

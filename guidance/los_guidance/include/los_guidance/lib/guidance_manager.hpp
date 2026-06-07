@@ -134,7 +134,7 @@ class LosGuidanceStateManager {
     double max_pitch_angle_{};
     double current_yaw_{};
     double time_step_s_{};
-    double nearest_been_to_goal_{std::numeric_limits<double>::max()};
+    double nearest_been_to_goal_{std::numeric_limits<double>::infinity()};
     double time_since_nearest_goal_s_{};
     double missed_goal_distance_margin_{};
     double missed_goal_timeout_s_{};

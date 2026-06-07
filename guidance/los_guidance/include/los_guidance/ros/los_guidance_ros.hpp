@@ -9,7 +9,6 @@
 #include <yaml-cpp/yaml.h>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/twist_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 
 #include <rclcpp/rclcpp.hpp>
@@ -20,7 +19,6 @@
 #include <vortex/utils/math.hpp>
 #include <vortex_msgs/action/los_waypoint.hpp>
 #include <vortex_msgs/msg/los_guidance.hpp>
-#include <vortex_msgs/msg/pose_euler_stamped.hpp>
 #include <vortex_msgs/srv/set_los_mode.hpp>
 
 #include "los_guidance/lib/guidance_manager.hpp"
@@ -61,34 +59,6 @@ class LosGuidanceNode : public rclcpp::Node {
      * @brief Sets up the service server used for changing LOS guidance mode.
      */
     void set_service_server();
-
-    /**
-     * @brief Callback for receiving waypoint updates.
-     * @param msg Received waypoint message.
-     */
-    void waypoint_callback(
-        const geometry_msgs::msg::PointStamped::SharedPtr msg);
-
-    /**
-     * @brief Callback for receiving pose updates.
-     * @param msg Received pose message.
-     */
-    void pose_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
-
-    /**
-     * @brief Callback for receiving odometry updates.
-     * @param msg Received odometry message.
-     */
-    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
-
-    /**
-     * @brief Callback for receiving odometry updates from
-     * utils/message_publisher.
-     * @param msg Received odometry message.
-     */
-    void odom_msg_callback(
-        const vortex_msgs::msg::PoseEulerStamped::SharedPtr msg);
 
     /**
      * @brief Handles an incoming LOS guidance action goal request.
@@ -147,8 +117,6 @@ class LosGuidanceNode : public rclcpp::Node {
         action_server_;
     rclcpp::Service<vortex_msgs::srv::SetLosMode>::SharedPtr los_mode_service_;
     rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr reference_pub_;
-    rclcpp::Publisher<vortex_msgs::msg::LOSGuidance>::SharedPtr
-        state_debug_pub_;
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr
         waypoint_sub_;
     rclcpp::Subscription<
@@ -163,7 +131,6 @@ class LosGuidanceNode : public rclcpp::Node {
     std::mutex mutex_;
     rclcpp_action::GoalUUID preempted_goal_id_;
     std::shared_ptr<GoalHandleLOSWaypoint> goal_handle_;
-    nav_msgs::msg::Odometry::SharedPtr debug_current_odom_{};
 };
 
 }  // namespace vortex::guidance::los
