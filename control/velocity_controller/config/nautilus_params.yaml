@@ -21,6 +21,5 @@
     Control_manager_settings:
       anti_overshoot: false
       publish_rate: 100 #ms
-      max_force: 99.5
       controller_type: 1 #1 PID 2 LQR
 
