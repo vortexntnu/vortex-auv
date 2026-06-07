@@ -11,8 +11,23 @@
 #include <rclcpp_lifecycle/node_interfaces/lifecycle_node_interface.hpp>
 #include <vector>
 #include "velocity_controller/control_manager.hpp"
+#include "velocity_controller/lib/controller.hpp"
 #include "velocity_controller/utilities.hpp"
 #include "velocity_controller/lib/3DOF_PID.hpp"
+#include "spdlog/spdlog.h"
+#include "Eigen/Dense"
+#include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+using rclcpp::ParameterType::PARAMETER_INTEGER;
+using rclcpp::ParameterType::PARAMETER_DOUBLE;
+using rclcpp::ParameterType::PARAMETER_DOUBLE_ARRAY;
+auto start_message{R"(
+ __     __   _             _   _             ____             _              _  _            
+ \ \   / /__| | ___   ___ (_) | |_ _   _    / ___|___  _ __  | |_ _ __ ___  | || |  ___ _ __ 
+  \ \ / / _ \ |/ _ \ / __|| | | __| | | |  | |   / _ \| '_ \ | __| '__/ _ \ | || | / _ \ '__|
+   \ V /  __/ | (_) | (__ | | | |_| |_| |  | |__| (_) | | | \| |_| | | (_) || || ||  __/ |   
+    \_/ \___|_|\___/ \___||_|  \__|\__, |   \____\___/|_| |_| \__|_|  \___/ |_||_| \___|_|   
+                                    |___/
+)"};
 
 Velocity_node::Velocity_node(const rclcpp::NodeOptions& options)
     : rclcpp_lifecycle::LifecycleNode("velocity_controller_lifecycle", options),
@@ -36,8 +51,7 @@ Velocity_node::Velocity_node(const rclcpp::NodeOptions& options)
                     lifecycle_msgs::msg::Transition::TRANSITION_CONFIGURE);
             });
     }
-    RCLCPP_INFO(this->get_logger(), "Velocity control node has been started.");
-
+    spdlog::info(start_message);
     return;
 }
 //TODO(henrimha): Split the ROS part and the c++ part into seperate files/classes
@@ -91,7 +105,6 @@ void Velocity_node::get_new_parameters() {
     node_settings.topic_odometry = this->get_parameter("topics.odom").as_string();
     
     // Control manager settings
-    this->declare_parameter<double>("Control_manager_settings.max_force");
     this->declare_parameter<int>("Control_manager_settings.publish_rate");
     this->declare_parameter<int>("Control_manager_settings.controller_type");
     this->declare_parameter<bool>("Control_manager_settings.anti_overshoot", true);
@@ -126,9 +139,38 @@ void Velocity_node::initialize_controllers() {
 
 
     //Initialize control manager parameters
+    controller_params control_params;
+    control_params.num_dimensions =
+        this->declare_parameter("propulsion.dimensions.num", PARAMETER_INTEGER)
+            .get<int>();
+    control_params.num_thrusters =
+        this->declare_parameter("propulsion.thrusters.num", PARAMETER_INTEGER)
+            .get<int>();
+    Eigen::MatrixXd thruster_position_ = double_array_to_eigen_matrix(
+        this->get_parameter("propulsion.thrusters.thruster_position")
+            .as_double_array(),
+        control_params.num_dimensions, control_params.num_thrusters);
+    Eigen::MatrixXd thruster_force_direction_ = double_array_to_eigen_matrix(
+        this->get_parameter("propulsion.thrusters.thruster_force_direction")
+            .as_double_array(),
+        control_params.num_dimensions, control_params.num_thrusters);
+    Eigen::Vector3d center_of_mass_ = double_array_to_eigen_vector3d(
+        this->get_parameter("physical.center_of_mass").as_double_array());
+
+    Eigen::MatrixXd thrust_configuration_ =  vortex::utils::math::build_thrust_configuration_matrix(
+            thruster_force_direction_, thruster_position_, center_of_mass_);
+    control_params.min_thrust =
+        this->declare_parameter("propulsion.thrusters.constraints.min_force",
+                                PARAMETER_DOUBLE)
+            .get<double>();
+    control_params.max_thrust =
+        this->declare_parameter("propulsion.thrusters.constraints.max_force",
+                                PARAMETER_DOUBLE)
+            .get<double>();
+    
     auto control_type = this->get_parameter("Control_manager_settings.controller_type").as_int();
     auto anti_overshoot = this->get_parameter("Control_manager_settings.anti_overshoot").as_bool();
-    control_manager_params control_params(control_type, anti_overshoot, 1);
+    control_manager_params control_manager_params(control_type, anti_overshoot, 1);
 
 
     //Some general parameters
@@ -150,7 +192,7 @@ void Velocity_node::initialize_controllers() {
     LQR_params lqr_params(Q, R, inertia_matrix, max_force, D_low, D_high, dt);
     
     //Initalize all the controllers in control manager
-    control_manager_ptr = std::make_unique<control_manager>(control_params);
+    control_manager_ptr = std::make_unique<control_manager>(control_manager_params);
     control_manager_ptr->initialize_3DOF_controller(pid_3dof_params);
     control_manager_ptr->initialize_LQR_controller(lqr_params);
     return;
@@ -232,3 +274,5 @@ Velocity_node::on_shutdown(const rclcpp_lifecycle::State& state) {
 }
 
 RCLCPP_COMPONENTS_REGISTER_NODE(Velocity_node)
+
+

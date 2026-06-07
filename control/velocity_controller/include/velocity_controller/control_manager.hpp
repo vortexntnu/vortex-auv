@@ -11,6 +11,7 @@ struct control_manager_params{
     control_manager_params(int control_type_val, bool anti_overshoot_val, bool fallback_val)
         : control_type(control_type_val), anti_overshoot(anti_overshoot_val), fallback(fallback_val) {}
     control_manager_params() = default;
+    controller_params control_params;
 };
 class control_manager{
     public:

@@ -44,11 +44,11 @@ geometry_msgs::msg::WrenchStamped control_manager::get_output(Guidance_data guid
     }
 }
 void control_manager::initialize_3DOF_controller(PID_3DOF_params params) {
-    controller_3DOF = std::make_unique<PID_3DOF>(params);
+    controller_3DOF = std::make_unique<PID_3DOF>(params, params_.control_params);
 }
 
 void control_manager::initialize_LQR_controller(LQR_params params) {
-    controller_LQR = std::make_unique<LQRController>(params);
+    controller_LQR = std::make_unique<LQRController>(params, params_.control_params);
 }
 
 bool control_manager::get_validity() {

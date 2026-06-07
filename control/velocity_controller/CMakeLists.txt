@@ -23,6 +23,8 @@ find_package(nav_msgs REQUIRED)
 find_package(ct_optcon REQUIRED)
 find_package(ct_core REQUIRED)
 find_package(casadi REQUIRED)
+find_package(thrust_allocator_auv REQUIRED)
+find_package(vortex_utils_ros REQUIRED)
 
 include_directories(
   include
@@ -50,6 +52,8 @@ ament_target_dependencies(${LIB_NAME}
   geometry_msgs
   nav_msgs
   vortex_utils
+  thrust_allocator_auv
+  vortex_utils_ros
 )
 target_link_libraries(${LIB_NAME} Eigen3::Eigen casadi::casadi ct_optcon ct_core)
 install(TARGETS

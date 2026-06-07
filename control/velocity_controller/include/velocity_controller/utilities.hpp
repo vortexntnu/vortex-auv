@@ -7,6 +7,7 @@
 #include <std_msgs/msg/string.hpp>
 #include "std_msgs/msg/float64_multi_array.hpp"
 #include "vortex_msgs/msg/los_guidance.hpp"
+#include "geometry_msgs/msg/wrench_stamped.hpp"
 
 struct angle {
     double phit = 0.0;
@@ -15,7 +16,7 @@ struct angle {
 };
 angle quaternion_to_euler_angle(double w, double x, double y, double z);
 
-class State {
+struct State {
    public:
     double surge = 0.0, sway = 0.0, heave = 0.0, roll_rate = 0.0,
            pitch_rate = 0.0,
@@ -36,7 +37,7 @@ class State {
     State operator=(nav_msgs::msg::Odometry::SharedPtr rhs);
     angle get_angle();
 };
-class Guidance_data {
+struct Guidance_data {
    public:
     double surge = 0.0;
     double pitch = 0.0;
@@ -64,4 +65,9 @@ inline angle angle_NED_to_body(angle desired, angle state) {
     return angle_NED_to_body(desired.phit, desired.thetat, desired.psit,
                              state.phit, state.thetat, state.psit);
 }
+
+geometry_msgs::msg::WrenchStamped vector_to_wrench(Eigen::Vector<double,6> tau);
+Eigen::Vector<double,6> wrench_to_vector(geometry_msgs::msg::Wrench wrench);
+Eigen::Matrix<double, 6, 6> coriolis(const State& s, double mass, double Ixx, double Iyy, double Izz);
+
 #endif  // UTILITIES_HPP_

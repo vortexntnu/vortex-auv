@@ -21,7 +21,7 @@ struct controller_params{
 class controller{
     public:
         controller(const controller_params& params);
-        virtual geometry_msgs::msg::WrenchStamped calculate_thrust(State state, State error_state) = 0;
+        virtual geometry_msgs::msg::WrenchStamped calculate_thrust(const State& state, const State& error_state) = 0;
         virtual void reset_controller(int nr=0) = 0;
         bool get_validity(){return valid;};
         ~controller()=default;

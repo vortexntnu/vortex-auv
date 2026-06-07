@@ -17,6 +17,7 @@
   <depend>vortex_utils</depend>
   <depend>rclcpp_lifecycle</depend>
   <depend>rclcpp_components</depend>
+  <depend>thrust_allocator_auv</depend>
   <depend>lifecycle_msgs</depend>
   <depend>auv_setup</depend>
   <depend>ct_optcon</depend>  

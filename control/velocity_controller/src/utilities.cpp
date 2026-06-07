@@ -1,8 +1,10 @@
 #include "velocity_controller/utilities.hpp"
+#include <Eigen/src/Core/Matrix.h>
 #include <std_msgs/msg/string.h>
 #include <casadi/casadi.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
 #include "Eigen/Dense"
+#include "geometry_msgs/msg/wrench_stamped.hpp"
 
 angle quaternion_to_euler_angle(double w, double x, double y, double z) {
     double ysqr = y * y;
@@ -112,4 +114,58 @@ Guidance_data& Guidance_data::operator=(
     pitch = msg->pitch;
     yaw = msg->yaw;
     return *this;
+}
+
+Eigen::Vector<double, 6> wrench_to_vector(const geometry_msgs::msg::Wrench& wrench) {
+    Eigen::Vector<double, 6> vec;
+    vec << wrench.force.x, wrench.force.y, wrench.force.z, wrench.torque.x,
+        wrench.torque.y, wrench.torque.z;
+    return vec;
+}
+geometry_msgs::msg::Wrench vector_to_wrench(const Eigen::Vector<double, 6>& vec) {
+    geometry_msgs::msg::Wrench wrench;
+    wrench.force.x = vec[0];
+    wrench.force.y = vec[1];
+    wrench.force.z = vec[2];
+    wrench.torque.x = vec[3];
+    wrench.torque.y = vec[4];
+    wrench.torque.z = vec[5];
+    return wrench;
+}
+
+// TODO(henrimha): double check the matrices here
+Eigen::Matrix<double, 6, 6> coriolis(const State& s, double mass, double Ixx, double Iyy, double Izz) {
+    double u = s.surge;
+    double v = s.sway;
+    double w = s.heave;
+    double p = s.roll_rate;
+    double q = s.pitch_rate;
+    double r = s.yaw_rate;
+    Eigen::Matrix<double, 6, 6> C = Eigen::Matrix<double, 6, 6>::Zero();
+
+    // Top-right block (translational-rotational coupling)
+    C(0, 4) = mass * w;
+    C(0, 5) = -mass * v;
+    C(1, 3) = -mass * w;
+    C(1, 5) = mass * u;
+    C(2, 3) = mass * v;
+    C(2, 4) = -mass * u;
+
+    // Bottom-left block (rotational-translational coupling)
+    C(3, 1) = mass * w;
+    C(3, 2) = -mass * v;
+    C(4, 0) = -mass * w;
+    C(4, 2) = mass * u;
+    C(5, 0) = mass * v;
+    C(5, 1) = -mass * u;
+
+    // Bottom-right block (rotational-rotational coupling)
+    C(3, 4) = Izz * r;
+    C(3, 5) = -Iyy * q;
+    C(4, 3) = -Izz * r;
+    C(4, 5) = Ixx * p;
+    C(5, 3) = Iyy * q;
+    C(5, 4) = -Ixx * p;
+
+    return C;
 }
