@@ -1,0 +1,300 @@
+#include "los_guidance/ros/los_guidance_ros.hpp"
+#include <eigen3/Eigen/src/Geometry/Quaternion.h>
+#include <spdlog/spdlog.h>
+#include <geometry_msgs/msg/detail/point_stamped__struct.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
+#include <vortex/utils/math.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
+
+#ifdef NDEBUG
+constexpr bool debug = false;
+#else
+constexpr bool debug = true;
+#endif
+
+const auto start_message = R"(
+██╗      ██████╗ ███████╗     ██████╗ ██╗   ██╗██╗██████╗  █████╗ ███╗   ██╗ ██████╗███████╗
+██║     ██╔═══██╗██╔════╝    ██╔════╝ ██║   ██║██║██╔══██╗██╔══██╗████╗  ██║██╔════╝██╔════╝
+██║     ██║   ██║███████╗    ██║  ███╗██║   ██║██║██║  ██║███████║██╔██╗ ██║██║     █████╗
+██║     ██║   ██║╚════██║    ██║   ██║██║   ██║██║██║  ██║██╔══██║██║╚██╗██║██║     ██╔══╝
+███████╗╚██████╔╝███████║    ╚██████╔╝╚██████╔╝██║██████╔╝██║  ██║██║ ╚████║╚██████╗███████╗
+╚══════╝ ╚═════╝ ╚══════╝     ╚═════╝  ╚═════╝ ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+)";
+
+namespace vortex::guidance::los {
+
+// Constructor
+LosGuidanceNode::LosGuidanceNode(const rclcpp::NodeOptions& options)
+    : Node("los_guidance_node", options) {
+    double time_step_s = 0.1;
+    time_step_ =
+        std::chrono::milliseconds(static_cast<int>(time_step_s * 1000));
+
+    const std::string yaml_path =
+        this->declare_parameter<std::string>("los_config_file_path");
+
+    // Initialize the state manager
+    state_manager_ = std::make_unique<LosGuidanceStateManager>(yaml_path);
+
+    set_subscribers_and_publisher();
+    set_action_server();
+    set_service_server();
+
+    spdlog::info(start_message);
+}
+
+// Subscribers + publishers
+void LosGuidanceNode::set_subscribers_and_publisher() {
+    const std::string pose_topic =
+        this->declare_parameter<std::string>("topics.pose");
+    const std::string guidance_topic =
+        this->declare_parameter<std::string>("topics.guidance.los");
+    const std::string waypoint_topic =
+        this->declare_parameter<std::string>("topics.waypoint");
+    const std::string odom_topic =
+        this->declare_parameter<std::string>("topics.odom");
+
+    auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
+
+    reference_pub_ = this->create_publisher<vortex_msgs::msg::LOSGuidance>(
+        guidance_topic, qos_sensor_data);
+
+    waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+        waypoint_topic, qos_sensor_data,
+        [this](const geometry_msgs::msg::PointStamped::SharedPtr msg) {
+            const auto new_wp = types::Point::point_from_ros(msg->point);
+            state_manager_->update_waypoint(new_wp);
+            spdlog::info("Received waypoint: ({}, {}, {})", new_wp.x, new_wp.y,
+                         new_wp.z);
+        });
+
+    pose_sub_ = this->create_subscription<
+        geometry_msgs::msg::PoseWithCovarianceStamped>(
+        pose_topic, qos_sensor_data,
+        [this](const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
+                   msg) {
+            types::Point position =
+                types::Point::point_from_ros(msg->pose.pose.position);
+            state_manager_->update_position(position);
+        });
+
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        odom_topic, qos_sensor_data,
+        [this](const nav_msgs::msg::Odometry::SharedPtr msg) {
+            const Eigen::Vector3d euler =
+                vortex::utils::math::quat_to_euler(Eigen::Quaterniond(
+                    msg->pose.pose.orientation.w, msg->pose.pose.orientation.x,
+                    msg->pose.pose.orientation.y,
+                    msg->pose.pose.orientation.z));
+            state_manager_->update_yaw(euler.z());
+        });
+}
+
+// Action server setup
+void LosGuidanceNode::set_action_server() {
+    this->declare_parameter<std::string>("action_servers.los");
+    std::string action_server_name =
+        this->get_parameter("action_servers.los").as_string();
+
+    action_server_ =
+        rclcpp_action::create_server<vortex_msgs::action::LOSWaypoint>(
+            this, action_server_name,
+            [this](const auto& uuid, auto goal) {
+                return handle_goal(uuid, std::move(goal));
+            },
+            [this](auto goal_handle) { return handle_cancel(goal_handle); },
+            [this](auto goal_handle) { handle_accepted(goal_handle); });
+}
+
+// Service server setup
+void LosGuidanceNode::set_service_server() {
+    this->declare_parameter<std::string>("services.los_mode", "set_los_mode");
+    std::string service_name =
+        this->get_parameter("services.los_mode").as_string();
+
+    los_mode_service_ = this->create_service<vortex_msgs::srv::SetLosMode>(
+        service_name,
+        [this](
+            const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request>
+                request,
+            std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
+            set_los_mode(request, response);
+        });
+}
+
+// Goal handler
+rclcpp_action::GoalResponse LosGuidanceNode::handle_goal(
+    const rclcpp_action::GoalUUID&,
+    std::shared_ptr<const vortex_msgs::action::LOSWaypoint::Goal> goal) {
+    if (!state_manager_->is_goal_feasible(
+            types::Point::point_from_ros(goal->los_waypoint.waypoints))) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Rejected goal request: waypoint is not reachable with "
+                    "current pitch limit");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (goal_handle_ && goal_handle_->is_active()) {
+            RCLCPP_INFO(this->get_logger(),
+                        "Aborting current goal and accepting new goal");
+            preempted_goal_id_ = goal_handle_->get_goal_id();
+            lock.unlock();
+        }
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Accepted goal request");
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+// Cancel handler
+rclcpp_action::CancelResponse LosGuidanceNode::handle_cancel(
+    const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle) {
+    spdlog::info("Received request to cancel goal");
+    (void)goal_handle;
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+// Accepted handler
+void LosGuidanceNode::handle_accepted(
+    const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle) {
+    std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+}
+
+namespace {
+types::ActiveLosMethod mode_to_los_method(uint8_t mode) {
+    using Req = vortex_msgs::srv::SetLosMode::Request;
+    switch (mode) {
+        case Req::PROPORTIONAL:
+            return types::ActiveLosMethod::PROPORTIONAL;
+        case Req::INTEGRAL:
+            return types::ActiveLosMethod::INTEGRAL;
+        case Req::ADAPTIVE:
+            return types::ActiveLosMethod::ADAPTIVE;
+        case Req::VECTORFIELD:
+            return types::ActiveLosMethod::VECTOR_FIELD;
+        default:
+            throw std::runtime_error("Unknown LOS mode value: " +
+                                     std::to_string(mode));
+    }
+}
+}  // namespace
+
+// Service callback
+void LosGuidanceNode::set_los_mode(
+    const std::shared_ptr<vortex_msgs::srv::SetLosMode::Request> request,
+    std::shared_ptr<vortex_msgs::srv::SetLosMode::Response> response) {
+    try {
+        state_manager_->set_los_method(mode_to_los_method(request->mode));
+        spdlog::info("LOS mode set to {}", static_cast<int>(request->mode));
+        response->success = true;
+    } catch (const std::runtime_error& e) {
+        spdlog::error("Failed to set LOS mode: {}", e.what());
+        response->success = false;
+    }
+}
+
+// Fill LOS reference message
+vortex_msgs::msg::LOSGuidance LosGuidanceNode::fill_los_reference(
+    types::GuidanceOutputs outputs) {
+    vortex_msgs::msg::LOSGuidance reference_msg;
+
+    double max_pitch_angle = state_manager_->get_max_pitch_angle();
+    double current_yaw = state_manager_->get_current_yaw();
+    double u_desired = state_manager_->get_u_desired();
+
+    const double clamped_pitch =
+        std::clamp(outputs.theta_d, -max_pitch_angle, max_pitch_angle);
+
+    reference_msg.pitch = clamped_pitch;
+    reference_msg.yaw = outputs.psi_d;
+
+    double yaw_error = vortex::utils::math::ssa(outputs.psi_d - current_yaw);
+    double abs_err = std::abs(yaw_error);
+
+    double u_cmd = u_desired / (1.0 + 0.5 * abs_err);
+    u_cmd = std::clamp(u_cmd, 0.15, u_desired);
+
+    reference_msg.surge = u_cmd;
+
+    return reference_msg;
+}
+
+// Execute action
+void LosGuidanceNode::execute(
+    const std::shared_ptr<GoalHandleLOSWaypoint> goal_handle) {
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        this->goal_handle_ = goal_handle;
+        lock.unlock();
+    }
+
+    spdlog::info("Executing goal");
+
+    const geometry_msgs::msg::Point los_waypoint =
+        goal_handle->get_goal()->los_waypoint.waypoints;
+
+    const auto new_wp = types::Point::point_from_ros(los_waypoint);
+
+    state_manager_->initialize_goal(new_wp);
+
+    auto result = std::make_shared<vortex_msgs::action::LOSWaypoint::Result>();
+
+    rclcpp::Rate loop_rate(1000.0 / time_step_.count());
+
+    while (rclcpp::ok()) {
+        {
+            std::unique_lock<std::mutex> lock(mutex_);
+            if (goal_handle->get_goal_id() == preempted_goal_id_) {
+                result->success = false;
+                goal_handle->abort(result);
+                return;
+            }
+            lock.unlock();
+        }
+
+        if (goal_handle->is_canceling()) {
+            result->success = false;
+            goal_handle->canceled(result);
+            spdlog::info("Goal canceled");
+            return;
+        }
+
+        const double goal_reached_tol_copy =
+            goal_handle->get_goal()->convergence_threshold;
+
+        if (state_manager_->is_goal_missed()) {
+            result->success = false;
+            goal_handle->abort(result);
+            spdlog::info("Aborting goal: waypoint missed");
+            return;
+        }
+
+        types::GuidanceOutputs outputs = state_manager_->calculate_outputs();
+
+        auto reference_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>(
+            fill_los_reference(outputs));
+
+        if (state_manager_->is_goal_reached(goal_reached_tol_copy)) {
+            auto stop_msg = std::make_unique<vortex_msgs::msg::LOSGuidance>();
+            stop_msg->pitch = 0.0;
+            stop_msg->surge = 0.0;
+            stop_msg->yaw = state_manager_->get_current_yaw();
+            reference_pub_->publish(std::move(stop_msg));
+
+            result->success = true;
+            goal_handle->succeed(result);
+            spdlog::info("Goal reached");
+            return;
+        }
+
+        reference_pub_->publish(std::move(reference_msg));
+
+        loop_rate.sleep();
+    }
+}
+
+}  // namespace vortex::guidance::los
+
+RCLCPP_COMPONENTS_REGISTER_NODE(vortex::guidance::los::LosGuidanceNode)
