@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <chrono>
 #include <functional>
+#include <stdexcept>
 #include <string_view>
 #include <vector>
 
@@ -63,8 +64,7 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             vortex::utils::qos_profiles::sensor_data_profile(10));
 
     thruster_driver_ = std::make_unique<ThrusterInterfaceAUVDriver>(
-        serial_device_, baud_rate_, thruster_parameters_, right_coeffs_,
-        left_coeffs_);
+        can_interface_, thruster_parameters_, right_coeffs_, left_coeffs_);
 
     thruster_driver_->set_fault_event_callback(
         [this](std::uint8_t channel, std::uint8_t code) {
@@ -93,11 +93,11 @@ ThrusterInterfaceAUVNode::ThrusterInterfaceAUVNode(
             current_measurements_publisher_->publish(msg);
         });
 
-    if (thruster_driver_->init_uart() != 0) {
-        spdlog::error("Failed to initialize UART thruster driver");
+    if (thruster_driver_->init_can() != 0) {
+        spdlog::error("Failed to initialize CAN FD thruster driver");
     } else {
-        spdlog::info("UART thruster driver initialized on {} @ {} baud",
-                     serial_device_, baud_rate_);
+        spdlog::info("CAN FD thruster driver initialized on {}",
+                     can_interface_);
     }
 
     thruster_forces_array_ = std::vector<double>(8, 0.0);
@@ -202,8 +202,7 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     this->declare_parameter<std::vector<double>>("coeffs.16V.LEFT");
     this->declare_parameter<std::vector<double>>("coeffs.16V.RIGHT");
 
-    this->declare_parameter<std::string>("uart.device");
-    this->declare_parameter<int>("uart.baud_rate");
+    this->declare_parameter<std::string>("can.interface");
 
     this->declare_parameter<std::string>("topics.thruster_forces");
     this->declare_parameter<std::string>("topics.pwm_output");
@@ -228,9 +227,7 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
     left_coeffs_ = this->get_parameter("coeffs.16V.LEFT").as_double_array();
     right_coeffs_ = this->get_parameter("coeffs.16V.RIGHT").as_double_array();
 
-    serial_device_ = this->get_parameter("uart.device").as_string();
-    baud_rate_ = static_cast<unsigned int>(
-        this->get_parameter("uart.baud_rate").as_int());
+    can_interface_ = this->get_parameter("can.interface").as_string();
 
     subscriber_topic_name_ =
         this->get_parameter("topics.thruster_forces").as_string();
@@ -252,8 +249,8 @@ void ThrusterInterfaceAUVNode::extract_all_parameters() {
 
     if (thruster_count != 8) {
         spdlog::warn(
-            "UART packet format expects 8 thrusters, but config contains {} "
-            "entries",
+            "CAN FD thruster payload expects 8 thrusters, but config contains "
+            "{} entries",
             thruster_count);
     }
 
