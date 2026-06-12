@@ -14,13 +14,14 @@
 
 static constexpr std::uint32_t CAN_ID_DISABLE_THRUSTERS = 0x369U;
 static constexpr std::uint32_t CAN_ID_ENABLE_THRUSTERS = 0x36AU;
-static constexpr std::uint32_t CAN_ID_SET_THRUSTERS_PWM = 0x36BU;
-static constexpr std::uint32_t CAN_ID_SET_LIGHT_PWM = 0x36CU;
+static constexpr std::uint32_t CAN_ID_RESET = 0x3BAU;
+static constexpr std::uint32_t CAN_ID_SET_THRUSTERS_PWM = 0x36CU;
+static constexpr std::uint32_t CAN_ID_SET_LIGHT_PWM = 0x36DU;
 
-static constexpr std::uint32_t CAN_ID_FLT_EVENT = 0x36DU;
-static constexpr std::uint32_t CAN_ID_PGOOD_EVENT = 0x36EU;
-static constexpr std::uint32_t CAN_ID_KILLSWITCH_EVENT = 0x36FU;
-static constexpr std::uint32_t CAN_ID_CURRENT_MEASUREMENTS = 0x370U;
+static constexpr std::uint32_t CAN_ID_FLT_EVENT = 0x36EU;
+static constexpr std::uint32_t CAN_ID_PGOOD_EVENT = 0x36FU;
+static constexpr std::uint32_t CAN_ID_KILLSWITCH_EVENT = 0x370U;
+static constexpr std::uint32_t CAN_ID_CURRENT_MEASUREMENTS = 0x371U;
 
 
 
