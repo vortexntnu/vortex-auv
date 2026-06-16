@@ -1,23 +1,36 @@
 #include "thruster_interface_auv/thruster_interface_auv_driver.hpp"
 
 #include <algorithm>
-#include <chrono>
+#include <array>
+#include <cerrno>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <iomanip>
-#include <sstream>
-#include <system_error>
+#include <optional>
 #include <thread>
+#include <unistd.h>
+
+
+
+static constexpr std::uint32_t CAN_ID_DISABLE_THRUSTERS = 0x369U;
+static constexpr std::uint32_t CAN_ID_ENABLE_THRUSTERS = 0x36AU;
+static constexpr std::uint32_t CAN_ID_RESET = 0x3BAU;
+static constexpr std::uint32_t CAN_ID_SET_THRUSTERS_PWM = 0x36CU;
+static constexpr std::uint32_t CAN_ID_SET_LIGHT_PWM = 0x36DU;
+
+static constexpr std::uint32_t CAN_ID_FLT_EVENT = 0x36EU;
+static constexpr std::uint32_t CAN_ID_PGOOD_EVENT = 0x36FU;
+static constexpr std::uint32_t CAN_ID_KILLSWITCH_EVENT = 0x370U;
+static constexpr std::uint32_t CAN_ID_CURRENT_MEASUREMENTS = 0x371U;
+
+
 
 ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
-    const std::string& serial_device,
-    unsigned int baud_rate,
+    const std::string& can_interface_name,
     const std::vector<ThrusterParameters>& thruster_parameters,
     const std::vector<double>& right_coeffs,
     const std::vector<double>& left_coeffs)
-    : serial_device_(serial_device),
-      baud_rate_(baud_rate),
+    : can_interface_name_(can_interface_name),
       thruster_parameters_(thruster_parameters),
       right_coeffs_(right_coeffs),
       left_coeffs_(left_coeffs) {
@@ -26,62 +39,52 @@ ThrusterInterfaceAUVDriver::ThrusterInterfaceAUVDriver(
 }
 
 ThrusterInterfaceAUVDriver::~ThrusterInterfaceAUVDriver() {
-    std::error_code ec;
-
-    if (serial_.is_open()) {
+    if (can_.is_initialized()) {
         send_data_to_escs(std::vector<std::uint16_t>(
             thruster_parameters_.size(), idle_pwm_value_));
-
-        serial_.cancel(ec);
-        serial_.close(ec);
-    }
-
-    io_.stop();
-
-    if (io_thread_.joinable()) {
-        io_thread_.join();
+        can_.stop_async_receive();
     }
 }
 
-int ThrusterInterfaceAUVDriver::init_uart() {
-    std::error_code ec;
 
-    serial_.open(serial_device_, ec);
-    if (ec) {
-        return -1;
+int ThrusterInterfaceAUVDriver::init_can() {
+    can_status status = can_.init(can_interface_name_);
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
     }
 
-    serial_.set_option(asio::serial_port::baud_rate(baud_rate_), ec);
-    if (ec) {
-        return -1;
+    struct can_filter filters[] = {
+        {
+            .can_id = CAN_ID_FLT_EVENT,
+            .can_mask = CAN_SFF_MASK,
+        },
+        {
+            .can_id = CAN_ID_PGOOD_EVENT,
+            .can_mask = CAN_SFF_MASK,
+        },
+        {
+            .can_id = CAN_ID_KILLSWITCH_EVENT,
+            .can_mask = CAN_SFF_MASK,
+        },
+        {
+            .can_id = CAN_ID_CURRENT_MEASUREMENTS,
+            .can_mask = CAN_SFF_MASK,
+        },
+    };
+
+    status = can_.set_filters(filters, sizeof(filters) / sizeof(filters[0]));
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
     }
 
-    serial_.set_option(asio::serial_port::character_size(8), ec);
-    if (ec) {
-        return -1;
-    }
+    status = can_.start_async_receive(
+        [this](const struct canfd_frame& frame, can_status rx_status) {
+            handle_can_frame(frame, rx_status);
+        });
 
-    serial_.set_option(
-        asio::serial_port::parity(asio::serial_port::parity::none), ec);
-    if (ec) {
-        return -1;
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
     }
-
-    serial_.set_option(
-        asio::serial_port::stop_bits(asio::serial_port::stop_bits::one), ec);
-    if (ec) {
-        return -1;
-    }
-
-    serial_.set_option(
-        asio::serial_port::flow_control(asio::serial_port::flow_control::none),
-        ec);
-    if (ec) {
-        return -1;
-    }
-
-    start_receive();
-    io_thread_ = std::thread([this]() { io_.run(); });
 
     return 0;
 }
@@ -116,124 +119,34 @@ std::uint16_t ThrusterInterfaceAUVDriver::force_to_pwm(double force) {
 std::uint16_t ThrusterInterfaceAUVDriver::calc_poly(
     double force,
     const std::vector<double>& coeffs) {
-    return static_cast<std::uint16_t>(coeffs[0] * std::pow(force, 3) +
-                                      coeffs[1] * std::pow(force, 2) +
-                                      coeffs[2] * force + coeffs[3]);
-}
-
-std::vector<std::uint8_t> ThrusterInterfaceAUVDriver::create_packet(
-    std::uint8_t id,
-    const std::vector<std::uint16_t>& thruster_pwm_array) const {
-    std::vector<std::uint8_t> packet;
-
-    packet.reserve(1 + 1 + 1 +
-                   thruster_pwm_array.size() * sizeof(std::uint16_t) + 1);
-
-    packet.push_back(UART_START_BYTE);
-    packet.push_back(id);
-
-    const std::uint8_t length = static_cast<std::uint8_t>(
-        thruster_pwm_array.size() * sizeof(std::uint16_t));
-    packet.push_back(length);
-
-    for (std::uint16_t value : thruster_pwm_array) {
-        packet.push_back(static_cast<std::uint8_t>(value & 0xFF));
-        packet.push_back(static_cast<std::uint8_t>((value >> 8) & 0xFF));
+    if (coeffs.size() < 4) {
+        return idle_pwm_value_;
     }
 
-    std::uint8_t checksum = id ^ length;
-    for (std::uint16_t value : thruster_pwm_array) {
-        checksum ^= static_cast<std::uint8_t>(value & 0xFF);
-        checksum ^= static_cast<std::uint8_t>((value >> 8) & 0xFF);
-    }
-
-    packet.push_back(checksum);
-
-    return packet;
-}
-
-int ThrusterInterfaceAUVDriver::send_data_to_escs(
-    const std::vector<std::uint16_t>& thruster_pwm_array) {
-    if (!serial_.is_open()) {
-        return -1;
-    }
-
-    const auto packet = create_packet(MSG_SET_THRUSTER_PWM, thruster_pwm_array);
-    constexpr std::size_t header_size = 3;
-
-    if (packet.size() < header_size) {
-        return -1;
-    }
-
-    std::error_code ec;
-
-    const auto header_bytes_written =
-        asio::write(serial_, asio::buffer(packet.data(), header_size), ec);
-
-    if (ec || header_bytes_written != header_size) {
-        return -1;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-    const auto remaining_size = packet.size() - header_size;
-    const auto payload_bytes_written = asio::write(
-        serial_, asio::buffer(packet.data() + header_size, remaining_size), ec);
-
-    if (ec || payload_bytes_written != remaining_size) {
-        return -1;
-    }
-
-    return 0;
-}
-
-int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
-    if (!serial_.is_open()) {
-        return -1;
-    }
-
-    std::vector<std::uint16_t> camera_light_pwm_array(1);
-    camera_light_pwm_array[0] =
-        static_cast<std::uint16_t>(1100 + 800 * percentage);
-
-    const auto packet =
-        create_packet(MSG_SET_LIGHT_PWM, camera_light_pwm_array);
-    constexpr std::size_t header_size = 3;
-
-    if (packet.size() < header_size) {
-        return -1;
-    }
-
-    std::error_code ec;
-
-    const auto header_bytes_written =
-        asio::write(serial_, asio::buffer(packet.data(), header_size), ec);
-
-    if (ec || header_bytes_written != header_size) {
-        return -1;
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-    const auto remaining_size = packet.size() - header_size;
-    const auto payload_bytes_written = asio::write(
-        serial_, asio::buffer(packet.data() + header_size, remaining_size), ec);
-
-    if (ec || payload_bytes_written != remaining_size) {
-        return -1;
-    }
-
-    return 0;
+    return static_cast<std::uint16_t>(
+        coeffs[0] * std::pow(force, 3) +
+        coeffs[1] * std::pow(force, 2) +
+        coeffs[2] * force +
+        coeffs[3]);
 }
 
 std::optional<std::vector<std::uint16_t>>
 ThrusterInterfaceAUVDriver::drive_thrusters(
     const std::vector<double>& thruster_forces_array) {
+    if (thruster_forces_array.size() < thruster_parameters_.size()) {
+        return std::nullopt;
+    }
+
     std::vector<double> mapped_forces(thruster_parameters_.size());
 
     for (std::size_t i = 0; i < thruster_parameters_.size(); ++i) {
         const auto& param = thruster_parameters_[i];
         const std::size_t idx = param.mapping;
+
+        if (idx >= thruster_forces_array.size()) {
+            return std::nullopt;
+        }
+
         const double raw_force = thruster_forces_array[idx];
         mapped_forces[i] = raw_force * param.direction;
     }
@@ -248,183 +161,183 @@ ThrusterInterfaceAUVDriver::drive_thrusters(
     return thruster_pwm_array;
 }
 
-void ThrusterInterfaceAUVDriver::start_receive() {
-    do_receive();
-}
 
-void ThrusterInterfaceAUVDriver::do_receive() {
-    serial_.async_read_some(
-        asio::buffer(read_buf_),
-        [this](const std::error_code& ec, std::size_t bytes_transferred) {
-            if (ec) {
-                return;
-            }
-
-            receive_buffer_.insert(receive_buffer_.end(), read_buf_.begin(),
-                                   read_buf_.begin() + bytes_transferred);
-
-            process_receive_buffer();
-            do_receive();
-        });
-}
-
-std::uint8_t ThrusterInterfaceAUVDriver::compute_checksum(
-    std::uint8_t msg_id,
-    std::uint8_t length,
-    const std::uint8_t* payload) {
-    std::uint8_t checksum = msg_id ^ length;
-
-    for (std::size_t i = 0; i < length; ++i) {
-        checksum ^= payload[i];
+int ThrusterInterfaceAUVDriver::send_data_to_escs(
+    const std::vector<std::uint16_t>& thruster_pwm_array) {
+    if (!can_.is_initialized()) {
+        return static_cast<int>(can_status::ERR_NOT_INITIALIZED);
     }
 
-    return checksum;
-}
-
-void ThrusterInterfaceAUVDriver::process_receive_buffer() {
-    while (true) {
-        if (receive_buffer_.size() < 4) {
-            return;
-        }
-
-        auto start_it = std::find(receive_buffer_.begin(),
-                                  receive_buffer_.end(), UART_START_BYTE);
-
-        if (start_it == receive_buffer_.end()) {
-            receive_buffer_.clear();
-            return;
-        }
-
-        if (start_it != receive_buffer_.begin()) {
-            receive_buffer_.erase(receive_buffer_.begin(), start_it);
-        }
-
-        if (receive_buffer_.size() < 4) {
-            return;
-        }
-
-        const std::uint8_t start = receive_buffer_[0];
-        const std::uint8_t msg_id = receive_buffer_[1];
-        const std::uint8_t length = receive_buffer_[2];
-
-        if (start != UART_START_BYTE) {
-            receive_buffer_.erase(receive_buffer_.begin());
-            continue;
-        }
-
-        if (length > MAX_PAYLOAD_SIZE) {
-            receive_buffer_.erase(receive_buffer_.begin());
-            continue;
-        }
-
-        const std::size_t full_frame_size =
-            4u + static_cast<std::size_t>(length);
-
-        if (receive_buffer_.size() < full_frame_size) {
-            return;
-        }
-
-        const std::uint8_t* payload_ptr = receive_buffer_.data() + 3;
-        const std::uint8_t received_checksum = receive_buffer_[3 + length];
-        const std::uint8_t expected_checksum =
-            compute_checksum(msg_id, length, payload_ptr);
-
-        if (received_checksum != expected_checksum) {
-            receive_buffer_.erase(receive_buffer_.begin());
-            continue;
-        }
-
-        std::vector<std::uint8_t> frame_bytes(
-            receive_buffer_.begin(),
-            receive_buffer_.begin() +
-                static_cast<std::ptrdiff_t>(full_frame_size));
-
-        handle_received_frame(frame_bytes);
-
-        receive_buffer_.erase(receive_buffer_.begin(),
-                              receive_buffer_.begin() +
-                                  static_cast<std::ptrdiff_t>(full_frame_size));
+    if (thruster_pwm_array.size() != 8) {
+        return -1;
     }
+
+    std::array<std::uint8_t, 16> payload{};
+
+    for (std::size_t i = 0; i < thruster_pwm_array.size(); ++i) {
+        const std::uint16_t value = thruster_pwm_array[i];
+
+        payload[2 * i] =
+            static_cast<std::uint8_t>(value & 0xFF);
+
+        payload[2 * i + 1] =
+            static_cast<std::uint8_t>((value >> 8) & 0xFF);
+    }
+
+    const can_status status = can_.send(
+        CAN_ID_SET_THRUSTERS_PWM,
+        payload.data(),
+        static_cast<std::uint8_t>(payload.size()),
+        true  // use BRS
+    );
+
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
+    }
+
+    return 0;
 }
 
-void ThrusterInterfaceAUVDriver::handle_received_frame(
-    const std::vector<std::uint8_t>& frame_bytes) {
-    if (frame_bytes.size() < 4) {
+int ThrusterInterfaceAUVDriver::set_camera_light(float percentage) {
+    if (!can_.is_initialized()) {
+        return static_cast<int>(can_status::ERR_NOT_INITIALIZED);
+    }
+
+    percentage = std::clamp(percentage, 0.0f, 1.0f);
+
+    const std::uint16_t pwm =
+        static_cast<std::uint16_t>(1100.0f + 800.0f * percentage);
+
+    std::array<std::uint8_t, 2> payload{};
+    payload[0] = static_cast<std::uint8_t>(pwm & 0xFF);
+    payload[1] = static_cast<std::uint8_t>((pwm >> 8) & 0xFF);
+
+    const can_status status = can_.send(
+        CAN_ID_SET_LIGHT_PWM,
+        payload.data(),
+        static_cast<std::uint8_t>(payload.size()),
+        true
+    );
+
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
+    }
+
+    return 0;
+}
+
+void ThrusterInterfaceAUVDriver::handle_can_frame(
+    const struct canfd_frame& frame,
+    can_status status) {
+    if (status != can_status::OK) {
         return;
     }
 
-    const std::uint8_t msg_id = frame_bytes[1];
-    const std::uint8_t length = frame_bytes[2];
-
-    if (frame_bytes.size() != static_cast<std::size_t>(length) + 4u) {
-        return;
-    }
-
-    const std::uint8_t* payload = frame_bytes.data() + 3;
-
-    switch (msg_id) {
-        case MSG_FLT_EVENT: {
-            if (length != 2) {
+    switch (frame.can_id) {
+        case CAN_ID_FLT_EVENT: {
+            if (frame.len != 2) {
                 break;
             }
 
-            const std::uint8_t channel = payload[0];
-            const std::uint8_t code = payload[1];
+            const std::uint8_t channel = frame.data[0];
+            const std::uint8_t code = frame.data[1];
 
             if (fault_event_callback_) {
                 fault_event_callback_(channel, code);
             }
+
             break;
         }
 
-        case MSG_PGOOD_EVENT: {
-            if (length != 2) {
+        case CAN_ID_PGOOD_EVENT: {
+            if (frame.len != 2) {
                 break;
             }
 
-            const std::uint8_t channel = payload[0];
-            const std::uint8_t code = payload[1];
+            const std::uint8_t channel = frame.data[0];
+            const std::uint8_t code = frame.data[1];
 
             if (pgood_event_callback_) {
                 pgood_event_callback_(channel, code);
             }
+
             break;
         }
 
-        case MSG_KILLSWITCH_EVENT: {
-            if (length != 0) {
+        case CAN_ID_KILLSWITCH_EVENT: {
+            if (frame.len != 0) {
                 break;
             }
 
             if (killswitch_event_callback_) {
                 killswitch_event_callback_();
             }
+
             break;
         }
 
-        case MSG_CURRENT_MEASUREMENTS: {
+        case CAN_ID_CURRENT_MEASUREMENTS: {
             constexpr std::size_t num_currents = 8;
             constexpr std::size_t expected_length =
                 num_currents * sizeof(float);
 
-            if (length != expected_length) {
+            if (frame.len != expected_length) {
                 break;
             }
 
             std::array<float, num_currents> currents{};
-
-            std::memcpy(currents.data(), payload, expected_length);
+            std::memcpy(currents.data(), frame.data, expected_length);
 
             if (current_measurements_callback_) {
                 current_measurements_callback_(currents);
             }
+
             break;
         }
 
-        default: {
+        default:
             break;
-        }
     }
+}
+
+int ThrusterInterfaceAUVDriver::disable_thrusters() {
+    if (!can_.is_initialized()) {
+        return static_cast<int>(can_status::ERR_NOT_INITIALIZED);
+    }
+
+    const std::uint8_t dummy = 0;
+
+    const can_status status = can_.send(
+        CAN_ID_DISABLE_THRUSTERS,
+        &dummy,
+        0,
+        true);
+
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
+    }
+
+    return 0;
+}
+
+int ThrusterInterfaceAUVDriver::enable_thrusters() {
+    if (!can_.is_initialized()) {
+        return static_cast<int>(can_status::ERR_NOT_INITIALIZED);
+    }
+
+    const std::uint8_t dummy = 0;
+
+    const can_status status = can_.send(
+        CAN_ID_ENABLE_THRUSTERS,
+        &dummy,
+        0,
+        true);
+
+    if (status != can_status::OK) {
+        return static_cast<int>(status);
+    }
+
+    return 0;
 }
 
 void ThrusterInterfaceAUVDriver::set_fault_event_callback(
