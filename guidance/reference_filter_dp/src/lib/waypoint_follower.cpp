@@ -42,11 +42,34 @@ Eigen::Vector18d WaypointFollower::step() {
     return state_;
 }
 
+void WaypointFollower::retarget(const Waypoint& waypoint,
+                                double convergence_threshold) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    waypoint_mode_ = waypoint.mode;
+    convergence_threshold_ = convergence_threshold;
+    reference_goal_ = apply_mode_logic(waypoint.pose.to_vector(),
+                                       waypoint_mode_, state_.head<6>());
+}
+
 bool WaypointFollower::within_convergance(
     const Eigen::Vector6d& measured_pose) const {
     std::lock_guard<std::mutex> lock(mutex_);
     return has_converged(measured_pose, reference_goal_, waypoint_mode_,
                          convergence_threshold_);
+}
+
+bool WaypointFollower::within_convergance_ignore_z(
+    const Eigen::Vector6d& measured_pose) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    Eigen::Vector6d adjusted = measured_pose;
+    adjusted(2) = reference_goal_(2);
+    return has_converged(adjusted, reference_goal_, waypoint_mode_,
+                         convergence_threshold_);
+}
+
+void WaypointFollower::update_z_goal(double target_ned_z) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    reference_goal_(2) = target_ned_z;
 }
 
 void WaypointFollower::set_reference(const PoseEuler& reference_goal_pose) {

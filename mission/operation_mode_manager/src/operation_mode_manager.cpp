@@ -41,6 +41,8 @@ void OperationModeManager::setup_publishers() {
         this->get_parameter("topics.killswitch").as_string();
     const auto operation_mode_topic =
         this->get_parameter("topics.operation_mode").as_string();
+    const auto killswitch_string_topic = killswitch_topic + "_string";
+    const auto operation_mode_string_topic = operation_mode_topic + "_string";
 
     wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
         wrench_input_topic,
@@ -51,6 +53,14 @@ void OperationModeManager::setup_publishers() {
 
     mode_pub_ = this->create_publisher<vortex_msgs::msg::OperationMode>(
         operation_mode_topic, vortex::utils::qos_profiles::reliable_profile(1));
+
+    killswitch_string_pub_ = this->create_publisher<std_msgs::msg::String>(
+        killswitch_string_topic,
+        vortex::utils::qos_profiles::reliable_profile(1));
+
+    mode_string_pub_ = this->create_publisher<std_msgs::msg::String>(
+        operation_mode_string_topic,
+        vortex::utils::qos_profiles::reliable_profile(1));
 }
 
 void OperationModeManager::setup_services() {
@@ -152,6 +162,14 @@ void OperationModeManager::publish_mode() {
     std_msgs::msg::Bool killswitch_msg;
     killswitch_msg.data = killswitch_;
     killswitch_pub_->publish(killswitch_msg);
+
+    std_msgs::msg::String killswitch_string_msg;
+    killswitch_string_msg.data = "killswitch: " + std::string(killswitch_ ? "true" : "false");
+    killswitch_string_pub_->publish(killswitch_string_msg);
+
+    std_msgs::msg::String mode_string_msg;
+    mode_string_msg.data = "mode: " + vortex::utils::types::mode_to_string(mode_);
+    mode_string_pub_->publish(mode_string_msg);
 }
 
 void OperationModeManager::publish_empty_wrench() {

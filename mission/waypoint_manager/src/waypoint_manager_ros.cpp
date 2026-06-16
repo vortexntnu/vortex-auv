@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 #include <rclcpp_components/register_node_macro.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
 
 namespace vortex::mission {
 
@@ -10,6 +11,7 @@ WaypointManagerNode::WaypointManagerNode(const rclcpp::NodeOptions& options)
     set_reference_action_client();
     set_waypoint_action_server();
     set_waypoint_service_server();
+    setup_reset_subscription();
     setup_debug_publisher();
 
     spdlog::info("WaypointManagerNode started");
@@ -102,6 +104,24 @@ void WaypointManagerNode::publish_current_waypoint() {
         return;
     }
     debug_waypoint_pub_->publish(waypoints_[current_index_]);
+}
+
+void WaypointManagerNode::setup_reset_subscription() {
+    reset_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+        "mission/wipe", vortex::utils::qos_profiles::reliable_profile(1),
+        [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
+            on_system_reset(msg);
+        });
+}
+
+void WaypointManagerNode::on_system_reset(
+    std_msgs::msg::Empty::ConstSharedPtr) {
+    if (active_action_goal_ && active_action_goal_->is_active()) {
+        auto res = construct_result(false);
+        active_action_goal_->abort(res);
+    }
+    cleanup_mission_state();
+    spdlog::info("WaypointManager: reset complete");
 }
 
 void WaypointManagerNode::set_waypoint_service_server() {

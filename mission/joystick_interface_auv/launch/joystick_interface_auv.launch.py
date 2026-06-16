@@ -63,7 +63,7 @@ def generate_launch_description() -> LaunchDescription:
         + [
             DeclareLaunchArgument(
                 "orientation_mode",
-                default_value="euler",
+                default_value="quat",
                 description="Reference orientation representation: 'euler' (ReferenceFilter) or 'quat' (ReferenceFilterQuat)",
                 choices=["euler", "quat"],
             ),

@@ -11,6 +11,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
@@ -36,6 +37,7 @@ add_library(${LIB_NAME} SHARED
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
   rclcpp_components
+  std_msgs
   vortex_msgs
   vortex_utils
   vortex_utils_ros

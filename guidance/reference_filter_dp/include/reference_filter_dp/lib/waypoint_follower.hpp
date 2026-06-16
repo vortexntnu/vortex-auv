@@ -40,11 +40,42 @@ class WaypointFollower {
     Eigen::Vector18d step();
 
     /**
+     * @brief Update the waypoint target without resetting filter state.
+     *
+     * Preserves all filter dynamical state (state_.segment<6>(6) for velocity
+     * and state_.segment<6>(12) for acceleration) so the third-order filter
+     * continues evolving from its current state. Use this on preemption; use
+     * start() only for cold-start (first goal after node init).
+     *
+     * Thread-safe.
+     */
+    void retarget(const Waypoint& waypoint, double convergence_threshold);
+
+    /**
      * @brief Check if the measured pose has converged to the reference goal.
      * @param measured_pose Current measured pose.
      * @return True if the error norm is within the convergence threshold.
      */
     bool within_convergance(const Eigen::Vector6d& measured_pose) const;
+
+    /**
+     * @brief Convergence check that excludes z from the position error.
+     *
+     * Use during altitude-hold mode: the z goal tracks a noisy altitude
+     * measurement, so including it in the convergence criterion would prevent
+     * the action from ever succeeding.
+     */
+    bool within_convergance_ignore_z(
+        const Eigen::Vector6d& measured_pose) const;
+
+    /**
+     * @brief Update only the z component of the reference goal.
+     *
+     * Used during altitude-hold mode to continuously track seafloor distance
+     * without disturbing x/y/orientation targets.
+     * @param target_ned_z The desired NED z coordinate for the AUV.
+     */
+    void update_z_goal(double target_ned_z);
 
     /**
      * @brief Update the reference goal pose mid-sequence.

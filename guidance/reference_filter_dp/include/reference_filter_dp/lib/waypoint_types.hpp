@@ -23,6 +23,9 @@ enum class WaypointMode : uint8_t {
     XY_AND_YAW = 5,  ///< Control x, y and yaw; hold z, force roll=pitch=0.
     XY_FORWARD_DIR =
         6,  ///< Control x, y; hold z; yaw auto-computed toward target.
+    LEVEL_ORIENTATION =
+        7,       ///< Hold current position and yaw; drive roll=pitch=0.
+    ONLY_Z = 8,  ///< Hold current x, y, orientation; control z only.
 };
 
 /**
@@ -31,6 +34,8 @@ enum class WaypointMode : uint8_t {
 struct Waypoint {
     PoseEuler pose{};
     WaypointMode mode = WaypointMode::FULL_POSE;
+    bool keep_altitude{false};
+    double desired_altitude{0.0};
 };
 
 }  // namespace vortex::guidance

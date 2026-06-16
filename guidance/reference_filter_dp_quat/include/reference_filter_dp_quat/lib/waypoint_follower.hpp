@@ -49,6 +49,17 @@ class WaypointFollower {
     void step();
 
     /**
+     * @brief Update the waypoint target without resetting filter state.
+     *
+     * Preserves all filter dynamical state (the equivalent of nominal_pose_
+     * plus the velocity and acceleration slots of the state vector) so the
+     * third-order filter continues evolving from its current state. Use
+     * this on preemption; use start() only for cold-start (first goal after
+     * node init).
+     */
+    void retarget(const Waypoint& waypoint, double convergence_threshold);
+
+    /**
      * @brief Check if the measured pose has converged to the waypoint goal.
      * @param measured_pose Current measured pose.
      * @return True if the error norm is within the convergence threshold.
@@ -56,10 +67,31 @@ class WaypointFollower {
     bool within_convergance(const Pose& measured_pose) const;
 
     /**
+     * @brief Convergence check that excludes z from the position error.
+     *
+     * Use this during altitude-hold mode: the z goal tracks a noisy altitude
+     * measurement, so including it in the convergence criterion would prevent
+     * the action from ever succeeding.
+     * @param measured_pose Current measured pose.
+     * @return True if x/y/orientation error is within the convergence
+     * threshold.
+     */
+    bool within_convergance_ignore_z(const Pose& measured_pose) const;
+
+    /**
      * @brief Update the reference goal pose mid-sequence.
      * @param reference_goal_pose The new reference pose.
      */
     void set_reference(const Pose& reference_goal_pose);
+
+    /**
+     * @brief Update only the z component of the waypoint goal.
+     *
+     * Used during altitude-hold mode to continuously track seafloor distance
+     * without disturbing the x/y/orientation targets.
+     * @param target_ned_z The desired NED z coordinate for the AUV.
+     */
+    void update_z_goal(double target_ned_z);
 
     /**
      * @brief Snap the nominal pose to the waypoint goal and zero

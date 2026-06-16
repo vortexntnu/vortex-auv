@@ -29,6 +29,10 @@ ReferenceFilterNode::ReferenceFilterNode(const rclcpp::NodeOptions& options)
 
     set_refererence_filter();
 
+    setup_reset_subscription();
+
+    setup_debug_publisher();
+
     spdlog::info(start_message);
 }
 
@@ -44,6 +48,8 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     this->declare_parameter<std::string>("topics.twist");
     this->declare_parameter<std::string>("topics.guidance.dp_quat");
     this->declare_parameter<std::string>("topics.reference_pose");
+    altitude_control_enabled_ =
+        this->declare_parameter<bool>("altitude_control_enabled", false);
 
     std::string pose_topic = this->get_parameter("topics.pose").as_string();
     std::string twist_topic = this->get_parameter("topics.twist").as_string();
@@ -70,6 +76,7 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
     reference_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
         reference_pose_topic, qos_sensor_data,
         [this](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+            // Introduce altitude handling here??
             follower_->set_reference(
                 vortex::utils::ros_conversions::ros_pose_to_pose(msg->pose));
         });
@@ -93,6 +100,125 @@ void ReferenceFilterNode::set_subscribers_and_publisher() {
             current_twist_ = vortex::utils::ros_conversions::ros_twist_to_twist(
                 msg->twist.twist);
         });
+
+    const std::string waypoint_goal_topic = this->declare_parameter<std::string>(
+        "topics.guidance.waypoint_mode", "guidance/waypoint_mode");
+    waypoint_goal_pub_ = this->create_publisher<vortex_msgs::msg::WaypointDebug>(
+        waypoint_goal_topic,
+        vortex::utils::qos_profiles::reliable_profile(1));
+
+    if (altitude_control_enabled_) {
+        this->declare_parameter<std::string>("topics.dvl_altitude");
+        this->declare_parameter<double>("altitude_lp_alpha", 0.9);
+
+        std::string dvl_altitude_topic =
+            this->get_parameter("topics.dvl_altitude").as_string();
+        altitude_lp_alpha_ =
+            this->get_parameter("altitude_lp_alpha").as_double();
+
+        altitude_sub_ =
+            this->create_subscription<vortex_msgs::msg::DVLAltitude>(
+                dvl_altitude_topic, qos_sensor_data,
+                [this](const vortex_msgs::msg::DVLAltitude::SharedPtr msg) {
+                    std::lock_guard<std::mutex> lock(sensor_mutex_);
+                    if (msg->altitude <= 0.0) {
+                        return;  // Ignore invalid altitude readings
+                    }
+                    if (!altitude_valid_) {
+                        current_altitude_ = msg->altitude;
+                        altitude_valid_ = true;
+                    } else {
+                        current_altitude_ =
+                            altitude_lp_alpha_ * current_altitude_ +
+                            (1.0 - altitude_lp_alpha_) * msg->altitude;
+                    }
+                });
+
+        spdlog::info("Altitude control enabled, subscribing to '{}'",
+                     dvl_altitude_topic);
+    }
+}
+
+void ReferenceFilterNode::setup_reset_subscription() {
+    reset_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+        "mission/wipe", vortex::utils::qos_profiles::reliable_profile(1),
+        [this](std_msgs::msg::Empty::ConstSharedPtr msg) {
+            on_system_reset(msg);
+        });
+}
+
+void ReferenceFilterNode::setup_debug_publisher() {
+    const std::string mode_str =
+        this->declare_parameter<std::string>("debug.goal_publish_mode", "none");
+
+    if (mode_str == "timer") {
+        debug_mode_ = DebugPublishMode::timer;
+    } else if (mode_str == "on_new_goal") {
+        debug_mode_ = DebugPublishMode::on_new_goal;
+    } else {
+        debug_mode_ = DebugPublishMode::none;
+        return;
+    }
+
+    const std::string topic = this->declare_parameter<std::string>(
+        "topics.guidance.dp_quat_target_pose", "guidance/dp_quat_target_pose");
+
+    debug_goal_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        topic, rclcpp::QoS(rclcpp::KeepLast(10)).best_effort());
+
+    spdlog::info("Reference goal debug publisher active (mode: {}, topic: {})",
+                 mode_str, topic);
+}
+
+void ReferenceFilterNode::publish_debug_goal() {
+    if (!debug_goal_pub_ || !executing_.load()) {
+        return;
+    }
+    const Pose goal = follower_->waypoint_goal();
+    geometry_msgs::msg::PoseStamped msg;
+    msg.header.stamp = this->get_clock()->now();
+    msg.header.frame_id = "odom";
+    msg.pose.position.x = goal.x;
+    msg.pose.position.y = goal.y;
+    msg.pose.position.z = goal.z;
+    msg.pose.orientation.w = goal.qw;
+    msg.pose.orientation.x = goal.qx;
+    msg.pose.orientation.y = goal.qy;
+    msg.pose.orientation.z = goal.qz;
+    debug_goal_pub_->publish(msg);
+}
+
+void ReferenceFilterNode::publish_waypoint_goal(
+    const vortex::utils::types::Waypoint& wp, double convergence_threshold) {
+    const Eigen::Vector3d euler = vortex::utils::math::quat_to_euler(
+        wp.pose.ori_quaternion());
+
+    vortex_msgs::msg::WaypointDebug msg;
+    msg.pose.header.stamp = this->get_clock()->now();
+    msg.pose.header.frame_id = "odom";
+    msg.pose.x = wp.pose.x;
+    msg.pose.y = wp.pose.y;
+    msg.pose.z = wp.pose.z;
+    msg.pose.roll = euler(0);
+    msg.pose.pitch = euler(1);
+    msg.pose.yaw = euler(2);
+    msg.mode = vortex::utils::waypoints::waypoint_mode_to_string(wp.mode);
+    msg.convergence_threshold = convergence_threshold;
+    msg.keep_altitude = wp.keep_altitude;
+    msg.desired_altitude = wp.desired_altitude;
+    msg.require_altitude_convergence = wp.require_altitude_convergence;
+    waypoint_goal_pub_->publish(msg);
+}
+
+void ReferenceFilterNode::on_system_reset(
+    std_msgs::msg::Empty::ConstSharedPtr) {
+    std::lock_guard<std::mutex> lock(execute_mutex_);
+    preempted_ = true;
+    if (execute_thread_.joinable()) {
+        execute_thread_.join();
+    }
+    preempted_ = false;
+    spdlog::info("ReferenceFilter: reset complete");
 }
 
 void ReferenceFilterNode::set_action_server() {
@@ -146,41 +272,89 @@ void ReferenceFilterNode::handle_accepted(
         rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
         goal_handle) {
     std::lock_guard<std::mutex> lock(execute_mutex_);
+    const bool retarget = executing_.load();
     preempted_ = true;
     if (execute_thread_.joinable()) {
         execute_thread_.join();
     }
     preempted_ = false;
 
-    execute_thread_ =
-        std::thread([this, goal_handle]() { execute(goal_handle); });
+    execute_thread_ = std::thread(
+        [this, goal_handle, retarget]() { execute(goal_handle, retarget); });
 }
 
 void ReferenceFilterNode::execute(
-    const std::shared_ptr<
-        rclcpp_action::ServerGoalHandle<vortex_msgs::action::GuidanceWaypoint>>
-        goal_handle) {
-    spdlog::info("Executing goal");
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
+        vortex_msgs::action::GuidanceWaypoint>> goal_handle,
+    bool retarget) {
+    executing_ = true;
 
-    double convergence_threshold =
-        goal_handle->get_goal()->convergence_threshold;
-
-    if (convergence_threshold <= 0.0) {
-        convergence_threshold = 0.1;
+    double threshold = goal_handle->get_goal()->convergence_threshold;
+    if (threshold <= 0.0) {
+        threshold = 0.1;
         spdlog::warn(
-            "ReferenceFilter: Invalid convergence_threshold received (<= 0). "
-            "Using default 0.1");
+            "ReferenceFilter: invalid convergence_threshold (<= 0), using 0.1");
     }
 
-    const auto wp = vortex::utils::waypoints::waypoint_from_ros(
+    auto wp = vortex::utils::waypoints::waypoint_from_ros(
         goal_handle->get_goal()->waypoint);
 
-    const auto [pose, twist] = [this] {
-        std::lock_guard lock(sensor_mutex_);
-        return std::pair{current_pose_, current_twist_};
-    }();
+    publish_waypoint_goal(wp, threshold);
 
-    follower_->start(pose, twist, wp, convergence_threshold);
+    if (wp.keep_altitude && altitude_control_enabled_ &&
+        wp.desired_altitude <= 0.0) {
+        executing_ = false;
+        auto result =
+            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
+        result->success = false;
+        goal_handle->abort(result);
+        spdlog::error(
+            "ReferenceFilter: desired_altitude must be > 0, got {:.3f}",
+            wp.desired_altitude);
+        return;
+    }
+
+    if (wp.keep_altitude && altitude_control_enabled_) {
+        const auto [pose, current_alt, alt_valid] = [this] {
+            std::lock_guard lock(sensor_mutex_);
+            return std::tuple{current_pose_, current_altitude_,
+                              altitude_valid_};
+        }();
+        if (!alt_valid) {
+            spdlog::warn(
+                "ReferenceFilter: keep_altitude requested but no DVL altitude "
+                "received yet; proceeding with waypoint z as-is");
+        } else {
+            wp.pose.z = pose.z + current_alt - wp.desired_altitude;
+        }
+        spdlog::info(
+            "Altitude-hold mode: desired_altitude={:.2f} m, "
+            "initial_altitude={:.2f}, initial z_goal={:.3f}",
+            wp.desired_altitude, current_altitude_, wp.pose.z);
+    } else if (wp.keep_altitude && !altitude_control_enabled_) {
+        spdlog::warn(
+            "ReferenceFilter: keep_altitude requested but altitude control is "
+            "not enabled; proceeding with waypoint z as-is");
+    }
+
+    if (retarget) {
+        follower_->retarget(wp, threshold);
+        spdlog::info("Executing goal (filter state preserved)");
+    } else {
+        const auto [pose, twist] = [this] {
+            std::lock_guard lock(sensor_mutex_);
+            return std::pair{current_pose_, current_twist_};
+        }();
+        follower_->start(pose, twist, wp, threshold);
+        spdlog::info("Executing goal (cold start)");
+    }
+
+    if (debug_mode_ == DebugPublishMode::on_new_goal) {
+        publish_debug_goal();
+    }
+
+    const bool keep_altitude = wp.keep_altitude && altitude_control_enabled_;
+    const double desired_altitude = wp.desired_altitude;
 
     auto result =
         std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
@@ -189,6 +363,8 @@ void ReferenceFilterNode::execute(
 
     while (rclcpp::ok()) {
         if (preempted_.load()) {
+            executing_ = false;
+            waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = false;
             goal_handle->abort(result);
             spdlog::info("Goal preempted by newer goal");
@@ -196,6 +372,8 @@ void ReferenceFilterNode::execute(
         }
 
         if (goal_handle->is_canceling()) {
+            executing_ = false;
+            waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = false;
             goal_handle->canceled(result);
             spdlog::info("Goal canceled");
@@ -204,49 +382,62 @@ void ReferenceFilterNode::execute(
 
         follower_->step();
 
+        if (keep_altitude) {
+            const auto [current_z, current_alt] = [this] {
+                std::lock_guard lock(sensor_mutex_);
+                return std::pair{current_pose_.z, current_altitude_};
+            }();
+            follower_->update_z_goal(current_z + current_alt -
+                                     desired_altitude);
+        }
+
+        reference_pub_->publish(
+            fill_reference_msg(follower_->pose(), follower_->velocity()));
+        if (publish_rpy_debug_) {
+            rpy_debug_pub_->publish(fill_reference_rpy_msg(
+                follower_->pose(), follower_->velocity()));
+        }
+        if (debug_mode_ == DebugPublishMode::timer) {
+            publish_debug_goal();
+        }
+
         const auto current_pose = [this] {
             std::lock_guard lock(sensor_mutex_);
             return current_pose_;
         }();
 
-        bool target_reached = follower_->within_convergance(current_pose);
+        const bool converged =
+            (keep_altitude && !wp.require_altitude_convergence)
+                ? follower_->within_convergance_ignore_z(current_pose)
+                : follower_->within_convergance(current_pose);
 
-        if (target_reached) {
+        if (converged) {
             follower_->snap_state_to_reference();
 
-            auto final_reference_msg =
-                fill_reference_msg(follower_->pose(), follower_->velocity());
-
-            reference_pub_->publish(final_reference_msg);
-            if (rpy_debug_pub_) {
+            reference_pub_->publish(
+                fill_reference_msg(follower_->pose(), follower_->velocity()));
+            if (publish_rpy_debug_) {
                 rpy_debug_pub_->publish(fill_reference_rpy_msg(
                     follower_->pose(), follower_->velocity()));
             }
 
+            executing_ = false;
+            waypoint_goal_pub_->publish(vortex_msgs::msg::WaypointDebug{});
             result->success = true;
             goal_handle->succeed(result);
             spdlog::info("Goal reached");
             return;
         }
 
-        auto reference_msg =
-            fill_reference_msg(follower_->pose(), follower_->velocity());
-        reference_pub_->publish(reference_msg);
-        if (rpy_debug_pub_) {
-            rpy_debug_pub_->publish(fill_reference_rpy_msg(
-                follower_->pose(), follower_->velocity()));
-        }
         loop_rate.sleep();
     }
-    if (!rclcpp::ok() && goal_handle->is_active()) {
-        auto result =
-            std::make_shared<vortex_msgs::action::GuidanceWaypoint::Result>();
-        result->success = false;
 
+    if (!rclcpp::ok() && goal_handle->is_active()) {
+        executing_ = false;
+        result->success = false;
         try {
             goal_handle->abort(result);
         } catch (...) {
-            // Ignore exceptions during shutdown
         }
     }
 }

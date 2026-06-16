@@ -5,6 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 
+#include <std_msgs/msg/empty.hpp>
 #include <vector>
 #include <vortex_msgs/action/guidance_waypoint.hpp>
 #include <vortex_msgs/action/waypoint_manager.hpp>
@@ -39,6 +40,12 @@ class WaypointManagerNode : public rclcpp::Node {
 
     // @brief Create the service servers for SendWaypoints.
     void set_waypoint_service_server();
+
+    // @brief Subscribe to the system-wide reset topic.
+    void setup_reset_subscription();
+
+    // @brief Abort any active goal and clear state on reset.
+    void on_system_reset(std_msgs::msg::Empty::ConstSharedPtr msg);
 
     // @brief Create the debug waypoint publisher and optional timer.
     void setup_debug_publisher();
@@ -105,6 +112,8 @@ class WaypointManagerNode : public rclcpp::Node {
         waypoint_action_server_;
     rclcpp::Service<vortex_msgs::srv::SendWaypoints>::SharedPtr
         waypoint_service_server_;
+
+    rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr reset_sub_;
 
     rclcpp::Publisher<vortex_msgs::msg::Waypoint>::SharedPtr
         debug_waypoint_pub_;
