@@ -108,6 +108,8 @@ class ThrustAllocator : public rclcpp::Node {
 
     rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
         thruster_forces_publisher_;
+    rclcpp::Publisher<vortex_msgs::msg::ThrusterForces>::SharedPtr
+        thruster_forces_desired_publisher_;
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr
         wrench_subscriber_;
     rclcpp::TimerBase::SharedPtr calculate_thrust_timer_;

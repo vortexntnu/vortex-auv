@@ -118,6 +118,7 @@
     topics:
       wrench_input: "wrench_input"
       thruster_forces: "thruster_forces"
+      thruster_forces_desired: "thruster_forces_desired"
       pwm_output: "pwm"
       current: "power_sense_module/current"
       voltage: "power_sense_module/voltage"

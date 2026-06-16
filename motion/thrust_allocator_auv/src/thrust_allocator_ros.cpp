@@ -167,6 +167,9 @@ void ThrustAllocator::set_subscriber_and_publisher() {
     std::string thruster_forces_topic =
         this->declare_parameter("topics.thruster_forces", PARAMETER_STRING)
             .get<std::string>();
+    std::string thruster_forces_desired_topic =
+        this->declare_parameter("topics.thruster_forces_desired", PARAMETER_STRING)
+            .get<std::string>();
 
     wrench_subscriber_ =
         this->create_subscription<geometry_msgs::msg::WrenchStamped>(
@@ -177,6 +180,9 @@ void ThrustAllocator::set_subscriber_and_publisher() {
     thruster_forces_publisher_ =
         this->create_publisher<vortex_msgs::msg::ThrusterForces>(
             thruster_forces_topic, best_effort_qos);
+    thruster_forces_desired_publisher_ =
+        this->create_publisher<vortex_msgs::msg::ThrusterForces>(
+            thruster_forces_desired_topic, best_effort_qos);
 }
 
 void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped& msg) {
@@ -213,6 +219,8 @@ void ThrustAllocator::wrench_cb(const geometry_msgs::msg::WrenchStamped& msg) {
         thruster_forces_publisher_->publish(msg_out);
         return;
     }
+
+    thruster_forces_desired_publisher_->publish(array_eigen_to_msg(thruster_forces));
 
     if (!saturate_vector_values(thruster_forces, min_thrust_, max_thrust_)) {
         spdlog::warn("ThrusterForces vector required saturation.");
