@@ -9,10 +9,10 @@
 #include <eigen3/Eigen/Eigen>
 #include "casadi/casadi.hpp"
 #include "optional"
-#include "thrust_allocator_auv/allocator.hpp"
-#include "thrust_allocator_auv/allocator_config.hpp"
-#include "thrust_allocator_auv/casadi_utils.hpp"
-#include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator_config.hpp"
+#include "vortex/propulsion/thrust_allocator/casadi_utils.hpp"
+#include "vortex/propulsion/thrust_allocator/thrust_allocator_utils.hpp"
 
 class QPAllocator final : public Allocator {
    public:

@@ -9,8 +9,8 @@
 #define THRUST_ALLOCATOR_AUV__PSEUDOINVERSE_ALLOCATOR_HPP_
 
 #include <eigen3/Eigen/Eigen>
-#include "thrust_allocator_auv/allocator.hpp"
-#include "thrust_allocator_auv/allocator_config.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator_config.hpp"
 
 /**
  * @brief The PseudoinverseAllocator class calculates the allocated thrust given

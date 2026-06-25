@@ -1,6 +1,6 @@
-#include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
-#include "thrust_allocator_auv/allocator_config.hpp"
-#include "thrust_allocator_auv/thrust_allocator_utils.hpp"
+#include "vortex/propulsion/thrust_allocator/pseudoinverse_allocator.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator_config.hpp"
+#include "vortex/propulsion/thrust_allocator/thrust_allocator_utils.hpp"
 
 PseudoinverseAllocator::PseudoinverseAllocator(
     const AllocatorConfig& allocator_config)

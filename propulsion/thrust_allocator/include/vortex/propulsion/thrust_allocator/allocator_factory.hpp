@@ -9,8 +9,8 @@
 
 #include <memory>
 #include <string>
-#include "thrust_allocator_auv/allocator_config.hpp"
-#include "thrust_allocator_auv/qp_allocator.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator_config.hpp"
+#include "vortex/propulsion/thrust_allocator/qp_allocator.hpp"
 
 /**
  * @brief The Allocator Factory that will generate a specific Allocator type.

@@ -1,6 +1,6 @@
-#include "thrust_allocator_auv/allocator_factory.hpp"
-#include "thrust_allocator_auv/allocator.hpp"
-#include "thrust_allocator_auv/pseudoinverse_allocator.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator_factory.hpp"
+#include "vortex/propulsion/thrust_allocator/allocator.hpp"
+#include "vortex/propulsion/thrust_allocator/pseudoinverse_allocator.hpp"
 
 std::unique_ptr<Allocator> Factory::make_allocator(
     const std::string& allocator_type,
