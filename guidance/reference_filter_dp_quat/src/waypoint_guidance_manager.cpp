@@ -1,13 +1,27 @@
-#include "reference_filter_dp_quat/lib/waypoint_guidance_manager.hpp"
+#include "reference_filter_dp_quat/waypoint_guidance_manager.hpp"
 
 #include <stdexcept>
+
+namespace {
+
+vortex::utils::types::Twist vector_to_twist(const Eigen::Vector6d& velocity) {
+    return {
+        .u = velocity(0),
+        .v = velocity(1),
+        .w = velocity(2),
+        .p = velocity(3),
+        .q = velocity(4),
+        .r = velocity(5),
+    };
+}
+
+}  // namespace
 
 namespace vortex::guidance {
 
 WaypointGuidanceManager::WaypointGuidanceManager(
     const WaypointGuidanceManagerConfig& config)
-    : config_(config)
-{
+    : config_(config) {
     if (config_.time_step.count() <= 0) {
         throw std::invalid_argument(
             "WaypointGuidanceManager time_step must be greater than zero");
@@ -22,20 +36,16 @@ WaypointGuidanceManager::WaypointGuidanceManager(
     recreate_follower();
 }
 
-void WaypointGuidanceManager::set_pose(
-    const vortex::utils::types::Pose& pose)
-{
+void WaypointGuidanceManager::set_pose(const vortex::utils::types::Pose& pose) {
     current_pose_ = pose;
 }
 
 void WaypointGuidanceManager::set_twist(
-    const vortex::utils::types::Twist& twist)
-{
+    const vortex::utils::types::Twist& twist) {
     current_twist_ = twist;
 }
 
-void WaypointGuidanceManager::set_altitude(double altitude_m)
-{
+void WaypointGuidanceManager::set_altitude(double altitude_m) {
     if (altitude_m <= 0.0) {
         return;
     }
@@ -46,15 +56,13 @@ void WaypointGuidanceManager::set_altitude(double altitude_m)
         return;
     }
 
-    current_altitude_ =
-        config_.altitude_low_pass_alpha * current_altitude_ +
-        (1.0 - config_.altitude_low_pass_alpha) * altitude_m;
+    current_altitude_ = config_.altitude_low_pass_alpha * current_altitude_ +
+                        (1.0 - config_.altitude_low_pass_alpha) * altitude_m;
 }
 
 WaypointStatus WaypointGuidanceManager::submit_waypoint(
     vortex::utils::types::Waypoint waypoint,
-    double convergence_threshold)
-{
+    double convergence_threshold) {
     if (convergence_threshold <= 0.0) {
         convergence_threshold = 0.1;
     }
@@ -68,20 +76,15 @@ WaypointStatus WaypointGuidanceManager::submit_waypoint(
     if (waypoint_active_) {
         follower_->retarget(waypoint, convergence_threshold);
     } else {
-        follower_->start(
-            current_pose_,
-            current_twist_,
-            waypoint,
-            convergence_threshold);
+        follower_->start(current_pose_, current_twist_, waypoint,
+                         convergence_threshold);
     }
 
     waypoint_active_ = true;
 
-    keep_altitude_ =
-        waypoint.keep_altitude && config_.altitude_control_enabled;
+    keep_altitude_ = waypoint.keep_altitude && config_.altitude_control_enabled;
 
-    require_altitude_convergence_ =
-        waypoint.require_altitude_convergence;
+    require_altitude_convergence_ = waypoint.require_altitude_convergence;
 
     desired_altitude_ = waypoint.desired_altitude;
     convergence_threshold_ = convergence_threshold;
@@ -91,8 +94,7 @@ WaypointStatus WaypointGuidanceManager::submit_waypoint(
     return status_;
 }
 
-void WaypointGuidanceManager::cancel_waypoint()
-{
+void WaypointGuidanceManager::cancel_waypoint() {
     waypoint_active_ = false;
 
     keep_altitude_ = false;
@@ -104,8 +106,7 @@ void WaypointGuidanceManager::cancel_waypoint()
     status_ = WaypointStatus::canceled;
 }
 
-void WaypointGuidanceManager::reset()
-{
+void WaypointGuidanceManager::reset() {
     waypoint_active_ = false;
 
     keep_altitude_ = false;
@@ -119,8 +120,7 @@ void WaypointGuidanceManager::reset()
     status_ = WaypointStatus::idle;
 }
 
-GuidanceReference WaypointGuidanceManager::tick()
-{
+GuidanceReference WaypointGuidanceManager::tick() {
     GuidanceReference output{
         .pose = current_pose_,
         .twist = vortex::utils::types::Twist{},
@@ -143,7 +143,7 @@ GuidanceReference WaypointGuidanceManager::tick()
     }
 
     output.pose = follower_->pose();
-    output.twist = follower_->velocity();
+    output.twist = vector_to_twist(follower_->velocity());
     output.status = status_;
     output.active = true;
 
@@ -164,7 +164,7 @@ GuidanceReference WaypointGuidanceManager::tick()
     status_ = WaypointStatus::succeeded;
 
     output.pose = follower_->pose();
-    output.twist = follower_->velocity();
+    output.twist = vector_to_twist(follower_->velocity());
     output.status = status_;
     output.active = false;
     output.just_completed = true;
@@ -172,35 +172,31 @@ GuidanceReference WaypointGuidanceManager::tick()
     return output;
 }
 
-WaypointStatus WaypointGuidanceManager::status() const noexcept
-{
+WaypointStatus WaypointGuidanceManager::status() const noexcept {
     return status_;
 }
 
-bool WaypointGuidanceManager::active() const noexcept
-{
+bool WaypointGuidanceManager::active() const noexcept {
     return waypoint_active_;
 }
 
-bool WaypointGuidanceManager::altitude_valid() const noexcept
-{
+bool WaypointGuidanceManager::altitude_valid() const noexcept {
     return altitude_valid_;
 }
 
-double WaypointGuidanceManager::altitude() const noexcept
-{
+double WaypointGuidanceManager::altitude() const noexcept {
     return current_altitude_;
 }
 
-const vortex::utils::types::Pose&
+
+vortex::utils::types::Pose
 WaypointGuidanceManager::current_goal() const
 {
     return follower_->waypoint_goal();
 }
 
 bool WaypointGuidanceManager::prepare_altitude_goal(
-    vortex::utils::types::Waypoint& waypoint)
-{
+    vortex::utils::types::Waypoint& waypoint) {
     if (!waypoint.keep_altitude) {
         return true;
     }
@@ -227,14 +223,12 @@ bool WaypointGuidanceManager::prepare_altitude_goal(
     return true;
 }
 
-void WaypointGuidanceManager::recreate_follower()
-{
+void WaypointGuidanceManager::recreate_follower() {
     const double time_step_s =
         static_cast<double>(config_.time_step.count()) / 1000.0;
 
-    follower_ = std::make_unique<WaypointFollower>(
-        config_.filter_params,
-        time_step_s);
+    follower_ =
+        std::make_unique<WaypointFollower>(config_.filter_params, time_step_s);
 }
 
 }  // namespace vortex::guidance

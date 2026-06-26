@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
-#include "reference_filter_dp_quat/lib/reference_filter.hpp"
+#include "reference_filter_dp_quat/eigen_typedefs.hpp"
+#include "reference_filter_dp_quat/reference_filter.hpp"
 
 namespace vortex::guidance {
 

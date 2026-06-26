@@ -1,7 +1,7 @@
 #ifndef REFERENCE_FILTER_DP_QUAT__LIB__REFERENCE_FILTER_HPP_
 #define REFERENCE_FILTER_DP_QUAT__LIB__REFERENCE_FILTER_HPP_
 
-#include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
+#include "reference_filter_dp_quat/eigen_typedefs.hpp"
 
 namespace vortex::guidance {
 

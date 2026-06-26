@@ -5,7 +5,7 @@
 
 #include <vortex/utils/types.hpp>
 
-#include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
+#include "reference_filter_dp_quat/waypoint_follower.hpp"
 
 namespace vortex::guidance {
 
@@ -39,7 +39,7 @@ struct GuidanceReference {
 };
 
 class WaypointGuidanceManager {
-public:
+   public:
     explicit WaypointGuidanceManager(
         const WaypointGuidanceManagerConfig& config);
 
@@ -61,9 +61,8 @@ public:
      * preserved and the follower retargets smoothly.
      */
     [[nodiscard]]
-    WaypointStatus submit_waypoint(
-        vortex::utils::types::Waypoint waypoint,
-        double convergence_threshold);
+    WaypointStatus submit_waypoint(vortex::utils::types::Waypoint waypoint,
+                                   double convergence_threshold);
 
     /**
      * Cancel the active waypoint without changing the latest vehicle state.
@@ -98,9 +97,9 @@ public:
     double altitude() const noexcept;
 
     [[nodiscard]]
-    const vortex::utils::types::Pose& current_goal() const;
+    vortex::utils::types::Pose current_goal() const;
 
-private:
+   private:
     [[nodiscard]]
     bool prepare_altitude_goal(vortex::utils::types::Waypoint& waypoint);
 

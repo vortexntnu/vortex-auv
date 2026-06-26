@@ -1,4 +1,4 @@
-#include "reference_filter_dp_quat/lib/reference_filter.hpp"
+#include "reference_filter_dp_quat/reference_filter.hpp"
 
 namespace vortex::guidance {
 

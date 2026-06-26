@@ -1,7 +1,7 @@
-#include "reference_filter_dp_quat/lib/waypoint_follower.hpp"
+#include "reference_filter_dp_quat/waypoint_follower.hpp"
 #include <vortex/utils/math.hpp>
 #include <vortex/utils/types.hpp>
-#include "reference_filter_dp_quat/lib/eigen_typedefs.hpp"
+#include "reference_filter_dp_quat/eigen_typedefs.hpp"
 
 namespace vortex::guidance {
 
