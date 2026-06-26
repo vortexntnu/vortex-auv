@@ -1,7 +1,7 @@
 #ifndef THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 #define THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
 
-#include "can_interface.hpp"
+#include <vortex/io/can/can_interface.hpp>
 
 #include <array>
 #include <cstdint>
@@ -69,13 +69,13 @@ class ThrusterInterface {
     std::uint16_t calc_poly(double force, const std::vector<double>& coeffs);
 
     int send_data_to_escs(const std::vector<std::uint16_t>& thruster_pwm_array);
-    void handle_can_frame(const struct canfd_frame& frame, can_status status);
+    void handle_can_frame(const struct canfd_frame& frame, vortex::io::can::CanStatus status);
 
     static constexpr double to_kg(double force) { return force / 9.80665; }
 
    private:
     std::string can_interface_name_;
-    can_interface can_;
+    vortex::io::can::CanInterface can_;
 
     std::vector<ThrusterParameters> thruster_parameters_;
     std::vector<double> right_coeffs_;
