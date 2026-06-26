@@ -8,12 +8,9 @@
 
 namespace vortex::propulsion {
 
-ThrustAllocator::ThrustAllocator(
-    const ThrustAllocatorSettings& settings)
+ThrustAllocator::ThrustAllocator(const ThrustAllocatorSettings& settings)
     : num_thrusters_(
-          static_cast<std::size_t>(
-              settings.thruster_force_direction.cols()))
-{
+          static_cast<std::size_t>(settings.thruster_force_direction.cols())) {
     if (settings.thruster_position.cols() !=
         settings.thruster_force_direction.cols()) {
         throw std::invalid_argument(
@@ -29,26 +26,25 @@ ThrustAllocator::ThrustAllocator(
 
     const auto thrust_configuration =
         vortex::utils::math::build_thrust_configuration_matrix(
-            settings.thruster_force_direction,
-            settings.thruster_position,
+            settings.thruster_force_direction, settings.thruster_position,
             settings.center_of_mass);
 
-    min_force_ =
-        Eigen::VectorXd::Constant(num_thrusters_, settings.min_force);
+    min_force_ = settings.min_force;
+    max_force_ = settings.max_force;
 
-    max_force_ =
-        Eigen::VectorXd::Constant(num_thrusters_, settings.max_force);
+    Eigen::VectorXd min_force_vec =
+        Eigen::VectorXd::Constant(num_thrusters_, min_force_);
 
-    tau_max_ =
-        vortex::utils::math::calculate_valid_thrust_region_polyhedron(
-            thrust_configuration,
-            min_force_,
-            max_force_);
+    Eigen::VectorXd max_force_vec =
+        Eigen::VectorXd::Constant(num_thrusters_, max_force_);
+
+    tau_max_ = vortex::utils::math::calculate_valid_thrust_region_polyhedron(
+        thrust_configuration, min_force_vec, max_force_vec);
 
     AllocatorConfig config{
         .extended_thrust_matrix = thrust_configuration,
-        .min_force = min_force_,
-        .max_force = max_force_,
+        .min_force = min_force_vec,
+        .max_force = max_force_vec,
         .input_weight_matrix = settings.input_weights.asDiagonal(),
         .slack_weight_matrix = settings.slack_weights.asDiagonal(),
     };
@@ -61,17 +57,14 @@ ThrustAllocator::ThrustAllocator(
 }
 
 std::optional<Eigen::VectorXd> ThrustAllocator::allocate_thrust(
-    const BodyWrench& wrench) const
-{
+    const BodyWrench& wrench) const {
     if (!healthy_wrench(wrench)) {
         return std::nullopt;
     }
 
-    const auto normalized_wrench =
-        normalize_wrench_vector(wrench, tau_max_);
+    const auto normalized_wrench = normalize_wrench_vector(wrench, tau_max_);
 
-    auto forces = allocator_->calculate_allocated_thrust(
-        normalized_wrench);
+    auto forces = allocator_->calculate_allocated_thrust(normalized_wrench);
 
     if (!forces || is_invalid_matrix(*forces)) {
         return std::nullopt;
@@ -82,19 +75,15 @@ std::optional<Eigen::VectorXd> ThrustAllocator::allocate_thrust(
     return forces;
 }
 
-Eigen::VectorXd ThrustAllocator::zero_forces() const
-{
+Eigen::VectorXd ThrustAllocator::zero_forces() const {
     return Eigen::VectorXd::Zero(num_thrusters_);
 }
 
-std::size_t ThrustAllocator::num_thrusters() const noexcept
-{
+std::size_t ThrustAllocator::num_thrusters() const noexcept {
     return num_thrusters_;
 }
 
-bool ThrustAllocator::healthy_wrench(
-    const BodyWrench& wrench) const
-{
+bool ThrustAllocator::healthy_wrench(const BodyWrench& wrench) const {
     if (is_invalid_matrix(wrench)) {
         return false;
     }

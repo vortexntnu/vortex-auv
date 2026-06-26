@@ -48,8 +48,8 @@ private:
     std::unique_ptr<Allocator> allocator_;
 
     Eigen::VectorXd tau_max_;
-    Eigen::VectorXd min_force_;
-    Eigen::VectorXd max_force_;
+    double min_force_;
+    double max_force_;
     std::size_t num_thrusters_{};
 };
 
