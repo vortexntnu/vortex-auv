@@ -1,107 +1,94 @@
-cmake_minimum_required(VERSION 3.8)
-project(reference_filter_dp_quat)
+cmake_minimum_required(VERSION 3.20)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-endif()
+project(reference_filter_dp_quat
+  VERSION 0.1.0
+  LANGUAGES CXX
+)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(rclcpp_components REQUIRED)
-find_package(vortex_msgs REQUIRED)
-find_package(vortex_utils REQUIRED)
-find_package(vortex_utils_ros REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 find_package(Eigen3 REQUIRED)
+find_package(vortex_utils CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 
-include_directories(include)
+set(LIB_NAME ${PROJECT_NAME})
 
-set(CORE_LIB_NAME "${PROJECT_NAME}")
-
-add_library(${CORE_LIB_NAME} SHARED
-  src/lib/reference_filter.cpp
-  src/lib/waypoint_follower.cpp
+add_library(${LIB_NAME}
+  src/reference_filter.cpp
+  src/waypoint_follower.cpp
+  src/waypoint_guidance_manager.cpp
 )
 
-target_include_directories(${CORE_LIB_NAME}
+add_library(vortex::reference_filter_dp_quat ALIAS ${LIB_NAME})
+
+target_compile_features(${LIB_NAME} PUBLIC cxx_std_20)
+
+target_include_directories(${LIB_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-ament_target_dependencies(${CORE_LIB_NAME}
-  Eigen3
-  vortex_utils
-)
-
-set(COMPONENT_LIB_NAME "${PROJECT_NAME}_component")
-
-add_library(${COMPONENT_LIB_NAME} SHARED
-  src/ros/reference_filter_ros.cpp
-)
-
-ament_target_dependencies(${COMPONENT_LIB_NAME}
-  rclcpp
-  rclcpp_components
-  rclcpp_action
-  std_msgs
-  geometry_msgs
-  nav_msgs
-  vortex_msgs
-  vortex_utils
-  vortex_utils_ros
-  spdlog
-  fmt
-)
-
-target_link_libraries(${COMPONENT_LIB_NAME} ${CORE_LIB_NAME})
-
-rclcpp_components_register_node(
-  ${COMPONENT_LIB_NAME}
-  PLUGIN "ReferenceFilterNode"
-  EXECUTABLE ${PROJECT_NAME}_node
+target_link_libraries(${LIB_NAME}
+  PUBLIC
+    Eigen3::Eigen
+    vortex_utils
+  PRIVATE
+    fmt::fmt
+    spdlog::spdlog
 )
 
 install(
-  TARGETS
-    ${CORE_LIB_NAME}
-    ${COMPONENT_LIB_NAME}
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  TARGETS ${LIB_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(DIRECTORY
-  launch
-  config
-  DESTINATION share/${PROJECT_NAME}/
+install(
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${PROJECT_NAME}Targets.cmake
+  NAMESPACE vortex::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(
-  Eigen3
-  vortex_utils
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
-ament_export_include_directories(include)
-ament_export_libraries(${CORE_LIB_NAME})
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
+  enable_testing()
   add_subdirectory(test)
 endif()
-
-ament_package()
