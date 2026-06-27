@@ -46,7 +46,7 @@ add_subdirectory(propulsion/thruster_interface)
 
 add_subdirectory(control/dp_adapt_backs_controller_quat)
 add_subdirectory(guidance/reference_filter_dp_quat)
-
+add_subdirectory(runtime/vehicle_control)
 # ------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------
