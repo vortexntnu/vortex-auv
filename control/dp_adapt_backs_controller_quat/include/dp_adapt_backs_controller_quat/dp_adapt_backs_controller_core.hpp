@@ -23,7 +23,7 @@ struct DPAdaptBacksControllerCoreConfig {
 };
 
 class DPAdaptBacksControllerCore {
-public:
+   public:
     explicit DPAdaptBacksControllerCore(
         const DPAdaptBacksControllerCoreConfig& config);
 
@@ -38,7 +38,9 @@ public:
     void set_guidance_pose(const vortex::utils::types::Pose& desired_pose);
 
     [[nodiscard]]
-    std::optional<Eigen::Vector6d> tick();
+    Eigen::Vector6d tick(const vortex::utils::types::Pose& pose,
+                         const vortex::utils::types::Pose& reference_pose,
+                         const vortex::utils::types::Twist& twist);
 
     [[nodiscard]]
     bool killswitch_on() const noexcept;
@@ -48,7 +50,7 @@ public:
 
     void reset_controller_state();
 
-private:
+   private:
     std::chrono::milliseconds time_step_{};
 
     vortex::utils::types::Pose pose_{};
