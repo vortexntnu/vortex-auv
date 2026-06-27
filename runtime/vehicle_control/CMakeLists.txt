@@ -5,6 +5,7 @@ add_executable(vehicle_control
 target_link_libraries(vehicle_control
   PRIVATE
     vortex::can_interface
+    vortex::nucleus_interface
     thrust_allocator
     thruster_interface
     dp_adapt_backs_controller_quat

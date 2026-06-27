@@ -4,6 +4,7 @@
 #include <iostream>
 #include <thread>
 
+#include <vortex/io/nucleus_interface/nucleus_interface.hpp>
 #include <vortex/propulsion/thrust_allocator/thrust_allocator.hpp>
 #include <vortex/propulsion/thruster_interface/thruster_interface.hpp>
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_core.hpp"
@@ -126,50 +127,104 @@ int main() {
         left_coeffs,
     };
 
-    vortex::utils::types::Pose pose{};
-    vortex::utils::types::Twist twist{};
+    vortex::io::NucleusInterfaceConfig nucleus_config{
+        .remote_ip = "192.168.1.100",  // Replace with Nucleus IP
+        .data_remote_port = 9000,      // Replace with actual port
+        .password = "",
+
+        .enable_imu = true,
+        .enable_dvl = true,
+        .enable_altimeter = true,
+        .enable_pressure = true,
+
+        .imu_frequency_hz = 100,
+        .ahrs_frequency_hz = 100,
+
+        .ahrs_mode = AhrsMode::FixedHardAndSoftIron,
+
+        .bottom_track_mode = BottomTrackMode::Auto,
+        .bottom_track_velocity_range = 0,
+        .enable_watertrack = false,
+
+        .altimeter_power_level = 0,
+
+        .rotxy = 0.0,
+        .rotyz = 0.0,
+        .rotxz = 0.0,
+    };
+
+    vortex::io::NucleusInterface nucleus{nucleus_config};
+
+    if (!nucleus.start()) {
+        std::cerr << "Failed to start Nortek Nucleus interface\n";
+        return 1;
+    }
 
     bool killswitch_on = true;
     auto operation_mode = vortex::utils::types::Mode::manual;
 
     auto next_tick = std::chrono::steady_clock::now();
 
+    bool was_autonomous_enabled = false;
+
     while (running) {
         next_tick += control_period;
 
-        guidance.set_pose(pose);
-        guidance.set_twist(twist);
+        const auto state = nucleus.latest_state();
 
-        // if (state_input.altitude_valid()) {
-        //     guidance.set_altitude(state_input.altitude_m());
-        // }
+        if (!state) {
+            controller.reset_controller_state();
 
-        const auto reference = guidance.tick();
-
-        controller.set_pose(pose);
-        controller.set_twist(twist);
-        controller.set_guidance_pose(reference.pose);
-        controller.set_operation_mode(operation_mode);
-        controller.set_killswitch(killswitch_on);
-
-        const auto wrench = controller.tick();
-
-        if (!wrench) {
-            // thrusters.send_zero();
+            // TODO: explicitly send neutral PWM or disable thrusters here.
             std::this_thread::sleep_until(next_tick);
             continue;
         }
 
-        const auto forces = allocator.allocate_thrust(*wrench);
+        guidance.set_pose(state->pose);
+        guidance.set_twist(state->twist);
+
+        // Later, when NucleusInterface exposes altitude validity:
+        //
+        // if (state->altitude_valid) {
+        //     guidance.set_altitude(state->altitude_m);
+        // }
+
+        const auto reference = guidance.tick();
+
+        const bool autonomous_enabled =
+            !killswitch_on &&
+            operation_mode == vortex::utils::types::Mode::autonomous;
+
+        Eigen::Vector6d commanded_wrench = Eigen::Vector6d::Zero();
+
+        if (autonomous_enabled && reference.active) {
+            commanded_wrench =
+                controller.tick(state->pose, reference.pose, state->twist);
+        }
+
+        // Reset once when leaving autonomous control, rather than every 10 ms.
+        if (was_autonomous_enabled && !autonomous_enabled) {
+            controller.reset_controller_state();
+        }
+
+        was_autonomous_enabled = autonomous_enabled;
+
+        const auto forces = allocator.allocate_thrust(commanded_wrench);
 
         if (!forces) {
-            return -1;
+            controller.reset_controller_state();
+
+            // TODO: explicitly send neutral PWM or disable thrusters here.
+            std::this_thread::sleep_until(next_tick);
+            continue;
         }
 
         const auto pwm = thrusters.drive_thrusters(*forces);
 
         if (!pwm) {
-            return -1;
+            // TODO: explicitly send neutral PWM or disable thrusters here.
+            std::this_thread::sleep_until(next_tick);
+            continue;
         }
 
         std::this_thread::sleep_until(next_tick);
