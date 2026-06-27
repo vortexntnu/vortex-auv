@@ -3,6 +3,7 @@
 
 #include <vortex/io/can/can_interface.hpp>
 
+#include <Eigen/Dense>
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -11,7 +12,6 @@
 #include <vector>
 
 #include <linux/can.h>
-
 namespace vortex::propulsion {
 
 struct ThrusterParameters {
@@ -21,10 +21,7 @@ struct ThrusterParameters {
     std::uint16_t pwm_max;
 };
 
-enum PolySide {
-    LEFT = 0,
-    RIGHT = 1
-}; 
+enum PolySide { LEFT = 0, RIGHT = 1 };
 
 using FaultEventCallback =
     std::function<void(std::uint8_t channel, std::uint8_t code)>;
@@ -49,8 +46,9 @@ class ThrusterInterface {
 
     int init_can();
 
+    [[nodiscard]]
     std::optional<std::vector<std::uint16_t>> drive_thrusters(
-        const std::vector<double>& thruster_forces_array);
+        const Eigen::Ref<const Eigen::VectorXd>& thruster_forces);
 
     int set_camera_light(float percentage);
 
@@ -62,14 +60,15 @@ class ThrusterInterface {
 
    private:
     std::vector<std::uint16_t> interpolate_forces_to_pwm(
-        const std::vector<double>& thruster_forces_array);
+        const Eigen::Ref<const Eigen::VectorXd>& mapped_forces);
 
     std::uint16_t force_to_pwm(double force);
 
     std::uint16_t calc_poly(double force, const std::vector<double>& coeffs);
 
     int send_data_to_escs(const std::vector<std::uint16_t>& thruster_pwm_array);
-    void handle_can_frame(const struct canfd_frame& frame, vortex::io::can::CanStatus status);
+    void handle_can_frame(const struct canfd_frame& frame,
+                          vortex::io::can::CanStatus status);
 
     static constexpr double to_kg(double force) { return force / 9.80665; }
 
@@ -88,6 +87,6 @@ class ThrusterInterface {
     CurrentMeasurementsCallback current_measurements_callback_;
 };
 
-} // namespace vortex::propulsion
+}  // namespace vortex::propulsion
 
 #endif  // THRUSTER_INTERFACE_AUV__THRUSTER_INTERFACE_AUV_DRIVER_HPP_
