@@ -173,17 +173,7 @@ int main() {
             std::this_thread::sleep_until(next_tick);
             continue;
         }
-
-        guidance.set_pose(state->pose);
-        guidance.set_twist(state->twist);
-
-        // Later, when NucleusInterface exposes altitude validity:
-        //
-        // if (state->altitude_valid) {
-        //     guidance.set_altitude(state->altitude_m);
-        // }
-
-        const auto reference = guidance.tick();
+        const auto reference = guidance.tick(state->pose, state->altitude_m);
 
         const bool autonomous_enabled =
             !killswitch_on &&

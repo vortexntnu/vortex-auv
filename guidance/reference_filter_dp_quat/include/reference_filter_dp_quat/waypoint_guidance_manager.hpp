@@ -43,17 +43,6 @@ class WaypointGuidanceManager {
     explicit WaypointGuidanceManager(
         const WaypointGuidanceManagerConfig& config);
 
-    void set_pose(const vortex::utils::types::Pose& pose);
-
-    void set_twist(const vortex::utils::types::Twist& twist);
-
-    /**
-     * Updates filtered DVL altitude.
-     *
-     * Values <= 0.0 are ignored, matching the old ROS node.
-     */
-    void set_altitude(double altitude_m);
-
     /**
      * Start a waypoint trajectory.
      *
@@ -62,6 +51,8 @@ class WaypointGuidanceManager {
      */
     [[nodiscard]]
     WaypointStatus submit_waypoint(vortex::utils::types::Waypoint waypoint,
+                                   const vortex::utils::types::Pose& pose,
+                                   const vortex::utils::types::Twist& twist,
                                    double convergence_threshold);
 
     /**
@@ -82,7 +73,8 @@ class WaypointGuidanceManager {
      * Call once from the unified vehicle-control loop.
      */
     [[nodiscard]]
-    GuidanceReference tick();
+    GuidanceReference tick(const vortex::utils::types::Pose& pose,
+                           std::optional<double> altitude_m = std::nullopt);
 
     [[nodiscard]]
     WaypointStatus status() const noexcept;
@@ -101,9 +93,11 @@ class WaypointGuidanceManager {
 
    private:
     [[nodiscard]]
-    bool prepare_altitude_goal(vortex::utils::types::Waypoint& waypoint);
-
+    bool prepare_altitude_goal(vortex::utils::types::Waypoint& waypoint,
+                               const vortex::utils::types::Pose& current_pose);
     void recreate_follower();
+
+    void update_altitude(double altitude_m);
 
     WaypointGuidanceManagerConfig config_{};
 
