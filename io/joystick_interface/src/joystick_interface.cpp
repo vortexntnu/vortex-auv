@@ -1,4 +1,4 @@
-##include "vortex/io/joystick_interface/joystick_interface.hpp"
+#include "vortex/io/joystick_interface/joystick_interface.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -44,7 +44,7 @@ void JoystickInterface::stop()
 
     socket_.cancel(ignored_error);
     socket_.close(ignored_error);
-    watchdog_timer_.cancel(ignored_error);
+    watchdog_timer_.cancel();
 
     std::scoped_lock lock(mutex_);
 
