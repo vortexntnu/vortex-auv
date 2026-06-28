@@ -1,3 +1,4 @@
+#include <boost/asio/io_context.hpp>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -25,6 +26,8 @@ constexpr auto control_period = std::chrono::milliseconds{10};
 int main() {
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
+
+    boost::asio::io_context io_context;
 
     vortex::guidance::WaypointGuidanceManagerConfig guidance_config{
         .filter_params =
@@ -133,9 +136,9 @@ int main() {
         .imu_frequency_hz = 100,
         .ahrs_frequency_hz = 100,
 
-        .ahrs_mode = AhrsMode::FixedHardAndSoftIron,
+        .ahrs_mode = vortex::drivers::dvl::AhrsMode::FixedHardAndSoftIron,
 
-        .bottom_track_mode = BottomTrackMode::Auto,
+        .bottom_track_mode = vortex::drivers::dvl::BottomTrackMode::Auto,
         .bottom_track_velocity_range = 0,
         .enable_watertrack = false,
 
@@ -146,7 +149,7 @@ int main() {
         .rotxz = 0.0,
     };
 
-    vortex::io::NucleusInterface nucleus{nucleus_config};
+    vortex::io::NucleusInterface nucleus{io_context, nucleus_config};
 
     if (!nucleus.start()) {
         std::cerr << "Failed to start Nortek Nucleus interface\n";

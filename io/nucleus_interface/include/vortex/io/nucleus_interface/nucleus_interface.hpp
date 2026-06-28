@@ -4,9 +4,9 @@
 #include <optional>
 #include <thread>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 
-#include <nortek_nucleus_driver.hpp>
+#include <vortex/drivers/nortek_nucleus_driver.hpp>
 #include <vortex/utils/types.hpp>
 
 namespace vortex::io {
@@ -24,8 +24,8 @@ struct NucleusInterfaceConfig {
     int imu_frequency_hz{100};
     int ahrs_frequency_hz{100};
 
-    AhrsMode ahrs_mode{};
-    BottomTrackMode bottom_track_mode{};
+    drivers::dvl::AhrsMode ahrs_mode{};
+    drivers::dvl::BottomTrackMode bottom_track_mode{};
 
     int bottom_track_velocity_range{};
     bool enable_watertrack{false};
@@ -57,34 +57,45 @@ struct NucleusState {
 
 class NucleusInterface {
    public:
-    explicit NucleusInterface(const NucleusInterfaceConfig& config);
+    NucleusInterface(boost::asio::io_context& io,
+                     NucleusInterfaceConfig config);
     ~NucleusInterface();
 
-    bool start();
+    NucleusInterface(const NucleusInterface&) = delete;
+    NucleusInterface& operator=(const NucleusInterface&) = delete;
+
+    NucleusInterface(NucleusInterface&&) = delete;
+    NucleusInterface& operator=(NucleusInterface&&) = delete;
+
+    [[nodiscard]] bool start();
     void stop();
 
-    [[nodiscard]]
-    std::optional<NucleusState> latest_state() const;
+    [[nodiscard]] std::optional<NucleusState> latest_state() const;
 
    private:
-    void nucleus_callback(NortekNucleusFrame frame);
+    void nucleus_callback(drivers::dvl::NortekNucleusFrame frame);
 
-    void handle_ahrs(const AhrsDataV2& data);
-    void handle_ins(const InsDataV2& data);
-    void handle_bottom_track(const BottomTrackData& data);
-    void handle_altimeter(const AltimeterData& data);
+    void handle_ahrs(const drivers::dvl::AhrsDataV2& data);
+    void handle_ins(const drivers::dvl::InsDataV2& data);
+
+    void handle_bottom_track(const drivers::dvl::BottomTrackData& data);
+
+    void handle_altimeter(const drivers::dvl::AltimeterData& data);
 
     NucleusInterfaceConfig config_;
 
-    asio::io_context io_;
-    std::unique_ptr<NortekNucleusDriver> driver_;
+    boost::asio::io_context io_;
+
+    std::unique_ptr<drivers::dvl::NortekNucleusDriver> driver_;
+
     std::jthread io_thread_;
 
     mutable std::mutex state_mutex_;
+
     NucleusState latest_state_{};
     DvlVelocity latest_dvl_{};
-    // Cached because the INS packet and AHRS packet arrive separately.
 
+    // INS and AHRS packets arrive separately, so orientation is cached.
     double latest_qw_{1.0};
     double latest_qx_{0.0};
     double latest_qy_{0.0};
