@@ -7,7 +7,7 @@
 #include <vortex/io/nucleus_interface/nucleus_interface.hpp>
 #include <vortex/propulsion/thrust_allocator/thrust_allocator.hpp>
 #include <vortex/propulsion/thruster_interface/thruster_interface.hpp>
-#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller_core.hpp"
+#include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
 #include "reference_filter_dp_quat/waypoint_guidance_manager.hpp"
 
 namespace {
@@ -37,33 +37,26 @@ int main() {
         .altitude_low_pass_alpha = 0.9,
     };
 
-    vortex::control::DPAdaptBacksControllerCoreConfig controller_config{
-        .controller_params =
-            {
-                .adapt_param = Eigen::Vector12d::Zero(),
-                .d_gain = Eigen::Vector6d::Ones(),
-                .K1 = Eigen::Vector6d::Ones(),
-                .K2 = Eigen::Vector6d::Ones(),
-                .r_b_bg = Eigen::Vector3d::Zero(),
+    vortex::control::DPAdaptParams controller_params{
+        .adapt_param = Eigen::Vector12d::Zero(),
+        .d_gain = Eigen::Vector6d::Ones(),
+        .K1 = Eigen::Vector6d::Ones(),
+        .K2 = Eigen::Vector6d::Ones(),
 
-                .inertia_matrix_body = Eigen::Vector3d::Ones(),
+        .r_b_bg = Eigen::Vector3d::Zero(),
+        .inertia_matrix_body = Eigen::Vector3d::Ones(),
 
-                .mass_intertia_matrix = Eigen::Matrix6d::Identity(),
+        .mass_intertia_matrix = Eigen::Matrix6d::Identity(),
 
-                .tau_max = Eigen::Vector6d::Constant(100.0),
+        .tau_max = Eigen::Vector6d::Constant(100.0),
 
-                .mass = 10.0,
+        .mass = 10.0,
 
-                .time_step_s =
-                    static_cast<double>(control_period.count()) / 1000.0,
+        .time_step_s = static_cast<double>(control_period.count()) / 1000.0,
 
-                .singularity_tolerance = 1e-6,
-                .adapt_param_max = 100.0,
-                .d_est_max = 100.0,
-            },
-        .time_step = control_period,
-        .initial_killswitch = true,
-        .initial_operation_mode = vortex::utils::types::Mode::manual,
+        .singularity_tolerance = 1e-6,
+        .adapt_param_max = 100.0,
+        .d_est_max = 100.0,
     };
 
     constexpr Eigen::Index num_thrusters = 8;
@@ -95,7 +88,7 @@ int main() {
 
     vortex::guidance::WaypointGuidanceManager guidance{guidance_config};
 
-    vortex::control::DPAdaptBacksControllerCore controller{controller_config};
+    vortex::control::DPAdaptBacksController controller{controller_params};
 
     vortex::propulsion::ThrustAllocator allocator{allocator_settings};
 
@@ -173,7 +166,8 @@ int main() {
         const auto state = nucleus.latest_state();
 
         if (!state) {
-            controller.reset_controller_state();
+            controller.reset_adap_param();
+            controller.reset_d_est();
 
             // TODO: explicitly send neutral PWM or disable thrusters here.
             std::this_thread::sleep_until(next_tick);
@@ -198,13 +192,14 @@ int main() {
         Eigen::Vector6d commanded_wrench = Eigen::Vector6d::Zero();
 
         if (autonomous_enabled && reference.active) {
-            commanded_wrench =
-                controller.tick(state->pose, reference.pose, state->twist);
+            commanded_wrench = controller.calculate_tau(
+                state->pose, reference.pose, state->twist);
         }
 
         // Reset once when leaving autonomous control, rather than every 10 ms.
         if (was_autonomous_enabled && !autonomous_enabled) {
-            controller.reset_controller_state();
+            controller.reset_adap_param();
+            controller.reset_d_est();
         }
 
         was_autonomous_enabled = autonomous_enabled;
@@ -212,7 +207,8 @@ int main() {
         const auto forces = allocator.allocate_thrust(commanded_wrench);
 
         if (!forces) {
-            controller.reset_controller_state();
+            controller.reset_adap_param();
+            controller.reset_d_est();
 
             // TODO: explicitly send neutral PWM or disable thrusters here.
             std::this_thread::sleep_until(next_tick);

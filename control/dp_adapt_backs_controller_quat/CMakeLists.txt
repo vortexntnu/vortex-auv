@@ -6,7 +6,6 @@ project(dp_adapt_backs_controller_quat
 
 add_library(${PROJECT_NAME}
   src/dp_adapt_backs_controller.cpp
-  src/dp_adapt_backs_controller_core.cpp
   src/dp_adapt_backs_controller_utils.cpp
 )
 
