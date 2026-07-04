@@ -64,6 +64,10 @@ target_link_libraries(LQR_test
   yaml-cpp
 )
 
+target_link_libraries(LQR_test
+  ${LIB_NAME}
+)
+
 
 #System tests
 

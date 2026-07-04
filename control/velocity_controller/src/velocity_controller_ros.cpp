@@ -26,7 +26,7 @@ auto start_message{R"(
   \ \ / / _ \ |/ _ \ / __|| | | __| | | |  | |   / _ \| '_ \ | __| '__/ _ \ | || | / _ \ '__|
    \ V /  __/ | (_) | (__ | | | |_| |_| |  | |__| (_) | | | \| |_| | | (_) || || ||  __/ |   
     \_/ \___|_|\___/ \___||_|  \__|\__, |   \____\___/|_| |_| \__|_|  \___/ |_||_| \___|_|   
-                                    |___/
+                                    |___/                           Henrik Mæland Haakenaasen
 )"};
 
 Velocity_node::Velocity_node(const rclcpp::NodeOptions& options)
@@ -147,18 +147,21 @@ void Velocity_node::initialize_controllers() {
         this->declare_parameter("propulsion.thrusters.num", PARAMETER_INTEGER)
             .get<int>();
     Eigen::MatrixXd thruster_position_ = double_array_to_eigen_matrix(
-        this->get_parameter("propulsion.thrusters.thruster_position")
-            .as_double_array(),
+        this->declare_parameter("propulsion.thrusters.thruster_position", PARAMETER_DOUBLE_ARRAY)
+            .get<std::vector<double>>(),
         control_params.num_dimensions, control_params.num_thrusters);
     Eigen::MatrixXd thruster_force_direction_ = double_array_to_eigen_matrix(
-        this->get_parameter("propulsion.thrusters.thruster_force_direction")
-            .as_double_array(),
+        this->declare_parameter("propulsion.thrusters.thruster_force_direction", PARAMETER_DOUBLE_ARRAY)
+            .get<std::vector<double>>(),
         control_params.num_dimensions, control_params.num_thrusters);
     Eigen::Vector3d center_of_mass_ = double_array_to_eigen_vector3d(
-        this->get_parameter("physical.center_of_mass").as_double_array());
-
+        this->declare_parameter("physical.center_of_mass", PARAMETER_DOUBLE_ARRAY)
+            .get<std::vector<double>>());
     Eigen::MatrixXd thrust_configuration_ =  vortex::utils::math::build_thrust_configuration_matrix(
             thruster_force_direction_, thruster_position_, center_of_mass_);
+    control_params.thruster_position = thruster_position_;
+    control_params.thruster_force_direction = thruster_force_direction_;
+    control_params.center_of_mass = center_of_mass_;
     control_params.min_thrust =
         this->declare_parameter("propulsion.thrusters.constraints.min_force",
                                 PARAMETER_DOUBLE)
@@ -171,17 +174,17 @@ void Velocity_node::initialize_controllers() {
     auto control_type = this->get_parameter("Control_manager_settings.controller_type").as_int();
     auto anti_overshoot = this->get_parameter("Control_manager_settings.anti_overshoot").as_bool();
     control_manager_params control_manager_params(control_type, anti_overshoot, 1);
+    control_manager_params.control_params = control_params;
 
 
     //Some general parameters
-    double max_force = this->get_parameter("Control_manager_settings.max_force").as_double();
     double dt = node_settings.publish_rate / 1000.0;  // Convert ms to seconds
     
     // Initialize 3DOF_PID params
     auto surge_gains = this->get_parameter("3DOF_PID_params.surge").as_double_array();
     auto pitch_gains = this->get_parameter("3DOF_PID_params.pitch").as_double_array();
     auto yaw_gains = this->get_parameter("3DOF_PID_params.yaw").as_double_array();
-    PID_3DOF_params pid_3dof_params(surge_gains, pitch_gains, yaw_gains, dt, max_force, -max_force);
+    PID_3DOF_params pid_3dof_params(surge_gains, pitch_gains, yaw_gains, dt);
 
     //Initialize LQR controller params
     auto Q = this->get_parameter("LQR_params.Q").as_double_array();
@@ -189,7 +192,7 @@ void Velocity_node::initialize_controllers() {
     auto inertia_matrix = this->get_parameter("physical.mass_matrix").as_double_array();
     auto D_low = this->get_parameter("dampening_matrix_low").as_double_array();
     auto D_high = this->get_parameter("dampening_matrix_high").as_double_array();
-    LQR_params lqr_params(Q, R, inertia_matrix, max_force, D_low, D_high, dt);
+    LQR_params lqr_params(Q, R, inertia_matrix, D_low, D_high, dt);
     
     //Initalize all the controllers in control manager
     control_manager_ptr = std::make_unique<control_manager>(control_manager_params);

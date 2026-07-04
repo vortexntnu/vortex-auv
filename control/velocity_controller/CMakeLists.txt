@@ -37,6 +37,7 @@ add_library(${LIB_NAME} SHARED
   src/PID_controller.cpp
   src/LQR_setup.cpp
   src/utilities.cpp
+  src/controller.cpp
   src/ct_instantiations.cpp
   src/control_manager.cpp
   src/3DOF_PID.cpp
@@ -54,6 +55,10 @@ ament_target_dependencies(${LIB_NAME}
   vortex_utils
   thrust_allocator_auv
   vortex_utils_ros
+)
+target_include_directories(${LIB_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../motion/thrust_allocator_auv/include>
+  $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(${LIB_NAME} Eigen3::Eigen casadi::casadi ct_optcon ct_core)
 install(TARGETS
