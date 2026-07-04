@@ -8,7 +8,7 @@
 
 
 geometry_msgs::msg::WrenchStamped controller::saturate_thrust_direction(const geometry_msgs::msg::WrenchStamped& thrust_wrench){
-    Eigen::Vector<double,6> tau= wrench_to_vector(thrust_wrench.wrench);    
+    Eigen::Vector<double,6> tau= wrench_to_vector(thrust_wrench);    
     Eigen::Vector<double,6> saturated_tau=normalize_wrench_vector(tau, tau_max);
     geometry_msgs::msg::WrenchStamped saturated_wrench=vector_to_wrench(saturated_tau);
     for (int i=0; i<6; i++){
@@ -23,7 +23,7 @@ geometry_msgs::msg::WrenchStamped controller::saturate_thrust_direction(const ge
 
 }
 geometry_msgs::msg::WrenchStamped controller::saturate_thrust_block(const geometry_msgs::msg::WrenchStamped& thrust_wrench){
-    Eigen::Vector<double,6> tau= wrench_to_vector(thrust_wrench.wrench);
+    Eigen::Vector<double,6> tau= wrench_to_vector(thrust_wrench);
     Eigen::Vector<double,6> saturated_tau;
     for (int i = 0; i < 6; i++) {
         saturated_tau[i] = std::clamp(tau[i], -tau_max[i], tau_max[i]);

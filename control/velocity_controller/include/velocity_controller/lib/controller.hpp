@@ -37,6 +37,8 @@ class controller{
         Eigen::VectorXd min_force_vec;
         Eigen::VectorXd max_force_vec;
         Eigen::Vector<double,6> tau_max;
+    private:
+        friend class ControllerTestAccessor;  // Gir testene tilgang til private medlemmer
 
 };
 

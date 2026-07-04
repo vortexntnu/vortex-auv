@@ -14,8 +14,8 @@ struct angle {
     double thetat = 0.0;
     double psit = 0.0;
 };
-angle quaternion_to_euler_angle(double w, double x, double y, double z);
-
+angle quaternion_to_euler_angle(double w, double x, double y, double z); //TODO(henrimha): Mangler implementasjon
+geometry_msgs::msg::Quaternion euler_angle_to_quaternion(double roll, double pitch, double yaw);
 struct State {
    public:
     double surge = 0.0, sway = 0.0, heave = 0.0, roll_rate = 0.0,
@@ -66,8 +66,8 @@ inline angle angle_NED_to_body(angle desired, angle state) {
                              state.phit, state.thetat, state.psit);
 }
 
-geometry_msgs::msg::WrenchStamped vector_to_wrench(Eigen::Vector<double,6> tau);
-Eigen::Vector<double,6> wrench_to_vector(geometry_msgs::msg::Wrench wrench);
+geometry_msgs::msg::WrenchStamped vector_to_wrench(const Eigen::Vector<double,6>& tau);
+Eigen::Vector<double,6> wrench_to_vector(const geometry_msgs::msg::WrenchStamped& wrench);
 Eigen::Matrix<double, 6, 6> coriolis(const State& s, double mass, double Ixx, double Iyy, double Izz);
 
 #endif  // UTILITIES_HPP_

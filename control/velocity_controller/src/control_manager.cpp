@@ -36,8 +36,10 @@ geometry_msgs::msg::WrenchStamped control_manager::get_output(Guidance_data guid
     }
     switch (params_.control_type) {
         case 1:
+            if (!controller_3DOF) throw std::runtime_error("PID_3DOF controller not initialized");
             return controller_3DOF->calculate_thrust(current_state, error_state_body);
         case 2:
+            if (!controller_LQR) throw std::runtime_error("LQR controller not initialized");
             return controller_LQR->calculate_thrust(current_state, error_state_body);
         default:
             return geometry_msgs::msg::WrenchStamped();
@@ -54,8 +56,10 @@ void control_manager::initialize_LQR_controller(LQR_params params) {
 bool control_manager::get_validity() {
     switch (params_.control_type) {
         case 1:
-            return controller_3DOF->get_validity();
+        if(!controller_3DOF)throw std::runtime_error("PID_3DOF controller not initialized");
+        return controller_3DOF->get_validity();
         case 2:
+            if(!controller_LQR) throw std::runtime_error("LQR controller not initialized");
             return controller_LQR->get_validity();
         default:
             return false;
@@ -65,9 +69,11 @@ bool control_manager::get_validity() {
 void control_manager::reset_controllers(int nr) {
     switch (params_.control_type) {
         case 1:
+            if(!controller_3DOF)throw std::runtime_error("PID_3DOF controller not initialized");
             controller_3DOF->reset_controller(nr);
             break;
         case 2:
+            if(!controller_LQR) throw std::runtime_error("LQR controller not initialized");
             controller_LQR->reset_controller(nr);
             break;
     }

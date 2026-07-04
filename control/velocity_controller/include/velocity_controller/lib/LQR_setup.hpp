@@ -60,5 +60,6 @@ class LQRController : public controller{
     Eigen::Matrix<double, 6, 3> augmented_input_matrix;
 
     ct::optcon::LQR<8, 3> lqr;
-
+    
+    friend class LQRTestAccessor;  // Gir testene tilgang til private medlemmer
 };

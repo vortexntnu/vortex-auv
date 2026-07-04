@@ -13,7 +13,7 @@ PID_3DOF::PID_3DOF(PID_3DOF_params params, controller_params controller_params)
 geometry_msgs::msg::WrenchStamped PID_3DOF::calculate_thrust(const State& state, const State& error_state) {
     geometry_msgs::msg::WrenchStamped u;
     u.wrench.force.set__x(surge_controller.calculate_thrust(error_state.surge));
-    u.wrench.torque.set__y(pitch_controller.calculate_thrust(error_state.pitch,error_state.yaw_rate));
+    u.wrench.torque.set__y(pitch_controller.calculate_thrust(error_state.pitch,error_state.pitch_rate));
     u.wrench.torque.set__z(yaw_controller.calculate_thrust(error_state.yaw, error_state.yaw_rate));
     if(surge_controller.get_validity() && pitch_controller.get_validity() && yaw_controller.get_validity()){
         valid = true;

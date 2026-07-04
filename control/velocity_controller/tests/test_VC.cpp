@@ -1,4 +1,4 @@
-#include "tests/test_VC.hpp"
+#include "velocity_controller/tests/test_VC.hpp"
 #include <rmw/types.h>
 #include <cmath>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>

@@ -73,6 +73,7 @@ LQRController::LQRController(const LQR_params& params, const controller_params& 
     for (int64_t i = 0; i < swaplines.size(); i++) {
         B_m.row(swaplines[i][0]).swap(B_m.row(swaplines[i][1]));
     }
+    B.setZero();
     B.block<5, 3>(0, 0) = B_m.block<5, 3>(0, 0);
     reset_controller();
     valid = true;
@@ -90,8 +91,8 @@ Eigen::Matrix<double, 8, 8> LQRController::linearize(const State& s) {
 
     Eigen::Matrix<double, 3, 3> T = Eigen::Matrix<double, 3, 3>::Identity();
     Eigen::Matrix<double, 9, 9> A;
-    A.block<6, 6>(0, 0) = D_;
     A.setZero();
+    A.block<6, 6>(0, 0) = D_;
     A.block<3, 3>(6, 3) = T;
     std::vector<std::vector<int>> swaplines{{1, 7}, {2, 8}, {3, 4}, {4, 5}};
     for (int64_t i = 0; i < swaplines.size(); i++) {

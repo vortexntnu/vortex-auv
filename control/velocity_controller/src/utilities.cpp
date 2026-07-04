@@ -2,6 +2,7 @@
 #include <Eigen/src/Core/Matrix.h>
 #include <std_msgs/msg/string.h>
 #include <casadi/casadi.hpp>
+#include <geometry_msgs/msg/detail/wrench_stamped__struct.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
 #include "Eigen/Dense"
 #include "geometry_msgs/msg/wrench_stamped.hpp"
@@ -116,20 +117,20 @@ Guidance_data& Guidance_data::operator=(
     return *this;
 }
 
-Eigen::Vector<double, 6> wrench_to_vector(const geometry_msgs::msg::Wrench& wrench) {
+Eigen::Vector<double, 6> wrench_to_vector(const geometry_msgs::msg::WrenchStamped& wrench) {
     Eigen::Vector<double, 6> vec;
-    vec << wrench.force.x, wrench.force.y, wrench.force.z, wrench.torque.x,
-        wrench.torque.y, wrench.torque.z;
+    vec << wrench.wrench.force.x, wrench.wrench.force.y, wrench.wrench.force.z, wrench.wrench.torque.x,
+        wrench.wrench.torque.y, wrench.wrench.torque.z;
     return vec;
 }
-geometry_msgs::msg::Wrench vector_to_wrench(const Eigen::Vector<double, 6>& vec) {
-    geometry_msgs::msg::Wrench wrench;
-    wrench.force.x = vec[0];
-    wrench.force.y = vec[1];
-    wrench.force.z = vec[2];
-    wrench.torque.x = vec[3];
-    wrench.torque.y = vec[4];
-    wrench.torque.z = vec[5];
+geometry_msgs::msg::WrenchStamped vector_to_wrench(const Eigen::Vector<double, 6>& vec) {
+    geometry_msgs::msg::WrenchStamped wrench;
+    wrench.wrench.force.x = vec[0];
+    wrench.wrench.force.y = vec[1];
+    wrench.wrench.force.z = vec[2];
+    wrench.wrench.torque.x = vec[3];
+    wrench.wrench.torque.y = vec[4];
+    wrench.wrench.torque.z = vec[5];
     return wrench;
 }
 

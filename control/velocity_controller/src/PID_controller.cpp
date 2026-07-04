@@ -46,7 +46,7 @@ void PID_controller::reset_controller() {
 }
 
 PID_controller::PID_controller(PID_params params){
-    if (params.dt <= 0&&params.max_output < params.min_output) {
+    if (params.dt <= 0 ||params.max_output < params.min_output) {
         valid = false;
         //TODO:(henrimha) throw an error or log an error message
         return;
@@ -57,7 +57,6 @@ PID_controller::PID_controller(PID_params params){
 
 const std::vector<double>& PID_params::operator=(const std::vector<double>& params) {
     if (params.size() == 6){
-        throw std::invalid_argument("Invalid parameter size for PID_params");
         k_p = params[0];
         k_i = params[1];
         k_d = params[2];
@@ -69,6 +68,10 @@ const std::vector<double>& PID_params::operator=(const std::vector<double>& para
         k_p = params[0];
         k_i = params[1];
         k_d = params[2];
+    }
+    else{
+        throw std::invalid_argument("Invalid parameter size for PID_params");
+
     }
     return params;
 }
