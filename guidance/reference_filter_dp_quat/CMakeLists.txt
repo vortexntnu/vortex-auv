@@ -20,7 +20,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Eigen3::Eigen
-    vortex_utils
+    vortex::utils
   PRIVATE
     fmt::fmt
     spdlog::spdlog

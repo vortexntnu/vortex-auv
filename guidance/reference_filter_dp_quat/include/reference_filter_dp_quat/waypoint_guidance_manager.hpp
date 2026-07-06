@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 
 #include <vortex/utils/types.hpp>
 

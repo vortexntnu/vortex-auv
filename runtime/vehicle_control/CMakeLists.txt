@@ -10,5 +10,4 @@ target_link_libraries(vehicle_control
     thruster_interface
     dp_adapt_backs_controller_quat
     reference_filter_dp_quat
-    yaml-cpp::yaml-cpp
 )
