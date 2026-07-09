@@ -44,6 +44,8 @@ add_subdirectory(io/can_interface)
 add_subdirectory(io/nucleus_interface)
 add_subdirectory(io/joystick_interface)
 
+add_subdirectory(simulator/stonefish)
+
 add_subdirectory(propulsion/thrust_allocator)
 add_subdirectory(propulsion/thruster_interface)
 
