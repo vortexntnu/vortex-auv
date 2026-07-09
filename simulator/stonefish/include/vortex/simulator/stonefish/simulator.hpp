@@ -1,39 +1,64 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
+
+#include <Stonefish/core/GraphicalSimulationApp.h>
+#include <Stonefish/core/SimulationManager.h>
 
 #include "vortex/simulator/stonefish/actuator_commands.hpp"
 #include "vortex/simulator/stonefish/sensor_data.hpp"
 
-
-#include <Stonefish/core/SimulationManager.h>
-
 namespace vortex::simulation::stonefish {
 
-class StonefishSimulator {
-public:
-  StonefishSimulator(std::string scenario_path, double simulation_frequency_hz);
+class VortexSimulationManager final : public sf::SimulationManager {
+   public:
+    using StepCallback = std::function<void(VortexSimulationManager&, double)>;
 
-  void initialise();
-  void step();
+    VortexSimulationManager(sf::Scalar steps_per_second,
+                            std::string scenario_path,
+                            StepCallback step_callback = nullptr);
 
-  double time_s() const;
+    void BuildScenario() override;
+    void SimulationStepCompleted(sf::Scalar dt) override;
 
-  void set_thrusters(const ThrusterCommand &command);
+    double time_s() const;
 
-  ImuReading read_imu(const std::string &name) const;
-  PressureReading read_pressure(const std::string &name) const;
-  DvlReading read_dvl(const std::string &name) const;
-  CameraFrame read_camera(const std::string &name) const;
-  SonarFrame read_sonar(const std::string &name) const;
+    void set_thrusters(const ThrusterCommand& command);
 
-private:
-  std::string scenario_path_;
-  double simulation_frequency_hz_{100.0};
-  double dt_s_{0.01};
+    ImuReading read_imu(const std::string& name);
+    PressureReading read_pressure(const std::string& name);
+    DvlReading read_dvl(const std::string& name);
+    CameraFrame read_camera(const std::string& name);
+    SonarFrame read_sonar(const std::string& name);
 
-  std::unique_ptr<sf::SimulationManager> sim_;
+   private:
+    std::string scenario_path_;
+    StepCallback step_callback_;
 };
 
-} // namespace vortex::simulation::stonefish
+class StonefishSimulator {
+   public:
+    StonefishSimulator(std::string scenario_path,
+                       std::string data_path,
+                       double simulation_frequency_hz);
+
+    void set_step_callback(VortexSimulationManager::StepCallback callback);
+
+    void run_graphical();
+
+    VortexSimulationManager& manager();
+
+   private:
+    std::string scenario_path_;
+    std::string data_path_;
+    double simulation_frequency_hz_{500.0};
+
+    VortexSimulationManager::StepCallback step_callback_;
+
+    std::unique_ptr<VortexSimulationManager> manager_;
+    std::unique_ptr<sf::GraphicalSimulationApp> app_;
+};
+
+}  // namespace vortex::simulation::stonefish

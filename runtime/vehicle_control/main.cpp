@@ -1,13 +1,14 @@
-#include <boost/asio/io_context.hpp>
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
 #include <iostream>
-#include <thread>
+#include <string>
 
-#include <vortex/io/nucleus_interface/nucleus_interface.hpp>
 #include <vortex/propulsion/thrust_allocator/thrust_allocator.hpp>
-#include <vortex/propulsion/thruster_interface/thruster_interface.hpp>
+#include <vortex/simulator/stonefish/simulator.hpp>
+
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
 #include "reference_filter_dp_quat/waypoint_guidance_manager.hpp"
 
@@ -21,13 +22,81 @@ void handle_signal(int) {
 
 constexpr auto control_period = std::chrono::milliseconds{10};
 
+Eigen::Quaterniond quat_from_xyzw(const std::array<double, 4>& xyzw) {
+    Eigen::Quaterniond q{
+        xyzw[3],
+        xyzw[0],
+        xyzw[1],
+        xyzw[2],
+    };
+
+    if (q.norm() < 1e-9) {
+        return Eigen::Quaterniond::Identity();
+    }
+
+    return q.normalized();
+}
+
+vortex::utils::types::Pose make_pose(
+    const Eigen::Vector3d& position_world,
+    const Eigen::Quaterniond& q_world_body) {
+    return vortex::utils::types::Pose::from_eigen(
+        position_world,
+        q_world_body);
+}
+
+vortex::utils::types::Twist make_twist(
+    const vortex::simulation::stonefish::DvlReading& dvl,
+    const vortex::simulation::stonefish::ImuReading& imu) {
+    vortex::utils::types::Twist twist{};
+
+    if (dvl.valid) {
+        twist.u = dvl.velocity_body_m_s[0];
+        twist.v = dvl.velocity_body_m_s[1];
+        twist.w = dvl.velocity_body_m_s[2];
+    }
+
+    if (imu.valid) {
+        twist.p = imu.angular_velocity_rad_s[0];
+        twist.q = imu.angular_velocity_rad_s[1];
+        twist.r = imu.angular_velocity_rad_s[2];
+    }
+
+    return twist;
+}
+
+vortex::simulation::stonefish::ThrusterCommand make_sim_thruster_command(
+    const Eigen::VectorXd& forces,
+    double max_force) {
+    vortex::simulation::stonefish::ThrusterCommand command{};
+
+    const auto n = std::min<Eigen::Index>(
+        static_cast<Eigen::Index>(command.command.size()),
+        forces.size());
+
+    for (Eigen::Index i = 0; i < n; ++i) {
+        const double normalized = forces(i) / max_force;
+
+        command.command[static_cast<std::size_t>(i)] =
+            std::clamp(normalized, -1.0, 1.0);
+    }
+
+    return command;
+}
+
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
 
-    boost::asio::io_context io_context;
+    if (argc < 3) {
+        std::cerr << "Usage: vehicle_control <stonefish_data_path> <scenario.scn>\n";
+        return 1;
+    }
+
+    const std::string data_path = argv[1];
+    const std::string scenario_path = argv[2];
 
     vortex::guidance::WaypointGuidanceManagerConfig guidance_config{
         .filter_params =
@@ -65,14 +134,14 @@ int main() {
     constexpr Eigen::Index num_thrusters = 8;
 
     Eigen::MatrixXd dummy_thruster_directions(3, num_thrusters);
-    dummy_thruster_directions << 1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        -1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-        1.0;
+    dummy_thruster_directions << 1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+                                  1.0, -1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
+                                  0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0;
 
     Eigen::MatrixXd dummy_thruster_positions(3, num_thrusters);
-    dummy_thruster_positions << 0.30, 0.30, -0.30, -0.30, 0.25, 0.25, -0.25,
-        -0.25, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.00, 0.00,
-        0.00, 0.00, 0.00, 0.00, 0.00, 0.00;
+    dummy_thruster_positions << 0.30, 0.30, -0.30, -0.30, 0.25, 0.25, -0.25, -0.25,
+                                0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20,
+                                0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00;
 
     vortex::propulsion::ThrustAllocatorSettings allocator_settings{
         .solver_type = "pseudoinverse",
@@ -90,137 +159,100 @@ int main() {
     };
 
     vortex::guidance::WaypointGuidanceManager guidance{guidance_config};
-
     vortex::control::DPAdaptBacksController controller{controller_params};
-
     vortex::propulsion::ThrustAllocator allocator{allocator_settings};
 
-    std::vector<vortex::propulsion::ThrusterParameters> thruster_parameters{
-        {.mapping = 0, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 1, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 2, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 3, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 4, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 5, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 6, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-        {.mapping = 7, .direction = 1, .pwm_min = 1100, .pwm_max = 1900},
-    };
-
-    std::vector<double> right_coeffs{
-        1500.0,
-        100.0,
-    };
-
-    std::vector<double> left_coeffs{
-        1500.0,
-        100.0,
-    };
-
-    vortex::propulsion::ThrusterInterface thrusters{
-        "can0",
-        thruster_parameters,
-        right_coeffs,
-        left_coeffs,
-    };
-
-    vortex::io::NucleusInterfaceConfig nucleus_config{
-        .remote_ip = "192.168.1.100",  // Replace with Nucleus IP
-        .data_remote_port = 9000,      // Replace with actual port
-        .password = "",
-
-        .enable_imu = true,
-        .enable_dvl = true,
-        .enable_altimeter = true,
-        .enable_pressure = true,
-
-        .imu_frequency_hz = 100,
-        .ahrs_frequency_hz = 100,
-
-        .ahrs_mode = vortex::drivers::dvl::AhrsMode::FixedHardAndSoftIron,
-
-        .bottom_track_mode = vortex::drivers::dvl::BottomTrackMode::Auto,
-        .bottom_track_velocity_range = 0,
-        .enable_watertrack = false,
-
-        .altimeter_power_level = 0,
-
-        .rotxy = 0.0,
-        .rotyz = 0.0,
-        .rotxz = 0.0,
-    };
-
-    vortex::io::NucleusInterface nucleus{io_context, nucleus_config};
-
-    if (!nucleus.start()) {
-        std::cerr << "Failed to start Nortek Nucleus interface\n";
-        return 1;
-    }
-
-    bool killswitch_on = true;
-    auto operation_mode = vortex::utils::types::Mode::manual;
-
-    auto next_tick = std::chrono::steady_clock::now();
-
+    bool killswitch_on = false;
+    auto operation_mode = vortex::utils::types::Mode::autonomous;
     bool was_autonomous_enabled = false;
 
-    while (running) {
-        next_tick += control_period;
+    Eigen::Vector3d position_world = Eigen::Vector3d::Zero();
+    Eigen::Quaterniond q_world_body = Eigen::Quaterniond::Identity();
 
-        const auto state = nucleus.latest_state();
+    vortex::simulation::stonefish::StonefishSimulator sim{
+        scenario_path,
+        data_path,
+        500.0,
+    };
 
-        if (!state) {
-            controller.reset_adap_param();
-            controller.reset_d_est();
+    sim.set_step_callback(
+        [&](vortex::simulation::stonefish::VortexSimulationManager& sim_manager,
+            double dt_s) {
+            if (!running) {
+                sim_manager.set_thrusters(
+                    vortex::simulation::stonefish::ThrusterCommand{});
+                return;
+            }
 
-            // TODO: explicitly send neutral PWM or disable thrusters here.
-            std::this_thread::sleep_until(next_tick);
-            continue;
-        }
-        const auto reference = guidance.tick(state->pose, state->altitude_m);
+            const auto imu = sim_manager.read_imu("IMU");
+            const auto pressure = sim_manager.read_pressure("Pressure");
+            const auto dvl = sim_manager.read_dvl("DVL");
 
-        const bool autonomous_enabled =
-            !killswitch_on &&
-            operation_mode == vortex::utils::types::Mode::autonomous;
+            if (imu.valid) {
+                q_world_body = quat_from_xyzw(imu.orientation_xyzw);
+            }
 
-        Eigen::Vector6d commanded_wrench = Eigen::Vector6d::Zero();
+            if (pressure.valid) {
+                // Depth positive down, z positive up.
+                position_world.z() = -pressure.depth_m;
+            }
 
-        if (autonomous_enabled && reference.active) {
-            commanded_wrench = controller.calculate_tau(
-                state->pose, reference.pose, state->twist);
-        }
+            if (dvl.valid) {
+                const Eigen::Vector3d velocity_body{
+                    dvl.velocity_body_m_s[0],
+                    dvl.velocity_body_m_s[1],
+                    dvl.velocity_body_m_s[2],
+                };
 
-        // Reset once when leaving autonomous control, rather than every 10 ms.
-        if (was_autonomous_enabled && !autonomous_enabled) {
-            controller.reset_adap_param();
-            controller.reset_d_est();
-        }
+                const Eigen::Vector3d velocity_world =
+                    q_world_body * velocity_body;
 
-        was_autonomous_enabled = autonomous_enabled;
+                position_world += velocity_world * dt_s;
+            }
 
-        const auto forces = allocator.allocate_thrust(commanded_wrench);
+            const auto pose = make_pose(position_world, q_world_body);
+            const auto twist = make_twist(dvl, imu);
 
-        if (!forces) {
-            controller.reset_adap_param();
-            controller.reset_d_est();
+            const double altitude_m = pressure.valid ? pressure.depth_m : 0.0;
 
-            // TODO: explicitly send neutral PWM or disable thrusters here.
-            std::this_thread::sleep_until(next_tick);
-            continue;
-        }
+            const auto reference = guidance.tick(pose, altitude_m);
 
-        const auto pwm = thrusters.drive_thrusters(*forces);
+            const bool autonomous_enabled =
+                !killswitch_on &&
+                operation_mode == vortex::utils::types::Mode::autonomous;
 
-        if (!pwm) {
-            // TODO: explicitly send neutral PWM or disable thrusters here.
-            std::this_thread::sleep_until(next_tick);
-            continue;
-        }
+            Eigen::Vector6d commanded_wrench = Eigen::Vector6d::Zero();
 
-        std::this_thread::sleep_until(next_tick);
-    }
+            if (autonomous_enabled && reference.active) {
+                commanded_wrench =
+                    controller.calculate_tau(pose, reference.pose, twist);
+            }
 
-    // thrusters.send_zero();
-    // thrusters.disable();
+            if (was_autonomous_enabled && !autonomous_enabled) {
+                controller.reset_adap_param();
+                controller.reset_d_est();
+            }
+
+            was_autonomous_enabled = autonomous_enabled;
+
+            const auto forces = allocator.allocate_thrust(commanded_wrench);
+
+            if (!forces) {
+                controller.reset_adap_param();
+                controller.reset_d_est();
+
+                sim_manager.set_thrusters(
+                    vortex::simulation::stonefish::ThrusterCommand{});
+                return;
+            }
+
+            const auto sim_thruster_command =
+                make_sim_thruster_command(*forces, allocator_settings.max_force);
+
+            sim_manager.set_thrusters(sim_thruster_command);
+        });
+
+    sim.run_graphical();
 
     return 0;
 }
