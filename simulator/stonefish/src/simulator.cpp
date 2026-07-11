@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <Stonefish/core/ScenarioParser.h>
+#include <Stonefish/core/Robot.h>
 
 #include <Stonefish/actuators/Thruster.h>
 #include <Stonefish/sensors/scalar/DVL.h>
@@ -24,9 +25,66 @@ VortexSimulationManager::VortexSimulationManager(sf::Scalar steps_per_second,
       scenario_path_(std::move(scenario_path)),
       step_callback_(std::move(step_callback)) {}
 
+
 void VortexSimulationManager::BuildScenario() {
     sf::ScenarioParser parser(this);
     parser.Parse(scenario_path_);
+
+    cache_thrusters();
+}
+
+
+void VortexSimulationManager::cache_thrusters() {
+    thrusters_.fill(nullptr);
+
+    auto* robot = getRobot("nautilus");
+
+    if (!robot) {
+        std::cerr << "[Stonefish] Missing robot: nautilus\n";
+        return;
+    }
+
+    unsigned int actuator_id = 0;
+    unsigned int thruster_id = 0;
+    sf::Actuator* actuator = nullptr;
+
+    while ((actuator = robot->getActuator(actuator_id++)) != nullptr) {
+        std::cerr << "[Stonefish] actuator[" << actuator_id - 1
+                  << "] name=" << actuator->getName()
+                  << '\n';
+
+        if (actuator->getType() != sf::ActuatorType::THRUSTER) {
+            continue;
+        }
+
+        auto* thruster = dynamic_cast<sf::Thruster*>(actuator);
+
+        if (!thruster) {
+            std::cerr << "[Stonefish] actuator reports THRUSTER but cast failed: "
+                      << actuator->getName() << '\n';
+            continue;
+        }
+
+        if (thruster_id >= thrusters_.size()) {
+            std::cerr << "[Stonefish] Extra thruster ignored: "
+                      << actuator->getName() << '\n';
+            continue;
+        }
+
+        thrusters_[thruster_id] = thruster;
+
+        std::cerr << "[Stonefish] cached thruster "
+                  << thruster_id + 1
+                  << ": "
+                  << actuator->getName()
+                  << '\n';
+
+        ++thruster_id;
+    }
+
+    std::cerr << "[Stonefish] cached "
+              << thruster_id
+              << " thrusters\n";
 }
 
 void VortexSimulationManager::SimulationStepCompleted(sf::Scalar dt) {
@@ -39,21 +97,19 @@ double VortexSimulationManager::time_s() const {
     return static_cast<double>(getSimulationTime());
 }
 
-void VortexSimulationManager::set_thrusters(const ThrusterCommand& command) {
-    for (std::size_t i = 0; i < ThrusterCommand::kNumThrusters; ++i) {
-        const std::string name = "Thruster" + std::to_string(i + 1);
 
-        auto* actuator = getActuator(name);
-        auto* thruster = dynamic_cast<sf::Thruster*>(actuator);
+void VortexSimulationManager::set_thrusters(const ThrusterCommand& command) {
+    for (std::size_t i = 0; i < thrusters_.size(); ++i) {
+        auto* thruster = thrusters_[i];
 
         if (!thruster) {
-            std::cerr << "Warning: could not find thruster actuator: " << name
-                      << '\n';
             continue;
         }
 
-        const double u = std::clamp(command.command[i], -1.0, 1.0);
-        thruster->setSetpoint(static_cast<sf::Scalar>(u));
+        const double normalized = std::clamp(command.command[i], -1.0, 1.0);
+        const double setpoint = normalized * static_cast<double>(thruster->getSetpointLimit());
+
+        thruster->setSetpoint(static_cast<sf::Scalar>(setpoint));
     }
 }
 

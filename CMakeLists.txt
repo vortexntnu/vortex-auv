@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(VORTEX_BUILD_TESTS "Build unit tests" OFF)
+option(VORTEX_ENABLE_TRACY "Enable Tracy profiling" OFF)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(
@@ -22,10 +23,22 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 # ------------------------------------------------------------
+# Tracy
+# ------------------------------------------------------------
+
+if(VORTEX_ENABLE_TRACY)
+  set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
+  set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE)
+
+  add_subdirectory(
+    "$ENV{HOME}/tools/tracy"
+    "${CMAKE_BINARY_DIR}/_deps/tracy"
+    EXCLUDE_FROM_ALL
+  )
+endif()
+
+# ------------------------------------------------------------
 # Shared third-party dependencies.
-#
-# These can instead live in each package CMakeLists.txt. Keeping
-# them here is useful while validating the whole repository build.
 # ------------------------------------------------------------
 
 find_package(Eigen3 REQUIRED)
@@ -34,10 +47,9 @@ find_package(fmt REQUIRED)
 find_package(vortex_utils REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(nortek_nucleus_driver CONFIG REQUIRED)
+
 # ------------------------------------------------------------
 # Internal libraries.
-#
-# Add low-level dependencies before libraries that depend on them.
 # ------------------------------------------------------------
 
 add_subdirectory(io/can_interface)
@@ -52,6 +64,7 @@ add_subdirectory(propulsion/thruster_interface)
 add_subdirectory(control/dp_adapt_backs_controller_quat)
 add_subdirectory(guidance/reference_filter_dp_quat)
 add_subdirectory(runtime/vehicle_control)
+
 # ------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------
@@ -61,7 +74,4 @@ if(VORTEX_BUILD_TESTS)
   enable_testing()
 
   find_package(GTest REQUIRED)
-
-  # Uncomment when you have a root-level test folder.
-  # add_subdirectory(tests)
 endif()

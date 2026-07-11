@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 
+#include <tracy/Tracy.hpp>
+
 #include <vortex/propulsion/thrust_allocator/thrust_allocator.hpp>
 #include <vortex/simulator/stonefish/simulator.hpp>
 
@@ -37,12 +39,9 @@ Eigen::Quaterniond quat_from_xyzw(const std::array<double, 4>& xyzw) {
     return q.normalized();
 }
 
-vortex::utils::types::Pose make_pose(
-    const Eigen::Vector3d& position_world,
-    const Eigen::Quaterniond& q_world_body) {
-    return vortex::utils::types::Pose::from_eigen(
-        position_world,
-        q_world_body);
+vortex::utils::types::Pose make_pose(const Eigen::Vector3d& position_world,
+                                     const Eigen::Quaterniond& q_world_body) {
+    return vortex::utils::types::Pose::from_eigen(position_world, q_world_body);
 }
 
 vortex::utils::types::Twist make_twist(
@@ -71,8 +70,7 @@ vortex::simulation::stonefish::ThrusterCommand make_sim_thruster_command(
     vortex::simulation::stonefish::ThrusterCommand command{};
 
     const auto n = std::min<Eigen::Index>(
-        static_cast<Eigen::Index>(command.command.size()),
-        forces.size());
+        static_cast<Eigen::Index>(command.command.size()), forces.size());
 
     for (Eigen::Index i = 0; i < n; ++i) {
         const double normalized = forces(i) / max_force;
@@ -91,7 +89,8 @@ int main(int argc, char** argv) {
     std::signal(SIGTERM, handle_signal);
 
     if (argc < 3) {
-        std::cerr << "Usage: vehicle_control <stonefish_data_path> <scenario.scn>\n";
+        std::cerr
+            << "Usage: vehicle_control <stonefish_data_path> <scenario.scn>\n";
         return 1;
     }
 
@@ -134,14 +133,14 @@ int main(int argc, char** argv) {
     constexpr Eigen::Index num_thrusters = 8;
 
     Eigen::MatrixXd dummy_thruster_directions(3, num_thrusters);
-    dummy_thruster_directions << 1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-                                  1.0, -1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-                                  0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0;
+    dummy_thruster_directions << 1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        -1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+        1.0;
 
     Eigen::MatrixXd dummy_thruster_positions(3, num_thrusters);
-    dummy_thruster_positions << 0.30, 0.30, -0.30, -0.30, 0.25, 0.25, -0.25, -0.25,
-                                0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20,
-                                0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00;
+    dummy_thruster_positions << 0.30, 0.30, -0.30, -0.30, 0.25, 0.25, -0.25,
+        -0.25, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.00, 0.00,
+        0.00, 0.00, 0.00, 0.00, 0.00, 0.00;
 
     vortex::propulsion::ThrustAllocatorSettings allocator_settings{
         .solver_type = "pseudoinverse",
@@ -178,44 +177,85 @@ int main(int argc, char** argv) {
     sim.set_step_callback(
         [&](vortex::simulation::stonefish::VortexSimulationManager& sim_manager,
             double dt_s) {
+            ZoneScopedN("Simulation step callback");
+
             if (!running) {
+                ZoneScopedN("Stopped state");
+
                 sim_manager.set_thrusters(
                     vortex::simulation::stonefish::ThrusterCommand{});
                 return;
             }
 
-            const auto imu = sim_manager.read_imu("IMU");
-            const auto pressure = sim_manager.read_pressure("Pressure");
-            const auto dvl = sim_manager.read_dvl("DVL");
+            vortex::simulation::stonefish::ImuReading imu;
+            vortex::simulation::stonefish::PressureReading pressure;
+            vortex::simulation::stonefish::DvlReading dvl;
 
-            if (imu.valid) {
-                q_world_body = quat_from_xyzw(imu.orientation_xyzw);
+            {
+                ZoneScopedN("Read sensors");
+
+                {
+                    ZoneScopedN("Read IMU");
+                    imu = sim_manager.read_imu("IMU");
+                }
+
+                {
+                    ZoneScopedN("Read pressure");
+                    pressure = sim_manager.read_pressure("Pressure");
+                }
+
+                {
+                    ZoneScopedN("Read DVL");
+                    dvl = sim_manager.read_dvl("DVL");
+                }
             }
 
-            if (pressure.valid) {
-                // Depth positive down, z positive up.
-                position_world.z() = -pressure.depth_m;
+            {
+                ZoneScopedN("State estimation");
+
+                if (imu.valid) {
+                    ZoneScopedN("Update orientation");
+                    q_world_body = quat_from_xyzw(imu.orientation_xyzw);
+                }
+
+                if (pressure.valid) {
+                    ZoneScopedN("Update depth");
+                    position_world.z() = -pressure.depth_m;
+                }
+
+                if (dvl.valid) {
+                    ZoneScopedN("Integrate DVL");
+
+                    const Eigen::Vector3d velocity_body{
+                        dvl.velocity_body_m_s[0],
+                        dvl.velocity_body_m_s[1],
+                        dvl.velocity_body_m_s[2],
+                    };
+
+                    const Eigen::Vector3d velocity_world =
+                        q_world_body * velocity_body;
+
+                    position_world += velocity_world * dt_s;
+                }
             }
 
-            if (dvl.valid) {
-                const Eigen::Vector3d velocity_body{
-                    dvl.velocity_body_m_s[0],
-                    dvl.velocity_body_m_s[1],
-                    dvl.velocity_body_m_s[2],
-                };
+            decltype(make_pose(position_world, q_world_body)) pose;
+            decltype(make_twist(dvl, imu)) twist;
 
-                const Eigen::Vector3d velocity_world =
-                    q_world_body * velocity_body;
-
-                position_world += velocity_world * dt_s;
+            {
+                ZoneScopedN("Construct state");
+                pose = make_pose(position_world, q_world_body);
+                twist = make_twist(dvl, imu);
             }
-
-            const auto pose = make_pose(position_world, q_world_body);
-            const auto twist = make_twist(dvl, imu);
 
             const double altitude_m = pressure.valid ? pressure.depth_m : 0.0;
 
-            const auto reference = guidance.tick(pose, altitude_m);
+            decltype(guidance.tick(pose, altitude_m)) reference;
+
+            {
+                ZoneScopedN("Guidance");
+                reference = guidance.tick(pose, altitude_m);
+            }
 
             const bool autonomous_enabled =
                 !killswitch_on &&
@@ -224,20 +264,30 @@ int main(int argc, char** argv) {
             Eigen::Vector6d commanded_wrench = Eigen::Vector6d::Zero();
 
             if (autonomous_enabled && reference.active) {
+                ZoneScopedN("Controller");
                 commanded_wrench =
                     controller.calculate_tau(pose, reference.pose, twist);
             }
 
             if (was_autonomous_enabled && !autonomous_enabled) {
+                ZoneScopedN("Reset controller");
+
                 controller.reset_adap_param();
                 controller.reset_d_est();
             }
 
             was_autonomous_enabled = autonomous_enabled;
 
-            const auto forces = allocator.allocate_thrust(commanded_wrench);
+            decltype(allocator.allocate_thrust(commanded_wrench)) forces;
+
+            {
+                ZoneScopedN("Thrust allocation");
+                forces = allocator.allocate_thrust(commanded_wrench);
+            }
 
             if (!forces) {
+                ZoneScopedN("Allocation failure handling");
+
                 controller.reset_adap_param();
                 controller.reset_d_est();
 
@@ -246,10 +296,22 @@ int main(int argc, char** argv) {
                 return;
             }
 
-            const auto sim_thruster_command =
-                make_sim_thruster_command(*forces, allocator_settings.max_force);
+            decltype(make_sim_thruster_command(
+                *forces, allocator_settings.max_force)) sim_thruster_command;
 
-            sim_manager.set_thrusters(sim_thruster_command);
+            {
+                ZoneScopedN("Build thruster command");
+
+                sim_thruster_command = make_sim_thruster_command(
+                    *forces, allocator_settings.max_force);
+            }
+
+            {
+                ZoneScopedN("Apply thrusters");
+                sim_manager.set_thrusters(sim_thruster_command);
+            }
+
+            FrameMark;
         });
 
     sim.run_graphical();

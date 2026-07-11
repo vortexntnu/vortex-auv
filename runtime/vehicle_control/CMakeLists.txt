@@ -12,3 +12,10 @@ target_link_libraries(vehicle_control
     dp_adapt_backs_controller_quat
     reference_filter_dp_quat
 )
+
+if(VORTEX_ENABLE_TRACY)
+  target_link_libraries(vehicle_control
+    PRIVATE
+      Tracy::TracyClient
+  )
+endif()

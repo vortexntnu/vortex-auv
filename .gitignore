@@ -8,6 +8,7 @@ cmake-build-debug/
 install/
 log/
 build/
+build-profile/
 bin/
 msg_gen/
 srv_gen/
