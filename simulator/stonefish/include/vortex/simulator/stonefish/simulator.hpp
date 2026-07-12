@@ -7,6 +7,7 @@
 #include <Stonefish/core/GraphicalSimulationApp.h>
 #include <Stonefish/core/SimulationManager.h>
 #include <Stonefish/actuators/Thruster.h>
+#include <Stonefish/sensors/Sensor.h>
 
 #include "vortex/simulator/stonefish/actuator_commands.hpp"
 #include "vortex/simulator/stonefish/sensor_data.hpp"
@@ -37,7 +38,7 @@ class VortexSimulationManager final : public sf::SimulationManager {
     SonarFrame read_sonar(const std::string& name);
 
    private:
-
+    void dump_sensors();
     std::array<sf::Thruster*, 8> thrusters_{};
     std::string scenario_path_;
     StepCallback step_callback_;

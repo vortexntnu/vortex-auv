@@ -14,6 +14,8 @@
 #include "dp_adapt_backs_controller_quat/dp_adapt_backs_controller.hpp"
 #include "reference_filter_dp_quat/waypoint_guidance_manager.hpp"
 
+#include "eskf/eskf.hpp"
+
 namespace {
 
 volatile std::sig_atomic_t running = 1;
@@ -21,7 +23,6 @@ volatile std::sig_atomic_t running = 1;
 void handle_signal(int) {
     running = 0;
 }
-
 constexpr auto control_period = std::chrono::milliseconds{10};
 
 Eigen::Quaterniond quat_from_xyzw(const std::array<double, 4>& xyzw) {
@@ -174,6 +175,31 @@ int main(int argc, char** argv) {
         500.0,
     };
 
+    EskfParams eskf_params{};
+
+    eskf_params.Q = Eigen::Matrix12d::Identity() * 1e-3;
+
+    eskf_params.P = Eigen::Matrix15d::Identity() * 1e-2;
+
+    eskf_params.g_ = Eigen::Vector3d{0.0, 0.0, 9.82841};
+
+    ESKF eskf{eskf_params};
+
+    const Eigen::Matrix3d dvl_measurement_noise =
+        Eigen::Vector3d{
+            0.02 * 0.02,
+            0.02 * 0.02,
+            0.03 * 0.03,
+        }
+            .asDiagonal();
+
+    constexpr double depth_std_m = 0.05;
+    constexpr double depth_measurement_noise = depth_std_m * depth_std_m;
+
+    bool eskf_initialized = false;
+
+    Eigen::Vector3d latest_gyro_measurement = Eigen::Vector3d::Zero();
+
     sim.set_step_callback(
         [&](vortex::simulation::stonefish::VortexSimulationManager& sim_manager,
             double dt_s) {
@@ -184,6 +210,7 @@ int main(int argc, char** argv) {
 
                 sim_manager.set_thrusters(
                     vortex::simulation::stonefish::ThrusterCommand{});
+
                 return;
             }
 
@@ -196,56 +223,171 @@ int main(int argc, char** argv) {
 
                 {
                     ZoneScopedN("Read IMU");
-                    imu = sim_manager.read_imu("IMU");
+                    imu = sim_manager.read_imu("nautilus/imu_link");
                 }
 
                 {
                     ZoneScopedN("Read pressure");
-                    pressure = sim_manager.read_pressure("Pressure");
+                    pressure = sim_manager.read_pressure(
+                        "nautilus/pressure_sensor_link");
                 }
 
                 {
                     ZoneScopedN("Read DVL");
-                    dvl = sim_manager.read_dvl("DVL");
+                    dvl = sim_manager.read_dvl("nautilus/dvl_link");
                 }
             }
-
             {
                 ZoneScopedN("State estimation");
 
-                if (imu.valid) {
-                    ZoneScopedN("Update orientation");
-                    q_world_body = quat_from_xyzw(imu.orientation_xyzw);
-                }
+                /*
+                 * IMU prediction.
+                 */
+                if (imu.valid && dt_s > 0.0) {
+                    ZoneScopedN("ESKF IMU update");
 
-                if (pressure.valid) {
-                    ZoneScopedN("Update depth");
-                    position_world.z() = -pressure.depth_m;
-                }
-
-                if (dvl.valid) {
-                    ZoneScopedN("Integrate DVL");
-
-                    const Eigen::Vector3d velocity_body{
-                        dvl.velocity_body_m_s[0],
-                        dvl.velocity_body_m_s[1],
-                        dvl.velocity_body_m_s[2],
+                    const Eigen::Vector3d measured_acceleration{
+                        imu.linear_acceleration_m_s2[0],
+                        imu.linear_acceleration_m_s2[1],
+                        imu.linear_acceleration_m_s2[2],
                     };
 
-                    const Eigen::Vector3d velocity_world =
-                        q_world_body * velocity_body;
+                    latest_gyro_measurement = Eigen::Vector3d{
+                        imu.angular_velocity_rad_s[0],
+                        imu.angular_velocity_rad_s[1],
+                        imu.angular_velocity_rad_s[2],
+                    };
 
-                    position_world += velocity_world * dt_s;
+                    const ImuMeasurement imu_measurement{
+                        .accel = measured_acceleration,
+                        .gyro = latest_gyro_measurement,
+                    };
+
+                    eskf.imu_update(imu_measurement, dt_s);
+                    eskf_initialized = true;
+                }
+
+                /*
+                 * DVL correction.
+                 *
+                 * The simulator reports body-frame velocity, which is what
+                 * SensorDVL appears intended to represent.
+                 */
+                if (eskf_initialized && dvl.valid) {
+                    ZoneScopedN("ESKF DVL update");
+
+                    const SensorDVL dvl_measurement{
+                        .measurement =
+                            Eigen::Vector3d{
+                                dvl.velocity_body_m_s[0],
+                                dvl.velocity_body_m_s[1],
+                                dvl.velocity_body_m_s[2],
+                            },
+                        .measurement_noise = dvl_measurement_noise,
+                    };
+
+                    eskf.dvl_update(dvl_measurement);
+                }
+
+                /*
+                 * Depth correction.
+                 *
+                 * This assumes the ESKF uses positive-down z, which is
+                 * suggested by gravity being {0, 0, +9.82841}.
+                 */
+                if (eskf_initialized && pressure.valid) {
+                    ZoneScopedN("ESKF depth update");
+
+                    const SensorDepth depth_measurement{
+                        .measurement = pressure.depth_m,
+                        .measurement_noise = depth_measurement_noise,
+                    };
+
+                    eskf.depth_update(depth_measurement);
                 }
             }
 
+            /*
+             * Do not run the controller before the ESKF has received its first
+             * prediction step.
+             */
+            if (!eskf_initialized) {
+                ZoneScopedN("Waiting for ESKF initialization");
+
+                sim_manager.set_thrusters(
+                    vortex::simulation::stonefish::ThrusterCommand{});
+
+                FrameMark;
+                return;
+            }
+
+            /*
+             * Read the corrected nominal state after all measurement updates.
+             */
+            const NominalState& nominal_state = eskf.get_nominal_state();
+
+            /*
+             * Preserve these variables in case they are used elsewhere.
+             */
+            position_world = nominal_state.pos;
+            q_world_body = nominal_state.quat;
+
+            /*
+             * The ESKF velocity is assumed to be in the world frame.
+             * make_twist() currently expects the simulator DVL reading, which
+             * contains body-frame velocity, so convert it back to the body
+             * frame.
+             */
+            const Eigen::Vector3d estimated_velocity_body =
+                nominal_state.quat.conjugate() * nominal_state.vel;
+
+            /*
+             * Remove the estimated gyroscope bias from the latest IMU
+             * measurement.
+             */
+            const Eigen::Vector3d estimated_angular_velocity_body =
+                latest_gyro_measurement - nominal_state.gyro_bias;
+
+            /*
+             * Create temporary simulator-style readings so the existing
+             * make_twist(dvl, imu) function can remain unchanged.
+             */
+            auto estimated_dvl = dvl;
+
+            estimated_dvl.velocity_body_m_s = {
+                estimated_velocity_body.x(),
+                estimated_velocity_body.y(),
+                estimated_velocity_body.z(),
+            };
+
+            estimated_dvl.valid = true;
+
+            auto estimated_imu = imu;
+
+            estimated_imu.angular_velocity_rad_s = {
+                estimated_angular_velocity_body.x(),
+                estimated_angular_velocity_body.y(),
+                estimated_angular_velocity_body.z(),
+            };
+
+            estimated_imu.orientation_xyzw = {
+                nominal_state.quat.x(),
+                nominal_state.quat.y(),
+                nominal_state.quat.z(),
+                nominal_state.quat.w(),
+            };
+
+            estimated_imu.valid = true;
+
             decltype(make_pose(position_world, q_world_body)) pose;
-            decltype(make_twist(dvl, imu)) twist;
+            decltype(make_twist(estimated_dvl, estimated_imu)) twist;
 
             {
-                ZoneScopedN("Construct state");
-                pose = make_pose(position_world, q_world_body);
-                twist = make_twist(dvl, imu);
+                ZoneScopedN("Construct state from ESKF");
+
+                pose = make_pose(nominal_state.pos, nominal_state.quat);
+
+                twist = make_twist(estimated_dvl, estimated_imu);
             }
 
             const double altitude_m = pressure.valid ? pressure.depth_m : 0.0;
@@ -254,6 +396,7 @@ int main(int argc, char** argv) {
 
             {
                 ZoneScopedN("Guidance");
+
                 reference = guidance.tick(pose, altitude_m);
             }
 
@@ -265,6 +408,7 @@ int main(int argc, char** argv) {
 
             if (autonomous_enabled && reference.active) {
                 ZoneScopedN("Controller");
+
                 commanded_wrench =
                     controller.calculate_tau(pose, reference.pose, twist);
             }
@@ -282,6 +426,7 @@ int main(int argc, char** argv) {
 
             {
                 ZoneScopedN("Thrust allocation");
+
                 forces = allocator.allocate_thrust(commanded_wrench);
             }
 
@@ -293,6 +438,7 @@ int main(int argc, char** argv) {
 
                 sim_manager.set_thrusters(
                     vortex::simulation::stonefish::ThrusterCommand{});
+
                 return;
             }
 
@@ -308,6 +454,7 @@ int main(int argc, char** argv) {
 
             {
                 ZoneScopedN("Apply thrusters");
+
                 sim_manager.set_thrusters(sim_thruster_command);
             }
 

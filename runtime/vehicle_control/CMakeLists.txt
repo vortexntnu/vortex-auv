@@ -5,6 +5,7 @@ add_executable(vehicle_control
 target_link_libraries(vehicle_control
   PRIVATE
     vortex::can_interface
+    vortex::eskf
     vortex::nucleus_interface
     vortex::stonefish
     thrust_allocator

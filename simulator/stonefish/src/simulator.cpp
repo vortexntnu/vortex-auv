@@ -31,6 +31,21 @@ void VortexSimulationManager::BuildScenario() {
     parser.Parse(scenario_path_);
 
     cache_thrusters();
+    dump_sensors();
+}
+
+void VortexSimulationManager::dump_sensors() {
+    unsigned int sensor_id = 0;
+    sf::Sensor* sensor = nullptr;
+
+    std::cerr << "[Stonefish] Sensors:\n";
+
+    while ((sensor = getSensor(sensor_id++)) != nullptr) {
+        std::cerr << "  sensor[" << sensor_id - 1 << "] "
+                  << "name=" << sensor->getName()
+                  << " type=" << static_cast<int>(sensor->getType())
+                  << '\n';
+    }
 }
 
 
