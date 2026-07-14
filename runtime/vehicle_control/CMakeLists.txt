@@ -1,5 +1,6 @@
 add_executable(vehicle_control
   main.cpp
+  config/nautilus_config.cpp
 )
 
 target_link_libraries(vehicle_control

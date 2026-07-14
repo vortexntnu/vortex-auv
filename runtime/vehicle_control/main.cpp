@@ -16,6 +16,8 @@
 
 #include "eskf/eskf.hpp"
 
+#include "config/nautilus_config.hpp"
+
 namespace {
 
 volatile std::sig_atomic_t running = 1;
@@ -25,20 +27,6 @@ void handle_signal(int) {
 }
 constexpr auto control_period = std::chrono::milliseconds{10};
 
-Eigen::Quaterniond quat_from_xyzw(const std::array<double, 4>& xyzw) {
-    Eigen::Quaterniond q{
-        xyzw[3],
-        xyzw[0],
-        xyzw[1],
-        xyzw[2],
-    };
-
-    if (q.norm() < 1e-9) {
-        return Eigen::Quaterniond::Identity();
-    }
-
-    return q.normalized();
-}
 
 vortex::utils::types::Pose make_pose(const Eigen::Vector3d& position_world,
                                      const Eigen::Quaterniond& q_world_body) {
@@ -98,107 +86,43 @@ int main(int argc, char** argv) {
     const std::string data_path = argv[1];
     const std::string scenario_path = argv[2];
 
-    vortex::guidance::WaypointGuidanceManagerConfig guidance_config{
-        .filter_params =
-            {
-                .omega = Eigen::Vector6d::Constant(1.0),
-                .zeta = Eigen::Vector6d::Constant(1.0),
-            },
-        .time_step = control_period,
-        .altitude_control_enabled = false,
-        .altitude_low_pass_alpha = 0.9,
-    };
+    const auto vehicle_config =
+        vortex::runtime::vehicle_control::config::make_nautilus_config(
+            control_period);
 
-    vortex::control::DPAdaptParams controller_params{
-        .adapt_param = Eigen::Vector12d::Zero(),
-        .d_gain = Eigen::Vector6d::Ones(),
-        .K1 = Eigen::Vector6d::Ones(),
-        .K2 = Eigen::Vector6d::Ones(),
+    vortex::guidance::WaypointGuidanceManager guidance{vehicle_config.guidance};
 
-        .r_b_bg = Eigen::Vector3d::Zero(),
-        .inertia_matrix_body = Eigen::Vector3d::Ones(),
+    vortex::control::DPAdaptBacksController controller{
+        vehicle_config.controller};
 
-        .mass_intertia_matrix = Eigen::Matrix6d::Identity(),
+    vortex::propulsion::ThrustAllocator allocator{vehicle_config.allocator};
 
-        .tau_max = Eigen::Vector6d::Constant(100.0),
+    ESKF eskf{vehicle_config.eskf};
 
-        .mass = 10.0,
+    const Eigen::Matrix3d dvl_measurement_noise =
+        vehicle_config.dvl_measurement_noise;
 
-        .time_step_s = static_cast<double>(control_period.count()) / 1000.0,
-
-        .singularity_tolerance = 1e-6,
-        .adapt_param_max = 100.0,
-        .d_est_max = 100.0,
-    };
-
-    constexpr Eigen::Index num_thrusters = 8;
-
-    Eigen::MatrixXd dummy_thruster_directions(3, num_thrusters);
-    dummy_thruster_directions << 1.0, 1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        -1.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-        1.0;
-
-    Eigen::MatrixXd dummy_thruster_positions(3, num_thrusters);
-    dummy_thruster_positions << 0.30, 0.30, -0.30, -0.30, 0.25, 0.25, -0.25,
-        -0.25, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.20, -0.20, 0.00, 0.00,
-        0.00, 0.00, 0.00, 0.00, 0.00, 0.00;
-
-    vortex::propulsion::ThrustAllocatorSettings allocator_settings{
-        .solver_type = "pseudoinverse",
-
-        .center_of_mass = Eigen::Vector3d::Zero(),
-
-        .thruster_force_direction = dummy_thruster_directions,
-        .thruster_position = dummy_thruster_positions,
-
-        .input_weights = Eigen::VectorXd::Ones(num_thrusters),
-        .slack_weights = Eigen::VectorXd::Ones(6),
-
-        .min_force = -50.0,
-        .max_force = 50.0,
-    };
-
-    vortex::guidance::WaypointGuidanceManager guidance{guidance_config};
-    vortex::control::DPAdaptBacksController controller{controller_params};
-    vortex::propulsion::ThrustAllocator allocator{allocator_settings};
+    const double pressure_measurement_noise_pa2 =
+        vehicle_config.pressure_measurement_noise_pa2;
 
     bool killswitch_on = false;
+
     auto operation_mode = vortex::utils::types::Mode::autonomous;
+
     bool was_autonomous_enabled = false;
+    bool eskf_initialized = false;
 
     Eigen::Vector3d position_world = Eigen::Vector3d::Zero();
+
     Eigen::Quaterniond q_world_body = Eigen::Quaterniond::Identity();
+
+    Eigen::Vector3d latest_gyro_measurement = Eigen::Vector3d::Zero();
 
     vortex::simulation::stonefish::StonefishSimulator sim{
         scenario_path,
         data_path,
         500.0,
     };
-
-    EskfParams eskf_params{};
-
-    eskf_params.Q = Eigen::Matrix12d::Identity() * 1e-3;
-
-    eskf_params.P = Eigen::Matrix15d::Identity() * 1e-2;
-
-    eskf_params.g_ = Eigen::Vector3d{0.0, 0.0, 9.82841};
-
-    ESKF eskf{eskf_params};
-
-    const Eigen::Matrix3d dvl_measurement_noise =
-        Eigen::Vector3d{
-            0.02 * 0.02,
-            0.02 * 0.02,
-            0.03 * 0.03,
-        }
-            .asDiagonal();
-
-    constexpr double depth_std_m = 0.05;
-    constexpr double depth_measurement_noise = depth_std_m * depth_std_m;
-
-    bool eskf_initialized = false;
-
-    Eigen::Vector3d latest_gyro_measurement = Eigen::Vector3d::Zero();
 
     sim.set_step_callback(
         [&](vortex::simulation::stonefish::VortexSimulationManager& sim_manager,
@@ -300,7 +224,7 @@ int main(int argc, char** argv) {
 
                     const SensorDepth depth_measurement{
                         .measurement = pressure.depth_m,
-                        .measurement_noise = depth_measurement_noise,
+                        .measurement_noise =pressure_measurement_noise_pa2,
                     };
 
                     eskf.depth_update(depth_measurement);
@@ -443,13 +367,13 @@ int main(int argc, char** argv) {
             }
 
             decltype(make_sim_thruster_command(
-                *forces, allocator_settings.max_force)) sim_thruster_command;
+                *forces, vehicle_config.allocator.max_force)) sim_thruster_command;
 
             {
                 ZoneScopedN("Build thruster command");
 
                 sim_thruster_command = make_sim_thruster_command(
-                    *forces, allocator_settings.max_force);
+                    *forces, vehicle_config.allocator.max_force);
             }
 
             {
