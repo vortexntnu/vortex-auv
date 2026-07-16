@@ -1,12 +1,14 @@
 #include "common/control_output.hpp"
+#include "common/manual_command.hpp"
 #include "common/runtime_state.hpp"
 #include "common/sensor_frame.hpp"
 #include "config/nautilus_config.hpp"
 #include "control/vehicle_control.hpp"
+#include "simulator/keyboard_controller.hpp"
 #include "simulator/stonefish_io.hpp"
 
-#include <vortex/simulator/stonefish/simulator.hpp>
 #include <tracy/Tracy.hpp>
+#include <vortex/simulator/stonefish/simulator.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -18,24 +20,21 @@ namespace {
 
 std::atomic_bool running{true};
 
-void handle_signal(int)
-{
+void handle_signal(int) {
     running.store(false);
 }
 
 }  // namespace
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     using namespace vortex::runtime::vehicle_control;
 
     std::signal(SIGINT, handle_signal);
     std::signal(SIGTERM, handle_signal);
 
     if (argc < 3) {
-        std::cerr
-            << "Usage: vehicle_control_simulator "
-               "<stonefish_data_path> <scenario.scn>\n";
+        std::cerr << "Usage: vehicle_control_simulator "
+                     "<stonefish_data_path> <scenario.scn>\n";
 
         return 1;
     }
@@ -45,8 +44,7 @@ int main(int argc, char** argv)
 
     constexpr double simulator_frequency_hz = 500.0;
 
-    constexpr auto control_period =
-        std::chrono::milliseconds{2};
+    constexpr auto control_period = std::chrono::milliseconds{2};
 
     const config::VehicleConfig vehicle_config =
         config::make_nautilus_config(control_period);
@@ -57,17 +55,13 @@ int main(int argc, char** argv)
 
     StonefishIo stonefish_io{
         StonefishIoConfig{
-            .imu_sensor_name =
-                "nautilus/imu_link",
+            .imu_sensor_name = "nautilus/imu_link",
 
-            .pressure_sensor_name =
-                "nautilus/pressure_sensor_link",
+            .pressure_sensor_name = "nautilus/pressure_sensor_link",
 
-            .dvl_sensor_name =
-                "nautilus/dvl_link",
+            .dvl_sensor_name = "nautilus/dvl_link",
 
-            .max_thruster_force_n =
-                vehicle_config.allocator.max_force,
+            .max_thruster_force_n = vehicle_config.allocator.max_force,
         },
     };
 
@@ -77,44 +71,38 @@ int main(int argc, char** argv)
         simulator_frequency_hz,
     };
 
+    KeyboardController keyboard_controller;
+    keyboard_controller.start();
+
     RuntimeState runtime_state{
         .running = true,
         .killswitch_on = false,
-        .operation_mode =
-            vortex::utils::types::Mode::autonomous,
+        .operation_mode = vortex::utils::types::Mode::manual,
     };
 
     simulator.set_step_callback(
-        [&](vortex::simulation::stonefish::
-                VortexSimulationManager& manager,
-            double dt_s)
-        {
+        [&](vortex::simulation::stonefish::VortexSimulationManager& manager,
+            double dt_s) {
             ZoneScopedN("Simulation step callback");
 
-            runtime_state.running =
-                running.load();
+            runtime_state.running = running.load();
 
             if (!runtime_state.running) {
                 stonefish_io.stop_thrusters(manager);
                 return;
             }
 
-            const SensorFrame sensors =
-                stonefish_io.read_sensors(manager);
+            const SensorFrame sensors = stonefish_io.read_sensors(manager);
 
-            const ControlOutput output =
-                vehicle_control.tick(
-                    sensors,
-                    runtime_state,
-                    dt_s);
+            const ManualCommand manual_command = keyboard_controller.command();
 
-            stonefish_io.apply_thrusters(
-                manager,
-                output);
+            const ControlOutput output = vehicle_control.tick(
+                sensors, runtime_state, manual_command, dt_s);
+
+            stonefish_io.apply_thrusters(manager, output);
 
             FrameMark;
         });
-
 
     simulator.run_graphical();
 

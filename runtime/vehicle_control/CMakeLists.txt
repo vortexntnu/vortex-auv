@@ -19,12 +19,16 @@ target_include_directories(vehicle_control_core
 add_executable(vehicle_control_simulator
   simulator/sim_main.cpp
   simulator/stonefish_io.cpp
+  simulator/keyboard_controller.cpp
 )
+
+find_package(Threads REQUIRED)
 
 target_link_libraries(vehicle_control_simulator
   PRIVATE
     vehicle_control_core
     vortex::stonefish
+    Threads::Threads
 )
 
 # add_executable(vehicle_control_hardware

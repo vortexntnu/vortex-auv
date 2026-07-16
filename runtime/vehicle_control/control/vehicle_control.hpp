@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/control_output.hpp"
+#include "common/manual_command.hpp"
 #include "common/runtime_state.hpp"
 #include "common/sensor_frame.hpp"
 #include "config/vehicle_config.hpp"
@@ -11,19 +12,16 @@
 namespace vortex::runtime::vehicle_control {
 
 class VehicleControl {
-public:
-    explicit VehicleControl(
-        const config::VehicleConfig& config);
+   public:
+    explicit VehicleControl(const config::VehicleConfig& config);
 
-    ControlOutput tick(
-        const SensorFrame& sensors,
-        const RuntimeState& runtime,
-        double dt_s);
+    ControlOutput tick(const SensorFrame& sensors,
+                       const RuntimeState& runtime,
+                       const ManualCommand& manual_command,
+                       double dt_s);
 
-private:
-    void update_estimator(
-        const SensorFrame& sensors,
-        double dt_s);
+   private:
+    void update_estimator(const SensorFrame& sensors, double dt_s);
 
     void reset_controller();
 
@@ -38,8 +36,7 @@ private:
     bool was_autonomous_enabled_ = false;
     bool eskf_initialized_ = false;
 
-    Eigen::Vector3d latest_gyro_measurement_ =
-        Eigen::Vector3d::Zero();
+    Eigen::Vector3d latest_gyro_measurement_ = Eigen::Vector3d::Zero();
 };
 
 }  // namespace vortex::runtime::vehicle_control
