@@ -27,18 +27,18 @@ target_link_libraries(vehicle_control_simulator
     vortex::stonefish
 )
 
-add_executable(vehicle_control_hardware
-  hardware/hardware_main.cpp
-  hardware/hardware_io.cpp
-)
-
-target_link_libraries(vehicle_control_hardware
-  PRIVATE
-    vehicle_control_core
-    vortex::can_interface
-    vortex::nucleus_interface
-    thruster_interface
-)
+# add_executable(vehicle_control_hardware
+#   hardware/hardware_main.cpp
+#   hardware/hardware_io.cpp
+# )
+#
+# target_link_libraries(vehicle_control_hardware
+#   PRIVATE
+#     vehicle_control_core
+#     vortex::can_interface
+#     vortex::nucleus_interface
+#     thruster_interface
+# )
 
 if(VORTEX_ENABLE_TRACY)
   target_link_libraries(vehicle_control_core

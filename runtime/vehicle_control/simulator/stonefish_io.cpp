@@ -1,15 +1,36 @@
 #include "simulator/stonefish_io.hpp"
 
-#include "simulation/stonefish/vortex_simulation_manager.hpp"
-#include "simulation/stonefish/thruster_command.hpp"
+#include <vortex/simulator/stonefish/simulator.hpp>
 
-#include "simulator/make_sim_thruster_command.hpp"
 
 #include <tracy/Tracy.hpp>
 
 #include <chrono>
 #include <stdexcept>
 #include <utility>
+
+
+namespace {
+
+vortex::simulation::stonefish::ThrusterCommand make_sim_thruster_command(
+    const Eigen::VectorXd& forces,
+    double max_force) {
+    vortex::simulation::stonefish::ThrusterCommand command{};
+
+    const auto n = std::min<Eigen::Index>(
+        static_cast<Eigen::Index>(command.command.size()), forces.size());
+
+    for (Eigen::Index i = 0; i < n; ++i) {
+        const double normalized = forces(i) / max_force;
+
+        command.command[static_cast<std::size_t>(i)] =
+            std::clamp(normalized, -1.0, 1.0);
+    }
+
+    return command;
+}
+
+} // namespace
 
 namespace vortex::runtime::vehicle_control {
 

@@ -1,10 +1,5 @@
 #include "hardware/hardware_io.hpp"
 
-#include "hardware/drivers/dvl_driver.hpp"
-#include "hardware/drivers/imu_driver.hpp"
-#include "hardware/drivers/pressure_driver.hpp"
-#include "hardware/drivers/thruster_driver.hpp"
-
 #include <tracy/Tracy.hpp>
 
 #include <algorithm>
