@@ -91,29 +91,21 @@ int main(int argc, char** argv) {
             control_period);
 
     vortex::guidance::WaypointGuidanceManager guidance{vehicle_config.guidance};
-
     vortex::control::DPAdaptBacksController controller{
         vehicle_config.controller};
-
     vortex::propulsion::ThrustAllocator allocator{vehicle_config.allocator};
-
     ESKF eskf{vehicle_config.eskf};
-
     const Eigen::Matrix3d dvl_measurement_noise =
         vehicle_config.dvl_measurement_noise;
-
     const double pressure_measurement_noise_pa2 =
         vehicle_config.pressure_measurement_noise_pa2;
 
     bool killswitch_on = false;
-
     auto operation_mode = vortex::utils::types::Mode::autonomous;
-
     bool was_autonomous_enabled = false;
     bool eskf_initialized = false;
 
     Eigen::Vector3d position_world = Eigen::Vector3d::Zero();
-
     Eigen::Quaterniond q_world_body = Eigen::Quaterniond::Identity();
 
     Eigen::Vector3d latest_gyro_measurement = Eigen::Vector3d::Zero();
